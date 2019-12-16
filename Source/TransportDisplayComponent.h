@@ -34,34 +34,21 @@
                                                                     //[/Comments]
 */
 class TransportDisplayComponent  : public Component
-    , public Label::Listener
 {
 public:
     //==============================================================================
     TransportDisplayComponent ();
     ~TransportDisplayComponent() override;
 
-    //==============================================================================
-    //[UserMethods]     -- You can add your own custom methods in this section.
-    //[/UserMethods]
-
     void paint (Graphics& g) override;
     void resized() override;
-    virtual void labelTextChanged(Label* label) override;
-
 
 
 private:
-    //[UserVariables]   -- You can add your own custom variables in this section.
-    //[/UserVariables]
-    std::unique_ptr<DraggableLabel> bars;
-    std::unique_ptr<DraggableLabel> beat;
-    std::unique_ptr<DraggableLabel> quat;
-    std::unique_ptr<DraggableLabel> cent;
-    juce::Array<DraggableLabel*> m_DragLabels;
-
-    //==============================================================================
-
+    DraggableLabel m_bars;
+    DraggableLabel m_beat;
+    DraggableLabel m_quat;
+    DraggableLabel m_cent;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransportDisplayComponent)

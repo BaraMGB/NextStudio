@@ -28,28 +28,19 @@
 
 //==============================================================================
 TransportDisplayComponent::TransportDisplayComponent () :
-    bars (new DraggableLabel(1, 1, 999, ".", Justification::centredRight, true)),
-    beat (new DraggableLabel(1, 1, 4,   ".", Justification::centredRight, false)),
-    quat (new DraggableLabel(1, 1, 4,   ".", Justification::centredRight, false)),
-    cent (new DraggableLabel(1, 1, 99,  "",  Justification::centredRight, false))
+    m_bars(1, 1, 999,  ".", Justification::centredRight),
+    m_beat (1, 1, 4,   ".", Justification::centredRight),
+    m_quat (1, 1, 4,   ".", Justification::centredRight),
+    m_cent (1, 1, 99,  "" , Justification::centredRight)
 {
-    m_DragLabels.clear();
+    addAndMakeVisible(m_bars);
+    addAndMakeVisible(m_beat);
+    addAndMakeVisible(m_quat);
+    addAndMakeVisible(m_cent);
 
-    m_DragLabels.add(bars.get());
-    addAndMakeVisible(bars.get());
-    bars.get()->addListener(this);
-
-    m_DragLabels.add(beat.get());
-    addAndMakeVisible(beat.get());
-    beat.get()->addListener(this);
-
-    m_DragLabels.add(quat.get());
-    addAndMakeVisible(quat.get());
-    quat.get()->addListener(this);
-
-    m_DragLabels.add(cent.get());
-    addAndMakeVisible(cent.get());
-    cent.get()->addListener(this);
+    m_cent.addChangeListener(&m_quat);
+    m_quat.addChangeListener(&m_beat);
+    m_beat.addChangeListener(&m_bars);
 
     setSize (600, 400);
 }
@@ -70,37 +61,13 @@ void TransportDisplayComponent::resized()
         FlexBox::AlignItems::flexStart, FlexBox::JustifyContent::flexStart };
 
     int w = 35;
-    for (auto i : m_DragLabels)
-    {
-        flexbox.items.add(FlexItem(w, getHeight(), *i));
-    }
+    flexbox.items.add(FlexItem(w, getHeight(), m_bars));
+    flexbox.items.add(FlexItem(w, getHeight(), m_beat));
+    flexbox.items.add(FlexItem(w, getHeight(), m_quat));
+    flexbox.items.add(FlexItem(w, getHeight(), m_cent));
     flexbox.performLayout(getLocalBounds());
 }
 
-void TransportDisplayComponent::labelTextChanged(Label* label)
-{
-    DraggableLabel * dragLabel = dynamic_cast<DraggableLabel*> (label);
-    if (dragLabel)
-    {
-
-        // Our DragLabel flipped over it's min or max value
-        if (dragLabel->isOverflow())
-        {
-            //iterate over m_Drables
-            for (auto i = 0; i < m_DragLabels.size(); i++)
-            {
-                if (   dragLabel == m_DragLabels.getReference(i)
-                    && dragLabel != *m_DragLabels.begin())
-                {
-                       //Count down or up the predecessor
-                        m_DragLabels.getReference(i-1)->count(dragLabel->overflowCount());
-                }
-            }
-        }
-    }
-    dragLabel = nullptr;
-    delete dragLabel;
-}
 
 
 

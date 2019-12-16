@@ -16,9 +16,11 @@
 /*
 */
 class DraggableLabel : public Label
+                     , public ChangeBroadcaster
+                     , public ChangeListener
 {
 public:
-    DraggableLabel(int value, int minValue, int maxValue, String separator, Justification justification, bool first);
+    DraggableLabel(int value, int minValue, int maxValue, String separator, Justification justification);
     ~DraggableLabel() override
     {
     }
@@ -27,6 +29,8 @@ public:
     void mouseUp(const MouseEvent& /*event*/) override;
     void mouseDrag(const MouseEvent& event) override;
     void resized() override;
+
+    void changeListenerCallback(ChangeBroadcaster *source) override;
 
     void count(const int step);
     void setValue(const int value);
@@ -39,23 +43,8 @@ public:
     {
         return m_overflow;
     }
-    inline bool isOverflow()
-    {
-        return m_overFlowFlag;
-    }
-    inline void clearOverflowFlag()
-    {
-        m_overFlowFlag = false;
-    }
-    inline bool isFirst()
-    {
-        return m_first;
-    }
 
 
-    int getMinValue() const;
-
-    void setMinFlag(bool minFlag);
 
 private:
 
@@ -64,8 +53,7 @@ private:
            m_maxValue,
            m_valueTmp,
            m_overflow;
-    bool   m_overFlowFlag,
-           m_first;
+
     String m_separator;
     float  m_accuracy;
 

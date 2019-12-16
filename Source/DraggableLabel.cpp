@@ -12,10 +12,9 @@
 #include "DraggableLabel.h"
 
 //==============================================================================
-DraggableLabel::DraggableLabel(int value, int minValue, int maxValue, String separator, Justification justification, bool first)
-    : m_valueTmp    (0),
+DraggableLabel::DraggableLabel(int value, int minValue, int maxValue, String separator, Justification justification)
+    : m_valueTmp            (0),
       m_overflow            (0),
-      m_first               (first),
       m_separator           (separator),
       m_accuracy            (0.1f)
 {
@@ -53,9 +52,20 @@ void DraggableLabel::resized()
 
 }
 
+void DraggableLabel::changeListenerCallback(ChangeBroadcaster *source)
+{
+
+    DraggableLabel * sourceDragLabel = dynamic_cast<DraggableLabel*> (source);
+    if (sourceDragLabel)
+    {
+        count(sourceDragLabel->overflowCount());
+    }
+    sourceDragLabel = nullptr;
+    delete sourceDragLabel;
+}
+
 void DraggableLabel::count(const int step)
 {
-    m_overFlowFlag = false;
     int value = m_value;
     value = value + step;
     const int rangeDistance = m_maxValue - m_minValue + 1;
@@ -63,16 +73,15 @@ void DraggableLabel::count(const int step)
     {
         value = value - rangeDistance;
         m_value = m_value - rangeDistance;
+        sendChangeMessage();
         m_overflow = 1;
-        m_overFlowFlag = true;
-
     }
     else if (value < m_minValue)
     {
             value = value + rangeDistance;
             m_value = m_value + rangeDistance;
             m_overflow = -1;
-            m_overFlowFlag = true;
+            sendChangeMessage();
     }
     setValue(value);
 }
@@ -94,8 +103,4 @@ void DraggableLabel::setValue(const int value)
     setText(String(m_value) + m_separator, juce::NotificationType::sendNotification);
 }
 
-int DraggableLabel::getMinValue() const
-{
-    return m_minValue;
-}
 
