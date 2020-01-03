@@ -28,10 +28,10 @@
 
 //==============================================================================
 TransportDisplayComponent::TransportDisplayComponent () :
-    m_bars(1, 1, 999,  ".", Justification::centredRight),
-    m_beat (1, 1, 4,   ".", Justification::centredRight),
-    m_quat (1, 1, 4,   ".", Justification::centredRight),
-    m_cent (1, 1, 99,  "" , Justification::centredRight)
+    m_bars(1, 1, 999,  ".", Justification::centredRight,1),
+    m_beat (1, 1, 4,   ".", Justification::centredRight,2),
+    m_quat (1, 1, 4,   ".", Justification::centredRight,3),
+    m_cent (1, 1, 99,  "" , Justification::centredRight,4)
 {
     addAndMakeVisible(m_bars);
     addAndMakeVisible(m_beat);

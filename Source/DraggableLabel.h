@@ -20,13 +20,12 @@ class DraggableLabel : public Label
                      , public ChangeListener
 {
 public:
-    DraggableLabel(int value, int minValue, int maxValue, String separator, Justification justification);
+    DraggableLabel(int value, int minValue, int maxValue, String separator, Justification justification, int position=-1);
     ~DraggableLabel() override
     {
     }
 
     void paint(Graphics& g) override;
-    void mouseUp(const MouseEvent& /*event*/) override;
     void mouseDrag(const MouseEvent& event) override;
     void resized() override;
 
@@ -46,6 +45,11 @@ public:
 
 
 
+    void setDownStop(bool downStop);
+
+
+    int getMinValue() const;
+
 private:
 
     int    m_value,
@@ -53,6 +57,8 @@ private:
            m_maxValue,
            m_valueTmp,
            m_overflow;
+    bool   m_downStop;
+    int    m_position;
 
     String m_separator;
     float  m_accuracy;

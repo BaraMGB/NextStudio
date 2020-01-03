@@ -19,12 +19,9 @@
 
 #pragma once
 
-//[Headers]     -- You can add your own extra header files here --
+
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TransportDisplayComponent.h"
-//[/Headers]
-
-
 
 //==============================================================================
 /**
@@ -38,31 +35,17 @@ class HeaderComponent : public Component
     , public Button::Listener
 {
 public:
-    //==============================================================================
     HeaderComponent (int height, int width);
-    ~HeaderComponent();
-
-    //==============================================================================
-    //[UserMethods]     -- You can add your own custom methods in this section.
-    //[/UserMethods]
+    ~HeaderComponent() override;
 
     void paint (Graphics& g) override;
     void resized() override;
-
     void buttonClicked(Button* button) override;
 
 private:
-    //[UserVariables]   -- You can add your own custom variables in this section.
-    //[/UserVariables]
     TextButton m_loadButton, m_saveButton, m_playButton, m_stopButton, m_recordButton;
     TransportDisplayComponent m_transportDisplay;
-    //==============================================================================
 
-
-    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };
-
-//[EndFile] You can add extra defines here...
-//[/EndFile]
 
