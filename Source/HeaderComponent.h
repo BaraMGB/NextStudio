@@ -1,51 +1,35 @@
 /*
   ==============================================================================
 
-  This is an automatically generated GUI class created by the Projucer!
-
-  Be careful when adding custom code to these files, as only the code within
-  the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
-  and re-saved.
-
-  Created with Projucer version: 5.4.5
-
-  ------------------------------------------------------------------------------
-
-  The Projucer is part of the JUCE library.
-  Copyright (c) 2017 - ROLI Ltd.
+    HeaderComponent.h
+    Created: 7 Jan 2020 8:31:11pm
+    Author:  Zehn
 
   ==============================================================================
 */
 
 #pragma once
 
-
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TransportDisplayComponent.h"
 
 //==============================================================================
-/**
-                                                                    //[Comments]
-    An auto-generated component, created by the Projucer.
-
-    Describe your class and how it works here!
-                                                                    //[/Comments]
+/*
 */
-class HeaderComponent : public Component
-    , public Button::Listener
+class HeaderComponent    : public Component
+                         , public Button::Listener
 {
 public:
-    HeaderComponent (int height, int width);
-    ~HeaderComponent() override;
+    HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit* edit);
+    ~HeaderComponent();
 
-    void paint (Graphics& g) override;
+    void paint (Graphics&) override;
     void resized() override;
-    void buttonClicked(Button* button) override;
+    void buttonClicked(Button* button);
 
 private:
     TextButton m_loadButton, m_saveButton, m_playButton, m_stopButton, m_recordButton;
     TransportDisplayComponent m_transportDisplay;
-
+    tracktion_engine::Edit* m_edit;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };
-

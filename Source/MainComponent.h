@@ -10,41 +10,15 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "HeaderComponent.h"
+#include "NextLookAndFeel.h"
+#include "SongEditorComponent.h"
 
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class NextLookAndFeel : public LookAndFeel_V4
-{
-public:
-    NextLookAndFeel()
-    {
-    }
-    void drawButtonBackground(Graphics& g, Button& button, const Colour& backgroundColour,
-        bool isMouseOverButton, bool isButtonDown) override
-    {
-        auto buttonArea = button.getLocalBounds();
-        auto edge = 1;
 
-      
-
-        g.setColour(Colours::black);
-        g.fillRect(buttonArea);
-        buttonArea.reduce(edge, edge);
-        float gradientContrast = 0.1f; 
-        ColourGradient cg(Colour(90,90,90), buttonArea.getX(), buttonArea.getY(),Colour(66,66,66) , buttonArea.getX(),buttonArea.getHeight() , false);
-        g.setFillType(cg);
-        g.fillRect(buttonArea);
-
-    }
-
-    Font getTextButtonFont(TextButton&, int buttonHeight) override
-    {
-        return { jmin(10.0f, buttonHeight * 0.6f) };
-    }
-};
 
 class MainComponent   : public AudioAppComponent
                       , public FileBrowserListener
@@ -64,6 +38,7 @@ public:
     void paint (Graphics& g) override;
     void resized() override;
     void buttonClicked(Button* button) override;
+    
 private:
     void selectionChanged()                           override {}
     void fileClicked (const File&, const MouseEvent&) override {}
@@ -78,11 +53,16 @@ private:
     TimeSliceThread m_thread;
     DirectoryContentsList m_dirConList;
     FileTreeComponent m_tree;
-    Component m_songEditor;
     StretchableLayoutManager m_stretchableManager;
     StretchableLayoutResizerBar m_resizerBar{ &m_stretchableManager, 1, true };
     HeaderComponent m_header;
+    SongEditorComponent m_songEditor;
     NextLookAndFeel m_nextLookAndFeel;
+
+    tracktion_engine::Engine engine{ ProjectInfo::projectName };
+    tracktion_engine::Edit edit{ engine, tracktion_engine::createEmptyEdit(),
+        tracktion_engine::Edit::forEditing, nullptr, 0 };
+
 
 
     const int c_headerHeight = 50;

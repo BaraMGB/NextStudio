@@ -13,7 +13,8 @@ MainComponent::MainComponent() :
     m_thread("Tread"),
     m_dirConList(nullptr, m_thread),
     m_tree(m_dirConList),
-    m_header(getWidth(), c_headerHeight)
+    
+    m_header(getWidth(), c_headerHeight, &edit )
 
 {
     setLookAndFeel(&m_nextLookAndFeel);
@@ -24,7 +25,12 @@ MainComponent::MainComponent() :
     m_tree.addListener(this);
 
     addAndMakeVisible(m_tree);
+
     addAndMakeVisible(m_songEditor);
+    
+
+    getLookAndFeel().setColour(ScrollBar::thumbColourId, Colour(0xff2c2c2c));
+
     addAndMakeVisible(m_resizerBar);
     m_stretchableManager.setItemLayout(0,            // for the fileTree
         -0.1, -0.9,   // must be between 50 pixels and 90% of the available space
@@ -39,6 +45,8 @@ MainComponent::MainComponent() :
     // Buttons
     addAndMakeVisible(m_header);
 
+    
+   
     setSize(1600, 900);
 
     // Some platforms require permissions to open input channels so request that here
@@ -108,7 +116,7 @@ void MainComponent::resized()
     auto area = getLocalBounds();
 
     auto sidebarWidth = getLocalBounds().getWidth() / 5;
-    Colour darkblue(0x1b, 0x27, 0x39);
+   
     Component* comps[] = { &m_tree, &m_resizerBar, &m_songEditor };
 
     // this will position the 3 components, one above the other, to fit
@@ -116,11 +124,12 @@ void MainComponent::resized()
     m_stretchableManager.layOutComponents(comps, 3,
         area.getX(), area.getY()+ c_headerHeight, area.getWidth(), area.getHeight() - (c_footerHeight + c_headerHeight),
         false, true);
-    m_tree.setColour(TreeView::ColourIds::backgroundColourId, darkblue);
-    m_header.setSize(area.getWidth(), c_headerHeight); 
-    
+
+    m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff2c2c2c));
+    m_header.setBounds(area.getX(), area.getY(), area.getWidth(), c_headerHeight);
 }
 
 void MainComponent::buttonClicked(Button* button)
 {
+    
 }
