@@ -38,7 +38,7 @@ HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit *
 
     addAndMakeVisible(m_transportDisplay);
 
-
+    startTimer(10);
 
     setSize(height, width);
 
@@ -80,6 +80,19 @@ void HeaderComponent::buttonClicked(Button* button)
     if (button == &m_playButton)
     {
         EngineHelpers::togglePlay(*m_edit);
-        std::cout << m_edit->getTransport().isPlaying() << std::endl;
+        m_playButton.setButtonText(m_edit->getTransport().isPlaying() ? "Pause" : "Play");
+    }
+    if (button == &m_stopButton)
+    {
+        m_edit->getTransport().stop(false,true);
+        m_edit->getTransport().setCurrentPosition(0);
     }
 }
+
+void HeaderComponent::timerCallback()
+{
+
+    auto posInSec = m_edit->getTransport().getCurrentPosition();
+    m_transportDisplay.setPosition(getPPQPos(posInSec));
+}
+

@@ -24,6 +24,7 @@ public:
     void paint(Graphics& g) override;
     void resized() override;
     void setPosition(double ppqPosition);
+   
 
 
 private:
@@ -31,5 +32,6 @@ private:
     DraggableLabel m_beat;
     DraggableLabel m_quat;
     DraggableLabel m_cent;
+   
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransportDisplayComponent)
 };
