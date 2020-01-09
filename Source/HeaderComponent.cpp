@@ -13,8 +13,8 @@
 #include "Utilities.h"
 
 //==============================================================================
-HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit * edit)
-    : m_edit(edit)
+HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit * m_edit)
+    : m_edit(m_edit)
 {
     addAndMakeVisible(m_loadButton);
     m_loadButton.setButtonText("Load");

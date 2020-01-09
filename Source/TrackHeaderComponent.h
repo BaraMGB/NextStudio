@@ -11,6 +11,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ClipComponent.h"
 
 
 //==============================================================================
@@ -32,6 +33,7 @@ public:
 
 class TrackHeaderComponent    : public Component
                               , public Slider::Listener
+                              , public ChangeBroadcaster
 {
 public:
     TrackHeaderComponent();
@@ -63,6 +65,19 @@ public:
         m_height = height;
     }
 
+    ClipComponent* createClip(double position, double length)
+    {
+        auto clip = new ClipComponent(position, length);
+        m_clips.add(clip);
+        sendChangeMessage();
+        return clip;
+    }
+
+    Array<ClipComponent*> * getClips()
+    {
+        return &m_clips;
+    }
+
 private:
     Colour m_trackColour;
     Label m_TrackLabel;
@@ -73,8 +88,7 @@ private:
     PeakDisplayComponent m_peakDisplay;
     String m_trackName;
     int m_height;
+    Array<ClipComponent*> m_clips;
 
-
-private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)
 };

@@ -59,8 +59,8 @@ private:
     SongEditorComponent m_songEditor;
     NextLookAndFeel m_nextLookAndFeel;
 
-    tracktion_engine::Engine engine{ ProjectInfo::projectName };
-    tracktion_engine::Edit edit{ engine, tracktion_engine::createEmptyEdit(),
+    tracktion_engine::Engine m_engine{ ProjectInfo::projectName };
+    tracktion_engine::Edit m_edit{ m_engine, tracktion_engine::createEmptyEdit(),
         tracktion_engine::Edit::forEditing, nullptr, 0 };
 
 

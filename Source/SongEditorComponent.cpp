@@ -10,15 +10,19 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SongEditorComponent.h"
+#include "ClipComponent.h"
+
+
 
 //==============================================================================
 SongEditorComponent::SongEditorComponent()
+    : m_arranger(new ArrangerComponent(&m_tracks))
 {
-   /* addAndMakeVisible(m_arrangerViewport);
-    m_arrangerViewport.getVerticalScrollBar().addListener(this);
-    m_arrangerViewport.addAndMakeVisible(m_arrangerComponent);
-    m_arrangerViewport.setViewedComponent(&m_arrangerComponent, false);
-    m_arrangerViewport.setScrollBarsShown(true, true, true, true);*/
+    addAndMakeVisible(m_arrangeViewport);
+    m_arrangeViewport.addChangeListener(this);
+    m_arrangeViewport.addAndMakeVisible(m_arranger);
+    m_arrangeViewport.setViewedComponent(m_arranger, false);
+    m_arrangeViewport.setScrollBarsShown(true, true, true, true);
 
     addTrack();
     addTrack();
@@ -39,8 +43,6 @@ SongEditorComponent::~SongEditorComponent()
 
 void SongEditorComponent::paint (Graphics& g)
 {
-   /* g.setColour(Colour(0xffff0000));
-    g.fillRect(0,0,50,50);*/
 }
 
 void SongEditorComponent::resized()
@@ -52,17 +54,19 @@ void SongEditorComponent::resized()
     {
         auto track = m_tracks.getReference(i);
         auto trackRect = trackRack.removeFromTop(track->getTrackheight());
-        track->setBounds(trackRect);
-        
+        track->setBounds(trackRect.getX(),
+                         trackRect.getY() - m_arrangeViewport.getVerticalScrollBar().getCurrentRangeStart(),
+                         trackRack.getWidth(),
+                         track->getTrackheight());
     }
-
-    
+    m_arrangeViewport.setBounds(area);
 }
 
 void SongEditorComponent::addTrack()
 {
     auto track = new TrackHeaderComponent();
     addAndMakeVisible(track);
+    track->addChangeListener(m_arranger);
     auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
@@ -70,3 +74,11 @@ void SongEditorComponent::addTrack()
     track->setTrackName("Track " + String(m_tracks.size() + 1));
     m_tracks.add(track);
 }
+
+void SongEditorComponent::changeListenerCallback(ChangeBroadcaster* source)
+{
+    //reposition the TrackRack
+    resized();
+}
+
+

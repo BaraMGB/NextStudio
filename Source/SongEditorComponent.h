@@ -12,11 +12,28 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackHeaderComponent.h"
+#include "ArrangerComponent.h"
+
+class ScrollArea : public Viewport
+                 , public ChangeBroadcaster
+{
+public:
+    ScrollArea() {}
+    ~ScrollArea() {}
+
+    void visibleAreaChanged(const Rectangle<int>& newVisableArea) override
+    {
+        sendChangeMessage();
+    }
+
+
+};
 
 //==============================================================================
 /*
 */
 class SongEditorComponent    : public Component
+                             , public ChangeListener
 {
 public:
     SongEditorComponent();
@@ -26,8 +43,12 @@ public:
     void resized() override;
     void addTrack();
 
+    void changeListenerCallback(ChangeBroadcaster* source) override;
+
 private:
     Array<TrackHeaderComponent*> m_tracks;
+    ScrollArea m_arrangeViewport;
+    ArrangerComponent * m_arranger;
 
 
 

@@ -14,7 +14,7 @@ MainComponent::MainComponent() :
     m_dirConList(nullptr, m_thread),
     m_tree(m_dirConList),
     
-    m_header(getWidth(), c_headerHeight, &edit )
+    m_header(getWidth(), c_headerHeight, &m_edit )
 
 {
     setLookAndFeel(&m_nextLookAndFeel);
@@ -25,7 +25,6 @@ MainComponent::MainComponent() :
     m_tree.addListener(this);
 
     addAndMakeVisible(m_tree);
-
     addAndMakeVisible(m_songEditor);
     
 
@@ -44,9 +43,9 @@ MainComponent::MainComponent() :
         -0.85);        // and its preferred size is 70% of the total available space
     // Buttons
     addAndMakeVisible(m_header);
-
+    m_edit.tempoSequence.getTempos()[0]->setBpm(140);
     
-   
+    
     setSize(1600, 900);
 
     // Some platforms require permissions to open input channels so request that here

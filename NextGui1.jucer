@@ -33,6 +33,9 @@
             resource="0" file="Source/TransportDisplayComponent.cpp"/>
       <FILE id="E9888v" name="TransportDisplayComponent.h" compile="0" resource="0"
             file="Source/TransportDisplayComponent.h"/>
+      <FILE id="wuHwAo" name="ClipComponent.cpp" compile="1" resource="0"
+            file="Source/ClipComponent.cpp"/>
+      <FILE id="PQrsns" name="ClipComponent.h" compile="0" resource="0" file="Source/ClipComponent.h"/>
     </GROUP>
     <FILE id="IRKKik" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
   </MAINGROUP>

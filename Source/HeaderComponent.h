@@ -21,7 +21,7 @@ class HeaderComponent    : public Component
                          , private Timer
 {
 public:
-    HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit* edit);
+    HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit* m_edit);
     ~HeaderComponent();
 
     void paint (Graphics&) override;
@@ -30,7 +30,8 @@ public:
     void timerCallback() override;
     double getPPQPos(double time)
     {
-        double ppqPerSecond = 120/*bpm*/ / 60 * 480;
+        double tempo = m_edit->tempoSequence.getTempos()[0]->getBpm();
+        double ppqPerSecond = tempo / 60 * m_edit->ticksPerQuarterNote;
         return time * ppqPerSecond;
     }
 

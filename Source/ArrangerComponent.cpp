@@ -12,11 +12,11 @@
 #include "ArrangerComponent.h"
 
 //==============================================================================
-ArrangerComponent::ArrangerComponent()
+ArrangerComponent::ArrangerComponent(Array<TrackHeaderComponent*> *tracks)
+    : m_trackComponents(tracks)
 {
-    // In your constructor, you should add any child components, and
-    // initialise any special settings that your component needs.
-
+    
+    setSize(3000, 3000);
 }
 
 ArrangerComponent::~ArrangerComponent()
@@ -25,27 +25,32 @@ ArrangerComponent::~ArrangerComponent()
 
 void ArrangerComponent::paint (Graphics& g)
 {
-    /* This demo code just fills the component's background and
-       draws some placeholder text to get you started.
-
-       You should replace everything in this method with your own
-       drawing code..
-    */
-
-    g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));   // clear the background
-
-    g.setColour (Colours::grey);
-    g.drawRect (getLocalBounds(), 1);   // draw an outline around the component
-
-    g.setColour (Colours::white);
-    g.setFont (14.0f);
-    g.drawText ("ArrangerComponent", getLocalBounds(),
-                Justification::centred, true);   // draw some placeholder text
+    g.fillAll (Colour(0xff181818));   // clear the background
+    auto area = getLocalBounds();
+    g.setColour (Colours::black);
+    
+    for(auto i = 0; i < m_trackComponents->size(); i++)
+    {
+        auto track = m_trackComponents->getReference(i);
+        auto height = track->getTrackheight();
+        area.removeFromTop(height);
+        g.drawLine(area.getX(), area.getY(), area.getWidth(), area.getY());
+       
+    }
 }
 
 void ArrangerComponent::resized()
 {
-    // This method is where you should set the bounds of any child
-    // components that your component contains..
-
+    auto area = getLocalBounds();
+    for (auto i = 0; i < m_trackComponents->size(); i++)
+    {
+        auto track = m_trackComponents->getReference(i);
+        for (auto j = 0; j < track->getClips()->size(); j++)
+        {
+            auto clip = track->getClips()->getReference(j);
+            clip->setBounds(area.getX(), area.getY(), clip->clipLength(), track->getTrackheight());
+            clip->setClipColour(track->trackColour());
+        }
+        area.removeFromTop(track->getTrackheight());
+    }
 }
