@@ -21,7 +21,7 @@ class HeaderComponent    : public Component
                          , private Timer
 {
 public:
-    HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit* m_edit);
+    HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit& edit);
     ~HeaderComponent();
 
     void paint (Graphics&) override;
@@ -30,8 +30,8 @@ public:
     void timerCallback() override;
     double getPPQPos(double time)
     {
-        double tempo = m_edit->tempoSequence.getTempos()[0]->getBpm();
-        double ppqPerSecond = tempo / 60 * m_edit->ticksPerQuarterNote;
+        double tempo = m_edit.tempoSequence.getTempos()[0]->getBpm();
+        double ppqPerSecond = tempo / 60 * m_edit.ticksPerQuarterNote;
         return time * ppqPerSecond;
     }
 
@@ -39,6 +39,6 @@ public:
 private:
     TextButton m_loadButton, m_saveButton, m_playButton, m_stopButton, m_recordButton;
     TransportDisplayComponent m_transportDisplay;
-    tracktion_engine::Edit* m_edit;
+    tracktion_engine::Edit& m_edit;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };

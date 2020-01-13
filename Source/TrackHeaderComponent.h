@@ -36,7 +36,7 @@ class TrackHeaderComponent    : public Component
                               , public ChangeBroadcaster
 {
 public:
-    TrackHeaderComponent();
+    TrackHeaderComponent(tracktion_engine::Edit& edit);
     ~TrackHeaderComponent();
 
     void paint(Graphics& g) override;
@@ -89,6 +89,8 @@ private:
     String m_trackName;
     int m_height;
     Array<ClipComponent*> m_clips;
+    tracktion_engine::Edit& m_edit;
+    
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)
 };

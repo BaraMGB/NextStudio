@@ -48,7 +48,7 @@ void ArrangerComponent::resized()
         for (auto j = 0; j < track->getClips()->size(); j++)
         {
             auto clip = track->getClips()->getReference(j);
-            clip->setBounds(area.getX(), area.getY(), clip->clipLength(), track->getTrackheight());
+            clip->setBounds(area.getX() + clip->clipPosition() , area.getY(), clip->clipLength(), track->getTrackheight());
             clip->setClipColour(track->trackColour());
         }
         area.removeFromTop(track->getTrackheight());

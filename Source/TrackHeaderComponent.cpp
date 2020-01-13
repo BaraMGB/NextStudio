@@ -12,10 +12,12 @@
 #include "TrackHeaderComponent.h"
 
 //==============================================================================
-TrackHeaderComponent::TrackHeaderComponent():
+TrackHeaderComponent::TrackHeaderComponent(tracktion_engine::Edit& edit):
     m_trackColour(Colours::aqua),
-    m_height(50)
+    m_height(50),
+    m_edit(edit)
 {
+    
     m_TrackLabel.setText(getTrackName(), NotificationType::dontSendNotification);
     addAndMakeVisible(m_TrackLabel);
 
@@ -27,7 +29,7 @@ TrackHeaderComponent::TrackHeaderComponent():
     m_armingButton.setName("O");
 
     addAndMakeVisible(m_volumeKnob);
-    m_volumeKnob.setRange(0.0, 1.0);
+    m_volumeKnob.setRange(0, 127, 1);
     m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
     m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
     m_volumeKnob.addListener(this);
@@ -85,7 +87,7 @@ void TrackHeaderComponent::resized()
 
 void TrackHeaderComponent::sliderValueChanged(Slider* slider)
 {
-
+    
 }
 
 Colour TrackHeaderComponent::trackColour() const

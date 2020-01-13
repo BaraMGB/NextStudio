@@ -14,9 +14,11 @@
 
 
 
+
 //==============================================================================
-SongEditorComponent::SongEditorComponent()
+SongEditorComponent::SongEditorComponent(tracktion_engine::Edit &edit)
     : m_arranger(new ArrangerComponent(&m_tracks))
+    , m_edit(&edit)
 {
     addAndMakeVisible(m_arrangeViewport);
     m_arrangeViewport.addChangeListener(this);
@@ -24,16 +26,8 @@ SongEditorComponent::SongEditorComponent()
     m_arrangeViewport.setViewedComponent(m_arranger, false);
     m_arrangeViewport.setScrollBarsShown(true, true, true, true);
 
-    addTrack();
-    addTrack();
-    addTrack();
-    addTrack();
-    addTrack();
-    addTrack();
-    addTrack();
-    addTrack();
 
-
+    
    //addAndMakeVisible(m_toolBox);
 }
 
@@ -62,23 +56,46 @@ void SongEditorComponent::resized()
     m_arrangeViewport.setBounds(area);
 }
 
-void SongEditorComponent::addTrack()
+void SongEditorComponent::addTrack(File& f)
 {
-    auto track = new TrackHeaderComponent();
-    addAndMakeVisible(track);
-    track->addChangeListener(m_arranger);
+    auto trackComponent = new TrackHeaderComponent(*m_edit);
+    addAndMakeVisible(trackComponent);
+    trackComponent->addChangeListener(m_arranger);
     auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-    track->setTrackColour(Colour(red, gre, blu));
-    track->setTrackName("Track " + String(m_tracks.size() + 1));
-    m_tracks.add(track);
+    trackComponent->setTrackColour(Colour(red, gre, blu));
+    trackComponent->setTrackName("Track " + String(m_tracks.size() + 1));
+    m_tracks.add(trackComponent);
+    if (auto track = getOrInsertAudioTrackAt(m_tracks.size()))
+    {
+        removeAllClips(*track);
+        // Add a new clip to this track
+        tracktion_engine::AudioFile audioFile(f);
+
+        if (audioFile.isValid())
+            if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
+                { { 0.0, audioFile.getLength() }, 0.0 }, false))
+            {
+                m_arranger->addAndMakeVisible(trackComponent->createClip(0, audioFile.getLength()));
+                m_arranger->resized();
+                m_arranger->repaint();
+            }
+    }
+    resized();
+
 }
 
 void SongEditorComponent::changeListenerCallback(ChangeBroadcaster* source)
 {
     //reposition the TrackRack
     resized();
+}
+
+tracktion_engine::AudioTrack* SongEditorComponent::getOrInsertAudioTrackAt(int index)
+{
+    m_edit->ensureNumberOfAudioTracks(index + 1);
+    return tracktion_engine::getAudioTracks(*m_edit)[index];
 }
 
 

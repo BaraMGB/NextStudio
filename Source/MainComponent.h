@@ -47,21 +47,36 @@ private:
         auto selectedFile = m_tree.getSelectedFile();
         if (selectedFile.existsAsFile())
         {
+            m_songEditor->addTrack(selectedFile);
         }
     }
+
+    void removeAllClips(tracktion_engine::AudioTrack& track)
+    {
+        auto clips = track.getClips();
+
+        for (int i = clips.size(); --i >= 0;)
+            clips.getUnchecked(i)->removeFromParentTrack();
+    }
+
+    tracktion_engine::AudioTrack* getOrInsertAudioTrackAt(tracktion_engine::Edit& edit, int index)
+    {
+        edit.ensureNumberOfAudioTracks(index + 1);
+        return tracktion_engine::getAudioTracks(edit)[index];
+    }
+
     void browserRootChanged(const File&) override {}
     TimeSliceThread m_thread;
     DirectoryContentsList m_dirConList;
     FileTreeComponent m_tree;
     StretchableLayoutManager m_stretchableManager;
     StretchableLayoutResizerBar m_resizerBar{ &m_stretchableManager, 1, true };
-    HeaderComponent m_header;
-    SongEditorComponent m_songEditor;
+    std::unique_ptr<HeaderComponent> m_header;
+    std::unique_ptr<SongEditorComponent> m_songEditor;
     NextLookAndFeel m_nextLookAndFeel;
 
     tracktion_engine::Engine m_engine{ ProjectInfo::projectName };
-    tracktion_engine::Edit m_edit{ m_engine, tracktion_engine::createEmptyEdit(),
-        tracktion_engine::Edit::forEditing, nullptr, 0 };
+    std::unique_ptr<tracktion_engine::Edit> m_edit;
 
 
 

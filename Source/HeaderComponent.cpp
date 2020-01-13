@@ -10,11 +10,11 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "HeaderComponent.h"
-#include "Utilities.h"
+
 
 //==============================================================================
-HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit * m_edit)
-    : m_edit(m_edit)
+HeaderComponent::HeaderComponent(int width, int height, tracktion_engine::Edit& edit)
+    : m_edit(edit)
 {
     addAndMakeVisible(m_loadButton);
     m_loadButton.setButtonText("Load");
@@ -40,7 +40,7 @@ HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit *
 
     startTimer(10);
 
-    setSize(height, width);
+    setSize(width, height);
 
 }
 
@@ -79,20 +79,26 @@ void HeaderComponent::buttonClicked(Button* button)
 {
     if (button == &m_playButton)
     {
-        EngineHelpers::togglePlay(*m_edit);
-        m_playButton.setButtonText(m_edit->getTransport().isPlaying() ? "Pause" : "Play");
+        auto& transport = m_edit.getTransport();
+
+        if (transport.isPlaying())
+            transport.stop(false, false);
+        else
+            transport.play(false);
+
+        m_playButton.setButtonText(m_edit.getTransport().isPlaying() ? "Pause" : "Play");
     }
     if (button == &m_stopButton)
     {
-        m_edit->getTransport().stop(false,true);
-        m_edit->getTransport().setCurrentPosition(0);
+        m_edit.getTransport().stop(false,true);
+        m_edit.getTransport().setCurrentPosition(0);
     }
 }
 
 void HeaderComponent::timerCallback()
 {
 
-    auto posInSec = m_edit->getTransport().getCurrentPosition();
+    auto posInSec = m_edit.getTransport().getCurrentPosition();
     m_transportDisplay.setPosition(getPPQPos(posInSec));
 }
 
