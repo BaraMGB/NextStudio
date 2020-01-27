@@ -7,10 +7,6 @@
       <FILE id="ficYdV" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
       <FILE id="iWlBqh" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
-      <FILE id="DDJwNe" name="DraggableLabel.cpp" compile="1" resource="0"
-            file="Source/DraggableLabel.cpp"/>
-      <FILE id="ifqWTa" name="DraggableLabel.h" compile="0" resource="0"
-            file="Source/DraggableLabel.h"/>
       <FILE id="hQWvVv" name="NextLookAndFeel.h" compile="0" resource="0"
             file="Source/NextLookAndFeel.h"/>
       <FILE id="UfdHik" name="ArrangerComponent.cpp" compile="1" resource="0"
@@ -29,13 +25,14 @@
             file="Source/TrackHeaderComponent.cpp"/>
       <FILE id="aio2mz" name="TrackHeaderComponent.h" compile="0" resource="0"
             file="Source/TrackHeaderComponent.h"/>
-      <FILE id="jjiz5K" name="TransportDisplayComponent.cpp" compile="1"
-            resource="0" file="Source/TransportDisplayComponent.cpp"/>
-      <FILE id="E9888v" name="TransportDisplayComponent.h" compile="0" resource="0"
-            file="Source/TransportDisplayComponent.h"/>
       <FILE id="wuHwAo" name="ClipComponent.cpp" compile="1" resource="0"
             file="Source/ClipComponent.cpp"/>
       <FILE id="PQrsns" name="ClipComponent.h" compile="0" resource="0" file="Source/ClipComponent.h"/>
+      <FILE id="NY7l7a" name="SpinBox.cpp" compile="1" resource="0" file="Source/SpinBox.cpp"/>
+      <FILE id="d8a312" name="SpinBox.h" compile="0" resource="0" file="Source/SpinBox.h"/>
+      <FILE id="DbJL0c" name="SpinBoxGroup.cpp" compile="1" resource="0"
+            file="Source/SpinBoxGroup.cpp"/>
+      <FILE id="c3qiFI" name="SpinBoxGroup.h" compile="0" resource="0" file="Source/SpinBoxGroup.h"/>
     </GROUP>
     <FILE id="IRKKik" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
   </MAINGROUP>
@@ -66,7 +63,6 @@
     </LINUX_MAKE>
     <CLION targetFolder="Builds/CLion" clionMakefileEnabled="1">
       <MODULEPATHS>
-        <MODULEPATH id="tracktion_engine" path="../../juce"/>
         <MODULEPATH id="juce_osc" path="../../juce"/>
         <MODULEPATH id="juce_opengl" path="../../juce"/>
         <MODULEPATH id="juce_gui_extra" path="../../juce"/>
@@ -82,6 +78,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../juce"/>
         <MODULEPATH id="juce_audio_devices" path="../../juce"/>
         <MODULEPATH id="juce_audio_basics" path="../../juce"/>
+        <MODULEPATH id="tracktion_engine" path="../tracktion_engine/modules"/>
       </MODULEPATHS>
     </CLION>
     <VS2019 targetFolder="Builds/VisualStudio2019">
@@ -90,7 +87,6 @@
         <CONFIGURATION isDebug="0" name="Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="tracktion_engine" path="../../juce"/>
         <MODULEPATH id="juce_osc" path="../../juce"/>
         <MODULEPATH id="juce_opengl" path="../../juce"/>
         <MODULEPATH id="juce_gui_extra" path="../../juce"/>
@@ -106,6 +102,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../juce"/>
         <MODULEPATH id="juce_audio_devices" path="../../juce"/>
         <MODULEPATH id="juce_audio_basics" path="../../juce"/>
+        <MODULEPATH id="tracktion_engine" path="../tracktion_engine/modules"/>
       </MODULEPATHS>
     </VS2019>
   </EXPORTFORMATS>
@@ -125,7 +122,7 @@
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
-    <MODULE id="tracktion_engine" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="tracktion_engine" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
   <LIVE_SETTINGS>
     <WINDOWS/>

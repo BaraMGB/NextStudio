@@ -77,6 +77,7 @@ MainComponent::MainComponent() :
 
 MainComponent::~MainComponent()
 {
+    m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
     // This shuts down the audio device and clears the audio source.
     shutdownAudio();

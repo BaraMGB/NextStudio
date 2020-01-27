@@ -11,7 +11,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "TransportDisplayComponent.h"
+#include "SpinBoxGroup.h"
 
 //==============================================================================
 /*
@@ -21,24 +21,19 @@ class HeaderComponent    : public Component
                          , private Timer
 {
 public:
-    HeaderComponent::HeaderComponent(int height, int width, tracktion_engine::Edit& edit);
+    HeaderComponent(int height, int width, tracktion_engine::Edit& edit);
     ~HeaderComponent();
 
     void paint (Graphics&) override;
     void resized() override;
-    void buttonClicked(Button* button);
+    void buttonClicked(Button* button) override;
     void timerCallback() override;
-    double getPPQPos(double time)
-    {
-        double tempo = m_edit.tempoSequence.getTempos()[0]->getBpm();
-        double ppqPerSecond = tempo / 60 * m_edit.ticksPerQuarterNote;
-        return time * ppqPerSecond;
-    }
 
 
 private:
     TextButton m_loadButton, m_saveButton, m_playButton, m_stopButton, m_recordButton;
-    TransportDisplayComponent m_transportDisplay;
     tracktion_engine::Edit& m_edit;
+    int m_test;
+    SpinBoxGroup m_transportDisplay;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };

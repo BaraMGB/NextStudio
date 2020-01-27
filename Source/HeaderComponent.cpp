@@ -37,8 +37,11 @@ HeaderComponent::HeaderComponent(int width, int height, tracktion_engine::Edit& 
     m_recordButton.addListener(this);
 
     addAndMakeVisible(m_transportDisplay);
+    m_transportDisplay.addSpinBox(4,1,1,999,".");
+    m_transportDisplay.addSpinBox(1,1,1,4,".");
+    m_transportDisplay.addSpinBox(3,0,0,960,"");
 
-    startTimer(10);
+    startTimer(100);
 
     setSize(width, height);
 
@@ -57,22 +60,31 @@ void HeaderComponent::paint (Graphics& g)
 void HeaderComponent::resized()
 {
     juce::Rectangle<int> area = getLocalBounds();
-    FlexBox flexbox{ FlexBox::Direction::row, FlexBox::Wrap::noWrap, FlexBox::AlignContent::center,
-                     FlexBox::AlignItems::flexStart, FlexBox::JustifyContent::flexStart };
-    int border = area.getHeight() / 6;
-    int buttonheight = getHeight() - border;
+
+    area.reduce(5, 5);
+    m_loadButton.setBounds(area.removeFromLeft(area.getHeight()));
+    area.removeFromLeft(5);
+    m_saveButton.setBounds(area.removeFromLeft(area.getHeight()));
+    area.removeFromLeft(5);
+    //space
+    area.removeFromLeft(area.getHeight());
+
+    m_playButton.setBounds(area.removeFromLeft(area.getHeight()));
+    area.removeFromLeft(5);
+    m_stopButton.setBounds(area.removeFromLeft(area.getHeight()));
+    area.removeFromLeft(5);
+    m_recordButton.setBounds(area.removeFromLeft(area.getHeight()));
+    area.removeFromLeft(5);
+    //space
+    area.removeFromLeft(area.getHeight());
+
+    m_transportDisplay.setBounds(area.removeFromLeft(area.getHeight()*m_transportDisplay.getSpinBoxCount()));
+    area.removeFromLeft(5);
 
 
-    flexbox.items.add(FlexItem(buttonheight, buttonheight, m_loadButton).withMargin(FlexItem::Margin(3.0f)));
-    flexbox.items.add(FlexItem(buttonheight, buttonheight, m_saveButton).withMargin(FlexItem::Margin(3.0f)));
-    flexbox.items.add(FlexItem(buttonheight, buttonheight / 2));
-    flexbox.items.add(FlexItem(buttonheight, buttonheight, m_playButton).withMargin(FlexItem::Margin(3.0f)));
-    flexbox.items.add(FlexItem(buttonheight, buttonheight, m_stopButton).withMargin(FlexItem::Margin(3.0f)));
-    flexbox.items.add(FlexItem(buttonheight, buttonheight, m_recordButton).withMargin(FlexItem::Margin(3.0f)));
-    flexbox.items.add(FlexItem(m_transportDisplay.getWidth(), buttonheight, m_transportDisplay).withMargin(FlexItem::Margin(3.0f)));
 
 
-    flexbox.performLayout(getLocalBounds());
+
 }
 
 void HeaderComponent::buttonClicked(Button* button)
@@ -97,8 +109,26 @@ void HeaderComponent::buttonClicked(Button* button)
 
 void HeaderComponent::timerCallback()
 {
+    auto const &tempoSequence = m_edit.tempoSequence;
+    double time = m_edit.getTransport().getCurrentPosition();
+    if (!m_transportDisplay.isDragging())
+    {
+        String timeDisplay[4];
+        m_edit.getTimecodeFormat().getPartStrings(time,tempoSequence, false, timeDisplay);
+        for (auto i = 0; i < 3; i++)
+        {
+            m_transportDisplay.setValue( m_transportDisplay.getSpinBoxCount() - 1 - i, timeDisplay[i].getIntValue());
+        }
+    }
+    else
+    {
+        tracktion_engine::TempoSequencePosition pos(m_edit.tempoSequence);
+        pos.setTime(0);
+        pos.addBars((m_transportDisplay.getValue(0) - 1));
+        pos.addBeats((m_transportDisplay.getValue(1) - 1));
+        pos.addBeats((m_transportDisplay.getValue(2) / (double) m_edit.ticksPerQuarterNote));
 
-    auto posInSec = m_edit.getTransport().getCurrentPosition();
-    m_transportDisplay.setPosition(getPPQPos(posInSec));
+        m_edit.getTransport().setCurrentPosition(pos.getTime());
+    }
 }
 
