@@ -16,14 +16,14 @@
 
 
 //==============================================================================
-SongEditorComponent::SongEditorComponent(tracktion_engine::Edit &edit)
-    : m_arranger(new ArrangerComponent(&m_tracks))
-    , m_edit(&edit)
+SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
+    : m_arranger(m_tracks)
+    , m_edit(edit)
 {
     addAndMakeVisible(m_arrangeViewport);
     m_arrangeViewport.addChangeListener(this);
     m_arrangeViewport.addAndMakeVisible(m_arranger);
-    m_arrangeViewport.setViewedComponent(m_arranger, false);
+    m_arrangeViewport.setViewedComponent(&m_arranger, false);
     m_arrangeViewport.setScrollBarsShown(true, true, true, true);
 
 
@@ -33,6 +33,7 @@ SongEditorComponent::SongEditorComponent(tracktion_engine::Edit &edit)
 
 SongEditorComponent::~SongEditorComponent()
 {
+    m_tracks.clear();
 }
 
 void SongEditorComponent::paint (Graphics& g)
@@ -46,7 +47,7 @@ void SongEditorComponent::resized()
 
     for (auto i = 0; i < m_tracks.size(); i++)
     {
-        auto track = m_tracks.getReference(i);
+        auto track = m_tracks.getUnchecked(i);
         auto trackRect = trackRack.removeFromTop(track->getTrackheight());
         track->setBounds(trackRect.getX(),
                          trackRect.getY() - m_arrangeViewport.getVerticalScrollBar().getCurrentRangeStart(),
@@ -58,15 +59,14 @@ void SongEditorComponent::resized()
 
 void SongEditorComponent::addTrack(File& f)
 {
-    auto trackComponent = new TrackHeaderComponent(*m_edit);
-    addAndMakeVisible(trackComponent);
-    trackComponent->addChangeListener(m_arranger);
+    auto trackHeader = new TrackHeaderComponent(m_edit);
+    addAndMakeVisible(trackHeader);
+    trackHeader->addChangeListener(&m_arranger);
     auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-    trackComponent->setTrackColour(Colour(red, gre, blu));
-    trackComponent->setTrackName("Track " + String(m_tracks.size() + 1));
-    m_tracks.add(trackComponent);
+    trackHeader->setTrackColour(Colour(red, gre, blu));
+    trackHeader->setTrackName("Track " + String(m_tracks.size() + 1));
     if (auto track = getOrInsertAudioTrackAt(m_tracks.size()))
     {
         removeAllClips(*track);
@@ -77,11 +77,12 @@ void SongEditorComponent::addTrack(File& f)
             if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
                 { { 0.0, audioFile.getLength() }, 0.0 }, false))
             {
-                m_arranger->addAndMakeVisible(trackComponent->createClip(0, audioFile.getLength()));
-                m_arranger->resized();
-                m_arranger->repaint();
+                m_arranger.addAndMakeVisible(trackHeader->createClip(0, audioFile.getLength()));
+                m_arranger.resized();
+                m_arranger.repaint();
             }
     }
+    m_tracks.add(trackHeader);
     resized();
 
 }
@@ -94,8 +95,8 @@ void SongEditorComponent::changeListenerCallback(ChangeBroadcaster* source)
 
 tracktion_engine::AudioTrack* SongEditorComponent::getOrInsertAudioTrackAt(int index)
 {
-    m_edit->ensureNumberOfAudioTracks(index + 1);
-    return tracktion_engine::getAudioTracks(*m_edit)[index];
+    m_edit.ensureNumberOfAudioTracks(index + 1);
+    return tracktion_engine::getAudioTracks(m_edit)[index];
 }
 
 

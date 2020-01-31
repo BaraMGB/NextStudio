@@ -73,7 +73,7 @@ public:
         return clip;
     }
 
-    Array<ClipComponent*> * getClips()
+    OwnedArray<ClipComponent>* getClips()
     {
         return &m_clips;
     }
@@ -88,7 +88,7 @@ private:
     PeakDisplayComponent m_peakDisplay;
     String m_trackName;
     int m_height;
-    Array<ClipComponent*> m_clips;
+    OwnedArray<ClipComponent> m_clips;
     tracktion_engine::Edit& m_edit;
     
 

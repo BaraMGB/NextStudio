@@ -23,7 +23,7 @@ class ArrangerComponent    : public Component
                            , public ChangeListener
 {
 public:
-    ArrangerComponent(Array<TrackHeaderComponent*> *tracks);
+    ArrangerComponent(OwnedArray<TrackHeaderComponent>& tracks);
     ~ArrangerComponent();
 
     void paint (Graphics&) override;
@@ -37,7 +37,7 @@ public:
 
 private:
 
-    Array<TrackHeaderComponent*> *m_trackComponents;
+    OwnedArray<TrackHeaderComponent>& m_trackComponents;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArrangerComponent)
 };

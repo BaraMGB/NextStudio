@@ -55,10 +55,10 @@ private:
             clips.getUnchecked(i)->removeFromParentTrack();
     }
 
-    Array<TrackHeaderComponent*> m_tracks;
+    OwnedArray<TrackHeaderComponent> m_tracks;
     ScrollArea m_arrangeViewport;
-    ArrangerComponent * m_arranger;
-    std::unique_ptr<tracktion_engine::Edit> m_edit;
+    ArrangerComponent m_arranger;
+    tracktion_engine::Edit& m_edit;
 
 
 
