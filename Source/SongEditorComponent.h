@@ -14,6 +14,7 @@
 #include "TrackHeaderComponent.h"
 #include "ArrangerComponent.h"
 
+
 class ScrollArea : public Viewport
                  , public ChangeBroadcaster
 {
@@ -34,6 +35,7 @@ public:
 */
 class SongEditorComponent    : public Component
                              , public ChangeListener
+                             , public ValueTree::Listener
 {
 public:
     SongEditorComponent(tracktion_engine::Edit &edit);
@@ -44,7 +46,17 @@ public:
     void addTrack(File& f);
 
     void changeListenerCallback(ChangeBroadcaster* source) override;
+    void valueTreePropertyChanged(ValueTree&, const Identifier&) override
+    {
+       //Call is to unspecificated
+        m_arranger.resized();
+        resized();
+    }
 
+    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override { resized(); repaint(); }
+    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override { resized(); repaint(); }
+    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override { resized(); repaint(); }
+    void valueTreeParentChanged(ValueTree&) override {}
 private:
     tracktion_engine::AudioTrack* getOrInsertAudioTrackAt(int index);
     void removeAllClips(tracktion_engine::AudioTrack& track)
@@ -57,8 +69,9 @@ private:
 
     OwnedArray<TrackHeaderComponent> m_tracks;
     ScrollArea m_arrangeViewport;
-    ArrangerComponent m_arranger;
     tracktion_engine::Edit& m_edit;
+    ArrangerComponent m_arranger;
+
 
 
 

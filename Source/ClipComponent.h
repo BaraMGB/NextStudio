@@ -11,48 +11,44 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+
  
 //==============================================================================
 /*
 */
 class ClipComponent    : public Component
+                       , public ValueTree::Listener
 {
 public:
-    ClipComponent(double position, double lenght)
-        : m_position(position)
-        , m_length(lenght)
-    {}
+    ClipComponent(tracktion_engine::Clip& clip)
+        : m_engineClip(clip)
+        , m_ClipPosAtMouseDown(0)
+    {
+
+    }
     ~ClipComponent(){}
+    void valueTreePropertyChanged(ValueTree&, const Identifier&) override
+    {
+        resized();
+    }
+
+    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override { resized(); repaint(); }
+    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override { resized(); repaint();}
+    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override { resized(); repaint(); }
+    void valueTreeParentChanged(ValueTree&) override {}
 
     void paint (Graphics&) override;
     void resized() override;
 
-    double clipPosition()
-    {
-        return m_position;
-    }
+    void mouseDown(const MouseEvent& event);
+    void mouseDrag(const MouseEvent& event);
 
-    void setClipPostion(double pos)
-    {
-        m_position = pos;
-    }
+    double getLength();
+    double getStart();
 
-    double clipLength()
-    {
-        return m_length;
-    }
-
-    void setClipLength(double length)
-    {
-        m_length = length;
-    }
-
-    void setClipColour(Colour colour)
-    {
-        m_colour = colour;
-    }
 private:
-    double m_position, m_length;
+    tracktion_engine::Clip& m_engineClip;
     Colour m_colour;
+    double m_ClipPosAtMouseDown;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ClipComponent)
 };

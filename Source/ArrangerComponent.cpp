@@ -12,10 +12,12 @@
 #include "ArrangerComponent.h"
 
 //==============================================================================
-ArrangerComponent::ArrangerComponent(OwnedArray<TrackHeaderComponent>& tracks)
-    : m_trackComponents(tracks)
+ArrangerComponent::ArrangerComponent(
+    OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit & edit)
+    : m_trackComponents(trackComps)
+    , m_edit(edit)
+    , m_pixelPerBeats(10)
 {
-    
     setSize(3000, 3000);
 }
 
@@ -25,32 +27,33 @@ ArrangerComponent::~ArrangerComponent()
 
 void ArrangerComponent::paint (Graphics& g)
 {
-    g.fillAll (Colour(0xff181818));   // clear the background
+    g.fillAll (Colour(0xff181818));
     auto area = getLocalBounds();
     g.setColour (Colours::black);
-    
-    for(auto i = 0; i < m_trackComponents.size(); i++)
+
+    for(auto& track : m_trackComponents)
     {
-        auto track = m_trackComponents.getUnchecked(i);
         auto height = track->getTrackheight();
         area.removeFromTop(height);
         g.drawLine(area.getX(), area.getY(), area.getWidth(), area.getY());
-       
     }
 }
 
 void ArrangerComponent::resized()
 {
     auto area = getLocalBounds();
-    for (auto i = 0; i < m_trackComponents.size(); i++)
+    for (auto& trackComp : m_trackComponents)
     {
-        auto track = m_trackComponents.getUnchecked(i);
-        for (auto j = 0; j < track->getClips()->size(); j++)
+        for (auto& clipComp : *trackComp->getClipComponents())
         {
-            auto clip = track->getClips()->getUnchecked(j);
-            clip->setBounds(area.getX() + clip->clipPosition() , area.getY(), clip->clipLength(), track->getTrackheight());
-            clip->setClipColour(track->trackColour());
+            const double length = m_edit.tempoSequence.timeToBeats(clipComp->getLength()) * m_pixelPerBeats;
+            const double start  = m_edit.tempoSequence.timeToBeats(clipComp->getStart())  * m_pixelPerBeats;
+           //std::cout << "Length: " << length << "  Start: " << start << std::endl;
+            clipComp->setBounds(area.getX() + start,
+                                area.getY(),
+                                length,
+                                trackComp->getTrackheight());
         }
-        area.removeFromTop(track->getTrackheight());
+        area.removeFromTop(trackComp->getTrackheight());
     }
 }

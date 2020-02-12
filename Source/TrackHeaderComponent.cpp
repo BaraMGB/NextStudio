@@ -12,13 +12,13 @@
 #include "TrackHeaderComponent.h"
 
 //==============================================================================
-TrackHeaderComponent::TrackHeaderComponent(tracktion_engine::Edit& edit):
-    m_trackColour(Colours::aqua),
+TrackHeaderComponent::TrackHeaderComponent(tracktion_engine::AudioTrack& track):
     m_height(50),
-    m_edit(edit)
+    m_track(track)
 {
-    
-    m_TrackLabel.setText(getTrackName(), NotificationType::dontSendNotification);
+    auto state = m_track.state;
+    m_TrackLabel.setText(state[tracktion_engine::IDs::name].toString(),
+                                    NotificationType::dontSendNotification);
     addAndMakeVisible(m_TrackLabel);
 
     addAndMakeVisible(m_muteButton);
@@ -29,15 +29,15 @@ TrackHeaderComponent::TrackHeaderComponent(tracktion_engine::Edit& edit):
     m_armingButton.setName("O");
 
     addAndMakeVisible(m_volumeKnob);
+    m_volumeKnob.addListener(this); 
     m_volumeKnob.setRange(0, 127, 1);
+    m_volumeKnob.setValue(m_track.getVolumePlugin()->volume 
+        * m_volumeKnob.getMaxValue() - m_volumeKnob.getMinimum());
     m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
     m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
-    m_volumeKnob.addListener(this);
+    
 
     addAndMakeVisible(m_peakDisplay);
-
-
-   
 }
 
 TrackHeaderComponent::~TrackHeaderComponent()
@@ -51,13 +51,13 @@ void TrackHeaderComponent::paint(Graphics& g)
     g.setColour(Colour(0xff181818));
     g.fillRect(area);
 
-    g.setColour(m_trackColour);
+    auto state = m_track.state;
+    g.setColour(Colour::fromString(state[tracktion_engine::IDs::colour].toString()));
     Rectangle<float> trackColorIndicator = area.removeFromLeft(18);
     g.fillRect(trackColorIndicator);
     g.setColour(Colour(0xff343434));
     g.drawRect(trackColorIndicator);
     g.drawRect(area);
-
 }
 
 void TrackHeaderComponent::resized()
@@ -76,29 +76,18 @@ void TrackHeaderComponent::resized()
     m_muteButton.setBounds(buttonGroup.getX(), buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
     m_armingButton.setBounds(buttonGroup.getX() + buttonwidth, buttonGroup.getY(), buttonwidth, buttonHeight);
 
-
-
     area.removeFromLeft(20);
     m_TrackLabel.setBounds(area);
-
-
-
 }
 
 void TrackHeaderComponent::sliderValueChanged(Slider* slider)
 {
-    
+    if (slider == &m_volumeKnob)
+    {
+        m_track.getVolumePlugin()->volume = m_volumeKnob.getValue() / m_volumeKnob.getMaximum();
+    }
 }
 
-Colour TrackHeaderComponent::trackColour() const
-{
-    return m_trackColour;
-}
-
-void TrackHeaderComponent::setTrackColour(const Colour& trackColour)
-{
-    m_trackColour = trackColour;
-}
 
 
 

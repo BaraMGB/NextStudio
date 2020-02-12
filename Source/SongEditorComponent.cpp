@@ -17,8 +17,8 @@
 
 //==============================================================================
 SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
-    : m_arranger(m_tracks)
-    , m_edit(edit)
+    : m_edit(edit)
+    , m_arranger(m_tracks, edit)
 {
     addAndMakeVisible(m_arrangeViewport);
     m_arrangeViewport.addChangeListener(this);
@@ -26,7 +26,7 @@ SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
     m_arrangeViewport.setViewedComponent(&m_arranger, false);
     m_arrangeViewport.setScrollBarsShown(true, true, true, true);
 
-
+    edit.state.addListener(this);
     
    //addAndMakeVisible(m_toolBox);
 }
@@ -59,30 +59,36 @@ void SongEditorComponent::resized()
 
 void SongEditorComponent::addTrack(File& f)
 {
-    auto trackHeader = new TrackHeaderComponent(m_edit);
-    addAndMakeVisible(trackHeader);
-    trackHeader->addChangeListener(&m_arranger);
     auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-    trackHeader->setTrackColour(Colour(red, gre, blu));
-    trackHeader->setTrackName("Track " + String(m_tracks.size() + 1));
+    
     if (auto track = getOrInsertAudioTrackAt(m_tracks.size()))
     {
+        track->setName("Track " + String(m_tracks.size() + 1));
+        track->setColour(Colour(red, gre, blu));
+        auto trackHeader = new TrackHeaderComponent(*track);
+        addAndMakeVisible(trackHeader);
+        m_tracks.add(trackHeader);
+
         removeAllClips(*track);
         // Add a new clip to this track
         tracktion_engine::AudioFile audioFile(f);
 
         if (audioFile.isValid())
             if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
-                { { 0.0, audioFile.getLength() }, 0.0 }, false))
+                { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
             {
-                m_arranger.addAndMakeVisible(trackHeader->createClip(0, audioFile.getLength()));
+                newClip->setColour(track->getColour());
+                m_arranger.addAndMakeVisible(trackHeader->createClip(*newClip));
                 m_arranger.resized();
                 m_arranger.repaint();
+
+                track->getVolumePlugin()->volume = 0.1f;
+                //std::cout <<  track->getVolumePlugin()->state.toXmlString();
             }
     }
-    m_tracks.add(trackHeader);
+    
     resized();
 
 }

@@ -20,24 +20,19 @@
 /*
 */
 class ArrangerComponent    : public Component
-                           , public ChangeListener
 {
 public:
-    ArrangerComponent(OwnedArray<TrackHeaderComponent>& tracks);
+    ArrangerComponent(OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit& edit);
     ~ArrangerComponent();
 
     void paint (Graphics&) override;
     void resized() override;
 
-    void changeListenerCallback(ChangeBroadcaster* source) override
-    {
-        //position the Clips
-        resized();
-    }
-
 private:
 
     OwnedArray<TrackHeaderComponent>& m_trackComponents;
-    
+    tracktion_engine::Edit& m_edit;
+    double m_pixelPerBeats;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArrangerComponent)
 };

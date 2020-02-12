@@ -32,29 +32,26 @@ public:
 };
 
 class TrackHeaderComponent    : public Component
+                              , public ValueTree::Listener
                               , public Slider::Listener
-                              , public ChangeBroadcaster
 {
 public:
-    TrackHeaderComponent(tracktion_engine::Edit& edit);
+    TrackHeaderComponent(tracktion_engine::AudioTrack & track);
     ~TrackHeaderComponent();
 
     void paint(Graphics& g) override;
     void resized() override;
-    void sliderValueChanged(Slider* slider) override;
-
-    Colour trackColour() const;
-    void setTrackColour(const Colour& trackColour);
-    void setTrackName(String trackName)
+    void valueTreePropertyChanged(ValueTree&, const Identifier&) override
     {
-        m_trackName = trackName;
-        m_TrackLabel.setText(m_trackName, NotificationType::dontSendNotification);
-    }
-    String getTrackName()
-    {
-        return m_trackName;
+        resized();
     }
 
+    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override { resized(); repaint(); }
+    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override { resized(); repaint(); }
+    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override { resized(); repaint(); }
+    void valueTreeParentChanged(ValueTree&) override {}
+
+    void sliderValueChanged(Slider* slider);
     int getTrackheight()
     {
         return m_height;
@@ -65,32 +62,29 @@ public:
         m_height = height;
     }
 
-    ClipComponent* createClip(double position, double length)
+    ClipComponent* createClip(tracktion_engine::Clip& engineClip)
     {
-        auto clip = new ClipComponent(position, length);
-        m_clips.add(clip);
-        sendChangeMessage();
-        return clip;
+        auto clipComp = new ClipComponent(engineClip);
+        m_clipComponents.add(clipComp);
+        return clipComp;
     }
 
-    OwnedArray<ClipComponent>* getClips()
+    OwnedArray<ClipComponent>* getClipComponents()
     {
-        return &m_clips;
+        return &m_clipComponents;
     }
 
 private:
-    Colour m_trackColour;
-    Label m_TrackLabel;
-    ToggleButton m_muteButton;
-    ToggleButton m_soloButton;
-    ToggleButton m_armingButton;
-    Slider m_volumeKnob;
-    PeakDisplayComponent m_peakDisplay;
-    String m_trackName;
-    int m_height;
-    OwnedArray<ClipComponent> m_clips;
-    tracktion_engine::Edit& m_edit;
-    
+    Label                     m_TrackLabel;
+    ToggleButton              m_muteButton,
+                              m_soloButton,
+                              m_armingButton;
+    Slider                    m_volumeKnob;
+    PeakDisplayComponent      m_peakDisplay;
+    int                       m_height;
+    OwnedArray<ClipComponent> m_clipComponents;
+    tracktion_engine::AudioTrack& m_track;
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)
 };
