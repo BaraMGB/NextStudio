@@ -10,6 +10,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ClipComponent.h"
+#include "ArrangerComponent.h"
 
 //==============================================================================
 
@@ -52,7 +53,13 @@ void ClipComponent::mouseDown(const MouseEvent& event)
 
 void ClipComponent::mouseDrag(const MouseEvent& event)
 {
-    m_engineClip.setStart(m_engineClip.edit.tempoSequence.beatsToTime(m_ClipPosAtMouseDown + event.getDistanceFromDragStartX() / 10),false, true);
+    auto arranger = dynamic_cast<ArrangerComponent*>(getParentComponent());
+    if (arranger)
+    {
+        auto zoom = arranger->getPixelPerBeats();
+        m_engineClip.setStart(m_engineClip.edit.tempoSequence.beatsToTime(m_ClipPosAtMouseDown + event.getDistanceFromDragStartX() / zoom), false, true);
+
+    }
 }
 
 double ClipComponent::getLength()

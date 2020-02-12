@@ -16,7 +16,7 @@ ArrangerComponent::ArrangerComponent(
     OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit & edit)
     : m_trackComponents(trackComps)
     , m_edit(edit)
-    , m_pixelPerBeats(10)
+    , m_pixelPerBeats(1)
 {
     setSize(3000, 3000);
 }

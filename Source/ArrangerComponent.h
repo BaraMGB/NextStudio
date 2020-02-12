@@ -28,6 +28,22 @@ public:
     void paint (Graphics&) override;
     void resized() override;
 
+    void mouseWheelMove(const MouseEvent& event,
+        const MouseWheelDetails& wheel)
+    {
+        m_pixelPerBeats = m_pixelPerBeats + wheel.deltaY;
+        resized();
+    }
+
+    void setPixelPerBeats(double pixelPerBeats)
+    {
+        m_pixelPerBeats = pixelPerBeats;
+    }
+
+    double getPixelPerBeats()
+    {
+        return m_pixelPerBeats;
+    }
 private:
 
     OwnedArray<TrackHeaderComponent>& m_trackComponents;
