@@ -19,7 +19,7 @@ class SpinBox    : public Component
                  , public ChangeBroadcaster
 {
 public:
-    SpinBox(int digits, int init, int min, int max, String separator, int step = 1);
+    SpinBox(int digits, int init, int min, int max, juce::Font font, Colour fontColour, String separator, int step = 1);
 
 
     ~SpinBox();
@@ -47,13 +47,15 @@ public:
 
     bool isDragging() const;
 
-
+    int getNeededWidth() const;
 private:
     int m_digits, m_value, m_min, m_max, m_step;
+    int m_neededWidth;
 
     String m_separator;
     bool m_overrun, m_underrun, m_dragging;
     Point<int> m_mouseDown;
     Colour m_textColour;
+    juce::Font m_font;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpinBox)
 };

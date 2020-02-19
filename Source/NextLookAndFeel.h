@@ -26,13 +26,13 @@ public:
         auto buttonArea = button.getLocalBounds();
 
         g.setColour(Colour(0xff000000));
-        g.fillRect(buttonArea);
+        g.fillRoundedRectangle(buttonArea.toFloat(),7);
         g.setColour(Colour(0xff343434));
         buttonArea.reduce(1, 1);
-        g.fillRect(buttonArea);
+        g.fillRoundedRectangle(buttonArea.toFloat(),5);
         g.setColour(Colour(0xff5b5b5b));
         buttonArea.reduce(1, 1);
-        g.fillRect(buttonArea);
+        g.fillRoundedRectangle(buttonArea.toFloat(),5);
 
 
         

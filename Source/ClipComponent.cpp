@@ -39,26 +39,27 @@ void ClipComponent::paint (Graphics& g)
 
 void ClipComponent::resized()
 {
-    // This method is where you should set the bounds of any child
-    // components that your component contains..
-
 }
 
 
 
 void ClipComponent::mouseDown(const MouseEvent& event)
 {
-    m_ClipPosAtMouseDown =  m_engineClip.edit.tempoSequence.timeToBeats(m_engineClip.getPosition().getStart());
+    m_ClipPosAtMouseDown = m_engineClip.edit.tempoSequence.timeToBeats(m_engineClip.getPosition().getStart());
 }
 
 void ClipComponent::mouseDrag(const MouseEvent& event)
 {
+        
+    
     auto arranger = dynamic_cast<ArrangerComponent*>(getParentComponent());
     if (arranger)
     {
         auto zoom = arranger->getPixelPerBeats();
-        m_engineClip.setStart(m_engineClip.edit.tempoSequence.beatsToTime(m_ClipPosAtMouseDown + event.getDistanceFromDragStartX() / zoom), false, true);
-
+        m_engineClip.setStart(m_engineClip.edit.tempoSequence.beatsToTime(
+            m_ClipPosAtMouseDown 
+            + event.getDistanceFromDragStartX() 
+            / static_cast<double>(zoom)), false, true);
     }
 }
 

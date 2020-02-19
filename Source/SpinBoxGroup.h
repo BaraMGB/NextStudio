@@ -34,9 +34,15 @@ public:
     bool isDragging();
     int getValue(int part);
     int getDraggedBox() const;
+    void setFontColour(juce::Colour colour);
+    void setFont(juce::Font font);
+    juce::Font getFont();
+    int getNeededWidth();
 
 private:
     Array<std::unique_ptr<SpinBox>> m_spinBoxes;
     int m_draggedBox;
+    juce::Font m_font;
+    Colour m_fontColour;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpinBoxGroup)
 };

@@ -33,7 +33,11 @@ public:
 private:
     TextButton m_loadButton, m_saveButton, m_playButton, m_stopButton, m_recordButton;
     tracktion_engine::Edit& m_edit;
-    int m_test;
+    Colour m_mainColour{ Colour(0xff57cdff) };
     SpinBoxGroup m_transportDisplay;
+    SpinBoxGroup m_BpmDisplay;
+    SpinBoxGroup m_signatureDisplay;
+    SpinBoxGroup m_LoopBeginDisplay;
+    SpinBoxGroup m_LoopEndDisplay;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };

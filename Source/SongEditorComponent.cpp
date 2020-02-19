@@ -22,13 +22,16 @@ SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
 {
     addAndMakeVisible(m_arrangeViewport);
     m_arrangeViewport.addChangeListener(this);
+    m_arranger.addChangeListener(this);
     m_arrangeViewport.addAndMakeVisible(m_arranger);
     m_arrangeViewport.setViewedComponent(&m_arranger, false);
     m_arrangeViewport.setScrollBarsShown(true, true, true, true);
 
     edit.state.addListener(this);
-    
-   //addAndMakeVisible(m_toolBox);
+    addAndMakeVisible(m_timeLineComp);
+    m_timeLineComp.setZoom(m_arranger.getPixelPerBeats());
+
+    addAndMakeVisible(m_toolBox);
 }
 
 SongEditorComponent::~SongEditorComponent()
@@ -43,17 +46,23 @@ void SongEditorComponent::paint (Graphics& g)
 void SongEditorComponent::resized()
 {
     auto area = getLocalBounds();
+    auto timeline = area.removeFromTop(50);
     auto trackRack = area.removeFromLeft(310);
-
-    for (auto i = 0; i < m_tracks.size(); i++)
+    auto toolBox = timeline.removeFromLeft(trackRack.getWidth());
+    m_toolBox.setBounds(toolBox);
+    auto lenght = m_edit.tempoSequence.timeToBeats(m_edit.getLength()) * m_arranger.getPixelPerBeats();
+    auto arrangerPos = m_arrangeViewport.getViewPositionX();
+    m_timeLineComp.setBounds(timeline.getX() -  arrangerPos, timeline.getY(), jmax(timeline.getWidth(), timeline.getX()) + lenght , timeline.getHeight());
+    for (auto& track : m_tracks)
     {
-        auto track = m_tracks.getUnchecked(i);
         auto trackRect = trackRack.removeFromTop(track->getTrackheight());
         track->setBounds(trackRect.getX(),
                          trackRect.getY() - m_arrangeViewport.getVerticalScrollBar().getCurrentRangeStart(),
                          trackRack.getWidth(),
                          track->getTrackheight());
     }
+    
+    m_arranger.setSize(area.getWidth() + lenght, area.getHeight());
     m_arrangeViewport.setBounds(area);
 }
 
@@ -85,7 +94,6 @@ void SongEditorComponent::addTrack(File& f)
                 m_arranger.repaint();
 
                 track->getVolumePlugin()->volume = 0.1f;
-                //std::cout <<  track->getVolumePlugin()->state.toXmlString();
             }
     }
     
@@ -95,8 +103,10 @@ void SongEditorComponent::addTrack(File& f)
 
 void SongEditorComponent::changeListenerCallback(ChangeBroadcaster* source)
 {
+    std::cout << "sdfsdfsdfghdfhfdj";
     //reposition the TrackRack
     resized();
+    m_timeLineComp.setZoom(m_arranger.getPixelPerBeats());
 }
 
 tracktion_engine::AudioTrack* SongEditorComponent::getOrInsertAudioTrackAt(int index)

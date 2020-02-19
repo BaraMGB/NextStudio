@@ -10,7 +10,9 @@
 
 #include "SpinBoxGroup.h"
 
-SpinBoxGroup::SpinBoxGroup()
+SpinBoxGroup::SpinBoxGroup() 
+    : m_font(Font(15))
+    , m_fontColour(Colours::beige)
 {
 }
 
@@ -26,18 +28,22 @@ void SpinBoxGroup::paint(Graphics &/*g*/)
 void SpinBoxGroup::resized()
 {
     auto area = getLocalBounds();
-
-    for (auto i = 0; i < m_spinBoxes.size(); i++)
+    for (auto& spinBox : m_spinBoxes)
     {
-        m_spinBoxes.getReference(i)->setBounds(area.removeFromLeft(area.getHeight()));
+        spinBox->setBounds(area.removeFromLeft(spinBox->getNeededWidth()));
     }
 }
 
 void SpinBoxGroup::changeListenerCallback(ChangeBroadcaster *source)
 {
+    
     auto spinBox = dynamic_cast<SpinBox*>(source);
     if(spinBox)
     {
+        if (spinBox->getParentComponent() == this)
+        {
+            
+        
         int indexOfSpinBox = -1;
 
         for (auto &i : m_spinBoxes)
@@ -69,12 +75,13 @@ void SpinBoxGroup::changeListenerCallback(ChangeBroadcaster *source)
                 }
             }
         }
+        }
     }
 }
 
 void SpinBoxGroup::addSpinBox(int digits, int init, int min, int max, String separator, int step)
 {
-    auto spinbox = std::make_unique<SpinBox>(digits, init, min, max, separator, step);
+    auto spinbox = std::make_unique<SpinBox>(digits, init, min, max, m_font, m_fontColour, separator, step);
     addAndMakeVisible(*spinbox);
     spinbox->addChangeListener(this);
     m_spinBoxes.add(std::move(spinbox));
@@ -124,4 +131,29 @@ int SpinBoxGroup::getValue(int part)
 int SpinBoxGroup::getDraggedBox() const
 {
     return m_draggedBox;
+}
+
+void SpinBoxGroup::setFontColour(juce::Colour colour)
+{
+    m_fontColour = colour;
+}
+
+void SpinBoxGroup::setFont(juce::Font font)
+{
+    m_font = font;
+}
+
+juce::Font SpinBoxGroup::getFont()
+{
+    return m_font;
+}
+
+int SpinBoxGroup::getNeededWidth()
+{
+    auto width(0);
+    for (auto& spinbox : m_spinBoxes)
+    {
+        width = width + spinbox->getNeededWidth();
+    }
+    return width;
 }

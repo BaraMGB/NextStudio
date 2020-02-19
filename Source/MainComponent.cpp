@@ -13,9 +13,6 @@ MainComponent::MainComponent() :
     m_thread("Tread"),
     m_dirConList(nullptr, m_thread),
     m_tree(m_dirConList)
-    /*m_header(getWidth(), c_headerHeight, &m_edit ),
-    m_songEditor(m_edit)*/
-
 {
     setLookAndFeel(&m_nextLookAndFeel);
     //FileTree side bar
@@ -27,8 +24,9 @@ MainComponent::MainComponent() :
     addAndMakeVisible(m_tree);
     
 
-    getLookAndFeel().setColour(ScrollBar::thumbColourId, Colour(0xff2c2c2c));
-
+    addAndMakeVisible(m_menuBar);
+   /* getLookAndFeel().setColour(ScrollBar::thumbColourId, Colour(0xff2c2c2c));
+    getLookAndFeel().setColour(ScrollBar::ColourIds::backgroundColourId , Colour(0xff000000));*/
     addAndMakeVisible(m_resizerBar);
     m_stretchableManager.setItemLayout(0,            // for the fileTree
         -0.1, -0.9,   // must be between 50 pixels and 90% of the available space
@@ -119,6 +117,12 @@ void MainComponent::paint (Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll(juce::Colours::darkgrey);
+    auto area = getLocalBounds();
+    area.reduce(10, 10);
+
+    auto header = area.removeFromTop(c_headerHeight);
+    g.setColour(Colour(0xff242424));
+    g.fillRect(header);
     //g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
 
     // You can add your drawing code here!
@@ -127,7 +131,15 @@ void MainComponent::paint (Graphics& g)
 void MainComponent::resized()
 {
     auto area = getLocalBounds();
+    area.reduce(10, 10);
 
+    auto header = area.removeFromTop(c_headerHeight);
+    auto menu = header.removeFromTop(header.getHeight() / 2);
+    menu.reduce(5, 5);
+    m_menuBar.setBounds(menu);
+    
+    m_header.get()->setBounds(header);
+    area.removeFromTop(10);
     auto sidebarWidth = getLocalBounds().getWidth() / 5;
    
     Component* comps[] = { &m_tree, &m_resizerBar, m_songEditor.get() };
@@ -135,11 +147,10 @@ void MainComponent::resized()
     // this will position the 3 components, one above the other, to fit
     // vertically into the rectangle provided.
     m_stretchableManager.layOutComponents(comps, 3,
-        area.getX(), area.getY()+ c_headerHeight, area.getWidth(), area.getHeight() - (c_footerHeight + c_headerHeight),
+        area.getX(), area.getY(), area.getWidth(), area.getHeight() - c_footerHeight,
         false, true);
 
     m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff2c2c2c));
-    m_header.get()->setBounds(area.getX(), area.getY(), area.getWidth(), c_headerHeight); 
 }
 
 void MainComponent::buttonClicked(Button* button)

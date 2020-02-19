@@ -18,7 +18,13 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-
+class MenuBar : public Component
+{
+    void paint(Graphics& g)
+    {
+        g.fillAll(Colour(0xff181818));
+    }
+};
 
 class MainComponent   : public AudioAppComponent
                       , public FileBrowserListener
@@ -69,6 +75,7 @@ private:
     TimeSliceThread m_thread;
     DirectoryContentsList m_dirConList;
     FileTreeComponent m_tree;
+    MenuBar m_menuBar;
     StretchableLayoutManager m_stretchableManager;
     StretchableLayoutResizerBar m_resizerBar{ &m_stretchableManager, 1, true };
     std::unique_ptr<HeaderComponent> m_header;
@@ -80,7 +87,7 @@ private:
 
 
 
-    const int c_headerHeight = 50;
+    const int c_headerHeight = 100;
     const int c_footerHeight = 50;
 
 

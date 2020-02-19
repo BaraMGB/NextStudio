@@ -10,17 +10,19 @@
 
 #include "SpinBox.h"
 
-SpinBox::SpinBox(int digits, int init, int min, int max, String separator, int step)
+SpinBox::SpinBox(int digits, int init, int min, int max, juce::Font font, Colour fontColour, String separator, int step)
     : m_digits(digits)
     , m_value(init)
     , m_min(min)
     , m_max(max)
     , m_step(step)
+    , m_neededWidth(10)
     , m_separator(separator)
     , m_overrun(false)
     , m_underrun(false)
     , m_dragging(false)
-    , m_textColour(juce::Colours::silver)
+    , m_textColour(fontColour)
+    , m_font(font)
 {
 }
 
@@ -67,8 +69,19 @@ void SpinBox::paint(Graphics &g)
     auto area = getLocalBounds();
     g.setColour(m_textColour);
     auto textArea = area.reduced(0, area.getHeight() / 4);
-    g.drawText(String(m_value) + m_separator, textArea.getX(), textArea.getY(), textArea.getWidth(),
-               textArea.getHeight(), Justification::centred, false);
+
+    String value_withBeginningZeros = "";
+    int missingDigits = m_digits - String(m_value).length();
+    for (auto i = 0; i < missingDigits; i++)
+    {
+        value_withBeginningZeros = value_withBeginningZeros + "0";
+    }
+    value_withBeginningZeros = value_withBeginningZeros + String(m_value);
+
+    g.setFont(m_font);
+    String valueStr = value_withBeginningZeros + m_separator;
+    g.drawText(valueStr, textArea.getX(), textArea.getY(), textArea.getWidth(),
+        textArea.getHeight(), Justification::centred, false);
 }
 
 void SpinBox::resized()
@@ -134,6 +147,11 @@ void SpinBox::setTextColour(const Colour &textColour)
 bool SpinBox::isDragging() const
 {
     return m_dragging;
+}
+
+int SpinBox::getNeededWidth() const
+{
+    return m_font.getStringWidth("0") * m_digits + m_font.getStringWidth(m_separator);
 }
 
 

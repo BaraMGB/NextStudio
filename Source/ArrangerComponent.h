@@ -14,12 +14,19 @@
 #include "TrackHeaderComponent.h"
 #include "ClipComponent.h"
 
-
+class PositionLine : public Component
+{
+    void paint(Graphics& g) override
+    {
+        g.fillAll(Colours::white);
+    }
+};
 
 //==============================================================================
 /*
 */
 class ArrangerComponent    : public Component
+                           , public ChangeBroadcaster
 {
 public:
     ArrangerComponent(OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit& edit);
@@ -29,18 +36,14 @@ public:
     void resized() override;
 
     void mouseWheelMove(const MouseEvent& event,
-        const MouseWheelDetails& wheel)
-    {
-        m_pixelPerBeats = m_pixelPerBeats + wheel.deltaY;
-        resized();
-    }
+        const MouseWheelDetails& wheel);
 
-    void setPixelPerBeats(double pixelPerBeats)
+    void setPixelPerBeats(int pixelPerBeats)
     {
         m_pixelPerBeats = pixelPerBeats;
     }
 
-    double getPixelPerBeats()
+    int getPixelPerBeats()
     {
         return m_pixelPerBeats;
     }
@@ -48,7 +51,8 @@ private:
 
     OwnedArray<TrackHeaderComponent>& m_trackComponents;
     tracktion_engine::Edit& m_edit;
-    double m_pixelPerBeats;
+    int m_pixelPerBeats;
+    PositionLine m_positionLine;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArrangerComponent)
 };
