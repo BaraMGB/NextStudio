@@ -13,43 +13,8 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackHeaderComponent.h"
 #include "ArrangerComponent.h"
+#include "TimeLineComponent.h"
 
-class TimeLineComponent : public Component
-{
-public:
-    void paint(Graphics& g)
-    {
-        g.setFont(15);
-        g.setColour(Colours::white);
-        auto area = getLocalBounds();
-
-        auto beatLine = 0, barline = 0;
-        while (beatLine < getWidth())
-        {
-            barline++;
-            g.setColour(Colour(0xff242424));
-            if (barline == 4)
-            {
-                g.setColour(Colour(0xff343434));
-                barline = 0;
-            }
-            beatLine = beatLine + m_zoom;
-            if (m_zoom > 8.0 || barline == 0)
-            {
-                g.drawLine(beatLine, 0, beatLine, getHeight());
-            }
-        }
-
-    }
-
-    void setZoom(int zoom)
-    {
-        m_zoom = zoom;
-        repaint();
-    }
-private:
-    int m_zoom;
-};
 
 class ScrollArea : public Viewport
                  , public ChangeBroadcaster
@@ -106,6 +71,7 @@ private:
     OwnedArray<TrackHeaderComponent> m_tracks;
     ScrollArea m_arrangeViewport;
     tracktion_engine::Edit& m_edit;
+    int m_pixelPerBeat;
     ArrangerComponent m_arranger;
     TimeLineComponent m_timeLineComp;
     TextButton m_toolBox;

@@ -62,9 +62,9 @@ public:
         m_height = height;
     }
 
-    ClipComponent* createClip(tracktion_engine::Clip& engineClip)
+    ClipComponent* createClip(tracktion_engine::Clip& engineClip, const int& pixelPerBeat)
     {
-        auto clipComp = new ClipComponent(engineClip);
+        auto clipComp = new ClipComponent(engineClip, pixelPerBeat);
         m_clipComponents.add(clipComp);
         return clipComp;
     }

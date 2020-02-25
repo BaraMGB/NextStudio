@@ -20,21 +20,20 @@
 
 void ClipComponent::paint (Graphics& g)
 {
-    /* This demo code just fills the component's background and
-       draws some placeholder text to get you started.
-
-       You should replace everything in this method with your own
-       drawing code..
-    */
-    g.fillAll (m_engineClip.getColour());
+    g.setColour(m_engineClip.getColour());
+    g.fillRect(getLocalBounds());
 
     g.setColour (Colours::grey);
     g.drawRect (getLocalBounds(), 1);   // draw an outline around the component
 
     g.setColour (Colours::white);
     g.setFont (14.0f);
-    g.drawText (m_engineClip.getName(), getLocalBounds(),
-                Justification::centred, true);   // draw some placeholder text
+    g.drawText (
+        m_engineClip.getName()
+        , getLocalBounds()
+        , Justification::topLeft
+        , true
+    );
 }
 
 void ClipComponent::resized()
@@ -46,21 +45,16 @@ void ClipComponent::resized()
 void ClipComponent::mouseDown(const MouseEvent& event)
 {
     m_ClipPosAtMouseDown = m_engineClip.edit.tempoSequence.timeToBeats(m_engineClip.getPosition().getStart());
+    //std::cout << m_engineClip.state.toXmlString();
 }
 
 void ClipComponent::mouseDrag(const MouseEvent& event)
 {
-        
-    
-    auto arranger = dynamic_cast<ArrangerComponent*>(getParentComponent());
-    if (arranger)
-    {
-        auto zoom = arranger->getPixelPerBeats();
-        m_engineClip.setStart(m_engineClip.edit.tempoSequence.beatsToTime(
-            m_ClipPosAtMouseDown 
-            + event.getDistanceFromDragStartX() 
-            / static_cast<double>(zoom)), false, true);
-    }
+    m_engineClip.setStart(m_engineClip.edit.tempoSequence.beatsToTime(
+        m_ClipPosAtMouseDown
+        + event.getDistanceFromDragStartX()
+        / m_pixelPerBeat
+    ), false, true);
 }
 
 double ClipComponent::getLength()

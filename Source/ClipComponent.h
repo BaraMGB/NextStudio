@@ -20,9 +20,10 @@ class ClipComponent    : public Component
                        , public ValueTree::Listener
 {
 public:
-    ClipComponent(tracktion_engine::Clip& clip)
+    ClipComponent(tracktion_engine::Clip& clip, const int& pixelPerBeat)
         : m_engineClip(clip)
         , m_ClipPosAtMouseDown(0)
+        , m_pixelPerBeat(pixelPerBeat)
     {
 
     }
@@ -50,5 +51,6 @@ private:
     tracktion_engine::Clip& m_engineClip;
     Colour m_colour;
     double m_ClipPosAtMouseDown;
+    const int& m_pixelPerBeat;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ClipComponent)
 };

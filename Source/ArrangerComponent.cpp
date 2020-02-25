@@ -13,10 +13,10 @@
 
 //==============================================================================
 ArrangerComponent::ArrangerComponent(
-    OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit & edit)
+    OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit & edit, int& pixelPerBeat)
     : m_trackComponents(trackComps)
     , m_edit(edit)
-    , m_pixelPerBeats(30)
+    , m_pixelPerBeats(pixelPerBeat)
 {
     addAndMakeVisible(m_positionLine);
     setSize(3000, 300);
@@ -49,7 +49,7 @@ void ArrangerComponent::paint (Graphics& g)
             g.setColour(Colour(0xff343434));
             barline = 0;
         }
-        beatLine = beatLine + getPixelPerBeats();
+        beatLine = beatLine + m_pixelPerBeats;
         if (m_pixelPerBeats > 8.0 || barline == 0)
         {
             g.drawLine(beatLine, 0, beatLine, getHeight());

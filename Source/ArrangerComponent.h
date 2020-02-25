@@ -29,7 +29,7 @@ class ArrangerComponent    : public Component
                            , public ChangeBroadcaster
 {
 public:
-    ArrangerComponent(OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit& edit);
+    ArrangerComponent(OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit& edit, int& pixelPerBeat);
     ~ArrangerComponent();
 
     void paint (Graphics&) override;
@@ -37,21 +37,16 @@ public:
 
     void mouseWheelMove(const MouseEvent& event,
         const MouseWheelDetails& wheel);
-
-    void setPixelPerBeats(int pixelPerBeats)
-    {
-        m_pixelPerBeats = pixelPerBeats;
-    }
-
-    int getPixelPerBeats()
+    const int getPixelPerBeat()
     {
         return m_pixelPerBeats;
     }
+
 private:
 
     OwnedArray<TrackHeaderComponent>& m_trackComponents;
     tracktion_engine::Edit& m_edit;
-    int m_pixelPerBeats;
+    int& m_pixelPerBeats;
     PositionLine m_positionLine;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArrangerComponent)

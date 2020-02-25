@@ -12,19 +12,13 @@
 #include "HeaderComponent.h"
 #include "NextLookAndFeel.h"
 #include "SongEditorComponent.h"
+#include "MenuBar.h"
 
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MenuBar : public Component
-{
-    void paint(Graphics& g)
-    {
-        g.fillAll(Colour(0xff181818));
-    }
-};
 
 class MainComponent   : public AudioAppComponent
                       , public FileBrowserListener

@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="e4objP" name="NextGui1" projectType="guiapp" jucerVersion="5.4.5">
-  <MAINGROUP id="HMkbyI" name="NextGui1">
+<JUCERPROJECT id="e4objP" name="NextStudio" projectType="guiapp" jucerVersion="5.4.5"
+              version="0.0.1" displaySplashScreen="1" companyName="Next" companyCopyright="Next"
+              companyWebsite="www.nextstudio.info" companyEmail="info@nextstudio.info">
+  <MAINGROUP id="HMkbyI" name="NextStudio">
     <GROUP id="{C00B6225-B3E9-2C19-B050-00477F8A24C9}" name="Source">
+      <FILE id="MN79RK" name="TimeLineComponent.cpp" compile="1" resource="0"
+            file="Source/TimeLineComponent.cpp"/>
+      <FILE id="SSdN0H" name="TimeLineComponent.h" compile="0" resource="0"
+            file="Source/TimeLineComponent.h"/>
       <FILE id="TD567A" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="ficYdV" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
@@ -33,6 +39,8 @@
       <FILE id="DbJL0c" name="SpinBoxGroup.cpp" compile="1" resource="0"
             file="Source/SpinBoxGroup.cpp"/>
       <FILE id="c3qiFI" name="SpinBoxGroup.h" compile="0" resource="0" file="Source/SpinBoxGroup.h"/>
+      <FILE id="XYKrZp" name="MenuBar.cpp" compile="1" resource="0" file="Source/MenuBar.cpp"/>
+      <FILE id="Lsljlv" name="MenuBar.h" compile="0" resource="0" file="Source/MenuBar.h"/>
     </GROUP>
     <FILE id="IRKKik" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
   </MAINGROUP>
@@ -125,7 +133,7 @@
     <MODULE id="tracktion_engine" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
   <LIVE_SETTINGS>
-    <WINDOWS/>
+    <WINDOWS buildEnabled="0"/>
     <LINUX/>
   </LIVE_SETTINGS>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>

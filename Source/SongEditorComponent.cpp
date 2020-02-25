@@ -18,7 +18,9 @@
 //==============================================================================
 SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
     : m_edit(edit)
-    , m_arranger(m_tracks, edit)
+    , m_pixelPerBeat(30)
+    , m_arranger(m_tracks, edit, m_pixelPerBeat)
+    , m_timeLineComp(m_pixelPerBeat, m_arrangeViewport)
 {
     addAndMakeVisible(m_arrangeViewport);
     m_arrangeViewport.addChangeListener(this);
@@ -27,9 +29,10 @@ SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
     m_arrangeViewport.setViewedComponent(&m_arranger, false);
     m_arrangeViewport.setScrollBarsShown(true, true, true, true);
 
+    m_timeLineComp.addChangeListener(this); 
     edit.state.addListener(this);
     addAndMakeVisible(m_timeLineComp);
-    m_timeLineComp.setZoom(m_arranger.getPixelPerBeats());
+    
 
     addAndMakeVisible(m_toolBox);
 }
@@ -50,9 +53,19 @@ void SongEditorComponent::resized()
     auto trackRack = area.removeFromLeft(310);
     auto toolBox = timeline.removeFromLeft(trackRack.getWidth());
     m_toolBox.setBounds(toolBox);
-    auto lenght = m_edit.tempoSequence.timeToBeats(m_edit.getLength()) * m_arranger.getPixelPerBeats();
+    auto lenght = jmax(
+        500 * m_pixelPerBeat
+        , static_cast<int>(m_edit.tempoSequence.timeToBeats( m_edit.getLength()) * m_pixelPerBeat)
+    );
     auto arrangerPos = m_arrangeViewport.getViewPositionX();
-    m_timeLineComp.setBounds(timeline.getX() -  arrangerPos, timeline.getY(), jmax(timeline.getWidth(), timeline.getX()) + lenght , timeline.getHeight());
+    m_timeLineComp.setBounds(timeline.getX() -  arrangerPos
+        , timeline.getY()
+        , jmax(timeline.getWidth()
+            , timeline.getX()) + lenght
+        , timeline.getHeight()
+    );
+//    std::cout << "Toolbox x : " << m_toolBox.getScreenPosition
+    m_timeLineComp.setScreenXPosition(m_toolBox.getScreenPosition().getX() + m_toolBox.getWidth());
     for (auto& track : m_tracks)
     {
         auto trackRect = trackRack.removeFromTop(track->getTrackheight());
@@ -61,8 +74,7 @@ void SongEditorComponent::resized()
                          trackRack.getWidth(),
                          track->getTrackheight());
     }
-    
-    m_arranger.setSize(area.getWidth() + lenght, area.getHeight());
+    m_arranger.setSize(lenght, area.getHeight());
     m_arrangeViewport.setBounds(area);
 }
 
@@ -71,7 +83,6 @@ void SongEditorComponent::addTrack(File& f)
     auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-    
     if (auto track = getOrInsertAudioTrackAt(m_tracks.size()))
     {
         track->setName("Track " + String(m_tracks.size() + 1));
@@ -83,30 +94,27 @@ void SongEditorComponent::addTrack(File& f)
         removeAllClips(*track);
         // Add a new clip to this track
         tracktion_engine::AudioFile audioFile(f);
-
         if (audioFile.isValid())
             if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
                 { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
             {
                 newClip->setColour(track->getColour());
-                m_arranger.addAndMakeVisible(trackHeader->createClip(*newClip));
+                m_arranger.addAndMakeVisible(trackHeader->createClip(*newClip, m_pixelPerBeat));
                 m_arranger.resized();
                 m_arranger.repaint();
 
                 track->getVolumePlugin()->volume = 0.1f;
             }
     }
-    
     resized();
-
 }
 
 void SongEditorComponent::changeListenerCallback(ChangeBroadcaster* source)
 {
-    std::cout << "sdfsdfsdfghdfhfdj";
     //reposition the TrackRack
     resized();
-    m_timeLineComp.setZoom(m_arranger.getPixelPerBeats());
+    m_timeLineComp.repaint();
+    m_arranger.repaint();
 }
 
 tracktion_engine::AudioTrack* SongEditorComponent::getOrInsertAudioTrackAt(int index)
