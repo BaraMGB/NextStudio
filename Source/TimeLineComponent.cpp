@@ -23,26 +23,18 @@ TimeLineComponent::~TimeLineComponent()
 
 void TimeLineComponent::paint(Graphics& g)
 {
+    g.setColour(Colour(0xff181818));
+    g.fillRect(getLocalBounds());
+    g.setColour(Colours::white);
+    g.drawRect(getLocalBounds());
     g.setFont(15);
-    
     auto area = getLocalBounds();
-
     auto beatLine = 0, barline = 0, barNum = 0;
     while (beatLine < getWidth())
     {
         barline++;
         if (barline == 1)
         {
-            if (barNum % 2 == 0)
-            {
-                g.setColour(Colour(0xff4b94c9));
-            }
-            else
-            {
-                g.setColour(Colour(0xff4b94c9).darker(0.2));
-            }
-
-            g.setColour(Colours::black);
             barNum++;
             if (m_pixelPerBeat > 70)
             {
@@ -54,7 +46,6 @@ void TimeLineComponent::paint(Graphics& g)
                         , g.getCurrentFont().getHeight()
                     );
                 }
-                
             }
             else
             {
@@ -64,14 +55,11 @@ void TimeLineComponent::paint(Graphics& g)
                     , g.getCurrentFont().getHeight()
                 );
             }
-            
         }
-        g.setColour(Colour(0xff242424));
         auto lineStartY = g.getCurrentFont().getHeight();
         if (barline == 4)
         {
             lineStartY = 0;
-            g.setColour(Colour(0xff343434));
             barline = 0;
         }
         beatLine = beatLine + m_pixelPerBeat;
@@ -105,8 +93,6 @@ void TimeLineComponent::paint(Graphics& g)
 void TimeLineComponent::mouseDown(const MouseEvent& event)
 {
     m_posAtMouseDown = event.getMouseDownScreenPosition();
-    m_ppbAtMouseDown = m_pixelPerBeat;
-    m_oldWidth = getWidth();
 }
 
 void TimeLineComponent::mouseDrag(const MouseEvent& event)
@@ -120,8 +106,11 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
     );
 
     double oldPPB = m_pixelPerBeat;
-    auto delta = event.getDistanceFromDragStartY() / 10;
+    auto delta = event.getDistanceFromDragStartY();
+    
     m_pixelPerBeat = m_pixelPerBeat - delta;
+    m_pixelPerBeat = m_pixelPerBeat < 2 ? 2 : m_pixelPerBeat;
+
 
     double newPPB = m_pixelPerBeat;
     double newPos = m_viewPort.getHorizontalScrollBar().getCurrentRangeStart()  / oldPPB * newPPB;
@@ -136,15 +125,14 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
 void TimeLineComponent::mouseUp(const MouseEvent& event)
 {
     auto distanceX = m_posAtMouseDown.getX() - m_distanceX < m_screenX ? m_screenX : m_posAtMouseDown.getX() - m_distanceX;
-    // ? grßer als die breite
-    std::cout << "distanceX" << distanceX << "  ScreenX: " << m_screenX << std::endl;
-        
+    distanceX = m_posAtMouseDown.getX() - m_distanceX > m_screenW ? m_screenW : distanceX;
     Desktop::setMousePosition(Point<int>(distanceX, m_posAtMouseDown.getY()));
     m_distanceX = 0;
     setMouseCursor(MouseCursor::NormalCursor);
 }
 
-void TimeLineComponent::setScreenXPosition(int screenPosX)
+void TimeLineComponent::setScreen(int screenPosX, int screenWidth)
 {
     m_screenX = screenPosX;
+    m_screenW = screenWidth;
 }

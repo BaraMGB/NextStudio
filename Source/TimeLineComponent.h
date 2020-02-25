@@ -27,15 +27,14 @@ public:
     void mouseDrag(const MouseEvent& event) override;
     void mouseUp(const MouseEvent& event) override;
 
-    void setScreenXPosition(int screenPosX);
+    void setScreen(int screenPosX, int screenWidth);
 
 private:
     Point<int> m_posAtMouseDown;
     int& m_pixelPerBeat;
-    int m_ppbAtMouseDown{ 0 };
     int m_distanceX{ 0 };
-    int m_screenX;
-    int m_oldWidth;
+    int m_screenX, m_screenW;
+
     Viewport& m_viewPort;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
 };

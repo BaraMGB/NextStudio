@@ -29,12 +29,12 @@ SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
     m_arrangeViewport.setViewedComponent(&m_arranger, false);
     m_arrangeViewport.setScrollBarsShown(true, true, true, true);
 
-    m_timeLineComp.addChangeListener(this); 
-    edit.state.addListener(this);
     addAndMakeVisible(m_timeLineComp);
-    
+    m_timeLineComp.addChangeListener(this); 
 
     addAndMakeVisible(m_toolBox);
+
+    edit.state.addListener(this);
 }
 
 SongEditorComponent::~SongEditorComponent()
@@ -44,6 +44,13 @@ SongEditorComponent::~SongEditorComponent()
 
 void SongEditorComponent::paint (Graphics& g)
 {
+    auto area = getLocalBounds();
+    auto timeline = area.removeFromTop(50);
+    auto trackRack = area.removeFromLeft(310);
+    g.setColour(Colour(0xff181818));
+    g.fillRect(getLocalBounds());
+    g.setColour(Colours::white);
+    g.drawRect(trackRack);
 }
 
 void SongEditorComponent::resized()
@@ -58,21 +65,28 @@ void SongEditorComponent::resized()
         , static_cast<int>(m_edit.tempoSequence.timeToBeats( m_edit.getLength()) * m_pixelPerBeat)
     );
     auto arrangerPos = m_arrangeViewport.getViewPositionX();
+
     m_timeLineComp.setBounds(timeline.getX() -  arrangerPos
         , timeline.getY()
         , jmax(timeline.getWidth()
             , timeline.getX()) + lenght
         , timeline.getHeight()
     );
-//    std::cout << "Toolbox x : " << m_toolBox.getScreenPosition
-    m_timeLineComp.setScreenXPosition(m_toolBox.getScreenPosition().getX() + m_toolBox.getWidth());
+    //inform the timeline about its screen position
+    m_timeLineComp.setScreen(
+        m_toolBox.getScreenPosition().getX() + m_toolBox.getWidth()
+        , getScreenX() + getWidth()
+    );
+
     for (auto& track : m_tracks)
     {
         auto trackRect = trackRack.removeFromTop(track->getTrackheight());
-        track->setBounds(trackRect.getX(),
-                         trackRect.getY() - m_arrangeViewport.getVerticalScrollBar().getCurrentRangeStart(),
-                         trackRack.getWidth(),
-                         track->getTrackheight());
+        track->setBounds(
+            trackRect.getX()
+            , trackRect.getY() - m_arrangeViewport.getVerticalScrollBar().getCurrentRangeStart()
+            , trackRack.getWidth()
+            , track->getTrackheight()
+        );
     }
     m_arranger.setSize(lenght, area.getHeight());
     m_arrangeViewport.setBounds(area);
