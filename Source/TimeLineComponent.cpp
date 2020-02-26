@@ -47,13 +47,24 @@ void TimeLineComponent::paint(Graphics& g)
                     );
                 }
             }
-            else
+            else if (m_pixelPerBeat > 3)
             {
                 g.drawSingleLineText(
                     String(barNum)
                     , (barNum * m_pixelPerBeat * 4) - (m_pixelPerBeat * 4) + 3
                     , g.getCurrentFont().getHeight()
                 );
+            }
+            else
+            {
+                if (barNum % 4 == 1)
+                {
+                    g.drawSingleLineText(
+                        String(barNum)
+                        , (barNum * m_pixelPerBeat * 4) - (m_pixelPerBeat * 4) + 3
+                        , g.getCurrentFont().getHeight()
+                    );
+                }
             }
         }
         auto lineStartY = g.getCurrentFont().getHeight();
@@ -65,12 +76,16 @@ void TimeLineComponent::paint(Graphics& g)
         beatLine = beatLine + m_pixelPerBeat;
         if (m_pixelPerBeat > 8.0 || barline == 0)
         {
-            g.drawLine(
-                beatLine
-                , lineStartY
-                , beatLine
-                , getHeight()
-            );
+            
+            if (m_pixelPerBeat > 3 || barNum % 4 == 0)
+            {
+                g.drawLine(
+                    beatLine
+                    , lineStartY
+                    , beatLine
+                    , getHeight()
+                );
+            }
         }
         if (m_pixelPerBeat > 100.0)
         {
@@ -98,26 +113,35 @@ void TimeLineComponent::mouseDown(const MouseEvent& event)
 void TimeLineComponent::mouseDrag(const MouseEvent& event)
 {
     setMouseCursor(MouseCursor::NoCursor);
-
-    m_viewPort.setViewPosition(
-        m_viewPort.getViewPosition().getX()
-        - event.getDistanceFromDragStartX()
-        , m_viewPort.getViewPosition().getY()
-    );
-
-    double oldPPB = m_pixelPerBeat;
-    auto delta = event.getDistanceFromDragStartY();
     
-    m_pixelPerBeat = m_pixelPerBeat - delta;
-    m_pixelPerBeat = m_pixelPerBeat < 2 ? 2 : m_pixelPerBeat;
+    //move
+    auto distanceX = 0;
+    if (event.getDistanceFromDragStartX() > 5 || event.getDistanceFromDragStartX() < -5)
+    {
+        distanceX = event.getDistanceFromDragStartX();
+        m_viewPort.setViewPosition(
+            m_viewPort.getViewPosition().getX()
+            - event.getDistanceFromDragStartX()
+            , m_viewPort.getViewPosition().getY()
+        );
+    }
+    //zoom
+    else
+    {
+        auto clickPos = event.getMouseDownPosition().getX() / static_cast<double>(m_pixelPerBeat);
+        m_pixelPerBeat = m_pixelPerBeat - event.getDistanceFromDragStartY();
+        m_pixelPerBeat = m_pixelPerBeat < 3 ? 3 : m_pixelPerBeat;
+        auto currentPos = event.getMouseDownPosition().getX() / static_cast<double>(m_pixelPerBeat);
+        auto newPos = (currentPos - clickPos) * m_pixelPerBeat;
 
+        m_viewPort.setViewPosition(
+            m_viewPort.getViewPositionX() 
+            - newPos
+            , m_viewPort.getViewPositionY()
+        );
+    }
 
-    double newPPB = m_pixelPerBeat;
-    double newPos = m_viewPort.getHorizontalScrollBar().getCurrentRangeStart()  / oldPPB * newPPB;
-
-    m_viewPort.getHorizontalScrollBar().setCurrentRangeStart(newPos);
-    m_distanceX = m_distanceX - event.getDistanceFromDragStartX();
-    
+    m_distanceX = m_distanceX - distanceX;
     Desktop::setMousePosition(m_posAtMouseDown);
     sendChangeMessage();
 }

@@ -81,7 +81,7 @@ void ArrangerComponent::resized()
 
 inline void ArrangerComponent::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
 {
-    m_pixelPerBeats = jmax(1.0,(m_pixelPerBeats + (wheel.deltaY * 10.0)));
+    m_pixelPerBeats = jmax(3.0,(m_pixelPerBeats + (wheel.deltaY * 10.0)));
     sendChangeMessage();
     repaint();
 }

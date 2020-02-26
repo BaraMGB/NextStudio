@@ -34,7 +34,7 @@ private:
     int& m_pixelPerBeat;
     int m_distanceX{ 0 };
     int m_screenX, m_screenW;
-
+    
     Viewport& m_viewPort;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
 };
