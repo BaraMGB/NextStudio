@@ -15,6 +15,7 @@ MainComponent::MainComponent() :
     m_tree(m_dirConList)
 {
     setLookAndFeel(&m_nextLookAndFeel);
+
     //FileTree side bar
     m_thread.startThread(1);
     File file = File::getSpecialLocation(File::userHomeDirectory);
@@ -22,11 +23,9 @@ MainComponent::MainComponent() :
     m_tree.addListener(this);
 
     addAndMakeVisible(m_tree);
-    
 
     addAndMakeVisible(m_menuBar);
-   /* getLookAndFeel().setColour(ScrollBar::thumbColourId, Colour(0xff2c2c2c));
-    getLookAndFeel().setColour(ScrollBar::ColourIds::backgroundColourId , Colour(0xff000000));*/
+
     addAndMakeVisible(m_resizerBar);
     m_stretchableManager.setItemLayout(0,            // for the fileTree
         -0.1, -0.9,   // must be between 50 pixels and 90% of the available space
@@ -38,84 +37,28 @@ MainComponent::MainComponent() :
     m_stretchableManager.setItemLayout(2,            // for the imagePreview
         -0.1, -0.9,   // size must be between 50 pixels and 90% of the available space
         -0.85);        // and its preferred size is 70% of the total available space
-    // Buttons
 
-    m_edit =  std::make_unique<tracktion_engine::Edit>( m_engine, tracktion_engine::createEmptyEdit(),
-        tracktion_engine::Edit::forEditing, nullptr, 0);
+    setupEdit();
+   
 
-    
-    m_header = std::make_unique<HeaderComponent>(getWidth(), c_headerHeight, *m_edit );
-    m_songEditor = std::make_unique<SongEditorComponent>(*m_edit);
-    addAndMakeVisible(*m_header);
+    //Logger::outputDebugString( m_edit->state.toXmlString());
+    m_songEditor = std::make_unique<SongEditorComponent>(*m_edit, m_selectionManager);
     addAndMakeVisible(*m_songEditor);
 
+    m_header = std::make_unique<HeaderComponent>(*m_edit);
+    addAndMakeVisible(*m_header);
 
-    
-
-    m_edit->tempoSequence.getTempos()[0]->setBpm(140);
-
-
-    
-    
     setSize(1600, 900);
-
-    // Some platforms require permissions to open input channels so request that here
-    if (RuntimePermissions::isRequired (RuntimePermissions::recordAudio)
-        && ! RuntimePermissions::isGranted (RuntimePermissions::recordAudio))
-    {
-        RuntimePermissions::request (RuntimePermissions::recordAudio,
-                                     [&] (bool granted) { if (granted)  setAudioChannels (2, 2); });
-    }
-    else
-    {
-        // Specify the number of input and output channels that we want to open
-        setAudioChannels (2, 2);
-    }
 }
 
 MainComponent::~MainComponent()
 {
     m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
-    // This shuts down the audio device and clears the audio source.
-    shutdownAudio();
 }
 
-//==============================================================================
-void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
-{
-    // This function will be called when the audio device is started, or when
-    // its settings (i.e. sample rate, block size, etc) are changed.
-
-    // You can use this function to initialise any resources you might need,
-    // but be careful - it will be called on the audio thread, not the GUI thread.
-
-    // For more details, see the help for AudioProcessor::prepareToPlay()
-}
-
-void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
-{
-    // Your audio-processing code goes here!
-
-    // For more details, see the help for AudioProcessor::getNextAudioBlock()
-
-    // Right now we are not producing any data, in which case we need to clear the buffer
-    // (to prevent the output of random noise)
-    bufferToFill.clearActiveBufferRegion();
-}
-
-void MainComponent::releaseResources()
-{
-    // This will be called when the audio device stops, or when it is being
-    // restarted due to a setting change.
-
-    // For more details, see the help for AudioProcessor::releaseResources()
-}
-
-//==============================================================================
 void MainComponent::paint (Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll(juce::Colours::darkgrey);
     auto area = getLocalBounds();
     area.reduce(10, 10);
@@ -124,8 +67,6 @@ void MainComponent::paint (Graphics& g)
     g.setColour(Colour(0xff242424));
     g.fillRect(header);
     //g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
-
-    // You can add your drawing code here!
 }
 
 void MainComponent::resized()
@@ -141,8 +82,7 @@ void MainComponent::resized()
     m_header.get()->setBounds(header);
     area.removeFromTop(10);
     auto sidebarWidth = getLocalBounds().getWidth() / 5;
-   
-    Component* comps[] = { &m_tree, &m_resizerBar, m_songEditor.get() };
+    Component* comps[] = { &m_tree, &m_resizerBar,m_songEditor.get()};
 
     // this will position the 3 components, one above the other, to fit
     // vertically into the rectangle provided.
@@ -156,4 +96,27 @@ void MainComponent::resized()
 void MainComponent::buttonClicked(Button* button)
 {
     
+}
+
+void MainComponent::changeListenerCallback(ChangeBroadcaster* source)
+{
+}
+
+void MainComponent::setupEdit()
+{
+    m_selectionManager.deselectAll();
+    //editComponent = nullptr;
+
+    m_edit = std::make_unique<tracktion_engine::Edit>(
+        m_engine,
+        tracktion_engine::createEmptyEdit(),
+        tracktion_engine::Edit::forEditing,
+        nullptr,
+        0
+        );
+   //there is one AudioTrack already exist
+    m_edit->playInStopEnabled = true;
+
+    auto& transport = m_edit->getTransport();
+    transport.addChangeListener(this);
 }

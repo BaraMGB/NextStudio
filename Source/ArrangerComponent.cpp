@@ -13,13 +13,13 @@
 
 //==============================================================================
 ArrangerComponent::ArrangerComponent(
-    OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit & edit, int& pixelPerBeat)
+    OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit & edit, SongEditorViewState& state)
     : m_trackComponents(trackComps)
     , m_edit(edit)
-    , m_pixelPerBeats(pixelPerBeat)
+    , m_state(state)
 {
     addAndMakeVisible(m_positionLine);
-    setSize(3000, 300);
+    m_positionLine.setAlwaysOnTop(true);
 }
 
 ArrangerComponent::~ArrangerComponent()
@@ -32,6 +32,9 @@ void ArrangerComponent::paint (Graphics& g)
     auto area = getLocalBounds();
     g.setColour (Colour(0xff343434));
 
+
+
+    //horizontal line for tracks
     for(auto& track : m_trackComponents)
     {
         auto height = track->getTrackheight();
@@ -39,6 +42,7 @@ void ArrangerComponent::paint (Graphics& g)
         g.drawLine(area.getX(), area.getY(), area.getWidth(), area.getY());
     }
 
+    //vertical lines
     auto beatLine = 0, barline = 0;
     while (beatLine < getWidth())
     {
@@ -49,39 +53,173 @@ void ArrangerComponent::paint (Graphics& g)
             g.setColour(Colour(0xff343434));
             barline = 0;
         }
-        beatLine = beatLine + m_pixelPerBeats;
-        if (m_pixelPerBeats > 8.0 || barline == 0)
+        beatLine = beatLine + m_state.m_pixelPerBeat;
+        if (m_state.m_pixelPerBeat > 8.0 || barline == 0)
         {
             g.drawLine(beatLine, 0, beatLine, getHeight());
         }
     }
+    Logger::outputDebugString("AR:painted " );
 }
 
 void ArrangerComponent::resized()
 {
     auto area = getLocalBounds();
+
+    for (auto & trackComp : m_trackComponents)
+    {
+        trackComp->m_clipComponents.clear();
+        for (auto i = 0; i < trackComp->getEngineTrack()->getNumTrackItems(); i++)
+        {
+            auto clip = dynamic_cast<tracktion_engine::WaveAudioClip*>(trackComp->getEngineTrack()->getTrackItem(i));
+            if (clip)
+            {
+                const double length = clip->getLengthInBeats() * m_state.m_pixelPerBeat;
+                const double start = clip->getStartBeat() * m_state.m_pixelPerBeat;
+                auto clipRect = Rectangle<int>(area.getX() + start,
+                    area.getY(),
+                    length,
+                    trackComp->getEngineTrack()->defaultTrackHeight);
+                auto clipComp = std::make_unique<ClipComponent>(*clip, m_state);
+                addAndMakeVisible(clipComp.get());
+                clipComp.get()->setBounds(clipRect);
+                trackComp->m_clipComponents.add(std::move(clipComp));
+            }
+    }
+    area.removeFromTop(trackComp->getEngineTrack()->defaultTrackHeight);
+    }
+    updatePositionLine();
+
+    Logger::outputDebugString("AR: resized" );
+}
+
+void ArrangerComponent::updatePositionLine()
+{
+    double pos = m_edit.tempoSequence.timeToBeats(m_edit.getTransport().getCurrentPosition()) * static_cast<int>(m_state.m_pixelPerBeat);
+    m_positionLine.setBounds(pos, 0, 1, getLocalBounds().getHeight());
+}
+
+void ArrangerComponent::itemDropped(const SourceDetails& dragSourceDetails)
+{
+    auto dropPos = dragSourceDetails.localPosition;
+    auto sourcePosY = dragSourceDetails.sourceComponent.get()->getY();
+    TrackHeaderComponent* targetTrackHeaderComp = nullptr;
     for (auto& trackComp : m_trackComponents)
     {
-        for (auto& clipComp : *trackComp->getClipComponents())
+        if (   (dropPos.getY() - m_yPos)  > (trackComp->getY() - 50) 
+            && (dropPos.getY() - m_yPos) < ((trackComp->getY() - 50) + trackComp->getHeight()))
         {
-            const double length = m_edit.tempoSequence.timeToBeats(clipComp->getLength()) * m_pixelPerBeats;
-            const double start  = m_edit.tempoSequence.timeToBeats(clipComp->getStart())  * m_pixelPerBeats;
-            auto clipRect = Rectangle<int>(area.getX() + start,
-                area.getY(),
-                length,
-                trackComp->getTrackheight());
-            clipComp->setBounds(clipRect.reduced(0,1));
+            targetTrackHeaderComp = trackComp;
         }
-        area.removeFromTop(trackComp->getTrackheight());
     }
-    double pos = m_edit.tempoSequence.timeToBeats(m_edit.getTransport().getCurrentPosition()) * static_cast<int>(m_pixelPerBeats);
-    m_positionLine.setBounds(pos, 0, 1, getLocalBounds().getHeight());
-    m_positionLine.setAlwaysOnTop(true);
+    auto timePos = m_edit.tempoSequence.beatsToTime(dropPos.getX() / m_state.m_pixelPerBeat);
+    if (dragSourceDetails.description == "Clip")
+    {
+        auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
+        if (clipComp && targetTrackHeaderComp)
+        {
+            for (auto& trackComp : m_trackComponents)
+            {
+                if (trackComp->m_clipComponents.contains(clipComp))
+                {
+                    trackComp->m_clipComponents.removeObject(clipComp, false);
+                    targetTrackHeaderComp->m_clipComponents.add(clipComp);
+                }
+            }
+            clipComp->moveToTrack(*targetTrackHeaderComp->getEngineTrack());
+        }
+    }
+    auto fileTreeComp = dynamic_cast<FileTreeComponent*>(dragSourceDetails.sourceComponent.get());
+    if (fileTreeComp && targetTrackHeaderComp)
+    {
+        auto track = dynamic_cast<tracktion_engine::AudioTrack*>(targetTrackHeaderComp->getEngineTrack());
+        if (track)
+        {
+            auto f = fileTreeComp->getSelectedFile();
+            tracktion_engine::AudioFile audioFile(f);
+            if (audioFile.isValid())
+                if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
+                    { { timePos, 0.0 + audioFile.getLength() }, 0.0 }, false))
+                {
+                    newClip->setColour(track->getColour());
+                    //resized();
+                }
+        }
+    }
+
+
+    Logger::outputDebugString("AR:Item dropped" );
+
+    //sendChangeMessage();
+    //resized();
+    //repaint();
+}
+
+void ArrangerComponent::itemDragMove(const SourceDetails& dragSourceDetails)
+{
+    TrackHeaderComponent* targetTrackHeaderComp = nullptr;
+    for (auto& trackComp : m_trackComponents)
+    {
+        
+        if ((   getMouseXYRelative().getY() - m_yPos) > (trackComp->getY() - 50)
+            && (getMouseXYRelative().getY() - m_yPos) < ((trackComp->getY() - 50) + trackComp->getHeight()))
+        {
+            targetTrackHeaderComp = trackComp;
+        }
+    }
+    auto oldBounds = dragSourceDetails.sourceComponent.get()->getLocalBounds();
+    if (dragSourceDetails.description == "Clip")
+    {
+        auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
+        if (clipComp && targetTrackHeaderComp)
+        {
+            auto newY = targetTrackHeaderComp->getY() - oldBounds.getY();
+            clipComp->setBounds(clipComp->getX(), newY - 50 + m_yPos,  clipComp->getWidth(), clipComp->getHeight());
+        }
+    }
+}
+
+void ArrangerComponent::ClipsMoved()
+{
+    auto area = getLocalBounds();
+    for (auto& trackComp : m_trackComponents)
+    {
+        for(auto& clipComp : trackComp->m_clipComponents)
+        {
+            auto& clip = clipComp->getEngineClip();
+                const double length = clip.getLengthInBeats() * m_state.m_pixelPerBeat;
+                const double start = clip.getStartBeat() * m_state.m_pixelPerBeat;
+                auto clipRect = Rectangle<int>(area.getX() + start,
+                    area.getY(),
+                    length,
+                    trackComp->getEngineTrack()->defaultTrackHeight);
+                 
+                clipComp->setBounds(clipRect);
+        }
+        area.removeFromTop(trackComp->getEngineTrack()->defaultTrackHeight);
+    }
+    Logger::outputDebugString("AR:Clips moved" );
+}
+
+void ArrangerComponent::mouseDown(const MouseEvent& event)
+{
+    if (event.mods.isLeftButtonDown())
+    {
+        m_state.m_selectionManager.deselectAll();
+    }
 }
 
 inline void ArrangerComponent::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
 {
-    m_pixelPerBeats = jmax(3.0,(m_pixelPerBeats + (wheel.deltaY * 10.0)));
+    if (event.mods.isCtrlDown() || event.mods.isCommandDown())
+    {
+        m_state.m_pixelPerBeat = jmax(3.0, (m_state.m_pixelPerBeat + (wheel.deltaY * 10.0)));
+    }
+    else if(event.mods.isShiftDown())
+    {
+        //move left right
+    }
+    
     sendChangeMessage();
     repaint();
 }

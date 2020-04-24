@@ -34,27 +34,51 @@ void ClipComponent::paint (Graphics& g)
         , Justification::topLeft
         , true
     );
+    Logger::outputDebugString("CL: painted");
 }
 
 void ClipComponent::resized()
 {
+    Logger::outputDebugString("CL: resized()" );
 }
 
 
 
 void ClipComponent::mouseDown(const MouseEvent& event)
 {
+   
     m_ClipPosAtMouseDown = m_engineClip.edit.tempoSequence.timeToBeats(m_engineClip.getPosition().getStart());
-    //std::cout << m_engineClip.state.toXmlString();
+    //Logger::outputDebugString( m_engineClip.state.toXmlString());
 }
 
 void ClipComponent::mouseDrag(const MouseEvent& event)
 {
-    m_engineClip.setStart(m_engineClip.edit.tempoSequence.beatsToTime(
-        m_ClipPosAtMouseDown
-        + event.getDistanceFromDragStartX()
-        / m_pixelPerBeat
-    ), false, true);
+    //if (event.getDistanceFromDragStartY() > 50 || event.getDistanceFromDragStartY() < -50)
+    {
+
+        DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
+        if (!dragC->isDragAndDropActive())
+        {
+            dragC->startDragging("Clip", this,juce::Image(Image::ARGB,1,1,true), 
+                false);
+        }
+    }
+    //else if (m_state.m_pixelPerBeat > 1.0)
+    {
+        auto newPos = jmax(
+            0.0, 
+            m_engineClip.edit.tempoSequence.beatsToTime(
+                m_ClipPosAtMouseDown 
+                + event.getDistanceFromDragStartX() 
+                / m_state.m_pixelPerBeat 
+            )
+        );
+        if (!event.mods.isCtrlDown())
+        {
+            newPos = m_engineClip.edit.getTimecodeFormat().getSnapType(9).roundTimeNearest(newPos, m_engineClip.edit.tempoSequence);
+        }
+        m_engineClip.setStart(newPos, false, true);
+    }
 }
 
 double ClipComponent::getLength()

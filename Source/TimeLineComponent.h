@@ -11,6 +11,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "SongEditorState.h"
 
 //==============================================================================
 /*
@@ -19,7 +20,7 @@ class TimeLineComponent : public Component
                         , public ChangeBroadcaster
 {
 public:
-    TimeLineComponent::TimeLineComponent(int& pixelPerBeat, Viewport& pos);
+    TimeLineComponent::TimeLineComponent(SongEditorViewState& state, Viewport& pos);
     ~TimeLineComponent();
 
     void paint(Graphics& g);
@@ -31,10 +32,9 @@ public:
 
 private:
     Point<int> m_posAtMouseDown;
-    int& m_pixelPerBeat;
     int m_distanceX{ 0 };
     int m_screenX, m_screenW;
-    
+    SongEditorViewState& m_state;
     Viewport& m_viewPort;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
 };

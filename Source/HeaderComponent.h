@@ -12,6 +12,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SpinBoxGroup.h"
+#include "SongEditorState.h"
 
 //==============================================================================
 /*
@@ -21,7 +22,7 @@ class HeaderComponent    : public Component
                          , private Timer
 {
 public:
-    HeaderComponent(int height, int width, tracktion_engine::Edit& edit);
+    HeaderComponent(tracktion_engine::Edit& edit);
     ~HeaderComponent();
 
     void paint (Graphics&) override;

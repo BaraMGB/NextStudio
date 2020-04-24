@@ -16,12 +16,14 @@
 
 
 //==============================================================================
-SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
+SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit, tracktion_engine::SelectionManager& selectionManager)
     : m_edit(edit)
-    , m_pixelPerBeat(30)
-    , m_arranger(m_tracks, edit, m_pixelPerBeat)
-    , m_timeLineComp(m_pixelPerBeat, m_arrangeViewport)
+    , m_songEditorState(edit, selectionManager)
+    , m_arranger(m_tracks, edit, m_songEditorState)
+    , m_timeLineComp(m_songEditorState, m_arrangeViewport)
 {
+    m_edit.state.addListener(this);
+    selectionManager.addChangeListener(this);
     addAndMakeVisible(m_arrangeViewport);
     m_arrangeViewport.addChangeListener(this);
     m_arranger.addChangeListener(this);
@@ -32,9 +34,10 @@ SongEditorComponent::SongEditorComponent(tracktion_engine::Edit& edit)
     addAndMakeVisible(m_timeLineComp);
     m_timeLineComp.addChangeListener(this); 
 
-    addAndMakeVisible(m_toolBox);
 
     edit.state.addListener(this);
+    buildTracks();
+    addAndMakeVisible(m_toolBox);
 }
 
 SongEditorComponent::~SongEditorComponent()
@@ -51,6 +54,7 @@ void SongEditorComponent::paint (Graphics& g)
     g.fillRect(getLocalBounds());
     g.setColour(Colours::white);
     g.drawRect(trackRack);
+    Logger::outputDebugString("SE: painted " );
 }
 
 void SongEditorComponent::resized()
@@ -59,13 +63,32 @@ void SongEditorComponent::resized()
     auto timeline = area.removeFromTop(50);
     auto trackRack = area.removeFromLeft(310);
     auto toolBox = timeline.removeFromLeft(trackRack.getWidth());
-    m_toolBox.setBounds(toolBox);
     auto lenght = jmax(
-        500 * m_pixelPerBeat
-        , static_cast<int>(m_edit.tempoSequence.timeToBeats( m_edit.getLength()) * m_pixelPerBeat)
+        500 * m_songEditorState.m_pixelPerBeat
+        , m_edit.tempoSequence.timeToBeats(m_edit.getLength()) * m_songEditorState.m_pixelPerBeat
     );
     auto arrangerPos = m_arrangeViewport.getViewPositionX();
 
+    //Tracks
+    
+    Logger::outputDebugString( m_edit.state.toXmlString());
+    auto rackHeight = 0;
+    for (auto& trackComp : m_tracks)
+    {
+        
+        auto trackRect = trackRack.removeFromTop(trackComp->getTrackheight());
+        trackComp->setBounds(
+            trackRect.getX()
+            , trackRect.getY() - m_arrangeViewport.getVerticalScrollBar().getCurrentRangeStart()
+            , trackRack.getWidth()
+            , trackComp->getTrackheight()
+        );
+        rackHeight += trackRect.getHeight();
+    }
+
+    m_toolBox.setBounds(toolBox);
+    m_toolBox.setAlwaysOnTop(true);
+    //Timeline
     m_timeLineComp.setBounds(timeline.getX() -  arrangerPos
         , timeline.getY()
         , jmax(timeline.getWidth()
@@ -77,19 +100,12 @@ void SongEditorComponent::resized()
         m_toolBox.getScreenPosition().getX() + m_toolBox.getWidth()
         , getScreenX() + getWidth()
     );
+    //Logger::outputDebugString(String("rackHeigth : ") + String(rackHeight) + String("getHeight() : " + String(area.getHeight())));
 
-    for (auto& track : m_tracks)
-    {
-        auto trackRect = trackRack.removeFromTop(track->getTrackheight());
-        track->setBounds(
-            trackRect.getX()
-            , trackRect.getY() - m_arrangeViewport.getVerticalScrollBar().getCurrentRangeStart()
-            , trackRack.getWidth()
-            , track->getTrackheight()
-        );
-    }
-    m_arranger.setSize(lenght, area.getHeight());
+    m_arranger.setSize(lenght, rackHeight + 300);
     m_arrangeViewport.setBounds(area);
+
+    Logger::outputDebugString("SE: resized" );
 }
 
 void SongEditorComponent::addTrack(File& f)
@@ -97,14 +113,12 @@ void SongEditorComponent::addTrack(File& f)
     auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
     auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-    if (auto track = getOrInsertAudioTrackAt(m_tracks.size()))
+    if (auto track = getOrInsertAudioTrackAt(tracktion_engine::getAudioTracks(m_edit).size()))
     {
-        track->setName("Track " + String(m_tracks.size() + 1));
-        track->setColour(Colour(red, gre, blu));
-        auto trackHeader = new TrackHeaderComponent(*track);
-        addAndMakeVisible(trackHeader);
-        m_tracks.add(trackHeader);
 
+        track->setName("Track " + String(tracktion_engine::getAudioTracks(m_edit).size()));
+        track->setColour(Colour(red, gre, blu));
+       
         removeAllClips(*track);
         // Add a new clip to this track
         tracktion_engine::AudioFile audioFile(f);
@@ -113,22 +127,126 @@ void SongEditorComponent::addTrack(File& f)
                 { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
             {
                 newClip->setColour(track->getColour());
-                m_arranger.addAndMakeVisible(trackHeader->createClip(*newClip, m_pixelPerBeat));
-                m_arranger.resized();
-                m_arranger.repaint();
-
-                track->getVolumePlugin()->volume = 0.1f;
             }
+        track->getVolumePlugin()->volume = 0.1f;
     }
+    Logger::outputDebugString("SE: Track added with File: " + f.getFileNameWithoutExtension());
+    //buildTracks();
+    //m_arranger.resized();
+    //m_arranger.repaint();
+    //resized();
+}
+
+void SongEditorComponent::addTrack()
+{
+    if (auto track = getOrInsertAudioTrackAt(tracktion_engine::getAudioTracks(m_edit).size()))
+    {
+        auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+        auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+        auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+
+        track->setName("Track " + String(m_tracks.size()));
+        track->setColour(Colour(red, gre, blu));
+
+        removeAllClips(*track);
+        track->getVolumePlugin()->volume = 0.4f;
+        Logger::outputDebugString("SE: Track added");
+        //buildTracks();
+        //resized();
+    //    m_arranger.resized();
+    //    m_arranger.repaint();
+    }
+}
+
+void SongEditorComponent::buildTracks()
+{
+    m_tracks.clear();
+    for (auto track : tracktion_engine::getAllTracks(m_edit))
+    {
+        TrackHeaderComponent* thc = nullptr;
+
+        if (track->isTempoTrack())
+        {
+            if (m_songEditorState.m_showGlobalTrack)
+                thc = new TrackHeaderComponent(m_songEditorState, track);
+        }
+        else if (track->isMarkerTrack())
+        {
+            if (m_songEditorState.m_showMarkerTrack)
+                thc = new TrackHeaderComponent(m_songEditorState, track);
+        }
+        else if (track->isChordTrack())
+        {
+            if (m_songEditorState.m_showChordTrack)
+                thc = new TrackHeaderComponent(m_songEditorState, track);
+        }
+        else if(track->isAudioTrack())
+        {
+            thc = new TrackHeaderComponent(m_songEditorState, track);
+        }
+
+        if (thc != nullptr)
+        {
+            Logger::outputDebugString("buildTracks : TrackName: " + track->getName());
+            m_tracks.add(thc);
+             addAndMakeVisible(thc);
+        }
+    }
+    //Logger::outputDebugString( m_edit.state.toXmlString());
     resized();
+    Logger::outputDebugString("SE: Tracks build");
+}
+
+void SongEditorComponent::mouseDown(const MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        PopupMenu m;
+        m.addItem(1, "add Track");
+        m.addItem(2, "item 2");
+
+        const int result = m.show();
+
+        if (result == 0)
+        {
+            // user dismissed the menu without picking anything
+        }
+        else if (result == 1)
+        {
+            addTrack();
+            // user picked item 1
+        }
+        else if (result == 2)
+        {
+            // user picked item 2
+        }
+    }
+    else if (event.mods.isLeftButtonDown())
+    {
+        m_songEditorState.m_selectionManager.deselectAll();
+    }
 }
 
 void SongEditorComponent::changeListenerCallback(ChangeBroadcaster* source)
 {
-    //reposition the TrackRack
-    resized();
-    m_timeLineComp.repaint();
-    m_arranger.repaint();
+    Logger::outputDebugString("SE:ChangeListener" );
+    if (source == &m_timeLineComp)
+    {
+        m_timeLineComp.repaint();
+        resized();
+    }
+    else if (source == &m_arrangeViewport)
+    {
+        resized();
+        m_arranger.setYpos(m_arrangeViewport.getViewPositionY());
+    }
+    else if (source == &m_songEditorState.m_selectionManager)
+    {
+        for (auto& th : m_tracks)
+        {
+            th->repaint();
+        }
+    }
 }
 
 tracktion_engine::AudioTrack* SongEditorComponent::getOrInsertAudioTrackAt(int index)

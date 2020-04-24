@@ -12,6 +12,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ClipComponent.h"
+#include "SongEditorState.h"
 
 
 //==============================================================================
@@ -31,27 +32,40 @@ public:
     }
 };
 
-class TrackHeaderComponent    : public Component
-                              , public ValueTree::Listener
-                              , public Slider::Listener
+
+
+
+
+class TrackHeaderComponent : public Component
+    , public ValueTree::Listener
+    , public Slider::Listener
 {
 public:
-    TrackHeaderComponent(tracktion_engine::AudioTrack & track);
+    TrackHeaderComponent(SongEditorViewState& SEstate, tracktion_engine::Track* track);
     ~TrackHeaderComponent();
 
     void paint(Graphics& g) override;
     void resized() override;
+    void mouseDown(const MouseEvent&);
+
+
+
+
     void valueTreePropertyChanged(ValueTree&, const Identifier&) override
     {
+        Logger::outputDebugString("TH: PropertyChanged");
         resized();
     }
 
-    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override { resized(); repaint(); }
-    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override { resized(); repaint(); }
-    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override { resized(); repaint(); }
-    void valueTreeParentChanged(ValueTree&) override {}
+    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override { Logger::outputDebugString("TH:ChildAdded"); resized(); repaint(); }
+    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override { Logger::outputDebugString("TH:ChildRemoved"); resized(); repaint(); }
+    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override { Logger::outputDebugString("TH:ChildOrderChanged"); resized(); repaint(); }
+    void valueTreeParentChanged(ValueTree&) override {
+        Logger::outputDebugString("TH:ParentChanged");
+    }
 
     void sliderValueChanged(Slider* slider);
+
     int getTrackheight()
     {
         return m_height;
@@ -62,29 +76,25 @@ public:
         m_height = height;
     }
 
-    ClipComponent* createClip(tracktion_engine::Clip& engineClip, const int& pixelPerBeat)
+    tracktion_engine::Track* getEngineTrack()
     {
-        auto clipComp = new ClipComponent(engineClip, pixelPerBeat);
-        m_clipComponents.add(clipComp);
-        return clipComp;
+
+        return m_track;
     }
 
-    OwnedArray<ClipComponent>* getClipComponents()
-    {
-        return &m_clipComponents;
-    }
-
+    OwnedArray<ClipComponent> m_clipComponents;
 private:
     Label                     m_TrackLabel;
     ToggleButton              m_muteButton,
-                              m_soloButton,
-                              m_armingButton;
+        m_soloButton,
+        m_armingButton;
     Slider                    m_volumeKnob;
     PeakDisplayComponent      m_peakDisplay;
+    tracktion_engine::Track* m_track;
+    SongEditorViewState& m_songEditorState;
     int                       m_height;
-    OwnedArray<ClipComponent> m_clipComponents;
-    tracktion_engine::AudioTrack& m_track;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)
 };
+

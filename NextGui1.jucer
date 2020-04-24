@@ -41,7 +41,14 @@
       <FILE id="c3qiFI" name="SpinBoxGroup.h" compile="0" resource="0" file="Source/SpinBoxGroup.h"/>
       <FILE id="XYKrZp" name="MenuBar.cpp" compile="1" resource="0" file="Source/MenuBar.cpp"/>
       <FILE id="Lsljlv" name="MenuBar.h" compile="0" resource="0" file="Source/MenuBar.h"/>
+      <FILE id="KTN4bs" name="SideBarBrowser.cpp" compile="1" resource="0"
+            file="Source/SideBarBrowser.cpp"/>
+      <FILE id="NsTHTX" name="SideBarBrowser.h" compile="0" resource="0"
+            file="Source/SideBarBrowser.h"/>
+      <FILE id="KaaVhj" name="SongEditorState.h" compile="0" resource="0"
+            file="Source/SongEditorState.h"/>
     </GROUP>
+    <FILE id="Ktk1Ok" name="Next.h" compile="0" resource="0" file="Source/Next.h"/>
     <FILE id="IRKKik" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
   </MAINGROUP>
   <EXPORTFORMATS>

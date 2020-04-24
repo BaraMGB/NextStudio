@@ -27,27 +27,41 @@ class PositionLine : public Component
 */
 class ArrangerComponent    : public Component
                            , public ChangeBroadcaster
+                           , public DragAndDropTarget
 {
 public:
-    ArrangerComponent(OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit& edit, int& pixelPerBeat);
+    ArrangerComponent(OwnedArray<TrackHeaderComponent>& trackComps, tracktion_engine::Edit& edit, SongEditorViewState& state);
     ~ArrangerComponent();
 
     void paint (Graphics&) override;
     void resized() override;
+    void updatePositionLine();
 
+    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override { return true; }
+    void itemDropped(const SourceDetails& dragSourceDetails) override;
+    void itemDragMove(const SourceDetails& dragSourceDetails) override;
+
+    void ClipsMoved();
+    void mouseDown(const MouseEvent& event);
     void mouseWheelMove(const MouseEvent& event,
         const MouseWheelDetails& wheel);
+
+    void setYpos(int yPos)
+    {
+        m_yPos = yPos;
+    }
     const int getPixelPerBeat()
     {
-        return m_pixelPerBeats;
+        return m_state.m_pixelPerBeat;
     }
 
 private:
 
     OwnedArray<TrackHeaderComponent>& m_trackComponents;
     tracktion_engine::Edit& m_edit;
-    int& m_pixelPerBeats;
+    SongEditorViewState& m_state;
     PositionLine m_positionLine;
+    int m_yPos{ 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArrangerComponent)
 };

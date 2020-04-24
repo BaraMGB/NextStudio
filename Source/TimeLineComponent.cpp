@@ -11,10 +11,11 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TimeLineComponent.h"
 
-TimeLineComponent::TimeLineComponent(int& pixelPerBeat, Viewport& pos)
-    : m_pixelPerBeat(pixelPerBeat)
+TimeLineComponent::TimeLineComponent(SongEditorViewState& state, Viewport& pos)
+    : m_state(state)
     , m_viewPort(pos)
     , m_screenX(0)
+    , m_screenW(0)
 {
 }
 TimeLineComponent::~TimeLineComponent()
@@ -32,26 +33,27 @@ void TimeLineComponent::paint(Graphics& g)
     auto beatLine = 0, barline = 0, barNum = 0;
     while (beatLine < getWidth())
     {
+        int pixelPerBeat = jmax(3, static_cast<int>(m_state.m_pixelPerBeat));
         barline++;
         if (barline == 1)
         {
             barNum++;
-            if (m_pixelPerBeat > 70)
+            if (pixelPerBeat > 70)
             {
                 for (auto beat = 1; beat < 5; beat++)
                 {
                     g.drawSingleLineText(
                         String(barNum) + "." + String(5 - beat)
-                        , (barNum * m_pixelPerBeat * 4) - (m_pixelPerBeat * beat) + 3
+                        , (barNum * pixelPerBeat * 4) - (pixelPerBeat * beat) + 3
                         , g.getCurrentFont().getHeight()
                     );
                 }
             }
-            else if (m_pixelPerBeat > 3)
+            else if (pixelPerBeat > 3)
             {
                 g.drawSingleLineText(
                     String(barNum)
-                    , (barNum * m_pixelPerBeat * 4) - (m_pixelPerBeat * 4) + 3
+                    , (barNum * pixelPerBeat * 4) - (pixelPerBeat * 4) + 3
                     , g.getCurrentFont().getHeight()
                 );
             }
@@ -61,7 +63,7 @@ void TimeLineComponent::paint(Graphics& g)
                 {
                     g.drawSingleLineText(
                         String(barNum)
-                        , (barNum * m_pixelPerBeat * 4) - (m_pixelPerBeat * 4) + 3
+                        , (barNum * pixelPerBeat * 4) - (pixelPerBeat * 4) + 3
                         , g.getCurrentFont().getHeight()
                     );
                 }
@@ -73,11 +75,11 @@ void TimeLineComponent::paint(Graphics& g)
             lineStartY = 0;
             barline = 0;
         }
-        beatLine = beatLine + m_pixelPerBeat;
-        if (m_pixelPerBeat > 8.0 || barline == 0)
+        beatLine = beatLine + pixelPerBeat;
+        if (pixelPerBeat > 8.0 || barline == 0)
         {
             
-            if (m_pixelPerBeat > 3 || barNum % 4 == 0)
+            if (pixelPerBeat > 3 || barNum % 4 == 0)
             {
                 g.drawLine(
                     beatLine
@@ -87,11 +89,11 @@ void TimeLineComponent::paint(Graphics& g)
                 );
             }
         }
-        if (m_pixelPerBeat > 100.0)
+        if (pixelPerBeat > 100)
         {
             for (auto i = 0; i < 4; i++)
             {
-                auto pos = (beatLine - m_pixelPerBeat) + (i * m_pixelPerBeat / 4);
+                auto pos = (beatLine - pixelPerBeat) + (i * pixelPerBeat / 4);
                 g.drawLine(
                     pos
                     , g.getCurrentFont().getHeight()
@@ -100,7 +102,7 @@ void TimeLineComponent::paint(Graphics& g)
                 );
             }
         }
-        //std::cout << m_pixelPerBeat << std::endl;
+        Logger::outputDebugString("TL: painted" );
     }
     
 }
@@ -114,32 +116,35 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
 {
     setMouseCursor(MouseCursor::NoCursor);
     
-    //move
     auto distanceX = 0;
     if (event.getDistanceFromDragStartX() > 5 || event.getDistanceFromDragStartX() < -5)
     {
-        distanceX = event.getDistanceFromDragStartX();
+        //move
+        distanceX = event.getDistanceFromDragStartX() * 2;
         m_viewPort.setViewPosition(
             m_viewPort.getViewPosition().getX()
             - event.getDistanceFromDragStartX()
             , m_viewPort.getViewPosition().getY()
         );
     }
-    //zoom
     else
     {
-        auto clickPos = event.getMouseDownPosition().getX() / static_cast<double>(m_pixelPerBeat);
-        m_pixelPerBeat = m_pixelPerBeat - event.getDistanceFromDragStartY();
-        m_pixelPerBeat = m_pixelPerBeat < 3 ? 3 : m_pixelPerBeat;
-        auto currentPos = event.getMouseDownPosition().getX() / static_cast<double>(m_pixelPerBeat);
-        auto newPos = (currentPos - clickPos) * m_pixelPerBeat;
+        //zoom
+        double clickPos = event.getMouseDownPosition().getX() / m_state.m_pixelPerBeat;
+
+        m_state.m_pixelPerBeat = jmax(3.0, m_state.m_pixelPerBeat - (event.getDistanceFromDragStartY()));
+
+        double currentPos = event.getMouseDownPosition().getX() / m_state.m_pixelPerBeat;
+        double newPos = (currentPos - clickPos) * m_state.m_pixelPerBeat;
 
         m_viewPort.setViewPosition(
-            m_viewPort.getViewPositionX() 
+            m_viewPort.getViewPositionX()
             - newPos
             , m_viewPort.getViewPositionY()
         );
     }
+    
+    
 
     m_distanceX = m_distanceX - distanceX;
     Desktop::setMousePosition(m_posAtMouseDown);

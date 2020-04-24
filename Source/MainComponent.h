@@ -9,10 +9,12 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+
 #include "HeaderComponent.h"
 #include "NextLookAndFeel.h"
 #include "SongEditorComponent.h"
 #include "MenuBar.h"
+#include "SideBarBrowser.h"
 
 //==============================================================================
 /*
@@ -20,9 +22,11 @@
     your controls and content.
 */
 
-class MainComponent   : public AudioAppComponent
+class MainComponent   : public Component
                       , public FileBrowserListener
                       , public Button::Listener
+                      , public DragAndDropContainer
+                      , public ChangeListener
 {
 public:
     //==============================================================================
@@ -30,18 +34,17 @@ public:
     ~MainComponent();
 
     //==============================================================================
-    void prepareToPlay (int samplesPerBlockExpected, double sampleRate) override;
-    void getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill) override;
-    void releaseResources() override;
-
-    //==============================================================================
     void paint (Graphics& g) override;
     void resized() override;
     void buttonClicked(Button* button) override;
     
 private:
+    void changeListenerCallback(ChangeBroadcaster* source);
     void selectionChanged()                           override {}
-    void fileClicked (const File&, const MouseEvent&) override {}
+    void fileClicked (const File& file, const MouseEvent& event) override 
+    {
+        m_tree.setDragAndDropDescription(file.getFileName());
+    }
     void fileDoubleClicked(const File&)               override
     {
         auto selectedFile = m_tree.getSelectedFile();
@@ -66,6 +69,10 @@ private:
     }
 
     void browserRootChanged(const File&) override {}
+
+    void setupEdit();
+
+
     TimeSliceThread m_thread;
     DirectoryContentsList m_dirConList;
     FileTreeComponent m_tree;
@@ -73,12 +80,12 @@ private:
     StretchableLayoutManager m_stretchableManager;
     StretchableLayoutResizerBar m_resizerBar{ &m_stretchableManager, 1, true };
     std::unique_ptr<HeaderComponent> m_header;
-    std::unique_ptr<SongEditorComponent> m_songEditor;
     NextLookAndFeel m_nextLookAndFeel;
 
     tracktion_engine::Engine m_engine{ ProjectInfo::projectName };
+    tracktion_engine::SelectionManager m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
-
+    std::unique_ptr<SongEditorComponent> m_songEditor;
 
 
     const int c_headerHeight = 100;

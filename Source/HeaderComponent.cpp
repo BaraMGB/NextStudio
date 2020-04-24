@@ -13,7 +13,7 @@
 
 
 //==============================================================================
-HeaderComponent::HeaderComponent(int width, int height, tracktion_engine::Edit& edit)
+HeaderComponent::HeaderComponent(tracktion_engine::Edit& edit)
     : m_edit(edit)
 {
     addAndMakeVisible(m_loadButton);
@@ -71,9 +71,6 @@ HeaderComponent::HeaderComponent(int width, int height, tracktion_engine::Edit& 
 
 
     startTimer(100);
-
-    setSize(width, height);
-
 }
 
 HeaderComponent::~HeaderComponent()
@@ -161,7 +158,7 @@ void HeaderComponent::timerCallback()
 
     if (m_transportDisplay.isDragging())
     {
-    m_edit.getTransport().setUserDragging(true);
+        m_edit.getTransport().setUserDragging(true);
         tracktion_engine::TempoSequencePosition pos(m_edit.tempoSequence);
         pos.setTime(0);
         pos.addBars((m_transportDisplay.getValue(0) - 1));

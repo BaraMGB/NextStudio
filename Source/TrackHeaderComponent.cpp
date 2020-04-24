@@ -12,13 +12,18 @@
 #include "TrackHeaderComponent.h"
 
 //==============================================================================
-TrackHeaderComponent::TrackHeaderComponent(tracktion_engine::AudioTrack& track):
-    m_height(50),
-    m_track(track)
+TrackHeaderComponent::TrackHeaderComponent(SongEditorViewState& songEditorState, tracktion_engine::Track* track)
+    : m_track(track)
+    , m_height(track->defaultTrackHeight)
+    , m_songEditorState(songEditorState)
+
 {
-    auto state = m_track.state;
-    m_TrackLabel.setText(state[tracktion_engine::IDs::name].toString(),
-                                    NotificationType::dontSendNotification);
+
+    auto trackstate = m_track->state;
+    trackstate.addListener(this);
+    m_TrackLabel.setText(m_track->getName(), NotificationType::dontSendNotification);
+    m_TrackLabel.setColour(Label::textColourId, Colours::white);
+    m_TrackLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(m_TrackLabel);
 
     addAndMakeVisible(m_muteButton);
@@ -28,16 +33,22 @@ TrackHeaderComponent::TrackHeaderComponent(tracktion_engine::AudioTrack& track):
     m_soloButton.setName("S");
     m_armingButton.setName("O");
 
-    addAndMakeVisible(m_volumeKnob);
-    m_volumeKnob.addListener(this); 
-    m_volumeKnob.setRange(0, 127, 1);
-    m_volumeKnob.setValue(m_track.getVolumePlugin()->volume 
-        * m_volumeKnob.getMaxValue() - m_volumeKnob.getMinimum());
-    m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
-    m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
-    
-
-    addAndMakeVisible(m_peakDisplay);
+    auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(m_track);
+    if (audioTrack)
+    {
+        m_volumeKnob.setOpaque(false);
+        addAndMakeVisible(m_volumeKnob);
+        m_volumeKnob.addListener(this); 
+        m_volumeKnob.setRange(0, 127, 1);
+        if (audioTrack->getVolumePlugin())
+        {
+            m_volumeKnob.setValue(audioTrack->getVolumePlugin()->volume 
+                * m_volumeKnob.getRange().getStart() - m_volumeKnob.getRange().getEnd());
+        }
+        m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
+        m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
+        addAndMakeVisible(m_peakDisplay);
+    }
 }
 
 TrackHeaderComponent::~TrackHeaderComponent()
@@ -48,16 +59,26 @@ TrackHeaderComponent::~TrackHeaderComponent()
 void TrackHeaderComponent::paint(Graphics& g)
 {
     Rectangle<float> area = getLocalBounds().toFloat();
-    g.setColour(Colour(0xff181818));
-    g.fillRect(area);
-
-    auto state = m_track.state;
-    g.setColour(Colour::fromString(state[tracktion_engine::IDs::colour].toString()));
+    
+    g.setColour(m_track->getColour());
     Rectangle<float> trackColorIndicator = area.removeFromLeft(18);
     g.fillRect(trackColorIndicator);
     g.setColour(Colour(0xff343434));
     g.drawRect(trackColorIndicator);
     g.drawRect(area);
+    area.reduce(1, 1);
+    if (m_songEditorState.m_selectionManager.isSelected(m_track))
+    {
+        g.setColour(Colour(0xff383838));
+    }
+    else
+    {
+        g.setColour(Colour(0xff181818));
+    }
+
+    g.fillRect(area);
+
+    Logger::outputDebugString("TH: Repainted:" + m_track->getIndexInEditTrackList() + String("Label: " + m_TrackLabel.getText()));
 }
 
 void TrackHeaderComponent::resized()
@@ -78,13 +99,40 @@ void TrackHeaderComponent::resized()
 
     area.removeFromLeft(20);
     m_TrackLabel.setBounds(area);
+    
+    Logger::outputDebugString("TH: Resized: " + m_track->getIndexInEditTrackList());
+
+    
+
+}
+
+void TrackHeaderComponent::mouseDown(const MouseEvent& event)
+{
+    if(!event.mouseWasDraggedSinceMouseDown())
+    {
+        if (event.mods.isShiftDown())
+        {
+            if (m_songEditorState.m_selectionManager.getNumObjectsSelected())
+            {
+                m_songEditorState.m_selectionManager.addToSelection(m_track);
+            }
+        }
+        else
+        {
+            m_songEditorState.m_selectionManager.selectOnly(m_track);
+        }
+    }
 }
 
 void TrackHeaderComponent::sliderValueChanged(Slider* slider)
 {
     if (slider == &m_volumeKnob)
     {
-        m_track.getVolumePlugin()->volume = m_volumeKnob.getValue() / m_volumeKnob.getMaximum();
+        auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(m_track);
+        if (audioTrack)
+        {
+            audioTrack->getVolumePlugin()->volume = m_volumeKnob.getValue() / m_volumeKnob.getMaximum();
+        }
     }
 }
 
