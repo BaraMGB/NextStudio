@@ -114,7 +114,14 @@ void MainComponent::setupEdit()
         nullptr,
         0
         );
-   //there is one AudioTrack already exist
+    //there's already an audio track. We delete this.
+    for (auto &track : m_edit->getTrackList())
+    {
+        if (track->isAudioTrack())
+        {
+            m_edit->deleteTrack(track);
+        }
+    }
     m_edit->playInStopEnabled = true;
 
     auto& transport = m_edit->getTransport();
