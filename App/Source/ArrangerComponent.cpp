@@ -136,7 +136,7 @@ void ArrangerComponent::itemDropped(const SourceDetails& dragSourceDetails)
         if (track)
         {
             auto f = fileTreeComp->getSelectedFile();
-            tracktion_engine::AudioFile audioFile(f);
+            tracktion_engine::AudioFile audioFile(m_edit.engine, f);
             if (audioFile.isValid())
                 if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
                     { { timePos, 0.0 + audioFile.getLength() }, 0.0 }, false))

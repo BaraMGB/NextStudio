@@ -1,3 +1,4 @@
 Builds/
-
+.vscode/
 JuceLibraryCode/
+CMakeLists.txt.user

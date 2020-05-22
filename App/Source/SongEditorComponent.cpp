@@ -121,7 +121,7 @@ void SongEditorComponent::addTrack(File& f)
        
         removeAllClips(*track);
         // Add a new clip to this track
-        tracktion_engine::AudioFile audioFile(f);
+        tracktion_engine::AudioFile audioFile(m_edit.engine, f);
         if (audioFile.isValid())
             if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
                 { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))

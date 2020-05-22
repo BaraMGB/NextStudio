@@ -109,7 +109,7 @@ void MainComponent::setupEdit()
 
     m_edit = std::make_unique<tracktion_engine::Edit>(
         m_engine,
-        tracktion_engine::createEmptyEdit(),
+        tracktion_engine::createEmptyEdit(m_engine),
         tracktion_engine::Edit::forEditing,
         nullptr,
         0

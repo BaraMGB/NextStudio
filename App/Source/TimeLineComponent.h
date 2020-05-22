@@ -20,7 +20,7 @@ class TimeLineComponent : public Component
                         , public ChangeBroadcaster
 {
 public:
-    TimeLineComponent::TimeLineComponent(SongEditorViewState& state, Viewport& pos);
+    TimeLineComponent(SongEditorViewState& state, Viewport& pos);
     ~TimeLineComponent();
 
     void paint(Graphics& g);
