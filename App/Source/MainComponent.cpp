@@ -39,9 +39,7 @@ MainComponent::MainComponent() :
         -0.85);        // and its preferred size is 70% of the total available space
 
     setupEdit();
-   
 
-    //Logger::outputDebugString( m_edit->state.toXmlString());
     m_songEditor = std::make_unique<SongEditorComponent>(*m_edit, m_selectionManager);
     addAndMakeVisible(*m_songEditor);
 
@@ -93,7 +91,7 @@ void MainComponent::resized()
     m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff2c2c2c));
 }
 
-void MainComponent::buttonClicked(Button* button)
+void MainComponent::buttonClicked(Button* /*button*/)
 {
     
 }

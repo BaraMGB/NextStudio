@@ -23,7 +23,7 @@ public:
     TimeLineComponent(SongEditorViewState& state, Viewport& pos);
     ~TimeLineComponent();
 
-    void paint(Graphics& g);
+    void paint(Graphics& g) override;
     void mouseDown(const MouseEvent& event) override;
     void mouseDrag(const MouseEvent& event) override;
     void mouseUp(const MouseEvent& event) override;

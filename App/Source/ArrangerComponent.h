@@ -37,20 +37,20 @@ public:
     void resized() override;
     void updatePositionLine();
 
-    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override { return true; }
+    bool isInterestedInDragSource(const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
 
     void ClipsMoved();
-    void mouseDown(const MouseEvent& event);
+    void mouseDown(const MouseEvent& event) override;
     void mouseWheelMove(const MouseEvent& event,
-        const MouseWheelDetails& wheel);
+        const MouseWheelDetails& wheel) override;
 
     void setYpos(int yPos)
     {
         m_yPos = yPos;
     }
-    const int getPixelPerBeat()
+    int getPixelPerBeat()
     {
         return m_state.m_pixelPerBeat;
     }

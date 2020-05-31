@@ -54,7 +54,6 @@ void SongEditorComponent::paint (Graphics& g)
     g.fillRect(getLocalBounds());
     g.setColour(Colours::white);
     g.drawRect(trackRack);
-    Logger::outputDebugString("SE: painted " );
 }
 
 void SongEditorComponent::resized()
@@ -70,8 +69,6 @@ void SongEditorComponent::resized()
     auto arrangerPos = m_arrangeViewport.getViewPositionX();
 
     //Tracks
-    
-    Logger::outputDebugString( m_edit.state.toXmlString());
     auto rackHeight = 0;
     for (auto& trackComp : m_tracks)
     {
@@ -100,12 +97,10 @@ void SongEditorComponent::resized()
         m_toolBox.getScreenPosition().getX() + m_toolBox.getWidth()
         , getScreenX() + getWidth()
     );
-    //Logger::outputDebugString(String("rackHeigth : ") + String(rackHeight) + String("getHeight() : " + String(area.getHeight())));
+    ////Logger::outputDebugString(String("rackHeigth : ") + String(rackHeight) + String("getHeight() : " + String(area.getHeight())));
 
     m_arranger.setSize(lenght, rackHeight + 300);
     m_arrangeViewport.setBounds(area);
-
-    Logger::outputDebugString("SE: resized" );
 }
 
 void SongEditorComponent::addTrack(File& f)
@@ -128,13 +123,7 @@ void SongEditorComponent::addTrack(File& f)
             {
                 newClip->setColour(track->getColour());
             }
-        track->getVolumePlugin()->volume = 0.1f;
     }
-    Logger::outputDebugString("SE: Track added with File: " + f.getFileNameWithoutExtension());
-    //buildTracks();
-    //m_arranger.resized();
-    //m_arranger.repaint();
-    //resized();
 }
 
 void SongEditorComponent::addTrack()
@@ -147,14 +136,6 @@ void SongEditorComponent::addTrack()
 
         track->setName("Track " + String(m_tracks.size()));
         track->setColour(Colour(red, gre, blu));
-
-        removeAllClips(*track);
-        track->getVolumePlugin()->volume = 0.4f;
-        Logger::outputDebugString("SE: Track added");
-        //buildTracks();
-        //resized();
-    //    m_arranger.resized();
-    //    m_arranger.repaint();
     }
 }
 
@@ -189,12 +170,10 @@ void SongEditorComponent::buildTracks()
         {
             Logger::outputDebugString("buildTracks : TrackName: " + track->getName());
             m_tracks.add(thc);
-             addAndMakeVisible(thc);
+            addAndMakeVisible(thc);
         }
     }
-    //Logger::outputDebugString( m_edit.state.toXmlString());
     resized();
-    Logger::outputDebugString("SE: Tracks build");
 }
 
 void SongEditorComponent::mouseDown(const MouseEvent& event)
@@ -229,7 +208,6 @@ void SongEditorComponent::mouseDown(const MouseEvent& event)
 
 void SongEditorComponent::changeListenerCallback(ChangeBroadcaster* source)
 {
-    Logger::outputDebugString("SE:ChangeListener" );
     if (source == &m_timeLineComp)
     {
         m_timeLineComp.repaint();

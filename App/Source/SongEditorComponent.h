@@ -66,33 +66,30 @@ public:
         }
         else
         {
-          
-            Logger::outputDebugString("SE: PropertyChanged " + id.toString());
         }
-
-       /* m_arranger.ClipsMoved();
-        trackHeadsresized();*/
     }
 
     void valueTreeChildAdded(ValueTree& parentTree, ValueTree& child) override 
     {
-        
-        Logger::outputDebugString("SE: ChildAdded" + child.toXmlString());
         buildTracks();
         m_arranger.resized();
         m_arranger.repaint();
     }
-    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override {
-        Logger::outputDebugString("SE: ChildRemoved" );
+    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override
+    {
+        buildTracks();
+        m_arranger.resized();
+        m_arranger.repaint();
     }
-    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override {
-        Logger::outputDebugString("SE: ChildOrderChanged" );
+    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override
+    {
     }
     void valueTreeParentChanged(ValueTree&) override {}
 private:
     tracktion_engine::AudioTrack* getOrInsertAudioTrackAt(int index);
     void removeAllClips(tracktion_engine::AudioTrack& track)
     {
+
         auto clips = track.getClips();
 
         for (int i = clips.size(); --i >= 0;)

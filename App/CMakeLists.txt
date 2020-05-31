@@ -17,7 +17,8 @@ target_sources(${TargetName} PRIVATE
         Source/ArrangerComponent.cpp
         Source/TimeLineComponent.cpp
         Source/TrackHeaderComponent.cpp
-        Source/SongEditorComponent.cpp)
+        Source/SongEditorComponent.cpp
+        )
 
 target_compile_definitions(${TargetName} PRIVATE
         JUCE_WEB_BROWSER=0

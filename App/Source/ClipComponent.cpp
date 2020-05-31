@@ -34,21 +34,44 @@ void ClipComponent::paint (Graphics& g)
         , Justification::topLeft
         , true
     );
-    Logger::outputDebugString("CL: painted");
 }
 
 void ClipComponent::resized()
 {
-    Logger::outputDebugString("CL: resized()" );
+
 }
 
 
 
 void ClipComponent::mouseDown(const MouseEvent& event)
 {
-   
+    if(!event.mouseWasDraggedSinceMouseDown())
+    {
+        if (event.mods.isRightButtonDown())
+        {
+            PopupMenu m;
+            m.addItem(1, "delete Clip");
+            m.addItem(2, "item 2");
+
+            const int result = m.show();
+
+            if (result == 0)
+            {
+                // user dismissed the menu without picking anything
+            }
+            else if (result == 1)
+            {
+                m_engineClip.removeFromParentTrack();
+                return;
+                // user picked item 1
+            }
+            else if (result == 2)
+            {
+                // user picked item 2
+            }
+        }
+    }
     m_ClipPosAtMouseDown = m_engineClip.edit.tempoSequence.timeToBeats(m_engineClip.getPosition().getStart());
-    //Logger::outputDebugString( m_engineClip.state.toXmlString());
 }
 
 void ClipComponent::mouseDrag(const MouseEvent& event)

@@ -13,9 +13,8 @@
 
 //==============================================================================
 
-void SideBarBrowser::mouseDrag(const MouseEvent& event)
+void SideBarBrowser::mouseDrag(const MouseEvent& /*event*/)
 {
-    Logger::outputDebugString("DRAG");
     DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
     if (!dragC->isDragAndDropActive())
     {

@@ -59,7 +59,6 @@ void ArrangerComponent::paint (Graphics& g)
             g.drawLine(beatLine, 0, beatLine, getHeight());
         }
     }
-    Logger::outputDebugString("AR:painted " );
 }
 
 void ArrangerComponent::resized()
@@ -89,8 +88,6 @@ void ArrangerComponent::resized()
     area.removeFromTop(trackComp->getEngineTrack()->defaultTrackHeight);
     }
     updatePositionLine();
-
-    Logger::outputDebugString("AR: resized" );
 }
 
 void ArrangerComponent::updatePositionLine()
@@ -138,21 +135,15 @@ void ArrangerComponent::itemDropped(const SourceDetails& dragSourceDetails)
             auto f = fileTreeComp->getSelectedFile();
             tracktion_engine::AudioFile audioFile(m_edit.engine, f);
             if (audioFile.isValid())
-                if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension(), f,
-                    { { timePos, 0.0 + audioFile.getLength() }, 0.0 }, false))
+                if (auto newClip = track->insertWaveClip(f.getFileNameWithoutExtension()
+                                                         ,f
+                                                         ,{ { timePos, timePos + audioFile.getLength() }, 0.0 }
+                                                         , false))
                 {
                     newClip->setColour(track->getColour());
-                    //resized();
                 }
         }
     }
-
-
-    Logger::outputDebugString("AR:Item dropped" );
-
-    //sendChangeMessage();
-    //resized();
-    //repaint();
 }
 
 void ArrangerComponent::itemDragMove(const SourceDetails& dragSourceDetails)
@@ -198,7 +189,6 @@ void ArrangerComponent::ClipsMoved()
         }
         area.removeFromTop(trackComp->getEngineTrack()->defaultTrackHeight);
     }
-    Logger::outputDebugString("AR:Clips moved" );
 }
 
 void ArrangerComponent::mouseDown(const MouseEvent& event)

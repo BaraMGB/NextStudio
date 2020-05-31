@@ -10,12 +10,13 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackHeaderComponent.h"
+#include "Utilities.h"
 
 //==============================================================================
 TrackHeaderComponent::TrackHeaderComponent(SongEditorViewState& songEditorState, tracktion_engine::Track* track)
     : m_track(track)
-    , m_height(track->defaultTrackHeight)
     , m_songEditorState(songEditorState)
+    , m_height(track->defaultTrackHeight)
 
 {
 
@@ -25,28 +26,37 @@ TrackHeaderComponent::TrackHeaderComponent(SongEditorViewState& songEditorState,
     m_TrackLabel.setColour(Label::textColourId, Colours::white);
     m_TrackLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(m_TrackLabel);
-
     addAndMakeVisible(m_muteButton);
     addAndMakeVisible(m_soloButton);
     addAndMakeVisible(m_armingButton);
     m_muteButton.setName("M");
     m_soloButton.setName("S");
+    m_soloButton.setComponentID("solo");
+    m_muteButton.setComponentID("mute");
+    m_soloButton.getToggleStateValue().referTo(trackstate.getPropertyAsValue("solo",nullptr));
+    m_muteButton.getToggleStateValue().referTo(trackstate.getPropertyAsValue("mute",nullptr));
     m_armingButton.setName("O");
-
     auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(m_track);
     if (audioTrack)
     {
+        m_armingButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
+        m_armingButton.onClick = [this, audioTrack]
+        {
+            EngineHelpers::armTrack (*audioTrack, !EngineHelpers::isTrackArmed (*audioTrack));
+            m_armingButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
+        };
         m_volumeKnob.setOpaque(false);
         addAndMakeVisible(m_volumeKnob);
         m_volumeKnob.addListener(this); 
-        m_volumeKnob.setRange(0, 127, 1);
+        m_volumeKnob.setRange(0.0f, 3.0f, 0.01f);
+        m_volumeKnob.setSkewFactorFromMidPoint(1.0f);
         if (audioTrack->getVolumePlugin())
         {
-            m_volumeKnob.setValue(audioTrack->getVolumePlugin()->volume 
-                * m_volumeKnob.getRange().getStart() - m_volumeKnob.getRange().getEnd());
+            m_volumeKnob.getValueObject().referTo(audioTrack->getVolumePlugin()->volume.getPropertyAsValue());
+
         }
         m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
-        m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
+        m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, 0, 0, false);
         addAndMakeVisible(m_peakDisplay);
     }
 }
@@ -77,8 +87,6 @@ void TrackHeaderComponent::paint(Graphics& g)
     }
 
     g.fillRect(area);
-
-    Logger::outputDebugString("TH: Repainted:" + m_track->getIndexInEditTrackList() + String("Label: " + m_TrackLabel.getText()));
 }
 
 void TrackHeaderComponent::resized()
@@ -99,18 +107,35 @@ void TrackHeaderComponent::resized()
 
     area.removeFromLeft(20);
     m_TrackLabel.setBounds(area);
-    
-    Logger::outputDebugString("TH: Resized: " + m_track->getIndexInEditTrackList());
-
-    
-
 }
 
 void TrackHeaderComponent::mouseDown(const MouseEvent& event)
 {
     if(!event.mouseWasDraggedSinceMouseDown())
     {
-        if (event.mods.isShiftDown())
+        if (event.mods.isRightButtonDown())
+        {
+            PopupMenu m;
+            m.addItem(1, "delete Track");
+            m.addItem(2, "item 2");
+
+            const int result = m.show();
+
+            if (result == 0)
+            {
+                // user dismissed the menu without picking anything
+            }
+            else if (result == 1)
+            {
+                m_track->edit.deleteTrack(m_track);
+                // user picked item 1
+            }
+            else if (result == 2)
+            {
+                // user picked item 2
+            }
+        }
+        else if (event.mods.isShiftDown())
         {
             if (m_songEditorState.m_selectionManager.getNumObjectsSelected())
             {
@@ -131,12 +156,6 @@ void TrackHeaderComponent::sliderValueChanged(Slider* slider)
         auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(m_track);
         if (audioTrack)
         {
-            audioTrack->getVolumePlugin()->volume = m_volumeKnob.getValue() / m_volumeKnob.getMaximum();
         }
     }
 }
-
-
-
-
-

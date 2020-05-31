@@ -24,10 +24,9 @@ public:
 
     }
 
-    void mouseDrag(const MouseEvent& event) override;
-    void mouseDown(const MouseEvent& event) override
+    void mouseDrag(const MouseEvent& /*event*/) override;
+    void mouseDown(const MouseEvent& /*event*/) override
     {
-        Logger::outputDebugString("SB: Click");
     }
 
 private:

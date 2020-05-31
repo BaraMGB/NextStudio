@@ -11,13 +11,13 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "TrackHeaderComponent.h"
+
 class NextLookAndFeel : public LookAndFeel_V4
 {
 public:
     NextLookAndFeel()
     {
-        setColour(ResizableWindow::backgroundColourId, Colour(0xff242424));
+        setColour(ResizableWindow::backgroundColourId, Colour(0xff000000));
         
     }
     void drawButtonBackground(Graphics& g, Button& button, const Colour& backgroundColour,
@@ -33,13 +33,11 @@ public:
         g.setColour(Colour(0xff5b5b5b));
         buttonArea.reduce(1, 1);
         g.fillRoundedRectangle(buttonArea.toFloat(),5);
-
-
-        
-
     }
 
- 
+
+
+
     void drawRotarySlider(Graphics& g, int x, int y, int width, int height, float sliderPos,
         const float rotaryStartAngle, const float rotaryEndAngle, Slider& slider) override
     {
@@ -108,6 +106,44 @@ public:
         return { jmin(10.0f, buttonHeight * 0.6f) };
     }
 
+    void drawToggleButton(Graphics & g, ToggleButton & button, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto buttonArea = button.getLocalBounds();
+        buttonArea.reduce(2,2);
+        g.setColour(Colour(0xff000000));
+        g.fillRoundedRectangle(buttonArea.toFloat(),7);
+        g.setColour(Colour(0xff343434));
+        buttonArea.reduce(1, 1);
+        g.fillRoundedRectangle(buttonArea.toFloat(),5);
+        if (button.getToggleState())
+        {
+            if (button.getComponentID() == "solo")
+            {
+                g.setColour(Colours::green);
+            }
+            else
+            if (button.getComponentID() == "mute")
+            {
+                g.setColour(Colours::gold);
+            }
+            else
+            {
+                g.setColour(Colours::aqua);
+            }
+        }
+        else
+        {
+            g.setColour(Colour(14, 14, 14));
+        }
+        buttonArea.reduce(1, 1);
+        g.fillRoundedRectangle(buttonArea.toFloat(),5);
+        g.setColour(Colours::white);
+//        auto fontSize = jmin (15.0f, button.getHeight() * 0.75f);
+//        auto tickWidth = fontSize * 1.1f;
+        g.drawFittedText (button.getName(),
+                          button.getLocalBounds(),
+                          Justification::centred, 1);
+    }
     Colour m_BGcolour = Colour(14, 14, 14);
     Colour m_DarkArea = Colour(10, 10, 10);
     Colour m_BrightButton1 = Colour(90, 90, 90);

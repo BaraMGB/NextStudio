@@ -30,19 +30,23 @@ public:
     ~ClipComponent(){}
     void valueTreePropertyChanged(ValueTree&, const Identifier&) override
     {
-        Logger::outputDebugString("CL: PropertyChanged " + getName());
     }
-
-    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override { Logger::outputDebugString("CL: Child added " + getName()); }
-    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override { Logger::outputDebugString("CL: Child removed " + getName() ); }
-    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override { Logger::outputDebugString("CL: Child order Changed " + getName()); }
+    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override
+    {
+    }
+    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override
+    {
+    }
+    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override
+    {
+    }
     void valueTreeParentChanged(ValueTree&) override {}
 
     void paint (Graphics&) override;
     void resized() override;
 
-    void mouseDown(const MouseEvent& event);
-    void mouseDrag(const MouseEvent& event);
+    void mouseDown(const MouseEvent& event) override;
+    void mouseDrag(const MouseEvent& event) override;
 
     void moveToTrack(tracktion_engine::Track& track)
     {

@@ -13,11 +13,13 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ClipComponent.h"
 #include "SongEditorState.h"
-
+#include "NextLookAndFeel.h"
 
 //==============================================================================
 /*
 */
+
+
 class PeakDisplayComponent : public Component
 {
 public:
@@ -53,15 +55,26 @@ public:
 
     void valueTreePropertyChanged(ValueTree&, const Identifier&) override
     {
-        Logger::outputDebugString("TH: PropertyChanged");
         resized();
     }
 
-    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override { Logger::outputDebugString("TH:ChildAdded"); resized(); repaint(); }
-    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override { Logger::outputDebugString("TH:ChildRemoved"); resized(); repaint(); }
-    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override { Logger::outputDebugString("TH:ChildOrderChanged"); resized(); repaint(); }
-    void valueTreeParentChanged(ValueTree&) override {
-        Logger::outputDebugString("TH:ParentChanged");
+    void valueTreeChildAdded(ValueTree& parentTree, ValueTree&) override
+    {
+        resized();
+        repaint();
+    }
+    void valueTreeChildRemoved(ValueTree& parentTree, ValueTree&, int) override
+    {
+        resized();
+        repaint();
+    }
+    void valueTreeChildOrderChanged(ValueTree& parentTree, int, int) override
+    {
+        resized();
+        repaint();
+    }
+    void valueTreeParentChanged(ValueTree&) override
+    {
     }
 
     void sliderValueChanged(Slider* slider);
@@ -93,8 +106,5 @@ private:
     tracktion_engine::Track* m_track;
     SongEditorViewState& m_songEditorState;
     int                       m_height;
-
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)
 };
-

@@ -12,12 +12,13 @@
 #include "TimeLineComponent.h"
 
 TimeLineComponent::TimeLineComponent(SongEditorViewState& state, Viewport& pos)
-    : m_state(state)
-    , m_viewPort(pos)
-    , m_screenX(0)
+    : m_screenX(0)
     , m_screenW(0)
+    , m_state(state)
+    , m_viewPort(pos)
 {
 }
+
 TimeLineComponent::~TimeLineComponent()
 {
 }
@@ -29,7 +30,7 @@ void TimeLineComponent::paint(Graphics& g)
     g.setColour(Colours::white);
     g.drawRect(getLocalBounds());
     g.setFont(15);
-    auto area = getLocalBounds();
+
     auto beatLine = 0, barline = 0, barNum = 0;
     while (beatLine < getWidth())
     {
@@ -102,7 +103,6 @@ void TimeLineComponent::paint(Graphics& g)
                 );
             }
         }
-        Logger::outputDebugString("TL: painted" );
     }
     
 }
@@ -151,7 +151,7 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
     sendChangeMessage();
 }
 
-void TimeLineComponent::mouseUp(const MouseEvent& event)
+void TimeLineComponent::mouseUp(const MouseEvent& /*event*/)
 {
     auto distanceX = m_posAtMouseDown.getX() - m_distanceX < m_screenX ? m_screenX : m_posAtMouseDown.getX() - m_distanceX;
     distanceX = m_posAtMouseDown.getX() - m_distanceX > m_screenW ? m_screenW : distanceX;

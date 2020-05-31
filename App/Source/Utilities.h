@@ -23,6 +23,117 @@ namespace Helpers
     {
         return stringToTest.isEmpty() ? stringToReturnIfEmpty : stringToTest;
     }
+    
+    static inline File findRecentEdit (const File& dir)
+    {
+        auto files = dir.findChildFiles (File::findFiles, false, "*.tracktionedit");
+        
+        if (files.size() > 0)
+        {
+            files.sort();
+            return files.getLast();
+        }
+        
+        return {};
+    }
+}
+
+namespace GUIHelpers
+{
+void changeColor(XmlElement& xml, String color_hex)
+{
+    forEachXmlChildElement(xml, xmlnode)
+    {
+        forEachXmlChildElement(*xmlnode, xmlouterdefs)
+        {
+            String style = xmlouterdefs->getStringAttribute("style");
+            if (style.isNotEmpty())
+            {
+                style = style.replace("#030104", color_hex, true);
+                xmlouterdefs->setAttribute("style", style);
+            }
+
+            forEachXmlChildElement(*xmlouterdefs, xmldefs)
+            {
+                String style = xmldefs->getStringAttribute("style");
+                if (style.isNotEmpty())
+                {
+                    style = style.replace("#030104", color_hex, true);
+                    xmldefs->setAttribute("style", style);
+                }
+            }
+        }
+    }
+}
+void drawFromSVG(Graphics& g, const char* svgbinary, String col_hex, int x, int y, int newWidth, int newHeight, AffineTransform affine)
+{
+    std::unique_ptr<XmlElement> svg = XmlDocument::parse(svgbinary);
+    jassert(svg != nullptr);
+    //changeColor(*svg, col_hex);
+
+    if (svg != nullptr)
+    {
+        std::unique_ptr<Drawable> drawable = Drawable::createFromSVG(*svg);
+        drawable->setTransformToFit(Rectangle<float>(x, y, newWidth, newHeight), RectanglePlacement::stretchToFit);
+        drawable->draw(g, 1.f, affine);
+    }
+}
+
+
+}
+//==============================================================================
+namespace PlayHeadHelpers
+{
+    // Quick-and-dirty function to format a timecode string
+    static inline String timeToTimecodeString (double seconds)
+    {
+        auto millisecs = roundToInt (seconds * 1000.0);
+        auto absMillisecs = std::abs (millisecs);
+
+        return String::formatted ("%02d:%02d:%02d.%03d",
+                                  millisecs / 3600000,
+                                  (absMillisecs / 60000) % 60,
+                                  (absMillisecs / 1000)  % 60,
+                                  absMillisecs % 1000);
+    }
+
+    // Quick-and-dirty function to format a bars/beats string
+    static inline String quarterNotePositionToBarsBeatsString (double quarterNotes, int numerator, int denominator)
+    {
+        if (numerator == 0 || denominator == 0)
+            return "1|1|000";
+
+        auto quarterNotesPerBar = (numerator * 4 / denominator);
+        auto beats  = (fmod (quarterNotes, quarterNotesPerBar) / quarterNotesPerBar) * numerator;
+
+        auto bar    = ((int) quarterNotes) / quarterNotesPerBar + 1;
+        auto beat   = ((int) beats) + 1;
+        auto ticks  = ((int) (fmod (beats, 1.0) * 960.0 + 0.5));
+
+        return String::formatted ("%d|%d|%03d", bar, beat, ticks);
+    }
+
+    // Returns a textual description of a CurrentPositionInfo
+    static inline String getTimecodeDisplay (const AudioPlayHead::CurrentPositionInfo& pos)
+    {
+        MemoryOutputStream displayText;
+
+        displayText << String (pos.bpm, 2) << " bpm, "
+                    << pos.timeSigNumerator << '/' << pos.timeSigDenominator
+                    << "  -  " << timeToTimecodeString (pos.timeInSeconds)
+                    << "  -  " << quarterNotePositionToBarsBeatsString (pos.ppqPosition,
+                                                                        pos.timeSigNumerator,
+                                                                        pos.timeSigDenominator);
+
+        if (pos.isRecording)
+            displayText << "  (recording)";
+        else if (pos.isPlaying)
+            displayText << "  (playing)";
+        else
+            displayText << "  (stopped)";
+
+        return displayText.toString();
+    }
 }
 
 //==============================================================================
@@ -31,7 +142,7 @@ namespace EngineHelpers
     te::Project::Ptr createTempProject (te::Engine& engine)
     {
         auto file = engine.getTemporaryFileManager().getTempDirectory().getChildFile ("temp_project").withFileExtension (te::projectFileSuffix);
-        te::ProjectManager::TempProject tempProject (*te::ProjectManager::getInstance(), file, true);
+        te::ProjectManager::TempProject tempProject (engine.getProjectManager(), file, true);
         return tempProject.project;
     }
 
@@ -86,7 +197,7 @@ namespace EngineHelpers
             removeAllClips (*track);
 
             // Add a new clip to this track
-            te::AudioFile audioFile (file);
+            te::AudioFile audioFile (edit.engine, file);
 
             if (audioFile.isValid())
                 if (auto newClip = track->insertWaveClip (file.getFileNameWithoutExtension(), file,
@@ -133,16 +244,16 @@ namespace EngineHelpers
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())
-            if (instance->getTargetTrack() == &t && instance->getTargetIndex() == position)
-                instance->setRecordingEnabled (arm);
+            if (instance->isOnTargetTrack (t, position))
+                instance->setRecordingEnabled (t, arm);
     }
     
     bool isTrackArmed (te::AudioTrack& t, int position = 0)
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())
-            if (instance->getTargetTrack() == &t && instance->getTargetIndex() == position)
-                return instance->isRecordingEnabled();
+            if (instance->isOnTargetTrack (t, position))
+                return instance->isRecordingEnabled (t);
         
         return false;
     }
@@ -151,7 +262,7 @@ namespace EngineHelpers
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())
-            if (instance->getTargetTrack() == &t && instance->getTargetIndex() == position)
+            if (instance->isOnTargetTrack (t, position))
                 return instance->getInputDevice().isEndToEndEnabled();
         
         return false;
@@ -163,7 +274,7 @@ namespace EngineHelpers
         {
             auto& edit = t.edit;
             for (auto instance : edit.getAllInputDevices())
-                if (instance->getTargetTrack() == &t && instance->getTargetIndex() == position)                    
+                if (instance->isOnTargetTrack (t, position))
                     instance->getInputDevice().flipEndToEnd();
         }
     }
@@ -172,7 +283,7 @@ namespace EngineHelpers
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())
-            if (instance->getTargetTrack() == &t && instance->getTargetIndex() == position)
+            if (instance->isOnTargetTrack (t, position))
                 return true;
         
         return false;
@@ -271,7 +382,7 @@ struct Thumbnail    : public Component
 
 private:
     te::TransportControl& transport;
-    te::SmartThumbnail smartThumbnail { transport.engine, te::AudioFile(), *this, nullptr };
+    te::SmartThumbnail smartThumbnail { transport.engine, te::AudioFile (transport.engine), *this, nullptr };
     DrawableRectangle cursor;
     te::LambdaTimer cursorUpdater;
 
