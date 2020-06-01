@@ -32,6 +32,8 @@ public:
 
 private:
     Point<int> m_posAtMouseDown;
+    double m_BeatAtMouseDown;
+    bool m_mouseDown;
     int m_distanceX{ 0 };
     int m_screenX, m_screenW;
     SongEditorViewState& m_state;
