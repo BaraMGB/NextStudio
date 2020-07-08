@@ -1,4 +1,5 @@
 Builds/
+build/
 .vscode/
 JuceLibraryCode/
 CMakeLists.txt.user
