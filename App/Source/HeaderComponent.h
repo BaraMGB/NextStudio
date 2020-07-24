@@ -12,11 +12,16 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SpinBoxGroup.h"
-#include "SongEditorState.h"
+
 
 //==============================================================================
 /*
 */
+
+
+
+
+
 class HeaderComponent    : public Component
                          , public Button::Listener
                          , private Timer

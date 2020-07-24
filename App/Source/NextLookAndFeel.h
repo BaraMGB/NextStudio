@@ -18,7 +18,7 @@ public:
     NextLookAndFeel()
     {
         setColour(ResizableWindow::backgroundColourId, Colour(0xff000000));
-        
+
     }
     void drawButtonBackground(Graphics& g, Button& button, const Colour& backgroundColour,
         bool isMouseOverButton, bool isButtonDown) override
@@ -72,7 +72,7 @@ public:
             rotaryEndAngle,
             true);
 
-        
+
         g.strokePath(backgroundArc, PathStrokeType(lineW, PathStrokeType::curved, PathStrokeType::rounded));
 
         if (slider.isEnabled())
