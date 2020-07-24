@@ -313,10 +313,10 @@ void ClipComponent::mouseDrag(const MouseEvent & event)
                     + editViewState.xToBeats(event.getDistanceFromDragStartX(), getParentWidth())
                     )
                 );
-//    if (!event.mods.isCtrlDown())
-//    {
-//        newPos = clip->edit.getTimecodeFormat().getSnapType(9).roundTimeNearest(newPos, clip->edit.tempoSequence);
-//    }
+    if (!event.mods.isCtrlDown())
+    {
+        newPos = clip->edit.getTimecodeFormat().getSnapType(editViewState.snapType).roundTimeNearest(newPos, clip->edit.tempoSequence);
+    }
     clip->setStart(newPos, false, true);
 
 

@@ -15,6 +15,7 @@ namespace IDs
     DECLARE_ID (viewX1)
     DECLARE_ID (viewX2)
     DECLARE_ID (viewY)
+    DECLARE_ID (snapType)
     DECLARE_ID (drawWaveforms)
     DECLARE_ID (showHeaders)
     DECLARE_ID (showFooters)
@@ -46,6 +47,7 @@ public:
         viewX1.referTo (state, IDs::viewX1, um, 0.0);
         viewX2.referTo (state, IDs::viewX2, um, 30.0 * 4);
         viewY.referTo (state, IDs::viewY, um, 0);
+        snapType.referTo(state, IDs::snapType, um, 9);
     }
 
     int beatsToX (double beats, int width) const
@@ -71,6 +73,7 @@ public:
                       drawWaveforms, showHeaders, showFooters, showMidiDevices, showWaveDevices;
 
     CachedValue<double> viewX1, viewX2, viewY;
+    CachedValue<int> snapType;
 
     ValueTree state;
 };
