@@ -1007,7 +1007,7 @@ TrackComponent::~TrackComponent()
 
 void TrackComponent::paint (Graphics& g)
 {
-    g.fillAll (Colours::grey);
+    //g.fillAll ();
     
     if (editViewState.selectionManager.isSelected (track.get()))
     {
@@ -1261,6 +1261,15 @@ void EditComponent::valueTreeChildOrderChanged (juce::ValueTree& v, int a, int b
         markAndUpdate (updateTracks);
 }
 
+void EditComponent::paint(Graphics &g)
+{
+    auto rect = getLocalBounds();
+    g.setColour(Colour(0xff181818));
+    g.fillRect(rect);
+    g.setColour(Colours::white);
+    g.drawRect(editViewState.headerWidth, 0, 1, getHeight());
+}
+
 void EditComponent::handleAsyncUpdate()
 {
     if (compareAndReset (updateTracks))
@@ -1274,8 +1283,8 @@ void EditComponent::resized()
     jassert (headers.size() == tracks.size());
     
     const int timelineHeight = 50;
-    const int trackHeight = 50, trackGap = 2;
-    const int headerWidth = editViewState.showHeaders ? 310 : 0;
+    const int trackHeight = editViewState.headerHeight, trackGap = 2;
+    const int headerWidth = editViewState.showHeaders ? editViewState.headerWidth : 0;
     const int footerWidth = editViewState.showFooters ? 150 : 0;
     
     playhead.setBounds (getLocalBounds().withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));

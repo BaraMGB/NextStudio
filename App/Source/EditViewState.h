@@ -20,6 +20,8 @@ namespace IDs
     DECLARE_ID (showHeaders)
     DECLARE_ID (showFooters)
     DECLARE_ID (showArranger)
+    DECLARE_ID (headerHeight)
+    DECLARE_ID (headerWidth)
     #undef DECLARE_ID
 }
 
@@ -44,6 +46,8 @@ public:
         showMidiDevices.referTo (state, IDs::showMidiDevices, um, false);
         showWaveDevices.referTo (state, IDs::showWaveDevices, um, true);
 
+        headerHeight.referTo(state, IDs::headerHeight, um, 50);
+        headerWidth.referTo(state, IDs::headerWidth, um, 310);
         viewX1.referTo (state, IDs::viewX1, um, 0.0);
         viewX2.referTo (state, IDs::viewX2, um, 30.0 * 4);
         viewY.referTo (state, IDs::viewY, um, 0);
@@ -74,6 +78,8 @@ public:
 
     CachedValue<double> viewX1, viewX2, viewY;
     CachedValue<int> snapType;
+
+    CachedValue<int> headerHeight, headerWidth;
 
     ValueTree state;
 };

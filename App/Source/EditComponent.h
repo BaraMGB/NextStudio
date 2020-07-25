@@ -241,6 +241,7 @@ private:
     void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     
+    void paint(Graphics &g) override;
     void handleAsyncUpdate() override;
     void resized() override;
     
