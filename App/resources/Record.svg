@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   width="100%"
+   height="100%"
+   viewBox="0 0 64 64"
+   version="1.1"
+   xml:space="preserve"
+   style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"
+   id="svg1546"><metadata
+   id="metadata1552"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+   id="defs1550" />
+    <g
+   style="fill:#aa00ff;fill-opacity:1"
+   transform="matrix(1,0,0,1,-240,-16)"
+   id="g1544">
+        <path
+   style="fill:#aa00ff;fill-opacity:1"
+   id="Record"
+   d="M 288,48 A 16,16 0 0 1 272,64 16,16 0 0 1 256,48 16,16 0 0 1 272,32 16,16 0 0 1 288,48 Z" />
+    </g>
+</svg>

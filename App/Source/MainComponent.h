@@ -12,15 +12,20 @@
 
 #include "HeaderComponent.h"
 #include "NextLookAndFeel.h"
-#include "SongEditorComponent.h"
 #include "MenuBar.h"
 #include "SideBarBrowser.h"
+#include "EditViewState.h"
+#include "EditComponent.h"
+
 
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
+
+
+
 
 class MainComponent   : public Component
                       , public FileBrowserListener
@@ -45,12 +50,12 @@ private:
     {
         m_tree.setDragAndDropDescription(file.getFileName());
     }
-    void fileDoubleClicked(const File&)               override
+    void fileDoubleClicked(const File&) override
     {
         auto selectedFile = m_tree.getSelectedFile();
         if (selectedFile.existsAsFile())
         {
-            m_songEditor->addTrack(selectedFile);
+            EngineHelpers::loadAudioFileAsClip(*m_edit, selectedFile);
         }
     }
 
@@ -85,7 +90,7 @@ private:
     tracktion_engine::Engine m_engine{ ProjectInfo::projectName };
     tracktion_engine::SelectionManager m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
-    std::unique_ptr<SongEditorComponent> m_songEditor;
+    std::unique_ptr<EditComponent> m_songEditor;
 
 
     const int c_headerHeight = 100;

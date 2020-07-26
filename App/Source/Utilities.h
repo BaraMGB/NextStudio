@@ -8,6 +8,9 @@
 
 #pragma once
 
+
+#include "../JuceLibraryCode/JuceHeader.h"
+
 namespace te = tracktion_engine;
 
 //==============================================================================
@@ -40,7 +43,7 @@ namespace Helpers
 
 namespace GUIHelpers
 {
-void changeColor(XmlElement& xml, String color_hex)
+inline void changeColor(XmlElement& xml, String color_hex)
 {
     forEachXmlChildElement(xml, xmlnode)
     {
@@ -65,7 +68,7 @@ void changeColor(XmlElement& xml, String color_hex)
         }
     }
 }
-void drawFromSVG(Graphics& g, const char* svgbinary, String col_hex, int x, int y, int newWidth, int newHeight, AffineTransform affine)
+inline void drawFromSVG(Graphics& g, const char* svgbinary, String col_hex, int x, int y, int newWidth, int newHeight, AffineTransform affine)
 {
     std::unique_ptr<XmlElement> svg = XmlDocument::parse(svgbinary);
     jassert(svg != nullptr);
@@ -139,14 +142,14 @@ namespace PlayHeadHelpers
 //==============================================================================
 namespace EngineHelpers
 {
-    te::Project::Ptr createTempProject (te::Engine& engine)
+    static inline te::Project::Ptr createTempProject (te::Engine& engine)
     {
         auto file = engine.getTemporaryFileManager().getTempDirectory().getChildFile ("temp_project").withFileExtension (te::projectFileSuffix);
         te::ProjectManager::TempProject tempProject (engine.getProjectManager(), file, true);
         return tempProject.project;
     }
 
-    void showAudioDeviceSettings (te::Engine& engine)
+    static inline void showAudioDeviceSettings (te::Engine& engine)
     {
         DialogWindow::LaunchOptions o;
         o.dialogTitle = TRANS("Audio Settings");
@@ -157,7 +160,7 @@ namespace EngineHelpers
         o.launchAsync();
     }
 
-    void browseForAudioFile (te::Engine& engine, std::function<void (const File&)> fileChosenCallback)
+    static inline void browseForAudioFile (te::Engine& engine, std::function<void (const File&)> fileChosenCallback)
     {
         auto fc = std::make_shared<FileChooser> ("Please select an audio file to load...",
                                                  engine.getPropertyStorage().getDefaultLoadSaveDirectory ("pitchAndTimeExample"),
@@ -175,7 +178,7 @@ namespace EngineHelpers
                          });
     }
 
-    void removeAllClips (te::AudioTrack& track)
+    static inline void removeAllClips (te::AudioTrack& track)
     {
         auto clips = track.getClips();
 
@@ -183,16 +186,15 @@ namespace EngineHelpers
             clips.getUnchecked (i)->removeFromParentTrack();
     }
     
-    te::AudioTrack* getOrInsertAudioTrackAt (te::Edit& edit, int index)
+    static inline te::AudioTrack* getOrInsertAudioTrackAt (te::Edit& edit, int index)
     {
         edit.ensureNumberOfAudioTracks (index + 1);
         return te::getAudioTracks (edit)[index];
     }
 
-    te::WaveAudioClip::Ptr loadAudioFileAsClip (te::Edit& edit, const File& file)
+    static inline te::WaveAudioClip::Ptr loadAudioFileAsClip (te::Edit& edit, const File& file)
     {
-        // Find the first track and delete all clips from it
-        if (auto track = getOrInsertAudioTrackAt (edit, 0))
+        if (auto track = getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
         {
             removeAllClips (*track);
 
@@ -220,7 +222,7 @@ namespace EngineHelpers
         return clip;
     }
 
-    void togglePlay (te::Edit& edit)
+    static inline void togglePlay (te::Edit& edit)
     {
         auto& transport = edit.getTransport();
 
@@ -230,7 +232,7 @@ namespace EngineHelpers
             transport.play (false);
     }
     
-    void toggleRecord (te::Edit& edit)
+    static inline void toggleRecord (te::Edit& edit)
     {
         auto& transport = edit.getTransport();
         
@@ -240,7 +242,7 @@ namespace EngineHelpers
             transport.record (false);
     }
     
-    void armTrack (te::AudioTrack& t, bool arm, int position = 0)
+    static inline void armTrack (te::AudioTrack& t, bool arm, int position = 0)
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())
@@ -248,7 +250,7 @@ namespace EngineHelpers
                 instance->setRecordingEnabled (t, arm);
     }
     
-    bool isTrackArmed (te::AudioTrack& t, int position = 0)
+    static inline bool isTrackArmed (te::AudioTrack& t, int position = 0)
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())
@@ -258,7 +260,7 @@ namespace EngineHelpers
         return false;
     }
     
-    bool isInputMonitoringEnabled (te::AudioTrack& t, int position = 0)
+    static inline bool isInputMonitoringEnabled (te::AudioTrack& t, int position = 0)
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())
@@ -268,7 +270,7 @@ namespace EngineHelpers
         return false;
     }
     
-    void enableInputMonitoring (te::AudioTrack& t, bool im, int position = 0)
+    static inline void enableInputMonitoring (te::AudioTrack& t, bool im, int position = 0)
     {
         if (isInputMonitoringEnabled (t, position) != im)
         {
@@ -279,7 +281,7 @@ namespace EngineHelpers
         }
     }
     
-    bool trackHasInput (te::AudioTrack& t, int position = 0)
+    static inline bool trackHasInput (te::AudioTrack& t, int position = 0)
     {
         auto& edit = t.edit;
         for (auto instance : edit.getAllInputDevices())

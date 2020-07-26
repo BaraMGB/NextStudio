@@ -40,7 +40,7 @@ MainComponent::MainComponent() :
 
     setupEdit();
 
-    m_songEditor = std::make_unique<SongEditorComponent>(*m_edit, m_selectionManager);
+    m_songEditor = std::make_unique<EditComponent>(*m_edit, m_selectionManager);
     addAndMakeVisible(*m_songEditor);
 
     m_header = std::make_unique<HeaderComponent>(*m_edit);

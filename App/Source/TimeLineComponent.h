@@ -10,33 +10,31 @@
 
 #pragma once
 
-#include "../JuceLibraryCode/JuceHeader.h"
-#include "SongEditorState.h"
+ #include "../JuceLibraryCode/JuceHeader.h"
+ #include "EditViewState.h"
 
-//==============================================================================
-/*
-*/
-class TimeLineComponent : public Component
-                        , public ChangeBroadcaster
-{
-public:
-    TimeLineComponent(SongEditorViewState& state, Viewport& pos);
-    ~TimeLineComponent();
+ //==============================================================================
+ /*
+ */
+ class TimeLineComponent : public Component
+                         , public ChangeBroadcaster
+ {
+ public:
+     TimeLineComponent(EditViewState& state);
+     ~TimeLineComponent();
 
-    void paint(Graphics& g) override;
-    void mouseDown(const MouseEvent& event) override;
-    void mouseDrag(const MouseEvent& event) override;
-    void mouseUp(const MouseEvent& event) override;
+     void paint(Graphics& g) override;
+     void mouseDown(const MouseEvent& event) override;
+     void mouseDrag(const MouseEvent& event) override;
+     void mouseUp(const MouseEvent& event) override;
 
-    void setScreen(int screenPosX, int screenWidth);
+     void setScreen(int screenPosX, int screenWidth);
 
-private:
-    Point<int> m_posAtMouseDown;
-    double m_BeatAtMouseDown;
-    bool m_mouseDown;
-    int m_distanceX{ 0 };
-    int m_screenX, m_screenW;
-    SongEditorViewState& m_state;
-    Viewport& m_viewPort;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
-};
+ private:
+     int m_posAtMouseDownY, m_posAtMouseDownX;
+     double m_BeatAtMouseDown;
+     bool m_mouseDown;
+     int m_oldDragDistX{0}, m_oldDragDistY{0};
+     EditViewState& m_state;
+     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
+ };

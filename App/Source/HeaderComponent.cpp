@@ -180,6 +180,7 @@ void HeaderComponent::timerCallback()
 
     if (m_BpmDisplay.isDragging())
     {
+        m_edit.getTransport().setUserDragging(true);
         tracktion_engine::TempoSequencePosition pos(m_edit.tempoSequence);
         tempoSequence.getTempos()[0]->setBpm(static_cast<double>(m_BpmDisplay.getValue(0) + (m_BpmDisplay.getValue(1) * 0.01)));
         pos.setTime(0);
