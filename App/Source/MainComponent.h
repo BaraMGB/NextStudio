@@ -16,6 +16,7 @@
 #include "SideBarBrowser.h"
 #include "EditViewState.h"
 #include "EditComponent.h"
+#include "Utilities.h"
 
 
 //==============================================================================
@@ -55,22 +56,27 @@ private:
         auto selectedFile = m_tree.getSelectedFile();
         if (selectedFile.existsAsFile())
         {
-            EngineHelpers::loadAudioFileAsClip(*m_edit, selectedFile);
+            auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+            auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+            auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+
+            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, tracktion_engine::getAudioTracks(*m_edit).size()))
+            {
+
+                 track->setName("Track " + String(tracktion_engine::getAudioTracks(*m_edit).size()));
+                 track->setColour(Colour(red, gre, blu));
+                 std::cout << tracktion_engine::getAudioTracks(*m_edit).size() << std::endl;
+                 EngineHelpers::removeAllClips(*track);
+                 // Add a new clip to this track
+                 tracktion_engine::AudioFile audioFile(m_edit->engine, selectedFile);
+                 if (audioFile.isValid())
+                     if (auto newClip = track->insertWaveClip(selectedFile.getFileNameWithoutExtension(), selectedFile,
+                              { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
+                     {
+                         newClip->setColour(track->getColour());
+                     }
+            }
         }
-    }
-
-    void removeAllClips(tracktion_engine::AudioTrack& track)
-    {
-        auto clips = track.getClips();
-
-        for (int i = clips.size(); --i >= 0;)
-            clips.getUnchecked(i)->removeFromParentTrack();
-    }
-
-    tracktion_engine::AudioTrack* getOrInsertAudioTrackAt(tracktion_engine::Edit& edit, int index)
-    {
-        edit.ensureNumberOfAudioTracks(index + 1);
-        return tracktion_engine::getAudioTracks(edit)[index];
     }
 
     void browserRootChanged(const File&) override {}

@@ -10,6 +10,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "HeaderComponent.h"
+#include "Utilities.h"
 
 
 //==============================================================================
@@ -35,6 +36,10 @@ HeaderComponent::HeaderComponent(tracktion_engine::Edit& edit)
     addAndMakeVisible(m_recordButton);
     m_recordButton.setButtonText("Record");
     m_recordButton.addListener(this);
+
+    addAndMakeVisible(m_settingsButton);
+    m_settingsButton.setButtonText("Settings");
+    m_settingsButton.addListener(this);
 
     m_transportDisplay.setFont(juce::Font(30));
     m_transportDisplay.setFontColour(m_mainColour);
@@ -82,11 +87,13 @@ void HeaderComponent::paint (Graphics& g)
     juce::Rectangle<int> area = getLocalBounds();
     auto displayWidth = m_BpmDisplay.getNeededWidth() + 20
         + m_transportDisplay.getNeededWidth() + 20
-        + m_LoopBeginDisplay.getNeededWidth() + 20;
+        + m_LoopBeginDisplay.getNeededWidth() +180;
     auto display = area.removeFromRight(area.getWidth() / 2 + displayWidth / 2);
     display.removeFromBottom(5);
-    display.setWidth(displayWidth);
-    display.expand(30, 0);
+    display.removeFromRight( (area.getWidth()/ 2)+ displayWidth - 100);
+
+   // display.setWidth(displayWidth);
+    //display.expand(30, 0);
     g.setColour(Colour(0xff181818));
     g.fillRect(display);
 
@@ -95,27 +102,32 @@ void HeaderComponent::paint (Graphics& g)
 void HeaderComponent::resized()
 {
     juce::Rectangle<int> area = getLocalBounds();
-    auto displayWidth = m_BpmDisplay.getNeededWidth() + 20
-                                         + m_transportDisplay.getNeededWidth() + 20
-                                         + m_LoopBeginDisplay.getNeededWidth() + 20;
+    auto gap = area.getHeight()/2;
+    auto displayWidth = m_BpmDisplay.getNeededWidth() + gap
+                                         + m_transportDisplay.getNeededWidth() + gap
+                                         + m_LoopBeginDisplay.getNeededWidth() + gap;
+    area.removeFromRight(gap/4);
+    area.removeFromBottom(gap/4);
+    m_settingsButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     auto display = area.removeFromRight(area.getWidth() / 2 + displayWidth / 2);
 
 
-    area.removeFromLeft(5);
-    area.removeFromBottom(5);
-    m_loadButton.setBounds(area.removeFromLeft(area.getHeight() + 10));
-    area.removeFromLeft(5);
-    m_saveButton.setBounds(area.removeFromLeft(area.getHeight() + 10));
+    area.removeFromLeft(gap/4);
+    m_loadButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
+    area.removeFromLeft(gap/4);
+    m_saveButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
 
-    area.removeFromRight(50);
-    m_recordButton.setBounds(area.removeFromRight(area.getHeight()+10));
-    area.removeFromRight(5);
-    m_stopButton.setBounds(area.removeFromRight(area.getHeight() + 10));
-    area.removeFromRight(5);
-    m_playButton.setBounds(area.removeFromRight(area.getHeight() + 10));
+
+    area.removeFromRight(gap * 4);
+    m_recordButton.setBounds(area.removeFromRight(area.getHeight()+gap/2));
+    area.removeFromRight(gap/4);
+    m_stopButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
+    area.removeFromRight(gap/4);
+    m_playButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     
-    auto leftSide = display.removeFromLeft(m_BpmDisplay.getNeededWidth() + 20);
-    auto center = display.removeFromLeft(m_transportDisplay.getNeededWidth() + 20);
+
+    auto leftSide = display.removeFromLeft(m_BpmDisplay.getNeededWidth() + gap);
+    auto center = display.removeFromLeft(m_transportDisplay.getNeededWidth() + gap);
     auto rightSide = display;
 
     
@@ -147,6 +159,14 @@ void HeaderComponent::buttonClicked(Button* button)
         m_edit.getTransport().stop(false,true);
         m_edit.getTransport().setCurrentPosition(0);
         m_playButton.setButtonText("Play");
+    }
+    if (button == &m_recordButton)
+    {
+        EngineHelpers::toggleRecord(m_edit);
+    }
+    if (button == &m_settingsButton)
+    {
+        EngineHelpers::showAudioDeviceSettings (m_edit.engine);
     }
 }
 

@@ -109,7 +109,8 @@ private:
     Label m_trackName;
     ToggleButton m_armButton,
                  m_muteButton,
-                 m_soloButton;
+                 m_soloButton,
+                 m_addPluginButton;
     Component m_peakDisplay;
     Slider       m_volumeKnob;
 };
@@ -241,6 +242,8 @@ private:
     void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     
+    void mouseDown(const MouseEvent &) override;
+
     void paint(Graphics &g) override;
     void handleAsyncUpdate() override;
     void resized() override;

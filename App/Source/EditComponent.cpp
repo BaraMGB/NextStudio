@@ -657,7 +657,8 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
     Helpers::addAndMakeVisible (*this, { &m_trackName,
                                          &m_armButton,
                                          &m_muteButton,
-                                         &m_soloButton});
+                                         &m_soloButton,
+                                         &m_addPluginButton});
     
 
     m_trackName.setText(m_track->getName(), NotificationType::dontSendNotification);
@@ -671,6 +672,12 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
         {
             EngineHelpers::armTrack (*audioTrack, !EngineHelpers::isTrackArmed (*audioTrack));
             m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
+        };
+        m_addPluginButton.setToggleState(false, dontSendNotification);
+        m_addPluginButton.onClick = [this, audioTrack]
+        {
+            if (auto plugin = showMenuAndCreatePlugin (audioTrack->edit))
+                audioTrack->pluginList.insertPlugin (plugin, 0, &editViewState.selectionManager);
         };
         m_volumeKnob.setOpaque(false);
         addAndMakeVisible(m_volumeKnob);
@@ -690,6 +697,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
         m_armButton.setVisible (false);
         m_muteButton.setVisible (false);
         m_soloButton.setVisible (false);
+        m_addPluginButton.setVisible(false);
     }
     
     m_track->state.addListener (this);
@@ -754,7 +762,7 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
 {
     if (!event.mouseWasDraggedSinceMouseDown())
         {
-            if (event.mods.isRightButtonDown())
+            if (event.mods.isPopupMenu())
             {
                 if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get()))
                 {
@@ -868,6 +876,7 @@ void TrackHeaderComponent::resized()
     m_soloButton.setBounds(buttonGroup.getX(), buttonGroup.getY(), buttonwidth, buttonHeight);
     m_muteButton.setBounds(buttonGroup.getX(), buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
     m_armButton.setBounds(buttonGroup.getX() + buttonwidth, buttonGroup.getY(), buttonwidth, buttonHeight);
+    m_addPluginButton.setBounds( buttonGroup.getX() + buttonwidth,buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
 
     area.removeFromLeft(20);
     m_trackName.setBounds(area);
@@ -1259,6 +1268,35 @@ void EditComponent::valueTreeChildOrderChanged (juce::ValueTree& v, int a, int b
         markAndUpdate (updateTracks);
     else if (te::TrackList::isTrack (v.getChild (b)))
         markAndUpdate (updateTracks);
+}
+
+void EditComponent::mouseDown(const MouseEvent &event)
+{
+    if (event.mods.isPopupMenu())
+    {
+//        std::cout << "rechts! " << std::endl;
+        PopupMenu m;
+        m.addItem (10, "Add track");
+
+        m.addSeparator();
+
+        const int res = m.show();
+
+        if (res == 10)
+        {
+            auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+            auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+            auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+
+            edit.ensureNumberOfAudioTracks (tracktion_engine::getAudioTracks(edit).size() + 1);
+//            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
+//            {
+
+//                 track->setName("Track " + String(tracktion_engine::getAudioTracks(edit).size()));
+//                 track->setColour(Colour(red, gre, blu));
+//            }
+        }
+    }
 }
 
 void EditComponent::paint(Graphics &g)

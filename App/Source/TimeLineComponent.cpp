@@ -45,7 +45,7 @@ void TimeLineComponent::paint(Graphics& g)
         int BeatX = m_state.beatsToX(beat,getWidth());
 
         auto zBars = 16;
-        m_state.snapType = 11;
+
         if (zoom < 240)
         {
             zBars /= 2;
