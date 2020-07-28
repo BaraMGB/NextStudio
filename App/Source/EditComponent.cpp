@@ -1002,7 +1002,7 @@ void TrackFooterComponent::buildPlugins()
 TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), track (t)
 {
-    track->edit.state.addListener (this);
+    track->state.addListener (this);
     track->edit.getTransport().addChangeListener (this);
     
     markAndUpdate (updateClips);
@@ -1132,13 +1132,10 @@ void TrackComponent::buildRecordClips()
     {
         for (auto in : track->edit.getAllInputDevices())
         {
-            if (in->isRecordingActive())
+            if (in->isRecordingActive() && track == *(in->getTargetTracks().getFirst()))
             {
-                if(track == *(in->getTargetTracks().getFirst()))
-                {
-                    needed = true;
-                    break;
-                }
+                needed = true;
+                break;
             }
         }
     }
@@ -1287,14 +1284,12 @@ void EditComponent::mouseDown(const MouseEvent &event)
             auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
             auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
             auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
+            {
 
-            edit.ensureNumberOfAudioTracks (tracktion_engine::getAudioTracks(edit).size() + 1);
-//            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
-//            {
-
-//                 track->setName("Track " + String(tracktion_engine::getAudioTracks(edit).size()));
-//                 track->setColour(Colour(red, gre, blu));
-//            }
+                 track->setName("Track " + String(tracktion_engine::getAudioTracks(edit).size()));
+                 track->setColour(Colour(red, gre, blu));
+            }
         }
     }
 }

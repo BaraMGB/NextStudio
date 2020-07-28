@@ -86,7 +86,7 @@ void TimeLineComponent::paint(Graphics& g)
 void TimeLineComponent::mouseDown(const MouseEvent& event)
 {
     m_mouseDown = true;
-
+    m_state.drawWaveforms = false;
     m_BeatAtMouseDown = m_state.xToBeats(event.getMouseDownPosition().getX(), getWidth());
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
@@ -103,6 +103,7 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
     auto accelY = (dragDistY - m_oldDragDistY);
     auto zoom = (m_state.viewX2 - m_state.viewX1);
 
+    accelY = accelY * (zoom/ 1000);
     auto accelY1 = accelY / zoom * (m_BeatAtMouseDown - m_state.viewX1);
     auto accelY2 = accelY / zoom * (m_state.viewX2 - m_BeatAtMouseDown);
     if((m_state.viewX2 + accelY2) > (m_state.viewX1 - accelY1))
@@ -130,6 +131,7 @@ void TimeLineComponent::mouseUp(const MouseEvent& event)
     Desktop::setMousePosition(Point<int>( getX() + m_state.beatsToX( m_BeatAtMouseDown, getWidth()) ,
                                           event.getScreenY()));
     m_mouseDown = false;
+    m_state.drawWaveforms = true;
     repaint();
 }
 
