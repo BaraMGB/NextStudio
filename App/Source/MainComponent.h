@@ -81,7 +81,8 @@ private:
 
     void browserRootChanged(const File&) override {}
 
-    void setupEdit();
+    void setupEdit(File);
+    void createTracksAndAssignInputs();
 
 
     TimeSliceThread m_thread;
@@ -91,6 +92,7 @@ private:
     StretchableLayoutManager m_stretchableManager;
     StretchableLayoutResizerBar m_resizerBar{ &m_stretchableManager, 1, true };
     std::unique_ptr<HeaderComponent> m_header;
+    Label m_editNameLabel { "No Edit Loaded" };
     NextLookAndFeel m_nextLookAndFeel;
 
     tracktion_engine::Engine m_engine{ ProjectInfo::projectName };

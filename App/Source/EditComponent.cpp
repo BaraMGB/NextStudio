@@ -1292,6 +1292,7 @@ void EditComponent::mouseDown(const MouseEvent &event)
             }
         }
     }
+    editViewState.selectionManager.deselectAll();
 }
 
 void EditComponent::paint(Graphics &g)
@@ -1299,6 +1300,7 @@ void EditComponent::paint(Graphics &g)
     auto rect = getLocalBounds();
     g.setColour(Colour(0xff181818));
     g.fillRect(rect);
+
     g.setColour(Colours::white);
     g.drawRect(editViewState.headerWidth, 0, 1, getHeight());
 }

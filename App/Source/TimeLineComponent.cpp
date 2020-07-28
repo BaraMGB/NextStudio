@@ -32,17 +32,17 @@ void TimeLineComponent::paint(Graphics& g)
     double x1 = m_state.viewX1;
     double x2 = m_state.viewX2;
     double zoom = x2 -x1;
-
     int firstBeat = static_cast<int>(x1);
     if(m_state.beatsToX(firstBeat,getWidth()) < 0)
     {
         firstBeat++;
     }
 
-
-    for (int beat = firstBeat; beat <= m_state.viewX2; beat++)
+    auto pixelPerBeat = getWidth() / zoom;
+    std::cout << zoom << std::endl;
+    for (int beat = firstBeat - 1; beat <= m_state.viewX2; beat++)
     {
-        int BeatX = m_state.beatsToX(beat,getWidth());
+        int BeatX = m_state.beatsToX(beat, getWidth());
 
         auto zBars = 16;
 
@@ -66,6 +66,29 @@ void TimeLineComponent::paint(Graphics& g)
             g.setColour(Colours::white.darker(0.5f));
             g.drawLine(BeatX,getHeight() - getHeight()/ 3, BeatX, getHeight());
             g.setColour(Colours::white);
+        }
+        if (zoom < 25)
+        {
+            g.setColour(Colours::white.darker(0.5f));
+            auto quarterBeat = pixelPerBeat / 4;
+            auto i = 1;
+            while ( i < 5) {
+                 g.drawLine(BeatX + quarterBeat * i ,(getHeight() - getHeight()/3) + getHeight()/10,
+                 BeatX + quarterBeat * i ,getHeight());
+                 i++;
+            }
+            g.setColour(Colours::white);
+        }
+        if (zoom < 12)
+        {
+//            auto quarterBeat = pixelPerBeat / 4;
+//            auto i = 1;
+//            while ( i < 5) {
+//                g.drawSingleLineText(String((beat/4)+1)
+//                                     ,BeatX + (pixelPerBeat * i)
+//                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
+//                i++;
+//            }
         }
     }
 

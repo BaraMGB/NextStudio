@@ -17,6 +17,10 @@
 HeaderComponent::HeaderComponent(tracktion_engine::Edit& edit)
     : m_edit(edit)
 {
+    addAndMakeVisible(m_newButton);
+    m_newButton.setButtonText("New");
+    m_newButton.addListener(this);
+
     addAndMakeVisible(m_loadButton);
     m_loadButton.setButtonText("Load");
     m_loadButton.addListener(this);
@@ -113,6 +117,8 @@ void HeaderComponent::resized()
 
 
     area.removeFromLeft(gap/4);
+    m_newButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
+    area.removeFromLeft(gap/4);
     m_loadButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
     area.removeFromLeft(gap/4);
     m_saveButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
@@ -143,6 +149,12 @@ void HeaderComponent::resized()
 
 void HeaderComponent::buttonClicked(Button* button)
 {
+    if (button == &m_newButton)
+    {
+
+    }
+
+
     if (button == &m_playButton)
     {
         auto& transport = m_edit.getTransport();
