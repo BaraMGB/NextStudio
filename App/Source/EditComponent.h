@@ -27,6 +27,7 @@ protected:
     te::Clip::Ptr clip;
 private:
     double m_clipPosAtMouseDown;
+    bool m_isDragging;
 };
 
 //==============================================================================
@@ -165,7 +166,8 @@ private:
 class TrackComponent : public Component,
                        private te::ValueTreeAllEventListener,
                        private FlaggedAsyncUpdater,
-                       private ChangeListener
+                       private ChangeListener,
+                       public DragAndDropTarget
 {
 public:
     TrackComponent (EditViewState&, te::Track::Ptr);
@@ -174,6 +176,10 @@ public:
     void paint (Graphics& g) override;
     void mouseDown (const MouseEvent& e) override;
     void resized() override;
+
+    inline bool isInterestedInDragSource(const SourceDetails& /*dragSourceDetails*/) override { return true; }
+    void itemDropped(const SourceDetails& dragSourceDetails) override;
+    void itemDragMove(const SourceDetails& dragSourceDetails) override;
 
 private:
     void changeListenerCallback (ChangeBroadcaster*) override;
@@ -186,6 +192,7 @@ private:
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     
     void handleAsyncUpdate() override;
+    void modifierKeysChanged(const ModifierKeys &modifiers) override;
     
     void buildClips();
     void buildRecordClips();
@@ -196,7 +203,7 @@ private:
     OwnedArray<ClipComponent> clips;
     std::unique_ptr<RecordingClipComponent> recordingClip;
     
-    bool updateClips = false, updatePositions = false, updateRecordClips = false;
+    bool updateClips = false, updatePositions = false, updateRecordClips = false, m_isCTRLpressed = false;
 };
 
 //==============================================================================

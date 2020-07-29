@@ -247,17 +247,28 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
 {
 }
 
+
 void ClipComponent::paint (Graphics& g)
 {
-    g.fillAll (clip->getColour().withAlpha (0.5f));
+    auto alpha = 1.0f;
+    if (m_isDragging)
+    {
+        alpha = 0.2f;
+    }
+
+    g.fillAll (clip->getColour());
     g.setColour (Colours::black);
-    g.drawRect (getLocalBounds());
-    
+    if (m_isDragging)
+    {
+        g.setColour(Colours::grey);
+    }
+
     if (editViewState.selectionManager.isSelected (clip.get()))
     {
-        g.setColour (Colours::red);
-        g.drawRect (getLocalBounds(), 2);
+        g.setColour (Colours::white);
     }
+
+    g.drawRect (getLocalBounds());
 }
 
 void ClipComponent::mouseDown (const MouseEvent&event)
@@ -295,6 +306,7 @@ void ClipComponent::mouseDown (const MouseEvent&event)
         }
 
     editViewState.selectionManager.selectOnly (clip.get());
+    m_isDragging = true;
 }
 
 void ClipComponent::mouseDrag(const MouseEvent & event)
@@ -302,6 +314,7 @@ void ClipComponent::mouseDrag(const MouseEvent & event)
     DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
     if (!dragC->isDragAndDropActive())
     {
+
         dragC->startDragging("Clip", this,juce::Image(Image::ARGB,1,1,true),
                              false);
     }
@@ -313,9 +326,10 @@ void ClipComponent::mouseDrag(const MouseEvent & event)
                     + editViewState.xToBeats(event.getDistanceFromDragStartX(), getParentWidth())
                     )
                 );
-    if (!event.mods.isCtrlDown())
+    if (!event.mods.isShiftDown())
     {
-        newPos = clip->edit.getTimecodeFormat().getSnapType(editViewState.snapType).roundTimeNearest(newPos, clip->edit.tempoSequence);
+        newPos = clip->edit.getTimecodeFormat().getSnapType(editViewState.snapType)
+                                             .roundTimeNearest(newPos, clip->edit.tempoSequence);
     }
     clip->setStart(newPos, false, true);
 
@@ -324,6 +338,7 @@ void ClipComponent::mouseDrag(const MouseEvent & event)
 
 void ClipComponent::mouseUp(const MouseEvent &)
 {
+    m_isDragging = false;
     setMouseCursor (MouseCursor::NormalCursor);
 }
 
@@ -1002,7 +1017,8 @@ void TrackFooterComponent::buildPlugins()
 TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), track (t)
 {
-    track->state.addListener (this);
+    editViewState.state.addListener (this);
+    track->state.addListener(this);
     track->edit.getTransport().addChangeListener (this);
     
     markAndUpdate (updateClips);
@@ -1017,16 +1033,74 @@ TrackComponent::~TrackComponent()
 void TrackComponent::paint (Graphics& g)
 {
     //g.fillAll ();
-    
+    g.setColour(Colour(0xff111111));
+    g.drawRect(0,0, getWidth(), getHeight() );
+    double x2 = editViewState.viewX2;
+    double x1 = editViewState.viewX1;
+    g.setColour(Colour(0xff333333));
+    double zoom = x2 -x1;
+    int firstBeat = static_cast<int>(x1);
+    if(editViewState.beatsToX(firstBeat,getWidth()) < 0)
+    {
+        firstBeat++;
+    }
+
+    auto pixelPerBeat = getWidth() / zoom;
+    std::cout << zoom << std::endl;
+    for (int beat = firstBeat - 1; beat <= editViewState.viewX2; beat++)
+    {
+        int BeatX = editViewState.beatsToX(beat, getWidth());
+
+        auto zBars = 16;
+
+        if (zoom < 240)
+        {
+            zBars /= 2;
+        }
+        if (zoom < 120)
+        {
+            zBars /=2;
+        }
+        if (beat % zBars == 0)
+        {
+            g.drawLine(BeatX, 0, BeatX, getHeight());
+        }
+
+        if (zoom < 60)
+        {
+            g.drawLine(BeatX,0, BeatX, getHeight());
+        }
+        if (zoom < 25)
+        {
+            auto quarterBeat = pixelPerBeat / 4;
+            auto i = 1;
+            while ( i < 5) {
+                 g.drawLine(BeatX + quarterBeat * i ,0,
+                 BeatX + quarterBeat * i ,getHeight());
+                 i++;
+            }
+        }
+        if (zoom < 12)
+        {
+//            auto quarterBeat = pixelPerBeat / 4;
+//            auto i = 1;
+//            while ( i < 5) {
+//                g.drawSingleLineText(String((beat/4)+1)
+//                                     ,BeatX + (pixelPerBeat * i)
+//                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
+//                i++;
+//            }
+        }
+    }
     if (editViewState.selectionManager.isSelected (track.get()))
     {
-        g.setColour (Colours::red);
+        g.setColour (Colours::white);
         
         auto rc = getLocalBounds();
         if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);
         if (editViewState.showFooters) rc = rc.withTrimmedRight (-4);
 
-        g.drawRect (rc, 2);
+        g.drawRect (rc);
     }
 }
 
@@ -1048,6 +1122,15 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
             || i == te::IDs::length)
         {
             markAndUpdate (updatePositions);
+        }
+    }
+    if (v.hasType (IDs::EDITVIEWSTATE))
+    {
+        if (i == IDs::viewX1
+            || i == IDs::viewX2
+            || i == IDs::viewY)
+        {
+            repaint();
         }
     }
     if(i.toString() == "bpm")
@@ -1086,6 +1169,11 @@ void TrackComponent::handleAsyncUpdate()
         buildRecordClips();
 }
 
+void TrackComponent::modifierKeysChanged(const ModifierKeys &modifiers)
+{
+        m_isCTRLpressed = modifiers.isCtrlDown();
+}
+
 void TrackComponent::resized()
 {
     for (auto cc : clips)
@@ -1098,6 +1186,67 @@ void TrackComponent::resized()
         cc->setBounds (x1, 0, x2 - x1, getHeight());
     }
 }
+
+void TrackComponent::itemDropped(const DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+
+    auto dropPos = dragSourceDetails.localPosition;
+    auto dropTime = editViewState.beatToTime(editViewState.xToBeats(dropPos.getX(), getWidth()));
+
+    if (dragSourceDetails.description == "Clip")
+        {
+            auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
+            if (clipComp)
+            {
+                if( m_isCTRLpressed)
+                {
+                    if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(track.get()))
+                    {
+                    }
+                }
+                else
+                {
+                    clipComp->getClip().moveToTrack(*track);
+                }
+            }
+    }
+
+    auto fileTreeComp = dynamic_cast<FileTreeComponent*>(dragSourceDetails.sourceComponent.get());
+    if (fileTreeComp)
+    {
+        auto f = fileTreeComp->getSelectedFile();
+        tracktion_engine::AudioFile audioFile(editViewState.edit.engine, f);
+        if (audioFile.isValid())
+        {
+            if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(track.get()))
+            {
+                if (auto newClip = audioTrack->insertWaveClip(f.getFileNameWithoutExtension()
+                                                         ,f
+                                                         ,{ { dropTime, dropTime + audioFile.getLength() }, 0.0 }
+                                                         , false))
+                {
+                    newClip->setColour(track->getColour());
+                }
+            }
+
+        }
+    }
+}
+
+void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+    if (dragSourceDetails.description == "Clip")
+        {
+            auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
+            if (clipComp)
+            {
+                addAndMakeVisible( clipComp);
+            }
+    }
+
+}
+
+
 
 void TrackComponent::buildClips()
 {
@@ -1318,7 +1467,7 @@ void EditComponent::resized()
     jassert (headers.size() == tracks.size());
     
     const int timelineHeight = 50;
-    const int trackHeight = editViewState.headerHeight, trackGap = 2;
+    const int trackHeight = editViewState.headerHeight, trackGap = 0;
     const int headerWidth = editViewState.showHeaders ? editViewState.headerWidth : 0;
     const int footerWidth = editViewState.showFooters ? 150 : 0;
     
