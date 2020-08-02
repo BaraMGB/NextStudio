@@ -39,7 +39,7 @@ void TimeLineComponent::paint(Graphics& g)
     }
 
     auto pixelPerBeat = getWidth() / zoom;
-    std::cout << zoom << std::endl;
+    //std::cout << zoom << std::endl;
     for (int beat = firstBeat - 1; beat <= m_state.viewX2; beat++)
     {
         int BeatX = m_state.beatsToX(beat, getWidth());
@@ -109,7 +109,6 @@ void TimeLineComponent::paint(Graphics& g)
 void TimeLineComponent::mouseDown(const MouseEvent& event)
 {
     m_mouseDown = true;
-    m_state.drawWaveforms = false;
     m_BeatAtMouseDown = m_state.xToBeats(event.getMouseDownPosition().getX(), getWidth());
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
@@ -117,22 +116,40 @@ void TimeLineComponent::mouseDown(const MouseEvent& event)
 
 void TimeLineComponent::mouseDrag(const MouseEvent& event)
 {
-    event.source.enableUnboundedMouseMovement(true);
+    event.source.enableUnboundedMouseMovement(true, false);
+
+    //std::cout << "PosScreenY: " << event.getScreenY() << std::endl;
 
     double dragDistY = event.getDistanceFromDragStartY();
     double dragDistX = event.getDistanceFromDragStartX();
 
     //Zoom
+    auto smallestZoom = 0.3;
+    auto largestZoom = 400.0;
     auto accelY = (dragDistY - m_oldDragDistY);
     auto zoom = (m_state.viewX2 - m_state.viewX1);
 
     accelY = accelY * (zoom/ 1000);
-    auto accelY1 = accelY / zoom * (m_BeatAtMouseDown - m_state.viewX1);
-    auto accelY2 = accelY / zoom * (m_state.viewX2 - m_BeatAtMouseDown);
-    if((m_state.viewX2 + accelY2) > (m_state.viewX1 - accelY1))
+
+    if (zoom <= smallestZoom)
     {
-        m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelY1);
-        m_state.viewX2 = m_state.viewX2 + accelY2;
+        m_state.viewX1 = jmax(0.0, static_cast<double>(m_state.viewX1));
+        m_state.viewX2 = m_state.viewX1 + smallestZoom + 0.1;
+    }
+    else if (zoom > largestZoom)
+    {
+        m_state.viewX1 = jmax(0.0, static_cast<double>(m_state.viewX1));
+        m_state.viewX2 = m_state.viewX1 + largestZoom;
+    }
+    else
+    {
+        auto accelY1 = accelY / zoom * (m_BeatAtMouseDown - m_state.viewX1);
+        auto accelY2 = accelY / zoom * (m_state.viewX2 - m_BeatAtMouseDown);
+        if((m_state.viewX2 + accelY2) > (m_state.viewX1 - accelY1))
+        {
+            m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelY1);
+            m_state.viewX2 = m_state.viewX2 + accelY2;
+        }
     }
 
     //Move
@@ -151,10 +168,6 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
 
 void TimeLineComponent::mouseUp(const MouseEvent& event)
 {
-    Desktop::setMousePosition(Point<int>( getX() + m_state.beatsToX( m_BeatAtMouseDown, getWidth()) ,
-                                          event.getScreenY()));
     m_mouseDown = false;
-    m_state.drawWaveforms = true;
-    repaint();
 }
 

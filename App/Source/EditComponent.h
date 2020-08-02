@@ -192,18 +192,17 @@ private:
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     
     void handleAsyncUpdate() override;
-    void modifierKeysChanged(const ModifierKeys &modifiers) override;
-    
+
     void buildClips();
     void buildRecordClips();
     
     EditViewState& editViewState;
     te::Track::Ptr track;
-    
+    te::Clipboard m_clipBoard;
     OwnedArray<ClipComponent> clips;
     std::unique_ptr<RecordingClipComponent> recordingClip;
     
-    bool updateClips = false, updatePositions = false, updateRecordClips = false, m_isCTRLpressed = false;
+    bool updateClips = false, updatePositions = false, updateRecordClips = false;
 };
 
 //==============================================================================
@@ -234,6 +233,7 @@ class EditComponent : public Component,
                       private te::ValueTreeAllEventListener,
                       private FlaggedAsyncUpdater,
                       private ChangeListener
+
 {
 public:
     EditComponent (te::Edit&, te::SelectionManager&);
@@ -250,7 +250,6 @@ private:
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     
     void mouseDown(const MouseEvent &) override;
-
     void paint(Graphics &g) override;
     void handleAsyncUpdate() override;
     void resized() override;
@@ -263,7 +262,7 @@ private:
     te::Edit& edit;
     
     EditViewState editViewState;
-    
+    te::Clipboard clipBoard;
     TimeLineComponent timeLine {editViewState};
     PlayheadComponent playhead {edit, editViewState};
     OwnedArray<TrackComponent> tracks;

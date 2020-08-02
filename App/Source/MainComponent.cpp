@@ -46,7 +46,7 @@ MainComponent::MainComponent() :
     auto f = Helpers::findRecentEdit (d);
     if (f.existsAsFile())
     {
-        std::cout << "last" << std::endl;
+
         setupEdit (f);
     }
     else

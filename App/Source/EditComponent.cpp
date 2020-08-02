@@ -278,8 +278,8 @@ void ClipComponent::mouseDown (const MouseEvent&event)
             if (event.mods.isRightButtonDown())
             {
                 PopupMenu m;
-                m.addItem(1, "delete Clip");
-                m.addItem(2, "item 2");
+                m.addItem(1, "Delete clip");
+                m.addItem(2, "Copy clip");
 
                 const int result = m.show();
 
@@ -295,7 +295,12 @@ void ClipComponent::mouseDown (const MouseEvent&event)
                 }
                 else if (result == 2)
                 {
-                    // user picked item 2
+                    auto clipContent = std::make_unique<te::Clipboard::Clips>();
+                    clipContent->addClip(0, clip->state);
+                    te::Clipboard::getInstance()->setContent(std::move(clipContent));
+                    // (clip.get());
+                    std::cout << te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>() << std::endl;
+
                 }
             }
             else
@@ -305,7 +310,7 @@ void ClipComponent::mouseDown (const MouseEvent&event)
             }
         }
 
-    editViewState.selectionManager.selectOnly (clip.get());
+    /*tracktion_engine::Clipboard::ContentType::pasteIntoEdit(editViewState.edit, insertPoint, editViewState.selectionManager);*/
     m_isDragging = true;
 }
 
@@ -352,10 +357,13 @@ AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
 void AudioClipComponent::paint (Graphics& g)
 {
     ClipComponent::paint (g);
-    
-    if (editViewState.drawWaveforms && thumbnail != nullptr)
-        drawWaveform (g, *getWaveAudioClip(), *thumbnail, Colours::black.withAlpha (0.5f),
-                      0, getWidth(), 0, getHeight(), 0);
+    auto area = getLocalBounds();
+    area.reduce(1,1);
+    g.setColour(getClip().getColour().darker());
+    g.fillRect(area.removeFromTop(10));
+    //if (editViewState.drawWaveforms && thumbnail != nullptr)
+        drawWaveform (g, *getWaveAudioClip(), *thumbnail, Colours::black,
+                      0, getWidth(), 10, getHeight() - 10, 0);
 }
 
 void AudioClipComponent::drawWaveform (Graphics& g, te::AudioClipBase& c, te::SmartThumbnail& thumb, Colour colour,
@@ -363,11 +371,31 @@ void AudioClipComponent::drawWaveform (Graphics& g, te::AudioClipBase& c, te::Sm
 {
     if(!editViewState.edit.getTransport().isUserDragging())
     {
+        //std::cout << getBoundsInParent().getX() << std::endl;
+
+
+        auto leftOffset = 0;
+
+        auto startX = getBoundsInParent().getX();
+
+        if (startX < 0)
+        {
+            leftOffset = 0 - startX;
+        }
+        auto rightOffset = 0;
+        if (getBoundsInParent().getRight() > getParentWidth())
+        {
+            rightOffset = getBoundsInParent().getRight() - getParentWidth();
+        }
+
         auto getTimeRangeForDrawing = [this] (const int left, const int right) -> te::EditTimeRange
         {
             if (auto p = getParentComponent())
             {
+
                 double t1 = editViewState.beatToTime(editViewState.xToBeats (left, p->getWidth()));
+
+
                 double t2 = editViewState.beatToTime(editViewState.xToBeats (right, p->getWidth()));
                 
                 return { t1, t2 };
@@ -394,26 +422,26 @@ void AudioClipComponent::drawWaveform (Graphics& g, te::AudioClipBase& c, te::Sm
         
         if (usesTimeStretchedProxy)
         {
-            const Rectangle<int> area (left + xOffset, y, right - left, h);
+            const Rectangle<int> area ((left + leftOffset) + xOffset, y, right - (left + leftOffset), h);
             
             if (! thumb.isOutOfDate())
             {
                 drawChannels (g, thumb, area, false,
-                            getTimeRangeForDrawing (left, right),
+                            getTimeRangeForDrawing (left + leftOffset, right - rightOffset),
                             c.isLeftChannelActive(), c.isRightChannelActive(),
                             gainL, gainR);
             }
         }
         else if (c.getLoopLength() == 0)
         {
-            auto region = getTimeRangeForDrawing (left, right);
+            auto region = getTimeRangeForDrawing (left + leftOffset, right - rightOffset);
             
             auto t1 = (region.getStart() + offset) * speedRatio;
             auto t2 = (region.getEnd()   + offset) * speedRatio;
-            
+            //std::cout << " leftO " << leftOffset <<  "rightO: " << rightOffset <<  std::endl;
             drawChannels (g, thumb,
-                        { left + xOffset, y, right - left, h },
-                        false, { t1, t2 },
+                        { (left + leftOffset) + xOffset, y, (right - rightOffset) - (left + leftOffset) , h },
+                        false, { t1 , t2  },
                         c.isLeftChannelActive(), c.isRightChannelActive(),
                         gainL, gainR);
         }
@@ -1020,7 +1048,7 @@ TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
     editViewState.state.addListener (this);
     track->state.addListener(this);
     track->edit.getTransport().addChangeListener (this);
-    
+
     markAndUpdate (updateClips);
 }
 
@@ -1046,7 +1074,7 @@ void TrackComponent::paint (Graphics& g)
     }
 
     auto pixelPerBeat = getWidth() / zoom;
-    std::cout << zoom << std::endl;
+    //std::cout << zoom << std::endl;
     for (int beat = firstBeat - 1; beat <= editViewState.viewX2; beat++)
     {
         int BeatX = editViewState.beatsToX(beat, getWidth());
@@ -1104,9 +1132,32 @@ void TrackComponent::paint (Graphics& g)
     }
 }
 
-void TrackComponent::mouseDown (const MouseEvent&)
+void TrackComponent::mouseDown (const MouseEvent&event)
 {
-    editViewState.selectionManager.selectOnly (track.get());
+    editViewState.selectionManager.selectOnly (track.get()); 
+    if (event.mods.isRightButtonDown())
+    {
+        PopupMenu m;
+        m.addItem(1, "Paste");
+
+
+        const int result = m.show();
+
+        if (result == 0)
+        {
+            // user dismissed the menu without picking anything
+        }
+        else if(result == 1)
+        {
+           auto ip = te::EditInsertPoint(editViewState.edit);
+           ip.setNextInsertPoint(editViewState.beatToTime(editViewState.xToBeats(event.x, getWidth()))  ,track);
+           te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>()->pasteIntoEdit(te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, ip));
+           //te::Clipboard::Clips().pasteIntoEdit(te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, ip));
+                   //pasteIntoEdit (te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, editInsertPoint));
+
+        }
+    }
+
 }
 
 void TrackComponent::changeListenerCallback (ChangeBroadcaster*)
@@ -1169,11 +1220,6 @@ void TrackComponent::handleAsyncUpdate()
         buildRecordClips();
 }
 
-void TrackComponent::modifierKeysChanged(const ModifierKeys &modifiers)
-{
-        m_isCTRLpressed = modifiers.isCtrlDown();
-}
-
 void TrackComponent::resized()
 {
     for (auto cc : clips)
@@ -1198,16 +1244,7 @@ void TrackComponent::itemDropped(const DragAndDropTarget::SourceDetails &dragSou
             auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
             if (clipComp)
             {
-                if( m_isCTRLpressed)
-                {
-                    if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(track.get()))
-                    {
-                    }
-                }
-                else
-                {
-                    clipComp->getClip().moveToTrack(*track);
-                }
+                clipComp->getClip().moveToTrack(*track);
             }
     }
 
@@ -1361,6 +1398,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
 {
     edit.state.addListener (this);
     editViewState.selectionManager.addChangeListener (this);
+
     
     addAndMakeVisible (playhead);
     addAndMakeVisible(timeLine);
@@ -1443,6 +1481,7 @@ void EditComponent::mouseDown(const MouseEvent &event)
     }
     editViewState.selectionManager.deselectAll();
 }
+
 
 void EditComponent::paint(Graphics &g)
 {
