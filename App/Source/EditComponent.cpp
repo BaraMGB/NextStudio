@@ -1057,6 +1057,7 @@ TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
 TrackComponent::~TrackComponent()
 {
     track->state.removeListener (this);
+    editViewState.state.removeListener(this);
     track->edit.getTransport().removeChangeListener (this);
 }
 
@@ -1154,9 +1155,6 @@ void TrackComponent::mouseDown (const MouseEvent&event)
            auto ip = te::EditInsertPoint(editViewState.edit);
            ip.setNextInsertPoint(editViewState.beatToTime(editViewState.xToBeats(event.x, getWidth()))  ,track);
            te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>()->pasteIntoEdit(te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, ip));
-           //te::Clipboard::Clips().pasteIntoEdit(te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, ip));
-                   //pasteIntoEdit (te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, editInsertPoint));
-
         }
     }
 
@@ -1184,6 +1182,7 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
             || i == IDs::viewY)
         {
             repaint();
+            //markAndUpdate(updateClips);
         }
     }
     if(i.toString() == "bpm")

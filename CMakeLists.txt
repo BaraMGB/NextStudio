@@ -6,7 +6,7 @@ include (CMake/GitFunctions.cmake)
 
 #calling my custom function to grab JUCE 6 from git:
 update_from_git(juce "https://github.com/juce-framework/juce" juce6)
-update_from_git(tracktion_engine "https://github.com/Tracktion/tracktion_engine.git" master)
+update_from_git(tracktion_engine "https://github.com/Tracktion/tracktion_engine.git" develop)
 
 #set any of these to "ON" if you want to build one of the juce examples
 #or extras (Projucer/AudioPluginHost, etc):

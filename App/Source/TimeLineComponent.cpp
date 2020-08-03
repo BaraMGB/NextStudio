@@ -157,12 +157,12 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
     }
 
     //Move
-//    auto accelX = m_state.xToBeats(dragDistX, getWidth()) - m_state.xToBeats(m_oldDragDistX, getWidth());
-//    if((m_state.viewX1 - accelX) < (m_state.viewX2 - accelX))
-//    {
-//        m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelX);
-//        m_state.viewX2 = m_state.viewX2 - accelX;
-//    }
+    auto accelX = m_state.xToBeats(dragDistX, getWidth()) - m_state.xToBeats(m_oldDragDistX, getWidth());
+    if((m_state.viewX1 - accelX) < (m_state.viewX2 - accelX))
+    {
+        m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelX);
+        m_state.viewX2 = m_state.viewX2 - accelX;
+    }
 
     m_oldDragDistX = dragDistX;
     m_oldDragDistY = dragDistY;

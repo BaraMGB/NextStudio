@@ -40,6 +40,7 @@ MainComponent::MainComponent() :
 
 
     //Edit stuff
+    
     auto d = File::getSpecialLocation (File::tempDirectory).getChildFile ("EmptyEdit");
     d.createDirectory();
 
@@ -130,9 +131,9 @@ void MainComponent::setupEdit(File editFile = {})
     m_songEditor = nullptr;
 
     if (editFile.existsAsFile())
-        m_edit = std::make_unique<te::Edit> (m_engine, ValueTree::fromXml (editFile.loadFileAsString()), te::Edit::forEditing, nullptr, 0);
+        m_edit = te::loadEditFromFile (m_engine, editFile);
     else
-        m_edit = std::make_unique<te::Edit> (m_engine, te::createEmptyEdit (m_engine), te::Edit::forEditing, nullptr, 0);
+        m_edit = te::createEmptyEdit (m_engine, editFile);
 
     m_edit->editFileRetriever = [editFile] { return editFile; };
     m_edit->playInStopEnabled = true;
