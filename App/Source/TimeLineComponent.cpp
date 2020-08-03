@@ -112,13 +112,17 @@ void TimeLineComponent::mouseDown(const MouseEvent& event)
     m_BeatAtMouseDown = m_state.xToBeats(event.getMouseDownPosition().getX(), getWidth());
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
+    if (event.getNumberOfClicks() > 1)
+    {
+        m_state.edit.getTransport().setCurrentPosition(m_state.beatToTime(m_BeatAtMouseDown));
+    }
 }
 
 void TimeLineComponent::mouseDrag(const MouseEvent& event)
 {
     event.source.enableUnboundedMouseMovement(true, false);
 
-    //std::cout << "PosScreenY: " << event.getScreenY() << std::endl;
+     std::cout << "PosScreenY: " << event.getScreenY() << std::endl;
 
     double dragDistY = event.getDistanceFromDragStartY();
     double dragDistX = event.getDistanceFromDragStartX();
@@ -153,12 +157,12 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
     }
 
     //Move
-    auto accelX = m_state.xToBeats(dragDistX, getWidth()) - m_state.xToBeats(m_oldDragDistX, getWidth());
-    if((m_state.viewX1 - accelX) < (m_state.viewX2 - accelX))
-    {
-        m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelX);
-        m_state.viewX2 = m_state.viewX2 - accelX;
-    }
+//    auto accelX = m_state.xToBeats(dragDistX, getWidth()) - m_state.xToBeats(m_oldDragDistX, getWidth());
+//    if((m_state.viewX1 - accelX) < (m_state.viewX2 - accelX))
+//    {
+//        m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelX);
+//        m_state.viewX2 = m_state.viewX2 - accelX;
+//    }
 
     m_oldDragDistX = dragDistX;
     m_oldDragDistY = dragDistY;
@@ -166,8 +170,9 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
     repaint();
 }
 
-void TimeLineComponent::mouseUp(const MouseEvent& event)
+void TimeLineComponent::mouseUp(const MouseEvent&)
 {
     m_mouseDown = false;
+    repaint();
 }
 

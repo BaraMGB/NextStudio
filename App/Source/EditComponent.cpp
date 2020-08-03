@@ -316,6 +316,7 @@ void ClipComponent::mouseDown (const MouseEvent&event)
 
 void ClipComponent::mouseDrag(const MouseEvent & event)
 {
+    editViewState.edit.getTransport ().setUserDragging (true);
     DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
     if (!dragC->isDragAndDropActive())
     {
@@ -343,6 +344,7 @@ void ClipComponent::mouseDrag(const MouseEvent & event)
 
 void ClipComponent::mouseUp(const MouseEvent &)
 {
+    editViewState.edit.getTransport ().setUserDragging (false);
     m_isDragging = false;
     setMouseCursor (MouseCursor::NormalCursor);
 }
