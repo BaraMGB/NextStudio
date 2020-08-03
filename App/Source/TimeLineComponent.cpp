@@ -118,7 +118,7 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
 {
     event.source.enableUnboundedMouseMovement(true, false);
 
-    //std::cout << "PosScreenY: " << event.getScreenY() << std::endl;
+    std::cout << "PosScreenY: " << event.getScreenY() << std::endl;
 
     double dragDistY = event.getDistanceFromDragStartY();
     double dragDistX = event.getDistanceFromDragStartX();
