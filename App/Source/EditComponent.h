@@ -30,8 +30,86 @@ private:
     bool m_isDragging;
 };
 
+
+
+
+class ThumbnailComponent : public Component
+                         , public juce::ChangeListener
+{
+public:
+    ThumbnailComponent(EditViewState& evs)
+        : editViewState(evs)
+        , thumbnailCache(5)
+        , thumbnail (256, formatManager, thumbnailCache)
+    {
+        setInterceptsMouseClicks (false, false);
+        thumbnail.addChangeListener (this);
+        formatManager.registerBasicFormats ();
+    }
+    ~ThumbnailComponent()
+    {
+
+    }
+    void changeListenerCallback(ChangeBroadcaster *source) override
+    {
+        if (source == &thumbnail) { thumbnailChanged(); }
+    }
+
+    void thumbnailChanged()
+    {
+        repaint ();
+    }
+
+    void paint(Graphics &g) override
+    {
+        juce::Rectangle<int> thumbnailBounds( 0,10,getWidth (), getHeight ());
+
+        auto leftX = getBoundsInParent ().getX();
+        auto rightX = getParentWidth () - (getBoundsInParent ().getX () + getBoundsInParent ().getWidth ());
+
+
+        auto leftT = thumbnail.getTotalLength () * leftX / getParentWidth ();
+        auto rightT = thumbnail.getTotalLength () * rightX / getParentWidth ();
+        g.setColour (juce::Colours::black);
+
+        thumbnail.drawChannel (g,
+                                thumbnailBounds,
+                                0.0 + leftT,
+                                thumbnail.getTotalLength() - rightT,
+                                0,
+                                1.0f);
+    }
+
+    void setFile(const juce::File& f)
+    {
+        auto* reader = formatManager.createReaderFor (f);
+
+        if (reader != nullptr)
+        {
+
+            std::unique_ptr<juce::AudioFormatReaderSource> newSource (new juce::AudioFormatReaderSource (reader, true));
+            thumbnail.setSource (new juce::FileInputSource (f));
+            readerSource.reset (newSource.release());
+        }
+    }
+    void resized() override
+    {
+        repaint ();
+    }
+
+private:
+    EditViewState & editViewState;
+    juce::AudioFormatManager formatManager;                    // [3]
+    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
+    juce::AudioThumbnailCache thumbnailCache;                  // [1]
+    juce::AudioThumbnail thumbnail;
+};
+
+
+
 //==============================================================================
 class AudioClipComponent : public ClipComponent
+
 {
 public:
     AudioClipComponent (EditViewState&, te::Clip::Ptr);
@@ -39,16 +117,11 @@ public:
     te::WaveAudioClip* getWaveAudioClip() { return dynamic_cast<te::WaveAudioClip*> (clip.get()); }
     
     void paint (Graphics& g) override;
+    void resized() override;
     
 private:
-    void updateThumbnail();
-    void drawWaveform (Graphics& g, te::AudioClipBase& c, te::SmartThumbnail& thumb, Colour colour,
-                       int left, int right, int y, int h, int xOffset);
-    void drawChannels (Graphics& g, te::SmartThumbnail& thumb, Rectangle<int> area, bool useHighRes,
-                       te::EditTimeRange time, bool useLeft, bool useRight,
-                       float leftGain, float rightGain);
 
-    std::unique_ptr<te::SmartThumbnail> thumbnail;
+    ThumbnailComponent thumbnailComponent;
 };
 
 //==============================================================================

@@ -79,17 +79,17 @@ void TimeLineComponent::paint(Graphics& g)
             }
             g.setColour(Colours::white);
         }
-        if (zoom < 12)
-        {
-//            auto quarterBeat = pixelPerBeat / 4;
-//            auto i = 1;
-//            while ( i < 5) {
-//                g.drawSingleLineText(String((beat/4)+1)
-//                                     ,BeatX + (pixelPerBeat * i)
-//                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
-//                i++;
-//            }
-        }
+//        if (zoom < 12)
+//        {
+////            auto quarterBeat = pixelPerBeat / 4;
+////            auto i = 1;
+////            while ( i < 5) {
+////                g.drawSingleLineText(String((beat/4)+1)
+////                                     ,BeatX + (pixelPerBeat * i)
+////                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
+////                i++;
+////            }
+//        }
     }
 
     if (m_mouseDown)
@@ -108,8 +108,11 @@ void TimeLineComponent::paint(Graphics& g)
 
 void TimeLineComponent::mouseDown(const MouseEvent& event)
 {
+    event.source.enableUnboundedMouseMovement(true, false);
     m_mouseDown = true;
     m_BeatAtMouseDown = m_state.xToBeats(event.getMouseDownPosition().getX(), getWidth());
+    m_x1atMD = m_state.viewX1;
+    m_x2atMD = m_state.viewX2;
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
     if (event.getNumberOfClicks() > 1)
@@ -120,54 +123,22 @@ void TimeLineComponent::mouseDown(const MouseEvent& event)
 
 void TimeLineComponent::mouseDrag(const MouseEvent& event)
 {
-    event.source.enableUnboundedMouseMovement(true, false);
 
-     std::cout << "PosScreenY: " << event.getScreenY() << std::endl;
+    // Work out the scale of the new range
+    auto unitDistance = 100.0f;
+    auto scaleFactor  = 1.0 / std::pow (2, (float) event.getDistanceFromDragStartY() / unitDistance);
 
-    double dragDistY = event.getDistanceFromDragStartY();
-    double dragDistX = event.getDistanceFromDragStartX();
+    // Now position it so that the mouse continues to point at the same
+    // place on the ruler.
+    auto visibleLength = std::max (0.12, (m_x2atMD - m_x1atMD) / scaleFactor);
+    auto rangeBegin = m_BeatAtMouseDown - visibleLength * event.x / getWidth();
 
-    //Zoom
-    auto smallestZoom = 0.3;
-    auto largestZoom = 400.0;
-    auto accelY = (dragDistY - m_oldDragDistY);
-    auto zoom = (m_state.viewX2 - m_state.viewX1);
+    m_state.viewX1 = rangeBegin;
+    m_state.viewX2 = rangeBegin + visibleLength;
 
-    accelY = accelY * (zoom/ 1000);
 
-    if (zoom <= smallestZoom)
-    {
-        m_state.viewX1 = jmax(0.0, static_cast<double>(m_state.viewX1));
-        m_state.viewX2 = m_state.viewX1 + smallestZoom + 0.1;
-    }
-    else if (zoom > largestZoom)
-    {
-        m_state.viewX1 = jmax(0.0, static_cast<double>(m_state.viewX1));
-        m_state.viewX2 = m_state.viewX1 + largestZoom;
-    }
-    else
-    {
-        auto accelY1 = accelY / zoom * (m_BeatAtMouseDown - m_state.viewX1);
-        auto accelY2 = accelY / zoom * (m_state.viewX2 - m_BeatAtMouseDown);
-        if((m_state.viewX2 + accelY2) > (m_state.viewX1 - accelY1))
-        {
-            m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelY1);
-            m_state.viewX2 = m_state.viewX2 + accelY2;
-        }
-    }
-
-    //Move
-    auto accelX = m_state.xToBeats(dragDistX, getWidth()) - m_state.xToBeats(m_oldDragDistX, getWidth());
-    if((m_state.viewX1 - accelX) < (m_state.viewX2 - accelX))
-    {
-        m_state.viewX1 = jmax(0.0, m_state.viewX1 - accelX);
-        m_state.viewX2 = m_state.viewX2 - accelX;
-    }
-
-    m_oldDragDistX = dragDistX;
-    m_oldDragDistY = dragDistY;
-
-    repaint();
+     //std::cout << "x1: " << rangeBegin << " x2: " << rangeBegin + visibleLength << " zoom: "  << visibleLength <<  std::endl;
+repaint ();
 }
 
 void TimeLineComponent::mouseUp(const MouseEvent&)

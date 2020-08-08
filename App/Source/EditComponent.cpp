@@ -352,8 +352,10 @@ void ClipComponent::mouseUp(const MouseEvent &)
 //==============================================================================
 AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : ClipComponent (evs, c)
+    , thumbnailComponent (evs)
 {
-    updateThumbnail();
+    addAndMakeVisible (thumbnailComponent);
+    thumbnailComponent.setFile (getWaveAudioClip ()->getOriginalFile ());
 }
 
 void AudioClipComponent::paint (Graphics& g)
@@ -363,139 +365,28 @@ void AudioClipComponent::paint (Graphics& g)
     area.reduce(1,1);
     g.setColour(getClip().getColour().darker());
     g.fillRect(area.removeFromTop(10));
-    //if (editViewState.drawWaveforms && thumbnail != nullptr)
-        drawWaveform (g, *getWaveAudioClip(), *thumbnail, Colours::black,
-                      0, getWidth(), 10, getHeight() - 10, 0);
 }
 
-void AudioClipComponent::drawWaveform (Graphics& g, te::AudioClipBase& c, te::SmartThumbnail& thumb, Colour colour,
-                                       int left, int right, int y, int h, int xOffset)
+void AudioClipComponent::resized()
 {
-    if(!editViewState.edit.getTransport().isUserDragging())
+    auto leftOffset = 0;
+    if(getBoundsInParent ().getX () < 0)
     {
-        //std::cout << getBoundsInParent().getX() << std::endl;
-
-
-        auto leftOffset = 0;
-
-        auto startX = getBoundsInParent().getX();
-
-        if (startX < 0)
-        {
-            leftOffset = 0 - startX;
-        }
-        auto rightOffset = 0;
-        if (getBoundsInParent().getRight() > getParentWidth())
-        {
-            rightOffset = getBoundsInParent().getRight() - getParentWidth();
-        }
-
-        auto getTimeRangeForDrawing = [this] (const int left, const int right) -> te::EditTimeRange
-        {
-            if (auto p = getParentComponent())
-            {
-
-                double t1 = editViewState.beatToTime(editViewState.xToBeats (left, p->getWidth()));
-
-
-                double t2 = editViewState.beatToTime(editViewState.xToBeats (right, p->getWidth()));
-                
-                return { t1, t2 };
-            }
-            
-            return {};
-        };
-        
-        jassert (left <= right);
-        const auto gain = c.getGain();
-        const auto pan = thumb.getNumChannels() == 1 ? 0.0f : c.getPan();
-        
-        const float pv = pan * gain;
-        const float gainL = (gain - pv);
-        const float gainR = (gain + pv);
-        
-        const bool usesTimeStretchedProxy = c.usesTimeStretchedProxy();
-        
-        const auto clipPos = c.getPosition();
-        auto offset = clipPos.getOffset() - editViewState.beatToTime(editViewState.viewX1);
-        auto speedRatio = c.getSpeedRatio();
-        
-        g.setColour (colour);
-        
-        if (usesTimeStretchedProxy)
-        {
-            const Rectangle<int> area ((left + leftOffset) + xOffset, y, right - (left + leftOffset), h);
-            
-            if (! thumb.isOutOfDate())
-            {
-                drawChannels (g, thumb, area, false,
-                            getTimeRangeForDrawing (left + leftOffset, right - rightOffset),
-                            c.isLeftChannelActive(), c.isRightChannelActive(),
-                            gainL, gainR);
-            }
-        }
-        else if (c.getLoopLength() == 0)
-        {
-            auto region = getTimeRangeForDrawing (left + leftOffset, right - rightOffset);
-            
-            auto t1 = (region.getStart() + offset) * speedRatio;
-            auto t2 = (region.getEnd()   + offset) * speedRatio;
-            //std::cout << " leftO " << leftOffset <<  "rightO: " << rightOffset <<  std::endl;
-            drawChannels (g, thumb,
-                        { (left + leftOffset) + xOffset, y, (right - rightOffset) - (left + leftOffset) , h },
-                        false, { t1 , t2  },
-                        c.isLeftChannelActive(), c.isRightChannelActive(),
-                        gainL, gainR);
-        }
+        leftOffset = 0 - getBoundsInParent ().getX ();
     }
+
+    auto rightOffset = 0;
+    if (getBoundsInParent().getRight() > getParentWidth())
+    {
+        rightOffset = getBoundsInParent().getRight() - getParentWidth();
+    }
+
+    thumbnailComponent.setBounds (0 + leftOffset,0,(getWidth() - leftOffset) - rightOffset, getHeight ());
 }
 
-void AudioClipComponent::drawChannels (Graphics& g, te::SmartThumbnail& thumb, Rectangle<int> area, bool useHighRes,
-                                       te::EditTimeRange time, bool useLeft, bool useRight,
-                                       float leftGain, float rightGain)
-{
-    if (useLeft && useRight && thumb.getNumChannels() > 1)
-    {
-        thumb.drawChannel (g, area.removeFromTop (area.getHeight() / 2), useHighRes, time, 0, leftGain);
-        thumb.drawChannel (g, area, useHighRes, time, 1, rightGain);
-    }
-    else if (useLeft)
-    {
-        thumb.drawChannel (g, area, useHighRes, time, 0, leftGain);
-    }
-    else if (useRight)
-    {
-        thumb.drawChannel (g, area, useHighRes, time, 1, rightGain);
-    }
-}
 
-void AudioClipComponent::updateThumbnail()
-{
-    if(!editViewState.edit.getTransport().isUserDragging())
-    {
-        if (auto* wac = getWaveAudioClip())
-        {
-            te::AudioFile af (wac->getAudioFile());
-            
-            if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
-            {
-                if (af.isValid())
-                {
-                    const te::AudioFile proxy ((wac->hasAnyTakes() && wac->isShowingTakes()) ? wac->getAudioFile() : wac->getPlaybackFile());
-                    
-                    if (thumbnail == nullptr)
-                        thumbnail = std::make_unique<te::SmartThumbnail> (wac->edit.engine, proxy, *this, &wac->edit);
-                    else
-                        thumbnail->setNewFile (proxy);
-                }
-                else
-                {
-                    thumbnail = nullptr;
-                }
-            }
-        }
-    }
-}
+
+
 
 //==============================================================================
 MidiClipComponent::MidiClipComponent (EditViewState& evs, te::Clip::Ptr c)
@@ -1063,7 +954,7 @@ TrackComponent::~TrackComponent()
 
 void TrackComponent::paint (Graphics& g)
 {
-    //g.fillAll ();
+    g.fillAll ();
     g.setColour(Colour(0xff111111));
     g.drawRect(0,0, getWidth(), getHeight() );
     double x2 = editViewState.viewX2;
@@ -1105,33 +996,35 @@ void TrackComponent::paint (Graphics& g)
         {
             auto quarterBeat = pixelPerBeat / 4;
             auto i = 1;
-            while ( i < 5) {
-                 g.drawLine(BeatX + quarterBeat * i ,0,
-                 BeatX + quarterBeat * i ,getHeight());
-                 i++;
+            while ( i < 5)
+            {
+                g.drawLine(BeatX + quarterBeat * i ,0,
+                           BeatX + quarterBeat * i ,getHeight());
+                i++;
             }
         }
-        if (zoom < 12)
+        //        if (zoom < 12)
+        //        {
+        ////            auto quarterBeat = pixelPerBeat / 4;
+        ////            auto i = 1;
+        ////            while ( i < 5) {
+        ////                g.drawSingleLineText(String((beat/4)+1)
+        ////                                     ,BeatX + (pixelPerBeat * i)
+        ////                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
+        ////                i++;
+        ////            }
+        //        }
+        //    }
+        if (editViewState.selectionManager.isSelected (track.get()))
         {
-//            auto quarterBeat = pixelPerBeat / 4;
-//            auto i = 1;
-//            while ( i < 5) {
-//                g.drawSingleLineText(String((beat/4)+1)
-//                                     ,BeatX + (pixelPerBeat * i)
-//                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
-//                i++;
-//            }
-        }
-    }
-    if (editViewState.selectionManager.isSelected (track.get()))
-    {
-        g.setColour (Colours::white);
-        
-        auto rc = getLocalBounds();
-        if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);
-        if (editViewState.showFooters) rc = rc.withTrimmedRight (-4);
+            g.setColour (Colours::white);
 
-        g.drawRect (rc);
+            auto rc = getLocalBounds();
+            if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);
+            if (editViewState.showFooters) rc = rc.withTrimmedRight (-4);
+
+            g.drawRect (rc);
+        }
     }
 }
 

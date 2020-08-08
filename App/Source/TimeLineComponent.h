@@ -35,6 +35,7 @@
      double m_BeatAtMouseDown;
      bool m_mouseDown;
      int m_oldDragDistX{0}, m_oldDragDistY{0};
+     double m_x1atMD, m_x2atMD;
      EditViewState& m_state;
      JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
  };
