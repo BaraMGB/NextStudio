@@ -35,6 +35,7 @@ private:
 
 class ThumbnailComponent : public Component
                          , public juce::ChangeListener
+
 {
 public:
     ThumbnailComponent(EditViewState& evs)
@@ -62,7 +63,8 @@ public:
 
     void paint(Graphics &g) override
     {
-        juce::Rectangle<int> thumbnailBounds( 0,10,getWidth (), getHeight ());
+
+        juce::Rectangle<int> thumbnailBounds( 0,10,getWidth (), getHeight () - 10);
 
         auto leftX = getBoundsInParent ().getX();
         auto rightX = getParentWidth () - (getBoundsInParent ().getX () + getBoundsInParent ().getWidth ());
@@ -70,7 +72,7 @@ public:
 
         auto leftT = thumbnail.getTotalLength () * leftX / getParentWidth ();
         auto rightT = thumbnail.getTotalLength () * rightX / getParentWidth ();
-        g.setColour (juce::Colours::black);
+        g.setColour (juce::Colours::black.withAlpha (0.7f));
 
         thumbnail.drawChannel (g,
                                 thumbnailBounds,
@@ -98,6 +100,10 @@ public:
     }
 
 private:
+
+
+
+
     EditViewState & editViewState;
     juce::AudioFormatManager formatManager;                    // [3]
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
@@ -109,6 +115,7 @@ private:
 
 //==============================================================================
 class AudioClipComponent : public ClipComponent
+
 
 {
 public:
@@ -275,7 +282,9 @@ private:
     OwnedArray<ClipComponent> clips;
     std::unique_ptr<RecordingClipComponent> recordingClip;
     
-    bool updateClips = false, updatePositions = false, updateRecordClips = false;
+    bool updateClips = false,
+         updatePositions = false,
+         updateRecordClips = false;
 };
 
 //==============================================================================

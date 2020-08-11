@@ -299,12 +299,11 @@ void ClipComponent::mouseDown (const MouseEvent&event)
                     clipContent->addClip(0, clip->state);
                     te::Clipboard::getInstance()->setContent(std::move(clipContent));
                     // (clip.get());
-                    std::cout << te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>() << std::endl;
-
                 }
             }
             else
             {
+                editViewState.selectionManager.selectOnly (getClip ());
                 m_clipPosAtMouseDown = clip->edit.tempoSequence.timeToBeats(clip->getPosition().getStart());
                 setMouseCursor (MouseCursor::DraggingHandCursor);
             }
@@ -967,6 +966,18 @@ void TrackComponent::paint (Graphics& g)
         firstBeat++;
     }
 
+    if (editViewState.selectionManager.isSelected (track.get()))
+    {
+        g.setColour (Colour(0xff111111));
+
+        auto rc = getLocalBounds();
+        if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);
+        if (editViewState.showFooters) rc = rc.withTrimmedRight (-4);
+
+        g.fillRect (rc);
+        g.setColour(Colour(0xff333333));
+    }
+
     auto pixelPerBeat = getWidth() / zoom;
     //std::cout << zoom << std::endl;
     for (int beat = firstBeat - 1; beat <= editViewState.viewX2; beat++)
@@ -1003,28 +1014,8 @@ void TrackComponent::paint (Graphics& g)
                 i++;
             }
         }
-        //        if (zoom < 12)
-        //        {
-        ////            auto quarterBeat = pixelPerBeat / 4;
-        ////            auto i = 1;
-        ////            while ( i < 5) {
-        ////                g.drawSingleLineText(String((beat/4)+1)
-        ////                                     ,BeatX + (pixelPerBeat * i)
-        ////                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
-        ////                i++;
-        ////            }
-        //        }
-        //    }
-        if (editViewState.selectionManager.isSelected (track.get()))
-        {
-            g.setColour (Colours::white);
 
-            auto rc = getLocalBounds();
-            if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);
-            if (editViewState.showFooters) rc = rc.withTrimmedRight (-4);
 
-            g.drawRect (rc);
-        }
     }
 }
 
@@ -1075,7 +1066,7 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
             || i == IDs::viewY)
         {
             repaint();
-            //markAndUpdate(updateClips);
+            markAndUpdate (updatePositions);
         }
     }
     if(i.toString() == "bpm")
@@ -1109,7 +1100,14 @@ void TrackComponent::handleAsyncUpdate()
     if (compareAndReset (updateClips))
         buildClips();
     if (compareAndReset (updatePositions))
+    {
         resized();
+        for (auto &cc : clips)
+        {
+            cc->resized ();
+        }
+    }
+
     if (compareAndReset (updateRecordClips))
         buildRecordClips();
 }
@@ -1392,7 +1390,10 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset (updateTracks))
         buildTracks();
     if (compareAndReset (updateZoom))
+    {
         resized();
+        timeLine.repaint ();
+    }
 }
 
 void EditComponent::resized()

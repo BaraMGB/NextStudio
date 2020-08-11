@@ -123,22 +123,19 @@ void TimeLineComponent::mouseDown(const MouseEvent& event)
 
 void TimeLineComponent::mouseDrag(const MouseEvent& event)
 {
-
     // Work out the scale of the new range
     auto unitDistance = 100.0f;
     auto scaleFactor  = 1.0 / std::pow (2, (float) event.getDistanceFromDragStartY() / unitDistance);
 
     // Now position it so that the mouse continues to point at the same
     // place on the ruler.
-    auto visibleLength = std::max (0.12, (m_x2atMD - m_x1atMD) / scaleFactor);
-    auto rangeBegin = m_BeatAtMouseDown - visibleLength * event.x / getWidth();
+    auto visibleLength = std::min(480.0,
+                                  std::max (0.12,
+                                            (m_x2atMD - m_x1atMD) / scaleFactor));
+    auto rangeBegin = std::max (0.0,  m_BeatAtMouseDown - visibleLength * event.x / getWidth());
 
     m_state.viewX1 = rangeBegin;
     m_state.viewX2 = rangeBegin + visibleLength;
-
-
-     //std::cout << "x1: " << rangeBegin << " x2: " << rangeBegin + visibleLength << " zoom: "  << visibleLength <<  std::endl;
-repaint ();
 }
 
 void TimeLineComponent::mouseUp(const MouseEvent&)
