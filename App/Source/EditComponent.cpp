@@ -304,6 +304,7 @@ void ClipComponent::mouseDown (const MouseEvent&event)
             else
             {
                 editViewState.selectionManager.selectOnly (getClip ());
+                editViewState.selectionManager.addToSelection(getClip().getClipTrack());
                 m_clipPosAtMouseDown = clip->edit.tempoSequence.timeToBeats(clip->getPosition().getStart());
                 setMouseCursor (MouseCursor::DraggingHandCursor);
             }
@@ -592,8 +593,8 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
     Helpers::addAndMakeVisible (*this, { &m_trackName,
                                          &m_armButton,
                                          &m_muteButton,
-                                         &m_soloButton,
-                                         &m_addPluginButton});
+                                         &m_soloButton
+                                         });
     
 
     m_trackName.setText(m_track->getName(), NotificationType::dontSendNotification);
@@ -608,12 +609,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
             EngineHelpers::armTrack (*audioTrack, !EngineHelpers::isTrackArmed (*audioTrack));
             m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
         };
-        m_addPluginButton.setToggleState(false, dontSendNotification);
-        m_addPluginButton.onClick = [this, audioTrack]
-        {
-            if (auto plugin = showMenuAndCreatePlugin (audioTrack->edit))
-                audioTrack->pluginList.insertPlugin (plugin, 0, &editViewState.selectionManager);
-        };
+
         m_volumeKnob.setOpaque(false);
         addAndMakeVisible(m_volumeKnob);
         m_volumeKnob.setRange(0.0f, 3.0f, 0.01f);
@@ -621,6 +617,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
         if (audioTrack->getVolumePlugin())
         {
             m_volumeKnob.getValueObject().referTo(audioTrack->getVolumePlugin()->volume.getPropertyAsValue());
+            m_volumeKnob.setValue(audioTrack->getVolumePlugin()->volume);
 
         }
         m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
@@ -632,7 +629,6 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
         m_armButton.setVisible (false);
         m_muteButton.setVisible (false);
         m_soloButton.setVisible (false);
-        m_addPluginButton.setVisible(false);
     }
     
     m_track->state.addListener (this);
@@ -694,7 +690,8 @@ void TrackHeaderComponent::paint (Graphics& g)
 }
 
 void TrackHeaderComponent::mouseDown (const MouseEvent& event)
-{
+{                       
+
     if (!event.mouseWasDraggedSinceMouseDown())
         {
             if (event.mods.isPopupMenu())
@@ -745,7 +742,21 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
 
                     if (res == 2000)
                     {
+                        m_track->deselect();
                         m_track->edit.deleteTrack(m_track);
+                        auto i = tracktion_engine::getAllTracks(editViewState.edit).getLast();
+                        
+                        if (!(i->isArrangerTrack() 
+                            || i->isTempoTrack()
+                            || i->isMarkerTrack()
+                            || i->isChordTrack()))
+                        {
+                            editViewState.selectionManager.selectOnly(i);
+                        }
+                        else
+                        {
+                            editViewState.selectionManager.deselectAll();
+                        }
                     }
                     else if (res == 1000)
                     {
@@ -811,7 +822,6 @@ void TrackHeaderComponent::resized()
     m_soloButton.setBounds(buttonGroup.getX(), buttonGroup.getY(), buttonwidth, buttonHeight);
     m_muteButton.setBounds(buttonGroup.getX(), buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
     m_armButton.setBounds(buttonGroup.getX() + buttonwidth, buttonGroup.getY(), buttonwidth, buttonHeight);
-    m_addPluginButton.setBounds( buttonGroup.getX() + buttonwidth,buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
 
     area.removeFromLeft(20);
     m_trackName.setBounds(area);
@@ -821,28 +831,52 @@ void TrackHeaderComponent::resized()
 PluginComponent::PluginComponent (EditViewState& evs, te::Plugin::Ptr p)
     : editViewState (evs), plugin (p)
 {
-    setButtonText (plugin->getName().substring (0, 1));
+    name.setText(plugin->getName(),juce::NotificationType::dontSendNotification);
+    name.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(name);
 }
 
 PluginComponent::~PluginComponent()
 {
 }
-
-void PluginComponent::clicked (const ModifierKeys& modifiers)
+void PluginComponent::paint (Graphics& g)
 {
-    editViewState.selectionManager.selectOnly (plugin.get());
-    if (modifiers.isPopupMenu())
+    auto area = getLocalBounds();
+    g.setColour(Colour(0xff242424));
+    g.fillRect(area);
+    if (plugin.getObject()->getOwnerTrack())
+    {
+        g.setColour(plugin.getObject()->getOwnerTrack()->getColour());
+    }
+    auto header = area.removeFromLeft(20);
+    g.fillRect(header);
+}
+void PluginComponent::mouseDown (const MouseEvent& e)
+{
+
+    //editViewState.selectionManager.selectOnly (plugin.get());
+    if (e.mods.isRightButtonDown())
     {
         PopupMenu m;
         m.addItem ("Delete", [this] { plugin->deleteFromParent(); });
-        m.showAt (this);
+        m.show();
     }
     else
     {
-        plugin->showWindowExplicitly();
+        std::cout << plugin->state.toXmlString() << std::endl;
+        //plugin->showWindowExplicitly();
     }
 }
 
+void PluginComponent::resized()
+{
+    auto area = getLocalBounds();
+    auto nameLabelRect = juce::Rectangle<int>(area.getX(), area.getHeight() - 20, area.getHeight(), 20);
+    name.setBounds(nameLabelRect);
+    name.setTransform(AffineTransform::rotation (-MathConstants<float>::halfPi, 
+                                                nameLabelRect.getX() + 10.0 , 
+                                                nameLabelRect.getY() + 10.0 ));
+}
 //==============================================================================
 TrackFooterComponent::TrackFooterComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), track (t)
@@ -855,6 +889,7 @@ TrackFooterComponent::TrackFooterComponent (EditViewState& evs, te::Track::Ptr t
     
     addButton.onClick = [this]
     {
+        std::cout << "Track: " << track->getName() << std::endl;
         if (auto plugin = showMenuAndCreatePlugin (track->edit))
             track->pluginList.insertPlugin (plugin, 0, &editViewState.selectionManager);
     };
@@ -884,33 +919,26 @@ void TrackFooterComponent::valueTreeChildOrderChanged (juce::ValueTree&, int, in
 
 void TrackFooterComponent::paint (Graphics& g)
 {
-    g.setColour (Colours::grey);
+    g.setColour (Colour(0x181818));
     g.fillRect (getLocalBounds().withTrimmedLeft (2));
-    
-    if (editViewState.selectionManager.isSelected (track.get()))
-    {
-        g.setColour (Colours::red);
-        g.drawRect (getLocalBounds().withTrimmedLeft (-4), 2);
-    }
 }
 
 void TrackFooterComponent::mouseDown (const MouseEvent&)
 {
-    editViewState.selectionManager.selectOnly (track.get());
+    //editViewState.selectionManager.selectOnly (track.get());
 }
 
 void TrackFooterComponent::resized()
 {
-    auto r = getLocalBounds().reduced (4);
-    const int cx = 21;
-    
-    addButton.setBounds (r.removeFromLeft (cx).withSizeKeepingCentre (cx, cx));
-    r.removeFromLeft (6);
+    auto area = getLocalBounds().reduced (5);
+   
+    addButton.setBounds (area.removeFromLeft(15));
+
     
     for (auto p : plugins)
     {
-        p->setBounds (r.removeFromLeft (cx).withSizeKeepingCentre (cx, cx));
-        r.removeFromLeft (2);
+        area.removeFromLeft (5);
+        p->setBounds (area.removeFromLeft((area.getHeight() * p->getNeededWidthFactor()) / 2 ));
     }
 }
 
@@ -926,6 +954,13 @@ void TrackFooterComponent::buildPlugins()
     
     for (auto plugin : track->pluginList)
     {
+        //Hier zum richtigen Plugin die richtige Componente laden.
+        if(plugin->getPluginType() == "volume")
+        {
+            auto volumePlugin = dynamic_cast<tracktion_engine::VolumeAndPanPlugin*>(plugin);
+            //auto vp = new VolumePluginComponent( editViewState, volumePlugin);
+           
+        }
         auto p = new PluginComponent (editViewState, plugin);
         addAndMakeVisible (p);
         plugins.add (p);
@@ -1293,7 +1328,9 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
 
     
     addAndMakeVisible (playhead);
-    addAndMakeVisible(timeLine);
+    addAndMakeVisible (timeLine);
+    addAndMakeVisible (pluginRack);
+    pluginRack.setAlwaysOnTop(true);
     
     markAndUpdate (updateTracks);
 }
@@ -1368,10 +1405,11 @@ void EditComponent::mouseDown(const MouseEvent &event)
 
                  track->setName("Track " + String(tracktion_engine::getAudioTracks(edit).size()));
                  track->setColour(Colour(red, gre, blu));
+                 editViewState.selectionManager.selectOnly(track);
             }
         }
     }
-    editViewState.selectionManager.deselectAll();
+    //editViewState.selectionManager.deselectAll();
 }
 
 
@@ -1404,8 +1442,11 @@ void EditComponent::resized()
     const int trackHeight = editViewState.headerHeight, trackGap = 0;
     const int headerWidth = editViewState.showHeaders ? editViewState.headerWidth : 0;
     const int footerWidth = editViewState.showFooters ? 150 : 0;
-    
-    playhead.setBounds (getLocalBounds().withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
+    const int pluginRackHeight = 250;
+
+    auto area = getLocalBounds();
+    auto pluginRackRect = area.removeFromBottom(pluginRackHeight);
+    playhead.setBounds (area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
     
     timeLine.setBounds(playhead.getBounds().removeFromTop(timelineHeight));
     int y = roundToInt (editViewState.viewY.get()) + timelineHeight;
@@ -1424,6 +1465,10 @@ void EditComponent::resized()
     
     for (auto t : tracks)
         t->resized();
+    
+    
+    pluginRack.setBounds (pluginRackRect);
+    //pluginRack.toFront(false);
 }
 
 void EditComponent::buildTracks()

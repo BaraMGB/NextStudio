@@ -190,22 +190,29 @@ private:
     Label m_trackName;
     ToggleButton m_armButton,
                  m_muteButton,
-                 m_soloButton,
-                 m_addPluginButton;
+                 m_soloButton;
+                 
     Component m_peakDisplay;
     Slider       m_volumeKnob;
 };
 
 //==============================================================================
-class PluginComponent : public TextButton
+class PluginComponent : public Component
 {
 public:
     PluginComponent (EditViewState&, te::Plugin::Ptr);
     ~PluginComponent();
     
-    void clicked (const ModifierKeys& modifiers) override;
-    
+    void paint (Graphics& g) override;
+    void mouseDown (const MouseEvent& e) override;
+    void resized() override;
+
+    int getNeededWidthFactor() { return m_neededWidthFactor;}
+    void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
+
 private:
+    juce::Label name;
+    int m_neededWidthFactor {1};
     EditViewState& editViewState;
     te::Plugin::Ptr plugin;
 };
@@ -311,6 +318,83 @@ private:
 };
 
 //==============================================================================
+
+class PluginRackComponent : public Component
+                          , public juce::ChangeListener
+{
+public:
+    PluginRackComponent (EditViewState& evs) : editViewState(evs)
+    {
+        editViewState.selectionManager.addChangeListener(this);
+
+    }
+    // ~PluginRackComponent()
+    // {
+    //     editViewState.selectionManager.removeChangeListener(this);
+    // }
+    
+    void changeListenerCallback (ChangeBroadcaster*) override 
+    {
+        auto lastClickedTrack = editViewState.selectionManager.getItemsOfType<tracktion_engine::Track>().getLast();
+        if (lastClickedTrack &&  !(lastClickedTrack->isArrangerTrack() 
+                            || lastClickedTrack->isTempoTrack()
+                            || lastClickedTrack->isMarkerTrack()
+                            || lastClickedTrack->isChordTrack())) 
+        {
+            m_pointedTrack = lastClickedTrack;
+            m_footers.clear();
+            auto tfc = new TrackFooterComponent(editViewState, m_pointedTrack);
+            m_footers.add(tfc);
+            addAndMakeVisible(tfc);
+            tfc->setAlwaysOnTop(true);
+            resized();
+        }
+        else
+        {
+             m_footers.clear();
+             resized();
+        }
+        
+
+        
+        
+       
+
+        
+      
+    }
+
+    void paint (Graphics& g) override
+    {
+
+        auto rect = getLocalBounds();
+        g.setColour(Colour(0xff181818));
+        g.fillRect(rect);
+        g.setColour(juce::Colours::yellow);
+        g.drawRect(rect);
+
+    }
+    void resized () override
+    {
+        if (m_footers.getFirst())
+        {
+            m_footers.getFirst()->setBounds(getLocalBounds());
+        }
+    }
+    // void mouseDrag (const MouseEvent&) override;
+    // void mouseDown (const MouseEvent&) override;
+    // void mouseUp (const MouseEvent&) override;
+
+private:
+      
+    EditViewState& editViewState;
+    OwnedArray<TrackFooterComponent> m_footers;
+
+    tracktion_engine::Track * m_pointedTrack;
+    
+};
+
+//==============================================================================
 class EditComponent : public Component,
                       private te::ValueTreeAllEventListener,
                       private FlaggedAsyncUpdater,
@@ -322,7 +406,7 @@ public:
     ~EditComponent();
     
     EditViewState& getEditViewState()   { return editViewState; }
-    
+        
 private:
     void valueTreeChanged() override {}
     
@@ -347,6 +431,7 @@ private:
     te::Clipboard clipBoard;
     TimeLineComponent timeLine {editViewState};
     PlayheadComponent playhead {edit, editViewState};
+    PluginRackComponent pluginRack {editViewState};
     OwnedArray<TrackComponent> tracks;
     OwnedArray<TrackHeaderComponent> headers;
     OwnedArray<TrackFooterComponent> footers;
