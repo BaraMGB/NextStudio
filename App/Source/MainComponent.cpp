@@ -23,24 +23,9 @@ MainComponent::MainComponent() :
     m_tree.addListener(this);
 
     addAndMakeVisible(m_tree);
-
     addAndMakeVisible(m_menuBar);
 
-    addAndMakeVisible(m_resizerBar);
-    m_stretchableManager.setItemLayout(0,            // for the fileTree
-        -0.1, -0.9,   // must be between 50 pixels and 90% of the available space
-        -0.15);        // and its preferred size is 30% of the total available space
-
-    m_stretchableManager.setItemLayout(1,            // for the resize bar
-        5, 5, 5);     // hard limit to 5 pixels
-
-    m_stretchableManager.setItemLayout(2,            // for the imagePreview
-        -0.1, -0.9,   // size must be between 50 pixels and 90% of the available space
-        -0.85);        // and its preferred size is 70% of the total available space
-
-
     //Edit stuff
-    
     auto d = File::getSpecialLocation (File::tempDirectory).getChildFile ("EmptyEdit");
     d.createDirectory();
 
@@ -89,21 +74,17 @@ void MainComponent::resized()
 
     auto header = area.removeFromTop(c_headerHeight);
     auto menu = header.removeFromTop(header.getHeight() / 2);
+    auto sidebarWidth = getLocalBounds().getWidth() / 7;
+
     menu.reduce(5, 5);
     m_menuBar.setBounds(menu);
     m_editNameLabel.setBounds(menu);
     
     m_header.get()->setBounds(header);
     area.removeFromTop(10);
-//    auto sidebarWidth = getLocalBounds().getWidth() / 5;
-    Component* comps[] = { &m_tree, &m_resizerBar,m_songEditor.get()};
-
-    // this will position the 3 components, one above the other, to fit
-    // vertically into the rectangle provided.
-    m_stretchableManager.layOutComponents(comps, 3,
-        area.getX(), area.getY(), area.getWidth(), area.getHeight() - c_footerHeight,
-        false, true);
-
+    m_tree.setBounds (area.removeFromLeft (sidebarWidth));
+    area.removeFromLeft (10);
+    m_songEditor->setBounds (area);
     m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff2c2c2c));
 }
 
@@ -144,7 +125,7 @@ void MainComponent::setupEdit(File editFile = {})
     m_editNameLabel.setText (editFile.getFileNameWithoutExtension(), dontSendNotification);
 
 
-    createTracksAndAssignInputs();
+    //createTracksAndAssignInputs();
 
     te::EditFileOperations (*m_edit).save (true, true, false);
 
@@ -171,20 +152,20 @@ void MainComponent::createTracksAndAssignInputs()
 
     m_edit->getTransport().ensureContextAllocated();
 
-    int trackNum = 0;
-    for (auto instance : m_edit->getAllInputDevices())
-    {
-        if (instance->getInputDevice().getDeviceType() == te::InputDevice::waveDevice)
-        {
-            if (auto t = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, trackNum))
-            {
-                instance->setTargetTrack (*t, 0, true);
-                instance->setRecordingEnabled (*t, true);
+//    int trackNum = 0;
+//    for (auto instance : m_edit->getAllInputDevices())
+//    {
+//        if (instance->getInputDevice().getDeviceType() == te::InputDevice::waveDevice)
+//        {
+//            if (auto t = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, trackNum))
+//            {
+//                instance->setTargetTrack (*t, 0, true);
+//                instance->setRecordingEnabled (*t, true);
 
-                trackNum++;
-            }
-        }
-    }
+//                trackNum++;
+//            }
+//        }
+//    }
 
     m_edit->restartPlayback();
 }

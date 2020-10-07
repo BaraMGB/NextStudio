@@ -403,21 +403,18 @@ void MidiClipComponent::paint (Graphics& g)
         auto& seq = mc->getSequence();
         for (auto n : seq.getNotes())
         {
-            double sBeat = mc->getStartBeat() + n->getStartBeat();
-            double eBeat = mc->getStartBeat() + n->getEndBeat();
-            
-            // auto s = editViewState.beatToTime (sBeat);
-            // auto e = editViewState.beatToTime (eBeat);
-            
+            double sBeat = /*mc->getStartBeat() +*/ n->getStartBeat();
+            double eBeat = /*mc->getStartBeat() + */n->getEndBeat();
             if (auto p = getParentComponent())
             {
-                double t1 =  editViewState.beatToTime (editViewState.beatsToX (sBeat, p->getWidth()) - getX());
-                double t2 =  editViewState.beatToTime (editViewState.beatsToX (eBeat, p->getWidth()) - getX());
-                
                 double y = (1.0 - double (n->getNoteNumber()) / 127.0) * getHeight();
                 
-                g.setColour (Colours::white.withAlpha (n->getVelocity() / 127.0f));
-                g.drawLine (float (t1), float (y), float (t2), float (y));
+                auto x1 =  editViewState.beatsToX (sBeat + editViewState.viewX1, p->getWidth ());
+                auto x2 =  editViewState.beatsToX (eBeat + editViewState.viewX1, p->getWidth ());
+
+
+                g.setColour (Colours::white);
+                g.drawLine (float (x1), float (y), float (x2), float (y));
             }
         }
     }
@@ -694,7 +691,7 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
 
     if (!event.mouseWasDraggedSinceMouseDown())
         {
-            if (event.mods.isPopupMenu())
+            if (event.mods.isRightButtonDown ())
             {
                 if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get()))
                 {
@@ -746,7 +743,7 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                         m_track->edit.deleteTrack(m_track);
                         auto i = tracktion_engine::getAllTracks(editViewState.edit).getLast();
                         
-                        if (!(i->isArrangerTrack() 
+                        if (!(i->isArrangerTrack()
                             || i->isTempoTrack()
                             || i->isMarkerTrack()
                             || i->isChordTrack()))
@@ -791,6 +788,9 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                             }
                         }
                     }
+
+
+
                 }
             }
             else if (event.mods.isShiftDown())
@@ -863,7 +863,7 @@ void PluginComponent::mouseDown (const MouseEvent& e)
     }
     else
     {
-        std::cout << plugin->state.toXmlString() << std::endl;
+        //std::cout << plugin->state.toXmlString() << std::endl;
         //plugin->showWindowExplicitly();
     }
 }
@@ -889,9 +889,9 @@ TrackFooterComponent::TrackFooterComponent (EditViewState& evs, te::Track::Ptr t
     
     addButton.onClick = [this]
     {
-        std::cout << "Track: " << track->getName() << std::endl;
         if (auto plugin = showMenuAndCreatePlugin (track->edit))
             track->pluginList.insertPlugin (plugin, 0, &editViewState.selectionManager);
+        editViewState.selectionManager.selectOnly (track);
     };
 }
 
@@ -1333,6 +1333,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     pluginRack.setAlwaysOnTop(true);
     
     markAndUpdate (updateTracks);
+    editViewState.selectionManager.selectOnly (te::getAllTracks (edit).getLast ());
 }
 
 EditComponent::~EditComponent()

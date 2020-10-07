@@ -162,19 +162,22 @@ void HeaderComponent::buttonClicked(Button* button)
         if (transport.isPlaying())
             transport.stop(false, false);
         else
-            transport.play(false);
+            transport.play(true);
 
         m_playButton.setButtonText(m_edit.getTransport().isPlaying() ? "Pause" : "Play");
     }
     if (button == &m_stopButton)
     {
-        m_edit.getTransport().stop(false,true);
+        m_edit.getTransport().stop(false, false, true, true);
         m_edit.getTransport().setCurrentPosition(0);
         m_playButton.setButtonText("Play");
     }
     if (button == &m_recordButton)
     {
-        EngineHelpers::toggleRecord(m_edit);
+        bool wasRecording = m_edit.getTransport().isRecording();
+                    EngineHelpers::toggleRecord (m_edit);
+                    if (wasRecording)
+                        te::EditFileOperations (m_edit).save (true, true, false);
     }
     if (button == &m_settingsButton)
     {

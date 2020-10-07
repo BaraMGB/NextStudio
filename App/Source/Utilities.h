@@ -155,7 +155,7 @@ namespace EngineHelpers
         o.dialogTitle = TRANS("Audio Settings");
         o.dialogBackgroundColour = LookAndFeel::getDefaultLookAndFeel().findColour (ResizableWindow::backgroundColourId);
         o.content.setOwned (new AudioDeviceSelectorComponent (engine.getDeviceManager().deviceManager,
-                                                              0, 512, 1, 512, false, false, true, true));
+                                                              0, 512, 1, 512, true, true, true, true));
         o.content->setSize (400, 600);
         o.launchAsync();
     }

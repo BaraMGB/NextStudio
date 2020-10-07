@@ -65,7 +65,6 @@ private:
 
                  track->setName("Track " + String(tracktion_engine::getAudioTracks(*m_edit).size()));
                  track->setColour(Colour(red, gre, blu));
-                 std::cout << tracktion_engine::getAudioTracks(*m_edit).size() << std::endl;
                  EngineHelpers::removeAllClips(*track);
                  // Add a new clip to this track
                  tracktion_engine::AudioFile audioFile(m_edit->engine, selectedFile);
@@ -89,8 +88,7 @@ private:
     DirectoryContentsList m_dirConList;
     FileTreeComponent m_tree;
     MenuBar m_menuBar;
-    StretchableLayoutManager m_stretchableManager;
-    StretchableLayoutResizerBar m_resizerBar{ &m_stretchableManager, 1, true };
+
     std::unique_ptr<HeaderComponent> m_header;
     Label m_editNameLabel { "No Edit Loaded" };
     NextLookAndFeel m_nextLookAndFeel;

@@ -23,6 +23,9 @@ target_compile_definitions(${TargetName} PRIVATE
         JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_PROJECT_NAME>"
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_VERSION>")
 
+target_compile_definitions (${TargetName} PUBLIC
+        JUCE_JACK=1)
+
 
 
 target_link_libraries(${TargetName} PRIVATE
