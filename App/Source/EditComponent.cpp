@@ -1240,7 +1240,6 @@ void TrackComponent::buildClips()
 void TrackComponent::buildRecordClips()
 {
     bool needed = false;
-    
     if (track->edit.getTransport().isRecording())
     {
         for (auto in : track->edit.getAllInputDevices())
@@ -1287,7 +1286,7 @@ bool PlayheadComponent::hitTest (int x, int)
 
 void PlayheadComponent::mouseDown (const MouseEvent&)
 {
-    edit.getTransport().setUserDragging (true);
+    //edit.getTransport().setUserDragging (true);
 }
 
 void PlayheadComponent::mouseUp (const MouseEvent&)

@@ -93,8 +93,8 @@ namespace PlayHeadHelpers
         auto millisecs = roundToInt (seconds * 1000.0);
         auto absMillisecs = std::abs (millisecs);
 
-        return String::formatted ("%02d:%02d:%02d.%03d",
-                                  millisecs / 3600000,
+        return String::formatted ("%02d:%02d.%03d",
+
                                   (absMillisecs / 60000) % 60,
                                   (absMillisecs / 1000)  % 60,
                                   absMillisecs % 1000);
@@ -104,7 +104,7 @@ namespace PlayHeadHelpers
     static inline String quarterNotePositionToBarsBeatsString (double quarterNotes, int numerator, int denominator)
     {
         if (numerator == 0 || denominator == 0)
-            return "1|1|000";
+            return "1.1.000";
 
         auto quarterNotesPerBar = (numerator * 4 / denominator);
         auto beats  = (fmod (quarterNotes, quarterNotesPerBar) / quarterNotesPerBar) * numerator;
@@ -113,8 +113,32 @@ namespace PlayHeadHelpers
         auto beat   = ((int) beats) + 1;
         auto ticks  = ((int) (fmod (beats, 1.0) * 960.0 + 0.5));
 
-        return String::formatted ("%d|%d|%03d", bar, beat, ticks);
+        return String::formatted ("%d.%d.%03d", bar, beat, ticks);
     }
+
+    struct TimeCodeStrings{
+        TimeCodeStrings(const AudioPlayHead::CurrentPositionInfo& pos)
+        {
+            bpm = juce::String(pos.bpm,2);
+            signature = juce::String(juce::String(pos.timeSigNumerator) + "/" + juce::String(pos.timeSigDenominator));
+            time = timeToTimecodeString (pos.timeInSeconds);
+            beats = quarterNotePositionToBarsBeatsString (pos.ppqPosition,
+                                                          pos.timeSigNumerator,
+                                                          pos.timeSigDenominator);
+            loopIn = quarterNotePositionToBarsBeatsString (pos.ppqLoopStart,
+                                                           pos.timeSigNumerator,
+                                                           pos.timeSigDenominator);
+            loopOut = quarterNotePositionToBarsBeatsString (pos.ppqLoopEnd,
+                                                          pos.timeSigNumerator,
+                                                          pos.timeSigDenominator);
+        }
+        juce::String bpm,
+                     signature,
+                     time,
+                     beats,
+                     loopIn,
+                     loopOut;
+    };
 
     // Returns a textual description of a CurrentPositionInfo
     static inline String getTimecodeDisplay (const AudioPlayHead::CurrentPositionInfo& pos)
