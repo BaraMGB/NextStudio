@@ -85,8 +85,14 @@ void HeaderComponent::resized()
     m_saveButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
 
 
+    area = juce::Rectangle<int>(getLocalBounds ().getX (),
+                                getLocalBounds ().getY (),
+                                (getLocalBounds ().getWidth ()/2) - (displayWidth/2),
+                                getLocalBounds ().getHeight ()
+                                );
 
-    area.removeFromRight(gap * 4);
+    area.removeFromBottom(gap/4);
+    area.removeFromRight(gap);
     m_recordButton.setBounds(area.removeFromRight(area.getHeight()+gap/2));
     area.removeFromRight(gap/4);
     m_stopButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
