@@ -309,7 +309,8 @@ public:
 
 
 private:
-    TextButton m_newButton, m_loadButton, m_saveButton, m_playButton, m_stopButton, m_recordButton, m_settingsButton;
+    TextButton m_newButton, m_loadButton, m_saveButton, m_pluginsButton,
+               m_playButton, m_stopButton, m_recordButton, m_settingsButton;
     tracktion_engine::Edit& m_edit;
     Colour m_mainColour{ Colour(0xff57cdff) };
     PositionDisplayComponent m_display;

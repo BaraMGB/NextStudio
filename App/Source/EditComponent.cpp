@@ -763,6 +763,7 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                     else if (res >= 100)
                     {
                         int id = 100;
+                        //at->edit.engine.getDeviceManager().getDefaultMidiInDevice();
                         for (auto instance: at->edit.getAllInputDevices())
                         {
                             if (instance->getInputDevice().getDeviceType()
@@ -1333,6 +1334,8 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     
     markAndUpdate (updateTracks);
     editViewState.selectionManager.selectOnly (te::getAllTracks (edit).getLast ());
+    // auto& dm = edit.engine.getDeviceManager();
+    // dm.getMidiInDevice(0)->getName();
 }
 
 EditComponent::~EditComponent()
@@ -1406,6 +1409,8 @@ void EditComponent::mouseDown(const MouseEvent &event)
                  track->setName("Track " + String(tracktion_engine::getAudioTracks(edit).size()));
                  track->setColour(Colour(red, gre, blu));
                  editViewState.selectionManager.selectOnly(track);
+
+
             }
         }
     }

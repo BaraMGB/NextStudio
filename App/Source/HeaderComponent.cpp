@@ -46,6 +46,10 @@ HeaderComponent::HeaderComponent(tracktion_engine::Edit& edit)
     m_settingsButton.setButtonText("Settings");
     m_settingsButton.addListener(this);
 
+    addAndMakeVisible(m_pluginsButton);
+    m_pluginsButton.setButtonText("Plugins");
+    m_pluginsButton.addListener(this);
+
     addAndMakeVisible (m_display);
 
     startTimer(30);
@@ -76,6 +80,8 @@ void HeaderComponent::resized()
 
 
     m_settingsButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
+    area.removeFromRight(gap/4);
+    m_pluginsButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
 
     area.removeFromLeft(gap/4);
     m_newButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
@@ -137,6 +143,24 @@ void HeaderComponent::buttonClicked(Button* button)
     if (button == &m_settingsButton)
     {
         EngineHelpers::showAudioDeviceSettings (m_edit.engine);
+    }
+    if (button == &m_pluginsButton)
+    {
+        DialogWindow::LaunchOptions o;
+            o.dialogTitle                   = TRANS("Plugins");
+            o.dialogBackgroundColour        = Colours::black;
+            o.escapeKeyTriggersCloseButton  = true;
+            o.useNativeTitleBar             = true;
+            o.resizable                     = true;
+            o.useBottomRightCornerResizer   = true;
+            
+            auto v = new PluginListComponent (m_edit.engine.getPluginManager().pluginFormatManager,
+                                              m_edit.engine.getPluginManager().knownPluginList,
+                                              m_edit.engine.getTemporaryFileManager().getTempFile ("PluginScanDeadMansPedal"),
+                                              te::getApplicationSettings());
+            v->setSize (800, 600);
+            o.content.setOwned (v);
+            o.launchAsync();
     }
 }
 

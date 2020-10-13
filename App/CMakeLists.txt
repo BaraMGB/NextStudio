@@ -24,7 +24,14 @@ target_compile_definitions(${TargetName} PRIVATE
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_VERSION>")
 
 target_compile_definitions (${TargetName} PUBLIC
-        JUCE_JACK=1)
+        JUCE_JACK=1
+        JUCE_WASAPI=1
+#        JUCE_USE_WINRT_MIDI=1
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_PLUGINHOST_LADSPA=1
+        JUCE_USE_FLAC=1
+        JUCE_USE_MP3AUDIOFORMAT=1
+        JUCE_USE_WINDOWS_MEDIA_FORMAT=1)
 
 
 
