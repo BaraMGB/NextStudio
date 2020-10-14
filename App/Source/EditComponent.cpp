@@ -886,8 +886,6 @@ void PluginComponent::paint (Graphics& g)
 }
 void PluginComponent::mouseDown (const MouseEvent& e)
 {
-
-    //editViewState.selectionManager.selectOnly (plugin.get());
     if (e.mods.isRightButtonDown())
     {
         PopupMenu m;
@@ -897,7 +895,8 @@ void PluginComponent::mouseDown (const MouseEvent& e)
     else
     {
         //std::cout << plugin->state.toXmlString() << std::endl;
-        //plugin->showWindowExplicitly();
+        plugin->showWindowExplicitly();
+        
     }
 }
 

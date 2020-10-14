@@ -17,6 +17,7 @@
 #include "EditViewState.h"
 #include "EditComponent.h"
 #include "Utilities.h"
+#include "PluginWindow.h"
 
 
 //==============================================================================
@@ -93,7 +94,7 @@ private:
     Label m_editNameLabel { "No Edit Loaded" };
     NextLookAndFeel m_nextLookAndFeel;
 
-    tracktion_engine::Engine m_engine{ ProjectInfo::projectName };
+    tracktion_engine::Engine m_engine{ ProjectInfo::projectName, std::make_unique<ExtendedUIBehaviour>(), nullptr };
     tracktion_engine::SelectionManager m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
     std::unique_ptr<EditComponent> m_songEditor;
