@@ -723,6 +723,19 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                     m.addSeparator();
 
                     id = 100;
+
+                    at->edit.playInStopEnabled = true;
+                    auto& dm = at->edit.engine.getDeviceManager();
+                    for (int i = 0; i < dm.getNumMidiInDevices(); i++)
+                    {
+                        if (auto wip = dm.getMidiInDevice(i))
+                        {
+                            wip->setEndToEndEnabled(true);
+                            wip->setEnabled(true);
+                        }
+                    }
+                    at->edit.restartPlayback();
+
                     for (auto instance: at->edit.getAllInputDevices())
                     {
                         if (instance->getInputDevice().getDeviceType()
@@ -735,6 +748,7 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                                       ticked);
                         }
                     }
+
                     const int res = m.show();
 
                     if (res == 2000)
@@ -763,14 +777,23 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                     else if (res >= 100)
                     {
                         int id = 100;
-                        //at->edit.engine.getDeviceManager().getDefaultMidiInDevice();
+                        
                         for (auto instance: at->edit.getAllInputDevices())
                         {
                             if (instance->getInputDevice().getDeviceType()
                                 == te::InputDevice::physicalMidiDevice)
                             {
                                 if (id == res)
-                                    instance->setTargetTrack(*at, 0, true);
+                                {
+                                    if (instance->getTargetTracks().getFirst() == at)
+                                    {
+                                        instance->removeTargetTrack(*at);
+                                    }
+                                    else
+                                    {
+                                        instance->setTargetTrack(*at, 0, true);
+                                    }
+                                }
                                 id++;
                             }
                         }
@@ -784,7 +807,16 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                                 == te::InputDevice::waveDevice)
                             {
                                 if (id == res)
-                                    instance->setTargetTrack(*at, 0, true);
+                                {
+                                    if (instance->getTargetTracks().getFirst() == at)
+                                    {
+                                        instance->removeTargetTrack(*at);
+                                    }
+                                    else
+                                    {
+                                        instance->setTargetTrack(*at, 0, true);
+                                    }
+                                }
                                 id++;
                             }
                         }
