@@ -70,6 +70,11 @@ public:
         return ts.beatsToTime (b);
     }
 
+    double timeToBeat (double t) const
+    {
+        return edit.tempoSequence.timeToBeats (t);
+    }
+
     te::Edit& edit;
     te::SelectionManager& selectionManager;
 

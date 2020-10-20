@@ -182,10 +182,12 @@ void MidiClipComponent::paint (Graphics& g)
 
 //==============================================================================
 RecordingClipComponent::RecordingClipComponent (te::Track::Ptr t, EditViewState& evs)
-    : track (t), editViewState (evs)
+    : track (t), editViewState (evs), thumbnailComponent (evs)
 {
     startTimerHz (10);
     initialiseThumbnailAndPunchTime();
+    addAndMakeVisible (thumbnailComponent);
+    thumbnailComponent.setAlwaysOnTop (true);
 }
 
 void RecordingClipComponent::initialiseThumbnailAndPunchTime()
@@ -197,7 +199,10 @@ void RecordingClipComponent::initialiseThumbnailAndPunchTime()
             punchInTime = idi->getPunchInTime();
 
             if (idi->getRecordingFile().exists())
-                thumbnail = at->edit.engine.getRecordingThumbnailManager().getThumbnailFor (idi->getRecordingFile());
+            {
+                thumbnailComponent.setFile (idi->getRecordingFile ());
+               //thumbnail = at->edit.engine.getRecordingThumbnailManager().getThumbnailFor (idi->getRecordingFile());
+            }
         }
     }
 }
@@ -207,9 +212,10 @@ void RecordingClipComponent::paint (Graphics& g)
     g.fillAll (Colours::red.withAlpha (0.5f));
     g.setColour (Colours::black);
     g.drawRect (getLocalBounds());
+    thumbnailComponent.thumbnailChanged ();
 
-    if (editViewState.drawWaveforms)
-        drawThumbnail (g, Colours::black.withAlpha (0.5f));
+//    if (editViewState.drawWaveforms)
+//        drawThumbnail (g, Colours::black.withAlpha (0.5f));
 }
 
 void RecordingClipComponent::drawThumbnail (Graphics& g, Colour waveformColour) const
@@ -227,6 +233,24 @@ void RecordingClipComponent::drawThumbnail (Graphics& g, Colour waveformColour) 
         g.setColour (waveformColour);
         thumbnail->thumb.drawChannels (g, bounds, w, times, 1.0f);
     }
+
+}
+
+void RecordingClipComponent::resized()
+{
+    auto leftOffset = 0;
+    if(getBoundsInParent ().getX () < 0)
+    {
+        leftOffset = 0 - getBoundsInParent ().getX ();
+    }
+
+    auto rightOffset = 0;
+    if (getBoundsInParent().getRight() > getParentWidth())
+    {
+        rightOffset = getBoundsInParent().getRight() - getParentWidth();
+    }
+
+    thumbnailComponent.setBounds (0 + leftOffset,0,(getWidth() - leftOffset) - rightOffset, getHeight ());
 }
 
 bool RecordingClipComponent::getBoundsAndTime (Rectangle<int>& bounds, Range<double>& times) const
@@ -234,14 +258,22 @@ bool RecordingClipComponent::getBoundsAndTime (Rectangle<int>& bounds, Range<dou
     auto editTimeToX = [this] (double t)
     {
         if (auto p = getParentComponent())
-            return editViewState.edit.tempoSequence.beatsToTime(editViewState.beatsToX (t, p->getWidth()) - getX());
+        {
+            auto beats = editViewState.timeToBeat (t);
+            return static_cast<double>( editViewState.beatsToX (beats, p->getWidth ()));
+        }
+            //return editViewState.edit.tempoSequence.beatsToTime(editViewState.beatsToX (t, p->getWidth()) - getX());
         return 0.0;
     };
 
     auto xToEditTime = [this] (int x)
     {
         if (auto p = getParentComponent())
-            return editViewState.edit.tempoSequence.beatsToTime(editViewState.xToBeats (x + getX(), p->getWidth()));
+        {
+            auto beats = editViewState.xToBeats (x, p->getWidth ());
+            return editViewState.beatToTime (beats);
+            //return editViewState.edit.tempoSequence.beatsToTime(editViewState.xToBeats (x + getX(), p->getWidth()));
+        }
         return 0.0;
     };
 
@@ -265,8 +297,8 @@ bool RecordingClipComponent::getBoundsAndTime (Rectangle<int>& bounds, Range<dou
             t1 = jmin (t1, playhead->getLoopTimes().start);
             t2 = playhead->getPosition();
 
-            t1 = jmax (editViewState.viewX1.get(), t1);
-            t2 = jmin (editViewState.viewX2.get(), t2);
+            t1 = jmax (editViewState.beatToTime (editViewState.viewX1.get()), t1);
+            t2 = jmin (editViewState.beatToTime (editViewState.viewX2.get()), t2);
         }
         else if (edit.recordingPunchInOut)
         {
@@ -327,13 +359,13 @@ void RecordingClipComponent::updatePosition()
             t2 = jlimit (in, out, t2);
         }
 
-        t1 = jmax (t1, editViewState.viewX1.get());
-        t2 = jmin (t2, editViewState.viewX2.get());
+        t1 = jmax (t1,editViewState.beatToTime (editViewState.viewX1.get()));
+        t2 = jmin (t2,editViewState.beatToTime (editViewState.viewX2.get()));
 
         if (auto p = getParentComponent())
         {
-            int x1 = editViewState.beatsToX (t1, p->getWidth());
-            int x2 = editViewState.beatsToX (t2, p->getWidth());
+            int x1 = editViewState.beatsToX (editViewState.timeToBeat (t1), p->getWidth());
+            int x2 = editViewState.beatsToX (editViewState.timeToBeat (t2), p->getWidth());
 
             setBounds (x1, 0, x2 - x1, p->getHeight());
             return;
