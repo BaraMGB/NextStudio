@@ -48,36 +48,8 @@ public:
 private:
     void changeListenerCallback(ChangeBroadcaster* source);
     void selectionChanged()                           override {}
-    void fileClicked (const File& file, const MouseEvent& event) override 
-    {
-        m_tree.setDragAndDropDescription(file.getFileName());
-    }
-    void fileDoubleClicked(const File&) override
-    {
-        auto selectedFile = m_tree.getSelectedFile();
-        if (selectedFile.existsAsFile())
-        {
-            auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-            auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-            auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-
-            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, tracktion_engine::getAudioTracks(*m_edit).size()))
-            {
-
-                 track->setName("Track " + String(tracktion_engine::getAudioTracks(*m_edit).size()));
-                 track->setColour(Colour(red, gre, blu));
-                 EngineHelpers::removeAllClips(*track);
-                 // Add a new clip to this track
-                 tracktion_engine::AudioFile audioFile(m_edit->engine, selectedFile);
-                 if (audioFile.isValid())
-                     if (auto newClip = track->insertWaveClip(selectedFile.getFileNameWithoutExtension(), selectedFile,
-                              { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
-                     {
-                         newClip->setColour(track->getColour());
-                     }
-            }
-        }
-    }
+    void fileClicked (const File& file, const MouseEvent& event) override;
+    void fileDoubleClicked(const File&) override;
 
     void browserRootChanged(const File&) override {}
 

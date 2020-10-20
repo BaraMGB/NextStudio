@@ -15,6 +15,7 @@ target_sources(${TargetName} PRIVATE
         Source/HeaderComponent.cpp
         Source/TimeLineComponent.cpp
         Source/EditComponent.cpp
+        Source/PluginWindow.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

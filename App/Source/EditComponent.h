@@ -328,10 +328,10 @@ public:
         editViewState.selectionManager.addChangeListener(this);
 
     }
-    // ~PluginRackComponent()
-    // {
-    //     editViewState.selectionManager.removeChangeListener(this);
-    // }
+     ~PluginRackComponent()
+     {
+         editViewState.selectionManager.removeChangeListener(this);
+     }
     
     void changeListenerCallback (ChangeBroadcaster*) override 
     {

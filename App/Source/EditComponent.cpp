@@ -870,7 +870,9 @@ PluginComponent::PluginComponent (EditViewState& evs, te::Plugin::Ptr p)
 }
 
 PluginComponent::~PluginComponent()
+
 {
+    plugin->hideWindowForShutdown ();
 }
 void PluginComponent::paint (Graphics& g)
 {
