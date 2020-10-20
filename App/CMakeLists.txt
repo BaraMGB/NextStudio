@@ -9,13 +9,15 @@ target_sources(${TargetName} PRIVATE
         Source/Main.cpp
         Source/MainComponent.cpp
         Source/MenuBar.cpp
-        Source/SpinBox.cpp
-        Source/SpinBoxGroup.cpp
         Source/SideBarBrowser.cpp
         Source/HeaderComponent.cpp
         Source/TimeLineComponent.cpp
         Source/EditComponent.cpp
         Source/PluginWindow.cpp
+        Source/PluginComponent.cpp
+        Source/TrackComponent.cpp
+        Source/ClipComponent.cpp
+        Source/PluginMenu.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
