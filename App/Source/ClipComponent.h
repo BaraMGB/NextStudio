@@ -152,13 +152,14 @@ private:
     void initialiseThumbnailAndPunchTime();
     void drawThumbnail (Graphics& g, Colour waveformColour) const;
     bool getBoundsAndTime (Rectangle<int>& bounds, Range<double>& times) const;
-    void resized() override;
+
+    int clipHeaderHight {10};
 
     te::Track::Ptr track;
     EditViewState& editViewState;
 
     te::RecordingThumbnailManager::Thumbnail::Ptr thumbnail;
-    ThumbnailComponent thumbnailComponent;
+
 
     double punchInTime = -1.0;
 };
