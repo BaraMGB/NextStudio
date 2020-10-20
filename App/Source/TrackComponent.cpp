@@ -17,6 +17,10 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
     {
+        auto audioTrackPtr{dynamic_cast<te::AudioTrack*>(m_track.get())};
+        levelMeterComp = std::make_unique<LevelMeterComponent>(audioTrackPtr->getLevelMeterPlugin()->measurer);
+        addAndMakeVisible(levelMeterComp.get());
+
         m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
         m_armButton.onClick = [this, audioTrack]
         {
@@ -36,7 +40,6 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
         }
         m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
         m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, 0, 0, false);
-        addAndMakeVisible(m_peakDisplay);
     }
     else
     {
@@ -52,6 +55,8 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
     valueTreePropertyChanged (m_track->state, te::IDs::mute);
     valueTreePropertyChanged (m_track->state, te::IDs::solo);
     valueTreePropertyChanged (inputsState, te::IDs::targetIndex);
+
+
 }
 
 TrackHeaderComponent::~TrackHeaderComponent()
@@ -262,7 +267,7 @@ void TrackHeaderComponent::resized()
     auto area = getLocalBounds();
     auto peakDisplay = area.removeFromRight(20);
     peakDisplay.reduce(2, 2);
-    m_peakDisplay.setBounds(peakDisplay);
+    levelMeterComp->setBounds (peakDisplay);
     auto volSlider = area.removeFromRight(area.getHeight());
     m_volumeKnob.setBounds(volSlider);
 
@@ -362,6 +367,9 @@ void TrackComponent::paint (Graphics& g)
 
 
     }
+    auto firstLine = getLocalBounds ().removeFromLeft (1);
+    g.setColour (Colours::white);
+    g.fillRect (firstLine);
 }
 
 void TrackComponent::mouseDown (const MouseEvent&event)

@@ -6,6 +6,7 @@
 #include "PluginComponent.h"
 #include "ClipComponent.h"
 #include "PluginMenu.h"
+#include "LevelMeterComponent.h"
 
 class TrackHeaderComponent : public Component,
                              private te::ValueTreeAllEventListener
@@ -25,16 +26,14 @@ private:
     EditViewState& editViewState;
     te::Track::Ptr m_track;
 
-
-
     ValueTree inputsState;
     Label m_trackName;
     ToggleButton m_armButton,
                  m_muteButton,
                  m_soloButton;
 
-    Component m_peakDisplay;
     Slider       m_volumeKnob;
+    std::unique_ptr<LevelMeterComponent> levelMeterComp;
 };
 
 //==============================================================================
