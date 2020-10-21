@@ -265,7 +265,7 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
 void TrackHeaderComponent::resized()
 {
     auto area = getLocalBounds();
-    auto peakDisplay = area.removeFromRight(20);
+    auto peakDisplay = area.removeFromRight(15);
     peakDisplay.reduce(2, 2);
     levelMeterComp->setBounds (peakDisplay);
     auto volSlider = area.removeFromRight(area.getHeight());

@@ -17,8 +17,10 @@ private:
         const double RANGEMAXdB{ 3.0 };//+3dB
         const double RANGEMINdB{ -30.0 };//-30dB
 
-        double currentLeveldB{ 0.0 };
-        double prevLeveldB{ 0.0 };
+        double currentLeveldBLeft{ 0.0 };
+        double prevLeveldBLeft{ 0.0 };
+        double currentLeveldBRight{ 0.0 };
+        double prevLeveldBRight{ 0.0 };
 
         te::LevelMeasurer& levelMeasurer;
         te::LevelMeasurer::Client levelClient;

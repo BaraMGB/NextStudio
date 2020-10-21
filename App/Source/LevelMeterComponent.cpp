@@ -23,35 +23,60 @@ void LevelMeterComponent::paint(Graphics &g)
     const double offSet{ fabs(RANGEMINdB) };
     const double scaleFactor{ meterHeight / (RANGEMAXdB + offSet) };
 
-    // now we calculate and draw our 0dB line
-    g.setColour(Colours::lightgrey);  // set line color
-    g.fillRect(0.0f, float(meterHeight - (offSet * scaleFactor)), float(meterWidth), 1.0f);
 
     // draw meter Gain bar
-    g.setColour(Colours::green);
-    auto displayBarHeight = ((currentLeveldB + offSet) * scaleFactor);
-    if (displayBarHeight > 0)
+    auto lineAtNullDb = float(meterHeight - (offSet * scaleFactor));
+    auto displayBarHeightLeft = ((currentLeveldBLeft + offSet) * scaleFactor);
+    auto displayBarHeightRight = ((currentLeveldBRight + offSet) * scaleFactor);
+
+
+    if (float(meterHeight - displayBarHeightLeft) <= lineAtNullDb
+        || float(meterHeight - displayBarHeightRight <= lineAtNullDb) )
     {
-        g.fillRect(0.0f, float(meterHeight - displayBarHeight), float(meterWidth), float(displayBarHeight));
+        g.setColour (Colours::red);
     }
+    else
+    {
+        g.setColour(Colour(0xff74bb00));
+    }
+
+    if (displayBarHeightLeft > 0 || displayBarHeightRight > 0)
+    {
+        g.fillRect(0.0f, float(meterHeight - displayBarHeightLeft), float(meterWidth * 0.45), float(displayBarHeightLeft));
+        g.fillRect(float(meterWidth * 0.55), float(meterHeight - displayBarHeightRight), float(meterWidth), float(displayBarHeightRight));
+    }
+    // now we calculate and draw our 0dB line
+    g.setColour(Colours::lightgrey);  // set line color
+    g.fillRect(0.0f, lineAtNullDb , float(meterWidth), 1.0f);
 }
 
 void LevelMeterComponent::timerCallback()
 {
-    prevLeveldB = currentLeveldB;
-
-    currentLeveldB = levelClient.getAndClearAudioLevel(0).dB;
+    prevLeveldBLeft = currentLeveldBLeft;
+    prevLeveldBRight = currentLeveldBRight;
+    currentLeveldBLeft = levelClient.getAndClearAudioLevel(0).dB;
+    currentLeveldBRight = levelClient.getAndClearAudioLevel(1).dB;
 
     // Now we give the level bar fading charcteristics.
     // And, the below coversions, decibelsToGain and gainToDecibels,
     // take care of 0dB, which will never fade!...but a gain of 1.0 (0dB) will.
 
-    const auto prevLevel{ Decibels::decibelsToGain(prevLeveldB) };
+    const auto prevLevelLeft{ Decibels::decibelsToGain(prevLeveldBLeft) };
+    const auto prevLevelRight{ Decibels::decibelsToGain(prevLeveldBRight) };
 
-    if (prevLeveldB > currentLeveldB)
-        currentLeveldB = Decibels::gainToDecibels(prevLevel * 0.94);
+    if (prevLeveldBLeft > currentLeveldBLeft)
+    {
+        currentLeveldBLeft = Decibels::gainToDecibels(prevLevelLeft * 0.94);
+    }
+
+    if (prevLeveldBRight > currentLeveldBRight)
+    {
+        currentLeveldBRight = Decibels::gainToDecibels(prevLevelRight * 0.94);
+    }
 
     // the test below may save some unnecessary paints
-    if(currentLeveldB != prevLeveldB)
+    if((currentLeveldBLeft != prevLeveldBLeft) || currentLeveldBRight != prevLevelRight)
+    {
         repaint();
+    }
 }
