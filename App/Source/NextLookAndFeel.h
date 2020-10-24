@@ -29,25 +29,48 @@ public:
 
         g.setColour(Colour(0xff000000));
         g.fillRoundedRectangle(buttonArea.toFloat(), 4);
-        g.setGradientFill({Colour(0xff9b9b9b),
-                           0,
-                           0,
-                           Colour(0xff4b4b4b),
-                           0,
-                           static_cast<float>(buttonArea.getHeight()),
-                           false});
-        buttonArea.reduce(1, 1);
-        g.fillRoundedRectangle(buttonArea.toFloat(), 3);
-        g.setColour(Colour(0xff5b5b5b));
-        g.setGradientFill({Colour(0xff7b7b7b),
-                           0,
-                           0,
-                           Colour(0xff4b4b4b),
-                           0,
-                           static_cast<float>(buttonArea.getHeight()),
-                           false});
-        buttonArea.reduce(1, 1);
-        g.fillRoundedRectangle(buttonArea.toFloat(), 2);
+        if(isButtonDown)
+        {
+            g.setGradientFill({Colour(0xff4b4b4b),
+                               0,
+                               0,
+                               Colour(0xff4b4b4b),
+                               0,
+                               static_cast<float>(buttonArea.getHeight()),
+                               false});
+            buttonArea.reduce(1, 1);
+            g.fillRoundedRectangle(buttonArea.toFloat(), 3);
+            g.setGradientFill({Colour(0xff4b4b4b),
+                               0,
+                               0,
+                               Colour(0xff7b7b7b),
+                               0,
+                               static_cast<float>(buttonArea.getHeight()),
+                               false});
+            buttonArea.reduce(1, 1);
+            g.fillRoundedRectangle(buttonArea.toFloat(), 2);
+        }
+        else
+        {
+            g.setGradientFill({Colour(0xff9b9b9b),
+                               0,
+                               0,
+                               Colour(0xff4b4b4b),
+                               0,
+                               static_cast<float>(buttonArea.getHeight()),
+                               false});
+            buttonArea.reduce(1, 1);
+            g.fillRoundedRectangle(buttonArea.toFloat(), 3);
+            g.setGradientFill({Colour(0xff7b7b7b),
+                               0,
+                               0,
+                               Colour(0xff4b4b4b),
+                               0,
+                               static_cast<float>(buttonArea.getHeight()),
+                               false});
+            buttonArea.reduce(1, 1);
+            g.fillRoundedRectangle(buttonArea.toFloat(), 2);
+        }
     }
 
  
@@ -71,61 +94,78 @@ public:
         auto angle =
             rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        auto sliderColour = Colour(0xff2c2c2c);
-        auto thumbColour = Colour(0xff9b9b9b);
-        auto volumeColour = Colour(0xff04e9e9);
+        auto thumbColour = Colour(0xff000000);
+        auto thumbMouseColour = Colour(0xff999999);
+        auto volumeColour = Colour(0x88e9e949);
         auto bounds = Rectangle<int>(x, y, width, height).toFloat().reduced(10);
-        auto lineW = 2;
+        auto lineW = 5;
         auto arcRadius = radius + 3;
         auto toAngle =
             rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
         // fill
-        g.setColour(sliderColour);
+
+        g.setGradientFill ({Colour(0xffbbbbbb),
+                            0,
+                            0,
+                            Colour(0xff2b2b2b),
+                            0,
+                            static_cast<float>(height),
+                            false});
         g.fillEllipse(rx, ry, rw, rw);
+        Rectangle<int> r;
 
+        g.setGradientFill ({Colour(0xff9b9b9b),
+                            static_cast<float>(width/2),
+                            static_cast<float>(height/2),
+                            Colour(0xff3b3b3b),
+                            static_cast<float>(width),
+                            static_cast<float>(height),
+                            true});
+        g.fillEllipse(rx + 3, ry + 3, rw - 6, rw - 6);
         Path backgroundArc;
-        backgroundArc.addCentredArc(bounds.getCentreX(),
-                                    bounds.getCentreY(),
-                                    arcRadius,
-                                    arcRadius,
-                                    0.0f,
-                                    rotaryStartAngle,
-                                    rotaryEndAngle,
-                                    true);
+                backgroundArc.addCentredArc(bounds.getCentreX(),
+                                            bounds.getCentreY(),
+                                            arcRadius,
+                                            arcRadius,
+                                            0.0f,
+                                            rotaryStartAngle,
+                                            rotaryEndAngle,
+                                            true);
 
-        g.strokePath(
-            backgroundArc,
-            PathStrokeType(lineW, PathStrokeType::curved, PathStrokeType::rounded));
+                g.strokePath(
+                    backgroundArc,
+                    PathStrokeType(lineW, PathStrokeType::curved, PathStrokeType::butt));
 
-        if (slider.isEnabled())
-        {
-            Path valueArc;
-            valueArc.addCentredArc(bounds.getCentreX(),
-                                   bounds.getCentreY(),
-                                   arcRadius,
-                                   arcRadius,
-                                   0.0f,
-                                   rotaryStartAngle,
-                                   toAngle,
-                                   true);
+                if (slider.isEnabled())
+                {
+                    Path valueArc;
+                    valueArc.addCentredArc(bounds.getCentreX(),
+                                           bounds.getCentreY(),
+                                           arcRadius,
+                                           arcRadius,
+                                           0.0f,
+                                           rotaryStartAngle,
+                                           toAngle,
+                                           true);
 
-            g.setColour(volumeColour);
-            g.strokePath(valueArc,
-                         PathStrokeType(lineW,
-                                        PathStrokeType::curved,
-                                        PathStrokeType::rounded));
-        }
+                    g.setColour(volumeColour);
+                    g.strokePath(valueArc,
+                                 PathStrokeType(lineW,
+                                                PathStrokeType::curved,
+                                                PathStrokeType::butt));
+                }
 
-        Path p;
-        auto pointerLength = radius * 0.33f;
-        auto pointerThickness = 2.0f;
-        p.addRectangle(
-            -pointerThickness * 0.5f, -radius, pointerThickness, pointerLength);
-        p.applyTransform(
-            AffineTransform::rotation(angle).translated(centreX, centreY));
-        // pointer
-        g.setColour(thumbColour);
-        g.fillPath(p);
+                Path p;
+                auto pointerLength = radius * 0.33f;
+                auto pointerThickness = 2.0f;
+                p.addRectangle(
+                    -pointerThickness * 0.5f, -radius, pointerThickness, pointerLength);
+                p.applyTransform(
+                    AffineTransform::rotation(angle).translated(centreX, centreY));
+                // pointer
+                g.setColour(thumbColour);
+                g.fillPath(p);
+
     }
 
     Font getTextButtonFont(TextButton&, int buttonHeight) override
@@ -171,6 +211,41 @@ public:
         //        auto tickWidth = fontSize * 1.1f;
         g.drawFittedText(
             button.getName(), button.getLocalBounds(), Justification::centred, 1);
+    }
+//    void drawFileBrowserRow(Graphics &,
+//                            int width,
+//                            int height,
+//                            const File &file,
+//                            const String &filename,
+//                            Image *icon,
+//                            const String &fileSizeDescription,
+//                            const String &fileTimeDescription,
+//                            bool isDirectory, bool isItemSelected,
+//                            int itemIndex,
+//                            DirectoryContentsDisplayComponent &) override
+//    {
+
+//    }
+    void drawScrollbar (Graphics &g,
+                       ScrollBar &,
+                       int x, int y,
+                       int width, int height,
+                       bool isScrollbarVertical,
+                       int thumbStartPosition,
+                       int thumbSize,
+                       bool isMouseOver,
+                       bool isMouseDown) override
+    {
+        if (isMouseDown)
+        {
+            g.setColour (juce::Colour(0x66ffffff));
+            g.fillRect (Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+        }
+        else if (isMouseOver)
+        {
+            g.setColour (juce::Colour(0x33ffffff));
+            g.fillRect (Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+        }
     }
     Colour m_BGcolour = Colour(14, 14, 14);
     Colour m_DarkArea = Colour(10, 10, 10);

@@ -22,6 +22,9 @@ MainComponent::MainComponent() :
     m_dirConList.setDirectory(file, true, true);
     m_tree.addListener(this);
 
+
+
+
     addAndMakeVisible(m_tree);
     addAndMakeVisible(m_menuBar);
 
@@ -85,7 +88,7 @@ void MainComponent::resized()
     m_tree.setBounds (area.removeFromLeft (sidebarWidth));
     area.removeFromLeft (10);
     m_songEditor->setBounds (area);
-    m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff2c2c2c));
+    m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff111111));
 }
 
 void MainComponent::buttonClicked(Button* /*button*/)
