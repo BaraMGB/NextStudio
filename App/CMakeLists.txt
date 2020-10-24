@@ -19,6 +19,7 @@ target_sources(${TargetName} PRIVATE
         Source/ClipComponent.cpp
         Source/PluginMenu.cpp
         Source/LevelMeterComponent.cpp
+        Source/PluginRackComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

@@ -3,9 +3,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
-#include "PluginComponent.h"
 #include "ClipComponent.h"
-#include "PluginMenu.h"
 #include "LevelMeterComponent.h"
 
 class TrackHeaderComponent : public Component,
@@ -37,36 +35,7 @@ private:
 };
 
 //==============================================================================
-class TrackFooterComponent : public Component,
-                             private FlaggedAsyncUpdater,
-                             private te::ValueTreeAllEventListener
-{
-public:
-    TrackFooterComponent (EditViewState&, te::Track::Ptr);
-    ~TrackFooterComponent();
 
-    void paint (Graphics& g) override;
-    void mouseDown (const MouseEvent& e) override;
-    void resized() override;
-
-private:
-    void valueTreeChanged() override {}
-    void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
-    void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
-
-    void handleAsyncUpdate() override;
-
-    void buildPlugins();
-
-    EditViewState& editViewState;
-    te::Track::Ptr track;
-
-    TextButton addButton {"+"};
-    OwnedArray<PluginComponent> plugins;
-
-    bool updatePlugins = false;
-};
 
 //==============================================================================
 class TrackComponent : public Component,

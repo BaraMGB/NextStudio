@@ -59,22 +59,41 @@ void PlayheadComponent::timerCallback()
 }
 
 //==============================================================================
+
+TollBarComponent::TollBarComponent()
+{
+}
+
+void TollBarComponent::paint(Graphics &g)
+{
+    g.setColour(Colour (0xff222222));
+    g.fillAll ();
+}
+
+//===============================================================================
+
 EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
-    : edit (e), editViewState (e, sm)
+    : edit (e), editViewState (e, sm), m_scrollbar (true)
 {
     edit.state.addListener (this);
     editViewState.selectionManager.addChangeListener (this);
 
     
-    addAndMakeVisible (playhead);
     addAndMakeVisible (timeLine);
+    timeLine.setAlwaysOnTop (true);
+    addAndMakeVisible (m_scrollbar);
+    m_scrollbar.setAlwaysOnTop (true);
+    m_scrollbar.setAutoHide (false);
+    m_scrollbar.addListener (this);
     addAndMakeVisible (pluginRack);
     pluginRack.setAlwaysOnTop(true);
+    addAndMakeVisible (playhead);
+    playhead.setAlwaysOnTop (true);
+    addAndMakeVisible (toolBar);
+    toolBar.setAlwaysOnTop (true);
     
     markAndUpdate (updateTracks);
     editViewState.selectionManager.selectOnly (te::getAllTracks (edit).getLast ());
-    // auto& dm = edit.engine.getDeviceManager();
-    // dm.getMidiInDevice(0)->getName();
 }
 
 EditComponent::~EditComponent()
@@ -129,7 +148,6 @@ void EditComponent::mouseDown(const MouseEvent &event)
 {
     if (event.mods.isPopupMenu())
     {
-//        std::cout << "rechts! " << std::endl;
         PopupMenu m;
         m.addItem (10, "Add track");
 
@@ -188,31 +206,50 @@ void EditComponent::resized()
     const int footerWidth = editViewState.showFooters ? 150 : 0;
     const int pluginRackHeight = 250;
 
+
+
     auto area = getLocalBounds();
     auto pluginRackRect = area.removeFromBottom(pluginRackHeight);
-    playhead.setBounds (area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
     
-    timeLine.setBounds(playhead.getBounds().removeFromTop(timelineHeight));
     int y = roundToInt (editViewState.viewY.get()) + timelineHeight;
+    int trackCount = 0;
     for (int i = 0; i < jmin (headers.size(), tracks.size()); i++)
     {
         auto h = headers[i];
         auto t = tracks[i];
         auto f = footers[i];
         
-        h->setBounds (0, y, headerWidth, trackHeight);
+        h->setBounds (0, y, headerWidth-5, trackHeight);
         t->setBounds (headerWidth, y, getWidth() - headerWidth - footerWidth, trackHeight);
         f->setBounds (getWidth() - footerWidth, y, footerWidth, trackHeight);
         
         y += trackHeight + trackGap;
+        trackCount = i;
     }
-    
+    trackCount++;
+
+
     for (auto t : tracks)
         t->resized();
     
     
     pluginRack.setBounds (pluginRackRect);
-    //pluginRack.toFront(false);
+
+    playhead.setBounds (area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
+    timeLine.setBounds(playhead.getBounds().removeFromTop(timelineHeight));
+    toolBar.setBounds (0, 0, headerWidth, timelineHeight);
+
+    m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, getHeight () - timelineHeight - pluginRackHeight);
+    m_scrollbar.setRangeLimits (0, trackCount * trackHeight);
+    m_scrollbar.setCurrentRange (-(editViewState.viewY), getHeight() - timelineHeight - pluginRackHeight );
+}
+
+void EditComponent::scrollBarMoved(ScrollBar* scrollBarThatHasMoved, double newRangeStart)
+{
+    if (scrollBarThatHasMoved == &m_scrollbar)
+    {
+        editViewState.viewY = -(newRangeStart);
+    }
 }
 
 void EditComponent::buildTracks()
@@ -259,7 +296,7 @@ void EditComponent::buildTracks()
             headers.add (h);
             addAndMakeVisible (h);
             
-            auto f = new TrackFooterComponent (editViewState, t);
+            auto f = new PluginRackComponent (editViewState, t);
             footers.add (f);
             addAndMakeVisible (f);
         }
@@ -268,4 +305,6 @@ void EditComponent::buildTracks()
     playhead.toFront (false);
     resized();
 }
+
+//--------------------------------------------------------------------------------------
 
