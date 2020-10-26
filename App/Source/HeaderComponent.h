@@ -51,8 +51,22 @@ public:
 
     void paint(Graphics &g) override
     {
-        g.setColour ( Colour(0xff111111));
-        g.fillAll ();
+        auto area = getLocalBounds ();
+        g.setGradientFill({Colour(0xff2b2b2b),
+                           0.0f,
+                           0.0f,
+                          Colour(0xff3b3b3b),
+                          0.0f,
+                          static_cast<float>(getHeight()),
+                          false});
+
+        g.fillRect (area);
+        area.reduce (1, 1);
+        g.setColour (Colour(0xff1b1b1b));
+        g.fillRect (area);
+        area.reduce (2, 2);
+        g.setColour (Colour (0xff202020));
+        g.fillRect (area);
     }
 
     void update()

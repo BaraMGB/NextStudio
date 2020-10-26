@@ -1,5 +1,5 @@
 #include "TrackComponent.h"
-
+#include "NextLookAndFeel.h"
 //==============================================================================
 TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), m_track (t)
@@ -27,6 +27,10 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
             EngineHelpers::armTrack (*audioTrack, !EngineHelpers::isTrackArmed (*audioTrack));
             m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
         };
+        m_muteButton.onClick = [audioTrack] { audioTrack->setMute (! audioTrack->isMuted (false)); };
+        m_soloButton.onClick = [audioTrack] { audioTrack->setSolo (! audioTrack->isSolo (false)); };
+
+        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
 
         m_volumeKnob.setOpaque(false);
         addAndMakeVisible(m_volumeKnob);
@@ -86,26 +90,72 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
 }
 
 void TrackHeaderComponent::paint (Graphics& g)
-{
+{   
     Rectangle<float> area = getLocalBounds().toFloat();
 
-        g.setColour(m_track->getColour());
-        Rectangle<float> trackColorIndicator = area.removeFromLeft(18);
-        g.fillRect(trackColorIndicator);
-        g.setColour(Colour(0xff343434));
-        g.drawRect(trackColorIndicator);
-        g.drawRect(area);
+
+
+        g.setColour(Colour(0xff000000));
+        g.drawRect(area, 1);
         area.reduce(1, 1);
+
+
         if (editViewState.selectionManager.isSelected(m_track))
         {
-            g.setColour(Colour(0xff383838));
+            g.setGradientFill({Colour(0xff6b6b6b),
+                              0,
+                              0,
+                              Colour(0xff4b4b4b),
+                              0,
+                              static_cast<float>(getHeight()),
+                              false});
+            g.fillRect (area);
+
+            area.reduce (1,1);
+
+            g.setGradientFill({Colour(0xff4b4b4b),
+                              0,
+                              0,
+                              Colour(0xff3b3b3b),
+                              0,
+                              static_cast<float>(getHeight()),
+                              false});
         }
         else
         {
-            g.setColour(Colour(0xff181818));
+            g.setGradientFill({Colour(0xff3b3b3b),
+                              0,
+                              0,
+                              Colour(0xff2b2b2b),
+                              0,
+                              static_cast<float>(getHeight()),
+                              false});
+            g.fillRect (area);
+            area.reduce (1,1);
+            g.setColour(Colour(0xff2b2b2b));
         }
 
         g.fillRect(area);
+
+        Rectangle<float> trackColorIndicator = area.removeFromLeft(18);
+
+        trackColorIndicator.reduce (1,1);
+        auto trackColor =  m_track->getColour();
+//        g.setGradientFill({trackColor.darker (0.3f),
+//                           0,
+//                           0,
+//                           trackColor.brighter (0.3f),
+//                           0,
+//                           static_cast<float>(getHeight()),
+//                           false});
+        g.setColour (trackColor.darker (0.7f));
+        g.fillRect(trackColorIndicator);
+        trackColorIndicator.reduce (1,1);
+        g.setColour (trackColor.brighter (0.1f));
+        g.fillRect(trackColorIndicator);
+        trackColorIndicator.reduce (1,1);
+        g.setColour (trackColor);
+        g.fillRect (trackColorIndicator);
 }
 
 void TrackHeaderComponent::mouseDown (const MouseEvent& event)
@@ -303,8 +353,9 @@ TrackComponent::~TrackComponent()
 
 void TrackComponent::paint (Graphics& g)
 {
+    g.setColour(Colour(0xff181818));
     g.fillAll ();
-    g.setColour(Colour(0xff111111));
+    g.setColour(Colour(0xff2b2b2b));
     g.drawRect(0,0, getWidth(), getHeight() );
     double x2 = editViewState.viewX2;
     double x1 = editViewState.viewX1;
@@ -318,7 +369,7 @@ void TrackComponent::paint (Graphics& g)
 
     if (editViewState.selectionManager.isSelected (track.get()))
     {
-        g.setColour (Colour(0xff111111));
+        g.setColour (Colour(0xff202020));
 
         auto rc = getLocalBounds();
         if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);

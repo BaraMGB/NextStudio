@@ -23,7 +23,7 @@ TimeLineComponent::~TimeLineComponent()
 
 void TimeLineComponent::paint(Graphics& g)
 {
-    g.setColour(Colour(0xff181818));
+    g.setColour(Colour(0xff1b1b1b));
     g.fillRect(getLocalBounds());
     g.setColour(Colours::white);
     g.drawRect(getLocalBounds());

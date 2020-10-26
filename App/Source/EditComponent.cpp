@@ -94,6 +94,10 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     
     markAndUpdate (updateTracks);
     editViewState.selectionManager.selectOnly (te::getAllTracks (edit).getLast ());
+
+
+
+
 }
 
 EditComponent::~EditComponent()
