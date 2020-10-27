@@ -11,6 +11,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "TrackComponent.h"
 
 class NextLookAndFeel : public LookAndFeel_V4
 {
@@ -118,6 +119,11 @@ public:
         auto thumbColour = Colour(0xff000000);
         auto thumbMouseColour = Colour(0xff999999);
         auto volumeColour = Colour(0x88e9e949);
+        auto thc = dynamic_cast<TrackHeaderComponent*>(slider.getParentComponent ());
+        if (thc != nullptr)
+        {
+            volumeColour = thc->getTrackColour ();
+        }
         auto bounds = Rectangle<int>(x, y, width, height).toFloat().reduced(10);
         auto lineW = 5;
         auto arcRadius = radius + 3;

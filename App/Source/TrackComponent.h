@@ -16,6 +16,7 @@ public:
     void paint (Graphics& g) override;
     void mouseDown (const MouseEvent& e) override;
     void resized() override;
+    juce::Colour getTrackColour();
 
 private:
     void valueTreeChanged() override {}

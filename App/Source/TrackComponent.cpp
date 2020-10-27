@@ -332,6 +332,11 @@ void TrackHeaderComponent::resized()
     m_trackName.setBounds(area);
 }
 
+juce::Colour TrackHeaderComponent::getTrackColour()
+{
+    return m_track->getColour ();
+}
+
 
 //==============================================================================
 TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
