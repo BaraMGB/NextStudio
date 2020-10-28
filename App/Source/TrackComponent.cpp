@@ -93,75 +93,61 @@ void TrackHeaderComponent::paint (Graphics& g)
 {   
     Rectangle<float> area = getLocalBounds().toFloat();
 
+    g.setColour(Colour(0xff000000));
+    g.drawRect(area, 1);
+    area.reduce(1, 1);
+
+    auto buttonColour = Colour(0xff4b4b4b);
 
 
-        g.setColour(Colour(0xff000000));
-        g.drawRect(area, 1);
-        area.reduce(1, 1);
+    if (!editViewState.selectionManager.isSelected (m_track))
+    {
+        buttonColour = buttonColour.darker (0.4f);
+    }
 
 
-        if (editViewState.selectionManager.isSelected(m_track))
-        {
-            g.setGradientFill({Colour(0xff8b8b8b),
-                              0,
-                              0,
-                              Colour(0xff4b4b4b),
-                              0,
-                              static_cast<float>(getHeight()),
-                              false});
-            g.fillRect (area);
-            area.reduce (1,1);
-            g.setGradientFill({Colour(0xff6b6b6b),
-                              0,
-                              0,
-                              Colour(0xff5b5b5b),
-                              0,
-                              static_cast<float>(getHeight()),
-                              false});
-        }
-        else
-        {
-            g.setGradientFill({Colour(0xff6b6b6b),
-                              0,
-                              0,
-                              Colour(0xff4b4b4b),
-                              0,
-                              static_cast<float>(getHeight()),
-                              false});
-            g.fillRect (area);
+    juce::ColourGradient border = {buttonColour.brighter (0.1f),
+                                   0,
+                                   0,
+                                   buttonColour.brighter (0.1f),
+                                   0,
+                                   static_cast<float>(getHeight()),
+                                   false};
+    border.addColour (0.5, buttonColour.brighter (0.8f));
+    g.setGradientFill (border);
+    g.fillRect (area);
+    area.reduce (1,1);
+    juce::ColourGradient gradient = {buttonColour,
+                                     0,
+                                     0,
+                                     buttonColour,
+                                     0,
+                                     static_cast<float>(getHeight()),
+                                     false};
+    gradient.addColour (0.25, buttonColour.brighter (0.05f));
+    gradient.addColour (0.75, buttonColour.brighter (0.05f));
+    g.setGradientFill(gradient);
+    g.fillRect(area);
 
-            area.reduce (1,1);
+    if (drawOverlayTrackColour)
+    {
+        auto trackColorOverlay = m_track->getColour ().darker (0.5);
+        g.setColour (trackColorOverlay.withAlpha (0.1f));
+        g.fillRect (area);
+    }
 
-            g.setGradientFill({Colour(0xff4b4b4b),
-                              0,
-                              0,
-                              Colour(0xff3b3b3b),
-                              0,
-                              static_cast<float>(getHeight()),
-                              false});
-        }
+    Rectangle<float> trackColorIndicator = area.removeFromLeft(18);
+    trackColorIndicator.reduce (1,1);
+    auto trackColor =  m_track->getColour();
 
-        g.fillRect(area);
-
-        Rectangle<float> trackColorIndicator = area.removeFromLeft(18);
-
-        trackColorIndicator.reduce (1,1);
-        auto trackColor =  m_track->getColour();
-//        g.setGradientFill({trackColor.darker (0.3f),
-//                           0,
-//                           0,
-//                           trackColor.brighter (0.3f),
-//                           0,
-//                           static_cast<float>(getHeight()),
-//                           false});
-        g.setColour (trackColor.darker (0.7f));
-        g.fillRect(trackColorIndicator);
-        trackColorIndicator.reduce (1,1);
-        g.setColour (trackColor.brighter (0.1f));
-        g.fillRect(trackColorIndicator);
-        trackColorIndicator.reduce (1,1);
-        g.setColour (trackColor);
-        g.fillRect (trackColorIndicator);
+    g.setColour (trackColor.darker (0.7f));
+    g.fillRect(trackColorIndicator);
+    trackColorIndicator.reduce (1,1);
+    g.setColour (trackColor.brighter (0.1f));
+    g.fillRect(trackColorIndicator);
+    trackColorIndicator.reduce (1,1);
+    g.setColour (trackColor);
+    g.fillRect (trackColorIndicator);
 }
 
 void TrackHeaderComponent::mouseDown (const MouseEvent& event)

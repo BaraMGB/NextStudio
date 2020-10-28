@@ -26,75 +26,44 @@ public:
                               bool isMouseOverButton,
                               bool isButtonDown) override
     {
-        auto buttonArea = button.getLocalBounds();
+        juce::Rectangle<int> area = button.getLocalBounds ();
 
-//        g.setColour(Colour(0xff000000));
-//        g.fillRoundedRectangle(buttonArea.toFloat(), 4);
-        if(isButtonDown)
+
+
+        g.setColour(Colour(0xff000000));
+        g.drawRect(area, 1);
+        area.reduce(1, 1);
+
+        auto buttonColour = Colour(0xff4b4b4b);
+
+
+        if (isButtonDown)
         {
-            g.setGradientFill({Colour(0xff4b4b4b),
-                               0,
-                               0,
-                               Colour(0xff4b4b4b),
-                               0,
-                               static_cast<float>(buttonArea.getHeight()),
-                               false});
-            buttonArea.reduce(1, 1);
-            g.fillRoundedRectangle(buttonArea.toFloat(), 3);
-            g.setGradientFill({Colour(0xff4b4b4b),
-                               0,
-                               0,
-                               Colour(0xff7b7b7b),
-                               0,
-                               static_cast<float>(buttonArea.getHeight()),
-                               false});
-            buttonArea.reduce(1, 1);
-            g.fillRoundedRectangle(buttonArea.toFloat(), 2);
+            buttonColour = buttonColour.darker (0.4f);
         }
-        else
-        {
-//            g.setGradientFill({Colour(0xff9b9b9b),
-//                               0,
-//                               0,
-//                               Colour(0xff4b4b4b),
-//                               0,
-//                               static_cast<float>(buttonArea.getHeight()),
-//                               false});
-//            buttonArea.reduce(1, 1);
-//            g.fillRoundedRectangle(buttonArea.toFloat(), 3);
-//            g.setGradientFill({Colour(0xff7b7b7b),
-//                               0,
-//                               0,
-//                               Colour(0xff4b4b4b),
-//                               0,
-//                               static_cast<float>(buttonArea.getHeight()),
-//                               false});
-//            buttonArea.reduce(1, 1);
-//            g.fillRoundedRectangle(buttonArea.toFloat(), 2);
 
-            g.setColour (Colour(0xff1b1b1b));
-            g.fillRect (buttonArea);
-            buttonArea.reduce (2, 2);
-            g.setGradientFill({Colour(0xff6b6b6b),
-                              0,
-                              0,
-                              Colour(0xff4b4b4b),
-                              0,
-                              static_cast<float>(buttonArea.getHeight ()),
-                              false});
-            g.fillRect (buttonArea);
 
-            buttonArea.reduce (1,1);
-
-            g.setGradientFill({Colour(0xff4b4b4b),
-                              0,
-                              0,
-                              Colour(0xff3b3b3b),
-                              0,
-                              static_cast<float>(buttonArea.getHeight()),
-                              false});
-            g.fillRect (buttonArea);
-        }
+        juce::ColourGradient border = {buttonColour.brighter (0.1f),
+                                       0,
+                                       0,
+                                       buttonColour.brighter (0.1f),
+                                       0,
+                                       static_cast<float>(button.getHeight()),
+                                       false};
+        border.addColour (0.5, buttonColour.brighter (0.8f));
+        g.setGradientFill (border);
+        g.fillRect (area);
+        area.reduce (1,1);
+        juce::ColourGradient gradient = {buttonColour,
+                                         0,
+                                         0,
+                                         buttonColour,
+                                         0,
+                                         static_cast<float>(button.getHeight()),
+                                         false};
+        gradient.addColour (0.5, buttonColour.brighter (0.05f));
+        g.setGradientFill(gradient);
+        g.fillRect(area);
     }
 
     void drawRotarySlider(Graphics& g,

@@ -33,6 +33,8 @@ private:
 
     Slider       m_volumeKnob;
     std::unique_ptr<LevelMeterComponent> levelMeterComp;
+
+    bool drawOverlayTrackColour {false};
 };
 
 //==============================================================================
