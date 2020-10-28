@@ -102,6 +102,25 @@ void TrackHeaderComponent::paint (Graphics& g)
 
         if (editViewState.selectionManager.isSelected(m_track))
         {
+            g.setGradientFill({Colour(0xff8b8b8b),
+                              0,
+                              0,
+                              Colour(0xff4b4b4b),
+                              0,
+                              static_cast<float>(getHeight()),
+                              false});
+            g.fillRect (area);
+            area.reduce (1,1);
+            g.setGradientFill({Colour(0xff6b6b6b),
+                              0,
+                              0,
+                              Colour(0xff5b5b5b),
+                              0,
+                              static_cast<float>(getHeight()),
+                              false});
+        }
+        else
+        {
             g.setGradientFill({Colour(0xff6b6b6b),
                               0,
                               0,
@@ -120,19 +139,6 @@ void TrackHeaderComponent::paint (Graphics& g)
                               0,
                               static_cast<float>(getHeight()),
                               false});
-        }
-        else
-        {
-            g.setGradientFill({Colour(0xff3b3b3b),
-                              0,
-                              0,
-                              Colour(0xff2b2b2b),
-                              0,
-                              static_cast<float>(getHeight()),
-                              false});
-            g.fillRect (area);
-            area.reduce (1,1);
-            g.setColour(Colour(0xff2b2b2b));
         }
 
         g.fillRect(area);

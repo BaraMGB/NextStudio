@@ -141,7 +141,7 @@ public:
         g.fillEllipse(rx, ry, rw, rw);
         Rectangle<int> r;
 
-        g.setGradientFill ({Colour(0xff9b9b9b),
+        g.setGradientFill ({Colour(0xff1b1b1b),
                             static_cast<float>(width/2),
                             static_cast<float>(height/2),
                             Colour(0xff3b3b3b),
