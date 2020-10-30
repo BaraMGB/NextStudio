@@ -2,6 +2,8 @@ project(NextStudio VERSION 0.1.0)
 
 set (TargetName ${PROJECT_NAME})
 
+add_subdirectory(resources)
+
 juce_add_gui_app(${TargetName} PRODUCT_NAME "NextStudio")
 juce_generate_juce_header(${TargetName})
 
@@ -41,6 +43,7 @@ target_compile_definitions (${TargetName} PUBLIC
 
 
 target_link_libraries(${TargetName} PRIVATE
+        Pictures
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags

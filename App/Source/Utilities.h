@@ -43,44 +43,36 @@ namespace Helpers
 
 namespace GUIHelpers
 {
-inline void changeColor(XmlElement& xml, String color_hex)
+inline void changeColor(XmlElement& xml, String inputColour, String color_hex)
 {
     forEachXmlChildElement(xml, xmlnode)
     {
-        forEachXmlChildElement(*xmlnode, xmlouterdefs)
+        if (xmlnode->hasAttribute ("fill"))
         {
-            String style = xmlouterdefs->getStringAttribute("style");
-            if (style.isNotEmpty())
+            if (xmlnode->getStringAttribute ("fill") == inputColour)
             {
-                style = style.replace("#030104", color_hex, true);
-                xmlouterdefs->setAttribute("style", style);
-            }
-
-            forEachXmlChildElement(*xmlouterdefs, xmldefs)
-            {
-                String style = xmldefs->getStringAttribute("style");
-                if (style.isNotEmpty())
-                {
-                    style = style.replace("#030104", color_hex, true);
-                    xmldefs->setAttribute("style", style);
-                }
+                xmlnode->setAttribute ("fill", color_hex);
             }
         }
     }
 }
-inline void drawFromSVG(Graphics& g, const char* svgbinary, String col_hex, int x, int y, int newWidth, int newHeight, AffineTransform affine)
+inline void drawFromSvg( Graphics &g, const char* svgbinary,String col_hex,int w,int h)
 {
-    std::unique_ptr<XmlElement> svg = XmlDocument::parse(svgbinary);
-    jassert(svg != nullptr);
-    //changeColor(*svg, col_hex);
-
-    if (svg != nullptr)
+    if (auto svg = XmlDocument::parse (svgbinary))
     {
-        std::unique_ptr<Drawable> drawable = Drawable::createFromSVG(*svg);
-        drawable->setTransformToFit(Rectangle<float>(x, y, newWidth, newHeight), RectanglePlacement::stretchToFit);
-        drawable->draw(g, 1.f, affine);
+
+        std::unique_ptr<Drawable> drawable;
+        GUIHelpers::changeColor (*svg, "#626262", col_hex);
+        {
+            const MessageManagerLock mmLock;
+            drawable = Drawable::createFromSVG (*svg);
+            drawable->setTransformToFit (Rectangle<float> (0.0f, 0.0f, float (w), float (h)), RectanglePlacement::centred);
+            drawable->draw (g, 1.f);
+        }
+
     }
 }
+
 
 
 }

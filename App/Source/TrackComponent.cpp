@@ -380,7 +380,7 @@ void TrackComponent::paint (Graphics& g)
     //std::cout << zoom << std::endl;
     for (int beat = firstBeat - 1; beat <= editViewState.viewX2; beat++)
     {
-        int BeatX = editViewState.beatsToX(beat, getWidth());
+        const int BeatX = editViewState.beatsToX(beat, getWidth()) - 1;
 
         auto zBars = 16;
 
@@ -415,9 +415,6 @@ void TrackComponent::paint (Graphics& g)
 
 
     }
-    auto firstLine = getLocalBounds ().removeFromLeft (1);
-    g.setColour (Colours::white);
-    g.fillRect (firstLine);
 }
 
 void TrackComponent::mouseDown (const MouseEvent&event)

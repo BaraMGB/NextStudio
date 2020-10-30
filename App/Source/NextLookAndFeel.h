@@ -12,6 +12,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackComponent.h"
+//#include "BinaryData.h"
 
 class NextLookAndFeel : public LookAndFeel_V4
 {
@@ -208,20 +209,125 @@ public:
         g.drawFittedText(
             button.getName(), button.getLocalBounds(), Justification::centred, 1);
     }
-//    void drawFileBrowserRow(Graphics &,
-//                            int width,
-//                            int height,
-//                            const File &file,
-//                            const String &filename,
-//                            Image *icon,
-//                            const String &fileSizeDescription,
-//                            const String &fileTimeDescription,
-//                            bool isDirectory, bool isItemSelected,
-//                            int itemIndex,
-//                            DirectoryContentsDisplayComponent &) override
-//    {
 
-//    }
+
+
+
+    void drawFileBrowserRow(Graphics &g,
+                            int width,
+                            int height,
+                            const File &file,
+                            const String &filename,
+                            Image *icon,
+                            const String &fileSizeDescription,
+                            const String &fileTimeDescription,
+                            bool isDirectory, bool isItemSelected,
+                            int itemIndex,
+                            DirectoryContentsDisplayComponent &dcc) override
+    {
+
+        auto w = 24;
+        auto h = 24;
+        juce::Image iconImage (Image::RGB, w, h, true);
+        juce::Graphics graph (iconImage);
+
+        if (isDirectory)
+        {
+
+           GUIHelpers::drawFromSvg (graph,
+                                    BinaryData::folder_svg,
+                                    "#bbbbbb",
+                                    w,
+                                    h);
+        }
+        else if (filename.endsWith (".wav"))
+        {
+            GUIHelpers::drawFromSvg (graph,
+                                     BinaryData::filemusic_svg,
+                                     "#bbbbbb",
+                                     w,
+                                     h);
+        }
+
+        else
+        {
+            GUIHelpers::drawFromSvg (graph,
+                                     BinaryData::file_svg,
+                                     "#bbbbbb",
+                                     w,
+                                     h);
+        }
+        icon = &iconImage;
+//        juce::LookAndFeel_V4::drawFileBrowserRow (g, width, height, file, filename, icon,
+//                                                                  fileSizeDescription, fileTimeDescription,
+//                                                                  isDirectory, isItemSelected, itemIndex, dcc);
+        auto fileListComp = dynamic_cast<Component*> (&dcc);
+
+        if (isItemSelected)
+            g.fillAll (fileListComp != nullptr ? fileListComp->findColour (DirectoryContentsDisplayComponent::highlightColourId)
+                                               : findColour (DirectoryContentsDisplayComponent::highlightColourId));
+
+        const int x = 32;
+        g.setColour (Colours::black);
+
+        if (icon != nullptr && icon->isValid())
+        {
+            g.drawImageWithin (*icon, 2, 2, x - 4, height - 4,
+                               RectanglePlacement::centred | RectanglePlacement::onlyReduceInSize,
+                               false);
+        }
+        else
+        {
+            if (auto* d = isDirectory ? getDefaultFolderImage()
+                                      : getDefaultDocumentFileImage())
+                d->drawWithin (g, Rectangle<float> (2.0f, 2.0f, x - 4.0f, height - 4.0f),
+                               RectanglePlacement::centred | RectanglePlacement::onlyReduceInSize, 1.0f);
+        }
+
+        if (isItemSelected)
+            g.setColour (fileListComp != nullptr ? fileListComp->findColour (DirectoryContentsDisplayComponent::highlightedTextColourId)
+                                                 : findColour (DirectoryContentsDisplayComponent::highlightedTextColourId));
+        else
+            g.setColour (fileListComp != nullptr ? fileListComp->findColour (DirectoryContentsDisplayComponent::textColourId)
+                                                 : findColour (DirectoryContentsDisplayComponent::textColourId));
+
+        g.setFont (height * 0.7f);
+
+        if (width > 450 && ! isDirectory)
+        {
+            auto sizeX = roundToInt (width * 0.7f);
+            auto dateX = roundToInt (width * 0.8f);
+
+            g.drawFittedText (filename,
+                              x, 0, sizeX - x, height,
+                              Justification::centredLeft, 1 , 1.0f);
+
+            g.setFont (height * 0.5f);
+            g.setColour (Colours::darkgrey);
+
+            if (! isDirectory)
+            {
+                g.drawFittedText (fileSizeDescription,
+                                  sizeX, 0, dateX - sizeX - 8, height,
+                                  Justification::centredRight, 1, 1.0f);
+
+                g.drawFittedText (fileTimeDescription,
+                                  dateX, 0, width - 8 - dateX, height,
+                                  Justification::centredRight, 1, 1.0f);
+            }
+        }
+        else
+        {
+            g.drawFittedText (filename,
+                              x, 0, width - x, height,
+                              Justification::centredLeft, 1, 1.0f);
+
+        }
+    }
+
+
+
+
     void drawScrollbar (Graphics &g,
                        ScrollBar &,
                        int x, int y,

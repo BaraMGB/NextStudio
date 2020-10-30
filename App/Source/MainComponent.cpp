@@ -88,7 +88,8 @@ void MainComponent::resized()
     m_tree.setBounds (area.removeFromLeft (sidebarWidth));
     area.removeFromLeft (10);
     m_songEditor->setBounds (area);
-    m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff111111));
+    m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff1b1b1b));
+    m_tree.setColour (DirectoryContentsDisplayComponent::highlightColourId,Colour(0xff4b4b4b) );
 }
 
 void MainComponent::buttonClicked(Button* /*button*/)

@@ -224,7 +224,7 @@ void EditComponent::resized()
         auto f = footers[i];
         
         h->setBounds (0, y, headerWidth-5, trackHeight);
-        t->setBounds (headerWidth, y, getWidth() - headerWidth - footerWidth, trackHeight);
+        t->setBounds (headerWidth + 1, y, getWidth() - headerWidth - footerWidth, trackHeight);
         f->setBounds (getWidth() - footerWidth, y, footerWidth, trackHeight);
         
         y += trackHeight + trackGap;
