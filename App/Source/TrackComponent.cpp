@@ -317,8 +317,14 @@ void TrackHeaderComponent::resized()
     auto buttonwidth = buttonGroup.getWidth() / 2;
     auto buttonHeight = buttonGroup.getHeight() / 2;
     m_soloButton.setBounds(buttonGroup.getX(), buttonGroup.getY(), buttonwidth, buttonHeight);
+    m_soloButton.setComponentID ("solo");
+    m_soloButton.setName ("S");
     m_muteButton.setBounds(buttonGroup.getX(), buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
+    m_muteButton.setComponentID ("mute");
+    m_muteButton.setName ("M");
     m_armButton.setBounds(buttonGroup.getX() + buttonwidth, buttonGroup.getY(), buttonwidth, buttonHeight);
+    m_armButton.setComponentID ("arm");
+    m_armButton.setName ("A");
 
     area.removeFromLeft(20);
     m_trackName.setBounds(area);

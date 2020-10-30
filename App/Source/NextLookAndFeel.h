@@ -175,6 +175,7 @@ public:
                           bool shouldDrawButtonAsHighlighted,
                           bool shouldDrawButtonAsDown) override
     {
+        //drawButtonBackground (g, button, juce::Colour(), shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
         auto buttonArea = button.getLocalBounds();
         buttonArea.reduce(2, 2);
         g.setColour(Colour(0xff000000));
@@ -182,19 +183,21 @@ public:
         g.setColour(Colour(0xff343434));
         buttonArea.reduce(1, 1);
         g.fillRoundedRectangle(buttonArea.toFloat(), 5);
+        auto textColour = juce::Colour(0xff7b7b7b);
         if (button.getToggleState())
         {
+            textColour = Colour(0xff000000);
             if (button.getComponentID() == "solo")
             {
-                g.setColour(Colours::green);
+                g.setColour(Colours::lightgreen);
             }
             else if (button.getComponentID() == "mute")
             {
-                g.setColour(Colours::gold);
+                g.setColour(Colours::indigo);
             }
             else
             {
-                g.setColour(Colours::aqua);
+                g.setColour(Colours::gold);
             }
         }
         else
@@ -203,7 +206,7 @@ public:
         }
         buttonArea.reduce(1, 1);
         g.fillRoundedRectangle(buttonArea.toFloat(), 5);
-        g.setColour(Colours::white);
+        g.setColour(textColour);
         //        auto fontSize = jmin (15.0f, button.getHeight() * 0.75f);
         //        auto tickWidth = fontSize * 1.1f;
         g.drawFittedText(
