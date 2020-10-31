@@ -67,6 +67,7 @@ public:
         g.fillRect(area);
     }
 
+
     void drawRotarySlider(Graphics& g,
                           int x,
                           int y,
@@ -169,6 +170,21 @@ public:
     {
         return {jmin(10.0f, buttonHeight * 0.6f)};
     }
+
+//    void drawImageButton ( 	Graphics & g,
+//                            Image * image,
+//                            int  	imageX,
+//                            int  	imageY,
+//                            int  	imageW,
+//                            int  	imageH,
+//                            const Colour & overlayColour,
+//                            float  	imageOpacity,
+//                            ImageButton & button
+//                            ) override
+//    {
+//        drawButtonBackground (g, button,Colour(),button.isOver (), button.isDown ());
+//        //LookAndFeel_V4::drawImageButton ( g, image,imageX, imageY, imageW, imageH,overlayColour, imageOpacity, button);
+//    }
 
     void drawToggleButton(Graphics& g,
                           ToggleButton& button,

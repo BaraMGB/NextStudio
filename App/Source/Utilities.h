@@ -73,6 +73,28 @@ inline void drawFromSvg( Graphics &g, const char* svgbinary,String col_hex,int w
     }
 }
 
+inline void setDrawableonButton(juce::DrawableButton& button, const char* svgbinary,juce::String col_hex)
+{
+    if (auto svg = XmlDocument::parse (svgbinary))
+    {
+        std::unique_ptr<Drawable> drawable;
+        GUIHelpers::changeColor (*svg, "#626262", col_hex);
+        {
+            const MessageManagerLock mmLock;
+            drawable = Drawable::createFromSVG (*svg);
+        }
+        button.setImages (drawable.get ());
+    }
+
+}
+inline juce::Image getImageFromSvg(const char* svgbinary,String col_hex,int w,int h)
+{
+    juce::Image image (Image::RGB, w, h, true);
+    juce::Graphics g (image);
+    drawFromSvg (g,svgbinary, col_hex, w, h);
+    return image;
+}
+
 
 
 }

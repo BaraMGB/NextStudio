@@ -3,8 +3,13 @@ juce_add_binary_data(Pictures SOURCES
     folder.svg
     file.svg
     file-music.svg
-    Pause.svg
-    Play.svg
-    Record.svg
-    Stop.svg
+    pause.svg
+    play.svg
+    record.svg
+    stop.svg
+    headphones-settings.svg
+    new-box.svg
+    power-plug.svg
+    file-download.svg
+    content-save-edit.svg
     )

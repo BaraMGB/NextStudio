@@ -15,39 +15,47 @@
 
 //==============================================================================
 HeaderComponent::HeaderComponent(tracktion_engine::Edit& edit)
-    : m_edit(edit)
+    : m_newButton ("New", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_loadButton ("Load", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_saveButton ("Save", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_pluginsButton ("Plugins", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_stopButton ("Stop", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_recordButton ("Record", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_settingsButton ("Settings", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_playButton ("Play", DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_edit(edit)
     , m_display (edit)
-{
+{    
     addAndMakeVisible(m_newButton);
-    m_newButton.setButtonText("New");
+    GUIHelpers::setDrawableonButton (m_newButton, BinaryData::newbox_svg, m_btn_col);
     m_newButton.addListener(this);
 
     addAndMakeVisible(m_loadButton);
-    m_loadButton.setButtonText("Load");
+    GUIHelpers::setDrawableonButton (m_loadButton, BinaryData::filedownload_svg, m_btn_col);
     m_loadButton.addListener(this);
 
     addAndMakeVisible(m_saveButton);
-    m_saveButton.setButtonText("Save");
+    GUIHelpers::setDrawableonButton (m_saveButton, BinaryData::contentsaveedit_svg, m_btn_col);
     m_saveButton.addListener(this);
 
     addAndMakeVisible(m_playButton);
-    m_playButton.setButtonText("Play");
+    GUIHelpers::setDrawableonButton (m_playButton, BinaryData::play_svg, m_btn_col);
     m_playButton.addListener(this);
 
     addAndMakeVisible(m_stopButton);
-    m_stopButton.setButtonText("Stop");
+    GUIHelpers::setDrawableonButton (m_stopButton, BinaryData::stop_svg, m_btn_col);
     m_stopButton.addListener(this);
 
     addAndMakeVisible(m_recordButton);
-    m_recordButton.setButtonText("Record");
+    GUIHelpers::setDrawableonButton (m_recordButton, BinaryData::record_svg, m_btn_col);
     m_recordButton.addListener(this);
 
     addAndMakeVisible(m_settingsButton);
-    m_settingsButton.setButtonText("Settings");
+    GUIHelpers::setDrawableonButton (m_settingsButton, BinaryData::headphonessettings_svg, m_btn_col);
     m_settingsButton.addListener(this);
 
     addAndMakeVisible(m_pluginsButton);
-    m_pluginsButton.setButtonText("Plugins");
+    GUIHelpers::setDrawableonButton (m_pluginsButton, BinaryData::powerplug_svg, m_btn_col);
     m_pluginsButton.addListener(this);
 
     addAndMakeVisible (m_display);
@@ -106,6 +114,13 @@ void HeaderComponent::resized()
     m_playButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     m_display.setBounds (displayRect);
 
+
+//    m_playButton.setImages (false, false, true,
+//                            GUIHelpers::getImageFromSvg (BinaryData::Play_svg, "#000000",24,24), 0.0f, Colour(0x00000000),
+//                            GUIHelpers::getImageFromSvg (BinaryData::Play_svg, "#000000",24,24), 0.0f, Colour(0x00000000),
+//                            GUIHelpers::getImageFromSvg (BinaryData::Play_svg, "#000000",24,24), 0.0f, Colour(0x00000000)
+//                            );
+
 }
 
 void HeaderComponent::buttonClicked(Button* button)
@@ -124,14 +139,16 @@ void HeaderComponent::buttonClicked(Button* button)
             transport.stop(false, false);
         else
             transport.play(true);
-
-        m_playButton.setButtonText(m_edit.getTransport().isPlaying() ? "Pause" : "Play");
+        const char* svgbin = m_edit.getTransport().isPlaying() ? BinaryData::pause_svg
+                                                               : BinaryData::play_svg;
+        GUIHelpers::setDrawableonButton (m_playButton, svgbin, m_btn_col);
+       // m_playButton.setButtonText(m_edit.getTransport().isPlaying() ? "Pause" : "Play");
     }
     if (button == &m_stopButton)
     {
         m_edit.getTransport().stop(false, false, true, true);
         m_edit.getTransport().setCurrentPosition(0);
-        m_playButton.setButtonText("Play");
+        GUIHelpers::setDrawableonButton (m_playButton, BinaryData::play_svg, m_btn_col);
     }
     if (button == &m_recordButton)
     {

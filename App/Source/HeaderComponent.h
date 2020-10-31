@@ -323,9 +323,10 @@ public:
 
 
 private:
-    TextButton m_newButton, m_loadButton, m_saveButton, m_pluginsButton,
-               m_playButton, m_stopButton, m_recordButton, m_settingsButton;
+    DrawableButton m_newButton, m_loadButton, m_saveButton, m_pluginsButton,
+                m_stopButton, m_recordButton, m_settingsButton, m_playButton;
     tracktion_engine::Edit& m_edit;
+    juce::String m_btn_col {"#bbbbbb"};
     Colour m_mainColour{ Colour(0xff57cdff) };
     PositionDisplayComponent m_display;
 
