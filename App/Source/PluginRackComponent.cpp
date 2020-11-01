@@ -12,7 +12,7 @@ PluginRackComponent::PluginRackComponent (EditViewState& evs, te::Track::Ptr t)
     addButton.onClick = [this]
     {
         if (auto plugin = showMenuAndCreatePlugin (track->edit))
-            track->pluginList.insertPlugin (plugin, 0, &editViewState.selectionManager);
+            track->pluginList.insertPlugin (plugin, track->pluginList.size() - 2, &editViewState.selectionManager);
         editViewState.selectionManager.selectOnly (track);
     };
 }
@@ -54,14 +54,13 @@ void PluginRackComponent::resized()
 {
     auto area = getLocalBounds().reduced (5);
 
-    addButton.setBounds (area.removeFromLeft(15));
-
-
     for (auto p : plugins)
     {
         area.removeFromLeft (5);
         p->setBounds (area.removeFromLeft((area.getHeight() * p->getNeededWidthFactor()) / 2 ));
     }
+    area.removeFromLeft (5);
+    addButton.setBounds (area.removeFromLeft(15));
 }
 
 void PluginRackComponent::handleAsyncUpdate()
@@ -72,12 +71,17 @@ void PluginRackComponent::handleAsyncUpdate()
 
 void PluginRackComponent::buildPlugins()
 {
+    
     plugins.clear();
     for (auto plugin : track->pluginList)
     {
+        //don't show the default volume and levelmeter plugin
+        if (track->pluginList.indexOf(plugin)  < track->pluginList.size() - 2 )
+        {
             auto p = new PluginComponent (editViewState, plugin);
             addAndMakeVisible (p);
             plugins.add (p);
+        }
     }
     resized();
 }
@@ -107,16 +111,16 @@ void LowerRangeComponent::changeListenerCallback(ChangeBroadcaster *)
                                || lastClickedTrack->isChordTrack()))
     {
         m_pointedTrack = lastClickedTrack;
-        m_footers.clear();
+        m_pluginRackComp.clear();
         auto tfc = new PluginRackComponent(editViewState, m_pointedTrack);
-        m_footers.add(tfc);
+        m_pluginRackComp.add(tfc);
         addAndMakeVisible(tfc);
         tfc->setAlwaysOnTop(true);
         resized();
     }
     else
     {
-        m_footers.clear();
+        m_pluginRackComp.clear();
         resized();
     }
 }
@@ -134,10 +138,10 @@ void LowerRangeComponent::paint(Graphics &g)
 
 void LowerRangeComponent::resized()
 {
-    if (m_footers.getFirst())
+    if (m_pluginRackComp.getFirst())
     {
         auto pluginRect = getLocalBounds();
         pluginRect.removeFromTop (10);
-        m_footers.getFirst()->setBounds(pluginRect);
+        m_pluginRackComp.getFirst()->setBounds(pluginRect);
     }
 }

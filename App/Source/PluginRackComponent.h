@@ -58,7 +58,7 @@ public:
 private:
 
     EditViewState& editViewState;
-    OwnedArray<PluginRackComponent> m_footers;
+    OwnedArray<PluginRackComponent> m_pluginRackComp;
 
     tracktion_engine::Track * m_pointedTrack;
 

@@ -326,7 +326,7 @@ private:
     DrawableButton m_newButton, m_loadButton, m_saveButton, m_pluginsButton,
                 m_stopButton, m_recordButton, m_settingsButton, m_playButton;
     tracktion_engine::Edit& m_edit;
-    juce::String m_btn_col {"#bbbbbb"};
+    juce::String m_btn_col {"#dbdbdb"};
     Colour m_mainColour{ Colour(0xff57cdff) };
     PositionDisplayComponent m_display;
 
