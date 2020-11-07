@@ -3,23 +3,35 @@
 PluginRackComponent::PluginRackComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), track (t)
 {
-    addAndMakeVisible (addButton);
-
     buildPlugins();
 
     track->state.addListener (this);
-
-    addButton.onClick = [this]
-    {
-        if (auto plugin = showMenuAndCreatePlugin (track->edit))
-            track->pluginList.insertPlugin (plugin, track->pluginList.size() - 2, &editViewState.selectionManager);
-        editViewState.selectionManager.selectOnly (track);
-    };
 }
 
 PluginRackComponent::~PluginRackComponent()
 {
+    for (auto &b : addButtons)
+    {
+        b->removeListener(this);
+    }
     track->state.removeListener (this);
+}
+
+void PluginRackComponent::buttonClicked(Button* button)
+{
+    for (auto &b : addButtons)
+    {
+        if (b == button)
+        {
+            if (auto plugin = showMenuAndCreatePlugin (track->edit))
+                {
+                    track->pluginList.insertPlugin (plugin, addButtons.indexOf(b), 
+                                                    &editViewState.selectionManager);
+                }
+                editViewState.selectionManager.selectOnly (track);
+
+        }
+    }
 }
 
 void PluginRackComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
@@ -54,13 +66,34 @@ void PluginRackComponent::resized()
 {
     auto area = getLocalBounds().reduced (5);
 
+    for (auto &b : addButtons)
+    {
+        b->removeListener(this);
+    }
+    addButtons.clear();
+    auto firstAdder = new AddButton;
+    addButtons.add(firstAdder);
+    addAndMakeVisible(*firstAdder);
+    firstAdder->addListener(this);    
+    firstAdder->setButtonText("+");
+    firstAdder->setBounds(area.removeFromLeft(15));
+
     for (auto p : plugins)
     {
         area.removeFromLeft (5);
         p->setBounds (area.removeFromLeft((area.getHeight() * p->getNeededWidthFactor()) / 2 ));
+
+        area.removeFromLeft(5);
+
+        auto adder = new AddButton;
+        adder->setPlugin(p->getPlugin());
+        addButtons.add(adder);
+        addAndMakeVisible(*adder);
+        adder->setButtonText("+");
+        adder->setBounds(area.removeFromLeft(15));
+        adder->addListener(this);
     }
     area.removeFromLeft (5);
-    addButton.setBounds (area.removeFromLeft(15));
 }
 
 void PluginRackComponent::handleAsyncUpdate()
@@ -71,8 +104,8 @@ void PluginRackComponent::handleAsyncUpdate()
 
 void PluginRackComponent::buildPlugins()
 {
-    
     plugins.clear();
+    
     for (auto plugin : track->pluginList)
     {
         //don't show the default volume and levelmeter plugin
