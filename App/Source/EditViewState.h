@@ -43,7 +43,7 @@ public:
         drawWaveforms.referTo (state, IDs::drawWaveforms, um, true);
         showHeaders.referTo (state, IDs::showHeaders, um, true);
         showFooters.referTo (state, IDs::showFooters, um, false);
-        showMidiDevices.referTo (state, IDs::showMidiDevices, um, true);
+        showMidiDevices.referTo (state, IDs::showMidiDevices, um, false);
         showWaveDevices.referTo (state, IDs::showWaveDevices, um, true);
 
         headerHeight.referTo(state, IDs::headerHeight, um, 50);

@@ -7,20 +7,13 @@
 class PluginComponent : public Component
 {
 public:
-    PluginComponent (EditViewState&, te::Plugin::Ptr);
+    PluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
     ~PluginComponent();
 
-    void paint (Graphics& g) override;
-    void mouseDown (const MouseEvent& e) override;
-    void mouseDrag (const MouseEvent& e) override
-    {
-        DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
-        if (!dragC->isDragAndDropActive())
-        {
-            dragC->startDragging("PluginComp", this,juce::Image(Image::ARGB,1,1,true),
-                             false);
-        }
-    }
+    void paint (Graphics&) override;
+    void mouseDown (const MouseEvent&) override;
+    void mouseDrag (const MouseEvent&) override;
+    void mouseUp (const MouseEvent&) override;
 
     void resized() override;
 
@@ -33,7 +26,11 @@ public:
 
 private:
     juce::Label name;
+    int m_headerWidth {20};
     int m_neededWidthFactor {1};
     EditViewState& editViewState;
     te::Plugin::Ptr plugin;
+    juce::Colour m_trackColour;
+
+    bool m_clickOnHeader {false};
 };

@@ -152,7 +152,6 @@ void TrackHeaderComponent::paint (Graphics& g)
 
 void TrackHeaderComponent::mouseDown (const MouseEvent& event)
 {
-
     if (!event.mouseWasDraggedSinceMouseDown())
         {
             if (event.mods.isRightButtonDown ())
@@ -190,15 +189,15 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
 
                     at->edit.playInStopEnabled = true;
                     auto& dm = at->edit.engine.getDeviceManager();
-                    for (int i = 0; i < dm.getNumMidiInDevices(); i++)
-                    {
-                        if (auto wip = dm.getMidiInDevice(i))
-                        {
-                            wip->setEndToEndEnabled(true);
-                            wip->setEnabled(true);
-                        }
-                    }
-                    at->edit.restartPlayback();
+//                    for (int i = 0; i < dm.getNumMidiInDevices(); i++)
+//                    {
+//                        if (auto wip = dm.getMidiInDevice(i))
+//                        {
+//                            wip->setEndToEndEnabled(true);
+//                            wip->setEnabled(true);
+//                        }
+//                    }
+//                    at->edit.restartPlayback();
 
                     for (auto instance: at->edit.getAllInputDevices())
                     {
@@ -249,11 +248,11 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                             {
                                 if (id == res)
                                 {
-                                    if (instance->getTargetTracks().getFirst() == at)
-                                    {
-                                        instance->removeTargetTrack(*at);
-                                    }
-                                    else
+//                                    if (instance->getTargetTracks().getFirst() == at)
+//                                    {
+//                                        instance->removeTargetTrack(*at);
+//                                    }
+//                                    else
                                     {
                                         instance->setTargetTrack(*at, 0, true);
                                     }
@@ -261,6 +260,10 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
                                 id++;
                             }
                         }
+                        EngineHelpers::enableInputMonitoring(
+                            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
+                        EngineHelpers::enableInputMonitoring(
+                            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
                     }
                     else if (res >= 1)
                     {

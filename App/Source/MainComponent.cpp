@@ -161,7 +161,7 @@ void MainComponent::setupEdit(File editFile = {})
     m_editNameLabel.setText (editFile.getFileNameWithoutExtension(), dontSendNotification);
 
 
-    //createTracksAndAssignInputs();
+    createTracksAndAssignInputs();
 
     te::EditFileOperations (*m_edit).save (true, true, false);
 
@@ -183,6 +183,15 @@ void MainComponent::createTracksAndAssignInputs()
         {
             wip->setEndToEnd (true);
             wip->setEnabled (true);
+        }
+    }
+
+    for (int i = 0; i < dm.getNumMidiInDevices(); i++)
+    {
+        if (auto mip = dm.getMidiInDevice (i))
+        {
+            mip->setEndToEndEnabled (true);
+            mip->setEnabled (true);
         }
     }
 
