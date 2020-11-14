@@ -19,19 +19,43 @@ void PluginComponent::paint (Graphics& g)
 {
     auto area = getLocalBounds();
     g.setColour(Colour(0xff242424));
-    g.fillRect(area);
+    auto cornerSize = 10;
+    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true);
+
+
 
     g.setColour(plugin->isEnabled () ?
                        m_trackColour : m_trackColour.darker (0.7));
 
+    name.setColour(Label::ColourIds::textColourId, m_trackColour.getBrightness() > 0.8 ?
+                                                                    Colour(0xff000000) : Colour(0xffffffff));
+
     auto header = area.removeFromLeft(m_headerWidth);
-    g.fillRect(header);
+    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true);
 
     if (m_clickOnHeader)
     {
         g.setColour (juce::Colour(0xffffffff));
         g.drawRect (getLocalBounds ());
     }
+
+//   ****************** Draw shadow Text ****************************************************
+    //    auto textRect = getLocalBounds().toFloat();
+    //    juce::Image image(Image::ARGB, textRect.getWidth(), textRect.getHeight(), true);
+    //    Graphics imageGraph (image);
+    //    imageGraph.setColour(Colour(0x00000000));
+    //    imageGraph.fillAll();
+    //    auto irect = Rectangle<float>(0.0, 0.0, textRect.getWidth(), textRect.getHeight());
+    //    imageGraph.setColour(Colour(0xffdddddd));
+    //    imageGraph.setFont(16);
+    //    imageGraph.drawText("Hello",irect, Justification::centred, false);
+    //    DropShadow drops;
+    //    drops.colour = Colour(0xff222222);
+    //    drops.radius = 1;
+    //    drops.drawForImage(g,image);
+    //    drops.drawForImage(g,image);
+    //    g.drawImage(image,textRect);
+
 }
 void PluginComponent::mouseDown (const MouseEvent& e)
 {

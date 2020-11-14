@@ -16,7 +16,12 @@ void ClipComponent::paint (Graphics& g)
         alpha = 0.2f;
     }
 
-    g.fillAll (clip->getColour());
+    auto area = getLocalBounds();
+    g.setColour(clip->getTrack()->getColour());
+    g.fillRect(area);
+    area.reduce(1,1);
+    g.setColour(getClip().getTrack()->getColour().darker());
+    g.fillRect(area.removeFromTop(10));
     g.setColour (Colours::black);
     if (m_isDragging)
     {
@@ -121,10 +126,7 @@ AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
 void AudioClipComponent::paint (Graphics& g)
 {
     ClipComponent::paint (g);
-    auto area = getLocalBounds();
-    area.reduce(1,1);
-    g.setColour(getClip().getColour().darker());
-    g.fillRect(area.removeFromTop(10));
+
 }
 
 void AudioClipComponent::resized()
@@ -141,7 +143,7 @@ void AudioClipComponent::resized()
         rightOffset = getBoundsInParent().getRight() - getParentWidth();
     }
 
-    thumbnailComponent.setBounds (0 + leftOffset,0,(getWidth() - leftOffset) - rightOffset, getHeight ());
+    thumbnailComponent.setBounds (1 + leftOffset,11,(getWidth() - 1 - leftOffset) - rightOffset, getHeight () - 11);
 }
 
 
@@ -157,7 +159,7 @@ MidiClipComponent::MidiClipComponent (EditViewState& evs, te::Clip::Ptr c)
 void MidiClipComponent::paint (Graphics& g)
 {
     ClipComponent::paint (g);
-
+    auto clipHeader = 10;
     if (auto mc = getMidiClip())
     {
         auto& seq = mc->getSequence();
@@ -167,7 +169,7 @@ void MidiClipComponent::paint (Graphics& g)
             double eBeat = /*mc->getStartBeat() + */n->getEndBeat();
             if (auto p = getParentComponent())
             {
-                double y = (1.0 - double (n->getNoteNumber()) / 127.0) * getHeight();
+                double y = ((1.0 - double (n->getNoteNumber()) / 127.0) * (getHeight() - clipHeader) + clipHeader);
 
                 auto x1 =  editViewState.beatsToX (sBeat + editViewState.viewX1, p->getWidth ());
                 auto x2 =  editViewState.beatsToX (eBeat + editViewState.viewX1, p->getWidth ());

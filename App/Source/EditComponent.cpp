@@ -12,8 +12,9 @@ PlayheadComponent::PlayheadComponent (te::Edit& e , EditViewState& evs)
 
 void PlayheadComponent::paint (Graphics& g)
 {
-    g.setColour (Colours::yellow);
+    g.setColour (Colours::antiquewhite);
     g.drawRect (xPosition, 0, 2, getHeight());
+    //g.drawArrow(juce::Line<float>(xPosition, 0, xPosition,editViewState.headerHeight),1,3,10);
 }
 
 bool PlayheadComponent::hitTest (int x, int)
@@ -66,7 +67,9 @@ TollBarComponent::TollBarComponent()
 
 void TollBarComponent::paint(Graphics &g)
 {
-    g.setColour(Colour (0xff222222));
+    g.setColour(Colour (0xff181818));
+    auto cornerSize = 10;
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
     g.fillAll ();
 }
 
@@ -183,9 +186,10 @@ void EditComponent::paint(Graphics &g)
 {
     auto rect = getLocalBounds();
     g.setColour(Colour(0xff181818));
-    g.fillRect(rect);
+    auto cornerSize = 10;
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
 
-    g.setColour(Colours::white);
+    g.setColour(Colour(0xff4f4f4f));
     g.drawRect(editViewState.headerWidth, 0, 1, getHeight());
 }
 
@@ -223,7 +227,7 @@ void EditComponent::resized()
         auto t = tracks[i];
         auto f = footers[i];
         
-        h->setBounds (0, y, headerWidth-5, trackHeight);
+        h->setBounds (2, y, headerWidth-2, trackHeight);
         t->setBounds (headerWidth + 1, y, getWidth() - headerWidth - footerWidth, trackHeight);
         f->setBounds (getWidth() - footerWidth, y, footerWidth, trackHeight);
         

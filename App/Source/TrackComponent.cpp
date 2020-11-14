@@ -91,10 +91,12 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
 
 void TrackHeaderComponent::paint (Graphics& g)
 {   
+    auto cornerSize = 10;
     Rectangle<float> area = getLocalBounds().toFloat();
 
-    g.setColour(Colour(0xff000000));
-    g.drawRect(area, 1);
+//    g.setColour(Colour(0xff000000));
+//    GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
+
     area.reduce(1, 1);
 
     auto buttonColour = Colour(0xff4b4b4b);
@@ -106,48 +108,78 @@ void TrackHeaderComponent::paint (Graphics& g)
     }
 
 
-    juce::ColourGradient border = {buttonColour.brighter (0.1f),
-                                   0,
-                                   0,
-                                   buttonColour.brighter (0.1f),
-                                   0,
-                                   static_cast<float>(getHeight()),
-                                   false};
-    border.addColour (0.5, buttonColour.brighter (0.8f));
-    g.setGradientFill (border);
-    g.fillRect (area);
-    area.reduce (1,1);
-    juce::ColourGradient gradient = {buttonColour,
-                                     0,
-                                     0,
-                                     buttonColour,
-                                     0,
-                                     static_cast<float>(getHeight()),
-                                     false};
-    gradient.addColour (0.25, buttonColour.brighter (0.05f));
-    gradient.addColour (0.75, buttonColour.brighter (0.05f));
-    g.setGradientFill(gradient);
-    g.fillRect(area);
+//    juce::ColourGradient border = {buttonColour.brighter (0.1f),
+//                                   0,
+//                                   0,
+//                                   buttonColour.brighter (0.1f),
+//                                   0,
+//                                   static_cast<float>(getHeight()),
+//                                   false};
+//    border.addColour (0.5, buttonColour.brighter (0.8f));
+//    g.setGradientFill (border);
+//    //cornerSize--;
+    g.setColour(buttonColour);
+    GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
+//    area.reduce (1,1);
+//    juce::ColourGradient gradient = {buttonColour,
+//                                     0,
+//                                     0,
+//                                     buttonColour,
+//                                     0,
+//                                     static_cast<float>(getHeight()),
+//                                     false};
+////    gradient.addColour (0.25, buttonColour.brighter (0.05f));
+////    gradient.addColour (0.75, buttonColour.brighter (0.05f));
+//    g.setGradientFill(gradient);
+//    //cornerSize--;
+//    GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize, true);
 
     if (drawOverlayTrackColour)
     {
         auto trackColorOverlay = m_track->getColour ().darker (0.5);
         g.setColour (trackColorOverlay.withAlpha (0.1f));
-        g.fillRect (area);
+
+        GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize, true);
     }
 
-    Rectangle<float> trackColorIndicator = area.removeFromLeft(18);
-    trackColorIndicator.reduce (1,1);
+    // TrackColour
+    Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
+    //trackColorIndicator.reduce (1,1);
     auto trackColor =  m_track->getColour();
 
-    g.setColour (trackColor.darker (0.7f));
-    g.fillRect(trackColorIndicator);
-    trackColorIndicator.reduce (1,1);
-    g.setColour (trackColor.brighter (0.1f));
-    g.fillRect(trackColorIndicator);
-    trackColorIndicator.reduce (1,1);
+//    g.setColour (trackColor.darker (0.6f));
+//    cornerSize = 10;
+//    GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator, cornerSize, true);
+
+//    trackColorIndicator.reduce (0,1);
+//    trackColorIndicator.removeFromLeft(1);
+//    g.setColour (trackColor.brighter (0.1f));
+//    GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator, cornerSize, true);
+//    trackColorIndicator.reduce (0,1);
+//    trackColorIndicator.removeFromLeft(1);
     g.setColour (trackColor);
-    g.fillRect (trackColorIndicator);
+    GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
+
+//   ****************** Draw shadow Text ****************************************************
+//    auto textRect = getLocalBounds().toFloat();
+//    juce::Image image(Image::ARGB, textRect.getWidth(), textRect.getHeight(), true);
+//    Graphics imageGraph (image);
+//    imageGraph.setColour(Colour(0x00000000));
+//    imageGraph.fillAll();
+//    auto irect = Rectangle<float>(0.0, 0.0, textRect.getWidth(), textRect.getHeight());
+//    imageGraph.setColour(Colour(0xffdddddd));
+//    imageGraph.setFont(16);
+//    imageGraph.drawText("Hello",irect, Justification::centred, false);
+//    DropShadow drops;
+//    drops.colour = Colour(0xff222222);
+//    drops.radius = 1;
+//    drops.drawForImage(g,image);
+//    drops.drawForImage(g,image);
+//    g.drawImage(image,textRect);
+
+
+
+
 }
 
 void TrackHeaderComponent::mouseDown (const MouseEvent& event)

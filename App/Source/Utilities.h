@@ -43,6 +43,15 @@ namespace Helpers
 
 namespace GUIHelpers
 {
+
+inline void drawRoundedRectWithSide(Graphics & g, Rectangle<float> area, int cornerSize, bool left)
+{
+    g.fillRoundedRectangle(area, cornerSize);
+    auto rightRect = area.withTrimmedLeft(area.getWidth()/2);
+    g.fillRect(rightRect);
+}
+
+
 inline void changeColor(XmlElement& xml, String inputColour, String color_hex)
 {
     forEachXmlChildElement(xml, xmlnode)

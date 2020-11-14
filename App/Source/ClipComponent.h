@@ -59,7 +59,7 @@ public:
     void paint(Graphics &g) override
     {
 
-        juce::Rectangle<int> thumbnailBounds( 0,10,getWidth (), getHeight () - 10);
+        juce::Rectangle<int> thumbnailBounds (0, 0, getWidth (), getHeight ());
 
         auto leftX = getBoundsInParent ().getX();
         auto rightX = getParentWidth () - (getBoundsInParent ().getX () + getBoundsInParent ().getWidth ());

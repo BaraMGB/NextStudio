@@ -54,7 +54,7 @@ void PluginRackComponent::valueTreeChildOrderChanged (juce::ValueTree&, int, int
 void PluginRackComponent::paint (Graphics& g)
 {
     g.setColour (Colour(0x181818));
-    g.fillRect (getLocalBounds().withTrimmedLeft (2));
+    g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
 }
 
 void PluginRackComponent::mouseDown (const MouseEvent&)
@@ -162,10 +162,11 @@ void LowerRangeComponent::paint(Graphics &g)
 {
 
     auto rect = getLocalBounds();
-    g.setColour(Colour(0xff181818));
-    g.fillRect(rect);
     g.setColour(Colour(0xff555555));
-    g.fillRect(rect.removeFromTop (10));
+    g.fillRect(rect);
+    g.setColour(Colour(0xff181818));
+    auto cornerSize = 10;
+    g.fillRoundedRectangle(rect.removeFromBottom(getHeight() - 10).toFloat(), cornerSize);
 
 }
 

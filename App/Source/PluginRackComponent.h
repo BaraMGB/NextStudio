@@ -110,8 +110,6 @@ public:
 
     void paint(Graphics& g) override
     {
-        g.setColour(Colour(0xff1b1b1b));
-        g.fillAll();
         if (isOver)
         {
             g.setColour(Colours::white);
@@ -120,7 +118,12 @@ public:
         {
             g.setColour(Colours::grey);
         }
-        g.drawRect(getLocalBounds());
+        int cornerSize = 5;
+        auto area = getLocalBounds().toFloat();
+        g.fillRoundedRectangle( area, cornerSize);
+        area.reduce(1,1);
+        g.setColour(Colour(0xff1b1b1b));
+
         g.drawText(getButtonText(),getLocalBounds(),juce::Justification::centred, false);
     }
 
