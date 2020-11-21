@@ -121,6 +121,7 @@ public:
     void paint (Graphics& g) override;
     void resized() override;
 
+
 private:
 
     ThumbnailComponent thumbnailComponent;
@@ -135,6 +136,17 @@ public:
     te::MidiClip* getMidiClip() { return dynamic_cast<te::MidiClip*> (clip.get()); }
 
     void paint (Graphics& g) override;
+    void mouseMove(const MouseEvent& e) override;
+    void mouseExit(const MouseEvent& e) override;
+    void mouseDown (const MouseEvent&) override;
+    void mouseDrag(const MouseEvent &) override;
+
+private:
+    int m_mouseDownX {0};
+    int m_clipWidthMouseDown;
+    double m_lastOffset{0.0};
+    double m_oldDistTime{0.0};
+    tracktion_engine::ClipPosition m_posAtMouseDown;
 };
 
 //==============================================================================
