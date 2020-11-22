@@ -37,6 +37,8 @@ public:
         : editViewState(evs)
         , thumbnailCache(5)
         , thumbnail (256, formatManager, thumbnailCache)
+        , m_drawOffset(0.0)
+        , m_drawRightOffset(0.0)
     {
         setInterceptsMouseClicks (false, false);
         thumbnail.addChangeListener (this);
@@ -65,14 +67,14 @@ public:
         auto rightX = getParentWidth () - (getBoundsInParent ().getX () + getBoundsInParent ().getWidth ());
 
 
-        auto leftT = thumbnail.getTotalLength () * leftX / getParentWidth ();
-        auto rightT = thumbnail.getTotalLength () * rightX / getParentWidth ();
+        auto leftT = (thumbnail.getTotalLength () - m_drawOffset - m_drawRightOffset ) * leftX / getParentWidth ();
+        auto rightT = (thumbnail.getTotalLength () - m_drawOffset - m_drawRightOffset) * rightX / getParentWidth ();
         g.setColour (juce::Colours::black.withAlpha (0.7f));
 
         thumbnail.drawChannel (g,
                                 thumbnailBounds,
-                                0.0 + leftT,
-                                thumbnail.getTotalLength() - rightT,
+                                m_drawOffset + leftT,
+                                thumbnail.getTotalLength() - rightT - m_drawRightOffset,
                                 0,
                                 1.0f);
     }
@@ -94,6 +96,15 @@ public:
         repaint ();
     }
 
+    void setDrawOffset(double drawOffset)
+    {
+        m_drawOffset = drawOffset;
+    }
+
+    void setDrawOffsetRight(double drawOffsetRight)
+    {
+        m_drawRightOffset = drawOffsetRight;
+    }
 private:
 
 
@@ -104,6 +115,7 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioThumbnailCache thumbnailCache;                  // [1]
     juce::AudioThumbnail thumbnail;
+    double m_drawOffset, m_drawRightOffset;
 };
 
 
@@ -120,9 +132,19 @@ public:
 
     void paint (Graphics& g) override;
     void resized() override;
+    void mouseMove(const MouseEvent& e) override;
+    void mouseExit(const MouseEvent& e) override;
+    void mouseDown (const MouseEvent&) override;
+    void mouseDrag(const MouseEvent &) override;
 
 
 private:
+
+    int m_mouseDownX {0};
+    int m_clipWidthMouseDown;
+    double m_lastOffset{0.0};
+    double m_oldDistTime{0.0};
+    tracktion_engine::ClipPosition m_posAtMouseDown;
 
     ThumbnailComponent thumbnailComponent;
 };
