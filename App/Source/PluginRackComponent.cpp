@@ -111,7 +111,7 @@ void PluginRackComponent::buildPlugins()
         //don't show the default volume and levelmeter plugin
         if (track->pluginList.indexOf(plugin)  < track->pluginList.size() - 2 )
         {
-            auto p = new PluginComponent (editViewState, plugin, track->getColour ());
+            auto p = new PluginWindowComponent (editViewState, plugin, track->getColour ());
             addAndMakeVisible (p);
             plugins.add (p);
         }

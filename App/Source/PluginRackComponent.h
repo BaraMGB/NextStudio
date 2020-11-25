@@ -35,7 +35,7 @@ public:
         return track;
     }
 
-    OwnedArray<PluginComponent> & getPluginComponents()
+    OwnedArray<PluginWindowComponent> & getPluginComponents()
     {
         return plugins;
     }
@@ -53,7 +53,7 @@ private:
     EditViewState& editViewState;
     te::Track::Ptr track;
 
-    OwnedArray<PluginComponent> plugins;
+    OwnedArray<PluginWindowComponent> plugins;
     
     OwnedArray<AddButton> addButtons;
 
