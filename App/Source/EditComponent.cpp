@@ -169,12 +169,10 @@ void EditComponent::mouseDown(const MouseEvent &event)
             auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
             if (auto track = EngineHelpers::getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
             {
-
+                 track->state.setProperty(te::IDs::height, track->defaultTrackHeight,&edit.getUndoManager());
                  track->setName("Track " + String(tracktion_engine::getAudioTracks(edit).size()));
                  track->setColour(Colour(red, gre, blu));
                  editViewState.selectionManager.selectOnly(track);
-
-
             }
         }
     }
@@ -209,7 +207,7 @@ void EditComponent::resized()
     jassert (headers.size() == tracks.size());
     
     const int timelineHeight = 50;
-    const int trackHeight = editViewState.headerHeight, trackGap = 0;
+    const int trackGap = 0;
     const int headerWidth = editViewState.showHeaders ? editViewState.headerWidth : 0;
     const int footerWidth = editViewState.showFooters ? 150 : 0;
     const int pluginRackHeight = 250;
@@ -221,11 +219,13 @@ void EditComponent::resized()
     
     int y = roundToInt (editViewState.viewY.get()) + timelineHeight;
     int trackCount = 0;
+    int trackHeight = 30;
     for (int i = 0; i < jmin (headers.size(), tracks.size()); i++)
     {
         auto h = headers[i];
         auto t = tracks[i];
         auto f = footers[i];
+        trackHeight = tracks[i]->getTrack()->state.getProperty(tracktion_engine::IDs::height,50);
         
         h->setBounds (2, y, headerWidth-2, trackHeight);
         t->setBounds (headerWidth + 1, y, getWidth() - headerWidth - footerWidth, trackHeight);
@@ -312,6 +312,11 @@ void EditComponent::buildTracks()
     
     playhead.toFront (false);
     resized();
+}
+
+OwnedArray<TrackComponent> & EditComponent::getTrackComps()
+{
+    return tracks;
 }
 
 //--------------------------------------------------------------------------------------

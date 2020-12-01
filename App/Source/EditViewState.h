@@ -51,7 +51,7 @@ public:
         viewX1.referTo (state, IDs::viewX1, um, 0.0);
         viewX2.referTo (state, IDs::viewX2, um, 30.0 * 4);
         viewY.referTo (state, IDs::viewY, um, 0);
-        snapType.referTo(state, IDs::snapType, um, 9);
+        snapType.referTo(state, IDs::snapType, um, 7);
     }
 
     int beatsToX (double beats, int width) const

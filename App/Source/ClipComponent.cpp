@@ -38,6 +38,11 @@ void ClipComponent::paint (Graphics& g)
 
 void ClipComponent::mouseDown (const MouseEvent&event)
 {
+    m_clickPosTime = editViewState.beatToTime(editViewState.xToBeats(event.x, getParentWidth()));
+    if (event.mods.getCurrentModifiers().isCtrlDown())
+    {
+        m_isCopying = true;
+    }
     if(!event.mouseWasDraggedSinceMouseDown())
         {
             if (event.mods.isRightButtonDown())
@@ -60,10 +65,10 @@ void ClipComponent::mouseDown (const MouseEvent&event)
                 }
                 else if (result == 2)
                 {
+                    tracktion_engine::Clipboard::getInstance()->clear();
                     auto clipContent = std::make_unique<te::Clipboard::Clips>();
                     clipContent->addClip(0, clip->state);
                     te::Clipboard::getInstance()->setContent(std::move(clipContent));
-                    // (clip.get());
                 }
             }
             else
@@ -74,9 +79,11 @@ void ClipComponent::mouseDown (const MouseEvent&event)
                 setMouseCursor (MouseCursor::DraggingHandCursor);
             }
         }
-
-    /*tracktion_engine::Clipboard::ContentType::pasteIntoEdit(editViewState.edit, insertPoint, editViewState.selectionManager);*/
     m_isDragging = true;
+    tracktion_engine::Clipboard::getInstance()->clear();
+    auto clipContent = std::make_unique<te::Clipboard::Clips>();
+    clipContent->addClip(0, clip->state);
+    te::Clipboard::getInstance()->setContent(std::move(clipContent));
 }
 
 void ClipComponent::mouseDrag(const MouseEvent & event)
@@ -85,33 +92,47 @@ void ClipComponent::mouseDrag(const MouseEvent & event)
     DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
     if (!dragC->isDragAndDropActive())
     {
-
+        m_isShiftDown = false;
+        if (event.mods.isShiftDown())
+        {
+            m_isShiftDown = true;
+        }
         dragC->startDragging("Clip", this,juce::Image(Image::ARGB,1,1,true),
                              false);
+
     }
-
-    auto newPos = jmax(
-                0.0,
-                editViewState.beatToTime(
-                    (m_clipPosAtMouseDown - editViewState.viewX1)
-                    + editViewState.xToBeats(event.getDistanceFromDragStartX(), getParentWidth())
-                    )
-                );
-    if (!event.mods.isShiftDown())
-    {
-        newPos = clip->edit.getTimecodeFormat().getSnapType(editViewState.snapType)
-                                             .roundTimeNearest(newPos, clip->edit.tempoSequence);
-    }
-    clip->setStart(newPos, false, true);
-
-
 }
 
-void ClipComponent::mouseUp(const MouseEvent &)
+void ClipComponent::mouseUp(const MouseEvent & event)
 {
     editViewState.edit.getTransport ().setUserDragging (false);
     m_isDragging = false;
     setMouseCursor (MouseCursor::NormalCursor);
+}
+
+bool ClipComponent::isCopying() const
+{
+    return m_isCopying;
+}
+
+void ClipComponent::setIsCopying(bool isCopying)
+{
+    m_isCopying = isCopying;
+}
+
+double ClipComponent::getClickPosTime() const
+{
+    return m_clickPosTime;
+}
+
+void ClipComponent::setClickPosTime(double clickPosTime)
+{
+    m_clickPosTime = clickPosTime;
+}
+
+bool ClipComponent::isShiftDown() const
+{
+    return m_isShiftDown;
 }
 
 //==============================================================================
@@ -192,8 +213,7 @@ void AudioClipComponent::mouseDrag(const MouseEvent &e)
     {
         auto newTime = clip->getPosition().getStart() + distTimeDelta;
         auto newOffset = clip->getPosition().getOffset() + distTimeDelta;
-        auto snapTimeOffset = newTime - clip->edit.getTimecodeFormat().getSnapType(editViewState.snapType)
-                                             .roundTimeNearest(newTime, clip->edit.tempoSequence);
+
         if ((distTimeDelta > 0
          || clip->getPosition().getOffset() > 0 )
          && !(newTime > clip->getPosition().getEnd()))
@@ -205,11 +225,13 @@ void AudioClipComponent::mouseDrag(const MouseEvent &e)
                 m_lastOffset = newOffset;
             }
             clip->setOffset(newOffset);
-//            if (!e.mods.isShiftDown())
-//            {
-//                clip->setStart(clip->getPosition().getStart() + snapTimeOffset, false, true);
-//                //clip->setOffset(clip->getPosition().getOffset() + snapTimeOffset);
-//            }
+            if (!e.mods.isShiftDown())
+            {
+
+//                clip->setStart(clip->edit.getTimecodeFormat().getSnapType(editViewState.snapType)
+//                               .roundTimeNearest( clip->getPosition().getStart(), clip->edit.tempoSequence), false, false);
+                //clip->setOffset(clip->getPosition().getOffset() + snapTimeOffset);
+            }
         }
         else
         {
@@ -248,6 +270,7 @@ void AudioClipComponent::mouseDrag(const MouseEvent &e)
 MidiClipComponent::MidiClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : ClipComponent (evs, c)
 {
+    setBufferedToImage(true);
 }
 
 void MidiClipComponent::paint (Graphics& g)

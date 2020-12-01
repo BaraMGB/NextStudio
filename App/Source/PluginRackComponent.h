@@ -65,7 +65,7 @@ class AddButton : public TextButton
 {
 public:
 
-    inline bool isInterestedInDragSource(const SourceDetails& /*dragSourceDetails*/) override { return true; }
+    inline bool isInterestedInDragSource (const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override
     {
         if (dragSourceDetails.description == "PluginComp")
@@ -124,7 +124,8 @@ public:
         area.reduce(1,1);
         g.setColour(Colour(0xff1b1b1b));
 
-        g.drawText(getButtonText(),getLocalBounds(),juce::Justification::centred, false);
+        g.drawText(getButtonText(),getLocalBounds(),juce::Justification::centred
+                   , false);
     }
 
     void setPlugin(te::Plugin::Ptr pln)
@@ -155,8 +156,8 @@ public:
 private:
 
     EditViewState& editViewState;
-    OwnedArray<PluginRackComponent> m_pluginRackComp;
 
-    tracktion_engine::Track * m_pointedTrack;
+    tracktion_engine::Track::Ptr m_pointedTrack{nullptr};
+    juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
 
 };

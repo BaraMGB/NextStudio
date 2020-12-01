@@ -61,6 +61,8 @@ public:
     
     EditViewState& getEditViewState()   { return editViewState; }
         
+    OwnedArray<TrackComponent> & getTrackComps();
+
 private:
     void valueTreeChanged() override {}
     
@@ -83,7 +85,6 @@ private:
     te::Edit& edit;
     
     EditViewState editViewState;
-    te::Clipboard clipBoard;
     TimeLineComponent timeLine {editViewState};
     juce::ScrollBar m_scrollbar;
     TollBarComponent toolBar;

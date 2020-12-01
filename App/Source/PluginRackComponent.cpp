@@ -1,4 +1,5 @@
 #include "PluginRackComponent.h"
+#include "EditComponent.h"
 
 PluginRackComponent::PluginRackComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), track (t)
@@ -46,9 +47,10 @@ void PluginRackComponent::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTr
         markAndUpdate (updatePlugins);
 }
 
-void PluginRackComponent::valueTreeChildOrderChanged (juce::ValueTree&, int, int)
+void PluginRackComponent::valueTreeChildOrderChanged (juce::ValueTree& c, int, int)
 {
-    markAndUpdate (updatePlugins);
+    if (c.hasType (te::IDs::PLUGIN))
+        markAndUpdate (updatePlugins);
 }
 
 void PluginRackComponent::paint (Graphics& g)
@@ -111,7 +113,8 @@ void PluginRackComponent::buildPlugins()
         //don't show the default volume and levelmeter plugin
         if (track->pluginList.indexOf(plugin)  < track->pluginList.size() - 2 )
         {
-            auto p = new PluginWindowComponent (editViewState, plugin, track->getColour ());
+            auto p = new PluginWindowComponent (editViewState, plugin
+                                                , track->getColour ());
             addAndMakeVisible (p);
             plugins.add (p);
         }
@@ -124,10 +127,11 @@ void PluginRackComponent::buildPlugins()
 
 
 
-LowerRangeComponent::LowerRangeComponent(EditViewState &evs) : editViewState(evs)
+LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
+    : editViewState(evs)
 {
     editViewState.selectionManager.addChangeListener(this);
-
+    m_pluginRackComps.clear(true);
 }
 
 LowerRangeComponent::~LowerRangeComponent()
@@ -135,26 +139,46 @@ LowerRangeComponent::~LowerRangeComponent()
     editViewState.selectionManager.removeChangeListener(this);
 }
 
-void LowerRangeComponent::changeListenerCallback(ChangeBroadcaster *)
+void LowerRangeComponent::changeListenerCallback(ChangeBroadcaster * source)
 {
-    auto lastClickedTrack = editViewState.selectionManager.getItemsOfType<tracktion_engine::Track>().getLast();
-    if (lastClickedTrack &&  !(lastClickedTrack->isArrangerTrack()
-                               || lastClickedTrack->isTempoTrack()
-                               || lastClickedTrack->isMarkerTrack()
-                               || lastClickedTrack->isChordTrack()))
+    auto lastClickedTrack = editViewState.selectionManager
+            .getItemsOfType<tracktion_engine::Track>()
+            .getLast();
+    if (m_pointedTrack.get() != lastClickedTrack)
     {
-        m_pointedTrack = lastClickedTrack;
-        m_pluginRackComp.clear();
-        auto tfc = new PluginRackComponent(editViewState, m_pointedTrack);
-        m_pluginRackComp.add(tfc);
-        addAndMakeVisible(tfc);
-        tfc->setAlwaysOnTop(true);
-        resized();
+        if (lastClickedTrack &&  !(lastClickedTrack->isArrangerTrack()
+                                   || lastClickedTrack->isTempoTrack()
+                                   || lastClickedTrack->isMarkerTrack()
+                                   || lastClickedTrack->isChordTrack()))
+        {
+
+            m_pointedTrack = lastClickedTrack;
+            bool flag = false;
+            for (auto &prc : m_pluginRackComps)
+            {
+                prc->setVisible(false);
+                if (prc->getTrack().getObject() == lastClickedTrack)
+                {
+                    prc->setVisible(true);
+                    flag = true;
+                }
+            }
+            if (!flag)
+            {
+                PluginRackComponent * pluginRackComp =
+                        new PluginRackComponent(editViewState,lastClickedTrack);
+
+                pluginRackComp->setAlwaysOnTop(true);
+                pluginRackComp->setVisible(true);
+                addAndMakeVisible(pluginRackComp);
+                m_pluginRackComps.add(pluginRackComp);
+                resized();
+            }
+        }
     }
     else
     {
-        m_pluginRackComp.clear();
-        resized();
+       // resized();
     }
 }
 
@@ -172,10 +196,16 @@ void LowerRangeComponent::paint(Graphics &g)
 
 void LowerRangeComponent::resized()
 {
-    if (m_pluginRackComp.getFirst())
-    {
+
         auto pluginRect = getLocalBounds();
         pluginRect.removeFromTop (10);
-        m_pluginRackComp.getFirst()->setBounds(pluginRect);
-    }
+
+        for (auto& prc : m_pluginRackComps)
+        {
+            if (prc->isVisible())
+            {
+                prc->setBounds(pluginRect);
+            }
+        }
+
 }

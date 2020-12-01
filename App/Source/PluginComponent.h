@@ -23,7 +23,7 @@ private:
     juce::Colour       m_trackColour;
 };
 
-//-------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 class VolumePluginComponent : public PluginComponent
 {
@@ -38,14 +38,17 @@ private:
     juce::Slider       m_volumeKnob;
 };
 
+//------------------------------------------------------------------------------
+
 class ParameterComponent : public juce::Component
                          , public juce::ChangeBroadcaster
 {
 public:
-    ParameterComponent(tracktion_engine::AutomatableParameter& ap)
+    ParameterComponent(te::AutomatableParameter& ap)
         : m_parameter(ap)
     {
-        m_parameterName.setText(ap.getParameterName(), juce::NotificationType::dontSendNotification);
+        m_parameterName.setText(ap.getParameterName(),
+                                juce::NotificationType::dontSendNotification);
 
         m_parameterSlider.setOpaque(false);
         addAndMakeVisible(m_parameterName);
@@ -57,8 +60,13 @@ public:
         m_parameterSlider.setTextBoxStyle(Slider::NoTextBox, 0, 0, false);
         m_parameterSlider.onValueChange = [this, &ap]
         {
-            ap.setParameter(m_parameterSlider.getValue(), juce::NotificationType::dontSendNotification);
-            sendChangeMessage();
+            if ((float) m_parameterSlider.getValue()
+             != (float) ap.getCurrentValue())
+            {
+                ap.setParameter(m_parameterSlider.getValue(),
+                                juce::NotificationType::dontSendNotification);
+                sendChangeMessage();
+            }
         };
     }
 
@@ -75,14 +83,14 @@ public:
         m_parameterName.setBounds(area);
     }
 
-    tracktion_engine::AutomatableParameter & getParameter()
+    te::AutomatableParameter & getParameter()
     {
         return m_parameter;
     }
 
 
 private:
-    tracktion_engine::AutomatableParameter & m_parameter;
+    te::AutomatableParameter & m_parameter;
     juce::Label m_parameterName;
     juce::Slider m_parameterSlider;
 };

@@ -1,5 +1,6 @@
 #include "TrackComponent.h"
 #include "NextLookAndFeel.h"
+#include "EditComponent.h"
 //==============================================================================
 TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), m_track (t)
@@ -76,6 +77,8 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
             m_muteButton.setToggleState ((bool)v[i], dontSendNotification);
         else if (i == te::IDs::solo)
             m_soloButton.setToggleState ((bool)v[i], dontSendNotification);
+        else if (i == te::IDs::height)
+            getParentComponent()->resized();
     }
     else if (v.hasType (te::IDs::INPUTDEVICES)
              || v.hasType (te::IDs::INPUTDEVICE)
@@ -94,45 +97,16 @@ void TrackHeaderComponent::paint (Graphics& g)
     auto cornerSize = 10;
     Rectangle<float> area = getLocalBounds().toFloat();
 
-//    g.setColour(Colour(0xff000000));
-//    GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
-
     area.reduce(1, 1);
 
     auto buttonColour = Colour(0xff4b4b4b);
-
 
     if (!editViewState.selectionManager.isSelected (m_track))
     {
         buttonColour = buttonColour.darker (0.4f);
     }
-
-
-//    juce::ColourGradient border = {buttonColour.brighter (0.1f),
-//                                   0,
-//                                   0,
-//                                   buttonColour.brighter (0.1f),
-//                                   0,
-//                                   static_cast<float>(getHeight()),
-//                                   false};
-//    border.addColour (0.5, buttonColour.brighter (0.8f));
-//    g.setGradientFill (border);
-//    //cornerSize--;
     g.setColour(buttonColour);
     GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
-//    area.reduce (1,1);
-//    juce::ColourGradient gradient = {buttonColour,
-//                                     0,
-//                                     0,
-//                                     buttonColour,
-//                                     0,
-//                                     static_cast<float>(getHeight()),
-//                                     false};
-////    gradient.addColour (0.25, buttonColour.brighter (0.05f));
-////    gradient.addColour (0.75, buttonColour.brighter (0.05f));
-//    g.setGradientFill(gradient);
-//    //cornerSize--;
-//    GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize, true);
 
     if (drawOverlayTrackColour)
     {
@@ -144,42 +118,22 @@ void TrackHeaderComponent::paint (Graphics& g)
 
     // TrackColour
     Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
-    //trackColorIndicator.reduce (1,1);
     auto trackColor =  m_track->getColour();
 
-//    g.setColour (trackColor.darker (0.6f));
-//    cornerSize = 10;
-//    GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator, cornerSize, true);
-
-//    trackColorIndicator.reduce (0,1);
-//    trackColorIndicator.removeFromLeft(1);
-//    g.setColour (trackColor.brighter (0.1f));
-//    GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator, cornerSize, true);
-//    trackColorIndicator.reduce (0,1);
-//    trackColorIndicator.removeFromLeft(1);
     g.setColour (trackColor);
     GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
-
-//   ****************** Draw shadow Text ****************************************************
-//    auto textRect = getLocalBounds().toFloat();
-//    juce::Image image(Image::ARGB, textRect.getWidth(), textRect.getHeight(), true);
-//    Graphics imageGraph (image);
-//    imageGraph.setColour(Colour(0x00000000));
-//    imageGraph.fillAll();
-//    auto irect = Rectangle<float>(0.0, 0.0, textRect.getWidth(), textRect.getHeight());
-//    imageGraph.setColour(Colour(0xffdddddd));
-//    imageGraph.setFont(16);
-//    imageGraph.drawText("Hello",irect, Justification::centred, false);
-//    DropShadow drops;
-//    drops.colour = Colour(0xff222222);
-//    drops.radius = 1;
-//    drops.drawForImage(g,image);
-//    drops.drawForImage(g,image);
-//    g.drawImage(image,textRect);
-
-
-
-
+    if (m_isAboutToResizing)
+    {
+        g.setColour(Colour(0x66ffffff));
+        auto area = getLocalBounds();
+        g.drawRect(area.removeFromBottom(1));
+    }
+    if (m_isResizing)
+    {
+        g.setColour(Colour(0xffffffff));
+        auto area = getLocalBounds();
+        g.drawRect(area.removeFromBottom(3));
+    }
 }
 
 void TrackHeaderComponent::mouseDown (const MouseEvent& event)
@@ -335,13 +289,56 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
             else
             {
                 editViewState.selectionManager.selectOnly(m_track);
+                m_yPosAtMouseDown = event.mouseDownPosition.y;
+                m_trackHeightATMouseDown = m_track->state.getProperty(te::IDs::height);
             }
-        }
+    }
+}
+
+void TrackHeaderComponent::mouseDrag(const MouseEvent &event)
+{
+    if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10)
+    {
+        m_isResizing = true;
+        auto newHeight = jlimit(static_cast<int> (m_track->minTrackHeight)
+                               ,static_cast<int> (m_track->maxTrackHeight)
+                               ,static_cast<int> (m_trackHeightATMouseDown + event.getDistanceFromDragStartY()));
+
+        m_track->state.setProperty(te::IDs::height, newHeight, &(editViewState.edit.getUndoManager()));
+    }
+
+
+}
+
+void TrackHeaderComponent::mouseUp(const MouseEvent &event)
+{
+    m_isResizing = false;
+    repaint();
+}
+
+void TrackHeaderComponent::mouseMove(const MouseEvent &event)
+{
+    if (event.getPosition().y > getHeight() - 10)
+    {
+        m_isAboutToResizing = true;
+    }
+    else
+    {
+        m_isAboutToResizing = false;
+    }
+    repaint();
+}
+
+void TrackHeaderComponent::mouseExit(const MouseEvent &event)
+{
+    m_isAboutToResizing = false;
+    repaint();
 }
 
 void TrackHeaderComponent::resized()
 {
-    auto area = getLocalBounds();
+    auto defaultTrackHeight = m_track->defaultTrackHeight;
+    auto area = getLocalBounds().removeFromTop(defaultTrackHeight);//getLocalBounds();
     auto peakDisplay = area.removeFromRight(15);
     peakDisplay.reduce(2, 2);
     levelMeterComp->setBounds (peakDisplay);
@@ -380,6 +377,9 @@ TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
     track->edit.getTransport().addChangeListener (this);
 
     markAndUpdate (updateClips);
+    addAndMakeVisible(m_trackOverlay);
+    m_trackOverlay.setAlwaysOnTop(true);
+    m_trackOverlay.setVisible(false);
 }
 
 TrackComponent::~TrackComponent()
@@ -480,8 +480,8 @@ void TrackComponent::mouseDown (const MouseEvent&event)
            te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>()->pasteIntoEdit(te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, ip));
         }
     }
-
 }
+
 
 void TrackComponent::changeListenerCallback (ChangeBroadcaster*)
 {
@@ -505,7 +505,7 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
             || i == IDs::viewY)
         {
             repaint();
-            markAndUpdate (updatePositions);
+            //markAndUpdate (updatePositions);
         }
     }
     if(i.toString() == "bpm")
@@ -557,28 +557,76 @@ void TrackComponent::resized()
     {
         auto& c = cc->getClip();
         auto pos = c.getPosition();
-        int x1 = editViewState.beatsToX (editViewState.edit.tempoSequence.timeToBeats(pos.getStart()), getWidth());
-        int x2 = editViewState.beatsToX (editViewState.edit.tempoSequence.timeToBeats(pos.getEnd()), getWidth());
+        int startTime = editViewState.beatsToX (editViewState.edit.tempoSequence.timeToBeats(pos.getStart()), getWidth());
+        int endTime = editViewState.beatsToX (editViewState.edit.tempoSequence.timeToBeats(pos.getEnd()), getWidth());
 
-        cc->setBounds (x1, 0, x2 - x1, getHeight());
+        cc->setBounds (startTime, 0, endTime - startTime, getHeight());
     }
+    m_trackOverlay.setBounds(0, 0, getWidth(), getHeight());
 }
 
-void TrackComponent::itemDropped(const DragAndDropTarget::SourceDetails &dragSourceDetails)
+void TrackComponent::itemDropped(
+        const DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-
     auto dropPos = dragSourceDetails.localPosition;
-    auto dropTime = editViewState.beatToTime(editViewState.xToBeats(dropPos.getX(), getWidth()));
+    auto dropTime = editViewState.beatToTime(
+                editViewState.xToBeats(dropPos.getX(), getWidth()));
 
+    //Dropping Clips, with CTRL copy Clip
     if (dragSourceDetails.description == "Clip")
+    {
+        auto clipboard = tracktion_engine::Clipboard::getInstance();
+        if (!clipboard->isEmpty())
         {
-            auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
-            if (clipComp)
+            if (clipboard->hasContentWithType<te::Clipboard::Clips>())
             {
-                clipComp->getClip().moveToTrack(*track);
+                auto &edit = editViewState.edit;
+                auto clipContent = clipboard->getContentWithType<te::Clipboard::Clips>();
+                tracktion_engine::EditInsertPoint insertPoint(edit);
+                insertPoint.setNextInsertPoint(0, track);
+                tracktion_engine::Clipboard::ContentType::EditPastingOptions options(edit, insertPoint);
+
+                auto& clip{ clipContent->clips[0] };
+                auto start = static_cast<double>(clip.state.getProperty(te::IDs::start));
+                auto clickTimeOffset = 0.0;
+
+                //if ()
+
+                if (auto cc = dynamic_cast<ClipComponent*> (dragSourceDetails.sourceComponent.get()))
+                {
+                    //same track? only move
+                    clickTimeOffset = cc->getClickPosTime();
+                    auto xTime = editViewState.beatToTime(editViewState.viewX1);
+                    if (cc->getClip().getTrack() == getTrack().get() && !cc->isCopying())
+                    {
+                        cc->getClip().setStart(dropTime - clickTimeOffset + xTime, false, true);
+                    }
+                    else
+                    {
+                        if (!cc->isCopying())
+                        {
+                            cc->getClip().removeFromParentTrack();
+                        }
+                        else
+                        {
+                            cc->setIsCopying(false);
+                        }
+
+                        auto rawTime = dropTime - clickTimeOffset + xTime;
+    //                    auto quantime = cc->isShiftDown() ? dropTime - clickTimeinClip + xTime
+    //                                                      : edit.getTimecodeFormat().getSnapType(editViewState.snapType)
+    //                            .roundTimeNearest(rawTime,  edit.tempoSequence);
+                        auto pasteTime = rawTime - start;
+                        options.startTime = pasteTime;
+                        clipContent->pasteIntoEdit(options);
+
+                    }
+                }
             }
+        }
     }
 
+    //File droped ?
     auto fileTreeComp = dynamic_cast<FileTreeComponent*>(dragSourceDetails.sourceComponent.get());
     if (fileTreeComp)
     {
@@ -599,6 +647,9 @@ void TrackComponent::itemDropped(const DragAndDropTarget::SourceDetails &dragSou
 
         }
     }
+    m_dragging = false;
+    m_trackOverlay.setVisible(false);
+    repaint();
 }
 
 void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSourceDetails)
@@ -608,10 +659,31 @@ void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSo
             auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
             if (clipComp)
             {
-                addAndMakeVisible( clipComp);
+                m_dragging = true;
+                m_posInClip = editViewState.beatsToX(
+                            editViewState.timeToBeat(
+                            clipComp->getClickPosTime()
+                            ), getWidth());
+                m_dragImage = clipComp->createComponentSnapshot({0
+                                                                 , 0
+                                                                 , clipComp->getWidth()
+                                                                 , clipComp->getHeight()}, false);
+                m_trackOverlay.setImage(m_dragImage);
+
+                m_trackOverlay.setImagePos(getMouseXYRelative().x - m_posInClip);
+
+                m_trackOverlay.repaint();
+
+                m_trackOverlay.setVisible(true);
             }
     }
 
+}
+
+void TrackComponent::itemDragExit(const DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+    m_dragging = false;
+    m_trackOverlay.setVisible(false);
 }
 
 
@@ -665,6 +737,12 @@ void TrackComponent::buildRecordClips()
     {
         recordingClip = nullptr;
     }
+}
+
+
+te::Track::Ptr TrackComponent::getTrack() const
+{
+    return track;
 }
 
 

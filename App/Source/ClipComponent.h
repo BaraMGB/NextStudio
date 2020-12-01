@@ -17,12 +17,23 @@ public:
 
     te::Clip& getClip() { return *clip; }
 
+    bool isCopying() const;
+    void setIsCopying(bool isCopying);
+
+    double getClickPosTime() const;
+    void setClickPosTime(double clickPosTime);
+
+    bool isShiftDown() const;
+
 protected:
     EditViewState& editViewState;
     te::Clip::Ptr clip;
 private:
     double m_clipPosAtMouseDown;
+    double m_clickPosTime{0.0};
+    bool m_isCopying{false};
     bool m_isDragging;
+    bool m_isShiftDown{false};
 };
 
 
