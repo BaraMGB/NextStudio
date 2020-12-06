@@ -22,6 +22,7 @@ target_sources(${TargetName} PRIVATE
         Source/PluginMenu.cpp
         Source/LevelMeterComponent.cpp
         Source/PluginRackComponent.cpp
+        Source/ThumbnailComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
@@ -38,7 +39,8 @@ target_compile_definitions (${TargetName} PUBLIC
         JUCE_PLUGINHOST_LADSPA=1
         JUCE_USE_FLAC=1
         JUCE_USE_MP3AUDIOFORMAT=1
-        JUCE_USE_WINDOWS_MEDIA_FORMAT=1)
+        JUCE_USE_WINDOWS_MEDIA_FORMAT=1
+        DONT_SET_USING_JUCE_NAMESPACE=1)
 
 
 

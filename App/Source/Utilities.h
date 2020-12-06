@@ -16,20 +16,23 @@ namespace te = tracktion_engine;
 //==============================================================================
 namespace Helpers
 {
-    static inline void addAndMakeVisible (Component& parent, const Array<Component*>& children)
+    static inline void addAndMakeVisible (juce::Component& parent
+                                          , const juce::Array<juce::Component*>& children)
     {
         for (auto c : children)
             parent.addAndMakeVisible (c);
     }
 
-    static inline String getStringOrDefault (const String& stringToTest, const String& stringToReturnIfEmpty)
+    static inline juce::String getStringOrDefault (
+              const juce::String& stringToTest
+            , const juce::String& stringToReturnIfEmpty)
     {
         return stringToTest.isEmpty() ? stringToReturnIfEmpty : stringToTest;
     }
     
-    static inline File findRecentEdit (const File& dir)
+    static inline juce::File findRecentEdit (const juce::File& dir)
     {
-        auto files = dir.findChildFiles (File::findFiles, false, "*.tracktionedit");
+        auto files = dir.findChildFiles (juce::File::findFiles, false, "*.tracktionedit");
         
         if (files.size() > 0)
         {
@@ -44,7 +47,11 @@ namespace Helpers
 namespace GUIHelpers
 {
 
-inline void drawRoundedRectWithSide(Graphics & g, Rectangle<float> area, int cornerSize, bool left)
+inline void drawRoundedRectWithSide(
+          juce::Graphics & g
+        , juce::Rectangle<float> area
+        , float cornerSize
+        , bool left)
 {
     g.fillRoundedRectangle(area, cornerSize);
     auto rightRect = area.withTrimmedLeft(area.getWidth()/2);
@@ -52,7 +59,10 @@ inline void drawRoundedRectWithSide(Graphics & g, Rectangle<float> area, int cor
 }
 
 
-inline void changeColor(XmlElement& xml, String inputColour, String color_hex)
+inline void changeColor(
+          juce::XmlElement& xml
+        , juce::String inputColour
+        , juce::String color_hex)
 {
     forEachXmlChildElement(xml, xmlnode)
     {
@@ -65,17 +75,19 @@ inline void changeColor(XmlElement& xml, String inputColour, String color_hex)
         }
     }
 }
-inline void drawFromSvg( Graphics &g, const char* svgbinary,String col_hex,int w,int h)
+inline void drawFromSvg(juce::Graphics &g, const char* svgbinary,juce::String col_hex,int w,int h)
 {
-    if (auto svg = XmlDocument::parse (svgbinary))
+    if (auto svg = juce::XmlDocument::parse (svgbinary))
     {
 
-        std::unique_ptr<Drawable> drawable;
+        std::unique_ptr<juce::Drawable> drawable;
         GUIHelpers::changeColor (*svg, "#626262", col_hex);
         {
-            const MessageManagerLock mmLock;
-            drawable = Drawable::createFromSVG (*svg);
-            drawable->setTransformToFit (Rectangle<float> (0.0f, 0.0f, float (w), float (h)), RectanglePlacement::centred);
+            const juce::MessageManagerLock mmLock;
+            drawable = juce::Drawable::createFromSVG (*svg);
+            drawable->setTransformToFit (
+                          juce::Rectangle<float> (0.0f, 0.0f, float (w), float (h))
+                        , juce::RectanglePlacement::centred);
             drawable->draw (g, 1.f);
         }
 
@@ -84,21 +96,21 @@ inline void drawFromSvg( Graphics &g, const char* svgbinary,String col_hex,int w
 
 inline void setDrawableonButton(juce::DrawableButton& button, const char* svgbinary,juce::String col_hex)
 {
-    if (auto svg = XmlDocument::parse (svgbinary))
+    if (auto svg = juce::XmlDocument::parse (svgbinary))
     {
-        std::unique_ptr<Drawable> drawable;
+        std::unique_ptr<juce::Drawable> drawable;
         GUIHelpers::changeColor (*svg, "#626262", col_hex);
         {
-            const MessageManagerLock mmLock;
-            drawable = Drawable::createFromSVG (*svg);
+            const juce::MessageManagerLock mmLock;
+            drawable = juce::Drawable::createFromSVG (*svg);
         }
         button.setImages (drawable.get ());
     }
 
 }
-inline juce::Image getImageFromSvg(const char* svgbinary,String col_hex,int w,int h)
+inline juce::Image getImageFromSvg(const char* svgbinary,juce::String col_hex,int w,int h)
 {
-    juce::Image image (Image::RGB, w, h, true);
+    juce::Image image (juce::Image::RGB, w, h, true);
     juce::Graphics g (image);
     drawFromSvg (g,svgbinary, col_hex, w, h);
     return image;
@@ -111,12 +123,12 @@ inline juce::Image getImageFromSvg(const char* svgbinary,String col_hex,int w,in
 namespace PlayHeadHelpers
 {
     // Quick-and-dirty function to format a timecode string
-    static inline String timeToTimecodeString (double seconds)
+    static inline juce::String timeToTimecodeString (double seconds)
     {
-        auto millisecs = roundToInt (seconds * 1000.0);
+        auto millisecs = juce::roundToInt (seconds * 1000.0);
         auto absMillisecs = std::abs (millisecs);
 
-        return String::formatted ("%02d:%02d.%03d",
+        return juce::String::formatted ("%02d:%02d.%03d",
 
                                   (absMillisecs / 60000) % 60,
                                   (absMillisecs / 1000)  % 60,
@@ -124,7 +136,7 @@ namespace PlayHeadHelpers
     }
 
     // Quick-and-dirty function to format a bars/beats string
-    static inline String quarterNotePositionToBarsBeatsString (double quarterNotes, int numerator, int denominator)
+    static inline juce::String quarterNotePositionToBarsBeatsString (double quarterNotes, int numerator, int denominator)
     {
         if (numerator == 0 || denominator == 0)
             return "1.1.000";
@@ -136,11 +148,11 @@ namespace PlayHeadHelpers
         auto beat   = ((int) beats) + 1;
         auto ticks  = ((int) (fmod (beats, 1.0) * 960.0 + 0.5));
 
-        return String::formatted ("%d.%d.%03d", bar, beat, ticks);
+        return juce::String::formatted ("%d.%d.%03d", bar, beat, ticks);
     }
 
     struct TimeCodeStrings{
-        TimeCodeStrings(const AudioPlayHead::CurrentPositionInfo& pos)
+        TimeCodeStrings(const juce::AudioPlayHead::CurrentPositionInfo& pos)
         {
             bpm = juce::String(pos.bpm,2);
             signature = juce::String(juce::String(pos.timeSigNumerator) + "/" + juce::String(pos.timeSigDenominator));
@@ -164,11 +176,11 @@ namespace PlayHeadHelpers
     };
 
     // Returns a textual description of a CurrentPositionInfo
-    static inline String getTimecodeDisplay (const AudioPlayHead::CurrentPositionInfo& pos)
+    static inline juce::String getTimecodeDisplay (const juce::AudioPlayHead::CurrentPositionInfo& pos)
     {
-        MemoryOutputStream displayText;
+        juce::MemoryOutputStream displayText;
 
-        displayText << String (pos.bpm, 2) << " bpm, "
+        displayText << juce::String (pos.bpm, 2) << " bpm, "
                     << pos.timeSigNumerator << '/' << pos.timeSigDenominator
                     << "  -  " << timeToTimecodeString (pos.timeInSeconds)
                     << "  -  " << quarterNotePositionToBarsBeatsString (pos.ppqPosition,
@@ -198,31 +210,51 @@ namespace EngineHelpers
 
     inline void showAudioDeviceSettings (te::Engine& engine)
     {
-        DialogWindow::LaunchOptions o;
+//        auto chacheDir = engine.getPropertyStorage ().getAppPrefsFolder ();
+//        auto setupFile = chacheDir.getChildFile ("Settings.xml");
+//        if (setupFile.exists ())
+//        {
+//            setupFile.deleteFile ();
+//        }
+
+        juce::DialogWindow::LaunchOptions o;
         o.dialogTitle = TRANS("Audio Settings");
-        o.dialogBackgroundColour = LookAndFeel::getDefaultLookAndFeel().findColour (ResizableWindow::backgroundColourId);
-        o.content.setOwned (new AudioDeviceSelectorComponent (engine.getDeviceManager().deviceManager,
-                                                              0, 512, 1, 512, true, true, true, true));
+        o.dialogBackgroundColour = juce::LookAndFeel::getDefaultLookAndFeel()
+                .findColour (juce::ResizableWindow::backgroundColourId);
+        o.content.setOwned (new juce::AudioDeviceSelectorComponent (
+                                engine.getDeviceManager().deviceManager
+                                , 0, 512, 1, 512, true, true, true, true));
         o.content->setSize (400, 600);
         o.launchAsync();
+
     }
 
-    inline void browseForAudioFile (te::Engine& engine, std::function<void (const File&)> fileChosenCallback)
+    inline void browseForAudioFile (
+              te::Engine& engine
+            , std::function<void (const juce::File&)> fileChosenCallback)
     {
-        auto fc = std::make_shared<FileChooser> ("Please select an audio file to load...",
-                                                 engine.getPropertyStorage().getDefaultLoadSaveDirectory ("pitchAndTimeExample"),
-                                                 engine.getAudioFileFormatManager().readFormatManager.getWildcardForAllFormats());
+        auto fc = std::make_shared<juce::FileChooser> (
+                    "Please select an audio file to load..."
+                    , engine.getPropertyStorage()
+                        .getDefaultLoadSaveDirectory ("pitchAndTimeExample")
+                    , engine.getAudioFileFormatManager()
+                        .readFormatManager.getWildcardForAllFormats());
 
-        fc->launchAsync (FileBrowserComponent::openMode + FileBrowserComponent::canSelectFiles,
-                         [fc, &engine, callback = std::move (fileChosenCallback)] (const FileChooser&)
-                         {
-                             const auto f = fc->getResult();
+        fc->launchAsync (juce::FileBrowserComponent::openMode
+                         + juce::FileBrowserComponent::canSelectFiles
+                         , [fc, &engine, callback = std::move (fileChosenCallback)]
+                                (const juce::FileChooser&)
+                            {
+                                const auto f = fc->getResult();
 
-                             if (f.existsAsFile())
-                                 engine.getPropertyStorage().setDefaultLoadSaveDirectory ("pitchAndTimeExample", f.getParentDirectory());
+                                if (f.existsAsFile())
+                                    engine.getPropertyStorage()
+                                        .setDefaultLoadSaveDirectory (
+                                           "pitchAndTimeExample"
+                                           , f.getParentDirectory());
 
-                             callback (f);
-                         });
+                                callback (f);
+                            });
     }
 
     inline void removeAllClips (te::AudioTrack& track)
@@ -239,7 +271,7 @@ namespace EngineHelpers
         return te::getAudioTracks (edit)[index];
     }
 
-    inline te::WaveAudioClip::Ptr loadAudioFileAsClip (te::Edit& edit, const File& file)
+    inline te::WaveAudioClip::Ptr loadAudioFileAsClip (te::Edit& edit, const juce::File& file)
     {
         if (auto track = getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
         {
@@ -342,7 +374,7 @@ namespace EngineHelpers
     {
         auto& list = engine.getPluginManager().knownPluginList;
 
-        if (auto tree = list.createTree (list.getTypes(), KnownPluginList::sortByManufacturer))
+        if (auto tree = list.createTree (list.getTypes(), juce::KnownPluginList::sortByManufacturer))
             return tree;
 
         return {};
@@ -351,7 +383,7 @@ namespace EngineHelpers
 }
 
 //==============================================================================
-class FlaggedAsyncUpdater : public AsyncUpdater
+class FlaggedAsyncUpdater : public juce::AsyncUpdater
 {
 public:
     //==============================================================================
@@ -368,7 +400,7 @@ public:
 };
 
 //==============================================================================
-struct Thumbnail    : public Component
+struct Thumbnail    : public juce::Component
 {
     Thumbnail (te::TransportControl& tc)
         : transport (tc)
@@ -380,7 +412,7 @@ struct Thumbnail    : public Component
                                        if (smartThumbnail.isGeneratingProxy() || smartThumbnail.isOutOfDate())
                                            repaint();
                                    });
-        cursor.setFill (findColour (Label::textColourId));
+        cursor.setFill (findColour (juce::Label::textColourId));
         addAndMakeVisible (cursor);
     }
 
@@ -391,16 +423,20 @@ struct Thumbnail    : public Component
         repaint();
     }
 
-    void paint (Graphics& g) override
+    void paint (juce::Graphics& g) override
     {
         auto r = getLocalBounds();
-        const auto colour = findColour (Label::textColourId);
+        const auto colour = findColour (juce::Label::textColourId);
 
         if (smartThumbnail.isGeneratingProxy())
         {
             g.setColour (colour.withMultipliedBrightness (0.9f));
-            g.drawText ("Creating proxy: " + String (roundToInt (smartThumbnail.getProxyProgress() * 100.0f)) + "%",
-                        r, Justification::centred);
+            g.drawText ("Creating proxy: "
+                        + juce::String (juce::roundToInt (
+                              smartThumbnail.getProxyProgress() * 100.0f))
+                        + "%"
+                        , r
+                        , juce::Justification::centred);
 
         }
         else
@@ -411,28 +447,33 @@ struct Thumbnail    : public Component
         }
     }
 
-    void mouseDown (const MouseEvent& e) override
+    void mouseDown (const juce::MouseEvent& e) override
     {
         transport.setUserDragging (true);
         mouseDrag (e);
     }
 
-    void mouseDrag (const MouseEvent& e) override
+    void mouseDrag (const juce::MouseEvent& e) override
     {
         jassert (getWidth() > 0);
         const float proportion = e.position.x / getWidth();
         transport.position = proportion * transport.getLoopRange().getLength();
     }
 
-    void mouseUp (const MouseEvent&) override
+    void mouseUp (const juce::MouseEvent&) override
     {
         transport.setUserDragging (false);
     }
 
 private:
     te::TransportControl& transport;
-    te::SmartThumbnail smartThumbnail { transport.engine, te::AudioFile (transport.engine), *this, nullptr };
-    DrawableRectangle cursor;
+    te::SmartThumbnail smartThumbnail {
+        transport.engine
+        , te::AudioFile (transport.engine)
+        , *this
+        , nullptr
+    };
+    juce::DrawableRectangle cursor;
     te::LambdaTimer cursorUpdater;
 
     void updateCursorPosition()

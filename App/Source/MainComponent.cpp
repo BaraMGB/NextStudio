@@ -7,47 +7,40 @@
 */
 
 #include "MainComponent.h"
+#include "Utilities.h"
 
 //==============================================================================
-MainComponent::MainComponent() :
-    m_thread("Tread"),
-    m_dirConList(nullptr, m_thread),
-    m_tree(m_dirConList)
+MainComponent::MainComponent()
 {
     setLookAndFeel(&m_nextLookAndFeel);
 
     //FileTree side bar
     m_thread.startThread(1);
-    File file = File::getSpecialLocation(File::userHomeDirectory);
+
+    juce::File file = juce::File::getSpecialLocation(juce::File::userHomeDirectory);
     m_dirConList.setDirectory(file, true, true);
     m_tree.addListener(this);
 
-
-
-
-    addAndMakeVisible(m_tree);
-    addAndMakeVisible(m_menuBar);
-
     //Edit stuff
-    auto d = File::getSpecialLocation (File::tempDirectory).getChildFile ("EmptyEdit");
+    auto d = juce::File::getSpecialLocation (
+                juce::File::tempDirectory).getChildFile ("EmptyEdit");
     d.createDirectory();
 
     auto f = Helpers::findRecentEdit (d);
-    if (f.existsAsFile())
-    {
 
-        setupEdit (f);
-    }
-    else
-    {
-        setupEdit (d.getNonexistentChildFile ("Untitled", ".tracktionedit", false));
-    }
-
+    setupEdit (f.existsAsFile () ? f
+                                 : d.getNonexistentChildFile ("Untitled"
+                                       , ".tracktionedit"
+                                       , false ));
 
     m_header = std::make_unique<HeaderComponent>(*m_edit);
+
+    addAndMakeVisible(m_tree);
+    addAndMakeVisible(m_menuBar);
     addAndMakeVisible(*m_header);
     addAndMakeVisible(m_editNameLabel);
-    m_editNameLabel.setJustificationType (Justification::centred);
+
+    m_editNameLabel.setJustificationType (juce::Justification::centred);
     setSize(1600, 900);
 }
 
@@ -58,16 +51,16 @@ MainComponent::~MainComponent()
     setLookAndFeel(nullptr);
 }
 
-void MainComponent::paint (Graphics& g)
+void MainComponent::paint (juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey);
+    g.setColour (juce::Colours::darkgrey);
     auto area = getLocalBounds();
-    area.reduce(10, 10);
+    g.fillRect (area);
 
+    area.reduce(10, 10);
     auto header = area.removeFromTop(c_headerHeight);
-    g.setColour(Colour(0xff242424));
+    g.setColour(juce::Colour(0xff242424));
     g.fillRect(header);
-    //g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
 }
 
 void MainComponent::resized()
@@ -77,9 +70,9 @@ void MainComponent::resized()
 
     auto header = area.removeFromTop(c_headerHeight);
     auto menu = header.removeFromTop(header.getHeight() / 2);
+    menu.reduce(5, 5);
     auto sidebarWidth = getLocalBounds().getWidth() / 7;
 
-    menu.reduce(5, 5);
     m_menuBar.setBounds(menu);
     m_editNameLabel.setBounds(menu);
     
@@ -88,38 +81,45 @@ void MainComponent::resized()
     m_tree.setBounds (area.removeFromLeft (sidebarWidth));
     area.removeFromLeft (10);
     m_songEditor->setBounds (area);
-    m_tree.setColour(TreeView::ColourIds::backgroundColourId, Colour(0xff1b1b1b));
-    m_tree.setColour (DirectoryContentsDisplayComponent::highlightColourId,Colour(0xff4b4b4b));
+    m_tree.setColour (juce::TreeView::ColourIds::backgroundColourId
+                      , juce::Colour(0xff1b1b1b));
+    m_tree.setColour (juce::DirectoryContentsDisplayComponent::highlightColourId
+                      , juce::Colour(0xff4b4b4b));
 }
 
-void MainComponent::buttonClicked(Button* /*button*/)
+bool MainComponent::keyPressed(const juce::KeyPress &key)
 {
-    
+    if (key == juce::KeyPress::spaceKey)
+    {
+        EngineHelpers::togglePlay(* m_edit);
+        return true;
+    }
+    return false;
 }
 
-void MainComponent::changeListenerCallback(ChangeBroadcaster* source)
+void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
 }
 
-void MainComponent::fileClicked(const File &file, const MouseEvent &event)
+void MainComponent::fileClicked(const juce::File &file, const juce::MouseEvent &event)
 {
     m_tree.setDragAndDropDescription(file.getFileName());
 }
 
-void MainComponent::fileDoubleClicked(const File &)
+void MainComponent::fileDoubleClicked(const juce::File &)
 {
     auto selectedFile = m_tree.getSelectedFile();
     if (selectedFile.existsAsFile())
     {
-        auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-        auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-        auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+        auto red = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
+        auto gre = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
+        auto blu = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
 
         if (auto track = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, tracktion_engine::getAudioTracks(*m_edit).size()))
         {
 
-            track->setName("Track " + String(tracktion_engine::getAudioTracks(*m_edit).size()));
-            track->setColour(Colour(red, gre, blu));
+            track->setName("Track " + juce::String(tracktion_engine::getAudioTracks(*m_edit).size()));
+            track->setColour(juce::Colour(red, gre, blu));
             EngineHelpers::removeAllClips(*track);
             // Add a new clip to this track
             tracktion_engine::AudioFile audioFile(m_edit->engine, selectedFile);
@@ -133,11 +133,14 @@ void MainComponent::fileDoubleClicked(const File &)
     }
 }
 
-void MainComponent::setupEdit(File editFile = {})
+void MainComponent::setupEdit(juce::File editFile = {})
 {
-    if (editFile == File())
+    if (editFile == juce::File())
     {
-        FileChooser fc ("New Edit", File::getSpecialLocation (File::userDocumentsDirectory), "*.tracktionedit");
+        juce::FileChooser fc ("New Edit"
+                              , juce::File::getSpecialLocation (
+                                  juce::File::userDocumentsDirectory)
+                              , "*.tracktionedit");
         if (fc.browseForFileToSave (true))
             editFile = fc.getResult();
         else
@@ -158,7 +161,7 @@ void MainComponent::setupEdit(File editFile = {})
     auto& transport = m_edit->getTransport();
     transport.addChangeListener (this);
 
-    m_editNameLabel.setText (editFile.getFileNameWithoutExtension(), dontSendNotification);
+    m_editNameLabel.setText (editFile.getFileNameWithoutExtension(), juce::dontSendNotification);
 
 
     createTracksAndAssignInputs();

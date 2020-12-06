@@ -56,7 +56,7 @@ public:
 
     int beatsToX (double beats, int width) const
     {
-        return roundToInt (((beats - viewX1) * width) / (viewX2 - viewX1));
+        return juce::roundToInt (((beats - viewX1) * width) / (viewX2 - viewX1));
     }
 
     double xToBeats (int x, int width) const
@@ -78,13 +78,13 @@ public:
     te::Edit& edit;
     te::SelectionManager& selectionManager;
 
-    CachedValue<bool> showGlobalTrack, showMarkerTrack, showChordTrack, showArrangerTrack,
+    juce::CachedValue<bool> showGlobalTrack, showMarkerTrack, showChordTrack, showArrangerTrack,
                       drawWaveforms, showHeaders, showFooters, showMidiDevices, showWaveDevices;
 
-    CachedValue<double> viewX1, viewX2, viewY;
-    CachedValue<int> snapType;
+    juce::CachedValue<double> viewX1, viewX2, viewY;
+    juce::CachedValue<int> snapType;
 
-    CachedValue<int> headerHeight, headerWidth;
+    juce::CachedValue<int> headerHeight, headerWidth;
 
-    ValueTree state;
+    juce::ValueTree state;
 };

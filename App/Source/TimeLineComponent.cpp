@@ -21,11 +21,11 @@ TimeLineComponent::~TimeLineComponent()
 {
 }
 
-void TimeLineComponent::paint(Graphics& g)
+void TimeLineComponent::paint(juce::Graphics& g)
 {
-    g.setColour(Colour(0xff1b1b1b));
+    g.setColour(juce::Colour(0xff1b1b1b));
     g.fillRect(getLocalBounds());
-    g.setColour(Colours::white);
+    g.setColour(juce::Colours::white);
     g.drawRect(getLocalBounds());
     g.setFont(12);
 
@@ -57,19 +57,19 @@ void TimeLineComponent::paint(Graphics& g)
         if (beat % zBars == 0)
         {
             g.drawLine(BeatX, getHeight()/ 3, BeatX, getHeight());
-            g.drawSingleLineText(String((beat/4)+1)
+            g.drawSingleLineText(juce::String((beat/4)+1)
                                  ,BeatX + 3
                                  ,getHeight()/3  + g.getCurrentFont().getHeight());
         }
         if (zoom < 60)
         {
-            g.setColour(Colours::white.darker(0.5f));
+            g.setColour(juce::Colours::white.darker(0.5f));
             g.drawLine(BeatX,getHeight() - getHeight()/ 3, BeatX, getHeight());
-            g.setColour(Colours::white);
+            g.setColour(juce::Colours::white);
         }
         if (zoom < 25)
         {
-            g.setColour(Colours::white.darker(0.5f));
+            g.setColour(juce::Colours::white.darker(0.5f));
             auto quarterBeat = pixelPerBeat / 4;
             auto i = 1;
             while ( i < 5) {
@@ -77,7 +77,7 @@ void TimeLineComponent::paint(Graphics& g)
                  BeatX + quarterBeat * i ,getHeight());
                  i++;
             }
-            g.setColour(Colours::white);
+            g.setColour(juce::Colours::white);
         }
 //        if (zoom < 12)
 //        {
@@ -95,18 +95,18 @@ void TimeLineComponent::paint(Graphics& g)
     if (m_mouseDown)
     {
         auto md = m_state.beatsToX(m_BeatAtMouseDown, getWidth());
-        g.setColour(Colours::white.darker(0.9f));
+        g.setColour(juce::Colours::white.darker(0.9f));
         g.fillRect(md-1, 1, 1, getHeight()-1);
-        g.setColour(Colours::white);
+        g.setColour(juce::Colours::white);
         g.fillRect(md,0,1,getHeight());
-        g.setColour(Colours::white.darker(0.9f));
+        g.setColour(juce::Colours::white.darker(0.9f));
         g.fillRect(md+1, 1, 1, getHeight()-1);
-        g.setColour(Colours::white);
+        g.setColour(juce::Colours::white);
     }
 
 }
 
-void TimeLineComponent::mouseDown(const MouseEvent& event)
+void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 {
     event.source.enableUnboundedMouseMovement(true, false);
     m_mouseDown = true;
@@ -121,7 +121,7 @@ void TimeLineComponent::mouseDown(const MouseEvent& event)
     }
 }
 
-void TimeLineComponent::mouseDrag(const MouseEvent& event)
+void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
 {
     // Work out the scale of the new range
     auto unitDistance = 100.0f;
@@ -138,7 +138,7 @@ void TimeLineComponent::mouseDrag(const MouseEvent& event)
     m_state.viewX2 = rangeBegin + visibleLength;
 }
 
-void TimeLineComponent::mouseUp(const MouseEvent&)
+void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 {
     m_mouseDown = false;
     repaint();

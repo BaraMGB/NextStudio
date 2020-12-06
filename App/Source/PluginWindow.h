@@ -12,11 +12,11 @@ inline bool isDPIAware (te::Plugin&)
 }
 
 //==============================================================================
-class PluginEditor : public Component
+class PluginEditor : public juce::Component
 {
 public:
     virtual bool allowWindowResizing() = 0;
-    virtual ComponentBoundsConstrainer* getBoundsConstrainer() = 0;
+    virtual juce::ComponentBoundsConstrainer* getBoundsConstrainer() = 0;
 };
 
 //==============================================================================
@@ -31,18 +31,17 @@ struct AudioProcessorEditorContentComp : public PluginEditor
                 editor.reset (pi->createEditorIfNeeded());
 
                 if (editor == nullptr)
-                    editor = std::make_unique<GenericAudioProcessorEditor> (*pi);
-
+                    editor = std::make_unique
+                            <juce::GenericAudioProcessorEditor> (*pi);
                 addAndMakeVisible (*editor);
             }
         }
-
         resizeToFitEditor (true);
     }
 
     bool allowWindowResizing() override { return false; }
 
-    ComponentBoundsConstrainer* getBoundsConstrainer() override
+    juce::ComponentBoundsConstrainer* getBoundsConstrainer() override
     {
         if (editor == nullptr || allowWindowResizing())
             return {};
@@ -56,7 +55,7 @@ struct AudioProcessorEditorContentComp : public PluginEditor
             editor->setBounds (getLocalBounds());
     }
 
-    void childBoundsChanged (Component* c) override
+    void childBoundsChanged (juce::Component* c) override
     {
         if (c == editor.get())
         {
@@ -68,24 +67,31 @@ struct AudioProcessorEditorContentComp : public PluginEditor
     void resizeToFitEditor (bool force = false)
     {
         if (force || ! allowWindowResizing())
-            setSize (jmax (8, editor != nullptr ? editor->getWidth() : 0), jmax (8, editor != nullptr ? editor->getHeight() : 0));
+            setSize (juce::jmax (8
+                           , editor != nullptr
+                                    ? editor->getWidth()
+                                    : 0)
+                   , juce::jmax (8
+                           , editor != nullptr
+                                    ? editor->getHeight()
+                                    : 0));
     }
 
     te::ExternalPlugin& plugin;
-    std::unique_ptr<AudioProcessorEditor> editor;
+    std::unique_ptr<juce::AudioProcessorEditor> editor;
 
     AudioProcessorEditorContentComp() = delete;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioProcessorEditorContentComp)
 };
 
 //=============================================================================
-class PluginWindow : public DocumentWindow
+class PluginWindow : public juce::DocumentWindow
 {
 public:
     PluginWindow (te::Plugin&);
     ~PluginWindow() override;
 
-    static std::unique_ptr<Component> create (te::Plugin&);
+    static std::unique_ptr<juce::Component> create (te::Plugin&);
 
     void show();
 
@@ -115,7 +121,7 @@ class ExtendedUIBehaviour : public te::UIBehaviour
 public:
     ExtendedUIBehaviour() = default;
     
-    std::unique_ptr<Component> createPluginWindow (te::PluginWindowState& pws) override
+    std::unique_ptr<juce::Component> createPluginWindow (te::PluginWindowState& pws) override
     {
         if (auto ws = dynamic_cast<te::Plugin::WindowState*> (&pws))
             return PluginWindow::create (ws->plugin);

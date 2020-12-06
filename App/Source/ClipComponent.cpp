@@ -1,14 +1,14 @@
 #include "ClipComponent.h"
-
+ #include <utility> 
 
 //==============================================================================
 ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
-    : editViewState (evs), clip (c)
+    : editViewState (evs), clip (std::move(c))
 {
 }
 
 
-void ClipComponent::paint (Graphics& g)
+void ClipComponent::paint (juce::Graphics& g)
 {
     auto alpha = 1.0f;
     if (m_isDragging)
@@ -22,21 +22,21 @@ void ClipComponent::paint (Graphics& g)
     area.reduce(1,1);
     g.setColour(getClip().getTrack()->getColour().darker());
     g.fillRect(area.removeFromTop(10));
-    g.setColour (Colours::black);
+    g.setColour (juce::Colours::black);
     if (m_isDragging)
     {
-        g.setColour(Colours::grey);
+        g.setColour(juce::Colours::grey);
     }
 
     if (editViewState.selectionManager.isSelected (clip.get()))
     {
-        g.setColour (Colours::white);
+        g.setColour (juce::Colours::white);
     }
 
     g.drawRect (getLocalBounds());
 }
 
-void ClipComponent::mouseDown (const MouseEvent&event)
+void ClipComponent::mouseDown (const juce::MouseEvent&event)
 {
     m_clickPosTime = editViewState.beatToTime(editViewState.xToBeats(event.x, getParentWidth()));
     if (event.mods.getCurrentModifiers().isCtrlDown())
@@ -47,7 +47,7 @@ void ClipComponent::mouseDown (const MouseEvent&event)
         {
             if (event.mods.isRightButtonDown())
             {
-                PopupMenu m;
+                juce::PopupMenu m;
                 m.addItem(1, "Delete clip");
                 m.addItem(2, "Copy clip");
 
@@ -76,7 +76,7 @@ void ClipComponent::mouseDown (const MouseEvent&event)
                 editViewState.selectionManager.selectOnly (getClip ());
                 editViewState.selectionManager.addToSelection(getClip().getClipTrack());
                 m_clipPosAtMouseDown = clip->edit.tempoSequence.timeToBeats(clip->getPosition().getStart());
-                setMouseCursor (MouseCursor::DraggingHandCursor);
+                setMouseCursor (juce::MouseCursor::DraggingHandCursor);
             }
         }
     m_isDragging = true;
@@ -86,10 +86,10 @@ void ClipComponent::mouseDown (const MouseEvent&event)
     te::Clipboard::getInstance()->setContent(std::move(clipContent));
 }
 
-void ClipComponent::mouseDrag(const MouseEvent & event)
+void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 {
     //editViewState.edit.getTransport ().setUserDragging (true);
-    DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
+    juce::DragAndDropContainer* dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
     if (!dragC->isDragAndDropActive())
     {
         m_isShiftDown = false;
@@ -97,17 +97,17 @@ void ClipComponent::mouseDrag(const MouseEvent & event)
         {
             m_isShiftDown = true;
         }
-        dragC->startDragging("Clip", this,juce::Image(Image::ARGB,1,1,true),
+        dragC->startDragging("Clip", this,juce::Image(juce::Image::ARGB,1,1,true),
                              false);
 
     }
 }
 
-void ClipComponent::mouseUp(const MouseEvent & event)
+void ClipComponent::mouseUp(const juce::MouseEvent &  /*event*/)
 {
     editViewState.edit.getTransport ().setUserDragging (false);
     m_isDragging = false;
-    setMouseCursor (MouseCursor::NormalCursor);
+    setMouseCursor (juce::MouseCursor::NormalCursor);
 }
 
 bool ClipComponent::isCopying() const
@@ -136,6 +136,7 @@ bool ClipComponent::isShiftDown() const
 }
 
 //==============================================================================
+
 AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : ClipComponent (evs, c)
     , thumbnailComponent (evs)
@@ -144,7 +145,7 @@ AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
     thumbnailComponent.setFile (getWaveAudioClip ()->getOriginalFile ());
 }
 
-void AudioClipComponent::paint (Graphics& g)
+void AudioClipComponent::paint (juce::Graphics& g)
 {
     ClipComponent::paint (g);
 
@@ -172,28 +173,28 @@ void AudioClipComponent::resized()
     thumbnailComponent.setBounds (1 + leftOffset,11,(getWidth() - 1 - leftOffset) - rightOffset, getHeight () - 11);
 }
 
-void AudioClipComponent::mouseMove(const MouseEvent &e)
+void AudioClipComponent::mouseMove(const juce::MouseEvent &e)
 {
     if (e.getPosition().getX() < 10)
     {
-        setMouseCursor(MouseCursor::LeftEdgeResizeCursor);
+        setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
     }
     else if (e.getPosition().getX() > getWidth() - 10)
     {
-        setMouseCursor(MouseCursor::RightEdgeResizeCursor);
+        setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
     }
     else
     {
-        setMouseCursor(MouseCursor::NormalCursor);
+        setMouseCursor(juce::MouseCursor::NormalCursor);
     }
 }
 
-void AudioClipComponent::mouseExit(const MouseEvent &e)
+void AudioClipComponent::mouseExit(const juce::MouseEvent &e)
 {
-    setMouseCursor(MouseCursor::NormalCursor);
+    setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
-void AudioClipComponent::mouseDown(const MouseEvent &e)
+void AudioClipComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseDownX = e.getMouseDownX();
     m_posAtMouseDown =  clip->getPosition();
@@ -203,7 +204,7 @@ void AudioClipComponent::mouseDown(const MouseEvent &e)
     m_oldDistTime = 0.0;
 }
 
-void AudioClipComponent::mouseDrag(const MouseEvent &e)
+void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
 {
     const auto distanceBeats = editViewState.xToBeats(e.getDistanceFromDragStartX(),getParentWidth());
     const auto distanceTime = editViewState.beatToTime(distanceBeats  - editViewState.viewX1);
@@ -218,10 +219,10 @@ void AudioClipComponent::mouseDrag(const MouseEvent &e)
          || clip->getPosition().getOffset() > 0 )
          && !(newTime > clip->getPosition().getEnd()))
         {
-            clip->setStart(jmax(0.0, newTime), false, false);
+            clip->setStart(juce::jmax(0.0, newTime), false, false);
             if (newOffset < 0)
             {
-                clip->setStart(jmax(0.0, clip->getPosition().getStart() - newOffset), false, false);
+                clip->setStart(juce::jmax(0.0, clip->getPosition().getStart() - newOffset), false, false);
                 m_lastOffset = newOffset;
             }
             clip->setOffset(newOffset);
@@ -261,19 +262,20 @@ void AudioClipComponent::mouseDrag(const MouseEvent &e)
     }
 }
 
-
-
-
-
+tracktion_engine::WaveAudioClip *AudioClipComponent::getWaveAudioClip()
+{
+    return dynamic_cast<te::WaveAudioClip*> (clip.get());
+}
 
 //==============================================================================
+
 MidiClipComponent::MidiClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : ClipComponent (evs, c)
 {
     setBufferedToImage(true);
 }
 
-void MidiClipComponent::paint (Graphics& g)
+void MidiClipComponent::paint (juce::Graphics& g)
 {
     ClipComponent::paint (g);
     auto clipHeader = 10;
@@ -291,35 +293,35 @@ void MidiClipComponent::paint (Graphics& g)
                 auto x1 =  editViewState.beatsToX (sBeat + editViewState.viewX1, p->getWidth ());
                 auto x2 =  editViewState.beatsToX (eBeat + editViewState.viewX1, p->getWidth ());
 
-                g.setColour (Colours::white);
+                g.setColour (juce::Colours::white);
                 g.drawLine (float (x1), float (y), float (x2), float (y));
             }
         }
     }
 }
 
-void MidiClipComponent::mouseMove(const MouseEvent &e)
+void MidiClipComponent::mouseMove(const juce::MouseEvent &e)
 {
     if (e.getPosition().getX() < 10)
     {
-        setMouseCursor(MouseCursor::LeftEdgeResizeCursor);
+        setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
     }
     else if (e.getPosition().getX() > getWidth() - 10)
     {
-        setMouseCursor(MouseCursor::RightEdgeResizeCursor);
+        setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
     }
     else
     {
-        setMouseCursor(MouseCursor::NormalCursor);
+        setMouseCursor(juce::MouseCursor::NormalCursor);
     }
 }
 
-void MidiClipComponent::mouseExit(const MouseEvent &e)
+void MidiClipComponent::mouseExit(const juce::MouseEvent &e)
 {
-    setMouseCursor(MouseCursor::NormalCursor);
+    setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
-void MidiClipComponent::mouseDown(const MouseEvent &e)
+void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseDownX = e.getMouseDownX();
     m_posAtMouseDown =  clip->getPosition();
@@ -329,7 +331,7 @@ void MidiClipComponent::mouseDown(const MouseEvent &e)
     m_oldDistTime = 0.0;
 }
 
-void MidiClipComponent::mouseDrag(const MouseEvent &e)
+void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
 {
     const auto distanceBeats = editViewState.xToBeats(e.getDistanceFromDragStartX(),getParentWidth());
     const auto distanceTime = editViewState.beatToTime(distanceBeats  - editViewState.viewX1);
@@ -340,7 +342,7 @@ void MidiClipComponent::mouseDrag(const MouseEvent &e)
         if (distTimeDelta > 0
          || clip->getPosition().getOffset() > 0 )
         {
-            clip->setStart(jmax(0.0, clip->getPosition().getStart() + distTimeDelta), false, false);
+            clip->setStart(juce::jmax(0.0, clip->getPosition().getStart() + distTimeDelta), false, false);
             if (clip->getPosition().getOffset() + distTimeDelta < 0)
             {
                 m_lastOffset = clip->getPosition().getOffset() + distTimeDelta;
@@ -350,7 +352,7 @@ void MidiClipComponent::mouseDrag(const MouseEvent &e)
         }
         else
         {
-            getMidiClip()->extendStart(jmax (0.0, clip->getPosition().getStart() + distTimeDelta));
+            getMidiClip()->extendStart(juce::jmax (0.0, clip->getPosition().getStart() + distTimeDelta));
             m_posAtMouseDown = clip->getPosition();
             m_lastOffset = 0.0;
         }
@@ -393,29 +395,29 @@ void RecordingClipComponent::initialiseThumbnailAndPunchTime()
     }
 }
 
-void RecordingClipComponent::paint (Graphics& g)
+void RecordingClipComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (Colours::red);
-    g.setColour (Colours::black);
+    g.fillAll (juce::Colours::red);
+    g.setColour (juce::Colours::black);
     g.drawRect (getLocalBounds());
 
     auto area = getLocalBounds();
     area.reduce(1,1);
-    g.setColour(Colours::red.darker());
+    g.setColour(juce::Colours::red.darker());
     g.fillRect(area.removeFromTop(clipHeaderHight));
 
 
     if (editViewState.drawWaveforms)
-        drawThumbnail (g, Colours::black.withAlpha (0.5f));
+        drawThumbnail (g, juce::Colours::black.withAlpha (0.5f));
 }
 
-void RecordingClipComponent::drawThumbnail (Graphics& g, Colour waveformColour) const
+void RecordingClipComponent::drawThumbnail (juce::Graphics& g, juce::Colour waveformColour) const
 {
     if (thumbnail == nullptr)
         return;
 
-    Rectangle<int> bounds;
-    Range<double> times;
+    juce::Rectangle<int> bounds;
+    juce::Range<double> times;
     getBoundsAndTime (bounds, times);
     auto w = bounds.getWidth();
 
@@ -428,7 +430,7 @@ void RecordingClipComponent::drawThumbnail (Graphics& g, Colour waveformColour) 
 }
 
 
-bool RecordingClipComponent::getBoundsAndTime (Rectangle<int>& bounds, Range<double>& times) const
+bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, juce::Range<double>& times) const
 {
     auto editTimeToX = [this] (double t)
     {
@@ -468,30 +470,30 @@ bool RecordingClipComponent::getBoundsAndTime (Rectangle<int>& bounds, Range<dou
         {
             hasLooped = true;
 
-            t1 = jmin (t1, playhead->getLoopTimes().start);
+            t1 = juce::jmin (t1, playhead->getLoopTimes().start);
             t2 = playhead->getPosition();
 
-            t1 = jmax (editViewState.beatToTime (editViewState.viewX1.get()), t1);
-            t2 = jmin (editViewState.beatToTime (editViewState.viewX2.get()), t2);
+            t1 = juce::jmax (editViewState.beatToTime (editViewState.viewX1.get()), t1);
+            t2 = juce::jmin (editViewState.beatToTime (editViewState.viewX2.get()), t2);
         }
         else if (edit.recordingPunchInOut)
         {
             const double in  = thumbnail->punchInTime;
             const double out = edit.getTransport().getLoopRange().getEnd();
 
-            t1 = jlimit (in, out, t1);
-            t2 = jlimit (in, out, t2);
+            t1 = juce::jlimit (in, out, t1);
+            t2 = juce::jlimit (in, out, t2);
         }
 
-        bounds = localBounds.withX (jmax (localBounds.getX(), static_cast<int>(editTimeToX (t1))))
-                 .withRight (jmin (localBounds.getRight(), static_cast<int>(editTimeToX (t2))));
+        bounds = localBounds.withX (juce::jmax (localBounds.getX(), static_cast<int>(editTimeToX (t1))))
+                 .withRight (juce::jmin (localBounds.getRight(), static_cast<int>(editTimeToX (t2))));
         bounds.removeFromTop (clipHeaderHight);
 
         auto loopRange = playhead->getLoopTimes();
         const double recordedTime = unloopedPos - playhead->getLoopTimes().start;
         const int numLoops = (int) (recordedTime / loopRange.getLength());
 
-        const Range<double> editTimes (xToEditTime (bounds.getX()),
+        const juce::Range<double> editTimes (xToEditTime (bounds.getX()),
                                        xToEditTime (bounds.getRight()));
 
         times = (editTimes + (numLoops * loopRange.getLength())) - timeStarted;
@@ -512,7 +514,7 @@ void RecordingClipComponent::updatePosition()
     if (auto playhead = edit.getTransport().getCurrentPlayhead())
     {
         double t1 = punchInTime >= 0 ? punchInTime : edit.getTransport().getTimeWhenStarted();
-        double t2 = jmax (t1, playhead->getUnloopedPosition());
+        double t2 = juce::jmax (t1, playhead->getUnloopedPosition());
 
         if (playhead->isLooping())
         {
@@ -520,7 +522,7 @@ void RecordingClipComponent::updatePosition()
 
             if (t2 >= loopTimes.end)
             {
-                t1 = jmin (t1, loopTimes.start);
+                t1 = juce::jmin (t1, loopTimes.start);
                 t2 = loopTimes.end;
             }
         }
@@ -530,12 +532,12 @@ void RecordingClipComponent::updatePosition()
             auto in  = mr.getStart();
             auto out = mr.getEnd();
 
-            t1 = jlimit (in, out, t1);
-            t2 = jlimit (in, out, t2);
+            t1 = juce::jlimit (in, out, t1);
+            t2 = juce::jlimit (in, out, t2);
         }
 
-        t1 = jmax (t1,editViewState.beatToTime (editViewState.viewX1.get()));
-        t2 = jmin (t2,editViewState.beatToTime (editViewState.viewX2.get()));
+        t1 = juce::jmax (t1,editViewState.beatToTime (editViewState.viewX1.get()));
+        t2 = juce::jmin (t2,editViewState.beatToTime (editViewState.viewX2.get()));
 
         if (auto p = getParentComponent())
         {

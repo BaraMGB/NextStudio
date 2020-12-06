@@ -9,7 +9,7 @@
 #endif
 
 PluginWindow::PluginWindow (te::Plugin& plug)
-    : DocumentWindow (plug.getName(), Colours::black, DocumentWindow::closeButton, shouldAddPluginWindowToDesktop),
+    : juce::DocumentWindow (plug.getName(), juce::Colours::black, juce::DocumentWindow::closeButton, shouldAddPluginWindowToDesktop),
       plugin (plug), windowState (*plug.windowState)
 {
     getConstrainer()->setMinimumOnscreenAmounts (0x10000, 50, 30, 50);
@@ -62,7 +62,7 @@ void PluginWindow::setEditor (std::unique_ptr<PluginEditor> newEditor)
     }
 }
 
-std::unique_ptr<Component> PluginWindow::create (te::Plugin& plugin)
+std::unique_ptr<juce::Component> PluginWindow::create (te::Plugin& plugin)
 {
     if (auto externalPlugin = dynamic_cast<te::ExternalPlugin*> (&plugin))
         if (externalPlugin->getAudioPluginInstance() == nullptr)
@@ -71,7 +71,7 @@ std::unique_ptr<Component> PluginWindow::create (te::Plugin& plugin)
     std::unique_ptr<PluginWindow> w;
 
     {
-        struct Blocker : public Component { void inputAttemptWhenModal() override {} };
+        struct Blocker : public juce::Component { void inputAttemptWhenModal() override {} };
 
         Blocker blocker;
         blocker.enterModalState (false);
@@ -79,7 +79,7 @@ std::unique_ptr<Component> PluginWindow::create (te::Plugin& plugin)
        #if JUCE_WINDOWS && JUCE_WIN_PER_MONITOR_DPI_AWARE
         if (! isDPIAware (plugin))
         {
-            ScopedDPIAwarenessDisabler disableDPIAwareness;
+            juce::ScopedDPIAwarenessDisabler disableDPIAwareness;
             w = std::make_unique<PluginWindow> (plugin);
         }
         else
@@ -115,7 +115,7 @@ void PluginWindow::recreateEditorAsync()
 {
     setEditor (nullptr);
 
-    Timer::callAfterDelay (50, [this, sp = SafePointer<Component> (this)]
+    juce::Timer::callAfterDelay (50, [this, sp = SafePointer<juce::Component> (this)]
                                  {
                                      if (sp != nullptr)
                                          recreateEditor();

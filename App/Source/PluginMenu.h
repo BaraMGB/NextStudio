@@ -11,26 +11,30 @@ class PluginTreeBase
 {
 public:
     virtual ~PluginTreeBase() = default;
-    virtual String getUniqueName() const = 0;
+    virtual juce::String getUniqueName() const = 0;
 
     void addSubItem (PluginTreeBase* itm)   { subitems.add (itm);       }
     int getNumSubItems()                    { return subitems.size();   }
     PluginTreeBase* getSubItem (int idx)    { return subitems[idx];     }
 
 private:
-    OwnedArray<PluginTreeBase> subitems;
+    juce::OwnedArray<PluginTreeBase> subitems;
 };
 
 //==============================================================================
 class PluginTreeItem : public PluginTreeBase
 {
 public:
-    PluginTreeItem (const PluginDescription&);
-    PluginTreeItem (const String& uniqueId, const String& name, const String& xmlType, bool isSynth, bool isPlugin);
+    PluginTreeItem (const juce::PluginDescription&);
+    PluginTreeItem (const juce::String& uniqueId
+                    , const juce::String& name
+                    , const juce::String& xmlType
+                    , bool isSynth
+                    , bool isPlugin);
 
     te::Plugin::Ptr create (te::Edit&);
 
-    String getUniqueName() const override
+    juce::String getUniqueName() const override
     {
         if (desc.fileOrIdentifier.startsWith (te::RackType::getRackPresetPrefix()))
             return desc.fileOrIdentifier;
@@ -38,8 +42,8 @@ public:
         return desc.createIdentifierString();
     }
 
-    PluginDescription desc;
-    String xmlType;
+    juce::PluginDescription desc;
+    juce::String xmlType;
     bool isPlugin = true;
 
     JUCE_LEAK_DETECTOR (PluginTreeItem)
@@ -49,15 +53,15 @@ public:
 class PluginTreeGroup : public PluginTreeBase
 {
 public:
-    PluginTreeGroup (te::Edit&, KnownPluginList::PluginTree&, te::Plugin::Type);
-    PluginTreeGroup (const String&);
+    PluginTreeGroup (te::Edit&, juce::KnownPluginList::PluginTree&, te::Plugin::Type);
+    PluginTreeGroup (const juce::String&);
 
-    String getUniqueName() const override           { return name; }
+    juce::String getUniqueName() const override           { return name; }
 
-    String name;
+    juce::String name;
 
 private:
-    void populateFrom (KnownPluginList::PluginTree&);
+    void populateFrom (juce::KnownPluginList::PluginTree&);
     void createBuiltInItems (int& num, te::Plugin::Type);
 
     JUCE_LEAK_DETECTOR (PluginTreeGroup)
@@ -67,7 +71,7 @@ private:
 template<class FilterClass>
 void addInternalPlugin (PluginTreeBase& item, int& num, bool synth = false)
 {
-    item.addSubItem (new PluginTreeItem (String (num++) + "_trkbuiltin",
+    item.addSubItem (new PluginTreeItem (juce::String (num++) + "_trkbuiltin",
                                          TRANS (FilterClass::getPluginName()),
                                          FilterClass::xmlTypeName, synth, false));
 }
@@ -76,7 +80,7 @@ void addInternalPlugin (PluginTreeBase& item, int& num, bool synth = false)
 
 
 //==============================================================================
-class PluginMenu : public PopupMenu
+class PluginMenu : public juce::PopupMenu
 {
 public:
     PluginMenu() = default;

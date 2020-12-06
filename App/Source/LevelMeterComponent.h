@@ -1,14 +1,17 @@
 #pragma once
+
 #include "../JuceLibraryCode/JuceHeader.h"
+
 namespace te = tracktion_engine;
-class LevelMeterComponent : public Component, public Timer
+
+class LevelMeterComponent : public juce::Component, public juce::Timer
 {
 public:
         LevelMeterComponent(te::LevelMeasurer& lm);
 
         ~LevelMeterComponent();
 
-        void paint(Graphics& g) override;
+        void paint(juce::Graphics& g) override;
 
 private:
         void timerCallback();

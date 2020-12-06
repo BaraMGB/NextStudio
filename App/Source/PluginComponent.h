@@ -1,11 +1,13 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+
 #include "EditViewState.h"
 #include "Utilities.h"
 
+namespace te = tracktion_engine;
 
-class PluginComponent : public Component
+class PluginComponent : public juce::Component
 {
 public:
     PluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
@@ -31,7 +33,7 @@ public:
     VolumePluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
 
 
-    void paint (Graphics&) override;
+    void paint (juce::Graphics&) override;
     void resized() override;
 
 private:
@@ -56,8 +58,8 @@ public:
         m_parameterSlider.setRange(0.0f, 3.0f, 0.01f);
         m_parameterSlider.setSkewFactorFromMidPoint(1.0f);
         m_parameterSlider.setValue(ap.getCurrentValue());
-        m_parameterSlider.setSliderStyle(Slider::RotaryVerticalDrag);
-        m_parameterSlider.setTextBoxStyle(Slider::NoTextBox, 0, 0, false);
+        m_parameterSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+        m_parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
         m_parameterSlider.onValueChange = [this, &ap]
         {
             if ((float) m_parameterSlider.getValue()
@@ -98,7 +100,7 @@ private:
 
 class VstPluginComponent : public PluginComponent
                          , public tracktion_engine::AutomatableParameter::Listener
-                         , public ChangeListener
+                         , public juce::ChangeListener
 {
 
 public:
@@ -107,9 +109,9 @@ public:
 
     const int getNeededWidth() override {return 2;}
 
-    void changeListenerCallback(ChangeBroadcaster *source) override;
+    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
-    void mouseDown(const MouseEvent& ) override
+    void mouseDown(const juce::MouseEvent& ) override
     {
     }
 
@@ -118,7 +120,7 @@ public:
     }
 
     void parameterChanged (tracktion_engine::AutomatableParameter&ap , float /*newValue*/) override;
-   // void paint (Graphics&) override;
+   // void paint (juce::Graphics&) override;
     void resized();
 
 private:
@@ -131,16 +133,16 @@ private:
 
 //-------------------------------------------------------------------------------------
 
-class PluginWindowComponent : public Component
+class PluginWindowComponent : public juce::Component
 {
 public:
     PluginWindowComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
     ~PluginWindowComponent();
 
-    void paint (Graphics&) override;
-    void mouseDown (const MouseEvent&) override;
-    void mouseDrag (const MouseEvent&) override;
-    void mouseUp (const MouseEvent&) override;
+    void paint (juce::Graphics&) override;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseDrag (const juce::MouseEvent&) override;
+    void mouseUp (const juce::MouseEvent&) override;
 
     void resized() override;
 

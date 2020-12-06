@@ -13,9 +13,9 @@
 
 //==============================================================================
 
-void SideBarBrowser::mouseDrag(const MouseEvent& /*event*/)
+void SideBarBrowser::mouseDrag(const juce::MouseEvent& /*event*/)
 {
-    DragAndDropContainer* dragC = DragAndDropContainer::findParentDragContainerFor(this);
+    auto dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
     if (!dragC->isDragAndDropActive())
     {
         dragC->startDragging("Test", this);

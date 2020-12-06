@@ -18,7 +18,7 @@ PluginRackComponent::~PluginRackComponent()
     track->state.removeListener (this);
 }
 
-void PluginRackComponent::buttonClicked(Button* button)
+void PluginRackComponent::buttonClicked(juce::Button* button)
 {
     for (auto &b : addButtons)
     {
@@ -53,13 +53,13 @@ void PluginRackComponent::valueTreeChildOrderChanged (juce::ValueTree& c, int, i
         markAndUpdate (updatePlugins);
 }
 
-void PluginRackComponent::paint (Graphics& g)
+void PluginRackComponent::paint (juce::Graphics& g)
 {
-    g.setColour (Colour(0x181818));
+    g.setColour (juce::Colour(0x181818));
     g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
 }
 
-void PluginRackComponent::mouseDown (const MouseEvent&)
+void PluginRackComponent::mouseDown (const juce::MouseEvent&)
 {
     //editViewState.selectionManager.selectOnly (track.get());
 }
@@ -139,7 +139,7 @@ LowerRangeComponent::~LowerRangeComponent()
     editViewState.selectionManager.removeChangeListener(this);
 }
 
-void LowerRangeComponent::changeListenerCallback(ChangeBroadcaster * source)
+void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * source)
 {
     auto lastClickedTrack = editViewState.selectionManager
             .getItemsOfType<tracktion_engine::Track>()
@@ -182,13 +182,13 @@ void LowerRangeComponent::changeListenerCallback(ChangeBroadcaster * source)
     }
 }
 
-void LowerRangeComponent::paint(Graphics &g)
+void LowerRangeComponent::paint(juce::Graphics &g)
 {
 
     auto rect = getLocalBounds();
-    g.setColour(Colour(0xff555555));
+    g.setColour(juce::Colour(0xff555555));
     g.fillRect(rect);
-    g.setColour(Colour(0xff181818));
+    g.setColour(juce::Colour(0xff181818));
     auto cornerSize = 10;
     g.fillRoundedRectangle(rect.removeFromBottom(getHeight() - 10).toFloat(), cornerSize);
 

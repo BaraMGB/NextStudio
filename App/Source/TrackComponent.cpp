@@ -12,8 +12,8 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
                                          });
 
 
-    m_trackName.setText(m_track->getName(), NotificationType::dontSendNotification);
-    m_trackName.setColour(Label::textColourId, Colours::white);
+    m_trackName.setText(m_track->getName(), juce::NotificationType::dontSendNotification);
+    m_trackName.setColour(juce::Label::textColourId, juce::Colours::white);
     m_trackName.setInterceptsMouseClicks(false, false);
 
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
@@ -22,16 +22,16 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
         levelMeterComp = std::make_unique<LevelMeterComponent>(audioTrackPtr->getLevelMeterPlugin()->measurer);
         addAndMakeVisible(levelMeterComp.get());
 
-        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
+        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), juce::dontSendNotification);
         m_armButton.onClick = [this, audioTrack]
         {
             EngineHelpers::armTrack (*audioTrack, !EngineHelpers::isTrackArmed (*audioTrack));
-            m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
+            m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), juce::dontSendNotification);
         };
         m_muteButton.onClick = [audioTrack] { audioTrack->setMute (! audioTrack->isMuted (false)); };
         m_soloButton.onClick = [audioTrack] { audioTrack->setSolo (! audioTrack->isSolo (false)); };
 
-        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), dontSendNotification);
+        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), juce::dontSendNotification);
 
         m_volumeKnob.setOpaque(false);
         addAndMakeVisible(m_volumeKnob);
@@ -43,8 +43,8 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
             m_volumeKnob.setValue(audioTrack->getVolumePlugin()->volume);
 
         }
-        m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
-        m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, 0, 0, false);
+        m_volumeKnob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+        m_volumeKnob.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
     }
     else
     {
@@ -74,9 +74,9 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
     if (te::TrackList::isTrack (v))
     {
         if (i == te::IDs::mute)
-            m_muteButton.setToggleState ((bool)v[i], dontSendNotification);
+            m_muteButton.setToggleState ((bool)v[i], juce::dontSendNotification);
         else if (i == te::IDs::solo)
-            m_soloButton.setToggleState ((bool)v[i], dontSendNotification);
+            m_soloButton.setToggleState ((bool)v[i], juce::dontSendNotification);
         else if (i == te::IDs::height)
             getParentComponent()->resized();
     }
@@ -87,19 +87,141 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
         if (auto at = dynamic_cast<te::AudioTrack*> (m_track.get()))
         {
             m_armButton.setEnabled (EngineHelpers::trackHasInput (*at));
-            m_armButton.setToggleState (EngineHelpers::isTrackArmed (*at), dontSendNotification);
+            m_armButton.setToggleState (EngineHelpers::isTrackArmed (*at), juce::dontSendNotification);
         }
     }
 }
 
-void TrackHeaderComponent::paint (Graphics& g)
+void TrackHeaderComponent::showPopupMenu(tracktion_engine::AudioTrack *at)
+{
+    at->edit.playInStopEnabled = true;
+    juce::PopupMenu m;
+    m.addItem(2000, "delete Track");
+    m.addSeparator();
+
+    if (EngineHelpers::trackHasInput(*at))
+    {
+        bool ticked = EngineHelpers::isInputMonitoringEnabled(*at);
+        m.addItem(1000, "Input Monitoring", true, ticked);
+        m.addSeparator();
+    }
+
+    int id = 1;
+    for (auto instance: at->edit.getAllInputDevices())
+    {
+        if (instance->getInputDevice().getDeviceType()
+            == te::InputDevice::waveDevice)
+        {
+            bool ticked = instance->getTargetTracks().getFirst() == at;
+            m.addItem(id++,
+                      instance->getInputDevice().getName(),
+                      true,
+                      ticked);
+        }
+    }
+
+    m.addSeparator();
+
+    id = 100;
+    for (auto instance: at->edit.getAllInputDevices())
+    {
+        if (instance->getInputDevice().getDeviceType()
+            == te::InputDevice::physicalMidiDevice)
+        {
+            bool ticked = instance->getTargetTracks().getFirst() == at;
+            m.addItem(id++,
+                      instance->getInputDevice().getName(),
+                      true,
+                      ticked);
+        }
+    }
+
+    const int result = m.show();
+
+    if (result == 2000)
+    {
+        deleteTrackFromEdit();
+    }
+    else if (result == 1000)
+    {
+        EngineHelpers::enableInputMonitoring(
+            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
+    }
+    else if (result >= 100)
+    {
+        int id = 100;
+
+        for (auto instance: at->edit.getAllInputDevices())
+        {
+            if (instance->getInputDevice().getDeviceType()
+                == te::InputDevice::physicalMidiDevice)
+            {
+                if (id == result)
+                {
+                    {
+                        instance->setTargetTrack(*at, 0, true);
+                    }
+                }
+                id++;
+            }
+        }
+        EngineHelpers::enableInputMonitoring(
+            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
+        EngineHelpers::enableInputMonitoring(
+            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
+    }
+    else if (result >= 1)
+    {
+        int id = 1;
+        for (auto instance: at->edit.getAllInputDevices())
+        {
+            if (instance->getInputDevice().getDeviceType()
+                == te::InputDevice::waveDevice)
+            {
+                if (id == result)
+                {
+                    if (instance->getTargetTracks().getFirst() == at)
+                    {
+                        instance->removeTargetTrack(*at);
+                    }
+                    else
+                    {
+                        instance->setTargetTrack(*at, 0, true);
+                    }
+                }
+                id++;
+            }
+        }
+    }
+}
+
+void TrackHeaderComponent::deleteTrackFromEdit()
+{
+    m_track->deselect();
+    m_track->edit.deleteTrack(m_track);
+    auto i = tracktion_engine::getAllTracks(editViewState.edit).getLast();
+
+    if (!(i->isArrangerTrack()
+        || i->isTempoTrack()
+        || i->isMarkerTrack()
+        || i->isChordTrack()))
+    {
+        editViewState.selectionManager.selectOnly(i);
+    }
+    else
+    {
+        editViewState.selectionManager.deselectAll();
+    }
+}
+
+void TrackHeaderComponent::paint (juce::Graphics& g)
 {   
-    auto cornerSize = 10;
-    Rectangle<float> area = getLocalBounds().toFloat();
+    auto cornerSize = 10.0f;
+    juce::Rectangle<float> area = getLocalBounds().toFloat();
 
     area.reduce(1, 1);
 
-    auto buttonColour = Colour(0xff4b4b4b);
+    auto buttonColour = juce::Colour(0xff4b4b4b);
 
     if (!editViewState.selectionManager.isSelected (m_track))
     {
@@ -117,26 +239,24 @@ void TrackHeaderComponent::paint (Graphics& g)
     }
 
     // TrackColour
-    Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
+    juce::Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
     auto trackColor =  m_track->getColour();
 
     g.setColour (trackColor);
     GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
     if (m_isAboutToResizing)
     {
-        g.setColour(Colour(0x66ffffff));
-        auto area = getLocalBounds();
-        g.drawRect(area.removeFromBottom(1));
+        g.setColour(juce::Colour(0x66ffffff));
+        g.drawRect(getLocalBounds().removeFromBottom(1));
     }
     if (m_isResizing)
     {
-        g.setColour(Colour(0xffffffff));
-        auto area = getLocalBounds();
-        g.drawRect(area.removeFromBottom(3));
+        g.setColour(juce::Colour(0xffffffff));
+        g.drawRect(getLocalBounds().removeFromBottom(3));
     }
 }
 
-void TrackHeaderComponent::mouseDown (const MouseEvent& event)
+void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 {
     if (!event.mouseWasDraggedSinceMouseDown())
         {
@@ -144,139 +264,7 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
             {
                 if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get()))
                 {
-                    PopupMenu m;
-                    m.addItem(2000, "delete Track");
-                    m.addSeparator();
-
-                    if (EngineHelpers::trackHasInput(*at))
-                    {
-                        bool ticked = EngineHelpers::isInputMonitoringEnabled(*at);
-                        m.addItem(1000, "Input Monitoring", true, ticked);
-                        m.addSeparator();
-                    }
-
-                    int id = 1;
-                    for (auto instance: at->edit.getAllInputDevices())
-                    {
-                        if (instance->getInputDevice().getDeviceType()
-                            == te::InputDevice::waveDevice)
-                        {
-                            bool ticked = instance->getTargetTracks().getFirst() == at;
-                            m.addItem(id++,
-                                      instance->getInputDevice().getName(),
-                                      true,
-                                      ticked);
-                        }
-                    }
-
-                    m.addSeparator();
-
-                    id = 100;
-
-                    at->edit.playInStopEnabled = true;
-                    auto& dm = at->edit.engine.getDeviceManager();
-//                    for (int i = 0; i < dm.getNumMidiInDevices(); i++)
-//                    {
-//                        if (auto wip = dm.getMidiInDevice(i))
-//                        {
-//                            wip->setEndToEndEnabled(true);
-//                            wip->setEnabled(true);
-//                        }
-//                    }
-//                    at->edit.restartPlayback();
-
-                    for (auto instance: at->edit.getAllInputDevices())
-                    {
-                        if (instance->getInputDevice().getDeviceType()
-                            == te::InputDevice::physicalMidiDevice)
-                        {
-                            bool ticked = instance->getTargetTracks().getFirst() == at;
-                            m.addItem(id++,
-                                      instance->getInputDevice().getName(),
-                                      true,
-                                      ticked);
-                        }
-                    }
-
-                    const int res = m.show();
-
-                    if (res == 2000)
-                    {
-                        m_track->deselect();
-                        m_track->edit.deleteTrack(m_track);
-                        auto i = tracktion_engine::getAllTracks(editViewState.edit).getLast();
-
-                        if (!(i->isArrangerTrack()
-                            || i->isTempoTrack()
-                            || i->isMarkerTrack()
-                            || i->isChordTrack()))
-                        {
-                            editViewState.selectionManager.selectOnly(i);
-                        }
-                        else
-                        {
-                            editViewState.selectionManager.deselectAll();
-                        }
-                    }
-                    else if (res == 1000)
-                    {
-                        EngineHelpers::enableInputMonitoring(
-                            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
-                    }
-                    else if (res >= 100)
-                    {
-                        int id = 100;
-
-                        for (auto instance: at->edit.getAllInputDevices())
-                        {
-                            if (instance->getInputDevice().getDeviceType()
-                                == te::InputDevice::physicalMidiDevice)
-                            {
-                                if (id == res)
-                                {
-//                                    if (instance->getTargetTracks().getFirst() == at)
-//                                    {
-//                                        instance->removeTargetTrack(*at);
-//                                    }
-//                                    else
-                                    {
-                                        instance->setTargetTrack(*at, 0, true);
-                                    }
-                                }
-                                id++;
-                            }
-                        }
-                        EngineHelpers::enableInputMonitoring(
-                            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
-                        EngineHelpers::enableInputMonitoring(
-                            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
-                    }
-                    else if (res >= 1)
-                    {
-                        int id = 1;
-                        for (auto instance: at->edit.getAllInputDevices())
-                        {
-                            if (instance->getInputDevice().getDeviceType()
-                                == te::InputDevice::waveDevice)
-                            {
-                                if (id == res)
-                                {
-                                    if (instance->getTargetTracks().getFirst() == at)
-                                    {
-                                        instance->removeTargetTrack(*at);
-                                    }
-                                    else
-                                    {
-                                        instance->setTargetTrack(*at, 0, true);
-                                    }
-                                }
-                                id++;
-                            }
-                        }
-                    }
-
-
-
+                    showPopupMenu(at);
                 }
             }
             else if (event.mods.isShiftDown())
@@ -295,28 +283,33 @@ void TrackHeaderComponent::mouseDown (const MouseEvent& event)
     }
 }
 
-void TrackHeaderComponent::mouseDrag(const MouseEvent &event)
+
+
+void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10)
     {
         m_isResizing = true;
-        auto newHeight = jlimit(static_cast<int> (m_track->minTrackHeight)
-                               ,static_cast<int> (m_track->maxTrackHeight)
-                               ,static_cast<int> (m_trackHeightATMouseDown + event.getDistanceFromDragStartY()));
+        auto newHeight = juce::jlimit(static_cast<int> (m_track->minTrackHeight)
+                                     ,static_cast<int> (m_track->maxTrackHeight)
+                                     ,static_cast<int> (m_trackHeightATMouseDown
+                                        + event.getDistanceFromDragStartY()));
 
-        m_track->state.setProperty(te::IDs::height, newHeight, &(editViewState.edit.getUndoManager()));
+        m_track->state.setProperty(te::IDs::height
+                                   , newHeight
+                                   , &(editViewState.edit.getUndoManager()));
     }
 
 
 }
 
-void TrackHeaderComponent::mouseUp(const MouseEvent &event)
+void TrackHeaderComponent::mouseUp(const juce::MouseEvent &event)
 {
     m_isResizing = false;
     repaint();
 }
 
-void TrackHeaderComponent::mouseMove(const MouseEvent &event)
+void TrackHeaderComponent::mouseMove(const juce::MouseEvent &event)
 {
     if (event.getPosition().y > getHeight() - 10)
     {
@@ -329,7 +322,7 @@ void TrackHeaderComponent::mouseMove(const MouseEvent &event)
     repaint();
 }
 
-void TrackHeaderComponent::mouseExit(const MouseEvent &event)
+void TrackHeaderComponent::mouseExit(const juce::MouseEvent &event)
 {
     m_isAboutToResizing = false;
     repaint();
@@ -389,15 +382,15 @@ TrackComponent::~TrackComponent()
     track->edit.getTransport().removeChangeListener (this);
 }
 
-void TrackComponent::paint (Graphics& g)
+void TrackComponent::paint (juce::Graphics& g)
 {
-    g.setColour(Colour(0xff181818));
+    g.setColour(juce::Colour(0xff181818));
     g.fillAll ();
-    g.setColour(Colour(0xff2b2b2b));
+    g.setColour(juce::Colour(0xff2b2b2b));
     g.drawRect(0,0, getWidth(), getHeight() );
     double x2 = editViewState.viewX2;
     double x1 = editViewState.viewX1;
-    g.setColour(Colour(0xff333333));
+    g.setColour(juce::Colour(0xff333333));
     double zoom = x2 -x1;
     int firstBeat = static_cast<int>(x1);
     if(editViewState.beatsToX(firstBeat,getWidth()) < 0)
@@ -407,14 +400,14 @@ void TrackComponent::paint (Graphics& g)
 
     if (editViewState.selectionManager.isSelected (track.get()))
     {
-        g.setColour (Colour(0xff202020));
+        g.setColour (juce::Colour(0xff202020));
 
         auto rc = getLocalBounds();
         if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);
         if (editViewState.showFooters) rc = rc.withTrimmedRight (-4);
 
         g.fillRect (rc);
-        g.setColour(Colour(0xff333333));
+        g.setColour(juce::Colour(0xff333333));
     }
 
     auto pixelPerBeat = getWidth() / zoom;
@@ -458,12 +451,12 @@ void TrackComponent::paint (Graphics& g)
     }
 }
 
-void TrackComponent::mouseDown (const MouseEvent&event)
+void TrackComponent::mouseDown (const juce::MouseEvent&event)
 {
     editViewState.selectionManager.selectOnly (track.get());
     if (event.mods.isRightButtonDown())
     {
-        PopupMenu m;
+        juce::PopupMenu m;
         m.addItem(1, "Paste");
 
 
@@ -483,7 +476,7 @@ void TrackComponent::mouseDown (const MouseEvent&event)
 }
 
 
-void TrackComponent::changeListenerCallback (ChangeBroadcaster*)
+void TrackComponent::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     markAndUpdate (updateRecordClips);
 }
@@ -627,7 +620,8 @@ void TrackComponent::itemDropped(
     }
 
     //File droped ?
-    auto fileTreeComp = dynamic_cast<FileTreeComponent*>(dragSourceDetails.sourceComponent.get());
+    auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+            (dragSourceDetails.sourceComponent.get());
     if (fileTreeComp)
     {
         auto f = fileTreeComp->getSelectedFile();
@@ -738,7 +732,6 @@ void TrackComponent::buildRecordClips()
         recordingClip = nullptr;
     }
 }
-
 
 te::Track::Ptr TrackComponent::getTrack() const
 {

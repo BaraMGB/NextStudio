@@ -14,16 +14,16 @@
 #include "TrackComponent.h"
 //#include "BinaryData.h"
 
-class NextLookAndFeel : public LookAndFeel_V4
+class NextLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     NextLookAndFeel()
     {
-        setColour(ResizableWindow::backgroundColourId, Colour(0xff000000));
+        setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xff000000));
     }
-    void drawButtonBackground(Graphics& g,
-                              Button& button,
-                              const Colour& backgroundColour,
+    void drawButtonBackground(juce::Graphics& g,
+                              juce::Button& button,
+                              const juce::Colour& backgroundColour,
                               bool isMouseOverButton,
                               bool isButtonDown) override
     {
@@ -31,11 +31,11 @@ public:
 
 
 
-        g.setColour(Colour(0xff000000));
+        g.setColour(juce::Colour(0xff000000));
         g.drawRect(area, 1);
         area.reduce(1, 1);
 
-        auto buttonColour = Colour(0xff4b4b4b);
+        auto buttonColour = juce::Colour(0xff4b4b4b);
 
 
         if (isButtonDown)
@@ -68,7 +68,7 @@ public:
     }
 
 
-    void drawRotarySlider(Graphics& g,
+    void drawRotarySlider(juce::Graphics& g,
                           int x,
                           int y,
                           int width,
@@ -76,9 +76,9 @@ public:
                           float sliderPos,
                           const float rotaryStartAngle,
                           const float rotaryEndAngle,
-                          Slider& slider) override
+                          juce::Slider& slider) override
     {
-        auto radius = jmin(width / 2, height / 2) - 10.0f;
+        auto radius = juce::jmin(width / 2, height / 2) - 10.0f;
         auto centreX = x + width * 0.5f;
         auto centreY = y + height * 0.5f;
         auto rx = centreX - radius;
@@ -87,40 +87,40 @@ public:
         auto angle =
             rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        auto thumbColour = Colour(0xff000000);
-        auto thumbMouseColour = Colour(0xff999999);
-        auto volumeColour = Colour(0x88e9e949);
+        auto thumbColour = juce::Colour(0xff000000);
+        auto thumbMouseColour = juce::Colour(0xff999999);
+        auto volumeColour = juce::Colour(0x88e9e949);
         auto thc = dynamic_cast<TrackHeaderComponent*>(slider.getParentComponent ());
         if (thc != nullptr)
         {
             volumeColour = thc->getTrackColour ();
         }
-        auto bounds = Rectangle<int>(x, y, width, height).toFloat().reduced(10);
+        auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10);
         auto lineW = 5;
         auto arcRadius = radius + 3;
         auto toAngle =
             rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
         // fill
 
-        g.setGradientFill ({Colour(0xffbbbbbb),
+        g.setGradientFill ({juce::Colour(0xffbbbbbb),
                             0,
                             0,
-                            Colour(0xff2b2b2b),
+                            juce::Colour(0xff2b2b2b),
                             0,
                             static_cast<float>(height),
                             false});
         g.fillEllipse(rx, ry, rw, rw);
-        Rectangle<int> r;
+        juce::Rectangle<int> r;
 
-        g.setGradientFill ({Colour(0xff1b1b1b),
+        g.setGradientFill ({juce::Colour(0xff1b1b1b),
                             static_cast<float>(width/2),
                             static_cast<float>(height/2),
-                            Colour(0xff3b3b3b),
+                            juce::Colour(0xff3b3b3b),
                             static_cast<float>(width),
                             static_cast<float>(height),
                             true});
         g.fillEllipse(rx + 3, ry + 3, rw - 6, rw - 6);
-        Path backgroundArc;
+        juce::Path backgroundArc;
                 backgroundArc.addCentredArc(bounds.getCentreX(),
                                             bounds.getCentreY(),
                                             arcRadius,
@@ -132,11 +132,11 @@ public:
 
                 g.strokePath(
                     backgroundArc,
-                    PathStrokeType(lineW, PathStrokeType::curved, PathStrokeType::butt));
+                    juce::PathStrokeType(lineW, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
 
                 if (slider.isEnabled())
                 {
-                    Path valueArc;
+                    juce::Path valueArc;
                     valueArc.addCentredArc(bounds.getCentreX(),
                                            bounds.getCentreY(),
                                            arcRadius,
@@ -148,27 +148,27 @@ public:
 
                     g.setColour(volumeColour);
                     g.strokePath(valueArc,
-                                 PathStrokeType(lineW,
-                                                PathStrokeType::curved,
-                                                PathStrokeType::butt));
+                                 juce::PathStrokeType(lineW,
+                                                juce::PathStrokeType::curved,
+                                                juce::PathStrokeType::butt));
                 }
 
-                Path p;
+                juce::Path p;
                 auto pointerLength = radius * 0.33f;
                 auto pointerThickness = 2.0f;
                 p.addRectangle(
                     -pointerThickness * 0.5f, -radius, pointerThickness, pointerLength);
                 p.applyTransform(
-                    AffineTransform::rotation(angle).translated(centreX, centreY));
+                    juce::AffineTransform::rotation(angle).translated(centreX, centreY));
                 // pointer
                 g.setColour(thumbColour);
                 g.fillPath(p);
 
     }
 
-    Font getTextButtonFont(TextButton&, int buttonHeight) override
+    juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
     {
-        return {jmin(10.0f, buttonHeight * 0.6f)};
+        return {juce::jmin(10.0f, buttonHeight * 0.6f)};
     }
 
 //    void drawImageButton ( 	Graphics & g,
@@ -186,39 +186,39 @@ public:
 //        //LookAndFeel_V4::drawImageButton ( g, image,imageX, imageY, imageW, imageH,overlayColour, imageOpacity, button);
 //    }
 
-    void drawToggleButton(Graphics& g,
-                          ToggleButton& button,
+    void drawToggleButton(juce::Graphics& g,
+                          juce::ToggleButton& button,
                           bool shouldDrawButtonAsHighlighted,
                           bool shouldDrawButtonAsDown) override
     {
         //drawButtonBackground (g, button, juce::Colour(), shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
         auto buttonArea = button.getLocalBounds();
         buttonArea.reduce(2, 2);
-        g.setColour(Colour(0xff000000));
+        g.setColour(juce::Colour(0xff000000));
         g.fillRoundedRectangle(buttonArea.toFloat(), 7);
-        g.setColour(Colour(0xff343434));
+        g.setColour(juce::Colour(0xff343434));
         buttonArea.reduce(1, 1);
         g.fillRoundedRectangle(buttonArea.toFloat(), 5);
         auto textColour = juce::Colour(0xff7b7b7b);
         if (button.getToggleState())
         {
-            textColour = Colour(0xff000000);
+            textColour = juce::Colour(0xff000000);
             if (button.getComponentID() == "solo")
             {
-                g.setColour(Colours::lightgreen);
+                g.setColour(juce::Colours::lightgreen);
             }
             else if (button.getComponentID() == "mute")
             {
-                g.setColour(Colours::indigo);
+                g.setColour(juce::Colours::indigo);
             }
             else
             {
-                g.setColour(Colours::gold);
+                g.setColour(juce::Colours::gold);
             }
         }
         else
         {
-            g.setColour(Colour(14, 14, 14));
+            g.setColour(juce::Colour(14, 14, 14));
         }
         buttonArea.reduce(1, 1);
         g.fillRoundedRectangle(buttonArea.toFloat(), 5);
@@ -226,28 +226,28 @@ public:
         //        auto fontSize = jmin (15.0f, button.getHeight() * 0.75f);
         //        auto tickWidth = fontSize * 1.1f;
         g.drawFittedText(
-            button.getName(), button.getLocalBounds(), Justification::centred, 1);
+            button.getName(), button.getLocalBounds(), juce::Justification::centred, 1);
     }
 
 
 
 
-    void drawFileBrowserRow(Graphics &g,
+    void drawFileBrowserRow(juce::Graphics &g,
                             int width,
                             int height,
-                            const File &file,
-                            const String &filename,
-                            Image *icon,
-                            const String &fileSizeDescription,
-                            const String &fileTimeDescription,
+                            const juce::File &file,
+                            const juce::String &filename,
+                            juce::Image *icon,
+                            const juce::String &fileSizeDescription,
+                            const juce::String &fileTimeDescription,
                             bool isDirectory, bool isItemSelected,
                             int itemIndex,
-                            DirectoryContentsDisplayComponent &dcc) override
+                            juce::DirectoryContentsDisplayComponent &dcc) override
     {
 
         auto w = 24;
         auto h = 24;
-        juce::Image iconImage (Image::RGB, w, h, true);
+        juce::Image iconImage (juce::Image::RGB, w, h, true);
         juce::Graphics graph (iconImage);
 
         if (isDirectory)
@@ -280,66 +280,66 @@ public:
 //        juce::LookAndFeel_V4::drawFileBrowserRow (g, width, height, file, filename, icon,
 //                                                                  fileSizeDescription, fileTimeDescription,
 //                                                                  isDirectory, isItemSelected, itemIndex, dcc);
-        auto fileListComp = dynamic_cast<Component*> (&dcc);
+        auto fileListComp = dynamic_cast<juce::Component*> (&dcc);
 
         if (isItemSelected)
-            g.fillAll (fileListComp != nullptr ? fileListComp->findColour (DirectoryContentsDisplayComponent::highlightColourId)
-                                               : findColour (DirectoryContentsDisplayComponent::highlightColourId));
+            g.fillAll (fileListComp != nullptr ? fileListComp->findColour (juce::DirectoryContentsDisplayComponent::highlightColourId)
+                                               : findColour (juce::DirectoryContentsDisplayComponent::highlightColourId));
 
         const int x = 32;
-        g.setColour (Colours::black);
+        g.setColour (juce::Colours::black);
 
         if (icon != nullptr && icon->isValid())
         {
             g.drawImageWithin (*icon, 2, 2, x - 4, height - 4,
-                               RectanglePlacement::centred | RectanglePlacement::onlyReduceInSize,
+                               juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize,
                                false);
         }
         else
         {
             if (auto* d = isDirectory ? getDefaultFolderImage()
                                       : getDefaultDocumentFileImage())
-                d->drawWithin (g, Rectangle<float> (2.0f, 2.0f, x - 4.0f, height - 4.0f),
-                               RectanglePlacement::centred | RectanglePlacement::onlyReduceInSize, 1.0f);
+                d->drawWithin (g, juce::Rectangle<float> (2.0f, 2.0f, x - 4.0f, height - 4.0f),
+                               juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize, 1.0f);
         }
 
         if (isItemSelected)
-            g.setColour (fileListComp != nullptr ? fileListComp->findColour (DirectoryContentsDisplayComponent::highlightedTextColourId)
-                                                 : findColour (DirectoryContentsDisplayComponent::highlightedTextColourId));
+            g.setColour (fileListComp != nullptr ? fileListComp->findColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId)
+                                                 : findColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId));
         else
-            g.setColour (fileListComp != nullptr ? fileListComp->findColour (DirectoryContentsDisplayComponent::textColourId)
-                                                 : findColour (DirectoryContentsDisplayComponent::textColourId));
+            g.setColour (fileListComp != nullptr ? fileListComp->findColour (juce::DirectoryContentsDisplayComponent::textColourId)
+                                                 : findColour (juce::DirectoryContentsDisplayComponent::textColourId));
 
         g.setFont (height * 0.7f);
 
         if (width > 450 && ! isDirectory)
         {
-            auto sizeX = roundToInt (width * 0.7f);
-            auto dateX = roundToInt (width * 0.8f);
+            auto sizeX = juce::roundToInt (width * 0.7f);
+            auto dateX = juce::roundToInt (width * 0.8f);
 
             g.drawFittedText (filename,
                               x, 0, sizeX - x, height,
-                              Justification::centredLeft, 1 , 1.0f);
+                              juce::Justification::centredLeft, 1 , 1.0f);
 
             g.setFont (height * 0.5f);
-            g.setColour (Colours::darkgrey);
+            g.setColour (juce::Colours::darkgrey);
 
             if (! isDirectory)
             {
                 g.drawFittedText (fileSizeDescription,
                                   sizeX, 0, dateX - sizeX - 8, height,
-                                  Justification::centredRight, 1, 1.0f);
+                                  juce::Justification::centredRight, 1, 1.0f);
 
                 g.drawFittedText (fileTimeDescription,
                                   dateX, 0, width - 8 - dateX, height,
-                                  Justification::centredRight, 1, 1.0f);
+                                  juce::Justification::centredRight, 1, 1.0f);
             }
         }
         else
         {
             g.drawFittedText (filename,
                               x, 0, width - x, height,
-                              Justification::centredLeft, 1, 1.0f);
+                              juce::Justification::centredLeft, 1, 1.0f);
 
         }
     }
@@ -347,8 +347,8 @@ public:
 
 
 
-    void drawScrollbar (Graphics &g,
-                       ScrollBar &,
+    void drawScrollbar (juce::Graphics &g,
+                       juce::ScrollBar &,
                        int x, int y,
                        int width, int height,
                        bool isScrollbarVertical,
@@ -360,16 +360,16 @@ public:
         if (isMouseDown)
         {
             g.setColour (juce::Colour(0x66ffffff));
-            g.fillRect (Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+            g.fillRect (juce::Rectangle<int> (0, thumbStartPosition, width, thumbSize));
         }
         else if (isMouseOver)
         {
             g.setColour (juce::Colour(0x33ffffff));
-            g.fillRect (Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+            g.fillRect (juce::Rectangle<int> (0, thumbStartPosition, width, thumbSize));
         }
     }
-    Colour m_BGcolour = Colour(14, 14, 14);
-    Colour m_DarkArea = Colour(10, 10, 10);
-    Colour m_BrightButton1 = Colour(90, 90, 90);
-    Colour m_BrightButton2 = Colour(66, 66, 66);
+    juce::Colour m_BGcolour = juce::Colour(14, 14, 14);
+    juce::Colour m_DarkArea = juce::Colour(10, 10, 10);
+    juce::Colour m_BrightButton1 = juce::Colour(90, 90, 90);
+    juce::Colour m_BrightButton2 = juce::Colour(66, 66, 66);
 };

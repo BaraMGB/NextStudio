@@ -12,16 +12,15 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-//==============================================================================
-/*
-*/
-class MenuBar    : public Component
+namespace te = tracktion_engine;
+
+class MenuBar    : public juce::Component
 {
 public:
     MenuBar();
     ~MenuBar();
 
-    void paint (Graphics&) override;
+    void paint (juce::Graphics&) override;
     void resized() override;
 
 private:

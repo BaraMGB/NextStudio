@@ -19,21 +19,12 @@
 #include "Utilities.h"
 #include "PluginWindow.h"
 
+namespace te = tracktion_engine;
 
-//==============================================================================
-/*
-    This component lives inside our window, and this is where you should put all
-    your controls and content.
-*/
-
-
-
-
-class MainComponent   : public Component
-                      , public FileBrowserListener
-                      , public Button::Listener
-                      , public DragAndDropContainer
-                      , public ChangeListener
+class MainComponent   : public juce::Component
+                      , public juce::FileBrowserListener
+                      , public juce::DragAndDropContainer
+                      , public juce::ChangeListener
 {
 public:
     //==============================================================================
@@ -41,37 +32,36 @@ public:
     ~MainComponent();
 
     //==============================================================================
-    void paint (Graphics& g) override;
+    void paint (juce::Graphics& g) override;
     void resized() override;
-    void buttonClicked(Button* button) override;
+    bool keyPressed(const juce::KeyPress &key) override;
     
 private:
-    void changeListenerCallback(ChangeBroadcaster* source);
+    void changeListenerCallback(juce::ChangeBroadcaster* source);
     void selectionChanged()                           override {}
-    void fileClicked (const File& file, const MouseEvent& event) override;
-    void fileDoubleClicked(const File&) override;
+    void fileClicked (const juce::File& file, const juce::MouseEvent& event) override;
+    void fileDoubleClicked(const juce::File&) override;
+    void browserRootChanged(const juce::File&) override {}
 
-    void browserRootChanged(const File&) override {}
-
-    void setupEdit(File);
+    void setupEdit (juce::File);
     void createTracksAndAssignInputs();
 
-
-    TimeSliceThread m_thread;
-    DirectoryContentsList m_dirConList;
-    FileTreeComponent m_tree;
-    MenuBar m_menuBar;
+    juce::TimeSliceThread       m_thread    {"file browser thread"};
+    juce::DirectoryContentsList m_dirConList{nullptr, m_thread};
+    juce::FileTreeComponent     m_tree      {m_dirConList};
+    MenuBar                     m_menuBar;
 
     std::unique_ptr<HeaderComponent> m_header;
-    Label m_editNameLabel { "No Edit Loaded" };
-    NextLookAndFeel m_nextLookAndFeel;
+    juce::Label                      m_editNameLabel { "No Edit Loaded" };
+    NextLookAndFeel                  m_nextLookAndFeel;
 
-    tracktion_engine::Engine m_engine{ ProjectInfo::projectName, std::make_unique<ExtendedUIBehaviour>(), nullptr };
-    tracktion_engine::SelectionManager m_selectionManager{ m_engine };
+    tracktion_engine::Engine m_engine
+                                { ProjectInfo::projectName, nullptr, nullptr };
+    tracktion_engine::SelectionManager      m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
-    std::unique_ptr<EditComponent> m_songEditor;
+    std::unique_ptr<EditComponent>          m_songEditor;
 
-
+// todo : into settings
     const int c_headerHeight = 100;
     const int c_footerHeight = 50;
 

@@ -10,9 +10,9 @@ PlayheadComponent::PlayheadComponent (te::Edit& e , EditViewState& evs)
     startTimerHz (30);
 }
 
-void PlayheadComponent::paint (Graphics& g)
+void PlayheadComponent::paint (juce::Graphics& g)
 {
-    g.setColour (Colours::antiquewhite);
+    g.setColour (juce::Colours::antiquewhite);
     g.drawRect (xPosition, 0, 2, getHeight());
     //g.drawArrow(juce::Line<float>(xPosition, 0, xPosition,editViewState.headerHeight),1,3,10);
 }
@@ -25,17 +25,17 @@ bool PlayheadComponent::hitTest (int x, int)
     return false;
 }
 
-void PlayheadComponent::mouseDown (const MouseEvent&)
+void PlayheadComponent::mouseDown (const juce::MouseEvent&)
 {
     //edit.getTransport().setUserDragging (true);
 }
 
-void PlayheadComponent::mouseUp (const MouseEvent&)
+void PlayheadComponent::mouseUp (const juce::MouseEvent&)
 {
     edit.getTransport().setUserDragging (false);
 }
 
-void PlayheadComponent::mouseDrag (const MouseEvent& e)
+void PlayheadComponent::mouseDrag (const juce::MouseEvent& e)
 {
     double t = editViewState.beatToTime(editViewState.xToBeats (e.x, getWidth()));
     edit.getTransport().setCurrentPosition (t);
@@ -48,26 +48,29 @@ void PlayheadComponent::timerCallback()
     {
         // On Linux, don't set the mouse cursor until after the Component has appeared
         firstTimer = false;
-        setMouseCursor (MouseCursor::LeftRightResizeCursor);
+        setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
     }
 
     int newX = editViewState.beatsToX (edit.tempoSequence.timeToBeats(edit.getTransport().getCurrentPosition()) , getWidth());
     if (newX != xPosition)
     {
-        repaint (jmin (newX, xPosition) - 1, 0, jmax (newX, xPosition) - jmin (newX, xPosition) + 3, getHeight());
+        repaint (juce::jmin (newX, xPosition) - 1
+                 , 0
+                 , juce::jmax (newX, xPosition) - juce::jmin (newX, xPosition) + 3
+                 , getHeight());
         xPosition = newX;
     }
 }
 
 //==============================================================================
 
-TollBarComponent::TollBarComponent()
+ToolBarComponent::ToolBarComponent()
 {
 }
 
-void TollBarComponent::paint(Graphics &g)
+void ToolBarComponent::paint(juce::Graphics &g)
 {
-    g.setColour(Colour (0xff181818));
+    g.setColour(juce::Colour (0xff181818));
     auto cornerSize = 10;
     g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
     g.fillAll ();
@@ -151,11 +154,11 @@ void EditComponent::valueTreeChildOrderChanged (juce::ValueTree& v, int a, int b
         markAndUpdate (updateTracks);
 }
 
-void EditComponent::mouseDown(const MouseEvent &event)
+void EditComponent::mouseDown(const juce::MouseEvent &event)
 {
     if (event.mods.isPopupMenu())
     {
-        PopupMenu m;
+        juce::PopupMenu m;
         m.addItem (10, "Add track");
 
         m.addSeparator();
@@ -164,14 +167,14 @@ void EditComponent::mouseDown(const MouseEvent &event)
 
         if (res == 10)
         {
-            auto red = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-            auto gre = Random::getSystemRandom().nextInt(Range<int>(0, 255));
-            auto blu = Random::getSystemRandom().nextInt(Range<int>(0, 255));
+            auto red = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
+            auto gre = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
+            auto blu = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
             if (auto track = EngineHelpers::getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
             {
                  track->state.setProperty(te::IDs::height, track->defaultTrackHeight,&edit.getUndoManager());
-                 track->setName("Track " + String(tracktion_engine::getAudioTracks(edit).size()));
-                 track->setColour(Colour(red, gre, blu));
+                 track->setName("Track " + juce::String(tracktion_engine::getAudioTracks(edit).size()));
+                 track->setColour(juce::Colour(red, gre, blu));
                  editViewState.selectionManager.selectOnly(track);
             }
         }
@@ -179,15 +182,42 @@ void EditComponent::mouseDown(const MouseEvent &event)
     //editViewState.selectionManager.deselectAll();
 }
 
+void EditComponent::mouseWheelMove(const juce::MouseEvent &event
+                                   , const juce::MouseWheelDetails &wheel)
+{
+    if (event.mods.isShiftDown())
+    {
+        double rangeBegin = editViewState.beatsToX(
+                                editViewState.viewX1, timeLine.getWidth());
+        double visibleLength = editViewState.viewX2 - editViewState.viewX1;
 
-void EditComponent::paint(Graphics &g)
+        rangeBegin -= wheel.deltaY * 300;
+
+        editViewState.viewX1 = juce::jmax (0.0
+                                     , editViewState.xToBeats(
+                                         rangeBegin, timeLine.getWidth()));
+        editViewState.viewX2 = editViewState.viewX1 + visibleLength;
+    }
+    else if (event.mods.isCtrlDown())
+    {
+
+    }
+    else
+    {
+        m_scrollbar.setCurrentRangeStart(
+                    m_scrollbar.getCurrentRangeStart() - wheel.deltaY * 300);
+    }
+}
+
+
+void EditComponent::paint (juce::Graphics &g)
 {
     auto rect = getLocalBounds();
-    g.setColour(Colour(0xff181818));
+    g.setColour(juce::Colour(0xff181818));
     auto cornerSize = 10;
     g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
 
-    g.setColour(Colour(0xff4f4f4f));
+    g.setColour(juce::Colour(0xff4f4f4f));
     g.drawRect(editViewState.headerWidth, 0, 1, getHeight());
 }
 
@@ -217,42 +247,39 @@ void EditComponent::resized()
     auto area = getLocalBounds();
     auto pluginRackRect = area.removeFromBottom(pluginRackHeight);
     
-    int y = roundToInt (editViewState.viewY.get()) + timelineHeight;
-    int trackCount = 0;
+    int y = juce::roundToInt (editViewState.viewY.get()) + timelineHeight;
+
     int trackHeight = 30;
-    for (int i = 0; i < jmin (headers.size(), tracks.size()); i++)
+    int trackHeights = 0;
+    for (int i = 0; i < juce::jmin (headers.size(), tracks.size()); i++)
     {
         auto h = headers[i];
         auto t = tracks[i];
         auto f = footers[i];
         trackHeight = tracks[i]->getTrack()->state.getProperty(tracktion_engine::IDs::height,50);
-        
+        trackHeights += trackHeight;
         h->setBounds (2, y, headerWidth-2, trackHeight);
         t->setBounds (headerWidth + 1, y, getWidth() - headerWidth - footerWidth, trackHeight);
         f->setBounds (getWidth() - footerWidth, y, footerWidth, trackHeight);
-        
-        y += trackHeight + trackGap;
-        trackCount = i;
-    }
-    trackCount++;
 
+        y += trackHeight + trackGap;
+    }
 
     for (auto t : tracks)
         t->resized();
-    
-    
-    pluginRack.setBounds (pluginRackRect);
 
+    pluginRack.setBounds (pluginRackRect);
     playhead.setBounds (area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
     timeLine.setBounds(playhead.getBounds().removeFromTop(timelineHeight));
     toolBar.setBounds (0, 0, headerWidth, timelineHeight);
 
-    m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, getHeight () - timelineHeight - pluginRackHeight);
-    m_scrollbar.setRangeLimits (0, trackCount * trackHeight);
-    m_scrollbar.setCurrentRange (-(editViewState.viewY), getHeight() - timelineHeight - pluginRackHeight );
+    auto songeditorHeight = getHeight() - timelineHeight - pluginRackHeight;
+    m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
+    m_scrollbar.setRangeLimits (0, trackHeights + (songeditorHeight/2));
+    m_scrollbar.setCurrentRange (-(editViewState.viewY), songeditorHeight);
 }
 
-void EditComponent::scrollBarMoved(ScrollBar* scrollBarThatHasMoved, double newRangeStart)
+void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved, double newRangeStart)
 {
     if (scrollBarThatHasMoved == &m_scrollbar)
     {
@@ -314,7 +341,7 @@ void EditComponent::buildTracks()
     resized();
 }
 
-OwnedArray<TrackComponent> & EditComponent::getTrackComps()
+juce::OwnedArray<TrackComponent> & EditComponent::getTrackComps()
 {
     return tracks;
 }

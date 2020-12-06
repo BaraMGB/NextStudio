@@ -20,9 +20,9 @@ MenuBar::~MenuBar()
 {
 }
 
-void MenuBar::paint (Graphics& g)
+void MenuBar::paint (juce::Graphics& g)
 {
-    g.fillAll(Colour(0xff181818));
+    g.fillAll(juce::Colour(0xff181818));
 }
 
 void MenuBar::resized()

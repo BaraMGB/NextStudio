@@ -11,17 +11,17 @@
 
 namespace te = tracktion_engine;
 
-class PlayheadComponent : public Component,
-                          private Timer
+class PlayheadComponent : public juce::Component,
+                          private juce::Timer
 {
 public:
     PlayheadComponent (te::Edit&, EditViewState&);
     
-    void paint (Graphics& g) override;
+    void paint (juce::Graphics& g) override;
     bool hitTest (int x, int y) override;
-    void mouseDrag (const MouseEvent&) override;
-    void mouseDown (const MouseEvent&) override;
-    void mouseUp (const MouseEvent&) override;
+    void mouseDrag (const juce::MouseEvent&) override;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseUp (const juce::MouseEvent&) override;
 
 private:
     void timerCallback() override;
@@ -34,13 +34,13 @@ private:
 };
 //==============================================================================
 
-class TollBarComponent : public Component
+class ToolBarComponent : public juce::Component
 
 {
 public:
-    TollBarComponent ();
+    ToolBarComponent ();
 
-    void paint (Graphics& g) override;
+    void paint (juce::Graphics& g) override;
 
 private:
 
@@ -61,7 +61,7 @@ public:
     
     EditViewState& getEditViewState()   { return editViewState; }
         
-    OwnedArray<TrackComponent> & getTrackComps();
+    juce::OwnedArray<TrackComponent> & getTrackComps();
 
 private:
     void valueTreeChanged() override {}
@@ -71,13 +71,14 @@ private:
     void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     
-    void mouseDown(const MouseEvent &) override;
-    void paint(Graphics &g) override;
+    void mouseDown(const juce::MouseEvent &) override;
+    void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
+    void paint(juce::Graphics &g) override;
     void handleAsyncUpdate() override;
     void resized() override;
     
-    void changeListenerCallback (ChangeBroadcaster*) override { repaint(); }
-    void scrollBarMoved(ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
+    void changeListenerCallback (juce::ChangeBroadcaster*) override { repaint(); }
+    void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
 
     
     void buildTracks();
@@ -87,12 +88,12 @@ private:
     EditViewState editViewState;
     TimeLineComponent timeLine {editViewState};
     juce::ScrollBar m_scrollbar;
-    TollBarComponent toolBar;
+    ToolBarComponent toolBar;
     PlayheadComponent playhead {edit, editViewState};
     LowerRangeComponent pluginRack {editViewState};
-    OwnedArray<TrackComponent> tracks;
-    OwnedArray<TrackHeaderComponent> headers;
-    OwnedArray<PluginRackComponent> footers;
+    juce::OwnedArray<TrackComponent> tracks;
+    juce::OwnedArray<TrackHeaderComponent> headers;
+    juce::OwnedArray<PluginRackComponent> footers;
 
     
     bool updateTracks = false, updateZoom = false;

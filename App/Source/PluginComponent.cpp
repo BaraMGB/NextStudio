@@ -30,11 +30,11 @@ PluginWindowComponent::~PluginWindowComponent()
     plugin->hideWindowForShutdown ();
 }
 
-void PluginWindowComponent::paint (Graphics& g)
+void PluginWindowComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
-    g.setColour(Colour(0xff242424));
-    auto cornerSize = 10;
+    g.setColour(juce::Colour(0xff242424));
+    auto cornerSize = 10.0f;
     GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true);
 
 
@@ -42,10 +42,10 @@ void PluginWindowComponent::paint (Graphics& g)
     g.setColour(plugin->isEnabled () ?
                        m_trackColour : m_trackColour.darker (0.7));
 
-    name.setColour(Label::ColourIds::textColourId,
+    name.setColour(juce::Label::ColourIds::textColourId,
                    m_trackColour.getBrightness() > 0.8
-                                                 ? Colour(0xff000000)
-                                                 : Colour(0xffffffff));
+                                                 ? juce::Colour(0xff000000)
+                                                 : juce::Colour(0xffffffff));
 
     auto header = area.removeFromLeft(m_headerWidth);
     GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true);
@@ -57,14 +57,14 @@ void PluginWindowComponent::paint (Graphics& g)
     }
 }
 
-void PluginWindowComponent::mouseDown (const MouseEvent& e)
+void PluginWindowComponent::mouseDown (const juce::MouseEvent& e)
 {
     if (e.getMouseDownX () < m_headerWidth)
     {
         m_clickOnHeader = true;
         if (e.mods.isRightButtonDown())
         {
-            PopupMenu m;
+            juce::PopupMenu m;
             m.addItem ("Delete", [this] { plugin->deleteFromParent(); });
             m.addItem (plugin->isEnabled () ?
                                   "Disable" : "Enable"
@@ -83,24 +83,24 @@ void PluginWindowComponent::mouseDown (const MouseEvent& e)
     repaint ();
 }
 
-void PluginWindowComponent::mouseDrag(const MouseEvent &e)
+void PluginWindowComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (e.getMouseDownX () < m_headerWidth)
     {
-        DragAndDropContainer* dragC
-                = DragAndDropContainer::findParentDragContainerFor(this);
+        juce::DragAndDropContainer* dragC
+                = juce::DragAndDropContainer::findParentDragContainerFor(this);
         if (!dragC->isDragAndDropActive())
         {
             dragC->startDragging(
                         "PluginComp"
                         , this
-                        , juce::Image(Image::ARGB,1,1,true)
+                        , juce::Image(juce::Image::ARGB,1,1,true)
                         , false);
         }
     }
 }
 
-void PluginWindowComponent::mouseUp(const MouseEvent &event)
+void PluginWindowComponent::mouseUp(const juce::MouseEvent &event)
 {
     m_clickOnHeader = false;
     repaint ();
@@ -114,7 +114,7 @@ void PluginWindowComponent::resized()
                                               , area.getHeight()
                                               , m_headerWidth);
     name.setBounds(nameLabelRect);
-    name.setTransform(AffineTransform::rotation (-MathConstants<float>::halfPi
+    name.setTransform(juce::AffineTransform::rotation ( - (juce::MathConstants<float>::halfPi)
                                                  , nameLabelRect.getX() + 10.0
                                                  , nameLabelRect.getY() + 10.0 ));
     area.removeFromLeft(m_headerWidth);
@@ -153,8 +153,8 @@ VolumePluginComponent::VolumePluginComponent
                     volumePlugin->volume.getPropertyAsValue());
         m_volumeKnob.setValue(volumePlugin->volume);
     }
-    m_volumeKnob.setSliderStyle(Slider::RotaryVerticalDrag);
-    m_volumeKnob.setTextBoxStyle(Slider::NoTextBox, 0, 0, false);
+    m_volumeKnob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    m_volumeKnob.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
 }
 
 void VolumePluginComponent::resized()
@@ -162,7 +162,7 @@ void VolumePluginComponent::resized()
     m_volumeKnob.setBounds(getLocalBounds());
 }
 
-void VolumePluginComponent::paint(Graphics &g)
+void VolumePluginComponent::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colour(0xff00ff00));
     g.fillAll();
@@ -218,7 +218,7 @@ VstPluginComponent::~VstPluginComponent()
     }
 }
 
-void VstPluginComponent::changeListenerCallback(ChangeBroadcaster *source)
+void VstPluginComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
     if (auto pc = dynamic_cast<ParameterComponent*> (source))
     {

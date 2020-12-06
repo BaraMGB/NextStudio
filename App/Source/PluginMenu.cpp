@@ -2,21 +2,21 @@
 #include "Utilities.h"
 
 //==============================================================================
-PluginTreeItem::PluginTreeItem (const PluginDescription& d)
+PluginTreeItem::PluginTreeItem (const juce::PluginDescription& d)
     : desc (d), xmlType (te::ExternalPlugin::xmlTypeName), isPlugin (true)
 {
     jassert (xmlType.isNotEmpty());
 }
 
-PluginTreeItem::PluginTreeItem (const String& uniqueId, const String& name,
-                                const String& xmlType_, bool isSynth, bool isPlugin_)
+PluginTreeItem::PluginTreeItem (const juce::String& uniqueId, const juce::String& name,
+                                const juce::String& xmlType_, bool isSynth, bool isPlugin_)
     : xmlType (xmlType_), isPlugin (isPlugin_)
 {
     jassert (xmlType.isNotEmpty());
     desc.name = name;
     desc.fileOrIdentifier = uniqueId;
     desc.pluginFormatName = (uniqueId.endsWith ("_trkbuiltin") || xmlType == te::RackInstance::xmlTypeName)
-                                ? getInternalPluginFormatName() : String();
+                                ? getInternalPluginFormatName() : juce::String();
     desc.category = xmlType;
     desc.isInstrument = isSynth;
 }
@@ -27,7 +27,7 @@ te::Plugin::Ptr PluginTreeItem::create (te::Edit& ed)
 }
 
 //==============================================================================
-PluginTreeGroup::PluginTreeGroup (te::Edit& edit, KnownPluginList::PluginTree& tree, te::Plugin::Type types)
+PluginTreeGroup::PluginTreeGroup (te::Edit& edit, juce::KnownPluginList::PluginTree& tree, te::Plugin::Type types)
     : name ("Plugins")
 {
     {
@@ -42,25 +42,25 @@ PluginTreeGroup::PluginTreeGroup (te::Edit& edit, KnownPluginList::PluginTree& t
         auto racksFolder = new PluginTreeGroup (TRANS("Plugin Racks"));
         addSubItem (racksFolder);
 
-        racksFolder->addSubItem (new PluginTreeItem (String (te::RackType::getRackPresetPrefix()) + "-1",
+        racksFolder->addSubItem (new PluginTreeItem (juce::String (te::RackType::getRackPresetPrefix()) + "-1",
                                                      TRANS("Create New Empty Rack"),
                                                      te::RackInstance::xmlTypeName, false, false));
 
         int i = 0;
         for (auto rf : edit.getRackList().getTypes())
-            racksFolder->addSubItem (new PluginTreeItem ("RACK__" + String (i++), rf->rackName,
+            racksFolder->addSubItem (new PluginTreeItem ("RACK__" + juce::String (i++), rf->rackName,
                                                          te::RackInstance::xmlTypeName, false, false));
     }
 
     populateFrom (tree);
 }
 
-PluginTreeGroup::PluginTreeGroup (const String& s)  : name (s)
+PluginTreeGroup::PluginTreeGroup (const juce::String& s)  : name (s)
 {
     jassert (name.isNotEmpty());
 }
 
-void PluginTreeGroup::populateFrom (KnownPluginList::PluginTree& tree)
+void PluginTreeGroup::populateFrom (juce::KnownPluginList::PluginTree& tree)
 {
     for (auto subTree : tree.subFolders)
     {

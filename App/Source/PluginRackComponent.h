@@ -1,17 +1,17 @@
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "PluginComponent.h"
 #include "PluginMenu.h"
-class AddButton;
 
 namespace te = tracktion_engine;
 
+class AddButton;
 
-class PluginRackComponent : public Component,
+class PluginRackComponent : public juce::Component,
                              private FlaggedAsyncUpdater,
                              private te::ValueTreeAllEventListener,
                              public juce::Button::Listener
@@ -20,12 +20,12 @@ public:
     PluginRackComponent (EditViewState&, te::Track::Ptr);
     ~PluginRackComponent();
 
-    void paint (Graphics& g) override;
-    void mouseDown (const MouseEvent& e) override;
+    void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& e) override;
     void resized() override;
-    void buttonClicked(Button* button) override;
+    void buttonClicked(juce::Button* button) override;
 
-    OwnedArray<AddButton> & getAddButtons()
+    juce::OwnedArray<AddButton> & getAddButtons()
     {
         return addButtons;
     }
@@ -35,7 +35,7 @@ public:
         return track;
     }
 
-    OwnedArray<PluginWindowComponent> & getPluginComponents()
+    juce::OwnedArray<PluginWindowComponent> & getPluginComponents()
     {
         return plugins;
     }
@@ -53,15 +53,15 @@ private:
     EditViewState& editViewState;
     te::Track::Ptr track;
 
-    OwnedArray<PluginWindowComponent> plugins;
+    juce::OwnedArray<PluginWindowComponent> plugins;
     
-    OwnedArray<AddButton> addButtons;
+    juce::OwnedArray<AddButton> addButtons;
 
     bool updatePlugins = false;
 };
 
-class AddButton : public TextButton
-                , public DragAndDropTarget
+class AddButton : public juce::TextButton
+                , public juce::DragAndDropTarget
 {
 public:
 
@@ -108,21 +108,21 @@ public:
         repaint();
     }
 
-    void paint(Graphics& g) override
+    void paint(juce::Graphics& g) override
     {
         if (isOver)
         {
-            g.setColour(Colours::white);
+            g.setColour(juce::Colours::white);
         }
         else
         {
-            g.setColour(Colours::grey);
+            g.setColour(juce::Colours::grey);
         }
         int cornerSize = 5;
         auto area = getLocalBounds().toFloat();
-        g.fillRoundedRectangle( area, cornerSize);
+        g.fillRoundedRectangle(area, cornerSize);
         area.reduce(1,1);
-        g.setColour(Colour(0xff1b1b1b));
+        g.setColour(juce::Colour(0xff1b1b1b));
 
         g.drawText(getButtonText(),getLocalBounds(),juce::Justification::centred
                    , false);
@@ -141,16 +141,16 @@ private:
 };
 
 
-class LowerRangeComponent : public Component
+class LowerRangeComponent : public juce::Component
                           , public juce::ChangeListener
 {
 public:
     LowerRangeComponent (EditViewState& evs);
      ~LowerRangeComponent();
 
-    void changeListenerCallback (ChangeBroadcaster*) override;
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
-    void paint (Graphics& g) override;
+    void paint (juce::Graphics& g) override;
     void resized () override;
 
 private:

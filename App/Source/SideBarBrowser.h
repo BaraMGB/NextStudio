@@ -1,31 +1,20 @@
-/*
-  ==============================================================================
-
-    SideBarBrowser.h
-    Created: 2 Mar 2020 10:26:11pm
-    Author:  Zehn
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-//==============================================================================
-/*
-*/
-class SideBarBrowser    : public FileTreeComponent
+namespace te = tracktion_engine;
+
+class SideBarBrowser    : public juce::FileTreeComponent
 {
 public:
-    SideBarBrowser(DirectoryContentsList& listToShow)
-        : FileTreeComponent(listToShow)
+    SideBarBrowser(juce::DirectoryContentsList& listToShow)
+        : juce::FileTreeComponent(listToShow)
     {
 
     }
 
-    void mouseDrag(const MouseEvent& /*event*/) override;
-    void mouseDown(const MouseEvent& /*event*/) override
+    void mouseDrag(const juce::MouseEvent& /*event*/) override;
+    void mouseDown(const juce::MouseEvent& /*event*/) override
     {
     }
 
