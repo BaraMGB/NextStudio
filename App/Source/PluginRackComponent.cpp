@@ -139,14 +139,17 @@ LowerRangeComponent::~LowerRangeComponent()
     editViewState.m_selectionManager.removeChangeListener(this);
 }
 
-void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * source)
+void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*source*/)
 {
     auto lastClickedTrack = editViewState.m_selectionManager
             .getItemsOfType<tracktion_engine::Track>()
             .getLast();
-    if (m_pointedTrack.get() != lastClickedTrack)
+    auto lastClip = editViewState.m_selectionManager
+            .getItemsOfType<te::MidiClip>()
+            .getLast ();
+    if (lastClip == nullptr && m_pointedTrack.get() != lastClickedTrack)
     {
-        if (lastClickedTrack &&  !(lastClickedTrack->isArrangerTrack()
+        if (lastClickedTrack &&     !(lastClickedTrack->isArrangerTrack()
                                    || lastClickedTrack->isTempoTrack()
                                    || lastClickedTrack->isMarkerTrack()
                                    || lastClickedTrack->isChordTrack()))
@@ -154,10 +157,15 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * sourc
 
             m_pointedTrack = lastClickedTrack;
             bool flag = false;
+            m_pointedClip = nullptr;
+            for (auto& pianoRolls : m_pianoRollComps)
+            {
+                pianoRolls->setVisible (false);
+            }
             for (auto &prc : m_pluginRackComps)
             {
                 prc->setVisible(false);
-                if (prc->getTrack().getObject() == lastClickedTrack)
+                if (prc->getTrack().get() == lastClickedTrack)
                 {
                     prc->setVisible(true);
                     flag = true;
@@ -176,9 +184,23 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * sourc
             }
         }
     }
-    else
+    else if(lastClip)
     {
-       // resized();
+        if (lastClip != m_pointedClip)
+        {
+            m_pointedClip = lastClip;
+        }
+        for (auto &prc : m_pluginRackComps)
+        {
+            prc->setVisible (false);
+        }
+        m_pointedTrack = nullptr;
+        auto pianoRollComp = new PianoRollEditorComponent(editViewState, *lastClip);
+        pianoRollComp->setAlwaysOnTop(true);
+        pianoRollComp->setVisible(true);
+        addAndMakeVisible(pianoRollComp);
+        m_pianoRollComps.add(pianoRollComp);
+        resized();
     }
 }
 
@@ -196,15 +218,22 @@ void LowerRangeComponent::paint(juce::Graphics &g)
 
 void LowerRangeComponent::resized()
 {
-
-        auto pluginRect = getLocalBounds();
-        pluginRect.removeFromTop (10);
+        auto area = getLocalBounds();
+        // todo: we add a splitter later for this
+        area.removeFromTop (10);
 
         for (auto& prc : m_pluginRackComps)
         {
             if (prc->isVisible())
             {
-                prc->setBounds(pluginRect);
+                prc->setBounds(area);
+            }
+        }
+        for (auto& pianoRolls : m_pianoRollComps)
+        {
+            if (pianoRolls->isVisible ())
+            {
+                pianoRolls->setBounds (area);
             }
         }
 

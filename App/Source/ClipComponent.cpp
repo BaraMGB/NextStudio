@@ -48,41 +48,18 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
         {
             if (event.mods.isRightButtonDown())
             {
-                juce::PopupMenu m;
-                m.addItem(1, "Delete clip");
-                m.addItem(2, "Copy clip");
-
-                const int result = m.show();
-
-                if (result == 0)
-                {
-                    // user dismissed the menu without picking anything
-                }
-                else if (result == 1)
-                {
-                    m_clip->removeFromParentTrack();
-                    return;
-                    // user picked item 1
-                }
-                else if (result == 2)
-                {
-                    tracktion_engine::Clipboard::getInstance()->clear();
-                    auto clipContent = std::make_unique<te::Clipboard::Clips>();
-                    clipContent->addClip(0, m_clip->state);
-                    te::Clipboard::getInstance()->setContent(
-                                std::move(clipContent));
-                }
+                showContextMenu ();
             }
             else
             {
-                editViewState.m_selectionManager.selectOnly (getClip ());
-                editViewState.m_selectionManager.addToSelection(
-                            getClip().getClipTrack());
                 m_clipPosAtMouseDown = m_clip->edit.tempoSequence.timeToBeats(
                             m_clip->getPosition().getStart());
                 setMouseCursor (juce::MouseCursor::DraggingHandCursor);
             }
         }
+    editViewState.m_selectionManager.selectOnly (getClip ());
+    editViewState.m_selectionManager.addToSelection(
+                getClip().getClipTrack());
     m_isDragging = true;
     tracktion_engine::Clipboard::getInstance()->clear();
     auto clipContent = std::make_unique<te::Clipboard::Clips>();
@@ -137,6 +114,34 @@ void ClipComponent::setClickPosTime(double clickPosTime)
 bool ClipComponent::isShiftDown() const
 {
     return m_isShiftDown;
+}
+
+void ClipComponent::showContextMenu()
+{
+    juce::PopupMenu m;
+    m.addItem(1, "Delete clip");
+    m.addItem(2, "Copy clip");
+
+    const int result = m.show();
+
+    if (result == 0)
+    {
+        // user dismissed the menu without picking anything
+    }
+    else if (result == 1)
+    {
+        m_clip->removeFromParentTrack();
+        return;
+        // user picked item 1
+    }
+    else if (result == 2)
+    {
+        tracktion_engine::Clipboard::getInstance()->clear();
+        auto clipContent = std::make_unique<te::Clipboard::Clips>();
+        clipContent->addClip(0, m_clip->state);
+        te::Clipboard::getInstance()->setContent(
+                    std::move(clipContent));
+    }
 }
 
 //==============================================================================

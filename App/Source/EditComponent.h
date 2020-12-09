@@ -89,7 +89,7 @@ private:
     juce::ScrollBar m_scrollbar;
     ToolBarComponent m_toolBar;
     PlayheadComponent m_playhead { m_edit, m_editViewState };
-    LowerRangeComponent m_pluginRack { m_editViewState };
+    LowerRangeComponent m_lowerRange { m_editViewState };
     juce::OwnedArray<TrackComponent> m_trackComps;
     juce::OwnedArray<TrackHeaderComponent> m_headers;
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;

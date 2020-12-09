@@ -91,7 +91,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     m_scrollbar.setAutoHide (false);
     m_scrollbar.addListener (this);
 
-    m_pluginRack.setAlwaysOnTop(true);
+    m_lowerRange.setAlwaysOnTop(true);
 
     m_playhead.setAlwaysOnTop (true);
 
@@ -99,7 +99,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     
     addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_scrollbar);
-    addAndMakeVisible (m_pluginRack);
+    addAndMakeVisible (m_lowerRange);
     addAndMakeVisible (m_playhead);
     addAndMakeVisible (m_toolBar);
 
@@ -286,7 +286,7 @@ void EditComponent::resized()
     for (auto t : m_trackComps)
         t->resized();
 
-    m_pluginRack.setBounds (pluginRackRect);
+    m_lowerRange.setBounds (pluginRackRect);
     m_playhead.setBounds (
                 area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
     m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));
