@@ -29,8 +29,8 @@ void TimeLineComponent::paint(juce::Graphics& g)
     g.drawRect(getLocalBounds());
     g.setFont(12);
 
-    double x1 = m_state.viewX1;
-    double x2 = m_state.viewX2;
+    double x1 = m_state.m_viewX1;
+    double x2 = m_state.m_viewX2;
     double zoom = x2 -x1;
     int firstBeat = static_cast<int>(x1);
     if(m_state.beatsToX(firstBeat,getWidth()) < 0)
@@ -40,7 +40,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
 
     auto pixelPerBeat = getWidth() / zoom;
     //std::cout << zoom << std::endl;
-    for (int beat = firstBeat - 1; beat <= m_state.viewX2; beat++)
+    for (int beat = firstBeat - 1; beat <= m_state.m_viewX2; beat++)
     {
         int BeatX = m_state.beatsToX(beat, getWidth());
 
@@ -111,13 +111,13 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
     event.source.enableUnboundedMouseMovement(true, false);
     m_mouseDown = true;
     m_BeatAtMouseDown = m_state.xToBeats(event.getMouseDownPosition().getX(), getWidth());
-    m_x1atMD = m_state.viewX1;
-    m_x2atMD = m_state.viewX2;
+    m_x1atMD = m_state.m_viewX1;
+    m_x2atMD = m_state.m_viewX2;
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
     if (event.getNumberOfClicks() > 1)
     {
-        m_state.edit.getTransport().setCurrentPosition(m_state.beatToTime(m_BeatAtMouseDown));
+        m_state.m_edit.getTransport().setCurrentPosition(m_state.beatToTime(m_BeatAtMouseDown));
     }
 }
 
@@ -134,8 +134,8 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
                                             (m_x2atMD - m_x1atMD) / scaleFactor));
     auto rangeBegin = std::max (0.0,  m_BeatAtMouseDown - visibleLength * event.x / getWidth());
 
-    m_state.viewX1 = rangeBegin;
-    m_state.viewX2 = rangeBegin + visibleLength;
+    m_state.m_viewX1 = rangeBegin;
+    m_state.m_viewX2 = rangeBegin + visibleLength;
 }
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)

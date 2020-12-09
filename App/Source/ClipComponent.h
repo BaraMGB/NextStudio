@@ -16,7 +16,7 @@ public:
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
 
-    te::Clip& getClip () { return *clip; }
+    te::Clip& getClip () { return *m_clip; }
 
     bool isCopying () const;
     void setIsCopying (bool isCopying);
@@ -28,7 +28,7 @@ public:
 
 protected:
     EditViewState& editViewState;
-    te::Clip::Ptr clip;
+    te::Clip::Ptr m_clip;
 private:
     double m_clipPosAtMouseDown{};
     double m_clickPosTime{0.0};
@@ -48,8 +48,8 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
-    void mouseMove(const juce::MouseEvent& e) override;
-    void mouseExit(const juce::MouseEvent& e) override;
+    void mouseMove(const juce::MouseEvent&) override;
+    void mouseExit(const juce::MouseEvent&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent &) override;
 
@@ -63,7 +63,7 @@ private:
     double m_oldDistTime{0.0};
     tracktion_engine::ClipPosition m_posAtMouseDown;
 
-    ThumbnailComponent thumbnailComponent;
+    ThumbnailComponent m_thumbnailComponent;
 };
 
 //==============================================================================
@@ -72,11 +72,14 @@ class MidiClipComponent : public ClipComponent
 public:
     MidiClipComponent (EditViewState&, te::Clip::Ptr);
 
-    te::MidiClip* getMidiClip() { return dynamic_cast<te::MidiClip*> (clip.get()); }
+    te::MidiClip* getMidiClip()
+    {
+        return dynamic_cast<te::MidiClip*> (m_clip.get());
+    }
 
     void paint (juce::Graphics& g) override;
-    void mouseMove(const juce::MouseEvent& e) override;
-    void mouseExit(const juce::MouseEvent& e) override;
+    void mouseMove(const juce::MouseEvent&) override;
+    void mouseExit(const juce::MouseEvent&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent &) override;
 
@@ -102,16 +105,15 @@ private:
     void updatePosition();
     void initialiseThumbnailAndPunchTime();
     void drawThumbnail (juce::Graphics& g, juce::Colour waveformColour) const;
-    bool getBoundsAndTime (juce::Rectangle<int>& bounds, juce::Range<double>& times) const;
+    bool getBoundsAndTime (
+            juce::Rectangle<int>& bounds, juce::Range<double>& times) const;
 
-    int clipHeaderHight {10};
+    int m_clipHeaderHight {10};
 
-    te::Track::Ptr track;
-    EditViewState& editViewState;
+    te::Track::Ptr m_track;
+    EditViewState& m_editViewState;
 
-    te::RecordingThumbnailManager::Thumbnail::Ptr thumbnail;
+    te::RecordingThumbnailManager::Thumbnail::Ptr m_thumbnail;
 
-
-    double punchInTime = -1.0;
+    double m_punchInTime = -1.0;
 };
-

@@ -26,65 +26,77 @@ namespace IDs
 }
 
 //==============================================================================
+
 class EditViewState
 {
 public:
     EditViewState (te::Edit& e, te::SelectionManager& s)
-        : edit (e), selectionManager (s)
+        : m_edit (e), m_selectionManager (s)
     {
-        state = edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
+        m_state = m_edit.state.getOrCreateChildWithName (
+                    IDs::EDITVIEWSTATE, nullptr);
 
-        auto um = &edit.getUndoManager();
+        auto um = &m_edit.getUndoManager();
 
-        showGlobalTrack.referTo (state, IDs::showGlobalTrack, um, false);
-        showMarkerTrack.referTo (state, IDs::showMarkerTrack, um, false);
-        showChordTrack.referTo (state, IDs::showChordTrack, um, false);
-        showArrangerTrack.referTo (state, IDs::showArranger, um, false);
-        drawWaveforms.referTo (state, IDs::drawWaveforms, um, true);
-        showHeaders.referTo (state, IDs::showHeaders, um, true);
-        showFooters.referTo (state, IDs::showFooters, um, false);
-        showMidiDevices.referTo (state, IDs::showMidiDevices, um, false);
-        showWaveDevices.referTo (state, IDs::showWaveDevices, um, true);
+        m_showGlobalTrack.referTo (m_state, IDs::showGlobalTrack, um, false);
+        m_showMarkerTrack.referTo (m_state, IDs::showMarkerTrack, um, false);
+        m_showChordTrack.referTo (m_state, IDs::showChordTrack, um, false);
+        m_showArrangerTrack.referTo (m_state, IDs::showArranger, um, false);
+        m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um, true);
+        m_showHeaders.referTo (m_state, IDs::showHeaders, um, true);
+        m_showFooters.referTo (m_state, IDs::showFooters, um, false);
+        m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
+        m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
 
-        headerHeight.referTo(state, IDs::headerHeight, um, 50);
-        headerWidth.referTo(state, IDs::headerWidth, um, 310);
-        viewX1.referTo (state, IDs::viewX1, um, 0.0);
-        viewX2.referTo (state, IDs::viewX2, um, 30.0 * 4);
-        viewY.referTo (state, IDs::viewY, um, 0);
-        snapType.referTo(state, IDs::snapType, um, 7);
+        m_headerHeight.referTo(m_state, IDs::headerHeight, um, 50);
+        m_headerWidth.referTo(m_state, IDs::headerWidth, um, 310);
+        m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
+        m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0 * 4);
+        m_viewY.referTo (m_state, IDs::viewY, um, 0);
+        m_snapType.referTo(m_state, IDs::snapType, um, 7);
     }
 
     int beatsToX (double beats, int width) const
     {
-        return juce::roundToInt (((beats - viewX1) * width) / (viewX2 - viewX1));
+        return juce::roundToInt (((beats - m_viewX1) * width)
+                                 / (m_viewX2 - m_viewX1));
     }
 
     double xToBeats (int x, int width) const
     {
-        return (double (x) / width) * (viewX2 - viewX1) + viewX1;
+        return (double (x) / width) * (m_viewX2 - m_viewX1) + m_viewX1;
     }
 
     double beatToTime (double b) const
     {
-        auto& ts = edit.tempoSequence;
+        auto& ts = m_edit.tempoSequence;
         return ts.beatsToTime (b);
     }
 
     double timeToBeat (double t) const
     {
-        return edit.tempoSequence.timeToBeats (t);
+        return m_edit.tempoSequence.timeToBeats (t);
     }
 
-    te::Edit& edit;
-    te::SelectionManager& selectionManager;
+    te::Edit& m_edit;
+    te::SelectionManager& m_selectionManager;
 
-    juce::CachedValue<bool> showGlobalTrack, showMarkerTrack, showChordTrack, showArrangerTrack,
-                      drawWaveforms, showHeaders, showFooters, showMidiDevices, showWaveDevices;
+    juce::CachedValue<bool> m_showGlobalTrack
+                          , m_showMarkerTrack
+                          , m_showChordTrack
+                          , m_showArrangerTrack
+                          , m_drawWaveforms
+                          , m_showHeaders
+                          , m_showFooters
+                          , m_showMidiDevices
+                          , m_showWaveDevices;
+    juce::CachedValue<double> m_viewX1
+                            , m_viewX2
+                            , m_viewY;
+    juce::CachedValue<int> m_snapType;
 
-    juce::CachedValue<double> viewX1, viewX2, viewY;
-    juce::CachedValue<int> snapType;
+    juce::CachedValue<int> m_headerHeight
+                         , m_headerWidth;
 
-    juce::CachedValue<int> headerHeight, headerWidth;
-
-    juce::ValueTree state;
+    juce::ValueTree m_state;
 };

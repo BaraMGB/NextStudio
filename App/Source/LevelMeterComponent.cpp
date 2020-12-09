@@ -1,37 +1,38 @@
-#include "LevelMeterComponent.h"
+﻿#include "LevelMeterComponent.h"
 
 
-LevelMeterComponent::LevelMeterComponent(te::LevelMeasurer &lm) : levelMeasurer(lm)
+LevelMeterComponent::LevelMeterComponent (te::LevelMeasurer &lm)
+    : m_levelMeasurer (lm)
 {
-    setOpaque(true);
-    levelMeasurer.addClient(levelClient);
+    setOpaque (true);
+    m_levelMeasurer.addClient(m_levelClient);
     startTimerHz(30);
 }
 
 LevelMeterComponent::~LevelMeterComponent()
 {
-    levelMeasurer.removeClient(levelClient);
+    m_levelMeasurer.removeClient(m_levelClient);
     stopTimer();
 }
 
 void LevelMeterComponent::paint(juce::Graphics &g)
 {
-    g.fillAll(juce::Colour(0xff000000));// fill the background black
-
+    g.setColour (juce::Colours::black);
+    g.fillRect (getLocalBounds ());
     const double meterHeight{ double(getHeight()) };
     const double meterWidth{ double(getWidth()) };
     const double offSet{ fabs(RANGEMINdB) };
     const double scaleFactor{ meterHeight / (RANGEMAXdB + offSet) };
 
-
     // draw meter Gain bar
     auto lineAtNullDb = float(meterHeight - (offSet * scaleFactor));
-    auto displayBarHeightLeft = ((currentLeveldBLeft + offSet) * scaleFactor);
-    auto displayBarHeightRight = ((currentLeveldBRight + offSet) * scaleFactor);
-
+    auto displayBarHeightLeft
+            = ((m_currentLeveldBLeft + offSet) * scaleFactor);
+    auto displayBarHeightRight
+            = ((m_currentLeveldBRight + offSet) * scaleFactor);
 
     if (float(meterHeight - displayBarHeightLeft) <= lineAtNullDb
-        || float(meterHeight - displayBarHeightRight <= lineAtNullDb) )
+            || float(meterHeight - displayBarHeightRight <= lineAtNullDb) )
     {
         g.setColour (juce::Colours::red);
     }
@@ -42,40 +43,48 @@ void LevelMeterComponent::paint(juce::Graphics &g)
 
     if (displayBarHeightLeft > 0 || displayBarHeightRight > 0)
     {
-        g.fillRect(0.0f, float(meterHeight - displayBarHeightLeft), float(meterWidth * 0.45), float(displayBarHeightLeft));
-        g.fillRect(float(meterWidth * 0.55), float(meterHeight - displayBarHeightRight), float(meterWidth), float(displayBarHeightRight));
+        g.fillRect(0.0f
+                   , float(meterHeight - displayBarHeightLeft)
+                   , float(meterWidth * 0.45)
+                   , float(displayBarHeightLeft));
+        g.fillRect(float(meterWidth * 0.55)
+                   , float(meterHeight - displayBarHeightRight)
+                   , float(meterWidth)
+                   , float(displayBarHeightRight));
     }
-    // now we calculate and draw our 0dB line
-    g.setColour(juce::Colours::lightgrey);  // set line color
-    g.fillRect(0.0f, lineAtNullDb , float(meterWidth), 1.0f);
 }
 
 void LevelMeterComponent::timerCallback()
 {
-    prevLeveldBLeft = currentLeveldBLeft;
-    prevLeveldBRight = currentLeveldBRight;
-    currentLeveldBLeft = levelClient.getAndClearAudioLevel(0).dB;
-    currentLeveldBRight = levelClient.getAndClearAudioLevel(1).dB;
+    m_prevLeveldBLeft = m_currentLeveldBLeft;
+    m_prevLeveldBRight = m_currentLeveldBRight;
+    m_currentLeveldBLeft = m_levelClient.getAndClearAudioLevel(0).dB;
+    m_currentLeveldBRight = m_levelClient.getAndClearAudioLevel(1).dB;
 
     // Now we give the level bar fading charcteristics.
     // And, the below coversions, decibelsToGain and gainToDecibels,
     // take care of 0dB, which will never fade!...but a gain of 1.0 (0dB) will.
 
-    const auto prevLevelLeft{ juce::Decibels::decibelsToGain(prevLeveldBLeft) };
-    const auto prevLevelRight{ juce::Decibels::decibelsToGain(prevLeveldBRight) };
+    const auto prevLevelLeft{
+        juce::Decibels::decibelsToGain(m_prevLeveldBLeft) };
+    const auto prevLevelRight{
+        juce::Decibels::decibelsToGain(m_prevLeveldBRight) };
 
-    if (prevLeveldBLeft > currentLeveldBLeft)
+    if (m_prevLeveldBLeft > m_currentLeveldBLeft)
     {
-        currentLeveldBLeft = juce::Decibels::gainToDecibels(prevLevelLeft * 0.94);
+        m_currentLeveldBLeft
+                = juce::Decibels::gainToDecibels(prevLevelLeft * 0.94);
     }
 
-    if (prevLeveldBRight > currentLeveldBRight)
+    if (m_prevLeveldBRight > m_currentLeveldBRight)
     {
-        currentLeveldBRight = juce::Decibels::gainToDecibels(prevLevelRight * 0.94);
+        m_currentLeveldBRight
+                = juce::Decibels::gainToDecibels(prevLevelRight * 0.94);
     }
 
     // the test below may save some unnecessary paints
-    if((currentLeveldBLeft != prevLeveldBLeft) || currentLeveldBRight != prevLevelRight)
+    if(m_currentLeveldBLeft != m_prevLeveldBLeft
+     || m_currentLeveldBRight != prevLevelRight)
     {
         repaint();
     }

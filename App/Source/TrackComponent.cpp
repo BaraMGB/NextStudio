@@ -199,18 +199,18 @@ void TrackHeaderComponent::deleteTrackFromEdit()
 {
     m_track->deselect();
     m_track->edit.deleteTrack(m_track);
-    auto i = tracktion_engine::getAllTracks(editViewState.edit).getLast();
+    auto i = tracktion_engine::getAllTracks(editViewState.m_edit).getLast();
 
     if (!(i->isArrangerTrack()
         || i->isTempoTrack()
         || i->isMarkerTrack()
         || i->isChordTrack()))
     {
-        editViewState.selectionManager.selectOnly(i);
+        editViewState.m_selectionManager.selectOnly(i);
     }
     else
     {
-        editViewState.selectionManager.deselectAll();
+        editViewState.m_selectionManager.deselectAll();
     }
 }
 
@@ -223,7 +223,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 
     auto buttonColour = juce::Colour(0xff4b4b4b);
 
-    if (!editViewState.selectionManager.isSelected (m_track))
+    if (!editViewState.m_selectionManager.isSelected (m_track))
     {
         buttonColour = buttonColour.darker (0.4f);
     }
@@ -269,14 +269,14 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
             }
             else if (event.mods.isShiftDown())
             {
-                if (editViewState.selectionManager.getNumObjectsSelected())
+                if (editViewState.m_selectionManager.getNumObjectsSelected())
                 {
-                    editViewState.selectionManager.addToSelection(m_track);
+                    editViewState.m_selectionManager.addToSelection(m_track);
                 }
             }
             else
             {
-                editViewState.selectionManager.selectOnly(m_track);
+                editViewState.m_selectionManager.selectOnly(m_track);
                 m_yPosAtMouseDown = event.mouseDownPosition.y;
                 m_trackHeightATMouseDown = m_track->state.getProperty(te::IDs::height);
             }
@@ -297,7 +297,7 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 
         m_track->state.setProperty(te::IDs::height
                                    , newHeight
-                                   , &(editViewState.edit.getUndoManager()));
+                                   , &(editViewState.m_edit.getUndoManager()));
     }
 
 
@@ -365,7 +365,7 @@ juce::Colour TrackHeaderComponent::getTrackColour()
 TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
     : editViewState (evs), track (t)
 {
-    editViewState.state.addListener (this);
+    editViewState.m_state.addListener (this);
     track->state.addListener(this);
     track->edit.getTransport().addChangeListener (this);
 
@@ -378,7 +378,7 @@ TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
 TrackComponent::~TrackComponent()
 {
     track->state.removeListener (this);
-    editViewState.state.removeListener(this);
+    editViewState.m_state.removeListener(this);
     track->edit.getTransport().removeChangeListener (this);
 }
 
@@ -388,8 +388,8 @@ void TrackComponent::paint (juce::Graphics& g)
     g.fillAll ();
     g.setColour(juce::Colour(0xff2b2b2b));
     g.drawRect(0,0, getWidth(), getHeight() );
-    double x2 = editViewState.viewX2;
-    double x1 = editViewState.viewX1;
+    double x2 = editViewState.m_viewX2;
+    double x1 = editViewState.m_viewX1;
     g.setColour(juce::Colour(0xff333333));
     double zoom = x2 -x1;
     int firstBeat = static_cast<int>(x1);
@@ -398,13 +398,13 @@ void TrackComponent::paint (juce::Graphics& g)
         firstBeat++;
     }
 
-    if (editViewState.selectionManager.isSelected (track.get()))
+    if (editViewState.m_selectionManager.isSelected (track.get()))
     {
         g.setColour (juce::Colour(0xff202020));
 
         auto rc = getLocalBounds();
-        if (editViewState.showHeaders) rc = rc.withTrimmedLeft (-4);
-        if (editViewState.showFooters) rc = rc.withTrimmedRight (-4);
+        if (editViewState.m_showHeaders) rc = rc.withTrimmedLeft (-4);
+        if (editViewState.m_showFooters) rc = rc.withTrimmedRight (-4);
 
         g.fillRect (rc);
         g.setColour(juce::Colour(0xff333333));
@@ -412,7 +412,7 @@ void TrackComponent::paint (juce::Graphics& g)
 
     auto pixelPerBeat = getWidth() / zoom;
     //std::cout << zoom << std::endl;
-    for (int beat = firstBeat - 1; beat <= editViewState.viewX2; beat++)
+    for (int beat = firstBeat - 1; beat <= editViewState.m_viewX2; beat++)
     {
         const int BeatX = editViewState.beatsToX(beat, getWidth()) - 1;
 
@@ -453,7 +453,7 @@ void TrackComponent::paint (juce::Graphics& g)
 
 void TrackComponent::mouseDown (const juce::MouseEvent&event)
 {
-    editViewState.selectionManager.selectOnly (track.get());
+    editViewState.m_selectionManager.selectOnly (track.get());
     if (event.mods.isRightButtonDown())
     {
         juce::PopupMenu m;
@@ -468,9 +468,9 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
         }
         else if(result == 1)
         {
-           auto ip = te::EditInsertPoint(editViewState.edit);
+           auto ip = te::EditInsertPoint(editViewState.m_edit);
            ip.setNextInsertPoint(editViewState.beatToTime(editViewState.xToBeats(event.x, getWidth()))  ,track);
-           te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>()->pasteIntoEdit(te::Clipboard::ContentType::EditPastingOptions (editViewState.edit, ip));
+           te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>()->pasteIntoEdit(te::Clipboard::ContentType::EditPastingOptions (editViewState.m_edit, ip));
         }
     }
 }
@@ -550,8 +550,8 @@ void TrackComponent::resized()
     {
         auto& c = cc->getClip();
         auto pos = c.getPosition();
-        int startTime = editViewState.beatsToX (editViewState.edit.tempoSequence.timeToBeats(pos.getStart()), getWidth());
-        int endTime = editViewState.beatsToX (editViewState.edit.tempoSequence.timeToBeats(pos.getEnd()), getWidth());
+        int startTime = editViewState.beatsToX (editViewState.m_edit.tempoSequence.timeToBeats(pos.getStart()), getWidth());
+        int endTime = editViewState.beatsToX (editViewState.m_edit.tempoSequence.timeToBeats(pos.getEnd()), getWidth());
 
         cc->setBounds (startTime, 0, endTime - startTime, getHeight());
     }
@@ -573,7 +573,7 @@ void TrackComponent::itemDropped(
         {
             if (clipboard->hasContentWithType<te::Clipboard::Clips>())
             {
-                auto &edit = editViewState.edit;
+                auto &edit = editViewState.m_edit;
                 auto clipContent = clipboard->getContentWithType<te::Clipboard::Clips>();
                 tracktion_engine::EditInsertPoint insertPoint(edit);
                 insertPoint.setNextInsertPoint(0, track);
@@ -589,7 +589,7 @@ void TrackComponent::itemDropped(
                 {
                     //same track? only move
                     clickTimeOffset = cc->getClickPosTime();
-                    auto xTime = editViewState.beatToTime(editViewState.viewX1);
+                    auto xTime = editViewState.beatToTime(editViewState.m_viewX1);
                     if (cc->getClip().getTrack() == getTrack().get() && !cc->isCopying())
                     {
                         cc->getClip().setStart(dropTime - clickTimeOffset + xTime, false, true);
@@ -625,7 +625,7 @@ void TrackComponent::itemDropped(
     if (fileTreeComp)
     {
         auto f = fileTreeComp->getSelectedFile();
-        tracktion_engine::AudioFile audioFile(editViewState.edit.engine, f);
+        tracktion_engine::AudioFile audioFile(editViewState.m_edit.engine, f);
         if (audioFile.isValid())
         {
             if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(track.get()))

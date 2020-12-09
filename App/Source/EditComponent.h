@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -11,8 +10,8 @@
 
 namespace te = tracktion_engine;
 
-class PlayheadComponent : public juce::Component,
-                          private juce::Timer
+class PlayheadComponent : public juce::Component
+                        , private juce::Timer
 {
 public:
     PlayheadComponent (te::Edit&, EditViewState&);
@@ -26,16 +25,16 @@ public:
 private:
     void timerCallback() override;
     
-    te::Edit& edit;
-    EditViewState& editViewState;
+    te::Edit& m_edit;
+    EditViewState& m_editViewState;
     
-    int xPosition = 0;
-    bool firstTimer = true;
+    int m_xPosition = 0;
+    bool m_firstTimer = true;
 };
+
 //==============================================================================
 
 class ToolBarComponent : public juce::Component
-
 {
 public:
     ToolBarComponent ();
@@ -44,57 +43,56 @@ public:
 
 private:
 
-
 };
 
 //==============================================================================
-class EditComponent : public  juce::Component,
-                      private te::ValueTreeAllEventListener,
-                      private FlaggedAsyncUpdater,
-                      private juce::ChangeListener,
-                      private juce::ScrollBar::Listener
 
+class EditComponent : public  juce::Component
+                    , private te::ValueTreeAllEventListener
+                    , private FlaggedAsyncUpdater
+                    , private juce::ChangeListener
+                    , private juce::ScrollBar::Listener
 {
 public:
     EditComponent (te::Edit&, te::SelectionManager&);
     ~EditComponent();
     
-    EditViewState& getEditViewState()   { return editViewState; }
-        
+    EditViewState& getEditViewState()   { return m_editViewState; }
     juce::OwnedArray<TrackComponent> & getTrackComps();
 
 private:
+
     void valueTreeChanged() override {}
-    
-    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
+    void valueTreePropertyChanged (
+            juce::ValueTree&, const juce::Identifier&) override;
     void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
-    void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
+    void valueTreeChildRemoved (
+            juce::ValueTree&, juce::ValueTree&, int) override;
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     
     void mouseDown(const juce::MouseEvent &) override;
-    void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
+    void mouseWheelMove(const juce::MouseEvent &event
+                        , const juce::MouseWheelDetails &wheel) override;
+    void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved
+                        , double newRangeStart) override;
     void paint(juce::Graphics &g) override;
     void handleAsyncUpdate() override;
     void resized() override;
-    
-    void changeListenerCallback (juce::ChangeBroadcaster*) override { repaint(); }
-    void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
-    
     void buildTracks();
     
-    te::Edit& edit;
-    
-    EditViewState editViewState;
-    TimeLineComponent timeLine {editViewState};
-    juce::ScrollBar m_scrollbar;
-    ToolBarComponent toolBar;
-    PlayheadComponent playhead {edit, editViewState};
-    LowerRangeComponent pluginRack {editViewState};
-    juce::OwnedArray<TrackComponent> tracks;
-    juce::OwnedArray<TrackHeaderComponent> headers;
-    juce::OwnedArray<PluginRackComponent> footers;
+    te::Edit& m_edit;
+    EditViewState m_editViewState;
 
-    
-    bool updateTracks = false, updateZoom = false;
+    TimeLineComponent m_timeLine { m_editViewState };
+    juce::ScrollBar m_scrollbar;
+    ToolBarComponent m_toolBar;
+    PlayheadComponent m_playhead { m_edit, m_editViewState };
+    LowerRangeComponent m_pluginRack { m_editViewState };
+    juce::OwnedArray<TrackComponent> m_trackComps;
+    juce::OwnedArray<TrackHeaderComponent> m_headers;
+    juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
+
+    bool m_updateTracks = false, m_updateZoom = false;
 };

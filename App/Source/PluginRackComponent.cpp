@@ -27,9 +27,9 @@ void PluginRackComponent::buttonClicked(juce::Button* button)
             if (auto plugin = showMenuAndCreatePlugin (track->edit))
                 {
                     track->pluginList.insertPlugin (plugin, addButtons.indexOf(b), 
-                                                    &editViewState.selectionManager);
+                                                    &editViewState.m_selectionManager);
                 }
-                editViewState.selectionManager.selectOnly (track);
+                editViewState.m_selectionManager.selectOnly (track);
 
         }
     }
@@ -130,18 +130,18 @@ void PluginRackComponent::buildPlugins()
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     : editViewState(evs)
 {
-    editViewState.selectionManager.addChangeListener(this);
+    editViewState.m_selectionManager.addChangeListener(this);
     m_pluginRackComps.clear(true);
 }
 
 LowerRangeComponent::~LowerRangeComponent()
 {
-    editViewState.selectionManager.removeChangeListener(this);
+    editViewState.m_selectionManager.removeChangeListener(this);
 }
 
 void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * source)
 {
-    auto lastClickedTrack = editViewState.selectionManager
+    auto lastClickedTrack = editViewState.m_selectionManager
             .getItemsOfType<tracktion_engine::Track>()
             .getLast();
     if (m_pointedTrack.get() != lastClickedTrack)

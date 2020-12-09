@@ -21,35 +21,40 @@ class PositionDisplayComponent  : public juce::Component
 public:
     PositionDisplayComponent(te::Edit &edit);
 
-    void paint(juce::Graphics &g) override;
-    void mouseDown(const juce::MouseEvent &event) override;
-    void mouseDrag(const juce::MouseEvent &event) override;
-    void mouseUp(const juce::MouseEvent &event) override;
+    void paint(juce::Graphics &) override;
+    void mouseDown(const juce::MouseEvent &) override;
+    void mouseDrag(const juce::MouseEvent &) override;
+    void mouseUp(const juce::MouseEvent &) override;
     void resized() override;
 
     void update();
 
 private:
     te::Edit& m_edit;
-    juce::Rectangle<int> bmpRect,
-                         sigRect,
-                         barBeatTickRect,
-                         timeRect,
-                         loopInrect,
-                         loopOutRect;
-    juce::Label          bpmLabel,
-                         sigLabel,
-                         barBeatTickLabel,
-                         timeLabel,
-                         loopInLabel,
-                         loopOutLabel;
+    juce::Rectangle<int> m_bmpRect
+                       , m_sigRect
+                       , m_barBeatTickRect
+                       , m_timeRect
+                       , m_loopInrect
+                       , m_loopOutRect;
+    juce::Label          m_bpmLabel
+                       , m_sigLabel
+                       , m_barBeatTickLabel
+                       , m_timeLabel
+                       , m_loopInLabel
+                       , m_loopOutLabel;
+
     juce::Point<int>     m_MouseDownPosition;
-    double m_bpmAtMd;
-    double m_barsBeatsAtMd;
-    double m_ppqTimeAtMd;
-    double m_timeAtMouseDown;
-    double m_loopInAtMouseDown, m_loopOutAtMouseDown;
-    int m_numAtMouseDown, m_denAtMouseDown;
+
+    double               m_bpmAtMd
+                       , m_barsBeatsAtMd
+                       , m_ppqTimeAtMd
+                       , m_timeAtMouseDown
+                       , m_loopInAtMouseDown
+                       , m_loopOutAtMouseDown;
+
+    int                  m_numAtMouseDown
+                       , m_denAtMouseDown;
 };
 
 //------------------------------------------------------------------------------
@@ -66,16 +71,15 @@ public:
     void buttonClicked(juce::Button* button) override;
     void timerCallback() override;
 
-
 private:
     juce::DrawableButton m_newButton
-                 , m_loadButton
-                 , m_saveButton
-                 , m_pluginsButton
-                 , m_stopButton
-                 , m_recordButton
-                 , m_settingsButton
-                 , m_playButton;
+                       , m_loadButton
+                       , m_saveButton
+                       , m_pluginsButton
+                       , m_stopButton
+                       , m_recordButton
+                       , m_settingsButton
+                       , m_playButton;
 
     te::Edit& m_edit;
     juce::String m_btn_col { "#dbdbdb" };

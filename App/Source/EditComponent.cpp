@@ -1,11 +1,7 @@
 #include "EditComponent.h"
 
-
-
-
-//==============================================================================
 PlayheadComponent::PlayheadComponent (te::Edit& e , EditViewState& evs)
-    : edit (e), editViewState (evs)
+    : m_edit (e), m_editViewState (evs)
 {
     startTimerHz (30);
 }
@@ -13,15 +9,15 @@ PlayheadComponent::PlayheadComponent (te::Edit& e , EditViewState& evs)
 void PlayheadComponent::paint (juce::Graphics& g)
 {
     g.setColour (juce::Colours::antiquewhite);
-    g.drawRect (xPosition, 0, 2, getHeight());
-    //g.drawArrow(juce::Line<float>(xPosition, 0, xPosition,editViewState.headerHeight),1,3,10);
+    g.drawRect (m_xPosition, 0, 2, getHeight());
 }
 
 bool PlayheadComponent::hitTest (int x, int)
 {
-    if (std::abs (x - xPosition) <= 3)
+    if (std::abs (x - m_xPosition) <= 3)
+    {
         return true;
-    
+    }
     return false;
 }
 
@@ -32,33 +28,38 @@ void PlayheadComponent::mouseDown (const juce::MouseEvent&)
 
 void PlayheadComponent::mouseUp (const juce::MouseEvent&)
 {
-    edit.getTransport().setUserDragging (false);
+    m_edit.getTransport().setUserDragging (false);
 }
 
 void PlayheadComponent::mouseDrag (const juce::MouseEvent& e)
 {
-    double t = editViewState.beatToTime(editViewState.xToBeats (e.x, getWidth()));
-    edit.getTransport().setCurrentPosition (t);
+    double t = m_editViewState.beatToTime(m_editViewState.xToBeats (
+                                            e.x, getWidth()));
+    m_edit.getTransport().setCurrentPosition (t);
     timerCallback();
 }
 
 void PlayheadComponent::timerCallback()
 {
-    if (firstTimer)
+    if (m_firstTimer)
     {
         // On Linux, don't set the mouse cursor until after the Component has appeared
-        firstTimer = false;
+        m_firstTimer = false;
         setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
     }
 
-    int newX = editViewState.beatsToX (edit.tempoSequence.timeToBeats(edit.getTransport().getCurrentPosition()) , getWidth());
-    if (newX != xPosition)
+    int newX = m_editViewState.beatsToX (
+                m_edit.tempoSequence.timeToBeats(
+                    m_edit.getTransport().getCurrentPosition())
+                    , getWidth());
+    if (newX != m_xPosition)
     {
-        repaint (juce::jmin (newX, xPosition) - 1
+        repaint (juce::jmin (newX, m_xPosition) - 1
                  , 0
-                 , juce::jmax (newX, xPosition) - juce::jmin (newX, xPosition) + 3
+                 , juce::jmax (newX, m_xPosition)
+                    - juce::jmin (newX, m_xPosition) + 3
                  , getHeight());
-        xPosition = newX;
+        m_xPosition = newX;
     }
 }
 
@@ -71,48 +72,50 @@ ToolBarComponent::ToolBarComponent()
 void ToolBarComponent::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colour (0xff181818));
-    auto cornerSize = 10;
+    auto cornerSize = 10.0;
     g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
     g.fillAll ();
 }
 
-//===============================================================================
+//==============================================================================
 
 EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
-    : edit (e), editViewState (e, sm), m_scrollbar (true)
+    : m_edit (e), m_editViewState (e, sm), m_scrollbar (true)
 {
-    edit.state.addListener (this);
-    editViewState.selectionManager.addChangeListener (this);
+    m_edit.state.addListener (this);
+    m_editViewState.m_selectionManager.addChangeListener (this);
 
-    
-    addAndMakeVisible (timeLine);
-    timeLine.setAlwaysOnTop (true);
-    addAndMakeVisible (m_scrollbar);
+    m_timeLine.setAlwaysOnTop (true);
+
     m_scrollbar.setAlwaysOnTop (true);
     m_scrollbar.setAutoHide (false);
     m_scrollbar.addListener (this);
-    addAndMakeVisible (pluginRack);
-    pluginRack.setAlwaysOnTop(true);
-    addAndMakeVisible (playhead);
-    playhead.setAlwaysOnTop (true);
-    addAndMakeVisible (toolBar);
-    toolBar.setAlwaysOnTop (true);
+
+    m_pluginRack.setAlwaysOnTop(true);
+
+    m_playhead.setAlwaysOnTop (true);
+
+    m_toolBar.setAlwaysOnTop (true);
     
-    markAndUpdate (updateTracks);
-    editViewState.selectionManager.selectOnly (te::getAllTracks (edit).getLast ());
+    addAndMakeVisible (m_timeLine);
+    addAndMakeVisible (m_scrollbar);
+    addAndMakeVisible (m_pluginRack);
+    addAndMakeVisible (m_playhead);
+    addAndMakeVisible (m_toolBar);
 
-
-
-
+    markAndUpdate (m_updateTracks);
+    m_editViewState.m_selectionManager.selectOnly (
+                te::getAllTracks (m_edit).getLast ());
 }
 
 EditComponent::~EditComponent()
 {
-    editViewState.selectionManager.removeChangeListener (this);
-    edit.state.removeListener (this);
+    m_editViewState.m_selectionManager.removeChangeListener (this);
+    m_edit.state.removeListener (this);
 }
 
-void EditComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i)
+void EditComponent::valueTreePropertyChanged (
+        juce::ValueTree& v, const juce::Identifier& i)
 {
     if (v.hasType (IDs::EDITVIEWSTATE))
     {
@@ -120,12 +123,12 @@ void EditComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Id
             || i == IDs::viewX2
             || i == IDs::viewY)
         {
-            markAndUpdate (updateZoom);
+            markAndUpdate (m_updateZoom);
         }
         else if (i == IDs::showHeaders
                  || i == IDs::showFooters)
         {
-            markAndUpdate (updateZoom);
+            markAndUpdate (m_updateZoom);
         }
         else if (i == IDs::drawWaveforms)
         {
@@ -137,21 +140,23 @@ void EditComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Id
 void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 {
     if (te::TrackList::isTrack (c))
-        markAndUpdate (updateTracks);
+        markAndUpdate (m_updateTracks);
 }
 
-void EditComponent::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree& c, int)
+void EditComponent::valueTreeChildRemoved (
+        juce::ValueTree&, juce::ValueTree& c, int)
 {
     if (te::TrackList::isTrack (c))
-        markAndUpdate (updateTracks);
+        markAndUpdate (m_updateTracks);
 }
 
-void EditComponent::valueTreeChildOrderChanged (juce::ValueTree& v, int a, int b)
+void EditComponent::valueTreeChildOrderChanged (
+        juce::ValueTree& v, int a, int b)
 {
     if (te::TrackList::isTrack (v.getChild (a)))
-        markAndUpdate (updateTracks);
+        markAndUpdate (m_updateTracks);
     else if (te::TrackList::isTrack (v.getChild (b)))
-        markAndUpdate (updateTracks);
+        markAndUpdate (m_updateTracks);
 }
 
 void EditComponent::mouseDown(const juce::MouseEvent &event)
@@ -170,16 +175,20 @@ void EditComponent::mouseDown(const juce::MouseEvent &event)
             auto red = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
             auto gre = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
             auto blu = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
-            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
+            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
+                    m_edit, te::getAudioTracks(m_edit).size()))
             {
-                 track->state.setProperty(te::IDs::height, track->defaultTrackHeight,&edit.getUndoManager());
-                 track->setName("Track " + juce::String(tracktion_engine::getAudioTracks(edit).size()));
+                 track->state.setProperty(  te::IDs::height
+                                          , track->defaultTrackHeight
+                                          , &m_edit.getUndoManager());
+
+                 track->setName(
+                    "Track " + juce::String(te::getAudioTracks(m_edit).size()));
                  track->setColour(juce::Colour(red, gre, blu));
-                 editViewState.selectionManager.selectOnly(track);
+                 m_editViewState.m_selectionManager.selectOnly(track);
             }
         }
     }
-    //editViewState.selectionManager.deselectAll();
 }
 
 void EditComponent::mouseWheelMove(const juce::MouseEvent &event
@@ -187,16 +196,16 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
 {
     if (event.mods.isShiftDown())
     {
-        double rangeBegin = editViewState.beatsToX(
-                                editViewState.viewX1, timeLine.getWidth());
-        double visibleLength = editViewState.viewX2 - editViewState.viewX1;
+        auto rangeBegin = m_editViewState.beatsToX(
+                                m_editViewState.m_viewX1, m_timeLine.getWidth());
+        auto visibleLength = m_editViewState.m_viewX2 - m_editViewState.m_viewX1;
 
-        rangeBegin -= wheel.deltaY * 300;
+        rangeBegin -= static_cast<int>(wheel.deltaY * 300);
 
-        editViewState.viewX1 = juce::jmax (0.0
-                                     , editViewState.xToBeats(
-                                         rangeBegin, timeLine.getWidth()));
-        editViewState.viewX2 = editViewState.viewX1 + visibleLength;
+        m_editViewState.m_viewX1 = juce::jmax (0.0
+                                     , m_editViewState.xToBeats(
+                                         rangeBegin, m_timeLine.getWidth()));
+        m_editViewState.m_viewX2 = m_editViewState.m_viewX1 + visibleLength;
     }
     else if (event.mods.isCtrlDown())
     {
@@ -212,34 +221,35 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
 
 void EditComponent::paint (juce::Graphics &g)
 {
-    auto rect = getLocalBounds();
     g.setColour(juce::Colour(0xff181818));
-    auto cornerSize = 10;
+    auto cornerSize = 10.0;
     g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
 
     g.setColour(juce::Colour(0xff4f4f4f));
-    g.drawRect(editViewState.headerWidth, 0, 1, getHeight());
+    g.drawRect(m_editViewState.m_headerWidth, 0, 1, getHeight());
 }
 
 void EditComponent::handleAsyncUpdate()
 {
-    if (compareAndReset (updateTracks))
+    if (compareAndReset (m_updateTracks))
         buildTracks();
-    if (compareAndReset (updateZoom))
+    if (compareAndReset (m_updateZoom))
     {
         resized();
-        timeLine.repaint ();
+        m_timeLine.repaint ();
     }
 }
 
 void EditComponent::resized()
 {
-    jassert (headers.size() == tracks.size());
+    jassert (m_headers.size() == m_trackComps.size());
     
     const int timelineHeight = 50;
     const int trackGap = 0;
-    const int headerWidth = editViewState.showHeaders ? editViewState.headerWidth : 0;
-    const int footerWidth = editViewState.showFooters ? 150 : 0;
+    const int headerWidth = m_editViewState.m_showHeaders
+                          ? m_editViewState.m_headerWidth
+                          : 0;
+    const int footerWidth = m_editViewState.m_showFooters ? 150 : 0;
     const int pluginRackHeight = 250;
 
 
@@ -247,104 +257,116 @@ void EditComponent::resized()
     auto area = getLocalBounds();
     auto pluginRackRect = area.removeFromBottom(pluginRackHeight);
     
-    int y = juce::roundToInt (editViewState.viewY.get()) + timelineHeight;
+    int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
 
     int trackHeight = 30;
     int trackHeights = 0;
-    for (int i = 0; i < juce::jmin (headers.size(), tracks.size()); i++)
+    for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
     {
-        auto h = headers[i];
-        auto t = tracks[i];
-        auto f = footers[i];
-        trackHeight = tracks[i]->getTrack()->state.getProperty(tracktion_engine::IDs::height,50);
+        auto trackHeader = m_headers[i];
+        auto trackComp = m_trackComps[i];
+        auto pluginRack = m_pluginRackComps[i];
+
+        trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
+                        tracktion_engine::IDs::height,50);
         trackHeights += trackHeight;
-        h->setBounds (2, y, headerWidth-2, trackHeight);
-        t->setBounds (headerWidth + 1, y, getWidth() - headerWidth - footerWidth, trackHeight);
-        f->setBounds (getWidth() - footerWidth, y, footerWidth, trackHeight);
+        trackHeader->setBounds (2, y, headerWidth-2, trackHeight);
+        trackComp->setBounds (headerWidth + 1
+                              , y
+                              , getWidth() - headerWidth - footerWidth
+                              , trackHeight);
+        pluginRack->setBounds (getWidth() - footerWidth
+                               , y
+                               , footerWidth
+                               , trackHeight);
 
         y += trackHeight + trackGap;
     }
 
-    for (auto t : tracks)
+    for (auto t : m_trackComps)
         t->resized();
 
-    pluginRack.setBounds (pluginRackRect);
-    playhead.setBounds (area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
-    timeLine.setBounds(playhead.getBounds().removeFromTop(timelineHeight));
-    toolBar.setBounds (0, 0, headerWidth, timelineHeight);
+    m_pluginRack.setBounds (pluginRackRect);
+    m_playhead.setBounds (
+                area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
+    m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));
+    m_toolBar.setBounds (0, 0, headerWidth, timelineHeight);
 
     auto songeditorHeight = getHeight() - timelineHeight - pluginRackHeight;
     m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
     m_scrollbar.setRangeLimits (0, trackHeights + (songeditorHeight/2));
-    m_scrollbar.setCurrentRange (-(editViewState.viewY), songeditorHeight);
+    m_scrollbar.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
 }
 
-void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved, double newRangeStart)
+void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *)
+{
+    repaint();
+}
+
+void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
+                                   , double newRangeStart)
 {
     if (scrollBarThatHasMoved == &m_scrollbar)
     {
-        editViewState.viewY = -(newRangeStart);
+        m_editViewState.m_viewY = -newRangeStart;
     }
 }
 
 void EditComponent::buildTracks()
 {
-    tracks.clear();
-    headers.clear();
-    footers.clear();
+    m_trackComps.clear();
+    m_headers.clear();
+    m_pluginRackComps.clear();
     
-    for (auto t : getAllTracks (edit))
+    for (auto t : getAllTracks (m_edit))
     {
         TrackComponent* c = nullptr;
         
         if (t->isTempoTrack())
         {
-            if (editViewState.showGlobalTrack)
-                c = new TrackComponent (editViewState, t);
+            if (m_editViewState.m_showGlobalTrack)
+                c = new TrackComponent (m_editViewState, t);
         }
         else if (t->isMarkerTrack())
         {
-            if (editViewState.showMarkerTrack)
-                c = new TrackComponent (editViewState, t);
+            if (m_editViewState.m_showMarkerTrack)
+                c = new TrackComponent (m_editViewState, t);
         }
         else if (t->isChordTrack())
         {
-            if (editViewState.showChordTrack)
-                c = new TrackComponent (editViewState, t);
+            if (m_editViewState.m_showChordTrack)
+                c = new TrackComponent (m_editViewState, t);
         }
         else if (t->isArrangerTrack())
         {
-            if (editViewState.showArrangerTrack)
-                c = new TrackComponent (editViewState, t);
+            if (m_editViewState.m_showArrangerTrack)
+                c = new TrackComponent (m_editViewState, t);
         }
         else
         {
-            c = new TrackComponent (editViewState, t);
+            c = new TrackComponent (m_editViewState, t);
         }
         
         if (c != nullptr)
         {
-            tracks.add (c);
+            m_trackComps.add (c);
             addAndMakeVisible (c);
             
-            auto h = new TrackHeaderComponent (editViewState, t);
-            headers.add (h);
+            auto h = new TrackHeaderComponent (m_editViewState, t);
+            m_headers.add (h);
             addAndMakeVisible (h);
             
-            auto f = new PluginRackComponent (editViewState, t);
-            footers.add (f);
+            auto f = new PluginRackComponent (m_editViewState, t);
+            m_pluginRackComps.add (f);
             addAndMakeVisible (f);
         }
     }
     
-    playhead.toFront (false);
+    m_playhead.toFront (false);
     resized();
 }
 
 juce::OwnedArray<TrackComponent> & EditComponent::getTrackComps()
 {
-    return tracks;
+    return m_trackComps;
 }
-
-//--------------------------------------------------------------------------------------
-

@@ -3,26 +3,26 @@
 PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit)
     : m_edit(edit)
 {
-    Helpers::addAndMakeVisible (*this, {   &bpmLabel,
-                                           &sigLabel,
-                                           &barBeatTickLabel,
-                                           &timeLabel,
-                                           &loopInLabel,
-                                           &loopOutLabel  });
-    bpmLabel.setJustificationType (juce::Justification::centred);
-    sigLabel.setJustificationType (juce::Justification::centred);
-    barBeatTickLabel.setJustificationType (juce::Justification::centred);
-    barBeatTickLabel.setFont (28);
-    timeLabel.setJustificationType (juce::Justification::centred);
-    loopInLabel.setJustificationType (juce::Justification::centred);
-    loopOutLabel.setJustificationType (juce::Justification::centred);
+    Helpers::addAndMakeVisible (*this, {   &m_bpmLabel,
+                                           &m_sigLabel,
+                                           &m_barBeatTickLabel,
+                                           &m_timeLabel,
+                                           &m_loopInLabel,
+                                           &m_loopOutLabel  });
+    m_bpmLabel.setJustificationType (juce::Justification::centred);
+    m_sigLabel.setJustificationType (juce::Justification::centred);
+    m_barBeatTickLabel.setJustificationType (juce::Justification::centred);
+    m_barBeatTickLabel.setFont (28);
+    m_timeLabel.setJustificationType (juce::Justification::centred);
+    m_loopInLabel.setJustificationType (juce::Justification::centred);
+    m_loopOutLabel.setJustificationType (juce::Justification::centred);
 
-    bpmLabel.setInterceptsMouseClicks (false, false);
-    sigLabel.setInterceptsMouseClicks (false, false);
-    barBeatTickLabel.setInterceptsMouseClicks (false, false);
-    timeLabel.setInterceptsMouseClicks (false, false);
-    loopInLabel.setInterceptsMouseClicks (false, false);
-    loopOutLabel.setInterceptsMouseClicks (false, false);
+    m_bpmLabel.setInterceptsMouseClicks (false, false);
+    m_sigLabel.setInterceptsMouseClicks (false, false);
+    m_barBeatTickLabel.setInterceptsMouseClicks (false, false);
+    m_timeLabel.setInterceptsMouseClicks (false, false);
+    m_loopInLabel.setInterceptsMouseClicks (false, false);
+    m_loopOutLabel.setInterceptsMouseClicks (false, false);
 
     update ();
 }
@@ -51,7 +51,8 @@ void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)
 {
     m_MouseDownPosition = event.getMouseDownPosition ();
     m_bpmAtMd = m_edit.tempoSequence.getTempos ()[0]->getBpm ();
-    m_barsBeatsAtMd = m_edit.tempoSequence.timeToBeats (m_edit.getTransport ().getCurrentPosition ());
+    m_barsBeatsAtMd = m_edit.tempoSequence.timeToBeats (
+                m_edit.getTransport ().getCurrentPosition ());
     m_timeAtMouseDown = m_edit.getTransport ().getCurrentPosition ();
     m_numAtMouseDown = m_edit.tempoSequence.getTimeSig(0)->numerator;
     m_denAtMouseDown = m_edit.tempoSequence.getTimeSig(0)->denominator;
@@ -62,52 +63,53 @@ void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)
 
 void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
 {
-    if (bmpRect.contains (m_MouseDownPosition))
+    if (m_bmpRect.contains (m_MouseDownPosition))
     {
         //m_edit.getTransport().setUserDragging (true);
 
-        auto r = bmpRect;
+        auto r = m_bmpRect;
         if (r.removeFromLeft (r.getWidth ()/2).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             auto tempo = m_edit.tempoSequence.getTempos ()[0];
             tempo->setBpm ( m_bpmAtMd - (event.getDistanceFromDragStartY ()));
-
         }
         else
         {
             event.source.enableUnboundedMouseMovement (true);
             auto tempo = m_edit.tempoSequence.getTempos ()[0];
-            tempo->setBpm (m_bpmAtMd - (event.getDistanceFromDragStartY () /100.0));
+            tempo->setBpm (m_bpmAtMd
+                           - (event.getDistanceFromDragStartY () /100.0));
         }
         //set the Position back to the Beat Position on Mouse down
         te::TempoSequencePosition pos(m_edit.tempoSequence);
         pos.setTime (m_edit.tempoSequence.beatsToTime ( m_barsBeatsAtMd));
         m_edit.getTransport ().setCurrentPosition (pos.getTime ());
     }
-    else if (sigRect.contains (m_MouseDownPosition))
+    else if (m_sigRect.contains (m_MouseDownPosition))
     {
-
     }
-    else if (barBeatTickRect.contains (m_MouseDownPosition))
+    else if (m_barBeatTickRect.contains (m_MouseDownPosition))
     {
-        auto r = barBeatTickRect;
-        if (r.removeFromLeft (barBeatTickRect.getWidth ()/3).contains (m_MouseDownPosition))
+        auto r = m_barBeatTickRect;
+        if (r.removeFromLeft (
+                m_barBeatTickRect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime ( m_timeAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -(event.getDistanceFromDragStartY () * 4));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY () * 4));
             m_edit.getTransport ().setCurrentPosition (pos.getTime ());
         }
-        else if(r.removeFromLeft (barBeatTickRect.getWidth ()/3).contains (m_MouseDownPosition))
+        else if(r.removeFromLeft (
+                   m_barBeatTickRect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime ( m_timeAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () - (event.getDistanceFromDragStartY ()));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY ()));
             m_edit.getTransport ().setCurrentPosition (pos.getTime ());
         }
         else
@@ -115,62 +117,62 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime ( m_timeAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -( event.getDistanceFromDragStartY () / 960.0));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY () / 960.0));
             m_edit.getTransport ().setCurrentPosition (pos.getTime ());
         }
     }
-    else if (timeRect.contains (m_MouseDownPosition))
+    else if (m_timeRect.contains (m_MouseDownPosition))
     {
-        auto r = timeRect;
-        if (r.removeFromLeft (timeRect.getWidth ()/3).contains (m_MouseDownPosition))
+        auto r = m_timeRect;
+        if (r.removeFromLeft (
+                    m_timeRect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime (m_timeAtMouseDown - (event.getDistanceFromDragStartY () * 60));
-
-
+            pos.setTime (m_timeAtMouseDown
+                         - (event.getDistanceFromDragStartY () * 60));
             m_edit.getTransport ().setCurrentPosition (pos.getTime ());
         }
-        else if (r.removeFromLeft (timeRect.getWidth ()/3).contains (m_MouseDownPosition))
+        else if (r.removeFromLeft (
+                     m_timeRect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_timeAtMouseDown - event.getDistanceFromDragStartY ());
-
-
+            pos.setTime ( m_timeAtMouseDown
+                          - event.getDistanceFromDragStartY ());
             m_edit.getTransport ().setCurrentPosition (pos.getTime ());
         }
         else
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime (m_timeAtMouseDown - (event.getDistanceFromDragStartY () * 0.001));
-
-
+            pos.setTime (m_timeAtMouseDown
+                         - (event.getDistanceFromDragStartY () * 0.001));
             m_edit.getTransport ().setCurrentPosition (pos.getTime ());
         }
     }
-    else if (loopInrect.contains (m_MouseDownPosition))
+    else if (m_loopInrect.contains (m_MouseDownPosition))
     {
-        auto r = loopInrect;
-        if (r.removeFromLeft (loopInrect.getWidth ()/3).contains (m_MouseDownPosition))
+        auto r = m_loopInrect;
+        if (r.removeFromLeft (
+                    m_loopInrect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime (m_loopInAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -(event.getDistanceFromDragStartY () * 4));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY () * 4));
             m_edit.getTransport ().setLoopIn (pos.getTime ());
-
         }
-        else if(r.removeFromLeft (loopInrect.getWidth ()/3).contains (m_MouseDownPosition))
+        else if(r.removeFromLeft (
+                    m_loopInrect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime ( m_loopInAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -( event.getDistanceFromDragStartY ()));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY ()));
             m_edit.getTransport ().setLoopIn (pos.getTime ());
         }
         else
@@ -178,31 +180,32 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime ( m_loopInAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -( event.getDistanceFromDragStartY () / 960.0));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY () / 960.0));
             m_edit.getTransport ().setLoopIn (pos.getTime ());
         }
     }
-    else if (loopOutRect.contains (m_MouseDownPosition))
+    else if (m_loopOutRect.contains (m_MouseDownPosition))
     {
-        auto r = loopOutRect;
-        if (r.removeFromLeft (loopOutRect.getWidth ()/3).contains (m_MouseDownPosition))
+        auto r = m_loopOutRect;
+        if (r.removeFromLeft (
+                    m_loopOutRect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime (m_loopOutAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -(event.getDistanceFromDragStartY () * 4));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY () * 4));
             m_edit.getTransport ().setLoopOut (pos.getTime ());
-
         }
-        else if(r.removeFromLeft (loopOutRect.getWidth ()/3).contains (m_MouseDownPosition))
+        else if(r.removeFromLeft (
+                    m_loopOutRect.getWidth ()/3).contains (m_MouseDownPosition))
         {
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime ( m_loopOutAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -( event.getDistanceFromDragStartY ()));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY ()));
             m_edit.getTransport ().setLoopOut (pos.getTime ());
         }
         else
@@ -210,14 +213,14 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
             event.source.enableUnboundedMouseMovement (true);
             te::TempoSequencePosition pos(m_edit.tempoSequence);
             pos.setTime ( m_loopOutAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime () -( event.getDistanceFromDragStartY () / 960.0));
-
+            pos.setPPQTime (pos.getPPQTime ()
+                            - (event.getDistanceFromDragStartY () / 960.0));
             m_edit.getTransport ().setLoopOut (pos.getTime ());
         }
     }
 }
 
-void PositionDisplayComponent::mouseUp(const juce::MouseEvent &event)
+void PositionDisplayComponent::mouseUp(const juce::MouseEvent &/*e*/)
 {
     m_edit.getTransport ().setUserDragging (false);
 }
@@ -227,34 +230,36 @@ void PositionDisplayComponent::resized()
     auto area = getLocalBounds ();
     auto leftColumb = area.removeFromLeft (getWidth ()/4);
 
-    bmpRect = leftColumb.removeFromTop (leftColumb.getHeight ()/2);
-    sigRect = leftColumb;
+    m_bmpRect = leftColumb.removeFromTop (leftColumb.getHeight ()/2);
+    m_sigRect = leftColumb;
 
     auto rightColumb = area.removeFromRight (getWidth ()/4);
 
-    loopInrect = rightColumb.removeFromTop (rightColumb.getHeight ()/2);
-    loopOutRect = rightColumb;
-    barBeatTickRect = area.removeFromTop ( (getHeight ()/3) * 2);
-    timeRect = area;
+    m_loopInrect = rightColumb.removeFromTop (rightColumb.getHeight ()/2);
+    m_loopOutRect = rightColumb;
+    m_barBeatTickRect = area.removeFromTop ( (getHeight ()/3) * 2);
+    m_timeRect = area;
 
-    bpmLabel.setBounds (bmpRect);
-    sigLabel.setBounds (sigRect);
-    barBeatTickLabel.setBounds (barBeatTickRect);
-    timeLabel.setBounds (timeRect);
-    loopInLabel.setBounds (loopInrect);
-    loopOutLabel.setBounds (loopOutRect);
+    m_bpmLabel.setBounds (m_bmpRect);
+    m_sigLabel.setBounds (m_sigRect);
+    m_barBeatTickLabel.setBounds (m_barBeatTickRect);
+    m_timeLabel.setBounds (m_timeRect);
+    m_loopInLabel.setBounds (m_loopInrect);
+    m_loopOutLabel.setBounds (m_loopOutRect);
 }
 
 void PositionDisplayComponent::update()
 {
-    auto pos = te::getCurrentPositionInfo (m_edit);
+    const auto pos = te::getCurrentPositionInfo (m_edit);
+    const auto nt = juce::NotificationType::dontSendNotification;
     PlayHeadHelpers::TimeCodeStrings positionStr(pos);
-    bpmLabel.setText (positionStr.bpm, juce::NotificationType::dontSendNotification);
-    sigLabel.setText (positionStr.signature, juce::NotificationType::dontSendNotification);
-    barBeatTickLabel.setText (positionStr.beats, juce::NotificationType::dontSendNotification);
-    timeLabel.setText (positionStr.time, juce::NotificationType::dontSendNotification);
-    loopInLabel.setText (positionStr.loopIn, juce::NotificationType::dontSendNotification);
-    loopOutLabel.setText (positionStr.loopOut, juce::NotificationType::dontSendNotification);
+
+    m_bpmLabel.setText (positionStr.bpm, nt);
+    m_sigLabel.setText (positionStr.signature, nt);
+    m_barBeatTickLabel.setText (positionStr.beats, nt);
+    m_timeLabel.setText (positionStr.time, nt);
+    m_loopInLabel.setText (positionStr.loopIn, nt);
+    m_loopOutLabel.setText (positionStr.loopOut, nt);
 }
 
 //==============================================================================
@@ -281,14 +286,30 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     addAndMakeVisible(m_pluginsButton);
     addAndMakeVisible (m_display);
 
-    GUIHelpers::setDrawableonButton (m_newButton, BinaryData::newbox_svg, m_btn_col);
-    GUIHelpers::setDrawableonButton (m_loadButton, BinaryData::filedownload_svg, m_btn_col);
-    GUIHelpers::setDrawableonButton (m_saveButton, BinaryData::contentsaveedit_svg, m_btn_col);
-    GUIHelpers::setDrawableonButton (m_playButton, BinaryData::play_svg, m_btn_col);
-    GUIHelpers::setDrawableonButton (m_stopButton, BinaryData::stop_svg, m_btn_col);
-    GUIHelpers::setDrawableonButton (m_recordButton, BinaryData::record_svg, m_btn_col);
-    GUIHelpers::setDrawableonButton (m_settingsButton, BinaryData::headphonessettings_svg, m_btn_col);
-    GUIHelpers::setDrawableonButton (m_pluginsButton, BinaryData::powerplug_svg, m_btn_col);
+    GUIHelpers::setDrawableonButton (m_newButton
+                                     , BinaryData::newbox_svg
+                                     , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_loadButton
+                                     , BinaryData::filedownload_svg
+                                     , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_saveButton
+                                     , BinaryData::contentsaveedit_svg
+                                     , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_playButton
+                                     , BinaryData::play_svg
+                                     , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_stopButton
+                                     , BinaryData::stop_svg
+                                     , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_recordButton
+                                     , BinaryData::record_svg
+                                     , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_settingsButton
+                                     , BinaryData::headphonessettings_svg
+                                     , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_pluginsButton
+                                     , BinaryData::powerplug_svg
+                                     , m_btn_col);
 
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
@@ -315,11 +336,12 @@ void HeaderComponent::resized()
     area.removeFromBottom(gap/4);
 
     auto displayWidth = 300;
-    auto displayRect = juce::Rectangle<int> ((area.getX () + (area.getWidth ()/2) - (displayWidth/2)),
-                                             area.getY (),
-                                             displayWidth,
-                                             area.getHeight ());
-
+    auto displayRect = juce::Rectangle<int> ((area.getX ()
+                                              + (area.getWidth ()/2)
+                                              - (displayWidth/2))
+                                             , area.getY ()
+                                             , displayWidth
+                                             , area.getHeight ());
 
     m_settingsButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     area.removeFromRight(gap/4);
@@ -333,11 +355,11 @@ void HeaderComponent::resized()
     m_saveButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
 
 
-    area = juce::Rectangle<int>(getLocalBounds ().getX (),
-                                getLocalBounds ().getY (),
-                                (getLocalBounds ().getWidth ()/2) - (displayWidth/2),
-                                getLocalBounds ().getHeight ()
-                                );
+    area = juce::Rectangle<int>(getLocalBounds ().getX ()
+                                , getLocalBounds ().getY ()
+                                , (getLocalBounds ().getWidth ()/2)
+                                    - (displayWidth/2)
+                                , getLocalBounds ().getHeight ());
 
     area.removeFromBottom(gap/4);
     area.removeFromRight(gap);
@@ -347,49 +369,47 @@ void HeaderComponent::resized()
     area.removeFromRight(gap/4);
     m_playButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     m_display.setBounds (displayRect);
-
-
-    //    m_playButton.setImages (false, false, true,
-    //                            GUIHelpers::getImageFromSvg (BinaryData::Play_svg, "#000000",24,24), 0.0f, Colour(0x00000000),
-    //                            GUIHelpers::getImageFromSvg (BinaryData::Play_svg, "#000000",24,24), 0.0f, Colour(0x00000000),
-    //                            GUIHelpers::getImageFromSvg (BinaryData::Play_svg, "#000000",24,24), 0.0f, Colour(0x00000000)
-    //                            );
-
 }
 
 void HeaderComponent::buttonClicked(juce::Button* button)
 {
     if (button == &m_newButton)
     {
-
     }
-
 
     if (button == &m_playButton)
     {
         auto& transport = m_edit.getTransport();
-
         if (transport.isPlaying())
+        {
             transport.stop(false, false);
+        }
         else
+        {
             transport.play(true);
-        const char* svgbin = m_edit.getTransport().isPlaying() ? BinaryData::pause_svg
-                                                               : BinaryData::play_svg;
+        }
+        const char* svgbin = m_edit.getTransport().isPlaying()
+                           ? BinaryData::pause_svg
+                           : BinaryData::play_svg;
+
         GUIHelpers::setDrawableonButton (m_playButton, svgbin, m_btn_col);
-        // m_playButton.setButtonText(m_edit.getTransport().isPlaying() ? "Pause" : "Play");
     }
     if (button == &m_stopButton)
     {
         m_edit.getTransport().stop(false, false, true, true);
         m_edit.getTransport().setCurrentPosition(0);
-        GUIHelpers::setDrawableonButton (m_playButton, BinaryData::play_svg, m_btn_col);
+        GUIHelpers::setDrawableonButton (m_playButton
+                                         , BinaryData::play_svg
+                                         , m_btn_col);
     }
     if (button == &m_recordButton)
     {
         bool wasRecording = m_edit.getTransport().isRecording();
         EngineHelpers::toggleRecord (m_edit);
         if (wasRecording)
+        {
             te::EditFileOperations (m_edit).save (true, true, false);
+        }
     }
     if (button == &m_settingsButton)
     {
@@ -406,10 +426,12 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         o.resizable                     = true;
         o.useBottomRightCornerResizer   = true;
 
-        auto v = new juce::PluginListComponent (m_edit.engine.getPluginManager().pluginFormatManager,
-                                          m_edit.engine.getPluginManager().knownPluginList,
-                                          m_edit.engine.getTemporaryFileManager().getTempFile ("PluginScanDeadMansPedal"),
-                                          te::getApplicationSettings());
+        auto v = new juce::PluginListComponent (
+                      m_edit.engine.getPluginManager().pluginFormatManager
+                    , m_edit.engine.getPluginManager().knownPluginList
+                    , m_edit.engine.getTemporaryFileManager()
+                        .getTempFile ("PluginScanDeadMansPedal")
+                    , te::getApplicationSettings());
         v->setSize (800, 600);
         o.content.setOwned (v);
         o.launchAsync();
@@ -420,5 +442,3 @@ void HeaderComponent::timerCallback()
 {
     m_display.update ();
 }
-
-
