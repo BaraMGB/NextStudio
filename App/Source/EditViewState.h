@@ -15,6 +15,10 @@ namespace IDs
     DECLARE_ID (viewX1)
     DECLARE_ID (viewX2)
     DECLARE_ID (viewY)
+    DECLARE_ID (pianoX1)
+    DECLARE_ID (pianoX2)
+    DECLARE_ID (pianoY1)
+    DECLARE_ID (pianoY2)
     DECLARE_ID (snapType)
     DECLARE_ID (drawWaveforms)
     DECLARE_ID (showHeaders)
@@ -53,6 +57,10 @@ public:
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
         m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0 * 4);
         m_viewY.referTo (m_state, IDs::viewY, um, 0);
+        m_pianoX1.referTo (m_state, IDs::pianoX1, um, 0);
+        m_pianoX2.referTo (m_state, IDs::pianoX2, um, 4);
+        m_pianoY1.referTo (m_state, IDs::pianoY1, um, 24);
+        m_pianoY2.referTo (m_state, IDs::pianoY2, um, 72);
         m_snapType.referTo(m_state, IDs::snapType, um, 7);
     }
 
@@ -92,7 +100,11 @@ public:
                           , m_showWaveDevices;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
-                            , m_viewY;
+                            , m_viewY
+                            , m_pianoX1
+                            , m_pianoX2;
+    juce::CachedValue<int>    m_pianoY1
+                            , m_pianoY2;
     juce::CachedValue<int> m_snapType;
 
     juce::CachedValue<int> m_headerHeight
