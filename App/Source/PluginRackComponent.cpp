@@ -156,32 +156,7 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*sou
         {
 
             m_pointedTrack = lastClickedTrack;
-            bool flag = false;
-            m_pointedClip = nullptr;
-            for (auto& pianoRolls : m_pianoRollComps)
-            {
-                pianoRolls->setVisible (false);
-            }
-            for (auto &prc : m_pluginRackComps)
-            {
-                prc->setVisible(false);
-                if (prc->getTrack().get() == lastClickedTrack)
-                {
-                    prc->setVisible(true);
-                    flag = true;
-                }
-            }
-            if (!flag)
-            {
-                PluginRackComponent * pluginRackComp =
-                        new PluginRackComponent(editViewState,lastClickedTrack);
-
-                pluginRackComp->setAlwaysOnTop(true);
-                pluginRackComp->setVisible(true);
-                addAndMakeVisible(pluginRackComp);
-                m_pluginRackComps.add(pluginRackComp);
-                resized();
-            }
+            showPluginRack(lastClickedTrack);
         }
     }
     else if(lastClip)
@@ -190,16 +165,9 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*sou
         {
             m_pointedClip = lastClip;
         }
-        for (auto &prc : m_pluginRackComps)
-        {
-            prc->setVisible (false);
-        }
-        m_pointedTrack = nullptr;
-        auto pianoRollComp = new PianoRollEditorComponent(editViewState, *lastClip);
-        pianoRollComp->setAlwaysOnTop(true);
-        pianoRollComp->setVisible(true);
-        addAndMakeVisible(pianoRollComp);
-        m_pianoRollComps.add(pianoRollComp);
+
+        showPianoRoll (lastClip);
+        std::cout << m_pianoRollComps.size () << std::endl;
         resized();
     }
 }
@@ -222,11 +190,11 @@ void LowerRangeComponent::resized()
         // todo: we add a splitter later for this
         area.removeFromTop (10);
 
-        for (auto& prc : m_pluginRackComps)
+        for (auto& pluginRackComp : m_pluginRackComps)
         {
-            if (prc->isVisible())
+            if (pluginRackComp->isVisible())
             {
-                prc->setBounds(area);
+                pluginRackComp->setBounds(area);
             }
         }
         for (auto& pianoRolls : m_pianoRollComps)
@@ -237,4 +205,65 @@ void LowerRangeComponent::resized()
             }
         }
 
+}
+
+void LowerRangeComponent::showPluginRack(te::Track *lastClickedTrack)
+{
+    std::cout << "---show Plugin Rack" << std::endl;
+    bool flag = false;
+    m_pointedClip = nullptr;
+    //hide Piano Rolls
+    for (auto& pianoRolls : m_pianoRollComps)
+    {
+        pianoRolls->setVisible (false);
+    }
+    for (auto &prc : m_pluginRackComps)
+    {
+        prc->setVisible(false);
+        if (prc->getTrack().get() == lastClickedTrack)
+        {
+            prc->setVisible(true);
+            flag = true;
+        }
+    }
+    if (!flag)
+    {
+        PluginRackComponent * pluginRackComp =
+                new PluginRackComponent(editViewState,lastClickedTrack);
+
+        pluginRackComp->setAlwaysOnTop(true);
+        pluginRackComp->setVisible(true);
+        addAndMakeVisible(pluginRackComp);
+        m_pluginRackComps.add(pluginRackComp);
+        resized();
+    }
+}
+
+void LowerRangeComponent::showPianoRoll(te::MidiClip * midiClip)
+{
+    std::cout << "---show Piano Roll" << std::endl;
+    //hide all PluginRacks
+    for (auto &pluginrack : m_pluginRackComps)
+    {
+        pluginrack->setVisible (false);
+    }
+    m_pointedTrack = nullptr;
+    bool pianoRollExists = false;
+    for (auto pianoRoll : m_pianoRollComps)
+    {
+        pianoRoll->setVisible (false);
+        if (pianoRoll->getMidiClip () == midiClip)
+        {
+            pianoRollExists = true;
+            pianoRoll->setVisible (true);
+        }
+    }
+    if (!pianoRollExists)
+    {
+        auto pianoRollComp = new PianoRollEditorComponent(editViewState, *midiClip);
+        pianoRollComp->setAlwaysOnTop(true);
+        pianoRollComp->setVisible(true);
+        addAndMakeVisible(pianoRollComp);
+        m_pianoRollComps.add(pianoRollComp);
+    }
 }

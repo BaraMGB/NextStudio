@@ -154,6 +154,9 @@ public:
     void paint (juce::Graphics& g) override;
     void resized () override;
 
+    void showPluginRack(te::Track *);
+    void showPianoRoll(tracktion_engine::MidiClip *);
+
 private:
 
     EditViewState& editViewState;
