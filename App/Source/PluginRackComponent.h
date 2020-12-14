@@ -165,5 +165,6 @@ private:
     te::MidiClip * m_pointedClip{nullptr};
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
     juce::OwnedArray<PianoRollEditorComponent> m_pianoRollComps;
+    const int m_splitterHeight {10};
 
 };

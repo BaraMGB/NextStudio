@@ -156,7 +156,9 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*sou
         {
 
             m_pointedTrack = lastClickedTrack;
+            m_pointedClip = nullptr;
             showPluginRack(lastClickedTrack);
+            resized();
         }
     }
     else if(lastClip)
@@ -167,28 +169,26 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*sou
         }
 
         showPianoRoll (lastClip);
-        std::cout << m_pianoRollComps.size () << std::endl;
         resized();
     }
 }
 
 void LowerRangeComponent::paint(juce::Graphics &g)
 {
-
     auto rect = getLocalBounds();
     g.setColour(juce::Colour(0xff555555));
     g.fillRect(rect);
     g.setColour(juce::Colour(0xff181818));
     auto cornerSize = 10;
-    g.fillRoundedRectangle(rect.removeFromBottom(getHeight() - 10).toFloat(), cornerSize);
-
+    g.fillRoundedRectangle(rect.removeFromBottom(getHeight() - m_splitterHeight)
+                           .toFloat(), cornerSize);
 }
 
 void LowerRangeComponent::resized()
 {
         auto area = getLocalBounds();
         // todo: we add a splitter later for this
-        area.removeFromTop (10);
+        area.removeFromTop (m_splitterHeight);
 
         for (auto& pluginRackComp : m_pluginRackComps)
         {
@@ -211,7 +211,6 @@ void LowerRangeComponent::showPluginRack(te::Track *lastClickedTrack)
 {
     std::cout << "---show Plugin Rack" << std::endl;
     bool flag = false;
-    m_pointedClip = nullptr;
     //hide Piano Rolls
     for (auto& pianoRolls : m_pianoRollComps)
     {
@@ -235,7 +234,6 @@ void LowerRangeComponent::showPluginRack(te::Track *lastClickedTrack)
         pluginRackComp->setVisible(true);
         addAndMakeVisible(pluginRackComp);
         m_pluginRackComps.add(pluginRackComp);
-        resized();
     }
 }
 

@@ -30,14 +30,9 @@ PianoRollEditorComponent::~PianoRollEditorComponent()
 
 void PianoRollEditorComponent::paint(juce::Graphics &g)
 {
-    g.setColour (juce::Colours::black);
-    g.fillAll ();
-    g.setColour (juce::Colour(0xff777777));
     int y1 = m_editViewState.m_pianoY1;
     int y2 = m_editViewState.m_pianoY2;
-    float visibleKeys = m_editViewState.m_pianoY2
-                      - m_editViewState.m_pianoY1;
-    // keyWidth * WhiteKeysPerOctave / KeysPerOctave
+
     float noteHeight = m_keyboard.getKeyWidth () * 7 / 12;
     float line = getHeight ();
     for (auto i = y1; i <= y2 ; i++)
@@ -45,11 +40,11 @@ void PianoRollEditorComponent::paint(juce::Graphics &g)
         line = line - noteHeight  ;
         if (juce::MidiMessage::isMidiNoteBlack (i))
         {
-           g.setColour (juce::Colour(0x22ffffff));
+           g.setColour (juce::Colour(0x11ffffff));
         }
         else
         {
-            g.setColour (juce::Colour(0x33ffffff));
+            g.setColour (juce::Colour(0x22ffffff));
         }
         juce::Rectangle<float> lineRect = {0.0, line, (float) getWidth (), noteHeight};
         g.fillRect(lineRect.reduced (0, 1));
@@ -58,6 +53,8 @@ void PianoRollEditorComponent::paint(juce::Graphics &g)
 
     if (auto mc = getMidiClip ())
     {
+        auto viewWidthBeats = m_editViewState.m_pianoX2
+                       - m_editViewState.m_pianoX1;
         auto& seq = mc->getSequence();
         for (auto n : seq.getNotes())
         {
@@ -67,16 +64,26 @@ void PianoRollEditorComponent::paint(juce::Graphics &g)
             double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
             if (auto p = getParentComponent())
             {
-                auto x1 =  juce::roundToInt ((((sBeat + m_editViewState.m_pianoX1) - m_editViewState.m_pianoX1) * getWidth())
-                                                 / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
-                auto x2 =  juce::roundToInt ((((eBeat + m_editViewState.m_pianoX1) - m_editViewState.m_pianoX1) * getWidth())
-                                             / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
+                auto x1 =  (sBeat - m_editViewState.m_pianoX1) * getWidth()
+                           / viewWidthBeats;
+                auto x2 =  (eBeat - m_editViewState.m_pianoX1) * getWidth()
+                           / viewWidthBeats;
 
                 g.setColour (juce::Colours::white);
                 g.fillRect (float (x1), float (noteY), float (x2 - x1), float (noteHeight));
             }
         }
+
+        auto clipStartX = (0 - m_editViewState.m_pianoX1) * getWidth()
+                / viewWidthBeats;
+        auto clipEndX = (mc->getLengthInBeats () - m_editViewState.m_pianoX1) * getWidth()
+                / viewWidthBeats;
+
+        g.setColour (mc->getTrack ()->getColour ().withAlpha (0.2f));
+        g.fillRect (clipStartX  , 0, clipEndX - clipStartX, getHeight ());
     }
+
+
 
 }
 
@@ -100,8 +107,11 @@ void PianoRollEditorComponent::mouseWheelMove(const juce::MouseEvent &event
 {
     if (event.mods.isShiftDown ())
     {
-        m_editViewState.m_pianoX1 =  m_editViewState.m_pianoX1 + wheel.deltaY;// * 10.0;
-        m_editViewState.m_pianoX2 =  m_editViewState.m_pianoX2 - wheel.deltaY;// * 10.0;
+        auto deltaX1 = event.mods.isCtrlDown () ? wheel.deltaY : -wheel.deltaY;
+        auto deltaX2 = -wheel.deltaY;
+
+        m_editViewState.m_pianoX1 =  m_editViewState.m_pianoX1 + deltaX1;
+        m_editViewState.m_pianoX2 =  m_editViewState.m_pianoX2 + deltaX2;
     }
     else
     {
@@ -112,7 +122,7 @@ void PianoRollEditorComponent::mouseWheelMove(const juce::MouseEvent &event
                                                  ,127
                                                  , m_editViewState.m_pianoY1
                                                  + deltaY1);
-        m_editViewState.m_pianoY2 = juce::jlimit(m_editViewState.m_pianoY1 + 1
+        m_editViewState.m_pianoY2 = juce::jlimit(m_editViewState.m_pianoY1 + 7
                                                  , 127
                                                  , m_editViewState.m_pianoY2
                                                  + deltaY2);
@@ -122,20 +132,16 @@ void PianoRollEditorComponent::mouseWheelMove(const juce::MouseEvent &event
 
 void PianoRollEditorComponent::resized()
 {
-    const auto area = getLocalBounds ();
-    //m_keyboard.setLowestVisibleKey (m_editViewState.m_pianoY1);
-
-    auto visibleWhiteKeysCount = 0;
     double firstVisibleNote = m_editViewState.m_pianoY1;
     double lastVisibleNote  = m_editViewState.m_pianoY2;
     double pianoRollNoteWidth = getHeight () / (lastVisibleNote - firstVisibleNote);
 
     m_keyboard.setKeyWidth (pianoRollNoteWidth * 12 / 7);
     m_keyboard.setBounds (0
-                                          , getHeight () - m_keyboard.getTotalKeyboardWidth ()
-                                            + (firstVisibleNote * pianoRollNoteWidth)
-                                          , 50
-                                          , m_keyboard.getTotalKeyboardWidth ());
+                          , getHeight () - m_keyboard.getTotalKeyboardWidth ()
+                            + (firstVisibleNote * pianoRollNoteWidth)
+                          , 50
+                          , m_keyboard.getTotalKeyboardWidth ());
 
 }
 
