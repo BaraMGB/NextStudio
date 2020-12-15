@@ -44,26 +44,32 @@ void PianoRollDisplay::paint(juce::Graphics &g)
 
     if (auto mc = getMidiClip ())
     {
-        auto& seq = mc->getSequence();
-        //draw Notes
-        for (auto n : seq.getNotes())
+        for (auto & trackClip : mc->getAudioTrack ()->getClips ())
         {
-            auto yOffset = n->getNoteNumber () - y1 + 1;
-            auto noteY = getHeight () - (yOffset * noteHeight);
-            double sBeat = n->getStartBeat() - mc->getOffsetInBeats();
-            double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
+            if (auto midiClip = dynamic_cast<te::MidiClip*>(trackClip))
+            {
+                auto& seq = midiClip->getSequence();
+                //draw Notes
+                for (auto n : seq.getNotes())
+                {
+                    auto yOffset = n->getNoteNumber () - y1 + 1;
+                    auto noteY = getHeight () - (yOffset * noteHeight);
+                    double sBeat = n->getStartBeat() - midiClip->getOffsetInBeats();
+                    double eBeat = n->getEndBeat() - midiClip->getOffsetInBeats();
 
-            auto x1 = m_timeline.beatsToX (sBeat + mc->getStartBeat ());
-            auto x2 = m_timeline.beatsToX (eBeat + mc->getStartBeat ());
+                    auto x1 = m_timeline.beatsToX (sBeat + midiClip->getStartBeat ());
+                    auto x2 = m_timeline.beatsToX (eBeat + midiClip->getStartBeat ());
 
-            g.setColour (juce::Colours::white);
-            g.fillRect (float (x1), float (noteY), float (x2 - x1), float (noteHeight));
+                    g.setColour (juce::Colours::white);
+                    g.fillRect (float (x1), float (noteY), float (x2 - x1), float (noteHeight));
+                }
+                //draw ClipRange
+                auto clipStartX = m_timeline.beatsToX (midiClip->getStartBeat ());
+                auto clipEndX = m_timeline.beatsToX (midiClip->getEndBeat ());
+                g.setColour (midiClip->getTrack ()->getColour ().withAlpha (0.2f));
+                g.fillRect (clipStartX  , 0, clipEndX - clipStartX, getHeight ());
+            }
         }
-        //draw ClipRange
-        auto clipStartX = m_timeline.beatsToX (mc->getStartBeat ());
-        auto clipEndX = m_timeline.beatsToX (mc->getEndBeat ());
-        g.setColour (mc->getTrack ()->getColour ().withAlpha (0.2f));
-        g.fillRect (clipStartX  , 0, clipEndX - clipStartX, getHeight ());
     }
 }
 
