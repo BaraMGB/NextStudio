@@ -164,7 +164,7 @@ private:
     tracktion_engine::Track::Ptr m_pointedTrack{nullptr};
     te::MidiClip * m_pointedClip{nullptr};
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
-    juce::OwnedArray<PianoRollEditorComponent> m_pianoRollComps;
+    juce::OwnedArray<PianoRollComponent> m_pianoRollComps;
     const int m_splitterHeight {10};
 
 };

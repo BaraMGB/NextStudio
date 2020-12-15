@@ -258,7 +258,7 @@ void LowerRangeComponent::showPianoRoll(te::MidiClip * midiClip)
     }
     if (!pianoRollExists)
     {
-        auto pianoRollComp = new PianoRollEditorComponent(editViewState, *midiClip);
+        auto pianoRollComp = new PianoRollComponent(editViewState, *midiClip);
         pianoRollComp->setAlwaysOnTop(true);
         pianoRollComp->setVisible(true);
         addAndMakeVisible(pianoRollComp);

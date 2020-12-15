@@ -11,9 +11,11 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TimeLineComponent.h"
 
-TimeLineComponent::TimeLineComponent(EditViewState& state)
-    : m_mouseDown(false)
-    , m_state(state)
+TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::CachedValue<double> &x1, juce::CachedValue<double> &x2)
+    : m_state(evs)
+    , m_mouseDown(false)
+    , m_X1(x1)
+    , m_X2(x2)
 {
 }
 
@@ -29,20 +31,20 @@ void TimeLineComponent::paint(juce::Graphics& g)
     g.drawRect(getLocalBounds());
     g.setFont(12);
 
-    double x1 = m_state.m_viewX1;
-    double x2 = m_state.m_viewX2;
+    double x1 = m_X1;
+    double x2 = m_X2;
     double zoom = x2 -x1;
     int firstBeat = static_cast<int>(x1);
-    if(m_state.beatsToX(firstBeat,getWidth()) < 0)
+    if(beatsToX(firstBeat) < 0)
     {
         firstBeat++;
     }
 
     auto pixelPerBeat = getWidth() / zoom;
     //std::cout << zoom << std::endl;
-    for (int beat = firstBeat - 1; beat <= m_state.m_viewX2; beat++)
+    for (int beat = firstBeat - 1; beat <= x2; beat++)
     {
-        int BeatX = m_state.beatsToX(beat, getWidth());
+        int BeatX = beatsToX(beat);
 
         auto zBars = 16;
 
@@ -94,7 +96,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
 
     if (m_mouseDown)
     {
-        auto md = m_state.beatsToX(m_BeatAtMouseDown, getWidth());
+        auto md = beatsToX(m_BeatAtMouseDown);
         g.setColour(juce::Colours::white.darker(0.9f));
         g.fillRect(md-1, 1, 1, getHeight()-1);
         g.setColour(juce::Colours::white);
@@ -110,9 +112,9 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 {
     event.source.enableUnboundedMouseMovement(true, false);
     m_mouseDown = true;
-    m_BeatAtMouseDown = m_state.xToBeats(event.getMouseDownPosition().getX(), getWidth());
-    m_x1atMD = m_state.m_viewX1;
-    m_x2atMD = m_state.m_viewX2;
+    m_BeatAtMouseDown = xToBeats(event.getMouseDownPosition().getX());
+    m_x1atMD = m_X1;
+    m_x2atMD = m_X2;
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
     if (event.getNumberOfClicks() > 1)
@@ -134,13 +136,24 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
                                             (m_x2atMD - m_x1atMD) / scaleFactor));
     auto rangeBegin = std::max (0.0,  m_BeatAtMouseDown - visibleLength * event.x / getWidth());
 
-    m_state.m_viewX1 = rangeBegin;
-    m_state.m_viewX2 = rangeBegin + visibleLength;
+    m_X1 = rangeBegin;
+    m_X2 = rangeBegin + visibleLength;
 }
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 {
     m_mouseDown = false;
     repaint();
+}
+
+int TimeLineComponent::beatsToX(double beats)
+{
+    return juce::roundToInt (((beats - m_X1) *  getWidth())
+                             / (m_X2 - m_X1));
+}
+
+double TimeLineComponent::xToBeats(int x)
+{
+    return (double (x) / getWidth()) * (m_X2 - m_X1) + m_X1;
 }
 
