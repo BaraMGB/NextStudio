@@ -40,7 +40,8 @@ private:
         te::MidiClip & m_clip;
         juce::MidiKeyboardComponent & m_keyboard;
         TimeLineComponent & m_timeline;
-
+        te::MidiNote * m_clickedNote {nullptr};
+        double m_clickOffset{0};
     };
 
 //------------------------------------------------------------------------------

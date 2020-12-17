@@ -83,11 +83,27 @@ void PianoRollDisplay::paint(juce::Graphics &g)
 
 void PianoRollDisplay::mouseDown(const juce::MouseEvent &e)
 {
-
+    m_clickedNote = getNoteByPos (e.position);
+    auto clickedBeat = m_timeline.xToBeats (e.position.x);
+    if (m_clickedNote)
+    {
+         m_clickOffset = m_clickedNote->getStartBeat () - clickedBeat;
+    }
 }
 
-void PianoRollDisplay::mouseDrag(const juce::MouseEvent &)
+void PianoRollDisplay::mouseDrag(const juce::MouseEvent &e)
 {
+    auto um = &m_editViewState.m_edit.getUndoManager ();
+    if (m_clickedNote != nullptr)
+    {
+        auto length = m_clickedNote->getLengthBeats ();
+        m_clickedNote->setStartAndLength (m_timeline.xToBeats (e.position.x)
+                                          + m_clickOffset
+                                          , length
+                                          , um);
+        m_clickedNote->setNoteNumber (getNoteNumber (e.position.y), um);
+    }
+    repaint ();
 }
 
 void PianoRollDisplay::mouseMove(const juce::MouseEvent &e)
@@ -156,23 +172,17 @@ void PianoRollDisplay::drawVerticalLines(juce::Graphics &g)
 {
     double x1 = m_editViewState.m_pianoX1;
     double x2 = m_editViewState.m_pianoX2;
-
     double zoom = x2 - x1;
     int firstBeat = static_cast<int>(x1);
     if(m_timeline.beatsToX(firstBeat) < 0)
     {
         firstBeat++;
     }
-
-
     auto pixelPerBeat = getWidth() / zoom;
-    //std::cout << zoom << std::endl;
     for (int beat = firstBeat - 1; beat <= x2; beat++)
     {
         const int BeatX = m_timeline.beatsToX(beat) - 1;
-
         auto zBars = 16;
-
         if (zoom < 240)
         {
             zBars /= 2;
@@ -185,7 +195,6 @@ void PianoRollDisplay::drawVerticalLines(juce::Graphics &g)
         {
             g.drawLine(BeatX, 0, BeatX, getHeight());
         }
-
         if (zoom < 60)
         {
             g.drawLine(BeatX,0, BeatX, getHeight());
