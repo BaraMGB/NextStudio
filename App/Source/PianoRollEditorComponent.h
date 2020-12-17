@@ -22,6 +22,7 @@ public:
         void paint (juce::Graphics& g) override;
         void mouseDown (const juce::MouseEvent&) override;
         void mouseDrag (const juce::MouseEvent &) override;
+        void mouseMove (const juce::MouseEvent &) override;
         void mouseUp (const juce::MouseEvent &) override;
         void mouseWheelMove (const juce::MouseEvent &event
                              , const juce::MouseWheelDetails &wheel) override;
@@ -32,10 +33,12 @@ public:
         te::MidiClip * getMidiClip ()  { return &m_clip; }
 
 private:
+        int getNoteNumber(int y);
         EditViewState& m_editViewState;
         te::MidiClip & m_clip;
         juce::MidiKeyboardComponent & m_keyboard;
         TimeLineComponent & m_timeline;
+
     };
 
 //------------------------------------------------------------------------------

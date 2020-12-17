@@ -103,7 +103,7 @@ public:
                             , m_viewY
                             , m_pianoX1
                             , m_pianoX2;
-    juce::CachedValue<int>    m_pianoY1
+    juce::CachedValue<int> m_pianoY1
                             , m_pianoY2;
     juce::CachedValue<int> m_snapType;
 

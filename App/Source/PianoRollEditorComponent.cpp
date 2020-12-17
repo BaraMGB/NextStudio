@@ -60,7 +60,14 @@ void PianoRollDisplay::paint(juce::Graphics &g)
                     auto x1 = m_timeline.beatsToX (sBeat + midiClip->getStartBeat ());
                     auto x2 = m_timeline.beatsToX (eBeat + midiClip->getStartBeat ());
 
-                    g.setColour (juce::Colours::white);
+                    if (n->getColour () == 127)
+                    {
+                        g.setColour (juce::Colours::red);
+                    }
+                    else
+                    {
+                        g.setColour (juce::Colours::white);
+                    }
                     g.fillRect (float (x1), float (noteY), float (x2 - x1), float (noteHeight));
                 }
                 //draw ClipRange
@@ -73,12 +80,34 @@ void PianoRollDisplay::paint(juce::Graphics &g)
     }
 }
 
-void PianoRollDisplay::mouseDown(const juce::MouseEvent &)
+void PianoRollDisplay::mouseDown(const juce::MouseEvent &e)
 {
+
 }
 
 void PianoRollDisplay::mouseDrag(const juce::MouseEvent &)
 {
+}
+
+void PianoRollDisplay::mouseMove(const juce::MouseEvent &e)
+{
+    for (auto note : getMidiClip ()->getSequence ().getNotes ())
+    {
+        note->setColour (111, &m_editViewState.m_edit.getUndoManager ());
+        std::cout << "notecolor: " << note->getColour () << std::endl;
+        if (note->getNoteNumber () == getNoteNumber (e.position.y))
+        {
+            auto clickedBeat = m_timeline.xToBeats (e.position.x);
+            auto clipstart = getMidiClip ()->getStartBeat ();
+            if ( clickedBeat > note->getStartBeat () + clipstart
+             && clickedBeat < note->getEndBeat () + clipstart)
+            {
+                note->setColour (127, &m_editViewState.m_edit.getUndoManager ());
+                std::cout << "notecolorDrinn: " << note->getColour () << std::endl;
+            }
+        }
+    }
+    repaint ();
 }
 
 void PianoRollDisplay::mouseUp(const juce::MouseEvent &)
@@ -129,6 +158,14 @@ void PianoRollDisplay::handleNoteOff(juce::MidiKeyboardState *
 {
     getMidiClip ()->getAudioTrack ()->turnOffGuideNotes ();
 }
+
+int PianoRollDisplay::getNoteNumber(int y)
+{
+    double noteHeight = m_keyboard.getKeyWidth () * 7 / 12;
+    double noteNumb = m_editViewState.m_pianoY1 + ((getHeight () - y )/ noteHeight);
+    return noteNumb;
+}
+
 
 //------------------------------------------------------------------------------
 
