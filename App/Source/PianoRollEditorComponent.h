@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
@@ -33,7 +33,9 @@ public:
         te::MidiClip * getMidiClip ()  { return &m_clip; }
 
 private:
-        int getNoteNumber(int y);
+        void drawVerticalLines (juce::Graphics& g);
+        int getNoteNumber (int y);
+        te::MidiNote* getNoteByPos (juce::Point<float> pos);
         EditViewState& m_editViewState;
         te::MidiClip & m_clip;
         juce::MidiKeyboardComponent & m_keyboard;
@@ -56,6 +58,7 @@ public:
                                    , const juce::Identifier&) override;
 
     te::MidiClip * getMidiClip ()  { return &m_clip; }
+    void centerView();
 private:
     EditViewState& m_editViewState;
     te::MidiClip & m_clip;

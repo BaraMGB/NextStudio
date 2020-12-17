@@ -41,7 +41,8 @@ void PianoRollDisplay::paint(juce::Graphics &g)
         juce::Rectangle<float> lineRect = {0.0, line, (float) getWidth (), noteHeight};
         g.fillRect(lineRect.reduced (0, 1));
     }
-
+    g.setColour (juce::Colours::black);
+    drawVerticalLines (g);
     if (auto mc = getMidiClip ())
     {
         for (auto & trackClip : mc->getAudioTrack ()->getClips ())
@@ -91,21 +92,13 @@ void PianoRollDisplay::mouseDrag(const juce::MouseEvent &)
 
 void PianoRollDisplay::mouseMove(const juce::MouseEvent &e)
 {
-    for (auto note : getMidiClip ()->getSequence ().getNotes ())
+    for (auto n : getMidiClip ()->getSequence ().getNotes ())
     {
-        note->setColour (111, &m_editViewState.m_edit.getUndoManager ());
-        std::cout << "notecolor: " << note->getColour () << std::endl;
-        if (note->getNoteNumber () == getNoteNumber (e.position.y))
-        {
-            auto clickedBeat = m_timeline.xToBeats (e.position.x);
-            auto clipstart = getMidiClip ()->getStartBeat ();
-            if ( clickedBeat > note->getStartBeat () + clipstart
-             && clickedBeat < note->getEndBeat () + clipstart)
-            {
-                note->setColour (127, &m_editViewState.m_edit.getUndoManager ());
-                std::cout << "notecolorDrinn: " << note->getColour () << std::endl;
-            }
-        }
+        n->setColour (111, &m_editViewState.m_edit.getUndoManager ());
+    }
+    if (auto note = getNoteByPos (e.position))
+    {
+        note->setColour (127, &m_editViewState.m_edit.getUndoManager ());
     }
     repaint ();
 }
@@ -159,11 +152,81 @@ void PianoRollDisplay::handleNoteOff(juce::MidiKeyboardState *
     getMidiClip ()->getAudioTrack ()->turnOffGuideNotes ();
 }
 
+void PianoRollDisplay::drawVerticalLines(juce::Graphics &g)
+{
+    double x1 = m_editViewState.m_pianoX1;
+    double x2 = m_editViewState.m_pianoX2;
+
+    double zoom = x2 - x1;
+    int firstBeat = static_cast<int>(x1);
+    if(m_timeline.beatsToX(firstBeat) < 0)
+    {
+        firstBeat++;
+    }
+
+
+    auto pixelPerBeat = getWidth() / zoom;
+    //std::cout << zoom << std::endl;
+    for (int beat = firstBeat - 1; beat <= x2; beat++)
+    {
+        const int BeatX = m_timeline.beatsToX(beat) - 1;
+
+        auto zBars = 16;
+
+        if (zoom < 240)
+        {
+            zBars /= 2;
+        }
+        if (zoom < 120)
+        {
+            zBars /=2;
+        }
+        if (beat % zBars == 0)
+        {
+            g.drawLine(BeatX, 0, BeatX, getHeight());
+        }
+
+        if (zoom < 60)
+        {
+            g.drawLine(BeatX,0, BeatX, getHeight());
+        }
+        if (zoom < 25)
+        {
+            auto quarterBeat = pixelPerBeat / 4;
+            auto i = 1;
+            while ( i < 5)
+            {
+                g.drawLine(BeatX + quarterBeat * i ,0,
+                           BeatX + quarterBeat * i ,getHeight());
+                i++;
+            }
+        }
+    }
+}
+
 int PianoRollDisplay::getNoteNumber(int y)
 {
     double noteHeight = m_keyboard.getKeyWidth () * 7 / 12;
     double noteNumb = m_editViewState.m_pianoY1 + ((getHeight () - y )/ noteHeight);
     return noteNumb;
+}
+
+tracktion_engine::MidiNote *PianoRollDisplay::getNoteByPos(juce::Point<float> pos)
+{
+    for (auto note : getMidiClip ()->getSequence ().getNotes ())
+    {
+        if (note->getNoteNumber () == getNoteNumber (pos.y))
+        {
+            auto clickedBeat = m_timeline.xToBeats (pos.x);
+            auto clipstart = getMidiClip ()->getStartBeat ();
+            if ( clickedBeat > note->getStartBeat () + clipstart
+             && clickedBeat < note->getEndBeat () + clipstart)
+            {
+                return note;
+            }
+        }
+    }
+    return nullptr;
 }
 
 
@@ -237,5 +300,20 @@ void PianoRollComponent::valueTreePropertyChanged(juce::ValueTree &v
             repaint ();
         }
     }
+}
+
+void PianoRollComponent::centerView()
+{
+    auto clipRange = juce::Range<double> (getMidiClip ()->getStartBeat ()
+                                          , getMidiClip ()->getEndBeat ())
+                     .expanded (1);
+    clipRange = clipRange.constrainRange ({0.0, clipRange.getEnd ()});
+    m_editViewState.m_pianoX1 = clipRange.getStart ();
+    m_editViewState.m_pianoX2 = clipRange.getEnd ();
+    auto noteRange = getMidiClip ()->getSequence ().getNoteNumberRange ()
+            .expanded (10).constrainRange (juce::Range<int>(0,127));
+
+    m_editViewState.m_pianoY1 = noteRange.getStart ();
+    m_editViewState.m_pianoY2 = noteRange.getEnd ();
 }
 

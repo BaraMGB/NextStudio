@@ -159,7 +159,7 @@ public:
 
 private:
 
-    EditViewState& editViewState;
+    EditViewState& m_editViewState;
 
     tracktion_engine::Track::Ptr m_pointedTrack{nullptr};
     te::MidiClip * m_pointedClip{nullptr};

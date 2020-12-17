@@ -128,23 +128,23 @@ void PluginRackComponent::buildPlugins()
 
 
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
-    : editViewState(evs)
+    : m_editViewState(evs)
 {
-    editViewState.m_selectionManager.addChangeListener(this);
+    m_editViewState.m_selectionManager.addChangeListener(this);
     m_pluginRackComps.clear(true);
 }
 
 LowerRangeComponent::~LowerRangeComponent()
 {
-    editViewState.m_selectionManager.removeChangeListener(this);
+    m_editViewState.m_selectionManager.removeChangeListener(this);
 }
 
 void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*source*/)
 {
-    auto lastClickedTrack = editViewState.m_selectionManager
+    auto lastClickedTrack = m_editViewState.m_selectionManager
             .getItemsOfType<tracktion_engine::Track>()
             .getLast();
-    auto lastClip = editViewState.m_selectionManager
+    auto lastClip = m_editViewState.m_selectionManager
             .getItemsOfType<te::MidiClip>()
             .getLast ();
     if (lastClip == nullptr && m_pointedTrack.get() != lastClickedTrack)
@@ -228,7 +228,7 @@ void LowerRangeComponent::showPluginRack(te::Track *lastClickedTrack)
     if (!flag)
     {
         PluginRackComponent * pluginRackComp =
-                new PluginRackComponent(editViewState,lastClickedTrack);
+                new PluginRackComponent(m_editViewState,lastClickedTrack);
 
         pluginRackComp->setAlwaysOnTop(true);
         pluginRackComp->setVisible(true);
@@ -254,14 +254,17 @@ void LowerRangeComponent::showPianoRoll(te::MidiClip * midiClip)
         {
             pianoRollExists = true;
             pianoRoll->setVisible (true);
+            pianoRoll->centerView();
         }
     }
     if (!pianoRollExists)
     {
-        auto pianoRollComp = new PianoRollComponent(editViewState, *midiClip);
+        auto pianoRollComp = new PianoRollComponent(m_editViewState, *midiClip);
         pianoRollComp->setAlwaysOnTop(true);
         pianoRollComp->setVisible(true);
+        pianoRollComp->centerView ();
         addAndMakeVisible(pianoRollComp);
         m_pianoRollComps.add(pianoRollComp);
+
     }
 }
