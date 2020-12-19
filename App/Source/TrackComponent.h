@@ -119,7 +119,7 @@ private:
     void buildClips();
     void buildRecordClips();
 
-    EditViewState& editViewState;
+    EditViewState& m_editViewState;
     te::Track::Ptr track;
     te::Clipboard m_clipBoard;
     juce::OwnedArray<ClipComponent> clips;

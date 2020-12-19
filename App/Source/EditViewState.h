@@ -61,7 +61,7 @@ public:
         m_pianoX2.referTo (m_state, IDs::pianoX2, um, 4);
         m_pianoY1.referTo (m_state, IDs::pianoY1, um, 24);
         m_pianoY2.referTo (m_state, IDs::pianoY2, um, 72);
-        m_snapType.referTo(m_state, IDs::snapType, um, 7);
+        m_snapType.referTo(m_state, IDs::snapType, um, 9);
     }
 
     int beatsToX (double beats, int width) const
@@ -84,6 +84,22 @@ public:
     double timeToBeat (double t) const
     {
         return m_edit.tempoSequence.timeToBeats (t);
+    }
+
+    double getSnapedTime (double t) const
+    {
+        auto & transport = m_edit.getTransport ();
+        auto & temposequ = m_edit.tempoSequence;
+        transport.setSnapType ({te::TimecodeType::barsBeats, m_snapType});
+        return transport.getSnapType ()
+                .roundTimeNearest (t, temposequ);
+    }
+
+    int snapedX (int x, int width)
+    {
+        auto insertTime = beatToTime (xToBeats (x, width));
+        auto snapedTime = getSnapedTime (insertTime);
+        return beatsToX (timeToBeat (snapedTime ), width);
     }
 
     te::Edit& m_edit;

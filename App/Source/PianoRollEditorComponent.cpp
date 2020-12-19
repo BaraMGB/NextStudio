@@ -148,15 +148,17 @@ void PianoRollDisplay::mouseDrag(const juce::MouseEvent &e)
                                                   + getMidiClip ()->getOffsetInBeats ()
                                                   - getMidiClip ()->getStartBeat ()
                                                   - oldStart
-
                                                   , um);
             }
             else
             {
-                m_clickedNote->setStartAndLength (m_timeline.xToBeats (e.position.x)
-                                                  + m_clickOffset
-                                                  , length
-                                                  , um);
+                auto rawtime = m_timeline.xToBeats (e.position.x) + m_clickOffset;
+                auto snapedtime = m_editViewState.getSnapedTime (rawtime);
+                m_clickedNote->setStartAndLength (e.mods.isShiftDown ()
+                                                  ? rawtime
+                                                  : snapedtime
+                                                    , length
+                                                    , um);
                 m_clickedNote->setNoteNumber (getNoteNumber (e.position.y), um);
             }
         }
@@ -202,6 +204,11 @@ void PianoRollDisplay::mouseMove(const juce::MouseEvent &e)
         note->setColour (127, &m_editViewState.m_edit.getUndoManager ());
     }
     repaint ();
+}
+
+void PianoRollDisplay::mouseExit(const juce::MouseEvent &)
+{
+    setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
 void PianoRollDisplay::mouseUp(const juce::MouseEvent &)
