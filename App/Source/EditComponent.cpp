@@ -84,6 +84,10 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 void EditComponent::valueTreeChildRemoved (
         juce::ValueTree&, juce::ValueTree& c, int)
 {
+    if (te::MidiClip::isClipState (c))
+    {
+        std::cout << "Clip removed" << std::endl;
+    }
     if (te::TrackList::isTrack (c))
         markAndUpdate (m_updateTracks);
 }

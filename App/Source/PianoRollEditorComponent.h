@@ -42,6 +42,8 @@ private:
         TimeLineComponent & m_timeline;
         te::MidiNote * m_clickedNote {nullptr};
         double m_clickOffset{0};
+        bool m_expandLeft {false}
+           , m_expandRight{false};
     };
 
 //------------------------------------------------------------------------------
