@@ -3,6 +3,28 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 namespace te = tracktion_engine;
 
+// sheetcheat for snapTypes
+//SnapTypeNumber 0 : 1 tick
+//SnapTypeNumber 1 : 2 ticks
+//SnapTypeNumber 2 : 5 ticks
+//SnapTypeNumber 3 : 1/64 beat
+//SnapTypeNumber 4 : 1/32 beat
+//SnapTypeNumber 5 : 1/16 beat
+//SnapTypeNumber 6 : 1/8 beat
+//SnapTypeNumber 7 : 1/4 beat
+//SnapTypeNumber 8 : 1/2 beat
+//SnapTypeNumber 9 : Beat
+//SnapTypeNumber 10 : Bar
+//SnapTypeNumber 11 : 2 bars
+//SnapTypeNumber 12 : 4 bars
+//SnapTypeNumber 13 : 8 bars
+//SnapTypeNumber 14 : 16 bars
+//SnapTypeNumber 15 : 64 bars
+//SnapTypeNumber 16 : 128 bars
+//SnapTypeNumber 17 : 256 bars
+//SnapTypeNumber 18 : 1024 bars
+
+
 namespace IDs
 {
     #define DECLARE_ID(name)  const juce::Identifier name (#name);
@@ -86,13 +108,21 @@ public:
         return m_edit.tempoSequence.timeToBeats (t);
     }
 
-    double getSnapedTime (double t) const
+    double getSnapedTime (double t, bool downwards = false) const
     {
         auto & transport = m_edit.getTransport ();
         auto & temposequ = m_edit.tempoSequence;
         transport.setSnapType ({te::TimecodeType::barsBeats, m_snapType});
-        return transport.getSnapType ()
-                .roundTimeNearest (t, temposequ);
+        return downwards
+                ? transport.getSnapType ()
+                  .roundTimeDown (t, temposequ)
+                : transport.getSnapType ()
+                  .roundTimeNearest (t, temposequ);
+    }
+
+    double getSnapedBeat (double beat, bool downwards = false) const
+    {
+        return timeToBeat (getSnapedTime (beatToTime (beat), downwards));
     }
 
     int snapedX (int x, int width)
@@ -100,6 +130,12 @@ public:
         auto insertTime = beatToTime (xToBeats (x, width));
         auto snapedTime = getSnapedTime (insertTime);
         return beatsToX (timeToBeat (snapedTime ), width);
+    }
+
+    juce::String getSnapTypeDescription(int idx)
+    {
+        tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (0);
+        return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo);
     }
 
     te::Edit& m_edit;

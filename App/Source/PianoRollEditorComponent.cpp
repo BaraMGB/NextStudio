@@ -105,11 +105,16 @@ void PianoRollDisplay::mouseDown(const juce::MouseEvent &e)
         }
         else if (e.getNumberOfClicks () > 1 || e.mods.isShiftDown ())
         {
+
+
+
+            auto beat = clickedBeat
+                      - getMidiClip ()->getStartBeat ()
+                      + getMidiClip ()->getOffsetInBeats ();
+            beat = m_editViewState.getSnapedBeat (beat, true);
             getMidiClip ()->getSequence ().addNote
                     (getNoteNumber (e.position.y)
-                     , clickedBeat
-                        - getMidiClip ()->getStartBeat ()
-                        + getMidiClip ()->getOffsetInBeats ()
+                     , beat
                      , 0.25
                      , 127
                      , 111
@@ -126,37 +131,41 @@ void PianoRollDisplay::mouseDrag(const juce::MouseEvent &e)
         auto um = &m_editViewState.m_edit.getUndoManager ();
         if (m_clickedNote != nullptr)
         {
-            auto length = m_clickedNote->getLengthBeats ();
-            auto oldEndBeat = m_clickedNote->getEndBeat ();
             if (m_expandLeft)
             {
-                m_clickedNote->setStartAndLength (m_timeline.xToBeats (e.position.x)
-                                                  + m_clickOffset
-                                                  , oldEndBeat
-                                                  - (m_timeline.xToBeats (e.position.x)
-                                                     + m_clickOffset)
+                auto oldEndBeat = m_clickedNote->getEndBeat ();
+                auto newRawStartBeat = m_timeline.xToBeats (e.position.x)
+                        + m_clickOffset;
+                auto snapedStart = m_editViewState.getSnapedBeat (newRawStartBeat);
+                auto newStart = e.mods.isShiftDown ()
+                              ? newRawStartBeat
+                              : snapedStart;
+                m_clickedNote->setStartAndLength (newStart
+                                                  , oldEndBeat - newStart
                                                   , um);
-
             }
             else if (m_expandRight)
             {
                 auto oldStart = m_clickedNote->getStartBeat ();
-
-
+                auto newEnd = m_timeline.xToBeats (e.position.x)
+                            + getMidiClip ()->getOffsetInBeats ()
+                            - getMidiClip ()->getStartBeat ()
+                            - oldStart;
+                auto snapedEnd = m_editViewState.getSnapedBeat (newEnd);
                 m_clickedNote->setStartAndLength (oldStart
-                                                  , m_timeline.xToBeats (e.position.x)
-                                                  + getMidiClip ()->getOffsetInBeats ()
-                                                  - getMidiClip ()->getStartBeat ()
-                                                  - oldStart
+                                                  , e.mods.isShiftDown ()
+                                                  ? newEnd
+                                                  : snapedEnd
                                                   , um);
             }
             else
             {
-                auto rawtime = m_timeline.xToBeats (e.position.x) + m_clickOffset;
-                auto snapedtime = m_editViewState.getSnapedTime (rawtime);
+                auto length = m_clickedNote->getLengthBeats ();
+                auto newBeat = m_timeline.xToBeats (e.position.x) + m_clickOffset;
+                auto snapedBeat = m_editViewState.getSnapedBeat (newBeat);
                 m_clickedNote->setStartAndLength (e.mods.isShiftDown ()
-                                                  ? rawtime
-                                                  : snapedtime
+                                                  ? newBeat
+                                                  : snapedBeat
                                                     , length
                                                     , um);
                 m_clickedNote->setNoteNumber (getNoteNumber (e.position.y), um);
@@ -168,7 +177,7 @@ void PianoRollDisplay::mouseDrag(const juce::MouseEvent &e)
 
 void PianoRollDisplay::mouseMove(const juce::MouseEvent &e)
 {
-
+    setMouseCursor(juce::MouseCursor::NormalCursor);
     for (auto n : getMidiClip ()->getSequence ().getNotes ())
     {
         n->setColour (111, &m_editViewState.m_edit.getUndoManager ());
@@ -197,7 +206,6 @@ void PianoRollDisplay::mouseMove(const juce::MouseEvent &e)
         }
         else
         {
-            setMouseCursor(juce::MouseCursor::NormalCursor);
             m_expandLeft = false;
             m_expandRight = false;
         }

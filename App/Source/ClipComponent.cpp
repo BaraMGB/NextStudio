@@ -221,10 +221,15 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
 {
     auto distanceBeats = editViewState.xToBeats(
                 e.getDistanceFromDragStartX(),getParentWidth());
-    auto distanceTime = editViewState.beatToTime(
-                distanceBeats  - editViewState.m_viewX1);
+    const auto distanceTime = e.mods.isShiftDown ()
+                            ? editViewState.beatToTime(
+                                 distanceBeats  - editViewState.m_viewX1)
+                            : editViewState.getSnapedTime (
+                                  editViewState.beatToTime(
+                                      distanceBeats  - editViewState.m_viewX1));
     auto distTimeDelta = distanceTime - m_oldDistTime;
 
+    //shrink left
     if (m_mouseDownX < 10)
     {
         const auto newTime = m_clip->getPosition().getStart() + distTimeDelta;
@@ -243,10 +248,6 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
                 m_lastOffset = newOffset;
             }
             m_clip->setOffset(newOffset);
-            if (!e.mods.isShiftDown())
-            {
-
-            }
         }
         else
         {
@@ -255,16 +256,10 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
         }
         m_oldDistTime = distanceTime;
     }
+    //shrink right
     else if (m_mouseDownX > m_clipWidthMouseDown - 10)
     {
-        auto newEndTime = m_clip->getPosition().getEnd() + distTimeDelta;
-        auto clipPos = m_clip->getPosition();
-
-        if (newEndTime > clipPos.getStart())
-        {
-            m_clip->setEnd(newEndTime, true);
-        }
-        m_oldDistTime = distanceTime;
+        m_clip->setEnd(m_posAtMouseDown.getEnd () + distanceTime, true);
     }
     else
     {
@@ -354,7 +349,6 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
                             : editViewState.getSnapedTime (
                                   editViewState.beatToTime(
                                       distanceBeats  - editViewState.m_viewX1));
-
     if (m_mouseDownX < 10)
     {
         auto distTimeDelta = distanceTime - m_oldDistTime;
@@ -387,16 +381,7 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
     }
     else if (m_mouseDownX > m_clipWidthMouseDown - 10)
     {
-        auto timeDist = editViewState.beatToTime (
-                            (editViewState.xToBeats (
-                              e.getDistanceFromDragStartX (), getParentWidth()))
-                        );
-        auto timeX = editViewState.beatToTime (editViewState.m_viewX1);
-        auto newTime = e.mods.isShiftDown ()
-                     ? m_posAtMouseDown.getEnd () - timeX + timeDist
-                     : editViewState.getSnapedTime (
-                           m_posAtMouseDown.getEnd () - timeX + timeDist);
-        m_clip->setEnd(newTime, true);
+        m_clip->setEnd(m_posAtMouseDown.getEnd () + distanceTime, true);
     }
     else
     {
