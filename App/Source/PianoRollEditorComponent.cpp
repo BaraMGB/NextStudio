@@ -83,6 +83,7 @@ void PianoRollDisplay::paint(juce::Graphics &g)
 
 void PianoRollDisplay::mouseDown(const juce::MouseEvent &e)
 {
+    //std::cout << m_editViewState.m_edit.state.toXmlString () << std::endl;
     m_clickedNote = getNoteByPos (e.position);
     auto clickedBeat = m_timeline.xToBeats (e.position.x);
 

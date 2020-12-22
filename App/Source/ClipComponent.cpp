@@ -259,7 +259,8 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
     //shrink right
     else if (m_mouseDownX > m_clipWidthMouseDown - 10)
     {
-        m_clip->setEnd(m_posAtMouseDown.getEnd () + distanceTime, true);
+        m_clip->setEnd(editViewState.getSnapedTime (m_posAtMouseDown.getEnd ())
+                       + distanceTime, true);
     }
     else
     {
@@ -381,7 +382,8 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
     }
     else if (m_mouseDownX > m_clipWidthMouseDown - 10)
     {
-        m_clip->setEnd(m_posAtMouseDown.getEnd () + distanceTime, true);
+        m_clip->setEnd(editViewState.getSnapedTime (m_posAtMouseDown.getEnd ())
+                       + distanceTime, true);
     }
     else
     {

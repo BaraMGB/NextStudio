@@ -496,6 +496,19 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
             markAndUpdate (updatePositions);
         }
     }
+
+    if (v.hasType (te::IDs::NOTE))
+    {
+        if (i != te::IDs::c)
+        {
+            for (auto &clip : clips)
+            {
+                clip->repaint ();
+            }
+        }
+    }
+
+
     if (v.hasType (IDs::EDITVIEWSTATE))
     {
         if (i == IDs::viewX1
