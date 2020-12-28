@@ -132,9 +132,22 @@ public:
         return beatsToX (timeToBeat (snapedTime ), width);
     }
 
+    te::TimecodeSnapType getBestSnapType(bool forPianoRoll, int width)
+    {
+        double x1 = forPianoRoll ? m_pianoX1 : m_viewX1;
+        double x2 = forPianoRoll ? m_pianoX2 : m_viewX2;
+        te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat ()
+                .getBestSnapType (
+                    m_edit.tempoSequence.getTempoAt (
+                        m_edit.getTransport ().getCurrentPosition ())
+                    , beatToTime ((x2 - x1)/ width));
+        return snaptype;
+    }
+
     juce::String getSnapTypeDescription(int idx)
     {
-        tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (0);
+        tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (
+                    m_edit.getTransport ().getCurrentPosition ());
         return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo);
     }
 

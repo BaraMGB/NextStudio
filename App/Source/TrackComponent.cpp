@@ -531,10 +531,17 @@ void TrackComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
         markAndUpdate (updateClips);
 }
 
-void TrackComponent::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree& c, int)
+void TrackComponent::valueTreeChildRemoved (juce::ValueTree&v, juce::ValueTree& c, int)
 {
     if (te::Clip::isClipState (c))
         markAndUpdate (updateClips);
+    if (v.hasType (te::IDs::NOTE))
+    {
+        for (auto &clip : clips)
+        {
+             clip->repaint ();
+        }
+    }
 }
 
 void TrackComponent::valueTreeChildOrderChanged (juce::ValueTree& v, int a, int b)

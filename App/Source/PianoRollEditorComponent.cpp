@@ -61,19 +61,29 @@ void PianoRollDisplay::paint(juce::Graphics &g)
                     auto x1 = m_timeline.beatsToX (sBeat + midiClip->getStartBeat ());
                     auto x2 = m_timeline.beatsToX (eBeat + midiClip->getStartBeat ());
 
-                    if (n->getColour () == 127)
+                    if ( sBeat < 0 || eBeat > midiClip->getEndBeat ()
+                                              - midiClip->getStartBeat ())
                     {
-                        g.setColour (juce::Colours::red);
+                        g.setColour (juce::Colours::grey);
+                    }
+                    else if (n->getColour () == 127)
+                    {
+                        g.setColour (juce::Colours::green);
                     }
                     else
                     {
                         g.setColour (juce::Colours::white);
                     }
-                    g.fillRect (float (x1), float (noteY), float (x2 - x1), float (noteHeight));
+                    juce::Rectangle<float> noteRect
+                                (float (x1)     , float (noteY)
+                               , float (x2 - x1), float (noteHeight));
+                    g.fillRect (noteRect.reduced (1,1));
                 }
                 //draw ClipRange
                 auto clipStartX = m_timeline.beatsToX (midiClip->getStartBeat ());
                 auto clipEndX = m_timeline.beatsToX (midiClip->getEndBeat ());
+                g.setColour (midiClip->getTrack ()->getColour ());
+                g.drawRect (clipStartX  , 0, clipEndX - clipStartX, getHeight ());
                 g.setColour (midiClip->getTrack ()->getColour ().withAlpha (0.2f));
                 g.fillRect (clipStartX  , 0, clipEndX - clipStartX, getHeight ());
             }
@@ -112,6 +122,10 @@ void PianoRollDisplay::mouseDown(const juce::MouseEvent &e)
             auto beat = clickedBeat
                       - getMidiClip ()->getStartBeat ()
                       + getMidiClip ()->getOffsetInBeats ();
+
+            auto snaptype = m_editViewState.getBestSnapType (true, getWidth ());
+            std::cout <<"Snaptype: " << snaptype.getLevel () << std::endl;
+            m_editViewState.m_snapType = snaptype.getLevel ();
             beat = m_editViewState.getSnapedBeat (beat, true);
             getMidiClip ()->getSequence ().addNote
                     (getNoteNumber (e.position.y)
@@ -416,16 +430,14 @@ void PianoRollComponent::valueTreePropertyChanged(juce::ValueTree &v
 void PianoRollComponent::centerView()
 {
     //center view of clip in horizontal
-    auto clipRange = juce::Range<double> (getMidiClip ()->getStartBeat ()
-                                          , getMidiClip ()->getEndBeat ())
-                     .expanded (1);
-    clipRange = clipRange.constrainRange ({0.0, clipRange.getEnd ()});
-    m_editViewState.m_pianoX1 = clipRange.getStart ();
-    m_editViewState.m_pianoX2 = clipRange.getEnd ();
+
+    auto width = m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1;
+    m_editViewState.m_pianoX1 = getMidiClip ()->getStartBeat () - 1;
+    m_editViewState.m_pianoX2 = m_editViewState.m_pianoX1 + width;
     //in vertical
-    auto noteRange = getMidiClip ()->getSequence ().getNoteNumberRange ()
-            .expanded (10);
-    m_editViewState.m_pianoY1 = juce::jmax(0, noteRange.getStart ());
-    m_editViewState.m_pianoY2 = juce::jmin(127, noteRange.getEnd ());
+//    auto noteRange = getMidiClip ()->getSequence ().getNoteNumberRange ()
+//            .expanded (10);
+//    m_editViewState.m_pianoY1 = juce::jmax(0, noteRange.getStart ());
+//    m_editViewState.m_pianoY2 = juce::jmin(127, noteRange.getEnd ());
 }
 
