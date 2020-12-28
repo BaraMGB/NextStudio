@@ -123,9 +123,7 @@ void PianoRollDisplay::mouseDown(const juce::MouseEvent &e)
                       - getMidiClip ()->getStartBeat ()
                       + getMidiClip ()->getOffsetInBeats ();
 
-            auto snaptype = m_editViewState.getBestSnapType (true, getWidth ());
-            std::cout <<"Snaptype: " << snaptype.getLevel () << std::endl;
-            m_editViewState.m_snapType = snaptype.getLevel ();
+            m_editViewState.m_snapType = 7;
             beat = m_editViewState.getSnapedBeat (beat, true);
             getMidiClip ()->getSequence ().addNote
                     (getNoteNumber (e.position.y)
