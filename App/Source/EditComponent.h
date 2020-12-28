@@ -6,33 +6,9 @@
 #include "TimeLineComponent.h"
 #include "TrackComponent.h"
 #include "PluginRackComponent.h"
-
+#include "PlayHeadComponent.h"
 
 namespace te = tracktion_engine;
-
-class PlayheadComponent : public juce::Component
-                        , private juce::Timer
-{
-public:
-    PlayheadComponent (te::Edit&, EditViewState&);
-    
-    void paint (juce::Graphics& g) override;
-    bool hitTest (int x, int y) override;
-    void mouseDrag (const juce::MouseEvent&) override;
-    void mouseDown (const juce::MouseEvent&) override;
-    void mouseUp (const juce::MouseEvent&) override;
-
-private:
-    void timerCallback() override;
-    
-    te::Edit& m_edit;
-    EditViewState& m_editViewState;
-    
-    int m_xPosition = 0;
-    bool m_firstTimer = true;
-};
-
-//==============================================================================
 
 class ToolBarComponent : public juce::Component
 {
@@ -85,11 +61,16 @@ private:
     te::Edit& m_edit;
     EditViewState m_editViewState;
 
-    TimeLineComponent m_timeLine { m_editViewState };
+    TimeLineComponent m_timeLine {m_editViewState,
+                  m_editViewState.m_viewX1
+                , m_editViewState.m_viewX2 };
     juce::ScrollBar m_scrollbar;
     ToolBarComponent m_toolBar;
-    PlayheadComponent m_playhead { m_edit, m_editViewState };
-    LowerRangeComponent m_pluginRack { m_editViewState };
+    PlayheadComponent m_playhead { m_edit
+                                 , m_editViewState
+                                 , m_editViewState.m_viewX1
+                                 , m_editViewState.m_viewX2};
+    LowerRangeComponent m_lowerRange { m_editViewState };
     juce::OwnedArray<TrackComponent> m_trackComps;
     juce::OwnedArray<TrackHeaderComponent> m_headers;
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;

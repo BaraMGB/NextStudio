@@ -118,8 +118,9 @@ private:
 
     void buildClips();
     void buildRecordClips();
+    void createNewMidiClip(double beatPos);
 
-    EditViewState& editViewState;
+    EditViewState& m_editViewState;
     te::Track::Ptr track;
     te::Clipboard m_clipBoard;
     juce::OwnedArray<ClipComponent> clips;

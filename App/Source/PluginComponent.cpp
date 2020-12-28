@@ -73,6 +73,7 @@ void PluginWindowComponent::mouseDown (const juce::MouseEvent& e)
         }
         else if(e.getMouseDownY () < m_headerWidth)
         {
+            std::cout << "show Plugin window" << std::endl;
             plugin->showWindowExplicitly();
         }
     }

@@ -23,6 +23,8 @@ target_sources(${TargetName} PRIVATE
         Source/LevelMeterComponent.cpp
         Source/PluginRackComponent.cpp
         Source/ThumbnailComponent.cpp
+        Source/PianoRollEditorComponent.cpp
+        Source/PlayHeadComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

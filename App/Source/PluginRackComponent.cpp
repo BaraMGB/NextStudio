@@ -128,84 +128,149 @@ void PluginRackComponent::buildPlugins()
 
 
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
-    : editViewState(evs)
+    : m_editViewState(evs)
 {
-    editViewState.m_selectionManager.addChangeListener(this);
+    m_editViewState.m_selectionManager.addChangeListener(this);
     m_pluginRackComps.clear(true);
 }
 
 LowerRangeComponent::~LowerRangeComponent()
 {
-    editViewState.m_selectionManager.removeChangeListener(this);
+    m_editViewState.m_selectionManager.removeChangeListener(this);
 }
 
-void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * source)
+void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*source*/)
 {
-    auto lastClickedTrack = editViewState.m_selectionManager
+    auto lastClickedTrack = m_editViewState.m_selectionManager
             .getItemsOfType<tracktion_engine::Track>()
             .getLast();
-    if (m_pointedTrack.get() != lastClickedTrack)
+    auto lastClip = m_editViewState.m_selectionManager
+            .getItemsOfType<te::MidiClip>()
+            .getLast ();
+    if (lastClip == nullptr && m_pointedTrack.get() != lastClickedTrack)
     {
-        if (lastClickedTrack &&  !(lastClickedTrack->isArrangerTrack()
+        if (lastClickedTrack &&     !(lastClickedTrack->isArrangerTrack()
                                    || lastClickedTrack->isTempoTrack()
                                    || lastClickedTrack->isMarkerTrack()
                                    || lastClickedTrack->isChordTrack()))
         {
 
             m_pointedTrack = lastClickedTrack;
-            bool flag = false;
-            for (auto &prc : m_pluginRackComps)
-            {
-                prc->setVisible(false);
-                if (prc->getTrack().getObject() == lastClickedTrack)
-                {
-                    prc->setVisible(true);
-                    flag = true;
-                }
-            }
-            if (!flag)
-            {
-                PluginRackComponent * pluginRackComp =
-                        new PluginRackComponent(editViewState,lastClickedTrack);
-
-                pluginRackComp->setAlwaysOnTop(true);
-                pluginRackComp->setVisible(true);
-                addAndMakeVisible(pluginRackComp);
-                m_pluginRackComps.add(pluginRackComp);
-                resized();
-            }
+            m_pointedClip = nullptr;
+            showPluginRack(lastClickedTrack);
+            resized();
         }
     }
-    else
+    else if(lastClip)
     {
-       // resized();
+        if (lastClip != m_pointedClip)
+        {
+            m_pointedClip = lastClip;
+        }
+        if (lastClip->getAudioTrack ())
+        {
+
+            showPianoRoll (lastClip);
+            resized();
+        }
     }
 }
 
 void LowerRangeComponent::paint(juce::Graphics &g)
 {
-
     auto rect = getLocalBounds();
     g.setColour(juce::Colour(0xff555555));
     g.fillRect(rect);
     g.setColour(juce::Colour(0xff181818));
     auto cornerSize = 10;
-    g.fillRoundedRectangle(rect.removeFromBottom(getHeight() - 10).toFloat(), cornerSize);
-
+    g.fillRoundedRectangle(rect.removeFromBottom(getHeight() - m_splitterHeight)
+                           .toFloat(), cornerSize);
 }
 
 void LowerRangeComponent::resized()
 {
+        auto area = getLocalBounds();
+        // todo: we add a splitter later for this
+        area.removeFromTop (m_splitterHeight);
 
-        auto pluginRect = getLocalBounds();
-        pluginRect.removeFromTop (10);
-
-        for (auto& prc : m_pluginRackComps)
+        for (auto& pluginRackComp : m_pluginRackComps)
         {
-            if (prc->isVisible())
+            if (pluginRackComp->isVisible())
             {
-                prc->setBounds(pluginRect);
+                pluginRackComp->setBounds(area);
+            }
+        }
+        for (auto& pianoRolls : m_pianoRollComps)
+        {
+            if (pianoRolls->isVisible ())
+            {
+                pianoRolls->setBounds (area);
             }
         }
 
+}
+
+void LowerRangeComponent::showPluginRack(te::Track *lastClickedTrack)
+{
+    std::cout << "---show Plugin Rack" << std::endl;
+    bool flag = false;
+    //hide Piano Rolls
+    for (auto& pianoRolls : m_pianoRollComps)
+    {
+        pianoRolls->setVisible (false);
+    }
+    for (auto &prc : m_pluginRackComps)
+    {
+        prc->setVisible(false);
+        if (prc->getTrack().get() == lastClickedTrack)
+        {
+            prc->setVisible(true);
+            flag = true;
+        }
+    }
+    if (!flag)
+    {
+        PluginRackComponent * pluginRackComp =
+                new PluginRackComponent(m_editViewState,lastClickedTrack);
+
+        pluginRackComp->setAlwaysOnTop(true);
+        pluginRackComp->setVisible(true);
+        addAndMakeVisible(pluginRackComp);
+        m_pluginRackComps.add(pluginRackComp);
+    }
+}
+
+void LowerRangeComponent::showPianoRoll(te::MidiClip * midiClip)
+{
+    std::cout << "---show Piano Roll" << std::endl;
+    //hide all PluginRacks
+    if (midiClip != nullptr)
+    {
+        for (auto &pluginrack : m_pluginRackComps)
+        {
+            pluginrack->setVisible (false);
+        }
+        m_pointedTrack = nullptr;
+        bool pianoRollExists = false;
+        for (auto pianoRoll : m_pianoRollComps)
+        {
+            pianoRoll->setVisible (false);
+            if (pianoRoll->getMidiClip () == midiClip)
+            {
+                pianoRollExists = true;
+                pianoRoll->setVisible (true);
+                pianoRoll->centerView();
+            }
+        }
+        if (!pianoRollExists)
+        {
+            auto pianoRollComp = new PianoRollComponent(m_editViewState, *midiClip);
+            pianoRollComp->setAlwaysOnTop(true);
+            pianoRollComp->setVisible(true);
+            pianoRollComp->centerView ();
+            addAndMakeVisible(pianoRollComp);
+            m_pianoRollComps.add(pianoRollComp);
+
+        }
+    }
 }

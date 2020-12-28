@@ -1,67 +1,5 @@
 #include "EditComponent.h"
 
-PlayheadComponent::PlayheadComponent (te::Edit& e , EditViewState& evs)
-    : m_edit (e), m_editViewState (evs)
-{
-    startTimerHz (30);
-}
-
-void PlayheadComponent::paint (juce::Graphics& g)
-{
-    g.setColour (juce::Colours::antiquewhite);
-    g.drawRect (m_xPosition, 0, 2, getHeight());
-}
-
-bool PlayheadComponent::hitTest (int x, int)
-{
-    if (std::abs (x - m_xPosition) <= 3)
-    {
-        return true;
-    }
-    return false;
-}
-
-void PlayheadComponent::mouseDown (const juce::MouseEvent&)
-{
-    //edit.getTransport().setUserDragging (true);
-}
-
-void PlayheadComponent::mouseUp (const juce::MouseEvent&)
-{
-    m_edit.getTransport().setUserDragging (false);
-}
-
-void PlayheadComponent::mouseDrag (const juce::MouseEvent& e)
-{
-    double t = m_editViewState.beatToTime(m_editViewState.xToBeats (
-                                            e.x, getWidth()));
-    m_edit.getTransport().setCurrentPosition (t);
-    timerCallback();
-}
-
-void PlayheadComponent::timerCallback()
-{
-    if (m_firstTimer)
-    {
-        // On Linux, don't set the mouse cursor until after the Component has appeared
-        m_firstTimer = false;
-        setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
-    }
-
-    int newX = m_editViewState.beatsToX (
-                m_edit.tempoSequence.timeToBeats(
-                    m_edit.getTransport().getCurrentPosition())
-                    , getWidth());
-    if (newX != m_xPosition)
-    {
-        repaint (juce::jmin (newX, m_xPosition) - 1
-                 , 0
-                 , juce::jmax (newX, m_xPosition)
-                    - juce::jmin (newX, m_xPosition) + 3
-                 , getHeight());
-        m_xPosition = newX;
-    }
-}
 
 //==============================================================================
 
@@ -91,7 +29,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     m_scrollbar.setAutoHide (false);
     m_scrollbar.addListener (this);
 
-    m_pluginRack.setAlwaysOnTop(true);
+    m_lowerRange.setAlwaysOnTop(true);
 
     m_playhead.setAlwaysOnTop (true);
 
@@ -99,7 +37,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     
     addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_scrollbar);
-    addAndMakeVisible (m_pluginRack);
+    addAndMakeVisible (m_lowerRange);
     addAndMakeVisible (m_playhead);
     addAndMakeVisible (m_toolBar);
 
@@ -146,6 +84,10 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 void EditComponent::valueTreeChildRemoved (
         juce::ValueTree&, juce::ValueTree& c, int)
 {
+    if (te::MidiClip::isClipState (c))
+    {
+        std::cout << "Clip removed" << std::endl;
+    }
     if (te::TrackList::isTrack (c))
         markAndUpdate (m_updateTracks);
 }
@@ -286,7 +228,7 @@ void EditComponent::resized()
     for (auto t : m_trackComps)
         t->resized();
 
-    m_pluginRack.setBounds (pluginRackRect);
+    m_lowerRange.setBounds (pluginRackRect);
     m_playhead.setBounds (
                 area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
     m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));

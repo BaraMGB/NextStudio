@@ -6,6 +6,7 @@
 #include "Utilities.h"
 #include "PluginComponent.h"
 #include "PluginMenu.h"
+#include "PianoRollEditorComponent.h"
 
 namespace te = tracktion_engine;
 
@@ -153,11 +154,17 @@ public:
     void paint (juce::Graphics& g) override;
     void resized () override;
 
+    void showPluginRack(te::Track *);
+    void showPianoRoll(tracktion_engine::MidiClip *);
+
 private:
 
-    EditViewState& editViewState;
+    EditViewState& m_editViewState;
 
     tracktion_engine::Track::Ptr m_pointedTrack{nullptr};
+    te::MidiClip * m_pointedClip{nullptr};
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
+    juce::OwnedArray<PianoRollComponent> m_pianoRollComps;
+    const int m_splitterHeight {10};
 
 };

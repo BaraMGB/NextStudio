@@ -29,6 +29,8 @@ public:
 protected:
     EditViewState& editViewState;
     te::Clip::Ptr m_clip;
+
+    void showContextMenu();
 private:
     double m_clipPosAtMouseDown{};
     double m_clickPosTime{0.0};
