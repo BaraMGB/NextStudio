@@ -118,6 +118,7 @@ private:
 
     void buildClips();
     void buildRecordClips();
+    void createNewMidiClip(double beatPos);
 
     EditViewState& m_editViewState;
     te::Track::Ptr track;

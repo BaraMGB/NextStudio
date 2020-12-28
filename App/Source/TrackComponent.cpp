@@ -278,7 +278,7 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
             {
                 editViewState.m_selectionManager.selectOnly(m_track);
                 m_yPosAtMouseDown = event.mouseDownPosition.y;
-                m_trackHeightATMouseDown = m_track->state.getProperty(te::IDs::height);
+                m_trackHeightATMouseDown = m_track->state.getProperty(te::IDs::height);               
             }
     }
 }
@@ -476,6 +476,13 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
                               te::Clipboard::ContentType::EditPastingOptions
                               (m_editViewState.m_edit, insertpoint));
            }
+        }
+    }
+    else if (event.mods.isLeftButtonDown ())
+    {
+        if (event.getNumberOfClicks () > 1)
+        {
+            createNewMidiClip (m_editViewState.xToBeats (event.x,getWidth ()));
         }
     }
 }
@@ -754,12 +761,24 @@ void TrackComponent::buildRecordClips()
 
     if (needed)
     {
-        recordingClip = std::make_unique<RecordingClipComponent> (track, m_editViewState);
+        recordingClip = std::make_unique<RecordingClipComponent>
+                                            (track, m_editViewState);
         addAndMakeVisible (*recordingClip);
     }
     else
     {
         recordingClip = nullptr;
+    }
+}
+
+void TrackComponent::createNewMidiClip(double beatPos)
+{
+    if (auto audiotrack = dynamic_cast<te::AudioTrack*>(track.get ()))
+    {
+        te::EditTimeRange newPos;
+        newPos.start = m_editViewState.beatToTime (beatPos);
+        newPos.end = newPos.start + m_editViewState.beatToTime (4);
+        audiotrack->insertMIDIClip (newPos,&m_editViewState.m_selectionManager);
     }
 }
 
