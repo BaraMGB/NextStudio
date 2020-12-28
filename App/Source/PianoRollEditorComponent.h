@@ -14,7 +14,7 @@ class PianoRollDisplay : public juce::Component
 public:
 
         PianoRollDisplay (EditViewState&
-                          , te::MidiClip&
+                          , te::Clip::Ptr
                           , juce::MidiKeyboardComponent &
                           , TimeLineComponent &);
         ~PianoRollDisplay();
@@ -31,14 +31,17 @@ public:
         void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
         void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
-        te::MidiClip * getMidiClip ()  { return &m_clip; }
+        te::MidiClip* getMidiClip()
+        {
+            return dynamic_cast<te::MidiClip*> (m_clip.get());
+        }
 
 private:
         void drawVerticalLines (juce::Graphics& g);
         int getNoteNumber (int y);
         te::MidiNote* getNoteByPos (juce::Point<float> pos);
         EditViewState& m_editViewState;
-        te::MidiClip & m_clip;
+        te::Clip::Ptr m_clip;
         juce::MidiKeyboardComponent & m_keyboard;
         TimeLineComponent & m_timeline;
         te::MidiNote * m_clickedNote {nullptr};
@@ -53,7 +56,8 @@ class PianoRollComponent : public juce::Component
                           , public te::ValueTreeAllEventListener
 {
 public:
-    PianoRollComponent (EditViewState&, te::MidiClip&);
+    PianoRollComponent (EditViewState&, te::Clip::Ptr);
+    ~PianoRollComponent();
 
     void resized () override;
 
@@ -61,11 +65,14 @@ public:
     void valueTreePropertyChanged (juce::ValueTree&
                                    , const juce::Identifier&) override;
 
-    te::MidiClip * getMidiClip ()  { return &m_clip; }
+    te::MidiClip* getMidiClip()
+    {
+        return dynamic_cast<te::MidiClip*> (m_clip.get());
+    }
     void centerView();
 private:
     EditViewState& m_editViewState;
-    te::MidiClip & m_clip;
+    te::Clip::Ptr m_clip;
     juce::MidiKeyboardComponent m_keyboard;
     TimeLineComponent m_timeline;
     PianoRollDisplay m_pianoRoll;

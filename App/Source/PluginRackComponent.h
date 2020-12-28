@@ -135,36 +135,9 @@ public:
     }
 
     te::Plugin::Ptr plugin {nullptr};
+
 private:
 
     bool isOver {false};
-
 };
 
-
-class LowerRangeComponent : public juce::Component
-                          , public juce::ChangeListener
-{
-public:
-    LowerRangeComponent (EditViewState& evs);
-     ~LowerRangeComponent();
-
-    void changeListenerCallback (juce::ChangeBroadcaster*) override;
-
-    void paint (juce::Graphics& g) override;
-    void resized () override;
-
-    void showPluginRack(te::Track *);
-    void showPianoRoll(tracktion_engine::MidiClip *);
-
-private:
-
-    EditViewState& m_editViewState;
-
-    tracktion_engine::Track::Ptr m_pointedTrack{nullptr};
-    te::MidiClip * m_pointedClip{nullptr};
-    juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
-    juce::OwnedArray<PianoRollComponent> m_pianoRollComps;
-    const int m_splitterHeight {10};
-
-};

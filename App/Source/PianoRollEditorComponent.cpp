@@ -3,7 +3,7 @@
 
 
 PianoRollDisplay::PianoRollDisplay(EditViewState & evs
-                                   , te::MidiClip& clip
+                                   , tracktion_engine::Clip::Ptr clip
                                    , juce::MidiKeyboardComponent & keyboard
                                    , TimeLineComponent & timeline)
     : m_editViewState(evs)
@@ -15,8 +15,7 @@ PianoRollDisplay::PianoRollDisplay(EditViewState & evs
 
 PianoRollDisplay::~PianoRollDisplay()
 {
-    getMidiClip ()->getAudioTrack ()
-            ->getMidiInputDevice ().keyboardState.removeListener (this);
+
 
 }
 
@@ -356,7 +355,7 @@ tracktion_engine::MidiNote *PianoRollDisplay::getNoteByPos(juce::Point<float> po
 //------------------------------------------------------------------------------
 
 PianoRollComponent::PianoRollComponent(EditViewState & evs
-                                       , te::MidiClip & clip)
+                                       , tracktion_engine::Clip::Ptr clip)
     : m_editViewState(evs)
     , m_clip(clip)
     , m_keyboard (getMidiClip ()->getAudioTrack ()
@@ -380,6 +379,11 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs
     addAndMakeVisible (m_pianoRoll);
     addAndMakeVisible (m_playhead);
     m_playhead.setAlwaysOnTop (true);
+}
+
+PianoRollComponent::~PianoRollComponent()
+{
+    m_editViewState.m_edit.state.removeListener (this);
 }
 
 void PianoRollComponent::resized()
@@ -428,10 +432,12 @@ void PianoRollComponent::valueTreePropertyChanged(juce::ValueTree &v
 void PianoRollComponent::centerView()
 {
     //center view of clip in horizontal
-
+if (auto midiclip = getMidiClip ())
+{
     auto width = m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1;
-    m_editViewState.m_pianoX1 = getMidiClip ()->getStartBeat () - 1;
+    m_editViewState.m_pianoX1 = juce::jmax(0.0, midiclip->getStartBeat () - 1);
     m_editViewState.m_pianoX2 = m_editViewState.m_pianoX1 + width;
+}
     //in vertical
 //    auto noteRange = getMidiClip ()->getSequence ().getNoteNumberRange ()
 //            .expanded (10);

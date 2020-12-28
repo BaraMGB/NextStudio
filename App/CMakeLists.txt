@@ -25,6 +25,7 @@ target_sources(${TargetName} PRIVATE
         Source/ThumbnailComponent.cpp
         Source/PianoRollEditorComponent.cpp
         Source/PlayHeadComponent.cpp
+        Source/LowerRangeComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

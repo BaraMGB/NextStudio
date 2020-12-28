@@ -7,6 +7,7 @@
 #include "TrackComponent.h"
 #include "PluginRackComponent.h"
 #include "PlayHeadComponent.h"
+#include "LowerRangeComponent.h"
 
 namespace te = tracktion_engine;
 
