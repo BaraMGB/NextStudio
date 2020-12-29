@@ -481,9 +481,66 @@ void HeaderComponent::buttonClicked(juce::Button* button)
                                            ? m_btn_col
                                            : "#666666");
     }
+    if (button == &m_saveButton)
+    {
+        juce::WildcardFileFilter wildcardFilter (".tracktionedit"
+                                                 , juce::String()
+                                                 , "Next Studio Project File");
+
+        juce::FileBrowserComponent browser (juce::FileBrowserComponent::saveMode
+                                            + juce::FileBrowserComponent::canSelectFiles
+                                            , juce::File::getSpecialLocation (
+                                                juce::File::userHomeDirectory)
+                                            , &wildcardFilter
+                                            , nullptr);
+
+        juce::FileChooserDialogBox dialogBox ("Save the project",
+                                        "Please choose some kind of file that you want to save...",
+                                        browser,
+                                        true,
+                                        juce::Colours::lightgrey);
+
+        if (dialogBox.show())
+        {
+            juce::File selectedFile = browser.getSelectedFile (0)
+                                        .withFileExtension (".tracktionedit");
+            te::EditFileOperations(m_edit).saveAs (selectedFile);
+            std::cout << "selected file: " << selectedFile.getFullPathName () << std::endl;
+        }
+    }
+    if (button == &m_loadButton)
+    {
+        juce::WildcardFileFilter wildcardFilter ("*.tracktionedit"
+                                                 , juce::String()
+                                                 , "Next Studio Project File");
+
+        juce::FileBrowserComponent browser (juce::FileBrowserComponent::openMode
+                                            + juce::FileBrowserComponent::canSelectFiles
+                                            , juce::File::getSpecialLocation (
+                                                juce::File::userHomeDirectory)
+                                            , &wildcardFilter
+                                            , nullptr);
+
+        juce::FileChooserDialogBox dialogBox ("Load a project",
+                                        "Please choose some kind of file that you want to load...",
+                                        browser,
+                                        true,
+                                        juce::Colours::lightgrey);
+
+        if (dialogBox.show())
+        {
+            m_loadingFile = browser.getSelectedFile (0);
+            sendChangeMessage ();
+        }
+    }
 }
 
 void HeaderComponent::timerCallback()
 {
     m_display.update ();
+}
+
+juce::File HeaderComponent::loadingFile() const
+{
+    return m_loadingFile;
 }

@@ -61,7 +61,8 @@ private:
 
 class HeaderComponent    : public juce::Component
                          , public juce::Button::Listener
-                         , private juce::Timer
+                         , public juce::Timer
+                         , public juce::ChangeBroadcaster
 {
 public:
     HeaderComponent(te::Edit &);
@@ -70,6 +71,8 @@ public:
     void resized() override;
     void buttonClicked(juce::Button* button) override;
     void timerCallback() override;
+
+    juce::File loadingFile() const;
 
 private:
     juce::DrawableButton m_newButton
@@ -87,6 +90,7 @@ private:
     juce::String m_btn_col { "#dbdbdb" };
     juce::Colour m_mainColour{ juce::Colour(0xff57cdff) };
     PositionDisplayComponent m_display;
+    juce::File m_loadingFile {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };

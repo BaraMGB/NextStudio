@@ -203,8 +203,12 @@ namespace EngineHelpers
 {
     inline te::Project::Ptr createTempProject (te::Engine& engine)
     {
-        auto file = engine.getTemporaryFileManager().getTempDirectory().getChildFile ("temp_project").withFileExtension (te::projectFileSuffix);
-        te::ProjectManager::TempProject tempProject (engine.getProjectManager(), file, true);
+        auto file = engine.getTemporaryFileManager()
+                .getTempDirectory().getChildFile ("temp_project")
+                .withFileExtension (te::projectFileSuffix);
+        te::ProjectManager::TempProject tempProject (engine.getProjectManager()
+                                                     , file
+                                                     , true);
         return tempProject.project;
     }
 

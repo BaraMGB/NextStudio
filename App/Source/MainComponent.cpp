@@ -32,12 +32,8 @@ MainComponent::MainComponent()
                                  : d.getNonexistentChildFile ("Untitled"
                                        , ".tracktionedit"
                                        , false ));
-
-    m_header = std::make_unique<HeaderComponent>(*m_edit);
-
     addAndMakeVisible(m_tree);
     addAndMakeVisible(m_menuBar);
-    addAndMakeVisible(*m_header);
     addAndMakeVisible(m_editNameLabel);
 
     m_editNameLabel.setJustificationType (juce::Justification::centred);
@@ -46,6 +42,7 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    m_header->removeAllChangeListeners ();
     te::EditFileOperations (*m_edit).save (true, true, false);
     m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
@@ -99,6 +96,15 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
+    if (source == m_header.get ())
+    {
+        if (m_header->loadingFile ().exists ())
+        {
+            std::cout << m_header->loadingFile ().getFileName () << std::endl;
+            auto editfile = m_header->loadingFile ();
+            setupEdit (editfile);
+        }
+    }
 }
 
 void MainComponent::fileClicked(const juce::File &file, const juce::MouseEvent &event)
@@ -109,7 +115,12 @@ void MainComponent::fileClicked(const juce::File &file, const juce::MouseEvent &
 void MainComponent::fileDoubleClicked(const juce::File &)
 {
     auto selectedFile = m_tree.getSelectedFile();
-    if (selectedFile.existsAsFile())
+    tracktion_engine::AudioFile audioFile(m_edit->engine, selectedFile);
+    if (selectedFile.getFileExtension () == ".tracktionedit")
+    {
+        setupEdit (selectedFile);
+    }
+    else if (audioFile.isValid ())
     {
         auto red = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
         auto gre = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
@@ -117,18 +128,15 @@ void MainComponent::fileDoubleClicked(const juce::File &)
 
         if (auto track = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, tracktion_engine::getAudioTracks(*m_edit).size()))
         {
-
             track->setName("Track " + juce::String(tracktion_engine::getAudioTracks(*m_edit).size()));
             track->setColour(juce::Colour(red, gre, blu));
             EngineHelpers::removeAllClips(*track);
             // Add a new clip to this track
-            tracktion_engine::AudioFile audioFile(m_edit->engine, selectedFile);
-            if (audioFile.isValid())
-                if (auto newClip = track->insertWaveClip(selectedFile.getFileNameWithoutExtension(), selectedFile,
-                { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
-                {
-                    newClip->setColour(track->getColour());
-                }
+            if (auto newClip = track->insertWaveClip(selectedFile.getFileNameWithoutExtension(), selectedFile,
+            { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
+            {
+                newClip->setColour(track->getColour());
+            }
         }
     }
 }
@@ -170,6 +178,10 @@ void MainComponent::setupEdit(juce::File editFile = {})
 
     m_songEditor = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
     addAndMakeVisible (*m_songEditor);
+    m_header = std::make_unique<HeaderComponent>(*m_edit);
+    m_header->addChangeListener (this);
+    addAndMakeVisible(*m_header);
+    resized ();
 }
 
 void MainComponent::createTracksAndAssignInputs()
