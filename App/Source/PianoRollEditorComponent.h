@@ -9,7 +9,6 @@ namespace te = tracktion_engine;
 
 
 class PianoRollDisplay : public juce::Component
-                       , public juce::MidiKeyboardStateListener
 {
 public:
 
@@ -27,9 +26,6 @@ public:
         void mouseUp (const juce::MouseEvent &) override;
         void mouseWheelMove (const juce::MouseEvent &event
                              , const juce::MouseWheelDetails &wheel) override;
-
-        void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
-        void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
         te::MidiClip* getMidiClip()
         {
@@ -53,7 +49,8 @@ private:
 //------------------------------------------------------------------------------
 
 class PianoRollComponent : public juce::Component
-                          , public te::ValueTreeAllEventListener
+                         , public te::ValueTreeAllEventListener
+                         , public juce::MidiKeyboardStateListener
 {
 public:
     PianoRollComponent (EditViewState&, te::Clip::Ptr);
@@ -64,6 +61,9 @@ public:
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&
                                    , const juce::Identifier&) override;
+
+    void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
+    void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
     te::MidiClip* getMidiClip()
     {

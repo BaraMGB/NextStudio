@@ -262,24 +262,6 @@ void PianoRollDisplay::mouseWheelMove(const juce::MouseEvent &event
     }
 }
 
-void PianoRollDisplay::handleNoteOn(juce::MidiKeyboardState *
-                                            , int /*midiChannel*/
-                                            , int midiNoteNumber
-                                            , float v)
-{
-    auto midichannel = getMidiClip ()->getMidiChannel ();
-    getMidiClip ()->getAudioTrack ()->playGuideNote
-            (midiNoteNumber,midichannel, 127.0 * v, false, true);
-}
-
-void PianoRollDisplay::handleNoteOff(juce::MidiKeyboardState *
-                                             , int /*midiChannel*/
-                                             , int /*midiNoteNumber*/
-                                             , float)
-{
-    getMidiClip ()->getAudioTrack ()->turnOffGuideNotes ();
-}
-
 void PianoRollDisplay::drawVerticalLines(juce::Graphics &g)
 {
     double x1 = m_editViewState.m_pianoX1;
@@ -358,8 +340,8 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs
                                        , tracktion_engine::Clip::Ptr clip)
     : m_editViewState(evs)
     , m_clip(clip)
-    , m_keyboard (getMidiClip ()->getAudioTrack ()
-                  ->getMidiInputDevice ().keyboardState
+    , m_keyboard (m_editViewState.m_edit.engine.getDeviceManager ()
+                  .getDefaultMidiInDevice ()->keyboardState
                   , juce::MidiKeyboardComponent::
                     Orientation::verticalKeyboardFacingRight)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
@@ -367,8 +349,8 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
     m_editViewState.m_edit.state.addListener (this);
-    getMidiClip ()->getAudioTrack ()
-            ->getMidiInputDevice ().keyboardState.addListener (&m_pianoRoll);
+    m_editViewState.m_edit.engine.getDeviceManager ()
+            .getDefaultMidiInDevice ()->keyboardState.addListener (this);
 
     m_keyboard.setBlackNoteWidthProportion (0.5);
     m_keyboard.setBlackNoteLengthProportion (0.6);
@@ -383,6 +365,8 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs
 
 PianoRollComponent::~PianoRollComponent()
 {
+    m_editViewState.m_edit.engine.getDeviceManager ()
+            .getDefaultMidiInDevice ()->keyboardState.removeListener (this);
     m_editViewState.m_edit.state.removeListener (this);
 }
 
@@ -427,6 +411,24 @@ void PianoRollComponent::valueTreePropertyChanged(juce::ValueTree &v
             repaint ();
         }
     }
+}
+
+void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
+                                      , int /*midiChannel*/
+                                      , int midiNoteNumber
+                                      , float v)
+{
+    auto midichannel = getMidiClip ()->getMidiChannel ();
+    getMidiClip ()->getAudioTrack ()->playGuideNote
+                      (midiNoteNumber,midichannel, 127.0 * v, false, true);
+}
+
+void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
+                                       , int /*midiChannel*/
+                                       , int /*midiNoteNumber*/
+                                       , float)
+{
+    getMidiClip ()->getAudioTrack ()->turnOffGuideNotes ();
 }
 
 void PianoRollComponent::centerView()
