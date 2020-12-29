@@ -33,9 +33,7 @@ class EditComponent : public  juce::Component
 public:
     EditComponent (te::Edit&, te::SelectionManager&);
     ~EditComponent();
-    
-    EditViewState& getEditViewState()   { return m_editViewState; }
-    juce::OwnedArray<TrackComponent> & getTrackComps();
+
 
 private:
 

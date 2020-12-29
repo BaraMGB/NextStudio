@@ -273,6 +273,7 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     , m_recordButton ("Record", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_settingsButton ("Settings", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_playButton ("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_loopButton ("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_edit(edit)
     , m_display (edit)
 {    
@@ -284,6 +285,7 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     addAndMakeVisible(m_recordButton);
     addAndMakeVisible(m_settingsButton);
     addAndMakeVisible(m_pluginsButton);
+    addAndMakeVisible (m_loopButton);
     addAndMakeVisible (m_display);
 
     GUIHelpers::setDrawableonButton (m_newButton
@@ -310,6 +312,11 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     GUIHelpers::setDrawableonButton (m_pluginsButton
                                      , BinaryData::powerplug_svg
                                      , m_btn_col);
+    GUIHelpers::setDrawableonButton (m_loopButton
+                                     , BinaryData::cached_svg
+                                     , m_edit.getTransport ().looping
+                                       ? m_btn_col
+                                       : "#666666");
 
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
@@ -319,6 +326,7 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     m_recordButton.addListener(this);
     m_settingsButton.addListener(this);
     m_pluginsButton.addListener(this);
+    m_loopButton.addListener (this);
 
     startTimer(30);
 }
@@ -368,6 +376,11 @@ void HeaderComponent::resized()
     m_stopButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     area.removeFromRight(gap/4);
     m_playButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
+    m_loopButton.setBounds ({displayRect.getTopRight ().x + gap
+                             , 0
+                             , area.getHeight ()
+                             , area.getHeight ()
+                            });
     m_display.setBounds (displayRect);
 }
 
@@ -435,6 +448,16 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         v->setSize (800, 600);
         o.content.setOwned (v);
         o.launchAsync();
+    }
+    if (button == &m_loopButton)
+    {
+        std::cout << "loopbutton" << std::endl;
+        EngineHelpers::toggleLoop (m_edit);
+        GUIHelpers::setDrawableonButton (m_loopButton
+                                         , BinaryData::cached_svg
+                                         , m_edit.getTransport ().looping
+                                           ? m_btn_col
+                                           : "#666666");
     }
 }
 

@@ -301,6 +301,17 @@ namespace EngineHelpers
         return clip;
     }
 
+    inline void toggleLoop (te::Edit& edit)
+    {
+        auto& transport = edit.getTransport();
+
+        if (transport.looping)
+            transport.looping = false;
+        else
+            transport.looping = true;
+        std::cout << "is looping: " << transport.looping << std::endl;
+    }
+
     inline void togglePlay (te::Edit& edit)
     {
         auto& transport = edit.getTransport();

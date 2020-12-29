@@ -44,6 +44,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
                 te::getAllTracks (m_edit).getLast ());
+    std::cout << m_edit.state.toXmlString () << std::endl;
 }
 
 EditComponent::~EditComponent()
@@ -308,7 +309,3 @@ void EditComponent::buildTracks()
     resized();
 }
 
-juce::OwnedArray<TrackComponent> & EditComponent::getTrackComps()
-{
-    return m_trackComps;
-}

@@ -12,4 +12,5 @@ juce_add_binary_data(Pictures SOURCES
     power-plug.svg
     file-download.svg
     content-save-edit.svg
+    cached.svg
     )
