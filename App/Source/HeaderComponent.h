@@ -80,7 +80,8 @@ private:
                        , m_recordButton
                        , m_settingsButton
                        , m_playButton
-                       , m_loopButton;
+                       , m_loopButton
+                       , m_clickButton;
 
     te::Edit& m_edit;
     juce::String m_btn_col { "#dbdbdb" };

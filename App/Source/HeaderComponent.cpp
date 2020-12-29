@@ -274,6 +274,7 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     , m_settingsButton ("Settings", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_playButton ("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loopButton ("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_clickButton ("Metronome", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_edit(edit)
     , m_display (edit)
 {    
@@ -286,6 +287,7 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     addAndMakeVisible(m_settingsButton);
     addAndMakeVisible(m_pluginsButton);
     addAndMakeVisible (m_loopButton);
+    addAndMakeVisible (m_clickButton);
     addAndMakeVisible (m_display);
 
     GUIHelpers::setDrawableonButton (m_newButton
@@ -317,6 +319,11 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
                                      , m_edit.getTransport ().looping
                                        ? m_btn_col
                                        : "#666666");
+    GUIHelpers::setDrawableonButton (m_clickButton
+                                     , BinaryData::metronome_svg
+                                     , m_edit.clickTrackEnabled
+                                       ? m_btn_col
+                                       : "#666666");
 
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
@@ -327,6 +334,7 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     m_settingsButton.addListener(this);
     m_pluginsButton.addListener(this);
     m_loopButton.addListener (this);
+    m_clickButton.addListener (this);
 
     startTimer(30);
 }
@@ -368,19 +376,25 @@ void HeaderComponent::resized()
                                 , (getLocalBounds ().getWidth ()/2)
                                     - (displayWidth/2)
                                 , getLocalBounds ().getHeight ());
-
     area.removeFromBottom(gap/4);
     area.removeFromRight(gap);
+    auto loopButtonRect = juce::Rectangle<int> (displayRect.getTopRight ().x + gap
+                           , 0
+                           , area.getHeight ()
+                           , area.getHeight ()
+                          );
+    auto clickButtonRect = juce::Rectangle<int> (loopButtonRect.getTopRight ().x + gap/4
+                                                 , 0
+                                                 , area.getHeight ()
+                                                 , area.getHeight ());
+    m_loopButton.setBounds (loopButtonRect);
+
     m_recordButton.setBounds(area.removeFromRight(area.getHeight()+gap/2));
     area.removeFromRight(gap/4);
     m_stopButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     area.removeFromRight(gap/4);
     m_playButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
-    m_loopButton.setBounds ({displayRect.getTopRight ().x + gap
-                             , 0
-                             , area.getHeight ()
-                             , area.getHeight ()
-                            });
+    m_clickButton.setBounds (clickButtonRect);
     m_display.setBounds (displayRect);
 }
 
@@ -451,11 +465,19 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     }
     if (button == &m_loopButton)
     {
-        std::cout << "loopbutton" << std::endl;
         EngineHelpers::toggleLoop (m_edit);
         GUIHelpers::setDrawableonButton (m_loopButton
                                          , BinaryData::cached_svg
                                          , m_edit.getTransport ().looping
+                                           ? m_btn_col
+                                           : "#666666");
+    }
+    if (button == &m_clickButton)
+    {
+        m_edit.clickTrackEnabled = !m_edit.clickTrackEnabled;
+        GUIHelpers::setDrawableonButton (m_clickButton
+                                         , BinaryData::metronome_svg
+                                         , m_edit.clickTrackEnabled
                                            ? m_btn_col
                                            : "#666666");
     }

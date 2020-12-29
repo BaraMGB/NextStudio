@@ -309,7 +309,6 @@ namespace EngineHelpers
             transport.looping = false;
         else
             transport.looping = true;
-        std::cout << "is looping: " << transport.looping << std::endl;
     }
 
     inline void togglePlay (te::Edit& edit)
