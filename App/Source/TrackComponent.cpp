@@ -94,6 +94,7 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
 
 void TrackHeaderComponent::showPopupMenu(tracktion_engine::AudioTrack *at)
 {
+    bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     at->edit.playInStopEnabled = true;
     juce::PopupMenu m;
     m.addItem(2000, "delete Track");
@@ -106,35 +107,43 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::AudioTrack *at)
         m.addSeparator();
     }
 
-    int id = 1;
-    for (auto instance: at->edit.getAllInputDevices())
+    int id = 0;
+    if (!isMidiTrack)
     {
-        if (instance->getInputDevice().getDeviceType()
-            == te::InputDevice::waveDevice)
+
+        id = 1;
+        for (auto instance: at->edit.getAllInputDevices())
         {
-            bool ticked = instance->getTargetTracks().getFirst() == at;
-            m.addItem(id++,
-                      instance->getInputDevice().getName(),
-                      true,
-                      ticked);
+            if (instance->getInputDevice().getDeviceType()
+                == te::InputDevice::waveDevice)
+            {
+                bool ticked = instance->getTargetTracks().getFirst() == at;
+                m.addItem(id++,
+                          instance->getInputDevice().getName(),
+                          true,
+                          ticked);
+            }
         }
-    }
 
     m.addSeparator();
-
-    id = 100;
-    for (auto instance: at->edit.getAllInputDevices())
+    }else
     {
-        if (instance->getInputDevice().getDeviceType()
-            == te::InputDevice::physicalMidiDevice)
+        id = 100;
+        for (auto instance: at->edit.getAllInputDevices())
         {
-            bool ticked = instance->getTargetTracks().getFirst() == at;
-            m.addItem(id++,
-                      instance->getInputDevice().getName(),
-                      true,
-                      ticked);
+            if (instance->getInputDevice().getDeviceType()
+                == te::InputDevice::physicalMidiDevice)
+            {
+                bool ticked = instance->getTargetTracks().getFirst() == at;
+                m.addItem(id++,
+                          instance->getInputDevice().getName(),
+                          true,
+                          ticked);
+            }
         }
+
     }
+
 
     const int result = m.show();
 
@@ -277,6 +286,10 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
             else
             {
                 editViewState.m_selectionManager.selectOnly(m_track);
+                if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get()))
+                {
+
+                }
                 m_yPosAtMouseDown = event.mouseDownPosition.y;
                 m_trackHeightATMouseDown = m_track->state.getProperty(te::IDs::height);               
             }
@@ -606,8 +619,9 @@ void TrackComponent::itemDropped(
     auto dropTime = m_editViewState.beatToTime(
                 m_editViewState.xToBeats(dropPos.getX(), getWidth()));
 
+    bool isClipValid = m_trackOverlay.isValid ();
     //Dropping Clips, with CTRL copy Clip
-    if (dragSourceDetails.description == "Clip")
+    if (dragSourceDetails.description == "Clip" && isClipValid)
     {
         auto clipboard = tracktion_engine::Clipboard::getInstance();
         if (clipboard->hasContentWithType<te::Clipboard::Clips>())
@@ -667,11 +681,12 @@ void TrackComponent::itemDropped(
     //File droped ?
     auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
             (dragSourceDetails.sourceComponent.get());
+    bool isMiditrack = track->state.getProperty (IDs::isMidiTrack);
     if (fileTreeComp)
     {
         auto f = fileTreeComp->getSelectedFile();
         tracktion_engine::AudioFile audioFile(m_editViewState.m_edit.engine, f);
-        if (audioFile.isValid())
+        if (audioFile.isValid() && !isMiditrack)
         {
             if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(track.get()))
             {
@@ -693,11 +708,21 @@ void TrackComponent::itemDropped(
 
 void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
+    bool isMiditrack = track->state.getProperty (IDs::isMidiTrack);
     if (dragSourceDetails.description == "Clip")
         {
             auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
             if (clipComp)
             {
+                if (auto midiClip = dynamic_cast<MidiClipComponent*> (clipComp))
+                {
+                    m_trackOverlay.setIsValid (isMiditrack);
+                }
+                else if(auto waveClip = dynamic_cast<AudioClipComponent*> (clipComp))
+                {
+                    m_trackOverlay.setIsValid (!isMiditrack);
+                }
+
                 m_dragging = true;
                 m_posInClip = m_editViewState.beatsToX(
                             m_editViewState.timeToBeat(
@@ -707,6 +732,7 @@ void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSo
                                                                  , 0
                                                                  , clipComp->getWidth()
                                                                  , clipComp->getHeight()}, false);
+
                 m_trackOverlay.setImage(m_dragImage);
                 m_trackOverlay.setImagePos(clipComp->isShiftDown ()
                                            ? getMouseXYRelative().x

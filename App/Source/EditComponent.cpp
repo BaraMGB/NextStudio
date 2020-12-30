@@ -44,7 +44,6 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
                 te::getAllTracks (m_edit).getLast ());
-    std::cout << m_edit.state.toXmlString () << std::endl;
 }
 
 EditComponent::~EditComponent()
@@ -107,29 +106,27 @@ void EditComponent::mouseDown(const juce::MouseEvent &event)
     if (event.mods.isPopupMenu())
     {
         juce::PopupMenu m;
-        m.addItem (10, "Add track");
-
+        m.addItem (10, "Add instrument track");
+        m.addItem (11, "Add AudioTrack");
         m.addSeparator();
 
         const int res = m.show();
 
         if (res == 10)
         {
-            auto red = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
-            auto gre = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
-            auto blu = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
-            if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
-                    m_edit, te::getAudioTracks(m_edit).size()))
-            {
-                 track->state.setProperty(  te::IDs::height
-                                          , track->defaultTrackHeight
-                                          , &m_edit.getUndoManager());
-
-                 track->setName(
-                    "Track " + juce::String(te::getAudioTracks(m_edit).size()));
-                 track->setColour(juce::Colour(red, gre, blu));
-                 m_editViewState.m_selectionManager.selectOnly(track);
-            }
+            auto& random = juce::Random::getSystemRandom();
+            juce::Colour colour (random.nextInt (256),
+                                 random.nextInt (256),
+                                 random.nextInt (256));
+            addAudioTrack (true, colour);
+        }
+        else if (res == 11)
+        {
+            auto& random = juce::Random::getSystemRandom();
+            juce::Colour colour (random.nextInt (256),
+                                 random.nextInt (256),
+                                 random.nextInt (256));
+            addAudioTrack (false, colour);
         }
     }
 }
@@ -244,6 +241,26 @@ void EditComponent::resized()
 void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *)
 {
     repaint();
+}
+
+void EditComponent::addAudioTrack(bool isMidiTrack, juce::Colour trackColour)
+{
+    if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
+            m_edit, te::getAudioTracks(m_edit).size()))
+    {
+         track->state.setProperty(  te::IDs::height
+                                  , track->defaultTrackHeight
+                                  , &m_edit.getUndoManager());
+
+         track->state.setProperty(  IDs::isMidiTrack
+                                  , isMidiTrack
+                                  , &m_edit.getUndoManager());
+
+         juce::String num = juce::String(te::getAudioTracks(m_edit).size());
+         track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
+         track->setColour(trackColour);
+         m_editViewState.m_selectionManager.selectOnly(track);
+    }
 }
 
 void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved

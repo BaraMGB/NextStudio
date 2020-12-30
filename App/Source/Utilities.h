@@ -229,8 +229,7 @@ namespace EngineHelpers
                                 engine.getDeviceManager().deviceManager
                                 , 0, 512, 1, 512, true, true, true, true));
         o.content->setSize (400, 600);
-        o.launchAsync();
-
+        o.launchAsync ();
     }
 
     inline void browseForAudioFile (

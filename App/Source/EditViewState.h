@@ -48,6 +48,7 @@ namespace IDs
     DECLARE_ID (showArranger)
     DECLARE_ID (headerHeight)
     DECLARE_ID (headerWidth)
+    DECLARE_ID (isMidiTrack)
     #undef DECLARE_ID
 }
 

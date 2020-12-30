@@ -227,5 +227,8 @@ void MainComponent::createTracksAndAssignInputs()
 //        }
 //    }
 
+    dm.setDefaultMidiInDevice (2);
+    //std::cout <<  << std::endl;
     m_edit->restartPlayback();
+
 }

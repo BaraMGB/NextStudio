@@ -66,19 +66,40 @@ public:
         m_dragImage = image;
     }
 
+    void setIsValid(bool isValid)
+    {
+        m_isValid = isValid;
+    }
+
+    bool isValid()
+    {
+        return m_isValid;
+    }
+
     void paint(juce::Graphics& g) override
     {
         if (m_dragImage.isValid())
         {
-            g.setColour(juce::Colour(0x66666666));
-            g.drawImageAt(m_dragImage, m_xPos, 0);
-            g.setColour(juce::Colour(0xffffffff));
-            g.drawRect(m_xPos, 0, m_dragImage.getWidth(), getHeight());
+            if (m_isValid)
+            {
+                g.setColour(juce::Colour(0x66666666));
+                g.drawImageAt(m_dragImage, m_xPos, 0);
+                g.setColour(juce::Colour(0xffffffff));
+                g.drawRect(m_xPos, 0, m_dragImage.getWidth(), getHeight());
+            }
+            else
+            {
+                g.setColour (juce::Colour(0xff444444));
+                g.fillRect (m_xPos, 0, m_dragImage.getWidth(), getHeight());
+                g.setColour (juce::Colours::black);
+                g.drawText ("not allowed", m_xPos, 0,m_dragImage.getWidth (), getHeight (),juce::Justification::centred,false);
+            }
         }
     }
 private:
     int m_xPos;
     juce::Image m_dragImage;
+    bool m_isValid {false};
 };
 
 

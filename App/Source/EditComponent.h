@@ -55,6 +55,7 @@ private:
     void resized() override;
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
+    void addAudioTrack(bool isMidi, juce::Colour);
     void buildTracks();
     
     te::Edit& m_edit;
