@@ -249,23 +249,21 @@ public:
         auto h = 24;
         juce::Image iconImage (juce::Image::RGB, w, h, true);
         juce::Graphics graph (iconImage);
-
+        juce::Rectangle <float> rect = {0.0, 0.0,(float) w,(float) h};
         if (isDirectory)
         {
 
            GUIHelpers::drawFromSvg (graph,
                                     BinaryData::folder_svg,
                                     "#bbbbbb",
-                                    w,
-                                    h);
+                                    rect);
         }
         else if (filename.endsWith (".wav"))
         {
             GUIHelpers::drawFromSvg (graph,
                                      BinaryData::filemusic_svg,
                                      "#bbbbbb",
-                                     w,
-                                     h);
+                                     rect);
         }
 
         else
@@ -273,8 +271,7 @@ public:
             GUIHelpers::drawFromSvg (graph,
                                      BinaryData::file_svg,
                                      "#bbbbbb",
-                                     w,
-                                     h);
+                                     rect);
         }
         icon = &iconImage;
 //        juce::LookAndFeel_V4::drawFileBrowserRow (g, width, height, file, filename, icon,

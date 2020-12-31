@@ -13,6 +13,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 
 
     m_trackName.setText(m_track->getName(), juce::NotificationType::dontSendNotification);
+    m_trackName.setJustificationType (juce::Justification::topLeft);
     m_trackName.setColour(juce::Label::textColourId, juce::Colours::white);
     m_trackName.setInterceptsMouseClicks(false, false);
 
@@ -263,6 +264,43 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         g.setColour(juce::Colour(0xffffffff));
         g.drawRect(getLocalBounds().removeFromBottom(3));
     }
+
+    GUIHelpers::drawFromSvg (g
+                             , m_track->state.getProperty(IDs::isMidiTrack)
+                                ? BinaryData::piano_svg
+                                : BinaryData::waveform_svg
+                             , "#ffffff"
+                             , {20,5,20,20});
+
+}
+
+void TrackHeaderComponent::resized()
+{
+    auto defaultTrackHeight = m_track->defaultTrackHeight;
+    auto area = getLocalBounds().removeFromTop(defaultTrackHeight);//getLocalBounds();
+    auto peakDisplay = area.removeFromRight(15);
+    peakDisplay.reduce(2, 2);
+    levelMeterComp->setBounds (peakDisplay);
+    auto volSlider = area.removeFromRight(area.getHeight());
+    m_volumeKnob.setBounds(volSlider);
+
+    auto buttonGroup = area.removeFromRight(area.getHeight());
+    auto buttonwidth = buttonGroup.getWidth() / 2;
+    auto buttonHeight = buttonGroup.getHeight() / 2;
+    m_soloButton.setBounds(buttonGroup.getX(), buttonGroup.getY(), buttonwidth, buttonHeight);
+    m_soloButton.setComponentID ("solo");
+    m_soloButton.setName ("S");
+    m_muteButton.setBounds(buttonGroup.getX(), buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
+    m_muteButton.setComponentID ("mute");
+    m_muteButton.setName ("M");
+    m_armButton.setBounds(buttonGroup.getX() + buttonwidth, buttonGroup.getY(), buttonwidth, buttonHeight);
+    m_armButton.setComponentID ("arm");
+    m_armButton.setName ("A");
+
+    area.removeFromLeft(45);
+    area.removeFromTop (7);
+
+    m_trackName.setBounds(area);
 }
 
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
@@ -341,32 +379,6 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent &event)
     repaint();
 }
 
-void TrackHeaderComponent::resized()
-{
-    auto defaultTrackHeight = m_track->defaultTrackHeight;
-    auto area = getLocalBounds().removeFromTop(defaultTrackHeight);//getLocalBounds();
-    auto peakDisplay = area.removeFromRight(15);
-    peakDisplay.reduce(2, 2);
-    levelMeterComp->setBounds (peakDisplay);
-    auto volSlider = area.removeFromRight(area.getHeight());
-    m_volumeKnob.setBounds(volSlider);
-
-    auto buttonGroup = area.removeFromRight(area.getHeight());
-    auto buttonwidth = buttonGroup.getWidth() / 2;
-    auto buttonHeight = buttonGroup.getHeight() / 2;
-    m_soloButton.setBounds(buttonGroup.getX(), buttonGroup.getY(), buttonwidth, buttonHeight);
-    m_soloButton.setComponentID ("solo");
-    m_soloButton.setName ("S");
-    m_muteButton.setBounds(buttonGroup.getX(), buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
-    m_muteButton.setComponentID ("mute");
-    m_muteButton.setName ("M");
-    m_armButton.setBounds(buttonGroup.getX() + buttonwidth, buttonGroup.getY(), buttonwidth, buttonHeight);
-    m_armButton.setComponentID ("arm");
-    m_armButton.setName ("A");
-
-    area.removeFromLeft(20);
-    m_trackName.setBounds(area);
-}
 
 juce::Colour TrackHeaderComponent::getTrackColour()
 {

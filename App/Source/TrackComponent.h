@@ -17,12 +17,12 @@ public:
     ~TrackHeaderComponent();
 
     void paint (juce::Graphics& g) override;
+    void resized() override;
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent &event) override;
     void mouseUp(const juce::MouseEvent &event) override;
     void mouseMove(const juce::MouseEvent &event) override;
     void mouseExit(const juce::MouseEvent &event) override;
-    void resized() override;
     juce::Colour getTrackColour();
 
 private:

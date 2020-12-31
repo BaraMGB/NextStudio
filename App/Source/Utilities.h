@@ -75,7 +75,7 @@ inline void changeColor(
         }
     }
 }
-inline void drawFromSvg(juce::Graphics &g, const char* svgbinary,juce::String col_hex,int w,int h)
+inline void drawFromSvg(juce::Graphics &g, const char* svgbinary,juce::String col_hex,juce::Rectangle<float> drawRect)
 {
     if (auto svg = juce::XmlDocument::parse (svgbinary))
     {
@@ -85,8 +85,7 @@ inline void drawFromSvg(juce::Graphics &g, const char* svgbinary,juce::String co
         {
             const juce::MessageManagerLock mmLock;
             drawable = juce::Drawable::createFromSVG (*svg);
-            drawable->setTransformToFit (
-                          juce::Rectangle<float> (0.0f, 0.0f, float (w), float (h))
+            drawable->setTransformToFit (drawRect
                         , juce::RectanglePlacement::centred);
             drawable->draw (g, 1.f);
         }
@@ -112,7 +111,7 @@ inline juce::Image getImageFromSvg(const char* svgbinary,juce::String col_hex,in
 {
     juce::Image image (juce::Image::RGB, w, h, true);
     juce::Graphics g (image);
-    drawFromSvg (g,svgbinary, col_hex, w, h);
+    drawFromSvg (g,svgbinary, col_hex,{0.0,0.0, (float) w, (float) h});
     return image;
 }
 
