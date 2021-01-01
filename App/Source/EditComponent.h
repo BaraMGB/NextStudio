@@ -5,6 +5,7 @@
 #include "Utilities.h"
 #include "TimeLineComponent.h"
 #include "TrackComponent.h"
+#include "TrackHeadComponent.h"
 #include "PluginRackComponent.h"
 #include "PlayHeadComponent.h"
 #include "LowerRangeComponent.h"

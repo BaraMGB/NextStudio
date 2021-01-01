@@ -10,6 +10,7 @@
 
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "AudioMidiSettings.h"
 
 namespace te = tracktion_engine;
 
@@ -220,15 +221,14 @@ namespace EngineHelpers
 //            setupFile.deleteFile ();
 //        }
 
-        juce::DialogWindow::LaunchOptions o;
-        o.dialogTitle = TRANS("Audio Settings");
-        o.dialogBackgroundColour = juce::LookAndFeel::getDefaultLookAndFeel()
-                .findColour (juce::ResizableWindow::backgroundColourId);
-        o.content.setOwned (new juce::AudioDeviceSelectorComponent (
-                                engine.getDeviceManager().deviceManager
-                                , 0, 512, 1, 512, true, true, true, true));
-        o.content->setSize (400, 600);
-        o.launchAsync ();
+//        juce::DialogWindow::LaunchOptions o;
+//        o.dialogTitle = TRANS("Audio Settings");
+//        o.dialogBackgroundColour = juce::LookAndFeel::getDefaultLookAndFeel()
+//                .findColour (juce::ResizableWindow::backgroundColourId);
+//        auto audiosettings = new AudioMidiSettings(engine);
+//        o.content.setOwned (audiosettings);
+//        o.content->setSize (400, 600);
+//        o.launchAsync ();
     }
 
     inline void browseForAudioFile (

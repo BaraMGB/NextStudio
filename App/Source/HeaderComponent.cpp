@@ -440,8 +440,15 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     }
     if (button == &m_settingsButton)
     {
-        EngineHelpers::showAudioDeviceSettings (m_edit.engine);
-        m_edit.engine.getDeviceManager().saveSettings();
+        juce::DialogWindow::LaunchOptions o;
+        o.dialogTitle = TRANS("Audio Settings");
+        o.dialogBackgroundColour = juce::LookAndFeel::getDefaultLookAndFeel()
+                .findColour (juce::ResizableWindow::backgroundColourId);
+        auto audiosettings = new AudioMidiSettings(m_edit.engine);
+        o.content.setOwned (audiosettings);
+        o.content->setSize (400, 600);
+        o.runModal ();
+        std::cout << m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->getName ()<< std::endl;
     }
     if (button == &m_pluginsButton)
     {

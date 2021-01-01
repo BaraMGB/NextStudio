@@ -49,6 +49,7 @@ namespace IDs
     DECLARE_ID (headerHeight)
     DECLARE_ID (headerWidth)
     DECLARE_ID (isMidiTrack)
+    DECLARE_ID (isAutoArmed)
     #undef DECLARE_ID
 }
 
@@ -75,6 +76,7 @@ public:
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
         m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
 
+        m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
         m_headerHeight.referTo(m_state, IDs::headerHeight, um, 50);
         m_headerWidth.referTo(m_state, IDs::headerWidth, um, 310);
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
@@ -85,6 +87,7 @@ public:
         m_pianoY1.referTo (m_state, IDs::pianoY1, um, 24);
         m_pianoY2.referTo (m_state, IDs::pianoY2, um, 72);
         m_snapType.referTo(m_state, IDs::snapType, um, 9);
+
     }
 
     int beatsToX (double beats, int width) const
@@ -163,7 +166,8 @@ public:
                           , m_showHeaders
                           , m_showFooters
                           , m_showMidiDevices
-                          , m_showWaveDevices;
+                          , m_showWaveDevices
+                          , m_isAutoArmed;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY

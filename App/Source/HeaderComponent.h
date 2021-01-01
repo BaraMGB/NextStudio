@@ -13,6 +13,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "AudioMidiSettings.h"
 
 namespace te = tracktion_engine;
 

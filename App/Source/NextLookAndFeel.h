@@ -12,7 +12,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackComponent.h"
-//#include "BinaryData.h"
+#include "TrackHeadComponent.h"
 
 class NextLookAndFeel : public juce::LookAndFeel_V4
 {
