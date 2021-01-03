@@ -1,8 +1,9 @@
 #include "EditComponent.h"
 
-
 //==============================================================================
-
+static tracktion_engine::SelectableClass::ClassInstance<SelectableClipClass
+                                , tracktion_engine::Clip> selectableClipClass;
+//==============================================================================
 ToolBarComponent::ToolBarComponent()
 {
 }
@@ -234,6 +235,7 @@ void EditComponent::resized()
 
 void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
+
     repaint();
 }
 
@@ -315,6 +317,7 @@ void EditComponent::buildTracks()
             m_lowerRange.addPluginRackComp(pluginrack);
 
             trackheader->addChangeListener (&m_lowerRange);
+            trackheader->addChangeListener (this);
 
         }
     }

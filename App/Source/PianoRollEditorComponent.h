@@ -56,6 +56,8 @@ public:
     PianoRollComponent (EditViewState&, te::Clip::Ptr);
     ~PianoRollComponent();
 
+    void focusLost (juce::Component::FocusChangeType cause) override;
+    void focusGained (juce::Component::FocusChangeType cause) override;
     void resized () override;
 
     void valueTreeChanged() override {}

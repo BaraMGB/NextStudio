@@ -29,6 +29,7 @@ public:
 
     te::Track::Ptr getTrack() const;
 
+    void updateMidiInputs();
 private:
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
@@ -36,7 +37,7 @@ private:
     void showPopupMenu(te::AudioTrack* at);
     void deleteTrackFromEdit();
 
-    EditViewState& editViewState;
+    EditViewState& m_editViewState;
     te::Track::Ptr m_track;
     int m_trackHeightATMouseDown;
     int m_yPosAtMouseDown;

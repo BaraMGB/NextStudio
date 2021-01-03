@@ -7,10 +7,10 @@
 
 namespace te = tracktion_engine;
 
-class PluginComponent : public juce::Component
+class PluginViewComponent : public juce::Component
 {
 public:
-    PluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
+    PluginViewComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
 
 
     te::Plugin::Ptr getPlugin() const;
@@ -27,7 +27,7 @@ private:
 
 //------------------------------------------------------------------------------
 
-class VolumePluginComponent : public PluginComponent
+class VolumePluginComponent : public PluginViewComponent
 {
 public:
     VolumePluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
@@ -98,7 +98,7 @@ private:
 };
 
 
-class VstPluginComponent : public PluginComponent
+class VstPluginComponent : public PluginViewComponent
                          , public tracktion_engine::AutomatableParameter::Listener
                          , public juce::ChangeListener
 {
@@ -159,7 +159,7 @@ private:
     int m_neededWidthFactor {1};
     EditViewState& editViewState;
     te::Plugin::Ptr plugin;
-    std::unique_ptr<PluginComponent> m_pluginComponent;
+    std::unique_ptr<PluginViewComponent> m_pluginComponent;
     juce::Colour m_trackColour;
 
     bool m_clickOnHeader {false};

@@ -89,7 +89,6 @@ void TrackComponent::paint (juce::Graphics& g)
 void TrackComponent::mouseDown (const juce::MouseEvent&event)
 {
     bool isMidiTrack = track->state.getProperty (IDs::isMidiTrack);
-    m_editViewState.m_selectionManager.selectOnly (track.get());
     if (event.mods.isRightButtonDown())
     {
 //        juce::PopupMenu m;
@@ -402,8 +401,8 @@ void TrackComponent::buildClips()
                 cc = new AudioClipComponent (m_editViewState, c);
             else if (dynamic_cast<te::MidiClip*> (c))
             {
-                cc = new MidiClipComponent (m_editViewState, c);
                 pr = new PianoRollComponent (m_editViewState, c);
+                cc = new MidiClipComponent (m_editViewState, c);
             }
 
             else
@@ -415,9 +414,9 @@ void TrackComponent::buildClips()
             {
                 if (auto midiClipcomp = dynamic_cast<MidiClipComponent*>(cc))
                 {
+                    editcomp->lowerRange ().addPianoRollEditor(pr);
                     midiClipcomp->addChangeListener (&editcomp->lowerRange ());
                 }
-                editcomp->lowerRange ().addPianoRollEditor(pr);
             }
         }
     }

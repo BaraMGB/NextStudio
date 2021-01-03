@@ -58,8 +58,6 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
             }
         }
     m_editViewState.m_selectionManager.selectOnly (getClip ());
-    m_editViewState.m_selectionManager.addToSelection(
-                getClip().getClipTrack());
     m_isDragging = true;
     tracktion_engine::Clipboard::getInstance()->clear();
     auto clipContent = std::make_unique<te::Clipboard::Clips>();
@@ -346,6 +344,7 @@ void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
     if (e.getNumberOfClicks () > 1
      || m_editViewState.m_isPianoRollVisible)
     {
+        m_editViewState.m_isPianoRollVisible = true;
         sendChangeMessage ();
     }
 }

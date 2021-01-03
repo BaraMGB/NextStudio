@@ -20,7 +20,7 @@ PluginWindowComponent::PluginWindowComponent
     }
     else
     {
-        m_pluginComponent = std::make_unique<PluginComponent>(evs, p, tc);
+        m_pluginComponent = std::make_unique<PluginViewComponent>(evs, p, tc);
     }
     addAndMakeVisible(*m_pluginComponent);
 }
@@ -122,18 +122,18 @@ void PluginWindowComponent::resized()
     m_pluginComponent.get()->setBounds(area);
 }
 
-PluginComponent::PluginComponent
+PluginViewComponent::PluginViewComponent
     (EditViewState& evs, te::Plugin::Ptr p, juce::Colour tc)
     : m_editViewState (evs), m_plugin (p), m_trackColour (tc)
 {
 }
 
-te::Plugin::Ptr PluginComponent::getPlugin() const
+te::Plugin::Ptr PluginViewComponent::getPlugin() const
 {
     return m_plugin;
 }
 
-void PluginComponent::setPlugin(const te::Plugin::Ptr &plugin)
+void PluginViewComponent::setPlugin(const te::Plugin::Ptr &plugin)
 {
     m_plugin = plugin;
 }
@@ -142,7 +142,7 @@ void PluginComponent::setPlugin(const te::Plugin::Ptr &plugin)
 
 VolumePluginComponent::VolumePluginComponent
     (EditViewState& evs, te::Plugin::Ptr p, juce::Colour tc)
-    : PluginComponent(evs, p, tc)
+    : PluginViewComponent(evs, p, tc)
 {
     addAndMakeVisible(m_volumeKnob);
     m_volumeKnob.setRange(0.0f, 3.0f, 0.01f);
@@ -173,7 +173,7 @@ void VolumePluginComponent::paint(juce::Graphics &g)
 
 VstPluginComponent::VstPluginComponent
     (EditViewState& evs, te::Plugin::Ptr p, juce::Colour tc)
-    : PluginComponent(evs, p, tc)
+    : PluginViewComponent(evs, p, tc)
     , m_lastChangedParameterComponent(nullptr)
 {
     if (p)

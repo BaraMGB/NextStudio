@@ -1,7 +1,7 @@
 #include "TrackHeadComponent.h"
 
 TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t)
-    : editViewState (evs), m_track (t)
+    : m_editViewState (evs), m_track (t)
 {
     Helpers::addAndMakeVisible (*this, { &m_trackName,
                                          &m_armButton,
@@ -209,24 +209,59 @@ void TrackHeaderComponent::deleteTrackFromEdit()
 {
     m_track->deselect();
     m_track->edit.deleteTrack(m_track);
-    auto i = tracktion_engine::getAllTracks(editViewState.m_edit).getLast();
+    auto i = tracktion_engine::getAllTracks(m_editViewState.m_edit).getLast();
 
     if (!(i->isArrangerTrack()
         || i->isTempoTrack()
         || i->isMarkerTrack()
         || i->isChordTrack()))
     {
-        editViewState.m_selectionManager.selectOnly(i);
+        m_editViewState.m_selectionManager.selectOnly(i);
     }
     else
     {
-        editViewState.m_selectionManager.deselectAll();
+        m_editViewState.m_selectionManager.deselectAll();
     }
 }
 
 te::Track::Ptr TrackHeaderComponent::getTrack() const
 {
     return m_track;
+}
+
+void TrackHeaderComponent::updateMidiInputs()
+{
+    if (auto at = dynamic_cast<te::AudioTrack*>(getTrack ().get ()))
+    {
+        if ( at->state.getProperty (IDs::isMidiTrack))
+        {
+            auto &dm = m_editViewState.m_edit.engine.getDeviceManager ();
+            for (auto instance: m_editViewState.m_edit.getAllInputDevices())
+            {
+                if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
+                {
+
+                    if (midiIn == dm.getDefaultMidiInDevice ())
+                    {
+                        instance->setTargetTrack(*at, 0, true);
+                        m_editViewState.m_edit.restartPlayback();
+                    }
+                }
+            }
+            if (m_editViewState.m_isAutoArmed)
+            {
+                for (auto&i : m_editViewState.m_edit.getTrackList ())
+                {
+                    if (auto audioTrack = dynamic_cast<te::AudioTrack*>(i))
+                    {
+                        EngineHelpers::armTrack (*audioTrack,false);
+                    }
+                }
+                EngineHelpers::armTrack (*at, true);
+            }
+        }
+    }
+
 }
 
 void TrackHeaderComponent::paint (juce::Graphics& g)
@@ -238,7 +273,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 
     auto buttonColour = juce::Colour(0xff4b4b4b);
 
-    if (!editViewState.m_selectionManager.isSelected (m_track))
+    if (!m_editViewState.m_selectionManager.isSelected (m_track))
     {
         buttonColour = buttonColour.darker (0.4f);
     }
@@ -310,6 +345,8 @@ void TrackHeaderComponent::resized()
 
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 {
+    m_trackHeightATMouseDown = getHeight ();
+    m_yPosAtMouseDown = event.mouseDownPosition.y;
     if (!event.mouseWasDraggedSinceMouseDown())
         {
             if (event.mods.isRightButtonDown ())
@@ -321,54 +358,27 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
             }
             else if (event.mods.isShiftDown())
             {
-                if (editViewState.m_selectionManager.getNumObjectsSelected())
+                if (m_editViewState.m_selectionManager.getNumObjectsSelected())
                 {
-                    editViewState.m_selectionManager.addToSelection(m_track);
+                    m_editViewState.m_selectionManager.addToSelection(m_track);
                 }
             }
-            else
+            else if (event.mods.isLeftButtonDown ())
             {
-//                if (event.getNumberOfClicks () > 1
-//                  || !editViewState.m_isPianoRollVisible)
+                if (event.mods.isCtrlDown ())
                 {
-                    sendChangeMessage ();
+                    m_editViewState.m_selectionManager.addToSelection (m_track);
                 }
-                editViewState.m_selectionManager.selectOnly(m_track);
-                if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get()))
+                else
                 {
-                    m_yPosAtMouseDown = event.mouseDownPosition.y;
-                    m_trackHeightATMouseDown = m_track->state.getProperty(te::IDs::height);
-                    if (m_track->state.getProperty (IDs::isMidiTrack))
-                    {
-                        auto &dm = editViewState.m_edit.engine.getDeviceManager ();
-                        for (auto instance: m_track->edit.getAllInputDevices())
-                        {
-                            if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
-                            {
+                    m_editViewState.m_selectionManager.selectOnly(m_track);
+                }
 
-                                if (midiIn == dm.getDefaultMidiInDevice ())
-                                {
-                                    instance->setTargetTrack(*at, 0, true);
-                                    //toDO ... hack!
-                                    EngineHelpers::enableInputMonitoring(
-                                        *at, !EngineHelpers::isInputMonitoringEnabled(*at));
-                                    EngineHelpers::enableInputMonitoring(
-                                        *at, !EngineHelpers::isInputMonitoringEnabled(*at));
-                                }
-                            }
-                        }
-                        if (editViewState.m_isAutoArmed)
-                        {
-                            for (auto&i : editViewState.m_edit.getTrackList ())
-                            {
-                                if (auto audioTrack = dynamic_cast<te::AudioTrack*>(i))
-                                {
-                                    EngineHelpers::armTrack (*audioTrack,false);
-                                }
-                            }
-                            EngineHelpers::armTrack (*at, true);
-                        }
-                    }
+                updateMidiInputs ();
+                if (event.getNumberOfClicks () > 1 || !m_editViewState.m_isPianoRollVisible)
+                {
+                    m_editViewState.m_isPianoRollVisible = false;
+                    sendChangeMessage ();
                 }
             }
     }
@@ -381,14 +391,12 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
     if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10)
     {
         m_isResizing = true;
-        auto newHeight = juce::jlimit(static_cast<int> (m_track->minTrackHeight)
-                                     ,static_cast<int> (m_track->maxTrackHeight)
-                                     ,static_cast<int> (m_trackHeightATMouseDown
-                                        + event.getDistanceFromDragStartY()));
+        auto newHeight = static_cast<int> (m_trackHeightATMouseDown
+                                        + event.getDistanceFromDragStartY());
 
         m_track->state.setProperty(te::IDs::height
-                                   , newHeight
-                                   , &(editViewState.m_edit.getUndoManager()));
+                                   , juce::jlimit(40, 250, newHeight)
+                                   , &(m_editViewState.m_edit.getUndoManager()));
     }
 
 

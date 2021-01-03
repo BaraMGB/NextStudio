@@ -46,11 +46,11 @@ void LevelMeterComponent::paint(juce::Graphics &g)
         g.fillRect(0.0f
                    , float(meterHeight - displayBarHeightLeft)
                    , float(meterWidth * 0.45)
-                   , float(displayBarHeightLeft));
+                   , juce::jmax(0.0f, float(displayBarHeightLeft)));
         g.fillRect(float(meterWidth * 0.55)
                    , float(meterHeight - displayBarHeightRight)
                    , float(meterWidth)
-                   , float(displayBarHeightRight));
+                   , juce::jmax(0.0f, float(displayBarHeightRight)));
     }
 }
 

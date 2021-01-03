@@ -366,6 +366,16 @@ PianoRollComponent::~PianoRollComponent()
     m_editViewState.m_edit.state.removeListener (this);
 }
 
+void PianoRollComponent::focusLost(juce::Component::FocusChangeType cause)
+{
+    m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (this);
+}
+
+void PianoRollComponent::focusGained(juce::Component::FocusChangeType cause)
+{
+    m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.addListener (this);
+}
+
 void PianoRollComponent::resized()
 {
     auto area = getLocalBounds ();
@@ -414,9 +424,9 @@ void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
                                       , int midiNoteNumber
                                       , float v)
 {
-    auto midichannel = getMidiClip ()->getMidiChannel ();
-    getMidiClip ()->getAudioTrack ()->playGuideNote
-                      (midiNoteNumber,midichannel, 127.0 * v, false, true);
+//    auto midichannel = getMidiClip ()->getMidiChannel ();
+//    getMidiClip ()->getAudioTrack ()->playGuideNote
+//                      (midiNoteNumber,midichannel, 127.0 * v, false, true);
 }
 
 void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
@@ -424,7 +434,7 @@ void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
                                        , int /*midiNoteNumber*/
                                        , float)
 {
-    getMidiClip ()->getAudioTrack ()->turnOffGuideNotes ();
+    //getMidiClip ()->getAudioTrack ()->turnOffGuideNotes ();
 }
 
 void PianoRollComponent::centerView()

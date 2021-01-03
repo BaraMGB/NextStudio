@@ -6,6 +6,13 @@
 
 namespace te = tracktion_engine;
 
+class SelectableClipClass : public tracktion_engine::SelectableClass
+{
+public:
+    SelectableClipClass() {}
+};
+
+
 class ClipComponent : public juce::Component
 {
 public:

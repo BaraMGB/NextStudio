@@ -73,14 +73,12 @@ void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
     //hide Piano Rolls
     for (auto pr : m_pianoRolls)
     {
-        m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (pr);
         if (pr)
         {
+            m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (pr);
             pr->setVisible (false);
         }
     }
-    m_editViewState.m_isPianoRollVisible = false;
-
 
     for (auto &prc : m_pluginRackComps)
     {
@@ -90,21 +88,11 @@ void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
             prc->setVisible(true);
         }
     }
-//    if (!exists)
-//    {
-//        PluginRackComponent * pluginRackComp =
-//                new PluginRackComponent(m_editViewState,lastClickedTrack);
-
-//        pluginRackComp->setAlwaysOnTop(true);
-//        pluginRackComp->setVisible(true);
-//        addAndMakeVisible(pluginRackComp);
-//        m_pluginRackComps.add(pluginRackComp);
-//    }
 }
 
 void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
 {
-    if (clip != nullptr)
+    if (auto midiclip = dynamic_cast<te::MidiClip*>(clip.get ()))
     {
         //hide all PluginRacks
         for (auto &pluginrack : m_pluginRackComps)
@@ -116,6 +104,7 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
         for (auto &pianoroll : m_pianoRolls)
         {
             std::cout << "---show Piano Roll" << std::endl;
+
             pianoroll->setVisible (false);
             m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (pianoroll);
             if (pianoroll->getClip () == clip)
@@ -123,7 +112,7 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
                 pianoroll->setVisible (true);
                 m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.addListener (pianoroll);
                 pianoroll->centerView ();
-                m_editViewState.m_isPianoRollVisible = true;
+                //m_editViewState.m_isPianoRollVisible = true;
             }
         }
     }

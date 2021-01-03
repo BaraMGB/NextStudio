@@ -211,6 +211,7 @@ void MainComponent::createTracksAndAssignInputs()
     }
 
     m_edit->getTransport().ensureContextAllocated();
+    m_edit->restartPlayback();
 
 //    int trackNum = 0;
 //    for (auto instance : m_edit->getAllInputDevices())
@@ -229,6 +230,5 @@ void MainComponent::createTracksAndAssignInputs()
 
     //dm.setDefaultMidiInDevice (2);
     //std::cout <<  << std::endl;
-    m_edit->restartPlayback();
 
 }
