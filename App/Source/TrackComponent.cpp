@@ -126,6 +126,7 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
             if (isMidiTrack)
             {
                 createNewMidiClip (m_editViewState.xToBeats (event.x,getWidth ()));
+                resized ();
             }
         }
     }
@@ -395,19 +396,31 @@ void TrackComponent::buildClips()
         for (auto c : ct->getClips())
         {
             ClipComponent* cc = nullptr;
+            PianoRollComponent* pr = nullptr;
 
             if (dynamic_cast<te::WaveAudioClip*> (c))
                 cc = new AudioClipComponent (m_editViewState, c);
             else if (dynamic_cast<te::MidiClip*> (c))
+            {
                 cc = new MidiClipComponent (m_editViewState, c);
+                pr = new PianoRollComponent (m_editViewState, c);
+            }
+
             else
                 cc = new ClipComponent (m_editViewState, c);
 
             clips.add (cc);
             addAndMakeVisible (cc);
+            if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
+            {
+                if (auto midiClipcomp = dynamic_cast<MidiClipComponent*>(cc))
+                {
+                    midiClipcomp->addChangeListener (&editcomp->lowerRange ());
+                }
+                editcomp->lowerRange ().addPianoRollEditor(pr);
+            }
         }
     }
-
     resized();
 }
 

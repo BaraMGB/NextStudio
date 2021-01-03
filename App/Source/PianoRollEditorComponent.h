@@ -65,15 +65,23 @@ public:
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
+    te::Clip::Ptr getClip()
+    {
+        return m_clip;
+    }
+
     te::MidiClip* getMidiClip()
     {
         return dynamic_cast<te::MidiClip*> (m_clip.get());
     }
     void centerView();
+    juce::MidiKeyboardComponent &getKeyboard();
+
 private:
     EditViewState& m_editViewState;
     te::Clip::Ptr m_clip;
     juce::MidiKeyboardComponent m_keyboard;
+    juce::MidiKeyboardState m_keybordstate;
     TimeLineComponent m_timeline;
     PianoRollDisplay m_pianoRoll;
     PlayheadComponent m_playhead;

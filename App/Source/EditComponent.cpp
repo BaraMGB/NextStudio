@@ -205,7 +205,6 @@ void EditComponent::resized()
     {
         auto trackHeader = m_headers[i];
         auto trackComp = m_trackComps[i];
-        auto pluginRack = m_pluginRackComps[i];
 
         trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
                         tracktion_engine::IDs::height,50);
@@ -215,11 +214,6 @@ void EditComponent::resized()
                               , y
                               , getWidth() - headerWidth - footerWidth
                               , trackHeight);
-        pluginRack->setBounds (getWidth() - footerWidth
-                               , y
-                               , footerWidth
-                               , trackHeight);
-
         y += trackHeight + trackGap;
     }
 
@@ -238,7 +232,7 @@ void EditComponent::resized()
     m_scrollbar.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
 }
 
-void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *)
+void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
     repaint();
 }
@@ -274,55 +268,63 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
 
 void EditComponent::buildTracks()
 {
+    m_lowerRange.clearPianoRolls ();
+    m_lowerRange.clearPluginRacks ();
     m_trackComps.clear();
     m_headers.clear();
-    m_pluginRackComps.clear();
     
     for (auto t : getAllTracks (m_edit))
     {
-        TrackComponent* c = nullptr;
+        TrackComponent* trackcomp = nullptr;
         
         if (t->isTempoTrack())
         {
             if (m_editViewState.m_showGlobalTrack)
-                c = new TrackComponent (m_editViewState, t);
+                trackcomp = new TrackComponent (m_editViewState, t);
         }
         else if (t->isMarkerTrack())
         {
             if (m_editViewState.m_showMarkerTrack)
-                c = new TrackComponent (m_editViewState, t);
+                trackcomp = new TrackComponent (m_editViewState, t);
         }
         else if (t->isChordTrack())
         {
             if (m_editViewState.m_showChordTrack)
-                c = new TrackComponent (m_editViewState, t);
+                trackcomp = new TrackComponent (m_editViewState, t);
         }
         else if (t->isArrangerTrack())
         {
             if (m_editViewState.m_showArrangerTrack)
-                c = new TrackComponent (m_editViewState, t);
+                trackcomp = new TrackComponent (m_editViewState, t);
         }
         else
         {
-            c = new TrackComponent (m_editViewState, t);
+            trackcomp = new TrackComponent (m_editViewState, t);
         }
         
-        if (c != nullptr)
+        if (trackcomp != nullptr)
         {
-            m_trackComps.add (c);
-            addAndMakeVisible (c);
+            m_trackComps.add (trackcomp);
+            addAndMakeVisible (trackcomp);
             
-            auto h = new TrackHeaderComponent (m_editViewState, t);
-            m_headers.add (h);
-            addAndMakeVisible (h);
+            auto trackheader = new TrackHeaderComponent (m_editViewState, t);
+            m_headers.add (trackheader);
+            addAndMakeVisible (trackheader);
             
-            auto f = new PluginRackComponent (m_editViewState, t);
-            m_pluginRackComps.add (f);
-            addAndMakeVisible (f);
+            auto pluginrack = new PluginRackComponent (m_editViewState, t);
+            m_lowerRange.addPluginRackComp(pluginrack);
+
+            trackheader->addChangeListener (&m_lowerRange);
+
         }
     }
     
     m_playhead.toFront (false);
     resized();
+}
+
+LowerRangeComponent& EditComponent::lowerRange()
+{
+    return m_lowerRange;
 }
 

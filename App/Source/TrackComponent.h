@@ -102,6 +102,7 @@ private:
     te::Track::Ptr track;
     te::Clipboard m_clipBoard;
     juce::OwnedArray<ClipComponent> clips;
+
     juce::Image m_dragImage;
     int m_posInClip{0};
     std::unique_ptr<RecordingClipComponent> recordingClip;

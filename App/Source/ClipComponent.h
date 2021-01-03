@@ -27,7 +27,7 @@ public:
     bool isShiftDown () const;
 
 protected:
-    EditViewState& editViewState;
+    EditViewState& m_editViewState;
     te::Clip::Ptr m_clip;
 
     void showContextMenu();
@@ -70,9 +70,11 @@ private:
 
 //==============================================================================
 class MidiClipComponent : public ClipComponent
+                        , public juce::ChangeBroadcaster
 {
 public:
     MidiClipComponent (EditViewState&, te::Clip::Ptr);
+    ~MidiClipComponent();
 
     te::MidiClip* getMidiClip()
     {

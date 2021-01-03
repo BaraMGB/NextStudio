@@ -339,8 +339,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs
                                        , tracktion_engine::Clip::Ptr clip)
     : m_editViewState(evs)
     , m_clip(clip)
-    , m_keyboard (m_editViewState.m_edit.engine.getDeviceManager ()
-                  .getDefaultMidiInDevice ()->keyboardState
+    , m_keyboard (m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState
                   , juce::MidiKeyboardComponent::
                     Orientation::verticalKeyboardFacingRight)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
@@ -348,8 +347,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
     m_editViewState.m_edit.state.addListener (this);
-    m_editViewState.m_edit.engine.getDeviceManager ()
-            .getDefaultMidiInDevice ()->keyboardState.addListener (this);
+
 
     m_keyboard.setBlackNoteWidthProportion (0.5);
     m_keyboard.setBlackNoteLengthProportion (0.6);
@@ -364,8 +362,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs
 
 PianoRollComponent::~PianoRollComponent()
 {
-    m_editViewState.m_edit.engine.getDeviceManager ()
-            .getDefaultMidiInDevice ()->keyboardState.removeListener (this);
+    m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (this);
     m_editViewState.m_edit.state.removeListener (this);
 }
 
@@ -379,7 +376,7 @@ void PianoRollComponent::resized()
     double lastVisibleNote  = m_editViewState.m_pianoY2;
     double pianoRollNoteWidth = getHeight () / (lastVisibleNote - firstVisibleNote);
 
-    m_keyboard.setKeyWidth (pianoRollNoteWidth * 12 / 7);
+    m_keyboard.setKeyWidth (juce::jmax(0.1, pianoRollNoteWidth * 12 / 7));
     m_keyboard.setBounds (0
                           , getHeight () - m_keyboard.getTotalKeyboardWidth ()
                             + (firstVisibleNote * pianoRollNoteWidth)
@@ -444,5 +441,10 @@ if (auto midiclip = getMidiClip ())
 //            .expanded (10);
 //    m_editViewState.m_pianoY1 = juce::jmax(0, noteRange.getStart ());
 //    m_editViewState.m_pianoY2 = juce::jmin(127, noteRange.getEnd ());
+}
+
+juce::MidiKeyboardComponent &PianoRollComponent::getKeyboard()
+{
+    return m_keyboard;
 }
 

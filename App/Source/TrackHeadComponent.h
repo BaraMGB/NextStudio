@@ -11,7 +11,8 @@
 namespace te = tracktion_engine;
 
 class TrackHeaderComponent : public juce::Component,
-                             private te::ValueTreeAllEventListener
+                             private te::ValueTreeAllEventListener,
+                             public juce::ChangeBroadcaster
 {
 public:
     TrackHeaderComponent (EditViewState&, te::Track::Ptr);
@@ -25,6 +26,8 @@ public:
     void mouseMove(const juce::MouseEvent &event) override;
     void mouseExit(const juce::MouseEvent &event) override;
     juce::Colour getTrackColour();
+
+    te::Track::Ptr getTrack() const;
 
 private:
     void valueTreeChanged() override {}

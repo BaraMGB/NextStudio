@@ -50,6 +50,7 @@ namespace IDs
     DECLARE_ID (headerWidth)
     DECLARE_ID (isMidiTrack)
     DECLARE_ID (isAutoArmed)
+    DECLARE_ID (isPianoRollVisible)
     #undef DECLARE_ID
 }
 
@@ -75,6 +76,7 @@ public:
         m_showFooters.referTo (m_state, IDs::showFooters, um, false);
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
         m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
+        m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
 
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
         m_headerHeight.referTo(m_state, IDs::headerHeight, um, 50);
@@ -167,6 +169,7 @@ public:
                           , m_showFooters
                           , m_showMidiDevices
                           , m_showWaveDevices
+                          , m_isPianoRollVisible
                           , m_isAutoArmed;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2

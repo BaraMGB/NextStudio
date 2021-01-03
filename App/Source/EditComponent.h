@@ -36,6 +36,8 @@ public:
     ~EditComponent();
 
 
+    LowerRangeComponent& lowerRange();
+
 private:
 
     void valueTreeChanged() override {}

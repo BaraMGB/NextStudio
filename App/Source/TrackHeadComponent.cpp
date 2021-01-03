@@ -65,6 +65,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 
 TrackHeaderComponent::~TrackHeaderComponent()
 {
+    removeAllChangeListeners ();
     m_track->state.removeListener (this);
 }
 
@@ -223,6 +224,11 @@ void TrackHeaderComponent::deleteTrackFromEdit()
     }
 }
 
+te::Track::Ptr TrackHeaderComponent::getTrack() const
+{
+    return m_track;
+}
+
 void TrackHeaderComponent::paint (juce::Graphics& g)
 {
     auto cornerSize = 10.0f;
@@ -322,6 +328,11 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
             }
             else
             {
+//                if (event.getNumberOfClicks () > 1
+//                  || !editViewState.m_isPianoRollVisible)
+                {
+                    sendChangeMessage ();
+                }
                 editViewState.m_selectionManager.selectOnly(m_track);
                 if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get()))
                 {
@@ -334,17 +345,18 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                         {
                             if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
                             {
+
                                 if (midiIn == dm.getDefaultMidiInDevice ())
                                 {
                                     instance->setTargetTrack(*at, 0, true);
+                                    //toDO ... hack!
+                                    EngineHelpers::enableInputMonitoring(
+                                        *at, !EngineHelpers::isInputMonitoringEnabled(*at));
+                                    EngineHelpers::enableInputMonitoring(
+                                        *at, !EngineHelpers::isInputMonitoringEnabled(*at));
                                 }
                             }
                         }
-                        //toDO ... hack!
-                        EngineHelpers::enableInputMonitoring(
-                            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
-                        EngineHelpers::enableInputMonitoring(
-                            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
                         if (editViewState.m_isAutoArmed)
                         {
                             for (auto&i : editViewState.m_edit.getTrackList ())

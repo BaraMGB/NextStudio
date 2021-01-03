@@ -5,8 +5,9 @@
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     : m_editViewState(evs)
 {
-    m_editViewState.m_selectionManager.addChangeListener(this);
+    //m_editViewState.m_selectionManager.addChangeListener(this);
     m_pluginRackComps.clear(true);
+
 }
 
 LowerRangeComponent::~LowerRangeComponent()
@@ -14,40 +15,21 @@ LowerRangeComponent::~LowerRangeComponent()
     m_editViewState.m_selectionManager.removeChangeListener(this);
 }
 
-void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * /*source*/)
+void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * source)
 {
-    auto lastClickedTrack = m_editViewState.m_selectionManager
-            .getItemsOfType<tracktion_engine::Track>()
-            .getLast();
-    auto lastClip = m_editViewState.m_selectionManager
-            .getItemsOfType<te::MidiClip>()
-            .getLast ();
-    if (lastClip == nullptr && m_pointedTrack.get() != lastClickedTrack)
-    {
-        if (lastClickedTrack &&     !(lastClickedTrack->isArrangerTrack()
-                                   || lastClickedTrack->isTempoTrack()
-                                   || lastClickedTrack->isMarkerTrack()
-                                   || lastClickedTrack->isChordTrack()))
-        {
 
-            m_pointedTrack = lastClickedTrack;
-            m_pointedClip = nullptr;
-            showPluginRack(lastClickedTrack);
-            resized();
-        }
+    if (auto trackHeaderComp = dynamic_cast<TrackHeaderComponent*>(source))
+    {
+        showPluginRack (trackHeaderComp->getTrack ());
+        resized ();
+        repaint ();
     }
-    else if(lastClip)
-    {
-        if (lastClip != m_pointedClip)
-        {
-            m_pointedClip = lastClip;
-        }
-        if (lastClip->getAudioTrack ())
-        {
 
-            showPianoRoll (lastClip);
-            resized();
-        }
+    if (auto midiClipComp = dynamic_cast<MidiClipComponent*>(source))
+    {
+        showPianoRoll (midiClipComp->getClip ());
+        resized();
+        repaint ();
     }
 }
 
@@ -76,50 +58,53 @@ void LowerRangeComponent::resized()
             }
         }
 
-            if (m_pianoRoll != nullptr && m_pianoRoll->isVisible ())
+        for (auto pr : m_pianoRolls)
+            if (pr != nullptr && pr->isVisible ())
             {
-                m_pianoRoll->setBounds (area);
+                pr->setBounds (area);
             }
-
-
 }
 
-void LowerRangeComponent::showPluginRack(te::Track *lastClickedTrack)
+void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
 {
     std::cout << "---show Plugin Rack" << std::endl;
-    bool exists = false;
-    //hide Piano Rolls
 
-    if (m_pianoRoll)
+
+    //hide Piano Rolls
+    for (auto pr : m_pianoRolls)
     {
-        m_pianoRoll->setVisible (false);
+        m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (pr);
+        if (pr)
+        {
+            pr->setVisible (false);
+        }
     }
+    m_editViewState.m_isPianoRollVisible = false;
+
 
     for (auto &prc : m_pluginRackComps)
     {
         prc->setVisible(false);
-        if (prc->getTrack().get() == lastClickedTrack)
+        if (prc->getTrack() == track)
         {
             prc->setVisible(true);
-            exists = true;
         }
     }
-    if (!exists)
-    {
-        PluginRackComponent * pluginRackComp =
-                new PluginRackComponent(m_editViewState,lastClickedTrack);
+//    if (!exists)
+//    {
+//        PluginRackComponent * pluginRackComp =
+//                new PluginRackComponent(m_editViewState,lastClickedTrack);
 
-        pluginRackComp->setAlwaysOnTop(true);
-        pluginRackComp->setVisible(true);
-        addAndMakeVisible(pluginRackComp);
-        m_pluginRackComps.add(pluginRackComp);
-    }
+//        pluginRackComp->setAlwaysOnTop(true);
+//        pluginRackComp->setVisible(true);
+//        addAndMakeVisible(pluginRackComp);
+//        m_pluginRackComps.add(pluginRackComp);
+//    }
 }
 
-void LowerRangeComponent::showPianoRoll(te::MidiClip * midiClip)
+void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
 {
-    std::cout << "---show Piano Roll" << std::endl;
-    if (midiClip != nullptr)
+    if (clip != nullptr)
     {
         //hide all PluginRacks
         for (auto &pluginrack : m_pluginRackComps)
@@ -128,10 +113,32 @@ void LowerRangeComponent::showPianoRoll(te::MidiClip * midiClip)
         }
         m_pointedTrack = nullptr;
 
-        m_pianoRoll = std::make_unique<PianoRollComponent>(m_editViewState, *midiClip);
-        m_pianoRoll->setAlwaysOnTop(true);
-        m_pianoRoll->setVisible(true);
-        m_pianoRoll->centerView ();
-        addAndMakeVisible(*m_pianoRoll);
+        for (auto &pianoroll : m_pianoRolls)
+        {
+            std::cout << "---show Piano Roll" << std::endl;
+            pianoroll->setVisible (false);
+            m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (pianoroll);
+            if (pianoroll->getClip () == clip)
+            {
+                pianoroll->setVisible (true);
+                m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.addListener (pianoroll);
+                pianoroll->centerView ();
+                m_editViewState.m_isPianoRollVisible = true;
+            }
+        }
     }
 }
+
+void LowerRangeComponent::addPianoRollEditor(PianoRollComponent *pr)
+{
+    addAndMakeVisible (pr);
+    m_pianoRolls.add (pr);
+}
+
+void LowerRangeComponent::addPluginRackComp(PluginRackComponent *pluginrack)
+{
+    addAndMakeVisible (pluginrack);
+    m_pluginRackComps.add (pluginrack);
+}
+
+
