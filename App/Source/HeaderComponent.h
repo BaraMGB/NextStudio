@@ -30,6 +30,11 @@ public:
 
     void update();
 
+    double draggedNewTime(int draggedDistance
+                          , double timeAtMouseDown
+                          , double unitfactor
+                          , bool inBeat
+                          , int dragfactor=10);
 private:
     te::Edit& m_edit;
     juce::Rectangle<int> m_bmpRect
@@ -45,17 +50,19 @@ private:
                        , m_loopInLabel
                        , m_loopOutLabel;
 
-    juce::Point<int>     m_MouseDownPosition;
+    juce::Point<int>     m_mousedownPosition
+                       , m_MouseDownScreenPos;
 
-    double               m_bpmAtMd
-                       , m_barsBeatsAtMd
+    double               m_mousedownBPM
+                       , m_mousedownBarsBeats
                        , m_ppqTimeAtMd
-                       , m_timeAtMouseDown
-                       , m_loopInAtMouseDown
-                       , m_loopOutAtMouseDown;
+                       , m_mousedownTime
+                       , m_mousedownLoopIn
+                       , m_mousedownLoopOut
+                       , m_newTempo;
 
-    int                  m_numAtMouseDown
-                       , m_denAtMouseDown;
+    int                  m_mousedownNumerator
+                       , m_mousedownDenominator;
 };
 
 //------------------------------------------------------------------------------

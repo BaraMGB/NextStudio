@@ -136,36 +136,34 @@ namespace PlayHeadHelpers
     }
 
     // Quick-and-dirty function to format a bars/beats string
-    static inline juce::String quarterNotePositionToBarsBeatsString (double quarterNotes, int numerator, int denominator)
+    static inline juce::String barsBeatsString (te::Edit & edit
+                                                                     , double time)
     {
-        if (numerator == 0 || denominator == 0)
-            return "1.1.000";
+        te::TempoSequencePosition pos(edit.tempoSequence);
+        pos.setTime(time);
+        auto bars = pos.getBarsBeatsTime ().bars + 1;
+        auto beat = (int)pos.getBarsBeatsTime ().beats + 1;
+        auto ticks = (int)(pos.getBarsBeatsTime ()
+                           .getFractionalBeats () * 960 + .5);
+        if (ticks == 960) {ticks = 0;}
 
-        auto quarterNotesPerBar = (numerator * 4 / denominator);
-        auto beats  = (fmod (quarterNotes, quarterNotesPerBar) / quarterNotesPerBar) * numerator;
-
-        auto bar    = ((int) quarterNotes) / quarterNotesPerBar + 1;
-        auto beat   = ((int) beats) + 1;
-        auto ticks  = ((int) (fmod (beats, 1.0) * 960.0 + 0.5));
-
-        return juce::String::formatted ("%d.%d.%03d", bar, beat, ticks);
+       return juce::String(bars) + "."
+              + juce::String(beat) + "."
+              + juce::String::formatted("%03d", ticks);
     }
 
     struct TimeCodeStrings{
-        TimeCodeStrings(const juce::AudioPlayHead::CurrentPositionInfo& pos)
+        TimeCodeStrings(te::Edit & edit)
         {
-            bpm = juce::String(pos.bpm,2);
-            signature = juce::String(juce::String(pos.timeSigNumerator) + "/" + juce::String(pos.timeSigDenominator));
-            time = timeToTimecodeString (pos.timeInSeconds);
-            beats = quarterNotePositionToBarsBeatsString (pos.ppqPosition,
-                                                          pos.timeSigNumerator,
-                                                          pos.timeSigDenominator);
-            loopIn = quarterNotePositionToBarsBeatsString (pos.ppqLoopStart,
-                                                           pos.timeSigNumerator,
-                                                           pos.timeSigDenominator);
-            loopOut = quarterNotePositionToBarsBeatsString (pos.ppqLoopEnd,
-                                                          pos.timeSigNumerator,
-                                                          pos.timeSigDenominator);
+            auto currenttime = edit.getTransport ().getCurrentPosition ();
+            bpm = juce::String(edit.tempoSequence.getTempoAt (currenttime).bpm, 2);
+            auto& timesig = edit.tempoSequence.getTimeSigAt (currenttime);
+            signature = juce::String(juce::String(timesig.numerator) + " / "
+                                   + juce::String(timesig.denominator));
+            time = timeToTimecodeString (currenttime);
+            beats = barsBeatsString (edit, currenttime);
+            loopIn = barsBeatsString (edit, edit.getTransport ().loopPoint1);
+            loopOut = barsBeatsString (edit, edit.getTransport ().loopPoint2);
         }
         juce::String bpm,
                      signature,
@@ -174,28 +172,6 @@ namespace PlayHeadHelpers
                      loopIn,
                      loopOut;
     };
-
-    // Returns a textual description of a CurrentPositionInfo
-    static inline juce::String getTimecodeDisplay (const juce::AudioPlayHead::CurrentPositionInfo& pos)
-    {
-        juce::MemoryOutputStream displayText;
-
-        displayText << juce::String (pos.bpm, 2) << " bpm, "
-                    << pos.timeSigNumerator << '/' << pos.timeSigDenominator
-                    << "  -  " << timeToTimecodeString (pos.timeInSeconds)
-                    << "  -  " << quarterNotePositionToBarsBeatsString (pos.ppqPosition,
-                                                                        pos.timeSigNumerator,
-                                                                        pos.timeSigDenominator);
-
-        if (pos.isRecording)
-            displayText << "  (recording)";
-        else if (pos.isPlaying)
-            displayText << "  (playing)";
-        else
-            displayText << "  (stopped)";
-
-        return displayText.toString();
-    }
 }
 
 //==============================================================================
@@ -210,25 +186,6 @@ namespace EngineHelpers
                                                      , file
                                                      , true);
         return tempProject.project;
-    }
-
-    inline void showAudioDeviceSettings (te::Engine& engine)
-    {
-//        auto chacheDir = engine.getPropertyStorage ().getAppPrefsFolder ();
-//        auto setupFile = chacheDir.getChildFile ("Settings.xml");
-//        if (setupFile.exists ())
-//        {
-//            setupFile.deleteFile ();
-//        }
-
-//        juce::DialogWindow::LaunchOptions o;
-//        o.dialogTitle = TRANS("Audio Settings");
-//        o.dialogBackgroundColour = juce::LookAndFeel::getDefaultLookAndFeel()
-//                .findColour (juce::ResizableWindow::backgroundColourId);
-//        auto audiosettings = new AudioMidiSettings(engine);
-//        o.content.setOwned (audiosettings);
-//        o.content->setSize (400, 600);
-//        o.launchAsync ();
     }
 
     inline void browseForAudioFile (

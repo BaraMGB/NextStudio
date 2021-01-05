@@ -49,178 +49,128 @@ void PositionDisplayComponent::paint(juce::Graphics &g)
 
 void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)
 {
-    m_MouseDownPosition = event.getMouseDownPosition ();
-    m_bpmAtMd = m_edit.tempoSequence.getTempos ()[0]->getBpm ();
-    m_barsBeatsAtMd = m_edit.tempoSequence.timeToBeats (
+    m_mousedownPosition = event.getMouseDownPosition ();
+    m_mousedownBPM = m_edit.tempoSequence.getTempos ()[0]->getBpm ();
+    m_mousedownBarsBeats = m_edit.tempoSequence.timeToBeats (
                 m_edit.getTransport ().getCurrentPosition ());
-    m_timeAtMouseDown = m_edit.getTransport ().getCurrentPosition ();
-    m_numAtMouseDown = m_edit.tempoSequence.getTimeSig(0)->numerator;
-    m_denAtMouseDown = m_edit.tempoSequence.getTimeSig(0)->denominator;
-    m_loopInAtMouseDown = m_edit.getTransport ().getLoopRange ().getStart ();
-    m_loopOutAtMouseDown = m_edit.getTransport ().getLoopRange ().getEnd ();
-    te::TempoSequencePosition pos(m_edit.tempoSequence);
+    m_mousedownTime = m_edit.getTransport ().getCurrentPosition ();
+    m_mousedownNumerator = m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).numerator;
+    m_mousedownDenominator = m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator;
+    m_mousedownLoopIn = m_edit.getTransport ().getLoopRange ().getStart ();
+    m_mousedownLoopOut = m_edit.getTransport ().getLoopRange ().getEnd ();
+    m_newTempo = m_mousedownBPM;
 }
 
 void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
 {
-    if (m_bmpRect.contains (m_MouseDownPosition))
+    event.source.enableUnboundedMouseMovement (true);
+    auto divisor = 1.0;
+    auto draggedDist = event.getDistanceFromDragStartY ();
+    if (m_bmpRect.contains (m_mousedownPosition))
     {
-        //m_edit.getTransport().setUserDragging (true);
-
         auto r = m_bmpRect;
-        if (r.removeFromLeft (r.getWidth ()/2).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            auto tempo = m_edit.tempoSequence.getTempos ()[0];
-            tempo->setBpm ( m_bpmAtMd - (event.getDistanceFromDragStartY ()));
-        }
-        else
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            auto tempo = m_edit.tempoSequence.getTempos ()[0];
-            tempo->setBpm (m_bpmAtMd
-                           - (event.getDistanceFromDragStartY () /100.0));
-        }
+
+        auto& tempo = m_edit.tempoSequence.getTempoAt (m_mousedownTime);
+        tempo.setBpm (r.removeFromLeft (r.getWidth ()/2)
+                      .contains (m_mousedownPosition)
+                      ? (int) (m_mousedownBPM - (draggedDist / 10.0))
+                      : m_mousedownBPM - (draggedDist / 1000.0));
         //set the Position back to the Beat Position on Mouse down
         te::TempoSequencePosition pos(m_edit.tempoSequence);
-        pos.setTime (m_edit.tempoSequence.beatsToTime ( m_barsBeatsAtMd));
+        pos.setTime (m_edit.tempoSequence.beatsToTime ( m_mousedownBarsBeats));
         m_edit.getTransport ().setCurrentPosition (pos.getTime ());
     }
-    else if (m_sigRect.contains (m_MouseDownPosition))
+    else if (m_sigRect.contains (m_mousedownPosition))
     {
+        auto r = m_sigRect;
+        if (r.removeFromLeft (r.getWidth ()/2)
+                .contains (m_mousedownPosition))
+        {
+            auto newNum = juce::jlimit (1,16, m_mousedownNumerator - draggedDist);
+            m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).numerator
+                    = newNum;
+        }
+        else
+        {
+            auto newDen = juce::jlimit ( 1,16, m_mousedownDenominator - draggedDist);
+            m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator
+                    = newDen;
+        }
     }
-    else if (m_barBeatTickRect.contains (m_MouseDownPosition))
+    else if (m_barBeatTickRect.contains (m_mousedownPosition))
     {
         auto r = m_barBeatTickRect;
-        if (r.removeFromLeft (
-                m_barBeatTickRect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_timeAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY () * 4));
-            m_edit.getTransport ().setCurrentPosition (pos.getTime ());
-        }
-        else if(r.removeFromLeft (
-                   m_barBeatTickRect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_timeAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY ()));
-            m_edit.getTransport ().setCurrentPosition (pos.getTime ());
-        }
-        else
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_timeAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY () / 960.0));
-            m_edit.getTransport ().setCurrentPosition (pos.getTime ());
-        }
+        auto leftRect   = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
+        auto centerRect = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
+
+        divisor = leftRect.contains (m_mousedownPosition)
+                ? 0.25
+                : centerRect.contains (m_mousedownPosition)
+                    ? 1.0
+                    : 960.0;
+        m_edit.getTransport ()
+                .setCurrentPosition (
+                    draggedNewTime (draggedDist
+                                    , m_mousedownTime
+                                    , divisor
+                                    , true));
     }
-    else if (m_timeRect.contains (m_MouseDownPosition))
+    else if (m_timeRect.contains (m_mousedownPosition))
     {
         auto r = m_timeRect;
-        if (r.removeFromLeft (
-                    m_timeRect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime (m_timeAtMouseDown
-                         - (event.getDistanceFromDragStartY () * 60));
-            m_edit.getTransport ().setCurrentPosition (pos.getTime ());
-        }
-        else if (r.removeFromLeft (
-                     m_timeRect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_timeAtMouseDown
-                          - event.getDistanceFromDragStartY ());
-            m_edit.getTransport ().setCurrentPosition (pos.getTime ());
-        }
-        else
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime (m_timeAtMouseDown
-                         - (event.getDistanceFromDragStartY () * 0.001));
-            m_edit.getTransport ().setCurrentPosition (pos.getTime ());
-        }
+        auto leftRect   = r.removeFromLeft (m_timeRect.getWidth ()/3);
+        auto centerRect = r.removeFromLeft (m_timeRect.getWidth ()/3);
+        divisor = leftRect.contains (m_mousedownPosition)
+                ? 1/60.0
+                : centerRect.contains (m_mousedownPosition)
+                    ? 1.0
+                    : 1000.0;
+        m_edit.getTransport ()
+                .setCurrentPosition (
+                    draggedNewTime (draggedDist
+                                    , m_mousedownTime
+                                    , divisor
+                                    , false));
     }
-    else if (m_loopInrect.contains (m_MouseDownPosition))
+    else if (m_loopInrect.contains (m_mousedownPosition))
     {
         auto r = m_loopInrect;
-        if (r.removeFromLeft (
-                    m_loopInrect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime (m_loopInAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY () * 4));
-            m_edit.getTransport ().setLoopIn (pos.getTime ());
-        }
-        else if(r.removeFromLeft (
-                    m_loopInrect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_loopInAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY ()));
-            m_edit.getTransport ().setLoopIn (pos.getTime ());
-        }
-        else
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_loopInAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY () / 960.0));
-            m_edit.getTransport ().setLoopIn (pos.getTime ());
-        }
+        auto leftRect   = r.removeFromLeft (m_loopInrect.getWidth ()/3);
+        auto centerRect = r.removeFromLeft (m_loopInrect.getWidth ()/3);
+
+        divisor = leftRect.contains (m_mousedownPosition)
+                ? 0.25
+                : centerRect.contains (m_mousedownPosition)
+                    ? 1.0
+                    : 960.0;
+        m_edit.getTransport ()
+                .setLoopIn (
+                    draggedNewTime (draggedDist
+                                    , m_mousedownLoopIn
+                                    , divisor
+                                    , true));
     }
-    else if (m_loopOutRect.contains (m_MouseDownPosition))
+    else if (m_loopOutRect.contains (m_mousedownPosition))
     {
         auto r = m_loopOutRect;
-        if (r.removeFromLeft (
-                    m_loopOutRect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime (m_loopOutAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY () * 4));
-            m_edit.getTransport ().setLoopOut (pos.getTime ());
-        }
-        else if(r.removeFromLeft (
-                    m_loopOutRect.getWidth ()/3).contains (m_MouseDownPosition))
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_loopOutAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY ()));
-            m_edit.getTransport ().setLoopOut (pos.getTime ());
-        }
-        else
-        {
-            event.source.enableUnboundedMouseMovement (true);
-            te::TempoSequencePosition pos(m_edit.tempoSequence);
-            pos.setTime ( m_loopOutAtMouseDown);
-            pos.setPPQTime (pos.getPPQTime ()
-                            - (event.getDistanceFromDragStartY () / 960.0));
-            m_edit.getTransport ().setLoopOut (pos.getTime ());
-        }
+        auto leftRect   = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
+        auto centerRect = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
+
+        divisor = leftRect.contains (m_mousedownPosition)
+                ? 0.25
+                : centerRect.contains (m_mousedownPosition)
+                    ? 1.0
+                    : 960.0;
+        m_edit.getTransport ()
+                .setLoopOut (
+                    draggedNewTime (draggedDist
+                                    , m_mousedownLoopOut
+                                    , divisor
+                                    , true));
     }
 }
 
-void PositionDisplayComponent::mouseUp(const juce::MouseEvent &/*e*/)
+void PositionDisplayComponent::mouseUp(const juce::MouseEvent &)
 {
     m_edit.getTransport ().setUserDragging (false);
 }
@@ -252,7 +202,7 @@ void PositionDisplayComponent::update()
 {
     const auto pos = te::getCurrentPositionInfo (m_edit);
     const auto nt = juce::NotificationType::dontSendNotification;
-    PlayHeadHelpers::TimeCodeStrings positionStr(pos);
+    PlayHeadHelpers::TimeCodeStrings positionStr(m_edit);
 
     m_bpmLabel.setText (positionStr.bpm, nt);
     m_sigLabel.setText (positionStr.signature, nt);
@@ -261,6 +211,30 @@ void PositionDisplayComponent::update()
     m_loopInLabel.setText (positionStr.loopIn, nt);
     m_loopOutLabel.setText (positionStr.loopOut, nt);
 }
+
+double PositionDisplayComponent::draggedNewTime(int draggedDistance
+        , double timeAtMouseDown
+        , double unitfactor
+        , bool inBeat
+        , int dragfactor)
+{
+    te::TempoSequencePosition pos(m_edit.tempoSequence);
+    pos.setTime (timeAtMouseDown);
+    if (inBeat)
+    {
+        pos.addBeats ((-draggedDistance / dragfactor)
+                      / unitfactor );
+    }
+    else
+    {
+        pos.setTime (timeAtMouseDown +
+                (- draggedDistance / dragfactor)
+                     / unitfactor);
+    }
+    return pos.getTime ();
+}
+
+
 
 //==============================================================================
 
