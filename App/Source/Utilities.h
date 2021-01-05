@@ -137,7 +137,7 @@ namespace PlayHeadHelpers
 
     // Quick-and-dirty function to format a bars/beats string
     static inline juce::String barsBeatsString (te::Edit & edit
-                                                                     , double time)
+                                                , double time)
     {
         te::TempoSequencePosition pos(edit.tempoSequence);
         pos.setTime(time);
@@ -162,8 +162,10 @@ namespace PlayHeadHelpers
                                    + juce::String(timesig.denominator));
             time = timeToTimecodeString (currenttime);
             beats = barsBeatsString (edit, currenttime);
-            loopIn = barsBeatsString (edit, edit.getTransport ().loopPoint1);
-            loopOut = barsBeatsString (edit, edit.getTransport ().loopPoint2);
+            loopIn  = barsBeatsString (edit, edit.getTransport ()
+                                      .getLoopRange ().getStart ());
+            loopOut = barsBeatsString (edit, edit.getTransport ()
+                                      .getLoopRange ().getEnd ());
         }
         juce::String bpm,
                      signature,
