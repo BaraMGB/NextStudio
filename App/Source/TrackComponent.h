@@ -74,10 +74,10 @@ public:
     void mouseDown (const juce::MouseEvent& e) override;
     void resized() override;
 
-    inline bool isInterestedInDragSource(const SourceDetails& /*dragSourceDetails*/) override { return true; }
+    inline bool isInterestedInDragSource(const SourceDetails&) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
-    void itemDragExit(const SourceDetails& dragSourceDetails) override;
+    void itemDragExit(const SourceDetails&) override;
 
     bool keyPressed(const juce::KeyPress &key) override;
 

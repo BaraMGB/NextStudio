@@ -418,7 +418,7 @@ void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSo
     }
 }
 
-void TrackComponent::itemDragExit(const DragAndDropTarget::SourceDetails &dragSourceDetails)
+void TrackComponent::itemDragExit(const DragAndDropTarget::SourceDetails &)
 {
     m_dragging = false;
     m_trackOverlay.setVisible(false);
@@ -442,6 +442,16 @@ bool TrackComponent::keyPressed(const juce::KeyPress &key)
         }
 
         return true;
+    }
+    if (key == juce::KeyPress::deleteKey)
+    {
+        if (auto selectedClip = m_editViewState.m_selectionManager
+                                               .getSelectedObjects ()
+                                               .getItemsOfType<te::Clip>()
+                                               .getLast ())
+        {
+            selectedClip->removeFromParentTrack ();
+        }
     }
     return false;
 }

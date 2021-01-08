@@ -25,6 +25,7 @@ public:
     void mouseUp(const juce::MouseEvent &event) override;
     void mouseMove(const juce::MouseEvent &event) override;
     void mouseExit(const juce::MouseEvent &event) override;
+    bool keyPressed(const juce::KeyPress &key) override;
     juce::Colour getTrackColour();
 
     te::Track::Ptr getTrack() const;

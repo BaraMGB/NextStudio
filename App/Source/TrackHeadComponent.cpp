@@ -428,6 +428,16 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent &event)
     repaint();
 }
 
+bool TrackHeaderComponent::keyPressed(const juce::KeyPress &key)
+{
+    if (key == juce::KeyPress::deleteKey)
+    {
+        deleteTrackFromEdit ();
+        return true;
+    }
+    return false;
+}
+
 
 juce::Colour TrackHeaderComponent::getTrackColour()
 {
