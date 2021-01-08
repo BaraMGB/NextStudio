@@ -35,27 +35,28 @@ public:
     EditComponent (te::Edit&, te::SelectionManager&);
     ~EditComponent();
 
-
-    LowerRangeComponent& lowerRange();
-
-private:
-
-    void valueTreeChanged() override {}
-    void valueTreePropertyChanged (
-            juce::ValueTree&, const juce::Identifier&) override;
-    void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
-    void valueTreeChildRemoved (
-            juce::ValueTree&, juce::ValueTree&, int) override;
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
-    
+    void paint(juce::Graphics &g) override;
+    void resized() override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseWheelMove(const juce::MouseEvent &event
                         , const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved
                         , double newRangeStart) override;
-    void paint(juce::Graphics &g) override;
+    LowerRangeComponent& lowerRange();
+
+private:
+
+    void valueTreeChanged() override {}
+    void valueTreePropertyChanged (juce::ValueTree&
+                                   , const juce::Identifier&) override;
+    void valueTreeChildAdded (juce::ValueTree&
+                              , juce::ValueTree&) override;
+    void valueTreeChildRemoved (juce::ValueTree&
+                                , juce::ValueTree&
+                                , int) override;
+    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     void handleAsyncUpdate() override;
-    void resized() override;
+
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
     void addAudioTrack(bool isMidi, juce::Colour);

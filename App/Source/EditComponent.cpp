@@ -24,16 +24,14 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     m_edit.state.addListener (this);
     m_editViewState.m_selectionManager.addChangeListener (this);
 
-    m_timeLine.setAlwaysOnTop (true);
 
     m_scrollbar.setAlwaysOnTop (true);
     m_scrollbar.setAutoHide (false);
     m_scrollbar.addListener (this);
 
+    m_timeLine.setAlwaysOnTop (true);
     m_lowerRange.setAlwaysOnTop(true);
-
     m_playhead.setAlwaysOnTop (true);
-
     m_toolBar.setAlwaysOnTop (true);
     
     addAndMakeVisible (m_timeLine);
@@ -53,53 +51,66 @@ EditComponent::~EditComponent()
     m_edit.state.removeListener (this);
 }
 
-void EditComponent::valueTreePropertyChanged (
-        juce::ValueTree& v, const juce::Identifier& i)
+void EditComponent::paint (juce::Graphics &g)
 {
-    if (v.hasType (IDs::EDITVIEWSTATE))
+    g.setColour(juce::Colour(0xff181818));
+    auto cornerSize = 10.0;
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
+
+    g.setColour(juce::Colour(0xff4f4f4f));
+    g.drawRect(m_editViewState.m_headerWidth, 0, 1, getHeight());
+}
+
+void EditComponent::resized()
+{
+    jassert (m_headers.size() == m_trackComps.size());
+
+    const int timelineHeight = 50;
+    const int trackGap = 0;
+    const int headerWidth = m_editViewState.m_showHeaders
+                          ? m_editViewState.m_headerWidth
+                          : 0;
+    const int footerWidth = m_editViewState.m_showFooters ? 150 : 0;
+    const int pluginRackHeight = 250;
+
+
+
+    auto area = getLocalBounds();
+    auto pluginRackRect = area.removeFromBottom(pluginRackHeight);
+
+    int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
+
+    int trackHeight = 30;
+    int trackHeights = 0;
+    for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
     {
-        if (i == IDs::viewX1
-            || i == IDs::viewX2
-            || i == IDs::viewY)
-        {
-            markAndUpdate (m_updateZoom);
-        }
-        else if (i == IDs::showHeaders
-                 || i == IDs::showFooters)
-        {
-            markAndUpdate (m_updateZoom);
-        }
-        else if (i == IDs::drawWaveforms)
-        {
-            repaint();
-        }
+        auto trackHeader = m_headers[i];
+        auto trackComp = m_trackComps[i];
+
+        trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
+                        tracktion_engine::IDs::height,50);
+        trackHeights += trackHeight;
+        trackHeader->setBounds (2, y, headerWidth-2, trackHeight);
+        trackComp->setBounds (headerWidth + 1
+                              , y
+                              , getWidth() - headerWidth - footerWidth
+                              , trackHeight);
+        y += trackHeight + trackGap;
     }
-}
 
-void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
-{
-    if (te::TrackList::isTrack (c))
-        markAndUpdate (m_updateTracks);
-}
+    for (auto t : m_trackComps)
+        t->resized();
 
-void EditComponent::valueTreeChildRemoved (
-        juce::ValueTree&, juce::ValueTree& c, int)
-{
-    if (te::MidiClip::isClipState (c))
-    {
-        std::cout << "Clip removed" << std::endl;
-    }
-    if (te::TrackList::isTrack (c))
-        markAndUpdate (m_updateTracks);
-}
+    m_lowerRange.setBounds (pluginRackRect);
+    m_playhead.setBounds (
+                area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
+    m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));
+    m_toolBar.setBounds (0, 0, headerWidth, timelineHeight);
 
-void EditComponent::valueTreeChildOrderChanged (
-        juce::ValueTree& v, int a, int b)
-{
-    if (te::TrackList::isTrack (v.getChild (a)))
-        markAndUpdate (m_updateTracks);
-    else if (te::TrackList::isTrack (v.getChild (b)))
-        markAndUpdate (m_updateTracks);
+    auto songeditorHeight = getHeight() - timelineHeight - pluginRackHeight;
+    m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
+    m_scrollbar.setRangeLimits (0, trackHeights + (songeditorHeight/2));
+    m_scrollbar.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
 }
 
 void EditComponent::mouseDown(const juce::MouseEvent &event)
@@ -159,16 +170,67 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
     }
 }
 
-
-void EditComponent::paint (juce::Graphics &g)
+void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
+                                   , double newRangeStart)
 {
-    g.setColour(juce::Colour(0xff181818));
-    auto cornerSize = 10.0;
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
-
-    g.setColour(juce::Colour(0xff4f4f4f));
-    g.drawRect(m_editViewState.m_headerWidth, 0, 1, getHeight());
+    if (scrollBarThatHasMoved == &m_scrollbar)
+    {
+        m_editViewState.m_viewY = -newRangeStart;
+    }
 }
+
+
+void EditComponent::valueTreePropertyChanged (
+        juce::ValueTree& v, const juce::Identifier& i)
+{
+    if (v.hasType (IDs::EDITVIEWSTATE))
+    {
+        if (i == IDs::viewX1
+            || i == IDs::viewX2
+            || i == IDs::viewY)
+        {
+            markAndUpdate (m_updateZoom);
+        }
+        else if (i == IDs::showHeaders
+                 || i == IDs::showFooters)
+        {
+            markAndUpdate (m_updateZoom);
+        }
+        else if (i == IDs::drawWaveforms)
+        {
+            repaint();
+        }
+    }
+}
+
+void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
+{
+    if (te::TrackList::isTrack (c))
+        markAndUpdate (m_updateTracks);
+}
+
+void EditComponent::valueTreeChildRemoved (
+        juce::ValueTree&, juce::ValueTree& c, int)
+{
+    if (te::MidiClip::isClipState (c))
+    {
+        std::cout << "Clip removed" << std::endl;
+    }
+    if (te::TrackList::isTrack (c))
+        markAndUpdate (m_updateTracks);
+}
+
+void EditComponent::valueTreeChildOrderChanged (
+        juce::ValueTree& v, int a, int b)
+{
+    if (te::TrackList::isTrack (v.getChild (a)))
+        markAndUpdate (m_updateTracks);
+    else if (te::TrackList::isTrack (v.getChild (b)))
+        markAndUpdate (m_updateTracks);
+}
+
+
+
 
 void EditComponent::handleAsyncUpdate()
 {
@@ -181,57 +243,6 @@ void EditComponent::handleAsyncUpdate()
     }
 }
 
-void EditComponent::resized()
-{
-    jassert (m_headers.size() == m_trackComps.size());
-    
-    const int timelineHeight = 50;
-    const int trackGap = 0;
-    const int headerWidth = m_editViewState.m_showHeaders
-                          ? m_editViewState.m_headerWidth
-                          : 0;
-    const int footerWidth = m_editViewState.m_showFooters ? 150 : 0;
-    const int pluginRackHeight = 250;
-
-
-
-    auto area = getLocalBounds();
-    auto pluginRackRect = area.removeFromBottom(pluginRackHeight);
-    
-    int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
-
-    int trackHeight = 30;
-    int trackHeights = 0;
-    for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
-    {
-        auto trackHeader = m_headers[i];
-        auto trackComp = m_trackComps[i];
-
-        trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
-                        tracktion_engine::IDs::height,50);
-        trackHeights += trackHeight;
-        trackHeader->setBounds (2, y, headerWidth-2, trackHeight);
-        trackComp->setBounds (headerWidth + 1
-                              , y
-                              , getWidth() - headerWidth - footerWidth
-                              , trackHeight);
-        y += trackHeight + trackGap;
-    }
-
-    for (auto t : m_trackComps)
-        t->resized();
-
-    m_lowerRange.setBounds (pluginRackRect);
-    m_playhead.setBounds (
-                area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
-    m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));
-    m_toolBar.setBounds (0, 0, headerWidth, timelineHeight);
-
-    auto songeditorHeight = getHeight() - timelineHeight - pluginRackHeight;
-    m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
-    m_scrollbar.setRangeLimits (0, trackHeights + (songeditorHeight/2));
-    m_scrollbar.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
-}
 
 void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
@@ -256,15 +267,6 @@ void EditComponent::addAudioTrack(bool isMidiTrack, juce::Colour trackColour)
          track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
          track->setColour(trackColour);
          m_editViewState.m_selectionManager.selectOnly(track);
-    }
-}
-
-void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
-                                   , double newRangeStart)
-{
-    if (scrollBarThatHasMoved == &m_scrollbar)
-    {
-        m_editViewState.m_viewY = -newRangeStart;
     }
 }
 

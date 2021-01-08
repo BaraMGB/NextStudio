@@ -79,6 +79,9 @@ public:
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
     void itemDragExit(const SourceDetails& dragSourceDetails) override;
 
+    bool keyPressed(const juce::KeyPress &key) override;
+
+
     te::Track::Ptr getTrack() const;
 
 private:
@@ -93,15 +96,16 @@ private:
 
     void handleAsyncUpdate() override;
 
+    void duplicateSelectedClip(double insertPos);
     void buildClips();
     void buildRecordClips();
     void createNewMidiClip(double beatPos);
-    bool isMidiTrack() { return track->state.getProperty(IDs::isMidiTrack); }
+    bool isMidiTrack() { return m_track->state.getProperty(IDs::isMidiTrack); }
 
     EditViewState& m_editViewState;
-    te::Track::Ptr track;
+    te::Track::Ptr m_track;
     te::Clipboard m_clipBoard;
-    juce::OwnedArray<ClipComponent> clips;
+    juce::OwnedArray<ClipComponent> m_clips;
 
     juce::Image m_dragImage;
     int m_posInClip{0};

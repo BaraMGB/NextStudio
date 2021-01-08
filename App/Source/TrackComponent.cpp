@@ -3,11 +3,14 @@
 #include "EditComponent.h"
 
 TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
-    : m_editViewState (evs), track (t)
+    : m_editViewState (evs), m_track (t)
 {
+    setWantsKeyboardFocus(true);
+
     m_editViewState.m_state.addListener (this);
-    track->state.addListener(this);
-    track->edit.getTransport().addChangeListener (this);
+    m_editViewState.m_selectionManager.addChangeListener (this);
+    m_track->state.addListener(this);
+    m_track->edit.getTransport().addChangeListener (this);
 
     markAndUpdate (updateClips);
     addAndMakeVisible(m_trackOverlay);
@@ -17,9 +20,10 @@ TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
 
 TrackComponent::~TrackComponent()
 {
-    track->state.removeListener (this);
+    m_track->state.removeListener (this);
+    m_editViewState.m_selectionManager.removeChangeListener (this);
     m_editViewState.m_state.removeListener(this);
-    track->edit.getTransport().removeChangeListener (this);
+    m_track->edit.getTransport().removeChangeListener (this);
 }
 
 void TrackComponent::paint (juce::Graphics& g)
@@ -38,7 +42,7 @@ void TrackComponent::paint (juce::Graphics& g)
         firstBeat++;
     }
 
-    if (m_editViewState.m_selectionManager.isSelected (track.get()))
+    if (m_editViewState.m_selectionManager.isSelected (m_track.get()))
     {
         g.setColour (juce::Colour(0xff202020));
 
@@ -88,7 +92,7 @@ void TrackComponent::paint (juce::Graphics& g)
 
 void TrackComponent::mouseDown (const juce::MouseEvent&event)
 {
-    bool isMidiTrack = track->state.getProperty (IDs::isMidiTrack);
+    bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     if (event.mods.isRightButtonDown())
     {
 //        juce::PopupMenu m;
@@ -132,8 +136,16 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
 }
 
 
-void TrackComponent::changeListenerCallback (juce::ChangeBroadcaster*)
+void TrackComponent::changeListenerCallback (juce::ChangeBroadcaster* changebroadcaster)
 {
+    if (changebroadcaster == &m_editViewState.m_selectionManager)
+    {
+        std::cout << "select" << std::endl;
+        for (auto & clipcomps : m_clips)
+        {
+            clipcomps->repaint ();
+        }
+    }
     markAndUpdate (updateRecordClips);
 }
 
@@ -152,7 +164,7 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
     {
         if (i != te::IDs::c)
         {
-            for (auto &clip : clips)
+            for (auto &clip : m_clips)
             {
                 clip->repaint ();
             }
@@ -179,10 +191,12 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
 void TrackComponent::valueTreeChildAdded (juce::ValueTree&v, juce::ValueTree& c)
 {
     if (te::Clip::isClipState (c))
+    {
         markAndUpdate (updateClips);
+    }
     if (v.hasType (te::IDs::SEQUENCE))
     {
-        for (auto &clip : clips)
+        for (auto &clip : m_clips)
         {
             clip->repaint ();
         }
@@ -193,7 +207,7 @@ void TrackComponent::valueTreeChildRemoved (juce::ValueTree&v, juce::ValueTree& 
 {
     if (v.hasType (te::IDs::SEQUENCE))
     {
-        for (auto &clip : clips)
+        for (auto &clip : m_clips)
         {
             clip->repaint ();
         }
@@ -220,7 +234,7 @@ void TrackComponent::handleAsyncUpdate()
     if (compareAndReset (updatePositions))
     {
         resized();
-        for (auto &cc : clips)
+        for (auto &cc : m_clips)
         {
             cc->resized ();
         }
@@ -230,9 +244,35 @@ void TrackComponent::handleAsyncUpdate()
         buildRecordClips();
 }
 
+void TrackComponent::duplicateSelectedClip(double insertPos)
+{
+    auto clipboard = tracktion_engine::Clipboard::getInstance();
+    if (clipboard->hasContentWithType<te::Clipboard::Clips>())
+    {
+        auto clipContent = clipboard->getContentWithType<te::Clipboard::Clips>();
+        te::EditInsertPoint insertPoint(m_editViewState.m_edit);
+        auto position = m_editViewState.m_edit.getTransport().getCurrentPosition();
+        insertPoint.chooseInsertPoint (m_track
+                                       , position
+                                       , true
+                                       , &m_editViewState.m_selectionManager);
+        te::Clipboard::ContentType::EditPastingOptions options(
+                    m_editViewState.m_edit
+                    , insertPoint
+                    , &m_editViewState.m_selectionManager);
+        auto& clip{ clipContent->clips[0] };
+        const auto start = static_cast<double>(clip.state.getProperty(te::IDs::start));
+
+        options.startTrack = m_track;
+        options.setTransportToEnd = true;
+        options.startTime = (insertPos - start);
+        clipContent->pasteIntoEdit(options);
+    }
+}
+
 void TrackComponent::resized()
 {
-    for (auto cc : clips)
+    for (auto cc : m_clips)
     {
         auto& c = cc->getClip();
         int startTime = m_editViewState.beatsToX (c.getStartBeat (), getWidth());
@@ -260,7 +300,7 @@ void TrackComponent::itemDropped(
             auto clipContent = clipboard
                     ->getContentWithType<te::Clipboard::Clips>();
             te::EditInsertPoint insertPoint(m_editViewState.m_edit);
-            insertPoint.setNextInsertPoint(0, track);
+            insertPoint.setNextInsertPoint(0, m_track);
             te::Clipboard::ContentType::EditPastingOptions options
                     (m_editViewState.m_edit, insertPoint);
 
@@ -312,21 +352,21 @@ void TrackComponent::itemDropped(
     //File droped ?
     auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
             (dragSourceDetails.sourceComponent.get());
-    bool isMiditrack = track->state.getProperty (IDs::isMidiTrack);
+    bool isMiditrack = m_track->state.getProperty (IDs::isMidiTrack);
     if (fileTreeComp)
     {
         auto f = fileTreeComp->getSelectedFile();
         tracktion_engine::AudioFile audioFile(m_editViewState.m_edit.engine, f);
         if (audioFile.isValid() && !isMiditrack)
         {
-            if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(track.get()))
+            if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(m_track.get()))
             {
                 if (auto newClip = audioTrack->insertWaveClip(f.getFileNameWithoutExtension()
                                                          ,f
                                                          ,{ { dropTime, dropTime + audioFile.getLength() }, 0.0 }
                                                          , false))
                 {
-                    newClip->setColour(track->getColour());
+                    newClip->setColour(m_track->getColour());
                 }
             }
 
@@ -339,7 +379,7 @@ void TrackComponent::itemDropped(
 
 void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    bool isMiditrack = track->state.getProperty (IDs::isMidiTrack);
+    bool isMiditrack = m_track->state.getProperty (IDs::isMidiTrack);
     if (dragSourceDetails.description == "Clip")
         {
             auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
@@ -384,13 +424,35 @@ void TrackComponent::itemDragExit(const DragAndDropTarget::SourceDetails &dragSo
     m_trackOverlay.setVisible(false);
 }
 
+bool TrackComponent::keyPressed(const juce::KeyPress &key)
+{
+    if (key == juce::KeyPress::createFromDescription("CTRL + D"))
+    {
+        if (auto selectedClip = m_editViewState.m_selectionManager
+                                               .getSelectedObjects ()
+                                               .getItemsOfType<te::Clip>()
+                                               .getLast ())
+        {
+            tracktion_engine::Clipboard::getInstance()->clear();
+            auto clipCont = std::make_unique<te::Clipboard::Clips>();
+            clipCont->addClip(0, selectedClip->state);
+            te::Clipboard::getInstance()->setContent(
+                        std::move(clipCont));
+            duplicateSelectedClip(selectedClip->getPosition ().getEnd ());
+        }
+
+        return true;
+    }
+    return false;
+}
+
 
 
 void TrackComponent::buildClips()
 {
-    clips.clear();
+    m_clips.clear();
 
-    if (auto ct = dynamic_cast<te::ClipTrack*> (track.get()))
+    if (auto ct = dynamic_cast<te::ClipTrack*> (m_track.get()))
     {
         for (auto c : ct->getClips())
         {
@@ -408,7 +470,7 @@ void TrackComponent::buildClips()
             else
                 cc = new ClipComponent (m_editViewState, c);
 
-            clips.add (cc);
+            m_clips.add (cc);
             addAndMakeVisible (cc);
             if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
             {
@@ -426,11 +488,11 @@ void TrackComponent::buildClips()
 void TrackComponent::buildRecordClips()
 {
     bool needed = false;
-    if (track->edit.getTransport().isRecording())
+    if (m_track->edit.getTransport().isRecording())
     {
-        for (auto in : track->edit.getAllInputDevices())
+        for (auto in : m_track->edit.getAllInputDevices())
         {
-            if (in->isRecordingActive() && track == *(in->getTargetTracks().getFirst()))
+            if (in->isRecordingActive() && m_track == *(in->getTargetTracks().getFirst()))
             {
                 needed = true;
                 break;
@@ -441,7 +503,7 @@ void TrackComponent::buildRecordClips()
     if (needed)
     {
         recordingClip = std::make_unique<RecordingClipComponent>
-                                            (track, m_editViewState);
+                                            (m_track, m_editViewState);
         addAndMakeVisible (*recordingClip);
     }
     else
@@ -452,7 +514,7 @@ void TrackComponent::buildRecordClips()
 
 void TrackComponent::createNewMidiClip(double beatPos)
 {
-    if (auto audiotrack = dynamic_cast<te::AudioTrack*>(track.get ()))
+    if (auto audiotrack = dynamic_cast<te::AudioTrack*>(m_track.get ()))
     {
         te::EditTimeRange newPos;
         newPos.start = m_editViewState.beatToTime (beatPos);
@@ -463,7 +525,7 @@ void TrackComponent::createNewMidiClip(double beatPos)
 
 te::Track::Ptr TrackComponent::getTrack() const
 {
-    return track;
+    return m_track;
 }
 
 

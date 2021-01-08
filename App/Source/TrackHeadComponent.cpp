@@ -207,9 +207,10 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::AudioTrack *at)
 
 void TrackHeaderComponent::deleteTrackFromEdit()
 {
+    te::Clipboard::getInstance()->clear();
     m_track->deselect();
     m_track->edit.deleteTrack(m_track);
-    auto i = tracktion_engine::getAllTracks(m_editViewState.m_edit).getLast();
+    auto i = te::getAllTracks(m_editViewState.m_edit).getLast();
 
     if (!(i->isArrangerTrack()
         || i->isTempoTrack()
