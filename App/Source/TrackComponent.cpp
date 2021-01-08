@@ -256,7 +256,7 @@ void TrackComponent::duplicateSelectedClip(double insertPos)
                                        , position
                                        , true
                                        , &m_editViewState.m_selectionManager);
-        te::Clipboard::ContentType::EditPastingOptions options(
+        te::Clipboard::Clips::EditPastingOptions options(
                     m_editViewState.m_edit
                     , insertPoint
                     , &m_editViewState.m_selectionManager);

@@ -430,6 +430,17 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent &event)
 
 bool TrackHeaderComponent::keyPressed(const juce::KeyPress &key)
 {
+    if (key == juce::KeyPress::createFromDescription("CTRL + D"))
+    {
+        auto trackContent = std::make_unique<te::Clipboard::Tracks>();
+        trackContent->tracks.push_back (m_track->state);
+        te::EditInsertPoint insertPoint(m_editViewState.m_edit);
+        te::Clipboard::Tracks::EditPastingOptions options(m_editViewState.m_edit
+                                                          ,insertPoint);
+        options.startTrack = m_track;
+        trackContent->pasteIntoEdit (options);
+        return true;
+    }
     if (key == juce::KeyPress::deleteKey)
     {
         deleteTrackFromEdit ();
