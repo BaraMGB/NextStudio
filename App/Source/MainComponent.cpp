@@ -213,22 +213,4 @@ void MainComponent::createTracksAndAssignInputs()
     m_edit->getTransport().ensureContextAllocated();
     m_edit->restartPlayback();
 
-//    int trackNum = 0;
-//    for (auto instance : m_edit->getAllInputDevices())
-//    {
-//        if (instance->getInputDevice().getDeviceType() == te::InputDevice::waveDevice)
-//        {
-//            if (auto t = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, trackNum))
-//            {
-//                instance->setTargetTrack (*t, 0, true);
-//                instance->setRecordingEnabled (*t, true);
-
-//                trackNum++;
-//            }
-//        }
-//    }
-
-    //dm.setDefaultMidiInDevice (2);
-    //std::cout <<  << std::endl;
-
 }

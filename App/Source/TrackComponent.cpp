@@ -96,31 +96,7 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
     if (event.mods.isRightButtonDown())
     {
 //        juce::PopupMenu m;
-//        m.addItem(1, "Paste");
 
-
-//        const int result = m.show();
-
-//        if (result == 0)
-//        {
-//            // user dismissed the menu without picking anything
-//        }
-//        else if(result == 1)
-//        {
-//           auto insertpoint = te::EditInsertPoint(m_editViewState.m_edit);
-//           insertpoint.setNextInsertPoint(
-//                          m_editViewState.beatToTime(
-//                              m_editViewState.xToBeats(event.x, getWidth()))
-//                                                     , track);
-//           auto clipBoard = te::Clipboard::getInstance();
-//           if (clipBoard->hasContentWithType<te::Clipboard::Clips>())
-//           {
-//               clipBoard->getContentWithType<te::Clipboard::Clips>()
-//                            ->pasteIntoEdit(
-//                              te::Clipboard::ContentType::EditPastingOptions
-//                              (m_editViewState.m_edit, insertpoint));
-//           }
-//        }
     }
     else if (event.mods.isLeftButtonDown ())
     {
@@ -136,6 +112,14 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
         {
             getParentComponent ()->mouseDown (event);
         }
+    }
+}
+
+void TrackComponent::mouseUp(const juce::MouseEvent &e)
+{
+    if (!e.mouseWasDraggedSinceMouseDown ())
+    {
+        m_editViewState.m_selectionManager.deselectAll ();
     }
 }
 
@@ -261,6 +245,47 @@ void TrackComponent::resized()
     m_trackOverlay.setBounds(0, 0, getWidth(), getHeight());
 }
 
+void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+    bool isMiditrack = m_track->state.getProperty (IDs::isMidiTrack);
+    if (dragSourceDetails.description == "Clip")
+        {
+            auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
+            if (clipComp)
+            {
+                if (auto midiClip = dynamic_cast<MidiClipComponent*> (clipComp))
+                {
+                    m_trackOverlay.setIsValid (isMiditrack);
+                }
+                else if(auto waveClip = dynamic_cast<AudioClipComponent*> (clipComp))
+                {
+                    m_trackOverlay.setIsValid (!isMiditrack);
+                }
+
+                m_dragging = true;
+                m_posInClip = m_editViewState.beatsToX(
+                            m_editViewState.timeToBeat(
+                            clipComp->getClickPosTime()
+                            ), getWidth());
+                m_dragImage = clipComp->createComponentSnapshot({0
+                                                                 , 0
+                                                                 , clipComp->getWidth()
+                                                                 , clipComp->getHeight()}, false);
+
+                m_trackOverlay.setImage(m_dragImage);
+                m_trackOverlay.setImagePos(clipComp->isShiftDown ()
+                                           ? getMouseXYRelative().x
+                                             - m_posInClip
+                                           : m_editViewState.snapedX (
+                                               getMouseXYRelative().x
+                                               - m_posInClip
+                                               ,getWidth ()));
+                m_trackOverlay.repaint();
+                m_trackOverlay.setVisible(true);
+            }
+    }
+}
+
 void TrackComponent::itemDropped(
         const DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
@@ -355,46 +380,6 @@ void TrackComponent::itemDropped(
     repaint();
 }
 
-void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSourceDetails)
-{
-    bool isMiditrack = m_track->state.getProperty (IDs::isMidiTrack);
-    if (dragSourceDetails.description == "Clip")
-        {
-            auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
-            if (clipComp)
-            {
-                if (auto midiClip = dynamic_cast<MidiClipComponent*> (clipComp))
-                {
-                    m_trackOverlay.setIsValid (isMiditrack);
-                }
-                else if(auto waveClip = dynamic_cast<AudioClipComponent*> (clipComp))
-                {
-                    m_trackOverlay.setIsValid (!isMiditrack);
-                }
-
-                m_dragging = true;
-                m_posInClip = m_editViewState.beatsToX(
-                            m_editViewState.timeToBeat(
-                            clipComp->getClickPosTime()
-                            ), getWidth());
-                m_dragImage = clipComp->createComponentSnapshot({0
-                                                                 , 0
-                                                                 , clipComp->getWidth()
-                                                                 , clipComp->getHeight()}, false);
-
-                m_trackOverlay.setImage(m_dragImage);
-                m_trackOverlay.setImagePos(clipComp->isShiftDown ()
-                                           ? getMouseXYRelative().x
-                                             - m_posInClip
-                                           : m_editViewState.snapedX (
-                                               getMouseXYRelative().x
-                                               - m_posInClip
-                                               ,getWidth ()));
-                m_trackOverlay.repaint();
-                m_trackOverlay.setVisible(true);
-            }
-    }
-}
 
 void TrackComponent::itemDragExit(const DragAndDropTarget::SourceDetails &)
 {

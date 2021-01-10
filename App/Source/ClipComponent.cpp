@@ -43,11 +43,7 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
     if (event.mods.getCurrentModifiers().isCtrlDown())
     {
         m_isCopying = true;
-        m_editViewState.m_selectionManager.addToSelection (getClip ());
-    }
-    else
-    {
-        m_editViewState.m_selectionManager.selectOnly (getClip ());
+        //m_editViewState.m_selectionManager.addToSelection (getClip ());
     }
 
     if(!event.mouseWasDraggedSinceMouseDown())
@@ -87,8 +83,24 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
     }
 }
 
-void ClipComponent::mouseUp(const juce::MouseEvent &  /*event*/)
+void ClipComponent::mouseUp(const juce::MouseEvent & e)
 {
+    if (!e.mouseWasDraggedSinceMouseDown ())
+    {
+        if (e.mods.isCtrlDown ())
+        {
+            m_editViewState.m_selectionManager.addToSelection (m_clip);
+        }
+
+        else
+        {
+            m_editViewState.m_selectionManager.selectOnly (m_clip);
+        }
+    }
+    else
+    {
+        m_editViewState.m_selectionManager.selectOnly (m_clip);
+    }
     m_editViewState.m_edit.getTransport ().setUserDragging (false);
     m_isDragging = false;
     setMouseCursor (juce::MouseCursor::NormalCursor);

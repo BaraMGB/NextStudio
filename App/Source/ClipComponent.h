@@ -21,7 +21,7 @@ public:
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent &) override;
-    void mouseUp (const juce::MouseEvent &) override;
+    void mouseUp (const juce::MouseEvent &e) override;
 
     te::Clip& getClip () { return *m_clip; }
 
