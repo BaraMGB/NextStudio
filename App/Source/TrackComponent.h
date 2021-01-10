@@ -96,10 +96,10 @@ private:
 
     void handleAsyncUpdate() override;
 
-    void duplicateSelectedClip(double insertPos);
     void buildClips();
     void buildRecordClips();
-    void createNewMidiClip(double beatPos);
+    te::MidiClip::Ptr createNewMidiClip(double beatPos);
+
     bool isMidiTrack() { return m_track->state.getProperty(IDs::isMidiTrack); }
 
     EditViewState& m_editViewState;

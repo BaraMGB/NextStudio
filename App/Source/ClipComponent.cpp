@@ -43,7 +43,13 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
     if (event.mods.getCurrentModifiers().isCtrlDown())
     {
         m_isCopying = true;
+        m_editViewState.m_selectionManager.addToSelection (getClip ());
     }
+    else
+    {
+        m_editViewState.m_selectionManager.selectOnly (getClip ());
+    }
+
     if(!event.mouseWasDraggedSinceMouseDown())
         {
             if (event.mods.isRightButtonDown())
@@ -57,7 +63,6 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
                 setMouseCursor (juce::MouseCursor::DraggingHandCursor);
             }
         }
-    m_editViewState.m_selectionManager.selectOnly (getClip ());
     m_isDragging = true;
     tracktion_engine::Clipboard::getInstance()->clear();
     auto clipContent = std::make_unique<te::Clipboard::Clips>();
