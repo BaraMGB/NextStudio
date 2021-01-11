@@ -79,5 +79,6 @@ private:
     juce::OwnedArray<TrackHeaderComponent> m_headers;
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
 
+    juce::Rectangle<float> m_songeditorRect;
     bool m_updateTracks = false, m_updateZoom = false;
 };

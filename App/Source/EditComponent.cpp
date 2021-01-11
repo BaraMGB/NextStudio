@@ -33,7 +33,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     m_lowerRange.setAlwaysOnTop(true);
     m_playhead.setAlwaysOnTop (true);
     m_toolBar.setAlwaysOnTop (true);
-    
+
     addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_scrollbar);
     addAndMakeVisible (m_lowerRange);
@@ -55,7 +55,7 @@ void EditComponent::paint (juce::Graphics &g)
 {
     g.setColour(juce::Colour(0xff181818));
     auto cornerSize = 10.0;
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
+    g.fillRoundedRectangle(m_songeditorRect, cornerSize);
 
     g.setColour(juce::Colour(0xff4f4f4f));
     g.drawRect(m_editViewState.m_headerWidth, 0, 1, getHeight());
@@ -108,6 +108,8 @@ void EditComponent::resized()
     m_toolBar.setBounds (0, 0, headerWidth, timelineHeight);
 
     auto songeditorHeight = getHeight() - timelineHeight - pluginRackHeight;
+    area.removeFromTop (timelineHeight);
+    m_songeditorRect = area.toFloat ();
     m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
     m_scrollbar.setRangeLimits (0, trackHeights + (songeditorHeight/2));
     m_scrollbar.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
@@ -276,11 +278,11 @@ void EditComponent::buildTracks()
     m_lowerRange.clearPluginRacks ();
     m_trackComps.clear();
     m_headers.clear();
-    
+
     for (auto t : getAllTracks (m_edit))
     {
         TrackComponent* trackcomp = nullptr;
-        
+
         if (t->isTempoTrack())
         {
             if (m_editViewState.m_showGlobalTrack)
@@ -305,16 +307,16 @@ void EditComponent::buildTracks()
         {
             trackcomp = new TrackComponent (m_editViewState, t);
         }
-        
+
         if (trackcomp != nullptr)
         {
             m_trackComps.add (trackcomp);
             addAndMakeVisible (trackcomp);
-            
+
             auto trackheader = new TrackHeaderComponent (m_editViewState, t);
             m_headers.add (trackheader);
             addAndMakeVisible (trackheader);
-            
+
             auto pluginrack = new PluginRackComponent (m_editViewState, t);
             m_lowerRange.addPluginRackComp(pluginrack);
 
@@ -323,7 +325,7 @@ void EditComponent::buildTracks()
 
         }
     }
-    
+
     m_playhead.toFront (false);
     resized();
 }
