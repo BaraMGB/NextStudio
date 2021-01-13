@@ -22,7 +22,6 @@ target_sources(${TargetName} PRIVATE
         Source/PluginMenu.cpp
         Source/LevelMeterComponent.cpp
         Source/PluginRackComponent.cpp
-        Source/ThumbnailComponent.cpp
         Source/PianoRollEditorComponent.cpp
         Source/PlayHeadComponent.cpp
         Source/LowerRangeComponent.cpp
