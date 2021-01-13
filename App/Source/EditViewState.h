@@ -103,6 +103,16 @@ public:
         return (double (x) / width) * (m_viewX2 - m_viewX1) + m_viewX1;
     }
 
+    int timeToX (double time, int width) const
+    {
+        return beatsToX (timeToBeat (time), width);
+    }
+
+    double xToTime(int x, int width) const
+    {
+        return beatToTime (xToBeats (x, width));
+    }
+
     double beatToTime (double b) const
     {
         auto& ts = m_edit.tempoSequence;

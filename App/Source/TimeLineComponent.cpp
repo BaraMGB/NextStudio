@@ -126,7 +126,7 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
 {
     // Work out the scale of the new range
-    auto unitDistance = 100.0f;
+    auto unitDistance = 50.0f;
     auto scaleFactor  = 1.0 / std::pow (2, (float) event.getDistanceFromDragStartY() / unitDistance);
 
     // Now position it so that the mouse continues to point at the same

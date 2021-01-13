@@ -2,7 +2,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
-#include "ThumbnailComponent.h"
 
 namespace te = tracktion_engine;
 
@@ -66,13 +65,26 @@ public:
 
 private:
 
+    void updateThumbnail();
+    void drawWaveform(juce::Graphics& g,
+                      te::AudioClipBase& c,
+                      te::SmartThumbnail& thumb,
+                      juce::Colour colour,
+                       int left, int right, int y, int h, int xOffset);
+    void drawChannels(juce::Graphics& g,
+                      te::SmartThumbnail& thumb,
+                      juce::Rectangle<int> area,
+                      bool useHighRes,
+                       te::EditTimeRange time, bool useLeft, bool useRight,
+                       float leftGain, float rightGain);
+
+    std::unique_ptr<te::SmartThumbnail> thumbnail;
+
     int m_mouseDownX {0};
     int m_clipWidthMouseDown;
     double m_lastOffset{0.0};
     double m_oldDistTime{0.0};
     tracktion_engine::ClipPosition m_posAtMouseDown;
-
-    ThumbnailComponent m_thumbnailComponent;
 };
 
 //==============================================================================
