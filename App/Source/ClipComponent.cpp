@@ -1,14 +1,14 @@
 #include "ClipComponent.h"
- #include <utility> 
+#include <utility>
 
 //==============================================================================
-ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
-    : m_editViewState (evs), m_clip (std::move(c))
+ClipComponent::ClipComponent(EditViewState& evs, te::Clip::Ptr c)
+    : m_editViewState(evs)
+    , m_clip(std::move(c))
 {
 }
 
-
-void ClipComponent::paint (juce::Graphics& g)
+void ClipComponent::paint(juce::Graphics& g)
 {
     auto alpha = 1.0f;
     if (m_isDragging)
@@ -19,7 +19,7 @@ void ClipComponent::paint (juce::Graphics& g)
     auto area = getLocalBounds();
     g.setColour(m_clip->getTrack()->getColour());
     g.fillRect(area);
-    area.reduce(1,1);
+    area.reduce(1, 1);
     g.setColour(getClip().getTrack()->getColour().darker());
     g.fillRect(area.removeFromTop(10));
     g.setColour (juce::Colours::black);
@@ -43,22 +43,26 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
     if (event.mods.getCurrentModifiers().isCtrlDown())
     {
         m_isCopying = true;
-        //m_editViewState.m_selectionManager.addToSelection (getClip ());
+        m_editViewState.m_selectionManager.addToSelection(getClip());
+    }
+    else
+    {
+        m_editViewState.m_selectionManager.selectOnly(getClip());
     }
 
-    if(!event.mouseWasDraggedSinceMouseDown())
+    if (!event.mouseWasDraggedSinceMouseDown())
+    {
+        if (event.mods.isRightButtonDown())
         {
-            if (event.mods.isRightButtonDown())
-            {
-                showContextMenu ();
-            }
-            else
-            {
-                m_clipPosAtMouseDown = m_clip->edit.tempoSequence.timeToBeats(
-                            m_clip->getPosition().getStart());
-                setMouseCursor (juce::MouseCursor::DraggingHandCursor);
-            }
+            showContextMenu();
         }
+        else
+        {
+            m_clipPosAtMouseDown = m_clip->edit.tempoSequence.timeToBeats(
+                        m_clip->getPosition().getStart());
+            setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+        }
+    }
     m_isDragging = true;
     tracktion_engine::Clipboard::getInstance()->clear();
     auto clipContent = std::make_unique<te::Clipboard::Clips>();
@@ -83,25 +87,9 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
     }
 }
 
-void ClipComponent::mouseUp(const juce::MouseEvent & e)
+void ClipComponent::mouseUp(const juce::MouseEvent& /*event*/)
 {
-    if (!e.mouseWasDraggedSinceMouseDown ())
-    {
-        if (e.mods.isCtrlDown ())
-        {
-            m_editViewState.m_selectionManager.addToSelection (m_clip);
-        }
-
-        else
-        {
-            m_editViewState.m_selectionManager.selectOnly (m_clip);
-        }
-    }
-    else
-    {
-        m_editViewState.m_selectionManager.selectOnly (m_clip);
-    }
-    m_editViewState.m_edit.getTransport ().setUserDragging (false);
+    m_editViewState.m_edit.getTransport().setUserDragging(false);
     m_isDragging = false;
     setMouseCursor (juce::MouseCursor::NormalCursor);
 }
@@ -291,7 +279,11 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                                       te::AudioClipBase& c,
                                       te::SmartThumbnail& thumb,
                                       juce::Colour colour,
-                                       int left, int right, int y, int h, int xOffset)
+                                      int left,
+                                      int right,
+                                      int y,
+                                      int h,
+                                      int xOffset)
 {
     auto getTimeRangeForDrawing = [this] (const int left, const int right) -> te::EditTimeRange
     {
@@ -328,10 +320,15 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
 
         if (! thumb.isOutOfDate())
         {
-            drawChannels (g, thumb, area, false,
-                          getTimeRangeForDrawing (left, right),
-                          c.isLeftChannelActive(), c.isRightChannelActive(),
-                          gainL, gainR);
+            drawChannels(g,
+                         thumb,
+                         area,
+                         false,
+                         getTimeRangeForDrawing(left, right),
+                         c.isLeftChannelActive(),
+                         c.isRightChannelActive(),
+                         gainL,
+                         gainR);
         }
     }
     else if (c.getLoopLength() == 0)
@@ -341,11 +338,15 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
         auto t1 = (region.getStart() + offset) * speedRatio;
         auto t2 = (region.getEnd()   + offset) * speedRatio;
         bool useHighres = true;
-        drawChannels (g, thumb,
-                      { left + xOffset, y, right - left, h },
-                      useHighres, { t1, t2 },
-                      c.isLeftChannelActive(), c.isRightChannelActive(),
-                      gainL, gainR);
+        drawChannels(g,
+                     thumb,
+                     {left + xOffset, y, right - left, h},
+                     useHighres,
+                     {t1, t2},
+                     c.isLeftChannelActive(),
+                     c.isRightChannelActive(),
+                     gainL,
+                     gainR);
     }
 }
 
@@ -353,13 +354,21 @@ void AudioClipComponent::drawChannels(juce::Graphics& g,
                                       te::SmartThumbnail& thumb,
                                       juce::Rectangle<int> area,
                                       bool useHighRes,
-                                       te::EditTimeRange time, bool useLeft, bool useRight,
-                                       float leftGain, float rightGain)
+                                      te::EditTimeRange time,
+                                      bool useLeft,
+                                      bool useRight,
+                                      float leftGain,
+                                      float rightGain)
 {
     if (useLeft && useRight && thumb.getNumChannels() > 1)
     {
-        thumb.drawChannel (g, area.removeFromTop (area.getHeight() / 2), useHighRes, time, 0, leftGain);
-        thumb.drawChannel (g, area, useHighRes, time, 1, rightGain);
+        thumb.drawChannel(g,
+                          area.removeFromTop(area.getHeight() / 2),
+                          useHighRes,
+                          time,
+                          0,
+                          leftGain);
+        thumb.drawChannel(g, area, useHighRes, time, 1, rightGain);
     }
     else if (useLeft)
     {
@@ -381,11 +390,15 @@ void AudioClipComponent::updateThumbnail()
         {
             if (af.isValid())
             {
-                const te::AudioFile proxy ((wac->hasAnyTakes() && wac->isShowingTakes()) ? wac->getAudioFile() : wac->getPlaybackFile());
+                const te::AudioFile proxy(
+                            (wac->hasAnyTakes() && wac->isShowingTakes())
+                            ? wac->getAudioFile()
+                            : wac->getPlaybackFile());
 
                 if (thumbnail == nullptr)
                 {
-                    thumbnail = std::make_unique<te::SmartThumbnail>(wac->edit.engine, proxy, *this, &wac->edit);
+                    thumbnail = std::make_unique<te::SmartThumbnail>(
+                                wac->edit.engine, proxy, *this, &wac->edit);
                 }
                 else
                 {
@@ -416,27 +429,35 @@ MidiClipComponent::~MidiClipComponent()
 
 void MidiClipComponent::paint (juce::Graphics& g)
 {
-    ClipComponent::paint (g);
-    auto clipHeader = 10;
-    if (auto mc = getMidiClip())
+    auto startX = m_editViewState.timeToX(getClip().getPosition().getStart(),
+                                          getParentComponent()->getWidth());
+    auto endX = m_editViewState.timeToX(getClip().getPosition().getEnd(),
+                                        getParentComponent()->getWidth());
+    if (!(endX < 0 || startX > getParentComponent()->getWidth()))
     {
-        auto& seq = mc->getSequence();
-        for (auto n : seq.getNotes())
+        ClipComponent::paint(g);
+        auto clipHeader = 10;
+        if (auto mc = getMidiClip())
         {
-            double sBeat = n->getStartBeat() - mc->getOffsetInBeats();
-            double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
-            if (auto p = getParentComponent())
+            auto& seq = mc->getSequence();
+            for (auto n: seq.getNotes())
             {
-                double y = ((1.0 - double (n->getNoteNumber()) / 127.0)
-                            * (getHeight() - clipHeader) + clipHeader);
+                double sBeat = n->getStartBeat() - mc->getOffsetInBeats();
+                double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
+                if (auto p = getParentComponent())
+                {
+                    double y = ((1.0 - double(n->getNoteNumber()) / 127.0)
+                                * (getHeight() - clipHeader)
+                                + clipHeader);
 
-                auto x1 =  m_editViewState.beatsToX (
-                            sBeat + m_editViewState.m_viewX1, p->getWidth ());
-                auto x2 =  m_editViewState.beatsToX (
-                            eBeat + m_editViewState.m_viewX1, p->getWidth ());
+                    auto x1 = m_editViewState.beatsToX(
+                                sBeat + m_editViewState.m_viewX1, p->getWidth());
+                    auto x2 = m_editViewState.beatsToX(
+                                eBeat + m_editViewState.m_viewX1, p->getWidth());
 
-                g.setColour (juce::Colours::white);
-                g.drawLine (float (x1), float (y), float (x2), float (y));
+                    g.setColour(juce::Colours::white);
+                    g.drawLine(float(x1), float(y), float(x2), float(y));
+                }
             }
         }
     }
@@ -536,7 +557,6 @@ RecordingClipComponent::RecordingClipComponent (te::Track::Ptr t, EditViewState&
 {
     startTimerHz (10);
     initialiseThumbnailAndPunchTime();
-
 }
 
 void RecordingClipComponent::initialiseThumbnailAndPunchTime()
@@ -567,7 +587,6 @@ void RecordingClipComponent::paint (juce::Graphics& g)
     g.setColour(juce::Colours::red.darker());
     g.fillRect(area.removeFromTop(m_clipHeaderHight));
 
-
     if (m_editViewState.m_drawWaveforms)
         drawThumbnail (g, juce::Colours::black.withAlpha (0.5f));
 }
@@ -588,7 +607,6 @@ void RecordingClipComponent::drawThumbnail (juce::Graphics& g
         g.setColour (waveformColour);
         m_thumbnail->thumb.drawChannels (g, bounds, w, times, 1.0f);
     }
-
 }
 
 

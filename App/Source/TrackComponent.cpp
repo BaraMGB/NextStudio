@@ -444,7 +444,7 @@ void TrackComponent::buildClips()
                 cc = new AudioClipComponent (m_editViewState, c);
             else if (dynamic_cast<te::MidiClip*> (c))
             {
-                pr = new PianoRollComponent (m_editViewState, c);
+                //pr = new PianoRollComponent (m_editViewState, c);
                 cc = new MidiClipComponent (m_editViewState, c);
             }
 
@@ -453,14 +453,14 @@ void TrackComponent::buildClips()
 
             m_clips.add (cc);
             addAndMakeVisible (cc);
-            if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
+            /*if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
             {
                 if (auto midiClipcomp = dynamic_cast<MidiClipComponent*>(cc))
                 {
                     editcomp->lowerRange ().addPianoRollEditor(pr);
                     midiClipcomp->addChangeListener (&editcomp->lowerRange ());
                 }
-            }
+            }*/
         }
     }
     resized();

@@ -92,30 +92,30 @@ void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
 
 void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
 {
-    if (auto midiclip = dynamic_cast<te::MidiClip*>(clip.get ()))
-    {
-        //hide all PluginRacks
-        for (auto &pluginrack : m_pluginRackComps)
-        {
-            pluginrack->setVisible (false);
-        }
-        m_pointedTrack = nullptr;
+    //if (auto midiclip = dynamic_cast<te::MidiClip*>(clip.get ()))
+    //{
+    //    //hide all PluginRacks
+    //    for (auto &pluginrack : m_pluginRackComps)
+    //    {
+    //        pluginrack->setVisible (false);
+    //    }
+    //    m_pointedTrack = nullptr;
 
-        for (auto &pianoroll : m_pianoRolls)
-        {
-            std::cout << "---show Piano Roll" << std::endl;
+    //    for (auto &pianoroll : m_pianoRolls)
+    //    {
+    //        std::cout << "---show Piano Roll" << std::endl;
 
-            pianoroll->setVisible (false);
-            m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (pianoroll);
-            if (pianoroll->getClip () == clip)
-            {
-                pianoroll->setVisible (true);
-                m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.addListener (pianoroll);
-                pianoroll->centerView ();
-                //m_editViewState.m_isPianoRollVisible = true;
-            }
-        }
-    }
+    //        pianoroll->setVisible (false);
+    //        m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.removeListener (pianoroll);
+    //        if (pianoroll->getClip () == clip)
+    //        {
+    //            pianoroll->setVisible (true);
+    //            m_editViewState.m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->keyboardState.addListener (pianoroll);
+    //            pianoroll->centerView ();
+    //            //m_editViewState.m_isPianoRollVisible = true;
+    //        }
+    //    }
+    //}
 }
 
 void LowerRangeComponent::addPianoRollEditor(PianoRollComponent *pr)
