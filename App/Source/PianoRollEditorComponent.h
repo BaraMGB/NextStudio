@@ -4,56 +4,16 @@
 #include "EditViewState.h"
 #include "TimeLineComponent.h"
 #include "PlayHeadComponent.h"
+#include "PianoRollClipComponent.h"
 
 namespace te = tracktion_engine;
-
-
-class PianoRollDisplay : public juce::Component
-{
-public:
-
-        PianoRollDisplay (EditViewState&
-                          , te::Clip::Ptr
-                          , juce::MidiKeyboardComponent &
-                          , TimeLineComponent &);
-        ~PianoRollDisplay();
-
-        void paint (juce::Graphics& g) override;
-        void mouseDown (const juce::MouseEvent&) override;
-        void mouseDrag (const juce::MouseEvent &) override;
-        void mouseMove (const juce::MouseEvent &) override;
-        void mouseExit (const juce::MouseEvent &) override;
-        void mouseUp (const juce::MouseEvent &) override;
-        void mouseWheelMove (const juce::MouseEvent &event
-                             , const juce::MouseWheelDetails &wheel) override;
-
-        te::MidiClip* getMidiClip()
-        {
-            return dynamic_cast<te::MidiClip*> (m_clip.get());
-        }
-
-private:
-        void drawVerticalLines (juce::Graphics& g);
-        int getNoteNumber (int y);
-        te::MidiNote* getNoteByPos (juce::Point<float> pos);
-        EditViewState& m_editViewState;
-        te::Clip::Ptr m_clip;
-        juce::MidiKeyboardComponent & m_keyboard;
-        TimeLineComponent & m_timeline;
-        te::MidiNote * m_clickedNote {nullptr};
-        double m_clickOffset{0};
-        bool m_expandLeft {false}
-           , m_expandRight{false};
-    };
-
-//------------------------------------------------------------------------------
 
 class PianoRollComponent : public juce::Component
                          , public te::ValueTreeAllEventListener
                          , public juce::MidiKeyboardStateListener
 {
 public:
-    PianoRollComponent (EditViewState&, te::Clip::Ptr);
+    PianoRollComponent (EditViewState&);
     ~PianoRollComponent();
 
     void focusLost (juce::Component::FocusChangeType cause) override;
@@ -77,15 +37,29 @@ public:
         return dynamic_cast<te::MidiClip*> (m_clip.get());
     }
     void centerView();
+
+    void setPianoRollClip(std::unique_ptr<PianoRollClipComponent> pianoRollClip)
+    {
+        m_pianoRollClip = std::move (pianoRollClip);
+        addAndMakeVisible (m_pianoRollClip.get());
+        resized ();
+    }
+
+    void clearPianoRollClip()
+    {
+        m_pianoRollClip.reset (nullptr);
+        resized ();
+    }
+
     juce::MidiKeyboardComponent &getKeyboard();
 
 private:
     EditViewState& m_editViewState;
     te::Clip::Ptr m_clip;
-    juce::MidiKeyboardComponent m_keyboard;
     juce::MidiKeyboardState m_keybordstate;
+    juce::MidiKeyboardComponent m_keyboard;
     TimeLineComponent m_timeline;
-    PianoRollDisplay m_pianoRoll;
+    std::unique_ptr<PianoRollClipComponent> m_pianoRollClip{nullptr};
     PlayheadComponent m_playhead;
 
 };

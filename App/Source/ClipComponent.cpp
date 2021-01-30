@@ -2,13 +2,13 @@
 #include <utility>
 
 //==============================================================================
-ClipComponent::ClipComponent(EditViewState& evs, te::Clip::Ptr c)
+ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : m_editViewState(evs)
     , m_clip(std::move(c))
 {
 }
 
-void ClipComponent::paint(juce::Graphics& g)
+void ClipComponent::paint (juce::Graphics& g)
 {
     auto alpha = 1.0f;
     if (m_isDragging)

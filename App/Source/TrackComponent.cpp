@@ -453,14 +453,13 @@ void TrackComponent::buildClips()
 
             m_clips.add (cc);
             addAndMakeVisible (cc);
-            /*if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
+            if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
             {
                 if (auto midiClipcomp = dynamic_cast<MidiClipComponent*>(cc))
                 {
-                    editcomp->lowerRange ().addPianoRollEditor(pr);
                     midiClipcomp->addChangeListener (&editcomp->lowerRange ());
                 }
-            }*/
+            }
         }
     }
     resized();

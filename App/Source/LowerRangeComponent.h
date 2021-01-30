@@ -31,11 +31,6 @@ public:
     void addPianoRollEditor(PianoRollComponent * pianoroll);
     void addPluginRackComp (PluginRackComponent * pluginrack);
 
-
-    void clearPianoRolls()
-    {
-        m_pianoRolls.clear ();
-    }
     void clearPluginRacks()
     {
         m_pluginRackComps.clear ();
@@ -44,10 +39,9 @@ private:
 
     EditViewState& m_editViewState;
 
-    tracktion_engine::Track::Ptr m_pointedTrack{nullptr};
     te::Clip::Ptr m_pointedClip{nullptr};
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
-    juce::OwnedArray<PianoRollComponent> m_pianoRolls;
+    PianoRollComponent m_pianoRollEditor;
     const int m_splitterHeight {10};
 
 

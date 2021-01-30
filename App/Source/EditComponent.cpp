@@ -274,7 +274,6 @@ void EditComponent::addAudioTrack(bool isMidiTrack, juce::Colour trackColour)
 
 void EditComponent::buildTracks()
 {
-    m_lowerRange.clearPianoRolls ();
     m_lowerRange.clearPluginRacks ();
     m_trackComps.clear();
     m_headers.clear();
