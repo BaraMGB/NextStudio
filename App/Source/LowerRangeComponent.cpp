@@ -27,6 +27,7 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * sourc
 
     if (auto midiClipComp = dynamic_cast<MidiClipComponent*>(source))
     {
+        std::cout << "chaneged" << std::endl;
         showPianoRoll (midiClipComp->getClip ());
         resized();
         repaint ();
@@ -95,6 +96,17 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
         m_pianoRollEditor.setPianoRollClip (std::make_unique<PianoRollClipComponent>(m_editViewState, clip));
         resized ();
         std::cout << "Piano" << std::endl;
+    }
+}
+
+void LowerRangeComponent::hideAll()
+{
+    m_pianoRollEditor.setVisible (false);
+    m_pianoRollEditor.clearPianoRollClip ();
+
+    for (auto &pluginrack : m_pluginRackComps)
+    {
+        pluginrack->setVisible (false);
     }
 }
 

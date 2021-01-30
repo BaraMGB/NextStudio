@@ -28,6 +28,7 @@ public:
 
     void showPluginRack(tracktion_engine::Track::Ptr);
     void showPianoRoll(te::Clip::Ptr);
+    void hideAll();
     void addPianoRollEditor(PianoRollComponent * pianoroll);
     void addPluginRackComp (PluginRackComponent * pluginrack);
 

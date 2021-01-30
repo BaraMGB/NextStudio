@@ -217,9 +217,13 @@ void EditComponent::valueTreeChildRemoved (
     if (te::MidiClip::isClipState (c))
     {
         std::cout << "Clip removed" << std::endl;
+        m_lowerRange.hideAll ();
     }
     if (te::TrackList::isTrack (c))
+    {
+        m_lowerRange.hideAll ();
         markAndUpdate (m_updateTracks);
+    }
 }
 
 void EditComponent::valueTreeChildOrderChanged (

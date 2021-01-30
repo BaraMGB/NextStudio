@@ -13,6 +13,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
     m_editViewState.m_edit.state.addListener (this);
+    m_keybordstate.addListener (this);
 
     m_keyboard.setBlackNoteWidthProportion (0.5);
     m_keyboard.setBlackNoteLengthProportion (0.6);
@@ -26,6 +27,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
 
 PianoRollComponent::~PianoRollComponent()
 {
+    m_keybordstate.removeListener (this);
     m_editViewState.m_edit.state.removeListener (this);
 }
 
@@ -58,7 +60,6 @@ void PianoRollComponent::resized()
     {
         m_pianoRollClip->setBounds (area);
         m_pianoRollClip->setKeyWidth (m_keyboard.getKeyWidth ());
-        std::cout << "gesehen?" << std::endl;
     }
 
     m_playhead.setBounds (area);
