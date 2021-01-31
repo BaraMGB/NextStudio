@@ -17,12 +17,12 @@ void PianoRollClipComponent::paint(juce::Graphics &g)
 {
     int y1 = m_editViewState.m_pianoY1;
     int y2 = m_editViewState.m_pianoY2;
-
+    float noteHeight = m_keyWidth * 7 / 12;
     //draw horizontal Lines
     float line = getHeight ();
     for (auto i = y1; i <= y2 ; i++)
     {
-        line = line - m_keyWidth  ;
+        line = line - noteHeight  ;
         if (juce::MidiMessage::isMidiNoteBlack (i))
         {
            g.setColour (juce::Colour(0x11ffffff));
@@ -31,7 +31,7 @@ void PianoRollClipComponent::paint(juce::Graphics &g)
         {
             g.setColour (juce::Colour(0x22ffffff));
         }
-        juce::Rectangle<float> lineRect = {0.0, line, (float) getWidth (), m_keyWidth};
+        juce::Rectangle<float> lineRect = {0.0, line, (float) getWidth (), noteHeight};
         g.fillRect(lineRect.reduced (0, 1));
     }
     g.setColour (juce::Colours::black);
@@ -47,7 +47,7 @@ void PianoRollClipComponent::paint(juce::Graphics &g)
                 for (auto n : seq.getNotes())
                 {
                     auto yOffset = n->getNoteNumber () - y1 + 1;
-                    auto noteY = getHeight () - (yOffset * m_keyWidth);
+                    auto noteY = getHeight () - (yOffset * noteHeight);
                     double sBeat = n->getStartBeat() - midiClip->getOffsetInBeats();
                     double eBeat = n->getEndBeat() - midiClip->getOffsetInBeats();
 
@@ -69,7 +69,7 @@ void PianoRollClipComponent::paint(juce::Graphics &g)
                     }
                     juce::Rectangle<float> noteRect
                                 (float (x1)     , float (noteY)
-                               , float (x2 - x1), float (m_keyWidth));
+                               , float (x2 - x1), float (noteHeight));
                     g.fillRect (noteRect.reduced (1,1));
                 }
                 //draw ClipRange
