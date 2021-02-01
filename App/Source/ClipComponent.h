@@ -109,7 +109,6 @@ public:
 private:
     int m_mouseDownX {0};
     int m_clipWidthMouseDown;
-    double m_lastOffset{0.0};
     double m_oldDistTime{0.0};
     tracktion_engine::ClipPosition m_posAtMouseDown;
 };

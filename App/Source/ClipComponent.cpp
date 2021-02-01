@@ -489,7 +489,6 @@ void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
     m_mouseDownX = e.getMouseDownX();
     m_posAtMouseDown =  m_clip->getPosition();
     m_clipWidthMouseDown = getWidth();
-    m_lastOffset = 0.0;
     m_oldDistTime = 0.0;
     ClipComponent::mouseDown(e);
     if (e.getNumberOfClicks () > 1
@@ -513,30 +512,42 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
     if (m_mouseDownX < 10)
     {
         auto distTimeDelta = distanceTime - m_oldDistTime;
-        if (distTimeDelta > 0
-         || m_clip->getPosition().getOffset() > 0 )
+
+        auto resizeTime = juce::jmax(0.0, m_clip->getPosition().getStart()
+                               + distTimeDelta);
+        //move left or Right
+        if (distTimeDelta > 0.0)
         {
-            m_clip->setStart(
-                        juce::jmax(0.0, m_clip->getPosition().getStart()
-                                   + distTimeDelta)
-                             , false, false);
-            if (m_clip->getPosition().getOffset() + distTimeDelta < 0)
+            auto firstNoteTime = m_editViewState.beatToTime (
+                        getMidiClip ()->getSequence ().getFirstBeatNumber ());
+            if ((firstNoteTime - m_clip->getPosition ().getOffset ())
+                    - distTimeDelta < 0.0)
             {
-                m_lastOffset = m_clip->getPosition().getOffset() + distTimeDelta;
-                getMidiClip()->getSequence().moveAllBeatPositions(
-                            m_editViewState.m_edit.tempoSequence.timeToBeats(-m_lastOffset)
+                m_clip->setStart(resizeTime, true, false);
+            }
+            else
+            {
+                m_clip->setStart(resizeTime, false, false);
+                getMidiClip ()->getSequence ()
+                        .moveAllBeatPositions (
+                            m_editViewState.timeToBeat (-distTimeDelta)
                             , nullptr);
             }
-            m_clip->setOffset(m_clip->getPosition().getOffset()
-                              + distTimeDelta);
         }
-        else
+        else if (distTimeDelta < 0.0)
         {
-            getMidiClip()->extendStart(
-                        juce::jmax (
-                            0.0, m_clip->getPosition().getStart() + distTimeDelta));
+            if (m_clip->getPosition ().getOffset () > 0.0)
+            {
+                m_clip->setOffset (m_clip->getPosition ().getOffset () + distTimeDelta);
+                m_clip->setStart(resizeTime, false, false);
+            }
+            else
+            {
+                getMidiClip()->extendStart(
+                            juce::jmax (
+                                0.0, m_clip->getPosition().getStart() + distTimeDelta));
+            }
             m_posAtMouseDown = m_clip->getPosition();
-            m_lastOffset = 0.0;
         }
         m_oldDistTime = distanceTime;
     }
