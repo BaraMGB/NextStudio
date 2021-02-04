@@ -47,8 +47,7 @@ public:
     te::Clip::Ptr getClip();
     te::MidiClip* getMidiClip();
 
-    void centerView();
-    void setPianoRollClip(std::unique_ptr<PianoRollContentComponent> pianoRollClip);
+    void setPianoRollClip(std::unique_ptr<PianoRollContentComponent>);
     void clearPianoRollClip();
 
 
@@ -58,7 +57,7 @@ private:
     juce::MidiKeyboardState m_keybordstate;
     juce::MidiKeyboardComponent m_keyboard;
     TimeLineComponent m_timeline;
-    std::unique_ptr<PianoRollContentComponent> m_pianoRollClip{nullptr};
+    std::unique_ptr<PianoRollContentComponent> m_pianoRollContentComponent{nullptr};
     TimelineOverlayComponent m_timelineOverlay;
     PlayheadComponent m_playhead;
 

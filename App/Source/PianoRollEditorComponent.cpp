@@ -129,10 +129,10 @@ void PianoRollComponent::resized()
                            / m_editViewState.m_pianorollNoteWidth)
                        , (int) m_editViewState.m_pianoY1);
     m_timeline.setBounds (timeline);
-    if (m_pianoRollClip != nullptr)
+    if (m_pianoRollContentComponent != nullptr)
     {
-        m_pianoRollClip->setBounds (area);
-        m_pianoRollClip->setKeyWidth (m_keyboard.getKeyWidth ());
+        m_pianoRollContentComponent->setBounds (area);
+        m_pianoRollContentComponent->setKeyWidth (m_keyboard.getKeyWidth ());
     }
 
     m_playhead.setBounds (area.getUnion (timeline));
@@ -165,9 +165,9 @@ void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
                                       , int midiNoteNumber
                                       , float v)
 {
-    if (m_pianoRollClip)
+    if (m_pianoRollContentComponent)
     {
-        auto mc = m_pianoRollClip->getDefaulMidiClip ();
+        auto mc = m_pianoRollContentComponent->getDefaulMidiClip ();
         auto midichannel = mc->getMidiChannel ();
         mc->getAudioTrack ()->playGuideNote
                           (midiNoteNumber,midichannel, 127.0 * v, false, true);
@@ -180,9 +180,9 @@ void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
                                        , int /*midiNoteNumber*/
                                        , float)
 {
-    if (m_pianoRollClip)
+    if (m_pianoRollContentComponent)
     {
-        auto mc = m_pianoRollClip->getDefaulMidiClip ();
+        auto mc = m_pianoRollContentComponent->getDefaulMidiClip ();
         mc->getAudioTrack ()->turnOffGuideNotes ();
     }
 }
@@ -197,32 +197,17 @@ tracktion_engine::MidiClip *PianoRollComponent::getMidiClip()
     return dynamic_cast<te::MidiClip*> (m_clip.get());
 }
 
-void PianoRollComponent::centerView()
-{
-    //center view of clip in horizontal
-    if (m_pianoRollClip)
-    {
-        auto mc = m_pianoRollClip->getDefaulMidiClip ();
-        auto width = m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1;
-        m_editViewState.m_pianoX1 = juce::jmax(0.0, mc->getStartBeat () - 1);
-        m_editViewState.m_pianoX2 = m_editViewState.m_pianoX1 + width;
-    }
-    //in vertical
-//    auto noteRange = getMidiClip ()->getSequence ().getNoteNumberRange ()
-//            .expanded (10);
-//    m_editViewState.m_pianoY1 = juce::jmax(0, noteRange.getStart ());
-//    m_editViewState.m_pianoY2 = juce::jmin(127, noteRange.getEnd ());
-}
 
-void PianoRollComponent::setPianoRollClip(std::unique_ptr<PianoRollContentComponent> pianoRollClip)
+
+void PianoRollComponent::setPianoRollClip(std::unique_ptr<PianoRollContentComponent> pianoRollContentComponent)
 {
-    m_pianoRollClip = std::move (pianoRollClip);
-    addAndMakeVisible (m_pianoRollClip.get());
+    addAndMakeVisible (*pianoRollContentComponent);
+    m_pianoRollContentComponent = std::move (pianoRollContentComponent);
     resized ();
 }
 
 void PianoRollComponent::clearPianoRollClip()
 {
-    m_pianoRollClip.reset (nullptr);
+    m_pianoRollContentComponent.reset (nullptr);
     resized ();
 }
