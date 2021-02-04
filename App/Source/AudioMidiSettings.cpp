@@ -39,5 +39,4 @@ void AudioMidiSettings::comboBoxChanged(juce::ComboBox *comboBox)
 {
     auto& dm = m_engine.getDeviceManager ();
     dm.setDefaultMidiInDevice (comboBox->getSelectedId () - 1);
-    std::cout << " ams: " << dm.getDefaultMidiInDevice ()->getName ()<< std::endl;
 }

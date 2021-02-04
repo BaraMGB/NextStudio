@@ -6,12 +6,12 @@
 namespace te = tracktion_engine;
 
 
-class PianoRollClipComponent : public juce::Component
+class PianoRollContentComponent : public juce::Component
 {
 public:
 
-        PianoRollClipComponent (EditViewState&, te::Clip::Ptr);
-        ~PianoRollClipComponent();
+        PianoRollContentComponent (EditViewState&, te::Clip::Ptr);
+        ~PianoRollContentComponent();
 
         void paint (juce::Graphics& g) override;
         void mouseDown (const juce::MouseEvent&) override;
@@ -22,36 +22,24 @@ public:
         void mouseWheelMove (const juce::MouseEvent &event
                              , const juce::MouseWheelDetails &wheel) override;
 
-        te::MidiClip* getMidiClip()
-        {
-            return dynamic_cast<te::MidiClip*> (m_clip.get());
-        }
+        te::MidiClip* getDefaulMidiClip();
 
         void setKeyWidth(float noteHeight);
-
-        int beatsToX(double beats)
-        {
-            return juce::roundToInt (((beats - m_editViewState.m_pianoX1)
-                                      *  getWidth())
-                                      / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
-        }
-
-        double xToBeats(int x)
-        {
-            return (double (x) / getWidth())
-                    * (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1)
-                                + m_editViewState.m_pianoX1;
-        }
-
 private:
+        std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
         void drawVerticalLines (juce::Graphics& g);
+        int beatsToX(double beats);
+        double xToBeats(int x);
         int getNoteNumber (int y);
         te::MidiNote* getNoteByPos (juce::Point<float> pos);
+        te::MidiClip *getMidiclipByPos(int y);
+        juce::Point<float> m_clickedPos;
         EditViewState& m_editViewState;
         te::Clip::Ptr m_clip;
         float m_keyWidth{0};
         te::MidiNote * m_clickedNote {nullptr};
         double m_clickOffset{0};
         bool m_expandLeft {false}
-           , m_expandRight{false};
-    };
+           , m_expandRight{false}
+           , m_noteAdding {false};
+};

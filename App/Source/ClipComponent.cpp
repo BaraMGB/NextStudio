@@ -279,13 +279,14 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                                       te::AudioClipBase& c,
                                       te::SmartThumbnail& thumb,
                                       juce::Colour colour,
-                                      int left,
-                                      int right,
+                                      const int left,
+                                      const int right,
                                       int y,
                                       int h,
                                       int xOffset)
 {
-    auto getTimeRangeForDrawing = [this] (const int left, const int right) -> te::EditTimeRange
+    auto getTimeRangeForDrawing =
+            [this] (const int left, const int right) -> te::EditTimeRange
     {
         if (auto p = getParentComponent())
         {
@@ -487,6 +488,13 @@ void MidiClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseDownX = e.getMouseDownX();
+    if (!(m_mouseDownX < 10 || m_mouseDownX > getWidth () - 10))
+    {
+        m_editViewState.m_pianoX1 = juce::jmax(0.0, (m_clip->getStartBeat ()
+                - (m_clip->getLengthInBeats () / 10)));
+        m_editViewState.m_pianoX2 = m_clip->getEndBeat ()
+                + (m_clip->getLengthInBeats () / 10);
+    }
     m_posAtMouseDown =  m_clip->getPosition();
     m_clipWidthMouseDown = getWidth();
     m_oldDistTime = 0.0;

@@ -41,7 +41,6 @@ void TimeLineComponent::paint(juce::Graphics& g)
     }
 
     auto pixelPerBeat = getWidth() / zoom;
-    //std::cout << zoom << std::endl;
     for (int beat = firstBeat - 1; beat <= x2; beat++)
     {
         int BeatX = beatsToX(beat);

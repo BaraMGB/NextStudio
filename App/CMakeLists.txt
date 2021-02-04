@@ -27,7 +27,7 @@ target_sources(${TargetName} PRIVATE
         Source/LowerRangeComponent.cpp
         Source/TrackHeadComponent.cpp
         Source/AudioMidiSettings.cpp
-        Source/PianoRollClipComponent.cpp
+        Source/PianoRollContentComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

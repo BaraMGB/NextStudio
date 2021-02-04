@@ -1,12 +1,51 @@
 #include "LowerRangeComponent.h"
 
 
+SplitterComponent::SplitterComponent(EditViewState &evs) : m_editViewState(evs)
+{
+
+}
+
+void SplitterComponent::mouseEnter(const juce::MouseEvent &event)
+{
+
+}
+
+void SplitterComponent::mouseExit(const juce::MouseEvent &event)
+{
+
+}
+
+void SplitterComponent::mouseDown(const juce::MouseEvent &event)
+{
+    m_mousedownPosYatMousdown = event.mouseDownPosition.y;
+    m_pianorollHeightAtMousedown = m_editViewState.m_pianorollHeight;
+}
+
+void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
+{
+    if (m_editViewState.m_isPianoRollVisible)
+    {
+        auto newHeight = static_cast<int> (m_pianorollHeightAtMousedown
+                                        - event.getDistanceFromDragStartY());
+        m_editViewState.m_pianorollHeight = std::max(20, newHeight);
+    }
+}
+
+void SplitterComponent::mouseUp(const juce::MouseEvent &event)
+{
+}
+
+//------------------------------------------------------------------------------
 
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     : m_editViewState(evs)
     , m_pianoRollEditor (evs)
+    , m_splitter (evs)
 {
+    m_editViewState.m_isPianoRollVisible = false;
     m_pluginRackComps.clear(true);
+    addAndMakeVisible (m_splitter);
     addChildComponent (m_pianoRollEditor);
 }
 
@@ -27,7 +66,6 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * sourc
 
     if (auto midiClipComp = dynamic_cast<MidiClipComponent*>(source))
     {
-        std::cout << "chaneged" << std::endl;
         showPianoRoll (midiClipComp->getClip ());
         resized();
         repaint ();
@@ -48,8 +86,8 @@ void LowerRangeComponent::paint(juce::Graphics &g)
 void LowerRangeComponent::resized()
 {
         auto area = getLocalBounds();
-        // todo: we add a splitter later for this
-        area.removeFromTop (m_splitterHeight);
+
+        m_splitter.setBounds (area.removeFromTop (m_splitterHeight));
 
         for (auto& pluginRackComp : m_pluginRackComps)
         {
@@ -67,8 +105,6 @@ void LowerRangeComponent::resized()
 
 void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
 {
-    std::cout << "---show Plugin Rack" << std::endl;
-
     m_pianoRollEditor.setVisible (false);
     m_pianoRollEditor.clearPianoRollClip ();
 
@@ -93,9 +129,8 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
         }
 
         m_pianoRollEditor.setVisible (true);
-        m_pianoRollEditor.setPianoRollClip (std::make_unique<PianoRollClipComponent>(m_editViewState, clip));
+        m_pianoRollEditor.setPianoRollClip (std::make_unique<PianoRollContentComponent>(m_editViewState, clip));
         resized ();
-        std::cout << "Piano" << std::endl;
     }
 }
 
@@ -116,5 +151,3 @@ void LowerRangeComponent::addPluginRackComp(PluginRackComponent *pluginrack)
     addAndMakeVisible (pluginrack);
     m_pluginRackComps.add (pluginrack);
 }
-
-

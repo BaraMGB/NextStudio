@@ -71,12 +71,12 @@ void EditComponent::resized()
                           ? m_editViewState.m_headerWidth
                           : 0;
     const int footerWidth = m_editViewState.m_showFooters ? 150 : 0;
-    const int pluginRackHeight = 250;
-
-
+    const int lowerRange = m_editViewState.m_isPianoRollVisible
+                                ? m_editViewState.m_pianorollHeight
+                                : 250;
 
     auto area = getLocalBounds();
-    auto pluginRackRect = area.removeFromBottom(pluginRackHeight);
+    auto pluginRackRect = area.removeFromBottom(lowerRange);
 
     int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
 
@@ -107,7 +107,7 @@ void EditComponent::resized()
     m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));
     m_toolBar.setBounds (0, 0, headerWidth, timelineHeight);
 
-    auto songeditorHeight = getHeight() - timelineHeight - pluginRackHeight;
+    auto songeditorHeight = getHeight() - timelineHeight - lowerRange;
     area.removeFromTop (timelineHeight);
     m_songeditorRect = area.toFloat ();
     m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
@@ -189,7 +189,9 @@ void EditComponent::valueTreePropertyChanged (
     {
         if (i == IDs::viewX1
             || i == IDs::viewX2
-            || i == IDs::viewY)
+            || i == IDs::viewY
+            || i == IDs::isPianoRollVisible
+            || i == IDs::pianorollHeight)
         {
             markAndUpdate (m_updateZoom);
         }
@@ -216,7 +218,6 @@ void EditComponent::valueTreeChildRemoved (
 {
     if (te::MidiClip::isClipState (c))
     {
-        std::cout << "Clip removed" << std::endl;
         m_lowerRange.hideAll ();
     }
     if (te::TrackList::isTrack (c))
@@ -235,9 +236,6 @@ void EditComponent::valueTreeChildOrderChanged (
         markAndUpdate (m_updateTracks);
 }
 
-
-
-
 void EditComponent::handleAsyncUpdate()
 {
     if (compareAndReset (m_updateTracks))
@@ -245,6 +243,7 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset (m_updateZoom))
     {
         resized();
+        repaint ();
         m_timeLine.repaint ();
     }
 }

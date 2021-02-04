@@ -100,7 +100,6 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
     {
         if (m_header->loadingFile ().exists ())
         {
-            std::cout << m_header->loadingFile ().getFileName () << std::endl;
             auto editfile = m_header->loadingFile ();
             setupEdit (editfile);
         }

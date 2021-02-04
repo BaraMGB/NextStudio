@@ -128,7 +128,6 @@ void TrackComponent::changeListenerCallback (juce::ChangeBroadcaster* changebroa
 {
     if (changebroadcaster == &m_editViewState.m_selectionManager)
     {
-        std::cout << "select" << std::endl;
         for (auto & clipcomps : m_clips)
         {
             clipcomps->repaint ();

@@ -14,6 +14,21 @@
 
 namespace te = tracktion_engine;
 
+class SplitterComponent : public juce::Component
+{
+public:
+    SplitterComponent(EditViewState&);
+    void mouseEnter(const juce::MouseEvent &event);
+    void mouseExit(const juce::MouseEvent &event);
+    void mouseDown(const juce::MouseEvent &event);
+    void mouseDrag(const juce::MouseEvent &event);
+    void mouseUp(const juce::MouseEvent &event);
+private:
+    EditViewState & m_editViewState;
+    int m_pianorollHeightAtMousedown;
+    int m_mousedownPosYatMousdown;
+};
+
 class LowerRangeComponent : public juce::Component
                           , public juce::ChangeListener
 {
@@ -43,6 +58,7 @@ private:
     te::Clip::Ptr m_pointedClip{nullptr};
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
     PianoRollComponent m_pianoRollEditor;
+    SplitterComponent m_splitter;
     const int m_splitterHeight {10};
 
 

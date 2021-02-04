@@ -70,7 +70,7 @@ private:
                       te::AudioClipBase& c,
                       te::SmartThumbnail& thumb,
                       juce::Colour colour,
-                       int left, int right, int y, int h, int xOffset);
+                       const int left, const int right, int y, int h, int xOffset);
     void drawChannels(juce::Graphics& g,
                       te::SmartThumbnail& thumb,
                       juce::Rectangle<int> area,

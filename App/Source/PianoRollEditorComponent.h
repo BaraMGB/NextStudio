@@ -4,9 +4,26 @@
 #include "EditViewState.h"
 #include "TimeLineComponent.h"
 #include "PlayHeadComponent.h"
-#include "PianoRollClipComponent.h"
+#include "PianoRollContentComponent.h"
 
 namespace te = tracktion_engine;
+
+class TimelineOverlayComponent : public juce::Component
+{
+public:
+    TimelineOverlayComponent(EditViewState& evs);
+    void paint (juce::Graphics& g) override;
+private:
+    bool hitTest(int,int) override;
+    void mouseDown(const juce::MouseEvent& e) override;
+    void mouseDrag(const juce::MouseEvent& e) override;
+
+    int timeToX(double time);
+    EditViewState& m_editViewState;
+    double m_loop1AtMousedown
+         , m_loop2AtMousedown;
+};
+
 
 class PianoRollComponent : public juce::Component
                          , public te::ValueTreeAllEventListener
@@ -27,31 +44,13 @@ public:
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
-    te::Clip::Ptr getClip()
-    {
-        return m_clip;
-    }
+    te::Clip::Ptr getClip();
+    te::MidiClip* getMidiClip();
 
-    te::MidiClip* getMidiClip()
-    {
-        return dynamic_cast<te::MidiClip*> (m_clip.get());
-    }
     void centerView();
+    void setPianoRollClip(std::unique_ptr<PianoRollContentComponent> pianoRollClip);
+    void clearPianoRollClip();
 
-    void setPianoRollClip(std::unique_ptr<PianoRollClipComponent> pianoRollClip)
-    {
-        m_pianoRollClip = std::move (pianoRollClip);
-        addAndMakeVisible (m_pianoRollClip.get());
-        resized ();
-    }
-
-    void clearPianoRollClip()
-    {
-        m_pianoRollClip.reset (nullptr);
-        resized ();
-    }
-
-    juce::MidiKeyboardComponent &getKeyboard();
 
 private:
     EditViewState& m_editViewState;
@@ -59,7 +58,8 @@ private:
     juce::MidiKeyboardState m_keybordstate;
     juce::MidiKeyboardComponent m_keyboard;
     TimeLineComponent m_timeline;
-    std::unique_ptr<PianoRollClipComponent> m_pianoRollClip{nullptr};
+    std::unique_ptr<PianoRollContentComponent> m_pianoRollClip{nullptr};
+    TimelineOverlayComponent m_timelineOverlay;
     PlayheadComponent m_playhead;
 
 };

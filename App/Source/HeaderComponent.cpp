@@ -422,7 +422,6 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         o.content.setOwned (audiosettings);
         o.content->setSize (400, 600);
         o.runModal ();
-        std::cout << m_edit.engine.getDeviceManager ().getDefaultMidiInDevice ()->getName ()<< std::endl;
     }
     if (button == &m_pluginsButton)
     {
@@ -486,7 +485,6 @@ void HeaderComponent::buttonClicked(juce::Button* button)
             juce::File selectedFile = browser.getSelectedFile (0)
                                         .withFileExtension (".tracktionedit");
             te::EditFileOperations(m_edit).saveAs (selectedFile);
-            std::cout << "selected file: " << selectedFile.getFullPathName () << std::endl;
         }
     }
     if (button == &m_loadButton)

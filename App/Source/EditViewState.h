@@ -41,6 +41,8 @@ namespace IDs
     DECLARE_ID (pianoX2)
     DECLARE_ID (pianoY1)
     DECLARE_ID (pianoY2)
+    DECLARE_ID (pianorollNoteWidth)
+    DECLARE_ID (pianorollHeight)
     DECLARE_ID (snapType)
     DECLARE_ID (drawWaveforms)
     DECLARE_ID (showHeaders)
@@ -51,6 +53,8 @@ namespace IDs
     DECLARE_ID (isMidiTrack)
     DECLARE_ID (isAutoArmed)
     DECLARE_ID (isPianoRollVisible)
+    DECLARE_ID (timeLineHeight)
+    DECLARE_ID (lastNoteLenght)
     #undef DECLARE_ID
 }
 
@@ -76,7 +80,6 @@ public:
         m_showFooters.referTo (m_state, IDs::showFooters, um, false);
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
         m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
-        m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
 
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
         m_headerHeight.referTo(m_state, IDs::headerHeight, um, 50);
@@ -87,9 +90,13 @@ public:
         m_pianoX1.referTo (m_state, IDs::pianoX1, um, 0);
         m_pianoX2.referTo (m_state, IDs::pianoX2, um, 4);
         m_pianoY1.referTo (m_state, IDs::pianoY1, um, 24);
-        m_pianoY2.referTo (m_state, IDs::pianoY2, um, 72);
+        m_pianorollNoteWidth.referTo(m_state, IDs::pianorollNoteWidth, um, 15.0);
+        m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
+        m_pianorollHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
+        m_lastNoteLenght.referTo (m_state, IDs::lastNoteLenght, um, 0);
         m_snapType.referTo(m_state, IDs::snapType, um, 9);
 
+        m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
     }
 
     int beatsToX (double beats, int width) const
@@ -185,13 +192,16 @@ public:
                             , m_viewX2
                             , m_viewY
                             , m_pianoX1
-                            , m_pianoX2;
+                            , m_pianoX2
+                            , m_pianorollNoteWidth
+                            , m_lastNoteLenght;
     juce::CachedValue<int> m_pianoY1
-                            , m_pianoY2;
+                         , m_pianorollHeight;
     juce::CachedValue<int> m_snapType;
 
     juce::CachedValue<int> m_headerHeight
-                         , m_headerWidth;
+                         , m_headerWidth
+                         , m_timeLineHeight;
 
     juce::ValueTree m_state;
 };
