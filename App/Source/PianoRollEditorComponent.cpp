@@ -1,82 +1,11 @@
 #include "PianoRollEditorComponent.h"
 
-
-TimelineOverlayComponent::TimelineOverlayComponent(EditViewState &evs) : m_editViewState (evs)
-{
-    //setInterceptsMouseClicks (false, true);
-}
-
-void TimelineOverlayComponent::paint(juce::Graphics &g)
-{
-    auto loopRange = m_editViewState.m_edit.getTransport ().getLoopRange ();
-    auto loopStartX = timeToX (loopRange.getStart ());
-    auto loopEndX = timeToX (loopRange.getEnd ());
-
-    g.setColour (juce::Colours::grey);
-    g.fillRect (loopStartX, getHeight () - 10, loopEndX - loopStartX, 10);
-}
-
-bool TimelineOverlayComponent::hitTest(int x, int y)
-{
-    auto loopRange = m_editViewState.m_edit.getTransport ().getLoopRange ();
-    auto loopStartX = timeToX (loopRange.getStart ());
-    auto loopEndX = timeToX (loopRange.getEnd ());
-    auto rect = juce::Rectangle<int>(loopStartX
-                                     , getHeight () - 10
-                                     , loopEndX - loopStartX
-                                     , 10);
-    return rect.contains (x, y);
-}
-
-void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
-{
-    std::cout << "clicked!" << std::endl;
-    m_loop1AtMousedown = m_editViewState.m_edit.getTransport ()
-                                               .getLoopRange ()
-                                               .getStart ();
-    m_loop2AtMousedown = m_editViewState.m_edit.getTransport ()
-                                               .getLoopRange ()
-                                               .getEnd ();
-}
-
-void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
-{
-    auto loopRange = m_editViewState.m_edit.getTransport ().getLoopRange ();
-    auto loopStartX = timeToX (loopRange.getStart ());
-    auto loopEndX = timeToX (loopRange.getEnd ());
-    auto rect = juce::Rectangle<int>(loopStartX
-                                     , getHeight () - 10
-                                     , loopEndX - loopStartX
-                                     , 10);
-    if (rect.contains (e.x,e.y))
-    {
-        //move loopRect
-        repaint ();
-    }
-}
-
-
-
-
-int TimelineOverlayComponent::timeToX(double time)
-{
-    auto beats = m_editViewState.m_edit.tempoSequence.timeToBeats (time);
-    return juce::roundToInt (((beats - m_editViewState.m_pianoX1)
-                                  *  getWidth())
-                                  / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
-}
-
-
-
-//------------------------------------------------------------------------------
-
 PianoRollComponent::PianoRollComponent(EditViewState & evs)
     : m_editViewState(evs)
     , m_keyboard (m_keybordstate
                   , juce::MidiKeyboardComponent::
                     Orientation::verticalKeyboardFacingRight)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
-    , m_timelineOverlay (evs)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
     m_editViewState.m_edit.state.addListener (this);
@@ -88,9 +17,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
 
     addAndMakeVisible (m_keyboard);
     addAndMakeVisible (m_timeline);
-    addAndMakeVisible (m_timelineOverlay);
     addAndMakeVisible (m_playhead);
-    m_timelineOverlay.setAlwaysOnTop (true);
     m_playhead.setAlwaysOnTop (true);
 }
 
@@ -113,7 +40,6 @@ void PianoRollComponent::resized()
     auto area = getLocalBounds ();
     auto keyboard = area.removeFromLeft (50);
     auto timeline = area.removeFromTop (50);
-    m_timelineOverlay.setBounds (timeline);
 
     double firstVisibleNote = m_editViewState.m_pianoY1;
     double pianoRollNoteWidth = m_editViewState.m_pianorollNoteWidth;
@@ -202,6 +128,8 @@ tracktion_engine::MidiClip *PianoRollComponent::getMidiClip()
 void PianoRollComponent::setPianoRollClip(std::unique_ptr<PianoRollContentComponent> pianoRollContentComponent)
 {
     addAndMakeVisible (*pianoRollContentComponent);
+
+
     m_pianoRollContentComponent = std::move (pianoRollContentComponent);
     resized ();
 }

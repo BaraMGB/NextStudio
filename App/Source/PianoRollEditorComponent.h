@@ -8,23 +8,6 @@
 
 namespace te = tracktion_engine;
 
-class TimelineOverlayComponent : public juce::Component
-{
-public:
-    TimelineOverlayComponent(EditViewState& evs);
-    void paint (juce::Graphics& g) override;
-private:
-    bool hitTest(int,int) override;
-    void mouseDown(const juce::MouseEvent& e) override;
-    void mouseDrag(const juce::MouseEvent& e) override;
-
-    int timeToX(double time);
-    EditViewState& m_editViewState;
-    double m_loop1AtMousedown
-         , m_loop2AtMousedown;
-};
-
-
 class PianoRollComponent : public juce::Component
                          , public te::ValueTreeAllEventListener
                          , public juce::MidiKeyboardStateListener
@@ -58,7 +41,7 @@ private:
     juce::MidiKeyboardComponent m_keyboard;
     TimeLineComponent m_timeline;
     std::unique_ptr<PianoRollContentComponent> m_pianoRollContentComponent{nullptr};
-    TimelineOverlayComponent m_timelineOverlay;
+
     PlayheadComponent m_playhead;
 
 };

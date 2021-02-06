@@ -28,6 +28,7 @@ target_sources(${TargetName} PRIVATE
         Source/TrackHeadComponent.cpp
         Source/AudioMidiSettings.cpp
         Source/PianoRollContentComponent.cpp
+        Source/TimelineOverlayComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

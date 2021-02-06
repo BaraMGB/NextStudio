@@ -10,6 +10,7 @@
 #include "PluginRackComponent.h"
 #include "ClipComponent.h"
 #include "TrackHeadComponent.h"
+#include "TimelineOverlayComponent.h"
 
 
 namespace te = tracktion_engine;
@@ -58,6 +59,7 @@ private:
     te::Clip::Ptr m_pointedClip{nullptr};
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
     PianoRollComponent m_pianoRollEditor;
+    std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
     SplitterComponent m_splitter;
     const int m_splitterHeight {10};
 

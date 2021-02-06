@@ -107,6 +107,7 @@ void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
 {
     m_pianoRollEditor.setVisible (false);
     m_pianoRollEditor.clearPianoRollClip ();
+    m_timelineOverlay.reset (nullptr);
 
     for (auto &prc : m_pluginRackComps)
     {
@@ -130,6 +131,14 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
 
         m_pianoRollEditor.setVisible (true);
         m_pianoRollEditor.setPianoRollClip (std::make_unique<PianoRollContentComponent>(m_editViewState, clip));
+        m_timelineOverlay = std::make_unique<TimelineOverlayComponent>
+                (m_editViewState, clip);
+
+        addAndMakeVisible (*m_timelineOverlay);
+        auto timeline = getLocalBounds ().removeFromTop (m_editViewState.m_timeLineHeight + 10);
+        timeline.removeFromLeft (50);
+        timeline.removeFromTop (10);
+        m_timelineOverlay->setBounds (timeline);
         resized ();
     }
 }
@@ -138,6 +147,7 @@ void LowerRangeComponent::hideAll()
 {
     m_pianoRollEditor.setVisible (false);
     m_pianoRollEditor.clearPianoRollClip ();
+    m_timelineOverlay.reset (nullptr);
 
     for (auto &pluginrack : m_pluginRackComps)
     {

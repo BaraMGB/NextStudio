@@ -85,15 +85,15 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
                 g.drawRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight ());
                 g.setColour (midiClip->getTrack ()->getColour ().withAlpha (0.2f));
                 g.fillRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight ());
+                  //visualize clip Offset
+//                auto clipOffset = beatsToX (midiClip->getStartBeat () - midiClip->getOffsetInBeats ());
+//                auto clipEndOffsetX = beatsToX (midiClip->getStartBeat ()
+//                                                - midiClip->getOffsetInBeats ()
+//                                                + seq.getLastBeatNumber ());
+//                clipEndOffsetX = juce::jmax(clipEndOffsetX, clipLengthX);
 
-                auto clipOffset = beatsToX (midiClip->getStartBeat () - midiClip->getOffsetInBeats ());
-                auto clipEndOffsetX = beatsToX (midiClip->getStartBeat ()
-                                                - midiClip->getOffsetInBeats ()
-                                                + seq.getLastBeatNumber ());
-                clipEndOffsetX = juce::jmax(clipEndOffsetX, clipLengthX);
-
-                g.setColour (midiClip->getTrack ()->getColour ());
-                g.fillRect (clipOffset, 0, clipEndOffsetX - clipOffset, 30);
+//                g.setColour (midiClip->getTrack ()->getColour ());
+//                g.fillRect (clipOffset, 0, clipEndOffsetX - clipOffset, 30);
             }
         }
     }
