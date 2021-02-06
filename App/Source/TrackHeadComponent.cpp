@@ -319,9 +319,9 @@ void TrackHeaderComponent::resized()
 {
     auto defaultTrackHeight = m_track->defaultTrackHeight;
     auto area = getLocalBounds().removeFromTop(defaultTrackHeight);//getLocalBounds();
-    auto peakDisplay = area.removeFromRight(15);
-    peakDisplay.reduce(2, 2);
-    levelMeterComp->setBounds (peakDisplay);
+    auto peakdisplay = getLocalBounds ().removeFromRight (15);
+    peakdisplay.reduce (2,2);
+    levelMeterComp->setBounds (peakdisplay);
     auto volSlider = area.removeFromRight(area.getHeight());
     m_volumeKnob.setBounds(volSlider);
 
