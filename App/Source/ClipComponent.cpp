@@ -17,10 +17,10 @@ void ClipComponent::paint (juce::Graphics& g)
     }
 
     auto area = getLocalBounds();
-    g.setColour(m_clip->getTrack()->getColour());
+    g.setColour(m_clip->getColour());
     g.fillRect(area);
     area.reduce(1, 1);
-    g.setColour(getClip().getTrack()->getColour().darker());
+    g.setColour(m_clip->getColour().darker());
     g.fillRect(area.removeFromTop(10));
     g.setColour (juce::Colours::black);
     if (m_isDragging)
@@ -38,35 +38,48 @@ void ClipComponent::paint (juce::Graphics& g)
 
 void ClipComponent::mouseDown (const juce::MouseEvent&event)
 {
+    m_isCopying = false;
     m_clickPosTime = m_editViewState.beatToTime(
                 m_editViewState.xToBeats(event.x, getParentWidth()));
+
     if (event.mods.getCurrentModifiers().isCtrlDown())
     {
         m_isCopying = true;
         m_editViewState.m_selectionManager.addToSelection(getClip());
     }
-    else
+    else if (!m_editViewState.m_selectionManager.isSelected (m_clip))
     {
         m_editViewState.m_selectionManager.selectOnly(getClip());
     }
 
-    if (!event.mouseWasDraggedSinceMouseDown())
+    if (event.mods.isRightButtonDown())
     {
-        if (event.mods.isRightButtonDown())
-        {
-            showContextMenu();
-        }
-        else
-        {
-            m_clipPosAtMouseDown = m_clip->edit.tempoSequence.timeToBeats(
-                        m_clip->getPosition().getStart());
-            setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-        }
+        showContextMenu();
+        return;
     }
+    else
+    {
+        m_clipPosAtMouseDown = m_clip->edit.tempoSequence.timeToBeats(
+                    m_clip->getPosition().getStart());
+        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+    }
+
     m_isDragging = true;
-    tracktion_engine::Clipboard::getInstance()->clear();
+
+    te::Clipboard::getInstance()->clear();
     auto clipContent = std::make_unique<te::Clipboard::Clips>();
-    clipContent->addClip(0, m_clip->state);
+    auto currentIndex = getTrack (m_clip)->getIndexInEditTrackList ();
+    for (auto selectedClip
+         : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+    {
+        int clipOffset = 0;
+        if (selectedClip != m_clip.get ())
+        {
+            auto idx = getTrack (selectedClip)->getIndexInEditTrackList ();
+            clipOffset = idx - currentIndex;
+        }
+        clipContent->addClip(clipOffset, selectedClip->state);
+    }
     te::Clipboard::getInstance()->setContent(std::move(clipContent));
 }
 
@@ -119,6 +132,24 @@ bool ClipComponent::isShiftDown() const
     return m_isShiftDown;
 }
 
+tracktion_engine::Track::Ptr ClipComponent::getTrack(tracktion_engine::Clip::Ptr clip)
+{
+    for (auto t : m_editViewState.m_edit.getTrackList ())
+    {
+        if (auto audiotrack = dynamic_cast<te::AudioTrack*>(t))
+        {
+            for (auto c : audiotrack->getClips ())
+            {
+                if (c == clip.get())
+                {
+                    return t;
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
 void ClipComponent::showContextMenu()
 {
     juce::PopupMenu m;
@@ -133,7 +164,7 @@ void ClipComponent::showContextMenu()
     }
     else if (result == 1)
     {
-        m_clip->removeFromParentTrack();
+        EngineHelpers::deleteSelectedClips (m_editViewState);
         return;
         // user picked item 1
     }
@@ -430,9 +461,9 @@ MidiClipComponent::~MidiClipComponent()
 
 void MidiClipComponent::paint (juce::Graphics& g)
 {
-    auto startX = m_editViewState.timeToX(getClip().getPosition().getStart(),
+    auto startX = m_editViewState.timeToX(getClip()->getPosition().getStart(),
                                           getParentComponent()->getWidth());
-    auto endX = m_editViewState.timeToX(getClip().getPosition().getEnd(),
+    auto endX = m_editViewState.timeToX(getClip()->getPosition().getEnd(),
                                         getParentComponent()->getWidth());
     if (!(endX < 0 || startX > getParentComponent()->getWidth()))
     {

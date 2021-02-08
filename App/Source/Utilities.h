@@ -179,6 +179,50 @@ namespace PlayHeadHelpers
 //==============================================================================
 namespace EngineHelpers
 {
+    inline void deleteSelectedClips(EditViewState & evs)
+    {
+        for (auto selectedClip : evs.m_selectionManager
+                                    .getSelectedObjects ()
+                                    .getItemsOfType<te::Clip>())
+        {
+            selectedClip->removeFromParentTrack ();
+        }
+    }
+
+    inline void pasteClipboardToEdit (double firstClipTime
+                                    , double clickOffset
+                                    , double insertTime
+                                    , te::Track::Ptr sourceTrack
+                                    , EditViewState& evs
+                                    , bool removeSource
+                                    , bool snap)
+    {
+        auto clipboard = tracktion_engine::Clipboard::getInstance();
+        if (clipboard->hasContentWithType<te::Clipboard::Clips>())
+        {
+            auto clipContent = clipboard
+                    ->getContentWithType<te::Clipboard::Clips>();
+            te::EditInsertPoint insertPoint (evs.m_edit);
+            insertPoint.setNextInsertPoint (0, sourceTrack);
+            te::Clipboard::ContentType::EditPastingOptions options
+                    (evs.m_edit, insertPoint);
+
+            auto xTime = evs.beatToTime(evs.m_viewX1);
+            auto rawTime = juce::jmax(0.0, insertTime - clickOffset + xTime);
+            auto snapedTime = evs.getSnapedTime (rawTime);
+            auto pasteTime = snap
+                    ? rawTime - firstClipTime
+                    : snapedTime - firstClipTime;
+            options.startTime = pasteTime;
+            clipContent->pasteIntoEdit(options);
+
+            if (removeSource)
+            {
+                EngineHelpers::deleteSelectedClips (evs);
+            }
+          }
+    }
+
     inline te::Project::Ptr createTempProject (te::Engine& engine)
     {
         auto file = engine.getTemporaryFileManager()

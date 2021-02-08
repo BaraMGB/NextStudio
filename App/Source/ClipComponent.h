@@ -22,7 +22,7 @@ public:
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &e) override;
 
-    te::Clip& getClip () { return *m_clip; }
+    te::Clip::Ptr getClip () { return m_clip; }
 
     bool isCopying () const;
     void setIsCopying (bool isCopying);
@@ -32,9 +32,12 @@ public:
 
     bool isShiftDown () const;
 
+    te::Track::Ptr getTrack(te::Clip::Ptr clip);
 protected:
     EditViewState& m_editViewState;
     te::Clip::Ptr m_clip;
+
+
 
     void showContextMenu();
 private:

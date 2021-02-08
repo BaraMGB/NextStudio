@@ -42,7 +42,10 @@ public:
                         , const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved
                         , double newRangeStart) override;
+    bool keyPressed(const juce::KeyPress &key) override;
     LowerRangeComponent& lowerRange();
+    juce::OwnedArray<TrackComponent>& getTrackComps();
+    TrackComponent * getTrackComp(int y);
 
 private:
 
@@ -62,6 +65,10 @@ private:
     void addAudioTrack(bool isMidi, juce::Colour);
     void buildTracks();
     
+    juce::OwnedArray<TrackComponent> m_trackComps;
+    juce::OwnedArray<TrackHeaderComponent> m_headers;
+    juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
+
     te::Edit& m_edit;
     EditViewState m_editViewState;
 
@@ -75,10 +82,9 @@ private:
                                  , m_editViewState.m_viewX1
                                  , m_editViewState.m_viewX2};
     LowerRangeComponent m_lowerRange { m_editViewState };
-    juce::OwnedArray<TrackComponent> m_trackComps;
-    juce::OwnedArray<TrackHeaderComponent> m_headers;
-    juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
 
     juce::Rectangle<float> m_songeditorRect;
     bool m_updateTracks = false, m_updateZoom = false;
+
+
 };

@@ -82,14 +82,15 @@ public:
 
     bool keyPressed(const juce::KeyPress &key) override;
 
-
     te::Track::Ptr getTrack() const;
+
+    void inserWave(juce::File f, double time);
+
+    juce::OwnedArray<ClipComponent>& getClipComponents();
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
-
     void valueTreeChanged() override {}
-
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
     void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
     void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
@@ -100,9 +101,10 @@ private:
     void buildClips();
     void buildRecordClips();
     te::MidiClip::Ptr createNewMidiClip(double beatPos);
-
     bool isMidiTrack() { return m_track->state.getProperty(IDs::isMidiTrack); }
-
+    ClipComponent *getClipComponentForClip(tracktion_engine::Clip::Ptr);
+    
+    
     EditViewState& m_editViewState;
     te::Track::Ptr m_track;
     te::Clipboard m_clipBoard;

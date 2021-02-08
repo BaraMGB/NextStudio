@@ -181,6 +181,21 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
     }
 }
 
+bool EditComponent::keyPressed(const juce::KeyPress &key)
+{
+    if (key == juce::KeyPress::createFromDescription("CTRL + Z"))
+    {
+        m_editViewState.m_edit.undo ();
+        return true;
+    }
+    if (key == juce::KeyPress::createFromDescription("CTRL + SHIFT + Z"))
+    {
+        m_editViewState.m_edit.redo ();
+        return true;
+    }
+    return false;
+}
+
 
 void EditComponent::valueTreePropertyChanged (
         juce::ValueTree& v, const juce::Identifier& i)
@@ -330,6 +345,26 @@ void EditComponent::buildTracks()
 
     m_playhead.toFront (false);
     resized();
+}
+
+juce::OwnedArray<TrackComponent> &EditComponent::getTrackComps()
+{
+    return m_trackComps;
+}
+
+TrackComponent *EditComponent::getTrackComp(int y)
+{
+    auto tcHeight = 0 + m_editViewState.m_timeLineHeight;
+    for (auto & tc : m_trackComps)
+    {
+        if (y + m_editViewState.m_viewY > tcHeight
+        && y + m_editViewState.m_viewY <= tcHeight + tc->getHeight ())
+        {
+            return tc;
+        }
+        tcHeight = tcHeight + tc->getHeight ();
+    }
+    return nullptr;
 }
 
 LowerRangeComponent& EditComponent::lowerRange()

@@ -121,7 +121,7 @@ public:
 
     void parameterChanged (tracktion_engine::AutomatableParameter&ap , float /*newValue*/) override;
    // void paint (juce::Graphics&) override;
-    void resized();
+    void resized() override;
 
 private:
 

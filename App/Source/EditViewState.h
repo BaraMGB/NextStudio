@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+
 namespace te = tracktion_engine;
 
 // sheetcheat for snapTypes
