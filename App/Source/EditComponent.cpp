@@ -208,15 +208,14 @@ void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &d
 {
     turnoffAllTrackOverlays();
     auto dropPos = dragSourceDetails.localPosition;
-    auto thWidth = (int) m_editViewState.m_headerWidth;
     auto targetTrackComp = getTrackComp (dropPos.getY ());
     auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ());
     auto sourceTrackComp = dynamic_cast<TrackComponent*>
             (dragSourceDetails.sourceComponent.get()->getParentComponent ());
 
-
     if (targetTrackComp && sourceTrackComp && draggedClip)
     {
+        setMouseCursor (juce::MouseCursor::DraggingHandCursor);
         auto verticalOffset = targetTrackComp->getTrack ()->getIndexInEditTrackList ()
                             - sourceTrackComp->getTrack ()->getIndexInEditTrackList ();
 
@@ -260,10 +259,11 @@ void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &d
 void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
     auto dropPos = dragSourceDetails.localPosition;
-    int thWidth = m_editViewState.m_headerWidth;
-    auto dropTime = m_editViewState.xToTime (dropPos.getX()
-                                                - thWidth
-                                             , getWidth() - thWidth);
+
+    auto dropTime = m_editViewState.xToTime (
+                dropPos.getX() - m_editViewState.m_headerWidth
+              , getWidth() - m_editViewState.m_headerWidth);
+    dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     auto targetTrack = getTrackComp (dropPos.getY ());
     if (targetTrack)
     {
@@ -292,7 +292,7 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
             targetTrack->inserWave(f, dropTime);
         }
     }
-
+    setMouseCursor (juce::MouseCursor::NormalCursor);
 }
 
 void EditComponent::itemDragExit(const juce::DragAndDropTarget::SourceDetails &)

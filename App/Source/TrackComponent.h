@@ -62,7 +62,6 @@ private:
 
     bool updateClips = false,
          updatePositions = false,
-         updateRecordClips = false,
-         m_dragging = false;
+         updateRecordClips = false;
 };
 

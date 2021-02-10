@@ -301,7 +301,7 @@ bool TrackComponent::keyPressed(const juce::KeyPress &key)
 void TrackComponent::buildClips()
 {
     m_clips.clear();
-
+    auto wrongTrack = false;
     if (auto ct = dynamic_cast<te::ClipTrack*> (m_track.get()))
     {
         for (auto c : ct->getClips())
@@ -310,28 +310,53 @@ void TrackComponent::buildClips()
             ClipComponent* cc = nullptr;
 
             if (dynamic_cast<te::WaveAudioClip*> (c))
-                cc = new AudioClipComponent (m_editViewState, c);
+            {
+                if (!isMidiTrack ())
+                {
+                    cc = new AudioClipComponent (m_editViewState, c);
+                }
+                else
+                {
+                    GUIHelpers::log ("couldn't insert AudioClip on Miditrack");
+                    c->removeFromParentTrack ();
+                    wrongTrack = true;
+                }
+
+            }
             else if (dynamic_cast<te::MidiClip*> (c))
             {
-                //pr = new PianoRollComponent (m_editViewState, c);
-                cc = new MidiClipComponent (m_editViewState, c);
+                if (isMidiTrack ())
+                {
+                    cc = new MidiClipComponent (m_editViewState, c);
+                }
+                else
+                {
+                    GUIHelpers::log("couldn't insert MidiClip on Audiotrack");
+                    c->removeFromParentTrack ();
+                    wrongTrack = true;
+                }
             }
-
             else
                 cc = new ClipComponent (m_editViewState, c);
 
-            m_clips.add (cc);
-            addAndMakeVisible (cc);
-            if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
+            if (cc)
             {
-                if (auto midiClipcomp = dynamic_cast<MidiClipComponent*>(cc))
+                m_clips.add (cc);
+                addAndMakeVisible (cc);
+                if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
                 {
-                    midiClipcomp->addChangeListener (&editcomp->lowerRange ());
+                    if (auto midiClipcomp = dynamic_cast<MidiClipComponent*>(cc))
+                    {
+                        midiClipcomp->addChangeListener (&editcomp->lowerRange ());
+                    }
                 }
             }
         }
     }
-    resized();
+    if (wrongTrack)
+        m_editViewState.m_edit.undo ();
+    else
+        resized();
 }
 
 void TrackComponent::buildRecordClips()

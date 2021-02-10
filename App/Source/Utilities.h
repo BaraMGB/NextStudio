@@ -47,7 +47,10 @@ namespace Helpers
 
 namespace GUIHelpers
 {
-
+inline void log(juce::String message)
+{
+    std::cout << message << std::endl;
+}
 inline void drawRoundedRectWithSide(
           juce::Graphics & g
         , juce::Rectangle<float> area
@@ -215,6 +218,7 @@ namespace EngineHelpers
                     : snapedTime - firstClipTime;
             options.startTime = pasteTime;
             options.setTransportToEnd = true;
+
             if (removeSource)
             {
                 deleteSelectedClips (evs);
