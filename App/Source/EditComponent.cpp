@@ -196,6 +196,110 @@ bool EditComponent::keyPressed(const juce::KeyPress &key)
     return false;
 }
 
+void EditComponent::turnoffAllTrackOverlays()
+{
+    for (auto &tc : getTrackComps ())
+    {
+        tc->getTrackOverlay ().setVisible (false);
+    }
+}
+
+void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+    turnoffAllTrackOverlays();
+    auto dropPos = dragSourceDetails.localPosition;
+    auto thWidth = (int) m_editViewState.m_headerWidth;
+    auto targetTrackComp = getTrackComp (dropPos.getY ());
+    auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ());
+    auto sourceTrackComp = dynamic_cast<TrackComponent*>
+            (dragSourceDetails.sourceComponent.get()->getParentComponent ());
+
+
+    if (targetTrackComp && sourceTrackComp && draggedClip)
+    {
+        auto verticalOffset = targetTrackComp->getTrack ()->getIndexInEditTrackList ()
+                            - sourceTrackComp->getTrack ()->getIndexInEditTrackList ();
+
+        for (auto tc : m_trackComps)
+        {
+            juce::Array<TrackOverlayComponent::OverlayImage> imageList;
+            auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+            for (auto c : selectedClips)
+            {
+                if (auto cc = getClipComponentForClip (c))
+                {
+                    if (tc->getClipComponents ().contains (cc))
+                    {
+                        auto pos = cc->getPosition ().x - draggedClip->getPosition ().x;
+                        TrackOverlayComponent::OverlayImage ovl =
+                            {cc->createComponentSnapshot (
+                                {0,0, cc->getWidth (), cc->getHeight ()}, false)
+                              , pos - m_editViewState.m_headerWidth
+                              , true};
+                        imageList.add (ovl);
+                    }
+                }
+            }
+            if (!imageList.isEmpty ())
+            {
+                auto idx = tc->getTrack ()->getIndexInEditTrackList ();
+
+                if(auto tTComp = getTrackCompForTrack (
+                            m_edit.getTrackList ().at (idx + verticalOffset)))
+                {
+                    tTComp->getTrackOverlay ().addOverlayImageList (imageList);
+                    tTComp->getTrackOverlay ()
+                            .drawImages (dropPos.getX ()
+                                         - draggedClip->getClipPosOffsetX ());
+                }
+            }
+        }
+    }
+}
+
+void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+    auto dropPos = dragSourceDetails.localPosition;
+    int thWidth = m_editViewState.m_headerWidth;
+    auto dropTime = m_editViewState.xToTime (dropPos.getX()
+                                                - thWidth
+                                             , getWidth() - thWidth);
+    auto targetTrack = getTrackComp (dropPos.getY ());
+    if (targetTrack)
+    {
+        if (dragSourceDetails.description == "Clip")
+        {
+            if (auto clipComp = dynamic_cast<ClipComponent*>
+                    (dragSourceDetails.sourceComponent.get()))
+            {
+                auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
+                auto offset = clipComp->getClickPosTime ();
+                auto removeSource = !clipComp->isCopying ();
+                auto snap = clipComp->isShiftDown ();
+                EngineHelpers::pasteClipboardToEdit (firstClipTime
+                                                   , offset
+                                                   , dropTime
+                                                   , targetTrack->getTrack ()
+                                                   , m_editViewState
+                                                   , removeSource
+                                                   , snap);
+            }
+        }
+        if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+                (dragSourceDetails.sourceComponent.get()))
+        {
+            auto f = fileTreeComp->getSelectedFile();
+            targetTrack->inserWave(f, dropTime);
+        }
+    }
+
+}
+
+void EditComponent::itemDragExit(const juce::DragAndDropTarget::SourceDetails &)
+{
+   std::cout << "itemDraggedExit" << std::endl;
+}
+
 
 void EditComponent::valueTreePropertyChanged (
         juce::ValueTree& v, const juce::Identifier& i)
@@ -357,8 +461,8 @@ TrackComponent *EditComponent::getTrackComp(int y)
     auto tcHeight = 0 + m_editViewState.m_timeLineHeight;
     for (auto & tc : m_trackComps)
     {
-        if (y + m_editViewState.m_viewY > tcHeight
-        && y + m_editViewState.m_viewY <= tcHeight + tc->getHeight ())
+        if (y - m_editViewState.m_viewY > tcHeight
+        && y - m_editViewState.m_viewY <= tcHeight + tc->getHeight ())
         {
             return tc;
         }
@@ -366,6 +470,34 @@ TrackComponent *EditComponent::getTrackComp(int y)
     }
     return nullptr;
 }
+
+TrackComponent *EditComponent::getTrackCompForTrack(tracktion_engine::Track::Ptr track)
+{
+    for (auto &tc : m_trackComps)
+    {
+        if (tc->getTrack () == track)
+        {
+            return tc;
+        }
+    }
+    return nullptr;
+}
+
+ClipComponent *EditComponent::getClipComponentForClip(tracktion_engine::Clip::Ptr clip)
+{
+    for (auto& track : m_trackComps)
+    {
+        for (auto &c : track->getClipComponents ())
+        {
+            if (c->getClip () == clip)
+            {
+                return c;
+            }
+        }
+    }
+    return nullptr;
+}
+
 
 LowerRangeComponent& EditComponent::lowerRange()
 {

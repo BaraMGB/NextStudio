@@ -30,6 +30,7 @@ class EditComponent : public  juce::Component
                     , private FlaggedAsyncUpdater
                     , private juce::ChangeListener
                     , private juce::ScrollBar::Listener
+                    , public juce::DragAndDropTarget
 {
 public:
     EditComponent (te::Edit&, te::SelectionManager&);
@@ -43,9 +44,20 @@ public:
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved
                         , double newRangeStart) override;
     bool keyPressed(const juce::KeyPress &key) override;
+
+    inline bool isInterestedInDragSource(const SourceDetails&) override { return true; }
+    void itemDragMove(const SourceDetails& dragSourceDetails) override;
+    void itemDropped(const SourceDetails& dragSourceDetails) override;
+    void itemDragExit(const SourceDetails&) override;
+
     LowerRangeComponent& lowerRange();
     juce::OwnedArray<TrackComponent>& getTrackComps();
     TrackComponent * getTrackComp(int y);
+    TrackComponent * getTrackCompForTrack(te::Track::Ptr track);
+    ClipComponent *getClipComponentForClip(te::Clip::Ptr clip);
+
+
+    void turnoffAllTrackOverlays();
 
 private:
 

@@ -245,47 +245,6 @@ void TrackComponent::resized()
     m_trackOverlay.setBounds(0, 0, getWidth(), getHeight());
 }
 
-void TrackComponent::itemDragMove(const DragAndDropTarget::SourceDetails &dragSourceDetails)
-{
-    bool isMiditrack = m_track->state.getProperty (IDs::isMidiTrack);
-    if (dragSourceDetails.description == "Clip")
-        {
-            auto clipComp = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get());
-            if (clipComp)
-            {
-                if (auto midiClip = dynamic_cast<MidiClipComponent*> (clipComp))
-                {
-                    m_trackOverlay.setIsValid (isMiditrack);
-                }
-                else if(auto waveClip = dynamic_cast<AudioClipComponent*> (clipComp))
-                {
-                    m_trackOverlay.setIsValid (!isMiditrack);
-                }
-
-                m_dragging = true;
-                m_posInClip = m_editViewState.beatsToX(
-                            m_editViewState.timeToBeat(
-                            clipComp->getClickPosTime()
-                            ), getWidth());
-                m_dragImage = clipComp->createComponentSnapshot({0
-                                                                 , 0
-                                                                 , clipComp->getWidth()
-                                                                 , clipComp->getHeight()}, false);
-
-                m_trackOverlay.setImage(m_dragImage);
-                m_trackOverlay.setImagePos(clipComp->isShiftDown ()
-                                           ? getMouseXYRelative().x
-                                             - m_posInClip
-                                           : m_editViewState.snapedX (
-                                               getMouseXYRelative().x
-                                               - m_posInClip
-                                               ,getWidth ()));
-                m_trackOverlay.repaint();
-                m_trackOverlay.setVisible(true);
-            }
-    }
-}
-
 void TrackComponent::inserWave(juce::File f, double time)
 {
     tracktion_engine::AudioFile audioFile(m_editViewState.m_edit.engine, f);
@@ -303,49 +262,6 @@ void TrackComponent::inserWave(juce::File f, double time)
         }
 
     }
-}
-
-void TrackComponent::itemDropped(
-        const DragAndDropTarget::SourceDetails &dragSourceDetails)
-{
-    auto dropPos = dragSourceDetails.localPosition;
-    auto dropTime = m_editViewState.xToTime (dropPos.getX(), getWidth());
-
-    if (dragSourceDetails.description == "Clip" && m_trackOverlay.isValid ())
-    {
-        if (auto clipComp = dynamic_cast<ClipComponent*>
-                (dragSourceDetails.sourceComponent.get()))
-        {
-            auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
-            auto offset = clipComp->getClickPosTime ();
-            auto removeSource = !clipComp->isCopying ();
-            auto snap = clipComp->isShiftDown ();
-            EngineHelpers::pasteClipboardToEdit (firstClipTime
-                                               , offset
-                                               , dropTime
-                                               , m_track
-                                               , m_editViewState
-                                               , removeSource
-                                               , snap);
-        }
-    }
-    //File droped ?
-    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
-            (dragSourceDetails.sourceComponent.get()))
-    {
-        auto f = fileTreeComp->getSelectedFile();
-        inserWave(f, dropTime);
-    }
-    m_dragging = false;
-    m_trackOverlay.setVisible(false);
-    repaint();
-}
-
-
-void TrackComponent::itemDragExit(const DragAndDropTarget::SourceDetails &)
-{
-    m_dragging = false;
-    m_trackOverlay.setVisible(false);
 }
 
 bool TrackComponent::keyPressed(const juce::KeyPress &key)
@@ -457,22 +373,9 @@ tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos
     return nullptr;
 }
 
-ClipComponent *TrackComponent::getClipComponentForClip(te::Clip::Ptr clip)
+TrackOverlayComponent& TrackComponent::getTrackOverlay()
 {
-    if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
-    {
-        for (auto& track : ec->getTrackComps ())
-        {
-            for (auto &c : track->getClipComponents ())
-            {
-                if (c->getClip () == clip)
-                {
-                    return c;
-                }
-            }
-        }
-    }
-    return nullptr;
+    return m_trackOverlay;
 }
 
 juce::OwnedArray<ClipComponent> &TrackComponent::getClipComponents()

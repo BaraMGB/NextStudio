@@ -29,6 +29,7 @@ public:
 
     double getClickPosTime () const;
     void setClickPosTime (double clickPosTime);
+    int getClipPosOffsetX () const;
 
     bool isShiftDown () const;
 
@@ -37,14 +38,11 @@ protected:
     EditViewState& m_editViewState;
     te::Clip::Ptr m_clip;
 
-
-
     void showContextMenu();
 private:
     double m_clipPosAtMouseDown{};
     double m_clickPosTime{0.0};
     bool m_isCopying{false};
-    bool m_isDragging{};
     bool m_isShiftDown{false};
 };
 

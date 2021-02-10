@@ -1,5 +1,7 @@
 #include "ClipComponent.h"
-#include <utility>
+#include "EditComponent.h"
+
+
 
 //==============================================================================
 ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
@@ -10,12 +12,6 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
 
 void ClipComponent::paint (juce::Graphics& g)
 {
-    auto alpha = 1.0f;
-    if (m_isDragging)
-    {
-        alpha = 0.2f;
-    }
-
     auto area = getLocalBounds();
     g.setColour(m_clip->getColour());
     g.fillRect(area);
@@ -23,10 +19,6 @@ void ClipComponent::paint (juce::Graphics& g)
     g.setColour(m_clip->getColour().darker());
     g.fillRect(area.removeFromTop(10));
     g.setColour (juce::Colours::black);
-    if (m_isDragging)
-    {
-        g.setColour(juce::Colours::grey);
-    }
 
     if (m_editViewState.m_selectionManager.isSelected (m_clip.get()))
     {
@@ -63,8 +55,6 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
                     m_clip->getPosition().getStart());
         setMouseCursor(juce::MouseCursor::DraggingHandCursor);
     }
-
-    m_isDragging = true;
 
     te::Clipboard::getInstance()->clear();
     auto clipContent = std::make_unique<te::Clipboard::Clips>();
@@ -103,7 +93,11 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 void ClipComponent::mouseUp(const juce::MouseEvent& /*event*/)
 {
     m_editViewState.m_edit.getTransport().setUserDragging(false);
-    m_isDragging = false;
+    if (auto ec = dynamic_cast<EditComponent*>(
+                getParentComponent ()->getParentComponent ()))
+    {
+        ec->turnoffAllTrackOverlays ();
+    }
     setMouseCursor (juce::MouseCursor::NormalCursor);
 }
 
@@ -125,6 +119,11 @@ double ClipComponent::getClickPosTime() const
 void ClipComponent::setClickPosTime(double clickPosTime)
 {
     m_clickPosTime = clickPosTime;
+}
+
+int ClipComponent::getClipPosOffsetX() const
+{
+    return m_editViewState.timeToX (m_clickPosTime, getParentWidth ());
 }
 
 bool ClipComponent::isShiftDown() const

@@ -436,14 +436,19 @@ bool TrackHeaderComponent::keyPressed(const juce::KeyPress &key)
         trackContent->tracks.push_back (m_track->state);
         te::EditInsertPoint insertPoint(m_editViewState.m_edit);
         te::Clipboard::Tracks::EditPastingOptions options(m_editViewState.m_edit
-                                                          ,insertPoint);
+                                                          ,insertPoint
+                                                          , &m_editViewState.m_selectionManager);
         options.startTrack = m_track;
         trackContent->pasteIntoEdit (options);
         return true;
+
     }
     if (key == juce::KeyPress::deleteKey)
     {
-        deleteTrackFromEdit ();
+        for (auto t : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
+        {
+            m_editViewState.m_edit.deleteTrack (t);
+        }
         return true;
     }
     return false;

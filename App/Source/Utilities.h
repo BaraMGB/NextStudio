@@ -205,7 +205,7 @@ namespace EngineHelpers
             te::EditInsertPoint insertPoint (evs.m_edit);
             insertPoint.setNextInsertPoint (0, sourceTrack);
             te::Clipboard::ContentType::EditPastingOptions options
-                    (evs.m_edit, insertPoint);
+                    (evs.m_edit, insertPoint, &evs.m_selectionManager);
 
             auto xTime = evs.beatToTime(evs.m_viewX1);
             auto rawTime = juce::jmax(0.0, insertTime - clickOffset + xTime);
@@ -214,12 +214,12 @@ namespace EngineHelpers
                     ? rawTime - firstClipTime
                     : snapedTime - firstClipTime;
             options.startTime = pasteTime;
-            clipContent->pasteIntoEdit(options);
-
+            options.setTransportToEnd = true;
             if (removeSource)
             {
-                EngineHelpers::deleteSelectedClips (evs);
+                deleteSelectedClips (evs);
             }
+            clipContent->pasteIntoEdit(options);
           }
     }
 
