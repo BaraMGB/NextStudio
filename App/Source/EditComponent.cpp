@@ -225,6 +225,14 @@ void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &d
             auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
             for (auto c : selectedClips)
             {
+                bool isValid = false;
+                auto idx = tc->getTrack ()->getIndexInEditTrackList ();
+                if (auto target = m_edit.getTrackList ().at (idx + verticalOffset))
+                {
+                    isValid = (bool)target->state.getProperty (IDs::isMidiTrack)
+                            == c->isMidi ();
+                }
+
                 if (auto cc = getClipComponentForClip (c))
                 {
                     if (tc->getClipComponents ().contains (cc))
@@ -234,7 +242,7 @@ void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &d
                             {cc->createComponentSnapshot (
                                 {0,0, cc->getWidth (), cc->getHeight ()}, false)
                               , pos - m_editViewState.m_headerWidth
-                              , true};
+                              , isValid};
                         imageList.add (ovl);
                     }
                 }
@@ -243,11 +251,11 @@ void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &d
             {
                 auto idx = tc->getTrack ()->getIndexInEditTrackList ();
 
-                if(auto tTComp = getTrackCompForTrack (
+                if(auto target = getTrackCompForTrack (
                             m_edit.getTrackList ().at (idx + verticalOffset)))
                 {
-                    tTComp->getTrackOverlay ().addOverlayImageList (imageList);
-                    tTComp->getTrackOverlay ()
+                    target->getTrackOverlay ().addOverlayImageList (imageList);
+                    target->getTrackOverlay ()
                             .drawImages (dropPos.getX ()
                                          - draggedClip->getClipPosOffsetX ());
                 }
