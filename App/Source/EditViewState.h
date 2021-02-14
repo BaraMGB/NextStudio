@@ -151,9 +151,9 @@ public:
 
     int snapedX (int x, int width)
     {
-        auto insertTime = beatToTime (xToBeats (x, width));
+        auto insertTime = xToTime (x, width);
         auto snapedTime = getSnapedTime (insertTime);
-        return beatsToX (timeToBeat (snapedTime ), width);
+        return timeToX (snapedTime, width);
     }
 
     te::TimecodeSnapType getBestSnapType(bool forPianoRoll, int width)

@@ -78,19 +78,19 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
     //editViewState.edit.getTransport ().setUserDragging (true);
     juce::DragAndDropContainer* dragC =
             juce::DragAndDropContainer::findParentDragContainerFor(this);
+    m_isShiftDown = false;
+    if (event.mods.isShiftDown())
+    {
+        m_isShiftDown = true;
+    }
     if (!dragC->isDragAndDropActive())
     {
-        m_isShiftDown = false;
-        if (event.mods.isShiftDown())
-        {
-            m_isShiftDown = true;
-        }
         dragC->startDragging("Clip", this
                              , juce::Image(juce::Image::ARGB,1,1,true), false);
     }
 }
 
-void ClipComponent::mouseUp(const juce::MouseEvent& /*event*/)
+void ClipComponent::mouseUp(const juce::MouseEvent& event)
 {
     m_editViewState.m_edit.getTransport().setUserDragging(false);
     if (auto ec = dynamic_cast<EditComponent*>(
@@ -99,6 +99,11 @@ void ClipComponent::mouseUp(const juce::MouseEvent& /*event*/)
         ec->turnoffAllTrackOverlays ();
     }
     setMouseCursor (juce::MouseCursor::NormalCursor);
+    if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size () > 1
+     && !event.mods.isAnyModifierKeyDown ())
+    {
+        m_editViewState.m_selectionManager.selectOnly (m_clip);
+    }
 }
 
 bool ClipComponent::isCopying() const

@@ -204,25 +204,32 @@ void EditComponent::turnoffAllTrackOverlays()
     }
 }
 
-void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
+void EditComponent::itemDragMove(
+        const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
     turnoffAllTrackOverlays();
-    auto dropPos = dragSourceDetails.localPosition;
+
+    const auto dropPos = dragSourceDetails.localPosition;
+    const auto songEditorWidth = m_timeLine.getWidth ();
     auto targetTrackComp = getTrackComp (dropPos.getY ());
-    auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ());
+    auto draggedClip = dynamic_cast<ClipComponent*>(
+                dragSourceDetails.sourceComponent.get ());
     auto sourceTrackComp = dynamic_cast<TrackComponent*>
             (dragSourceDetails.sourceComponent.get()->getParentComponent ());
 
     if (targetTrackComp && sourceTrackComp && draggedClip)
     {
         setMouseCursor (juce::MouseCursor::DraggingHandCursor);
-        auto verticalOffset = targetTrackComp->getTrack ()->getIndexInEditTrackList ()
-                            - sourceTrackComp->getTrack ()->getIndexInEditTrackList ();
+        auto verticalOffset = targetTrackComp->
+                                getTrack ()->getIndexInEditTrackList ()
+                            - sourceTrackComp->
+                                getTrack ()->getIndexInEditTrackList ();
 
         for (auto tc : m_trackComps)
         {
             juce::Array<TrackOverlayComponent::OverlayImage> imageList;
-            auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+            auto selectedClips = m_editViewState.m_selectionManager
+                                    .getItemsOfType<te::Clip>();
             for (auto c : selectedClips)
             {
                 bool isValid = false;
@@ -237,11 +244,12 @@ void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &d
                 {
                     if (tc->getClipComponents ().contains (cc))
                     {
-                        auto pos = cc->getPosition ().x - draggedClip->getPosition ().x;
+                        auto pos = cc->getPosition ().x
+                                 - draggedClip->getPosition ().x;
                         TrackOverlayComponent::OverlayImage ovl =
                             {cc->createComponentSnapshot (
                                 {0,0, cc->getWidth (), cc->getHeight ()}, false)
-                              , pos - m_editViewState.m_headerWidth
+                              , pos
                               , isValid};
                         imageList.add (ovl);
                     }
@@ -254,10 +262,16 @@ void EditComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &d
                 if(auto target = getTrackCompForTrack (
                             m_edit.getTrackList ().at (idx + verticalOffset)))
                 {
+                    auto insertPos = dropPos.getX ()
+                                   - draggedClip->getClipPosOffsetX ()
+                                   - m_editViewState.m_headerWidth;
+                    insertPos = draggedClip->isShiftDown ()
+                              ? insertPos
+                              : m_editViewState.snapedX (insertPos
+                                                         , songEditorWidth);
                     target->getTrackOverlay ().addOverlayImageList (imageList);
                     target->getTrackOverlay ()
-                            .drawImages (dropPos.getX ()
-                                         - draggedClip->getClipPosOffsetX ());
+                            .drawImages (insertPos);
                 }
             }
         }
