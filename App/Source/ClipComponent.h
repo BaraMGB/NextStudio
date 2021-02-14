@@ -44,6 +44,7 @@ private:
     double m_clickPosTime{0.0};
     bool m_isCopying{false};
     bool m_isShiftDown{false};
+    bool m_isDragging{false};
 };
 
 //==============================================================================

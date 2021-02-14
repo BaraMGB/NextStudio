@@ -87,6 +87,7 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
     {
         dragC->startDragging("Clip", this
                              , juce::Image(juce::Image::ARGB,1,1,true), false);
+        m_isDragging = true;
     }
 }
 
@@ -99,8 +100,11 @@ void ClipComponent::mouseUp(const juce::MouseEvent& event)
         ec->turnoffAllTrackOverlays ();
     }
     setMouseCursor (juce::MouseCursor::NormalCursor);
-    if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size () > 1
-     && !event.mods.isAnyModifierKeyDown ())
+    if (m_isDragging)
+    {
+        m_isDragging = false;
+    }else if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size () > 1
+          && !event.mods.isAnyModifierKeyDown ())
     {
         m_editViewState.m_selectionManager.selectOnly (m_clip);
     }
