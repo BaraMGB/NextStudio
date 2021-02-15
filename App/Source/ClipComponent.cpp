@@ -30,13 +30,13 @@ void ClipComponent::paint (juce::Graphics& g)
 
 void ClipComponent::mouseDown (const juce::MouseEvent&event)
 {
-    m_isCopying = false;
+    m_isCtrlDown = false;
     m_clickPosTime = m_editViewState.beatToTime(
                 m_editViewState.xToBeats(event.x, getParentWidth()));
 
     if (event.mods.getCurrentModifiers().isCtrlDown())
     {
-        m_isCopying = true;
+        m_isCtrlDown = true;
         m_editViewState.m_selectionManager.addToSelection(getClip());
     }
     else if (!m_editViewState.m_selectionManager.isSelected (m_clip))
@@ -108,36 +108,6 @@ void ClipComponent::mouseUp(const juce::MouseEvent& event)
     {
         m_editViewState.m_selectionManager.selectOnly (m_clip);
     }
-}
-
-bool ClipComponent::isCopying() const
-{
-    return m_isCopying;
-}
-
-void ClipComponent::setIsCopying(bool isCopying)
-{
-    m_isCopying = isCopying;
-}
-
-double ClipComponent::getClickPosTime() const
-{
-    return m_clickPosTime;
-}
-
-void ClipComponent::setClickPosTime(double clickPosTime)
-{
-    m_clickPosTime = clickPosTime;
-}
-
-int ClipComponent::getClipPosOffsetX() const
-{
-    return m_editViewState.timeToX (m_clickPosTime, getParentWidth ());
-}
-
-bool ClipComponent::isShiftDown() const
-{
-    return m_isShiftDown;
 }
 
 tracktion_engine::Track::Ptr ClipComponent::getTrack(tracktion_engine::Clip::Ptr clip)
@@ -568,7 +538,7 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
 
         auto resizeTime = juce::jmax(0.0, m_clip->getPosition().getStart()
                                + distTimeDelta);
-        //move left or Right
+        //move left
         if (distTimeDelta > 0.0)
         {
             auto firstNoteTime = m_editViewState.beatToTime (
@@ -586,7 +556,7 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
                             m_editViewState.timeToBeat (-distTimeDelta)
                             , nullptr);
             }
-        }
+        }//or Right
         else if (distTimeDelta < 0.0)
         {
             if (m_clip->getPosition ().getOffset () > 0.0)

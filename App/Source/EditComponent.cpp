@@ -283,29 +283,26 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
     auto dropPos = dragSourceDetails.localPosition;
 
     auto dropTime = m_editViewState.xToTime (
-                dropPos.getX() - m_editViewState.m_headerWidth
-              , getWidth() - m_editViewState.m_headerWidth);
+                         dropPos.getX() - m_editViewState.m_headerWidth
+                       , getWidth() - m_editViewState.m_headerWidth);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     auto targetTrack = getTrackComp (dropPos.getY ());
     if (targetTrack)
     {
-        if (dragSourceDetails.description == "Clip")
+        if (auto clipComp = dynamic_cast<ClipComponent*>
+                (dragSourceDetails.sourceComponent.get()))
         {
-            if (auto clipComp = dynamic_cast<ClipComponent*>
-                    (dragSourceDetails.sourceComponent.get()))
-            {
-                auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
-                auto offset = clipComp->getClickPosTime ();
-                auto removeSource = !clipComp->isCopying ();
-                auto snap = clipComp->isShiftDown ();
-                EngineHelpers::pasteClipboardToEdit (firstClipTime
-                                                   , offset
-                                                   , dropTime
-                                                   , targetTrack->getTrack ()
-                                                   , m_editViewState
-                                                   , removeSource
-                                                   , snap);
-            }
+            auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
+            auto offset = clipComp->getClickPosTime ();
+            auto removeSource = !clipComp->isCtrlDown ();
+            auto snap = clipComp->isShiftDown ();
+            EngineHelpers::pasteClipboardToEdit (firstClipTime
+                                               , offset
+                                               , dropTime
+                                               , targetTrack->getTrack ()
+                                               , m_editViewState
+                                               , removeSource
+                                               , snap);
         }
         if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
                 (dragSourceDetails.sourceComponent.get()))
