@@ -8,30 +8,39 @@
 
 #include "MainComponent.h"
 #include "Utilities.h"
-
+namespace IDs
+{
+    #define DECLARE_ID(name)  const juce::Identifier name (#name);
+    DECLARE_ID (AppSettings)
+    DECLARE_ID (WorkDIR)
+}
 //==============================================================================
 MainComponent::MainComponent()
 {
     setLookAndFeel(&m_nextLookAndFeel);
 
+
+    //Edit stuff
+    auto directory = juce::File::getSpecialLocation (
+                juce::File::tempDirectory).getChildFile ("temporary");
+    directory.createDirectory();
+    auto f = Helpers::findRecentEdit (directory);
+    setupEdit (f.existsAsFile () ? f
+                                 : directory.getNonexistentChildFile ("Untitled"
+                                       , ".tracktionedit"
+                                       , false ));
+    loadApplicationSettings();
     //FileTree side bar
     m_thread.startThread(1);
-
-    juce::File file = juce::File::getSpecialLocation(juce::File::userHomeDirectory);
+    juce::File file = juce::File::createFileWithoutCheckingPath (
+                m_state.getProperty (IDs::WorkDIR));
+    if (!file.isDirectory ())
+    {
+        file = juce::File::getSpecialLocation(juce::File::userHomeDirectory);
+    }
     m_dirConList.setDirectory(file, true, true);
     m_tree.addListener(this);
 
-    //Edit stuff
-    auto d = juce::File::getSpecialLocation (
-                juce::File::tempDirectory).getChildFile ("EmptyEdit");
-    d.createDirectory();
-
-    auto f = Helpers::findRecentEdit (d);
-
-    setupEdit (f.existsAsFile () ? f
-                                 : d.getNonexistentChildFile ("Untitled"
-                                       , ".tracktionedit"
-                                       , false ));
     addAndMakeVisible(m_tree);
     addAndMakeVisible(m_menuBar);
     addAndMakeVisible(m_editNameLabel);
@@ -140,7 +149,7 @@ void MainComponent::fileDoubleClicked(const juce::File &)
     }
 }
 
-void MainComponent::setupEdit(juce::File editFile = {})
+void MainComponent::setupEdit(juce::File editFile)
 {
     if (editFile == juce::File())
     {
@@ -212,4 +221,42 @@ void MainComponent::createTracksAndAssignInputs()
     m_edit->getTransport().ensureContextAllocated();
     m_edit->restartPlayback();
 
+}
+
+void MainComponent::loadApplicationSettings()
+{
+    auto settingsFile = juce::File::getSpecialLocation (
+                juce::File::userApplicationDataDirectory)
+                .getChildFile ("NextStudio/AppSettings.xml");
+
+    if (!settingsFile.existsAsFile ())
+    {
+        juce::WildcardFileFilter wcf("","","");
+        juce::FileBrowserComponent chooseDir(juce::FileBrowserComponent::canSelectDirectories
+                                             , juce::File()
+                                             ,&wcf
+                                             , nullptr);
+        juce::FileChooserDialogBox dialog ("Working Directory"
+                                           , "Please select the working directory"
+                                           , chooseDir,
+                                           false,
+                                           juce::Colours::black);
+        juce::File workingDir;
+        if (dialog.show ())
+        {
+            workingDir = chooseDir.getSelectedFile (0);
+        }
+        juce::ValueTree settings(IDs::AppSettings);
+        settings.setProperty (IDs::WorkDIR, workingDir.getFullPathName (), nullptr);
+        m_state = settings.createCopy ();
+        settingsFile.create ();
+        auto xmlToWrite = m_state.createXml ();
+        xmlToWrite->writeTo (settingsFile);
+    }
+    else
+    {
+        juce::XmlDocument xmlDoc (settingsFile);
+        auto xmlToRead = xmlDoc.getDocumentElement ();
+        m_state = juce::ValueTree::fromXml (*xmlToRead);
+    }
 }

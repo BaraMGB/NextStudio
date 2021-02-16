@@ -43,8 +43,9 @@ private:
     void fileDoubleClicked(const juce::File&) override;
     void browserRootChanged(const juce::File&) override {}
 
-    void setupEdit (juce::File);
+    void setupEdit (juce::File = {});
     void createTracksAndAssignInputs();
+    void loadApplicationSettings();
 
     juce::TimeSliceThread       m_thread    {"file browser thread"};
     juce::DirectoryContentsList m_dirConList{nullptr, m_thread};
@@ -60,6 +61,7 @@ private:
     tracktion_engine::SelectionManager      m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
     std::unique_ptr<EditComponent>          m_songEditor;
+    juce::ValueTree m_state;
 
 // todo : into settings
     const int c_headerHeight = 100;
