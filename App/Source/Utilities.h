@@ -121,13 +121,17 @@ inline juce::Image getImageFromSvg(const char* svgbinary,juce::String col_hex,in
 
 inline void saveEdit(te::Edit& edit, juce::File workDir)
 {
-    juce::WildcardFileFilter wildcardFilter (".tracktionedit"
+    auto editfile = te::EditFileOperations(edit).getEditFile ();
+    auto file = editfile.getFileName () != "Untitled.tracktionedit"
+              ? editfile
+              : workDir;
+    juce::WildcardFileFilter wildcardFilter ("*.tracktionedit"
                                              , juce::String()
                                              , "Next Studio Project File");
 
     juce::FileBrowserComponent browser (juce::FileBrowserComponent::saveMode
                                         + juce::FileBrowserComponent::canSelectFiles
-                                        , workDir
+                                        , file
                                         , &wildcardFilter
                                         , nullptr);
 

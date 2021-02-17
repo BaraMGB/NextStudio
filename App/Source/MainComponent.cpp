@@ -25,7 +25,6 @@ MainComponent::MainComponent()
 
     m_editNameLabel.setJustificationType (juce::Justification::centred);
     setSize(1600, 900);
-
 }
 
 MainComponent::~MainComponent()
@@ -149,6 +148,11 @@ void MainComponent::setupSideBrowser()
     }
     m_dirConList.setDirectory(file, true, true);
     m_tree.addListener(this);
+}
+
+juce::ValueTree &MainComponent::state()
+{
+    return m_state;
 }
 
 void MainComponent::setupEdit(juce::File editFile)

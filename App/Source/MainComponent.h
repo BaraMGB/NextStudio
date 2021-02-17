@@ -38,6 +38,8 @@ public:
 
     bool handleUnsavedEdit();
 
+    juce::ValueTree& state();
+
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source);
     void selectionChanged()                           override {}

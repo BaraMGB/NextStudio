@@ -1,0 +1,7 @@
+To implement before stable:
+
+#1 - recolor Tracks
+#2 - Prelisten samples in browser
+#3 - move tracks up - down
+
+
