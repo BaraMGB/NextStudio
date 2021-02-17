@@ -470,6 +470,8 @@ void EditComponent::buildTracks()
     resized();
 }
 
+
+
 juce::OwnedArray<TrackComponent> &EditComponent::getTrackComps()
 {
     return m_trackComps;

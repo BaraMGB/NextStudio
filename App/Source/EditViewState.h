@@ -56,6 +56,8 @@ namespace IDs
     DECLARE_ID (isPianoRollVisible)
     DECLARE_ID (timeLineHeight)
     DECLARE_ID (lastNoteLenght)
+    DECLARE_ID (AppSettings)
+    DECLARE_ID (WorkDIR)
     #undef DECLARE_ID
 }
 

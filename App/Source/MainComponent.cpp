@@ -8,38 +8,16 @@
 
 #include "MainComponent.h"
 #include "Utilities.h"
-namespace IDs
-{
-    #define DECLARE_ID(name)  const juce::Identifier name (#name);
-    DECLARE_ID (AppSettings)
-    DECLARE_ID (WorkDIR)
-}
-//==============================================================================
+
 MainComponent::MainComponent()
 {
     setLookAndFeel(&m_nextLookAndFeel);
 
-
     //Edit stuff
-    auto directory = juce::File::getSpecialLocation (
-                juce::File::tempDirectory).getChildFile ("temporary");
-    directory.createDirectory();
-    auto f = Helpers::findRecentEdit (directory);
-    setupEdit (f.existsAsFile () ? f
-                                 : directory.getNonexistentChildFile ("Untitled"
-                                       , ".tracktionedit"
-                                       , false ));
     loadApplicationSettings();
+    openValidStartEdit();
     //FileTree side bar
-    m_thread.startThread(1);
-    juce::File file = juce::File::createFileWithoutCheckingPath (
-                m_state.getProperty (IDs::WorkDIR));
-    if (!file.isDirectory ())
-    {
-        file = juce::File::getSpecialLocation(juce::File::userHomeDirectory);
-    }
-    m_dirConList.setDirectory(file, true, true);
-    m_tree.addListener(this);
+    setupSideBrowser();
 
     addAndMakeVisible(m_tree);
     addAndMakeVisible(m_menuBar);
@@ -47,12 +25,12 @@ MainComponent::MainComponent()
 
     m_editNameLabel.setJustificationType (juce::Justification::centred);
     setSize(1600, 900);
+
 }
 
 MainComponent::~MainComponent()
 {
     m_header->removeAllChangeListeners ();
-    te::EditFileOperations (*m_edit).save (true, true, false);
     m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
 }
@@ -149,8 +127,39 @@ void MainComponent::fileDoubleClicked(const juce::File &)
     }
 }
 
+void MainComponent::openValidStartEdit()
+{
+    auto tempDirectory = m_engine.getTemporaryFileManager().getTempDirectory();
+    tempDirectory.createDirectory();
+    auto f = Helpers::findRecentEdit (tempDirectory);
+    setupEdit (f.existsAsFile () ? f
+                                 : tempDirectory.getNonexistentChildFile ("Untitled"
+                                       , ".tracktionedit"
+                                       , false));
+}
+
+void MainComponent::setupSideBrowser()
+{
+    m_thread.startThread(1);
+    juce::File file = juce::File::createFileWithoutCheckingPath (
+                m_state.getProperty (IDs::WorkDIR));
+    if (!file.isDirectory ())
+    {
+        file = juce::File::getCurrentWorkingDirectory ();
+    }
+    m_dirConList.setDirectory(file, true, true);
+    m_tree.addListener(this);
+}
+
 void MainComponent::setupEdit(juce::File editFile)
 {
+    if(m_edit)
+    {
+        if(!handleUnsavedEdit ())
+        {
+            return;
+        }
+    }
     if (editFile == juce::File())
     {
         juce::FileChooser fc ("New Edit"
@@ -186,10 +195,40 @@ void MainComponent::setupEdit(juce::File editFile)
 
     m_songEditor = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
     addAndMakeVisible (*m_songEditor);
-    m_header = std::make_unique<HeaderComponent>(*m_edit);
+    m_header = std::make_unique<HeaderComponent>(*m_edit, m_state);
     m_header->addChangeListener (this);
     addAndMakeVisible(*m_header);
     resized ();
+}
+
+bool MainComponent::handleUnsavedEdit()
+{
+    if (m_edit->hasChangedSinceSaved ())
+    {
+        auto result = juce::AlertWindow::showYesNoCancelBox (
+                    juce::AlertWindow::QuestionIcon
+                    , "Unsaved Project"
+                    , "Do you want to save the project?"
+                    , "Yes"
+                    , "No"
+                    , "Cancel");
+        switch (result) {
+        case 1 :
+            GUIHelpers::saveEdit (*m_edit
+                                  , juce::File().createFileWithoutCheckingPath (
+                                      m_state.getProperty (IDs::WorkDIR)));
+            return true;
+            break;
+        case 2 :
+            return true;
+            break;
+        case 3 :
+            //cancel
+        default:
+            return false;
+        }
+    }
+    return true;
 }
 
 void MainComponent::createTracksAndAssignInputs()
@@ -228,24 +267,40 @@ void MainComponent::loadApplicationSettings()
     auto settingsFile = juce::File::getSpecialLocation (
                 juce::File::userApplicationDataDirectory)
                 .getChildFile ("NextStudio/AppSettings.xml");
-
     if (!settingsFile.existsAsFile ())
     {
-        juce::WildcardFileFilter wcf("","","");
-        juce::FileBrowserComponent chooseDir(juce::FileBrowserComponent::canSelectDirectories
-                                             , juce::File()
-                                             ,&wcf
-                                             , nullptr);
-        juce::FileChooserDialogBox dialog ("Working Directory"
-                                           , "Please select the working directory"
-                                           , chooseDir,
-                                           false,
-                                           juce::Colours::black);
+        auto result =  juce::AlertWindow::showOkCancelBox (
+                    juce::AlertWindow::AlertIconType::QuestionIcon
+                    , "Working Directory"
+                    , "It seems, this is your first time you started Next Studio. "
+                      "A working directory can be created automaticly."
+                      " You can choose a directory, if you want"
+                    , "okay"
+                    , "choose directory");
         juce::File workingDir;
-        if (dialog.show ())
+        if (result == true)
         {
-            workingDir = chooseDir.getSelectedFile (0);
+            workingDir = juce::File::getSpecialLocation (
+                        juce::File::userHomeDirectory).getChildFile ("NextStudioProjects");
+            workingDir.createDirectory ();
         }
+        else
+        {
+            juce::FileChooser fc ("Working Directory"
+                                  , juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+                                  , "");
+            if (fc.browseForDirectory ())
+            {
+                workingDir = fc.getResult ();
+            }
+            else
+            {
+                workingDir = juce::File::getSpecialLocation (
+                            juce::File::userHomeDirectory).getChildFile ("NextStudioProjects");
+                workingDir.createDirectory ();
+            }
+        }
+        workingDir.setAsCurrentWorkingDirectory ();
         juce::ValueTree settings(IDs::AppSettings);
         settings.setProperty (IDs::WorkDIR, workingDir.getFullPathName (), nullptr);
         m_state = settings.createCopy ();

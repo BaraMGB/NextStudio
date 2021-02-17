@@ -119,8 +119,31 @@ inline juce::Image getImageFromSvg(const char* svgbinary,juce::String col_hex,in
     return image;
 }
 
+inline void saveEdit(te::Edit& edit, juce::File workDir)
+{
+    juce::WildcardFileFilter wildcardFilter (".tracktionedit"
+                                             , juce::String()
+                                             , "Next Studio Project File");
 
+    juce::FileBrowserComponent browser (juce::FileBrowserComponent::saveMode
+                                        + juce::FileBrowserComponent::canSelectFiles
+                                        , workDir
+                                        , &wildcardFilter
+                                        , nullptr);
 
+    juce::FileChooserDialogBox dialogBox ("Save the project",
+                                          "Please choose some kind of file that you want to save...",
+                                          browser,
+                                          true,
+                                          juce::Colours::black);
+
+    if (dialogBox.show())
+    {
+        juce::File selectedFile = browser.getSelectedFile (0)
+                .withFileExtension (".tracktionedit");
+        te::EditFileOperations(edit).saveAs (selectedFile);
+    }
+}
 }
 //==============================================================================
 namespace PlayHeadHelpers

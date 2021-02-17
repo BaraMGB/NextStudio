@@ -238,7 +238,7 @@ double PositionDisplayComponent::draggedNewTime(int draggedDistance
 
 //==============================================================================
 
-HeaderComponent::HeaderComponent(te::Edit& edit)
+HeaderComponent::HeaderComponent(te::Edit& edit, juce::ValueTree& appSettings)
     : m_newButton ("New", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loadButton ("Load", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_saveButton ("Save", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -250,8 +250,9 @@ HeaderComponent::HeaderComponent(te::Edit& edit)
     , m_loopButton ("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_clickButton ("Metronome", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_edit(edit)
+    , m_appSettings (appSettings)
     , m_display (edit)
-{    
+{
     addAndMakeVisible(m_newButton);
     addAndMakeVisible(m_loadButton);
     addAndMakeVisible(m_saveButton);
@@ -463,29 +464,9 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     }
     if (button == &m_saveButton)
     {
-        juce::WildcardFileFilter wildcardFilter (".tracktionedit"
-                                                 , juce::String()
-                                                 , "Next Studio Project File");
-
-        juce::FileBrowserComponent browser (juce::FileBrowserComponent::saveMode
-                                            + juce::FileBrowserComponent::canSelectFiles
-                                            , juce::File::getSpecialLocation (
-                                                juce::File::userHomeDirectory)
-                                            , &wildcardFilter
-                                            , nullptr);
-
-        juce::FileChooserDialogBox dialogBox ("Save the project",
-                                        "Please choose some kind of file that you want to save...",
-                                        browser,
-                                        true,
-                                        juce::Colours::lightgrey);
-
-        if (dialogBox.show())
-        {
-            juce::File selectedFile = browser.getSelectedFile (0)
-                                        .withFileExtension (".tracktionedit");
-            te::EditFileOperations(m_edit).saveAs (selectedFile);
-        }
+        GUIHelpers::saveEdit (m_edit
+                              , juce::File::createFileWithoutCheckingPath (
+                                  m_appSettings.getProperty (IDs::WorkDIR)));
     }
     if (button == &m_loadButton)
     {

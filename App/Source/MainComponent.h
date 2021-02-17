@@ -35,7 +35,9 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     bool keyPressed(const juce::KeyPress &key) override;
-    
+
+    bool handleUnsavedEdit();
+
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source);
     void selectionChanged()                           override {}
@@ -46,6 +48,8 @@ private:
     void setupEdit (juce::File = {});
     void createTracksAndAssignInputs();
     void loadApplicationSettings();
+    void openValidStartEdit();
+    void setupSideBrowser();
 
     juce::TimeSliceThread       m_thread    {"file browser thread"};
     juce::DirectoryContentsList m_dirConList{nullptr, m_thread};
