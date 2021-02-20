@@ -33,6 +33,7 @@ target_sources(${TargetName} PRIVATE
         Source/AudioClipComponent.cpp
         Source/MidiClipComponent.cpp
         Source/RecordingClipComponent.cpp
+        Source/Utilities.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
