@@ -27,21 +27,18 @@ class MainComponent   : public juce::Component
                       , public juce::ChangeListener
 {
 public:
-    //==============================================================================
     MainComponent();
     ~MainComponent();
 
-    //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
     bool keyPressed(const juce::KeyPress &key) override;
 
     bool handleUnsavedEdit();
 
-    juce::ValueTree& state();
-
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source);
+
     void selectionChanged()                           override {}
     void fileClicked (const juce::File& file, const juce::MouseEvent& event) override;
     void fileDoubleClicked(const juce::File&) override;
@@ -63,7 +60,9 @@ private:
     NextLookAndFeel                  m_nextLookAndFeel;
 
     tracktion_engine::Engine m_engine
-                                { ProjectInfo::projectName, std::make_unique<ExtendedUIBehaviour>(), nullptr };
+                                { ProjectInfo::projectName
+                                , std::make_unique<ExtendedUIBehaviour>()
+                                , nullptr };
     tracktion_engine::SelectionManager      m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
     std::unique_ptr<EditComponent>          m_songEditor;

@@ -56,6 +56,7 @@ public:
     TrackComponent * getTrackCompForTrack(te::Track::Ptr track);
     ClipComponent *getClipComponentForClip(te::Clip::Ptr clip);
 
+    te::AudioTrack::Ptr addAudioTrack(bool isMidi, juce::Colour);
 
     void turnoffAllTrackOverlays();
 
@@ -74,7 +75,6 @@ private:
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
-    void addAudioTrack(bool isMidi, juce::Colour);
     void buildTracks();
     
     juce::OwnedArray<TrackComponent> m_trackComps;

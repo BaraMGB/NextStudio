@@ -7,16 +7,13 @@
 */
 
 #include "MainComponent.h"
-#include "Utilities.h"
 
 MainComponent::MainComponent()
 {
     setLookAndFeel(&m_nextLookAndFeel);
 
-    //Edit stuff
     loadApplicationSettings();
     openValidStartEdit();
-    //FileTree side bar
     setupSideBrowser();
 
     addAndMakeVisible(m_tree);
@@ -92,7 +89,7 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
     }
 }
 
-void MainComponent::fileClicked(const juce::File &file, const juce::MouseEvent &event)
+void MainComponent::fileClicked(const juce::File &file, const juce::MouseEvent&/* event*/)
 {
     m_tree.setDragAndDropDescription(file.getFileName());
 }
@@ -107,22 +104,7 @@ void MainComponent::fileDoubleClicked(const juce::File &)
     }
     else if (audioFile.isValid ())
     {
-        auto red = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
-        auto gre = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
-        auto blu = juce::Random::getSystemRandom().nextInt(juce::Range<int>(0, 255));
-
-        if (auto track = EngineHelpers::getOrInsertAudioTrackAt (*m_edit, tracktion_engine::getAudioTracks(*m_edit).size()))
-        {
-            track->setName("Track " + juce::String(tracktion_engine::getAudioTracks(*m_edit).size()));
-            track->setColour(juce::Colour(red, gre, blu));
-            EngineHelpers::removeAllClips(*track);
-            // Add a new clip to this track
-            if (auto newClip = track->insertWaveClip(selectedFile.getFileNameWithoutExtension(), selectedFile,
-            { { 0.0, 0.0 + audioFile.getLength() }, 0.0 }, false))
-            {
-                newClip->setColour(track->getColour());
-            }
-        }
+        EngineHelpers::loadAudioFileAsClip (*m_edit, selectedFile);
     }
 }
 
@@ -131,10 +113,21 @@ void MainComponent::openValidStartEdit()
     auto tempDirectory = m_engine.getTemporaryFileManager().getTempDirectory();
     tempDirectory.createDirectory();
     auto f = Helpers::findRecentEdit (tempDirectory);
-    setupEdit (f.existsAsFile () ? f
-                                 : tempDirectory.getNonexistentChildFile ("Untitled"
-                                       , ".tracktionedit"
-                                       , false));
+    if (f.existsAsFile ())
+    {
+        setupEdit (f);
+    }
+    else
+    {
+        setupEdit (tempDirectory.getNonexistentChildFile ("Untitled"
+                         , ".tracktionedit"
+                         , false));
+        auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
+        for (auto & t : atList)
+        {
+            m_edit->deleteTrack (t);
+        }
+    }
 }
 
 void MainComponent::setupSideBrowser()
@@ -148,11 +141,6 @@ void MainComponent::setupSideBrowser()
     }
     m_dirConList.setDirectory(file, true, true);
     m_tree.addListener(this);
-}
-
-juce::ValueTree &MainComponent::state()
-{
-    return m_state;
 }
 
 void MainComponent::setupEdit(juce::File editFile)
@@ -190,13 +178,10 @@ void MainComponent::setupEdit(juce::File editFile)
     auto& transport = m_edit->getTransport();
     transport.addChangeListener (this);
 
-    m_editNameLabel.setText (editFile.getFileNameWithoutExtension(), juce::dontSendNotification);
-
-
+    m_editNameLabel.setText (editFile.getFileNameWithoutExtension()
+                             , juce::dontSendNotification);
     createTracksAndAssignInputs();
-
     te::EditFileOperations (*m_edit).save (true, true, false);
-
     m_songEditor = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
     addAndMakeVisible (*m_songEditor);
     m_header = std::make_unique<HeaderComponent>(*m_edit, m_state);

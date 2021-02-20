@@ -393,7 +393,9 @@ void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
     repaint();
 }
 
-void EditComponent::addAudioTrack(bool isMidiTrack, juce::Colour trackColour)
+tracktion_engine::AudioTrack::Ptr EditComponent::addAudioTrack(
+        bool isMidiTrack
+      , juce::Colour trackColour)
 {
     if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
             m_edit, te::getAudioTracks(m_edit).size()))
@@ -410,7 +412,9 @@ void EditComponent::addAudioTrack(bool isMidiTrack, juce::Colour trackColour)
          track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
          track->setColour(trackColour);
          m_editViewState.m_selectionManager.selectOnly(track);
+         return track;
     }
+    return nullptr;
 }
 
 void EditComponent::buildTracks()

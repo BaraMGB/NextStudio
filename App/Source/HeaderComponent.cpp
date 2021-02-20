@@ -200,7 +200,6 @@ void PositionDisplayComponent::resized()
 
 void PositionDisplayComponent::update()
 {
-    const auto pos = te::getCurrentPositionInfo (m_edit);
     const auto nt = juce::NotificationType::dontSendNotification;
     PlayHeadHelpers::TimeCodeStrings positionStr(m_edit);
 
@@ -212,7 +211,8 @@ void PositionDisplayComponent::update()
     m_loopOutLabel.setText (positionStr.loopOut, nt);
 }
 
-double PositionDisplayComponent::draggedNewTime(int draggedDistance
+double PositionDisplayComponent::draggedNewTime(
+          int draggedDistance
         , double timeAtMouseDown
         , double unitfactor
         , bool inBeat

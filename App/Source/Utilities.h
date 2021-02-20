@@ -312,8 +312,10 @@ namespace EngineHelpers
         if (auto track = getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
         {
             removeAllClips (*track);
-
-            // Add a new clip to this track
+            auto& random = juce::Random::getSystemRandom();
+            track->setColour (juce::Colour(random.nextInt (256)
+                                          ,random.nextInt (256)
+                                          ,random.nextInt (256)));
             te::AudioFile audioFile (edit.engine, file);
 
             if (audioFile.isValid())
@@ -321,7 +323,6 @@ namespace EngineHelpers
                                                           { { 0.0, audioFile.getLength() }, 0.0 }, false))
                     return newClip;
         }
-
         return {};
     }
 

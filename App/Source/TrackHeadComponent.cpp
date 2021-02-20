@@ -269,11 +269,8 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 {
     auto cornerSize = 10.0f;
     juce::Rectangle<float> area = getLocalBounds().toFloat();
-
     area.reduce(1, 1);
-
     auto buttonColour = juce::Colour(0xff4b4b4b);
-
     if (!m_editViewState.m_selectionManager.isSelected (m_track))
     {
         buttonColour = buttonColour.darker (0.4f);
@@ -281,20 +278,11 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
     g.setColour(buttonColour);
     GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
 
-    if (drawOverlayTrackColour)
-    {
-        auto trackColorOverlay = m_track->getColour ().darker (0.5);
-        g.setColour (trackColorOverlay.withAlpha (0.1f));
-
-        GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize, true);
-    }
-
-    // TrackColour
     juce::Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
     auto trackColor =  m_track->getColour();
-
     g.setColour (trackColor);
     GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
+
     if (m_isAboutToResizing)
     {
         g.setColour(juce::Colour(0x66ffffff));
@@ -311,8 +299,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                                 ? BinaryData::piano_svg
                                 : BinaryData::waveform_svg
                              , "#ffffff"
-                             , {20,5,20,20});
-
+                             , {20, 5, 20, 20});
 }
 
 void TrackHeaderComponent::resized()
@@ -322,6 +309,7 @@ void TrackHeaderComponent::resized()
     auto peakdisplay = getLocalBounds ().removeFromRight (15);
     peakdisplay.reduce (2,2);
     levelMeterComp->setBounds (peakdisplay);
+    area.removeFromRight (peakdisplay.getWidth ());
     auto volSlider = area.removeFromRight(area.getHeight());
     m_volumeKnob.setBounds(volSlider);
 

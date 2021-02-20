@@ -52,8 +52,7 @@ private:
     juce::Slider       m_volumeKnob;
     std::unique_ptr<LevelMeterComponent> levelMeterComp;
 
-    bool drawOverlayTrackColour {false},
-         m_isResizing {false},
+    bool m_isResizing {false},
          m_isAboutToResizing {false};
 };
 
