@@ -4,15 +4,14 @@
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "ClipComponent.h"
+#include "RecordingClipComponent.h"
+#include "AudioClipComponent.h"
 #include "PluginRackComponent.h"
 #include "TrackOverlayComponent.h"
 
 namespace te = tracktion_engine;
 
 
-
-
-//==============================================================================
 class TrackComponent : public juce::Component,
                        private te::ValueTreeAllEventListener,
                        private FlaggedAsyncUpdater,
@@ -20,7 +19,7 @@ class TrackComponent : public juce::Component,
 {
 public:
     TrackComponent (EditViewState&, te::Track::Ptr);
-    ~TrackComponent();
+    ~TrackComponent() override;
 
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
@@ -55,7 +54,6 @@ private:
     juce::OwnedArray<ClipComponent> m_clips;
 
     juce::Image m_dragImage;
-    int m_posInClip{0};
     std::unique_ptr<RecordingClipComponent> recordingClip;
 
     TrackOverlayComponent m_trackOverlay;
@@ -64,4 +62,3 @@ private:
          updatePositions = false,
          updateRecordClips = false;
 };
-

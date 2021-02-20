@@ -30,6 +30,9 @@ target_sources(${TargetName} PRIVATE
         Source/PianoRollContentComponent.cpp
         Source/TimelineOverlayComponent.cpp
         Source/TrackOverlayComponent.cpp
+        Source/AudioClipComponent.cpp
+        Source/MidiClipComponent.cpp
+        Source/RecordingClipComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
