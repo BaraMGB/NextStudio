@@ -33,7 +33,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
 
     double x1 = m_X1;
     double x2 = m_X2;
-    double zoom = x2 -x1;
+    double zoom = x2 - x1;
     int firstBeat = static_cast<int>(x1);
     if(beatsToX(firstBeat) < 0)
     {
@@ -43,7 +43,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
     auto pixelPerBeat = getWidth() / zoom;
     for (int beat = firstBeat - 1; beat <= x2; beat++)
     {
-        int BeatX = beatsToX(beat);
+        const int BeatX = beatsToX(beat) + 1;
 
         auto zBars = 16;
 
@@ -80,17 +80,17 @@ void TimeLineComponent::paint(juce::Graphics& g)
             }
             g.setColour(juce::Colours::white);
         }
-//        if (zoom < 12)
-//        {
-////            auto quarterBeat = pixelPerBeat / 4;
-////            auto i = 1;
-////            while ( i < 5) {
-////                g.drawSingleLineText(String((beat/4)+1)
-////                                     ,BeatX + (pixelPerBeat * i)
-////                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
-////                i++;
-////            }
-//        }
+        if (zoom < 12)
+        {
+//            auto quarterBeat = pixelPerBeat / 4;
+//            auto i = 1;
+//            while ( i < 5) {
+//                g.drawSingleLineText(String((beat/4)+1)
+//                                     ,BeatX + (pixelPerBeat * i)
+//                                     ,getHeight()/3  + g.getCurrentFont().getHeight());
+//                i++;
+//            }
+        }
     }
 
     if (m_mouseDown)

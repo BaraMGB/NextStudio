@@ -57,7 +57,7 @@ void TrackComponent::paint (juce::Graphics& g)
     auto pixelPerBeat = getWidth() / zoom;
     for (int beat = firstBeat - 1; beat <= m_editViewState.m_viewX2; beat++)
     {
-        const int BeatX = m_editViewState.beatsToX(beat, getWidth()) - 1;
+        const int BeatX = m_editViewState.beatsToX(beat, getWidth());
         auto zBars = 16;
         if (zoom < 240)
         {
