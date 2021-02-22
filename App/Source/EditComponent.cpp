@@ -19,15 +19,19 @@ void ToolBarComponent::paint(juce::Graphics &g)
 //==============================================================================
 
 EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
-    : m_edit (e), m_editViewState (e, sm), m_scrollbar (true)
+    : m_edit (e), m_editViewState (e, sm), m_scrollbar_v (true), m_scrollbar_h (false)
 {
     m_edit.state.addListener (this);
     m_editViewState.m_selectionManager.addChangeListener (this);
 
 
-    m_scrollbar.setAlwaysOnTop (true);
-    m_scrollbar.setAutoHide (false);
-    m_scrollbar.addListener (this);
+    m_scrollbar_v.setAlwaysOnTop (true);
+    m_scrollbar_v.setAutoHide (false);
+    m_scrollbar_v.addListener (this);
+
+    m_scrollbar_h.setAlwaysOnTop (true);
+    m_scrollbar_h.setAutoHide (false);
+    m_scrollbar_h.addListener (this);
 
     m_timeLine.setAlwaysOnTop (true);
     m_lowerRange.setAlwaysOnTop(true);
@@ -35,7 +39,8 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     m_toolBar.setAlwaysOnTop (true);
 
     addAndMakeVisible (m_timeLine);
-    addAndMakeVisible (m_scrollbar);
+    addAndMakeVisible (m_scrollbar_v);
+    addAndMakeVisible (m_scrollbar_h);
     addAndMakeVisible (m_lowerRange);
     addAndMakeVisible (m_playhead);
     addAndMakeVisible (m_toolBar);
@@ -110,9 +115,17 @@ void EditComponent::resized()
     auto songeditorHeight = getHeight() - timelineHeight - lowerRange;
     area.removeFromTop (timelineHeight);
     m_songeditorRect = area.toFloat ();
-    m_scrollbar.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
-    m_scrollbar.setRangeLimits (0, trackHeights + (songeditorHeight/2));
-    m_scrollbar.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
+    m_scrollbar_v.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
+    m_scrollbar_v.setRangeLimits (0, trackHeights + (songeditorHeight/2));
+    m_scrollbar_v.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
+
+    m_scrollbar_h.setBounds (headerWidth, songeditorHeight + timelineHeight - 20
+                             , getWidth () - headerWidth, 20);
+    m_scrollbar_h.setRangeLimits (
+                {0.0, m_editViewState.getEndScrollBeat ()});
+    m_scrollbar_h.setCurrentRange ({m_editViewState.m_viewX1
+                                  , m_editViewState.m_viewX2});
+
 }
 
 void EditComponent::mouseDown(const juce::MouseEvent &event)
@@ -167,17 +180,23 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
     }
     else
     {
-        m_scrollbar.setCurrentRangeStart(
-                    m_scrollbar.getCurrentRangeStart() - wheel.deltaY * 300);
+        m_scrollbar_v.setCurrentRangeStart(
+                    m_scrollbar_v.getCurrentRangeStart() - wheel.deltaY * 300);
     }
 }
 
 void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
                                    , double newRangeStart)
 {
-    if (scrollBarThatHasMoved == &m_scrollbar)
+    if (scrollBarThatHasMoved == &m_scrollbar_v)
     {
         m_editViewState.m_viewY = -newRangeStart;
+    }
+    else if(scrollBarThatHasMoved == &m_scrollbar_h)
+    {
+        auto zoom = m_editViewState.m_viewX2 - m_editViewState.m_viewX1;
+        m_editViewState.m_viewX1 = juce::jmax(0.0, newRangeStart);
+        m_editViewState.m_viewX2 = m_editViewState.m_viewX1 + zoom;
     }
 }
 
@@ -347,6 +366,10 @@ void EditComponent::valueTreePropertyChanged (
 
 void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 {
+    if (te::MidiClip::isClipState (c))
+    {
+        markAndUpdate (m_updateZoom);
+    }
     if (te::TrackList::isTrack (c))
         markAndUpdate (m_updateTracks);
 }
@@ -357,6 +380,7 @@ void EditComponent::valueTreeChildRemoved (
     if (te::MidiClip::isClipState (c))
     {
         m_lowerRange.hideAll ();
+        resized ();
     }
     if (te::TrackList::isTrack (c))
     {

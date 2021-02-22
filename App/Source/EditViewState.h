@@ -177,6 +177,11 @@ public:
         return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo);
     }
 
+    double getEndScrollBeat()
+    {
+        return timeToBeat (m_edit.getLength ()) + (480);
+    }
+
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 

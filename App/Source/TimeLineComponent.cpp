@@ -133,8 +133,8 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
     auto visibleLength = std::min(480.0,
                                   std::max (0.12,
                                             (m_x2atMD - m_x1atMD) / scaleFactor));
-    auto rangeBegin = std::max (0.0,  m_BeatAtMouseDown - visibleLength * event.x / getWidth());
-
+    auto rangeBegin =  std::max (0.0,  m_BeatAtMouseDown - visibleLength * event.x / getWidth());
+    rangeBegin = juce::jmin(m_state.getEndScrollBeat () - visibleLength, rangeBegin);
     m_X1 = rangeBegin;
     m_X2 = rangeBegin + visibleLength;
 }

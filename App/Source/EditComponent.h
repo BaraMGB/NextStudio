@@ -87,7 +87,7 @@ private:
     TimeLineComponent m_timeLine {m_editViewState,
                   m_editViewState.m_viewX1
                 , m_editViewState.m_viewX2 };
-    juce::ScrollBar m_scrollbar;
+    juce::ScrollBar m_scrollbar_v, m_scrollbar_h;
     ToolBarComponent m_toolBar;
     PlayheadComponent m_playhead { m_edit
                                  , m_editViewState

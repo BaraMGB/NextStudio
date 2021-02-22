@@ -354,15 +354,31 @@ public:
                        bool isMouseOver,
                        bool isMouseDown) override
     {
-        if (isMouseDown)
+        if (isScrollbarVertical)
         {
-            g.setColour (juce::Colour(0x66ffffff));
-            g.fillRect (juce::Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+            if (isMouseDown)
+            {
+                g.setColour (juce::Colour(0x66ffffff));
+                g.fillRect (juce::Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+            }
+            else if (isMouseOver)
+            {
+                g.setColour (juce::Colour(0x33ffffff));
+                g.fillRect (juce::Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+            }
         }
-        else if (isMouseOver)
+        else
         {
-            g.setColour (juce::Colour(0x33ffffff));
-            g.fillRect (juce::Rectangle<int> (0, thumbStartPosition, width, thumbSize));
+            if (isMouseDown)
+            {
+                g.setColour (juce::Colour(0x66ffffff));
+                g.fillRect (juce::Rectangle<int> (thumbStartPosition, 0, thumbSize, height));
+            }
+            else if (isMouseOver)
+            {
+                g.setColour (juce::Colour(0x33ffffff));
+                g.fillRect (juce::Rectangle<int> (thumbStartPosition, 0, thumbSize, height));
+            }
         }
     }
     juce::Colour m_BGcolour = juce::Colour(14, 14, 14);
