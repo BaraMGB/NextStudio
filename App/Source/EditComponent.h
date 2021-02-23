@@ -37,6 +37,7 @@ public:
     ~EditComponent();
 
     void paint(juce::Graphics &g) override;
+    void paintOverChildren(juce::Graphics &g);
     void resized() override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseWheelMove(const juce::MouseEvent &event
@@ -97,6 +98,4 @@ private:
 
     juce::Rectangle<float> m_songeditorRect;
     bool m_updateTracks = false, m_updateZoom = false;
-
-
 };

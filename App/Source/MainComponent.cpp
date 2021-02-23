@@ -33,14 +33,18 @@ MainComponent::~MainComponent()
 
 void MainComponent::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colours::darkgrey);
+    g.setColour (juce::Colour(0xff555555));
+    g.fillRect (getLocalBounds ());
     auto area = getLocalBounds();
-    g.fillRect (area);
-
     area.reduce(10, 10);
     auto header = area.removeFromTop(c_headerHeight);
     g.setColour(juce::Colour(0xff242424));
-    g.fillRect(header);
+    g.fillRoundedRectangle (
+                header.getX ()
+              , header.getY ()
+              , header.getWidth()
+              , header.getHeight()
+              , 10);
 }
 
 void MainComponent::resized()

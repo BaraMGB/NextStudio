@@ -27,10 +27,11 @@ void TimeLineComponent::paint(juce::Graphics& g)
 {
     g.setColour(juce::Colour(0xff1b1b1b));
     g.fillRect(getLocalBounds());
-    g.setColour(juce::Colours::white);
-    g.drawRect(getLocalBounds());
+    g.setColour(juce::Colour(0xff555555));
+    g.drawRect(0, getHeight () - 1, getWidth (), 1);
     g.setFont(12);
 
+    g.setColour(juce::Colour(0xffffffff));
     double x1 = m_X1;
     double x2 = m_X2;
     double zoom = x2 - x1;
@@ -64,13 +65,13 @@ void TimeLineComponent::paint(juce::Graphics& g)
         }
         if (zoom < 60)
         {
-            g.setColour(juce::Colours::white.darker(0.5f));
+            //g.setColour(juce::Colours::white.darker(0.5f));
             g.drawLine(BeatX,getHeight() - getHeight()/ 3, BeatX, getHeight());
             g.setColour(juce::Colours::white);
         }
         if (zoom < 25)
         {
-            g.setColour(juce::Colours::white.darker(0.5f));
+            //g.setColour(juce::Colours::white.darker(0.5f));
             auto quarterBeat = pixelPerBeat / 4;
             auto i = 1;
             while ( i < 5) {

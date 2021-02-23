@@ -41,6 +41,7 @@ public:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
     void paint (juce::Graphics& g) override;
+    void paintOverChildren(juce::Graphics &g);
     void resized () override;
 
     void showPluginRack(tracktion_engine::Track::Ptr);

@@ -11,9 +11,10 @@ ToolBarComponent::ToolBarComponent()
 void ToolBarComponent::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colour (0xff181818));
-    auto cornerSize = 10.0;
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
-    g.fillAll ();
+    g.fillRect (getLocalBounds ());
+    g.setColour(juce::Colour(0xff555555));
+    g.fillRect (getWidth () - 1, 0, 1, getHeight ());
+    g.fillRect (0, getHeight () - 1, getWidth (), 1);
 }
 
 //==============================================================================
@@ -59,12 +60,70 @@ EditComponent::~EditComponent()
 void EditComponent::paint (juce::Graphics &g)
 {
     g.setColour(juce::Colour(0xff181818));
-    auto cornerSize = 10.0;
-    g.fillRoundedRectangle(m_songeditorRect, cornerSize);
-
-    g.setColour(juce::Colour(0xff4f4f4f));
-    g.drawRect(m_editViewState.m_headerWidth, 0, 1, getHeight());
+    g.fillRect (m_songeditorRect);
+    g.setColour(juce::Colour(0xff555555));
+    g.drawRect(m_editViewState.m_headerWidth - 1
+             , 0
+             , 1
+             , (int) (m_songeditorRect.getHeight ()
+                      + m_editViewState.m_timeLineHeight)
+               );
 }
+
+void EditComponent::paintOverChildren(juce::Graphics &g)
+{
+    auto size = 20;
+    auto area = getLocalBounds ();
+    g.setColour(juce::Colour(0xff555555));
+    juce::Path topLeft;
+
+    topLeft.addArc (area.getX(),area.getY(), size, size
+              , juce::MathConstants<float>::pi * 1.5
+              , juce::MathConstants<float>::pi * 2
+              , true);
+    topLeft.lineTo (area.getX(),area.getY());
+    topLeft.closeSubPath ();
+    g.fillPath (topLeft);
+
+    juce::Path topRight;
+    topRight.addArc (area.getWidth () - size, area.getY (), size, size
+              , juce::MathConstants<float>::pi * 2
+              , juce::MathConstants<float>::pi * 2.5
+              , true);
+    topRight.lineTo (area.getWidth (), area.getY ());
+    topRight.closeSubPath ();
+    g.fillPath (topRight);
+
+    juce::Path bottomRight;
+    bottomRight.addArc (
+                area.getWidth () - size
+              , m_songeditorRect.getHeight ()
+                + m_editViewState.m_timeLineHeight - size
+              , size, size
+              , juce::MathConstants<float>::pi * 2.5
+              , juce::MathConstants<float>::pi * 3
+              , true);
+    bottomRight.lineTo (
+                area.getWidth ()
+              , m_songeditorRect.getHeight () + m_editViewState.m_timeLineHeight);
+    bottomRight.closeSubPath ();
+    g.fillPath (bottomRight);
+
+    juce::Path bottomLeft;
+    bottomLeft.addArc (
+                area.getX ()
+              , m_songeditorRect.getHeight () + m_editViewState.m_timeLineHeight - size
+              , size, size
+              , juce::MathConstants<float>::pi * 3
+              , juce::MathConstants<float>::pi * 3.5
+              , true);
+    bottomLeft.lineTo (
+                area.getX ()
+              , m_songeditorRect.getHeight () + m_editViewState.m_timeLineHeight);
+    bottomLeft.closeSubPath ();
+    g.fillPath (bottomLeft);
+}
+
 
 void EditComponent::resized()
 {
@@ -497,8 +556,6 @@ void EditComponent::buildTracks()
     m_playhead.toFront (false);
     resized();
 }
-
-
 
 juce::OwnedArray<TrackComponent> &EditComponent::getTrackComps()
 {
