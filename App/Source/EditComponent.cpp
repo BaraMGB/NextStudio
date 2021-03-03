@@ -438,7 +438,6 @@ void EditComponent::valueTreeChildRemoved (
 {
     if (te::MidiClip::isClipState (c))
     {
-        m_lowerRange.hideAll ();
         resized ();
     }
     if (te::TrackList::isTrack (c))

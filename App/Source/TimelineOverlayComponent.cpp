@@ -2,16 +2,16 @@
 #include "Utilities.h"
 
 TimelineOverlayComponent::TimelineOverlayComponent(
-        EditViewState &evs, tracktion_engine::Clip::Ptr clip)
+        EditViewState &evs, tracktion_engine::Track::Ptr track)
     : m_editViewState (evs)
-    , m_defaultClip(clip)
+    , m_track(track)
 {
     //setInterceptsMouseClicks (false, true);
 }
 
 void TimelineOverlayComponent::paint(juce::Graphics &g)
 {
-    auto colour = m_defaultClip->getClipTrack ()->getColour ();
+    auto colour = m_track->getColour ();
     updateClipRects ();
     for (auto cr : m_clipRects)
     {
@@ -103,7 +103,7 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
 std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClipsOfTrack()
 {
     std::vector<te::MidiClip*> midiClips;
-    if (auto at = dynamic_cast<te::AudioTrack*>(m_defaultClip->getTrack ()))
+    if (auto at = dynamic_cast<te::AudioTrack*>(&(*m_track)))
     {
         for (auto c : at->getClips ())
         {
@@ -147,8 +147,7 @@ double TimelineOverlayComponent::xToBeats(int x)
 void TimelineOverlayComponent::updateClipRects()
 {
     m_clipRects.clear ();
-    auto audiotrack = dynamic_cast<te::AudioTrack*>(m_defaultClip->getTrack ());
-    if (audiotrack)
+    if (auto audiotrack = dynamic_cast<te::AudioTrack*>(&(*m_track)))
     {
         for (auto c : audiotrack->getClips ())
         {

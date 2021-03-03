@@ -36,16 +36,16 @@ class LowerRangeComponent : public juce::Component
 {
 public:
     LowerRangeComponent (EditViewState& evs);
-     ~LowerRangeComponent();
+     ~LowerRangeComponent() override;
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
     void paint (juce::Graphics& g) override;
-    void paintOverChildren(juce::Graphics &g);
+    void paintOverChildren(juce::Graphics &g) override;
     void resized () override;
 
     void showPluginRack(tracktion_engine::Track::Ptr);
-    void showPianoRoll(te::Clip::Ptr);
+    void showPianoRoll(te::Track::Ptr);
     void hideAll();
     void addPianoRollEditor(PianoRollComponent * pianoroll);
     void addPluginRackComp (PluginRackComponent * pluginrack);

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
@@ -14,7 +14,7 @@ class PianoRollComponent : public juce::Component
 {
 public:
     PianoRollComponent (EditViewState&);
-    ~PianoRollComponent();
+    ~PianoRollComponent() override;
 
     void focusLost (juce::Component::FocusChangeType cause) override;
     void focusGained (juce::Component::FocusChangeType cause) override;
@@ -27,16 +27,12 @@ public:
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
-    te::Clip::Ptr getClip();
-    te::MidiClip* getMidiClip();
-
     void setPianoRollClip(std::unique_ptr<PianoRollContentComponent>);
     void clearPianoRollClip();
 
 
 private:
     EditViewState& m_editViewState;
-    te::Clip::Ptr m_clip;
     juce::MidiKeyboardState m_keybordstate;
     juce::MidiKeyboardComponent m_keyboard;
     TimeLineComponent m_timeline;

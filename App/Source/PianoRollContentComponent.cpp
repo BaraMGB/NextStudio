@@ -1,16 +1,14 @@
 #include "PianoRollContentComponent.h"
 
 PianoRollContentComponent::PianoRollContentComponent(EditViewState & evs
-                                   , tracktion_engine::Clip::Ptr clip)
+                                   , tracktion_engine::Track::Ptr track)
     : m_editViewState(evs)
-    , m_clip(clip)
+    , m_track (track)
 {
 }
 
 PianoRollContentComponent::~PianoRollContentComponent()
 {
-
-
 }
 
 void PianoRollContentComponent::paint(juce::Graphics &g)
@@ -41,12 +39,10 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
     g.setColour (juce::Colours::black);
     drawVerticalLines (g);
 
-    if (auto mc = getDefaulMidiClip () && getDefaulMidiClip ()->getAudioTrack () != nullptr)
-    {
-        for (auto & trackClip : getDefaulMidiClip ()->getAudioTrack ()->getClips ())
+    
+        for (auto & midiClip : getMidiClipsOfTrack())
         {
-            if (auto midiClip = dynamic_cast<te::MidiClip*>(trackClip))
-            {
+            
                 auto& seq = midiClip->getSequence();
 
                 //draw Notes
@@ -95,8 +91,6 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
 //                g.setColour (midiClip->getTrack ()->getColour ());
 //                g.fillRect (clipOffset, 0, clipEndOffsetX - clipOffset, 30);
             }
-        }
-    }
 }
 
 void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
@@ -282,7 +276,10 @@ void PianoRollContentComponent::mouseExit(const juce::MouseEvent &)
 
 void PianoRollContentComponent::mouseUp(const juce::MouseEvent &)
 {
-    getDefaulMidiClip ()->getAudioTrack ()->turnOffGuideNotes ();
+    if (auto at = dynamic_cast<te::AudioTrack*>(&(*m_track)))
+    {
+        at->turnOffGuideNotes ();
+    }
 }
 
 void PianoRollContentComponent::mouseWheelMove(const juce::MouseEvent &event
@@ -318,15 +315,10 @@ void PianoRollContentComponent::mouseWheelMove(const juce::MouseEvent &event
     }
 }
 
-tracktion_engine::MidiClip *PianoRollContentComponent::getDefaulMidiClip()
-{
-    return dynamic_cast<te::MidiClip*> (m_clip.get());
-}
-
 std::vector<te::MidiClip*> PianoRollContentComponent::getMidiClipsOfTrack()
 {
     std::vector<te::MidiClip*> midiClips;
-    if (auto at = dynamic_cast<te::AudioTrack*>(getDefaulMidiClip ()->getTrack ()))
+    if (auto at = dynamic_cast<te::AudioTrack*>(&(*m_track)))
     {
         for (auto c : at->getClips ())
         {

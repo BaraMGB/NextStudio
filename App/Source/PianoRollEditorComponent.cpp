@@ -93,10 +93,10 @@ void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
 {
     if (m_pianoRollContentComponent)
     {
-        auto mc = m_pianoRollContentComponent->getDefaulMidiClip ();
+  /*      auto mc = m_pianoRollContentComponent->getDefaulMidiClip ();
         auto midichannel = mc->getMidiChannel ();
         mc->getAudioTrack ()->playGuideNote
-                          (midiNoteNumber,midichannel, 127.0 * v, false, true);
+                          (midiNoteNumber,midichannel, 127.0 * v, false, true);*/
     }
 
 }
@@ -108,22 +108,9 @@ void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
 {
     if (m_pianoRollContentComponent)
     {
-        auto mc = m_pianoRollContentComponent->getDefaulMidiClip ();
-        mc->getAudioTrack ()->turnOffGuideNotes ();
+        
     }
 }
-
-tracktion_engine::Clip::Ptr PianoRollComponent::getClip()
-{
-    return m_clip;
-}
-
-tracktion_engine::MidiClip *PianoRollComponent::getMidiClip()
-{
-    return dynamic_cast<te::MidiClip*> (m_clip.get());
-}
-
-
 
 void PianoRollComponent::setPianoRollClip(std::unique_ptr<PianoRollContentComponent> pianoRollContentComponent)
 {

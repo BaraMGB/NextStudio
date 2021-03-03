@@ -66,7 +66,7 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * sourc
 
     if (auto midiClipComp = dynamic_cast<MidiClipComponent*>(source))
     {
-        showPianoRoll (midiClipComp->getClip ());
+        showPianoRoll (midiClipComp->getClip()->getTrack());
         resized();
         repaint ();
     }
@@ -161,9 +161,9 @@ void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
     }
 }
 
-void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
+void LowerRangeComponent::showPianoRoll(tracktion_engine::Track::Ptr track)
 {
-    if (auto midiclip = dynamic_cast<te::MidiClip*>(clip.get ()))
+    if (track->state.getProperty (IDs::isMidiTrack))
     {
         //hide all PluginRacks
         for (auto &pluginrack : m_pluginRackComps)
@@ -172,9 +172,9 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Clip::Ptr clip)
         }
 
         m_pianoRollEditor.setVisible (true);
-        m_pianoRollEditor.setPianoRollClip (std::make_unique<PianoRollContentComponent>(m_editViewState, clip));
+        m_pianoRollEditor.setPianoRollClip (std::make_unique<PianoRollContentComponent>(m_editViewState, track));
         m_timelineOverlay = std::make_unique<TimelineOverlayComponent>
-                (m_editViewState, clip);
+                (m_editViewState, track);
 
         addAndMakeVisible (*m_timelineOverlay);
         auto timeline = getLocalBounds ().removeFromTop (m_editViewState.m_timeLineHeight + 10);

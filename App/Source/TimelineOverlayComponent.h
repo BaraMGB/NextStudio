@@ -8,7 +8,7 @@ namespace te = tracktion_engine;
 class TimelineOverlayComponent : public juce::Component
 {
 public:
-    TimelineOverlayComponent(EditViewState& evs, tracktion_engine::Clip::Ptr clip);
+    TimelineOverlayComponent(EditViewState& evs, te::Track::Ptr track);
     void paint (juce::Graphics& g) override;
 private:
     bool hitTest(int,int) override;
@@ -24,7 +24,7 @@ private:
     double xToBeats(int x);
     void updateClipRects();
     EditViewState& m_editViewState;
-    tracktion_engine::Clip::Ptr m_defaultClip;
+    tracktion_engine::Track::Ptr m_track;
     double m_loop1AtMousedown
          , m_loop2AtMousedown;
     bool m_leftResized {false};

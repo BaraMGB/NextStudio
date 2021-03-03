@@ -10,8 +10,8 @@ class PianoRollContentComponent : public juce::Component
 {
 public:
 
-        PianoRollContentComponent (EditViewState&, te::Clip::Ptr);
-        ~PianoRollContentComponent();
+        PianoRollContentComponent (EditViewState&, te::Track::Ptr);
+        ~PianoRollContentComponent() override;
 
         void paint (juce::Graphics& g) override;
         void mouseDown (const juce::MouseEvent&) override;
@@ -21,9 +21,6 @@ public:
         void mouseUp (const juce::MouseEvent &) override;
         void mouseWheelMove (const juce::MouseEvent &event
                              , const juce::MouseWheelDetails &wheel) override;
-
-        te::MidiClip* getDefaulMidiClip();
-
         void setKeyWidth(float noteHeight);
 private:
         std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
@@ -35,7 +32,7 @@ private:
         te::MidiClip *getMidiclipByPos(int y);
         juce::Point<float> m_clickedPos;
         EditViewState& m_editViewState;
-        te::Clip::Ptr m_clip;
+        te::Track::Ptr m_track;
         float m_keyWidth{0};
         te::MidiNote * m_clickedNote {nullptr};
         double m_clickOffset{0};
