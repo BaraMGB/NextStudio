@@ -33,6 +33,7 @@ private:
 
 class LowerRangeComponent : public juce::Component
                           , public juce::ChangeListener
+                          , public te::ValueTreeAllEventListener
 {
 public:
     LowerRangeComponent (EditViewState& evs);
@@ -55,6 +56,17 @@ public:
         m_pluginRackComps.clear ();
     }
 private:
+
+    void valueTreeChanged() override {}
+    void valueTreePropertyChanged (juce::ValueTree&
+                                   , const juce::Identifier&) override;
+    void valueTreeChildAdded (juce::ValueTree&
+                              , juce::ValueTree&) override;
+    void valueTreeChildRemoved (juce::ValueTree&
+                                , juce::ValueTree&
+                                , int) override;
+    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
+
 
     EditViewState& m_editViewState;
 

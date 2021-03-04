@@ -9,7 +9,6 @@
 namespace te = tracktion_engine;
 
 class PianoRollComponent : public juce::Component
-                         , public te::ValueTreeAllEventListener
                          , public juce::MidiKeyboardStateListener
 {
 public:
@@ -19,10 +18,6 @@ public:
     void focusLost (juce::Component::FocusChangeType cause) override;
     void focusGained (juce::Component::FocusChangeType cause) override;
     void resized () override;
-
-    void valueTreeChanged() override {}
-    void valueTreePropertyChanged (juce::ValueTree&
-                                   , const juce::Identifier&) override;
 
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;

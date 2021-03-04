@@ -8,7 +8,6 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
-    m_editViewState.m_edit.state.addListener (this);
     m_keybordstate.addListener (this);
 
     m_keyboard.setBlackNoteWidthProportion (0.5);
@@ -24,7 +23,6 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
 PianoRollComponent::~PianoRollComponent()
 {
     m_keybordstate.removeListener (this);
-    m_editViewState.m_edit.state.removeListener (this);
 }
 
 void PianoRollComponent::focusLost(juce::Component::FocusChangeType cause)
@@ -65,26 +63,7 @@ void PianoRollComponent::resized()
 
 }
 
-void PianoRollComponent::valueTreePropertyChanged(juce::ValueTree &v
-                                                  , const juce::Identifier &i)
-{
-    if (v.hasType (tracktion_engine::IDs::MIDICLIP))
-    {
-        resized ();
-        repaint ();
-    }
-    if (v.hasType (IDs::EDITVIEWSTATE))
-    {
-        if (i == IDs::pianoX1
-            || i == IDs::pianoX2
-            || i == IDs::pianoY1
-            || i == IDs::pianorollNoteWidth)
-        {
-            resized ();
-            repaint ();
-        }
-    }
-}
+
 
 void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
                                       , int /*midiChannel*/

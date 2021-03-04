@@ -47,11 +47,13 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     m_pluginRackComps.clear(true);
     addAndMakeVisible (m_splitter);
     addChildComponent (m_pianoRollEditor);
+    m_editViewState.m_edit.state.addListener (this);
 }
 
 LowerRangeComponent::~LowerRangeComponent()
 {
     m_editViewState.m_selectionManager.removeChangeListener(this);
+    m_editViewState.m_edit.state.removeListener (this);
 }
 
 void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * source)
@@ -206,4 +208,42 @@ void LowerRangeComponent::addPluginRackComp(PluginRackComponent *pluginrack)
 {
     addAndMakeVisible (pluginrack);
     m_pluginRackComps.add (pluginrack);
+}
+
+void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
+{
+        if (v.hasType (tracktion_engine::IDs::MIDICLIP))
+        {
+            resized ();
+            repaint ();
+        }
+        if (v.hasType (IDs::EDITVIEWSTATE))
+        {
+            if (i == IDs::pianoX1
+                || i == IDs::pianoX2
+                || i == IDs::pianoY1
+                || i == IDs::pianorollNoteWidth)
+            {
+                resized ();
+                repaint ();
+            }
+        }
+}
+
+void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &)
+{
+    resized ();
+    repaint ();
+}
+
+void LowerRangeComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int)
+{
+    resized ();
+    repaint ();
+}
+
+void LowerRangeComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int)
+{
+    resized ();
+    repaint ();
 }
