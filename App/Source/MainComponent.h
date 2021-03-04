@@ -22,7 +22,6 @@
 namespace te = tracktion_engine;
 
 class MainComponent   : public juce::Component
-                      , public juce::FileBrowserListener
                       , public juce::DragAndDropContainer
                       , public juce::ChangeListener
 {
@@ -35,24 +34,17 @@ public:
     bool keyPressed(const juce::KeyPress &key) override;
 
     bool handleUnsavedEdit();
+    void setupEdit (juce::File = {});
 
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source);
-
-    void selectionChanged()                           override {}
-    void fileClicked (const juce::File& file, const juce::MouseEvent& event) override;
-    void fileDoubleClicked(const juce::File&) override;
-    void browserRootChanged(const juce::File&) override {}
-
-    void setupEdit (juce::File = {});
     void createTracksAndAssignInputs();
     void loadApplicationSettings();
     void openValidStartEdit();
     void setupSideBrowser();
 
-    juce::TimeSliceThread       m_thread    {"file browser thread"};
-    juce::DirectoryContentsList m_dirConList{nullptr, m_thread};
-    juce::FileTreeComponent     m_tree      {m_dirConList};
+
+
     MenuBar                     m_menuBar;
 
     std::unique_ptr<HeaderComponent> m_header;
@@ -65,8 +57,13 @@ private:
                                 , nullptr };
     tracktion_engine::SelectionManager      m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
-    std::unique_ptr<EditComponent>          m_songEditor;
-    juce::ValueTree m_state;
+    std::unique_ptr<EditComponent>          m_editComponent;
+    juce::ValueTree                         m_applicationState;
+    std::unique_ptr<SideBarBrowser>         m_sideBarBrowser;
+    juce::StretchableLayoutManager m_stretchableManager;
+    juce::StretchableLayoutResizerBar m_resizerBar
+                                            {&m_stretchableManager, 1, true};
+
 
 // todo : into settings
     const int c_headerHeight = 100;

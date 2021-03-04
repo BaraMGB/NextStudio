@@ -16,11 +16,15 @@ MainComponent::MainComponent()
     openValidStartEdit();
     setupSideBrowser();
 
-    addAndMakeVisible(m_tree);
     addAndMakeVisible(m_menuBar);
     addAndMakeVisible(m_editNameLabel);
+    addAndMakeVisible (m_resizerBar);
 
     m_editNameLabel.setJustificationType (juce::Justification::centred);
+
+    m_stretchableManager.setItemLayout (0, -0.1, -0.9, -0.3);
+    m_stretchableManager.setItemLayout (1, 10, 10, 10);
+    m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     setSize(1600, 900);
 }
 
@@ -62,18 +66,31 @@ void MainComponent::resized()
     
     m_header.get()->setBounds(header);
     area.removeFromTop(10);
-    auto lowerRange = area.removeFromBottom( m_songEditor->getEditViewState().m_isPianoRollVisible
-                       ? m_songEditor->getEditViewState().m_pianorollHeight
+    auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
+                       ? m_editComponent->getEditViewState().m_pianorollHeight
                        : 250);
-    
-    m_tree.setBounds (area.removeFromLeft (sidebarWidth));
-    area.removeFromLeft (10);
-    m_songEditor->setBounds (area);
-    m_tree.setColour (juce::TreeView::ColourIds::backgroundColourId
-                      , juce::Colour(0xff1b1b1b));
-    m_tree.setColour (juce::DirectoryContentsDisplayComponent::highlightColourId
-                      , juce::Colour(0xff4b4b4b));
-    m_songEditor->lowerRange().setBounds(lowerRange);
+
+    Component* comps[] = {
+        m_sideBarBrowser.get ()
+      , &m_resizerBar
+      , m_editComponent.get ()};
+    m_stretchableManager.layOutComponents (
+                comps
+              , 3
+              , area.getX()
+              , area.getY()
+              , area.getWidth()
+              , area.getHeight()
+              , false, true);
+
+//    if (m_sideBarBrowser)
+//    {
+//        m_sideBarBrowser->setBounds (area.removeFromLeft (sidebarWidth));
+//    }
+//    area.removeFromLeft (10);
+//    m_editComponent->setBounds (area);
+
+    m_editComponent->lowerRange().setBounds(lowerRange);
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress &key)
@@ -95,25 +112,6 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
             auto editfile = m_header->loadingFile ();
             setupEdit (editfile);
         }
-    }
-}
-
-void MainComponent::fileClicked(const juce::File &file, const juce::MouseEvent&/* event*/)
-{
-    m_tree.setDragAndDropDescription(file.getFileName());
-}
-
-void MainComponent::fileDoubleClicked(const juce::File &)
-{
-    auto selectedFile = m_tree.getSelectedFile();
-    tracktion_engine::AudioFile audioFile(m_edit->engine, selectedFile);
-    if (selectedFile.getFileExtension () == ".tracktionedit")
-    {
-        setupEdit (selectedFile);
-    }
-    else if (audioFile.isValid ())
-    {
-        EngineHelpers::loadAudioFileAsClip (*m_edit, selectedFile);
     }
 }
 
@@ -141,15 +139,10 @@ void MainComponent::openValidStartEdit()
 
 void MainComponent::setupSideBrowser()
 {
-    m_thread.startThread(1);
-    juce::File file = juce::File::createFileWithoutCheckingPath (
-                m_state.getProperty (IDs::WorkDIR));
-    if (!file.isDirectory ())
-    {
-        file = juce::File::getCurrentWorkingDirectory ();
-    }
-    m_dirConList.setDirectory(file, true, true);
-    m_tree.addListener(this);
+    m_sideBarBrowser = std::make_unique<SideBarBrowser>(
+                m_applicationState
+              , *m_edit);
+    addAndMakeVisible (*m_sideBarBrowser);
 }
 
 void MainComponent::setupEdit(juce::File editFile)
@@ -174,7 +167,7 @@ void MainComponent::setupEdit(juce::File editFile)
     }
 
     m_selectionManager.deselectAll();
-    m_songEditor = nullptr;
+    m_editComponent = nullptr;
 
     if (editFile.existsAsFile())
         m_edit = te::loadEditFromFile (m_engine, editFile);
@@ -191,10 +184,10 @@ void MainComponent::setupEdit(juce::File editFile)
                              , juce::dontSendNotification);
     createTracksAndAssignInputs();
     te::EditFileOperations (*m_edit).save (true, true, false);
-    m_songEditor = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
-    addAndMakeVisible (*m_songEditor);
-    addAndMakeVisible(m_songEditor->lowerRange());
-    m_header = std::make_unique<HeaderComponent>(*m_edit, m_state);
+    m_editComponent = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
+    addAndMakeVisible (*m_editComponent);
+    addAndMakeVisible(m_editComponent->lowerRange());
+    m_header = std::make_unique<HeaderComponent>(*m_edit, m_applicationState);
     m_header->addChangeListener (this);
     addAndMakeVisible(*m_header);
     resized ();
@@ -215,7 +208,7 @@ bool MainComponent::handleUnsavedEdit()
         case 1 :
             GUIHelpers::saveEdit (*m_edit
                                   , juce::File().createFileWithoutCheckingPath (
-                                      m_state.getProperty (IDs::WorkDIR)));
+                                      m_applicationState.getProperty (IDs::WorkDIR)));
             return true;
             break;
         case 2 :
@@ -302,15 +295,15 @@ void MainComponent::loadApplicationSettings()
         workingDir.setAsCurrentWorkingDirectory ();
         juce::ValueTree settings(IDs::AppSettings);
         settings.setProperty (IDs::WorkDIR, workingDir.getFullPathName (), nullptr);
-        m_state = settings.createCopy ();
+        m_applicationState = settings.createCopy ();
         settingsFile.create ();
-        auto xmlToWrite = m_state.createXml ();
+        auto xmlToWrite = m_applicationState.createXml ();
         xmlToWrite->writeTo (settingsFile);
     }
     else
     {
         juce::XmlDocument xmlDoc (settingsFile);
         auto xmlToRead = xmlDoc.getDocumentElement ();
-        m_state = juce::ValueTree::fromXml (*xmlToRead);
+        m_applicationState = juce::ValueTree::fromXml (*xmlToRead);
     }
 }

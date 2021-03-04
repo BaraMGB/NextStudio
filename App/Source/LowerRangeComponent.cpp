@@ -6,6 +6,13 @@ SplitterComponent::SplitterComponent(EditViewState &evs) : m_editViewState(evs)
 
 }
 
+void SplitterComponent::mouseMove(const juce::MouseEvent &event)
+{
+    setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+    m_isHovering = true;
+    repaint ();
+}
+
 void SplitterComponent::mouseEnter(const juce::MouseEvent &event)
 {
 
@@ -13,11 +20,14 @@ void SplitterComponent::mouseEnter(const juce::MouseEvent &event)
 
 void SplitterComponent::mouseExit(const juce::MouseEvent &event)
 {
-
+    setMouseCursor(juce::MouseCursor::NormalCursor);
+    m_isHovering = false;
+    repaint ();
 }
 
 void SplitterComponent::mouseDown(const juce::MouseEvent &event)
 {
+
     m_mousedownPosYatMousdown = event.mouseDownPosition.y;
     m_pianorollHeightAtMousedown = m_editViewState.m_pianorollHeight;
 }
@@ -34,6 +44,15 @@ void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
 
 void SplitterComponent::mouseUp(const juce::MouseEvent &event)
 {
+}
+
+void SplitterComponent::paint(juce::Graphics &g)
+{
+    if (m_isHovering)
+    {
+        g.setColour(juce::Colours::navy);
+        g.fillRect (getLocalBounds ());
+    }
 }
 
 //------------------------------------------------------------------------------

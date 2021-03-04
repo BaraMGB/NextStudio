@@ -20,15 +20,18 @@ class SplitterComponent : public juce::Component
 {
 public:
     SplitterComponent(EditViewState&);
-    void mouseEnter(const juce::MouseEvent &event);
-    void mouseExit(const juce::MouseEvent &event);
-    void mouseDown(const juce::MouseEvent &event);
-    void mouseDrag(const juce::MouseEvent &event);
-    void mouseUp(const juce::MouseEvent &event);
+    void mouseMove(const juce::MouseEvent &event) override;
+    void mouseEnter(const juce::MouseEvent &event)override;
+    void mouseExit(const juce::MouseEvent &event)override;
+    void mouseDown(const juce::MouseEvent &event)override;
+    void mouseDrag(const juce::MouseEvent &event)override;
+    void mouseUp(const juce::MouseEvent &event)override;
+    void  paint(juce::Graphics& g);
 private:
     EditViewState & m_editViewState;
     int m_pianorollHeightAtMousedown;
     int m_mousedownPosYatMousdown;
+    bool m_isHovering{false};
 };
 
 class LowerRangeComponent : public juce::Component
