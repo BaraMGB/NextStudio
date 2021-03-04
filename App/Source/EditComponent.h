@@ -60,7 +60,7 @@ public:
     te::AudioTrack::Ptr addAudioTrack(bool isMidi, juce::Colour);
 
     void turnoffAllTrackOverlays();
-
+    EditViewState& getEditViewState() {return m_editViewState;}
 private:
 
     void valueTreeChanged() override {}

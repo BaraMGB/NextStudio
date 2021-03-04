@@ -62,6 +62,10 @@ void MainComponent::resized()
     
     m_header.get()->setBounds(header);
     area.removeFromTop(10);
+    auto lowerRange = area.removeFromBottom( m_songEditor->getEditViewState().m_isPianoRollVisible
+                       ? m_songEditor->getEditViewState().m_pianorollHeight
+                       : 250);
+    
     m_tree.setBounds (area.removeFromLeft (sidebarWidth));
     area.removeFromLeft (10);
     m_songEditor->setBounds (area);
@@ -69,6 +73,7 @@ void MainComponent::resized()
                       , juce::Colour(0xff1b1b1b));
     m_tree.setColour (juce::DirectoryContentsDisplayComponent::highlightColourId
                       , juce::Colour(0xff4b4b4b));
+    m_songEditor->lowerRange().setBounds(lowerRange);
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress &key)
@@ -188,6 +193,7 @@ void MainComponent::setupEdit(juce::File editFile)
     te::EditFileOperations (*m_edit).save (true, true, false);
     m_songEditor = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
     addAndMakeVisible (*m_songEditor);
+    addAndMakeVisible(m_songEditor->lowerRange());
     m_header = std::make_unique<HeaderComponent>(*m_edit, m_state);
     m_header->addChangeListener (this);
     addAndMakeVisible(*m_header);

@@ -142,6 +142,13 @@ void LowerRangeComponent::resized()
         if (m_pianoRollEditor.isVisible ())
         {
             m_pianoRollEditor.setBounds (area);
+            if (m_timelineOverlay)
+            {
+                auto timeline = getLocalBounds ().removeFromTop (m_editViewState.m_timeLineHeight + 10);
+                timeline.removeFromLeft (50);
+                timeline.removeFromTop (10);
+                m_timelineOverlay->setBounds (timeline);
+            }
         }
 }
 
@@ -177,10 +184,7 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Track::Ptr track)
                 (m_editViewState, track);
 
         addAndMakeVisible (*m_timelineOverlay);
-        auto timeline = getLocalBounds ().removeFromTop (m_editViewState.m_timeLineHeight + 10);
-        timeline.removeFromLeft (50);
-        timeline.removeFromTop (10);
-        m_timelineOverlay->setBounds (timeline);
+        
         resized ();
     }
 }

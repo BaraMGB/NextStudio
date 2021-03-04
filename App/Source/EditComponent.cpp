@@ -1,9 +1,5 @@
 #include "EditComponent.h"
 
-//==============================================================================
-//static tracktion_engine::SelectableClass::ClassInstance<SelectableClipClass
-//                                , tracktion_engine::Clip> selectableClipClass;
-//==============================================================================
 ToolBarComponent::ToolBarComponent()
 {
 }
@@ -24,25 +20,22 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
 {
     m_edit.state.addListener (this);
     m_editViewState.m_selectionManager.addChangeListener (this);
-
-
+    
     m_scrollbar_v.setAlwaysOnTop (true);
     m_scrollbar_v.setAutoHide (false);
     m_scrollbar_v.addListener (this);
-
+    
     m_scrollbar_h.setAlwaysOnTop (true);
     m_scrollbar_h.setAutoHide (false);
     m_scrollbar_h.addListener (this);
-
+    
     m_timeLine.setAlwaysOnTop (true);
-    m_lowerRange.setAlwaysOnTop(true);
     m_playhead.setAlwaysOnTop (true);
     m_toolBar.setAlwaysOnTop (true);
 
     addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_scrollbar_v);
     addAndMakeVisible (m_scrollbar_h);
-    addAndMakeVisible (m_lowerRange);
     addAndMakeVisible (m_playhead);
     addAndMakeVisible (m_toolBar);
 
@@ -78,8 +71,8 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
     juce::Path topLeft;
 
     topLeft.addArc (area.getX(),area.getY(), size, size
-              , juce::MathConstants<float>::pi * 1.5
-              , juce::MathConstants<float>::pi * 2
+              , juce::MathConstants<float>::pi * 1.5f
+              , juce::MathConstants<float>::pi * 2.0f
               , true);
     topLeft.lineTo (area.getX(),area.getY());
     topLeft.closeSubPath ();
@@ -87,8 +80,8 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
 
     juce::Path topRight;
     topRight.addArc (area.getWidth () - size, area.getY (), size, size
-              , juce::MathConstants<float>::pi * 2
-              , juce::MathConstants<float>::pi * 2.5
+              , juce::MathConstants<float>::pi * 2.0f
+              , juce::MathConstants<float>::pi * 2.5f
               , true);
     topRight.lineTo (area.getWidth (), area.getY ());
     topRight.closeSubPath ();
@@ -100,8 +93,8 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
               , m_songeditorRect.getHeight ()
                 + m_editViewState.m_timeLineHeight - size
               , size, size
-              , juce::MathConstants<float>::pi * 2.5
-              , juce::MathConstants<float>::pi * 3
+              , juce::MathConstants<float>::pi * 2.5f
+              , juce::MathConstants<float>::pi * 3.0f
               , true);
     bottomRight.lineTo (
                 area.getWidth ()
@@ -114,8 +107,8 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
                 area.getX ()
               , m_songeditorRect.getHeight () + m_editViewState.m_timeLineHeight - size
               , size, size
-              , juce::MathConstants<float>::pi * 3
-              , juce::MathConstants<float>::pi * 3.5
+              , juce::MathConstants<float>::pi * 3.0f
+              , juce::MathConstants<float>::pi * 3.5f
               , true);
     bottomLeft.lineTo (
                 area.getX ()
@@ -128,22 +121,14 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
 void EditComponent::resized()
 {
     jassert (m_headers.size() == m_trackComps.size());
-
     const int timelineHeight = 50;
     const int trackGap = 0;
     const int headerWidth = m_editViewState.m_showHeaders
                           ? m_editViewState.m_headerWidth
                           : 0;
     const int footerWidth = m_editViewState.m_showFooters ? 150 : 0;
-    const int lowerRange = m_editViewState.m_isPianoRollVisible
-                                ? m_editViewState.m_pianorollHeight
-                                : 250;
-
     auto area = getLocalBounds();
-    auto pluginRackRect = area.removeFromBottom(lowerRange);
-
     int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
-
     int trackHeight = 30;
     int trackHeights = 0;
     for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
@@ -165,13 +150,12 @@ void EditComponent::resized()
     for (auto t : m_trackComps)
         t->resized();
 
-    m_lowerRange.setBounds (pluginRackRect);
     m_playhead.setBounds (
                 area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
     m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));
     m_toolBar.setBounds (0, 0, headerWidth, timelineHeight);
 
-    auto songeditorHeight = getHeight() - timelineHeight - lowerRange;
+    auto songeditorHeight = getHeight() - timelineHeight;// - lowerRange;
     area.removeFromTop (timelineHeight);
     m_songeditorRect = area.toFloat ();
     m_scrollbar_v.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
@@ -184,7 +168,6 @@ void EditComponent::resized()
                 {0.0, m_editViewState.getEndScrollBeat ()});
     m_scrollbar_h.setCurrentRange ({m_editViewState.m_viewX1
                                   , m_editViewState.m_viewX2});
-
 }
 
 void EditComponent::mouseDown(const juce::MouseEvent &event)
@@ -463,7 +446,7 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset (m_updateZoom))
     {
         resized();
-        repaint ();
+        getParentComponent()->resized();
         m_timeLine.repaint ();
     }
 }
@@ -471,7 +454,6 @@ void EditComponent::handleAsyncUpdate()
 
 void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-
     repaint();
 }
 
