@@ -12,6 +12,15 @@
 #include "SideBarBrowser.h"
 #include "MainComponent.h"
 
+void FavFileList::setFileList(const juce::Array<juce::File> &fileList)
+{
+    m_entries.deselectAllRows ();
+    m_fileList = fileList;
+    m_entries.updateContent ();
+
+}
+
+//------------------------------------------------------------------------------
 PlacesList::PlacesList()
 {
 
@@ -71,6 +80,12 @@ void PlacesList::selectRow(int row)
     m_entries.selectRow(row);
 }
 
+void PlacesList::deselectAllRows()
+{
+    m_entries.deselectAllRows ();
+    m_entries.updateContent ();
+}
+
 int PlacesList::getNumRows()
 {
     return m_entrysList.size();
@@ -106,10 +121,13 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
     addAndMakeVisible(m_tree);
     addAndMakeVisible (m_panel);
     addAndMakeVisible(m_resizerBar);
+    addAndMakeVisible (m_favList);
     m_stretchableManager.setItemLayout (0, 120, -0.9, -0.3);
     m_stretchableManager.setItemLayout (1, 1, 1, 1);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     m_panel.getPlacesList ().addChangeListener(this);
+    m_panel.getFavoritesList ().addChangeListener (this);
+
     m_thread.startThread(1);
     juce::File file = juce::File::createFileWithoutCheckingPath (
                 m_applicationState.getProperty (IDs::WorkDIR));
@@ -122,7 +140,17 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
                 {"Documents", juce::File::getSpecialLocation(
                                     juce::File::commonDocumentsDirectory)});
     m_panel.getPlacesList ().selectRow(0);
+    juce::Array<juce::File> red;
+    for (juce::DirectoryEntry entry : juce::RangedDirectoryIterator (file, false))
+    {
+        if (entry.isDirectory ())
+            std::cout << "DIRECTORY" << std::endl;
+        red.add (entry.getFile ());
+    }
+
+    m_panel.getFavoritesList ().addEntry ({"red",juce::Colours::red, red});
     m_dirConList.setDirectory(file, true, true);
+
     m_tree.addListener(this);
 
     m_tree.setColour (juce::TreeView::ColourIds::backgroundColourId
@@ -148,18 +176,37 @@ void SideBarBrowser::paintOverChildren(juce::Graphics &g)
 void SideBarBrowser::resized()
 {
     auto area = getLocalBounds();
-    Component* comps[] = {
-        &m_panel
-      , &m_resizerBar
-      , &m_tree};
-    m_stretchableManager.layOutComponents (
-                comps
-              , 3
-              , area.getX()
-              , area.getY()
-              , area.getWidth()
-              , area.getHeight()
-              , false, true);
+
+    if (m_tree.isVisible ())
+    {
+        Component* comps[] = {
+            &m_panel
+          , &m_resizerBar
+          , &m_tree};
+        m_stretchableManager.layOutComponents (
+                    comps
+                  , 3
+                  , area.getX()
+                  , area.getY()
+                  , area.getWidth()
+                  , area.getHeight()
+                  , false, true);
+    }
+    else
+    {
+        Component* comps[] = {
+            &m_panel
+          , &m_resizerBar
+          , &m_favList};
+        m_stretchableManager.layOutComponents (
+                    comps
+                  , 3
+                  , area.getX()
+                  , area.getY()
+                  , area.getWidth()
+                  , area.getHeight()
+                  , false, true);
+    }
 }
 
 void SideBarBrowser::mouseDrag(const juce::MouseEvent& /*event*/)
@@ -201,6 +248,18 @@ void SideBarBrowser::changeListenerCallback (juce::ChangeBroadcaster *source)
 {
     if (source == &m_panel.getPlacesList ())
     {
-         m_dirConList.setDirectory(m_panel.getPlacesList ().getCurrentDir(), true, true);
+        m_favList.setVisible (false);
+        m_panel.getFavoritesList ().deselectAllRows ();
+        m_dirConList.setDirectory(m_panel.getPlacesList ().getCurrentDir(), true, true);
+        m_tree.setVisible (true);
+    }
+    if (source == &m_panel.getFavoritesList ())
+    {
+        m_panel.getPlacesList ().deselectAllRows();
+        m_favList.setFileList (m_panel.getFavoritesList ().getSelectedFavorites ());
+        m_tree.setVisible (false);
+        m_favList.setVisible (true);
+        resized ();
     }
 }
+
