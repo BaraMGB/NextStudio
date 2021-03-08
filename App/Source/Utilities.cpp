@@ -14,7 +14,6 @@ juce::String Helpers::getStringOrDefault(const juce::String &stringToTest, const
 juce::File Helpers::findRecentEdit(const juce::File &dir)
 {
     auto files = dir.findChildFiles (juce::File::findFiles, false, "*.tracktionedit");
-
     if (files.size() > 0)
     {
         files.sort();

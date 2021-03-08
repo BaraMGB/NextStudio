@@ -14,7 +14,7 @@ public:
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
-
+    
     te::Clip::Ptr getClip () { return m_clip; }
 
     bool isCtrlDown () const { return m_isCtrlDown; }

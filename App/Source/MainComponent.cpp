@@ -25,7 +25,7 @@ MainComponent::MainComponent()
     m_stretchableManager.setItemLayout (0, -0.1, -0.9, -0.3);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
-    setSize(1600, 900);
+    setSize(1600, 1000);
 }
 
 MainComponent::~MainComponent()
@@ -69,7 +69,6 @@ void MainComponent::resized()
     auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
                        ? m_editComponent->getEditViewState().m_pianorollHeight
                        : 250);
-
     Component* comps[] = {
         m_sideBarBrowser.get ()
       , &m_resizerBar
@@ -82,14 +81,6 @@ void MainComponent::resized()
               , area.getWidth()
               , area.getHeight()
               , false, true);
-
-//    if (m_sideBarBrowser)
-//    {
-//        m_sideBarBrowser->setBounds (area.removeFromLeft (sidebarWidth));
-//    }
-//    area.removeFromLeft (10);
-//    m_editComponent->setBounds (area);
-
     m_editComponent->lowerRange().setBounds(lowerRange);
 }
 

@@ -12,6 +12,91 @@
 #include "SideBarBrowser.h"
 #include "MainComponent.h"
 
+PlacesList::PlacesList()
+{
+
+    addAndMakeVisible(m_entries);
+    m_entries.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xff171717));
+    m_entries.setModel(this);
+    m_entries.setRowHeight(20);
+}
+
+void PlacesList::resized()
+{
+    m_entries.setBounds(getLocalBounds());
+}
+
+void PlacesList::paintListBoxItem(
+        int rowNum
+      , juce::Graphics& g
+      , int width
+      , int height
+      , bool rowIsSelected)
+{
+    if (rowNum < 0|| rowNum >= getNumRows())
+    {
+        return;
+    }
+
+    juce::Rectangle<int> bounds (0,0, width, height);
+    auto textColour = juce::Colours::white;
+    g.setColour(juce::Colour(0xff171717));
+    g.fillRect(bounds);
+
+
+    if (rowIsSelected)
+    {
+        g.setColour(juce::Colour(0xff555555));
+        g.fillRect(bounds);
+    }
+    bounds.reduce(10,0);
+    g.setFont(juce::Font( m_fontTypeface->getName(), 12, juce::Font::FontStyleFlags::plain ));
+    g.setColour(textColour);
+    g.drawFittedText(m_entrysList[rowNum].name, bounds, juce::Justification::left, 1);
+}
+
+void PlacesList::addEntry(const PlacesListEntry& entry)
+{
+    m_entries.deselectAllRows();
+    m_entrysList.add(entry);
+    m_entries.updateContent();
+}
+
+void PlacesList::selectRow(int row)
+{
+    if (row < 0|| row >= getNumRows())
+    {
+        return;
+    }
+    m_entries.selectRow(row);
+}
+
+int PlacesList::getNumRows()
+{
+    return m_entrysList.size();
+}
+
+void PlacesList::selectedRowsChanged(int row)
+{
+    if (row <0)
+    {
+        return;
+    }
+
+}
+
+void PlacesList::listBoxItemClicked(int row, const juce::MouseEvent &)
+{
+    sendChangeMessage();
+}
+
+juce::File PlacesList::getCurrentDir()
+{
+    return m_entrysList[m_entries.getLastRowSelected()].directory;
+}
+
+
+
 //==============================================================================
 
 SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &edit)
@@ -19,6 +104,12 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
     , m_edit(edit)
 {
     addAndMakeVisible(m_tree);
+    addAndMakeVisible (m_panel);
+    addAndMakeVisible(m_resizerBar);
+    m_stretchableManager.setItemLayout (0, 120, -0.9, -0.3);
+    m_stretchableManager.setItemLayout (1, 1, 1, 1);
+    m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
+    m_panel.getPlacesList ().addChangeListener(this);
     m_thread.startThread(1);
     juce::File file = juce::File::createFileWithoutCheckingPath (
                 m_applicationState.getProperty (IDs::WorkDIR));
@@ -26,17 +117,18 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
     {
         file = juce::File::getCurrentWorkingDirectory ();
     }
+    m_panel.getPlacesList ().addEntry({"Home",file});
+    m_panel.getPlacesList ().addEntry(
+                {"Documents", juce::File::getSpecialLocation(
+                                    juce::File::commonDocumentsDirectory)});
+    m_panel.getPlacesList ().selectRow(0);
     m_dirConList.setDirectory(file, true, true);
     m_tree.addListener(this);
 
     m_tree.setColour (juce::TreeView::ColourIds::backgroundColourId
-                      , juce::Colour(0xff1b1b1b));
+                      , juce::Colour(0xff171717));
     m_tree.setColour (juce::DirectoryContentsDisplayComponent::highlightColourId
-                      , juce::Colour(0xff4b4b4b));
-}
-
-void SideBarBrowser::paint(juce::Graphics &g)
-{
+                      , juce::Colour(0xff555555));
 }
 
 void SideBarBrowser::paintOverChildren(juce::Graphics &g)
@@ -55,7 +147,19 @@ void SideBarBrowser::paintOverChildren(juce::Graphics &g)
 
 void SideBarBrowser::resized()
 {
-    m_tree.setBounds (getLocalBounds ());
+    auto area = getLocalBounds();
+    Component* comps[] = {
+        &m_panel
+      , &m_resizerBar
+      , &m_tree};
+    m_stretchableManager.layOutComponents (
+                comps
+              , 3
+              , area.getX()
+              , area.getY()
+              , area.getWidth()
+              , area.getHeight()
+              , false, true);
 }
 
 void SideBarBrowser::mouseDrag(const juce::MouseEvent& /*event*/)
@@ -90,5 +194,13 @@ void SideBarBrowser::fileDoubleClicked(const juce::File &)
     else if (audioFile.isValid ())
     {
         EngineHelpers::loadAudioFileAsClip (m_edit, selectedFile);
+    }
+}
+
+void SideBarBrowser::changeListenerCallback (juce::ChangeBroadcaster *source)
+{
+    if (source == &m_panel.getPlacesList ())
+    {
+         m_dirConList.setDirectory(m_panel.getPlacesList ().getCurrentDir(), true, true);
     }
 }

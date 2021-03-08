@@ -381,6 +381,30 @@ public:
             }
         }
     }
+    void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
+    {
+        g.fillAll (juce::Colours::red);
+    }
+    void drawPopupMenuItem(
+            juce::Graphics &g
+          , const juce::Rectangle<int> &area
+          , bool isSeparator
+          , bool isActive
+          , bool isHighlighted
+          , bool isTicked
+          , bool hasSubMenu
+          , const juce::String &text
+          , const juce::String &shortcutKeyText
+          , const juce::Drawable *icon
+          , const juce::Colour *textColour) override
+    {
+        g.setFont(juce::Font( juce::Typeface::createSystemTypefaceFor(
+                                  BinaryData::IBMPlexSansRegular_ttf
+                                , BinaryData::IBMPlexSansRegular_ttfSize)->getName(), 12, juce::Font::FontStyleFlags::plain ));
+        g.setColour(*textColour);
+        g.drawFittedText(text, area, juce::Justification::left, 1);
+    }
+
     juce::Colour m_BGcolour = juce::Colour(14, 14, 14);
     juce::Colour m_DarkArea = juce::Colour(10, 10, 10);
     juce::Colour m_BrightButton1 = juce::Colour(90, 90, 90);
