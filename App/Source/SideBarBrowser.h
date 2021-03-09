@@ -115,7 +115,7 @@ public:
       , int height
       , bool rowIsSelected) override;
     int getNumRows() override;
-    void addEntry(Entry entry);
+    void addEntry(Entry *entry);
     void selectRow(int row);
     void deselectAllRows();
     void listBoxItemClicked(int row, const juce::MouseEvent &) override;

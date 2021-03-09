@@ -73,10 +73,10 @@ void LeftListBox::paintListBoxItem(
     g.drawFittedText(m_entrysL[rowNum]->name, bounds, juce::Justification::left, 1);
 }
 
-void LeftListBox::addEntry(Entry entry)
+void LeftListBox::addEntry(Entry* entry)
 {
     m_entries.deselectAllRows();
-    m_entrysL.add(&entry);
+    m_entrysL.add(entry);
     m_entries.updateContent();
 }
 
@@ -135,8 +135,8 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
     {
         file = juce::File::getCurrentWorkingDirectory ();
     }
-    m_panel.getPlacesList ().addEntry(PlacesListEntry("Home",file));
-    m_panel.getPlacesList ().addEntry(PlacesListEntry
+    m_panel.getPlacesList ().addEntry(new PlacesListEntry("Home",file));
+    m_panel.getPlacesList ().addEntry(new PlacesListEntry
                 ("Documents", juce::File::getSpecialLocation(
                                     juce::File::commonDocumentsDirectory)));
     m_panel.getPlacesList ().selectRow(0);
@@ -146,7 +146,7 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
         red.add (entry.getFile ());
     }
 
-    m_panel.getFavoritesList ().addEntry (FavoritesEntry(
+    m_panel.getFavoritesList ().addEntry (new FavoritesEntry(
                                               "red",juce::Colours::red, red));
     m_dirConList.setDirectory(file, true, true);
 
