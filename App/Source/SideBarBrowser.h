@@ -6,12 +6,12 @@
 
 namespace te = tracktion_engine;
 
-class FavFileList : public juce::Component
+class FileListView : public juce::Component
                   , public juce::ListBoxModel
 
 {
 public:
-    FavFileList()
+    FileListView()
     {
         addAndMakeVisible (m_entries);
         m_entries.setModel (this);
@@ -75,38 +75,36 @@ struct Entry
 {
     Entry(juce::String n) : name (n){}
     virtual ~Entry(){}
-    //virtual juce::String getType()=0;
     juce::String name;
 
 };
-struct FavoritesEntry : public Entry
+struct FileListEntry : public Entry
 {
-    FavoritesEntry(juce::String name, juce::Colour c, juce::Array<juce::File> filelist)
-        : Entry (name)
+    FileListEntry(juce::String entryname, juce::Colour c, juce::Array<juce::File> filelist)
+        : Entry (entryname)
         , colour (c)
         , m_fileList(filelist)
     {}
-    //juce::String getType() override {return "Favorites";}
     juce::Colour colour;
     juce::Array<juce::File> m_fileList;
 };
-struct PlacesListEntry : public Entry
+struct DirectoryEntry : public Entry
 {
-    PlacesListEntry(juce::String n, juce::File d)
+    DirectoryEntry(juce::String n, juce::File d)
         : Entry (n)
         , directory (d)
     {}
-    //juce::String getType() override {return "Places";}
     juce::File directory;
 };
 
-class LeftListBox : public juce::Component
+//------------------------------------------------------------------------------
+class CategoryChooserListBox : public juce::Component
                  , public juce::ListBoxModel
                  , public juce::ChangeBroadcaster
 {
 public:
 
-    LeftListBox();
+    CategoryChooserListBox();
     void resized() override;
     void paintListBoxItem(
         int rowNum
@@ -126,12 +124,12 @@ private:
         juce::Typeface::createSystemTypefaceFor(
                     BinaryData::IBMPlexSansRegular_ttf
                   , BinaryData::IBMPlexSansRegular_ttfSize)};
-    juce::ListBox m_entries;
-    juce::OwnedArray<Entry> m_entrysL;
-    //juce::Array<std::unique_ptr<Entry>> m_entrysList;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LeftListBox)
+    juce::ListBox m_listBoxView;
+    juce::OwnedArray<Entry> m_entriesList;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CategoryChooserListBox)
 };
 
+//------------------------------------------------------------------------------
 class BrowserPanel : public juce::Component
 {
 public:
@@ -171,25 +169,25 @@ public:
         m_favList.setBounds (area);
     }
 
-    LeftListBox& getPlacesList()
+    CategoryChooserListBox& getPlacesList()
     {
         return m_placesList;
     }
-    LeftListBox& getFavoritesList()
+    CategoryChooserListBox& getFavoritesList()
     {
         return m_favList;
     }
 private:
-    LeftListBox                        m_placesList;
+    CategoryChooserListBox             m_placesList;
     juce::Label                        m_placesLabel{"Places", "Places"};
-    LeftListBox                        m_favList;
+    CategoryChooserListBox             m_favList;
     juce::Label                        m_favLabel{"Favorites", "Favorites"};
     juce::Typeface::Ptr m_fontTypeface{
         juce::Typeface::createSystemTypefaceFor(
                     BinaryData::IBMPlexSansRegular_ttf
                   , BinaryData::IBMPlexSansRegular_ttfSize)};
 };
-
+//------------------------------------------------------------------------------
 class SideBarBrowser : public juce::Component
                      , public juce::FileBrowserListener
                      , public juce::ChangeListener
@@ -215,7 +213,7 @@ private:
     juce::TimeSliceThread             m_thread    {"file browser thread"};
     juce::DirectoryContentsList       m_dirConList{nullptr, m_thread};
     juce::FileTreeComponent           m_tree      {m_dirConList};
-    FavFileList                       m_favList;
+    FileListView                       m_favList;
     BrowserPanel                      m_panel;
     juce::StretchableLayoutManager    m_stretchableManager;
     juce::StretchableLayoutResizerBar m_resizerBar
