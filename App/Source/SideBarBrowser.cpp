@@ -1,4 +1,4 @@
-/*
+﻿/*
   ==============================================================================
 
     SideBarBrowser.cpp
@@ -21,7 +21,7 @@ void FavFileList::setFileList(const juce::Array<juce::File> &fileList)
 }
 
 //------------------------------------------------------------------------------
-PlacesList::PlacesList()
+LeftListBox::LeftListBox()
 {
 
     addAndMakeVisible(m_entries);
@@ -30,12 +30,12 @@ PlacesList::PlacesList()
     m_entries.setRowHeight(20);
 }
 
-void PlacesList::resized()
+void LeftListBox::resized()
 {
     m_entries.setBounds(getLocalBounds());
 }
 
-void PlacesList::paintListBoxItem(
+void LeftListBox::paintListBoxItem(
         int rowNum
       , juce::Graphics& g
       , int width
@@ -58,20 +58,29 @@ void PlacesList::paintListBoxItem(
         g.setColour(juce::Colour(0xff555555));
         g.fillRect(bounds);
     }
+
+    if (auto entry = dynamic_cast<FavoritesEntry*>(m_entrysL[rowNum]))
+    {
+        g.setColour (entry->colour);
+        auto favColourBox = bounds.removeFromLeft (20);
+        favColourBox.reduce (8,8);
+        g.fillRect (favColourBox);
+    }
+
     bounds.reduce(10,0);
     g.setFont(juce::Font( m_fontTypeface->getName(), 12, juce::Font::FontStyleFlags::plain ));
     g.setColour(textColour);
-    g.drawFittedText(m_entrysList[rowNum].name, bounds, juce::Justification::left, 1);
+    g.drawFittedText(m_entrysL[rowNum]->name, bounds, juce::Justification::left, 1);
 }
 
-void PlacesList::addEntry(const PlacesListEntry& entry)
+void LeftListBox::addEntry(Entry entry)
 {
     m_entries.deselectAllRows();
-    m_entrysList.add(entry);
+    m_entrysL.add(&entry);
     m_entries.updateContent();
 }
 
-void PlacesList::selectRow(int row)
+void LeftListBox::selectRow(int row)
 {
     if (row < 0|| row >= getNumRows())
     {
@@ -80,34 +89,25 @@ void PlacesList::selectRow(int row)
     m_entries.selectRow(row);
 }
 
-void PlacesList::deselectAllRows()
+void LeftListBox::deselectAllRows()
 {
     m_entries.deselectAllRows ();
     m_entries.updateContent ();
 }
 
-int PlacesList::getNumRows()
+int LeftListBox::getNumRows()
 {
-    return m_entrysList.size();
+    return m_entrysL.size();
 }
 
-void PlacesList::selectedRowsChanged(int row)
-{
-    if (row <0)
-    {
-        return;
-    }
-
-}
-
-void PlacesList::listBoxItemClicked(int row, const juce::MouseEvent &)
+void LeftListBox::listBoxItemClicked(int row, const juce::MouseEvent &)
 {
     sendChangeMessage();
 }
 
-juce::File PlacesList::getCurrentDir()
+Entry* LeftListBox::getSelectedEntry()
 {
-    return m_entrysList[m_entries.getLastRowSelected()].directory;
+    return m_entrysL[m_entries.getLastRowSelected()];
 }
 
 
@@ -118,9 +118,9 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
     : m_applicationState(state)
     , m_edit(edit)
 {
-    addAndMakeVisible(m_tree);
+    addAndMakeVisible (m_tree);
     addAndMakeVisible (m_panel);
-    addAndMakeVisible(m_resizerBar);
+    addAndMakeVisible (m_resizerBar);
     addAndMakeVisible (m_favList);
     m_stretchableManager.setItemLayout (0, 120, -0.9, -0.3);
     m_stretchableManager.setItemLayout (1, 1, 1, 1);
@@ -135,20 +135,19 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
     {
         file = juce::File::getCurrentWorkingDirectory ();
     }
-    m_panel.getPlacesList ().addEntry({"Home",file});
-    m_panel.getPlacesList ().addEntry(
-                {"Documents", juce::File::getSpecialLocation(
-                                    juce::File::commonDocumentsDirectory)});
+    m_panel.getPlacesList ().addEntry(PlacesListEntry("Home",file));
+    m_panel.getPlacesList ().addEntry(PlacesListEntry
+                ("Documents", juce::File::getSpecialLocation(
+                                    juce::File::commonDocumentsDirectory)));
     m_panel.getPlacesList ().selectRow(0);
     juce::Array<juce::File> red;
     for (juce::DirectoryEntry entry : juce::RangedDirectoryIterator (file, false))
     {
-        if (entry.isDirectory ())
-            std::cout << "DIRECTORY" << std::endl;
         red.add (entry.getFile ());
     }
 
-    m_panel.getFavoritesList ().addEntry ({"red",juce::Colours::red, red});
+    m_panel.getFavoritesList ().addEntry (FavoritesEntry(
+                                              "red",juce::Colours::red, red));
     m_dirConList.setDirectory(file, true, true);
 
     m_tree.addListener(this);
@@ -250,13 +249,21 @@ void SideBarBrowser::changeListenerCallback (juce::ChangeBroadcaster *source)
     {
         m_favList.setVisible (false);
         m_panel.getFavoritesList ().deselectAllRows ();
-        m_dirConList.setDirectory(m_panel.getPlacesList ().getCurrentDir(), true, true);
+        if (auto entry  = dynamic_cast<PlacesListEntry*>(
+                    m_panel.getPlacesList ().getSelectedEntry ()))
+        {
+            m_dirConList.setDirectory(entry->directory, true, true);
+        }
         m_tree.setVisible (true);
     }
     if (source == &m_panel.getFavoritesList ())
     {
         m_panel.getPlacesList ().deselectAllRows();
-        m_favList.setFileList (m_panel.getFavoritesList ().getSelectedFavorites ());
+        if (auto entry  = dynamic_cast<FavoritesEntry*>(
+                    m_panel.getFavoritesList ().getSelectedEntry ()))
+        {
+            m_favList.setFileList (entry->m_fileList);
+        }
         m_tree.setVisible (false);
         m_favList.setVisible (true);
         resized ();
