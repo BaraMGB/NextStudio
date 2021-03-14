@@ -10,6 +10,7 @@ namespace te = tracktion_engine;
 
 class PianoRollComponent : public juce::Component
                          , public juce::MidiKeyboardStateListener
+                         , public te::ValueTreeAllEventListener
 {
 public:
     PianoRollComponent (EditViewState&);
@@ -25,6 +26,11 @@ public:
     void setPianoRollClip(std::unique_ptr<PianoRollContentComponent>);
     void clearPianoRollClip();
 
+    void valueTreePropertyChanged(
+            juce::ValueTree &treeWhosePropertyHasChanged
+          , const juce::Identifier &property);
+    void valueTreeChanged(){}
+
 
 private:
     EditViewState& m_editViewState;
@@ -34,5 +40,7 @@ private:
     std::unique_ptr<PianoRollContentComponent> m_pianoRollContentComponent{nullptr};
 
     PlayheadComponent m_playhead;
+
+
 
 };

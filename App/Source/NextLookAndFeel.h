@@ -182,7 +182,7 @@ public:
 //                            ImageButton & button
 //                            ) override
 //    {
-//        drawButtonBackground (g, button,Colour(),button.isOver (), button.isDown ());
+//        drawButtonBackground (g, button,Colour(),button.m_isOver (), button.isDown ());
 //        //LookAndFeel_V4::drawImageButton ( g, image,imageX, imageY, imageW, imageH,overlayColour, imageOpacity, button);
 //    }
 

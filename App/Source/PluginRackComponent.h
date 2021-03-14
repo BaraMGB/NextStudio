@@ -7,6 +7,7 @@
 #include "PluginComponent.h"
 #include "PluginMenu.h"
 #include "PianoRollEditorComponent.h"
+#include "SideBarBrowser.h"
 
 namespace te = tracktion_engine;
 
@@ -15,7 +16,8 @@ class AddButton;
 class PluginRackComponent : public juce::Component,
                              private FlaggedAsyncUpdater,
                              private te::ValueTreeAllEventListener,
-                             public juce::Button::Listener
+                             public juce::Button::Listener,
+                            public juce::DragAndDropTarget
 {
 public:
     PluginRackComponent (EditViewState&, te::Track::Ptr);
@@ -42,6 +44,25 @@ public:
     }
 
     void buildPlugins();
+    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
+    void itemDragMove(const SourceDetails& dragSourceDetails) override
+    {
+        if (dragSourceDetails.description == "PluginComp"
+            || dragSourceDetails.description == "PluginListEntry")
+        {
+            m_isOver = true;
+        }
+        repaint();
+    }
+
+    void itemDragExit (const SourceDetails& dragSourceDetails) override
+    {
+        m_isOver = false;
+        repaint();
+    }
+
+    void itemDropped(const SourceDetails& dragSourceDetails) override;
+
 private:
     void valueTreeChanged() override {}
     void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
@@ -59,6 +80,7 @@ private:
     juce::OwnedArray<AddButton> addButtons;
 
     bool updatePlugins = false;
+    bool m_isOver = false;
 };
 
 class AddButton : public juce::TextButton
@@ -69,6 +91,26 @@ public:
     inline bool isInterestedInDragSource (const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override
     {
+        if (dragSourceDetails.description == "PluginListEntry")
+        {
+            if (auto listbox = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get ()))
+            {
+                if (auto lbm = dynamic_cast<PluginListBoxComponent*> (listbox->getModel ()))
+                {
+                    auto pluginRackComp = dynamic_cast<PluginRackComponent*>(getParentComponent());
+                    if (pluginRackComp)
+                    {
+                        pluginRackComp->getTrack()->pluginList.insertPlugin(
+                                    lbm->getSelectedPlugin ()
+                                    , pluginRackComp->getAddButtons ().indexOf (this)
+                                    , nullptr);
+                    }
+                }
+
+            }
+        }
+
+
         if (dragSourceDetails.description == "PluginComp")
         {
             auto pluginRackComp = dynamic_cast<PluginRackComponent*>(getParentComponent());
@@ -96,7 +138,8 @@ public:
     
     void itemDragMove(const SourceDetails& dragSourceDetails) override
     {
-        if (dragSourceDetails.description == "PluginComp")
+        if (dragSourceDetails.description == "PluginComp"
+            || dragSourceDetails.description == "PluginListEntry")
         {
             isOver = true;
         }
@@ -135,9 +178,7 @@ public:
     }
 
     te::Plugin::Ptr plugin {nullptr};
-
 private:
-
     bool isOver {false};
 };
 

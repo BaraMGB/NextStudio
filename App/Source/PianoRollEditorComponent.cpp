@@ -9,7 +9,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
     m_keybordstate.addListener (this);
-
+    evs.m_edit.state.addListener (this);
     m_keyboard.setBlackNoteWidthProportion (0.5);
     m_keyboard.setBlackNoteLengthProportion (0.6);
     m_keyboard.setScrollButtonsVisible (false);
@@ -22,6 +22,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
 
 PianoRollComponent::~PianoRollComponent()
 {
+    m_editViewState.m_edit.state.removeListener (this);
     m_keybordstate.removeListener (this);
 }
 
@@ -72,10 +73,15 @@ void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
 {
     if (m_pianoRollContentComponent)
     {
-  /*      auto mc = m_pianoRollContentComponent->getDefaulMidiClip ();
-        auto midichannel = mc->getMidiChannel ();
-        mc->getAudioTrack ()->playGuideNote
-                          (midiNoteNumber,midichannel, 127.0 * v, false, true);*/
+        if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().at (0))
+        {
+            auto midichannel = mc->getMidiChannel ();
+            mc->getAudioTrack ()->playGuideNote
+                              (midiNoteNumber,midichannel, 127.0 * v, false, true);
+
+
+        }
+
     }
 
 }
@@ -87,7 +93,11 @@ void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
 {
     if (m_pianoRollContentComponent)
     {
-        
+        if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().at (0))
+        {
+            auto midichannel = mc->getMidiChannel ();
+            mc->getAudioTrack ()->turnOffGuideNotes (midichannel);
+        }
     }
 }
 
@@ -104,4 +114,17 @@ void PianoRollComponent::clearPianoRollClip()
 {
     m_pianoRollContentComponent.reset (nullptr);
     resized ();
+}
+
+void PianoRollComponent::valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property)
+{
+    if (treeWhosePropertyHasChanged.hasType (IDs::EDITVIEWSTATE))
+    {
+        if (property == IDs::pianoY1
+        ||  property == IDs::pianoY2
+        ||  property == IDs::pianorollNoteWidth)
+        {
+            resized ();
+        }
+    }
 }

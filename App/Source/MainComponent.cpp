@@ -264,7 +264,7 @@ void MainComponent::loadApplicationSettings()
         if (result == true)
         {
             workingDir = juce::File::getSpecialLocation (
-                        juce::File::userHomeDirectory).getChildFile ("NextStudioProjects");
+                        juce::File::userHomeDirectory).getChildFile ("NextStudio");
             workingDir.createDirectory ();
         }
         else
@@ -279,13 +279,26 @@ void MainComponent::loadApplicationSettings()
             else
             {
                 workingDir = juce::File::getSpecialLocation (
-                            juce::File::userHomeDirectory).getChildFile ("NextStudioProjects");
+                            juce::File::userHomeDirectory).getChildFile ("NextStudio");
                 workingDir.createDirectory ();
             }
         }
-        workingDir.setAsCurrentWorkingDirectory ();
+        juce::File presetDir = workingDir.getChildFile ("Presets");
+        juce::File projectsDir = workingDir.getChildFile ("Projects");
+        juce::File samplesDir = workingDir.getChildFile ("Samples");
+        juce::File clipsDir = workingDir.getChildFile ("Clips");
+        presetDir.createDirectory ();
+        projectsDir.createDirectory ();
+        samplesDir.createDirectory ();
+        clipsDir.createDirectory ();
+
         juce::ValueTree settings(IDs::AppSettings);
         settings.setProperty (IDs::WorkDIR, workingDir.getFullPathName (), nullptr);
+        settings.setProperty (IDs::PresetDIR, presetDir.getFullPathName (), nullptr);
+        settings.setProperty (IDs::ProjectsDIR, projectsDir.getFullPathName (), nullptr);
+        settings.setProperty (IDs::SamplesDIR, samplesDir.getFullPathName (), nullptr);
+        settings.setProperty (IDs::ClipsDIR, clipsDir.getFullPathName (), nullptr);
+
         m_applicationState = settings.createCopy ();
         settingsFile.create ();
         auto xmlToWrite = m_applicationState.createXml ();

@@ -350,6 +350,24 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
     auto targetTrack = getTrackComp (dropPos.getY ());
     if (targetTrack)
     {
+
+        if (auto lb = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
+        {
+            if (auto fileListComp =
+                    dynamic_cast<FileListBoxComponent*>(lb->getModel ()))
+            {
+                tracktion_engine::AudioFile audioFile(
+                            m_editViewState.m_edit.engine
+                          , fileListComp->getFileList ()[lb->getLastRowSelected ()]);
+                if (audioFile.isValid ())
+                {
+                    targetTrack->inserWave(
+                                fileListComp->getFileList ()[lb->getLastRowSelected ()]
+                              , dropTime);
+                }
+            }
+        }
+
         if (auto clipComp = dynamic_cast<ClipComponent*>
                 (dragSourceDetails.sourceComponent.get()))
         {
@@ -377,7 +395,6 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
 
 void EditComponent::itemDragExit(const juce::DragAndDropTarget::SourceDetails &)
 {
-   std::cout << "itemDraggedExit" << std::endl;
 }
 
 
@@ -476,6 +493,8 @@ tracktion_engine::AudioTrack::Ptr EditComponent::addAudioTrack(
          track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
          track->setColour(trackColour);
          m_editViewState.m_selectionManager.selectOnly(track);
+         m_lowerRange.showPluginRack(track);
+         markAndUpdate (m_updateTracks);
          return track;
     }
     return nullptr;

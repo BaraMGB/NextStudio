@@ -10,9 +10,10 @@
 
 namespace te = tracktion_engine;
 
-class TrackHeaderComponent : public juce::Component,
-                             private te::ValueTreeAllEventListener,
-                             public juce::ChangeBroadcaster
+class TrackHeaderComponent : public juce::Component
+                           , private te::ValueTreeAllEventListener
+                           , public juce::ChangeBroadcaster
+                           , public juce::DragAndDropTarget
 {
 public:
     TrackHeaderComponent (EditViewState&, te::Track::Ptr);
@@ -31,6 +32,11 @@ public:
     te::Track::Ptr getTrack() const;
 
     void updateMidiInputs();
+    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
+    void itemDragMove(const SourceDetails& dragSourceDetails) override;
+    void itemDragExit(const SourceDetails& dragSourceDetails) override;
+    void itemDropped(const SourceDetails& dragSourceDetails) override;
+
 private:
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
@@ -53,7 +59,8 @@ private:
     std::unique_ptr<LevelMeterComponent> levelMeterComp;
 
     bool m_isResizing {false},
-         m_isAboutToResizing {false};
+         m_isAboutToResizing {false},
+         m_isOver {false};
 };
 
 //==============================================================================

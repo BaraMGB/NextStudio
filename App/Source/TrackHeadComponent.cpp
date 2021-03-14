@@ -8,8 +8,6 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
                                          &m_muteButton,
                                          &m_soloButton
                                          });
-
-
     m_trackName.setText(m_track->getName(), juce::NotificationType::dontSendNotification);
     m_trackName.setJustificationType (juce::Justification::topLeft);
     m_trackName.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -59,8 +57,6 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
     valueTreePropertyChanged (m_track->state, te::IDs::mute);
     valueTreePropertyChanged (m_track->state, te::IDs::solo);
     valueTreePropertyChanged (inputsState, te::IDs::targetIndex);
-
-
 }
 
 TrackHeaderComponent::~TrackHeaderComponent()
@@ -141,12 +137,8 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::AudioTrack *at)
                           ticked);
             }
         }
-
     }
-
-
     const int result = m.show();
-
     if (result == 2000)
     {
         deleteTrackFromEdit();
@@ -267,7 +259,7 @@ void TrackHeaderComponent::updateMidiInputs()
 
 void TrackHeaderComponent::paint (juce::Graphics& g)
 {
-    auto cornerSize = 10.0f;
+    auto cornerSize = 5.0f;
     juce::Rectangle<float> area = getLocalBounds().toFloat();
     area.reduce(1, 1);
     auto buttonColour = juce::Colour(0xff4b4b4b);
@@ -300,6 +292,11 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                                 : BinaryData::waveform_svg
                              , "#ffffff"
                              , {20, 5, 20, 20});
+    if (m_isOver)
+    {
+        g.setColour(juce::Colours::white);
+        g.drawRect (getLocalBounds ());
+    }
 }
 
 void TrackHeaderComponent::resized()
@@ -447,4 +444,46 @@ juce::Colour TrackHeaderComponent::getTrackColour()
 {
     return m_track->getColour ();
 }
+bool TrackHeaderComponent::isInterestedInDragSource(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    if (dragSourceDetails.description == "PluginListEntry")
+    {
+        return true;
+    }
+    return false;
+}
 
+void TrackHeaderComponent::itemDragMove(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    m_isOver = true;
+    repaint ();
+}
+void TrackHeaderComponent::itemDragExit(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    m_isOver = false;
+    repaint();
+}
+void TrackHeaderComponent::itemDropped(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    if(dragSourceDetails.description == "PluginListEntry")
+    {
+        if (auto listbox = dynamic_cast<juce::ListBox*>(
+                dragSourceDetails.sourceComponent.get ()))
+        {
+            if (auto lbm =
+                    dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
+            {
+                getTrack()->pluginList.insertPlugin(
+                    lbm->getSelectedPlugin()
+                  , getTrack()->pluginList.size() - 2 //set before LevelMeter and Volume
+                  , nullptr);
+            }
+        }
+    }
+    m_isOver = false;
+    repaint();
+}

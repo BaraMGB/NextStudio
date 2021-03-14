@@ -30,7 +30,6 @@ void PluginRackComponent::buttonClicked(juce::Button* button)
                                                     &editViewState.m_selectionManager);
                 }
                 editViewState.m_selectionManager.selectOnly (track);
-
         }
     }
 }
@@ -57,6 +56,11 @@ void PluginRackComponent::paint (juce::Graphics& g)
 {
     g.setColour (juce::Colour(0x181818));
     g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
+    if (m_isOver)
+    {
+        g.setColour(juce::Colours::white);
+        g.drawRect(getLocalBounds(), 2);
+    }
 }
 
 void PluginRackComponent::mouseDown (const juce::MouseEvent&)
@@ -120,4 +124,32 @@ void PluginRackComponent::buildPlugins()
         }
     }
     resized();
+}
+bool PluginRackComponent::isInterestedInDragSource(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    if (dragSourceDetails.description == "PluginListEntry")
+    return true;
+}
+
+void PluginRackComponent::itemDropped(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    if(dragSourceDetails.description == "PluginListEntry")
+    {
+        if (auto listbox = dynamic_cast<juce::ListBox*>(
+            dragSourceDetails.sourceComponent.get ()))
+        {
+            if (auto lbm =
+                dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
+            {
+                getTrack()->pluginList.insertPlugin(
+                    lbm->getSelectedPlugin()
+                    , getTrack()->pluginList.size() - 2 //set before LevelMeter and Volume
+                    , nullptr);
+            }
+        }
+    }
+    m_isOver = false;
+    repaint();
 }

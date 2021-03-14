@@ -418,8 +418,6 @@ tracktion_engine::MidiClip *PianoRollContentComponent::getMidiclipByPos(int y)
     return nullptr;
 }
 
-
-
 void PianoRollContentComponent::setKeyWidth(float noteHeight)
 {
     m_keyWidth = noteHeight;

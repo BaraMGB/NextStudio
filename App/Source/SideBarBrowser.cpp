@@ -12,7 +12,7 @@
 #include "SideBarBrowser.h"
 #include "MainComponent.h"
 
-void FileListView::setFileList(const juce::Array<juce::File> &fileList)
+void FileListBoxComponent::setFileList(const juce::Array<juce::File> &fileList)
 {
     m_entries.deselectAllRows ();
     m_fileList = fileList;
@@ -117,16 +117,22 @@ Entry* CategoryChooserListBox::getSelectedEntry()
 SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &edit)
     : m_applicationState(state)
     , m_edit(edit)
+    , m_fileList ()
+    , m_pluginList (m_edit)
 {
     addAndMakeVisible (m_tree);
     addAndMakeVisible (m_panel);
     addAndMakeVisible (m_resizerBar);
-    addAndMakeVisible (m_favList);
+    addAndMakeVisible (m_fileList);
+    addAndMakeVisible (m_pluginList);
+    m_tree.setVisible (false);
+    m_fileList.setVisible (false);
     m_stretchableManager.setItemLayout (0, 120, -0.9, -0.3);
     m_stretchableManager.setItemLayout (1, 1, 1, 1);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     m_panel.getPlacesList ().addChangeListener(this);
     m_panel.getFavoritesList ().addChangeListener (this);
+    m_panel.getCategoriesList ().addChangeListener (this);
 
     m_thread.startThread(1);
     juce::File file = juce::File::createFileWithoutCheckingPath (
@@ -135,17 +141,29 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
     {
         file = juce::File::getCurrentWorkingDirectory ();
     }
-    m_panel.getPlacesList ().addEntry(new DirectoryEntry("Home",file));
-    m_panel.getPlacesList ().addEntry(new DirectoryEntry
-                ("Documents", juce::File::getSpecialLocation(
-                                    juce::File::commonDocumentsDirectory)));
-    m_panel.getPlacesList ().selectRow(0);
+    m_panel.getPlacesList ().addEntry(
+                new DirectoryEntry("Home"
+              , juce::File::getSpecialLocation (juce::File::userHomeDirectory)));
+    m_panel.getPlacesList ().addEntry(
+                new DirectoryEntry("Projects"
+              , juce::File::createFileWithoutCheckingPath (
+                             m_applicationState.getProperty (IDs::ProjectsDIR))));
+    m_panel.getPlacesList ().addEntry (
+                new DirectoryEntry("Samples"
+              , juce::File::createFileWithoutCheckingPath (
+                                       m_applicationState.getProperty (IDs::ProjectsDIR))));
+    m_panel.getCategoriesList ().addEntry (new PluginListEntry("Plugins"));
+    m_panel.getCategoriesList ().selectRow(0);
     juce::Array<juce::File> red;
     for (juce::DirectoryEntry entry : juce::RangedDirectoryIterator (file, false))
     {
         red.add (entry.getFile ());
     }
-
+    auto kick = juce::File::createFileWithoutCheckingPath ("/Users/baramgb/NextStudioProjects/Samples/Drum Hits Megapack/Sample Tools by Cr2 - Deep House Drum Hits/Kicks/01 DH Kick C.wav");
+    if (kick.existsAsFile ())
+    {
+        red.add (kick);
+    }
     m_panel.getFavoritesList ().addEntry (new FileListEntry(
                                               "red",juce::Colours::red, red));
     m_dirConList.setDirectory(file, true, true);
@@ -156,6 +174,7 @@ SideBarBrowser::SideBarBrowser(juce::ValueTree &state, tracktion_engine::Edit &e
                       , juce::Colour(0xff171717));
     m_tree.setColour (juce::DirectoryContentsDisplayComponent::highlightColourId
                       , juce::Colour(0xff555555));
+    m_tree.setItemHeight (20);
 }
 
 void SideBarBrowser::paintOverChildren(juce::Graphics &g)
@@ -191,12 +210,12 @@ void SideBarBrowser::resized()
                   , area.getHeight()
                   , false, true);
     }
-    else
+    else if (m_fileList.isVisible ())
     {
         Component* comps[] = {
             &m_panel
           , &m_resizerBar
-          , &m_favList};
+          , &m_fileList};
         m_stretchableManager.layOutComponents (
                     comps
                   , 3
@@ -206,6 +225,21 @@ void SideBarBrowser::resized()
                   , area.getHeight()
                   , false, true);
     }
+    else if (m_pluginList.isVisible ())
+    {
+        Component* comps[] = {
+            &m_panel
+          , &m_resizerBar
+          , &m_pluginList};
+        m_stretchableManager.layOutComponents (
+                    comps
+                  , 3
+                  , area.getX()
+                  , area.getY()
+                  , area.getWidth()
+                  , area.getHeight()
+                  , false, true);
+      }
 }
 
 void SideBarBrowser::mouseDrag(const juce::MouseEvent& /*event*/)
@@ -245,28 +279,48 @@ void SideBarBrowser::fileDoubleClicked(const juce::File &)
 
 void SideBarBrowser::changeListenerCallback (juce::ChangeBroadcaster *source)
 {
-    if (source == &m_panel.getPlacesList ())
-    {
-        m_favList.setVisible (false);
-        m_panel.getFavoritesList ().deselectAllRows ();
-        if (auto entry  = dynamic_cast<DirectoryEntry*>(
-                    m_panel.getPlacesList ().getSelectedEntry ()))
-        {
-            m_dirConList.setDirectory(entry->directory, true, true);
-        }
-        m_tree.setVisible (true);
-    }
-    if (source == &m_panel.getFavoritesList ())
-    {
-        m_panel.getPlacesList ().deselectAllRows();
-        if (auto entry  = dynamic_cast<FileListEntry*>(
-                    m_panel.getFavoritesList ().getSelectedEntry ()))
-        {
-            m_favList.setFileList (entry->m_fileList);
-        }
+    std::cout << "changeListenerCallBAck" << std::endl;
+        m_fileList.setVisible (false);
+        m_pluginList.setVisible (false);
         m_tree.setVisible (false);
-        m_favList.setVisible (true);
+
+        if (auto chooser = dynamic_cast<CategoryChooserListBox*>(source))
+        {
+            if (auto entry = dynamic_cast<FileListEntry*>(chooser->getSelectedEntry ()))
+            {
+                std::cout << "FileList clicked " << entry->m_fileList.getFirst ().getFileName ()<< std::endl;
+                m_fileList.setVisible (true);
+                m_fileList.setFileList (entry->m_fileList);
+            }
+            else if(auto entry = dynamic_cast<DirectoryEntry*>(chooser->getSelectedEntry ()))
+            {
+                std::cout << "Directory clicked" << std::endl;
+                m_dirConList.setDirectory (entry->directory, true, true);
+                m_tree.setVisible (true);
+            }
+            else if (auto entry = dynamic_cast<PluginListEntry*>(chooser->getSelectedEntry ()))
+            {
+                std::cout << "PluginList clicked" << std::endl;
+                m_pluginList.setVisible (true);
+            }
+            if (chooser != &m_panel.getCategoriesList ())
+            {
+                std::cout << "not category" << std::endl;
+                m_panel.getCategoriesList ().deselectAllRows ();
+            }
+            if (chooser != &m_panel.getFavoritesList ())
+            {
+                std::cout << "not Fav" << std::endl;
+                m_panel.getFavoritesList ().deselectAllRows ();
+            }
+            if (chooser != &m_panel.getPlacesList ())
+            {
+                std::cout << "not places" << std::endl;
+                m_panel.getPlacesList ().deselectAllRows ();
+            }
+        }
+
         resized ();
-    }
+
 }
 

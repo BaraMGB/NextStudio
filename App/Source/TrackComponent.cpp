@@ -88,6 +88,11 @@ void TrackComponent::paint (juce::Graphics& g)
             }
         }
     }
+    if (isOver)
+    {
+        g.setColour(juce::Colours::white);
+        g.drawRect (getLocalBounds ());
+    }
 }
 
 void TrackComponent::mouseDown (const juce::MouseEvent&event)
@@ -413,8 +418,39 @@ te::Track::Ptr TrackComponent::getTrack() const
     return m_track;
 }
 
-
-
+void TrackComponent::itemDragMove(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    isOver = true;
+    repaint();
+}
+void TrackComponent::itemDragExit(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    isOver = false;
+    repaint ();
+}
+void TrackComponent::itemDropped(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+{
+    if(dragSourceDetails.description == "PluginListEntry")
+    {
+        if (auto listbox = dynamic_cast<juce::ListBox*>(
+            dragSourceDetails.sourceComponent.get ()))
+        {
+            if (auto lbm =
+                dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
+            {
+                getTrack()->pluginList.insertPlugin(
+                    lbm->getSelectedPlugin()
+                    , getTrack()->pluginList.size() - 2 //set before LevelMeter and Volume
+                    , nullptr);
+            }
+        }
+    }
+    isOver = false;
+    repaint();
+}
 
 //==============================================================================
 

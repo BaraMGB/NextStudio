@@ -466,7 +466,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     {
         GUIHelpers::saveEdit (m_edit
                               , juce::File::createFileWithoutCheckingPath (
-                                  m_appSettings.getProperty (IDs::WorkDIR)));
+                                  m_appSettings.getProperty (IDs::ProjectsDIR)));
     }
     if (button == &m_loadButton)
     {
@@ -476,8 +476,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
 
         juce::FileBrowserComponent browser (juce::FileBrowserComponent::openMode
                                             + juce::FileBrowserComponent::canSelectFiles
-                                            , juce::File::getSpecialLocation (
-                                                juce::File::userHomeDirectory)
+                                            , juce::File(m_appSettings.getProperty (IDs::ProjectsDIR))
                                             , &wildcardFilter
                                             , nullptr);
 

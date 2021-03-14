@@ -15,7 +15,8 @@ namespace te = tracktion_engine;
 class TrackComponent : public juce::Component,
                        private te::ValueTreeAllEventListener,
                        private FlaggedAsyncUpdater,
-                       private juce::ChangeListener
+                       private juce::ChangeListener,
+                       public juce::DragAndDropTarget
 {
 public:
     TrackComponent (EditViewState&, te::Track::Ptr);
@@ -32,6 +33,22 @@ public:
     void inserWave(juce::File f, double time);
     juce::OwnedArray<ClipComponent>& getClipComponents();
     TrackOverlayComponent& getTrackOverlay();
+
+    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override
+    {
+        if (dragSourceDetails.description == "PluginListEntry")
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    void itemDragMove(const SourceDetails& dragSourceDetails) override;
+    void itemDragExit(const SourceDetails& dragSourceDetails) override;
+    void itemDropped(const SourceDetails& dragSourceDetails) override;
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -60,5 +77,6 @@ private:
 
     bool updateClips = false,
          updatePositions = false,
-         updateRecordClips = false;
+         updateRecordClips = false,
+         isOver = false;
 };

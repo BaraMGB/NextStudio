@@ -8,7 +8,6 @@ namespace te = tracktion_engine;
 
 class AudioClipComponent : public ClipComponent
 
-
 {
 public:
     AudioClipComponent (EditViewState&, te::Clip::Ptr);

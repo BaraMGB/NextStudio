@@ -58,6 +58,10 @@ namespace IDs
     DECLARE_ID (lastNoteLenght)
     DECLARE_ID (AppSettings)
     DECLARE_ID (WorkDIR)
+    DECLARE_ID (PresetDIR)
+    DECLARE_ID (ClipsDIR)
+    DECLARE_ID (SamplesDIR)
+    DECLARE_ID (ProjectsDIR)
     #undef DECLARE_ID
 }
 
