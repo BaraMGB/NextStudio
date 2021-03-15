@@ -35,6 +35,7 @@ public:
 
     bool handleUnsavedEdit();
     void setupEdit (juce::File = {});
+    void saveSettings();
 
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source);
@@ -63,7 +64,7 @@ private:
     juce::StretchableLayoutManager m_stretchableManager;
     juce::StretchableLayoutResizerBar m_resizerBar
                                             {&m_stretchableManager, 1, true};
-
+    bool m_settingsLoaded {false};
 
 // todo : into settings
     const int c_headerHeight = 100;

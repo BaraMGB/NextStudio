@@ -59,8 +59,24 @@ public:
            #if JUCE_IOS || JUCE_ANDROID
             setFullScreen (true);
            #else
+            auto settingsFile = juce::File::getSpecialLocation (
+                        juce::File::userApplicationDataDirectory)
+                        .getChildFile ("NextStudio/AppSettings.xml");
+            if (settingsFile.existsAsFile ())
+            {
+                juce::XmlDocument xmlDoc (settingsFile);
+                auto xmlToRead = xmlDoc.getDocumentElement ();
+                auto applicationState = juce::ValueTree::fromXml (*xmlToRead);
+                setBounds (applicationState.getProperty (IDs::WindowX)
+                           , applicationState.getProperty (IDs::WindowY)
+                           , applicationState.getProperty (IDs::WindowWidth)
+                           , applicationState.getProperty (IDs::WindowHeight));
+            }
+            else
+            {
+                centreWithSize (1000, 1600);
+            }
             setResizable (true, true);
-            centreWithSize (getWidth(), getHeight());
            #endif
             setVisible (true);
         }

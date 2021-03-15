@@ -25,11 +25,13 @@ MainComponent::MainComponent()
     m_stretchableManager.setItemLayout (0, -0.1, -0.9, -0.3);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
-    setSize(1600, 1000);
+    //setSize(1600, 1000);
 }
 
 MainComponent::~MainComponent()
 {
+    saveSettings();
+
     m_header->removeAllChangeListeners ();
     m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
@@ -82,6 +84,12 @@ void MainComponent::resized()
               , area.getHeight()
               , false, true);
     m_editComponent->lowerRange().setBounds(lowerRange);
+    //Settings
+    auto bounds = getScreenBounds ();
+    m_applicationState.setProperty (IDs::WindowX, bounds.getX(), nullptr);
+    m_applicationState.setProperty (IDs::WindowY, bounds.getY(), nullptr);
+    m_applicationState.setProperty (IDs::WindowWidth, bounds.getWidth(), nullptr);
+    m_applicationState.setProperty (IDs::WindowHeight, bounds.getHeight (), nullptr);
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress &key)
@@ -182,6 +190,19 @@ void MainComponent::setupEdit(juce::File editFile)
     m_header->addChangeListener (this);
     addAndMakeVisible(*m_header);
     resized ();
+}
+
+void MainComponent::saveSettings()
+{
+    auto bounds = getScreenBounds ();
+    std::cout << bounds.getX() << " " << bounds.getY() << " " << bounds.getWidth() << " " << bounds.getHeight() << " " << std::endl;
+
+    auto settingsFile = juce::File::getSpecialLocation (
+                juce::File::userApplicationDataDirectory)
+                .getChildFile ("NextStudio/AppSettings.xml");
+    settingsFile.create ();
+    auto xmlToWrite = m_applicationState.createXml ();
+    xmlToWrite->writeTo (settingsFile);
 }
 
 bool MainComponent::handleUnsavedEdit()
@@ -299,6 +320,11 @@ void MainComponent::loadApplicationSettings()
         settings.setProperty (IDs::SamplesDIR, samplesDir.getFullPathName (), nullptr);
         settings.setProperty (IDs::ClipsDIR, clipsDir.getFullPathName (), nullptr);
 
+        auto bounds = getLocalBounds ();
+        settings.setProperty (IDs::WindowX, bounds.getX(), nullptr);
+        settings.setProperty (IDs::WindowY, bounds.getY(), nullptr);
+        settings.setProperty (IDs::WindowWidth, bounds.getWidth(), nullptr);
+        settings.setProperty (IDs::WindowHeight, bounds.getHeight (), nullptr);
         m_applicationState = settings.createCopy ();
         settingsFile.create ();
         auto xmlToWrite = m_applicationState.createXml ();
@@ -309,5 +335,6 @@ void MainComponent::loadApplicationSettings()
         juce::XmlDocument xmlDoc (settingsFile);
         auto xmlToRead = xmlDoc.getDocumentElement ();
         m_applicationState = juce::ValueTree::fromXml (*xmlToRead);
+        m_settingsLoaded = true;
     }
 }
