@@ -56,16 +56,6 @@ namespace IDs
     DECLARE_ID (isPianoRollVisible)
     DECLARE_ID (timeLineHeight)
     DECLARE_ID (lastNoteLenght)
-    DECLARE_ID (AppSettings)
-    DECLARE_ID (WorkDIR)
-    DECLARE_ID (PresetDIR)
-    DECLARE_ID (ClipsDIR)
-    DECLARE_ID (SamplesDIR)
-    DECLARE_ID (ProjectsDIR)
-    DECLARE_ID (WindowX)
-    DECLARE_ID (WindowY)
-    DECLARE_ID (WindowWidth)
-    DECLARE_ID (WindowHeight)
     #undef DECLARE_ID
 }
 

@@ -12,6 +12,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "ApplicationViewState.h"
 #include "Utilities.h"
 #include "AudioMidiSettings.h"
 
@@ -73,7 +74,7 @@ class HeaderComponent    : public juce::Component
                          , public juce::ChangeBroadcaster
 {
 public:
-    HeaderComponent(te::Edit &, juce::ValueTree &appSettings);
+    HeaderComponent(te::Edit &, ApplicationViewState & applicationState);
     ~HeaderComponent();
 
     void resized() override;
@@ -95,7 +96,7 @@ private:
                        , m_clickButton;
 
     te::Edit& m_edit;
-    juce::ValueTree m_appSettings;
+    ApplicationViewState& m_applicationState;
     juce::String m_btn_col { "#dbdbdb" };
     juce::Colour m_mainColour{ juce::Colour(0xff57cdff) };
     PositionDisplayComponent m_display;

@@ -48,6 +48,7 @@ target_compile_definitions (${TargetName} PUBLIC
 #        JUCE_USE_WINRT_MIDI=1
         JUCE_PLUGINHOST_VST3=1
         JUCE_PLUGINHOST_LADSPA=1
+        JUCE_PLUGINHOST_AU=1
         JUCE_USE_FLAC=1
         JUCE_USE_MP3AUDIOFORMAT=1
         JUCE_USE_WINDOWS_MEDIA_FORMAT=1

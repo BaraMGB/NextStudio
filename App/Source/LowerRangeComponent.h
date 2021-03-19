@@ -48,6 +48,7 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
     void resized () override;
 
+    void removePluginRackwithTrack(te::Track::Ptr track);
     void showPluginRack(tracktion_engine::Track::Ptr);
     void showPianoRoll(te::Track::Ptr);
     void hideAll();
@@ -73,7 +74,6 @@ private:
 
     EditViewState& m_editViewState;
 
-    te::Clip::Ptr m_pointedClip{nullptr};
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
     PianoRollComponent m_pianoRollEditor;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};

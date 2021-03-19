@@ -4,3 +4,6 @@ build/
 .vscode/
 JuceLibraryCode/
 CMakeLists.txt.user
+.DS_Store
+.idea
+cmake-build-debug

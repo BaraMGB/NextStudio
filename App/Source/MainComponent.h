@@ -15,6 +15,7 @@
 #include "MenuBar.h"
 #include "SideBarBrowser.h"
 #include "EditViewState.h"
+#include "ApplicationViewState.h"
 #include "EditComponent.h"
 #include "Utilities.h"
 #include "PluginWindow.h"
@@ -26,7 +27,7 @@ class MainComponent   : public juce::Component
                       , public juce::ChangeListener
 {
 public:
-    MainComponent();
+    MainComponent(ApplicationViewState& state);
     ~MainComponent();
 
     void paint (juce::Graphics& g) override;
@@ -40,7 +41,6 @@ public:
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source);
     void createTracksAndAssignInputs();
-    void loadApplicationSettings();
     void openValidStartEdit();
     void setupSideBrowser();
 
@@ -59,7 +59,7 @@ private:
     tracktion_engine::SelectionManager      m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit> m_edit;
     std::unique_ptr<EditComponent>          m_editComponent;
-    juce::ValueTree                         m_applicationState;
+    ApplicationViewState &                  m_applicationState;
     std::unique_ptr<SideBarBrowser>         m_sideBarBrowser;
     juce::StretchableLayoutManager m_stretchableManager;
     juce::StretchableLayoutResizerBar m_resizerBar

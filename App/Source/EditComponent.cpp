@@ -442,7 +442,7 @@ void EditComponent::valueTreeChildRemoved (
     }
     if (te::TrackList::isTrack (c))
     {
-        m_lowerRange.hideAll ();
+        m_lowerRange.removePluginRackwithTrack (m_edit.getTrackList ().getTrackFor (c));
         markAndUpdate (m_updateTracks);
     }
 }

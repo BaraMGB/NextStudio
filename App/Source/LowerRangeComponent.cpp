@@ -172,7 +172,18 @@ void LowerRangeComponent::resized()
             }
         }
 }
-
+void LowerRangeComponent::removePluginRackwithTrack(te::Track::Ptr track)
+{
+    for (auto &prc : m_pluginRackComps)
+    {
+        if (prc->getTrack() == track)
+        {
+            prc->setVisible (false);
+            m_pluginRackComps.removeObject (prc);
+            m_pluginRackComps.getFirst ()->setVisible (true);
+        }
+    }
+}
 void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
 {
     m_pianoRollEditor.setVisible (false);

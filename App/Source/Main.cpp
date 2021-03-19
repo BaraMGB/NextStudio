@@ -9,6 +9,7 @@
 */
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "MainComponent.h"
 
 //==============================================================================
@@ -16,7 +17,7 @@ class NextStudioApplication  : public juce::JUCEApplication
 {
 public:
     //==============================================================================
-    NextStudioApplication() {}
+    NextStudioApplication(){}
 
     const juce::String getApplicationName() override       { return ProjectInfo::projectName; }
     const juce::String getApplicationVersion() override    { return ProjectInfo::versionString; }
@@ -25,7 +26,7 @@ public:
     //==============================================================================
     void initialise (const juce::String& /*commandLine*/) override
     {
-        mainWindow.reset (new MainWindow (getApplicationName()));
+        mainWindow.reset (new MainWindow (getApplicationName(), m_applicationState));
     }
 
     void shutdown() override
@@ -45,37 +46,26 @@ public:
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        MainWindow (juce::String name) : DocumentWindow (
+        MainWindow (juce::String name, ApplicationViewState& applicationSettings) : DocumentWindow (
                                           name
                                         , juce::Desktop::getInstance()
                                           .getDefaultLookAndFeel()
                                           .findColour (
                                               ResizableWindow::backgroundColourId)
                                         , DocumentWindow::allButtons)
+                                        , m_applicationState(applicationSettings)
         {
             setUsingNativeTitleBar (true);
-            setContentOwned (new MainComponent(), true);
+            setContentOwned (new MainComponent(m_applicationState), true);
 
            #if JUCE_IOS || JUCE_ANDROID
             setFullScreen (true);
            #else
-            auto settingsFile = juce::File::getSpecialLocation (
-                        juce::File::userApplicationDataDirectory)
-                        .getChildFile ("NextStudio/AppSettings.xml");
-            if (settingsFile.existsAsFile ())
-            {
-                juce::XmlDocument xmlDoc (settingsFile);
-                auto xmlToRead = xmlDoc.getDocumentElement ();
-                auto applicationState = juce::ValueTree::fromXml (*xmlToRead);
-                setBounds (applicationState.getProperty (IDs::WindowX)
-                           , applicationState.getProperty (IDs::WindowY)
-                           , applicationState.getProperty (IDs::WindowWidth)
-                           , applicationState.getProperty (IDs::WindowHeight));
-            }
-            else
-            {
-                centreWithSize (1000, 1600);
-            }
+
+            setBounds (m_applicationState.m_windowXpos
+                       , m_applicationState.m_windowYpos
+                       , m_applicationState.m_windowWidth
+                       , m_applicationState.m_windowHeight);
             setResizable (true, true);
            #endif
             setVisible (true);
@@ -97,11 +87,13 @@ public:
         }
 
     private:
+        ApplicationViewState& m_applicationState;
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
     };
 
 private:
     std::unique_ptr<MainWindow> mainWindow;
+    ApplicationViewState m_applicationState;
 };
 
 //==============================================================================

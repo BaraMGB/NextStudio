@@ -238,7 +238,7 @@ double PositionDisplayComponent::draggedNewTime(
 
 //==============================================================================
 
-HeaderComponent::HeaderComponent(te::Edit& edit, juce::ValueTree& appSettings)
+HeaderComponent::HeaderComponent(te::Edit& edit, ApplicationViewState & applicationState)
     : m_newButton ("New", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loadButton ("Load", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_saveButton ("Save", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -250,7 +250,7 @@ HeaderComponent::HeaderComponent(te::Edit& edit, juce::ValueTree& appSettings)
     , m_loopButton ("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_clickButton ("Metronome", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_edit(edit)
-    , m_appSettings (appSettings)
+    , m_applicationState (applicationState)
     , m_display (edit)
 {
     addAndMakeVisible(m_newButton);
@@ -466,7 +466,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     {
         GUIHelpers::saveEdit (m_edit
                               , juce::File::createFileWithoutCheckingPath (
-                                  m_appSettings.getProperty (IDs::ProjectsDIR)));
+                                  m_applicationState.m_projectsDir));
     }
     if (button == &m_loadButton)
     {
@@ -476,7 +476,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
 
         juce::FileBrowserComponent browser (juce::FileBrowserComponent::openMode
                                             + juce::FileBrowserComponent::canSelectFiles
-                                            , juce::File(m_appSettings.getProperty (IDs::ProjectsDIR))
+                                            , juce::File(m_applicationState.m_projectsDir)
                                             , &wildcardFilter
                                             , nullptr);
 

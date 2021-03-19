@@ -8,11 +8,11 @@
 
 #include "MainComponent.h"
 
-MainComponent::MainComponent()
+MainComponent::MainComponent(ApplicationViewState &state)
+    : m_applicationState(state)
 {
     setLookAndFeel(&m_nextLookAndFeel);
 
-    loadApplicationSettings();
     openValidStartEdit();
     setupSideBrowser();
 
@@ -22,7 +22,7 @@ MainComponent::MainComponent()
 
     m_editNameLabel.setJustificationType (juce::Justification::centred);
 
-    m_stretchableManager.setItemLayout (0, -0.1, -0.9, -0.3);
+    m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.15);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     //setSize(1600, 1000);
@@ -86,10 +86,10 @@ void MainComponent::resized()
     m_editComponent->lowerRange().setBounds(lowerRange);
     //Settings
     auto bounds = getScreenBounds ();
-    m_applicationState.setProperty (IDs::WindowX, bounds.getX(), nullptr);
-    m_applicationState.setProperty (IDs::WindowY, bounds.getY(), nullptr);
-    m_applicationState.setProperty (IDs::WindowWidth, bounds.getWidth(), nullptr);
-    m_applicationState.setProperty (IDs::WindowHeight, bounds.getHeight (), nullptr);
+//    m_applicationState.m_windowXpos = bounds.getX();
+//    m_applicationState.m_windowYpos = bounds.getY();
+//    m_applicationState.m_windowWidth = bounds.getWidth();
+//    m_applicationState.m_windowHeight = bounds.getHeight ();
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress &key)
@@ -194,15 +194,8 @@ void MainComponent::setupEdit(juce::File editFile)
 
 void MainComponent::saveSettings()
 {
-    auto bounds = getScreenBounds ();
-    std::cout << bounds.getX() << " " << bounds.getY() << " " << bounds.getWidth() << " " << bounds.getHeight() << " " << std::endl;
-
-    auto settingsFile = juce::File::getSpecialLocation (
-                juce::File::userApplicationDataDirectory)
-                .getChildFile ("NextStudio/AppSettings.xml");
-    settingsFile.create ();
-    auto xmlToWrite = m_applicationState.createXml ();
-    xmlToWrite->writeTo (settingsFile);
+    m_applicationState.setBounds(getScreenBounds ());
+    m_applicationState.saveState ();
 }
 
 bool MainComponent::handleUnsavedEdit()
@@ -220,7 +213,7 @@ bool MainComponent::handleUnsavedEdit()
         case 1 :
             GUIHelpers::saveEdit (*m_edit
                                   , juce::File().createFileWithoutCheckingPath (
-                                      m_applicationState.getProperty (IDs::WorkDIR)));
+                                      m_applicationState.m_workDir));
             return true;
             break;
         case 2 :
@@ -266,75 +259,75 @@ void MainComponent::createTracksAndAssignInputs()
 
 }
 
-void MainComponent::loadApplicationSettings()
-{
-    auto settingsFile = juce::File::getSpecialLocation (
-                juce::File::userApplicationDataDirectory)
-                .getChildFile ("NextStudio/AppSettings.xml");
-    if (!settingsFile.existsAsFile ())
-    {
-        auto result =  juce::AlertWindow::showOkCancelBox (
-                    juce::AlertWindow::AlertIconType::QuestionIcon
-                    , "Working Directory"
-                    , "It seems, this is your first time you started Next Studio. "
-                      "A working directory can be created automaticly."
-                      " You can choose a directory, if you want"
-                    , "okay"
-                    , "choose directory");
-        juce::File workingDir;
-        if (result == true)
-        {
-            workingDir = juce::File::getSpecialLocation (
-                        juce::File::userHomeDirectory).getChildFile ("NextStudio");
-            workingDir.createDirectory ();
-        }
-        else
-        {
-            juce::FileChooser fc ("Working Directory"
-                                  , juce::File::getSpecialLocation (juce::File::userHomeDirectory)
-                                  , "");
-            if (fc.browseForDirectory ())
-            {
-                workingDir = fc.getResult ();
-            }
-            else
-            {
-                workingDir = juce::File::getSpecialLocation (
-                            juce::File::userHomeDirectory).getChildFile ("NextStudio");
-                workingDir.createDirectory ();
-            }
-        }
-        juce::File presetDir = workingDir.getChildFile ("Presets");
-        juce::File projectsDir = workingDir.getChildFile ("Projects");
-        juce::File samplesDir = workingDir.getChildFile ("Samples");
-        juce::File clipsDir = workingDir.getChildFile ("Clips");
-        presetDir.createDirectory ();
-        projectsDir.createDirectory ();
-        samplesDir.createDirectory ();
-        clipsDir.createDirectory ();
+//void MainComponent::loadApplicationSettings()
+//{
+//    auto settingsFile = juce::File::getSpecialLocation (
+//                juce::File::userApplicationDataDirectory)
+//                .getChildFile ("NextStudio/AppSettings.xml");
+//    if (!settingsFile.existsAsFile ())
+//    {
+//        auto result =  juce::AlertWindow::showOkCancelBox (
+//                    juce::AlertWindow::AlertIconType::QuestionIcon
+//                    , "Working Directory"
+//                    , "It seems, this is your first time you started Next Studio. "
+//                      "A working directory can be created automaticly."
+//                      " You can choose a directory, if you want"
+//                    , "okay"
+//                    , "choose directory");
+//        juce::File workingDir;
+//        if (result == true)
+//        {
+//            workingDir = juce::File::getSpecialLocation (
+//                        juce::File::userHomeDirectory).getChildFile ("NextStudio");
+//            workingDir.createDirectory ();
+//        }
+//        else
+//        {
+//            juce::FileChooser fc ("Working Directory"
+//                                  , juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+//                                  , "");
+//            if (fc.browseForDirectory ())
+//            {
+//                workingDir = fc.getResult ();
+//            }
+//            else
+//            {
+//                workingDir = juce::File::getSpecialLocation (
+//                            juce::File::userHomeDirectory).getChildFile ("NextStudio");
+//                workingDir.createDirectory ();
+//            }
+//        }
+//        juce::File presetDir = workingDir.getChildFile ("Presets");
+//        juce::File projectsDir = workingDir.getChildFile ("Projects");
+//        juce::File samplesDir = workingDir.getChildFile ("Samples");
+//        juce::File clipsDir = workingDir.getChildFile ("Clips");
+//        presetDir.createDirectory ();
+//        projectsDir.createDirectory ();
+//        samplesDir.createDirectory ();
+//        clipsDir.createDirectory ();
 
-        juce::ValueTree settings(IDs::AppSettings);
-        settings.setProperty (IDs::WorkDIR, workingDir.getFullPathName (), nullptr);
-        settings.setProperty (IDs::PresetDIR, presetDir.getFullPathName (), nullptr);
-        settings.setProperty (IDs::ProjectsDIR, projectsDir.getFullPathName (), nullptr);
-        settings.setProperty (IDs::SamplesDIR, samplesDir.getFullPathName (), nullptr);
-        settings.setProperty (IDs::ClipsDIR, clipsDir.getFullPathName (), nullptr);
+//        juce::ValueTree settings(IDs::AppSettings);
+//        settings.setProperty (IDs::WorkDIR, workingDir.getFullPathName (), nullptr);
+//        settings.setProperty (IDs::PresetDIR, presetDir.getFullPathName (), nullptr);
+//        settings.setProperty (IDs::ProjectsDIR, projectsDir.getFullPathName (), nullptr);
+//        settings.setProperty (IDs::SamplesDIR, samplesDir.getFullPathName (), nullptr);
+//        settings.setProperty (IDs::ClipsDIR, clipsDir.getFullPathName (), nullptr);
 
-        auto bounds = getLocalBounds ();
-        settings.setProperty (IDs::WindowX, bounds.getX(), nullptr);
-        settings.setProperty (IDs::WindowY, bounds.getY(), nullptr);
-        settings.setProperty (IDs::WindowWidth, bounds.getWidth(), nullptr);
-        settings.setProperty (IDs::WindowHeight, bounds.getHeight (), nullptr);
-        m_applicationState = settings.createCopy ();
-        settingsFile.create ();
-        auto xmlToWrite = m_applicationState.createXml ();
-        xmlToWrite->writeTo (settingsFile);
-    }
-    else
-    {
-        juce::XmlDocument xmlDoc (settingsFile);
-        auto xmlToRead = xmlDoc.getDocumentElement ();
-        m_applicationState = juce::ValueTree::fromXml (*xmlToRead);
-        m_settingsLoaded = true;
-    }
-}
+//        auto bounds = getLocalBounds ();
+//        settings.setProperty (IDs::WindowX, bounds.getX(), nullptr);
+//        settings.setProperty (IDs::WindowY, bounds.getY(), nullptr);
+//        settings.setProperty (IDs::WindowWidth, bounds.getWidth(), nullptr);
+//        settings.setProperty (IDs::WindowHeight, bounds.getHeight (), nullptr);
+//        m_applicationState = settings.createCopy ();
+//        settingsFile.create ();
+//        auto xmlToWrite = m_applicationState.createXml ();
+//        xmlToWrite->writeTo (settingsFile);
+//    }
+//    else
+//    {
+//        juce::XmlDocument xmlDoc (settingsFile);
+//        auto xmlToRead = xmlDoc.getDocumentElement ();
+//        m_applicationState = juce::ValueTree::fromXml (*xmlToRead);
+//        m_settingsLoaded = true;
+//    }
+//}
