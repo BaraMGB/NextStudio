@@ -14,6 +14,7 @@ namespace IDs
     DECLARE_ID (ClipsDIR)
     DECLARE_ID (SamplesDIR)
     DECLARE_ID (ProjectsDIR)
+    DECLARE_ID (FavoriteTypes)
     DECLARE_ID (Favorites)
     DECLARE_ID (Path)
     DECLARE_ID (red)
@@ -105,13 +106,16 @@ public:
                                 juce::File::userHomeDirectory)
                             .getChildFile ("NextStudio/Projects").getFullPathName ());
 
-        auto favorites = m_applicationStateValueTree.getOrCreateChildWithName (IDs::Favorites, nullptr);
+        auto favorites = m_applicationStateValueTree
+                .getOrCreateChildWithName (IDs::Favorites, nullptr);
+
         for (auto i=0; i < favorites.getNumChildren (); i++)
         {
             m_favorites.add (new Favorite(favorites.getChild (i).getType (), favorites.getChild (i)));
         }
 
-        auto windowState = m_applicationStateValueTree.getOrCreateChildWithName (IDs::WindowState, nullptr);
+        auto windowState = m_applicationStateValueTree
+                .getOrCreateChildWithName (IDs::WindowState, nullptr);
 
         m_windowXpos.referTo (windowState, IDs::WindowX, nullptr, 50);
         m_windowYpos.referTo (windowState, IDs::WindowY, nullptr, 50);
@@ -119,6 +123,29 @@ public:
         m_windowHeight.referTo (windowState, IDs::WindowHeight, nullptr, 1000);
 
 
+    }
+
+    void addFavoriteType(juce::Identifier type)
+    {
+        auto favoriteTypes = m_applicationStateValueTree
+                .getOrCreateChildWithName (IDs::FavoriteTypes, nullptr);
+        favoriteTypes.getOrCreateChildWithName (type, nullptr);
+    }
+
+    juce::Array<juce::Identifier> getFavoriteTypeList()
+    {
+        juce::Array<juce::Identifier> result;
+        auto favoriteTypes = m_applicationStateValueTree
+                .getChildWithName (IDs::FavoriteTypes);
+        if (!favoriteTypes.isValid ())
+        {
+            return result;
+        }
+        for (auto i = 0; i < favoriteTypes.getNumChildren (); i++)
+        {
+            result.add (favoriteTypes.getChild (i).getType ());
+        }
+        return result;
     }
 
     void setBounds(juce::Rectangle<int> bounds)
@@ -161,7 +188,7 @@ public:
         saveState ();
     }
 
-    void removeFileFromFavorite(juce::Identifier tag, juce::File file)
+    juce::Array<juce::File> removeFileFromFavorite(juce::Identifier tag, juce::File file)
     {
         for (auto fav : m_favorites)
         {
@@ -171,6 +198,15 @@ public:
                 saveState ();
             }
         }
+        juce::Array<juce::File> currentFileList;
+        for (auto fav : m_favorites)
+        {
+            if (fav->m_tag == tag)
+            {
+                currentFileList.add (fav->getFile ());
+            }
+        }
+        return currentFileList;
     }
 
     juce::ValueTree m_applicationStateValueTree;
