@@ -21,9 +21,11 @@ struct FileListCategorieEntry : public CategorieListBoxEntry
     FileListCategorieEntry(
             juce::String entryname
           , juce::Colour c
+          , juce::Identifier tag
           , juce::Array<juce::File> filelist, ApplicationViewState& avs)
         : CategorieListBoxEntry (entryname)
         , colour (c)
+        , m_tag (tag)
         , m_fileList(filelist)
         , m_applicationViewState(avs)
     {
@@ -33,15 +35,19 @@ struct FileListCategorieEntry : public CategorieListBoxEntry
     {
         m_fileList.clear ();
 
-        for (auto &redFavs : m_applicationViewState.m_red)
+        for (auto &fav : m_applicationViewState.m_favorites)
         {
-            m_fileList.add (redFavs->getFile ());
+            if (fav->m_tag == m_tag)
+            {
+                m_fileList.add (fav->getFile ());
+            }
         }
         sendChangeMessage ();
     }
     ApplicationViewState& m_applicationViewState;
     juce::Colour colour;
     juce::Array<juce::File> m_fileList;
+    juce::Identifier m_tag;
 
     void valueTreeChildAdded(
             juce::ValueTree &parentTree
@@ -151,8 +157,9 @@ public:
     {
         return m_fileList;
     }
-    void setFileList(const juce::Array<juce::File> &fileList)
+    void setFileList(juce::Identifier tag, const juce::Array<juce::File> &fileList)
     {
+        m_tag = tag;
         m_entries.deselectAllRows ();
         m_fileList = fileList;
         m_entries.updateContent ();
@@ -166,7 +173,7 @@ public:
             const int result = p.show();
             if(result == 1)
             {
-                m_applicationViewState.removeFileFromFavorite (getFileList ()[row]);
+                m_applicationViewState.removeFileFromFavorite (m_tag, getFileList ()[row]);
 
                 m_entries.updateContent ();
             }
@@ -178,6 +185,7 @@ public:
         if(auto entry = dynamic_cast<FileListCategorieEntry*>(source))
         {
             m_fileList = entry->m_fileList;
+            m_tag = entry->m_tag;
             m_entries.updateContent ();
         }
     }
@@ -185,6 +193,7 @@ private:
     ApplicationViewState& m_applicationViewState;
     juce::ListBox m_entries;
     juce::Array<juce::File> m_fileList;
+    juce::Identifier m_tag;
     juce::Typeface::Ptr m_fontTypeface{
         juce::Typeface::createSystemTypefaceFor(
                     BinaryData::IBMPlexSansRegular_ttf
@@ -594,7 +603,7 @@ public:
             if (auto entry = dynamic_cast<FileListCategorieEntry*>(chooser->getSelectedEntry ()))
             {
                 m_CollectedFilesListBox.setVisible (true);
-                m_CollectedFilesListBox.setFileList (entry->m_fileList);
+                m_CollectedFilesListBox.setFileList (entry->m_tag, entry->m_fileList);
             }
             else if(auto entry = dynamic_cast<DirectoryCategorieEntry*>(chooser->getSelectedEntry ()))
             {
@@ -629,15 +638,23 @@ public:
         {
             juce::PopupMenu p;
             p.addItem (1, "add to Red");
+            p.addItem (2, "add to Green");
 
             const int result = p.show ();
 
             if (result == 1)
             {
-                m_applicationState.addFileToFavorites (file);
+                m_applicationState.addFileToFavorites (IDs::red, file);
+            }
+            else if (result == 2)
+            {
+                m_applicationState.addFileToFavorites (IDs::green, file);
             }
         }
-        m_DirTreeViewBox.setDragAndDropDescription(file.getFileName());
+        else
+        {
+            m_DirTreeViewBox.setDragAndDropDescription(file.getFileName());
+        }
     }
     void fileDoubleClicked(const juce::File&) override;
     void browserRootChanged(const juce::File&) override {}
@@ -666,15 +683,42 @@ private:
 
     inline void setupFavorites()
     {
-        juce::Array<juce::File> red;
-        for (auto &redFavs : m_applicationState.m_red)
+        juce::Array<juce::File> redFavoritesList;
+        for (auto &favorite : m_applicationState.m_favorites)
         {
-            red.add (redFavs->getFile ());
+            if (favorite->m_tag == IDs::red)
+            {
+                redFavoritesList.add (favorite->getFile ());
+            }
         }
         auto redEntry = new FileListCategorieEntry(
-                    "red",juce::Colours::red, red, m_applicationState);
+                    "red"
+                  , juce::Colours::red
+                  , IDs::red
+                  , redFavoritesList
+                  , m_applicationState);
         redEntry->addChangeListener (&m_CollectedFilesListBox);
         m_browserSidepanel.getFavoritesList ().addEntry (redEntry);
+
+
+
+
+        juce::Array<juce::File> greenFavoritesList;
+        for (auto &favorite : m_applicationState.m_favorites)
+        {
+            if (favorite->m_tag == IDs::green)
+            {
+                greenFavoritesList.add (favorite->getFile ());
+            }
+        }
+        auto greenEntry = new FileListCategorieEntry(
+                    "green"
+                  , juce::Colours::green
+                  , IDs::green
+                  , greenFavoritesList
+                  , m_applicationState);
+        greenEntry->addChangeListener (&m_CollectedFilesListBox);
+        m_browserSidepanel.getFavoritesList ().addEntry (greenEntry);
     }
 
     inline void setupDirectoryTreeView()

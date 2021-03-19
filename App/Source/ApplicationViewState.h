@@ -40,13 +40,14 @@ enum class PresetTag
 
 };
 
-struct RedFav
+struct Favorite
 {
-    RedFav(juce::ValueTree v)
-        : state(v)
+    Favorite(juce::Identifier tag, juce::ValueTree v)
+        : m_tag (tag)
+        , m_state(v)
     {
-        jassert(v.hasType(IDs::red));
-        fullPath.referTo (state, IDs::Path, nullptr);
+        jassert(v.hasType(tag));
+        fullPath.referTo (m_state, IDs::Path, nullptr);
     }
     juce::File getFile()
     {
@@ -56,7 +57,8 @@ struct RedFav
     {
         fullPath = f.getFullPathName ();
     }
-    juce::ValueTree state;
+    juce::Identifier m_tag;
+    juce::ValueTree m_state;
     juce::CachedValue<juce::String> fullPath;
 };
 class ApplicationViewState
@@ -103,10 +105,10 @@ public:
                                 juce::File::userHomeDirectory)
                             .getChildFile ("NextStudio/Projects").getFullPathName ());
 
-        auto redVT = m_applicationStateValueTree.getOrCreateChildWithName (IDs::red, nullptr);
-        for (auto i=0; i < redVT.getNumChildren (); i++)
+        auto favorites = m_applicationStateValueTree.getOrCreateChildWithName (IDs::Favorites, nullptr);
+        for (auto i=0; i < favorites.getNumChildren (); i++)
         {
-            m_red.add (new RedFav(redVT.getChild (i)));
+            m_favorites.add (new Favorite(favorites.getChild (i).getType (), favorites.getChild (i)));
         }
 
         auto windowState = m_applicationStateValueTree.getOrCreateChildWithName (IDs::WindowState, nullptr);
@@ -129,11 +131,11 @@ public:
 
     void saveState()
     {
-        auto redfav = m_applicationStateValueTree.getOrCreateChildWithName (IDs::red, nullptr);
-        redfav.removeAllChildren (nullptr);
-        for (auto &redit : m_red)
+        auto favoritesState = m_applicationStateValueTree.getOrCreateChildWithName (IDs::Favorites, nullptr);
+        favoritesState.removeAllChildren (nullptr);
+        for (auto favEntry : m_favorites)
         {
-            redfav.addChild (redit->state, -1, nullptr);
+            favoritesState.addChild (favEntry->m_state, -1, nullptr);
         }
 
         auto settingsFile = juce::File::getSpecialLocation (
@@ -144,35 +146,35 @@ public:
         xmlToWrite->writeTo (settingsFile);
     }
 
-    void addFileToFavorites(juce::File file)
+    void addFileToFavorites(juce::Identifier tag, juce::File file)
     {
-        for (auto fav : m_red)
+        for (auto favEntry : m_favorites)
         {
-            if (fav->getFile () == file)
+            if (favEntry->getFile () == file && favEntry->m_tag == tag)
             {
                 return;
             }
         }
-        auto fav = new RedFav(juce::ValueTree (IDs::red));
+        auto fav = new Favorite(tag, juce::ValueTree(tag));
         fav->setFile (file);
-        m_red.add (fav);
+        m_favorites.add (fav);
         saveState ();
     }
 
-    void removeFileFromFavorite(juce::File file)
+    void removeFileFromFavorite(juce::Identifier tag, juce::File file)
     {
-        for (auto fav : m_red)
+        for (auto fav : m_favorites)
         {
-            if (fav->getFile () == file)
+            if (fav->getFile () == file && fav->m_tag == tag)
             {
-                m_red.removeObject (fav);
+                m_favorites.removeObject (fav);
                 saveState ();
             }
         }
     }
 
     juce::ValueTree m_applicationStateValueTree;
-    juce::OwnedArray<RedFav> m_red;
+    juce::OwnedArray<Favorite> m_favorites;
 
     juce::CachedValue<juce::String> m_workDir,
                                     m_presetDir,
