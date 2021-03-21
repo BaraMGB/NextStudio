@@ -3,6 +3,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
+#include "AudioClipComponent.h"
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
@@ -480,6 +481,86 @@ public:
                     , BinaryData::IBMPlexSansRegular_ttfSize)};
       JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListBoxComponent)
   };
+  class SamplePreviewComponent : public juce::Component
+  {
+  public:
+      SamplePreviewComponent(te::Edit & edit)
+          : m_currentEdit(edit)
+
+      {
+      }
+
+      void resized() override
+      {
+          auto area = getLocalBounds ();
+          if (m_previewEdit)
+          {
+              m_volumeSlider->setBounds (area.removeFromLeft (area.getHeight ()));
+              m_thumbnail->setBounds (area);
+          }
+      }
+
+      void play()
+      {
+          if (m_previewEdit)
+          {
+              auto& ptp = m_previewEdit->getTransport();
+              m_previewEdit->dispatchPendingUpdatesSynchronously ();
+              ptp.ensureContextAllocated();
+              ptp.setCurrentPosition (0.0);
+              ptp.play (false);
+          }
+      }
+      void setFile(juce::File file)
+      {
+          te::AudioFile audioFile (m_currentEdit.engine, file);
+          if (audioFile.isValid())
+          {
+
+              double oldVolume = -1;
+              if (m_volumeSlider)
+              {
+                  oldVolume = m_previewEdit->getMasterVolumePlugin ()
+                                ->volume;
+              }
+              m_previewEdit = m_currentEdit.createEditForPreviewingFile (
+                          m_currentEdit.engine
+                          , file
+                          , nullptr
+                          , false
+                          , false
+                          , nullptr
+                          , juce::ValueTree());
+              m_volumeSlider = std::make_unique<juce::Slider>();
+              m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
+              m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
+              m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+              m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+              m_volumeSlider->getValueObject ().referTo (
+                          m_previewEdit->getMasterVolumePlugin ()
+                          ->volume.getPropertyAsValue ());
+              if (oldVolume!=-1)
+              {
+                  m_previewEdit->getMasterVolumePlugin ()
+                  ->volume = oldVolume;
+              }
+
+              addAndMakeVisible (*m_volumeSlider);
+              m_thumbnail = std::make_unique<Thumbnail>(m_previewEdit->getTransport ());
+              m_thumbnail->setFile (audioFile);
+              addAndMakeVisible (*m_thumbnail);
+              resized ();
+              play ();
+          }
+      }
+
+
+  private:
+      te::Edit &    m_currentEdit;
+      std::unique_ptr<te::Edit>     m_previewEdit;
+      std::unique_ptr<juce::Slider> m_volumeSlider;
+      std::unique_ptr<Thumbnail>    m_thumbnail;
+  };
 
   //------------------------------------------------------------------------------
   class SideBarBrowser : public juce::Component
@@ -493,12 +574,14 @@ public:
           , m_edit(edit)
           , m_CollectedFilesListBox (state)
           , m_pluginListBox (m_edit)
+          , m_samplePreviewComponent(m_edit)
       {
           addAndMakeVisible (m_DirTreeViewBox);
           addAndMakeVisible (m_browserSidepanel);
           addAndMakeVisible (m_resizerBar);
           addAndMakeVisible (m_CollectedFilesListBox);
           addAndMakeVisible (m_pluginListBox);
+          addAndMakeVisible (m_samplePreviewComponent);
 
           m_DirTreeViewBox.setVisible (false);
           m_CollectedFilesListBox.setVisible (false);
@@ -538,6 +621,7 @@ public:
       void resized () override
       {
           auto area = getLocalBounds();
+          auto samplePreviewBounds = area.removeFromBottom (50);
 
           if (m_DirTreeViewBox.isVisible ())
           {
@@ -584,6 +668,7 @@ public:
                           , area.getHeight()
                           , false, true);
           }
+          m_samplePreviewComponent.setBounds (samplePreviewBounds);
       }
       void mouseDrag(const juce::MouseEvent& /*event*/) override
       {
@@ -632,7 +717,15 @@ public:
           }
           resized ();
       }
-      void selectionChanged()                           override {}
+      void selectionChanged()                           override
+      {
+          previewSampleFile (m_DirTreeViewBox.getSelectedFile ());
+      }
+      inline void previewSampleFile(const juce::File& file)
+      {
+          m_samplePreviewComponent.setFile (file);
+      }
+
       void fileClicked (
               const juce::File& file, const juce::MouseEvent& event) override
       {
@@ -648,13 +741,14 @@ public:
                   menuEntry++;
               }
               const int result = p.show ();
-                                m_applicationState.addFileToFavorites (
-                                            favoriteTypes[result - 1]
-                                            , file);
+              m_applicationState.addFileToFavorites (favoriteTypes[result - 1]
+                                                   , file);
           }
           else
           {
               m_DirTreeViewBox.setDragAndDropDescription(file.getFileName());
+              // play sample
+              previewSampleFile(file);
           }
       }
       void fileDoubleClicked(const juce::File&) override;
@@ -732,6 +826,8 @@ public:
 
       ApplicationViewState &            m_applicationState;
       te::Edit &                        m_edit;
+
+      SamplePreviewComponent            m_samplePreviewComponent;
       juce::TimeSliceThread             m_thread    {"file browser thread"};
       juce::DirectoryContentsList       m_dirConList{nullptr, m_thread};
       juce::FileTreeComponent           m_DirTreeViewBox      {m_dirConList};
@@ -743,3 +839,4 @@ public:
                                               {&m_stretchableManager, 1, true};
       JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SideBarBrowser)
   };
+
