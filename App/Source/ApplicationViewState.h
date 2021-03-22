@@ -83,7 +83,8 @@ public:
         {
             m_applicationStateValueTree = juce::ValueTree(IDs::AppSettings);
         }
-        auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName (IDs::FileBrowser, nullptr);
+        auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName (
+                    IDs::FileBrowser, nullptr);
 
         m_workDir.referTo (fileBrowser, IDs::WorkDIR, nullptr
                             , juce::File::getSpecialLocation (
@@ -121,8 +122,6 @@ public:
         m_windowYpos.referTo (windowState, IDs::WindowY, nullptr, 50);
         m_windowWidth.referTo (windowState, IDs::WindowWidth, nullptr, 1600);
         m_windowHeight.referTo (windowState, IDs::WindowHeight, nullptr, 1000);
-
-
     }
 
     void addFavoriteType(juce::Identifier type)

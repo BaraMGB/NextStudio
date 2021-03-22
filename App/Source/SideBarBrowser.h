@@ -490,6 +490,12 @@ public:
       {
       }
 
+      void paint(juce::Graphics &g) override
+      {
+          g.setColour (juce::Colour(0xff171717));
+          g.fillRect (getLocalBounds ());
+      }
+
       void resized() override
       {
           auto area = getLocalBounds ();
