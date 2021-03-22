@@ -15,8 +15,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
     {
-        auto audioTrackPtr{dynamic_cast<te::AudioTrack*>(m_track.get())};
-        levelMeterComp = std::make_unique<LevelMeterComponent>(audioTrackPtr->getLevelMeterPlugin()->measurer);
+        levelMeterComp = std::make_unique<LevelMeterComponent>(audioTrack->getLevelMeterPlugin()->measurer);
         addAndMakeVisible(levelMeterComp.get());
 
         m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), juce::dontSendNotification);
@@ -30,18 +29,17 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 
         m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack), juce::dontSendNotification);
 
-        m_volumeKnob.setOpaque(false);
-        addAndMakeVisible(m_volumeKnob);
-        m_volumeKnob.setRange(0.0f, 3.0f, 0.01f);
-        m_volumeKnob.setSkewFactorFromMidPoint(1.0f);
         if (audioTrack->getVolumePlugin())
         {
-            m_volumeKnob.getValueObject().referTo(audioTrack->getVolumePlugin()->volume.getPropertyAsValue());
+            m_volumeKnob.addListener (this);
+            m_volumeKnob.setOpaque(false);
+            addAndMakeVisible(m_volumeKnob);
+            m_volumeKnob.setRange(0.0f, 3.0f, 0.01f);
+            m_volumeKnob.setSkewFactorFromMidPoint(1.0f);
             m_volumeKnob.setValue(audioTrack->getVolumePlugin()->volume);
-
+            m_volumeKnob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+            m_volumeKnob.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
         }
-        m_volumeKnob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-        m_volumeKnob.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
     }
     else
     {
@@ -70,11 +68,24 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
     if (te::TrackList::isTrack (v))
     {
         if (i == te::IDs::mute)
+        {
             m_muteButton.setToggleState ((bool)v[i], juce::dontSendNotification);
+        }
         else if (i == te::IDs::solo)
+        {
             m_soloButton.setToggleState ((bool)v[i], juce::dontSendNotification);
+        }
         else if (i == te::IDs::height)
+        {
             getParentComponent()->resized();
+        }
+        else if (i == te::IDs::volume)
+        {
+            if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
+            {
+                m_volumeKnob.setValue(audioTrack->getVolumePlugin()->volume);
+            }
+        }
     }
     else if (v.hasType (te::IDs::INPUTDEVICES)
              || v.hasType (te::IDs::INPUTDEVICE)
@@ -486,4 +497,15 @@ void TrackHeaderComponent::itemDropped(
     }
     m_isOver = false;
     repaint();
+}
+
+void TrackHeaderComponent::sliderValueChanged(juce::Slider *slider)
+{
+    if (slider == &m_volumeKnob)
+    {
+        if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
+        {
+            audioTrack->getVolumePlugin ()->volParam->setParameter (slider->getValue (), juce::NotificationType::dontSendNotification);
+        }
+    }
 }

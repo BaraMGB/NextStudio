@@ -2,6 +2,10 @@ project(NextStudio VERSION 0.1.0)
 
 set (TargetName ${PROJECT_NAME})
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 add_subdirectory(resources)
 
 juce_add_gui_app(${TargetName} PRODUCT_NAME "NextStudio")

@@ -482,6 +482,7 @@ public:
       JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListBoxComponent)
   };
   class SamplePreviewComponent : public juce::Component
+                               , public juce::Slider::Listener
   {
   public:
       SamplePreviewComponent(te::Edit & edit)
@@ -503,6 +504,17 @@ public:
           {
               m_volumeSlider->setBounds (area.removeFromLeft (area.getHeight ()));
               m_thumbnail->setBounds (area);
+          }
+      }
+
+      void sliderValueChanged(juce::Slider *slider) override
+      {
+          if (slider == m_volumeSlider.get ())
+          {
+              if (m_previewEdit)
+              {
+                  m_previewEdit->getMasterSliderPosParameter ()->setParameter (slider->getValue (), juce::dontSendNotification);
+              }
           }
       }
 
@@ -538,18 +550,19 @@ public:
                           , nullptr
                           , juce::ValueTree());
               m_volumeSlider = std::make_unique<juce::Slider>();
+              m_volumeSlider->addListener (this);
               m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
               m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
               m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
               m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
-              m_volumeSlider->getValueObject ().referTo (
-                          m_previewEdit->getMasterVolumePlugin ()
-                          ->volume.getPropertyAsValue ());
+
               if (oldVolume!=-1)
               {
                   m_previewEdit->getMasterVolumePlugin ()
                   ->volume = oldVolume;
               }
+
+              m_volumeSlider->setValue (m_previewEdit->getMasterVolumePlugin ()->volume);
 
               addAndMakeVisible (*m_volumeSlider);
               m_thumbnail = std::make_unique<Thumbnail>(m_previewEdit->getTransport ());
@@ -759,6 +772,7 @@ public:
       }
       void fileDoubleClicked(const juce::File&) override;
       void browserRootChanged(const juce::File&) override {}
+
 
   private:
       inline void setupPlaces()

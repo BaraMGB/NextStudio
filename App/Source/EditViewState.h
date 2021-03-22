@@ -160,11 +160,12 @@ public:
     {
         double x1 = forPianoRoll ? m_pianoX1 : m_viewX1;
         double x2 = forPianoRoll ? m_pianoX2 : m_viewX2;
+
         te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat ()
                 .getBestSnapType (
                     m_edit.tempoSequence.getTempoAt (
                         m_edit.getTransport ().getCurrentPosition ())
-                    , beatToTime ((x2 - x1)/ width));
+                    , beatToTime ((x2 - x1)/ width), false);
         return snaptype;
     }
 
@@ -172,7 +173,7 @@ public:
     {
         tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (
                     m_edit.getTransport ().getCurrentPosition ());
-        return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo);
+        return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo, false);
     }
 
     double getEndScrollBeat()
