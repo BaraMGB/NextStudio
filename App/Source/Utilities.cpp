@@ -289,6 +289,8 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
             if (auto newClip = track->insertWaveClip (file.getFileNameWithoutExtension(), file,
             { { 0.0, audioFile.getLength() }, 0.0 }, false))
                 return newClip;
+        std::cout << "loading : " << file.getFullPathName () << std::endl;
+
     }
     return {};
 }

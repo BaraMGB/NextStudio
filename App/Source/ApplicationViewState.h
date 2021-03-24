@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-
+#include "Utilities.h"
 
 namespace IDs
 {
@@ -86,26 +86,32 @@ public:
         auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName (
                     IDs::FileBrowser, nullptr);
 
+
         m_workDir.referTo (fileBrowser, IDs::WorkDIR, nullptr
                             , juce::File::getSpecialLocation (
                                 juce::File::userHomeDirectory)
-                            .getChildFile ("NextStudio").getFullPathName ());
+                            .getChildFile ("NextStudio/").getFullPathName ());
+        fileBrowser.setProperty (IDs::WorkDIR,juce::var(m_workDir),nullptr);
         m_presetDir.referTo (fileBrowser, IDs::PresetDIR, nullptr
                             , juce::File::getSpecialLocation (
                                 juce::File::userHomeDirectory)
-                            .getChildFile ("NextStudio/Presets").getFullPathName ());
+                            .getChildFile ("NextStudio/Presets/").getFullPathName ());
+        fileBrowser.setProperty (IDs::PresetDIR,juce::var(m_presetDir),nullptr);
         m_clipsDir.referTo (fileBrowser, IDs::ClipsDIR, nullptr
                             , juce::File::getSpecialLocation (
                                 juce::File::userHomeDirectory)
-                            .getChildFile ("NextStudio/Clips").getFullPathName ());
+                            .getChildFile ("NextStudio/Clips/").getFullPathName ());
+        fileBrowser.setProperty (IDs::ClipsDIR,juce::var(m_clipsDir),nullptr);
         m_samplesDir.referTo (fileBrowser, IDs::SamplesDIR, nullptr
                             , juce::File::getSpecialLocation (
                                 juce::File::userHomeDirectory)
-                            .getChildFile ("NextStudio/Samples").getFullPathName ());
+                            .getChildFile ("NextStudio/Samples/").getFullPathName ());
+        fileBrowser.setProperty (IDs::SamplesDIR,juce::var(m_samplesDir),nullptr);
         m_projectsDir.referTo (fileBrowser, IDs::ProjectsDIR, nullptr
                             , juce::File::getSpecialLocation (
                                 juce::File::userHomeDirectory)
-                            .getChildFile ("NextStudio/Projects").getFullPathName ());
+                            .getChildFile ("NextStudio/Projects/").getFullPathName ());
+        fileBrowser.setProperty (IDs::ProjectsDIR,juce::var(m_projectsDir),nullptr);
 
         auto favorites = m_applicationStateValueTree
                 .getOrCreateChildWithName (IDs::Favorites, nullptr);
@@ -163,13 +169,23 @@ public:
         {
             favoritesState.addChild (favEntry->m_state, -1, nullptr);
         }
+        auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName (
+                    IDs::FileBrowser, nullptr);
+
 
         auto settingsFile = juce::File::getSpecialLocation (
                     juce::File::userApplicationDataDirectory)
                     .getChildFile ("NextStudio/AppSettings.xml");
         settingsFile.create ();
         auto xmlToWrite = m_applicationStateValueTree.createXml ();
-        xmlToWrite->writeTo (settingsFile);
+        if (xmlToWrite->writeTo (settingsFile))
+        {
+            GUIHelpers::log ("settings written to: " + settingsFile.getFullPathName ());
+        }
+        else
+        {
+            GUIHelpers::log ("couldn't write to: " + settingsFile.getFullPathName ());
+        }
     }
 
     void addFileToFavorites(juce::Identifier tag, juce::File file)

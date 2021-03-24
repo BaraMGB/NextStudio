@@ -26,6 +26,22 @@ public:
     //==============================================================================
     void initialise (const juce::String& /*commandLine*/) override
     {
+        auto workingDir =  juce::File().createFileWithoutCheckingPath (
+                    m_applicationState.m_workDir);
+        auto presetDir = juce::File().createFileWithoutCheckingPath (
+                    m_applicationState.m_presetDir);
+        auto clipsDir = juce::File().createFileWithoutCheckingPath (
+                    m_applicationState.m_clipsDir);
+        auto samplesDir = juce::File().createFileWithoutCheckingPath (
+                    m_applicationState.m_samplesDir);
+        auto projectsDir = juce::File().createFileWithoutCheckingPath (
+                    m_applicationState.m_projectsDir);
+        workingDir.createDirectory ();
+        presetDir.createDirectory ();
+        clipsDir.createDirectory ();
+        samplesDir.createDirectory ();
+        projectsDir.createDirectory ();
+
         mainWindow.reset (new MainWindow (getApplicationName(), m_applicationState));
     }
 
