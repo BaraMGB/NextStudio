@@ -30,6 +30,7 @@ void ClipComponent::paint (juce::Graphics& g)
 
 void ClipComponent::mouseDown (const juce::MouseEvent&event)
 {
+    toFront (true);
     m_isCtrlDown = false;
     m_clickPosTime = m_editViewState.beatToTime(
                 m_editViewState.xToBeats(event.x, getParentWidth()));
@@ -56,38 +57,43 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
         setMouseCursor(juce::MouseCursor::DraggingHandCursor);
     }
 
-    te::Clipboard::getInstance()->clear();
-    auto clipContent = std::make_unique<te::Clipboard::Clips>();
-    auto currentIndex = getTrack (m_clip)->getIndexInEditTrackList ();
-    for (auto selectedClip
-         : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
-    {
-        int clipOffset = 0;
-        if (selectedClip != m_clip.get ())
-        {
-            auto idx = getTrack (selectedClip)->getIndexInEditTrackList ();
-            clipOffset = idx - currentIndex;
-        }
-        clipContent->addClip(clipOffset, selectedClip->state);
-    }
-    te::Clipboard::getInstance()->setContent(std::move(clipContent));
+
 }
 
 void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 {
-    //editViewState.edit.getTransport ().setUserDragging (true);
-    juce::DragAndDropContainer* dragC =
-            juce::DragAndDropContainer::findParentDragContainerFor(this);
-    m_isShiftDown = false;
-    if (event.mods.isShiftDown())
+    if (event.mouseWasDraggedSinceMouseDown ())
     {
-        m_isShiftDown = true;
-    }
-    if (!dragC->isDragAndDropActive())
-    {
-        dragC->startDragging("Clip", this
-                             , juce::Image(juce::Image::ARGB,1,1,true), false);
-        m_isDragging = true;
+        GUIHelpers::log ("MouseDrag");
+        te::Clipboard::getInstance()->clear();
+        auto clipContent = std::make_unique<te::Clipboard::Clips>();
+        auto currentIndex = getTrack (m_clip)->getIndexInEditTrackList ();
+        for (auto selectedClip
+             : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+        {
+            int clipOffset = 0;
+            if (selectedClip != m_clip.get ())
+            {
+                auto idx = getTrack (selectedClip)->getIndexInEditTrackList ();
+                clipOffset = idx - currentIndex;
+            }
+            clipContent->addClip(clipOffset, selectedClip->state);
+        }
+        te::Clipboard::getInstance()->setContent(std::move(clipContent));
+        //editViewState.edit.getTransport ().setUserDragging (true);
+        juce::DragAndDropContainer* dragC =
+                juce::DragAndDropContainer::findParentDragContainerFor(this);
+        m_isShiftDown = false;
+        if (event.mods.isShiftDown())
+        {
+            m_isShiftDown = true;
+        }
+        if (!dragC->isDragAndDropActive())
+        {
+            dragC->startDragging("Clip", this
+                                 , juce::Image(juce::Image::ARGB,1,1,true), false);
+            m_isDragging = true;
+        }
     }
 }
 
@@ -108,6 +114,12 @@ void ClipComponent::mouseUp(const juce::MouseEvent& event)
     {
         m_editViewState.m_selectionManager.selectOnly (m_clip);
     }
+    auto track = getClip ()->getClipTrack ();
+    track->deleteRegion (
+                getClip ()->getPosition ().time
+              , &m_editViewState.m_selectionManager);
+    track->addClip (getClip ());
+
 }
 
 tracktion_engine::Track::Ptr ClipComponent::getTrack(tracktion_engine::Clip::Ptr clip)

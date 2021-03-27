@@ -588,9 +588,10 @@ public:
   {
   public:
 
-      SideBarBrowser(ApplicationViewState& state, te::Edit& edit)
-          : m_applicationState(state)
-          , m_edit(edit)
+      SideBarBrowser(ApplicationViewState& state, EditViewState& evs)
+          : m_editViewState(evs)
+          , m_applicationState(state)
+          , m_edit(evs.m_edit)
           , m_CollectedFilesListBox (state)
           , m_pluginListBox (m_edit)
           , m_samplePreviewComponent(m_edit)
@@ -845,6 +846,7 @@ public:
       }
 
       ApplicationViewState &            m_applicationState;
+      EditViewState&                    m_editViewState;
       te::Edit &                        m_edit;
 
       SamplePreviewComponent            m_samplePreviewComponent;

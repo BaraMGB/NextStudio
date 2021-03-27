@@ -133,7 +133,7 @@ void MainComponent::setupSideBrowser()
 {
     m_sideBarBrowser = std::make_unique<SideBarBrowser>(
                 m_applicationState
-              , *m_edit);
+              , m_editComponent->getEditViewState ());
     addAndMakeVisible (*m_sideBarBrowser);
 }
 

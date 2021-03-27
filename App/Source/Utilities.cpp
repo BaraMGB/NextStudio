@@ -194,24 +194,40 @@ void EngineHelpers::pasteClipboardToEdit(
     {
         auto clipContent = clipboard
                 ->getContentWithType<te::Clipboard::Clips>();
+
         te::EditInsertPoint insertPoint (evs.m_edit);
         insertPoint.setNextInsertPoint (0, sourceTrack);
         te::Clipboard::ContentType::EditPastingOptions options
                 (evs.m_edit, insertPoint, &evs.m_selectionManager);
-
-        auto xTime = evs.beatToTime(evs.m_viewX1);
-        auto rawTime = juce::jmax(0.0, insertTime - clickOffset + xTime);
-        auto snapedTime = evs.getSnapedTime (rawTime);
-        auto pasteTime = snap
+        const auto xTime = evs.beatToTime(evs.m_viewX1);
+        const auto rawTime = juce::jmax(0.0, insertTime - clickOffset + xTime);
+        const auto snapedTime = evs.getSnapedTime (rawTime);
+        const auto pasteTime = !snap
                 ? rawTime - firstClipTime
                 : snapedTime - firstClipTime;
-        options.startTime = pasteTime;
-        options.setTransportToEnd = true;
-
         if (removeSource)
         {
             deleteSelectedClips (evs);
         }
+        //delete region under pasted clips
+        for (auto clip : clipContent->clips)
+        {
+            auto clipShift = (float) clip.state.getProperty (te::IDs::start) - firstClipTime;
+            auto clipInsertTime = snap ? snapedTime + clipShift : rawTime + clipShift;
+            auto clipLength = (float) clip.state.getProperty (te::IDs::length);
+            auto targetTrack = evs.m_edit.getTrackList ()
+                    [sourceTrack->getIndexInEditTrackList () + clip.trackOffset];
+            if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack))
+            {
+                auto editrange = te::EditTimeRange(clipInsertTime
+                                                 , clipInsertTime + clipLength);
+                at->deleteRegion ( editrange
+                                   ,&evs.m_selectionManager);
+            }
+        }
+        options.startTime = pasteTime;
+        options.setTransportToEnd = true;
+
         clipContent->pasteIntoEdit(options);
     }
 }
@@ -273,22 +289,28 @@ tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(
 }
 
 tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
-        tracktion_engine::Edit &edit
+        EditViewState &evs
       , const juce::File &file)
 {
-    if (auto track = getOrInsertAudioTrackAt (edit, tracktion_engine::getAudioTracks(edit).size()))
+    if (auto track = getOrInsertAudioTrackAt (evs.m_edit, tracktion_engine::getAudioTracks(evs.m_edit).size()))
     {
         removeAllClips (*track);
         auto& random = juce::Random::getSystemRandom();
         track->setColour (juce::Colour(random.nextInt (256)
                                        ,random.nextInt (256)
                                        ,random.nextInt (256)));
-        te::AudioFile audioFile (edit.engine, file);
+        te::AudioFile audioFile (evs.m_edit.engine, file);
 
         if (audioFile.isValid())
+        {
+            track->deleteRegion ({ 0.0, audioFile.getLength() }
+                                 , &evs.m_selectionManager);
             if (auto newClip = track->insertWaveClip (file.getFileNameWithoutExtension(), file,
             { { 0.0, audioFile.getLength() }, 0.0 }, false))
+            {
                 return newClip;
+            }
+        }
         std::cout << "loading : " << file.getFullPathName () << std::endl;
 
     }

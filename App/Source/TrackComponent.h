@@ -34,18 +34,7 @@ public:
     juce::OwnedArray<ClipComponent>& getClipComponents();
     TrackOverlayComponent& getTrackOverlay();
 
-    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override
-    {
-        if (dragSourceDetails.description == "PluginListEntry")
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
+    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
     void itemDragExit(const SourceDetails& dragSourceDetails) override;
     void itemDropped(const SourceDetails& dragSourceDetails) override;

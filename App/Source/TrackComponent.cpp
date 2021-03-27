@@ -257,6 +257,8 @@ void TrackComponent::inserWave(juce::File f, double time)
     {
         if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(m_track.get()))
         {
+            audioTrack->deleteRegion ({ time, time + audioFile.getLength() }
+                                      , &m_editViewState.m_selectionManager);
             if (auto newClip = audioTrack->insertWaveClip(f.getFileNameWithoutExtension()
                                                      ,f
                                                      ,{ { time, time + audioFile.getLength() }, 0.0 }
@@ -408,6 +410,18 @@ TrackOverlayComponent& TrackComponent::getTrackOverlay()
     return m_trackOverlay;
 }
 
+bool TrackComponent::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+    if (dragSourceDetails.description == "PluginListEntry")
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 juce::OwnedArray<ClipComponent> &TrackComponent::getClipComponents()
 {
     return m_clips;
@@ -419,7 +433,7 @@ te::Track::Ptr TrackComponent::getTrack() const
 }
 
 void TrackComponent::itemDragMove(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+        const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     isOver = true;
     repaint();

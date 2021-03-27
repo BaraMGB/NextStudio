@@ -25,6 +25,6 @@ void SideBarBrowser::fileDoubleClicked(const juce::File &)
     }
     else if (audioFile.isValid ())
     {
-        EngineHelpers::loadAudioFileAsClip (m_edit, selectedFile);
+        EngineHelpers::loadAudioFileAsClip (m_editViewState, selectedFile);
     }
 }

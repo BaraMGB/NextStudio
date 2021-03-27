@@ -374,7 +374,7 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
             auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
             auto offset = clipComp->getClickPosTime ();
             auto removeSource = !clipComp->isCtrlDown ();
-            auto snap = clipComp->isShiftDown ();
+            auto snap = !clipComp->isShiftDown ();
             EngineHelpers::pasteClipboardToEdit (firstClipTime
                                                , offset
                                                , dropTime

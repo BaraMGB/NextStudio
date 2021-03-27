@@ -41,11 +41,12 @@ void AudioClipComponent::resized()
 
 void AudioClipComponent::mouseMove(const juce::MouseEvent &e)
 {
-    if (e.getPosition().getX() < 10)
+    if (e.getPosition().getX() < 10 && getWidth () > 30)
     {
         setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
     }
-    else if (e.getPosition().getX() > getWidth() - 10)
+    else if (e.getPosition().getX() > getWidth() - 10
+             && getWidth () > 30)
     {
         setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
     }
@@ -83,7 +84,7 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
     auto distTimeDelta = distanceTime - m_oldDistTime;
 
     //shrink left
-    if (m_mouseDownX < 10)
+    if (m_mouseDownX < 10 && m_clipWidthMouseDown > 30)
     {
         const auto newTime = m_clip->getPosition().getStart() + distTimeDelta;
         const auto newOffset = m_clip->getPosition().getOffset() + distTimeDelta;
@@ -110,7 +111,7 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
         m_oldDistTime = distanceTime;
     }
     //shrink right
-    else if (m_mouseDownX > m_clipWidthMouseDown - 10)
+    else if (m_mouseDownX > m_clipWidthMouseDown - 10 && m_clipWidthMouseDown > 30)
     {
         m_clip->setEnd(m_editViewState.getSnapedTime (m_posAtMouseDown.getEnd ())
                        + distanceTime, true);

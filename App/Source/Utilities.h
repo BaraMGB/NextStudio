@@ -117,7 +117,7 @@ namespace EngineHelpers
     te::AudioTrack* getOrInsertAudioTrackAt (te::Edit& edit, int index);
 
     te::WaveAudioClip::Ptr loadAudioFileAsClip (
-            te::Edit& edit
+            EditViewState& evs
           , const juce::File& file);
 
     template<typename ClipType>
