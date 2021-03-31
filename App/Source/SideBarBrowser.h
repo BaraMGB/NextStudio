@@ -8,6 +8,110 @@
 
 namespace te = tracktion_engine;
 
+class SamplePreviewComponent : public juce::Component
+                             , public juce::Slider::Listener
+{
+public:
+    SamplePreviewComponent(te::Edit & edit)
+        : m_currentEdit(edit)
+
+    {
+    }
+
+    void paint(juce::Graphics &g) override
+    {
+        g.setColour (juce::Colour(0xff171717));
+        g.fillRect (getLocalBounds ());
+    }
+
+    void resized() override
+    {
+        auto area = getLocalBounds ();
+        if (m_previewEdit)
+        {
+            m_volumeSlider->setBounds (area.removeFromLeft (area.getHeight ()));
+            m_thumbnail->setBounds (area);
+        }
+    }
+
+    void sliderValueChanged(juce::Slider *slider) override
+    {
+        if (slider == m_volumeSlider.get ())
+        {
+            if (m_previewEdit)
+            {
+                m_previewEdit->getMasterSliderPosParameter ()->setParameter (slider->getValue (), juce::dontSendNotification);
+            }
+        }
+    }
+
+    void play()
+    {
+        if (m_previewEdit)
+        {
+            auto& ptp = m_previewEdit->getTransport();
+            m_previewEdit->dispatchPendingUpdatesSynchronously ();
+            ptp.ensureContextAllocated();
+            ptp.setCurrentPosition (0.0);
+            ptp.play (false);
+        }
+    }
+    void setFile(juce::File file)
+    {
+        if (!file.isDirectory ())
+        {
+            te::AudioFile audioFile (m_currentEdit.engine, file);
+            if (audioFile.isValid())
+            {
+
+                double oldVolume = -1;
+                if (m_volumeSlider)
+                {
+                    oldVolume = m_previewEdit->getMasterVolumePlugin ()
+                                  ->volume;
+                }
+                m_previewEdit = m_currentEdit.createEditForPreviewingFile (
+                            m_currentEdit.engine
+                            , file
+                            , nullptr
+                            , false
+                            , false
+                            , nullptr
+                            , juce::ValueTree());
+                m_volumeSlider = std::make_unique<juce::Slider>();
+                m_volumeSlider->addListener (this);
+                m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
+                m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
+                m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+                m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+
+                if (oldVolume!=-1)
+                {
+                    m_previewEdit->getMasterVolumePlugin ()
+                    ->volume = oldVolume;
+                }
+
+                m_volumeSlider->setValue (m_previewEdit->getMasterVolumePlugin ()->volume);
+
+                addAndMakeVisible (*m_volumeSlider);
+                m_thumbnail = std::make_unique<Thumbnail>(m_previewEdit->getTransport ());
+                m_thumbnail->setFile (audioFile);
+                addAndMakeVisible (*m_thumbnail);
+                resized ();
+                play ();
+            }
+
+        }
+    }
+
+
+private:
+    te::Edit &    m_currentEdit;
+    std::unique_ptr<te::Edit>     m_previewEdit;
+    std::unique_ptr<juce::Slider> m_volumeSlider;
+    std::unique_ptr<Thumbnail>    m_thumbnail;
+};
+
 struct CategorieListBoxEntry
 {
     CategorieListBoxEntry(juce::String n) : name (n){}
@@ -96,8 +200,9 @@ class FileListBoxComponent : public juce::Component
                            , public juce::ChangeListener
 {
 public:
-    FileListBoxComponent(ApplicationViewState& avs)
+    FileListBoxComponent(ApplicationViewState& avs, SamplePreviewComponent& spc)
         : m_applicationViewState(avs)
+        , m_samplePreviewComponent(spc)
     {
         addAndMakeVisible (m_entries);
         m_entries.setModel (this);
@@ -180,7 +285,17 @@ public:
                           , getFileList ()[row]);
                 m_entries.updateContent ();
               }
-          }
+        }
+
+    }
+      void selectedRowsChanged(int lastRowSelected) override
+      {
+          previewSampleFile (m_fileList[m_entries.getSelectedRow ()]);
+      }
+
+      inline void previewSampleFile(const juce::File& file)
+      {
+          m_samplePreviewComponent.setFile (file);
       }
 
       void changeListenerCallback(juce::ChangeBroadcaster *source) override
@@ -192,18 +307,22 @@ public:
               m_entries.updateContent ();
           }
       }
+
   private:
-      ApplicationViewState& m_applicationViewState;
-      juce::ListBox m_entries;
-      juce::Array<juce::File> m_fileList;
-      juce::Identifier m_tag;
-      juce::Typeface::Ptr m_fontTypeface{
+      ApplicationViewState &     m_applicationViewState;
+      SamplePreviewComponent &   m_samplePreviewComponent;
+      juce::ListBox              m_entries;
+      juce::Array<juce::File>    m_fileList;
+      juce::Identifier           m_tag;
+      juce::Typeface::Ptr        m_fontTypeface{
           juce::Typeface::createSystemTypefaceFor(
                       BinaryData::IBMPlexSansRegular_ttf
                     , BinaryData::IBMPlexSansRegular_ttfSize)};
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileListBoxComponent)
 
-  };
+
+
+};
   //------------------------------------------------------------------------------
   class CategoryChooserListBox : public juce::Component
                    , public juce::ListBoxModel
@@ -481,109 +600,6 @@ public:
                     , BinaryData::IBMPlexSansRegular_ttfSize)};
       JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListBoxComponent)
   };
-  class SamplePreviewComponent : public juce::Component
-                               , public juce::Slider::Listener
-  {
-  public:
-      SamplePreviewComponent(te::Edit & edit)
-          : m_currentEdit(edit)
-
-      {
-      }
-
-      void paint(juce::Graphics &g) override
-      {
-          g.setColour (juce::Colour(0xff171717));
-          g.fillRect (getLocalBounds ());
-      }
-
-      void resized() override
-      {
-          auto area = getLocalBounds ();
-          if (m_previewEdit)
-          {
-              m_volumeSlider->setBounds (area.removeFromLeft (area.getHeight ()));
-              m_thumbnail->setBounds (area);
-          }
-      }
-
-      void sliderValueChanged(juce::Slider *slider) override
-      {
-          if (slider == m_volumeSlider.get ())
-          {
-              if (m_previewEdit)
-              {
-                  m_previewEdit->getMasterSliderPosParameter ()->setParameter (slider->getValue (), juce::dontSendNotification);
-              }
-          }
-      }
-
-      void play()
-      {
-          if (m_previewEdit)
-          {
-              auto& ptp = m_previewEdit->getTransport();
-              m_previewEdit->dispatchPendingUpdatesSynchronously ();
-              ptp.ensureContextAllocated();
-              ptp.setCurrentPosition (0.0);
-              ptp.play (false);
-          }
-      }
-      void setFile(juce::File file)
-      {
-          if (!file.isDirectory ())
-          {
-              te::AudioFile audioFile (m_currentEdit.engine, file);
-              if (audioFile.isValid())
-              {
-
-                  double oldVolume = -1;
-                  if (m_volumeSlider)
-                  {
-                      oldVolume = m_previewEdit->getMasterVolumePlugin ()
-                                    ->volume;
-                  }
-                  m_previewEdit = m_currentEdit.createEditForPreviewingFile (
-                              m_currentEdit.engine
-                              , file
-                              , nullptr
-                              , false
-                              , false
-                              , nullptr
-                              , juce::ValueTree());
-                  m_volumeSlider = std::make_unique<juce::Slider>();
-                  m_volumeSlider->addListener (this);
-                  m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
-                  m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
-                  m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-                  m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
-
-                  if (oldVolume!=-1)
-                  {
-                      m_previewEdit->getMasterVolumePlugin ()
-                      ->volume = oldVolume;
-                  }
-
-                  m_volumeSlider->setValue (m_previewEdit->getMasterVolumePlugin ()->volume);
-
-                  addAndMakeVisible (*m_volumeSlider);
-                  m_thumbnail = std::make_unique<Thumbnail>(m_previewEdit->getTransport ());
-                  m_thumbnail->setFile (audioFile);
-                  addAndMakeVisible (*m_thumbnail);
-                  resized ();
-                  play ();
-              }
-
-          }
-      }
-
-
-  private:
-      te::Edit &    m_currentEdit;
-      std::unique_ptr<te::Edit>     m_previewEdit;
-      std::unique_ptr<juce::Slider> m_volumeSlider;
-      std::unique_ptr<Thumbnail>    m_thumbnail;
-  };
 
   //------------------------------------------------------------------------------
   class SideBarBrowser : public juce::Component
@@ -596,9 +612,9 @@ public:
           : m_editViewState(evs)
           , m_applicationState(state)
           , m_edit(evs.m_edit)
-          , m_CollectedFilesListBox (state)
-          , m_pluginListBox (m_edit)
           , m_samplePreviewComponent(m_edit)
+          , m_CollectedFilesListBox (state, m_samplePreviewComponent)
+          , m_pluginListBox (m_edit)
       {
           addAndMakeVisible (m_DirTreeViewBox);
           addAndMakeVisible (m_browserSidepanel);
@@ -852,11 +868,11 @@ public:
       EditViewState&                    m_editViewState;
       te::Edit &                        m_edit;
 
+      FileListBoxComponent              m_CollectedFilesListBox;
       SamplePreviewComponent            m_samplePreviewComponent;
       juce::TimeSliceThread             m_thread    {"file browser thread"};
       juce::DirectoryContentsList       m_dirConList{nullptr, m_thread};
       juce::FileTreeComponent           m_DirTreeViewBox      {m_dirConList};
-      FileListBoxComponent              m_CollectedFilesListBox;
       BrowserPanel                      m_browserSidepanel;
       PluginListBoxComponent            m_pluginListBox;
       juce::StretchableLayoutManager    m_stretchableManager;
