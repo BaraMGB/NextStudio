@@ -24,7 +24,7 @@ namespace Helpers
     juce::String getStringOrDefault (
               const juce::String& stringToTest
             , const juce::String& stringToReturnIfEmpty);
-    
+
     juce::File findRecentEdit (const juce::File& dir);
 }
 
@@ -60,7 +60,7 @@ namespace GUIHelpers
           , int h);
 
     void saveEdit(
-            te::Edit& edit
+            EditViewState& evs
           , juce::File workDir);
 }
 
@@ -120,6 +120,9 @@ namespace EngineHelpers
             EditViewState& evs
           , const juce::File& file);
 
+    void refreshRelativePathstoNewEditFile(EditViewState & evs
+                                       , juce::File newFile);
+
     template<typename ClipType>
     typename ClipType::Ptr loopAroundClip (ClipType& clip)
     {
@@ -149,12 +152,12 @@ class FlaggedAsyncUpdater : public juce::AsyncUpdater
 public:
     //==============================================================================
     void markAndUpdate (bool& flag)     { flag = true; triggerAsyncUpdate(); }
-    
+
     bool compareAndReset (bool& flag) noexcept
     {
         if (! flag)
             return false;
-        
+
         flag = false;
         return true;
     }

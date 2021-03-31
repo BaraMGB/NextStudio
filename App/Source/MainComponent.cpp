@@ -14,7 +14,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     setLookAndFeel(&m_nextLookAndFeel);
 
     openValidStartEdit();
-    setupSideBrowser();
+
 
     addAndMakeVisible(m_menuBar);
     addAndMakeVisible(m_editNameLabel);
@@ -64,7 +64,7 @@ void MainComponent::resized()
 
     m_menuBar.setBounds(menu);
     m_editNameLabel.setBounds(menu);
-    
+
     m_header.get()->setBounds(header);
     area.removeFromTop(10);
     auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
@@ -160,14 +160,30 @@ void MainComponent::setupEdit(juce::File editFile)
 
     m_selectionManager.deselectAll();
     m_editComponent = nullptr;
-
     if (editFile.existsAsFile())
         m_edit = te::loadEditFromFile (m_engine, editFile);
     else
         m_edit = te::createEmptyEdit (m_engine, editFile);
 
-    m_edit->editFileRetriever = [editFile] { return editFile; };
+   // m_edit->editFileRetriever = [editFile] { return editFile; };
     m_edit->playInStopEnabled = true;
+//    m_edit->filePathResolver = [this]
+//             (const juce::String& path) -> juce::File
+//    {
+//        jassert (path.isNotEmpty());
+
+//        if (juce::File::isAbsolutePath (path))
+//            return path;
+
+//        if (m_applicationState.m_settingsFile.existsAsFile ())
+//        {
+
+//            return m_applicationState.m_settingsFile.getSiblingFile (path);
+//        }
+//        return {};
+//    };
+
+
 
     auto& transport = m_edit->getTransport();
     transport.addChangeListener (this);
@@ -179,9 +195,10 @@ void MainComponent::setupEdit(juce::File editFile)
     m_editComponent = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
     addAndMakeVisible (*m_editComponent);
     addAndMakeVisible(m_editComponent->lowerRange());
-    m_header = std::make_unique<HeaderComponent>(*m_edit, m_applicationState);
+    m_header = std::make_unique<HeaderComponent>(m_editComponent->getEditViewState (), m_applicationState);
     m_header->addChangeListener (this);
     addAndMakeVisible(*m_header);
+    setupSideBrowser();
     resized ();
 }
 
@@ -204,7 +221,7 @@ bool MainComponent::handleUnsavedEdit()
                     , "Cancel");
         switch (result) {
         case 1 :
-            GUIHelpers::saveEdit (*m_edit
+            GUIHelpers::saveEdit (m_editComponent->getEditViewState ()
                                   , juce::File().createFileWithoutCheckingPath (
                                       m_applicationState.m_workDir));
             return true;

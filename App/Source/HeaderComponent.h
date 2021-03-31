@@ -74,7 +74,7 @@ class HeaderComponent    : public juce::Component
                          , public juce::ChangeBroadcaster
 {
 public:
-    HeaderComponent(te::Edit &, ApplicationViewState & applicationState);
+    HeaderComponent(EditViewState &, ApplicationViewState & applicationState);
     ~HeaderComponent();
 
     void resized() override;
@@ -95,6 +95,7 @@ private:
                        , m_loopButton
                        , m_clickButton;
 
+    EditViewState& m_editViewState;
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
     juce::String m_btn_col { "#dbdbdb" };

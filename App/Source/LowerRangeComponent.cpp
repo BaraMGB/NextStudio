@@ -180,7 +180,10 @@ void LowerRangeComponent::removePluginRackwithTrack(te::Track::Ptr track)
         {
             prc->setVisible (false);
             m_pluginRackComps.removeObject (prc);
-            m_pluginRackComps.getFirst ()->setVisible (true);
+            if (!m_pluginRackComps.isEmpty ())
+            {
+                m_pluginRackComps.getFirst ()->setVisible (true);
+            }
         }
     }
 }

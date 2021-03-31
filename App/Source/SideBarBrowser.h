@@ -531,45 +531,49 @@ public:
       }
       void setFile(juce::File file)
       {
-          te::AudioFile audioFile (m_currentEdit.engine, file);
-          if (audioFile.isValid())
+          if (!file.isDirectory ())
           {
-
-              double oldVolume = -1;
-              if (m_volumeSlider)
+              te::AudioFile audioFile (m_currentEdit.engine, file);
+              if (audioFile.isValid())
               {
-                  oldVolume = m_previewEdit->getMasterVolumePlugin ()
-                                ->volume;
+
+                  double oldVolume = -1;
+                  if (m_volumeSlider)
+                  {
+                      oldVolume = m_previewEdit->getMasterVolumePlugin ()
+                                    ->volume;
+                  }
+                  m_previewEdit = m_currentEdit.createEditForPreviewingFile (
+                              m_currentEdit.engine
+                              , file
+                              , nullptr
+                              , false
+                              , false
+                              , nullptr
+                              , juce::ValueTree());
+                  m_volumeSlider = std::make_unique<juce::Slider>();
+                  m_volumeSlider->addListener (this);
+                  m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
+                  m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
+                  m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+                  m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+
+                  if (oldVolume!=-1)
+                  {
+                      m_previewEdit->getMasterVolumePlugin ()
+                      ->volume = oldVolume;
+                  }
+
+                  m_volumeSlider->setValue (m_previewEdit->getMasterVolumePlugin ()->volume);
+
+                  addAndMakeVisible (*m_volumeSlider);
+                  m_thumbnail = std::make_unique<Thumbnail>(m_previewEdit->getTransport ());
+                  m_thumbnail->setFile (audioFile);
+                  addAndMakeVisible (*m_thumbnail);
+                  resized ();
+                  play ();
               }
-              m_previewEdit = m_currentEdit.createEditForPreviewingFile (
-                          m_currentEdit.engine
-                          , file
-                          , nullptr
-                          , false
-                          , false
-                          , nullptr
-                          , juce::ValueTree());
-              m_volumeSlider = std::make_unique<juce::Slider>();
-              m_volumeSlider->addListener (this);
-              m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
-              m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
-              m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-              m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
 
-              if (oldVolume!=-1)
-              {
-                  m_previewEdit->getMasterVolumePlugin ()
-                  ->volume = oldVolume;
-              }
-
-              m_volumeSlider->setValue (m_previewEdit->getMasterVolumePlugin ()->volume);
-
-              addAndMakeVisible (*m_volumeSlider);
-              m_thumbnail = std::make_unique<Thumbnail>(m_previewEdit->getTransport ());
-              m_thumbnail->setFile (audioFile);
-              addAndMakeVisible (*m_thumbnail);
-              resized ();
-              play ();
           }
       }
 
@@ -739,6 +743,7 @@ public:
       }
       void selectionChanged()                           override
       {
+          std::cout << "selected file: " << m_DirTreeViewBox.getSelectedFile ().getFullPathName () << std::endl;
           previewSampleFile (m_DirTreeViewBox.getSelectedFile ());
       }
       inline void previewSampleFile(const juce::File& file)
@@ -749,6 +754,7 @@ public:
       void fileClicked (
               const juce::File& file, const juce::MouseEvent& event) override
       {
+          std::cout << "file: " << file.getFullPathName () << std::endl;
           if (event.mods.isRightButtonDown ())
           {
               juce::PopupMenu p;

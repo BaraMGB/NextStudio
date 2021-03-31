@@ -238,8 +238,9 @@ double PositionDisplayComponent::draggedNewTime(
 
 //==============================================================================
 
-HeaderComponent::HeaderComponent(te::Edit& edit, ApplicationViewState & applicationState)
-    : m_newButton ("New", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & applicationState)
+    : m_editViewState(evs)
+    , m_newButton ("New", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loadButton ("Load", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_saveButton ("Save", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_pluginsButton ("Plugins", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -249,9 +250,9 @@ HeaderComponent::HeaderComponent(te::Edit& edit, ApplicationViewState & applicat
     , m_playButton ("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loopButton ("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_clickButton ("Metronome", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_edit(edit)
+    , m_edit(evs.m_edit)
     , m_applicationState (applicationState)
-    , m_display (edit)
+    , m_display (m_edit)
 {
     addAndMakeVisible(m_newButton);
     addAndMakeVisible(m_loadButton);
@@ -464,7 +465,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     }
     if (button == &m_saveButton)
     {
-        GUIHelpers::saveEdit (m_edit
+        GUIHelpers::saveEdit (m_editViewState
                               , juce::File::createFileWithoutCheckingPath (
                                   m_applicationState.m_projectsDir));
     }

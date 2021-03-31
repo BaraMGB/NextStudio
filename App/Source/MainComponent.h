@@ -38,6 +38,7 @@ public:
     void setupEdit (juce::File = {});
     void saveSettings();
 
+
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source);
     void createTracksAndAssignInputs();

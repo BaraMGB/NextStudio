@@ -110,10 +110,11 @@ juce::Image GUIHelpers::getImageFromSvg(
 }
 
 void GUIHelpers::saveEdit(
-        tracktion_engine::Edit &edit
+        EditViewState& evs
       , juce::File workDir)
 {
-    auto editfile = te::EditFileOperations(edit).getEditFile ();
+
+    auto editfile = te::EditFileOperations(evs.m_edit).getEditFile ();
     auto file = editfile.getFileName () != "Untitled.tracktionedit"
             ? editfile
             : workDir;
@@ -137,7 +138,19 @@ void GUIHelpers::saveEdit(
     {
         juce::File selectedFile = browser.getSelectedFile (0)
                 .withFileExtension (".tracktionedit");
-        te::EditFileOperations(edit).saveAs (selectedFile);
+
+        //edit.editFileRetriever = [selectedFile] {return selectedFile;};
+        EngineHelpers::refreshRelativePathstoNewEditFile (evs, selectedFile);
+
+//        if (te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false))
+//        {
+//            GUIHelpers::log("saved to : " + selectedFile.getFullPathName ());
+//        }
+//        else
+//        {
+//            GUIHelpers::log("saving failed!");
+//        }
+        te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false);
     }
 }
 
@@ -308,13 +321,37 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
             if (auto newClip = track->insertWaveClip (file.getFileNameWithoutExtension(), file,
             { { 0.0, audioFile.getLength() }, 0.0 }, false))
             {
+                GUIHelpers::log("loading : " + file.getFullPathName ());
+
+                //newClip->state.setProperty (te::IDs::source, file.getFullPathName (), nullptr);
                 return newClip;
             }
         }
-        std::cout << "loading : " << file.getFullPathName () << std::endl;
 
     }
     return {};
+}
+
+void EngineHelpers::refreshRelativePathstoNewEditFile(EditViewState & evs
+                                                , juce::File newEditFile)
+{
+    for (auto t : te::getAudioTracks (evs.m_edit))
+    {
+        for (auto c : t->getClips ())
+        {
+            if (c->state.getProperty (te::IDs::source) != "")
+            {
+                auto source = evs.m_edit.filePathResolver(
+                            c->state.getProperty (te::IDs::source));
+                c->state.setProperty (
+                      te::IDs::source
+                    , source.getRelativePathFrom (
+                                newEditFile.getParentDirectory ())
+                    , nullptr);
+            }
+        }
+    }
+    evs.m_edit.editFileRetriever = [newEditFile] {return newEditFile;};
 }
 
 void EngineHelpers::toggleLoop(tracktion_engine::Edit &edit)

@@ -264,6 +264,7 @@ void TrackComponent::inserWave(juce::File f, double time)
                                                      ,{ { time, time + audioFile.getLength() }, 0.0 }
                                                      , false))
             {
+                //newClip->state.setProperty (te::IDs::source, f.getFullPathName (), nullptr);
                 newClip->setColour(m_track->getColour());
             }
         }
