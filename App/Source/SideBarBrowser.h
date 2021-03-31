@@ -723,7 +723,6 @@ public:
               }
               else if (auto entry = dynamic_cast<PluginListCategorieEntry*>(chooser->getSelectedEntry ()))
               {
-                  std::cout << "PluginList clicked" << std::endl;
                   m_pluginListBox.setVisible (true);
               }
               if (chooser != &m_browserSidepanel.getCategoriesList ())
@@ -743,7 +742,6 @@ public:
       }
       void selectionChanged()                           override
       {
-          std::cout << "selected file: " << m_DirTreeViewBox.getSelectedFile ().getFullPathName () << std::endl;
           previewSampleFile (m_DirTreeViewBox.getSelectedFile ());
       }
       inline void previewSampleFile(const juce::File& file)
@@ -754,7 +752,6 @@ public:
       void fileClicked (
               const juce::File& file, const juce::MouseEvent& event) override
       {
-          std::cout << "file: " << file.getFullPathName () << std::endl;
           if (event.mods.isRightButtonDown ())
           {
               juce::PopupMenu p;

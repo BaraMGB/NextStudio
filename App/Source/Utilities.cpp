@@ -139,17 +139,7 @@ void GUIHelpers::saveEdit(
         juce::File selectedFile = browser.getSelectedFile (0)
                 .withFileExtension (".tracktionedit");
 
-        //edit.editFileRetriever = [selectedFile] {return selectedFile;};
         EngineHelpers::refreshRelativePathstoNewEditFile (evs, selectedFile);
-
-//        if (te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false))
-//        {
-//            GUIHelpers::log("saved to : " + selectedFile.getFullPathName ());
-//        }
-//        else
-//        {
-//            GUIHelpers::log("saving failed!");
-//        }
         te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false);
     }
 }
@@ -305,7 +295,9 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
         EditViewState &evs
       , const juce::File &file)
 {
-    if (auto track = getOrInsertAudioTrackAt (evs.m_edit, tracktion_engine::getAudioTracks(evs.m_edit).size()))
+    if (auto track = getOrInsertAudioTrackAt (
+                          evs.m_edit
+                        , tracktion_engine::getAudioTracks(evs.m_edit).size()))
     {
         removeAllClips (*track);
         auto& random = juce::Random::getSystemRandom();
@@ -316,14 +308,11 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
 
         if (audioFile.isValid())
         {
-            track->deleteRegion ({ 0.0, audioFile.getLength() }
-                                 , &evs.m_selectionManager);
-            if (auto newClip = track->insertWaveClip (file.getFileNameWithoutExtension(), file,
-            { { 0.0, audioFile.getLength() }, 0.0 }, false))
+            if (auto newClip = track->insertWaveClip (
+                        file.getFileNameWithoutExtension(), file,
+            { { 0.0, audioFile.getLength() }, 0.0 }, true))
             {
                 GUIHelpers::log("loading : " + file.getFullPathName ());
-
-                //newClip->state.setProperty (te::IDs::source, file.getFullPathName (), nullptr);
                 return newClip;
             }
         }

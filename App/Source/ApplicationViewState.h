@@ -72,7 +72,6 @@ public:
                     juce::File::userApplicationDataDirectory)
                     .getChildFile ("NextStudio/AppSettings.xml");
         settingsFile.create ();
-        m_settingsFile = settingsFile;
         juce::XmlDocument xmlDoc (settingsFile);
         auto xmlToRead = xmlDoc.getDocumentElement ();
         if (xmlToRead)
@@ -223,14 +222,10 @@ public:
         }
         return currentFileList;
     }
-    juce::File getWorkingDir()
-    {
-        return juce::File().createFileWithoutCheckingPath (m_workDir);
-    }
+
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;
 
-    juce::File                      m_settingsFile;
     juce::CachedValue<juce::String> m_workDir,
                                     m_presetDir,
                                     m_clipsDir,

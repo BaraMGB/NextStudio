@@ -165,25 +165,7 @@ void MainComponent::setupEdit(juce::File editFile)
     else
         m_edit = te::createEmptyEdit (m_engine, editFile);
 
-   // m_edit->editFileRetriever = [editFile] { return editFile; };
     m_edit->playInStopEnabled = true;
-//    m_edit->filePathResolver = [this]
-//             (const juce::String& path) -> juce::File
-//    {
-//        jassert (path.isNotEmpty());
-
-//        if (juce::File::isAbsolutePath (path))
-//            return path;
-
-//        if (m_applicationState.m_settingsFile.existsAsFile ())
-//        {
-
-//            return m_applicationState.m_settingsFile.getSiblingFile (path);
-//        }
-//        return {};
-//    };
-
-
 
     auto& transport = m_edit->getTransport();
     transport.addChangeListener (this);

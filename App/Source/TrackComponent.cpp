@@ -255,20 +255,18 @@ void TrackComponent::inserWave(juce::File f, double time)
     tracktion_engine::AudioFile audioFile(m_editViewState.m_edit.engine, f);
     if (audioFile.isValid() && !(m_track->state.getProperty (IDs::isMidiTrack)))
     {
-        if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(m_track.get()))
+        if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(
+                                                                m_track.get()))
         {
-            audioTrack->deleteRegion ({ time, time + audioFile.getLength() }
-                                      , &m_editViewState.m_selectionManager);
-            if (auto newClip = audioTrack->insertWaveClip(f.getFileNameWithoutExtension()
-                                                     ,f
-                                                     ,{ { time, time + audioFile.getLength() }, 0.0 }
-                                                     , false))
+            if (auto newClip = audioTrack->insertWaveClip(
+                        f.getFileNameWithoutExtension()
+                      , f
+                      , { { time, time + audioFile.getLength() }, 0.0 }
+                      , true))
             {
-                //newClip->state.setProperty (te::IDs::source, f.getFullPathName (), nullptr);
                 newClip->setColour(m_track->getColour());
             }
         }
-
     }
 }
 
