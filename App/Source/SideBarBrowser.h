@@ -239,10 +239,10 @@ public:
             g.fillRect(bounds);
         }
         bounds.reduce(10,0);
-        g.setFont(juce::Font(
-                      m_fontTypeface->getName()
-                    , 12
-                    , juce::Font::FontStyleFlags::plain ));
+//        g.setFont(juce::Font(
+//                      m_fontTypeface->getName()
+//                    , 12
+//                    , juce::Font::FontStyleFlags::plain ));
         g.setColour(textColour);
         g.drawFittedText(
                     m_fileList[rowNum].getFileName ()
@@ -376,10 +376,10 @@ public:
           }
 
           bounds.reduce(10,0);
-          g.setFont(juce::Font(
-                        m_fontTypeface->getName()
-                        , 12
-                        , juce::Font::FontStyleFlags::plain ));
+//          g.setFont(juce::Font(
+//                        m_fontTypeface->getName()
+//                        , 12
+//                        , juce::Font::FontStyleFlags::plain ));
           g.setColour(textColour);
           g.drawFittedText(
                       m_entriesList[rowNum]->name
@@ -442,27 +442,27 @@ public:
           addAndMakeVisible (m_categoriesLabel);
           addAndMakeVisible (m_categoriesList);
 
-          m_categoriesLabel.setFont (juce::Font(
-                                       m_fontTypeface->getName()
-                                     , 12
-                                     , juce::Font::FontStyleFlags::plain));
+//          m_categoriesLabel.setFont (juce::Font(
+//                                       m_fontTypeface->getName()
+//                                     , 12
+//                                     , juce::Font::FontStyleFlags::plain));
           m_categoriesLabel.setColour (
                       juce::Label::backgroundColourId
                     , juce::Colour(0xff171717));
-          m_placesLabel.setFont (juce::Font(
-                                       m_fontTypeface->getName()
-                                     , 12
-                                     , juce::Font::FontStyleFlags::plain));
+//          m_placesLabel.setFont (juce::Font(
+//                                       m_fontTypeface->getName()
+//                                     , 12
+//                                     , juce::Font::FontStyleFlags::plain));
           m_placesLabel.setColour (
                       juce::Label::backgroundColourId
                     , juce::Colour(0xff171717));
           m_placesLabel.setColour (
                       juce::Label::textColourId
                     , juce::Colour(0xffffffff));
-          m_favLabel.setFont (juce::Font(
-                                       m_fontTypeface->getName()
-                                     , 12
-                                     , juce::Font::FontStyleFlags::plain));
+//          m_favLabel.setFont (juce::Font(
+//                                       m_fontTypeface->getName()
+//                                     , 12
+//                                     , juce::Font::FontStyleFlags::plain));
           m_favLabel.setColour (
                       juce::Label::backgroundColourId
                     , juce::Colour(0xff171717));
@@ -567,10 +567,10 @@ public:
               g.fillRect(bounds);
           }
           bounds.reduce(10,0);
-          g.setFont(juce::Font(
-                        m_fontTypeface->getName()
-                      , 12
-                      , juce::Font::FontStyleFlags::plain ));
+//          g.setFont(juce::Font(
+//                        m_fontTypeface->getName()
+//                      , 12
+//                      , juce::Font::FontStyleFlags::plain ));
           g.setColour(textColour);
           g.drawFittedText(
                       m_pluginTypes[rowNum].name

@@ -95,6 +95,20 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
     return false;
 }
 
+void MainComponent::valueTreePropertyChanged(
+        juce::ValueTree &vt
+      , const juce::Identifier &property)
+{
+    if (vt.hasType (IDs::EDITVIEWSTATE))
+    {
+        if (property == te::IDs::name)
+        {
+            m_editNameLabel.setText (m_editComponent->getEditViewState ().m_editName
+                                   , juce::dontSendNotification);
+        }
+    }
+}
+
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
     if (source == m_header.get ())
@@ -160,21 +174,23 @@ void MainComponent::setupEdit(juce::File editFile)
 
     m_selectionManager.deselectAll();
     m_editComponent = nullptr;
+
     if (editFile.existsAsFile())
         m_edit = te::loadEditFromFile (m_engine, editFile);
     else
         m_edit = te::createEmptyEdit (m_engine, editFile);
 
     m_edit->playInStopEnabled = true;
-
     auto& transport = m_edit->getTransport();
     transport.addChangeListener (this);
 
-    m_editNameLabel.setText (editFile.getFileNameWithoutExtension()
-                             , juce::dontSendNotification);
+
     createTracksAndAssignInputs();
     te::EditFileOperations (*m_edit).save (true, true, false);
     m_editComponent = std::make_unique<EditComponent> (*m_edit, m_selectionManager);
+    m_edit->state.addListener (this);
+    m_editNameLabel.setText (m_editComponent->getEditViewState ().m_editName
+                             , juce::dontSendNotification);
     addAndMakeVisible (*m_editComponent);
     addAndMakeVisible(m_editComponent->lowerRange());
     m_header = std::make_unique<HeaderComponent>(m_editComponent->getEditViewState (), m_applicationState);

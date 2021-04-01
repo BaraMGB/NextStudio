@@ -138,8 +138,8 @@ void GUIHelpers::saveEdit(
     {
         juce::File selectedFile = browser.getSelectedFile (0)
                 .withFileExtension (".tracktionedit");
-
         EngineHelpers::refreshRelativePathstoNewEditFile (evs, selectedFile);
+        evs.m_editName = selectedFile.getFileNameWithoutExtension ();
         te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false);
     }
 }

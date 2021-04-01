@@ -25,6 +25,7 @@ namespace te = tracktion_engine;
 class MainComponent   : public juce::Component
                       , public juce::DragAndDropContainer
                       , public juce::ChangeListener
+                      , public te::ValueTreeAllEventListener
 {
 public:
     MainComponent(ApplicationViewState& state);
@@ -33,6 +34,9 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     bool keyPressed(const juce::KeyPress &key) override;
+
+    void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property);
+    void valueTreeChanged(){}
 
     bool handleUnsavedEdit();
     void setupEdit (juce::File = {});
@@ -73,4 +77,5 @@ private:
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
+
 };

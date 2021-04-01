@@ -56,6 +56,7 @@ namespace IDs
     DECLARE_ID (isPianoRollVisible)
     DECLARE_ID (timeLineHeight)
     DECLARE_ID (lastNoteLenght)
+    DECLARE_ID (name)
     #undef DECLARE_ID
 }
 
@@ -98,6 +99,7 @@ public:
         m_snapType.referTo(m_state, IDs::snapType, um, 9);
 
         m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
+        m_editName.referTo(m_state, IDs::name, um, "unknown");
     }
 
     int beatsToX (double beats, int width) const
@@ -209,6 +211,6 @@ public:
     juce::CachedValue<int> m_headerHeight
                          , m_headerWidth
                          , m_timeLineHeight;
-
+    juce::CachedValue<juce::String> m_editName;
     juce::ValueTree m_state;
 };
