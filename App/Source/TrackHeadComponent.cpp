@@ -12,8 +12,8 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
     m_trackName.setText(m_track->getName(), juce::NotificationType::dontSendNotification);
     m_trackName.setJustificationType (juce::Justification::topLeft);
     m_trackName.setColour(juce::Label::textColourId, juce::Colours::white);
-    //m_trackName.setInterceptsMouseClicks(false, false);
-    m_trackName.setEditable (false, true, true);
+    m_trackName.setInterceptsMouseClicks(false, false);
+    m_trackName.setEditable (false, false, true);
 
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
     {
@@ -368,6 +368,10 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 if (event.mods.isCtrlDown ())
                 {
                     m_editViewState.m_selectionManager.addToSelection (m_track);
+                }
+                else if (event.getNumberOfClicks () > 1)
+                {
+                    m_trackName.showEditor ();
                 }
                 else
                 {
