@@ -15,6 +15,7 @@ class TrackHeaderComponent : public juce::Component
                            , public juce::ChangeBroadcaster
                            , public juce::DragAndDropTarget
                            , public juce::Slider::Listener
+                           , public juce::Label::Listener
 {
 public:
     TrackHeaderComponent (EditViewState&, te::Track::Ptr);
@@ -39,6 +40,7 @@ public:
     void itemDropped(const SourceDetails& dragSourceDetails) override;
 
     void sliderValueChanged(juce::Slider *slider) override;
+    void labelTextChanged(juce::Label *labelThatHasChanged);
 private:
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;

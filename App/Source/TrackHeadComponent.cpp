@@ -8,10 +8,12 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
                                          &m_muteButton,
                                          &m_soloButton
                                          });
+    m_trackName.addListener (this);
     m_trackName.setText(m_track->getName(), juce::NotificationType::dontSendNotification);
     m_trackName.setJustificationType (juce::Justification::topLeft);
     m_trackName.setColour(juce::Label::textColourId, juce::Colours::white);
-    m_trackName.setInterceptsMouseClicks(false, false);
+    //m_trackName.setInterceptsMouseClicks(false, false);
+    m_trackName.setEditable (false, true, true);
 
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
     {
@@ -60,6 +62,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 TrackHeaderComponent::~TrackHeaderComponent()
 {
     removeAllChangeListeners ();
+    m_trackName.removeListener (this);
     m_track->state.removeListener (this);
 }
 
@@ -507,5 +510,13 @@ void TrackHeaderComponent::sliderValueChanged(juce::Slider *slider)
         {
             audioTrack->getVolumePlugin ()->volParam->setParameter (slider->getValue (), juce::NotificationType::dontSendNotification);
         }
+    }
+}
+
+void TrackHeaderComponent::labelTextChanged(juce::Label *labelThatHasChanged)
+{
+    if (labelThatHasChanged == &m_trackName)
+    {
+        m_track->setName (labelThatHasChanged->getText ());
     }
 }
