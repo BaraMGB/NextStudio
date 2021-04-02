@@ -17,6 +17,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
     {
+        m_isAudioTrack = true;
         levelMeterComp = std::make_unique<LevelMeterComponent>(audioTrack->getLevelMeterPlugin()->measurer);
         addAndMakeVisible(levelMeterComp.get());
 
@@ -273,43 +274,58 @@ void TrackHeaderComponent::updateMidiInputs()
 
 void TrackHeaderComponent::paint (juce::Graphics& g)
 {
-    auto cornerSize = 5.0f;
-    juce::Rectangle<float> area = getLocalBounds().toFloat();
-    area.reduce(1, 1);
-    auto buttonColour = juce::Colour(0xff4b4b4b);
-    if (!m_editViewState.m_selectionManager.isSelected (m_track))
+    if (m_isDragging)
     {
-        buttonColour = buttonColour.darker (0.4f);
+        childrenSetVisible (false);
+        g.setColour (juce::Colour(0xff2b2b2b));
+        g.fillRect (getLocalBounds ());
     }
-    g.setColour(buttonColour);
-    GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
-
-    juce::Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
-    auto trackColor =  m_track->getColour();
-    g.setColour (trackColor);
-    GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
-
-    if (m_isAboutToResizing)
+    else
     {
-        g.setColour(juce::Colour(0x66ffffff));
-        g.drawRect(getLocalBounds().removeFromBottom(1));
-    }
-    if (m_isResizing)
-    {
-        g.setColour(juce::Colour(0xffffffff));
-        g.drawRect(getLocalBounds().removeFromBottom(3));
-    }
+        childrenSetVisible (true);
+        auto cornerSize = 5.0f;
+        juce::Rectangle<float> area = getLocalBounds().toFloat();
+        area.reduce(1, 1);
+        auto buttonColour = juce::Colour(0xff4b4b4b);
+        if (!m_editViewState.m_selectionManager.isSelected (m_track))
+        {
+            buttonColour = buttonColour.darker (0.4f);
+        }
+        g.setColour(buttonColour);
+        GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
 
-    GUIHelpers::drawFromSvg (g
-                             , m_track->state.getProperty(IDs::isMidiTrack)
-                                ? BinaryData::piano_svg
-                                : BinaryData::waveform_svg
-                             , "#ffffff"
-                             , {20, 5, 20, 20});
-    if (m_isOver)
-    {
-        g.setColour(juce::Colours::white);
-        g.drawRect (getLocalBounds ());
+        juce::Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
+        auto trackColor =  m_track->getColour();
+        g.setColour (trackColor);
+        GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
+
+        if (m_trackIsOver)
+        {
+            g.setColour(juce::Colour(0x66ffffff));
+            g.drawRect(getLocalBounds().removeFromTop(1));
+        }
+        if (m_isAboutToResizing)
+        {
+            g.setColour(juce::Colour(0x66ffffff));
+            g.drawRect(getLocalBounds().removeFromBottom(1));
+        }
+        if (m_isResizing)
+        {
+            g.setColour(juce::Colour(0xffffffff));
+            g.drawRect(getLocalBounds().removeFromBottom(3));
+        }
+
+        GUIHelpers::drawFromSvg (g
+                                 , m_track->state.getProperty(IDs::isMidiTrack)
+                                    ? BinaryData::piano_svg
+                                    : BinaryData::waveform_svg
+                                 , "#ffffff"
+                                 , {20, 5, 20, 20});
+        if (m_contentIsOver)
+        {
+            g.setColour(juce::Colours::white);
+            g.drawRect (getLocalBounds ());
+        }
     }
 }
 
@@ -376,6 +392,7 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 else
                 {
                     m_editViewState.m_selectionManager.selectOnly(m_track);
+                    m_dragImage = createComponentSnapshot (getLocalBounds ());
                 }
 
                 updateMidiInputs ();
@@ -392,23 +409,36 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 
 void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
+
     if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10)
     {
         m_isResizing = true;
         auto newHeight = static_cast<int> (m_trackHeightATMouseDown
-                                        + event.getDistanceFromDragStartY());
+                                           + event.getDistanceFromDragStartY());
 
         m_track->state.setProperty(te::IDs::height
                                    , juce::jlimit(40, 250, newHeight)
                                    , &(m_editViewState.m_edit.getUndoManager()));
     }
-
-
+    else
+    {
+        juce::DragAndDropContainer* dragC =
+                juce::DragAndDropContainer::findParentDragContainerFor(this);
+        if (!dragC->isDragAndDropActive())
+        {
+            dragC->startDragging(
+                        "Track"
+                      , this
+                      , m_dragImage);
+        }
+        m_isDragging = true;
+    }
 }
 
 void TrackHeaderComponent::mouseUp(const juce::MouseEvent &event)
 {
     m_isResizing = false;
+    m_isDragging = false;
     repaint();
 }
 
@@ -465,7 +495,8 @@ juce::Colour TrackHeaderComponent::getTrackColour()
 bool TrackHeaderComponent::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
-    if (dragSourceDetails.description == "PluginListEntry")
+    if (dragSourceDetails.description == "PluginListEntry"
+     || dragSourceDetails.description == "Track")
     {
         return true;
     }
@@ -475,13 +506,21 @@ bool TrackHeaderComponent::isInterestedInDragSource(
 void TrackHeaderComponent::itemDragMove(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
-    m_isOver = true;
+    if (dragSourceDetails.description == "PluginListEntry")
+    {
+        m_contentIsOver = true;
+    }
+    else if (dragSourceDetails.description == "Track")
+    {
+        m_trackIsOver = true;
+    }
     repaint ();
 }
 void TrackHeaderComponent::itemDragExit(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
-    m_isOver = false;
+    m_contentIsOver = false;
+    m_trackIsOver = false;
     repaint();
 }
 void TrackHeaderComponent::itemDropped(
@@ -502,7 +541,19 @@ void TrackHeaderComponent::itemDropped(
             }
         }
     }
-    m_isOver = false;
+    if (dragSourceDetails.description == "Track")
+    {
+        if (auto tc = dynamic_cast<TrackHeaderComponent*>(dragSourceDetails.sourceComponent.get ()))
+        {
+
+            m_editViewState.m_edit.moveTrack (
+                        tc->getTrack ()
+                        , { nullptr
+                          , getTrack ()->getSiblingTrack (-1, false)});
+        }
+    }
+    m_contentIsOver = false;
+    m_trackIsOver = false;
     repaint();
 }
 
@@ -522,5 +573,17 @@ void TrackHeaderComponent::labelTextChanged(juce::Label *labelThatHasChanged)
     if (labelThatHasChanged == &m_trackName)
     {
         m_track->setName (labelThatHasChanged->getText ());
+    }
+}
+
+void TrackHeaderComponent::childrenSetVisible(bool v)
+{
+    if (m_isAudioTrack)
+    {
+        m_armButton.setVisible (v);
+        m_muteButton.setVisible (v);
+        m_soloButton.setVisible (v);
+        m_volumeKnob.setVisible (v);
+        m_trackName.setVisible (v);
     }
 }

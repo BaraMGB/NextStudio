@@ -26,7 +26,7 @@ void PluginRackComponent::buttonClicked(juce::Button* button)
         {
             if (auto plugin = showMenuAndCreatePlugin (track->edit))
                 {
-                    track->pluginList.insertPlugin (plugin, addButtons.indexOf(b), 
+                    track->pluginList.insertPlugin (plugin, addButtons.indexOf(b),
                                                     &editViewState.m_selectionManager);
                 }
                 editViewState.m_selectionManager.selectOnly (track);
@@ -80,7 +80,7 @@ void PluginRackComponent::resized()
     auto firstAdder = new AddButton;
     addButtons.add(firstAdder);
     addAndMakeVisible(*firstAdder);
-    firstAdder->addListener(this);    
+    firstAdder->addListener(this);
     firstAdder->setButtonText("+");
     firstAdder->setBounds(area.removeFromLeft(15));
 
@@ -111,7 +111,7 @@ void PluginRackComponent::handleAsyncUpdate()
 void PluginRackComponent::buildPlugins()
 {
     plugins.clear();
-    
+
     for (auto plugin : track->pluginList)
     {
         //don't show the default volume and levelmeter plugin
@@ -129,7 +129,10 @@ bool PluginRackComponent::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginListEntry")
-    return true;
+    {
+        return true;
+    }
+    return false;
 }
 
 void PluginRackComponent::itemDropped(

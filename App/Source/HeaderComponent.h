@@ -84,6 +84,7 @@ public:
     juce::File loadingFile() const;
 
 private:
+    EditViewState& m_editViewState;
     juce::DrawableButton m_newButton
                        , m_loadButton
                        , m_saveButton
@@ -95,7 +96,6 @@ private:
                        , m_loopButton
                        , m_clickButton;
 
-    EditViewState& m_editViewState;
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
     juce::String m_btn_col { "#dbdbdb" };

@@ -41,6 +41,7 @@ public:
 
     void sliderValueChanged(juce::Slider *slider) override;
     void labelTextChanged(juce::Label *labelThatHasChanged);
+    void childrenSetVisible(bool v);
 private:
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
@@ -62,9 +63,13 @@ private:
     juce::Slider       m_volumeKnob;
     std::unique_ptr<LevelMeterComponent> levelMeterComp;
 
+    juce::Image m_dragImage;
     bool m_isResizing {false},
          m_isAboutToResizing {false},
-         m_isOver {false};
+         m_contentIsOver {false},
+         m_trackIsOver {false},
+         m_isDragging {false},
+         m_isAudioTrack {false};
 
 };
 

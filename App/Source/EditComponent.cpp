@@ -20,15 +20,15 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
 {
     m_edit.state.addListener (this);
     m_editViewState.m_selectionManager.addChangeListener (this);
-    
+
     m_scrollbar_v.setAlwaysOnTop (true);
     m_scrollbar_v.setAutoHide (false);
     m_scrollbar_v.addListener (this);
-    
+
     m_scrollbar_h.setAlwaysOnTop (true);
     m_scrollbar_h.setAutoHide (false);
     m_scrollbar_h.addListener (this);
-    
+
     m_timeLine.setAlwaysOnTop (true);
     m_playhead.setAlwaysOnTop (true);
     m_toolBar.setAlwaysOnTop (true);
@@ -388,6 +388,18 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
         {
             auto f = fileTreeComp->getSelectedFile();
             targetTrack->inserWave(f, dropTime);
+        }
+    }
+    if (dragSourceDetails.description == "Track")
+    {
+        if (auto tc = dynamic_cast<TrackHeaderComponent*>(dragSourceDetails.sourceComponent.get ()))
+        {
+
+            m_editViewState.m_edit.moveTrack (
+                        tc->getTrack ()
+                        , { nullptr
+                          , m_edit.getTrackList ().at
+                                    (m_edit.getTrackList ().size ()-1)});
         }
     }
     setMouseCursor (juce::MouseCursor::NormalCursor);

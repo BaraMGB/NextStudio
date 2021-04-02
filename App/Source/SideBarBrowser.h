@@ -136,6 +136,10 @@ struct FileListCategorieEntry : public CategorieListBoxEntry
     {
         m_applicationViewState.m_applicationStateValueTree.addListener (this);
     }
+    ~FileListCategorieEntry() override
+    {
+        m_applicationViewState.m_applicationStateValueTree.removeListener (this);
+    }
     void updateFileList()
     {
         m_fileList.clear ();

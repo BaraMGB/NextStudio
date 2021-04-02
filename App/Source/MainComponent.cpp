@@ -30,8 +30,8 @@ MainComponent::MainComponent(ApplicationViewState &state)
 
 MainComponent::~MainComponent()
 {
+    m_edit->state.removeListener (this);
     saveSettings();
-
     m_header->removeAllChangeListeners ();
     m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
