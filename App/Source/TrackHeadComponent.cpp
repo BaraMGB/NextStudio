@@ -278,6 +278,10 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
     {
         childrenSetVisible (false);
         g.setColour (juce::Colour(0xff2b2b2b));
+        if (m_trackIsOver)
+        {
+            g.setColour (juce::Colour(0xff4b4b4b));
+        }
         g.fillRect (getLocalBounds ());
     }
     else
@@ -405,33 +409,33 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
     }
 }
 
-
-
 void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
-
-    if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10)
+    if (event.mouseWasDraggedSinceMouseDown ())
     {
-        m_isResizing = true;
-        auto newHeight = static_cast<int> (m_trackHeightATMouseDown
-                                           + event.getDistanceFromDragStartY());
-
-        m_track->state.setProperty(te::IDs::height
-                                   , juce::jlimit(40, 250, newHeight)
-                                   , &(m_editViewState.m_edit.getUndoManager()));
-    }
-    else
-    {
-        juce::DragAndDropContainer* dragC =
-                juce::DragAndDropContainer::findParentDragContainerFor(this);
-        if (!dragC->isDragAndDropActive())
+        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10)
         {
-            dragC->startDragging(
-                        "Track"
-                      , this
-                      , m_dragImage);
+            m_isResizing = true;
+            auto newHeight = static_cast<int> (m_trackHeightATMouseDown
+                                               + event.getDistanceFromDragStartY());
+
+            m_track->state.setProperty(te::IDs::height
+                                       , juce::jlimit(40, 250, newHeight)
+                                       , &(m_editViewState.m_edit.getUndoManager()));
         }
-        m_isDragging = true;
+        else
+        {
+            juce::DragAndDropContainer* dragC =
+                    juce::DragAndDropContainer::findParentDragContainerFor(this);
+            if (!dragC->isDragAndDropActive())
+            {
+                dragC->startDragging(
+                            "Track"
+                          , this
+                          , m_dragImage);
+            }
+            m_isDragging = true;
+        }
     }
 }
 

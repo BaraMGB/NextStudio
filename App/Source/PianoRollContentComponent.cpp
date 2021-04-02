@@ -158,7 +158,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
 
 void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
 {
-    if(e.mods.isLeftButtonDown ())
+    if(e.mods.isLeftButtonDown () && e.mouseWasDraggedSinceMouseDown ())
     {
         auto um = &m_editViewState.m_edit.getUndoManager ();
         auto clickedClip = getMidiclipByPos (m_clickedPos.x);
