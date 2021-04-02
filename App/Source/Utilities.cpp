@@ -51,6 +51,13 @@ void GUIHelpers::changeColor(
             {
                 xmlnode->setAttribute ("fill", color_hex);
             }
+            if (xmlnode->hasAttribute ("style"))
+            {
+               juce::String att = xmlnode->getStringAttribute ("style");
+               xmlnode->setAttribute (
+                         "style"
+                       , att.replaceFirstOccurrenceOf (inputColour, color_hex));
+            }
         }
     }
 }
@@ -321,8 +328,8 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
     return {};
 }
 
-void EngineHelpers::refreshRelativePathstoNewEditFile(EditViewState & evs
-                                                , juce::File newEditFile)
+void EngineHelpers::refreshRelativePathstoNewEditFile(
+        EditViewState & evs, juce::File newEditFile)
 {
     for (auto t : te::getAudioTracks (evs.m_edit))
     {

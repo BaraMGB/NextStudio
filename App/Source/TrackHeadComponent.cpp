@@ -320,7 +320,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                                     ? BinaryData::piano_svg
                                     : BinaryData::waveform_svg
                                  , "#ffffff"
-                                 , {20, 5, 20, 20});
+                                 , {20, 3, 24, 24});
         if (m_contentIsOver)
         {
             g.setColour(juce::Colours::white);

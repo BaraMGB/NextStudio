@@ -25,7 +25,6 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.15);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
-    //setSize(1600, 1000);
 }
 
 MainComponent::~MainComponent()

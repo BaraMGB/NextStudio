@@ -72,7 +72,6 @@ public:
                                         , m_applicationState(applicationSettings)
         {
             setUsingNativeTitleBar (true);
-            setContentOwned (new MainComponent(m_applicationState), true);
 
            #if JUCE_IOS || JUCE_ANDROID
             setFullScreen (true);
@@ -84,6 +83,10 @@ public:
                        , m_applicationState.m_windowHeight);
             setResizable (true, true);
            #endif
+            auto mc = new MainComponent(m_applicationState);
+                       mc->setSize (m_applicationState.m_windowWidth
+                                    , m_applicationState.m_windowHeight);
+            setContentOwned (mc, true);
             setVisible (true);
         }
 

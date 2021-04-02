@@ -47,22 +47,6 @@ void MidiClipComponent::paint (juce::Graphics& g)
     }
 }
 
-void MidiClipComponent::mouseMove(const juce::MouseEvent &e)
-{
-        if (e.getPosition().getX() < 10 && getWidth () > 30)
-        {
-            setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
-        }
-        else if (e.getPosition().getX() > getWidth() - 10 && getWidth () > 30)
-        {
-            setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
-        }
-        else
-        {
-            setMouseCursor(juce::MouseCursor::NormalCursor);
-        }
-}
-
 void MidiClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
     setMouseCursor(juce::MouseCursor::NormalCursor);
