@@ -76,7 +76,6 @@ private:
 
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
     PianoRollComponent m_pianoRollEditor;
-    std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
     SplitterComponent m_splitter;
     const int m_splitterHeight {10};
 

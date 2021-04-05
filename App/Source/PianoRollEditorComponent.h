@@ -3,6 +3,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "TimeLineComponent.h"
+#include "TimelineOverlayComponent.h"
 #include "PlayHeadComponent.h"
 #include "PianoRollContentComponent.h"
 
@@ -40,8 +41,9 @@ private:
     juce::MidiKeyboardState m_keybordstate;
     juce::MidiKeyboardComponent m_keyboard;
     TimeLineComponent m_timeline;
-    std::unique_ptr<PianoRollContentComponent> m_pianoRollContentComponent{nullptr};
-
+    std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
+    std::unique_ptr<PianoRollContentComponent>
+                        m_pianoRollContentComponent{nullptr};
     PlayheadComponent m_playhead;
-
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollComponent)
 };

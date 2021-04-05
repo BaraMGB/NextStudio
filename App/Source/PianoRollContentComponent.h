@@ -22,7 +22,7 @@ public:
         void mouseWheelMove (const juce::MouseEvent &event
                              , const juce::MouseWheelDetails &wheel) override;
         void setKeyWidth(float noteHeight);
-
+        te::Track::Ptr getTrack();
         std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
 private:
         void drawVerticalLines (juce::Graphics& g);

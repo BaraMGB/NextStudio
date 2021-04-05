@@ -2,9 +2,12 @@
 #include "Utilities.h"
 
 TimelineOverlayComponent::TimelineOverlayComponent(
-        EditViewState &evs, tracktion_engine::Track::Ptr track)
+        EditViewState &evs
+      , tracktion_engine::Track::Ptr track
+      , TimeLineComponent& tlc)
     : m_editViewState (evs)
     , m_track(track)
+    , m_timelineComponent(tlc)
 {
     //setInterceptsMouseClicks (false, true);
 }
@@ -78,24 +81,37 @@ void TimelineOverlayComponent::mouseExit(const juce::MouseEvent &e)
 void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_posAtMousedown = e.position;
-
+    if (auto mc = getMidiclipByPos (e.x))
+    {
+        m_cachedClip = mc;
+        m_cachedPos = mc->getPosition ();
+    }
 }
 
 void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
 {
-    if (auto mc = getMidiclipByPos (m_posAtMousedown.x))
+    if (e.mouseWasDraggedSinceMouseDown ())
     {
-        if (m_leftResized)
+        auto offset = e.getMouseDownX () - timeToX (m_cachedPos.getStart ());
+        if (m_cachedClip)
         {
+            if (m_leftResized)
+            {
 
-        }
-        else if (m_rightResized)
-        {
+            }
+            else if (m_rightResized)
+            {
 
-        }
-        else
-        {
-
+            }
+            else
+            {
+                auto newStart = m_editViewState.beatToTime (xToBeats (e.x - offset));
+                auto snaped = m_timelineComponent.getBestSnapType ().roundTimeDown (
+                            newStart, m_editViewState.m_edit.tempoSequence);
+                newStart = e.mods.isShiftDown () ? newStart
+                                                 : snaped;
+                m_cachedClip->setStart (newStart, false, true);
+            }
         }
     }
 }
@@ -116,12 +132,12 @@ std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClips
     return midiClips;
 }
 
-tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiclipByPos(int y)
+tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiclipByPos(int x)
 {
     for (auto & clip : getMidiClipsOfTrack ())
     {
-        if (clip->getStartBeat () < xToBeats (y)
-                &&  clip->getEndBeat () > xToBeats (y))
+        if (clip->getStartBeat () < xToBeats (x)
+                &&  clip->getEndBeat () > xToBeats (x))
         {
             return clip;
         }

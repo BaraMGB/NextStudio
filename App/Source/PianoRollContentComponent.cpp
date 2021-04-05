@@ -441,6 +441,11 @@ void PianoRollContentComponent::setKeyWidth(float noteHeight)
     repaint ();
 }
 
+tracktion_engine::Track::Ptr PianoRollContentComponent::getTrack()
+{
+    return m_track;
+}
+
 int PianoRollContentComponent::beatsToX(double beats)
 {
     return juce::roundToInt (((beats - m_editViewState.m_pianoX1)

@@ -13,7 +13,7 @@
 
 TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::CachedValue<double> &x1, juce::CachedValue<double> &x2, int leftSpace)
     : m_editViewState(evs)
-    , m_mouseDown(false)
+    , m_isMouseDown(false)
     , m_X1(x1)
     , m_X2(x2)
     , m_leftSpace(leftSpace)
@@ -95,9 +95,9 @@ void TimeLineComponent::paint(juce::Graphics& g)
         }
     }
 
-    if (m_mouseDown)
+    if (m_isMouseDown)
     {
-        auto md = beatsToX(m_BeatAtMouseDown) ;
+        auto md = beatsToX(m_cachedBeat) ;
         g.setColour(juce::Colours::white);
         g.fillRect(md + m_leftSpace, 1, 1, getHeight()-1);
     }
@@ -120,15 +120,15 @@ void TimeLineComponent::resized()
 void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 {
     event.source.enableUnboundedMouseMovement(true, false);
-    m_mouseDown = true;
-    m_BeatAtMouseDown = xToBeats(event.getMouseDownPosition().getX() - m_leftSpace);
-    m_x1atMD = m_X1;
-    m_x2atMD = m_X2;
+    m_isMouseDown = true;
+    m_cachedBeat = xToBeats(event.getMouseDownPosition().getX() - m_leftSpace);
+    m_cachedX1 = m_X1;
+    m_cachedX2 = m_X2;
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
     if (event.getNumberOfClicks() > 1)
     {
-        m_editViewState.m_edit.getTransport().setCurrentPosition(m_editViewState.beatToTime(m_BeatAtMouseDown));
+        m_editViewState.m_edit.getTransport().setCurrentPosition(m_editViewState.beatToTime(m_cachedBeat));
     }
 }
 
@@ -142,8 +142,8 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
     // place on the ruler.
     auto visibleLength = std::min(480.0,
                                   std::max (0.12,
-                                            (m_x2atMD - m_x1atMD) / scaleFactor));
-    auto rangeBegin =  std::max (0.0,  m_BeatAtMouseDown - visibleLength * (event.x - m_leftSpace) / (getWidth() - m_leftSpace));
+                                            (m_cachedX2 - m_cachedX1) / scaleFactor));
+    auto rangeBegin =  std::max (0.0,  m_cachedBeat - visibleLength * (event.x - m_leftSpace) / (getWidth() - m_leftSpace));
     rangeBegin = juce::jmin(m_editViewState.getEndScrollBeat () - visibleLength, rangeBegin);
     m_X1 = rangeBegin;
     m_X2 = rangeBegin + visibleLength;
@@ -152,7 +152,7 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 {
-    m_mouseDown = false;
+    m_isMouseDown = false;
     repaint();
 }
 

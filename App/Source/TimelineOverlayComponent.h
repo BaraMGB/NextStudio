@@ -2,13 +2,17 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "TimeLineComponent.h"
 
 namespace te = tracktion_engine;
 
 class TimelineOverlayComponent : public juce::Component
 {
 public:
-    TimelineOverlayComponent(EditViewState& evs, te::Track::Ptr track);
+    TimelineOverlayComponent(
+            EditViewState& evs
+          , te::Track::Ptr track
+          , TimeLineComponent& tlc);
     void paint (juce::Graphics& g) override;
 private:
     bool hitTest(int,int) override;
@@ -18,7 +22,7 @@ private:
     void mouseDrag(const juce::MouseEvent& e) override;
 
     std::vector<te::MidiClip*> getMidiClipsOfTrack();
-    tracktion_engine::MidiClip *getMidiclipByPos(int y);
+    tracktion_engine::MidiClip *getMidiclipByPos(int x);
 
     int timeToX(double time);
     double xToBeats(int x);
@@ -30,5 +34,8 @@ private:
     bool m_leftResized {false};
     bool m_rightResized{false};
     juce::Point<float> m_posAtMousedown;
+    te::ClipPosition m_cachedPos;
+    te::MidiClip * m_cachedClip;
+    TimeLineComponent & m_timelineComponent;
     juce::Array<juce::Rectangle<int>> m_clipRects;
 };

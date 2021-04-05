@@ -63,6 +63,7 @@ void PianoRollComponent::resized()
     auto area = getLocalBounds ();
     auto timeline = area.removeFromTop (m_editViewState.m_timeLineHeight);
     auto keyboard = area.removeFromLeft (50);
+    auto playhead = area.withTrimmedTop ( - m_editViewState.m_timeLineHeight);
 
     double firstVisibleNote = m_editViewState.m_pianoY1;
     double pianoRollNoteWidth = m_editViewState.m_pianorollNoteWidth;
@@ -83,9 +84,13 @@ void PianoRollComponent::resized()
         m_pianoRollContentComponent->setBounds (area);
         m_pianoRollContentComponent->setKeyWidth (m_keyboard.getKeyWidth ());
     }
-    auto playhead = getLocalBounds ();
-    playhead.removeFromLeft (m_keyboard.getWidth ());
     m_playhead.setBounds (playhead);
+    if (m_timelineOverlay)
+    {
+        auto timeline = getLocalBounds ().removeFromTop (m_editViewState.m_timeLineHeight);
+        timeline.removeFromLeft (keyboard.getWidth ());
+        m_timelineOverlay->setBounds (timeline);
+    }
 }
 
 void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
@@ -119,20 +124,30 @@ void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
     }
 }
 
-void PianoRollComponent::setPianoRollClip(std::unique_ptr<PianoRollContentComponent> pianoRollContentComponent)
+void PianoRollComponent::setPianoRollClip(
+        std::unique_ptr<PianoRollContentComponent> pianoRollContentComponent)
 {
     addAndMakeVisible (*pianoRollContentComponent);
     m_pianoRollContentComponent = std::move (pianoRollContentComponent);
+    m_timelineOverlay = std::make_unique<TimelineOverlayComponent>
+            (m_editViewState
+           , m_pianoRollContentComponent->getTrack ()
+           , m_timeline);
+    m_timelineOverlay->setAlwaysOnTop (true);
+    addAndMakeVisible (*m_timelineOverlay);
     resized ();
 }
 
 void PianoRollComponent::clearPianoRollClip()
 {
+    m_timelineOverlay.reset (nullptr);
     m_pianoRollContentComponent.reset (nullptr);
     resized ();
 }
 
-void PianoRollComponent::valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property)
+void PianoRollComponent::valueTreePropertyChanged(
+        juce::ValueTree &treeWhosePropertyHasChanged
+      , const juce::Identifier &property)
 {
     if (treeWhosePropertyHasChanged.hasType (IDs::EDITVIEWSTATE))
     {
