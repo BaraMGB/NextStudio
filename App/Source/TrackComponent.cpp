@@ -296,7 +296,7 @@ bool TrackComponent::keyPressed(const juce::KeyPress &key)
         return true;
     }
 
-    if (key == juce::KeyPress::deleteKey)
+    if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
     {
         EngineHelpers::deleteSelectedClips (m_editViewState);
         return true;

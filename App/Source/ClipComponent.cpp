@@ -80,7 +80,6 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 {
     if (event.mouseWasDraggedSinceMouseDown ())
     {
-        GUIHelpers::log ("MouseDrag");
         te::Clipboard::getInstance()->clear();
         auto clipContent = std::make_unique<te::Clipboard::Clips>();
         auto currentIndex = getTrack (m_clip)->getIndexInEditTrackList ();

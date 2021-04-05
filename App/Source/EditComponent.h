@@ -12,19 +12,6 @@
 
 namespace te = tracktion_engine;
 
-class ToolBarComponent : public juce::Component
-{
-public:
-    ToolBarComponent ();
-
-    void paint (juce::Graphics& g) override;
-
-private:
-
-};
-
-//==============================================================================
-
 class EditComponent : public  juce::Component
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
@@ -78,24 +65,29 @@ private:
 
     void buildTracks();
     
-    juce::OwnedArray<TrackComponent> m_trackComps;
-    juce::OwnedArray<TrackHeaderComponent> m_headers;
-    juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
+    juce::OwnedArray<TrackComponent>        m_trackComps;
+    juce::OwnedArray<TrackHeaderComponent>  m_headers;
+    juce::OwnedArray<PluginRackComponent>   m_pluginRackComps;
 
-    te::Edit& m_edit;
-    EditViewState m_editViewState;
+    te::Edit&                               m_edit;
+    EditViewState                           m_editViewState;
 
-    TimeLineComponent m_timeLine {m_editViewState,
-                  m_editViewState.m_viewX1
-                , m_editViewState.m_viewX2 };
-    juce::ScrollBar m_scrollbar_v, m_scrollbar_h;
-    ToolBarComponent m_toolBar;
-    PlayheadComponent m_playhead { m_edit
-                                 , m_editViewState
-                                 , m_editViewState.m_viewX1
-                                 , m_editViewState.m_viewX2};
-    LowerRangeComponent m_lowerRange { m_editViewState };
+    TimeLineComponent                       m_timeLine {
+                                                m_editViewState
+                                              , m_editViewState.m_viewX1
+                                              , m_editViewState.m_viewX2
+                                              , m_editViewState.m_headerWidth};
+    juce::ScrollBar                         m_scrollbar_v
+                                          , m_scrollbar_h;
+    PlayheadComponent                       m_playhead {
+                                                m_edit
+                                              , m_editViewState
+                                              , m_editViewState.m_viewX1
+                                              , m_editViewState.m_viewX2};
+    juce::String                            m_snapTypeDesc;
+    LowerRangeComponent                     m_lowerRange { m_editViewState };
+    juce::Rectangle<float>                  m_songeditorRect;
 
-    juce::Rectangle<float> m_songeditorRect;
     bool m_updateTracks = false, m_updateZoom = false;
+    void refreshSnaptypeDesc();
 };

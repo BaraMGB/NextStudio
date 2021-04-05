@@ -11,11 +11,12 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TimeLineComponent.h"
 
-TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::CachedValue<double> &x1, juce::CachedValue<double> &x2)
-    : m_state(evs)
+TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::CachedValue<double> &x1, juce::CachedValue<double> &x2, int leftSpace)
+    : m_editViewState(evs)
     , m_mouseDown(false)
     , m_X1(x1)
     , m_X2(x2)
+    , m_leftSpace(leftSpace)
 {
 }
 
@@ -25,10 +26,10 @@ TimeLineComponent::~TimeLineComponent()
 
 void TimeLineComponent::paint(juce::Graphics& g)
 {
-    g.setColour(juce::Colour(0xff1b1b1b));
+    g.setColour(juce::Colour(0xff181818));
     g.fillRect(getLocalBounds());
     g.setColour(juce::Colour(0xff555555));
-    g.drawRect(0, getHeight () - 1, getWidth (), 1);
+    g.drawRect(m_leftSpace, getHeight () - 1, getWidth() - m_leftSpace, 1);
     g.setFont(12);
 
     g.setColour(juce::Colour(0xffffffff));
@@ -41,10 +42,10 @@ void TimeLineComponent::paint(juce::Graphics& g)
         firstBeat++;
     }
 
-    auto pixelPerBeat = getWidth() / zoom;
+    auto pixelPerBeat = (getWidth() - m_leftSpace) / zoom;
     for (int beat = firstBeat - 1; beat <= x2; beat++)
     {
-        const int BeatX = beatsToX(beat) + 1;
+        const int BeatX = m_leftSpace + beatsToX(beat) + 1;
 
         auto zBars = 16;
 
@@ -96,30 +97,38 @@ void TimeLineComponent::paint(juce::Graphics& g)
 
     if (m_mouseDown)
     {
-        auto md = beatsToX(m_BeatAtMouseDown);
-        g.setColour(juce::Colours::white.darker(0.9f));
-        g.fillRect(md-1, 1, 1, getHeight()-1);
+        auto md = beatsToX(m_BeatAtMouseDown) ;
         g.setColour(juce::Colours::white);
-        g.fillRect(md,0,1,getHeight());
-        g.setColour(juce::Colours::white.darker(0.9f));
-        g.fillRect(md+1, 1, 1, getHeight()-1);
-        g.setColour(juce::Colours::white);
+        g.fillRect(md + m_leftSpace, 1, 1, getHeight()-1);
     }
 
+}
+
+void TimeLineComponent::paintOverChildren(juce::Graphics &g)
+{
+    g.setColour (juce::Colour(0xff181818));
+    g.fillRect (0, 0, m_leftSpace, getHeight ());
+    g.setColour (juce::Colour(0xff444444));
+    g.fillRect (m_leftSpace - 1, 0, 1, getHeight ());
+}
+
+void TimeLineComponent::resized()
+{
+    sendChangeMessage ();
 }
 
 void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 {
     event.source.enableUnboundedMouseMovement(true, false);
     m_mouseDown = true;
-    m_BeatAtMouseDown = xToBeats(event.getMouseDownPosition().getX());
+    m_BeatAtMouseDown = xToBeats(event.getMouseDownPosition().getX() - m_leftSpace);
     m_x1atMD = m_X1;
     m_x2atMD = m_X2;
     m_oldDragDistX = 0;
     m_oldDragDistY = 0;
     if (event.getNumberOfClicks() > 1)
     {
-        m_state.m_edit.getTransport().setCurrentPosition(m_state.beatToTime(m_BeatAtMouseDown));
+        m_editViewState.m_edit.getTransport().setCurrentPosition(m_editViewState.beatToTime(m_BeatAtMouseDown));
     }
 }
 
@@ -134,10 +143,11 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
     auto visibleLength = std::min(480.0,
                                   std::max (0.12,
                                             (m_x2atMD - m_x1atMD) / scaleFactor));
-    auto rangeBegin =  std::max (0.0,  m_BeatAtMouseDown - visibleLength * event.x / getWidth());
-    rangeBegin = juce::jmin(m_state.getEndScrollBeat () - visibleLength, rangeBegin);
+    auto rangeBegin =  std::max (0.0,  m_BeatAtMouseDown - visibleLength * (event.x - m_leftSpace) / (getWidth() - m_leftSpace));
+    rangeBegin = juce::jmin(m_editViewState.getEndScrollBeat () - visibleLength, rangeBegin);
     m_X1 = rangeBegin;
     m_X2 = rangeBegin + visibleLength;
+    sendChangeMessage ();
 }
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)
@@ -146,14 +156,32 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent&)
     repaint();
 }
 
+tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
+{
+    return m_editViewState.getBestSnapType (
+                m_X1
+              , m_X2
+              ,(getWidth() - m_leftSpace));
+}
+
 int TimeLineComponent::beatsToX(double beats)
 {
-    return juce::roundToInt (((beats - m_X1) *  getWidth())
+    return juce::roundToInt (((beats - m_X1) *  (getWidth() - m_leftSpace))
                              / (m_X2 - m_X1));
 }
 
 double TimeLineComponent::xToBeats(int x)
 {
-    return (double (x) / getWidth()) * (m_X2 - m_X1) + m_X1;
+    return (double (x) / (getWidth() - m_leftSpace)) * (m_X2 - m_X1) + m_X1;
+}
+
+EditViewState &TimeLineComponent::getEditViewState()
+{
+    return m_editViewState;
+}
+
+int TimeLineComponent::getTimeLineWidth()
+{
+    return getWidth () - m_leftSpace;
 }
 

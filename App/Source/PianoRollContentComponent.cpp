@@ -133,8 +133,11 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                 - clickedClip->getStartBeat ()
                 + clickedClip->getOffsetInBeats ();
 
-        m_editViewState.m_snapType = 7;
-        beat = m_editViewState.getSnapedBeat (beat, true);
+        auto snapType = m_editViewState.getBestSnapType (
+                    m_editViewState.m_pianoX1
+                  , m_editViewState.m_pianoX2
+                  , getWidth ());
+        beat = m_editViewState.getSnapedBeat (beat, snapType, true);
         m_clickedNote = clickedClip->getSequence ().addNote
                 (getNoteNumber (e.position.y)
                  , beat
@@ -170,7 +173,13 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
                 auto oldEndBeat = m_clickedNote->getEndBeat ();
                 auto newRawStartBeat = xToBeats (e.position.x)
                         + m_clickOffset;
-                auto snapedStart = m_editViewState.getSnapedBeat (newRawStartBeat);
+                auto snapType = m_editViewState.getBestSnapType (
+                            m_editViewState.m_pianoX1
+                          , m_editViewState.m_pianoX2
+                          , getWidth ());
+                auto snapedStart = m_editViewState.getSnapedBeat (
+                            newRawStartBeat
+                          , snapType);
                 auto newStart = e.mods.isShiftDown ()
                               ? newRawStartBeat
                               : snapedStart;
@@ -185,7 +194,11 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
                             + clickedClip->getOffsetInBeats ()
                             - clickedClip->getStartBeat ()
                             - oldStart;
-                auto snapedEnd = m_editViewState.getSnapedBeat (newEnd);
+                auto snapType = m_editViewState.getBestSnapType (
+                            m_editViewState.m_pianoX1
+                          , m_editViewState.m_pianoX2
+                          , getWidth ());
+                auto snapedEnd = m_editViewState.getSnapedBeat (newEnd, snapType);
                 m_clickedNote->setStartAndLength (oldStart
                                                   , e.mods.isShiftDown ()
                                                   ? newEnd
@@ -199,7 +212,11 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
             {
                 auto length = m_clickedNote->getLengthBeats ();
                 auto newBeat = xToBeats (e.position.x) + m_clickOffset;
-                auto snapedBeat = m_editViewState.getSnapedBeat (newBeat);
+                auto snapType = m_editViewState.getBestSnapType (
+                            m_editViewState.m_pianoX1
+                          , m_editViewState.m_pianoX2
+                          , getWidth ());
+                auto snapedBeat = m_editViewState.getSnapedBeat (newBeat, snapType);
                 m_clickedNote->setStartAndLength (e.mods.isShiftDown ()
                                                   ? newBeat
                                                   : snapedBeat

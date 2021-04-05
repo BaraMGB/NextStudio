@@ -197,7 +197,8 @@ void EngineHelpers::pasteClipboardToEdit(
       , tracktion_engine::Track::Ptr sourceTrack
       , EditViewState &evs
       , bool removeSource
-      , bool snap)
+      , bool snap
+      , int width)
 {
     auto clipboard = tracktion_engine::Clipboard::getInstance();
     if (clipboard->hasContentWithType<te::Clipboard::Clips>())
@@ -211,7 +212,11 @@ void EngineHelpers::pasteClipboardToEdit(
                 (evs.m_edit, insertPoint, &evs.m_selectionManager);
         const auto xTime = evs.beatToTime(evs.m_viewX1);
         const auto rawTime = juce::jmax(0.0, insertTime - clickOffset + xTime);
-        const auto snapedTime = evs.getSnapedTime (rawTime);
+        auto snapType = evs.getBestSnapType (
+                    evs.m_viewX1
+                  , evs.m_viewX2
+                  , width);
+        const auto snapedTime = evs.getSnapedTime (rawTime, snapType);
         const auto pasteTime = !snap
                 ? rawTime - firstClipTime
                 : snapedTime - firstClipTime;

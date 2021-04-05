@@ -1,22 +1,10 @@
 #include "EditComponent.h"
 
-ToolBarComponent::ToolBarComponent()
-{
-}
-
-void ToolBarComponent::paint(juce::Graphics &g)
-{
-    g.setColour(juce::Colour (0xff181818));
-    g.fillRect (getLocalBounds ());
-    g.setColour(juce::Colour(0xff555555));
-    g.fillRect (getWidth () - 1, 0, 1, getHeight ());
-    g.fillRect (0, getHeight () - 1, getWidth (), 1);
-}
-
-//==============================================================================
-
 EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
-    : m_edit (e), m_editViewState (e, sm), m_scrollbar_v (true), m_scrollbar_h (false)
+    : m_edit (e)
+  , m_editViewState (e, sm)
+  , m_scrollbar_v (true)
+  , m_scrollbar_h (false)
 {
     m_edit.state.addListener (this);
     m_editViewState.m_selectionManager.addChangeListener (this);
@@ -31,13 +19,13 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
 
     m_timeLine.setAlwaysOnTop (true);
     m_playhead.setAlwaysOnTop (true);
-    m_toolBar.setAlwaysOnTop (true);
 
     addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_scrollbar_v);
     addAndMakeVisible (m_scrollbar_h);
     addAndMakeVisible (m_playhead);
-    addAndMakeVisible (m_toolBar);
+
+    m_timeLine.addChangeListener (this);
 
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
@@ -48,6 +36,7 @@ EditComponent::~EditComponent()
 {
     m_editViewState.m_selectionManager.removeChangeListener (this);
     m_edit.state.removeListener (this);
+    m_timeLine.removeChangeListener (this);
 }
 
 void EditComponent::paint (juce::Graphics &g)
@@ -65,63 +54,38 @@ void EditComponent::paint (juce::Graphics &g)
 
 void EditComponent::paintOverChildren(juce::Graphics &g)
 {
-    auto size = 20;
-    auto area = getLocalBounds ();
+    g.setColour (juce::Colour(0xff181818));
+    g.fillRect (
+                0
+              , getHeight () - 20
+              , getWidth ()
+              , 20);
+    g.setColour (juce::Colour(0xffffffff));
+    g.drawText (m_snapTypeDesc
+              , getWidth () - 100
+              , getHeight () -20
+              , 90
+              , 20
+              , juce::Justification::centredRight);
     g.setColour(juce::Colour(0xff555555));
-    juce::Path topLeft;
 
-    topLeft.addArc (area.getX(),area.getY(), size, size
-              , juce::MathConstants<float>::pi * 1.5f
-              , juce::MathConstants<float>::pi * 2.0f
-              , true);
-    topLeft.lineTo (area.getX(),area.getY());
-    topLeft.closeSubPath ();
-    g.fillPath (topLeft);
+    juce::Path fakeRoundedCorners;
+    auto bounds = getLocalBounds (); //your component's bounds
 
-    juce::Path topRight;
-    topRight.addArc (area.getWidth () - size, area.getY (), size, size
-              , juce::MathConstants<float>::pi * 2.0f
-              , juce::MathConstants<float>::pi * 2.5f
-              , true);
-    topRight.lineTo (area.getWidth (), area.getY ());
-    topRight.closeSubPath ();
-    g.fillPath (topRight);
+    const float cornerSize = 10.f; //desired corner size
+    fakeRoundedCorners.addRectangle(bounds); //What you start with
+    fakeRoundedCorners.setUsingNonZeroWinding(false); //The secret sauce
+    fakeRoundedCorners.addRoundedRectangle(bounds, cornerSize); //subtract this shape
 
-    juce::Path bottomRight;
-    bottomRight.addArc (
-                area.getWidth () - size
-              , m_songeditorRect.getHeight ()
-                + m_editViewState.m_timeLineHeight - size
-              , size, size
-              , juce::MathConstants<float>::pi * 2.5f
-              , juce::MathConstants<float>::pi * 3.0f
-              , true);
-    bottomRight.lineTo (
-                area.getWidth ()
-              , m_songeditorRect.getHeight () + m_editViewState.m_timeLineHeight);
-    bottomRight.closeSubPath ();
-    g.fillPath (bottomRight);
-
-    juce::Path bottomLeft;
-    bottomLeft.addArc (
-                area.getX ()
-              , m_songeditorRect.getHeight () + m_editViewState.m_timeLineHeight - size
-              , size, size
-              , juce::MathConstants<float>::pi * 3.0f
-              , juce::MathConstants<float>::pi * 3.5f
-              , true);
-    bottomLeft.lineTo (
-                area.getX ()
-              , m_songeditorRect.getHeight () + m_editViewState.m_timeLineHeight);
-    bottomLeft.closeSubPath ();
-    g.fillPath (bottomLeft);
+    g.fillPath(fakeRoundedCorners);
+    g.drawRect (0, getHeight () - 20, getWidth (), 1);
 }
 
 
 void EditComponent::resized()
 {
     jassert (m_headers.size() == m_trackComps.size());
-    const int timelineHeight = 50;
+    const int timelineHeight = m_editViewState.m_timeLineHeight;
     const int trackGap = 0;
     const int headerWidth = m_editViewState.m_showHeaders
                           ? m_editViewState.m_headerWidth
@@ -152,8 +116,7 @@ void EditComponent::resized()
 
     m_playhead.setBounds (
                 area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
-    m_timeLine.setBounds(m_playhead.getBounds().removeFromTop(timelineHeight));
-    m_toolBar.setBounds (0, 0, headerWidth, timelineHeight);
+    m_timeLine.setBounds(getLocalBounds ().removeFromTop(timelineHeight));
 
     auto songeditorHeight = getHeight() - timelineHeight;// - lowerRange;
     area.removeFromTop (timelineHeight);
@@ -162,12 +125,13 @@ void EditComponent::resized()
     m_scrollbar_v.setRangeLimits (0, trackHeights + (songeditorHeight/2));
     m_scrollbar_v.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
 
-    m_scrollbar_h.setBounds (headerWidth, songeditorHeight + timelineHeight - 20
+    m_scrollbar_h.setBounds (headerWidth, songeditorHeight + timelineHeight - 20 - 20
                              , getWidth () - headerWidth, 20);
     m_scrollbar_h.setRangeLimits (
                 {0.0, m_editViewState.getEndScrollBeat ()});
     m_scrollbar_h.setCurrentRange ({m_editViewState.m_viewX1
                                   , m_editViewState.m_viewX2});
+
 }
 
 void EditComponent::mouseDown(const juce::MouseEvent &event)
@@ -271,7 +235,7 @@ void EditComponent::itemDragMove(
     turnoffAllTrackOverlays();
 
     const auto dropPos = dragSourceDetails.localPosition;
-    const auto songEditorWidth = m_timeLine.getWidth ();
+    const auto songEditorWidth = m_timeLine.getTimeLineWidth ();
     auto targetTrackComp = getTrackComp (dropPos.getY ());
     auto draggedClip = dynamic_cast<ClipComponent*>(
                 dragSourceDetails.sourceComponent.get ());
@@ -326,10 +290,15 @@ void EditComponent::itemDragMove(
                     auto insertPos = dropPos.getX ()
                                    - draggedClip->getClipPosOffsetX ()
                                    - m_editViewState.m_headerWidth;
+                    auto snapType = m_editViewState.getBestSnapType (
+                                m_editViewState.m_viewX1
+                              , m_editViewState.m_viewX2
+                              , songEditorWidth);
                     insertPos = draggedClip->isShiftDown ()
                               ? insertPos
                               : m_editViewState.snapedX (insertPos
-                                                         , songEditorWidth);
+                                                       , songEditorWidth
+                                                       , snapType);
                     target->getTrackOverlay ().addOverlayImageList (imageList);
                     target->getTrackOverlay ()
                             .drawImages (insertPos);
@@ -371,17 +340,19 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
         if (auto clipComp = dynamic_cast<ClipComponent*>
                 (dragSourceDetails.sourceComponent.get()))
         {
-            auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
-            auto offset = clipComp->getClickPosTime ();
-            auto removeSource = !clipComp->isCtrlDown ();
-            auto snap = !clipComp->isShiftDown ();
+            const auto songEditorWidth = m_timeLine.getTimeLineWidth ();
+            const auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
+            const auto offset = clipComp->getClickPosTime ();
+            const auto removeSource = !clipComp->isCtrlDown ();
+            const auto snap = !clipComp->isShiftDown ();
             EngineHelpers::pasteClipboardToEdit (firstClipTime
                                                , offset
                                                , dropTime
                                                , targetTrack->getTrack ()
                                                , m_editViewState
                                                , removeSource
-                                               , snap);
+                                               , snap
+                                               , songEditorWidth);
         }
         if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
                 (dragSourceDetails.sourceComponent.get()))
@@ -481,8 +452,20 @@ void EditComponent::handleAsyncUpdate()
 }
 
 
+void EditComponent::refreshSnaptypeDesc()
+{
+    const auto snapType = m_timeLine.getBestSnapType ();
+    const auto snapTypeDesc = m_timeLine.getEditViewState ()
+                                .getSnapTypeDescription (snapType.level);
+    m_snapTypeDesc = snapTypeDesc;
+}
+
 void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
+    if (source == &m_timeLine)
+    {
+        refreshSnaptypeDesc();
+    }
     repaint();
 }
 

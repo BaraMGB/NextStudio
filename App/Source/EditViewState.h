@@ -134,11 +134,14 @@ public:
         return m_edit.tempoSequence.timeToBeats (t);
     }
 
-    double getSnapedTime (double t, bool downwards = false) const
+    double getSnapedTime (
+            double t
+          , te::TimecodeSnapType snapType
+          , bool downwards = false) const
     {
         auto & transport = m_edit.getTransport ();
         auto & temposequ = m_edit.tempoSequence;
-        transport.setSnapType ({te::TimecodeType::barsBeats, m_snapType});
+        transport.setSnapType ({te::TimecodeType::barsBeats, snapType.getLevel ()});
         return downwards
                 ? transport.getSnapType ()
                   .roundTimeDown (t, temposequ)
@@ -146,28 +149,29 @@ public:
                   .roundTimeNearest (t, temposequ);
     }
 
-    double getSnapedBeat (double beat, bool downwards = false) const
+    double getSnapedBeat (double beat, te::TimecodeSnapType snapType, bool downwards = false) const
     {
-        return timeToBeat (getSnapedTime (beatToTime (beat), downwards));
+        return timeToBeat (getSnapedTime (beatToTime (beat), snapType, downwards));
     }
 
-    int snapedX (int x, int width)
+    int snapedX (int x, int width, te::TimecodeSnapType snapType)
     {
         auto insertTime = xToTime (x, width);
-        auto snapedTime = getSnapedTime (insertTime);
+        auto snapedTime = getSnapedTime (insertTime, snapType);
         return timeToX (snapedTime, width);
     }
 
-    te::TimecodeSnapType getBestSnapType(bool forPianoRoll, int width)
+    te::TimecodeSnapType getBestSnapType(double beat1, double beat2, int width)
     {
-        double x1 = forPianoRoll ? m_pianoX1 : m_viewX1;
-        double x2 = forPianoRoll ? m_pianoX2 : m_viewX2;
+        double x1 = beatToTime (beat1);
+        double x2 = beatToTime (beat2);
 
+        auto pos = m_edit.getTransport ().getCurrentPosition ();
         te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat ()
                 .getBestSnapType (
-                    m_edit.tempoSequence.getTempoAt (
-                        m_edit.getTransport ().getCurrentPosition ())
-                    , beatToTime ((x2 - x1)/ width), false);
+                    m_edit.tempoSequence.getTempoAt (pos)
+                    , (x2 - x1) / width
+                    , false);
         return snaptype;
     }
 

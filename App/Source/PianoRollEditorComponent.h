@@ -11,11 +11,13 @@ namespace te = tracktion_engine;
 class PianoRollComponent : public juce::Component
                          , public juce::MidiKeyboardStateListener
                          , public te::ValueTreeAllEventListener
+                         , public juce::ChangeListener
 {
 public:
     PianoRollComponent (EditViewState&);
     ~PianoRollComponent() override;
 
+    void paintOverChildren(juce::Graphics &g);
     void focusLost (juce::Component::FocusChangeType cause) override;
     void focusGained (juce::Component::FocusChangeType cause) override;
     void resized () override;
@@ -31,6 +33,7 @@ public:
           , const juce::Identifier &property);
     void valueTreeChanged(){}
 
+    void changeListenerCallback(juce::ChangeBroadcaster *source);
 
 private:
     EditViewState& m_editViewState;
@@ -40,7 +43,5 @@ private:
     std::unique_ptr<PianoRollContentComponent> m_pianoRollContentComponent{nullptr};
 
     PlayheadComponent m_playhead;
-
-
 
 };
