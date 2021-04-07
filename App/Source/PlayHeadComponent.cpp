@@ -36,7 +36,7 @@ void PlayheadComponent::mouseUp (const juce::MouseEvent&)
 
 int PlayheadComponent::beatsToX(double beats)
 {
-    return juce::roundToInt (((beats - m_X1) *  getWidth())
+    return juce::roundToIntAccurate (((beats - m_X1) *  getWidth())
                              / (m_X2 - m_X1));
 }
 

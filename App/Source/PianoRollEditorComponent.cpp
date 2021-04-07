@@ -19,14 +19,12 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
     addAndMakeVisible (m_playhead);
     m_timeline.setAlwaysOnTop (true);
     m_playhead.setAlwaysOnTop (true);
-    m_timeline.addChangeListener (this);
 }
 
 PianoRollComponent::~PianoRollComponent()
 {
     m_editViewState.m_edit.state.removeListener (this);
     m_keybordstate.removeListener (this);
-    m_timeline.removeChangeListener (this);
 }
 
 void PianoRollComponent::paintOverChildren(juce::Graphics &g)
@@ -158,9 +156,4 @@ void PianoRollComponent::valueTreePropertyChanged(
             resized ();
         }
     }
-}
-
-void PianoRollComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
-{
-    repaint ();
 }

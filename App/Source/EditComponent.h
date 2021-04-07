@@ -15,7 +15,6 @@ namespace te = tracktion_engine;
 class EditComponent : public  juce::Component
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
-                    , private juce::ChangeListener
                     , private juce::ScrollBar::Listener
                     , public juce::DragAndDropTarget
 {
@@ -60,8 +59,6 @@ private:
                                 , int) override;
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
     void handleAsyncUpdate() override;
-
-    void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
     void buildTracks();
     

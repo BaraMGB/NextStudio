@@ -77,9 +77,9 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
                 //draw ClipRange
                 auto clipStartX = beatsToX (midiClip->getStartBeat ());
                 auto clipLengthX = beatsToX (midiClip->getEndBeat ());
-                g.setColour (midiClip->getTrack ()->getColour ());
+                g.setColour (midiClip->getColour ());
                 g.drawRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight ());
-                g.setColour (midiClip->getTrack ()->getColour ().withAlpha (0.2f));
+                g.setColour (midiClip->getColour ().withAlpha (0.2f));
                 g.fillRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight ());
                   //visualize clip Offset
 //                auto clipOffset = beatsToX (midiClip->getStartBeat () - midiClip->getOffsetInBeats ());
@@ -448,7 +448,7 @@ tracktion_engine::Track::Ptr PianoRollContentComponent::getTrack()
 
 int PianoRollContentComponent::beatsToX(double beats)
 {
-    return juce::roundToInt (((beats - m_editViewState.m_pianoX1)
+    return juce::roundToIntAccurate (((beats - m_editViewState.m_pianoX1)
                               *  getWidth())
                              / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
 }

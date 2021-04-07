@@ -104,7 +104,7 @@ public:
 
     int beatsToX (double beats, int width) const
     {
-        return juce::roundToInt (((beats - m_viewX1) * width)
+        return juce::roundToIntAccurate (((beats - m_viewX1) * width)
                                  / (m_viewX2 - m_viewX1));
     }
 

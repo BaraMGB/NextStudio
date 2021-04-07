@@ -7,7 +7,6 @@
 namespace te = tracktion_engine;
 
 class TimeLineComponent : public juce::Component
-                        , public juce::ChangeBroadcaster
 {
 public:
     TimeLineComponent(EditViewState&
@@ -18,7 +17,6 @@ public:
 
     void paint(juce::Graphics& g) override;
     void paintOverChildren(juce::Graphics& g) override;
-    void resized() override;
     void mouseDown(const juce::MouseEvent& event) override;
     void mouseDrag(const juce::MouseEvent& event) override;
     void mouseUp(const juce::MouseEvent& event) override;

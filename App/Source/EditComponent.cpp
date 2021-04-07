@@ -7,7 +7,6 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
   , m_scrollbar_h (false)
 {
     m_edit.state.addListener (this);
-    m_editViewState.m_selectionManager.addChangeListener (this);
 
     m_scrollbar_v.setAlwaysOnTop (true);
     m_scrollbar_v.setAutoHide (false);
@@ -25,8 +24,6 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     addAndMakeVisible (m_scrollbar_h);
     addAndMakeVisible (m_playhead);
 
-    m_timeLine.addChangeListener (this);
-
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
                 te::getAllTracks (m_edit).getLast ());
@@ -34,9 +31,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
 
 EditComponent::~EditComponent()
 {
-    m_editViewState.m_selectionManager.removeChangeListener (this);
     m_edit.state.removeListener (this);
-    m_timeLine.removeChangeListener (this);
 }
 
 void EditComponent::paint (juce::Graphics &g)
@@ -445,9 +440,9 @@ void EditComponent::handleAsyncUpdate()
         buildTracks();
     if (compareAndReset (m_updateZoom))
     {
+        refreshSnaptypeDesc ();
+        repaint ();
         resized();
-        getParentComponent()->resized();
-        m_timeLine.repaint ();
     }
 }
 
@@ -460,14 +455,7 @@ void EditComponent::refreshSnaptypeDesc()
     m_snapTypeDesc = snapTypeDesc;
 }
 
-void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
-{
-    if (source == &m_timeLine)
-    {
-        refreshSnaptypeDesc();
-    }
-    repaint();
-}
+
 
 tracktion_engine::AudioTrack::Ptr EditComponent::addAudioTrack(
         bool isMidiTrack
@@ -541,10 +529,7 @@ void EditComponent::buildTracks()
 
             auto pluginrack = new PluginRackComponent (m_editViewState, t);
             m_lowerRange.addPluginRackComp(pluginrack);
-
             trackheader->addChangeListener (&m_lowerRange);
-            trackheader->addChangeListener (this);
-
         }
     }
 

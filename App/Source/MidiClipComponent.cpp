@@ -3,7 +3,9 @@
 MidiClipComponent::MidiClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : ClipComponent (evs, c)
 {
-    setBufferedToImage(true);
+    //setBufferedToImage(true);
+    setPaintingIsUnclipped(true);
+
 }
 
 MidiClipComponent::~MidiClipComponent()
@@ -30,17 +32,17 @@ void MidiClipComponent::paint (juce::Graphics& g)
                 double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
                 if (auto p = getParentComponent())
                 {
-                    double y = ((1.0 - double(n->getNoteNumber()) / 127.0)
+                    int y = juce::roundToIntAccurate (((1.0 - double(n->getNoteNumber()) / 127.0)
                                 * (getHeight() - clipHeader)
-                                + clipHeader);
+                                + clipHeader));
 
-                    auto x1 = m_editViewState.beatsToX(
+                    int x1 = m_editViewState.beatsToX(
                                 sBeat + m_editViewState.m_viewX1, p->getWidth());
-                    auto x2 = m_editViewState.beatsToX(
+                    int x2 = m_editViewState.beatsToX(
                                 eBeat + m_editViewState.m_viewX1, p->getWidth());
 
                     g.setColour(juce::Colours::white);
-                    g.drawLine(float(x1), float(y), float(x2), float(y));
+                    g.drawLine(x1, y, x2, y );
                 }
             }
         }

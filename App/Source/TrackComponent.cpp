@@ -171,7 +171,6 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
             || i == IDs::viewX2
             || i == IDs::viewY)
         {
-            repaint();
             //markAndUpdate (updatePositions);
         }
     }

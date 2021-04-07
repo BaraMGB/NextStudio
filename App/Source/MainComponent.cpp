@@ -105,6 +105,11 @@ void MainComponent::valueTreePropertyChanged(
             m_editNameLabel.setText (m_editComponent->getEditViewState ().m_editName
                                    , juce::dontSendNotification);
         }
+        if (property == IDs::pianorollHeight
+        || property == IDs::isPianoRollVisible)
+        {
+            resized ();
+        }
     }
 }
 

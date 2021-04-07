@@ -112,11 +112,6 @@ void TimeLineComponent::paintOverChildren(juce::Graphics &g)
     g.fillRect (m_leftSpace - 1, 0, 1, getHeight ());
 }
 
-void TimeLineComponent::resized()
-{
-    sendChangeMessage ();
-}
-
 void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 {
     event.source.enableUnboundedMouseMovement(true, false);
@@ -147,7 +142,7 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
     rangeBegin = juce::jmin(m_editViewState.getEndScrollBeat () - visibleLength, rangeBegin);
     m_X1 = rangeBegin;
     m_X2 = rangeBegin + visibleLength;
-    sendChangeMessage ();
+
 }
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)
@@ -166,7 +161,7 @@ tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
 
 int TimeLineComponent::beatsToX(double beats)
 {
-    return juce::roundToInt (((beats - m_X1) *  (getWidth() - m_leftSpace))
+    return juce::roundToIntAccurate (((beats - m_X1) *  (getWidth() - m_leftSpace))
                              / (m_X2 - m_X1));
 }
 

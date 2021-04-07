@@ -4,23 +4,30 @@ AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : ClipComponent (evs, c)
 {
     updateThumbnail ();
+    setPaintingIsUnclipped(true);
 }
 
 void AudioClipComponent::paint (juce::Graphics& g)
 {
     ClipComponent::paint (g);
 
-    auto viewportOffset = -(m_editViewState.timeToX(0, getParentComponent()->getWidth()));
+    auto viewportOffset = -(m_editViewState.timeToX(
+                                0
+                              , getParentComponent()->getWidth()));
 
     auto viewportEndX =  getParentComponent()->getWidth();
-    auto clipstartX = m_editViewState.timeToX(m_clip->getPosition().getStart(), getParentComponent()->getWidth());
+    auto clipstartX = m_editViewState.timeToX(
+                m_clip->getPosition().getStart()
+              , getParentComponent()->getWidth());
     auto clipendX = clipstartX + getWidth();
 
     auto left = clipstartX < 0 ? -clipstartX : 0;
     auto right = clipendX > viewportEndX ? clipendX - viewportEndX : 0;
 
+
     if (m_editViewState.m_drawWaveforms && thumbnail != nullptr)
     {
+
         drawWaveform(g
                      , *getWaveAudioClip()
                      , *thumbnail
@@ -31,7 +38,6 @@ void AudioClipComponent::paint (juce::Graphics& g)
                      , getHeight() - 14
                      , viewportOffset);
     }
-
 }
 
 void AudioClipComponent::resized()
