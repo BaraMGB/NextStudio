@@ -103,6 +103,7 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
             m_lastOffset = 0.0;
         }
         m_oldDistTime = distanceTime;
+        m_updateRegion = true;
     }
     //shrink right
     else if (m_mouseDownX > m_clipWidthMouseDown - 10 && m_clipWidthMouseDown > 30)
@@ -115,6 +116,7 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
                     m_posAtMouseDown.getEnd ()
                   , snapType);
         m_clip->setEnd(snapedTime + distanceTime, true);
+        m_updateRegion = true;
     }
     else
     {

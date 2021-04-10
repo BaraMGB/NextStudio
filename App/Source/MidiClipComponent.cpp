@@ -97,6 +97,7 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
             : m_editViewState.getSnapedTime (
                   m_editViewState.beatToTime(
                       distanceBeats  - m_editViewState.m_viewX1), snapType);
+    //adjust start
     if (m_mouseDownX < 10 && m_clipWidthMouseDown > 30)
     {
         auto distTimeDelta = distanceTime - m_oldDistTime;
@@ -138,7 +139,9 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
             m_posAtMouseDown = m_clip->getPosition();
         }
         m_oldDistTime = distanceTime;
+        m_updateRegion = true;
     }
+    //adjust end
     else if (m_mouseDownX > m_clipWidthMouseDown - 10
              && m_clipWidthMouseDown > 30)
     {
@@ -150,6 +153,7 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
                     m_posAtMouseDown.getEnd ()
                   , snapType);
         m_clip->setEnd(snapedTime + distanceTime, true);
+        m_updateRegion = true;
     }
     else
     {

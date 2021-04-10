@@ -32,6 +32,7 @@ public:
 protected:
     EditViewState& m_editViewState;
     te::Clip::Ptr m_clip;
+    bool m_updateRegion{false};
 
     void showContextMenu();
 private:

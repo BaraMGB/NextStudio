@@ -129,12 +129,15 @@ void ClipComponent::mouseUp(const juce::MouseEvent& event)
     {
         m_editViewState.m_selectionManager.selectOnly (m_clip);
     }
-    auto track = getClip ()->getClipTrack ();
-    track->deleteRegion (
-                getClip ()->getPosition ().time
-              , &m_editViewState.m_selectionManager);
-    track->addClip (getClip ());
-
+    if (m_updateRegion)
+    {
+        m_updateRegion = false;
+        auto track = getClip ()->getClipTrack ();
+        track->deleteRegion (
+                    getClip ()->getPosition ().time
+                    , &m_editViewState.m_selectionManager);
+        track->addClip (getClip ());
+    }
 }
 
 tracktion_engine::Track::Ptr ClipComponent::getTrack(tracktion_engine::Clip::Ptr clip)
