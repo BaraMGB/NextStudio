@@ -13,27 +13,25 @@ PianoRollContentComponent::~PianoRollContentComponent()
 
 void PianoRollContentComponent::paint(juce::Graphics &g)
 {
-    int firstNote = m_editViewState.m_pianoY1;
-    float noteHeight = m_keyWidth * 7 / 12;
-
+    float firstNote = m_editViewState.m_pianoY1;
+    //float noteHeight = m_keyWidth * 7 / 12;
+    auto noteHeight = (double) m_editViewState.m_pianorollNoteWidth;
     //draw horizontal Lines
+    float lastNote = ((float) getHeight () / noteHeight) + firstNote;
+    auto area = getLocalBounds ();
+    auto firstNoteHeight = noteHeight - (noteHeight * (firstNote - (int) firstNote));
+    auto firstNoteRect = area.removeFromBottom (firstNoteHeight);
+    g.setColour (juce::MidiMessage::isMidiNoteBlack (firstNote)
+            ? juce::Colour(0x11ffffff)
+            : juce::Colour(0x22ffffff));
+    g.fillRect (firstNoteRect.reduced(0,1));
 
-    float line = getHeight ();
-    int lastNote = (getHeight () / noteHeight) + firstNote;
-
-    for (auto i = firstNote; i <= lastNote; i++)
+    for (auto i = (int) firstNote + 1; i <= lastNote; i++)
     {
-        line = line - noteHeight  ;
-        if (juce::MidiMessage::isMidiNoteBlack (i))
-        {
-           g.setColour (juce::Colour(0x11ffffff));
-        }
-        else
-        {
-            g.setColour (juce::Colour(0x22ffffff));
-        }
-        juce::Rectangle<float> lineRect = {0.0, line, (float) getWidth (), noteHeight};
-        g.fillRect(lineRect.reduced (0, 1));
+        g.setColour (juce::MidiMessage::isMidiNoteBlack (i)
+                ? juce::Colour(0x11ffffff)
+                : juce::Colour(0x22ffffff));
+        g.fillRect (area.removeFromBottom (noteHeight).reduced (0, 1));
     }
 
     g.setColour (juce::Colours::black);
@@ -279,10 +277,7 @@ void PianoRollContentComponent::mouseMove(const juce::MouseEvent &e)
             }
         }
     }
-//    for (auto &mc : getMidiClipsOfTrack ())
-//    {
-
-//    }
+    getParentComponent ()->mouseMove (e);
     repaint ();
 }
 
@@ -323,12 +318,12 @@ void PianoRollContentComponent::mouseWheelMove(const juce::MouseEvent &event
 //    }
     else
     {
-        auto deltaY1 = wheel.deltaY >= 0 ? 1 : -1;
+        double deltaY1 = wheel.deltaY >= 0 ? 3 : -3;
         m_editViewState.m_pianoY1 =
-                juce::jlimit(0
-                           , 127 - (int) (getHeight ()
+                juce::jlimit(0.0
+                           , 127.0 - (getHeight ()
                                 / m_editViewState.m_pianorollNoteWidth)
-                           , m_editViewState.m_pianoY1 + deltaY1);
+                           , (double) m_editViewState.m_pianoY1 + deltaY1);
     }
 }
 

@@ -19,6 +19,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
     addAndMakeVisible (m_playhead);
     m_timeline.setAlwaysOnTop (true);
     m_playhead.setAlwaysOnTop (true);
+    //setRepaintsOnMouseActivity (true);
 }
 
 PianoRollComponent::~PianoRollComponent()
@@ -46,6 +47,13 @@ void PianoRollComponent::paintOverChildren(juce::Graphics &g)
               , 90
               , 20
               , juce::Justification::centredRight);
+
+    g.drawText (m_NoteDescUnderCursor
+              , getWidth () - 200
+              , getHeight () - 20
+              , 90
+              , 20
+              , juce::Justification::centredLeft);
 }
 
 void PianoRollComponent::focusLost(juce::Component::FocusChangeType cause)
@@ -72,10 +80,10 @@ void PianoRollComponent::resized()
                         , keyboard.getWidth ()
                         , m_keyboard.getTotalKeyboardWidth ());
     m_editViewState.m_pianoY1 =
-            juce::jlimit(0
-                       , 127 - (int) (getHeight ()
+            juce::jlimit(0.0
+                       , 127.0 - ((double) getHeight ()
                            / m_editViewState.m_pianorollNoteWidth)
-                       , (int) m_editViewState.m_pianoY1);
+                       , (double) m_editViewState.m_pianoY1);
     m_timeline.setBounds (timeline);
     if (m_pianoRollContentComponent != nullptr)
     {
@@ -89,6 +97,20 @@ void PianoRollComponent::resized()
         timeline.removeFromLeft (keyboard.getWidth ());
         m_timelineOverlay->setBounds (timeline);
     }
+}
+
+void PianoRollComponent::mouseMove(const juce::MouseEvent &event)
+{
+    auto firstNote = (double) m_editViewState.m_pianoY1;
+    auto noteNum = firstNote
+            + ((getHeight () - event.y - m_editViewState.m_timeLineHeight) / m_editViewState.m_pianorollNoteWidth);
+
+    m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName (
+                noteNum
+                , true
+                , true
+                , 3);
+
 }
 
 void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *

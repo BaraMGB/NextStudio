@@ -204,12 +204,12 @@ public:
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY
+                            , m_pianoY1
                             , m_pianoX1
                             , m_pianoX2
                             , m_pianorollNoteWidth
                             , m_lastNoteLenght;
-    juce::CachedValue<int> m_pianoY1
-                         , m_pianorollHeight;
+    juce::CachedValue<int> m_pianorollHeight;
     juce::CachedValue<int> m_snapType;
 
     juce::CachedValue<int> m_headerHeight

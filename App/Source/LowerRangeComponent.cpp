@@ -30,6 +30,7 @@ void SplitterComponent::mouseDown(const juce::MouseEvent &event)
 
     m_mousedownPosYatMousdown = event.mouseDownPosition.y;
     m_pianorollHeightAtMousedown = m_editViewState.m_pianorollHeight;
+    m_cachedPianoNoteNum = (double) m_editViewState.m_pianoY1;
 }
 
 void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
@@ -38,6 +39,14 @@ void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
     {
         auto newHeight = static_cast<int> (m_pianorollHeightAtMousedown
                                         - event.getDistanceFromDragStartY());
+        auto noteHeight = (double) m_editViewState.m_pianorollNoteWidth;
+        auto noteDist = event.getDistanceFromDragStartY () / noteHeight;
+
+        m_editViewState.m_pianoY1 =
+                juce::jlimit(0.0
+                           , 127.0 - (getHeight ()
+                                / m_editViewState.m_pianorollNoteWidth)
+                           , m_cachedPianoNoteNum + noteDist);
         m_editViewState.m_pianorollHeight = std::max(20, newHeight);
     }
 }

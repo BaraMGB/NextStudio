@@ -24,12 +24,12 @@ public:
         void setKeyWidth(float noteHeight);
         te::Track::Ptr getTrack();
         std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
+        te::MidiNote* getNoteByPos (juce::Point<float> pos);
 private:
         void drawVerticalLines (juce::Graphics& g);
         int beatsToX(double beats);
         double xToBeats(int x);
         int getNoteNumber (int y);
-        te::MidiNote* getNoteByPos (juce::Point<float> pos);
         te::MidiClip *getMidiclipByPos(int y);
         juce::Point<float> m_clickedPos;
         EditViewState& m_editViewState;

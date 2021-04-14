@@ -31,6 +31,7 @@ private:
     EditViewState & m_editViewState;
     int m_pianorollHeightAtMousedown;
     int m_mousedownPosYatMousdown;
+    double m_cachedPianoNoteNum;
     bool m_isHovering{false};
 };
 
@@ -78,6 +79,4 @@ private:
     PianoRollComponent m_pianoRollEditor;
     SplitterComponent m_splitter;
     const int m_splitterHeight {10};
-
-
 };

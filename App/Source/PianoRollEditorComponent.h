@@ -22,6 +22,8 @@ public:
     void focusGained (juce::Component::FocusChangeType cause) override;
     void resized () override;
 
+    void mouseMove(const juce::MouseEvent &event);
+
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
@@ -42,5 +44,6 @@ private:
     std::unique_ptr<PianoRollContentComponent>
                         m_pianoRollContentComponent{nullptr};
     PlayheadComponent m_playhead;
+    juce::String m_NoteDescUnderCursor;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollComponent)
 };
