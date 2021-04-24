@@ -235,4 +235,5 @@ public:
                                     m_windowYpos,
                                     m_windowWidth,
                                     m_windowHeight;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ApplicationViewState)
 };

@@ -12,6 +12,7 @@ namespace te = tracktion_engine;
 class TrackOverlayComponent : public juce::Component
 {
 public:
+    TrackOverlayComponent();
     struct OverlayImage
     {
         OverlayImage(juce::Image i
@@ -35,4 +36,5 @@ public:
 private:
     juce::Array<OverlayImage> m_imageList;
     int m_mouseOffset;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackOverlayComponent)
 };

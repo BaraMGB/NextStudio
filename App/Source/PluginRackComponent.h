@@ -81,13 +81,14 @@ private:
 
     bool updatePlugins = false;
     bool m_isOver = false;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginRackComponent)
 };
 
 class AddButton : public juce::TextButton
                 , public juce::DragAndDropTarget
 {
 public:
-
+    AddButton(){}
     inline bool isInterestedInDragSource (const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override
     {
@@ -180,5 +181,6 @@ public:
     te::Plugin::Ptr plugin {nullptr};
 private:
     bool isOver {false};
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AddButton)
 };
 

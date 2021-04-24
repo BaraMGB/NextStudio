@@ -16,9 +16,8 @@ public:
 private:
         void timerCallback() override;
 
-        // set the range of the meter in dB
-        const double RANGEMAXdB{ 3.0 };//+3dB
-        const double RANGEMINdB{ -30.0 };//-30dB
+        const double RANGEMAXdB{ 3.0 };
+        const double RANGEMINdB{ -30.0 };
 
         double m_currentLeveldBLeft{ 0.0 };
         double m_prevLeveldBLeft{ 0.0 };
@@ -27,4 +26,5 @@ private:
 
         te::LevelMeasurer& m_levelMeasurer;
         te::LevelMeasurer::Client m_levelClient;
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LevelMeterComponent)
 };

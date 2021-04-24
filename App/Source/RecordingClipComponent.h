@@ -31,4 +31,5 @@ private:
     te::RecordingThumbnailManager::Thumbnail::Ptr m_thumbnail;
 
     double m_punchInTime = -1.0;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RecordingClipComponent)
 };

@@ -70,7 +70,5 @@ private:
          m_trackIsOver {false},
          m_isDragging {false},
          m_isAudioTrack {false};
-
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)
 };
-
-//==============================================================================

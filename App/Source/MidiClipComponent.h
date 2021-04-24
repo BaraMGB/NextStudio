@@ -28,4 +28,5 @@ private:
     int m_clipWidthMouseDown;
     double m_oldDistTime{0.0};
     tracktion_engine::ClipPosition m_posAtMouseDown;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiClipComponent)
 };

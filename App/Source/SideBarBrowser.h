@@ -110,6 +110,7 @@ private:
     std::unique_ptr<te::Edit>     m_previewEdit;
     std::unique_ptr<juce::Slider> m_volumeSlider;
     std::unique_ptr<Thumbnail>    m_thumbnail;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplePreviewComponent)
 };
 
 struct CategorieListBoxEntry

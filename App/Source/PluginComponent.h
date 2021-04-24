@@ -23,6 +23,7 @@ private:
     EditViewState&     m_editViewState;
     te::Plugin::Ptr    m_plugin;
     juce::Colour       m_trackColour;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginViewComponent)
 };
 
 //------------------------------------------------------------------------------
@@ -38,6 +39,7 @@ public:
 
 private:
     juce::Slider       m_volumeKnob;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumePluginComponent)
 };
 
 //------------------------------------------------------------------------------
@@ -90,19 +92,17 @@ public:
         return m_parameter;
     }
 
-
 private:
     te::AutomatableParameter & m_parameter;
     juce::Label m_parameterName;
     juce::Slider m_parameterSlider;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
 };
-
 
 class VstPluginComponent : public PluginViewComponent
                          , public tracktion_engine::AutomatableParameter::Listener
                          , public juce::ChangeListener
 {
-
 public:
     VstPluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
     ~VstPluginComponent();
@@ -119,8 +119,9 @@ public:
     {
     }
 
-    void parameterChanged (tracktion_engine::AutomatableParameter&ap , float /*newValue*/) override;
-   // void paint (juce::Graphics&) override;
+    void parameterChanged (
+            tracktion_engine::AutomatableParameter&ap
+          , float newValue) override;
     void resized() override;
 
 private:
@@ -129,6 +130,7 @@ private:
     std::unique_ptr<ParameterComponent> m_lastChangedParameterComponent;
     juce::Viewport m_viewPort;
     juce::Component m_pluginListComponent;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VstPluginComponent)
 };
 
 //-------------------------------------------------------------------------------------
@@ -163,4 +165,5 @@ private:
     juce::Colour m_trackColour;
 
     bool m_clickOnHeader {false};
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginWindowComponent)
 };

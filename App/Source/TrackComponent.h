@@ -68,4 +68,5 @@ private:
          updatePositions = false,
          updateRecordClips = false,
          isOver = false;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackComponent)
 };

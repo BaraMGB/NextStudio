@@ -33,6 +33,7 @@ private:
     int m_mousedownPosYatMousdown;
     double m_cachedPianoNoteNum;
     bool m_isHovering{false};
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SplitterComponent)
 };
 
 class LowerRangeComponent : public juce::Component
@@ -79,4 +80,5 @@ private:
     PianoRollComponent m_pianoRollEditor;
     SplitterComponent m_splitter;
     const int m_splitterHeight {10};
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LowerRangeComponent)
 };

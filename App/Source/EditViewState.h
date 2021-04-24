@@ -217,4 +217,5 @@ public:
                          , m_timeLineHeight;
     juce::CachedValue<juce::String> m_editName;
     juce::ValueTree m_state;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };

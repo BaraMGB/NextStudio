@@ -7,13 +7,11 @@
 namespace te = tracktion_engine;
 
 class AudioClipComponent : public ClipComponent
-
 {
 public:
     AudioClipComponent (EditViewState&, te::Clip::Ptr);
 
     void paint (juce::Graphics& g) override;
-    void resized() override;
     void mouseExit(const juce::MouseEvent&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent &) override;
@@ -38,8 +36,9 @@ private:
     std::unique_ptr<te::SmartThumbnail> thumbnail;
 
     int m_mouseDownX {0};
-    int m_clipWidthMouseDown;
+    int m_cachedClipWidth;
     double m_lastOffset{0.0};
-    double m_oldDistTime{0.0};
-    tracktion_engine::ClipPosition m_posAtMouseDown;
+    double m_oldDistanceTime{0.0};
+    tracktion_engine::ClipPosition m_cachedMousePos;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioClipComponent)
 };

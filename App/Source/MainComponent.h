@@ -74,8 +74,5 @@ private:
 // todo : into settings
     const int c_headerHeight = 100;
     const int c_footerHeight = 50;
-
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
-
 };

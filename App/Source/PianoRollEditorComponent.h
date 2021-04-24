@@ -18,8 +18,6 @@ public:
     ~PianoRollComponent() override;
 
     void paintOverChildren(juce::Graphics &g);
-    void focusLost (juce::Component::FocusChangeType cause) override;
-    void focusGained (juce::Component::FocusChangeType cause) override;
     void resized () override;
 
     void mouseMove(const juce::MouseEvent &event);

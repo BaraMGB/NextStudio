@@ -1,5 +1,8 @@
 #include "TrackOverlayComponent.h"
 
+TrackOverlayComponent::TrackOverlayComponent()
+{
+}
 
 void TrackOverlayComponent::drawImages(int offset)
 {
@@ -23,6 +26,7 @@ void TrackOverlayComponent::clearOverlayImageList()
 {
     m_imageList.clear ();
 }
+
 
 void TrackOverlayComponent::paint(juce::Graphics &g)
 {

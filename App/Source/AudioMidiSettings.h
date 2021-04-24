@@ -27,4 +27,5 @@ private:
     juce::AudioDeviceSelectorComponent m_audioSettings;
     juce::ComboBox m_midiDefaultChooser;
     te::Engine& m_engine;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioMidiSettings)
 };

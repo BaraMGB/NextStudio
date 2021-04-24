@@ -41,6 +41,7 @@ private:
     bool m_isCtrlDown{false};
     bool m_isShiftDown{false};
     bool m_isDragging{false};
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ClipComponent)
 };
 
 

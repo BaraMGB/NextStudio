@@ -231,8 +231,11 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
                               , false
                               , true);
                 }
+                //update displayed Notenumber under cursor
+                getParentComponent ()->mouseMove (e);
             }
         }
+
         repaint ();
     }
 }

@@ -35,4 +35,5 @@ private:
 
     int m_xPosition = 0;
     bool m_firstTimer = true;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PlayheadComponent)
 };

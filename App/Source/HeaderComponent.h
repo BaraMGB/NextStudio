@@ -24,10 +24,10 @@ public:
     PositionDisplayComponent(te::Edit &edit);
 
     void paint(juce::Graphics &) override;
+    void resized() override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseDrag(const juce::MouseEvent &) override;
     void mouseUp(const juce::MouseEvent &) override;
-    void resized() override;
 
     void update();
 
@@ -64,6 +64,7 @@ private:
 
     int                  m_mousedownNumerator
                        , m_mousedownDenominator;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PositionDisplayComponent)
 };
 
 //------------------------------------------------------------------------------

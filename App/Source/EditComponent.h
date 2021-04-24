@@ -87,4 +87,5 @@ private:
 
     bool m_updateTracks = false, m_updateZoom = false;
     void refreshSnaptypeDesc();
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
 };

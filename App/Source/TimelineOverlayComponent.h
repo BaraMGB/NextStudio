@@ -38,4 +38,5 @@ private:
     te::MidiClip * m_cachedClip;
     TimeLineComponent & m_timelineComponent;
     juce::Array<juce::Rectangle<int>> m_clipRects;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimelineOverlayComponent)
 };

@@ -14,20 +14,16 @@ void AudioClipComponent::paint (juce::Graphics& g)
     auto viewportOffset = -(m_editViewState.timeToX(
                                 0
                               , getParentComponent()->getWidth()));
-
     auto viewportEndX =  getParentComponent()->getWidth();
     auto clipstartX = m_editViewState.timeToX(
                 m_clip->getPosition().getStart()
               , getParentComponent()->getWidth());
     auto clipendX = clipstartX + getWidth();
-
     auto left = clipstartX < 0 ? -clipstartX : 0;
     auto right = clipendX > viewportEndX ? clipendX - viewportEndX : 0;
 
-
-    if (m_editViewState.m_drawWaveforms && thumbnail != nullptr)
+    if (m_editViewState.m_drawWaveforms && thumbnail)
     {
-
         drawWaveform(g
                      , *getWaveAudioClip()
                      , *thumbnail
@@ -40,11 +36,6 @@ void AudioClipComponent::paint (juce::Graphics& g)
     }
 }
 
-void AudioClipComponent::resized()
-{
-
-}
-
 void AudioClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
     setMouseCursor(juce::MouseCursor::NormalCursor);
@@ -53,35 +44,38 @@ void AudioClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 void AudioClipComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseDownX = e.getMouseDownX();
-    m_posAtMouseDown =  m_clip->getPosition();
-    m_clipWidthMouseDown = getWidth();
-    ClipComponent::mouseDown(e);
+    m_cachedMousePos =  m_clip->getPosition();
+    m_cachedClipWidth = getWidth();
     m_lastOffset = 0.0;
-    m_oldDistTime = 0.0;
+    m_oldDistanceTime = 0.0;
+    ClipComponent::mouseDown(e);
 }
 
 void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
 {
     auto distanceBeats = m_editViewState.xToBeats(
-                e.getDistanceFromDragStartX(),getParentWidth());
+                  e.getDistanceFromDragStartX(),getParentWidth())
+              - m_editViewState.m_viewX1;
     auto snapType = m_editViewState.getBestSnapType (
                 m_editViewState.m_viewX1
               , m_editViewState.m_viewX2
               , getParentWidth ());
     const auto distanceTime = e.mods.isShiftDown ()
                             ? m_editViewState.beatToTime(
-                                 distanceBeats  - m_editViewState.m_viewX1)
+                                 distanceBeats  )
                             : m_editViewState.getSnapedTime (
                                   m_editViewState.beatToTime(
-                                      distanceBeats  - m_editViewState.m_viewX1)
+                                      distanceBeats)
                                       , snapType);
-    auto distTimeDelta = distanceTime - m_oldDistTime;
+    auto distTimeDelta = distanceTime - m_oldDistanceTime;
 
     //shrink left
-    if (m_mouseDownX < 10 && m_clipWidthMouseDown > 30)
+    if (m_mouseDownX < 10 && m_cachedClipWidth > 30)
     {
-        const auto newTime = m_clip->getPosition().getStart() + distTimeDelta;
-        const auto newOffset = m_clip->getPosition().getOffset() + distTimeDelta;
+        const auto newTime = m_clip->getPosition().getStart()
+                + distTimeDelta;
+        const auto newOffset = m_clip->getPosition().getOffset()
+                + distTimeDelta;
 
         if ((distTimeDelta > 0
          || m_clip->getPosition().getOffset() > 0 )
@@ -99,21 +93,21 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
         }
         else
         {
-            m_posAtMouseDown = m_clip->getPosition();
+            m_cachedMousePos = m_clip->getPosition();
             m_lastOffset = 0.0;
         }
-        m_oldDistTime = distanceTime;
+        m_oldDistanceTime = distanceTime;
         m_updateRegion = true;
     }
     //shrink right
-    else if (m_mouseDownX > m_clipWidthMouseDown - 10 && m_clipWidthMouseDown > 30)
+    else if (m_mouseDownX > m_cachedClipWidth - 10 && m_cachedClipWidth > 30)
     {
         auto snapType = m_editViewState.getBestSnapType (
                     m_editViewState.m_viewX1
                   , m_editViewState.m_viewX2
                   , getParentWidth ());
         auto snapedTime = m_editViewState.getSnapedTime (
-                    m_posAtMouseDown.getEnd ()
+                    m_cachedMousePos.getEnd ()
                   , snapType);
         m_clip->setEnd(snapedTime + distanceTime, true);
         m_updateRegion = true;
@@ -146,10 +140,8 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
         {
             double t1 = m_editViewState.xToTime (left, p->getWidth());
             double t2 = m_editViewState.xToTime (right, p->getWidth());
-
             return { t1, t2 };
         }
-
         return {};
     };
 
@@ -173,17 +165,17 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
     {
         const juce::Rectangle<int> area(left + xOffset, y, right - left, h);
 
-        if (! thumb.isOutOfDate())
+        if (!thumb.isOutOfDate())
         {
-            drawChannels(g,
-                         thumb,
-                         area,
-                         false,
-                         getTimeRangeForDrawing(left, right),
-                         c.isLeftChannelActive(),
-                         c.isRightChannelActive(),
-                         gainL,
-                         gainR);
+            drawChannels(g
+                       , thumb
+                       , area
+                       , false
+                       , getTimeRangeForDrawing(left, right)
+                       , c.isLeftChannelActive()
+                       , c.isRightChannelActive()
+                       , gainL
+                       , gainR);
         }
     }
     else if (c.getLoopLength() == 0)
@@ -193,46 +185,42 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
         auto t1 = (region.getStart() + offset) * speedRatio;
         auto t2 = (region.getEnd()   + offset) * speedRatio;
         bool useHighres = true;
-        drawChannels(g,
-                     thumb,
-                     {left + xOffset, y, right - left, h},
-                     useHighres,
-                     {t1, t2},
-                     c.isLeftChannelActive(),
-                     c.isRightChannelActive(),
-                     gainL,
-                     gainR);
+        drawChannels(g
+                   , thumb
+                   , {left + xOffset, y, right - left, h}
+                   , useHighres
+                   , {t1, t2}
+                   , c.isLeftChannelActive()
+                   , c.isRightChannelActive()
+                   , gainL
+                   , gainR);
     }
 }
 
-void AudioClipComponent::drawChannels(juce::Graphics& g,
-                                      te::SmartThumbnail& thumb,
-                                      juce::Rectangle<int> area,
-                                      bool useHighRes,
-                                      te::EditTimeRange time,
-                                      bool useLeft,
-                                      bool useRight,
-                                      float leftGain,
-                                      float rightGain)
+void AudioClipComponent::drawChannels(juce::Graphics& g
+                                    , te::SmartThumbnail& thumb
+                                    , juce::Rectangle<int> area
+                                    , bool useHighRes
+                                    , te::EditTimeRange time
+                                    , bool useLeft
+                                    , bool useRight
+                                    , float leftGain
+                                    , float rightGain)
 {
     if (useLeft && useRight && thumb.getNumChannels() > 1)
     {
-        thumb.drawChannel(g,
-                          area.removeFromTop(area.getHeight() / 2),
-                          useHighRes,
-                          time,
-                          0,
-                          leftGain);
+        thumb.drawChannel(g
+                        , area.removeFromTop(area.getHeight() / 2)
+                        , useHighRes
+                        , time
+                        , 0
+                        , leftGain);
         thumb.drawChannel(g, area, useHighRes, time, 1, rightGain);
     }
     else if (useLeft)
-    {
         thumb.drawChannel (g, area, useHighRes, time, 0, leftGain);
-    }
     else if (useRight)
-    {
         thumb.drawChannel (g, area, useHighRes, time, 1, rightGain);
-    }
 }
 
 void AudioClipComponent::updateThumbnail()
@@ -240,7 +228,6 @@ void AudioClipComponent::updateThumbnail()
     if (auto* wac = getWaveAudioClip())
     {
         te::AudioFile af (wac->getAudioFile());
-
         if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
         {
             if (af.isValid())
@@ -250,20 +237,17 @@ void AudioClipComponent::updateThumbnail()
                             ? wac->getAudioFile()
                             : wac->getPlaybackFile());
 
-                if (thumbnail == nullptr)
+                if (!thumbnail)
                 {
                     thumbnail = std::make_unique<te::SmartThumbnail>(
-                                wac->edit.engine, proxy, *this, &wac->edit);
+                                wac->edit.engine
+                              , proxy
+                              , *this
+                              , &wac->edit);
                 }
-                else
-                {
-                    thumbnail->setNewFile (proxy);
-                }
+                else thumbnail->setNewFile (proxy);
             }
-            else
-            {
-                thumbnail = nullptr;
-            }
+            else thumbnail = nullptr;
         }
     }
 }
