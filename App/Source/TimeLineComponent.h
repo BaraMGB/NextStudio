@@ -29,10 +29,8 @@ public:
 
 private:
     EditViewState & m_editViewState;
-    int m_cachedPosY, m_cachedPosX;
     double m_cachedBeat;
     bool m_isMouseDown;
-    int m_oldDragDistX{0}, m_oldDragDistY{0};
     double m_cachedX1, m_cachedX2;
     juce::CachedValue<double> & m_X1;
     juce::CachedValue<double> & m_X2;

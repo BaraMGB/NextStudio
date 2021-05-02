@@ -5,6 +5,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
   , m_editViewState (e, sm)
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
+  , m_lassoComponent (m_editViewState)
 {
     m_edit.state.addListener (this);
 
@@ -17,12 +18,16 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     m_scrollbar_h.addListener (this);
 
     m_timeLine.setAlwaysOnTop (true);
+    m_lassoComponent.setAlwaysOnTop (true);
+    m_lassoComponent.toFront (true);
     m_playhead.setAlwaysOnTop (true);
+
 
     addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_scrollbar_v);
     addAndMakeVisible (m_scrollbar_h);
     addAndMakeVisible (m_playhead);
+    addAndMakeVisible (m_lassoComponent);
 
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
@@ -45,23 +50,26 @@ void EditComponent::paint (juce::Graphics &g)
              , (int) (m_songeditorRect.getHeight ()
                       + m_editViewState.m_timeLineHeight)
                );
+
 }
 
 void EditComponent::paintOverChildren(juce::Graphics &g)
 {
+    auto m_footerBarHeight = (int) m_editViewState.m_footerBarHeight;
     g.setColour (juce::Colour(0xff181818));
     g.fillRect (
                 0
-              , getHeight () - 20
+              , getHeight () - m_footerBarHeight
               , getWidth ()
-              , 20);
+              , m_footerBarHeight);
     g.setColour (juce::Colour(0xffffffff));
     g.drawText (m_snapTypeDesc
               , getWidth () - 100
-              , getHeight () -20
+              , getHeight () -m_footerBarHeight
               , 90
-              , 20
+              , m_footerBarHeight
               , juce::Justification::centredRight);
+    //rounded corners
     g.setColour(juce::Colour(0xff555555));
 
     juce::Path fakeRoundedCorners;
@@ -82,10 +90,9 @@ void EditComponent::resized()
     jassert (m_headers.size() == m_trackComps.size());
     const int timelineHeight = m_editViewState.m_timeLineHeight;
     const int trackGap = 0;
-    const int headerWidth = m_editViewState.m_showHeaders
+    const int trackHeaderWidth = m_editViewState.m_showHeaders
                           ? m_editViewState.m_headerWidth
-                          : 0;
-    const int footerWidth = m_editViewState.m_showFooters ? 150 : 0;
+                          : 10;
     auto area = getLocalBounds();
     int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
     int trackHeight = 30;
@@ -98,10 +105,10 @@ void EditComponent::resized()
         trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
                         tracktion_engine::IDs::height,50);
         trackHeights += trackHeight;
-        trackHeader->setBounds (2, y, headerWidth-2, trackHeight);
-        trackComp->setBounds (headerWidth + 1
+        trackHeader->setBounds (2, y, trackHeaderWidth-2, trackHeight);
+        trackComp->setBounds (trackHeaderWidth + 1
                               , y
-                              , getWidth() - headerWidth - footerWidth
+                              , getWidth() - trackHeaderWidth
                               , trackHeight);
         y += trackHeight + trackGap;
     }
@@ -110,18 +117,22 @@ void EditComponent::resized()
         t->resized();
 
     m_playhead.setBounds (
-                area.withTrimmedLeft (headerWidth).withTrimmedRight (footerWidth));
+                area.withTrimmedLeft (trackHeaderWidth));
+    m_lassoComponent.setBounds (
+                area.withTrimmedBottom (m_editViewState.m_footerBarHeight)
+                    .withTrimmedTop (timelineHeight)
+                    .withTrimmedLeft (trackHeaderWidth));
     m_timeLine.setBounds(getLocalBounds ().removeFromTop(timelineHeight));
 
-    auto songeditorHeight = getHeight() - timelineHeight;// - lowerRange;
+    auto songeditorHeight = getHeight() - timelineHeight - m_editViewState.m_footerBarHeight;
     area.removeFromTop (timelineHeight);
     m_songeditorRect = area.toFloat ();
     m_scrollbar_v.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
     m_scrollbar_v.setRangeLimits (0, trackHeights + (songeditorHeight/2));
     m_scrollbar_v.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
 
-    m_scrollbar_h.setBounds (headerWidth, songeditorHeight + timelineHeight - 20 - 20
-                             , getWidth () - headerWidth, 20);
+    m_scrollbar_h.setBounds (trackHeaderWidth, songeditorHeight + timelineHeight - 20 - 20
+                             , getWidth () - trackHeaderWidth, 20);
     m_scrollbar_h.setRangeLimits (
                 {0.0, m_editViewState.getEndScrollBeat ()});
     m_scrollbar_h.setCurrentRange ({m_editViewState.m_viewX1
@@ -157,6 +168,8 @@ void EditComponent::mouseDown(const juce::MouseEvent &event)
             addAudioTrack (false, colour);
         }
     }
+    else
+        m_lassoComponent.mouseDown (event);
 }
 
 void EditComponent::mouseWheelMove(const juce::MouseEvent &event
@@ -441,8 +454,11 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset (m_updateZoom))
     {
         refreshSnaptypeDesc ();
-        repaint ();
+        m_timeLine.repaint ();
+        for (auto t : m_trackComps)
+            t->repaint ();
         resized();
+
     }
 }
 
@@ -590,3 +606,143 @@ LowerRangeComponent& EditComponent::lowerRange()
     return m_lowerRange;
 }
 
+void LassoComponent::paint(juce::Graphics &g)
+{
+    if (m_isLassoSelecting)
+    {
+        g.setColour (juce::Colour(0x99FFFFFF));
+        g.drawRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
+        g.setColour (juce::Colour(0x22FFFFFF));
+        g.fillRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
+    }
+}
+
+void LassoComponent::mouseMove(const juce::MouseEvent &e)
+{
+    m_onClip = nullptr;
+    if (auto editComp = dynamic_cast<EditComponent*>(getParentComponent ()))
+    {
+        if (auto clickedTrack = editComp->getTrackComp (
+                    e.getMouseDownY () + m_editViewState.m_timeLineHeight))
+        {
+            for (auto cc : clickedTrack->getClipComponents ())
+            {
+                auto clipRange = te::EditTimeRange(
+                            cc->getClip ()->getPosition ().getStart ()
+                          , cc->getClip ()->getPosition ().getEnd ());
+                //hover clip?
+                if (clipRange.contains (m_editViewState.xToTime (
+                                            e.getPosition ().x
+                                          , getWidth ())))
+                {
+                    m_onClip = cc;
+                    auto clipEvent = e.getEventRelativeTo (cc);
+                    if (clipEvent.getPosition().getX() < 10 && cc->getWidth () > 30)
+                    {
+                        setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
+                    }
+                    else if (clipEvent.getPosition().getX() > cc->getWidth() - 10 && cc->getWidth () > 30)
+                    {
+                        setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
+                    }
+                    else
+                    {
+                        setMouseCursor(juce::MouseCursor::NormalCursor);
+                    }
+
+                }
+            }
+        }
+    }
+}
+
+void LassoComponent::mouseDown(const juce::MouseEvent &e)
+{
+    if (m_onClip)
+    {
+        if (!(getMouseCursor () == juce::MouseCursor::RightEdgeResizeCursor
+         || getMouseCursor () == juce::MouseCursor::LeftEdgeResizeCursor))
+        {
+            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+        }
+        m_onClip->mouseDown (e.getEventRelativeTo (m_onClip));
+    }
+    else
+    {
+        setMouseCursor (juce::MouseCursor::CrosshairCursor);
+        m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ());
+        m_cachedY = m_editViewState.m_viewY;
+        m_cachedX = m_editViewState.m_viewX1;
+    }
+}
+
+void LassoComponent::mouseDrag(const juce::MouseEvent &e)
+{
+    if (m_onClip)
+    {
+        m_onClip->mouseDrag (e.getEventRelativeTo (m_onClip));
+    }
+    else
+    {
+        m_isLassoSelecting = true;
+        auto offsetY = m_editViewState.m_viewY - m_cachedY;
+
+        te::EditTimeRange timeRange(
+                    juce::jmin(
+                        m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                      , m_clickedTime)
+                  , juce::jmax(
+                        m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                      , m_clickedTime));
+        double top = juce::jmin(
+                    e.getMouseDownY () + offsetY
+                  , (double) e.getPosition ().y );
+        double bottom = juce::jmax(
+                    e.getMouseDownY () + offsetY
+                  , (double) e.getPosition ().y );
+
+        m_lassoRect = {timeRange, top, bottom};
+        updateSelection(e.mods.isCtrlDown ());
+        repaint ();
+    }
+}
+
+void LassoComponent::mouseUp(const juce::MouseEvent &e)
+{
+    if (m_onClip)
+    {
+        m_onClip->mouseUp (e.getEventRelativeTo (m_onClip));
+    }
+    m_isLassoSelecting = false;
+    repaint();
+}
+
+void LassoComponent::updateSelection(bool add)
+{
+    if (auto editComp = dynamic_cast<EditComponent*>(getParentComponent ()))
+    {
+        if (!add)
+            m_editViewState.m_selectionManager.deselectAll ();
+        if (!editComp->getTrackComps ().isEmpty ())
+        {
+            for (auto t : editComp->getTrackComps ())
+            {
+                juce::Range<double> trackVerticalRange = {
+                    (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
+                  , (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
+                        + (double) t->getHeight () };
+                if (trackVerticalRange.intersects (m_lassoRect.verticalRange))
+                {
+                    for (auto c : t->getClipComponents ())
+                    {
+                        if (m_lassoRect.startTime < c->getClip ()->getPosition ().getEnd ()
+                                && m_lassoRect.endTime > c->getClip ()->getPosition ().getStart ())
+                        {
+                            m_editViewState.m_selectionManager.addToSelection (c->getClip ());
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

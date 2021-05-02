@@ -12,6 +12,56 @@
 
 namespace te = tracktion_engine;
 
+class LassoComponent : public juce::Component
+{
+public:
+    LassoComponent(EditViewState& evs)
+        : m_editViewState(evs) {}
+    //~LassoComponent(){}
+    void paint(juce::Graphics &g) override;
+    void mouseMove(const juce::MouseEvent&) override;
+    void mouseDown(const juce::MouseEvent&) override;
+    void mouseDrag(const juce::MouseEvent &) override;
+    void mouseUp(const juce::MouseEvent &) override;
+
+    void updateSelection(bool add);
+private:
+    struct LassoRect
+    {
+        LassoRect(){}
+        LassoRect(te::EditTimeRange timeRange, double top, double bottom)
+            : timeRange (timeRange)
+            , verticalRange (top, bottom)
+            , startTime (timeRange.getStart ())
+            , endTime (timeRange.getEnd ())
+            , top (top)
+            , bottom (bottom){}
+        juce::Rectangle<int> getRect(EditViewState& evs, int width)
+        {
+            int x = evs.timeToX (startTime, width);
+            int y = top;
+            int w = evs.timeToX (endTime, width) - x;
+            int h = bottom - top;
+
+            return  juce::Rectangle<int> (x, y, w, h);
+        }
+        te::EditTimeRange timeRange{0,0};
+        juce::Range<double> verticalRange{0,0};
+        double startTime{0};
+        double endTime{0};
+        double top{0};
+        double bottom{0};
+    };
+    bool                           m_isLassoSelecting = {false};
+    ClipComponent*                 m_onClip;
+    EditViewState&                 m_editViewState;
+    double                         m_clickedTime;
+    double                         m_cachedY, m_cachedX;
+    LassoRect                      m_lassoRect;
+
+
+};
+
 class EditComponent : public  juce::Component
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
@@ -84,6 +134,7 @@ private:
     juce::String                            m_snapTypeDesc;
     LowerRangeComponent                     m_lowerRange { m_editViewState };
     juce::Rectangle<float>                  m_songeditorRect;
+    LassoComponent                          m_lassoComponent;
 
     bool m_updateTracks = false, m_updateZoom = false;
     void refreshSnaptypeDesc();

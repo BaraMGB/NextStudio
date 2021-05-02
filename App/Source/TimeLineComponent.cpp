@@ -119,8 +119,6 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
     m_cachedBeat = xToBeats(event.getMouseDownPosition().getX() - m_leftSpace);
     m_cachedX1 = m_X1;
     m_cachedX2 = m_X2;
-    m_oldDragDistX = 0;
-    m_oldDragDistY = 0;
     if (event.getNumberOfClicks() > 1)
     {
         m_editViewState.m_edit.getTransport().setCurrentPosition(m_editViewState.beatToTime(m_cachedBeat));

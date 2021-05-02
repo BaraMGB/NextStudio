@@ -11,7 +11,6 @@ public:
     ClipComponent (EditViewState&, te::Clip::Ptr);
 
     void paint (juce::Graphics& g) override;
-    void mouseMove(const juce::MouseEvent&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;

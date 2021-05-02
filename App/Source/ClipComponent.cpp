@@ -8,6 +8,7 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : m_editViewState(evs)
     , m_clip(std::move(c))
 {
+    setPaintingIsUnclipped (true);
 }
 
 void ClipComponent::paint (juce::Graphics& g)
@@ -26,22 +27,6 @@ void ClipComponent::paint (juce::Graphics& g)
     }
 
     g.drawRect (getLocalBounds());
-}
-
-void ClipComponent::mouseMove(const juce::MouseEvent &e)
-{
-        if (e.getPosition().getX() < 10 && getWidth () > 30)
-        {
-            setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
-        }
-        else if (e.getPosition().getX() > getWidth() - 10 && getWidth () > 30)
-        {
-            setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
-        }
-        else
-        {
-            setMouseCursor(juce::MouseCursor::NormalCursor);
-        }
 }
 
 void ClipComponent::mouseDown (const juce::MouseEvent&event)

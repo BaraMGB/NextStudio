@@ -57,6 +57,7 @@ namespace IDs
     DECLARE_ID (timeLineHeight)
     DECLARE_ID (lastNoteLenght)
     DECLARE_ID (name)
+    DECLARE_ID (footerBarHeight)
     #undef DECLARE_ID
 }
 
@@ -86,6 +87,7 @@ public:
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
         m_headerHeight.referTo(m_state, IDs::headerHeight, um, 50);
         m_headerWidth.referTo(m_state, IDs::headerWidth, um, 310);
+        m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
         m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0 * 4);
         m_viewY.referTo (m_state, IDs::viewY, um, 0);
@@ -214,7 +216,8 @@ public:
 
     juce::CachedValue<int> m_headerHeight
                          , m_headerWidth
-                         , m_timeLineHeight;
+                         , m_timeLineHeight
+                         , m_footerBarHeight;
     juce::CachedValue<juce::String> m_editName;
     juce::ValueTree m_state;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)

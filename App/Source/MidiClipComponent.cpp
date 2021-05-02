@@ -32,7 +32,7 @@ void MidiClipComponent::paint (juce::Graphics& g)
                 double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
                 if (auto p = getParentComponent())
                 {
-                    int y = juce::roundToIntAccurate (((1.0 - double(n->getNoteNumber()) / 127.0)
+                    int y = (int) (((1.0 - double(n->getNoteNumber()) / 127.0)
                                 * (getHeight() - clipHeader)
                                 + clipHeader));
 

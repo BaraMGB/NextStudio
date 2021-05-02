@@ -127,6 +127,8 @@ void TrackComponent::mouseUp(const juce::MouseEvent &e)
     {
         m_editViewState.m_selectionManager.deselectAll ();
     }
+    getParentComponent ()
+            ->mouseUp (e.getEventRelativeTo (getParentComponent ()));
 }
 
 
