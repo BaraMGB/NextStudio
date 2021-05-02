@@ -27,7 +27,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     addAndMakeVisible (m_scrollbar_v);
     addAndMakeVisible (m_scrollbar_h);
     addAndMakeVisible (m_playhead);
-    addAndMakeVisible (m_lassoComponent);
+    addChildComponent (m_lassoComponent);
 
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
@@ -131,7 +131,8 @@ void EditComponent::resized()
     m_scrollbar_v.setRangeLimits (0, trackHeights + (songeditorHeight/2));
     m_scrollbar_v.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
 
-    m_scrollbar_h.setBounds (trackHeaderWidth, songeditorHeight + timelineHeight - 20 - 20
+    m_scrollbar_h.setBounds (trackHeaderWidth, songeditorHeight + timelineHeight
+                             - m_editViewState.m_footerBarHeight
                              , getWidth () - trackHeaderWidth, 20);
     m_scrollbar_h.setRangeLimits (
                 {0.0, m_editViewState.getEndScrollBeat ()});
@@ -140,9 +141,9 @@ void EditComponent::resized()
 
 }
 
-void EditComponent::mouseDown(const juce::MouseEvent &event)
+void EditComponent::mouseDown(const juce::MouseEvent &e)
 {
-    if (event.mods.isPopupMenu())
+    if (e.mods.isPopupMenu())
     {
         juce::PopupMenu m;
         m.addItem (10, "Add instrument track");
@@ -169,7 +170,29 @@ void EditComponent::mouseDown(const juce::MouseEvent &event)
         }
     }
     else
-        m_lassoComponent.mouseDown (event);
+    {
+        m_lassoComponent.setVisible (true);
+        m_lassoComponent.mouseDown (e.getEventRelativeTo (&m_lassoComponent));
+    }
+}
+
+void EditComponent::mouseDrag(const juce::MouseEvent &e)
+{
+    if (m_lassoComponent.isVisible ())
+    {
+        setMouseCursor (juce::MouseCursor::CrosshairCursor);
+        m_lassoComponent.mouseDrag (e.getEventRelativeTo (&m_lassoComponent));
+    }
+}
+
+void EditComponent::mouseUp(const juce::MouseEvent &e)
+{
+    if (m_lassoComponent.isVisible ())
+    {
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+        m_lassoComponent.mouseUp (e.getEventRelativeTo (&m_lassoComponent));
+        m_lassoComponent.setVisible (false);
+    }
 }
 
 void EditComponent::mouseWheelMove(const juce::MouseEvent &event
@@ -178,10 +201,17 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
     if (event.mods.isShiftDown())
     {
         auto rangeBegin = m_editViewState.beatsToX(
-                                m_editViewState.m_viewX1, m_timeLine.getWidth());
-        auto visibleLength = m_editViewState.m_viewX2 - m_editViewState.m_viewX1;
+                                m_editViewState.m_viewX1
+                              , m_timeLine.getWidth());
+        auto visibleLength = m_editViewState.m_viewX2
+                              - m_editViewState.m_viewX1;
 
-        rangeBegin -= static_cast<int>(wheel.deltaY * 300);
+        rangeBegin -=
+                #if JUCE_MAC
+                static_cast<int>(wheel.deltaX * 300);
+                #else
+                static_cast<int>(wheel.deltaY * 300);
+                #endif
 
         m_editViewState.m_viewX1 = juce::jmax (0.0
                                      , m_editViewState.xToBeats(
@@ -458,7 +488,6 @@ void EditComponent::handleAsyncUpdate()
         for (auto t : m_trackComps)
             t->repaint ();
         resized();
-
     }
 }
 
@@ -553,6 +582,11 @@ void EditComponent::buildTracks()
     resized();
 }
 
+LassoComponent* EditComponent::getLasso()
+{
+    return &m_lassoComponent;
+}
+
 juce::OwnedArray<TrackComponent> &EditComponent::getTrackComps()
 {
     return m_trackComps;
@@ -617,102 +651,39 @@ void LassoComponent::paint(juce::Graphics &g)
     }
 }
 
-void LassoComponent::mouseMove(const juce::MouseEvent &e)
-{
-    m_onClip = nullptr;
-    if (auto editComp = dynamic_cast<EditComponent*>(getParentComponent ()))
-    {
-        if (auto clickedTrack = editComp->getTrackComp (
-                    e.getMouseDownY () + m_editViewState.m_timeLineHeight))
-        {
-            for (auto cc : clickedTrack->getClipComponents ())
-            {
-                auto clipRange = te::EditTimeRange(
-                            cc->getClip ()->getPosition ().getStart ()
-                          , cc->getClip ()->getPosition ().getEnd ());
-                //hover clip?
-                if (clipRange.contains (m_editViewState.xToTime (
-                                            e.getPosition ().x
-                                          , getWidth ())))
-                {
-                    m_onClip = cc;
-                    auto clipEvent = e.getEventRelativeTo (cc);
-                    if (clipEvent.getPosition().getX() < 10 && cc->getWidth () > 30)
-                    {
-                        setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
-                    }
-                    else if (clipEvent.getPosition().getX() > cc->getWidth() - 10 && cc->getWidth () > 30)
-                    {
-                        setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
-                    }
-                    else
-                    {
-                        setMouseCursor(juce::MouseCursor::NormalCursor);
-                    }
-
-                }
-            }
-        }
-    }
-}
-
 void LassoComponent::mouseDown(const juce::MouseEvent &e)
 {
-    if (m_onClip)
-    {
-        if (!(getMouseCursor () == juce::MouseCursor::RightEdgeResizeCursor
-         || getMouseCursor () == juce::MouseCursor::LeftEdgeResizeCursor))
-        {
-            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
-        }
-        m_onClip->mouseDown (e.getEventRelativeTo (m_onClip));
-    }
-    else
-    {
-        setMouseCursor (juce::MouseCursor::CrosshairCursor);
-        m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ());
-        m_cachedY = m_editViewState.m_viewY;
-        m_cachedX = m_editViewState.m_viewX1;
-    }
+    m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ());
+    m_cachedY = m_editViewState.m_viewY;
+    m_cachedX = m_editViewState.m_viewX1;
 }
 
 void LassoComponent::mouseDrag(const juce::MouseEvent &e)
 {
-    if (m_onClip)
-    {
-        m_onClip->mouseDrag (e.getEventRelativeTo (m_onClip));
-    }
-    else
-    {
-        m_isLassoSelecting = true;
-        auto offsetY = m_editViewState.m_viewY - m_cachedY;
+    m_isLassoSelecting = true;
+    auto offsetY = m_editViewState.m_viewY - m_cachedY;
 
-        te::EditTimeRange timeRange(
-                    juce::jmin(
-                        m_editViewState.xToTime (e.getPosition ().x, getWidth ())
-                      , m_clickedTime)
-                  , juce::jmax(
-                        m_editViewState.xToTime (e.getPosition ().x, getWidth ())
-                      , m_clickedTime));
-        double top = juce::jmin(
-                    e.getMouseDownY () + offsetY
-                  , (double) e.getPosition ().y );
-        double bottom = juce::jmax(
-                    e.getMouseDownY () + offsetY
-                  , (double) e.getPosition ().y );
+    te::EditTimeRange timeRange(
+                juce::jmin(
+                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                    , m_clickedTime)
+                , juce::jmax(
+                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                    , m_clickedTime));
+    double top = juce::jmin(
+                e.getMouseDownY () + offsetY
+                , (double) e.getPosition ().y );
+    double bottom = juce::jmax(
+                e.getMouseDownY () + offsetY
+                , (double) e.getPosition ().y );
 
-        m_lassoRect = {timeRange, top, bottom};
-        updateSelection(e.mods.isCtrlDown ());
-        repaint ();
-    }
+    m_lassoRect = {timeRange, top, bottom};
+    updateSelection(e.mods.isCtrlDown ());
+    repaint ();
 }
 
 void LassoComponent::mouseUp(const juce::MouseEvent &e)
 {
-    if (m_onClip)
-    {
-        m_onClip->mouseUp (e.getEventRelativeTo (m_onClip));
-    }
     m_isLassoSelecting = false;
     repaint();
 }

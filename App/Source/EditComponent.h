@@ -17,9 +17,7 @@ class LassoComponent : public juce::Component
 public:
     LassoComponent(EditViewState& evs)
         : m_editViewState(evs) {}
-    //~LassoComponent(){}
     void paint(juce::Graphics &g) override;
-    void mouseMove(const juce::MouseEvent&) override;
     void mouseDown(const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent &) override;
     void mouseUp(const juce::MouseEvent &) override;
@@ -53,7 +51,6 @@ private:
         double bottom{0};
     };
     bool                           m_isLassoSelecting = {false};
-    ClipComponent*                 m_onClip;
     EditViewState&                 m_editViewState;
     double                         m_clickedTime;
     double                         m_cachedY, m_cachedX;
@@ -76,6 +73,8 @@ public:
     void paintOverChildren(juce::Graphics &g);
     void resized() override;
     void mouseDown(const juce::MouseEvent &) override;
+    void mouseDrag(const juce::MouseEvent &) override;
+    void mouseUp(const juce::MouseEvent &) override;
     void mouseWheelMove(const juce::MouseEvent &event
                         , const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved
@@ -97,6 +96,8 @@ public:
 
     void turnoffAllTrackOverlays();
     EditViewState& getEditViewState() {return m_editViewState;}
+    LassoComponent* getLasso();
+
 private:
 
     void valueTreeChanged() override {}

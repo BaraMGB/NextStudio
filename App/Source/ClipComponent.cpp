@@ -29,6 +29,23 @@ void ClipComponent::paint (juce::Graphics& g)
     g.drawRect (getLocalBounds());
 }
 
+void ClipComponent::mouseMove(const juce::MouseEvent &clipEvent)
+{
+    if (clipEvent.getPosition().getX() < 10 && getWidth () > 30)
+    {
+        setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
+    }
+    else if (clipEvent.getPosition().getX() > getWidth() - 10
+         &&  getWidth () > 30)
+    {
+        setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
+    }
+    else
+    {
+        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+    }
+}
+
 void ClipComponent::mouseDown (const juce::MouseEvent&event)
 {
     toFront (true);
@@ -55,7 +72,6 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
     {
         m_clipPosAtMouseDown = m_clip->edit.tempoSequence.timeToBeats(
                     m_clip->getPosition().getStart());
-        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
     }
 
 

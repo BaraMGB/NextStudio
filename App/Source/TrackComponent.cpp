@@ -115,8 +115,23 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
         }
         else
         {
-            getParentComponent ()->mouseDown
-                    (event.getEventRelativeTo (getParentComponent ()));
+            if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
+            {
+                ec->getLasso ()->setVisible (true);
+                ec->getLasso()->mouseDown(event.getEventRelativeTo (ec->getLasso()));
+            }
+        }
+    }
+}
+
+void TrackComponent::mouseDrag(const juce::MouseEvent &e)
+{
+    if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
+    {
+        if ( ec->getLasso ()->isVisible())
+        {
+            ec->getLasso()->mouseDrag (e.getEventRelativeTo (ec->getLasso()));
+            setMouseCursor (juce::MouseCursor::CrosshairCursor);
         }
     }
 }
@@ -127,8 +142,15 @@ void TrackComponent::mouseUp(const juce::MouseEvent &e)
     {
         m_editViewState.m_selectionManager.deselectAll ();
     }
-    getParentComponent ()
-            ->mouseUp (e.getEventRelativeTo (getParentComponent ()));
+    if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
+    {
+        if (ec->getLasso ()->isVisible())
+        {
+            ec->getLasso()->mouseUp (e.getEventRelativeTo (ec->getLasso()));
+            ec->getLasso ()->setVisible (false);
+            setMouseCursor (juce::MouseCursor::NormalCursor);
+        }
+    }
 }
 
 
