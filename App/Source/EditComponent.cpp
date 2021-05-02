@@ -21,6 +21,8 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     m_lassoComponent.setAlwaysOnTop (true);
     m_lassoComponent.toFront (true);
     m_playhead.setAlwaysOnTop (true);
+    m_footerbar.setAlwaysOnTop (true);
+    m_footerbar.toFront (true);
 
 
     addAndMakeVisible (m_timeLine);
@@ -28,6 +30,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
     addAndMakeVisible (m_scrollbar_h);
     addAndMakeVisible (m_playhead);
     addChildComponent (m_lassoComponent);
+    addAndMakeVisible (m_footerbar);
 
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
@@ -55,33 +58,18 @@ void EditComponent::paint (juce::Graphics &g)
 
 void EditComponent::paintOverChildren(juce::Graphics &g)
 {
-    auto m_footerBarHeight = (int) m_editViewState.m_footerBarHeight;
-    g.setColour (juce::Colour(0xff181818));
-    g.fillRect (
-                0
-              , getHeight () - m_footerBarHeight
-              , getWidth ()
-              , m_footerBarHeight);
-    g.setColour (juce::Colour(0xffffffff));
-    g.drawText (m_snapTypeDesc
-              , getWidth () - 100
-              , getHeight () -m_footerBarHeight
-              , 90
-              , m_footerBarHeight
-              , juce::Justification::centredRight);
     //rounded corners
     g.setColour(juce::Colour(0xff555555));
 
     juce::Path fakeRoundedCorners;
-    auto bounds = getLocalBounds (); //your component's bounds
+    auto bounds = getLocalBounds ();
 
-    const float cornerSize = 10.f; //desired corner size
-    fakeRoundedCorners.addRectangle(bounds); //What you start with
-    fakeRoundedCorners.setUsingNonZeroWinding(false); //The secret sauce
-    fakeRoundedCorners.addRoundedRectangle(bounds, cornerSize); //subtract this shape
+    const float cornerSize = 10.f;
+    fakeRoundedCorners.addRectangle(bounds);
+    fakeRoundedCorners.setUsingNonZeroWinding(false);
+    fakeRoundedCorners.addRoundedRectangle(bounds, cornerSize);
 
     g.fillPath(fakeRoundedCorners);
-    g.drawRect (0, getHeight () - 20, getWidth (), 1);
 }
 
 
@@ -96,7 +84,7 @@ void EditComponent::resized()
     auto area = getLocalBounds();
     int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
     int trackHeight = 30;
-    int trackHeights = 0;
+    int tracksHeight = 0;
     for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
     {
         auto trackHeader = m_headers[i];
@@ -104,7 +92,7 @@ void EditComponent::resized()
 
         trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
                         tracktion_engine::IDs::height,50);
-        trackHeights += trackHeight;
+        tracksHeight += trackHeight;
         trackHeader->setBounds (2, y, trackHeaderWidth-2, trackHeight);
         trackComp->setBounds (trackHeaderWidth + 1
                               , y
@@ -117,28 +105,38 @@ void EditComponent::resized()
         t->resized();
 
     m_playhead.setBounds (
-                area.withTrimmedLeft (trackHeaderWidth));
+                area.withTrimmedLeft (trackHeaderWidth)
+                    .withTrimmedBottom(m_editViewState.m_footerBarHeight));
     m_lassoComponent.setBounds (
                 area.withTrimmedBottom (m_editViewState.m_footerBarHeight)
                     .withTrimmedTop (timelineHeight)
                     .withTrimmedLeft (trackHeaderWidth));
     m_timeLine.setBounds(getLocalBounds ().removeFromTop(timelineHeight));
 
-    auto songeditorHeight = getHeight() - timelineHeight - m_editViewState.m_footerBarHeight;
+    auto songeditorHeight = getHeight()
+                            - timelineHeight
+                            - m_editViewState.m_footerBarHeight;
     area.removeFromTop (timelineHeight);
     m_songeditorRect = area.toFloat ();
-    m_scrollbar_v.setBounds (getWidth () - 20, timelineHeight, 20, songeditorHeight);
-    m_scrollbar_v.setRangeLimits (0, trackHeights + (songeditorHeight/2));
-    m_scrollbar_v.setCurrentRange (-(m_editViewState.m_viewY), songeditorHeight);
 
-    m_scrollbar_h.setBounds (trackHeaderWidth, songeditorHeight + timelineHeight
+    m_scrollbar_v.setBounds (getWidth () - 20
+                           , timelineHeight
+                           , 20
+                           , songeditorHeight);
+    m_scrollbar_v.setRangeLimits (0, tracksHeight + (songeditorHeight/2));
+    m_scrollbar_v.setCurrentRange (-m_editViewState.m_viewY, songeditorHeight);
+
+    m_scrollbar_h.setBounds (trackHeaderWidth
+                           , songeditorHeight
+                             + timelineHeight
                              - m_editViewState.m_footerBarHeight
-                             , getWidth () - trackHeaderWidth, 20);
+                           , getWidth () - trackHeaderWidth, 20);
     m_scrollbar_h.setRangeLimits (
                 {0.0, m_editViewState.getEndScrollBeat ()});
     m_scrollbar_h.setCurrentRange ({m_editViewState.m_viewX1
                                   , m_editViewState.m_viewX2});
-
+    m_footerbar.setBounds (area.removeFromBottom (
+                               m_editViewState.m_footerBarHeight));
 }
 
 void EditComponent::mouseDown(const juce::MouseEvent &e)
@@ -494,10 +492,10 @@ void EditComponent::handleAsyncUpdate()
 
 void EditComponent::refreshSnaptypeDesc()
 {
-    const auto snapType = m_timeLine.getBestSnapType ();
-    const auto snapTypeDesc = m_timeLine.getEditViewState ()
-                                .getSnapTypeDescription (snapType.level);
-    m_snapTypeDesc = snapTypeDesc;
+    m_footerbar.m_snapTypeDesc =
+            m_timeLine.getEditViewState ().getSnapTypeDescription (
+                m_timeLine.getBestSnapType ().level);
+    m_footerbar.repaint ();
 }
 
 

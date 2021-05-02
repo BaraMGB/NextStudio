@@ -59,6 +59,36 @@ private:
 
 };
 
+class FooterBarComponent : public juce::Component
+{
+public:
+    FooterBarComponent(EditViewState& evs)
+        :m_editViewState(evs)
+    {
+    }
+    void paint(juce::Graphics &g) override
+    {
+        g.setColour (juce::Colour(0xff181818));
+        g.fillRect (
+                    0
+                  , 0
+                  , getWidth ()
+                  , getHeight ());
+        g.setColour (juce::Colour(0xffffffff));
+        g.drawText (m_snapTypeDesc
+                  , getWidth () - 100
+                  , 0
+                  , 90
+                  , getHeight ()
+                  , juce::Justification::centredRight);
+        g.setColour (juce::Colour(0xff555555));
+        g.drawLine (0,0,getWidth (), 1);
+    }
+    juce::String m_snapTypeDesc;
+private:
+    EditViewState& m_editViewState;
+};
+
 class EditComponent : public  juce::Component
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
@@ -125,6 +155,7 @@ private:
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2
                                               , m_editViewState.m_headerWidth};
+    FooterBarComponent                      m_footerbar{m_editViewState};
     juce::ScrollBar                         m_scrollbar_v
                                           , m_scrollbar_h;
     PlayheadComponent                       m_playhead {
@@ -132,7 +163,6 @@ private:
                                               , m_editViewState
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2};
-    juce::String                            m_snapTypeDesc;
     LowerRangeComponent                     m_lowerRange { m_editViewState };
     juce::Rectangle<float>                  m_songeditorRect;
     LassoComponent                          m_lassoComponent;
