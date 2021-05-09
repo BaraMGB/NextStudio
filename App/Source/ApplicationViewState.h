@@ -225,6 +225,13 @@ public:
 
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;
+    juce::Array<juce::Colour> m_trackColours
+    {
+           juce::Colour(0xff1dd13d), juce::Colour(0xff008CDC),juce::Colour(0xffFFAD00), juce::Colour(0xffFF3E5A), juce::Colour(0xffC766FF),
+           juce::Colour(0xff356800), juce::Colour(0xff054D77), juce::Colour(0xff9A6C0B),juce::Colour(0xff862835), juce::Colour(0xff5A1582),
+           juce::Colour(0xffFFF800), juce::Colour(0xff84E185), juce::Colour(0xffEC610F),juce::Colour(0xffD6438A),juce::Colour(0xff0053FF),
+           juce::Colour(0xffD3CF4F), juce::Colour(0xff5D937F),juce::Colour(0xffA27956),juce::Colour(0xffAA7A99), juce::Colour(0xff3A5BA1)
+    };
 
     juce::CachedValue<juce::String> m_workDir,
                                     m_presetDir,

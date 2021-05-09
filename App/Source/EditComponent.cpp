@@ -1,11 +1,13 @@
 #include "EditComponent.h"
+#include "NextLookAndFeel.h"
 
-EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm)
+EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm, juce::Array<juce::Colour> tc)
     : m_edit (e)
   , m_editViewState (e, sm)
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
   , m_lassoComponent (m_editViewState)
+  , m_trackColours(tc)
 {
     m_edit.state.addListener (this);
 
@@ -149,21 +151,13 @@ void EditComponent::mouseDown(const juce::MouseEvent &e)
         m.addSeparator();
 
         const int res = m.show();
-
+        auto colour = m_trackColours[m_trackComps.size () % m_trackColours.size ()];
         if (res == 10)
         {
-            auto& random = juce::Random::getSystemRandom();
-            juce::Colour colour (random.nextInt (256),
-                                 random.nextInt (256),
-                                 random.nextInt (256));
             addAudioTrack (true, colour);
         }
         else if (res == 11)
         {
-            auto& random = juce::Random::getSystemRandom();
-            juce::Colour colour (random.nextInt (256),
-                                 random.nextInt (256),
-                                 random.nextInt (256));
             addAudioTrack (false, colour);
         }
     }

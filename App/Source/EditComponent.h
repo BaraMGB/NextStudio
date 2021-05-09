@@ -96,7 +96,7 @@ class EditComponent : public  juce::Component
                     , public juce::DragAndDropTarget
 {
 public:
-    EditComponent (te::Edit&, te::SelectionManager&);
+    EditComponent (te::Edit&, te::SelectionManager&, juce::Array<juce::Colour> tc);
     ~EditComponent();
 
     void paint(juce::Graphics &g) override;
@@ -166,6 +166,7 @@ private:
     LowerRangeComponent                     m_lowerRange { m_editViewState };
     juce::Rectangle<float>                  m_songeditorRect;
     LassoComponent                          m_lassoComponent;
+    juce::Array<juce::Colour>               m_trackColours;
 
     bool m_updateTracks = false, m_updateZoom = false;
     void refreshSnaptypeDesc();
