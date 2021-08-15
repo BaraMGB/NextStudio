@@ -49,6 +49,7 @@ namespace IDs
     DECLARE_ID (showHeaders)
     DECLARE_ID (showFooters)
     DECLARE_ID (showArranger)
+    DECLARE_ID (showMaster)
     DECLARE_ID (headerHeight)
     DECLARE_ID (headerWidth)
     DECLARE_ID (isMidiTrack)
@@ -78,6 +79,7 @@ public:
         m_showMarkerTrack.referTo (m_state, IDs::showMarkerTrack, um, false);
         m_showChordTrack.referTo (m_state, IDs::showChordTrack, um, false);
         m_showArrangerTrack.referTo (m_state, IDs::showArranger, um, false);
+        m_showMasterTrack.referTo(m_state, IDs::showMaster, um, false);
         m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um, true);
         m_showHeaders.referTo (m_state, IDs::showHeaders, um, true);
         m_showFooters.referTo (m_state, IDs::showFooters, um, false);
@@ -196,6 +198,7 @@ public:
                           , m_showMarkerTrack
                           , m_showChordTrack
                           , m_showArrangerTrack
+                          , m_showMasterTrack
                           , m_drawWaveforms
                           , m_showHeaders
                           , m_showFooters

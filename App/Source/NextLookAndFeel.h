@@ -13,6 +13,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackComponent.h"
 #include "TrackHeadComponent.h"
+#include "AutomatableSliderComponent.h"
 
 class NextLookAndFeel : public juce::LookAndFeel_V4
 {
@@ -90,10 +91,17 @@ public:
         auto thumbColour = juce::Colour(0xff000000);
         auto thumbMouseColour = juce::Colour(0xff999999);
         auto volumeColour = juce::Colour(0x88e9e949);
-        auto thc = dynamic_cast<TrackHeaderComponent*>(slider.getParentComponent ());
-        if (thc != nullptr)
+
+        if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
         {
-            volumeColour = thc->getTrackColour ();
+            if (automatableSlider->getAutomatableParameter()->isAutomationActive())
+            {
+                volumeColour = juce::Colours::red;
+            }
+            else
+            {
+                volumeColour = automatableSlider->trackColour();
+            }
         }
         auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10);
         auto lineW = 5;

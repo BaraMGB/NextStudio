@@ -300,7 +300,6 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
                                      , m_edit.clickTrackEnabled
                                        ? m_btn_col
                                        : "#666666");
-
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
     m_saveButton.addListener(this);
@@ -345,6 +344,7 @@ void HeaderComponent::resized()
     m_loadButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
     area.removeFromLeft(gap/4);
     m_saveButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
+    area.removeFromLeft(gap/4);
 
 
     area = juce::Rectangle<int>(getLocalBounds ().getX ()

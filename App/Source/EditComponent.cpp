@@ -89,18 +89,32 @@ void EditComponent::resized()
     int tracksHeight = 0;
     for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
     {
+        auto track = m_trackComps[i]->getTrack();
         auto trackHeader = m_headers[i];
         auto trackComp = m_trackComps[i];
 
         trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
                         tracktion_engine::IDs::height,50);
-        tracksHeight += trackHeight;
-        trackHeader->setBounds (2, y, trackHeaderWidth-2, trackHeight);
+        auto trackHeaderHeight = trackHeight;
+        for (auto apEditItems : track.get()->getAllAutomatableEditItems())
+        {
+            for (auto ap : apEditItems->getAutomatableParameters())
+            {
+                if (ap->getCurve().getNumPoints() > 0)
+                {
+                    //todo : make dynamical
+                    trackHeaderHeight = trackHeaderHeight + 50;
+                }
+
+            }
+        }
+        tracksHeight += trackHeaderHeight;
+        trackHeader->setBounds (2, y, trackHeaderWidth-2, trackHeaderHeight);
         trackComp->setBounds (trackHeaderWidth + 1
                               , y
                               , getWidth() - trackHeaderWidth
-                              , trackHeight);
-        y += trackHeight + trackGap;
+                              , trackHeaderHeight);
+        y += trackHeaderHeight + trackGap;
     }
 
     for (auto t : m_trackComps)
@@ -436,14 +450,21 @@ void EditComponent::valueTreePropertyChanged (
     }
 }
 
-void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
+void EditComponent::valueTreeChildAdded (juce::ValueTree&v, juce::ValueTree& c)
 {
     if (te::MidiClip::isClipState (c))
     {
         markAndUpdate (m_updateZoom);
     }
     if (te::TrackList::isTrack (c))
+    {
         markAndUpdate (m_updateTracks);
+    }
+    if (c.hasType(te::IDs::AUTOMATIONCURVE))
+    {
+        GUIHelpers::log(c.toXmlString());
+        markAndUpdate (m_updateTracks);
+    }
 }
 
 void EditComponent::valueTreeChildRemoved (
@@ -457,6 +478,10 @@ void EditComponent::valueTreeChildRemoved (
     {
         m_lowerRange.removePluginRackwithTrack (m_edit.getTrackList ().getTrackFor (c));
         markAndUpdate (m_updateTracks);
+    }
+    if (c.hasType(te::IDs::POINT))
+    {
+        markAndUpdate(m_updateTracks);
     }
 }
 
@@ -548,6 +573,11 @@ void EditComponent::buildTracks()
         else if (t->isArrangerTrack())
         {
             if (m_editViewState.m_showArrangerTrack)
+                trackcomp = new TrackComponent (m_editViewState, t);
+        }
+        else if (t->isMasterTrack())
+        {
+            if (m_editViewState.m_showMasterTrack)
                 trackcomp = new TrackComponent (m_editViewState, t);
         }
         else

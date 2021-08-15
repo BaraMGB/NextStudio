@@ -11,6 +11,50 @@
 
 namespace te = tracktion_engine;
 
+class AutomationLaneComponent : public juce::Component
+{
+public:
+    AutomationLaneComponent(te::AutomationCurve& curve, EditViewState& evs);
+    void paint (juce::Graphics& g) override;
+
+    void mouseMove (const juce::MouseEvent& e) override;
+    void mouseExit(const juce::MouseEvent &e) override;
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDrag(const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
+
+private:
+    double getTime (int x)
+    {
+        return m_editViewState.xToTime(x, getWidth());
+    }
+
+    int getXPos (double time)
+    {
+        return m_editViewState.timeToX(time, getWidth());
+    }
+
+    double getValue(int y)
+    {
+        return 1.0 - static_cast<double>(y) / static_cast<double>(getHeight());
+    }
+
+    int getYPos (double value)
+    {
+        return getHeight() - value * getHeight();
+    }
+
+    double xToYRatio()
+    {
+        return (1/getHeight())
+             / ((m_editViewState.beatToTime(m_editViewState.m_viewX2)
+               - m_editViewState.beatToTime(m_editViewState.m_viewX1)
+               / getWidth()));
+    }
+    te::AutomationCurve& m_curve;
+    int m_hoveredPoint;
+    EditViewState& m_editViewState;
+};
 
 class TrackComponent : public juce::Component,
                        private te::ValueTreeAllEventListener,
@@ -51,6 +95,7 @@ private:
     void handleAsyncUpdate() override;
 
     void buildClips();
+    void buildAutomationLanes();
     void buildRecordClips();
     te::MidiClip::Ptr createNewMidiClip(double beatPos);
     bool isMidiTrack() { return m_track->state.getProperty(IDs::isMidiTrack); }
@@ -59,6 +104,7 @@ private:
     te::Track::Ptr m_track;
     te::Clipboard m_clipBoard;
     juce::OwnedArray<ClipComponent> m_clips;
+    juce::OwnedArray<AutomationLaneComponent> m_automationLanes;
 
     juce::Image m_dragImage;
     std::unique_ptr<RecordingClipComponent> recordingClip;

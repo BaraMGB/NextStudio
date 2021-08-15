@@ -89,6 +89,8 @@ private:
     EditViewState& m_editViewState;
 };
 
+//------------------------------------------------------------------------------
+
 class EditComponent : public  juce::Component
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
@@ -96,7 +98,9 @@ class EditComponent : public  juce::Component
                     , public juce::DragAndDropTarget
 {
 public:
-    EditComponent (te::Edit&, te::SelectionManager&, juce::Array<juce::Colour> tc);
+    EditComponent (te::Edit&
+                 , te::SelectionManager&
+                 , juce::Array<juce::Colour> tc);
     ~EditComponent();
 
     void paint(juce::Graphics &g) override;
