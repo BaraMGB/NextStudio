@@ -91,6 +91,14 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
         EngineHelpers::togglePlay(* m_edit);
         return true;
     }
+    else if (key == juce::KeyPress::F11Key)
+    {
+        std::cout << "DEBUG EDIT: " << juce::Time::getCurrentTime().toString(true, true, true, true) << std::endl;
+        std::cout << "=================================================================================" << std::endl;
+        auto editString = m_edit->state.toXmlString();
+        std::cout << editString << std::endl;
+
+    }
     return false;
 }
 
