@@ -103,7 +103,9 @@ void EditComponent::resized()
                 if (ap->getCurve().getNumPoints() > 0)
                 {
                     //todo : make dynamical
-                    trackHeaderHeight = trackHeaderHeight + 50;
+                    int height = ap->getCurve ().state.getProperty(
+                                tracktion_engine::IDs::height,50);
+                    trackHeaderHeight = trackHeaderHeight + height;
                 }
 
             }

@@ -268,17 +268,18 @@ void TrackComponent::resized()
         auto c = cc->getClip();
         int startTime = m_editViewState.beatsToX (c->getStartBeat (), getWidth());
         int endTime = m_editViewState.beatsToX (c->getEndBeat (), getWidth());
-
         cc->setBounds (startTime, 0, endTime - startTime, m_track->state.getProperty(
-                           tracktion_engine::IDs::height));
+                           tracktion_engine::IDs::height, 50));
     }
     m_trackOverlay.setBounds(0, 0, getWidth(), m_track->state.getProperty(
-                                 tracktion_engine::IDs::height));
+                                 tracktion_engine::IDs::height, 50));
     double nextLaneStart = m_track->state.getProperty(
                 tracktion_engine::IDs::height);
     for (auto al : m_automationLanes)
     {
-        al->setBounds(0, nextLaneStart, getWidth(), 50);
+        int height = al->getCurve ().state.getProperty(
+                    tracktion_engine::IDs::height, 50);
+        al->setBounds(0, nextLaneStart, getWidth(), height);
         nextLaneStart = nextLaneStart + al->getHeight();
     }
 }
@@ -286,7 +287,7 @@ void TrackComponent::resized()
 void TrackComponent::inserWave(juce::File f, double time)
 {
     tracktion_engine::AudioFile audioFile(m_editViewState.m_edit.engine, f);
-    if (audioFile.isValid() && !(m_track->state.getProperty (IDs::isMidiTrack)))
+    if (audioFile.isValid() && !isMidiTrack ())
     {
         if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(
                                                                 m_track.get()))
@@ -382,6 +383,7 @@ void TrackComponent::buildClips()
             {
                 m_clips.add (cc);
                 addAndMakeVisible (cc);
+                resized ();
                 if (auto editcomp = dynamic_cast<EditComponent*>(getParentComponent ()))
                 {
                     if (auto midiClipcomp = dynamic_cast<MidiClipComponent*>(cc))
@@ -633,4 +635,9 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
 {
 
+}
+
+te::AutomationCurve &AutomationLaneComponent::getCurve() const
+{
+    return m_curve;
 }

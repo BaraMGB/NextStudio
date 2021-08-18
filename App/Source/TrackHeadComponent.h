@@ -21,14 +21,18 @@ public:
 private:
     juce::Label m_parameterName;
     te::AutomatableParameter& m_automatableParameter;
+    int m_heightAtMouseDown = 0, m_mouseDownY = 0;
+    bool m_resizing = false, m_hovering = false;
 
     // MouseListener interface
 public:
     void mouseDown(const juce::MouseEvent &event);
+    void mouseDrag (const juce::MouseEvent &event);
+    te::AutomatableParameter &automatableParameter() const;
 };
 
 class TrackHeaderComponent : public juce::Component
-                           , private te::ValueTreeAllEventListener
+        , private te::ValueTreeAllEventListener
                            , private FlaggedAsyncUpdater
                            , public juce::ChangeBroadcaster
                            , public juce::DragAndDropTarget

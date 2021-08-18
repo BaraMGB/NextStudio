@@ -24,6 +24,11 @@ void AutomationLaneHeaderComponent::resized()
     m_parameterName.setBounds(getLocalBounds());
 }
 
+te::AutomatableParameter &AutomationLaneHeaderComponent::automatableParameter() const
+{
+    return m_automatableParameter;
+}
+
 void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
 {
     if (event.mods.isRightButtonDown())
@@ -36,9 +41,29 @@ void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
             m_automatableParameter.getCurve().clear();
             m_automatableParameter.getCurve().removeAllAutomationCurvesRecursively(
                         m_automatableParameter.getCurve().parentState);
-//                    m_automatableParameter.getCurve().parentState.removeChild(
-//                                m_automatableParameter.getCurve().state
-//                                , nullptr);
+        }
+    }
+    else if (event.mods.isLeftButtonDown ())
+    {
+        m_mouseDownY = event.y;
+        m_heightAtMouseDown = getHeight ();
+    }
+}
+
+void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
+{
+    if (event.mouseWasDraggedSinceMouseDown ())
+    {
+        if (m_mouseDownY >m_heightAtMouseDown - 10)
+        {
+            m_resizing = true;
+            auto newHeight =
+                    static_cast<int> (m_heightAtMouseDown
+                                    + event.getDistanceFromDragStartY ());
+            m_automatableParameter.getCurve().state.setProperty (
+                        te::IDs::height
+                      , juce::jlimit(40, 250, newHeight)
+                      , nullptr);
         }
     }
 }
@@ -131,7 +156,7 @@ TrackHeaderComponent::~TrackHeaderComponent()
 
 void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i)
 {
-    if (te::TrackList::isTrack (v))
+    if (te::TrackList::isTrack (v) || v.hasType (te::IDs::AUTOMATIONCURVE))
     {
         if (i == te::IDs::mute)
         {
@@ -418,19 +443,20 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 
 void TrackHeaderComponent::resized()
 {
-    auto defaultTrackHeight = m_track->defaultTrackHeight;
+    int defaultTrackHeight = m_track->defaultTrackHeight;
     auto area = getLocalBounds().removeFromTop(defaultTrackHeight);//getLocalBounds();
     auto peakdisplay = area;//getLocalBounds ().removeFromRight (15);
     peakdisplay = peakdisplay.removeFromRight(15);
     peakdisplay.reduce (2,2);
     if (levelMeterComp)
         levelMeterComp->setBounds (peakdisplay);
+    int height = m_track->state.getProperty (te::IDs::height, 50);
     area.removeFromRight (peakdisplay.getWidth ());
-    auto volSlider = area.removeFromRight(area.getHeight());
+    auto volSlider = area.removeFromRight(height);
     if (m_volumeKnob)
         m_volumeKnob->setBounds(volSlider);
 
-    auto buttonGroup = area.removeFromRight(area.getHeight());
+    auto buttonGroup = area.removeFromRight(juce::jmax(defaultTrackHeight, height));
     auto buttonwidth = buttonGroup.getWidth() / 2;
     auto buttonHeight = buttonGroup.getHeight() / 2;
     m_soloButton.setBounds(buttonGroup.getX(), buttonGroup.getY(), buttonwidth, buttonHeight);
@@ -454,13 +480,15 @@ void TrackHeaderComponent::resized()
                            tracktion_engine::IDs::height,50));
     for (auto ahs : m_automationHeaders)
     {
-        ahs->setBounds(rect.removeFromTop(50));
+        int height = ahs->automatableParameter ().getCurve ().state
+                .getProperty(tracktion_engine::IDs::height,50);
+        ahs->setBounds(rect.removeFromTop(height < 40 ? 40 : height));
     }
 }
 
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 {
-    m_trackHeightATMouseDown = getHeight ();
+    m_trackHeightATMouseDown = m_track->state.getProperty (te::IDs::height, 50);
     m_yPosAtMouseDown = event.mouseDownPosition.y;
     if (!event.mouseWasDraggedSinceMouseDown())
         {

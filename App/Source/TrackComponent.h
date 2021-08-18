@@ -23,6 +23,8 @@ public:
     void mouseDrag(const juce::MouseEvent& e) override;
     void mouseUp (const juce::MouseEvent& e) override;
 
+    te::AutomationCurve &getCurve() const;
+
 private:
     double getTime (int x)
     {
@@ -98,8 +100,7 @@ private:
     void buildAutomationLanes();
     void buildRecordClips();
     te::MidiClip::Ptr createNewMidiClip(double beatPos);
-    bool isMidiTrack() { return m_track->state.getProperty(IDs::isMidiTrack); }
-    
+    bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
     EditViewState& m_editViewState;
     te::Track::Ptr m_track;
     te::Clipboard m_clipBoard;
