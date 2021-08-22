@@ -28,6 +28,12 @@ void GUIHelpers::log(juce::String message)
               << ": " << message << std::endl;
 }
 
+void GUIHelpers::log (int message)
+{
+    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
+              << ": " << message << std::endl;
+}
+
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area
@@ -58,6 +64,13 @@ void GUIHelpers::changeColor(
                xmlnode->setAttribute (
                          "style"
                        , att.replaceFirstOccurrenceOf (inputColour, color_hex));
+            }
+        }
+        if (xmlnode->hasAttribute ("stroke"))
+        {
+            if (xmlnode->getStringAttribute ("stroke") == inputColour)
+            {
+                xmlnode->setAttribute ("stroke", color_hex);
             }
         }
     }
@@ -317,6 +330,8 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
         track->setColour (juce::Colour(random.nextInt (256)
                                        ,random.nextInt (256)
                                        ,random.nextInt (256)));
+        track->state.setProperty (
+                    te::IDs::height, (int) evs.m_trackMinimized, nullptr);
         te::AudioFile audioFile (evs.m_edit.engine, file);
 
         if (audioFile.isValid())

@@ -429,10 +429,11 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 
         GUIHelpers::drawFromSvg (g
                                  , m_track->state.getProperty(IDs::isMidiTrack)
-                                    ? BinaryData::piano_svg
-                                    : BinaryData::waveform_svg
+                                    ? BinaryData::piano5_svg
+                                    : BinaryData::wavetest5_svg
                                  , "#ffffff"
-                                 , {20, 3, 24, 24});
+                                 , {20, 3
+                                    , 18, 18});
         if (m_contentIsOver)
         {
             g.setColour(juce::Colours::white);
@@ -443,52 +444,62 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 
 void TrackHeaderComponent::resized()
 {
-    int defaultTrackHeight = m_track->defaultTrackHeight;
-    auto area = getLocalBounds().removeFromTop(defaultTrackHeight);//getLocalBounds();
-    auto peakdisplay = area;//getLocalBounds ().removeFromRight (15);
-    peakdisplay = peakdisplay.removeFromRight(15);
-    peakdisplay.reduce (2,2);
+    const int gap = 3;
+    const int minimizedHeigth = m_track->state
+            .getProperty (IDs::trackMinimized, 30);
+    auto area = getLocalBounds().removeFromTop(minimizedHeigth);//getLocalBounds();
+    auto peakdisplay = area.removeFromRight (15);//getLocalBounds ().removeFromRight (15);
+    peakdisplay.reduce (gap, gap);
     if (levelMeterComp)
         levelMeterComp->setBounds (peakdisplay);
-    int height = m_track->state.getProperty (te::IDs::height, 50);
-    area.removeFromRight (peakdisplay.getWidth ());
-    auto volSlider = area.removeFromRight(height);
+    auto volSlider = area.removeFromRight(area.getHeight ());
     if (m_volumeKnob)
         m_volumeKnob->setBounds(volSlider);
 
-    auto buttonGroup = area.removeFromRight(juce::jmax(defaultTrackHeight, height));
-    auto buttonwidth = buttonGroup.getWidth() / 2;
-    auto buttonHeight = buttonGroup.getHeight() / 2;
-    m_soloButton.setBounds(buttonGroup.getX(), buttonGroup.getY(), buttonwidth, buttonHeight);
+    auto gapX = 1, gapY = 7;
+    auto buttonwidth = minimizedHeigth - 10;
+    auto solo = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
+    m_soloButton.setBounds(solo);
     m_soloButton.setComponentID ("solo");
+    m_soloButton.setTooltip ("solo track");
     m_soloButton.setName ("S");
-    m_muteButton.setBounds(buttonGroup.getX(), buttonGroup.getY() + buttonHeight, buttonwidth, buttonHeight);
+
+    auto mute = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
+    m_muteButton.setBounds(mute);
     m_muteButton.setComponentID ("mute");
+    m_muteButton.setTooltip ("mute track");
     m_muteButton.setName ("M");
-    m_armButton.setBounds(buttonGroup.getX() + buttonwidth, buttonGroup.getY(), buttonwidth, buttonHeight);
+
+    auto arm = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
+    m_armButton.setBounds(arm);
+    m_armButton.setTooltip ("arm track");
     m_armButton.setComponentID ("arm");
     m_armButton.setName ("A");
 
     area.removeFromLeft(45);
-    area.removeFromTop (7);
+    area.removeFromTop (6);
     m_trackName.setBounds(area);
 
     //AutomationLanes
+    const int height = m_track->state
+            .getProperty (te::IDs::height, minimizedHeigth);
     auto rect = getLocalBounds();
     rect.removeFromLeft(peakdisplay.getWidth());
-    rect.removeFromTop(m_track->state.getProperty(
-                           tracktion_engine::IDs::height,50));
+    rect.removeFromTop(height);
     for (auto ahs : m_automationHeaders)
     {
         int height = ahs->automatableParameter ().getCurve ().state
-                .getProperty(tracktion_engine::IDs::height,50);
-        ahs->setBounds(rect.removeFromTop(height < 40 ? 40 : height));
+                .getProperty(tracktion_engine::IDs::height, minimizedHeigth);
+        ahs->setBounds(rect.removeFromTop(
+                           height < minimizedHeigth ? minimizedHeigth : height));
     }
+    GUIHelpers::log (height);
 }
 
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 {
-    m_trackHeightATMouseDown = m_track->state.getProperty (te::IDs::height, 50);
+    auto minimizedHeight = m_track->state.getProperty (IDs::trackMinimized, 30);
+    m_trackHeightATMouseDown = m_track->state.getProperty (te::IDs::height, minimizedHeight);
     m_yPosAtMouseDown = event.mouseDownPosition.y;
     if (!event.mouseWasDraggedSinceMouseDown())
         {
@@ -543,7 +554,7 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
                                                + event.getDistanceFromDragStartY());
 
             m_track->state.setProperty(te::IDs::height
-                                       , juce::jlimit(40, 250, newHeight)
+                                       , juce::jlimit(30, 300, newHeight)
                                        , &(m_editViewState.m_edit.getUndoManager()));
         }
         else

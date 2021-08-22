@@ -49,7 +49,7 @@ void EditComponent::paint (juce::Graphics &g)
     g.setColour(juce::Colour(0xff181818));
     g.fillRect (m_songeditorRect);
     g.setColour(juce::Colour(0xff555555));
-    g.drawRect(m_editViewState.m_headerWidth - 1
+    g.drawRect(m_editViewState.m_TrackHeaderWidth - 1
              , 0
              , 1
              , (int) (m_songeditorRect.getHeight ()
@@ -81,7 +81,7 @@ void EditComponent::resized()
     const int timelineHeight = m_editViewState.m_timeLineHeight;
     const int trackGap = 0;
     const int trackHeaderWidth = m_editViewState.m_showHeaders
-                          ? m_editViewState.m_headerWidth
+                          ? m_editViewState.m_TrackHeaderWidth
                           : 10;
     auto area = getLocalBounds();
     int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
@@ -335,7 +335,7 @@ void EditComponent::itemDragMove(
                 {
                     auto insertPos = dropPos.getX ()
                                    - draggedClip->getClipPosOffsetX ()
-                                   - m_editViewState.m_headerWidth;
+                                   - m_editViewState.m_TrackHeaderWidth;
                     auto snapType = m_editViewState.getBestSnapType (
                                 m_editViewState.m_viewX1
                               , m_editViewState.m_viewX2
@@ -359,8 +359,8 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
     auto dropPos = dragSourceDetails.localPosition;
 
     auto dropTime = m_editViewState.xToTime (
-                         dropPos.getX() - m_editViewState.m_headerWidth
-                       , getWidth() - m_editViewState.m_headerWidth);
+                         dropPos.getX() - m_editViewState.m_TrackHeaderWidth
+                       , getWidth() - m_editViewState.m_TrackHeaderWidth);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     auto targetTrack = getTrackComp (dropPos.getY ());
     if (targetTrack)
@@ -529,7 +529,7 @@ tracktion_engine::AudioTrack::Ptr EditComponent::addAudioTrack(
             m_edit, te::getAudioTracks(m_edit).size()))
     {
          track->state.setProperty(  te::IDs::height
-                                  , track->defaultTrackHeight
+                                  , (int) m_editViewState.m_trackMinimized
                                   , &m_edit.getUndoManager());
 
          track->state.setProperty(  IDs::isMidiTrack

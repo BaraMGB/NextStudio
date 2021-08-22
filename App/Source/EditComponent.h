@@ -158,7 +158,7 @@ private:
                                                 m_editViewState
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2
-                                              , m_editViewState.m_headerWidth};
+                                              , m_editViewState.m_TrackHeaderWidth};
     FooterBarComponent                      m_footerbar{m_editViewState};
     juce::ScrollBar                         m_scrollbar_v
                                           , m_scrollbar_h;

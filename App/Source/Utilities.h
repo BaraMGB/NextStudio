@@ -31,6 +31,7 @@ namespace Helpers
 namespace GUIHelpers
 {
     void log(juce::String message);
+    void log(int);
     void drawRoundedRectWithSide(
           juce::Graphics & g
         , juce::Rectangle<float> area
