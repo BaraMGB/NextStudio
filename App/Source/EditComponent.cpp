@@ -85,29 +85,37 @@ void EditComponent::resized()
                           : 10;
     auto area = getLocalBounds();
     int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
-    int trackHeight = 30;
     int tracksHeight = 0;
     for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
     {
         auto track = m_trackComps[i]->getTrack();
         auto trackHeader = m_headers[i];
         auto trackComp = m_trackComps[i];
+        int trackHeight = 30;
 
-        trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
-                        tracktion_engine::IDs::height,50);
-        auto trackHeaderHeight = trackHeight;
-        for (auto apEditItems : track.get()->getAllAutomatableEditItems())
+        if ((bool)track->state.getProperty (IDs::isTrackMinimized) == false)
         {
-            for (auto ap : apEditItems->getAutomatableParameters())
-            {
-                if (ap->getCurve().getNumPoints() > 0)
-                {
-                    //todo : make dynamical
-                    int height = ap->getCurve ().state.getProperty(
-                                tracktion_engine::IDs::height,50);
-                    trackHeaderHeight = trackHeaderHeight + height;
-                }
+            trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
+                            tracktion_engine::IDs::height
+                          , track->defaultTrackHeight);
 
+        }
+        auto trackHeaderHeight = trackHeight;
+        if ((bool)track->state.getProperty (IDs::isTrackMinimized) == false)
+        {
+            for (auto apEditItems : track.get()->getAllAutomatableEditItems())
+            {
+                for (auto ap : apEditItems->getAutomatableParameters())
+                {
+                    if (ap->getCurve().getNumPoints() > 0)
+                    {
+                        int height = ap->getCurve ().state.getProperty(
+                                    tracktion_engine::IDs::height
+                                  , (int) m_editViewState.m_trackMinimized);
+                        trackHeaderHeight = trackHeaderHeight + height;
+                    }
+
+                }
             }
         }
         tracksHeight += trackHeaderHeight;
@@ -528,6 +536,7 @@ tracktion_engine::AudioTrack::Ptr EditComponent::addAudioTrack(
     if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
             m_edit, te::getAudioTracks(m_edit).size()))
     {
+         track->state.setProperty (IDs::isTrackMinimized, true, nullptr);
          track->state.setProperty(  te::IDs::height
                                   , (int) m_editViewState.m_trackMinimized
                                   , &m_edit.getUndoManager());

@@ -28,6 +28,8 @@ private:
 public:
     void mouseDown(const juce::MouseEvent &event);
     void mouseDrag (const juce::MouseEvent &event);
+    void mouseMove (const juce::MouseEvent &event);
+    void mouseExit (const juce::MouseEvent &event);
     te::AutomatableParameter &automatableParameter() const;
 };
 
@@ -98,7 +100,9 @@ private:
          m_isDragging {false},
          m_isAudioTrack {false},
          m_updateVolumeKnob {false},
-         m_updateAutomationLanes {false};
+         m_updateAutomationLanes {false},
+         m_updateTrackHeight {false},
+         m_isMinimized {false};
     void buildAutomationHeader();
     juce::OwnedArray<AutomationLaneHeaderComponent> m_automationHeaders;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)

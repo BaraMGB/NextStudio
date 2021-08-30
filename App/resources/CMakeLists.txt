@@ -16,6 +16,8 @@ juce_add_binary_data(Pictures SOURCES
     piano5.svg
     wavetest5.svg
     wavetest10.svg
+    arrowright18.svg
+    arrowdown18.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

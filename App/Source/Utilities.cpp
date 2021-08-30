@@ -327,6 +327,7 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
     {
         removeAllClips (*track);
         auto& random = juce::Random::getSystemRandom();
+        track->state.setProperty (IDs::isTrackMinimized, true, nullptr);
         track->setColour (juce::Colour(random.nextInt (256)
                                        ,random.nextInt (256)
                                        ,random.nextInt (256)));

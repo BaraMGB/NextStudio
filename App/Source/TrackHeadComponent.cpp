@@ -15,8 +15,12 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
 void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colours::black);
+    if (m_hovering)
+    {
+        g.setColour (juce::Colours::white);
+    }
     g.drawRect(juce::Rectangle<int> (
-                   getLocalBounds().removeFromTop(1)).reduced(20,0));
+                   getLocalBounds().removeFromBottom(1)).reduced(20,0));
 }
 
 void AutomationLaneHeaderComponent::resized()
@@ -62,10 +66,26 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
                                     + event.getDistanceFromDragStartY ());
             m_automatableParameter.getCurve().state.setProperty (
                         te::IDs::height
-                      , juce::jlimit(40, 250, newHeight)
+                      , juce::jlimit(30 , 250, newHeight)
                       , nullptr);
         }
     }
+}
+
+void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
+{
+    m_hovering = false;
+    if (event.y > getHeight ()- 10)
+    {
+        m_hovering = true;
+    }
+    repaint ();
+}
+
+void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &event)
+{
+    m_hovering = false;
+    repaint ();
 }
 
 //------------------------------------------------------------------------------
@@ -156,6 +176,10 @@ TrackHeaderComponent::~TrackHeaderComponent()
 
 void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i)
 {
+    if (i == IDs::isTrackMinimized)
+    {
+        markAndUpdate (m_updateTrackHeight);
+    }
     if (te::TrackList::isTrack (v) || v.hasType (te::IDs::AUTOMATIONCURVE))
     {
         if (i == te::IDs::mute)
@@ -406,33 +430,46 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         g.setColour(buttonColour);
         GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
 
-        juce::Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(15).toFloat();
+        juce::Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(20).toFloat();
         auto trackColor =  m_track->getColour();
         g.setColour (trackColor);
         GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
+        GUIHelpers::drawFromSvg (g
+                                 , (bool) m_track->state.getProperty (IDs::isTrackMinimized)
+                                    ? BinaryData::arrowright18_svg
+                                    : BinaryData::arrowdown18_svg
+                                 , "#000000"
+                                 , {1, 6
+                                    , 18, 18});
+
+        g.setColour (juce::Colours::black);
+        if (m_isAboutToResizing)
+        {
+            g.setColour(juce::Colour(0x66ffffff));
+
+        }
+        if (m_isResizing)
+        {
+            g.setColour(juce::Colour(0xffffffff));
+        }
+        int height = m_track->state.getProperty (te::IDs::height);
+        g.fillRect (juce::Rectangle<int>(
+                        30
+                      , height
+                      , getWidth () - 50
+                      , -1));
 
         if (m_trackIsOver)
         {
             g.setColour(juce::Colour(0x66ffffff));
             g.drawRect(getLocalBounds().removeFromTop(1));
         }
-        if (m_isAboutToResizing)
-        {
-            g.setColour(juce::Colour(0x66ffffff));
-            g.drawRect(getLocalBounds().removeFromBottom(1));
-        }
-        if (m_isResizing)
-        {
-            g.setColour(juce::Colour(0xffffffff));
-            g.drawRect(getLocalBounds().removeFromBottom(3));
-        }
-
         GUIHelpers::drawFromSvg (g
                                  , m_track->state.getProperty(IDs::isMidiTrack)
                                     ? BinaryData::piano5_svg
                                     : BinaryData::wavetest5_svg
                                  , "#ffffff"
-                                 , {20, 3
+                                 , {20, 6
                                     , 18, 18});
         if (m_contentIsOver)
         {
@@ -493,14 +530,21 @@ void TrackHeaderComponent::resized()
         ahs->setBounds(rect.removeFromTop(
                            height < minimizedHeigth ? minimizedHeigth : height));
     }
-    GUIHelpers::log (height);
 }
 
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 {
-    auto minimizedHeight = m_track->state.getProperty (IDs::trackMinimized, 30);
-    m_trackHeightATMouseDown = m_track->state.getProperty (te::IDs::height, minimizedHeight);
+    m_trackHeightATMouseDown = m_track->state.getProperty
+            (te::IDs::height, (int) m_editViewState.m_trackMinimized);
+    std::cout << "MDHEIGHT: " << m_trackHeightATMouseDown << " Y: " << event.y << std::endl;
+
     m_yPosAtMouseDown = event.mouseDownPosition.y;
+    auto area = getLocalBounds ().removeFromLeft (20);
+    if ( area.contains (event.getPosition ()))
+    {
+         m_track->state.setProperty (IDs::isTrackMinimized,
+                 !(m_track->state.getProperty (IDs::isTrackMinimized)), nullptr);
+    }
     if (!event.mouseWasDraggedSinceMouseDown())
         {
             if (event.mods.isRightButtonDown ())
@@ -556,6 +600,9 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
             m_track->state.setProperty(te::IDs::height
                                        , juce::jlimit(30, 300, newHeight)
                                        , &(m_editViewState.m_edit.getUndoManager()));
+            m_track->state.setProperty (IDs::isTrackMinimized
+                                      , false
+                                      , &m_editViewState.m_edit.getUndoManager ());
         }
         else
         {
@@ -582,13 +629,12 @@ void TrackHeaderComponent::mouseUp(const juce::MouseEvent &event)
 
 void TrackHeaderComponent::mouseMove(const juce::MouseEvent &event)
 {
-    if (event.getPosition().y > getHeight() - 10)
+    GUIHelpers::log ("MMOVE");
+    m_isAboutToResizing = false;
+    int height = m_track->state.getProperty (te::IDs::height, getHeight ());
+    if (event.y > height - 10)
     {
         m_isAboutToResizing = true;
-    }
-    else
-    {
-        m_isAboutToResizing = false;
     }
     repaint();
 }
@@ -723,6 +769,10 @@ void TrackHeaderComponent::handleAsyncUpdate()
     if (compareAndReset(m_updateAutomationLanes))
     {
         buildAutomationHeader();
+    }
+    if (compareAndReset (m_updateTrackHeight))
+    {
+        getParentComponent ()->resized ();
     }
 }
 

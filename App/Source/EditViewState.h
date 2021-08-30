@@ -60,6 +60,7 @@ namespace IDs
     DECLARE_ID (lastNoteLenght)
     DECLARE_ID (name)
     DECLARE_ID (footerBarHeight)
+    DECLARE_ID (isTrackMinimized)
     #undef DECLARE_ID
 }
 
