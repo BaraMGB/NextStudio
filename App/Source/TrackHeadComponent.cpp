@@ -91,7 +91,9 @@ void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &event)
 //------------------------------------------------------------------------------
 
 TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t)
-    : m_editViewState (evs), m_track (t)
+    : m_editViewState (evs)
+    , m_track (t)
+    , m_isMinimized (t->state.getProperty(IDs::isTrackMinimized))
 {
     Helpers::addAndMakeVisible (*this, { &m_trackName,
                                          &m_armButton,
@@ -178,6 +180,7 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
 {
     if (i == IDs::isTrackMinimized)
     {
+        m_isMinimized = m_track->state.getProperty(IDs::isTrackMinimized);
         markAndUpdate (m_updateTrackHeight);
     }
     if (te::TrackList::isTrack (v) || v.hasType (te::IDs::AUTOMATIONCURVE))
@@ -443,21 +446,24 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                                     , 18, 18});
 
         g.setColour (juce::Colours::black);
-        if (m_isAboutToResizing)
+        if (!m_isMinimized)
         {
-            g.setColour(juce::Colour(0x66ffffff));
+            if (m_isAboutToResizing)
+            {
+                g.setColour(juce::Colour(0x66ffffff));
 
+            }
+            if (m_isResizing)
+            {
+                g.setColour(juce::Colour(0xffffffff));
+            }
+            int height = m_track->state.getProperty (te::IDs::height);
+            g.fillRect (juce::Rectangle<int>(
+                            30
+                          , height -1
+                          , getWidth () - 50
+                          , 1));
         }
-        if (m_isResizing)
-        {
-            g.setColour(juce::Colour(0xffffffff));
-        }
-        int height = m_track->state.getProperty (te::IDs::height);
-        g.fillRect (juce::Rectangle<int>(
-                        30
-                      , height
-                      , getWidth () - 50
-                      , -1));
 
         if (m_trackIsOver)
         {
@@ -535,8 +541,7 @@ void TrackHeaderComponent::resized()
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 {
     m_trackHeightATMouseDown = m_track->state.getProperty
-            (te::IDs::height, (int) m_editViewState.m_trackMinimized);
-    std::cout << "MDHEIGHT: " << m_trackHeightATMouseDown << " Y: " << event.y << std::endl;
+            (te::IDs::height, (int) m_editViewState.m_trackHeightMinimized);
 
     m_yPosAtMouseDown = event.mouseDownPosition.y;
     auto area = getLocalBounds ().removeFromLeft (20);
@@ -591,7 +596,7 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (event.mouseWasDraggedSinceMouseDown ())
     {
-        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10)
+        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10 && !m_isMinimized)
         {
             m_isResizing = true;
             auto newHeight = static_cast<int> (m_trackHeightATMouseDown
@@ -629,10 +634,9 @@ void TrackHeaderComponent::mouseUp(const juce::MouseEvent &event)
 
 void TrackHeaderComponent::mouseMove(const juce::MouseEvent &event)
 {
-    GUIHelpers::log ("MMOVE");
     m_isAboutToResizing = false;
     int height = m_track->state.getProperty (te::IDs::height, getHeight ());
-    if (event.y > height - 10)
+    if (event.y > height - 10 && !m_isMinimized)
     {
         m_isAboutToResizing = true;
     }

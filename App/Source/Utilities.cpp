@@ -317,24 +317,41 @@ tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(
     return te::getAudioTracks (edit)[index];
 }
 
+tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
+        bool isMidiTrack
+      , juce::Colour trackColour
+      , EditViewState &evs)
+{
+    if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
+            evs.m_edit, te::getAudioTracks(evs.m_edit).size()))
+    {
+         track->state.setProperty (te::IDs::height
+                                 , (int) evs.m_trackDefaultHeight
+                                 , nullptr);
+         track->state.setProperty (IDs::isTrackMinimized, true, nullptr);
+
+         track->state.setProperty(  IDs::isMidiTrack
+                                  , isMidiTrack
+                                  , &evs.m_edit.getUndoManager());
+
+         juce::String num = juce::String(te::getAudioTracks(evs.m_edit).size());
+         track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
+         track->setColour(trackColour);
+         evs.m_selectionManager.selectOnly(track);
+         return track;
+    }
+    return nullptr;
+}
+
 tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
         EditViewState &evs
-      , const juce::File &file)
+      , const juce::File &file
+      , juce::Colour trackColour)
 {
-    if (auto track = getOrInsertAudioTrackAt (
-                          evs.m_edit
-                        , tracktion_engine::getAudioTracks(evs.m_edit).size()))
+    if (auto track = addAudioTrack(false, trackColour, evs))
     {
         removeAllClips (*track);
-        auto& random = juce::Random::getSystemRandom();
-        track->state.setProperty (IDs::isTrackMinimized, true, nullptr);
-        track->setColour (juce::Colour(random.nextInt (256)
-                                       ,random.nextInt (256)
-                                       ,random.nextInt (256)));
-        track->state.setProperty (
-                    te::IDs::height, (int) evs.m_trackMinimized, nullptr);
         te::AudioFile audioFile (evs.m_edit.engine, file);
-
         if (audioFile.isValid())
         {
             if (auto newClip = track->insertWaveClip (
@@ -345,7 +362,6 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
                 return newClip;
             }
         }
-
     }
     return {};
 }

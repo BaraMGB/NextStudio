@@ -49,7 +49,7 @@ void EditComponent::paint (juce::Graphics &g)
     g.setColour(juce::Colour(0xff181818));
     g.fillRect (m_songeditorRect);
     g.setColour(juce::Colour(0xff555555));
-    g.drawRect(m_editViewState.m_TrackHeaderWidth - 1
+    g.drawRect(m_editViewState.m_trackHeaderWidth - 1
              , 0
              , 1
              , (int) (m_songeditorRect.getHeight ()
@@ -81,27 +81,26 @@ void EditComponent::resized()
     const int timelineHeight = m_editViewState.m_timeLineHeight;
     const int trackGap = 0;
     const int trackHeaderWidth = m_editViewState.m_showHeaders
-                          ? m_editViewState.m_TrackHeaderWidth
+                          ? m_editViewState.m_trackHeaderWidth
                           : 10;
     auto area = getLocalBounds();
     int y = juce::roundToInt (m_editViewState.m_viewY.get()) + timelineHeight;
-    int tracksHeight = 0;
+    int allTracksHeight = 0;
     for (int i = 0; i < juce::jmin (m_headers.size(), m_trackComps.size()); i++)
     {
         auto track = m_trackComps[i]->getTrack();
         auto trackHeader = m_headers[i];
         auto trackComp = m_trackComps[i];
-        int trackHeight = 30;
+        bool isMinimized = (bool)track->state.getProperty (IDs::isTrackMinimized);
+        int trackHeight =
+                isMinimized
+                ? m_editViewState.m_trackHeightMinimized
+                : (int) m_trackComps[i]->getTrack()->state.getProperty(
+                      tracktion_engine::IDs::height
+                      , (int) m_editViewState.m_trackDefaultHeight);
 
-        if ((bool)track->state.getProperty (IDs::isTrackMinimized) == false)
-        {
-            trackHeight = m_trackComps[i]->getTrack()->state.getProperty(
-                            tracktion_engine::IDs::height
-                          , track->defaultTrackHeight);
-
-        }
         auto trackHeaderHeight = trackHeight;
-        if ((bool)track->state.getProperty (IDs::isTrackMinimized) == false)
+        if (!isMinimized)
         {
             for (auto apEditItems : track.get()->getAllAutomatableEditItems())
             {
@@ -111,20 +110,20 @@ void EditComponent::resized()
                     {
                         int height = ap->getCurve ().state.getProperty(
                                     tracktion_engine::IDs::height
-                                  , (int) m_editViewState.m_trackMinimized);
+                                  , (int) m_editViewState.m_trackHeightMinimized);
                         trackHeaderHeight = trackHeaderHeight + height;
                     }
-
                 }
             }
         }
-        tracksHeight += trackHeaderHeight;
+
         trackHeader->setBounds (2, y, trackHeaderWidth-2, trackHeaderHeight);
         trackComp->setBounds (trackHeaderWidth + 1
                               , y
                               , getWidth() - trackHeaderWidth
                               , trackHeaderHeight);
         y += trackHeaderHeight + trackGap;
+        allTracksHeight += trackHeaderHeight;
     }
 
     for (auto t : m_trackComps)
@@ -149,7 +148,7 @@ void EditComponent::resized()
                            , timelineHeight
                            , 20
                            , songeditorHeight);
-    m_scrollbar_v.setRangeLimits (0, tracksHeight + (songeditorHeight/2));
+    m_scrollbar_v.setRangeLimits (0, allTracksHeight + (songeditorHeight/2));
     m_scrollbar_v.setCurrentRange (-m_editViewState.m_viewY, songeditorHeight);
 
     m_scrollbar_h.setBounds (trackHeaderWidth
@@ -343,7 +342,7 @@ void EditComponent::itemDragMove(
                 {
                     auto insertPos = dropPos.getX ()
                                    - draggedClip->getClipPosOffsetX ()
-                                   - m_editViewState.m_TrackHeaderWidth;
+                                   - m_editViewState.m_trackHeaderWidth;
                     auto snapType = m_editViewState.getBestSnapType (
                                 m_editViewState.m_viewX1
                               , m_editViewState.m_viewX2
@@ -367,8 +366,8 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
     auto dropPos = dragSourceDetails.localPosition;
 
     auto dropTime = m_editViewState.xToTime (
-                         dropPos.getX() - m_editViewState.m_TrackHeaderWidth
-                       , getWidth() - m_editViewState.m_TrackHeaderWidth);
+                         dropPos.getX() - m_editViewState.m_trackHeaderWidth
+                       , getWidth() - m_editViewState.m_trackHeaderWidth);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     auto targetTrack = getTrackComp (dropPos.getY ());
     if (targetTrack)
@@ -533,23 +532,11 @@ tracktion_engine::AudioTrack::Ptr EditComponent::addAudioTrack(
         bool isMidiTrack
       , juce::Colour trackColour)
 {
-    if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
-            m_edit, te::getAudioTracks(m_edit).size()))
+    if (auto track = EngineHelpers::addAudioTrack(
+                isMidiTrack
+              , trackColour
+              , m_editViewState))
     {
-         track->state.setProperty (IDs::isTrackMinimized, true, nullptr);
-         track->state.setProperty(  te::IDs::height
-                                  , (int) m_editViewState.m_trackMinimized
-                                  , &m_edit.getUndoManager());
-
-         track->state.setProperty(  IDs::isMidiTrack
-                                  , isMidiTrack
-                                  , &m_edit.getUndoManager());
-
-         juce::String num = juce::String(te::getAudioTracks(m_edit).size());
-         track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
-         track->setColour(trackColour);
-         m_editViewState.m_selectionManager.selectOnly(track);
-         m_lowerRange.showPluginRack(track);
          markAndUpdate (m_updateTracks);
          return track;
     }

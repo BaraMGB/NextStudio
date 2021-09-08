@@ -117,9 +117,15 @@ namespace EngineHelpers
 
     te::AudioTrack* getOrInsertAudioTrackAt (te::Edit& edit, int index);
 
+    tracktion_engine::AudioTrack::Ptr addAudioTrack(
+            bool isMidiTrack
+          , juce::Colour trackColour
+          , EditViewState &evs);
+
     te::WaveAudioClip::Ptr loadAudioFileAsClip (
             EditViewState& evs
-          , const juce::File& file);
+          , const juce::File& file
+          , juce::Colour trackColour);
 
     void refreshRelativePathstoNewEditFile(EditViewState & evs
                                        , juce::File newFile);

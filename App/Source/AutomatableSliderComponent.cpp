@@ -26,6 +26,11 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
         if (result == 2000)
         {
             m_automatableParameter->getCurve().addPoint(0.0, getValue(), 0.0);
+            m_automatableParameter->getTrack()->state.setProperty(
+                        IDs::isTrackMinimized
+                        , false
+                        , nullptr);
+
         }
     }
     else

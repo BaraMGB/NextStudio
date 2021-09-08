@@ -88,10 +88,10 @@ public:
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
         m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
 
-        m_trackMinimized.referTo (m_state, IDs::trackMinimized, um, 30);
+        m_trackHeightMinimized.referTo (m_state, IDs::trackMinimized, um, 30);
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
-        m_trackHeaderHeight.referTo(m_state, IDs::headerHeight, um, m_trackMinimized);
-        m_TrackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 250);
+        m_trackDefaultHeight.referTo(m_state, IDs::headerHeight, um, 50);
+        m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 250);
         m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
         m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0 * 4);
@@ -220,9 +220,9 @@ public:
     juce::CachedValue<int> m_pianorollHeight;
     juce::CachedValue<int> m_snapType;
 
-    juce::CachedValue<int> m_trackMinimized
-                         , m_trackHeaderHeight
-                         , m_TrackHeaderWidth
+    juce::CachedValue<int> m_trackHeightMinimized
+                         , m_trackDefaultHeight
+                         , m_trackHeaderWidth
                          , m_timeLineHeight
                          , m_footerBarHeight;
 
