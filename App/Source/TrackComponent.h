@@ -53,9 +53,12 @@ private:
                - m_editViewState.beatToTime(m_editViewState.m_viewX1)
                / getWidth()));
     }
-    te::AutomationCurve& m_curve;
-    int m_hoveredPoint;
-    EditViewState& m_editViewState;
+    te::AutomationCurve&        m_curve;
+    juce::Path                  m_curvePath;
+    int                         m_hoveredPoint;
+    int                         m_hoveredCurve = -1;
+    double                      m_curveAtMousedown;
+    EditViewState&              m_editViewState;
 };
 
 class TrackComponent : public juce::Component,

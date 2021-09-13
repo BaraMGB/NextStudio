@@ -538,13 +538,31 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
 
     int oldX = 0, oldY = getYPos(m_curve.getValueAt(0.0));
     float pointThicknes = 7.0f;
-
+    juce::Path curvePath;
+    juce::Path hoveredCurve;
+    curvePath.startNewSubPath(oldX, oldY);
     for (auto i = 0; i < m_curve.getNumPoints(); i++)
     {
-        auto x = getXPos(m_curve.getPoint(i).time);
-        auto y = getYPos(m_curve.getPoint(i).value);
+        double x = getXPos(m_curve.getPoint(i).time);
+        float y = getYPos(m_curve.getPoint(i).value);
+        float curve = m_curve.getPoint(i - 1).curve;
+        auto oldXDist = x - oldX;
+        auto oldYDist = y - oldY;
+        std::cout << i << "  : " << curve << std::endl;
 
-        g.drawLine(oldX, oldY, x, y);
+
+        curvePath.quadraticTo(oldX + oldXDist - (oldXDist * (0.5 - curve))
+                              , oldY + (oldYDist * (0.5 - curve))
+                              ,x
+                              ,y);
+        if (m_hoveredCurve == i && i != 0)
+        {
+            hoveredCurve.startNewSubPath(oldX, oldY);
+            hoveredCurve.quadraticTo(oldX + oldXDist - (oldXDist * (0.5 - curve))
+                                     , oldY + (oldYDist * (0.5 - curve))
+                                     ,x
+                                     ,y);
+        }
         oldX = x; oldY = y;
 
         if (m_hoveredPoint == i)
@@ -559,14 +577,18 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
         g.setColour(juce::Colours::white);
     }
     g.drawLine(oldX, oldY, getWidth(), oldY);
+    g.setColour(juce::Colours::red);
+    g.strokePath(curvePath, juce::PathStrokeType(1.0f));
+    g.setColour(juce::Colours::green);
+    g.strokePath(hoveredCurve, juce::PathStrokeType(2.0f));
+    m_curvePath = curvePath;
 }
 
 void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
 {
     auto time = getTime(e.x);
-    float value = getValue(e.y);
-
-    int  nextIndex = m_curve.getNearestPoint(time, value, xToYRatio());
+    float clickedValue = getValue(e.y);
+    int  nextIndex = m_curve.getNearestPoint(time, clickedValue, xToYRatio());
     auto nearestPoint = m_curve.getPoint(nextIndex);
     auto nextX = getXPos(nearestPoint.time);
     auto nextY = getYPos(nearestPoint.value);
@@ -592,39 +614,74 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
     else
         m_hoveredPoint = -1;
 
-    if (oldHovered != m_hoveredPoint)
-        repaint();
+
+
+    m_hoveredCurve = -1;
+    if (m_hoveredPoint == -1)
+    {
+        int valueY = getYPos(m_curve.getValueAt(time));
+        if (e.y > valueY - 3 && e.y < valueY + 3)
+        {
+            m_hoveredCurve = nextIndex;
+        }
+    }
+    repaint();
 }
 
 void AutomationLaneComponent::mouseExit(const juce::MouseEvent &e)
 {
-    if (m_hoveredPoint != -1)
-    {
         m_hoveredPoint = -1;
+        m_hoveredCurve = -1;
         repaint();
-    }
 }
 
 void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
-        if (e.mods.isRightButtonDown() && m_hoveredPoint != -1)
+    if (m_hoveredPoint == -1)
+    {
+        if (m_hoveredCurve == -1)
+        {
+            if (e.mods.isLeftButtonDown())
+            {
+                m_hoveredPoint = m_curve.addPoint(getTime(e.x), getValue(e.y), 0.0);
+                repaint();
+            }
+        }
+        else
+        {
+
+        }
+    }
+    else
+    {
+        if (e.mods.isRightButtonDown())
         {
             m_curve.removePoint(m_hoveredPoint);
             m_hoveredPoint = -1;
             repaint();
         }
-        else if (m_hoveredPoint == -1)
-        {
-            m_hoveredPoint = m_curve.addPoint(getTime(e.x), getValue(e.y), 0.0);
-            repaint();
-        }
+    }
+    m_curveAtMousedown = m_curve.getPoint(m_hoveredCurve - 1).curve;
 }
 
 void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    if (m_hoveredCurve != -1)
+    {
+        auto factor = m_curve.getPointValue(m_hoveredCurve - 1)
+                      < m_curve.getPointValue(m_hoveredCurve)
+                      ? 0.01
+                      : -0.01;
+        m_curve.setCurveValue(
+                    m_hoveredCurve - 1
+                  , juce::jlimit(-0.5
+                                , 0.5
+                                , m_curveAtMousedown
+                                  + e.getDistanceFromDragStartY() * factor));
+        repaint();
+    }
     if (m_hoveredPoint != -1)
     {
-
         m_curve.movePoint(m_hoveredPoint, getTime(e.x), getValue(e.y), false);
         repaint();
     }
