@@ -540,47 +540,46 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
     float pointThicknes = 7.0f;
     juce::Path curvePath;
     juce::Path hoveredCurve;
+    juce::Path dots;
+    juce::Path hoveredDot;
     curvePath.startNewSubPath(oldX, oldY);
     for (auto i = 0; i < m_curve.getNumPoints(); i++)
     {
         double x = getXPos(m_curve.getPoint(i).time);
         float y = getYPos(m_curve.getPoint(i).value);
         float curve = m_curve.getPoint(i - 1).curve;
-        auto oldXDist = x - oldX;
-        auto oldYDist = y - oldY;
-        std::cout << i << "  : " << curve << std::endl;
 
+        auto curveControlPoint = juce::Point<float>(
+                    oldX + ((x - oldX) * (0.5 + curve))
+                  , oldY + ((y - oldY) * (0.5 - curve)));
 
-        curvePath.quadraticTo(oldX + oldXDist - (oldXDist * (0.5 - curve))
-                              , oldY + (oldYDist * (0.5 - curve))
-                              ,x
-                              ,y);
+        curvePath.quadraticTo(curveControlPoint, {x, y});
         if (m_hoveredCurve == i && i != 0)
         {
             hoveredCurve.startNewSubPath(oldX, oldY);
-            hoveredCurve.quadraticTo(oldX + oldXDist - (oldXDist * (0.5 - curve))
-                                     , oldY + (oldYDist * (0.5 - curve))
-                                     ,x
-                                     ,y);
+            hoveredCurve.quadraticTo(curveControlPoint, {x, y});
         }
+
         oldX = x; oldY = y;
 
         if (m_hoveredPoint == i)
-            g.setColour(juce::Colours::red);
-        else
-            g.setColour(m_curve.getOwnerParameter()->getTrack()->getColour());
-
-        g.fillEllipse(x - pointThicknes/2
-                      , y - pointThicknes/2
-                      , pointThicknes
-                      , pointThicknes);
-        g.setColour(juce::Colours::white);
+        {
+            hoveredDot.addEllipse(x - 3, y - 3, 6, 6);
+        }
+        dots.addEllipse(x - 3, y - 3, 6, 6);
     }
-    g.drawLine(oldX, oldY, getWidth(), oldY);
-    g.setColour(juce::Colours::red);
-    g.strokePath(curvePath, juce::PathStrokeType(1.0f));
-    g.setColour(juce::Colours::green);
+
+    curvePath.lineTo(getWidth(), oldY);
+    g.setColour(juce::Colour(0xff555555));
+    g.strokePath(curvePath, juce::PathStrokeType(2.0f));
+    g.setColour(juce::Colours::white);
     g.strokePath(hoveredCurve, juce::PathStrokeType(2.0f));
+    g.setColour(juce::Colour(0xff2b2b2b));
+    g.fillPath(dots);
+    g.setColour(juce::Colour(0xff555555));
+    g.strokePath(dots, juce::PathStrokeType(2.0f));
+    g.setColour(juce::Colours::white);
+    g.strokePath(hoveredDot, juce::PathStrokeType(2.0f));
     m_curvePath = curvePath;
 }
 
@@ -649,7 +648,11 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         }
         else
         {
-
+            if (e.mods.isRightButtonDown())
+            {
+                m_curve.setCurveValue(m_hoveredCurve - 1, 0.0);
+                repaint();
+            }
         }
     }
     else
@@ -682,10 +685,21 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
     }
     if (m_hoveredPoint != -1)
     {
-        m_curve.movePoint(m_hoveredPoint, getTime(e.x), getValue(e.y), false);
+        auto snapType = m_editViewState.getBestSnapType (
+                    m_editViewState.m_viewX1
+                  , m_editViewState.m_viewX2
+                  , getWidth());
+        auto snapedTime = m_editViewState.getSnapedTime(
+                    getTime(e.x)
+                  , snapType);
+        m_curve.movePoint(m_hoveredPoint
+                          , e.mods.isShiftDown()
+                                ? getTime(e.x)
+                                : snapedTime
+                          , getValue(e.y)
+                          , false);
         repaint();
     }
-
 }
 
 void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
