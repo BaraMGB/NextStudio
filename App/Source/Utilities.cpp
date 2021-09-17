@@ -558,3 +558,30 @@ void Thumbnail::updateCursorPosition()
     const float x = r.getWidth() * float (proportion);
     cursor.setRectangle (r.withWidth (2.0f).withX (x));
 }
+
+tracktion_engine::Clip::Ptr EngineHelpers::duplicateClip(
+        tracktion_engine::Clip::Ptr source
+      , double timeDelta
+      , bool withAutomation)
+{
+    auto clipCopy = te::duplicateClip (*source);
+    clipCopy->setStart(clipCopy->getEditTimeRange().start
+                   + timeDelta
+                 , false
+                 , true);
+    if (withAutomation)
+    {
+        for (auto ap : source->getTrack()->getAllAutomatableParams())
+        {
+            for (auto oldPoint : ap->getCurve().getPointsInRegion(
+                     source->getEditTimeRange()))
+            {
+                ap->getCurve().addPoint(
+                            oldPoint.time + timeDelta
+                          , oldPoint.value
+                          , oldPoint.curve);
+            }
+        }
+    }
+    return clipCopy;
+}

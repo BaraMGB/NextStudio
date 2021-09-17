@@ -315,21 +315,20 @@ bool TrackComponent::keyPressed(const juce::KeyPress &key)
         m_editViewState.m_selectionManager.deselectAll ();
 
         auto selectionRange = te::getTimeRangeForSelectedItems (clipSelection);
-        m_editViewState.m_edit.getTransport ().setCurrentPosition (selectionRange.end);
+
+        m_editViewState.m_edit.getTransport ().setCurrentPosition (
+                    selectionRange.end);
+
         for (auto& selectedClip : clipSelection)
         {
-            m_editViewState.m_selectionManager.addToSelection
-                    (te::duplicateClip (*selectedClip));
+            m_editViewState.m_selectionManager.addToSelection(
+                        EngineHelpers::duplicateClip(
+                                         selectedClip
+                                       , selectionRange.getLength()
+                                       , m_editViewState.m_treatAutomation));
         }
-
-        te::moveSelectedClips (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>()
-                               ,m_editViewState.m_edit
-                               ,te::MoveClipAction::moveStartToCursor
-                               ,true);
-
         return true;
     }
-
     if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
     {
         EngineHelpers::deleteSelectedClips (m_editViewState);

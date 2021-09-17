@@ -142,6 +142,9 @@ namespace EngineHelpers
         return clip;
     }
 
+    tracktion_engine::Clip::Ptr duplicateClip (
+            te::Clip::Ptr source, double timeDelta, bool withAutomation);
+
     void toggleLoop (te::Edit& edit);
     void togglePlay (te::Edit& edit);
     void toggleRecord (te::Edit& edit);

@@ -61,6 +61,7 @@ namespace IDs
     DECLARE_ID (name)
     DECLARE_ID (footerBarHeight)
     DECLARE_ID (isTrackMinimized)
+    DECLARE_ID (treatAutomation)
     #undef DECLARE_ID
 }
 
@@ -87,6 +88,7 @@ public:
         m_showFooters.referTo (m_state, IDs::showFooters, um, false);
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
         m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
+        m_treatAutomation.referTo (m_state, IDs::treatAutomation, um, true);
 
         m_trackHeightMinimized.referTo (m_state, IDs::trackMinimized, um, 30);
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
@@ -208,7 +210,8 @@ public:
                           , m_showMidiDevices
                           , m_showWaveDevices
                           , m_isPianoRollVisible
-                          , m_isAutoArmed;
+                          , m_isAutoArmed
+                          , m_treatAutomation;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY
