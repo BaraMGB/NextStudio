@@ -325,7 +325,7 @@ bool TrackComponent::keyPressed(const juce::KeyPress &key)
                         EngineHelpers::duplicateClip(
                                          selectedClip
                                        , selectionRange.getLength()
-                                       , m_editViewState.m_treatAutomation));
+                                       , m_editViewState.m_automationFollowsClip));
         }
         return true;
     }
@@ -604,7 +604,7 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
                                          , zoneSize, zoneSize };
 
     auto oldHovered = m_hoveredPoint;
-
+    std::cout << "Index: " << m_hoveredPoint << std::endl;
     if (clickZoneNext.contains(e.x, e.y))
         m_hoveredPoint = nextIndex;
     else if (clickZonePre.contains(e.x, e.y))

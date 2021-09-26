@@ -370,6 +370,9 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
                        , getWidth() - m_editViewState.m_trackHeaderWidth);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     auto targetTrack = getTrackComp (dropPos.getY ());
+    auto targetIndex = targetTrack->getTrack()->getIndexInEditTrackList();
+
+
     if (targetTrack)
     {
 
@@ -393,19 +396,132 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
         if (auto clipComp = dynamic_cast<ClipComponent*>
                 (dragSourceDetails.sourceComponent.get()))
         {
+            auto sourceIndex = clipComp->getClip()->getTrack()->getIndexInEditTrackList();
             const auto songEditorWidth = m_timeLine.getTimeLineWidth ();
             const auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
-            const auto offset = clipComp->getClickPosTime ();
+            const auto clickOffset = clipComp->getClickPosTime ();
+            const auto xOffset = dropTime - firstClipTime - clickOffset + m_editViewState.beatToTime(m_editViewState.m_viewX1);
+            auto snapType = m_editViewState.getBestSnapType (
+                        m_editViewState.m_viewX1
+                      , m_editViewState.m_viewX2
+                      , songEditorWidth);
+            const auto snapedOffsetX = m_editViewState.getSnapedTime (
+                        dropTime - clickOffset + m_editViewState.beatToTime(m_editViewState.m_viewX1)
+                      , snapType) - firstClipTime;
             const auto removeSource = !clipComp->isCtrlDown ();
             const auto snap = !clipComp->isShiftDown ();
-            EngineHelpers::pasteClipboardToEdit (firstClipTime
-                                               , offset
-                                               , dropTime
-                                               , targetTrack->getTrack ()
-                                               , m_editViewState
-                                               , removeSource
-                                               , snap
-                                               , songEditorWidth);
+            auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+            for (auto clip : selectedClips)
+            {
+                const auto sourceRange = clip->getEditTimeRange();
+                auto verticalOffset = clip->getTrack()
+                        ->getIndexInEditTrackList() - sourceIndex;
+                bool isValid = (bool) m_edit.getTrackList().at(targetIndex + verticalOffset)
+                        ->state.getProperty (IDs::isMidiTrack)
+                        == clip->isMidi ();
+                if (isValid)
+                {
+                    const auto targetTime = clip
+                            ->getEditTimeRange().getStart() + xOffset;
+                    const auto snapedTime = clip
+                            ->getEditTimeRange().getStart() + snapedOffsetX;
+                    const te::EditTimeRange targetRange (te::EditTimeRange::withStartAndLength(
+                                snap ? snapedTime : targetTime
+                                       , clip->getPosition().getLength()));
+                    //move or copy
+                    if (!removeSource)
+                    {
+                        te::duplicateClip(*clip);
+                    }
+                    //save clip for damage
+                    clip->setStart(targetRange.end, false, true);
+                    //clear region under the target
+                    if (auto at = dynamic_cast<te::AudioTrack*>(
+                                m_edit.getTrackList().at(
+                                    targetIndex + verticalOffset)))
+                    {
+                        at->deleteRegion(targetRange
+                                       , &m_editViewState.m_selectionManager);
+                    }
+                    //copy Automation if not changed the track
+                    if (m_edit.getTrackList().at(
+                                targetIndex + verticalOffset) == clip->getTrack()
+                            && m_editViewState.m_automationFollowsClip)
+                    {
+                        for (auto ap : clip->getTrack()->getAllAutomatableParams())
+                        {
+                            if (ap->isAutomationActive())
+                            {
+                                auto sourcePoints = ap->getCurve()
+                                        .getPointsInRegion(sourceRange);
+                                auto valueAtSourceStart
+                                        = ap->getCurve()
+                                        .getValueAt(sourceRange.getStart());
+                                auto valueAtSourceEnd
+                                        = ap->getCurve()
+                                        .getValueAt(sourceRange.getEnd());
+                                auto valueAtTargetStart = ap->getCurve().getValueAt(targetRange.getStart());
+                                auto valueAtTargetEnd = ap->getCurve().getValueAt(targetRange.getEnd());
+                                //delete source region
+                                if (removeSource)
+                                {
+
+                                    ap->getCurve().movePoint(
+                                                ap->getCurve().addPoint(
+                                                    sourceRange.getStart()
+                                                  , valueAtSourceStart
+                                                  , 0.0)
+                                              , sourceRange.getEnd()
+                                              , valueAtSourceStart
+                                              ,true);
+                                    ap->getCurve().addPoint(
+                                        sourceRange.getStart()
+                                      , valueAtSourceStart
+                                      , 0.0);
+                                }
+                                //delete target region
+
+                                ap->getCurve().movePoint(
+                                            ap->getCurve().addPoint(
+                                                targetRange.getStart()
+                                              , valueAtTargetStart
+                                              , 0.0)
+                                          , targetRange.getEnd()
+                                          , valueAtTargetStart
+                                          , true);
+                                ap->getCurve().addPoint(
+                                    targetRange.getStart()
+                                  , valueAtTargetStart
+                                  , 0.0);
+
+//                                ap->getCurve().removePointsInRegion(targetRange);
+//                                ap->getCurve().addPoint(targetRange.getStart()
+//                                                      , valueAtTargetStart
+//                                                      , 0.0);
+                                for (auto oldPoint : sourcePoints)
+                                {
+                                    double pointTime = oldPoint.time
+                                            - sourceRange.getStart();
+                                    ap->getCurve().addPoint(
+                                                targetRange.getStart() + pointTime
+                                                , oldPoint.value
+                                                , oldPoint.curve);
+                                }
+                                ap->getCurve().removeRedundantPoints({sourceRange.start, targetRange.end});
+//                                ap->getCurve().addPoint(targetRange.getEnd()
+//                                                        , valueAtSourceEnd
+//                                                        , 0.0);
+//                                ap->getCurve().addPoint(targetRange.getEnd()
+//                                                      , valueAtTargetEnd
+//                                                      , 0.0);
+                            }
+                        }
+                    }
+
+                    clip->moveToTrack(*m_edit.getTrackList().at(targetIndex + verticalOffset));
+                    clip->setStart(snap ? snapedTime : targetTime, false, true);
+                }
+            }
         }
         if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
                 (dragSourceDetails.sourceComponent.get()))

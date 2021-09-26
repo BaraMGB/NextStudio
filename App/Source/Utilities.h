@@ -105,6 +105,7 @@ namespace EngineHelpers
                                     , te::Track::Ptr sourceTrack
                                     , EditViewState& evs
                                     , bool removeSource
+                                    , bool withAutomation
                                     , bool snap, int width);
 
     te::Project::Ptr createTempProject (te::Engine& engine);

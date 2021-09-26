@@ -211,6 +211,7 @@ void EngineHelpers::pasteClipboardToEdit(
       , tracktion_engine::Track::Ptr sourceTrack
       , EditViewState &evs
       , bool removeSource
+      , bool withAutomation
       , bool snap
       , int width)
 {
@@ -234,9 +235,41 @@ void EngineHelpers::pasteClipboardToEdit(
         const auto pasteTime = !snap
                 ? rawTime - firstClipTime
                 : snapedTime - firstClipTime;
+        if (withAutomation)
+        {
+            for (auto clip : evs.m_selectionManager.getItemsOfType<te::Clip>())
+            {
+                for (auto ap : clip->getTrack()->getAllAutomatableParams())
+                {
+                    ap->getCurve().removePointsInRegion(
+                                te::EditTimeRange::withStartAndLength(
+                                    pasteTime - firstClipTime
+                                    , clip->state.getProperty(te::IDs::length)));
+                    for (auto oldPoint : ap->getCurve().getPointsInRegion(
+                             clip->getEditTimeRange()))
+                    {
+                        std::cout << oldPoint.time << " : " << snapedTime << std::endl;
+                        double pointTime = oldPoint.time
+                                - (double) clip->state.getProperty(
+                                                                te::IDs::start);
+                        ap->getCurve().addPoint(
+                                    pasteTime - firstClipTime + pointTime
+                                  , oldPoint.value
+                                  , oldPoint.curve);
+                    }
+                    if (removeSource)
+                    {
+                         ap->getCurve().removePointsInRegion(
+                                     clip->getEditTimeRange());
+                    }
+                }
+            }
+        }
+
         if (removeSource)
         {
             deleteSelectedClips (evs);
+
         }
         //delete region under pasted clips
         for (auto clip : clipContent->clips)
