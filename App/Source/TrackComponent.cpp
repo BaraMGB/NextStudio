@@ -544,7 +544,7 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
     curvePath.startNewSubPath(oldX, oldY);
     for (auto i = 0; i < m_curve.getNumPoints(); i++)
     {
-        double x = getXPos(m_curve.getPoint(i).time);
+        float x = getXPos(m_curve.getPoint(i).time);
         float y = getYPos(m_curve.getPoint(i).value);
         float curve = m_curve.getPoint(i - 1).curve;
 

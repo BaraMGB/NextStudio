@@ -1,6 +1,92 @@
 #include "EditComponent.h"
 #include "NextLookAndFeel.h"
 
+
+void LassoSelectionComponent::paint(juce::Graphics &g)
+{
+    if (m_isLassoSelecting)
+    {
+        g.setColour (juce::Colour(0x99FFFFFF));
+        g.drawRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
+        g.setColour (juce::Colour(0x22FFFFFF));
+        g.fillRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
+    }
+}
+
+void LassoSelectionComponent::mouseDown(const juce::MouseEvent &e)
+{
+    m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ());
+    m_cachedY = m_editViewState.m_viewY;
+    m_cachedX = m_editViewState.m_viewX1;
+}
+
+void LassoSelectionComponent::mouseDrag(const juce::MouseEvent &e)
+{
+    m_isLassoSelecting = true;
+    auto offsetY = m_editViewState.m_viewY - m_cachedY;
+
+    te::EditTimeRange timeRange(
+                juce::jmin(
+                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                    , m_clickedTime)
+                , juce::jmax(
+                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                    , m_clickedTime));
+    double top = juce::jmin(
+                e.getMouseDownY () + offsetY
+                , (double) e.getPosition ().y );
+    double bottom = juce::jmax(
+                e.getMouseDownY () + offsetY
+                , (double) e.getPosition ().y );
+
+    m_lassoRect = {timeRange, top, bottom};
+    updateSelection(e.mods.isCtrlDown ());
+    repaint ();
+}
+
+void LassoSelectionComponent::mouseUp(const juce::MouseEvent &e)
+{
+    m_isLassoSelecting = false;
+    repaint();
+}
+
+void LassoSelectionComponent::updateSelection(bool add)
+{
+    if (auto editComp = dynamic_cast<EditComponent*>(getParentComponent ()))
+    {
+        if (!add)
+            m_editViewState.m_selectionManager.deselectAll ();
+        if (!editComp->getTrackComps ().isEmpty ())
+        {
+            for (auto t : editComp->getTrackComps ())
+            {
+                juce::Range<double> trackVerticalRange = {
+                    (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
+                  , (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
+                        + (double) t->getHeight () };
+                if (trackVerticalRange.intersects (m_lassoRect.verticalRange))
+                {
+                    for (auto c : t->getClipComponents ())
+                    {
+                        if (m_lassoRect.startTime < c->getClip ()->getPosition ().getEnd ()
+                                && m_lassoRect.endTime > c->getClip ()->getPosition ().getStart ())
+                        {
+                            m_editViewState.m_selectionManager.addToSelection (c->getClip ());
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+//--------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
 EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm, juce::Array<juce::Colour> tc)
     : m_edit (e)
   , m_editViewState (e, sm)
@@ -718,7 +804,7 @@ void EditComponent::buildTracks()
     resized();
 }
 
-LassoComponent* EditComponent::getLasso()
+LassoSelectionComponent* EditComponent::getLasso()
 {
     return &m_lassoComponent;
 }
@@ -776,80 +862,3 @@ LowerRangeComponent& EditComponent::lowerRange()
     return m_lowerRange;
 }
 
-void LassoComponent::paint(juce::Graphics &g)
-{
-    if (m_isLassoSelecting)
-    {
-        g.setColour (juce::Colour(0x99FFFFFF));
-        g.drawRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
-        g.setColour (juce::Colour(0x22FFFFFF));
-        g.fillRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
-    }
-}
-
-void LassoComponent::mouseDown(const juce::MouseEvent &e)
-{
-    m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ());
-    m_cachedY = m_editViewState.m_viewY;
-    m_cachedX = m_editViewState.m_viewX1;
-}
-
-void LassoComponent::mouseDrag(const juce::MouseEvent &e)
-{
-    m_isLassoSelecting = true;
-    auto offsetY = m_editViewState.m_viewY - m_cachedY;
-
-    te::EditTimeRange timeRange(
-                juce::jmin(
-                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
-                    , m_clickedTime)
-                , juce::jmax(
-                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
-                    , m_clickedTime));
-    double top = juce::jmin(
-                e.getMouseDownY () + offsetY
-                , (double) e.getPosition ().y );
-    double bottom = juce::jmax(
-                e.getMouseDownY () + offsetY
-                , (double) e.getPosition ().y );
-
-    m_lassoRect = {timeRange, top, bottom};
-    updateSelection(e.mods.isCtrlDown ());
-    repaint ();
-}
-
-void LassoComponent::mouseUp(const juce::MouseEvent &e)
-{
-    m_isLassoSelecting = false;
-    repaint();
-}
-
-void LassoComponent::updateSelection(bool add)
-{
-    if (auto editComp = dynamic_cast<EditComponent*>(getParentComponent ()))
-    {
-        if (!add)
-            m_editViewState.m_selectionManager.deselectAll ();
-        if (!editComp->getTrackComps ().isEmpty ())
-        {
-            for (auto t : editComp->getTrackComps ())
-            {
-                juce::Range<double> trackVerticalRange = {
-                    (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
-                  , (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
-                        + (double) t->getHeight () };
-                if (trackVerticalRange.intersects (m_lassoRect.verticalRange))
-                {
-                    for (auto c : t->getClipComponents ())
-                    {
-                        if (m_lassoRect.startTime < c->getClip ()->getPosition ().getEnd ()
-                                && m_lassoRect.endTime > c->getClip ()->getPosition ().getStart ())
-                        {
-                            m_editViewState.m_selectionManager.addToSelection (c->getClip ());
-                        }
-                    }
-                }
-            }
-        }
-    }
-}

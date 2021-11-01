@@ -20,9 +20,11 @@ public:
 
 private:
     juce::Label m_parameterName;
+    juce::Label m_pluginName;
     te::AutomatableParameter& m_automatableParameter;
     int m_heightAtMouseDown = 0, m_mouseDownY = 0;
     bool m_resizing = false, m_hovering = false;
+    AutomatableSliderComponent m_slider;
 
     // MouseListener interface
 public:

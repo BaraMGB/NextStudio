@@ -91,17 +91,15 @@ public:
         auto thumbColour = juce::Colour(0xff000000);
         auto thumbMouseColour = juce::Colour(0xff999999);
         auto volumeColour = juce::Colour(0x88e9e949);
-
+        auto isAutomationActive = false;
         if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
         {
+            volumeColour = automatableSlider->trackColour();
             if (automatableSlider->getAutomatableParameter()->isAutomationActive())
             {
-                volumeColour = juce::Colours::red;
+                isAutomationActive = true;
             }
-            else
-            {
-                volumeColour = automatableSlider->trackColour();
-            }
+
         }
         auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10);
         auto lineW = 5;
@@ -169,8 +167,13 @@ public:
                 p.applyTransform(
                     juce::AffineTransform::rotation(angle).translated(centreX, centreY));
                 // pointer
-                g.setColour(thumbColour);
-                g.fillPath(p);
+                g.setColour (thumbColour);
+                g.fillPath (p);
+                if (isAutomationActive)
+                {
+                    g.setColour (juce::Colour(0xffaa3300));
+                    g.fillEllipse ({centreX - 2.0f, centreY - 2.0f, 4.0f, 4.0f});
+                }
 
     }
 

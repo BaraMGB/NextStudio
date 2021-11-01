@@ -10,12 +10,14 @@
 #include "PlayHeadComponent.h"
 #include "LowerRangeComponent.h"
 
+
 namespace te = tracktion_engine;
 
-class LassoComponent : public juce::Component
+
+class LassoSelectionComponent : public juce::Component
 {
 public:
-    LassoComponent(EditViewState& evs)
+    LassoSelectionComponent(EditViewState& evs)
         : m_editViewState(evs) {}
     void paint(juce::Graphics &g) override;
     void mouseDown(const juce::MouseEvent&) override;
@@ -58,6 +60,7 @@ private:
 
 
 };
+
 
 //------------------------------------------------------------------------------
 
@@ -133,7 +136,7 @@ public:
 
     void turnoffAllTrackOverlays ();
     EditViewState& getEditViewState () { return m_editViewState; }
-    LassoComponent* getLasso ();
+    LassoSelectionComponent* getLasso ();
 
 private:
 
@@ -174,7 +177,7 @@ private:
                                               , m_editViewState.m_viewX2 };
     LowerRangeComponent                     m_lowerRange { m_editViewState };
     juce::Rectangle<float>                  m_songeditorRect;
-    LassoComponent                          m_lassoComponent;
+    LassoSelectionComponent                          m_lassoComponent;
     juce::Array<juce::Colour>               m_trackColours;
 
     bool m_updateTracks = false, m_updateZoom = false;

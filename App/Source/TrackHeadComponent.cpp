@@ -1,19 +1,61 @@
 #include "TrackHeadComponent.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
-    : m_parameterName(ap.getFullName()
-                      .fromFirstOccurrenceOf(">>", false, false), ap.getFullName()
-                      .fromFirstOccurrenceOf(">>", false, false))
-    , m_automatableParameter(ap)
+    :
+      m_automatableParameter(ap)
+    , m_slider(ap)
 {
     addAndMakeVisible(m_parameterName);
-    m_parameterName.setJustificationType(juce::Justification::bottomRight);
+    addAndMakeVisible (m_pluginName);
+    addAndMakeVisible (m_slider);
+    juce::String pluginDescription = m_automatableParameter.getFullName ()
+            .fromFirstOccurrenceOf (">>", false, false);
+    juce::String parameterName = pluginDescription
+            .fromFirstOccurrenceOf (">>", false, false);
+    juce::String pluginName = pluginDescription
+            .upToFirstOccurrenceOf (">>", false, false);
+
+    m_pluginName.setText (pluginName, juce::dontSendNotification);
+    m_pluginName.setJustificationType (juce::Justification::centredLeft);
+    m_pluginName.setColour(juce::Label::textColourId, juce::Colours::white);
+    m_pluginName.setInterceptsMouseClicks(false, false);
+    m_pluginName.setEditable (false, false, true);
+    m_pluginName.setMinimumHorizontalScale (1);
+    m_pluginName.setColour (juce::Label::backgroundColourId, juce::Colour(0xff333333));
+    m_pluginName.setFont (juce::Font (12.0f, juce::Font::plain));
+    m_parameterName.setFont (juce::Font (12.0f, juce::Font::plain));
+    m_parameterName.setText (parameterName, juce::dontSendNotification);
+    m_parameterName.setMinimumHorizontalScale (1);
+    m_parameterName.setJustificationType(juce::Justification::centredLeft);
     m_parameterName.setColour(juce::Label::textColourId, juce::Colours::white);
+    m_parameterName.setColour (juce::Label::backgroundColourId, juce::Colour(0xff333333));
     m_parameterName.setInterceptsMouseClicks(false, false);
     m_parameterName.setEditable (false, false, true);
+    m_slider.setRange (0.0f, 3.0f, 0.01f);
+    m_slider.setSkewFactorFromMidPoint (1.0f);
+    m_slider.setSliderStyle (juce::Slider::RotaryVerticalDrag);
+    m_slider.setTextBoxStyle (juce::Slider::NoTextBox, 0, 0, false);
+
 }
 
 void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 {
+    g.setColour (juce::Colours::white);
+//    juce::String pluginDescription = m_automatableParameter.getFullName ()
+//            .fromFirstOccurrenceOf (">>", false, false);
+//    juce::String parameterName = pluginDescription
+//            .fromFirstOccurrenceOf (">>", false, false);
+//    juce::String pluginName = pluginDescription
+//            .upToFirstOccurrenceOf (">>", false, false);
+    const int minimizedHeigth = m_automatableParameter.getTrack ()->state
+            .getProperty (IDs::trackMinimized, 30);
+    auto area = getLocalBounds().removeFromTop(minimizedHeigth);
+    area.removeFromLeft (10);
+    GUIHelpers::drawFromSvg (g
+                             , BinaryData::automation_svg
+                             , "#ffffff"
+                             , area.removeFromLeft (20).toFloat ());
+    area.removeFromLeft (5);
+//    g.drawText (pluginName, area, juce::Justification::centredLeft, false);
     g.setColour(juce::Colours::black);
     if (m_hovering)
     {
@@ -25,7 +67,25 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 
 void AutomationLaneHeaderComponent::resized()
 {
-    m_parameterName.setBounds(getLocalBounds());
+    const int gap = 3;
+    const int minimizedHeigth = m_automatableParameter.getTrack ()->state
+            .getProperty (IDs::trackMinimized, 30);
+    auto area = getLocalBounds().removeFromTop(minimizedHeigth);
+    auto peakdisplay = area.removeFromRight (15);
+    peakdisplay.reduce (gap, gap);
+//    if (levelMeterComp)
+//        levelMeterComp->setBounds (peakdisplay);
+    auto volSlider = area.removeFromRight(area.getHeight ());
+    m_slider.setBounds (volSlider);
+
+
+    area.removeFromLeft (37);
+    area.reduce (0, 6);
+
+    m_parameterName.setBounds (area.removeFromRight (area.getWidth ()/2));
+    area.removeFromRight (gap);
+    m_pluginName.setBounds (area);
+//    m_parameterName.setBounds(getLocalBounds());
 }
 
 te::AutomatableParameter &AutomationLaneHeaderComponent::automatableParameter() const
