@@ -456,11 +456,11 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
                        , getWidth() - m_editViewState.m_trackHeaderWidth);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     auto targetTrack = getTrackComp (dropPos.getY ());
-    auto targetIndex = targetTrack->getTrack()->getIndexInEditTrackList();
 
 
     if (targetTrack)
     {
+        auto targetIndex = targetTrack->getTrack()->getIndexInEditTrackList();
 
         if (auto lb = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
         {
