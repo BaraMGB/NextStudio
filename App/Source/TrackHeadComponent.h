@@ -28,10 +28,10 @@ private:
 
     // MouseListener interface
 public:
-    void mouseDown(const juce::MouseEvent &event);
-    void mouseDrag (const juce::MouseEvent &event);
-    void mouseMove (const juce::MouseEvent &event);
-    void mouseExit (const juce::MouseEvent &event);
+    void mouseDown(const juce::MouseEvent &event) override;
+    void mouseDrag (const juce::MouseEvent &event) override;
+    void mouseMove (const juce::MouseEvent &event) override;
+    void mouseExit (const juce::MouseEvent &event) override;
     te::AutomatableParameter &automatableParameter() const;
 };
 

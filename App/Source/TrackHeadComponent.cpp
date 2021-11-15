@@ -112,6 +112,9 @@ void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
         m_mouseDownY = event.y;
         m_heightAtMouseDown = getHeight ();
     }
+    getParentComponent ()->mouseDown (event);
+
+
 }
 
 void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)

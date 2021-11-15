@@ -38,27 +38,40 @@ private:
 
     double getValue(int y)
     {
-        return 1.0 - static_cast<double>(y) / static_cast<double>(getHeight());
+        return 1.0 - static_cast<double>(y + (c_pointThickness/2+1) +1)
+                        / static_cast<double>(getLaneHeight());
     }
 
     int getYPos (double value)
     {
-        return getHeight() - value * getHeight();
+        return (getLaneHeight() - value * getLaneHeight()) + (c_pointThickness/2) +1;
     }
 
     double xToYRatio()
     {
-        return (1/getHeight())
+        return (1/getLaneHeight())
              / ((m_editViewState.beatToTime(m_editViewState.m_viewX2)
                - m_editViewState.beatToTime(m_editViewState.m_viewX1)
                / getWidth()));
     }
+
+    int getLaneHeight()
+    {
+        return getHeight() - c_pointThickness - 3;
+    }
+
     te::AutomationCurve&        m_curve;
     juce::Path                  m_curvePath;
     int                         m_hoveredPoint;
     int                         m_hoveredCurve = -1;
+    double                      m_hoveredTime;
+    juce::Rectangle<int>        m_hoveredRect;
     double                      m_curveAtMousedown;
     EditViewState&              m_editViewState;
+
+    //------------- const
+    const int                   c_pointThickness = 8;
+    const int                   c_halvePoint = c_pointThickness/2;
 };
 
 class TrackComponent : public juce::Component,
