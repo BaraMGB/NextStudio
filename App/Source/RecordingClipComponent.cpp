@@ -59,7 +59,7 @@ void RecordingClipComponent::drawThumbnail (juce::Graphics& g
 }
 
 
-bool RecordingClipComponent::getBoundsAndTime (Rectangle<int>& bounds, Range<double>& times) const
+bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, juce::Range<double>& times) const
 {
     auto editTimeToX = [this] (double t)
     {
@@ -107,14 +107,14 @@ bool RecordingClipComponent::getBoundsAndTime (Rectangle<int>& bounds, Range<dou
             t2 = juce::jlimit (in, out, t2);
         }
         
-        bounds = localBounds.withX (jmax (localBounds.getX(), editTimeToX (t1)))
-                 .withRight (jmin (localBounds.getRight(), editTimeToX (t2)));
+        bounds = localBounds.withX (juce::jmax (localBounds.getX(), editTimeToX (t1)))
+                 .withRight (juce::jmin (localBounds.getRight(), editTimeToX (t2)));
         
         auto loopRange = epc->getLoopTimes();
         const double recordedTime = unloopedPos - epc->getLoopTimes().start;
         const int numLoops = (int) (recordedTime / loopRange.getLength());
         
-        const Range<double> editTimes (xToEditTime (bounds.getX()),
+        const juce::Range<double> editTimes (xToEditTime (bounds.getX()),
                                        xToEditTime (bounds.getRight()));
         
         times = (editTimes + (numLoops * loopRange.getLength())) - timeStarted;
