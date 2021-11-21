@@ -30,8 +30,14 @@ namespace Helpers
 
 namespace GUIHelpers
 {
-    void log(juce::String message);
-    void log(int);
+    template<typename T>
+    void log(T message)
+    {
+        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
+                  << ": " << message << std::endl;
+    }
+
+
     void drawRoundedRectWithSide(
           juce::Graphics & g
         , juce::Rectangle<float> area

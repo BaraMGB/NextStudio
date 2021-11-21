@@ -47,12 +47,20 @@ private:
         return (getLaneHeight() - value * getLaneHeight()) + (c_pointThickness/2) +1;
     }
 
+    juce::Point<int> getPoint(const te::AutomationCurve::AutomationPoint& ap)
+    {
+        return {getXPos (ap.time), getYPos (ap.value)};
+    }
+
     double xToYRatio()
     {
-        return (1/getLaneHeight())
-             / ((m_editViewState.beatToTime(m_editViewState.m_viewX2)
-               - m_editViewState.beatToTime(m_editViewState.m_viewX1)
-               / getWidth()));
+        //1 screen unit in value / 1 screen unit in time
+        double screenUnitInValue = 1.0/getLaneHeight();
+        double screenUnitInTime =
+                (m_editViewState.beatToTime(m_editViewState.m_viewX2)
+               - m_editViewState.beatToTime(m_editViewState.m_viewX1))
+                                 / getWidth();
+        return screenUnitInValue / screenUnitInTime;
     }
 
     int getLaneHeight()
@@ -60,15 +68,25 @@ private:
         return getHeight() - c_pointThickness - 3;
     }
 
+    bool isBeyondLastPoint(double time, float value)
+    {
+        auto nearestPoint = m_curve.getNearestPoint (time, value , xToYRatio ());
+        if (nearestPoint > m_curve.getNumPoints () - 1)
+        {
+            return true;
+        }
+        return false;
+    }
+
     te::AutomationCurve&        m_curve;
-    juce::Path                  m_curvePath;
     int                         m_hoveredPoint;
     int                         m_hoveredCurve = -1;
     double                      m_hoveredTime;
     juce::Rectangle<int>        m_hoveredRect;
     double                      m_curveAtMousedown;
+    double                      m_timeAtMousedown;
     EditViewState&              m_editViewState;
-
+    bool                        m_isVertical {false};
     //------------- const
     const int                   c_pointThickness = 8;
     const int                   c_halvePoint = c_pointThickness/2;

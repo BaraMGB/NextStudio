@@ -40,12 +40,6 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
 void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 {
     g.setColour (juce::Colours::white);
-//    juce::String pluginDescription = m_automatableParameter.getFullName ()
-//            .fromFirstOccurrenceOf (">>", false, false);
-//    juce::String parameterName = pluginDescription
-//            .fromFirstOccurrenceOf (">>", false, false);
-//    juce::String pluginName = pluginDescription
-//            .upToFirstOccurrenceOf (">>", false, false);
     const int minimizedHeigth = m_automatableParameter.getTrack ()->state
             .getProperty (IDs::trackMinimized, 30);
     auto area = getLocalBounds().removeFromTop(minimizedHeigth);
@@ -55,14 +49,30 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
                              , "#ffffff"
                              , area.removeFromLeft (20).toFloat ());
     area.removeFromLeft (5);
-//    g.drawText (pluginName, area, juce::Justification::centredLeft, false);
+
     g.setColour(juce::Colours::black);
+
+
+    int strokeHeight = 1;
     if (m_hovering)
     {
-        g.setColour (juce::Colours::white);
+        g.setColour(juce::Colour(0x33ffffff));
+        strokeHeight = 3;
     }
-    g.drawRect(juce::Rectangle<int> (
-                   getLocalBounds().removeFromBottom(1)).reduced(20,0));
+    if (m_resizing)
+    {
+        g.setColour(juce::Colour(0x55ffffff));
+        strokeHeight = 3;
+    }
+    int height = (int) m_automatableParameter.getTrack ()
+            ->state.getProperty (te::IDs::height) + getHeight ();
+
+    auto r = juce::Rectangle<int>(
+                getLocalBounds ()
+                .removeFromBottom (strokeHeight));
+    r.removeFromLeft (10);
+    g.fillRect (r);
+
 }
 
 void AutomationLaneHeaderComponent::resized()
@@ -147,6 +157,7 @@ void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
 
 void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &event)
 {
+    m_resizing = false;
     m_hovering = false;
     repaint ();
 }
@@ -472,6 +483,7 @@ void TrackHeaderComponent::updateMidiInputs()
 
 void TrackHeaderComponent::paint (juce::Graphics& g)
 {
+    const int headWidth = 20;
     if (m_isDragging)
     {
         childrenSetVisible (false);
@@ -496,36 +508,40 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         g.setColour(buttonColour);
         GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
 
-        juce::Rectangle<float> trackColorIndicator = getLocalBounds().removeFromLeft(20).toFloat();
+        juce::Rectangle<float> trackColorIndicator
+                = getLocalBounds().removeFromLeft(headWidth).toFloat();
         auto trackColor =  m_track->getColour();
         g.setColour (trackColor);
-        GUIHelpers::drawRoundedRectWithSide(g, trackColorIndicator.reduced(1,1), cornerSize, true);
-        GUIHelpers::drawFromSvg (g
-                                 , (bool) m_track->state.getProperty (IDs::isTrackMinimized)
-                                    ? BinaryData::arrowright18_svg
-                                    : BinaryData::arrowdown18_svg
-                                 , "#000000"
-                                 , {1, 6
-                                    , 18, 18});
+        GUIHelpers::drawRoundedRectWithSide(
+                    g, trackColorIndicator.reduced(1, 1), cornerSize, true);
+        GUIHelpers::drawFromSvg (
+                    g
+                  , (bool) m_track->state.getProperty (IDs::isTrackMinimized)
+                        ? BinaryData::arrowright18_svg
+                        : BinaryData::arrowdown18_svg
+                  , "#000000"
+                  , {1, 6, 18, 18});
 
         g.setColour (juce::Colours::black);
         if (!m_isMinimized)
         {
+            int strokeHeight = 1;
             if (m_isAboutToResizing)
             {
-                g.setColour(juce::Colour(0x66ffffff));
-
+                g.setColour(juce::Colour(0x33ffffff));
+                strokeHeight = 3;
             }
             if (m_isResizing)
             {
-                g.setColour(juce::Colour(0xffffffff));
+                g.setColour(juce::Colour(0x55ffffff));
+                strokeHeight = 3;
             }
             int height = m_track->state.getProperty (te::IDs::height);
             g.fillRect (juce::Rectangle<int>(
-                            30
-                          , height -1
-                          , getWidth () - 50
-                          , 1));
+                            headWidth - 1
+                          , height - strokeHeight
+                          , getWidth () - headWidth
+                          , strokeHeight));
         }
 
         if (m_trackIsOver)

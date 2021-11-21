@@ -280,7 +280,7 @@ void TrackComponent::resized()
     for (auto al : m_automationLanes)
     {
         int height = al->getCurve ().state.getProperty(
-                    tracktion_engine::IDs::height, 50);
+                    tracktion_engine::IDs::height, (int) m_editViewState.m_trackHeightMinimized);
         al->setBounds(0, nextLaneStart, getWidth(), height);
         nextLaneStart = nextLaneStart + al->getHeight();
     }
@@ -533,7 +533,6 @@ AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCur
 void AutomationLaneComponent::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colours::white);
-    // g.drawRect(0, 0, getWidth(), 1);
     auto tr = te::EditTimeRange( m_editViewState.beatToTime(m_editViewState.m_viewX1)
                                  , m_editViewState.beatToTime(m_editViewState.m_viewX2));
 
@@ -544,6 +543,7 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
     juce::Path dots;
     juce::Path hoveredDot;
     juce::Path hoveredDotOnCurve;
+
     curvePath.startNewSubPath(oldX, oldY);
     for (auto i = 0; i < m_curve.getNumPoints(); i++)
     {
@@ -554,15 +554,17 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
         auto curveControlPoint = juce::Point<float>(
                     oldX + ((x - oldX) * (0.5 + curve))
                   , oldY + ((y - oldY) * (0.5 - curve)));
-
         curvePath.quadraticTo(curveControlPoint, {x, y});
-        if (m_hoveredCurve == i && i != 0)
+
+        if (m_hoveredCurve == i)
         {
-            std::cout << "HHHHHHH" << std::endl;
-            auto ellX = getXPos (m_hoveredTime);
-            auto ellY = getYPos (m_curve.getValueAt(m_hoveredTime));
+            hoveredCurve.startNewSubPath (oldX, oldY);
+            hoveredCurve.quadraticTo (curveControlPoint, {x,y});
+
             hoveredDotOnCurve.addEllipse (m_hoveredRect.toFloat ());
         }
+
+
 
         oldX = x; oldY = y;
 
@@ -577,6 +579,11 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
                       , y - c_halvePoint
                       , c_pointThickness
                       , c_pointThickness);
+    }
+
+    if (m_hoveredCurve > m_curve.getNumPoints () - 1)
+    {
+        hoveredDotOnCurve.addEllipse (m_hoveredRect.toFloat ());
     }
 
     curvePath.lineTo(getWidth(), oldY);
@@ -596,77 +603,44 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
     g.strokePath(dots, juce::PathStrokeType(2.0f));
     g.setColour(juce::Colours::white);
     g.strokePath(hoveredDot, juce::PathStrokeType(2.0f));
-    m_curvePath = curvePath;
 }
 
 void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
 {
-    auto time = getTime(e.x);
-    float hoveredValue = getValue(e.y);
-    int  nextIndex = m_curve.getNearestPoint(time, hoveredValue, xToYRatio());
-    auto nearestPoint = m_curve.getPoint(nextIndex);
-    auto nextX = getXPos(nearestPoint.time);
-    auto nextY = getYPos(nearestPoint.value);
-    auto preX = getXPos(m_curve.getPoint(nextIndex - 1).time);
-    auto preY = getYPos(m_curve.getPoint(nextIndex - 1).value);
+    const auto zoneSize = 15; //pixel
+    auto timeHovered = getTime(e.x);
+    float valueHovered = getValue (e.y);
 
-    auto zoneSize = 15; //pixel
-
-    juce::Rectangle<int> clickZoneNext = { nextX - zoneSize/2
-                                         , nextY - zoneSize/2
-                                         , zoneSize, zoneSize };
-
-    juce::Rectangle<int> clickZonePre =  { preX - zoneSize/2
-                                         , preY - zoneSize/2
-                                         , zoneSize, zoneSize };
-
-
-    if (clickZoneNext.contains(e.x, e.y))
-        m_hoveredPoint = nextIndex;
-    else if (clickZonePre.contains(e.x, e.y))
-        m_hoveredPoint = nextIndex - 1;
-    else
-        m_hoveredPoint = -1;
-
+    juce::Rectangle<int> hoveredRect = { e.x - c_halvePoint
+                                         , e.y - c_halvePoint
+                                         , c_pointThickness, c_pointThickness };
+    m_hoveredPoint = -1;
+    for (auto i = 0; i < m_curve.getNumPoints(); i++)
+    {
+        if (hoveredRect.contains (getPoint (m_curve.getPoint (i))))
+        {
+            m_hoveredPoint = i;
+        }
+    }
 
     m_hoveredCurve = -1;
     if (m_hoveredPoint == -1)
     {
-        int valueY = getYPos(m_curve.getValueAt(time));
-        juce::Rectangle<int> hoveredRect;
-        if (m_curve.getNumPoints () > 1
-                && ((   m_curve.getPoint (m_curve.indexBefore (time)).time
-                        == m_curve.getPoint (m_curve.nextIndexAfter (time)).time)
-                    &&
-            (m_curve.getPoint (m_curve.indexBefore (time)).value
-          != m_curve.getPoint (m_curve.nextIndexAfter (time)).value)))
-        {
-            std::cout << "indexBeforetime : " << m_curve.getPoint (m_curve.indexBefore (time)).time << std::endl;
-            std::cout << "nextIndexAftime : " << m_curve.getPoint (m_curve.nextIndexAfter (time)).time << std::endl;
-            std::cout << "indexBeforevalue: " << m_curve.getPoint (m_curve.indexBefore (time)).value << std::endl;
-            std::cout << "nextIndexAfValue: " << m_curve.getPoint (m_curve.nextIndexAfter (time)).value << std::endl;
-            std::cout << "------------------++++++++++++++++---------------------------------------" << std::endl;
-            hoveredRect = {e.x - 5, e.y -5, 10, 10};
-        }
-        else
-        {
-            hoveredRect = {e.x - 5, valueY - 5, 10, 10};
-        }
+        int yPosAtHoveredTime = getYPos(m_curve.getValueAt(timeHovered));
+        m_hoveredRect = {e.x - c_halvePoint
+                       , yPosAtHoveredTime - c_halvePoint
+                       , c_pointThickness
+                       ,c_pointThickness};
+        auto nearestPoint = m_curve.getNearestPoint (timeHovered, valueHovered , xToYRatio ());
 
-        if (hoveredRect.contains (e.x, e.y))
+        m_isVertical = m_curve.getPoint (nearestPoint).time == timeHovered;
+
+        if (m_hoveredRect.contains (e.x, e.y)
+         || m_curve.getPoint (nearestPoint).time == timeHovered
+         || (isBeyondLastPoint (timeHovered, valueHovered)) && m_hoveredRect.contains (e.x, e.y))
         {
-            std::cout <<(int)(e.y == hoveredRect.getY () + 5) << std::endl;
-            //m_hoveredCurve = m_curve.nextIndexAfter (time);
-            if (e.y == hoveredRect.getY () + 5)
-            {
-                m_hoveredCurve == m_curve.nextIndexAfter (time);
-            }
-            else
-            {
-                m_hoveredCurve = nextIndex;
-            }
-            m_hoveredTime = time;
-            m_hoveredRect = hoveredRect;
+            m_hoveredCurve = nearestPoint;
+            m_hoveredTime = timeHovered;
         }
         else
         {
@@ -674,6 +648,15 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
             m_hoveredRect = {0,0,0,0};
         }
     }
+    if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
+    {
+        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        m_hoveredRect = {0,0,0,0};
+    }
+    else{
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
     repaint();
 }
 
@@ -690,17 +673,19 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     {
         if (m_hoveredTime > 0)
         {
-            if (e.mods.isLeftButtonDown() && !e.mods.isCtrlDown ())
+            if (e.mods.isLeftButtonDown() && !e.mods.isCtrlDown () && !m_isVertical)
             {
-                m_hoveredPoint = m_curve.addPoint(
+                float value(getValue (e.y));
+
+                auto newPoint = m_curve.addPoint(
                             m_hoveredTime
                           , m_curve.getValueAt (m_hoveredTime)
                           , 0.0);
+                m_hoveredPoint = newPoint;
                 m_hoveredCurve = -1;
                 m_hoveredTime = 0;
                 repaint();
             }
-
         }
         if (m_hoveredCurve != -1)
         {
@@ -719,14 +704,20 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
             m_hoveredPoint = -1;
             repaint();
         }
+        else
+        {
+            m_timeAtMousedown = m_curve.getPointTime (m_hoveredPoint);
+        }
     }
     m_curveAtMousedown = m_curve.getPoint(m_hoveredCurve - 1).curve;
 }
 
 void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    //change curve
     if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
     {
+        m_hoveredRect = {0,0,0,0};
         auto factor = m_curve.getPointValue(m_hoveredCurve - 1)
                       < m_curve.getPointValue(m_hoveredCurve)
                       ? 0.01
@@ -739,6 +730,7 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
                                   + e.getDistanceFromDragStartY() * factor));
         repaint();
     }
+    //move Point
     if (m_hoveredPoint != -1 && e.mouseWasDraggedSinceMouseDown ())
     {
         auto snapType = m_editViewState.getBestSnapType (
@@ -748,10 +740,13 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
         auto snapedTime = m_editViewState.getSnapedTime(
                     getTime(e.x)
                   , snapType);
+        auto newTime = e.mods.isCtrlDown ()
+                     ? m_timeAtMousedown
+                     : e.mods.isShiftDown()
+                       ? getTime(e.x)
+                       : snapedTime;
         m_curve.movePoint(m_hoveredPoint
-                          , e.mods.isShiftDown()
-                                ? getTime(e.x)
-                                : snapedTime
+                          , newTime
                           , getValue(e.y)
                           , false);
         repaint();
@@ -767,3 +762,4 @@ te::AutomationCurve &AutomationLaneComponent::getCurve() const
 {
     return m_curve;
 }
+

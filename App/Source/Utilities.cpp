@@ -22,17 +22,8 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     return {};
 }
 
-void GUIHelpers::log(juce::String message)
-{
-    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
-              << ": " << message << std::endl;
-}
 
-void GUIHelpers::log (int message)
-{
-    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
-              << ": " << message << std::endl;
-}
+
 
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
