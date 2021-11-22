@@ -128,7 +128,7 @@ public:
 
     LowerRangeComponent& lowerRange ();
     juce::OwnedArray<TrackComponent>& getTrackComps ();
-    TrackComponent * getTrackComp (int y);
+    TrackComponent * getTrackComponent (int y);
     TrackComponent * getTrackCompForTrack (te::Track::Ptr track);
     ClipComponent *getClipComponentForClip (te::Clip::Ptr clip);
 
