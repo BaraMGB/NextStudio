@@ -191,6 +191,10 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
          .getSelectedObjects ()
          .getItemsOfType<te::Clip>())
     {
+        for (auto ap : selectedClip->getTrack ()->getAllAutomatableParams ())
+        {
+            ap->getCurve ().removePointsInRegion (selectedClip->getEditTimeRange ());
+        }
         selectedClip->removeFromParentTrack ();
     }
 }

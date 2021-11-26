@@ -153,7 +153,7 @@ private:
 
     void buildTracks ();
     void refreshSnaptypeDesc ();
-    
+
     juce::OwnedArray<TrackComponent>        m_trackComps;
     juce::OwnedArray<TrackHeaderComponent>  m_headers;
     juce::OwnedArray<PluginRackComponent>   m_pluginRackComps;

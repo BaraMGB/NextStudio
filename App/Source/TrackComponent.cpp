@@ -308,27 +308,47 @@ void TrackComponent::inserWave(juce::File f, double time)
 
 bool TrackComponent::keyPressed(const juce::KeyPress &key)
 {
-    if (key == juce::KeyPress::createFromDescription("CTRL + D"))
+    GUIHelpers::log("TrackComponent: keypressed");
+#if JUCE_MAC
+    if (key == juce::KeyPress::createFromDescription ("cmd + d"))
+#else
+    if (key == juce::KeyPress::createFromDescription ("ctrl + d"))
+#endif
     {
         auto clipSelection = m_editViewState.m_selectionManager
                 .getSelectedObjects ()
                 .getItemsOfType<te::Clip>();
-
-        m_editViewState.m_selectionManager.deselectAll ();
-
         auto selectionRange = te::getTimeRangeForSelectedItems (clipSelection);
 
         m_editViewState.m_edit.getTransport ().setCurrentPosition (
                     selectionRange.end);
-
+        //for all selected clips copy and move the automation
+        //and duplicate the clips
         for (auto& selectedClip : clipSelection)
         {
-            m_editViewState.m_selectionManager.addToSelection(
-                        EngineHelpers::duplicateClip(
-                                         selectedClip
-                                       , selectionRange.getLength()
-                                       , m_editViewState.m_automationFollowsClip));
+            //delete destination region
+            if (auto at = dynamic_cast<te::AudioTrack*>(getTrack ().get ()))
+            {
+                auto clipstart = selectedClip->getEditTimeRange ().start
+                                  - selectionRange.start;
+                te::EditTimeRange tr = {selectionRange.end + clipstart
+                                      , selectionRange.end + clipstart
+                                                           + selectedClip
+                                        ->getEditTimeRange ().getLength ()};
+                at->deleteRegion (tr, &m_editViewState.m_selectionManager);
+            }
+
+           te::moveAutomation (te::TrackAutomationSection(*selectedClip)
+                             , selectionRange.getLength ()
+                             , true);//<-copy
+           te::duplicateClip (*selectedClip);
         }
+        //now move all selected clips. the duplicated clips remain
+        te::moveSelectedClips (
+                    clipSelection
+                  , m_editViewState.m_edit
+                  , te::MoveClipAction::moveStartToCursor
+                  , false);
         return true;
     }
     if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)

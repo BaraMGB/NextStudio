@@ -36,6 +36,13 @@ namespace GUIHelpers
         std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
                   << ": " << message << std::endl;
     }
+//    template<typename T>
+//    void log(juce::String d, T message)
+//    {
+//        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
+//                  << ": " << d << " : "
+//                  << ": " << message << std::endl;
+//    }
 
 
     void drawRoundedRectWithSide(

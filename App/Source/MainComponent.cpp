@@ -86,6 +86,7 @@ void MainComponent::resized()
 
 bool MainComponent::keyPressed(const juce::KeyPress &key)
 {
+    GUIHelpers::log("MainComponent: keypressed");
     if (key == juce::KeyPress::spaceKey)
     {
         EngineHelpers::togglePlay(* m_edit);
@@ -98,6 +99,12 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
         auto editString = m_edit->state.toXmlString();
         std::cout << editString << std::endl;
 
+    }
+    if (key == juce::KeyPress::createFromDescription ("cmd + d"))
+    {
+        GUIHelpers::log("cmd + d");
+        m_editComponent->keyPressed (key);
+        return true;
     }
     return false;
 }
