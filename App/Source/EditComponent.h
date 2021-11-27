@@ -118,7 +118,6 @@ public:
                         , const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved (juce::ScrollBar *scrollBarThatHasMoved
                         , double newRangeStart) override;
-    bool keyPressed (const juce::KeyPress &key) override;
 
     inline bool isInterestedInDragSource (
             const SourceDetails&) override { return true; }

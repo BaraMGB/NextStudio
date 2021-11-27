@@ -345,27 +345,6 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
     }
 }
 
-bool EditComponent::keyPressed(const juce::KeyPress &key)
-{
-    GUIHelpers::log("EditComponent: keypressed");
-    if (key == juce::KeyPress::createFromDescription("CTRL + Z"))
-    {
-        m_editViewState.m_edit.undo ();
-        return true;
-    }
-    if (key == juce::KeyPress::createFromDescription("CTRL + SHIFT + Z"))
-    {
-        m_editViewState.m_edit.redo ();
-        return true;
-    }
-    if (key == juce::KeyPress::createFromDescription ("cmd + d"))
-    {
-        GUIHelpers::log("cmd + d");
-        return true;
-    }
-    return false;
-}
-
 void EditComponent::turnoffAllTrackOverlays()
 {
     for (auto &tc : getTrackComps ())

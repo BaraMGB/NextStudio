@@ -108,8 +108,6 @@ public:
     void mouseUp (const juce::MouseEvent& e) override;
     void resized() override;
 
-    bool keyPressed(const juce::KeyPress &key) override;
-
     te::Track::Ptr getTrack() const;
     void inserWave(juce::File f, double time);
     juce::OwnedArray<ClipComponent>& getClipComponents();

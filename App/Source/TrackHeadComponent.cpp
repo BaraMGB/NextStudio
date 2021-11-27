@@ -745,6 +745,7 @@ bool TrackHeaderComponent::keyPressed(const juce::KeyPress &key)
     }
     if (key == juce::KeyPress::deleteKey)
     {
+
         for (auto t : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
         {
             m_editViewState.m_edit.deleteTrack (t);

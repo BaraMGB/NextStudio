@@ -587,29 +587,49 @@ void Thumbnail::updateCursorPosition()
     cursor.setRectangle (r.withWidth (2.0f).withX (x));
 }
 
-tracktion_engine::Clip::Ptr EngineHelpers::duplicateClip(
-        tracktion_engine::Clip::Ptr source
-      , double timeDelta
+void EngineHelpers::duplicateSelectedClips(
+        te::Edit& edit
+      , te::SelectionManager& selectionManager
       , bool withAutomation)
 {
-    auto clipCopy = te::duplicateClip (*source);
-    clipCopy->setStart(clipCopy->getEditTimeRange().start
-                   + timeDelta
-                 , false
-                 , true);
-    if (withAutomation)
+    auto clipSelection = selectionManager
+            .getSelectedObjects ()
+            .getItemsOfType<te::Clip>();
+    if (clipSelection.size () > 0)
     {
-        for (auto ap : source->getTrack()->getAllAutomatableParams())
+        auto selectionRange = te::getTimeRangeForSelectedItems (clipSelection);
+        edit.getTransport ().setCurrentPosition (selectionRange.end);
+
+        //collect automation sections
+        juce::Array<te::TrackAutomationSection> sections;
+
+        for (auto& selectedClip : clipSelection)
         {
-            for (auto oldPoint : ap->getCurve().getPointsInRegion(
-                     source->getEditTimeRange()))
+            sections.add (te::TrackAutomationSection(*selectedClip));
+            //delete destination region
+            if (auto at = dynamic_cast<te::AudioTrack*>(selectedClip->getClipTrack ()))
             {
-                ap->getCurve().addPoint(
-                            oldPoint.time + timeDelta
-                          , oldPoint.value
-                          , oldPoint.curve);
+                auto clipstart = selectedClip->getEditTimeRange ().start
+                                  - selectionRange.start;
+                te::EditTimeRange targetRange = {selectionRange.end + clipstart
+                                      , selectionRange.end + clipstart
+                                                           + selectedClip
+                                        ->getEditTimeRange ().getLength ()};
+                at->deleteRegion (targetRange, &selectionManager);
             }
+            te::duplicateClip (*selectedClip);
         }
+        if (withAutomation)
+        {
+            te::moveAutomation (  sections
+                                , selectionRange.getLength ()
+                                , true);//<-copy
+        }
+        //now move all selected clips. the duplicated clips remain
+        te::moveSelectedClips (
+                    clipSelection
+                  , edit
+                  , te::MoveClipAction::moveStartToCursor
+                  , false);
     }
-    return clipCopy;
 }
