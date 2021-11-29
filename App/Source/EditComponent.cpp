@@ -466,78 +466,34 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
 
         //copy/moving selected clips by drag and drop
         if (auto clipComp = dynamic_cast<ClipComponent*>
-                (dragSourceDetails.sourceComponent.get()))
-        {
-            auto sourceTrackIndex = clipComp->getClip()->getTrack()->getIndexInEditTrackList();
-            const auto songEditorWidth = m_timeLine.getTimeLineWidth ();
-            const auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
-            const auto clickOffset = clipComp->getClickPosTime ();
-            const auto xOffset = dropTime - firstClipTime - clickOffset + m_editViewState.beatToTime(m_editViewState.m_viewX1);
-            auto snapType = m_editViewState.getBestSnapType (
-                        m_editViewState.m_viewX1
-                        , m_editViewState.m_viewX2
-                        , songEditorWidth);
-            const auto snapedOffsetX = m_editViewState.getSnapedTime (
-                        dropTime - clickOffset + m_editViewState.beatToTime(m_editViewState.m_viewX1)
-                        , snapType) - firstClipTime;
-
-            auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-            for (auto clip : selectedClips)
-            {
-                if (clip->getTrack ())
+                        (dragSourceDetails.sourceComponent.get()))
                 {
-                    auto verticalTrackOffset = clip->getTrack()
-                            ->getIndexInEditTrackList() - sourceTrackIndex;
-                    bool isValid = (bool) m_edit.getTrackList().at(destinationTrackIndex + verticalTrackOffset)
-                            ->state.getProperty (IDs::isMidiTrack)
-                            == clip->isMidi ();
-                    if (isValid)
+                    const auto songEditorWidth = m_timeLine.getTimeLineWidth ();
+                    const auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
+                    const auto offset = clipComp->getClickPosTime ();
+                    const auto removeSource = !clipComp->isCtrlDown ();
+                    const auto snap = !clipComp->isShiftDown ();
+                    const auto xTime = m_editViewState.beatToTime(m_editViewState.m_viewX1);
+                    const auto rawTime = juce::jmax(0.0, dropTime - offset + xTime);
+                    auto snapType = m_editViewState.getBestSnapType (
+                                m_editViewState.m_viewX1
+                              , m_editViewState.m_viewX2
+                              , songEditorWidth);
+                    const auto snapedTime = m_editViewState.getSnapedTime (rawTime, snapType);
+                    const auto pasteTime = !snap
+                            ? rawTime - firstClipTime
+                            : snapedTime - firstClipTime;
+                    if (clipComp->getClip ()->getTrack () == destinationTrack->getTrack ().get ())
                     {
-                        const auto targetTime = clip
-                                ->getEditTimeRange().getStart() + xOffset;
-                        const auto snapedTime = clip
-                                ->getEditTimeRange().getStart() + snapedOffsetX;
-                        const auto sourceRange = clip->getEditTimeRange();
-                        const te::EditTimeRange destinationRange (
-                                    te::EditTimeRange::withStartAndLength(
-                                        clipComp->isShiftDown ()
-                                        ? targetTime : snapedTime
-                                          , sourceRange.getLength ()));
-
-                        //copy/move automation only if the destination track is the source track
-                        if (m_edit.getTrackList().at(
-                                    destinationTrackIndex + verticalTrackOffset) == clip->getTrack()
-                                && m_editViewState.m_automationFollowsClip)
-                        {
-
-                            te::moveAutomation (te::TrackAutomationSection(*clip)
-                                                , destinationRange.getStart ()
-                                                - sourceRange.start
-                                                , clipComp->isCtrlDown ());
-                        }
-
-                        //move or copy clip?
-                        if (clipComp->isCtrlDown ())
-                        {
-                            te::duplicateClip(*clip);
-                        }
-                        //save clip for damage
-                        clip->setStart(destinationRange.end, false, true);
-                        //clear region under the target
-                        if (auto at = dynamic_cast<te::AudioTrack*>(
-                                    m_edit.getTrackList().at(
-                                        destinationTrackIndex + verticalTrackOffset)))
-                        {
-                            at->deleteRegion(destinationRange
-                                             , &m_editViewState.m_selectionManager);
-                        }
-
-                        clip->moveToTrack(*m_edit.getTrackList().at(destinationTrackIndex + verticalTrackOffset));
-                        clip->setStart(clipComp->isShiftDown () ? targetTime : snapedTime, false, true);
+                        EngineHelpers::copyAutomationForSelectedClips (pasteTime, m_editViewState.m_selectionManager, !removeSource);
                     }
+                    EngineHelpers::pasteClipboardToEdit (pasteTime
+                                                       , firstClipTime
+                                                       , destinationTrack->getTrack ()
+                                                       , m_editViewState
+                                                       , removeSource);
                 }
-            }
-        }
+
         //wave file dropped
         if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
                 (dragSourceDetails.sourceComponent.get()))

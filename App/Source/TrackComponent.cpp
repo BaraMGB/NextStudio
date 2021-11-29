@@ -267,11 +267,15 @@ void TrackComponent::resized()
 {
     for (auto cc : m_clips)
     {
-        auto c = cc->getClip();
-        int startTime = m_editViewState.beatsToX (c->getStartBeat (), getWidth());
-        int endTime = m_editViewState.beatsToX (c->getEndBeat (), getWidth());
-        cc->setBounds (startTime, 0, endTime - startTime, m_track->state.getProperty(
-                           tracktion_engine::IDs::height, 50));
+        if (auto c = cc->getClip ())
+        {
+
+            int startTime = m_editViewState.beatsToX (c->getStartBeat (), getWidth());
+            int endTime = m_editViewState.beatsToX (c->getEndBeat (), getWidth());
+            cc->setBounds (startTime, 0, endTime - startTime, m_track->state.getProperty(
+                               tracktion_engine::IDs::height, 50));
+
+        }
     }
     m_trackOverlay.setBounds(0, 0, getWidth(), m_track->state.getProperty(
                                  tracktion_engine::IDs::height, 50));
@@ -326,7 +330,7 @@ void TrackComponent::buildClips()
                 else
                 {
                     GUIHelpers::log ("couldn't insert AudioClip on Miditrack");
-                    c->removeFromParentTrack ();
+                    //c->removeFromParentTrack ();
                     wrongTrack = true;
                 }
 
@@ -340,7 +344,7 @@ void TrackComponent::buildClips()
                 else
                 {
                     GUIHelpers::log("couldn't insert MidiClip on Audiotrack");
-                    c->removeFromParentTrack ();
+                    //c->removeFromParentTrack ();
                     wrongTrack = true;
                 }
             }

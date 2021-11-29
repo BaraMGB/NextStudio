@@ -199,93 +199,76 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
     }
 }
 
-void EngineHelpers::pasteClipboardToEdit(
-        double firstClipTime
-      , double clickOffset
-      , double insertTime
-      , tracktion_engine::Track::Ptr sourceTrack
-      , EditViewState &evs
-      , bool removeSource
-      , bool withAutomation
-      , bool snap
-      , int width)
+void EngineHelpers::copyAutomationForSelectedClips(double offset
+                                                 , te::SelectionManager& sm
+                                                 , bool copy)
 {
-    auto clipboard = tracktion_engine::Clipboard::getInstance();
-    if (clipboard->hasContentWithType<te::Clipboard::Clips>())
+    auto clipSelection = sm
+            .getSelectedObjects ()
+            .getItemsOfType<te::Clip>();
+    if (clipSelection.size () > 0)
     {
-        auto clipContent = clipboard
-                ->getContentWithType<te::Clipboard::Clips>();
+        //collect automation sections
+        juce::Array<te::TrackAutomationSection> sections;
 
-        te::EditInsertPoint insertPoint (evs.m_edit);
-        insertPoint.setNextInsertPoint (0, sourceTrack);
-        te::Clipboard::ContentType::EditPastingOptions options
-                (evs.m_edit, insertPoint, &evs.m_selectionManager);
-        const auto xTime = evs.beatToTime(evs.m_viewX1);
-        const auto rawTime = juce::jmax(0.0, insertTime - clickOffset + xTime);
-        auto snapType = evs.getBestSnapType (
-                    evs.m_viewX1
-                  , evs.m_viewX2
-                  , width);
-        const auto snapedTime = evs.getSnapedTime (rawTime, snapType);
-        const auto pasteTime = !snap
-                ? rawTime - firstClipTime
-                : snapedTime - firstClipTime;
-        if (withAutomation)
+        for (auto& selectedClip : clipSelection)
         {
-            for (auto clip : evs.m_selectionManager.getItemsOfType<te::Clip>())
+            sections.add (te::TrackAutomationSection(*selectedClip));
+        }
+            te::moveAutomation (  sections
+                                , offset
+                                , copy);
+    }
+}
+
+void EngineHelpers::pasteClipboardToEdit(
+        double pasteTime
+      , double firstClipTime
+      , tracktion_engine::Track::Ptr destinationTrack
+      , EditViewState &evs
+      , bool removeSource)
+{
+    if (destinationTrack)
+    {
+        auto clipboard = tracktion_engine::Clipboard::getInstance();
+        if (clipboard->hasContentWithType<te::Clipboard::Clips>())
+        {
+            auto clipContent = clipboard
+                    ->getContentWithType<te::Clipboard::Clips>();
+
+            te::EditInsertPoint insertPoint (evs.m_edit);
+            insertPoint.setNextInsertPoint (0, destinationTrack);
+            te::Clipboard::ContentType::EditPastingOptions options
+                    (evs.m_edit, insertPoint, &evs.m_selectionManager);
+
+            if (removeSource)
             {
-                for (auto ap : clip->getTrack()->getAllAutomatableParams())
+                deleteSelectedClips (evs);
+
+            }
+            //delete region under pasted clips
+            for (auto clip : clipContent->clips)
+            {
+                auto clipShift = (float) clip.state.getProperty (te::IDs::start);
+                auto clipInsertTime = pasteTime + clipShift;
+                auto clipLength = (float) clip.state.getProperty (te::IDs::length);
+                if (auto targetTrack = evs.m_edit.getTrackList ()
+                        [destinationTrack->getIndexInEditTrackList () + clip.trackOffset])
                 {
-                    ap->getCurve().removePointsInRegion(
-                                te::EditTimeRange::withStartAndLength(
-                                    pasteTime - firstClipTime
-                                    , clip->state.getProperty(te::IDs::length)));
-                    for (auto oldPoint : ap->getCurve().getPointsInRegion(
-                             clip->getEditTimeRange()))
+                    if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack))
                     {
-                        std::cout << oldPoint.time << " : " << snapedTime << std::endl;
-                        double pointTime = oldPoint.time
-                                - (double) clip->state.getProperty(
-                                                                te::IDs::start);
-                        ap->getCurve().addPoint(
-                                    pasteTime - firstClipTime + pointTime
-                                  , oldPoint.value
-                                  , oldPoint.curve);
-                    }
-                    if (removeSource)
-                    {
-                         ap->getCurve().removePointsInRegion(
-                                     clip->getEditTimeRange());
+                        auto editrange = te::EditTimeRange(clipInsertTime
+                                                         , clipInsertTime + clipLength);
+                        at->deleteRegion ( editrange
+                                           ,&evs.m_selectionManager);
                     }
                 }
             }
-        }
+            options.startTime = pasteTime;
+            options.setTransportToEnd = true;
 
-        if (removeSource)
-        {
-            deleteSelectedClips (evs);
-
+            clipContent->pasteIntoEdit(options);
         }
-        //delete region under pasted clips
-        for (auto clip : clipContent->clips)
-        {
-            auto clipShift = (float) clip.state.getProperty (te::IDs::start) - firstClipTime;
-            auto clipInsertTime = snap ? snapedTime + clipShift : rawTime + clipShift;
-            auto clipLength = (float) clip.state.getProperty (te::IDs::length);
-            auto targetTrack = evs.m_edit.getTrackList ()
-                    [sourceTrack->getIndexInEditTrackList () + clip.trackOffset];
-            if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack))
-            {
-                auto editrange = te::EditTimeRange(clipInsertTime
-                                                 , clipInsertTime + clipLength);
-                at->deleteRegion ( editrange
-                                   ,&evs.m_selectionManager);
-            }
-        }
-        options.startTime = pasteTime;
-        options.setTransportToEnd = true;
-
-        clipContent->pasteIntoEdit(options);
     }
 }
 

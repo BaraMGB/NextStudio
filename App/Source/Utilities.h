@@ -112,14 +112,20 @@ namespace EngineHelpers
 {
     void deleteSelectedClips(EditViewState & evs);
 
-    void pasteClipboardToEdit (double firstClipTime
-                                    , double clickOffset
-                                    , double insertTime
-                                    , te::Track::Ptr sourceTrack
-                                    , EditViewState& evs
-                                    , bool removeSource
-                                    , bool withAutomation
-                                    , bool snap, int width);
+    void duplicateSelectedClips (tracktion_engine::Edit &edit
+                               , te::SelectionManager& selectionManager
+                               , bool withAutomation);
+
+    void pasteClipboardToEdit(
+            double pasteTime
+          , double firstClipTime
+          , tracktion_engine::Track::Ptr destinationTrack
+          , EditViewState &evs
+          , bool removeSource);
+
+    void copyAutomationForSelectedClips(double offset
+                                                     , te::SelectionManager& sm
+                                                     , bool copy);
 
     te::Project::Ptr createTempProject (te::Engine& engine);
 
@@ -156,9 +162,6 @@ namespace EngineHelpers
         return clip;
     }
 
-    void duplicateSelectedClips (tracktion_engine::Edit &edit
-                               , te::SelectionManager& selectionManager
-                               , bool withAutomation);
 
     void toggleLoop (te::Edit& edit);
     void togglePlay (te::Edit& edit);
