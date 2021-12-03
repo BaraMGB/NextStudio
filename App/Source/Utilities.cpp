@@ -22,11 +22,8 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     return {};
 }
 
-void GUIHelpers::log(juce::String message)
-{
-    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
-              << ": " << message << std::endl;
-}
+
+
 
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
@@ -58,6 +55,13 @@ void GUIHelpers::changeColor(
                xmlnode->setAttribute (
                          "style"
                        , att.replaceFirstOccurrenceOf (inputColour, color_hex));
+            }
+        }
+        if (xmlnode->hasAttribute ("stroke"))
+        {
+            if (xmlnode->getStringAttribute ("stroke") == inputColour)
+            {
+                xmlnode->setAttribute ("stroke", color_hex);
             }
         }
     }
@@ -187,64 +191,84 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
          .getSelectedObjects ()
          .getItemsOfType<te::Clip>())
     {
+        for (auto ap : selectedClip->getTrack ()->getAllAutomatableParams ())
+        {
+            ap->getCurve ().removePointsInRegion (selectedClip->getEditTimeRange ());
+        }
         selectedClip->removeFromParentTrack ();
     }
 }
 
-void EngineHelpers::pasteClipboardToEdit(
-        double firstClipTime
-      , double clickOffset
-      , double insertTime
-      , tracktion_engine::Track::Ptr sourceTrack
-      , EditViewState &evs
-      , bool removeSource
-      , bool snap
-      , int width)
+void EngineHelpers::copyAutomationForSelectedClips(double offset
+                                                 , te::SelectionManager& sm
+                                                 , bool copy)
 {
-    auto clipboard = tracktion_engine::Clipboard::getInstance();
-    if (clipboard->hasContentWithType<te::Clipboard::Clips>())
+    auto clipSelection = sm
+            .getSelectedObjects ()
+            .getItemsOfType<te::Clip>();
+    if (clipSelection.size () > 0)
     {
-        auto clipContent = clipboard
-                ->getContentWithType<te::Clipboard::Clips>();
+        //collect automation sections
+        juce::Array<te::TrackAutomationSection> sections;
 
-        te::EditInsertPoint insertPoint (evs.m_edit);
-        insertPoint.setNextInsertPoint (0, sourceTrack);
-        te::Clipboard::ContentType::EditPastingOptions options
-                (evs.m_edit, insertPoint, &evs.m_selectionManager);
-        const auto xTime = evs.beatToTime(evs.m_viewX1);
-        const auto rawTime = juce::jmax(0.0, insertTime - clickOffset + xTime);
-        auto snapType = evs.getBestSnapType (
-                    evs.m_viewX1
-                  , evs.m_viewX2
-                  , width);
-        const auto snapedTime = evs.getSnapedTime (rawTime, snapType);
-        const auto pasteTime = !snap
-                ? rawTime - firstClipTime
-                : snapedTime - firstClipTime;
-        if (removeSource)
+        for (auto& selectedClip : clipSelection)
         {
-            deleteSelectedClips (evs);
+            sections.add (te::TrackAutomationSection(*selectedClip));
         }
-        //delete region under pasted clips
-        for (auto clip : clipContent->clips)
+            te::moveAutomation (  sections
+                                , offset
+                                , copy);
+    }
+}
+
+void EngineHelpers::pasteClipboardToEdit(
+        double pasteTime
+      , double firstClipTime
+      , tracktion_engine::Track::Ptr destinationTrack
+      , EditViewState &evs
+      , bool removeSource)
+{
+    if (destinationTrack)
+    {
+        auto clipboard = tracktion_engine::Clipboard::getInstance();
+        if (clipboard->hasContentWithType<te::Clipboard::Clips>())
         {
-            auto clipShift = (float) clip.state.getProperty (te::IDs::start) - firstClipTime;
-            auto clipInsertTime = snap ? snapedTime + clipShift : rawTime + clipShift;
-            auto clipLength = (float) clip.state.getProperty (te::IDs::length);
-            auto targetTrack = evs.m_edit.getTrackList ()
-                    [sourceTrack->getIndexInEditTrackList () + clip.trackOffset];
-            if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack))
+            auto clipContent = clipboard
+                    ->getContentWithType<te::Clipboard::Clips>();
+
+            te::EditInsertPoint insertPoint (evs.m_edit);
+            insertPoint.setNextInsertPoint (0, destinationTrack);
+            te::Clipboard::ContentType::EditPastingOptions options
+                    (evs.m_edit, insertPoint, &evs.m_selectionManager);
+
+            if (removeSource)
             {
-                auto editrange = te::EditTimeRange(clipInsertTime
-                                                 , clipInsertTime + clipLength);
-                at->deleteRegion ( editrange
-                                   ,&evs.m_selectionManager);
-            }
-        }
-        options.startTime = pasteTime;
-        options.setTransportToEnd = true;
+                deleteSelectedClips (evs);
 
-        clipContent->pasteIntoEdit(options);
+            }
+            //delete region under pasted clips
+            for (auto clip : clipContent->clips)
+            {
+                auto clipShift = (float) clip.state.getProperty (te::IDs::start);
+                auto clipInsertTime = pasteTime + clipShift;
+                auto clipLength = (float) clip.state.getProperty (te::IDs::length);
+                if (auto targetTrack = evs.m_edit.getTrackList ()
+                        [destinationTrack->getIndexInEditTrackList () + clip.trackOffset])
+                {
+                    if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack))
+                    {
+                        auto editrange = te::EditTimeRange(clipInsertTime
+                                                         , clipInsertTime + clipLength);
+                        at->deleteRegion ( editrange
+                                           ,&evs.m_selectionManager);
+                    }
+                }
+            }
+            options.startTime = pasteTime;
+            options.setTransportToEnd = true;
+
+            clipContent->pasteIntoEdit(options);
+        }
     }
 }
 
@@ -304,21 +328,41 @@ tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(
     return te::getAudioTracks (edit)[index];
 }
 
+tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
+        bool isMidiTrack
+      , juce::Colour trackColour
+      , EditViewState &evs)
+{
+    if (auto track = EngineHelpers::getOrInsertAudioTrackAt (
+            evs.m_edit, te::getAudioTracks(evs.m_edit).size()))
+    {
+         track->state.setProperty (te::IDs::height
+                                 , (int) evs.m_trackDefaultHeight
+                                 , nullptr);
+         track->state.setProperty (IDs::isTrackMinimized, true, nullptr);
+
+         track->state.setProperty(  IDs::isMidiTrack
+                                  , isMidiTrack
+                                  , &evs.m_edit.getUndoManager());
+
+         juce::String num = juce::String(te::getAudioTracks(evs.m_edit).size());
+         track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
+         track->setColour(trackColour);
+         evs.m_selectionManager.selectOnly(track);
+         return track;
+    }
+    return nullptr;
+}
+
 tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
         EditViewState &evs
-      , const juce::File &file)
+      , const juce::File &file
+      , juce::Colour trackColour)
 {
-    if (auto track = getOrInsertAudioTrackAt (
-                          evs.m_edit
-                        , tracktion_engine::getAudioTracks(evs.m_edit).size()))
+    if (auto track = addAudioTrack(false, trackColour, evs))
     {
         removeAllClips (*track);
-        auto& random = juce::Random::getSystemRandom();
-        track->setColour (juce::Colour(random.nextInt (256)
-                                       ,random.nextInt (256)
-                                       ,random.nextInt (256)));
         te::AudioFile audioFile (evs.m_edit.engine, file);
-
         if (audioFile.isValid())
         {
             if (auto newClip = track->insertWaveClip (
@@ -329,7 +373,6 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
                 return newClip;
             }
         }
-
     }
     return {};
 }
@@ -525,4 +568,51 @@ void Thumbnail::updateCursorPosition()
     auto r = getLocalBounds().toFloat();
     const float x = r.getWidth() * float (proportion);
     cursor.setRectangle (r.withWidth (2.0f).withX (x));
+}
+
+void EngineHelpers::duplicateSelectedClips(
+        te::Edit& edit
+      , te::SelectionManager& selectionManager
+      , bool withAutomation)
+{
+    auto clipSelection = selectionManager
+            .getSelectedObjects ()
+            .getItemsOfType<te::Clip>();
+    if (clipSelection.size () > 0)
+    {
+        auto selectionRange = te::getTimeRangeForSelectedItems (clipSelection);
+        edit.getTransport ().setCurrentPosition (selectionRange.end);
+
+        //collect automation sections
+        juce::Array<te::TrackAutomationSection> sections;
+
+        for (auto& selectedClip : clipSelection)
+        {
+            sections.add (te::TrackAutomationSection(*selectedClip));
+            //delete destination region
+            if (auto at = dynamic_cast<te::AudioTrack*>(selectedClip->getClipTrack ()))
+            {
+                auto clipstart = selectedClip->getEditTimeRange ().start
+                                  - selectionRange.start;
+                te::EditTimeRange targetRange = {selectionRange.end + clipstart
+                                      , selectionRange.end + clipstart
+                                                           + selectedClip
+                                        ->getEditTimeRange ().getLength ()};
+                at->deleteRegion (targetRange, &selectionManager);
+            }
+            te::duplicateClip (*selectedClip);
+        }
+        if (withAutomation)
+        {
+            te::moveAutomation (  sections
+                                , selectionRange.getLength ()
+                                , true);//<-copy
+        }
+        //now move all selected clips. the duplicated clips remain
+        te::moveSelectedClips (
+                    clipSelection
+                  , edit
+                  , te::MoveClipAction::moveStartToCursor
+                  , false);
+    }
 }

@@ -30,7 +30,21 @@ namespace Helpers
 
 namespace GUIHelpers
 {
-    void log(juce::String message);
+    template<typename T>
+    void log(T message)
+    {
+        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
+                  << ": " << message << std::endl;
+    }
+//    template<typename T>
+//    void log(juce::String d, T message)
+//    {
+//        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
+//                  << ": " << d << " : "
+//                  << ": " << message << std::endl;
+//    }
+
+
     void drawRoundedRectWithSide(
           juce::Graphics & g
         , juce::Rectangle<float> area
@@ -98,13 +112,20 @@ namespace EngineHelpers
 {
     void deleteSelectedClips(EditViewState & evs);
 
-    void pasteClipboardToEdit (double firstClipTime
-                                    , double clickOffset
-                                    , double insertTime
-                                    , te::Track::Ptr sourceTrack
-                                    , EditViewState& evs
-                                    , bool removeSource
-                                    , bool snap, int width);
+    void duplicateSelectedClips (tracktion_engine::Edit &edit
+                               , te::SelectionManager& selectionManager
+                               , bool withAutomation);
+
+    void pasteClipboardToEdit(
+            double pasteTime
+          , double firstClipTime
+          , tracktion_engine::Track::Ptr destinationTrack
+          , EditViewState &evs
+          , bool removeSource);
+
+    void copyAutomationForSelectedClips(double offset
+                                                     , te::SelectionManager& sm
+                                                     , bool copy);
 
     te::Project::Ptr createTempProject (te::Engine& engine);
 
@@ -116,9 +137,15 @@ namespace EngineHelpers
 
     te::AudioTrack* getOrInsertAudioTrackAt (te::Edit& edit, int index);
 
+    tracktion_engine::AudioTrack::Ptr addAudioTrack(
+            bool isMidiTrack
+          , juce::Colour trackColour
+          , EditViewState &evs);
+
     te::WaveAudioClip::Ptr loadAudioFileAsClip (
             EditViewState& evs
-          , const juce::File& file);
+          , const juce::File& file
+          , juce::Colour trackColour);
 
     void refreshRelativePathstoNewEditFile(EditViewState & evs
                                        , juce::File newFile);
@@ -134,6 +161,7 @@ namespace EngineHelpers
 
         return clip;
     }
+
 
     void toggleLoop (te::Edit& edit);
     void togglePlay (te::Edit& edit);

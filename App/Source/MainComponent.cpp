@@ -86,18 +86,57 @@ void MainComponent::resized()
 
 bool MainComponent::keyPressed(const juce::KeyPress &key)
 {
+    GUIHelpers::log("MainComponent: keypressed");
+    if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
+    {
+        EngineHelpers::deleteSelectedClips (m_editComponent->getEditViewState ());
+        return true;
+    }
+
     if (key == juce::KeyPress::spaceKey)
     {
         EngineHelpers::togglePlay(* m_edit);
         return true;
     }
-    else if (key == juce::KeyPress::F11Key)
+    else if (key == juce::KeyPress::F10Key)
     {
         std::cout << "DEBUG EDIT: " << juce::Time::getCurrentTime().toString(true, true, true, true) << std::endl;
         std::cout << "=================================================================================" << std::endl;
         auto editString = m_edit->state.toXmlString();
         std::cout << editString << std::endl;
+    }
 
+#if JUCE_MAC
+    if (key == juce::KeyPress::createFromDescription ("cmd + d"))
+#else
+    if (key == juce::KeyPress::createFromDescription ("ctrl + d"))
+#endif
+    {
+        EngineHelpers::duplicateSelectedClips (
+                    m_editComponent->getEditViewState ().m_edit
+                  , m_selectionManager
+                  , m_editComponent->getEditViewState ().m_automationFollowsClip);
+        return true;
+    }
+
+#if JUCE_MAC
+    if (key == juce::KeyPress::createFromDescription ("cmd + z"))
+#else
+    if (key == juce::KeyPress::createFromDescription ("ctrl + z"))
+#endif
+    {
+        m_editComponent->getEditViewState ().m_edit.undo ();
+        return true;
+    }
+
+#if JUCE_MAC
+    if (key == juce::KeyPress::createFromDescription ("shift + cmd + z"))
+#else
+    if (key == juce::KeyPress::createFromDescription ("shift + ctrl + z"))
+#endif
+    {
+        m_editComponent->getEditViewState ().m_edit.redo ();
+        return true;
     }
     return false;
 }

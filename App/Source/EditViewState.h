@@ -49,6 +49,8 @@ namespace IDs
     DECLARE_ID (showHeaders)
     DECLARE_ID (showFooters)
     DECLARE_ID (showArranger)
+    DECLARE_ID (showMaster)
+    DECLARE_ID (trackMinimized)
     DECLARE_ID (headerHeight)
     DECLARE_ID (headerWidth)
     DECLARE_ID (isMidiTrack)
@@ -58,6 +60,8 @@ namespace IDs
     DECLARE_ID (lastNoteLenght)
     DECLARE_ID (name)
     DECLARE_ID (footerBarHeight)
+    DECLARE_ID (isTrackMinimized)
+    DECLARE_ID (automationFollowsClip)
     #undef DECLARE_ID
 }
 
@@ -78,15 +82,18 @@ public:
         m_showMarkerTrack.referTo (m_state, IDs::showMarkerTrack, um, false);
         m_showChordTrack.referTo (m_state, IDs::showChordTrack, um, false);
         m_showArrangerTrack.referTo (m_state, IDs::showArranger, um, false);
+        m_showMasterTrack.referTo(m_state, IDs::showMaster, um, false);
         m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um, true);
         m_showHeaders.referTo (m_state, IDs::showHeaders, um, true);
         m_showFooters.referTo (m_state, IDs::showFooters, um, false);
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
         m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
+        m_automationFollowsClip.referTo (m_state, IDs::automationFollowsClip, um, true);
 
+        m_trackHeightMinimized.referTo (m_state, IDs::trackMinimized, um, 30);
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
-        m_headerHeight.referTo(m_state, IDs::headerHeight, um, 50);
-        m_headerWidth.referTo(m_state, IDs::headerWidth, um, 310);
+        m_trackDefaultHeight.referTo(m_state, IDs::headerHeight, um, 50);
+        m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 250);
         m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
         m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0 * 4);
@@ -196,13 +203,15 @@ public:
                           , m_showMarkerTrack
                           , m_showChordTrack
                           , m_showArrangerTrack
+                          , m_showMasterTrack
                           , m_drawWaveforms
                           , m_showHeaders
                           , m_showFooters
                           , m_showMidiDevices
                           , m_showWaveDevices
                           , m_isPianoRollVisible
-                          , m_isAutoArmed;
+                          , m_isAutoArmed
+                          , m_automationFollowsClip;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY
@@ -214,10 +223,12 @@ public:
     juce::CachedValue<int> m_pianorollHeight;
     juce::CachedValue<int> m_snapType;
 
-    juce::CachedValue<int> m_headerHeight
-                         , m_headerWidth
+    juce::CachedValue<int> m_trackHeightMinimized
+                         , m_trackDefaultHeight
+                         , m_trackHeaderWidth
                          , m_timeLineHeight
                          , m_footerBarHeight;
+
     juce::CachedValue<juce::String> m_editName;
     juce::ValueTree m_state;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)

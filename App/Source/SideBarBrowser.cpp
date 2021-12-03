@@ -25,6 +25,12 @@ void SideBarBrowser::fileDoubleClicked(const juce::File &)
     }
     else if (audioFile.isValid ())
     {
-        EngineHelpers::loadAudioFileAsClip (m_editViewState, selectedFile);
+        auto trackColours = m_applicationState.m_trackColours;
+        auto colour = trackColours[
+                m_editViewState.m_edit.getTrackList().size()
+              % trackColours.size()];
+        EngineHelpers::loadAudioFileAsClip (m_editViewState
+                                          , selectedFile
+                                          , colour);
     }
 }

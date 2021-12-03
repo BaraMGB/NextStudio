@@ -13,6 +13,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackComponent.h"
 #include "TrackHeadComponent.h"
+#include "AutomatableSliderComponent.h"
 
 class NextLookAndFeel : public juce::LookAndFeel_V4
 {
@@ -90,10 +91,15 @@ public:
         auto thumbColour = juce::Colour(0xff000000);
         auto thumbMouseColour = juce::Colour(0xff999999);
         auto volumeColour = juce::Colour(0x88e9e949);
-        auto thc = dynamic_cast<TrackHeaderComponent*>(slider.getParentComponent ());
-        if (thc != nullptr)
+        auto isAutomationActive = false;
+        if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
         {
-            volumeColour = thc->getTrackColour ();
+            volumeColour = automatableSlider->trackColour();
+            if (automatableSlider->getAutomatableParameter()->isAutomationActive())
+            {
+                isAutomationActive = true;
+            }
+
         }
         auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10);
         auto lineW = 5;
@@ -161,8 +167,13 @@ public:
                 p.applyTransform(
                     juce::AffineTransform::rotation(angle).translated(centreX, centreY));
                 // pointer
-                g.setColour(thumbColour);
-                g.fillPath(p);
+                g.setColour (thumbColour);
+                g.fillPath (p);
+                if (isAutomationActive)
+                {
+                    g.setColour (juce::Colour(0xffaa3300));
+                    g.fillEllipse ({centreX - 2.0f, centreY - 2.0f, 4.0f, 4.0f});
+                }
 
     }
 
@@ -193,12 +204,11 @@ public:
     {
         //drawButtonBackground (g, button, juce::Colour(), shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
         auto buttonArea = button.getLocalBounds();
-        buttonArea.reduce(2, 2);
+        //buttonArea.reduce(2, 2);
         g.setColour(juce::Colour(0xff000000));
-        g.fillRoundedRectangle(buttonArea.toFloat(), 7);
-        g.setColour(juce::Colour(0xff343434));
-        buttonArea.reduce(1, 1);
-        g.fillRoundedRectangle(buttonArea.toFloat(), 5);
+        g.fillRoundedRectangle(buttonArea.toFloat(), 2);
+
+
         auto textColour = juce::Colour(0xff7b7b7b);
         if (button.getToggleState())
         {
@@ -209,7 +219,11 @@ public:
             }
             else if (button.getComponentID() == "mute")
             {
-                g.setColour(juce::Colours::indigo);
+                g.setColour(juce::Colours::darkorange);
+            }
+            else if (button.getComponentID() == "arm")
+            {
+                g.setColour(juce::Colours::firebrick);
             }
             else
             {
@@ -218,10 +232,10 @@ public:
         }
         else
         {
-            g.setColour(juce::Colour(14, 14, 14));
+            g.setColour(juce::Colour(0xff343434));
         }
         buttonArea.reduce(1, 1);
-        g.fillRoundedRectangle(buttonArea.toFloat(), 5);
+        g.fillRoundedRectangle(buttonArea.toFloat(), 1);
         g.setColour(textColour);
         //        auto fontSize = jmin (15.0f, button.getHeight() * 0.75f);
         //        auto tickWidth = fontSize * 1.1f;

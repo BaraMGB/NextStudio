@@ -13,8 +13,12 @@ juce_add_binary_data(Pictures SOURCES
     file-download.svg
     content-save-edit.svg
     cached.svg
-    piano.svg
-    waveform.svg
+    piano5.svg
+    wavetest5.svg
+    wavetest10.svg
+    arrowright18.svg
+    arrowdown18.svg
+    automation.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

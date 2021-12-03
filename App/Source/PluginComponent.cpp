@@ -181,7 +181,6 @@ VstPluginComponent::VstPluginComponent
         {
             if (param)
             {
-                param->addListener(this);
                 ParameterComponent* parameterComp
                         = new ParameterComponent(*param);
                 m_parameterComponents.add(parameterComp);
@@ -206,36 +205,28 @@ VstPluginComponent::VstPluginComponent
 
 VstPluginComponent::~VstPluginComponent()
 {
-    if (getPlugin())
-    {
-        for (auto & param : getPlugin()->getAutomatableParameters())
-        {
-            if (param)
-            {
-                param->removeListener(this);
-            }
-        }
-    }
+
 }
 
 void VstPluginComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto pc = dynamic_cast<ParameterComponent*> (source))
+    if (auto pc = dynamic_cast<ParameterComponent*>(source))
     {
-        parameterChanged( pc->getParameter(),0);
+        if (pc->getParameter().paramID
+                != m_lastChangedParameterComponent->getParameter().paramID)
+        {
+            removeChildComponent(m_lastChangedParameterComponent.get());
+            m_lastChangedParameterComponent
+                    = std::make_unique<ParameterComponent>(pc->getParameter());
+            addAndMakeVisible(m_lastChangedParameterComponent.get());
+            resized();
+        }
     }
-}
-
-void VstPluginComponent::parameterChanged(te::AutomatableParameter &ap, float)
-{
-    m_lastChangedParameterComponent = std::make_unique<ParameterComponent>(ap);
-    addAndMakeVisible(*m_lastChangedParameterComponent);
-
-    resized();
 }
 
 void VstPluginComponent::resized()
 {
+    int scrollPos = m_viewPort.getVerticalScrollBar().getCurrentRangeStart();
     auto area = getLocalBounds();
     const auto widgetHeight = 30;
     m_lastChangedParameterComponent->setBounds(area.removeFromTop(widgetHeight));
@@ -250,4 +241,40 @@ void VstPluginComponent::resized()
     {
         pc->setBounds(pcb.removeFromTop(widgetHeight));
     }
+    m_viewPort.getVerticalScrollBar().setCurrentRangeStart(scrollPos);
+}
+
+//------------------------------------------------------------------------------
+
+ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &ap)
+    : m_parameter(ap)
+    , m_parameterSlider(ap)
+{
+    m_parameterName.setText(ap.getParameterName(),
+                            juce::NotificationType::dontSendNotification);
+    m_parameterName.setInterceptsMouseClicks(false, false);
+
+    m_parameterSlider.setOpaque(false);
+    addAndMakeVisible(m_parameterName);
+    addAndMakeVisible(m_parameterSlider);
+    m_parameterSlider.setRange(0.0f, 3.0f, 0.01f);
+    m_parameterSlider.setSkewFactorFromMidPoint(1.0f);
+    //m_parameterSlider.setValue(ap.getCurrentValue());
+    m_parameterSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    m_parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+    m_parameterSlider.onValueChange = [this] { sendChangeMessage(); };
+}
+
+void ParameterComponent::resized()
+{
+    auto area = getLocalBounds();
+
+    m_parameterSlider.setBounds(area.removeFromLeft(area.getHeight()));
+    m_parameterName.setBounds(area);
+}
+
+void ParameterComponent::mouseDown(const juce::MouseEvent &e)
+{
+    if (e.mods.isLeftButtonDown())
+        sendChangeMessage();
 }

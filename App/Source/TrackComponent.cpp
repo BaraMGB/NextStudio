@@ -30,8 +30,10 @@ void TrackComponent::paint (juce::Graphics& g)
 {
     g.setColour(juce::Colour(0xff181818));
     g.fillAll ();
-    g.setColour(juce::Colour(0xff2b2b2b));
-    g.drawRect(0,0, getWidth(), getHeight() );
+    
+    g.setColour(  juce::Colour(0xff2b2b2b));
+    g.drawRect(0,0, getWidth(), m_track->state.getProperty(
+                   tracktion_engine::IDs::height));
     double x2 = m_editViewState.m_viewX2;
     double x1 = m_editViewState.m_viewX1;
     g.setColour(juce::Colour(0xff333333));
@@ -44,7 +46,7 @@ void TrackComponent::paint (juce::Graphics& g)
 
     if (m_editViewState.m_selectionManager.isSelected (m_track.get()))
     {
-        g.setColour (juce::Colour(0xff202020));
+        g.setColour (juce::Colour(0x10ffffff));
 
         auto rc = getLocalBounds();
         if (m_editViewState.m_showHeaders) rc = rc.withTrimmedLeft (-4);
@@ -162,6 +164,7 @@ void TrackComponent::changeListenerCallback (juce::ChangeBroadcaster* changebroa
         {
             clipcomps->repaint ();
         }
+        getParentComponent()->repaint();
     }
     markAndUpdate (updateRecordClips);
 }
@@ -264,19 +267,35 @@ void TrackComponent::resized()
 {
     for (auto cc : m_clips)
     {
-        auto c = cc->getClip();
-        int startTime = m_editViewState.beatsToX (c->getStartBeat (), getWidth());
-        int endTime = m_editViewState.beatsToX (c->getEndBeat (), getWidth());
+        if (auto c = cc->getClip ())
+        {
+            int startTime = m_editViewState.beatsToX (c->getStartBeat (), getWidth());
+            int endTime = m_editViewState.beatsToX (c->getEndBeat (), getWidth());
+            int clipHeight = (bool) m_track->state.getProperty (IDs::isTrackMinimized)
+                    ? (int) m_editViewState.m_trackHeightMinimized
+                    : (int) m_track->state.getProperty(
+                          tracktion_engine::IDs::height, 50);
 
-        cc->setBounds (startTime, 0, endTime - startTime, getHeight());
+            cc->setBounds (startTime - 1, 0, endTime - startTime + 1, clipHeight);
+        }
     }
-    m_trackOverlay.setBounds(0, 0, getWidth(), getHeight());
+    m_trackOverlay.setBounds(0, 0, getWidth(), m_track->state.getProperty(
+                                 tracktion_engine::IDs::height, 50));
+    double nextLaneStart = m_track->state.getProperty(
+                tracktion_engine::IDs::height);
+    for (auto al : m_automationLanes)
+    {
+        int height = al->getCurve ().state.getProperty(
+                    tracktion_engine::IDs::height, (int) m_editViewState.m_trackHeightMinimized);
+        al->setBounds(0, nextLaneStart, getWidth(), height);
+        nextLaneStart = nextLaneStart + al->getHeight();
+    }
 }
 
 void TrackComponent::inserWave(juce::File f, double time)
 {
     tracktion_engine::AudioFile audioFile(m_editViewState.m_edit.engine, f);
-    if (audioFile.isValid() && !(m_track->state.getProperty (IDs::isMidiTrack)))
+    if (audioFile.isValid() && !isMidiTrack ())
     {
         if (auto audioTrack = dynamic_cast<tracktion_engine::AudioTrack*>(
                                                                 m_track.get()))
@@ -291,40 +310,6 @@ void TrackComponent::inserWave(juce::File f, double time)
             }
         }
     }
-}
-
-bool TrackComponent::keyPressed(const juce::KeyPress &key)
-{
-    if (key == juce::KeyPress::createFromDescription("CTRL + D"))
-    {
-        auto clipSelection = m_editViewState.m_selectionManager
-                .getSelectedObjects ()
-                .getItemsOfType<te::Clip>();
-
-        m_editViewState.m_selectionManager.deselectAll ();
-
-        auto selectionRange = te::getTimeRangeForSelectedItems (clipSelection);
-        m_editViewState.m_edit.getTransport ().setCurrentPosition (selectionRange.end);
-        for (auto& selectedClip : clipSelection)
-        {
-            m_editViewState.m_selectionManager.addToSelection
-                    (te::duplicateClip (*selectedClip));
-        }
-
-        te::moveSelectedClips (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>()
-                               ,m_editViewState.m_edit
-                               ,te::MoveClipAction::moveStartToCursor
-                               ,true);
-
-        return true;
-    }
-
-    if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
-    {
-        EngineHelpers::deleteSelectedClips (m_editViewState);
-        return true;
-    }
-    return false;
 }
 
 void TrackComponent::buildClips()
@@ -347,7 +332,7 @@ void TrackComponent::buildClips()
                 else
                 {
                     GUIHelpers::log ("couldn't insert AudioClip on Miditrack");
-                    c->removeFromParentTrack ();
+                    //c->removeFromParentTrack ();
                     wrongTrack = true;
                 }
 
@@ -361,7 +346,7 @@ void TrackComponent::buildClips()
                 else
                 {
                     GUIHelpers::log("couldn't insert MidiClip on Audiotrack");
-                    c->removeFromParentTrack ();
+                    //c->removeFromParentTrack ();
                     wrongTrack = true;
                 }
             }
@@ -386,6 +371,25 @@ void TrackComponent::buildClips()
         m_editViewState.m_edit.undo ();
     else
         resized();
+    buildAutomationLanes();
+}
+
+void TrackComponent::buildAutomationLanes()
+{
+    m_automationLanes.clear(true);
+    for (auto apEditItems : m_track->getAllAutomatableEditItems())
+    {
+        for (auto ap : apEditItems->getAutomatableParameters())
+        {
+            if (ap->getCurve().getNumPoints() > 0)
+            {
+                m_automationLanes.add(new AutomationLaneComponent(ap->getCurve(), m_editViewState));
+                addAndMakeVisible(m_automationLanes.getLast());
+            }
+
+        }
+    }
+    resized();
 }
 
 void TrackComponent::buildRecordClips()
@@ -420,9 +424,13 @@ tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos
     if (auto audiotrack = dynamic_cast<te::AudioTrack*>(m_track.get ()))
     {
         te::EditTimeRange newPos;
-        newPos.start = m_editViewState.beatToTime (beatPos);
+        newPos.start = juce::jmax(0.0, m_editViewState.beatToTime (beatPos));
         newPos.end = newPos.start + m_editViewState.beatToTime (4);
-        return audiotrack->insertMIDIClip (newPos,&m_editViewState.m_selectionManager);
+        auto mc = audiotrack->insertMIDIClip (
+                    newPos
+                  , &m_editViewState.m_selectionManager);
+        mc->setName (audiotrack->getName ());
+        return mc;
     }
     return nullptr;
 }
@@ -490,4 +498,251 @@ void TrackComponent::itemDropped(
 
 //==============================================================================
 
+
+
+AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCurve &curve, EditViewState &evs)
+    : m_curve(curve)
+    , m_editViewState(evs)
+{
+
+}
+
+void AutomationLaneComponent::paint(juce::Graphics &g)
+{
+    g.setColour(juce::Colours::white);
+    auto tr = te::EditTimeRange( m_editViewState.beatToTime(m_editViewState.m_viewX1)
+                                 , m_editViewState.beatToTime(m_editViewState.m_viewX2));
+
+    int oldX = 0, oldY = getYPos(m_curve.getValueAt(0.0));
+    
+    juce::Path curvePath;
+    juce::Path hoveredCurve;
+    juce::Path dots;
+    juce::Path hoveredDot;
+    juce::Path hoveredDotOnCurve;
+
+    curvePath.startNewSubPath(oldX, oldY);
+    for (auto i = 0; i < m_curve.getNumPoints(); i++)
+    {
+        float x = getXPos(m_curve.getPoint(i).time);
+        float y = getYPos(m_curve.getPoint(i).value);
+        float curve = m_curve.getPoint(i - 1).curve;
+
+        auto curveControlPoint = juce::Point<float>(
+                    oldX + ((x - oldX) * (0.5 + curve))
+                  , oldY + ((y - oldY) * (0.5 - curve)));
+        curvePath.quadraticTo(curveControlPoint, {x, y});
+
+        if (m_hoveredCurve == i)
+        {
+            hoveredCurve.startNewSubPath (oldX, oldY);
+            hoveredCurve.quadraticTo (curveControlPoint, {x,y});
+
+            hoveredDotOnCurve.addEllipse (m_hoveredRect.toFloat ());
+        }
+
+
+
+        oldX = x; oldY = y;
+
+        if (m_hoveredPoint == i)
+        {
+            hoveredDot.addEllipse(x - getPointWidth ()/2
+                                , y - getPointWidth ()/2
+                                , getPointWidth ()
+                                , getPointWidth ());
+        }
+        dots.addEllipse(x - getPointWidth ()/2
+                      , y - getPointWidth ()/2
+                      , getPointWidth ()
+                      , getPointWidth ());
+    }
+
+    if (m_hoveredCurve > m_curve.getNumPoints () - 1)
+    {
+        hoveredDotOnCurve.addEllipse (m_hoveredRect.toFloat ());
+    }
+
+    //close the path
+    curvePath.lineTo(getWidth() + 1, oldY);
+    curvePath.lineTo(getWidth() + 1, getHeight() + 1);
+    curvePath.lineTo(-1, getHeight() + 1);
+    curvePath.lineTo (-1 , getYPos(m_curve.getValueAt(0.0)));
+    curvePath.closeSubPath();
+
+    if (getHeight () <= 50)
+        g.setColour(juce::Colour(0x10ffffff));
+    else
+        g.setColour (m_curve.getOwnerParameter ()->getTrack ()->getColour ().withAlpha (0.2f));
+    g.fillPath(curvePath);
+    g.setColour(juce::Colour(0xff888888));
+    g.strokePath(curvePath, juce::PathStrokeType(2.0f));
+    g.setColour(juce::Colours::white);
+    g.strokePath(hoveredCurve, juce::PathStrokeType(2.0f));
+    g.fillPath (hoveredDotOnCurve);
+    g.setColour(juce::Colour(0xff2b2b2b));
+    g.fillPath(dots);
+    g.setColour(juce::Colour(0xff888888));
+    g.strokePath(dots, juce::PathStrokeType(2.0f));
+    g.setColour(juce::Colours::white);
+    g.strokePath(hoveredDot, juce::PathStrokeType(2.0f));
+}
+
+void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
+{
+    const auto zoneSize = 15; //pixel
+    auto timeHovered = getTime(e.x);
+    float valueHovered = getValue (e.y);
+
+    juce::Rectangle<int> hoveredRect = { e.x - getPointWidth ()/2
+                                         , e.y - getPointWidth ()/2
+                                         , getPointWidth (), getPointWidth () };
+    m_hoveredPoint = -1;
+    for (auto i = 0; i < m_curve.getNumPoints(); i++)
+    {
+        if (hoveredRect.contains (getPoint (m_curve.getPoint (i))))
+        {
+            m_hoveredPoint = i;
+        }
+    }
+
+    m_hoveredCurve = -1;
+    if (m_hoveredPoint == -1)
+    {
+        int yPosAtHoveredTime = getYPos(m_curve.getValueAt(timeHovered));
+        m_hoveredRect = {e.x - getPointWidth ()/2
+                       , yPosAtHoveredTime - getPointWidth ()/2
+                       , getPointWidth ()
+                       , getPointWidth ()};
+        auto nearestPoint = m_curve.getNearestPoint (timeHovered, valueHovered , xToYRatio ());
+
+        m_isVertical = m_curve.getPoint (nearestPoint).time == timeHovered;
+
+        if (m_hoveredRect.contains (e.x, e.y)
+         || m_curve.getPoint (nearestPoint).time == timeHovered
+         || (isBeyondLastPoint (timeHovered, valueHovered)) && m_hoveredRect.contains (e.x, e.y))
+        {
+            m_hoveredCurve = nearestPoint;
+            m_hoveredTime = timeHovered;
+        }
+        else
+        {
+            m_hoveredTime = 0;
+            m_hoveredRect = {0,0,0,0};
+        }
+    }
+    if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
+    {
+        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        m_hoveredRect = {0,0,0,0};
+    }
+    else{
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
+    repaint();
+}
+
+void AutomationLaneComponent::mouseExit(const juce::MouseEvent &e)
+{
+        m_hoveredPoint = -1;
+        m_hoveredCurve = -1;
+        repaint();
+}
+
+void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
+{
+    if (m_hoveredPoint == -1)
+    {
+        if (m_hoveredTime > 0)
+        {
+            if (e.mods.isLeftButtonDown() && !e.mods.isCtrlDown () && !m_isVertical)
+            {
+                float value(getValue (e.y));
+
+                auto newPoint = m_curve.addPoint(
+                            m_hoveredTime
+                          , m_curve.getValueAt (m_hoveredTime)
+                          , 0.0);
+                m_hoveredPoint = newPoint;
+                m_hoveredCurve = -1;
+                m_hoveredTime = 0;
+                repaint();
+            }
+        }
+        if (m_hoveredCurve != -1)
+        {
+            if (e.mods.isRightButtonDown())
+            {
+                m_curve.setCurveValue(m_hoveredCurve - 1, 0.0);
+                repaint();
+            }
+        }
+    }
+    else
+    {
+        if (e.mods.isRightButtonDown())
+        {
+            m_curve.removePoint(m_hoveredPoint);
+            m_hoveredPoint = -1;
+            repaint();
+        }
+        else
+        {
+            m_timeAtMousedown = m_curve.getPointTime (m_hoveredPoint);
+        }
+    }
+    m_curveAtMousedown = m_curve.getPoint(m_hoveredCurve - 1).curve;
+}
+
+void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
+{
+    //change curve
+    if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
+    {
+        m_hoveredRect = {0,0,0,0};
+        auto factor = m_curve.getPointValue(m_hoveredCurve - 1)
+                      < m_curve.getPointValue(m_hoveredCurve)
+                      ? 0.01
+                      : -0.01;
+        m_curve.setCurveValue(
+                    m_hoveredCurve - 1
+                  , juce::jlimit(-0.5
+                                , 0.5
+                                , m_curveAtMousedown
+                                  + e.getDistanceFromDragStartY() * factor));
+        repaint();
+    }
+    //move Point
+    if (m_hoveredPoint != -1 && e.mouseWasDraggedSinceMouseDown ())
+    {
+        auto snapType = m_editViewState.getBestSnapType (
+                    m_editViewState.m_viewX1
+                  , m_editViewState.m_viewX2
+                  , getWidth());
+        auto snapedTime = m_editViewState.getSnapedTime(
+                    getTime(e.x)
+                  , snapType);
+        auto newTime = e.mods.isCtrlDown ()
+                     ? m_timeAtMousedown
+                     : e.mods.isShiftDown()
+                       ? getTime(e.x)
+                       : snapedTime;
+        m_curve.movePoint(m_hoveredPoint
+                          , newTime
+                          , getValue(e.y)
+                          , false);
+        repaint();
+    }
+}
+
+void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
+{
+
+}
+
+te::AutomationCurve &AutomationLaneComponent::getCurve() const
+{
+    return m_curve;
+}
 

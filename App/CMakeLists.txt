@@ -12,6 +12,7 @@ juce_add_gui_app(${TargetName} PRODUCT_NAME "NextStudio")
 juce_generate_juce_header(${TargetName})
 
 target_sources(${TargetName} PRIVATE
+        Source/AutomatableSliderComponent.cpp
         Source/Main.cpp
         Source/MainComponent.cpp
         Source/MenuBar.cpp

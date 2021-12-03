@@ -28,10 +28,10 @@ void AudioClipComponent::paint (juce::Graphics& g)
                      , *getWaveAudioClip()
                      , *thumbnail
                      , juce::Colours::black.withAlpha(0.5f)
-                     , left - viewportOffset
-                     , getWidth() - right - viewportOffset
-                     , 12
-                     , getHeight() - 14
+                     , (left - viewportOffset) + 2
+                     , (getWidth() - right - viewportOffset) - 2
+                     , m_editViewState.m_trackHeightMinimized/2 + 3
+                     , getHeight() - m_editViewState.m_trackHeightMinimized/2 - 5
                      , viewportOffset);
     }
 }
@@ -161,6 +161,8 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
 
     g.setColour (colour);
 
+    bool showBothChannels = getHeight () > 100;
+
     if (usesTimeStretchedProxy)
     {
         const juce::Rectangle<int> area(left + xOffset, y, right - left, h);
@@ -172,7 +174,7 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                        , area
                        , false
                        , getTimeRangeForDrawing(left, right)
-                       , c.isLeftChannelActive()
+                       , c.isLeftChannelActive() && showBothChannels
                        , c.isRightChannelActive()
                        , gainL
                        , gainR);
@@ -190,7 +192,7 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                    , {left + xOffset, y, right - left, h}
                    , useHighres
                    , {t1, t2}
-                   , c.isLeftChannelActive()
+                   , c.isLeftChannelActive() && showBothChannels
                    , c.isRightChannelActive()
                    , gainL
                    , gainR);

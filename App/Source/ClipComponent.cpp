@@ -14,19 +14,20 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
 void ClipComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
-    g.setColour(m_clip->getColour());
-    g.fillRect(area);
-    area.reduce(1, 1);
-    g.setColour(m_clip->getColour().darker());
-    g.fillRect(area.removeFromTop(10));
     g.setColour (juce::Colours::black);
-
-    if (m_editViewState.m_selectionManager.isSelected (m_clip.get()))
-    {
-        g.setColour (juce::Colours::white);
-    }
-
-    g.drawRect (getLocalBounds());
+    g.fillRect (area);
+    area.reduce (1,1);
+    g.setColour (m_clip->getColour().brighter (.7));
+    g.fillRect (area);
+    area.reduce (1,1);
+    g.setColour(m_clip->getColour());
+    g.fillRect (area);
+    area.reduce (1,1);
+    g.setColour (juce::Colour(0x33000000));
+    area = area.removeFromTop (m_editViewState.m_trackHeightMinimized/2);
+    g.fillRect (area);
+    g.setColour (juce::Colour(0x99000000));
+    g.drawText (m_clip->getName (), area, juce::Justification::centredLeft);
 }
 
 void ClipComponent::mouseMove(const juce::MouseEvent &clipEvent)
@@ -96,7 +97,7 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
             clipContent->addClip(clipOffset, selectedClip->state);
         }
         te::Clipboard::getInstance()->setContent(std::move(clipContent));
-        //editViewState.edit.getTransport ().setUserDragging (true);
+
         juce::DragAndDropContainer* dragC =
                 juce::DragAndDropContainer::findParentDragContainerFor(this);
         m_isShiftDown = false;

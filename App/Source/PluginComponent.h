@@ -3,6 +3,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "EditViewState.h"
+#include "AutomatableSliderComponent.h"
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
@@ -48,45 +49,12 @@ class ParameterComponent : public juce::Component
                          , public juce::ChangeBroadcaster
 {
 public:
-    ParameterComponent(te::AutomatableParameter& ap)
-        : m_parameter(ap)
-    {
-        m_parameterName.setText(ap.getParameterName(),
-                                juce::NotificationType::dontSendNotification);
+    ParameterComponent(te::AutomatableParameter& ap);
 
-        m_parameterSlider.setOpaque(false);
-        addAndMakeVisible(m_parameterName);
-        addAndMakeVisible(m_parameterSlider);
-        m_parameterSlider.setRange(0.0f, 3.0f, 0.01f);
-        m_parameterSlider.setSkewFactorFromMidPoint(1.0f);
-        m_parameterSlider.setValue(ap.getCurrentValue());
-        m_parameterSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-        m_parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
-        m_parameterSlider.onValueChange = [this, &ap]
-        {
-            if ((float) m_parameterSlider.getValue()
-             != (float) ap.getCurrentValue())
-            {
-                ap.setParameter(m_parameterSlider.getValue(),
-                                juce::NotificationType::dontSendNotification);
-                sendChangeMessage();
-            }
-        };
-    }
+    ~ParameterComponent() override{}
+    void resized() override;
 
-    void updateValue()
-    {
-        m_parameterSlider.setValue(getParameter().getCurrentValue());
-    }
-
-    void resized() override
-    {
-        auto area = getLocalBounds();
-
-        m_parameterSlider.setBounds(area.removeFromLeft(area.getHeight()));
-        m_parameterName.setBounds(area);
-    }
-
+    void mouseDown(const juce::MouseEvent& e) override;
     te::AutomatableParameter & getParameter()
     {
         return m_parameter;
@@ -95,12 +63,14 @@ public:
 private:
     te::AutomatableParameter & m_parameter;
     juce::Label m_parameterName;
-    juce::Slider m_parameterSlider;
+    AutomatableSliderComponent m_parameterSlider;
+    bool m_updateKnob {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
+
+
 };
 
 class VstPluginComponent : public PluginViewComponent
-                         , public tracktion_engine::AutomatableParameter::Listener
                          , public juce::ChangeListener
 {
 public:
@@ -115,13 +85,6 @@ public:
     {
     }
 
-    void curveHasChanged (tracktion_engine::AutomatableParameter& ap) override
-    {
-    }
-
-    void parameterChanged (
-            tracktion_engine::AutomatableParameter&ap
-          , float newValue) override;
     void resized() override;
 
 private:
