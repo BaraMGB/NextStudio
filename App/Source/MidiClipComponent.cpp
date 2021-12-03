@@ -22,7 +22,7 @@ void MidiClipComponent::paint (juce::Graphics& g)
     if (!(endX < 0 || startX > getParentComponent()->getWidth()))
     {
         ClipComponent::paint(g);
-        auto clipHeader = 10;
+        auto clipHeader = m_editViewState.m_trackHeightMinimized/2;
         if (auto mc = getMidiClip())
         {
             auto& seq = mc->getSequence();
@@ -40,9 +40,10 @@ void MidiClipComponent::paint (juce::Graphics& g)
                                 sBeat + m_editViewState.m_viewX1, p->getWidth());
                     int x2 = m_editViewState.beatsToX(
                                 eBeat + m_editViewState.m_viewX1, p->getWidth());
-
+                    x1 = juce::jmin(juce::jmax(2, x1), getWidth () - 2);
+                    x2 = juce::jmin(juce::jmax(2, x2), getWidth () - 2);
                     g.setColour(juce::Colours::white);
-                    g.drawLine(x1, y, x2, y );
+                    g.drawLine(x1, y, x2, y);
                 }
             }
         }

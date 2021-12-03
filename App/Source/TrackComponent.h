@@ -24,8 +24,8 @@ public:
     void mouseUp (const juce::MouseEvent& e) override;
 
     te::AutomationCurve &getCurve() const;
-
 private:
+
     double getTime (int x)
     {
         return m_editViewState.xToTime(x, getWidth());
@@ -38,13 +38,13 @@ private:
 
     double getValue(int y)
     {
-        return 1.0 - static_cast<double>(y + (c_pointThickness/2+1) +1)
+        return 1.0 - static_cast<double>(y + (getPointWidth ()/2+1) +1)
                         / static_cast<double>(getLaneHeight());
     }
 
     int getYPos (double value)
     {
-        return (getLaneHeight() - value * getLaneHeight()) + (c_pointThickness/2) +1;
+        return (getLaneHeight() - value * getLaneHeight()) + (getPointWidth ()/2) +1;
     }
 
     juce::Point<int> getPoint(const te::AutomationCurve::AutomationPoint& ap)
@@ -65,7 +65,7 @@ private:
 
     int getLaneHeight()
     {
-        return getHeight() - c_pointThickness - 3;
+        return getHeight() - getPointWidth () - 3;
     }
 
     bool isBeyondLastPoint(double time, float value)
@@ -78,6 +78,13 @@ private:
         return false;
     }
 
+    int getPointWidth()
+    {
+        if (getHeight () <= 50)
+            return 4;
+        return 8;
+    }
+
     te::AutomationCurve&        m_curve;
     int                         m_hoveredPoint;
     int                         m_hoveredCurve = -1;
@@ -88,8 +95,6 @@ private:
     EditViewState&              m_editViewState;
     bool                        m_isVertical {false};
     //------------- const
-    const int                   c_pointThickness = 8;
-    const int                   c_halvePoint = c_pointThickness/2;
 };
 
 class TrackComponent : public juce::Component,
