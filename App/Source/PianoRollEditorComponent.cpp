@@ -5,7 +5,7 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
     , m_keyboard (m_keybordstate
                   , juce::MidiKeyboardComponent::
                         Orientation::verticalKeyboardFacingRight)
-    , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2, 50)
+    , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
     m_keybordstate.addListener (this);
@@ -29,6 +29,16 @@ PianoRollComponent::~PianoRollComponent()
 
 void PianoRollComponent::paintOverChildren(juce::Graphics &g)
 {
+    //cover left from timeline
+    g.setColour (juce::Colour(0xff181818));
+    g.fillRect (0, 0
+                , m_keyboard.getWidth ()
+                , m_timeline.getHeight ());
+    g.setColour (juce::Colour(0xff444444));
+    g.fillRect (m_keyboard.getWidth ()- 1
+                , 0, 1
+                , m_timeline.getHeight ());
+    //Footer
     g.setColour(juce::Colour(0xff181818));
     g.fillRect (0, getHeight() - 20, getWidth (), 20);
 
@@ -62,6 +72,7 @@ void PianoRollComponent::resized()
     auto area = getLocalBounds ();
     auto timeline = area.removeFromTop (m_editViewState.m_timeLineHeight);
     auto keyboard = area.removeFromLeft (50);
+    timeline.removeFromLeft (keyboard.getWidth ());
     auto playhead = area.withTrimmedTop ( - m_editViewState.m_timeLineHeight);
     double firstVisibleNote = m_editViewState.m_pianoY1;
     double pianoRollNoteWidth = m_editViewState.m_pianorollNoteWidth;
@@ -80,6 +91,10 @@ void PianoRollComponent::resized()
                        , (double) m_editViewState.m_pianoY1);
 
     m_timeline.setBounds (timeline);
+    if (m_timelineOverlay)
+    {
+        m_timelineOverlay->setBounds (timeline);
+    }
 
     if (m_pianoRollContentComponent)
     {
@@ -89,13 +104,6 @@ void PianoRollComponent::resized()
 
     m_playhead.setBounds (playhead);
 
-    if (m_timelineOverlay)
-    {
-        auto timeline = getLocalBounds ().removeFromTop (
-                    m_editViewState.m_timeLineHeight);
-        timeline.removeFromLeft (keyboard.getWidth ());
-        m_timelineOverlay->setBounds (timeline);
-    }
 }
 
 void PianoRollComponent::mouseMove(const juce::MouseEvent &event)

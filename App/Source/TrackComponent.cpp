@@ -28,68 +28,18 @@ TrackComponent::~TrackComponent()
 
 void TrackComponent::paint (juce::Graphics& g)
 {
-    g.setColour(juce::Colour(0xff181818));
+    g.setColour(juce::Colour(0xff222222));
+    if (isSelected ())
+        g.setColour(juce::Colour(0xff444444));
     g.fillAll ();
-    
     g.setColour(  juce::Colour(0xff2b2b2b));
     g.drawRect(0,0, getWidth(), m_track->state.getProperty(
                    tracktion_engine::IDs::height));
-    double x2 = m_editViewState.m_viewX2;
-    double x1 = m_editViewState.m_viewX1;
+    double x2beats = m_editViewState.m_viewX2;
+    double x1beats = m_editViewState.m_viewX1;
     g.setColour(juce::Colour(0xff333333));
-    double zoom = x2 -x1;
-    int firstBeat = static_cast<int>(x1);
-    if(m_editViewState.beatsToX(firstBeat,getWidth()) < 0)
-    {
-        firstBeat++;
-    }
 
-    if (m_editViewState.m_selectionManager.isSelected (m_track.get()))
-    {
-        g.setColour (juce::Colour(0x10ffffff));
-
-        auto rc = getLocalBounds();
-        if (m_editViewState.m_showHeaders) rc = rc.withTrimmedLeft (-4);
-        if (m_editViewState.m_showFooters) rc = rc.withTrimmedRight (-4);
-
-        g.fillRect (rc);
-        g.setColour(juce::Colour(0xff333333));
-    }
-
-    auto pixelPerBeat = getWidth() / zoom;
-    for (int beat = firstBeat - 1; beat <= m_editViewState.m_viewX2; beat++)
-    {
-        const int BeatX = m_editViewState.beatsToX(beat, getWidth());
-        auto zBars = 16;
-        if (zoom < 240)
-        {
-            zBars /= 2;
-        }
-        if (zoom < 120)
-        {
-            zBars /=2;
-        }
-        if (beat % zBars == 0)
-        {
-            g.drawLine(BeatX, 0, BeatX, getHeight());
-        }
-
-        if (zoom < 60)
-        {
-            g.drawLine(BeatX,0, BeatX, getHeight());
-        }
-        if (zoom < 25)
-        {
-            auto quarterBeat = pixelPerBeat / 4;
-            auto i = 1;
-            while ( i < 5)
-            {
-                g.drawLine(BeatX + quarterBeat * i ,0,
-                           BeatX + quarterBeat * i ,getHeight());
-                i++;
-            }
-        }
-    }
+    GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, x1beats, x2beats, getBounds ());
     if (isOver)
     {
         g.setColour(juce::Colours::white);
@@ -111,7 +61,7 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
         {
             if (isMidiTrack)
             {
-                createNewMidiClip (m_editViewState.xToBeats (event.x,getWidth ()));
+                createNewMidiClip (m_editViewState.xToBeats (event.x,getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
                 resized ();
             }
         }
@@ -269,14 +219,14 @@ void TrackComponent::resized()
     {
         if (auto c = cc->getClip ())
         {
-            int startTime = m_editViewState.beatsToX (c->getStartBeat (), getWidth());
-            int endTime = m_editViewState.beatsToX (c->getEndBeat (), getWidth());
+            int startX = m_editViewState.beatsToX (c->getStartBeat (), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            int endX = m_editViewState.beatsToX (c->getEndBeat (), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             int clipHeight = (bool) m_track->state.getProperty (IDs::isTrackMinimized)
                     ? (int) m_editViewState.m_trackHeightMinimized
                     : (int) m_track->state.getProperty(
                           tracktion_engine::IDs::height, 50);
 
-            cc->setBounds (startTime - 1, 0, endTime - startTime + 1, clipHeight);
+            cc->setBounds (startX, 0, endX - startX + 1, clipHeight);
         }
     }
     m_trackOverlay.setBounds(0, 0, getWidth(), m_track->state.getProperty(

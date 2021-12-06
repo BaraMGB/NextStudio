@@ -31,7 +31,7 @@ public:
     void mouseDown(const juce::MouseEvent &event) override;
     void mouseDrag (const juce::MouseEvent &event) override;
     void mouseMove (const juce::MouseEvent &event) override;
-    void mouseExit (const juce::MouseEvent &event) override;
+    void mouseExit (const juce::MouseEvent &) override;
     te::AutomatableParameter &automatableParameter() const;
 };
 

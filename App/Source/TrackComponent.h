@@ -28,12 +28,12 @@ private:
 
     double getTime (int x)
     {
-        return m_editViewState.xToTime(x, getWidth());
+        return m_editViewState.xToTime(x, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     }
 
     int getXPos (double time)
     {
-        return m_editViewState.timeToX(time, getWidth());
+        return m_editViewState.timeToX(time, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     }
 
     double getValue(int y)
@@ -138,6 +138,10 @@ private:
     void buildRecordClips();
     te::MidiClip::Ptr createNewMidiClip(double beatPos);
     bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
+    bool isSelected()
+    {
+        return m_editViewState.m_selectionManager.getItemsOfType<te::Track>().contains (m_track);
+    }
     EditViewState& m_editViewState;
     te::Track::Ptr m_track;
     te::Clipboard m_clipBoard;

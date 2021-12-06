@@ -111,25 +111,28 @@ public:
         m_editName.referTo(m_state, IDs::name, um, "unknown");
     }
 
-    int beatsToX (double beats, int width) const
+    int beatsToX (double beats, int width, double x1beats, double x2beats) const
     {
-        return juce::roundToIntAccurate (((beats - m_viewX1) * width)
-                                 / (m_viewX2 - m_viewX1));
+        auto t = beatToTime (beats);
+        return timeToX (t, width, x1beats, x2beats);
     }
 
-    double xToBeats (int x, int width) const
+    double xToBeats (int x, int width, double x1beats, double x2beats) const
     {
-        return (double (x) / width) * (m_viewX2 - m_viewX1) + m_viewX1;
+        auto t = xToTime (x, width, x1beats, x2beats);
+        return timeToBeat (t);
     }
 
-    int timeToX (double time, int width) const
+    int timeToX (double time, int width, double x1beats, double x2beats) const
     {
-        return beatsToX (timeToBeat (time), width);
+        return juce::roundToIntAccurate (((time - beatToTime (x1beats)) * width)
+                           / (beatToTime (x2beats) - beatToTime (x1beats)));
     }
 
-    double xToTime(int x, int width) const
+    double xToTime(int x, int width, double x1beats, double x2beats) const
     {
-        return beatToTime (xToBeats (x, width));
+        return (double (x) / width)
+                * (beatToTime (x2beats) - beatToTime(x1beats)) + beatToTime (x1beats);
     }
 
     double beatToTime (double b) const
@@ -163,23 +166,23 @@ public:
         return timeToBeat (getSnapedTime (beatToTime (beat), snapType, downwards));
     }
 
-    int snapedX (int x, int width, te::TimecodeSnapType snapType)
+    int snapedX (int x, int width, te::TimecodeSnapType snapType, double x1beats, double x2beats)
     {
-        auto insertTime = xToTime (x, width);
+        auto insertTime = xToTime (x, width, x1beats, x2beats);
         auto snapedTime = getSnapedTime (insertTime, snapType);
-        return timeToX (snapedTime, width);
+        return timeToX (snapedTime, width, x1beats, x2beats);
     }
 
     te::TimecodeSnapType getBestSnapType(double beat1, double beat2, int width)
     {
-        double x1 = beatToTime (beat1);
-        double x2 = beatToTime (beat2);
+        double x1time = beatToTime (beat1);
+        double x2time = beatToTime (beat2);
 
         auto pos = m_edit.getTransport ().getCurrentPosition ();
         te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat ()
                 .getBestSnapType (
                     m_edit.tempoSequence.getTempoAt (pos)
-                    , (x2 - x1) / width
+                    , (x2time - x1time) / width
                     , false);
         return snaptype;
     }

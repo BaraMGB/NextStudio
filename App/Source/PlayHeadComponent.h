@@ -22,9 +22,6 @@ public:
     void mouseDown (const juce::MouseEvent&) override;
     void mouseUp (const juce::MouseEvent&) override;
 
-    int beatsToX (double beats);
-    double xToBeats (int x);
-
 private:
     void timerCallback() override;
 

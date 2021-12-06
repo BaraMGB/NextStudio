@@ -24,7 +24,7 @@ public:
     double getClickPosTime () const { return m_clickPosTime; }
     int getClipPosOffsetX () const
     {
-        return m_editViewState.timeToX (m_clickPosTime, getParentWidth ());
+        return m_editViewState.timeToX (m_clickPosTime, getParentWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     }
     void setClickPosTime (double clickPosTime) { m_clickPosTime = clickPosTime; }
     te::Track::Ptr getTrack(te::Clip::Ptr clip);

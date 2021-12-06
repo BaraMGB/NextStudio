@@ -27,8 +27,6 @@ public:
     te::MidiNote* getNoteByPos (juce::Point<float> pos);
 private:
     void drawVerticalLines (juce::Graphics& g);
-    int beatsToX(double beats);
-    double xToBeats(int x);
     int getNoteNumber (int y);
     te::MidiClip *getMidiclipByPos(int y);
     juce::Point<float> m_clickedPos;
@@ -36,7 +34,7 @@ private:
     te::Track::Ptr m_track;
     float m_keyWidth{0};
     te::MidiNote * m_clickedNote {nullptr};
-    double m_clickOffset{0};
+    double m_clickOffsetBeats{0};
     bool m_expandLeft {false}
     , m_expandRight{false}
     , m_noteAdding {false};

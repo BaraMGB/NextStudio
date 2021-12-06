@@ -14,10 +14,10 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
 void ClipComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
-    g.setColour (juce::Colours::black);
+    g.setColour (juce::Colour(0x50000000));
     g.fillRect (area);
     area.reduce (1,1);
-    g.setColour (m_clip->getColour().brighter (.7));
+    g.setColour (m_clip->getColour().brighter (.5));
     g.fillRect (area);
     area.reduce (1,1);
     g.setColour(m_clip->getColour());
@@ -52,7 +52,7 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
     toFront (true);
     m_isCtrlDown = false;
     m_clickPosTime = m_editViewState.beatToTime(
-                m_editViewState.xToBeats(event.x, getParentWidth()));
+                m_editViewState.xToBeats(event.x, getParentWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
 
     if (event.mods.getCurrentModifiers().isCtrlDown())
     {

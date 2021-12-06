@@ -15,7 +15,7 @@ void LassoSelectionComponent::paint(juce::Graphics &g)
 
 void LassoSelectionComponent::mouseDown(const juce::MouseEvent &e)
 {
-    m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ());
+    m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     m_cachedY = m_editViewState.m_viewY;
     m_cachedX = m_editViewState.m_viewX1;
 }
@@ -27,10 +27,10 @@ void LassoSelectionComponent::mouseDrag(const juce::MouseEvent &e)
 
     te::EditTimeRange timeRange(
                 juce::jmin(
-                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                    m_editViewState.xToTime (e.getPosition ().x, getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2)
                     , m_clickedTime)
                 , juce::jmax(
-                    m_editViewState.xToTime (e.getPosition ().x, getWidth ())
+                    m_editViewState.xToTime (e.getPosition ().x, getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2)
                     , m_clickedTime));
     double top = juce::jmin(
                 e.getMouseDownY () + offsetY
@@ -146,6 +146,15 @@ void EditComponent::paint (juce::Graphics &g)
 
 void EditComponent::paintOverChildren(juce::Graphics &g)
 {
+    //cover left from timeline
+    g.setColour (juce::Colour(0xff181818));
+    g.fillRect (0, 0
+                , m_editViewState.m_trackHeaderWidth
+                , m_timeLine.getHeight ());
+    g.setColour (juce::Colour(0xff444444));
+    g.fillRect (m_editViewState.m_trackHeaderWidth - 1
+                , 0, 1
+                , m_timeLine.getHeight ());
     //rounded corners
     g.setColour(juce::Colour(0xff555555));
 
@@ -158,6 +167,10 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
     fakeRoundedCorners.addRoundedRectangle(bounds, cornerSize);
 
     g.fillPath(fakeRoundedCorners);
+
+
+
+
 }
 
 
@@ -204,7 +217,7 @@ void EditComponent::resized()
         }
 
         trackHeader->setBounds (2, y, trackHeaderWidth-2, trackHeaderHeight);
-        trackComp->setBounds (trackHeaderWidth + 1
+        trackComp->setBounds (trackHeaderWidth
                               , y
                               , getWidth() - trackHeaderWidth
                               , trackHeaderHeight);
@@ -222,7 +235,9 @@ void EditComponent::resized()
                 area.withTrimmedBottom (m_editViewState.m_footerBarHeight)
                     .withTrimmedTop (timelineHeight)
                     .withTrimmedLeft (trackHeaderWidth));
-    m_timeLine.setBounds(getLocalBounds ().removeFromTop(timelineHeight));
+    auto tlr = getLocalBounds ().removeFromTop(timelineHeight);
+    tlr.removeFromLeft (trackHeaderWidth);
+    m_timeLine.setBounds(tlr);
 
     auto songeditorHeight = getHeight()
                             - timelineHeight
@@ -303,7 +318,9 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
     {
         auto rangeBegin = m_editViewState.beatsToX(
                                 m_editViewState.m_viewX1
-                              , m_timeLine.getWidth());
+                              , m_timeLine.getWidth()
+                              , m_editViewState.m_viewX1
+                              , m_editViewState.m_viewX2);
         auto visibleLength = m_editViewState.m_viewX2
                               - m_editViewState.m_viewX1;
 
@@ -316,7 +333,7 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
 
         m_editViewState.m_viewX1 = juce::jmax (0.0
                                      , m_editViewState.xToBeats(
-                                         rangeBegin, m_timeLine.getWidth()));
+                                         rangeBegin, m_timeLine.getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
         m_editViewState.m_viewX2 = m_editViewState.m_viewX1 + visibleLength;
     }
     else if (event.mods.isCtrlDown())
@@ -359,7 +376,7 @@ void EditComponent::itemDragMove(
     turnoffAllTrackOverlays();
 
     const auto dropPos = dragSourceDetails.localPosition;
-    const auto songEditorWidth = m_timeLine.getTimeLineWidth ();
+    const auto songEditorWidth = m_timeLine.getWidth ();
     auto targetTrackComp = getTrackComponent (dropPos.getY ());
     auto draggedClip = dynamic_cast<ClipComponent*>(
                 dragSourceDetails.sourceComponent.get ());
@@ -422,7 +439,9 @@ void EditComponent::itemDragMove(
                               ? insertPos
                               : m_editViewState.snapedX (insertPos
                                                        , songEditorWidth
-                                                       , snapType);
+                                                       , snapType
+                                                       , m_editViewState.m_viewX1
+                                                       , m_editViewState.m_viewX2);
                     target->getTrackOverlay ().addOverlayImageList (imageList);
                     target->getTrackOverlay ()
                             .drawImages (insertPos);
@@ -438,7 +457,9 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
 
     auto dropTime = m_editViewState.xToTime (
                 dropPos.getX() - m_editViewState.m_trackHeaderWidth
-                , getWidth() - m_editViewState.m_trackHeaderWidth);
+                , getWidth() - m_editViewState.m_trackHeaderWidth
+                , m_editViewState.m_viewX1
+                , m_editViewState.m_viewX2);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     auto destinationTrack = getTrackComponent (dropPos.getY ());
 
@@ -468,7 +489,7 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
         if (auto clipComp = dynamic_cast<ClipComponent*>
                         (dragSourceDetails.sourceComponent.get()))
                 {
-                    const auto songEditorWidth = m_timeLine.getTimeLineWidth ();
+                    const auto songEditorWidth = m_timeLine.getWidth ();
                     const auto firstClipTime = clipComp->getClip ()->getPosition ().getStart ();
                     const auto offset = clipComp->getClickPosTime ();
                     const auto removeSource = !clipComp->isCtrlDown ();

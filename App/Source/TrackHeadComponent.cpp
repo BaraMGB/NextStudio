@@ -151,14 +151,20 @@ void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
     if (event.y > getHeight ()- 10)
     {
         m_hovering = true;
+        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+    }
+    else
+    {
+        setMouseCursor (juce::MouseCursor::NormalCursor);
     }
     repaint ();
 }
 
-void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &event)
+void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &/*event*/)
 {
     m_resizing = false;
     m_hovering = false;
+    setMouseCursor (juce::MouseCursor::NormalCursor);
     repaint ();
 }
 
@@ -718,6 +724,11 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent &event)
     if (event.y > height - 10 && !m_isMinimized)
     {
         m_isAboutToResizing = true;
+        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+    }
+    else
+    {
+        setMouseCursor (juce::MouseCursor::NormalCursor);
     }
     repaint();
 }
@@ -725,6 +736,7 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent &event)
 void TrackHeaderComponent::mouseExit(const juce::MouseEvent &event)
 {
     m_isAboutToResizing = false;
+    setMouseCursor (juce::MouseCursor::NormalCursor);
     repaint();
 }
 

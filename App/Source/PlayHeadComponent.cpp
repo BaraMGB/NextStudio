@@ -34,20 +34,9 @@ void PlayheadComponent::mouseUp (const juce::MouseEvent&)
     m_edit.getTransport().setUserDragging (false);
 }
 
-int PlayheadComponent::beatsToX(double beats)
-{
-    return juce::roundToIntAccurate (((beats - m_X1) *  getWidth())
-                             / (m_X2 - m_X1));
-}
-
-double PlayheadComponent::xToBeats(int x)
-{
-    return (double (x) / getWidth()) * (m_X2 - m_X1) + m_X1;
-}
-
 void PlayheadComponent::mouseDrag (const juce::MouseEvent& e)
 {
-    double t = m_editViewState.beatToTime(xToBeats (e.x));
+    double t = m_editViewState.xToTime (e.x, getWidth (), m_X1, m_X2);
     m_edit.getTransport().setCurrentPosition (t);
     timerCallback();
 }
@@ -61,9 +50,9 @@ void PlayheadComponent::timerCallback()
         setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
     }
 
-    int newX = beatsToX (
-                m_edit.tempoSequence.timeToBeats(
-                    m_edit.getTransport().getCurrentPosition()));
+    int newX = m_editViewState.timeToX (
+                m_edit.getTransport().getCurrentPosition()
+               , getWidth (), m_X1, m_X2);
     if (newX != m_xPosition)
     {
         repaint (juce::jmin (newX, m_xPosition) - 1

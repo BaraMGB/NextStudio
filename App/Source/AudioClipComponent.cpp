@@ -13,11 +13,15 @@ void AudioClipComponent::paint (juce::Graphics& g)
 
     auto viewportOffset = -(m_editViewState.timeToX(
                                 0
-                              , getParentComponent()->getWidth()));
+                              , getParentComponent()->getWidth()
+                              , m_editViewState.m_viewX1
+                              , m_editViewState.m_viewX2));
     auto viewportEndX =  getParentComponent()->getWidth();
     auto clipstartX = m_editViewState.timeToX(
                 m_clip->getPosition().getStart()
-              , getParentComponent()->getWidth());
+              , getParentComponent()->getWidth()
+              , m_editViewState.m_viewX1
+              , m_editViewState.m_viewX2);
     auto clipendX = clipstartX + getWidth();
     auto left = clipstartX < 0 ? -clipstartX : 0;
     auto right = clipendX > viewportEndX ? clipendX - viewportEndX : 0;
@@ -54,7 +58,10 @@ void AudioClipComponent::mouseDown(const juce::MouseEvent &e)
 void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
 {
     auto distanceBeats = m_editViewState.xToBeats(
-                  e.getDistanceFromDragStartX(),getParentWidth())
+                  e.getDistanceFromDragStartX()
+                , getParentWidth()
+                , m_editViewState.m_viewX1
+                , m_editViewState.m_viewX2)
               - m_editViewState.m_viewX1;
     auto snapType = m_editViewState.getBestSnapType (
                 m_editViewState.m_viewX1
@@ -138,8 +145,8 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
     {
         if (auto p = getParentComponent())
         {
-            double t1 = m_editViewState.xToTime (left, p->getWidth());
-            double t2 = m_editViewState.xToTime (right, p->getWidth());
+            double t1 = m_editViewState.xToTime (left, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            double t2 = m_editViewState.xToTime (right, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             return { t1, t2 };
         }
         return {};

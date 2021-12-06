@@ -38,9 +38,9 @@ private:
             , bottom (bottom){}
         juce::Rectangle<int> getRect (EditViewState& evs, int width)
         {
-            int x = evs.timeToX (startTime, width);
+            int x = evs.timeToX (startTime, width, evs.m_viewX1, evs.m_viewX2);
             int y = top;
-            int w = evs.timeToX (endTime, width) - x;
+            int w = evs.timeToX (endTime, width, evs.m_viewX1, evs.m_viewX2) - x;
             int h = bottom - top;
 
             return  juce::Rectangle<int> (x, y, w, h);
@@ -164,8 +164,7 @@ private:
                                                 m_editViewState
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2
-                                              , m_editViewState
-                                                        .m_trackHeaderWidth };
+                                              };
     FooterBarComponent                      m_footerbar { m_editViewState };
     juce::ScrollBar                         m_scrollbar_v
                                           , m_scrollbar_h;

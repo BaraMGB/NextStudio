@@ -156,6 +156,71 @@ void GUIHelpers::saveEdit(
     }
 }
 
+void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<int> boundingRect, bool printDescription)
+{
+
+    auto snaptype = evs.getBestSnapType (
+                x1beats, x2beats, boundingRect.getWidth ());
+    te::TimecodeDisplayIterator iterator (
+                evs.m_edit
+                , evs.beatToTime (x1beats -1)
+                , snaptype
+                , false);
+
+    auto t = iterator.next ();
+    while (t <= evs.beatToTime (x2beats))
+    {
+        const auto x = evs.timeToX (t, boundingRect.getWidth (), x1beats, x2beats);
+        auto barsBeats = evs.m_edit
+                .tempoSequence.timeToBarsBeats (t);
+
+
+        int barsNum = barsBeats.bars + 1;
+        int beatsNum = barsBeats.getFractionalBeats () > 0.9999 ? barsBeats.getWholeBeats () + 2 : barsBeats.getWholeBeats () + 1;
+        if (barsBeats.beats > 3.9999)
+        {
+            barsNum++;
+            beatsNum = 1;
+        }
+        auto beatLenght = evs.beatsToX (x1beats + 1, boundingRect.getWidth (), x1beats, x2beats);
+
+        auto printText = [](juce::Graphics& graphic, juce::Rectangle<float> textRect, juce::String text)
+        {
+            graphic.setColour (juce::Colour(0x70ffffff));
+            graphic.drawText ("  " + text
+                      , textRect
+                      , juce::Justification::centredLeft
+                      , false);
+        };
+
+        if (printDescription && ((barsBeats.beats < 0.0001) || (barsBeats.beats > 3.9999)))
+        {
+            auto barRect = juce::Rectangle<float>(x, 0, beatLenght*4, boundingRect.getHeight ());
+            if (snaptype.level > 6)
+                printText(g, barRect, juce::String(barsNum));
+            else
+                printText(g, barRect, juce::String(barsNum) + "." + juce::String(beatsNum));
+            g.setColour (juce::Colour(0x90ffffff));
+        }
+        else if (barsBeats.getFractionalBeats () < 0.0001
+                 || barsBeats.getFractionalBeats () > 0.9999)
+        {
+            auto beatRect = juce::Rectangle<float>(x, 0, beatLenght, boundingRect.getHeight ());
+            if (snaptype.level < 7 && printDescription)
+                printText(g, beatRect, juce::String(barsNum) + "." + juce::String(beatsNum));
+            g.setColour (juce::Colour(0x40ffffff));
+        }
+        else
+        {
+            g.setColour (juce::Colour(0x10ffffff));
+        }
+        g.fillRect (x, 0, 1, boundingRect.getHeight());
+
+        t = iterator.next();
+    }
+}
+
+
 juce::String PlayHeadHelpers::timeToTimecodeString(double seconds)
 {
     auto millisecs = juce::roundToInt (seconds * 1000.0);

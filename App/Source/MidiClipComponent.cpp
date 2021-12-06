@@ -16,9 +16,9 @@ MidiClipComponent::~MidiClipComponent()
 void MidiClipComponent::paint (juce::Graphics& g)
 {
     auto startX = m_editViewState.timeToX(getClip()->getPosition().getStart(),
-                                          getParentComponent()->getWidth());
+                                          getParentComponent()->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     auto endX = m_editViewState.timeToX(getClip()->getPosition().getEnd(),
-                                        getParentComponent()->getWidth());
+                                        getParentComponent()->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     if (!(endX < 0 || startX > getParentComponent()->getWidth()))
     {
         ClipComponent::paint(g);
@@ -37,9 +37,9 @@ void MidiClipComponent::paint (juce::Graphics& g)
                                 + clipHeader));
 
                     int x1 = m_editViewState.beatsToX(
-                                sBeat + m_editViewState.m_viewX1, p->getWidth());
+                                sBeat + m_editViewState.m_viewX1, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
                     int x2 = m_editViewState.beatsToX(
-                                eBeat + m_editViewState.m_viewX1, p->getWidth());
+                                eBeat + m_editViewState.m_viewX1, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
                     x1 = juce::jmin(juce::jmax(2, x1), getWidth () - 2);
                     x2 = juce::jmin(juce::jmax(2, x2), getWidth () - 2);
                     g.setColour(juce::Colours::white);
@@ -86,7 +86,7 @@ void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
 void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
 {
     const auto distanceBeats = m_editViewState.xToBeats(
-                e.getDistanceFromDragStartX(),getParentWidth());
+                e.getDistanceFromDragStartX(),getParentWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     auto snapType = m_editViewState.getBestSnapType (
                 m_editViewState.m_viewX1
               , m_editViewState.m_viewX2
@@ -99,7 +99,7 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
                   m_editViewState.beatToTime(
                       distanceBeats  - m_editViewState.m_viewX1), snapType);
     //adjust start
-    if (m_mouseDownX < 10 && m_clipWidthMouseDown > 30)
+    if ((m_mouseDownX < 10) && (m_clipWidthMouseDown > 30))
     {
         auto distTimeDelta = distanceTime - m_oldDistTime;
 

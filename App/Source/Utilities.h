@@ -76,6 +76,12 @@ namespace GUIHelpers
     void saveEdit(
             EditViewState& evs
           , juce::File workDir);
+
+    void drawBarsAndBeatLines(juce::Graphics &g
+          , EditViewState &evs
+          , double x1beats
+          , double x2beats
+          , juce::Rectangle<int> boundingRect, bool printDescription=false);
 }
 
 namespace PlayHeadHelpers

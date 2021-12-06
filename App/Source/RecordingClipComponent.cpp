@@ -64,14 +64,14 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, juc
     auto editTimeToX = [this] (double t)
     {
         if (auto p = getParentComponent())
-            return m_editViewState.timeToX (t, p->getWidth()) - getX();
+            return m_editViewState.timeToX (t, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2) - getX();
         return 0;
     };
     
     auto xToEditTime = [this] (int x)
     {
         if (auto p = getParentComponent())
-            return m_editViewState.xToTime (x + getX(), p->getWidth());
+            return m_editViewState.xToTime (x + getX(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
         return 0.0;
     };
     
@@ -162,8 +162,8 @@ void RecordingClipComponent::updatePosition()
     
         if (auto p = getParentComponent())
         {
-            int x1 = m_editViewState.timeToX (t1, p->getWidth());
-            int x2 = m_editViewState.timeToX (t2, p->getWidth());
+            int x1 = m_editViewState.timeToX (t1, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            int x2 = m_editViewState.timeToX (t2, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             
             setBounds (x1, 0, x2 - x1, p->getHeight());
             return;

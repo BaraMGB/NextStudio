@@ -1,4 +1,5 @@
 #include "PianoRollContentComponent.h"
+#include "Utilities.h"
 
 PianoRollContentComponent::PianoRollContentComponent(EditViewState & evs
                                    , tracktion_engine::Track::Ptr track)
@@ -51,8 +52,8 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
                     double sBeat = n->getStartBeat() - midiClip->getOffsetInBeats();
                     double eBeat = n->getEndBeat() - midiClip->getOffsetInBeats();
 
-                    auto x1 = beatsToX (sBeat + midiClip->getStartBeat ());
-                    auto x2 = beatsToX (eBeat + midiClip->getStartBeat ());
+                    auto x1 = m_editViewState.beatsToX (sBeat + midiClip->getStartBeat (), getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
+                    auto x2 = m_editViewState.beatsToX (eBeat + midiClip->getStartBeat (), getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
 
                     if ( sBeat < 0 || eBeat > midiClip->getEndBeat ()
                                               - midiClip->getStartBeat ())
@@ -73,8 +74,8 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
                     g.fillRect (noteRect.reduced (1,1));
                 }
                 //draw ClipRange
-                auto clipStartX = beatsToX (midiClip->getStartBeat ());
-                auto clipLengthX = beatsToX (midiClip->getEndBeat ());
+                auto clipStartX = m_editViewState.beatsToX (midiClip->getStartBeat (), getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
+                auto clipLengthX = m_editViewState.beatsToX (midiClip->getEndBeat (), getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
                 g.setColour (midiClip->getColour ());
                 g.drawRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight ());
                 g.setColour (midiClip->getColour ().withAlpha (0.2f));
@@ -96,7 +97,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
     m_noteAdding = false;
     m_clickedNote = getNoteByPos (e.position);
     m_clickedPos = e.position;
-    auto clickedBeat = xToBeats (e.position.x);
+    auto clickedBeat = m_editViewState.xToBeats (e.position.x, getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
     auto clickedClip = getMidiclipByPos (e.x);
     if (m_clickedNote && clickedClip)
     {
@@ -114,7 +115,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
         }
         else
         {
-            m_clickOffset = m_clickedNote->getStartBeat () - clickedBeat;
+            m_clickOffsetBeats = m_clickedNote->getStartBeat () - clickedBeat;
             clickedClip->getAudioTrack ()->playGuideNote (
                         m_clickedNote->getNoteNumber ()
                       , clickedClip->getMidiChannel ()
@@ -150,7 +151,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                   , 127
                   , false
                   , true);
-        m_clickOffset = m_clickedNote->getStartBeat () - clickedBeat;
+        m_clickOffsetBeats = m_clickedNote->getStartBeat () - clickedBeat;
         repaint();
         m_noteAdding = true;
     }
@@ -169,8 +170,8 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
             if (m_expandLeft)
             {
                 auto oldEndBeat = m_clickedNote->getEndBeat ();
-                auto newRawStartBeat = xToBeats (e.position.x)
-                        + m_clickOffset;
+                auto newRawStartBeat = m_editViewState.xToBeats (e.position.x, getWidth(), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2)
+                        + m_clickOffsetBeats;
                 auto snapType = m_editViewState.getBestSnapType (
                             m_editViewState.m_pianoX1
                           , m_editViewState.m_pianoX2
@@ -188,7 +189,7 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
             else if (m_expandRight || m_noteAdding)
             {
                 auto oldStart = m_clickedNote->getStartBeat ();
-                auto newEnd = xToBeats (e.position.x)
+                auto newEnd = m_editViewState.xToBeats (e.position.x, getWidth(), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2)
                             + clickedClip->getOffsetInBeats ()
                             - clickedClip->getStartBeat ()
                             - oldStart;
@@ -209,7 +210,7 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
             else
             {
                 auto length = m_clickedNote->getLengthBeats ();
-                auto newBeat = xToBeats (e.position.x) + m_clickOffset;
+                auto newBeat = m_editViewState.xToBeats (e.position.x, getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2) + m_clickOffsetBeats;
                 auto snapType = m_editViewState.getBestSnapType (
                             m_editViewState.m_pianoX1
                           , m_editViewState.m_pianoX2
@@ -252,14 +253,14 @@ void PianoRollContentComponent::mouseMove(const juce::MouseEvent &e)
         }
         if (auto note = getNoteByPos (e.position))
         {
-            auto startX = beatsToX (note->getStartBeat ()
+            auto startX = m_editViewState.beatsToX (note->getStartBeat ()
                                              + mc->getStartBeat ()
                                              - mc->getOffsetInBeats ()
-                                               );
-            auto endX = beatsToX (note->getEndBeat ()
+                                               , getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
+            auto endX = m_editViewState.beatsToX (note->getEndBeat ()
                                              + mc->getStartBeat ()
                                              - mc->getOffsetInBeats ()
-                                             );
+                                             , getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
             note->setColour (127, &m_editViewState.m_edit.getUndoManager ());
             if (e.position.x < startX + 10)
             {
@@ -350,45 +351,7 @@ void PianoRollContentComponent::drawVerticalLines(juce::Graphics &g)
 {
     double x1 = m_editViewState.m_pianoX1;
     double x2 = m_editViewState.m_pianoX2;
-    double zoom = x2 - x1;
-    int firstBeat = static_cast<int>(x1);
-    if(beatsToX(firstBeat) < 0)
-    {
-        firstBeat++;
-    }
-    auto pixelPerBeat = getWidth() / zoom;
-    for (int beat = firstBeat - 1; beat <= x2; beat++)
-    {
-        const int BeatX = beatsToX(beat) - 1;
-        auto zBars = 16;
-        if (zoom < 240)
-        {
-            zBars /= 2;
-        }
-        if (zoom < 120)
-        {
-            zBars /=2;
-        }
-        if (beat % zBars == 0)
-        {
-            g.drawLine(BeatX, 0, BeatX, getHeight());
-        }
-        if (zoom < 60)
-        {
-            g.drawLine(BeatX,0, BeatX, getHeight());
-        }
-        if (zoom < 25)
-        {
-            auto quarterBeat = pixelPerBeat / 4;
-            auto i = 1;
-            while ( i < 5)
-            {
-                g.drawLine(BeatX + quarterBeat * i ,0,
-                           BeatX + quarterBeat * i ,getHeight());
-                i++;
-            }
-        }
-    }
+    GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, x1, x2, getBounds ());
 }
 
 int PianoRollContentComponent::getNoteNumber(int y)
@@ -406,7 +369,7 @@ tracktion_engine::MidiNote *PianoRollContentComponent::getNoteByPos(juce::Point<
         {
             if (note->getNoteNumber () == getNoteNumber (pos.y))
             {
-                auto clickedBeat = xToBeats (pos.x)
+                auto clickedBeat = m_editViewState.xToBeats (pos.x, getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2)
                         + mc->getOffsetInBeats ();
                 auto clipstart = mc->getStartBeat ();
                 if ( clickedBeat > note->getStartBeat () + clipstart
@@ -424,8 +387,8 @@ tracktion_engine::MidiClip *PianoRollContentComponent::getMidiclipByPos(int y)
 {
     for (auto & clip : getMidiClipsOfTrack ())
     {
-        if (clip->getStartBeat () < xToBeats (y)
-        &&  clip->getEndBeat () > xToBeats (y))
+        if (clip->getStartBeat () < m_editViewState.xToBeats (y, getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2)
+        &&  clip->getEndBeat () > m_editViewState.xToBeats (y, getWidth (), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2))
         {
             return clip;
         }
@@ -443,19 +406,4 @@ tracktion_engine::Track::Ptr PianoRollContentComponent::getTrack()
 {
     return m_track;
 }
-
-int PianoRollContentComponent::beatsToX(double beats)
-{
-    return juce::roundToIntAccurate (((beats - m_editViewState.m_pianoX1)
-                              *  getWidth())
-                             / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
-}
-
-double PianoRollContentComponent::xToBeats(int x)
-{
-    return (double (x) / getWidth())
-            * (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1)
-            + m_editViewState.m_pianoX1;
-}
-
 
