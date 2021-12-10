@@ -551,11 +551,14 @@ void EditComponent::valueTreePropertyChanged (
     {
         if (i == IDs::viewX1
             || i == IDs::viewX2
-            || i == IDs::viewY
             || i == IDs::isPianoRollVisible
             || i == IDs::pianorollHeight)
         {
             markAndUpdate (m_updateZoom);
+        }
+        else if (i == IDs::viewY)
+        {
+            resized ();
         }
         else if (i == IDs::showHeaders
                  || i == IDs::showFooters)
@@ -622,8 +625,10 @@ void EditComponent::handleAsyncUpdate()
         refreshSnaptypeDesc ();
         m_timeLine.repaint ();
         for (auto t : m_trackComps)
+        {
             t->repaint ();
-        resized();
+            t->resized ();
+        }
     }
 }
 
