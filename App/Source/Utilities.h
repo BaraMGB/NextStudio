@@ -36,13 +36,13 @@ namespace GUIHelpers
         std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
                   << ": " << message << std::endl;
     }
-//    template<typename T>
-//    void log(juce::String d, T message)
-//    {
-//        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
-//                  << ": " << d << " : "
-//                  << ": " << message << std::endl;
-//    }
+    template<typename T>
+    void log(juce::String d, T message)
+    {
+        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
+                  << ": " << d << " : "
+                  << ": " << message << std::endl;
+    }
 
 
     void drawRoundedRectWithSide(
@@ -151,7 +151,8 @@ namespace EngineHelpers
     te::WaveAudioClip::Ptr loadAudioFileAsClip (
             EditViewState& evs
           , const juce::File& file
-          , juce::Colour trackColour);
+          , juce::Colour trackColour
+          , double inserTime = 0.0);
 
     void refreshRelativePathstoNewEditFile(EditViewState & evs
                                        , juce::File newFile);

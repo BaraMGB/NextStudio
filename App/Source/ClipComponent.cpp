@@ -15,6 +15,8 @@ void ClipComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
     g.setColour (juce::Colour(0x50000000));
+    if (m_editViewState.m_selectionManager.isSelected (m_clip))
+        g.setColour (juce::Colour(0xaaffffff));
     g.fillRect (area);
     area.reduce (1,1);
     g.setColour (m_clip->getColour().brighter (.5));
@@ -28,6 +30,7 @@ void ClipComponent::paint (juce::Graphics& g)
     g.fillRect (area);
     g.setColour (juce::Colour(0x99000000));
     g.drawText (m_clip->getName (), area, juce::Justification::centredLeft);
+
 }
 
 void ClipComponent::mouseMove(const juce::MouseEvent &clipEvent)
@@ -52,16 +55,27 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
     toFront (true);
     m_isCtrlDown = false;
     m_clickPosTime = m_editViewState.beatToTime(
-                m_editViewState.xToBeats(event.x, getParentWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
+                m_editViewState.xToBeats(event.x
+                                       , getParentWidth()
+                                       , m_editViewState.m_viewX1
+                                       , m_editViewState.m_viewX2
+                                         )
+                                                );
 
     if (event.mods.getCurrentModifiers().isCtrlDown())
     {
         m_isCtrlDown = true;
+        for (auto &t: m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
+        {
+            t->deselect ();
+        }
         m_editViewState.m_selectionManager.addToSelection(getClip());
+        m_editViewState.m_selectionManager.addToSelection (getClip ()->getTrack ());
     }
     else if (!m_editViewState.m_selectionManager.isSelected (m_clip))
     {
         m_editViewState.m_selectionManager.selectOnly(getClip());
+        m_editViewState.m_selectionManager.addToSelection (getClip ()->getTrack ());
     }
 
     if (event.mods.isRightButtonDown())

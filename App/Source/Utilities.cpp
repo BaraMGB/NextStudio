@@ -422,21 +422,24 @@ tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
 tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
         EditViewState &evs
       , const juce::File &file
-      , juce::Colour trackColour)
+      , juce::Colour trackColour
+      , double insertTime)
 {
-    if (auto track = addAudioTrack(false, trackColour, evs))
+    te::AudioFile audioFile (evs.m_edit.engine, file);
+    if (audioFile.isValid())
     {
-        removeAllClips (*track);
-        te::AudioFile audioFile (evs.m_edit.engine, file);
-        if (audioFile.isValid())
+        if (auto track = addAudioTrack(false, trackColour, evs))
         {
-            if (auto newClip = track->insertWaveClip (
-                        file.getFileNameWithoutExtension(), file,
-            { { 0.0, audioFile.getLength() }, 0.0 }, true))
-            {
-                GUIHelpers::log("loading : " + file.getFullPathName ());
-                return newClip;
-            }
+            removeAllClips (*track);
+
+
+                if (auto newClip = track->insertWaveClip (
+                            file.getFileNameWithoutExtension(), file,
+                { { insertTime, insertTime + audioFile.getLength() }, 0.0 }, true))
+                {
+                    GUIHelpers::log("loading : " + file.getFullPathName ());
+                    return newClip;
+                }
         }
     }
     return {};

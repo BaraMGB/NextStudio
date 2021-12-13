@@ -466,8 +466,6 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
 
     if (destinationTrack)
     {
-        auto destinationTrackIndex = destinationTrack->getTrack()->getIndexInEditTrackList();
-
         if (auto lb = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
         {
             if (auto fileListComp =
@@ -521,6 +519,18 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
         {
             auto f = fileTreeComp->getSelectedFile();
             destinationTrack->inserWave(f, dropTime);
+        }
+    }
+    else
+    {
+        if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+                (dragSourceDetails.sourceComponent.get()))
+        {
+            auto f = fileTreeComp->getSelectedFile();
+            EngineHelpers::loadAudioFileAsClip (m_editViewState
+                                              , f
+                                              , juce::Colour(0xffff33cc)
+                                              , dropTime);
         }
     }
     //track dropped

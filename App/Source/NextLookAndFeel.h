@@ -28,44 +28,23 @@ public:
                               bool isMouseOverButton,
                               bool isButtonDown) override
     {
-        juce::Rectangle<int> area = button.getLocalBounds ();
-
-
-
-        g.setColour(juce::Colour(0xff000000));
-        g.drawRect(area, 1);
-        area.reduce(1, 1);
+        const juce::Rectangle<int> area = button.getLocalBounds ();
 
         auto buttonColour = juce::Colour(0xff4b4b4b);
-
-
-        if (isButtonDown)
+        if (button.isDown ())
         {
             buttonColour = buttonColour.darker (0.4f);
         }
+        g.setColour(buttonColour);
+        g.fillRoundedRectangle (area.toFloat (), 5.0f);
 
-
-        juce::ColourGradient border = {buttonColour.brighter (0.1f),
-                                       0,
-                                       0,
-                                       buttonColour.brighter (0.1f),
-                                       0,
-                                       static_cast<float>(button.getHeight()),
-                                       false};
-        border.addColour (0.5, buttonColour.brighter (0.8f));
-        g.setGradientFill (border);
-        g.fillRect (area);
-        area.reduce (1,1);
-        juce::ColourGradient gradient = {buttonColour,
-                                         0,
-                                         0,
-                                         buttonColour,
-                                         0,
-                                         static_cast<float>(button.getHeight()),
-                                         false};
-        gradient.addColour (0.5, buttonColour.brighter (0.05f));
-        g.setGradientFill(gradient);
-        g.fillRect(area);
+        auto borderColour = juce::Colour(0xffcccccc);
+        if (button.isDown ())
+        {
+            borderColour = borderColour.darker (0.4f);
+        }
+        g.setColour(borderColour);
+        g.drawRoundedRectangle (area.reduced (1).toFloat (), 5.0f, 0.5f);
     }
 
 

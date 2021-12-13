@@ -87,6 +87,48 @@ void MainComponent::resized()
 bool MainComponent::keyPressed(const juce::KeyPress &key)
 {
     GUIHelpers::log("MainComponent: keypressed");
+    auto scaleFactor = 0.2;
+
+    if (key == juce::KeyPress::numberPadAdd)
+    {
+        auto &x1 = m_editComponent->getEditViewState ().m_viewX1;
+        auto &x2 = m_editComponent->getEditViewState ().m_viewX2;
+        x1 = x1 - scaleFactor;
+        x2 = x2 + scaleFactor;
+
+        return true;
+    }
+
+    if (key == juce::KeyPress::numberPadSubtract)
+    {
+        auto &x1 = m_editComponent->getEditViewState ().m_viewX1;
+        auto &x2 = m_editComponent->getEditViewState ().m_viewX2;
+        x1 = x1 + scaleFactor;
+        x2 = x2 - scaleFactor;
+
+        return true;
+    }
+
+    if (key == juce::KeyPress::rightKey)
+    {
+        auto &x1 = m_editComponent->getEditViewState ().m_viewX1;
+        auto &x2 = m_editComponent->getEditViewState ().m_viewX2;
+        x1 = x1 + (scaleFactor/5);
+        x2 = x2 + (scaleFactor/5);
+
+        return true;
+    }
+
+    if (key == juce::KeyPress::leftKey)
+    {
+        auto &x1 = m_editComponent->getEditViewState ().m_viewX1;
+        auto &x2 = m_editComponent->getEditViewState ().m_viewX2;
+        x1 = x1 - (scaleFactor/5);
+        x2 = x2 - (scaleFactor/5);
+
+        return true;
+    }
+
     if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
     {
         EngineHelpers::deleteSelectedClips (m_editComponent->getEditViewState ());

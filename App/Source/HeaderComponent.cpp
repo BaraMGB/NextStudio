@@ -30,21 +30,11 @@ PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit)
 void PositionDisplayComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds ();
-    g.setGradientFill({juce::Colour(0xff2b2b2b),
-                       0.0f,
-                       0.0f,
-                       juce::Colour(0xff3b3b3b),
-                       0.0f,
-                       static_cast<float>(getHeight()),
-                       false});
 
-    g.fillRect (area);
-    area.reduce (1, 1);
-    g.setColour (juce::Colour(0xff1b1b1b));
-    g.fillRect (area);
-    area.reduce (2, 2);
-    g.setColour (juce::Colour (0xff202020));
-    g.fillRect (area);
+    g.setColour (juce::Colour(0xff1c1c1c));
+    g.fillRoundedRectangle (area.toFloat (), 5.0f);
+    g.setColour (juce::Colour(0xff999999));
+    g.drawRoundedRectangle (area.reduced(1).toFloat (), 5.0f, 0.5f);
 }
 
 void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)

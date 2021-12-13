@@ -21,69 +21,23 @@ public:
     void mouseExit(const juce::MouseEvent &e) override;
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent& e) override;
-    void mouseUp (const juce::MouseEvent& e) override;
 
     te::AutomationCurve &getCurve() const;
 private:
 
-    double getTime (int x)
-    {
-        return m_editViewState.xToTime(x, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    }
+    double getTime (int x);
+    int getXPos (double time);
+    double getValue(int y);
+    int getYPos (double value);
+    double xToYRatio();
 
-    int getXPos (double time)
-    {
-        return m_editViewState.timeToX(time, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    }
+    juce::Point<int> getPoint(const te::AutomationCurve::AutomationPoint& ap);
+    int getLaneHeight();
+    bool isBeyondLastPoint(double time, float value);
+    int getPointWidth();
 
-    double getValue(int y)
-    {
-        return 1.0 - static_cast<double>(y + (getPointWidth ()/2+1) +1)
-                        / static_cast<double>(getLaneHeight());
-    }
-
-    int getYPos (double value)
-    {
-        return (getLaneHeight() - value * getLaneHeight()) + (getPointWidth ()/2) +1;
-    }
-
-    juce::Point<int> getPoint(const te::AutomationCurve::AutomationPoint& ap)
-    {
-        return {getXPos (ap.time), getYPos (ap.value)};
-    }
-
-    double xToYRatio()
-    {
-        //1 screen unit in value / 1 screen unit in time
-        double screenUnitInValue = 1.0/getLaneHeight();
-        double screenUnitInTime =
-                (m_editViewState.beatToTime(m_editViewState.m_viewX2)
-               - m_editViewState.beatToTime(m_editViewState.m_viewX1))
-                                 / getWidth();
-        return screenUnitInValue / screenUnitInTime;
-    }
-
-    int getLaneHeight()
-    {
-        return getHeight() - getPointWidth () - 3;
-    }
-
-    bool isBeyondLastPoint(double time, float value)
-    {
-        auto nearestPoint = m_curve.getNearestPoint (time, value , xToYRatio ());
-        if (nearestPoint > m_curve.getNumPoints () - 1)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    int getPointWidth()
-    {
-        if (getHeight () <= 50)
-            return 4;
-        return 8;
-    }
+    double getNewTime(const juce::MouseEvent &e);
+    int getIndexOfHoveredPoint(const juce::MouseEvent &e);
 
     te::AutomationCurve&        m_curve;
     int                         m_hoveredPoint;
@@ -94,7 +48,6 @@ private:
     double                      m_timeAtMousedown;
     EditViewState&              m_editViewState;
     bool                        m_isVertical {false};
-    //------------- const
 };
 
 class TrackComponent : public juce::Component,
