@@ -35,10 +35,17 @@ private:
 
     std::unique_ptr<te::SmartThumbnail> thumbnail;
 
+    //used for shrinking and expanding
+    double getDistanceInBeats(const int distanceInPixel);
+    te::TimecodeSnapType getCurrentSnapType();
+    double getDistanceInTime(const int distanceInPixel, bool snap);
+    double getSnapedTime();
+    double clipEndSnaped();
+
     int m_mouseDownX {0};
     int m_cachedClipWidth;
     double m_lastOffset{0.0};
     double m_oldDistanceTime{0.0};
-    tracktion_engine::ClipPosition m_cachedMousePos;
+    tracktion_engine::ClipPosition m_clipPosCached;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioClipComponent)
 };

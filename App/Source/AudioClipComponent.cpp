@@ -48,45 +48,65 @@ void AudioClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 void AudioClipComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseDownX = e.getMouseDownX();
-    m_cachedMousePos =  m_clip->getPosition();
+    m_clipPosCached =  m_clip->getPosition();
     m_cachedClipWidth = getWidth();
     m_lastOffset = 0.0;
     m_oldDistanceTime = 0.0;
     ClipComponent::mouseDown(e);
 }
 
+double AudioClipComponent::getDistanceInBeats(const int distanceInPixel)
+{
+    return  m_editViewState.xToBeats(
+               distanceInPixel
+               , getParentWidth()
+               , m_editViewState.m_viewX1
+               , m_editViewState.m_viewX2) - m_editViewState.m_viewX1;
+}
+
+tracktion_engine::TimecodeSnapType AudioClipComponent::getCurrentSnapType()
+{
+    return m_editViewState.getBestSnapType (m_editViewState.m_viewX1
+                                          , m_editViewState.m_viewX2
+                                          , getParentWidth ());
+}
+
+double AudioClipComponent::getDistanceInTime(const int distanceInPixel, bool snap)
+{
+    return snap ? m_editViewState.beatToTime(getDistanceInBeats(distanceInPixel)  )
+                : m_editViewState.getSnapedTime (
+                    m_editViewState.beatToTime(
+                        getDistanceInBeats(distanceInPixel))
+                  , getCurrentSnapType());
+}
+
+double AudioClipComponent::clipEndSnaped()
+{
+    return m_editViewState.getSnapedTime (
+          m_clipPosCached.getEnd ()
+        , m_editViewState.getBestSnapType (m_editViewState.m_viewX1
+                                         , m_editViewState.m_viewX2
+                                         , getParentWidth ()));
+}
+
 void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
 {
-    auto distanceBeats = m_editViewState.xToBeats(
-                  e.getDistanceFromDragStartX()
-                , getParentWidth()
-                , m_editViewState.m_viewX1
-                , m_editViewState.m_viewX2)
-              - m_editViewState.m_viewX1;
-    auto snapType = m_editViewState.getBestSnapType (
-                m_editViewState.m_viewX1
-              , m_editViewState.m_viewX2
-              , getParentWidth ());
-    const auto distanceTime = e.mods.isShiftDown ()
-                            ? m_editViewState.beatToTime(
-                                 distanceBeats  )
-                            : m_editViewState.getSnapedTime (
-                                  m_editViewState.beatToTime(
-                                      distanceBeats)
-                                      , snapType);
-    auto distTimeDelta = distanceTime - m_oldDistanceTime;
+    auto distTime = getDistanceInTime(e.getDistanceFromDragStartX ()
+                                      , e.mods.isShiftDown ());
+    auto distTimeDelta =  distTime - m_oldDistanceTime;
 
     //shrink left
-    if (m_mouseDownX < 10 && m_cachedClipWidth > 30)
+    if ((m_mouseDownX < 10) && (m_cachedClipWidth > 30))
     {
-        const auto newTime = m_clip->getPosition().getStart()
-                + distTimeDelta;
-        const auto newOffset = m_clip->getPosition().getOffset()
-                + distTimeDelta;
+        const auto newTime = m_clip->getPosition().getStart() + distTimeDelta;
+        const auto newOffset = m_clip->getPosition().getOffset() + distTimeDelta;
 
-        if ((distTimeDelta > 0
-         || m_clip->getPosition().getOffset() > 0 )
-         && !(newTime > m_clip->getPosition().getEnd()))
+        bool isDeltaPositive = distTimeDelta > 0;
+        bool isClipOffsPositive = m_clip->getPosition().getOffset() > 0;
+        bool isNewTimeSmallerClipEnd = newTime < m_clip->getPosition().getEnd();
+
+        if ((isDeltaPositive || isClipOffsPositive)
+            && isNewTimeSmallerClipEnd)
         {
             m_clip->setStart(juce::jmax(0.0, newTime), false, false);
             if (newOffset < 0)
@@ -100,23 +120,16 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
         }
         else
         {
-            m_cachedMousePos = m_clip->getPosition();
+            m_clipPosCached = m_clip->getPosition();
             m_lastOffset = 0.0;
         }
-        m_oldDistanceTime = distanceTime;
+        m_oldDistanceTime = distTime;
         m_updateRegion = true;
     }
     //shrink right
     else if (m_mouseDownX > m_cachedClipWidth - 10 && m_cachedClipWidth > 30)
     {
-        auto snapType = m_editViewState.getBestSnapType (
-                    m_editViewState.m_viewX1
-                  , m_editViewState.m_viewX2
-                  , getParentWidth ());
-        auto snapedTime = m_editViewState.getSnapedTime (
-                    m_cachedMousePos.getEnd ()
-                  , snapType);
-        m_clip->setEnd(snapedTime + distanceTime, true);
+        m_clip->setEnd(clipEndSnaped() + distTime, true);
         m_updateRegion = true;
     }
     else
@@ -141,12 +154,12 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                                       int xOffset)
 {
     auto getTimeRangeForDrawing =
-            [this] (const int left, const int right) -> te::EditTimeRange
+            [this] (const int l, const int r) -> te::EditTimeRange
     {
         if (auto p = getParentComponent())
         {
-            double t1 = m_editViewState.xToTime (left, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-            double t2 = m_editViewState.xToTime (right, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            double t1 = m_editViewState.xToTime (l, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            double t2 = m_editViewState.xToTime (r, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             return { t1, t2 };
         }
         return {};
