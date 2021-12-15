@@ -38,9 +38,21 @@ private:
     //used for shrinking and expanding
     double getDistanceInBeats(const int distanceInPixel);
     te::TimecodeSnapType getCurrentSnapType();
+    double getDistanceInTime (const int distanceInPixel);
     double getDistanceInTime(const int distanceInPixel, bool snap);
     double getSnapedTime();
     double clipEndSnaped();
+
+    //used for drawing thumbnail
+    int getViewportOffset();
+    int getViewportEnd();
+    int getDrawingStartX();
+    int getDrawingEndX();
+    juce::Range<int> getDrawingRange();
+    juce::Rectangle<int> getDrawingRect();
+
+    //helper
+    int invert(int value);
 
     int m_mouseDownX {0};
     int m_cachedClipWidth;
@@ -48,4 +60,5 @@ private:
     double m_oldDistanceTime{0.0};
     tracktion_engine::ClipPosition m_clipPosCached;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioClipComponent)
+    void setNewTimeAndOffset(const double newTime, const double newOffset);
 };

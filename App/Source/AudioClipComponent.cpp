@@ -7,36 +7,82 @@ AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
     setPaintingIsUnclipped(true);
 }
 
+int AudioClipComponent::getViewportOffset()
+{
+    return invert(m_editViewState.timeToX(0
+                                        , getParentComponent()->getWidth()
+                                        , m_editViewState.m_viewX1
+                                        , m_editViewState.m_viewX2));
+}
+
+int AudioClipComponent::getViewportEnd()
+{
+    int viewportEndX =  getParentComponent()->getWidth();
+
+    return viewportEndX;
+}
+
+int AudioClipComponent::getDrawingStartX()
+{
+    auto left = ((getX() < 0
+                         ? invert (getX())
+                         : 0) - getViewportOffset ());
+
+    return left;
+}
+
+int AudioClipComponent::getDrawingEndX()
+{
+    auto clipendX = getX() + getWidth();
+    auto cutAtViewportEnd = (clipendX > getViewportEnd()
+                          ?  clipendX - getViewportEnd ()
+                          :  0);
+    auto right = getWidth () - cutAtViewportEnd - getViewportOffset ();
+
+    return right;
+}
+
+int AudioClipComponent::invert(int value)
+{
+    return value * (-1);
+}
+
+juce::Range<int> AudioClipComponent::getDrawingRange()
+{
+    auto left = getDrawingStartX();
+    auto right = juce::jmax(left, getDrawingEndX());
+
+    return juce::Range<int>(left, right);
+}
+
+juce::Rectangle<int> AudioClipComponent::getDrawingRect()
+{
+    auto drawingRect = juce::Rectangle<int> (
+                        getDrawingRange ().getStart ()
+                      , m_editViewState.m_trackHeightMinimized/2 + 3
+                      , getDrawingRange().getLength ()
+                      , getHeight()
+                        - m_editViewState.m_trackHeightMinimized/2 - 5);
+    return drawingRect;
+}
+
 void AudioClipComponent::paint (juce::Graphics& g)
 {
     ClipComponent::paint (g);
 
-    auto viewportOffset = -(m_editViewState.timeToX(
-                                0
-                              , getParentComponent()->getWidth()
-                              , m_editViewState.m_viewX1
-                              , m_editViewState.m_viewX2));
-    auto viewportEndX =  getParentComponent()->getWidth();
-    auto clipstartX = m_editViewState.timeToX(
-                m_clip->getPosition().getStart()
-              , getParentComponent()->getWidth()
-              , m_editViewState.m_viewX1
-              , m_editViewState.m_viewX2);
-    auto clipendX = clipstartX + getWidth();
-    auto left = clipstartX < 0 ? -clipstartX : 0;
-    auto right = clipendX > viewportEndX ? clipendX - viewportEndX : 0;
+    auto rect = getDrawingRect ().reduced (2, 0);
 
     if (m_editViewState.m_drawWaveforms && thumbnail)
     {
         drawWaveform(g
-                     , *getWaveAudioClip()
-                     , *thumbnail
-                     , juce::Colours::black.withAlpha(0.5f)
-                     , (left - viewportOffset) + 2
-                     , (getWidth() - right - viewportOffset) - 2
-                     , m_editViewState.m_trackHeightMinimized/2 + 3
-                     , getHeight() - m_editViewState.m_trackHeightMinimized/2 - 5
-                     , viewportOffset);
+                   , *getWaveAudioClip()
+                   , *thumbnail
+                   , juce::Colours::black.withAlpha(0.5f)
+                   , rect.getX()
+                   , rect.getRight ()
+                   , rect.getY ()
+                   , rect.getHeight ()
+                   , getViewportOffset ());
     }
 }
 
@@ -55,6 +101,8 @@ void AudioClipComponent::mouseDown(const juce::MouseEvent &e)
     ClipComponent::mouseDown(e);
 }
 
+
+
 double AudioClipComponent::getDistanceInBeats(const int distanceInPixel)
 {
     return  m_editViewState.xToBeats(
@@ -64,20 +112,33 @@ double AudioClipComponent::getDistanceInBeats(const int distanceInPixel)
                , m_editViewState.m_viewX2) - m_editViewState.m_viewX1;
 }
 
+
 tracktion_engine::TimecodeSnapType AudioClipComponent::getCurrentSnapType()
 {
     return m_editViewState.getBestSnapType (m_editViewState.m_viewX1
                                           , m_editViewState.m_viewX2
                                           , getParentWidth ());
 }
+double AudioClipComponent::getDistanceInTime (const int distanceInPixel)
+{
+    return  m_editViewState.xToTime(
+               distanceInPixel
+               , getParentWidth()
+               , m_editViewState.m_viewX1
+               , m_editViewState.m_viewX2)
+            - m_editViewState.beatToTime (m_editViewState.m_viewX1);
+}
 
 double AudioClipComponent::getDistanceInTime(const int distanceInPixel, bool snap)
 {
-    return snap ? m_editViewState.beatToTime(getDistanceInBeats(distanceInPixel)  )
+    return snap ? getDistanceInTime (distanceInPixel)
                 : m_editViewState.getSnapedTime (
-                    m_editViewState.beatToTime(
-                        getDistanceInBeats(distanceInPixel))
-                  , getCurrentSnapType());
+                    getDistanceInTime (distanceInPixel),getCurrentSnapType ());
+//    return snap ? m_editViewState.beatToTime(getDistanceInBeats(distanceInPixel))
+//                : m_editViewState.getSnapedTime (
+//                    m_editViewState.beatToTime(
+//                        getDistanceInBeats(distanceInPixel))
+//                  , getCurrentSnapType());
 }
 
 double AudioClipComponent::clipEndSnaped()
@@ -87,6 +148,19 @@ double AudioClipComponent::clipEndSnaped()
         , m_editViewState.getBestSnapType (m_editViewState.m_viewX1
                                          , m_editViewState.m_viewX2
                                          , getParentWidth ()));
+}
+
+void AudioClipComponent::setNewTimeAndOffset(const double newTime, const double newOffset)
+{
+    m_clip->setStart(juce::jmax(0.0, newTime), false, false);
+    if (newOffset < 0)
+    {
+        m_clip->setStart(juce::jmax(0.0
+                                    , m_clip->getPosition().getStart() - newOffset)
+                         , false, false);
+        m_lastOffset = newOffset;
+    }
+    m_clip->setOffset(newOffset);
 }
 
 void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
@@ -108,15 +182,7 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
         if ((isDeltaPositive || isClipOffsPositive)
             && isNewTimeSmallerClipEnd)
         {
-            m_clip->setStart(juce::jmax(0.0, newTime), false, false);
-            if (newOffset < 0)
-            {
-                m_clip->setStart(juce::jmax(0.0
-                                 , m_clip->getPosition().getStart() - newOffset)
-                                 , false, false);
-                m_lastOffset = newOffset;
-            }
-            m_clip->setOffset(newOffset);
+            setNewTimeAndOffset(newTime, newOffset);
         }
         else
         {
