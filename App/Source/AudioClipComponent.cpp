@@ -273,8 +273,8 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                    , {left + xOffset, y, right - left, h}
                    , useHighres
                    , {t1, t2}
-                   , c.isLeftChannelActive() && showBothChannels
-                   , c.isRightChannelActive()
+                   , c.isLeftChannelActive()
+                   , c.isRightChannelActive() && showBothChannels
                    , gainL
                    , gainR);
     }
