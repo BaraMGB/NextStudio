@@ -71,3 +71,7 @@ target_link_libraries(${TargetName} PRIVATE
         tracktion_engine
 	)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "-latomic")
+  target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "-m64")
+endif()
