@@ -134,11 +134,6 @@ double AudioClipComponent::getDistanceInTime(const int distanceInPixel, bool sna
     return snap ? getDistanceInTime (distanceInPixel)
                 : m_editViewState.getSnapedTime (
                     getDistanceInTime (distanceInPixel),getCurrentSnapType ());
-//    return snap ? m_editViewState.beatToTime(getDistanceInBeats(distanceInPixel))
-//                : m_editViewState.getSnapedTime (
-//                    m_editViewState.beatToTime(
-//                        getDistanceInBeats(distanceInPixel))
-//                  , getCurrentSnapType());
 }
 
 double AudioClipComponent::clipEndSnaped()
