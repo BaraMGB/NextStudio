@@ -467,9 +467,32 @@ void EngineHelpers::refreshRelativePathstoNewEditFile(
     evs.m_edit.editFileRetriever = [newEditFile] {return newEditFile;};
 }
 
-void EngineHelpers::toggleLoop(tracktion_engine::Edit &edit)
+void EngineHelpers::rewind(EditViewState &evs)
 {
-    auto& transport = edit.getTransport();
+    auto& transport = evs.m_edit.getTransport ();
+
+    evs.m_playHeadStartTime = 0.0;
+    transport.setCurrentPosition(evs.m_playHeadStartTime);
+}
+
+void EngineHelpers::stopPlay(EditViewState &evs)
+{
+    auto& transport = evs.m_edit.getTransport ();
+    if (transport.isPlaying () == false)
+    {
+        evs.m_playHeadStartTime = 0.0;
+        transport.setCurrentPosition(evs.m_playHeadStartTime);
+    }
+    else
+    {
+        transport.stop(false, false, true, true);
+        transport.setCurrentPosition(evs.m_playHeadStartTime);
+    }
+}
+
+void EngineHelpers::toggleLoop (tracktion_engine::Edit &edit)
+{
+    auto& transport = edit.getTransport ();
 
     if (transport.looping)
         transport.looping = false;
@@ -477,27 +500,49 @@ void EngineHelpers::toggleLoop(tracktion_engine::Edit &edit)
         transport.looping = true;
 }
 
-void EngineHelpers::togglePlay(tracktion_engine::Edit &edit)
+void EngineHelpers::play (EditViewState &evs)
 {
-    auto& transport = edit.getTransport();
-
-    if (transport.isPlaying())
-        transport.stop (false, false);
-    else
-        transport.play (false);
+    auto& transport = evs.m_edit.getTransport ();
+    if (transport.isPlaying ())
+        transport.setCurrentPosition (evs.m_playHeadStartTime);
+    transport.play (true);
 }
 
-void EngineHelpers::toggleRecord(tracktion_engine::Edit &edit)
+void EngineHelpers::pause (EditViewState &evs)
 {
-    auto& transport = edit.getTransport();
+    auto& transport = evs.m_edit.getTransport ();
+    if (transport.isPlaying ())
+    {
+        transport.stop(false, false, true, false);
+    }
+}
 
-    if (transport.isRecording())
+void EngineHelpers::togglePlay(EditViewState& evs)
+{
+    auto& transport = evs.m_edit.getTransport ();
+
+    if (transport.isPlaying ())
+    {
+        transport.stop (false, false);
+    }
+    else
+    {
+        evs.m_playHeadStartTime = transport.getCurrentPosition () ;
+        EngineHelpers::play(evs);
+    }
+}
+
+void EngineHelpers::toggleRecord (tracktion_engine::Edit &edit)
+{
+    auto& transport = edit.getTransport ();
+
+    if (transport.isRecording ())
         transport.stop (true, false);
     else
         transport.record (false);
 }
 
-void EngineHelpers::armTrack(
+void EngineHelpers::armTrack (
         tracktion_engine::AudioTrack &t
       , bool arm
       , int position)

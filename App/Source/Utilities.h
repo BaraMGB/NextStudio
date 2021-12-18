@@ -170,8 +170,12 @@ namespace EngineHelpers
     }
 
 
+    void play (EditViewState &evs);
+    void pause (EditViewState &evs);
+    void rewind(EditViewState &evs);
+    void stopPlay(EditViewState &evs);
     void toggleLoop (te::Edit& edit);
-    void togglePlay (te::Edit& edit);
+    void togglePlay (EditViewState &evs);
     void toggleRecord (te::Edit& edit);
     void armTrack (te::AudioTrack& t, bool arm, int position = 0);
     bool isTrackArmed (te::AudioTrack& t, int position = 0);

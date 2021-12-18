@@ -372,15 +372,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
 
     if (button == &m_playButton)
     {
-        auto& transport = m_edit.getTransport();
-        if (transport.isPlaying())
-        {
-            transport.stop(false, false);
-        }
-        else
-        {
-            transport.play(true);
-        }
+        EngineHelpers::togglePlay(m_editViewState);
         const char* svgbin = m_edit.getTransport().isPlaying()
                            ? BinaryData::pause_svg
                            : BinaryData::play_svg;
@@ -389,11 +381,11 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     }
     if (button == &m_stopButton)
     {
-        m_edit.getTransport().stop(false, false, true, true);
-        m_edit.getTransport().setCurrentPosition(0);
+        EngineHelpers::stopPlay(m_editViewState);
         GUIHelpers::setDrawableonButton (m_playButton
-                                         , BinaryData::play_svg
-                                         , m_btn_col);
+                                        , BinaryData::play_svg
+                                        , m_btn_col);
+
     }
     if (button == &m_recordButton)
     {

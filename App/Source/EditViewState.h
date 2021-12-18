@@ -62,6 +62,7 @@ namespace IDs
     DECLARE_ID (footerBarHeight)
     DECLARE_ID (isTrackMinimized)
     DECLARE_ID (automationFollowsClip)
+    DECLARE_ID (playHeadStartTime)
     #undef DECLARE_ID
 }
 
@@ -106,6 +107,7 @@ public:
         m_pianorollHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
         m_lastNoteLenght.referTo (m_state, IDs::lastNoteLenght, um, 0);
         m_snapType.referTo(m_state, IDs::snapType, um, 9);
+        m_playHeadStartTime.referTo (m_state, IDs::playHeadStartTime, um, 0.0);
 
         m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
         m_editName.referTo(m_state, IDs::name, um, "unknown");
@@ -222,7 +224,8 @@ public:
                             , m_pianoX1
                             , m_pianoX2
                             , m_pianorollNoteWidth
-                            , m_lastNoteLenght;
+                            , m_lastNoteLenght
+                            , m_playHeadStartTime;
     juce::CachedValue<int> m_pianorollHeight;
     juce::CachedValue<int> m_snapType;
 

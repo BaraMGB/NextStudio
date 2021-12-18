@@ -135,21 +135,33 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
         return true;
     }
 
-    if (key == juce::KeyPress::spaceKey)
+    if (key == juce::KeyPress::returnKey)
     {
-        EngineHelpers::togglePlay(* m_edit);
+        EngineHelpers::play(m_editComponent->getEditViewState ());
+    }
+
+    if (key == juce::KeyPress::spaceKey || key == juce::KeyPress::numberPad0)
+    {
+        EngineHelpers::togglePlay(m_editComponent->getEditViewState ());
         return true;
     }
-    else if (key == juce::KeyPress::F10Key)
+    if (key == juce::KeyPress::numberPadDecimalPoint)
+    {
+        EngineHelpers::stopPlay(m_editComponent->getEditViewState ());
+        return true;
+    }
+
+    if (key == juce::KeyPress::F10Key)
     {
         std::cout << "DEBUG EDIT: " << juce::Time::getCurrentTime().toString(true, true, true, true) << std::endl;
         std::cout << "=================================================================================" << std::endl;
         auto editString = m_edit->state.toXmlString();
         std::cout << editString << std::endl;
+        return true;
     }
 
 #if JUCE_MAC
-    if (key == juce::KeyPress::createFromDescription ("cmd + d"))
+    if (key == juce::KeyPress::createFromDescription ("command + D"))
 #else
     if (key == juce::KeyPress::createFromDescription ("ctrl + d"))
 #endif
@@ -162,7 +174,7 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
     }
 
 #if JUCE_MAC
-    if (key == juce::KeyPress::createFromDescription ("cmd + z"))
+    if (key == juce::KeyPress::createFromDescription ("command + z"))
 #else
     if (key == juce::KeyPress::createFromDescription ("ctrl + z"))
 #endif
@@ -180,7 +192,8 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
         m_editComponent->getEditViewState ().m_edit.redo ();
         return true;
     }
-    return false;
+    GUIHelpers::log (key.getTextDescription ());
+    return true;
 }
 
 void MainComponent::valueTreePropertyChanged(

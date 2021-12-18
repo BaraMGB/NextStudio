@@ -62,7 +62,9 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
     m_cachedX2 = m_X2;
     if (event.getNumberOfClicks() > 1)
     {
-        m_editViewState.m_edit.getTransport().setCurrentPosition(m_editViewState.beatToTime(m_cachedBeat));
+        auto newTime = m_editViewState.beatToTime(m_cachedBeat);
+        m_editViewState.m_playHeadStartTime = newTime;
+        m_editViewState.m_edit.getTransport().setCurrentPosition(newTime);
     }
 }
 

@@ -591,18 +591,24 @@ void TrackHeaderComponent::resized()
     m_soloButton.setComponentID ("solo");
     m_soloButton.setTooltip ("solo track");
     m_soloButton.setName ("S");
+    //m_soloButton.setMouseClickGrabsKeyboardFocus (false);
+    m_soloButton.setWantsKeyboardFocus (false);
 
     auto mute = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
     m_muteButton.setBounds(mute);
     m_muteButton.setComponentID ("mute");
     m_muteButton.setTooltip ("mute track");
     m_muteButton.setName ("M");
+    m_muteButton.setWantsKeyboardFocus (false);
+    //m_muteButton.setMouseClickGrabsKeyboardFocus (false);
 
     auto arm = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
     m_armButton.setBounds(arm);
     m_armButton.setTooltip ("arm track");
     m_armButton.setComponentID ("arm");
     m_armButton.setName ("A");
+    m_armButton.setWantsKeyboardFocus (false);
+    //m_armButton.setMouseClickGrabsKeyboardFocus (false);
 
     area.removeFromLeft(45);
     area.removeFromTop (6);
