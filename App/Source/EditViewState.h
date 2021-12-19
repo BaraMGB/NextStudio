@@ -63,6 +63,7 @@ namespace IDs
     DECLARE_ID (isTrackMinimized)
     DECLARE_ID (automationFollowsClip)
     DECLARE_ID (playHeadStartTime)
+    DECLARE_ID (followsPlayhead)
     #undef DECLARE_ID
 }
 
@@ -108,7 +109,7 @@ public:
         m_lastNoteLenght.referTo (m_state, IDs::lastNoteLenght, um, 0);
         m_snapType.referTo(m_state, IDs::snapType, um, 9);
         m_playHeadStartTime.referTo (m_state, IDs::playHeadStartTime, um, 0.0);
-
+        m_followPlayhead.referTo (m_state, IDs::followsPlayhead, um, true);
         m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
         m_editName.referTo(m_state, IDs::name, um, "unknown");
     }
@@ -201,6 +202,11 @@ public:
         return timeToBeat (m_edit.getLength ()) + (480);
     }
 
+    void toggleFollowPlayhead()
+    {
+        m_followPlayhead = !m_followPlayhead;
+    }
+    bool viewFollowsPos() {return m_followPlayhead;}
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 
@@ -216,7 +222,8 @@ public:
                           , m_showWaveDevices
                           , m_isPianoRollVisible
                           , m_isAutoArmed
-                          , m_automationFollowsClip;
+                          , m_automationFollowsClip
+                          , m_followPlayhead;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY

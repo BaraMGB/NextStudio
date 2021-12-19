@@ -19,6 +19,7 @@ juce_add_binary_data(Pictures SOURCES
     arrowright18.svg
     arrowdown18.svg
     automation.svg
+    follow.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

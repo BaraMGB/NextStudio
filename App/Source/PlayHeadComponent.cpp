@@ -41,8 +41,16 @@ void PlayheadComponent::mouseDrag (const juce::MouseEvent& e)
     timerCallback();
 }
 
+bool PlayheadComponent::isPlaying()
+{
+    return m_editViewState.m_edit.getTransport ().isPlaying ();
+}
+
 void PlayheadComponent::timerCallback()
 {
+    if (isPlaying())
+        GUIHelpers::centerView(m_editViewState);
+
     if (m_firstTimer)
     {
         // On Linux, don't set the mouse cursor until after the Component has appeared
@@ -51,15 +59,16 @@ void PlayheadComponent::timerCallback()
     }
 
     int newX = m_editViewState.timeToX (
-                m_edit.getTransport().getCurrentPosition()
-               , getWidth (), m_X1, m_X2);
+        m_edit.getTransport().getCurrentPosition()
+        , getWidth (), m_X1, m_X2);
+
     if (newX != m_xPosition)
     {
         repaint (juce::jmin (newX, m_xPosition) - 1
-                 , 0
-                 , juce::jmax (newX, m_xPosition)
+                , 0
+                , juce::jmax (newX, m_xPosition)
                     - juce::jmin (newX, m_xPosition) + 3
-                 , getHeight());
+                , getHeight());
         m_xPosition = newX;
     }
 }

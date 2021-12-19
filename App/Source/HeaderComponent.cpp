@@ -240,6 +240,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     , m_playButton ("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loopButton ("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_clickButton ("Metronome", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_followPlayheadButton("Follow", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_edit(evs.m_edit)
     , m_applicationState (applicationState)
     , m_display (m_edit)
@@ -255,6 +256,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     addAndMakeVisible (m_loopButton);
     addAndMakeVisible (m_clickButton);
     addAndMakeVisible (m_display);
+    addAndMakeVisible (m_followPlayheadButton);
 
     GUIHelpers::setDrawableonButton (m_newButton
                                      , BinaryData::newbox_svg
@@ -290,6 +292,11 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
                                      , m_edit.clickTrackEnabled
                                        ? m_btn_col
                                        : "#666666");
+    GUIHelpers::setDrawableonButton (m_followPlayheadButton
+                                    , BinaryData::follow_svg
+                                    , m_editViewState.viewFollowsPos ()
+                                        ? m_btn_col
+                                        : "#666666");
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
     m_saveButton.addListener(this);
@@ -300,6 +307,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     m_pluginsButton.addListener(this);
     m_loopButton.addListener (this);
     m_clickButton.addListener (this);
+    m_followPlayheadButton.addListener (this);
 
     startTimer(30);
 }
@@ -361,6 +369,11 @@ void HeaderComponent::resized()
     area.removeFromRight(gap/4);
     m_playButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
     m_clickButton.setBounds (clickButtonRect);
+    m_followPlayheadButton.setBounds (
+        clickButtonRect.getRight () + gap/4
+      , clickButtonRect.getY()
+      , clickButtonRect.getWidth ()
+      , clickButtonRect.getHeight ());
     m_display.setBounds (displayRect);
 }
 
@@ -445,6 +458,17 @@ void HeaderComponent::buttonClicked(juce::Button* button)
                                            ? m_btn_col
                                            : "#666666");
     }
+
+    if (button == &m_followPlayheadButton)
+    {
+        m_editViewState.toggleFollowPlayhead();
+        GUIHelpers::setDrawableonButton (m_followPlayheadButton
+                                        , BinaryData::follow_svg
+                                        , m_editViewState.viewFollowsPos ()
+                                            ? m_btn_col
+                                            : "#666666");
+    }
+
     if (button == &m_saveButton)
     {
         GUIHelpers::saveEdit (m_editViewState

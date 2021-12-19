@@ -473,6 +473,7 @@ void EngineHelpers::rewind(EditViewState &evs)
 
     evs.m_playHeadStartTime = 0.0;
     transport.setCurrentPosition(evs.m_playHeadStartTime);
+    GUIHelpers::centerView(evs);
 }
 
 void EngineHelpers::stopPlay(EditViewState &evs)
@@ -488,6 +489,7 @@ void EngineHelpers::stopPlay(EditViewState &evs)
         transport.stop(false, false, true, true);
         transport.setCurrentPosition(evs.m_playHeadStartTime);
     }
+    GUIHelpers::centerView(evs);
 }
 
 void EngineHelpers::toggleLoop (tracktion_engine::Edit &edit)
@@ -727,5 +729,16 @@ void EngineHelpers::duplicateSelectedClips(
                   , edit
                   , te::MoveClipAction::moveStartToCursor
                   , false);
+    }
+}
+
+void GUIHelpers::centerView(EditViewState &evs)
+{
+    if (evs.viewFollowsPos())
+    {
+        auto zoom = evs.m_viewX2 - evs.m_viewX1;
+        auto posBeats = evs.timeToBeat (evs.m_edit.getTransport ().getCurrentPosition ());
+        evs.m_viewX1 = juce::jmax(0.0, posBeats - zoom/2);
+        evs.m_viewX2 = evs.m_viewX1 + zoom;
     }
 }

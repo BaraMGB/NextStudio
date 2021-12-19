@@ -44,6 +44,7 @@ namespace GUIHelpers
                   << ": " << message << std::endl;
     }
 
+    void centerView(EditViewState& evs);
 
     void drawRoundedRectWithSide(
           juce::Graphics & g

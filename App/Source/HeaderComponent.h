@@ -95,7 +95,8 @@ private:
                        , m_settingsButton
                        , m_playButton
                        , m_loopButton
-                       , m_clickButton;
+                       , m_clickButton
+                       , m_followPlayheadButton;
 
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
