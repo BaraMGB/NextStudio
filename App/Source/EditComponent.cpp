@@ -257,12 +257,16 @@ void EditComponent::resized()
                              + timelineHeight
                              - m_editViewState.m_footerBarHeight
                            , getWidth () - trackHeaderWidth, 20);
+    updateHorizontalScrollBar();
+    m_footerbar.setBounds (area.removeFromBottom (
+                               m_editViewState.m_footerBarHeight));
+}
+void EditComponent::updateHorizontalScrollBar()
+{
     m_scrollbar_h.setRangeLimits (
                 {0.0, m_editViewState.getEndScrollBeat ()});
     m_scrollbar_h.setCurrentRange ({m_editViewState.m_viewX1
                                   , m_editViewState.m_viewX2});
-    m_footerbar.setBounds (area.removeFromBottom (
-                               m_editViewState.m_footerBarHeight));
 }
 
 void EditComponent::mouseDown(const juce::MouseEvent &e)
@@ -356,9 +360,7 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
     }
     else if(scrollBarThatHasMoved == &m_scrollbar_h)
     {
-        auto zoom = m_editViewState.m_viewX2 - m_editViewState.m_viewX1;
-        m_editViewState.m_viewX1 = juce::jmax(0.0, newRangeStart);
-        m_editViewState.m_viewX2 = m_editViewState.m_viewX1 + zoom;
+        GUIHelpers::moveView(m_editViewState, juce::jmax(0.0, newRangeStart));
     }
 }
 
@@ -633,12 +635,15 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset (m_updateZoom))
     {
         refreshSnaptypeDesc ();
+
         m_timeLine.repaint ();
+
         for (auto t : m_trackComps)
         {
             t->repaint ();
             t->resized ();
         }
+        updateHorizontalScrollBar();
     }
 }
 
