@@ -736,9 +736,21 @@ void GUIHelpers::centerView(EditViewState &evs)
 {
     if (evs.viewFollowsPos())
     {
+        auto posBeats = evs.timeToBeat (
+            evs.m_edit.getTransport ().getCurrentPosition ());
+
+        if (posBeats < evs.m_viewX1 || posBeats > evs.m_viewX2)
+            moveView(evs, posBeats);
+
         auto zoom = evs.m_viewX2 - evs.m_viewX1;
-        auto posBeats = evs.timeToBeat (evs.m_edit.getTransport ().getCurrentPosition ());
-        evs.m_viewX1 = juce::jmax(0.0, posBeats - zoom/2);
-        evs.m_viewX2 = evs.m_viewX1 + zoom;
+        moveView(evs, juce::jmax((double)evs.m_viewX1, posBeats - zoom/2));
     }
+}
+
+void GUIHelpers::moveView(EditViewState& evs, double newBeatPos)
+{
+    auto delta = evs.m_viewX1 - newBeatPos;
+    auto zoom = evs.m_viewX2 - evs.m_viewX1;
+    evs.m_viewX1 = evs.m_viewX1 - delta;
+    evs.m_viewX2 = evs.m_viewX1 + zoom;
 }

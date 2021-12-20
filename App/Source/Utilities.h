@@ -83,7 +83,28 @@ namespace GUIHelpers
           , double x1beats
           , double x2beats
           , juce::Rectangle<int> boundingRect, bool printDescription=false);
-}
+    void moveView(EditViewState& evs, double newBeatPos);
+    }
+
+    class DelayedOneShotLambda : public juce::Timer
+    {
+    public:
+        DelayedOneShotLambda(int ms, std::function<void()> fn)
+        : m_func(fn)
+        {
+            startTimer(ms);
+        }
+        ~DelayedOneShotLambda() { stopTimer(); }
+
+        void timerCallback() override
+        {
+            auto f = m_func;
+            delete this;
+            f();
+        }
+    private:
+        std::function<void()> m_func;
+    };
 
 namespace PlayHeadHelpers
 {
