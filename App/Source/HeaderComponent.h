@@ -85,7 +85,11 @@ public:
     juce::File loadingFile() const;
 
 private:
+
     EditViewState& m_editViewState;
+    juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify) const;
+    void addButtonsToFlexBox(juce::FlexBox& box,const juce::Array<juce::Component*>& buttons, int w, int h, int margin);
+    void addFlexBoxToFlexBox(juce::FlexBox& target, const juce::Array<juce::FlexBox*>& items, int w, int h);
     juce::DrawableButton m_newButton
                        , m_loadButton
                        , m_saveButton
@@ -97,13 +101,12 @@ private:
                        , m_loopButton
                        , m_clickButton
                        , m_followPlayheadButton;
-
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
     juce::String m_btn_col { "#dbdbdb" };
     juce::Colour m_mainColour{ juce::Colour(0xff57cdff) };
     PositionDisplayComponent m_display;
-    juce::File m_loadingFile {};
 
+    juce::File m_loadingFile {};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };

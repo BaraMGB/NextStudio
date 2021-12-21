@@ -245,18 +245,11 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     , m_applicationState (applicationState)
     , m_display (m_edit)
 {
-    addAndMakeVisible(m_newButton);
-    addAndMakeVisible(m_loadButton);
-    addAndMakeVisible(m_saveButton);
-    addAndMakeVisible(m_playButton);
-    addAndMakeVisible(m_stopButton);
-    addAndMakeVisible(m_recordButton);
-    addAndMakeVisible(m_settingsButton);
-    addAndMakeVisible(m_pluginsButton);
-    addAndMakeVisible (m_loopButton);
-    addAndMakeVisible (m_clickButton);
-    addAndMakeVisible (m_display);
-    addAndMakeVisible (m_followPlayheadButton);
+    Helpers::addAndMakeVisible(*this,
+                                { &m_newButton, &m_loadButton, &m_saveButton, &m_stopButton
+                                , &m_recordButton, &m_display, &m_clickButton, &m_loopButton
+                                , &m_followPlayheadButton, &m_pluginsButton, &m_settingsButton });
+
 
     GUIHelpers::setDrawableonButton (m_newButton
                                      , BinaryData::newbox_svg
@@ -319,62 +312,50 @@ HeaderComponent::~HeaderComponent()
 void HeaderComponent::resized()
 {
     juce::Rectangle<int> area = getLocalBounds();
-    auto gap = area.getHeight()/2;
+    auto gap = area.getHeight()/8;
 
-    area.removeFromRight(gap/4);
-    area.removeFromBottom(gap/4);
+    juce::FlexBox fileButtons = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
+    juce::FlexBox transport   = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
+    juce::FlexBox position    = createFlexBox(juce::FlexBox::JustifyContent::center);
+    juce::FlexBox timelineSet = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
+    juce::FlexBox settings    = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
+    juce::FlexBox container   = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
 
-    auto displayWidth = 300;
-    auto displayRect = juce::Rectangle<int> ((area.getX ()
-                                              + (area.getWidth ()/2)
-                                              - (displayWidth/2))
-                                             , area.getY ()
-                                             , displayWidth
-                                             , area.getHeight ());
+    area.removeFromBottom(gap);
+    area.reduce(gap, 0);
+    auto buttonSize = area.getHeight();
 
-    m_settingsButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
-    area.removeFromRight(gap/4);
-    m_pluginsButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
+    addButtonsToFlexBox(fileButtons
+                        , {&m_newButton, &m_loadButton, &m_saveButton}
+                        , buttonSize, buttonSize, gap);
+    addButtonsToFlexBox(transport
+                        , {&m_playButton, &m_stopButton, &m_recordButton}
+                        , buttonSize, buttonSize, gap);
+    addButtonsToFlexBox(position, {&m_display}
+                        , area.getWidth()/5 - gap * 4
+                        , buttonSize
+                        , gap);
+    addButtonsToFlexBox(timelineSet
+                        , {&m_clickButton, &m_loopButton, &m_followPlayheadButton}
+                        , buttonSize, buttonSize, gap);
+    addButtonsToFlexBox(settings
+                        , {&m_pluginsButton, &m_settingsButton}
+                        , buttonSize, buttonSize, gap);
+    addFlexBoxToFlexBox( container
+                        , {&fileButtons, &transport, &position, &timelineSet, &settings}
+                        , area.getWidth()/5, buttonSize);
 
-    area.removeFromLeft(gap/4);
-    m_newButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
-    area.removeFromLeft(gap/4);
-    m_loadButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
-    area.removeFromLeft(gap/4);
-    m_saveButton.setBounds(area.removeFromLeft(area.getHeight() + gap/2));
-    area.removeFromLeft(gap/4);
+    container.performLayout(area);
+}
 
-
-    area = juce::Rectangle<int>(getLocalBounds ().getX ()
-                                , getLocalBounds ().getY ()
-                                , (getLocalBounds ().getWidth ()/2)
-                                    - (displayWidth/2)
-                                , getLocalBounds ().getHeight ());
-    area.removeFromBottom(gap/4);
-    area.removeFromRight(gap);
-    auto loopButtonRect = juce::Rectangle<int> (displayRect.getTopRight ().x + gap
-                           , 0
-                           , area.getHeight ()
-                           , area.getHeight ()
-                          );
-    auto clickButtonRect = juce::Rectangle<int> (loopButtonRect.getTopRight ().x + gap/4
-                                                 , 0
-                                                 , area.getHeight ()
-                                                 , area.getHeight ());
-    m_loopButton.setBounds (loopButtonRect);
-
-    m_recordButton.setBounds(area.removeFromRight(area.getHeight()+gap/2));
-    area.removeFromRight(gap/4);
-    m_stopButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
-    area.removeFromRight(gap/4);
-    m_playButton.setBounds(area.removeFromRight(area.getHeight() + gap/2));
-    m_clickButton.setBounds (clickButtonRect);
-    m_followPlayheadButton.setBounds (
-        clickButtonRect.getRight () + gap/4
-      , clickButtonRect.getY()
-      , clickButtonRect.getWidth ()
-      , clickButtonRect.getHeight ());
-    m_display.setBounds (displayRect);
+juce::FlexBox HeaderComponent::createFlexBox(juce::FlexBox::JustifyContent justify) const
+{
+    juce::FlexBox box;
+    box.justifyContent = justify;
+    box.alignContent = juce::FlexBox::AlignContent::center;
+    box.flexDirection = juce::FlexBox::Direction::row;
+    box.flexWrap = juce::FlexBox::Wrap::noWrap;
+    return box;
 }
 
 void HeaderComponent::buttonClicked(juce::Button* button)
@@ -509,4 +490,24 @@ void HeaderComponent::timerCallback()
 juce::File HeaderComponent::loadingFile() const
 {
     return m_loadingFile;
+}
+
+void HeaderComponent::addButtonsToFlexBox(juce::FlexBox& box,
+                                          const juce::Array<juce::Component*>& buttons,
+                                          int w, int h, int margin)
+{
+    for (auto b : buttons)
+    {
+        box.items.add(juce::FlexItem(w,h,*b).withMargin(margin));
+    }
+}
+
+void HeaderComponent::addFlexBoxToFlexBox(juce::FlexBox& target
+                                          , const juce::Array<juce::FlexBox*>& items
+                                          , int w, int h)
+{
+    for (auto b : items)
+    {
+        target.items.add(juce::FlexItem(w,h,*b));
+    }
 }
