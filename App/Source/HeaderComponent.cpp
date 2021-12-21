@@ -247,7 +247,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
 {
     Helpers::addAndMakeVisible(*this,
                                 { &m_newButton, &m_loadButton, &m_saveButton, &m_stopButton
-                                , &m_recordButton, &m_display, &m_clickButton, &m_loopButton
+                                , &m_playButton, &m_recordButton, &m_display, &m_clickButton, &m_loopButton
                                 , &m_followPlayheadButton, &m_pluginsButton, &m_settingsButton });
 
 
