@@ -22,9 +22,6 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     return {};
 }
 
-
-
-
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area

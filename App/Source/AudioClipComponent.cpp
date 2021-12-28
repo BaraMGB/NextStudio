@@ -11,7 +11,7 @@ AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
 
 int AudioClipComponent::getViewportOffset()
 {
-    return invert(m_editViewState.timeToX(0
+    return Helpers::invert(m_editViewState.timeToX(0
                                         , getParentComponent()->getWidth()
                                         , m_editViewState.m_viewX1
                                         , m_editViewState.m_viewX2));
@@ -27,7 +27,7 @@ int AudioClipComponent::getViewportEnd()
 int AudioClipComponent::getDrawingStartX()
 {
     auto left = ((getX() < 0
-                         ? invert (getX())
+                         ? Helpers::invert (getX())
                          : 0) - getViewportOffset ());
 
     return left;
@@ -42,11 +42,6 @@ int AudioClipComponent::getDrawingEndX()
     auto right = getWidth () - cutAtViewportEnd - getViewportOffset ();
 
     return right;
-}
-
-int AudioClipComponent::invert(int value)
-{
-    return value * (-1);
 }
 
 juce::Range<int> AudioClipComponent::getDrawingRange()

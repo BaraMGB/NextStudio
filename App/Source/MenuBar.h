@@ -18,7 +18,7 @@ class MenuBar    : public juce::Component
 {
 public:
     MenuBar();
-    ~MenuBar();
+    ~MenuBar() override;
 
     void paint (juce::Graphics&) override;
     void resized() override;

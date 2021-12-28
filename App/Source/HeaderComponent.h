@@ -21,7 +21,7 @@ namespace te = tracktion_engine;
 class PositionDisplayComponent  : public juce::Component
 {
 public:
-    PositionDisplayComponent(te::Edit &edit);
+    explicit PositionDisplayComponent(te::Edit &edit);
 
     void paint(juce::Graphics &) override;
     void resized() override;
@@ -31,11 +31,11 @@ public:
 
     void update();
 
-    double draggedNewTime(int draggedDistance
+    [[nodiscard]] double draggedNewTime(int draggedDistance
                           , double timeAtMouseDown
                           , double unitfactor
                           , bool inBeat
-                          , int dragfactor=10);
+                          , int dragfactor=10) const;
 private:
     te::Edit& m_edit;
     juce::Rectangle<int> m_bmpRect
@@ -51,19 +51,15 @@ private:
                        , m_loopInLabel
                        , m_loopOutLabel;
 
-    juce::Point<int>     m_mousedownPosition
-                       , m_MouseDownScreenPos;
+    juce::Point<int>     m_mousedownPosition;
 
-    double               m_mousedownBPM
-                       , m_mousedownBarsBeats
-                       , m_ppqTimeAtMd
-                       , m_mousedownTime
-                       , m_mousedownLoopIn
-                       , m_mousedownLoopOut
-                       , m_newTempo;
+    double               m_mousedownBPM{}
+                       , m_mousedownBarsBeats{}, m_mousedownTime{}
+                       , m_mousedownLoopIn{}
+                       , m_mousedownLoopOut{};
 
-    int                  m_mousedownNumerator
-                       , m_mousedownDenominator;
+    int                  m_mousedownNumerator{}
+                       , m_mousedownDenominator{};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PositionDisplayComponent)
 };
 
@@ -76,20 +72,20 @@ class HeaderComponent    : public juce::Component
 {
 public:
     HeaderComponent(EditViewState &, ApplicationViewState & applicationState);
-    ~HeaderComponent();
+    ~HeaderComponent() override;
 
     void resized() override;
     void buttonClicked(juce::Button* button) override;
     void timerCallback() override;
 
-    juce::File loadingFile() const;
+    [[nodiscard]] juce::File loadingFile() const;
 
 private:
 
     EditViewState& m_editViewState;
-    juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify) const;
-    void addButtonsToFlexBox(juce::FlexBox& box,const juce::Array<juce::Component*>& buttons, int w, int h, int margin);
-    void addFlexBoxToFlexBox(juce::FlexBox& target, const juce::Array<juce::FlexBox*>& items, int w, int h);
+    [[nodiscard]] static juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify) ;
+    static void addButtonsToFlexBox(juce::FlexBox& box,const juce::Array<juce::Component*>& buttons, int w, int h, int margin);
+    static void addFlexBoxToFlexBox(juce::FlexBox& target, const juce::Array<juce::FlexBox*>& items, int w, int h);
     juce::DrawableButton m_newButton
                        , m_loadButton
                        , m_saveButton
@@ -104,7 +100,6 @@ private:
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
     juce::String m_btn_col { "#dbdbdb" };
-    juce::Colour m_mainColour{ juce::Colour(0xff57cdff) };
     PositionDisplayComponent m_display;
 
     juce::File m_loadingFile {};

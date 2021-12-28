@@ -26,7 +26,15 @@ namespace Helpers
             , const juce::String& stringToReturnIfEmpty);
 
     juce::File findRecentEdit (const juce::File& dir);
+
+    template<typename T>
+    static T invert(T value)
+    {
+        return value * (-1);
+    }
 }
+
+
 
 namespace GUIHelpers
 {

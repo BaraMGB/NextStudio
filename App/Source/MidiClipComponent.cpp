@@ -1,9 +1,10 @@
 #include "MidiClipComponent.h"
 
+#include <utility>
+
 MidiClipComponent::MidiClipComponent (EditViewState& evs, te::Clip::Ptr c)
-    : ClipComponent (evs, c)
+    : ClipComponent (evs, std::move(c))
 {
-    //setBufferedToImage(true);
     setPaintingIsUnclipped(true);
 
 }
@@ -22,7 +23,7 @@ void MidiClipComponent::paint (juce::Graphics& g)
     if (!(endX < 0 || startX > getParentComponent()->getWidth()))
     {
         ClipComponent::paint(g);
-        auto clipHeader = m_editViewState.m_trackHeightMinimized/2;
+        auto clipHeader = (float) m_editViewState.m_trackHeightMinimized/2;
         if (auto mc = getMidiClip())
         {
             auto& seq = mc->getSequence();
@@ -32,17 +33,19 @@ void MidiClipComponent::paint (juce::Graphics& g)
                 double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
                 if (auto p = getParentComponent())
                 {
-                    int y = (int) (((1.0 - double(n->getNoteNumber()) / 127.0)
-                                * (getHeight() - clipHeader)
-                                + clipHeader));
-
-                    int x1 = m_editViewState.beatsToX(
+                    auto y =  (1.f - (float)(n->getNoteNumber()) / 127.f)
+                                * ((float)getHeight() - clipHeader)
+                                + clipHeader;
+                    auto x1 = (float) m_editViewState.beatsToX(
                                 sBeat + m_editViewState.m_viewX1, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-                    int x2 = m_editViewState.beatsToX(
+                    auto x2 = (float) m_editViewState.beatsToX(
                                 eBeat + m_editViewState.m_viewX1, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-                    x1 = juce::jmin(juce::jmax(2, x1), getWidth () - 2);
-                    x2 = juce::jmin(juce::jmax(2, x2), getWidth () - 2);
+
+                    x1 = juce::jmin(juce::jmax(2.f, x1), (float) getWidth () - 2.f);
+                    x2 = juce::jmin(juce::jmax(2.f, x2), (float) getWidth () - 2.f);
+
                     g.setColour(juce::Colours::white);
+
                     g.drawLine(x1, y, x2, y);
                 }
             }
@@ -98,7 +101,7 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
             : m_editViewState.getSnapedTime (
                   m_editViewState.beatToTime(
                       distanceBeats  - m_editViewState.m_viewX1), snapType);
-    //adjust start
+    //mouse hovers left edge of clip
     if ((m_mouseDownX < 10) && (m_clipWidthMouseDown > 30))
     {
         auto distTimeDelta = distanceTime - m_oldDistTime;
@@ -142,20 +145,17 @@ void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
         m_oldDistTime = distanceTime;
         m_updateRegion = true;
     }
-    //adjust end
+    //mouse hovers right edge of clip
     else if (m_mouseDownX > m_clipWidthMouseDown - 10
              && m_clipWidthMouseDown > 30)
     {
-        auto snapType = m_editViewState.getBestSnapType (
-                    m_editViewState.m_viewX1
-                  , m_editViewState.m_viewX2
-                  , getParentWidth ());
         auto snapedTime = m_editViewState.getSnapedTime (
                     m_posAtMouseDown.getEnd ()
                   , snapType);
         m_clip->setEnd(snapedTime + distanceTime, true);
         m_updateRegion = true;
     }
+    //mouse hovers middle of clip
     else
     {
         ClipComponent::mouseDrag(e);

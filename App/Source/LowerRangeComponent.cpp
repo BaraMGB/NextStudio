@@ -6,29 +6,26 @@ SplitterComponent::SplitterComponent(EditViewState &evs) : m_editViewState(evs)
 
 }
 
-void SplitterComponent::mouseMove(const juce::MouseEvent &event)
+void SplitterComponent::mouseMove(const juce::MouseEvent &)
 {
     setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
     m_isHovering = true;
     repaint ();
 }
 
-void SplitterComponent::mouseEnter(const juce::MouseEvent &event)
+void SplitterComponent::mouseEnter(const juce::MouseEvent &)
 {
-
 }
 
-void SplitterComponent::mouseExit(const juce::MouseEvent &event)
+void SplitterComponent::mouseExit(const juce::MouseEvent &)
 {
     setMouseCursor(juce::MouseCursor::NormalCursor);
     m_isHovering = false;
     repaint ();
 }
 
-void SplitterComponent::mouseDown(const juce::MouseEvent &event)
+void SplitterComponent::mouseDown(const juce::MouseEvent &)
 {
-
-    m_mousedownPosYatMousdown = event.mouseDownPosition.y;
     m_pianorollHeightAtMousedown = m_editViewState.m_pianorollHeight;
     m_cachedPianoNoteNum = (double) m_editViewState.m_pianoY1;
 }
@@ -51,7 +48,7 @@ void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
     }
 }
 
-void SplitterComponent::mouseUp(const juce::MouseEvent &event)
+void SplitterComponent::mouseUp(const juce::MouseEvent &)
 {
 }
 
@@ -106,13 +103,13 @@ void LowerRangeComponent::paint(juce::Graphics &g)
 {
     auto rect = getLocalBounds();
     g.setColour(juce::Colour(0xff181818));
-    g.fillRect(rect.removeFromBottom(getHeight() - m_splitterHeight).toFloat());
+    g.fillRect(rect.removeFromBottom(getHeight() - (int) m_splitterHeight).toFloat());
 }
 
 void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
 {
-    auto size = 20;
-    auto area = getLocalBounds ();
+    float size = 20;
+    auto area = getLocalBounds ().toFloat();
     g.setColour(juce::Colour(0xff555555));
     juce::Path topLeft;
 
@@ -159,7 +156,7 @@ void LowerRangeComponent::resized()
 {
         auto area = getLocalBounds();
 
-        m_splitter.setBounds (area.removeFromTop (m_splitterHeight));
+        m_splitter.setBounds (area.removeFromTop ((int) m_splitterHeight));
 
         for (auto& pluginRackComp : m_pluginRackComps)
         {
@@ -175,7 +172,7 @@ void LowerRangeComponent::resized()
 
         }
 }
-void LowerRangeComponent::removePluginRackwithTrack(te::Track::Ptr track)
+void LowerRangeComponent::removePluginRackwithTrack(const te::Track::Ptr& track)
 {
     for (auto &prc : m_pluginRackComps)
     {
@@ -190,7 +187,7 @@ void LowerRangeComponent::removePluginRackwithTrack(te::Track::Ptr track)
         }
     }
 }
-void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
+void LowerRangeComponent::showPluginRack(const te::Track::Ptr& track)
 {
     m_pianoRollEditor.setVisible (false);
     m_pianoRollEditor.clearPianoRollClip ();
@@ -206,7 +203,7 @@ void LowerRangeComponent::showPluginRack(te::Track::Ptr track)
     }
 }
 
-void LowerRangeComponent::showPianoRoll(tracktion_engine::Track::Ptr track)
+void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr& track)
 {
     if (track->state.getProperty (IDs::isMidiTrack))
     {
@@ -225,18 +222,6 @@ void LowerRangeComponent::showPianoRoll(tracktion_engine::Track::Ptr track)
         resized ();
     }
 }
-
-void LowerRangeComponent::hideAll()
-{
-    m_pianoRollEditor.setVisible (false);
-    m_pianoRollEditor.clearPianoRollClip ();
-
-    for (auto &pluginrack : m_pluginRackComps)
-    {
-        pluginrack->setVisible (false);
-    }
-}
-
 
 void LowerRangeComponent::addPluginRackComp(PluginRackComponent *pluginrack)
 {

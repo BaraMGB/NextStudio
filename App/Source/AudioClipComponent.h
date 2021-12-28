@@ -54,7 +54,7 @@ private:
     void setNewTimeAndOffset(double newTime, double newOffset);
 
     //helper
-    static int invert(int value);
+
     int m_mouseDownX {0};
     int m_cachedClipWidth{};
     double m_oldDistanceTime{0.0};

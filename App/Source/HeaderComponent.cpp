@@ -1,4 +1,5 @@
 #include "HeaderComponent.h"
+#include "Utilities.h"
 
 PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit)
     : m_edit(edit)
@@ -48,13 +49,12 @@ void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)
     m_mousedownDenominator = m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator;
     m_mousedownLoopIn = m_edit.getTransport ().getLoopRange ().getStart ();
     m_mousedownLoopOut = m_edit.getTransport ().getLoopRange ().getEnd ();
-    m_newTempo = m_mousedownBPM;
 }
 
 void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
 {
     event.source.enableUnboundedMouseMovement (true);
-    auto divisor = 1.0;
+
     auto draggedDist = event.getDistanceFromDragStartY ();
     if (m_bmpRect.contains (m_mousedownPosition))
     {
@@ -93,7 +93,7 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         auto leftRect   = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
 
-        divisor = leftRect.contains (m_mousedownPosition)
+        auto divisor = leftRect.contains (m_mousedownPosition)
                 ? 0.25
                 : centerRect.contains (m_mousedownPosition)
                     ? 1.0
@@ -110,7 +110,7 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         auto r = m_timeRect;
         auto leftRect   = r.removeFromLeft (m_timeRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_timeRect.getWidth ()/3);
-        divisor = leftRect.contains (m_mousedownPosition)
+        auto divisor = leftRect.contains (m_mousedownPosition)
                 ? 1/60.0
                 : centerRect.contains (m_mousedownPosition)
                     ? 1.0
@@ -128,7 +128,7 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         auto leftRect   = r.removeFromLeft (m_loopInrect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_loopInrect.getWidth ()/3);
 
-        divisor = leftRect.contains (m_mousedownPosition)
+        auto divisor = leftRect.contains (m_mousedownPosition)
                 ? 0.25
                 : centerRect.contains (m_mousedownPosition)
                     ? 1.0
@@ -146,7 +146,7 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         auto leftRect   = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
 
-        divisor = leftRect.contains (m_mousedownPosition)
+        auto divisor = leftRect.contains (m_mousedownPosition)
                 ? 0.25
                 : centerRect.contains (m_mousedownPosition)
                     ? 1.0
@@ -206,19 +206,19 @@ double PositionDisplayComponent::draggedNewTime(
         , double timeAtMouseDown
         , double unitfactor
         , bool inBeat
-        , int dragfactor)
+        , int dragfactor) const
 {
     te::TempoSequencePosition pos(m_edit.tempoSequence);
     pos.setTime (timeAtMouseDown);
     if (inBeat)
     {
-        pos.addBeats ((-draggedDistance / dragfactor)
-                      / unitfactor );
+        pos.addBeats (((double) Helpers::invert(draggedDistance) / dragfactor)
+                      / unitfactor);
     }
     else
     {
         pos.setTime (timeAtMouseDown +
-                (- draggedDistance / dragfactor)
+                ((double) Helpers::invert(draggedDistance) / dragfactor)
                      / unitfactor);
     }
     return pos.getTime ();
@@ -306,8 +306,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
 }
 
 HeaderComponent::~HeaderComponent()
-{
-}
+= default;
 
 void HeaderComponent::resized()
 {
@@ -348,7 +347,7 @@ void HeaderComponent::resized()
     container.performLayout(area);
 }
 
-juce::FlexBox HeaderComponent::createFlexBox(juce::FlexBox::JustifyContent justify) const
+juce::FlexBox HeaderComponent::createFlexBox(juce::FlexBox::JustifyContent justify)
 {
     juce::FlexBox box;
     box.justifyContent = justify;
@@ -498,7 +497,7 @@ void HeaderComponent::addButtonsToFlexBox(juce::FlexBox& box,
 {
     for (auto b : buttons)
     {
-        box.items.add(juce::FlexItem(w,h,*b).withMargin(margin));
+        box.items.add(juce::FlexItem((float) w,(float) h,*b).withMargin((float) margin));
     }
 }
 
@@ -508,6 +507,6 @@ void HeaderComponent::addFlexBoxToFlexBox(juce::FlexBox& target
 {
     for (auto b : items)
     {
-        target.items.add(juce::FlexItem(w,h,*b));
+        target.items.add(juce::FlexItem((float) w,(float) h,*b));
     }
 }

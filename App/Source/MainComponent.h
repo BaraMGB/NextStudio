@@ -28,30 +28,25 @@ class MainComponent   : public juce::Component
                       , public te::ValueTreeAllEventListener
 {
 public:
-    MainComponent(ApplicationViewState& state);
-    ~MainComponent();
+    explicit MainComponent(ApplicationViewState& state);
+    ~MainComponent() override;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
     bool keyPressed(const juce::KeyPress &key) override;
 
-    void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property);
-    void valueTreeChanged(){}
+    void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
+    void valueTreeChanged() override {}
 
-    bool handleUnsavedEdit();
     void setupEdit (juce::File = {});
-    void saveSettings();
-
-
-
+    bool handleUnsavedEdit();
 
 private:
-    void changeListenerCallback(juce::ChangeBroadcaster* source);
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+    void saveSettings();
     void createTracksAndAssignInputs();
     void openValidStartEdit();
     void setupSideBrowser();
-
-
 
     MenuBar                     m_menuBar;
 
@@ -71,10 +66,9 @@ private:
     juce::StretchableLayoutManager m_stretchableManager;
     juce::StretchableLayoutResizerBar m_resizerBar
                                             {&m_stretchableManager, 1, true};
-    bool m_settingsLoaded {false};
+    [[maybe_unused]] bool m_settingsLoaded {false};
 
 // todo : into settings
     const int c_headerHeight = 100;
-    const int c_footerHeight = 50;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

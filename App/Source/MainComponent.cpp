@@ -42,7 +42,7 @@ void MainComponent::paint (juce::Graphics& g)
     g.fillRect (getLocalBounds ());
     auto area = getLocalBounds();
     area.reduce(10, 10);
-    auto header = area.removeFromTop(c_headerHeight);
+    auto header = area.removeFromTop(c_headerHeight).toFloat();
     g.setColour(juce::Colour(0xff242424));
     g.fillRoundedRectangle (
                 header.getX ()
@@ -64,7 +64,7 @@ void MainComponent::resized()
     m_menuBar.setBounds(menu);
     m_editNameLabel.setBounds(menu);
 
-    m_header.get()->setBounds(header);
+    m_header->setBounds(header);
     area.removeFromTop(10);
     auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
                        ? m_editComponent->getEditViewState().m_pianorollHeight
@@ -329,13 +329,11 @@ bool MainComponent::handleUnsavedEdit()
         switch (result) {
         case 1 :
             GUIHelpers::saveEdit (m_editComponent->getEditViewState ()
-                                  , juce::File().createFileWithoutCheckingPath (
+                                  , juce::File::createFileWithoutCheckingPath (
                                       m_applicationState.m_workDir));
             return true;
-            break;
         case 2 :
             return true;
-            break;
         case 3 :
             //cancel
         default:

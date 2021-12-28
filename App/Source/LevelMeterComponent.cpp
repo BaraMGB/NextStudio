@@ -32,7 +32,7 @@ void LevelMeterComponent::paint(juce::Graphics &g)
             = ((m_currentLeveldBRight + offSet) * scaleFactor);
 
     if (float(meterHeight - displayBarHeightLeft) <= lineAtNullDb
-            || float(meterHeight - displayBarHeightRight <= lineAtNullDb) )
+            || float(meterHeight - displayBarHeightRight) <= lineAtNullDb)
     {
         g.setColour (juce::Colours::red);
     }

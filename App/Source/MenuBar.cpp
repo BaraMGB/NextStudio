@@ -13,12 +13,10 @@
 
 //==============================================================================
 MenuBar::MenuBar()
-{
-}
+= default;
 
 MenuBar::~MenuBar()
-{
-}
+= default;
 
 void MenuBar::paint (juce::Graphics& g)
 {

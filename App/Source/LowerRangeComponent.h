@@ -19,19 +19,18 @@ namespace te = tracktion_engine;
 class SplitterComponent : public juce::Component
 {
 public:
-    SplitterComponent(EditViewState&);
+    explicit SplitterComponent(EditViewState&);
     void mouseMove(const juce::MouseEvent &event) override;
-    void mouseEnter(const juce::MouseEvent &event)override;
-    void mouseExit(const juce::MouseEvent &event)override;
-    void mouseDown(const juce::MouseEvent &event)override;
-    void mouseDrag(const juce::MouseEvent &event)override;
-    void mouseUp(const juce::MouseEvent &event)override;
-    void  paint(juce::Graphics& g);
+    void mouseEnter(const juce::MouseEvent &event) override;
+    void mouseExit(const juce::MouseEvent &event) override;
+    void mouseDown(const juce::MouseEvent &event) override;
+    void mouseDrag(const juce::MouseEvent &event) override;
+    void mouseUp(const juce::MouseEvent &event) override;
+    void paint(juce::Graphics& g) override;
 private:
     EditViewState & m_editViewState;
-    int m_pianorollHeightAtMousedown;
-    int m_mousedownPosYatMousdown;
-    double m_cachedPianoNoteNum;
+    int m_pianorollHeightAtMousedown{};
+    double m_cachedPianoNoteNum{};
     bool m_isHovering{false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SplitterComponent)
 };
@@ -41,7 +40,7 @@ class LowerRangeComponent : public juce::Component
                           , public te::ValueTreeAllEventListener
 {
 public:
-    LowerRangeComponent (EditViewState& evs);
+    explicit LowerRangeComponent (EditViewState& evs);
      ~LowerRangeComponent() override;
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -50,11 +49,9 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
     void resized () override;
 
-    void removePluginRackwithTrack(te::Track::Ptr track);
-    void showPluginRack(tracktion_engine::Track::Ptr);
-    void showPianoRoll(te::Track::Ptr);
-    void hideAll();
-    void addPianoRollEditor(PianoRollComponent * pianoroll);
+    void removePluginRackwithTrack(const te::Track::Ptr& track);
+    void showPluginRack(const tracktion_engine::Track::Ptr&);
+    void showPianoRoll(const te::Track::Ptr&);
     void addPluginRackComp (PluginRackComponent * pluginrack);
 
     void clearPluginRacks()
@@ -73,12 +70,11 @@ private:
                                 , int) override;
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
 
-
     EditViewState& m_editViewState;
 
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
     PianoRollComponent m_pianoRollEditor;
     SplitterComponent m_splitter;
-    const int m_splitterHeight {10};
+    const float m_splitterHeight {10.f};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LowerRangeComponent)
 };

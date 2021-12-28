@@ -8,8 +8,8 @@ class LevelMeterComponent : public juce::Component
                           , public juce::Timer
 {
 public:
-        LevelMeterComponent(te::LevelMeasurer& lm);
-        ~LevelMeterComponent();
+        explicit LevelMeterComponent(te::LevelMeasurer& lm);
+        ~LevelMeterComponent() override;
 
         void paint(juce::Graphics& g) override;
 
