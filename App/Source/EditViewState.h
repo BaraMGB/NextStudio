@@ -106,7 +106,7 @@ public:
         m_pianorollNoteWidth.referTo(m_state, IDs::pianorollNoteWidth, um, 15.0);
         m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
         m_pianorollHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
-        m_lastNoteLenght.referTo (m_state, IDs::lastNoteLenght, um, 0);
+        m_lastNoteLength.referTo (m_state, IDs::lastNoteLenght, um, 0);
         m_snapType.referTo(m_state, IDs::snapType, um, 9);
         m_playHeadStartTime.referTo (m_state, IDs::playHeadStartTime, um, 0.0);
         m_followPlayhead.referTo (m_state, IDs::followsPlayhead, um, true);
@@ -114,42 +114,42 @@ public:
         m_editName.referTo(m_state, IDs::name, um, "unknown");
     }
 
-    int beatsToX (double beats, int width, double x1beats, double x2beats) const
+    [[nodiscard]] int beatsToX (double beats, int width, double x1beats, double x2beats) const
     {
         auto t = beatToTime (beats);
         return timeToX (t, width, x1beats, x2beats);
     }
 
-    double xToBeats (int x, int width, double x1beats, double x2beats) const
+    [[nodiscard]] double xToBeats (int x, int width, double x1beats, double x2beats) const
     {
         auto t = xToTime (x, width, x1beats, x2beats);
         return timeToBeat (t);
     }
 
-    int timeToX (double time, int width, double x1beats, double x2beats) const
+    [[nodiscard]] int timeToX (double time, int width, double x1beats, double x2beats) const
     {
         return juce::roundToIntAccurate (((time - beatToTime (x1beats)) * width)
                            / (beatToTime (x2beats) - beatToTime (x1beats)));
     }
 
-    double xToTime(int x, int width, double x1beats, double x2beats) const
+    [[nodiscard]] double xToTime(int x, int width, double x1beats, double x2beats) const
     {
         return (double (x) / width)
                 * (beatToTime (x2beats) - beatToTime(x1beats)) + beatToTime (x1beats);
     }
 
-    double beatToTime (double b) const
+    [[nodiscard]] double beatToTime (double b) const
     {
         auto& ts = m_edit.tempoSequence;
         return ts.beatsToTime (b);
     }
 
-    double timeToBeat (double t) const
+    [[nodiscard]] double timeToBeat (double t) const
     {
         return m_edit.tempoSequence.timeToBeats (t);
     }
 
-    double getSnapedTime (
+    [[nodiscard]] double getSnapedTime (
             double t
           , te::TimecodeSnapType snapType
           , bool downwards = false) const
@@ -164,19 +164,19 @@ public:
                   .roundTimeNearest (t, temposequ);
     }
 
-    double getSnapedBeat (double beat, te::TimecodeSnapType snapType, bool downwards = false) const
+    [[nodiscard]] double getSnapedBeat (double beat, te::TimecodeSnapType snapType, bool downwards = false) const
     {
         return timeToBeat (getSnapedTime (beatToTime (beat), snapType, downwards));
     }
 
-    int snapedX (int x, int width, te::TimecodeSnapType snapType, double x1beats, double x2beats)
+    [[nodiscard]] int snapedX (int x, int width, te::TimecodeSnapType snapType, double x1beats, double x2beats) const
     {
         auto insertTime = xToTime (x, width, x1beats, x2beats);
         auto snapedTime = getSnapedTime (insertTime, snapType);
         return timeToX (snapedTime, width, x1beats, x2beats);
     }
 
-    te::TimecodeSnapType getBestSnapType(double beat1, double beat2, int width)
+    [[nodiscard]] te::TimecodeSnapType getBestSnapType(double beat1, double beat2, int width) const
     {
         double x1time = beatToTime (beat1);
         double x2time = beatToTime (beat2);
@@ -190,14 +190,14 @@ public:
         return snaptype;
     }
 
-    juce::String getSnapTypeDescription(int idx)
+    [[nodiscard]] juce::String getSnapTypeDescription(int idx) const
     {
         tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (
                     m_edit.getTransport ().getCurrentPosition ());
         return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo, false);
     }
 
-    double getEndScrollBeat()
+    [[nodiscard]] double getEndScrollBeat() const
     {
         return timeToBeat (m_edit.getLength ()) + (480);
     }
@@ -206,7 +206,7 @@ public:
     {
         m_followPlayhead = !m_followPlayhead;
     }
-    bool viewFollowsPos() {return m_followPlayhead;}
+    [[nodiscard]] bool viewFollowsPos() const {return m_followPlayhead;}
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 
@@ -231,7 +231,7 @@ public:
                             , m_pianoX1
                             , m_pianoX2
                             , m_pianorollNoteWidth
-                            , m_lastNoteLenght
+                            , m_lastNoteLength
                             , m_playHeadStartTime;
     juce::CachedValue<int> m_pianorollHeight;
     juce::CachedValue<int> m_snapType;

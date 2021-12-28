@@ -1,4 +1,6 @@
 #include "EditComponent.h"
+
+#include <utility>
 #include "NextLookAndFeel.h"
 
 
@@ -17,7 +19,6 @@ void LassoSelectionComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     m_cachedY = m_editViewState.m_viewY;
-    m_cachedX = m_editViewState.m_viewX1;
 }
 
 void LassoSelectionComponent::mouseDrag(const juce::MouseEvent &e)
@@ -44,7 +45,7 @@ void LassoSelectionComponent::mouseDrag(const juce::MouseEvent &e)
     repaint ();
 }
 
-void LassoSelectionComponent::mouseUp(const juce::MouseEvent &e)
+void LassoSelectionComponent::mouseUp(const juce::MouseEvent &)
 {
     m_isLassoSelecting = false;
     repaint();
@@ -64,12 +65,13 @@ void LassoSelectionComponent::updateSelection(bool add)
                     (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
                   , (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
                         + (double) t->getHeight () };
-                if (trackVerticalRange.intersects (m_lassoRect.verticalRange))
+                if (trackVerticalRange.intersects (m_lassoRect.m_verticalRange))
                 {
                     for (auto c : t->getClipComponents ())
                     {
-                        if (m_lassoRect.startTime < c->getClip ()->getPosition ().getEnd ()
-                                && m_lassoRect.endTime > c->getClip ()->getPosition ().getStart ())
+                        if (m_lassoRect.m_startTime
+                                < c->getClip ()->getPosition ().getEnd ()
+                                && m_lassoRect.m_endTime > c->getClip ()->getPosition ().getStart ())
                         {
                             m_editViewState.m_selectionManager.addToSelection (c->getClip ());
                         }
@@ -93,7 +95,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm, juce::Array
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
   , m_lassoComponent (m_editViewState)
-  , m_trackColours(tc)
+  , m_trackColours(std::move(tc))
 {
     m_edit.state.addListener (this);
 
@@ -138,10 +140,8 @@ void EditComponent::paint (juce::Graphics &g)
     g.drawRect(m_editViewState.m_trackHeaderWidth - 1
              , 0
              , 1
-             , (int) (m_songeditorRect.getHeight ()
-                      + m_editViewState.m_timeLineHeight)
-               );
-
+             , (int) (m_songeditorRect.getHeight ())
+                   + (int) m_editViewState.m_timeLineHeight);
 }
 
 void EditComponent::paintOverChildren(juce::Graphics &g)
@@ -201,7 +201,7 @@ void EditComponent::resized()
         auto trackHeaderHeight = trackHeight;
         if (!isMinimized)
         {
-            for (auto apEditItems : track.get()->getAllAutomatableEditItems())
+            for (auto apEditItems : track->getAllAutomatableEditItems())
             {
                 for (auto ap : apEditItems->getAutomatableParameters())
                 {
@@ -249,7 +249,7 @@ void EditComponent::resized()
                            , timelineHeight
                            , 20
                            , songeditorHeight);
-    m_scrollbar_v.setRangeLimits (0, allTracksHeight + (songeditorHeight/2));
+    m_scrollbar_v.setRangeLimits (0, allTracksHeight + ((double)songeditorHeight/2));
     m_scrollbar_v.setCurrentRange (-m_editViewState.m_viewY, songeditorHeight);
 
     m_scrollbar_h.setBounds (trackHeaderWidth
@@ -564,18 +564,15 @@ void EditComponent::valueTreePropertyChanged (
         if (i == IDs::viewX1
             || i == IDs::viewX2
             || i == IDs::isPianoRollVisible
-            || i == IDs::pianorollHeight)
+            || i == IDs::pianorollHeight
+            || i == IDs::showHeaders
+            || i == IDs::showFooters)
         {
             markAndUpdate (m_updateZoom);
         }
         else if (i == IDs::viewY)
         {
             resized ();
-        }
-        else if (i == IDs::showHeaders
-                 || i == IDs::showFooters)
-        {
-            markAndUpdate (m_updateZoom);
         }
         else if (i == IDs::drawWaveforms)
         {
@@ -584,7 +581,7 @@ void EditComponent::valueTreePropertyChanged (
     }
 }
 
-void EditComponent::valueTreeChildAdded (juce::ValueTree&v, juce::ValueTree& c)
+void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 {
     if (te::MidiClip::isClipState (c))
     {
@@ -622,9 +619,8 @@ void EditComponent::valueTreeChildRemoved (
 void EditComponent::valueTreeChildOrderChanged (
         juce::ValueTree& v, int a, int b)
 {
-    if (te::TrackList::isTrack (v.getChild (a)))
-        markAndUpdate (m_updateTracks);
-    else if (te::TrackList::isTrack (v.getChild (b)))
+    if (te::TrackList::isTrack (v.getChild (a))
+        || te::TrackList::isTrack (v.getChild (b)))
         markAndUpdate (m_updateTracks);
 }
 
@@ -681,50 +677,50 @@ void EditComponent::buildTracks()
 
     for (auto t : getAllTracks (m_edit))
     {
-        TrackComponent* trackcomp = nullptr;
+        TrackComponent* tc = nullptr;
 
         if (t->isTempoTrack())
         {
             if (m_editViewState.m_showGlobalTrack)
-                trackcomp = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState, t);
         }
         else if (t->isMarkerTrack())
         {
             if (m_editViewState.m_showMarkerTrack)
-                trackcomp = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState, t);
         }
         else if (t->isChordTrack())
         {
             if (m_editViewState.m_showChordTrack)
-                trackcomp = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState, t);
         }
         else if (t->isArrangerTrack())
         {
             if (m_editViewState.m_showArrangerTrack)
-                trackcomp = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState, t);
         }
         else if (t->isMasterTrack())
         {
             if (m_editViewState.m_showMasterTrack)
-                trackcomp = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState, t);
         }
         else
         {
-            trackcomp = new TrackComponent (m_editViewState, t);
+            tc = new TrackComponent (m_editViewState, t);
         }
 
-        if (trackcomp != nullptr)
+        if (tc != nullptr)
         {
-            m_trackComps.add (trackcomp);
-            addAndMakeVisible (trackcomp);
+            m_trackComps.add (tc);
+            addAndMakeVisible (tc);
 
-            auto trackheader = new TrackHeaderComponent (m_editViewState, t);
-            m_headers.add (trackheader);
-            addAndMakeVisible (trackheader);
+            auto th = new TrackHeaderComponent (m_editViewState, t);
+            m_headers.add (th);
+            addAndMakeVisible (th);
 
-            auto pluginrack = new PluginRackComponent (m_editViewState, t);
-            m_lowerRange.addPluginRackComp(pluginrack);
-            trackheader->addChangeListener (&m_lowerRange);
+            auto pr = new PluginRackComponent (m_editViewState, t);
+            m_lowerRange.addPluginRackComp(pr);
+            th->addChangeListener (&m_lowerRange);
         }
     }
 
@@ -757,7 +753,7 @@ TrackComponent *EditComponent::getTrackComponent(int y)
     return nullptr;
 }
 
-TrackComponent *EditComponent::getTrackCompForTrack(tracktion_engine::Track::Ptr track)
+TrackComponent *EditComponent::getTrackCompForTrack(const tracktion_engine::Track::Ptr& track)
 {
     for (auto &tc : m_trackComps)
     {
@@ -769,7 +765,7 @@ TrackComponent *EditComponent::getTrackCompForTrack(tracktion_engine::Track::Ptr
     return nullptr;
 }
 
-ClipComponent *EditComponent::getClipComponentForClip(tracktion_engine::Clip::Ptr clip)
+ClipComponent *EditComponent::getClipComponentForClip(const tracktion_engine::Clip::Ptr& clip)
 {
     for (auto& track : m_trackComps)
     {
@@ -784,9 +780,18 @@ ClipComponent *EditComponent::getClipComponentForClip(tracktion_engine::Clip::Pt
     return nullptr;
 }
 
-
 LowerRangeComponent& EditComponent::lowerRange()
 {
     return m_lowerRange;
 }
 
+juce::Rectangle<int> LassoSelectionComponent::LassoRect::getRect(EditViewState& evs,
+                                                                 int width) const
+{
+    auto x = evs.timeToX (m_startTime, width, evs.m_viewX1, evs.m_viewX2);
+    auto y = (int) m_top;
+    auto w = evs.timeToX (m_endTime, width, evs.m_viewX1, evs.m_viewX2) - x;
+    auto h = (int) m_bottom - (int) m_top;
+
+    return  {x, y, w, h};
+}

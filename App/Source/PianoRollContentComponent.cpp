@@ -140,9 +140,8 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
         m_clickedNote = clickedClip->getSequence ().addNote
                 (getNoteNumber (e.position.y)
                  , beat
-                 , m_editViewState.m_lastNoteLenght == 0
-                    ? 0.25 : m_editViewState.m_lastNoteLenght
-                 , 127
+                 , m_editViewState.m_lastNoteLength == 0
+                    ? 0.25 : m_editViewState.m_lastNoteLength, 127
                  , 111
                  , &m_editViewState.m_edit.getUndoManager ());
         clickedClip->getAudioTrack ()->playGuideNote (
@@ -203,7 +202,7 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
                                                   ? newEnd
                                                   : snapedEnd
                                                   , um);
-                m_editViewState.m_lastNoteLenght = e.mods.isShiftDown ()
+                m_editViewState.m_lastNoteLength = e.mods.isShiftDown ()
                         ? newEnd
                         : snapedEnd;
             }

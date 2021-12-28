@@ -1,7 +1,9 @@
 #include "AudioClipComponent.h"
 
+#include <utility>
+
 AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
-    : ClipComponent (evs, c)
+    : ClipComponent (evs, std::move(c))
 {
     updateThumbnail ();
     setPaintingIsUnclipped(true);
@@ -52,7 +54,7 @@ juce::Range<int> AudioClipComponent::getDrawingRange()
     auto left = getDrawingStartX();
     auto right = juce::jmax(left, getDrawingEndX());
 
-    return juce::Range<int>(left, right);
+    return {left, right};
 }
 
 juce::Rectangle<int> AudioClipComponent::getDrawingRect()
@@ -96,22 +98,9 @@ void AudioClipComponent::mouseDown(const juce::MouseEvent &e)
     m_mouseDownX = e.getMouseDownX();
     m_clipPosCached =  m_clip->getPosition();
     m_cachedClipWidth = getWidth();
-    m_lastOffset = 0.0;
     m_oldDistanceTime = 0.0;
     ClipComponent::mouseDown(e);
 }
-
-
-
-double AudioClipComponent::getDistanceInBeats(const int distanceInPixel)
-{
-    return  m_editViewState.xToBeats(
-               distanceInPixel
-               , getParentWidth()
-               , m_editViewState.m_viewX1
-               , m_editViewState.m_viewX2) - m_editViewState.m_viewX1;
-}
-
 
 tracktion_engine::TimecodeSnapType AudioClipComponent::getCurrentSnapType()
 {
@@ -153,7 +142,6 @@ void AudioClipComponent::setNewTimeAndOffset(const double newTime, const double 
         m_clip->setStart(juce::jmax(0.0
                                     , m_clip->getPosition().getStart() - newOffset)
                          , false, false);
-        m_lastOffset = newOffset;
     }
     m_clip->setOffset(newOffset);
 }
@@ -182,7 +170,6 @@ void AudioClipComponent::mouseDrag(const juce::MouseEvent &e)
         else
         {
             m_clipPosCached = m_clip->getPosition();
-            m_lastOffset = 0.0;
         }
         m_oldDistanceTime = distTime;
         m_updateRegion = true;

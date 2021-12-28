@@ -17,13 +17,13 @@ if (APPLE)
 endif()
 
 # Compile with werror in release builds
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-    CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror")
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /WX")
-endif()
+#if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+#    CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+#    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror")
+#elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+#    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /WX")
+#endif()
 
 
 # Adds all the module sources so they appear correctly in the IDE

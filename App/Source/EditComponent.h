@@ -17,7 +17,7 @@ namespace te = tracktion_engine;
 class LassoSelectionComponent : public juce::Component
 {
 public:
-    LassoSelectionComponent(EditViewState& evs)
+    explicit LassoSelectionComponent(EditViewState& evs)
         : m_editViewState(evs) {}
     void paint(juce::Graphics &g) override;
     void mouseDown(const juce::MouseEvent&) override;
@@ -28,34 +28,27 @@ public:
 private:
     struct LassoRect
     {
-        LassoRect (){}
-        LassoRect (te::EditTimeRange timeRange, double top, double bottom)
-            : timeRange (timeRange)
-            , verticalRange (top, bottom)
-            , startTime (timeRange.getStart ())
-            , endTime (timeRange.getEnd ())
-            , top (top)
-            , bottom (bottom){}
-        juce::Rectangle<int> getRect (EditViewState& evs, int width)
-        {
-            int x = evs.timeToX (startTime, width, evs.m_viewX1, evs.m_viewX2);
-            int y = top;
-            int w = evs.timeToX (endTime, width, evs.m_viewX1, evs.m_viewX2) - x;
-            int h = bottom - top;
+        LassoRect ()= default;
+        [[maybe_unused]] LassoRect (te::EditTimeRange timeRange, double top, double bottom)
+            : m_timeRange(timeRange)
+            , m_verticalRange(top, bottom)
+            , m_startTime(timeRange.getStart ())
+            , m_endTime (timeRange.getEnd ())
+            , m_top (top)
+            , m_bottom (bottom){}
 
-            return  juce::Rectangle<int> (x, y, w, h);
-        }
-        te::EditTimeRange timeRange { 0,0 };
-        juce::Range<double> verticalRange { 0,0 };
-        double startTime { 0 };
-        double endTime { 0 };
-        double top { 0 };
-        double bottom { 0 };
+        juce::Rectangle<int> getRect (EditViewState& evs, int width) const;
+        te::EditTimeRange m_timeRange { 0,0 };
+        juce::Range<double> m_verticalRange { 0,0 };
+        double m_startTime { 0 };
+        double m_endTime { 0 };
+        double m_top { 0 };
+        double m_bottom { 0 };
     };
     bool                           m_isLassoSelecting = false;
     EditViewState&                 m_editViewState;
-    double                         m_clickedTime;
-    double                         m_cachedY, m_cachedX;
+    double                         m_clickedTime{};
+    double                         m_cachedY{};
     LassoRect                      m_lassoRect;
 
 
@@ -67,10 +60,8 @@ private:
 class FooterBarComponent : public juce::Component
 {
 public:
-    FooterBarComponent (EditViewState& evs)
-        :m_editViewState (evs)
-    {
-    }
+    explicit FooterBarComponent ()
+    = default;
     void paint (juce::Graphics &g) override
     {
         g.setColour (juce::Colour (0xff181818));
@@ -87,11 +78,9 @@ public:
                   , getHeight ()
                   , juce::Justification::centredRight);
         g.setColour (juce::Colour (0xff555555));
-        g.drawLine (0,0,getWidth (), 1);
+        g.drawLine (.0f, .0f, (float) getWidth (), 1.0f);
     }
     juce::String m_snapTypeDesc;
-private:
-    EditViewState& m_editViewState;
 };
 
 //------------------------------------------------------------------------------
@@ -106,10 +95,10 @@ public:
     EditComponent (te::Edit&
                  , te::SelectionManager&
                  , juce::Array<juce::Colour> tc);
-    ~EditComponent();
+    ~EditComponent() override;
 
     void paint (juce::Graphics &g) override;
-    void paintOverChildren (juce::Graphics &g);
+    void paintOverChildren (juce::Graphics &g) override;
     void resized () override;
     void mouseDown (const juce::MouseEvent &) override;
     void mouseDrag (const juce::MouseEvent &) override;
@@ -128,8 +117,8 @@ public:
     LowerRangeComponent& lowerRange ();
     juce::OwnedArray<TrackComponent>& getTrackComps ();
     TrackComponent * getTrackComponent (int y);
-    TrackComponent * getTrackCompForTrack (te::Track::Ptr track);
-    ClipComponent *getClipComponentForClip (te::Clip::Ptr clip);
+    TrackComponent * getTrackCompForTrack (const te::Track::Ptr& track);
+    ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
 
     te::AudioTrack::Ptr addAudioTrack (bool isMidi, juce::Colour);
 
@@ -155,7 +144,6 @@ private:
 
     juce::OwnedArray<TrackComponent>        m_trackComps;
     juce::OwnedArray<TrackHeaderComponent>  m_headers;
-    juce::OwnedArray<PluginRackComponent>   m_pluginRackComps;
 
     te::Edit&                               m_edit;
     EditViewState                           m_editViewState;
@@ -165,7 +153,7 @@ private:
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2
                                               };
-    FooterBarComponent                      m_footerbar { m_editViewState };
+    FooterBarComponent                      m_footerbar;
     juce::ScrollBar                         m_scrollbar_v
                                           , m_scrollbar_h;
     PlayheadComponent                       m_playhead {

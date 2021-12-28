@@ -73,7 +73,7 @@ public:
         auto isAutomationActive = false;
         if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
         {
-            volumeColour = automatableSlider->trackColour();
+            volumeColour = automatableSlider->getTrackColour();
             if (automatableSlider->getAutomatableParameter()->isAutomationActive())
             {
                 isAutomationActive = true;

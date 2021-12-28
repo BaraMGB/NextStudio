@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Utilities.h"
 
@@ -38,23 +40,22 @@ enum class PresetTag
     , Strings
     , Drone
     , Ambient
-
 };
 
 struct Favorite
 {
     Favorite(juce::Identifier tag, juce::ValueTree v)
-        : m_tag (tag)
-        , m_state(v)
+        : m_tag (std::move(tag))
+        , m_state(std::move(v))
     {
         jassert(v.hasType(tag));
         fullPath.referTo (m_state, IDs::Path, nullptr);
     }
-    juce::File getFile()
+    [[nodiscard]] juce::File getFile() const
     {
         return juce::File::createFileWithoutCheckingPath (fullPath);
     }
-    void setFile(juce::File f)
+    void setFile(const juce::File& f)
     {
         fullPath = f.getFullPathName ();
     }
@@ -129,14 +130,14 @@ public:
         m_windowHeight.referTo (windowState, IDs::WindowHeight, nullptr, 1000);
     }
 
-    void addFavoriteType(juce::Identifier type)
+    void addFavoriteType(const juce::Identifier& type)
     {
         auto favoriteTypes = m_applicationStateValueTree
                 .getOrCreateChildWithName (IDs::FavoriteTypes, nullptr);
         favoriteTypes.getOrCreateChildWithName (type, nullptr);
     }
 
-    juce::Array<juce::Identifier> getFavoriteTypeList()
+    [[nodiscard]] juce::Array<juce::Identifier> getFavoriteTypeList() const
     {
         juce::Array<juce::Identifier> result;
         auto favoriteTypes = m_applicationStateValueTree
@@ -187,7 +188,7 @@ public:
         }
     }
 
-    void addFileToFavorites(juce::Identifier tag, juce::File file)
+    void addFileToFavorites(const juce::Identifier& tag, const juce::File& file)
     {
         for (auto favEntry : m_favorites)
         {
@@ -202,7 +203,8 @@ public:
         saveState ();
     }
 
-    juce::Array<juce::File> removeFileFromFavorite(juce::Identifier tag, juce::File file)
+    juce::Array<juce::File> removeFileFromFavorite(const juce::Identifier& tag
+                                                   ,const juce::File& file)
     {
         for (auto fav : m_favorites)
         {

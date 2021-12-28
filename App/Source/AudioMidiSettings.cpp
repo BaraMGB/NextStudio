@@ -1,18 +1,19 @@
 #include "AudioMidiSettings.h"
 
-AudioMidiSettings::AudioMidiSettings(tracktion_engine::Engine &engine) : m_audioSettings(engine.getDeviceManager()
-                                                                                         .deviceManager
-                                                                                         , 0
-                                                                                         , 512
-                                                                                         , 1
-                                                                                         , 512
-                                                                                         , false, false, false, false)
+AudioMidiSettings::AudioMidiSettings(tracktion_engine::Engine &engine)
+    : m_audioSettings(engine.getDeviceManager().deviceManager
+                     , 0
+                     , 512
+                     , 1
+                     , 512
+                     , false, false, false, false)
   , m_engine(engine)
 
 {
     addAndMakeVisible (m_audioSettings);
     addAndMakeVisible (m_midiDefaultChooser);
     m_midiDefaultChooser.addListener (this);
+
     auto& dm = engine.getDeviceManager ();
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
     {
@@ -25,7 +26,6 @@ AudioMidiSettings::AudioMidiSettings(tracktion_engine::Engine &engine) : m_audio
             }
         }
     }
-
 }
 
 void AudioMidiSettings::resized()

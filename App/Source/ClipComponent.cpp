@@ -54,15 +54,9 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
 {
     toFront (true);
     m_isCtrlDown = false;
-    m_clickPosTime = m_editViewState.beatToTime(
-                m_editViewState.xToBeats(event.x
-                                       , getParentWidth()
-                                       , m_editViewState.m_viewX1
-                                       , m_editViewState.m_viewX2
-                                         )
-                                                );
+    m_clickedTime = getTime(event.x);
 
-    if (event.mods.getCurrentModifiers().isCtrlDown())
+    if (juce::ModifierKeys::getCurrentModifiers().isCtrlDown())
     {
         m_isCtrlDown = true;
         for (auto &t: m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
@@ -83,13 +77,14 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
         showContextMenu();
         return;
     }
-    else
-    {
-        m_clipPosAtMouseDown = m_clip->edit.tempoSequence.timeToBeats(
-                    m_clip->getPosition().getStart());
-    }
-
-
+}
+double ClipComponent::getTime(const int x) const
+{
+    return m_editViewState.xToTime(x
+                                   , getParentWidth()
+                                   , m_editViewState.m_viewX1
+                                   , m_editViewState.m_viewX2
+                                     );
 }
 
 void ClipComponent::mouseDrag(const juce::MouseEvent & event)
@@ -156,13 +151,13 @@ void ClipComponent::mouseUp(const juce::MouseEvent& event)
     }
 }
 
-tracktion_engine::Track::Ptr ClipComponent::getTrack(tracktion_engine::Clip::Ptr clip)
+tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Clip::Ptr& clip)
 {
     for (auto t : m_editViewState.m_edit.getTrackList ())
     {
-        if (auto audiotrack = dynamic_cast<te::AudioTrack*>(t))
+        if (auto at = dynamic_cast<te::AudioTrack*>(t))
         {
-            for (auto c : audiotrack->getClips ())
+            for (auto c : at->getClips ())
             {
                 if (c == clip.get())
                 {

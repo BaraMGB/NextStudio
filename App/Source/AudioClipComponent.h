@@ -21,12 +21,14 @@ public:
 private:
 
     void updateThumbnail();
+
     void drawWaveform(juce::Graphics& g,
                       te::AudioClipBase& c,
                       te::SmartThumbnail& thumb,
                       juce::Colour colour,
-                      const int left, const int right, int y, int h, int xOffset);
-    void drawChannels(juce::Graphics& g,
+                      int left, int right, int y, int h, int xOffset);
+
+    static void drawChannels(juce::Graphics& g,
                       te::SmartThumbnail& thumb,
                       juce::Rectangle<int> area,
                       bool useHighRes,
@@ -36,11 +38,9 @@ private:
     std::unique_ptr<te::SmartThumbnail> thumbnail;
 
     //used for shrinking and expanding
-    double getDistanceInBeats(const int distanceInPixel);
     te::TimecodeSnapType getCurrentSnapType();
-    double getDistanceInTime (const int distanceInPixel);
-    double getDistanceInTime(const int distanceInPixel, bool snap);
-    double getSnapedTime();
+    double getDistanceInTime (int distanceInPixel);
+    double getDistanceInTime(int distanceInPixel, bool snap);
     double clipEndSnaped();
 
     //used for drawing thumbnail
@@ -51,14 +51,13 @@ private:
     juce::Range<int> getDrawingRange();
     juce::Rectangle<int> getDrawingRect();
 
-    //helper
-    int invert(int value);
+    void setNewTimeAndOffset(double newTime, double newOffset);
 
+    //helper
+    static int invert(int value);
     int m_mouseDownX {0};
-    int m_cachedClipWidth;
-    double m_lastOffset{0.0};
+    int m_cachedClipWidth{};
     double m_oldDistanceTime{0.0};
     tracktion_engine::ClipPosition m_clipPosCached;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioClipComponent)
-    void setNewTimeAndOffset(const double newTime, const double newOffset);
 };

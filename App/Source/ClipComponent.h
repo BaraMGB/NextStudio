@@ -18,26 +18,30 @@ public:
     
     te::Clip::Ptr getClip () { return m_clip; }
 
-    bool isCtrlDown () const { return m_isCtrlDown; }
-    bool isShiftDown () const { return m_isShiftDown; }
+    [[nodiscard]] bool isCtrlDown () const { return m_isCtrlDown; }
+    [[nodiscard]] bool isShiftDown () const { return m_isShiftDown; }
 
-    double getClickPosTime () const { return m_clickPosTime; }
-    int getClipPosOffsetX () const
+    [[nodiscard]] double getClickPosTime () const { return m_clickedTime; }
+    [[nodiscard]] int getClipPosOffsetX () const
     {
-        return m_editViewState.timeToX (m_clickPosTime, getParentWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+        return m_editViewState.timeToX (m_clickedTime, getParentWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     }
-    void setClickPosTime (double clickPosTime) { m_clickPosTime = clickPosTime; }
-    te::Track::Ptr getTrack(te::Clip::Ptr clip);
+
+    te::Track::Ptr getTrack(const te::Clip::Ptr& clip);
 
 protected:
+
     EditViewState& m_editViewState;
     te::Clip::Ptr m_clip;
     bool m_updateRegion{false};
 
     void showContextMenu();
+
 private:
-    double m_clipPosAtMouseDown{};
-    double m_clickPosTime{0.0};
+
+    [[nodiscard]] double getTime(int x) const;
+
+    double m_clickedTime {0.0};
     bool m_isCtrlDown{false};
     bool m_isShiftDown{false};
     bool m_isDragging{false};

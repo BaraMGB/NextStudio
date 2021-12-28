@@ -1,6 +1,9 @@
 #include "AutomatableSliderComponent.h"
 
-AutomatableSliderComponent::AutomatableSliderComponent(tracktion_engine::AutomatableParameter::Ptr ap)
+
+
+
+AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::AutomatableParameter::Ptr& ap)
     : m_automatableParameter(ap)
     , m_trackColour(ap->getTrack()->getColour())
 {
@@ -25,7 +28,7 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
         const int result = m.show();
         if (result == 2000)
         {
-            m_automatableParameter->getCurve().addPoint(0.0, getValue(), 0.0);
+            m_automatableParameter->getCurve().addPoint(0.0, (float) getValue(), 0.0);
             m_automatableParameter->getTrack()->state.setProperty(
                         IDs::isTrackMinimized
                         , false
@@ -39,17 +42,17 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
 
 void AutomatableSliderComponent::valueChanged()
 {
-    m_automatableParameter->setParameter(getValue(), juce::dontSendNotification);
+    m_automatableParameter->setParameter((float)getValue()
+                                             , juce::dontSendNotification);
 }
 
-const juce::Colour AutomatableSliderComponent::trackColour() const
+juce::Colour AutomatableSliderComponent::getTrackColour() const
 {
     return m_trackColour;
 }
 
 void AutomatableSliderComponent::curveHasChanged(tracktion_engine::AutomatableParameter &)
 {
-
 }
 
 void AutomatableSliderComponent::currentValueChanged(tracktion_engine::AutomatableParameter &, float v)
@@ -58,7 +61,7 @@ void AutomatableSliderComponent::currentValueChanged(tracktion_engine::Automatab
     markAndUpdate(m_updateSlider);
 }
 
-void AutomatableSliderComponent::parameterChanged(tracktion_engine::AutomatableParameter &, float v)
+void AutomatableSliderComponent::parameterChanged(tracktion_engine::AutomatableParameter &, float)
 {
 }
 
@@ -75,4 +78,9 @@ void AutomatableSliderComponent::handleAsyncUpdate()
             setValue(m_cachedValue);
         }
     }
+}
+
+te::AutomatableParameter::Ptr AutomatableSliderComponent::getAutomatableParameter()
+{
+    return m_automatableParameter;
 }
