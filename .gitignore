@@ -1,10 +1,11 @@
 build/
 Builds/
-build/
+builds/
 .vscode/
 JuceLibraryCode/
 CMakeLists.txt.user
 .DS_Store
 .idea
 cmake-build-debug
+cmake-build-release
 .vs
