@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
@@ -12,7 +14,7 @@ class SamplePreviewComponent : public juce::Component
                              , public juce::Slider::Listener
 {
 public:
-    SamplePreviewComponent(te::Edit & edit)
+    explicit SamplePreviewComponent(te::Edit & edit)
         : m_currentEdit(edit)
 
     {
@@ -40,7 +42,9 @@ public:
         {
             if (m_previewEdit)
             {
-                m_previewEdit->getMasterSliderPosParameter ()->setParameter (slider->getValue (), juce::dontSendNotification);
+                m_previewEdit->getMasterSliderPosParameter ()->setParameter (
+                    (float) slider->getValue ()
+                        , juce::dontSendNotification);
             }
         }
     }
@@ -56,7 +60,7 @@ public:
             ptp.play (false);
         }
     }
-    void setFile(juce::File file)
+    void setFile(const juce::File& file)
     {
         if (!file.isDirectory ())
         {
@@ -64,13 +68,13 @@ public:
             if (audioFile.isValid())
             {
 
-                double oldVolume = -1;
+                float oldVolume = -1;
                 if (m_volumeSlider)
                 {
                     oldVolume = m_previewEdit->getMasterVolumePlugin ()
                                   ->volume;
                 }
-                m_previewEdit = m_currentEdit.createEditForPreviewingFile (
+                m_previewEdit = te::Edit::createEditForPreviewingFile (
                             m_currentEdit.engine
                             , file
                             , nullptr
@@ -83,7 +87,7 @@ public:
                 m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
                 m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
                 m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-                m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+                m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
 
                 if (oldVolume!=-1)
                 {
@@ -113,31 +117,31 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplePreviewComponent)
 };
 
-struct CategorieListBoxEntry
+struct CategoryListBoxEntry
 {
-    CategorieListBoxEntry(juce::String n) : name (n){}
-    virtual ~CategorieListBoxEntry(){}
+    explicit CategoryListBoxEntry(juce::String n) : name (std::move(n)){}
+    virtual ~CategoryListBoxEntry()= default;
     juce::String name;
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CategorieListBoxEntry)
+JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CategoryListBoxEntry)
 };
-struct FileListCategorieEntry : public CategorieListBoxEntry
-                              , public te::ValueTreeAllEventListener
+struct FileListCategoryEntry
+    : public CategoryListBoxEntry
+    , public te::ValueTreeAllEventListener
                               , public juce::ChangeBroadcaster
 {
-    FileListCategorieEntry(
-            juce::String entryname
-          , juce::Colour c
+    FileListCategoryEntry(
+            juce::String en, juce::Colour c
           , juce::Identifier tag
-          , juce::Array<juce::File> filelist, ApplicationViewState& avs)
-        : CategorieListBoxEntry (entryname)
-        , colour (c)
-        , m_tag (tag)
-        , m_fileList(filelist)
+          , juce::Array<juce::File> files, ApplicationViewState& avs)
+        : CategoryListBoxEntry(std::move(en))
         , m_applicationViewState(avs)
+        , colour (c)
+        , m_fileList(std::move(files))
+        , m_tag (std::move(tag))
     {
         m_applicationViewState.m_applicationStateValueTree.addListener (this);
     }
-    ~FileListCategorieEntry() override
+    ~FileListCategoryEntry() override
     {
         m_applicationViewState.m_applicationStateValueTree.removeListener (this);
     }
@@ -160,8 +164,8 @@ struct FileListCategorieEntry : public CategorieListBoxEntry
     juce::Identifier m_tag;
 
     void valueTreeChildAdded(
-            juce::ValueTree &parentTree
-          , juce::ValueTree &child)
+            juce::ValueTree& /*parentTree*/
+          , juce::ValueTree &child) override
     {
         if(child.hasType (m_tag))
         {
@@ -169,9 +173,9 @@ struct FileListCategorieEntry : public CategorieListBoxEntry
         }
     }
     void valueTreeChildRemoved(
-            juce::ValueTree &parentTree
+            juce::ValueTree& /*parentTree*/
           , juce::ValueTree &child
-          , int indexFromWhichChildWasRemoved)
+          , int /*indexFromWhichChildWasRemoved*/) override
     {
         if(child.hasType (m_tag))
         {
@@ -179,24 +183,24 @@ struct FileListCategorieEntry : public CategorieListBoxEntry
         }
     }
 
-    void valueTreeChanged(){}
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileListCategorieEntry)
+    void valueTreeChanged() override {}
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileListCategoryEntry)
 };
-struct DirectoryCategorieEntry : public CategorieListBoxEntry
+struct DirectoryCategoryEntry : public CategoryListBoxEntry
 {
-    DirectoryCategorieEntry(juce::String n, juce::File d)
-        : CategorieListBoxEntry (n)
-        , directory (d)
+    DirectoryCategoryEntry(juce::String n, juce::File d)
+        : CategoryListBoxEntry(std::move(n))
+        , directory (std::move(d))
     {}
     juce::File directory;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DirectoryCategorieEntry)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DirectoryCategoryEntry)
 };
-struct PluginListCategorieEntry : public CategorieListBoxEntry
+struct PluginListCategoryEntry : public CategoryListBoxEntry
 {
-    PluginListCategorieEntry(juce::String n)
-        : CategorieListBoxEntry (n)
+    explicit PluginListCategoryEntry(juce::String n)
+        : CategoryListBoxEntry(std::move(n))
     {}
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListCategorieEntry)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListCategoryEntry)
 };
 
 
@@ -259,9 +263,9 @@ public:
     }
 
     juce::var getDragSourceDescription (
-            const juce::SparseSet<int>& rowsToDescribe) override
+            const juce::SparseSet<int>& /*rowsToDescribe*/) override
     {
-        return juce::var ("FileListEntry");
+        return {"FileListEntry"};
     }
 
     juce::Array<juce::File> &getFileList()
@@ -270,7 +274,7 @@ public:
     }
     void setFileList(juce::Identifier tag, const juce::Array<juce::File> &fileList)
     {
-        m_tag = tag;
+        m_tag = std::move(tag);
         m_entries.deselectAllRows ();
         m_fileList = fileList;
         m_entries.updateContent ();
@@ -293,7 +297,7 @@ public:
         }
 
     }
-      void selectedRowsChanged(int lastRowSelected) override
+      void selectedRowsChanged(int /*lastRowSelected*/) override
       {
           previewSampleFile (m_fileList[m_entries.getSelectedRow ()]);
       }
@@ -305,7 +309,7 @@ public:
 
       void changeListenerCallback(juce::ChangeBroadcaster *source) override
       {
-          if(auto entry = dynamic_cast<FileListCategorieEntry*>(source))
+          if(auto entry = dynamic_cast<FileListCategoryEntry*>(source))
           {
               m_fileList = entry->m_fileList;
               m_tag = entry->m_tag;
@@ -319,10 +323,10 @@ public:
       juce::ListBox              m_entries;
       juce::Array<juce::File>    m_fileList;
       juce::Identifier           m_tag;
-      juce::Typeface::Ptr        m_fontTypeface{
-          juce::Typeface::createSystemTypefaceFor(
-                      BinaryData::IBMPlexSansRegular_ttf
-                    , BinaryData::IBMPlexSansRegular_ttfSize)};
+//      juce::Typeface::Ptr        m_fontTypeface{
+//          juce::Typeface::createSystemTypefaceFor(
+//                      BinaryData::IBMPlexSansRegular_ttf
+//                    , BinaryData::IBMPlexSansRegular_ttfSize)};
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileListBoxComponent)
 
 
@@ -372,7 +376,7 @@ public:
               g.fillRect(bounds);
           }
 
-          if (auto entry = dynamic_cast<FileListCategorieEntry*>(m_entriesList[rowNum]))
+          if (auto entry = dynamic_cast<FileListCategoryEntry*>(m_entriesList[rowNum]))
           {
               g.setColour (entry->colour);
               auto favColourBox = bounds.removeFromLeft (20);
@@ -396,7 +400,7 @@ public:
       {
           return m_entriesList.size();
       }
-      void addEntry(CategorieListBoxEntry *entry)
+      void addEntry(CategoryListBoxEntry*entry)
       {
           m_listBoxView.deselectAllRows();
           m_entriesList.add(entry);
@@ -415,22 +419,22 @@ public:
           m_listBoxView.deselectAllRows ();
           m_listBoxView.updateContent ();
       }
-      void listBoxItemClicked(int row, const juce::MouseEvent &) override
+      void listBoxItemClicked(int /*row*/, const juce::MouseEvent &) override
       {
           sendChangeMessage();
       }
-      CategorieListBoxEntry *getSelectedEntry()
+      CategoryListBoxEntry*getSelectedEntry()
       {
           return m_entriesList[m_listBoxView.getLastRowSelected()];
       }
 
   private:
-      juce::Typeface::Ptr m_fontTypeface{
-          juce::Typeface::createSystemTypefaceFor(
-                      BinaryData::IBMPlexSansRegular_ttf
-                    , BinaryData::IBMPlexSansRegular_ttfSize)};
+//      juce::Typeface::Ptr m_fontTypeface{
+//          juce::Typeface::createSystemTypefaceFor(
+//                      BinaryData::IBMPlexSansRegular_ttf
+//                    , BinaryData::IBMPlexSansRegular_ttfSize)};
       juce::ListBox m_listBoxView;
-      juce::OwnedArray<CategorieListBoxEntry> m_entriesList;
+      juce::OwnedArray<CategoryListBoxEntry> m_entriesList;
       JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CategoryChooserListBox)
   };
 
@@ -493,7 +497,7 @@ public:
           m_placesList.setBounds (area.removeFromTop
                                   (15 * (m_placesList.getNumRows () + 1)));
       }
-      void deselectAllRows()
+      [[maybe_unused]] void deselectAllRows()
       {
           getCategoriesList ().deselectAllRows ();
           getFavoritesList ().deselectAllRows ();
@@ -518,10 +522,10 @@ public:
       juce::Label                   m_placesLabel{"Places", "Places"};
       CategoryChooserListBox        m_favList;
       juce::Label                   m_favLabel{"Favorites", "Favorites"};
-      juce::Typeface::Ptr m_fontTypeface{
-          juce::Typeface::createSystemTypefaceFor(
-                      BinaryData::IBMPlexSansRegular_ttf
-                    , BinaryData::IBMPlexSansRegular_ttfSize)};
+//      juce::Typeface::Ptr m_fontTypeface{
+//          juce::Typeface::createSystemTypefaceFor(
+//                      BinaryData::IBMPlexSansRegular_ttf
+//                    , BinaryData::IBMPlexSansRegular_ttfSize)};
       JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrowserPanel)
   };
 
@@ -531,7 +535,7 @@ public:
 
   {
   public:
-      PluginListBoxComponent(te::Edit& edit)
+      explicit PluginListBoxComponent(te::Edit& edit)
           : m_pluginTypes(edit.engine.getPluginManager()
                           .knownPluginList.getTypes ())
           , m_edit(edit)
@@ -547,13 +551,15 @@ public:
       {
           m_entries.setBounds (getLocalBounds ());
       }
-      int getNumRows(){return m_pluginTypes.size ();}
+
+      int getNumRows() override {return m_pluginTypes.size ();}
+
       void paintListBoxItem(
               int rowNum
             , juce::Graphics &g
             , int width
             , int height
-            , bool rowIsSelected)
+            , bool rowIsSelected) override
       {
           if (rowNum < 0|| rowNum >= getNumRows())
           {
@@ -584,9 +590,9 @@ public:
                     , 1);
       }
       juce::var getDragSourceDescription (
-              const juce::SparseSet<int>& rowsToDescribe) override
+              const juce::SparseSet<int>& /*rowsToDescribe*/) override
       {
-          return juce::var ("PluginListEntry");
+          return {"PluginListEntry"};
       }
 
       te::Plugin::Ptr getSelectedPlugin()
@@ -599,10 +605,10 @@ public:
       juce::Array<juce::PluginDescription> m_pluginTypes;
       te::Edit &                           m_edit;
       juce::ListBox                        m_entries;
-      juce::Typeface::Ptr                  m_fontTypeface{
-          juce::Typeface::createSystemTypefaceFor(
-                      BinaryData::IBMPlexSansRegular_ttf
-                    , BinaryData::IBMPlexSansRegular_ttfSize)};
+//      juce::Typeface::Ptr                  m_fontTypeface{
+//          juce::Typeface::createSystemTypefaceFor(
+//                      BinaryData::IBMPlexSansRegular_ttf
+//                    , BinaryData::IBMPlexSansRegular_ttfSize)};
       JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListBoxComponent)
   };
 
@@ -614,15 +620,15 @@ public:
   public:
 
       SideBarBrowser(ApplicationViewState& state, EditViewState& evs)
-          : m_editViewState(evs)
-          , m_applicationState(state)
+          : m_applicationState(state)
+          , m_editViewState(evs)
           , m_edit(evs.m_edit)
-          , m_samplePreviewComponent(m_edit)
           , m_CollectedFilesListBox (state, m_samplePreviewComponent)
+          , m_samplePreviewComponent(m_edit)
           , m_pluginListBox (m_edit)
       {
           addAndMakeVisible (m_DirTreeViewBox);
-          addAndMakeVisible (m_browserSidepanel);
+          addAndMakeVisible (m_browserSidePanel);
           addAndMakeVisible (m_resizerBar);
           addAndMakeVisible (m_CollectedFilesListBox);
           addAndMakeVisible (m_pluginListBox);
@@ -633,16 +639,16 @@ public:
           m_stretchableManager.setItemLayout (0, 120, -0.9, -0.3);
           m_stretchableManager.setItemLayout (1, 1, 1, 1);
           m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
-          m_browserSidepanel.getPlacesList ().addChangeListener(this);
-          m_browserSidepanel.getFavoritesList ().addChangeListener (this);
-          m_browserSidepanel.getCategoriesList ().addChangeListener (this);
+          m_browserSidePanel.getPlacesList ().addChangeListener(this);
+          m_browserSidePanel.getFavoritesList ().addChangeListener (this);
+          m_browserSidePanel.getCategoriesList ().addChangeListener (this);
 
 
           //
           setupPlaces();
 
           //
-          setuCategories();
+          setupCategories();
 
           //
           setupFavorites();
@@ -671,8 +677,7 @@ public:
           if (m_DirTreeViewBox.isVisible ())
           {
               Component* comps[] = {
-                  &m_browserSidepanel
-                  , &m_resizerBar
+                  &m_browserSidePanel, &m_resizerBar
                   , &m_DirTreeViewBox};
               m_stretchableManager.layOutComponents (
                           comps
@@ -686,8 +691,7 @@ public:
           else if (m_CollectedFilesListBox.isVisible ())
           {
               Component* comps[] = {
-                  &m_browserSidepanel
-                  , &m_resizerBar
+                  &m_browserSidePanel, &m_resizerBar
                   , &m_CollectedFilesListBox};
               m_stretchableManager.layOutComponents (
                           comps
@@ -701,8 +705,7 @@ public:
           else if (m_pluginListBox.isVisible ())
           {
               Component* comps[] = {
-                  &m_browserSidepanel
-                  , &m_resizerBar
+                  &m_browserSidePanel, &m_resizerBar
                   , &m_pluginListBox};
               m_stretchableManager.layOutComponents (
                           comps
@@ -732,31 +735,32 @@ public:
 
           if (auto chooser = dynamic_cast<CategoryChooserListBox*>(source))
           {
-              if (auto entry = dynamic_cast<FileListCategorieEntry*>(chooser->getSelectedEntry ()))
+              if (auto fle = dynamic_cast<FileListCategoryEntry*>(chooser->getSelectedEntry ()))
               {
                   m_CollectedFilesListBox.setVisible (true);
-                  m_CollectedFilesListBox.setFileList (entry->m_tag, entry->m_fileList);
+                  m_CollectedFilesListBox.setFileList (fle->m_tag, fle->m_fileList);
               }
-              else if(auto entry = dynamic_cast<DirectoryCategorieEntry*>(chooser->getSelectedEntry ()))
+              else if(auto dce = dynamic_cast<DirectoryCategoryEntry*>(chooser->getSelectedEntry ()))
               {
-                  m_dirConList.setDirectory (entry->directory, true, true);
+                  m_dirConList.setDirectory (dce->directory, true, true);
                   m_DirTreeViewBox.setVisible (true);
               }
-              else if (auto entry = dynamic_cast<PluginListCategorieEntry*>(chooser->getSelectedEntry ()))
+              else if (dynamic_cast<PluginListCategoryEntry*>(chooser->getSelectedEntry ()))
               {
                   m_pluginListBox.setVisible (true);
               }
-              if (chooser != &m_browserSidepanel.getCategoriesList ())
+
+              if (chooser != &m_browserSidePanel.getCategoriesList ())
               {
-                  m_browserSidepanel.getCategoriesList ().deselectAllRows ();
+                  m_browserSidePanel.getCategoriesList ().deselectAllRows ();
               }
-              if (chooser != &m_browserSidepanel.getFavoritesList ())
+              if (chooser != &m_browserSidePanel.getFavoritesList ())
               {
-                  m_browserSidepanel.getFavoritesList ().deselectAllRows ();
+                  m_browserSidePanel.getFavoritesList ().deselectAllRows ();
               }
-              if (chooser != &m_browserSidepanel.getPlacesList ())
+              if (chooser != &m_browserSidePanel.getPlacesList ())
               {
-                  m_browserSidepanel.getPlacesList ().deselectAllRows ();
+                  m_browserSidePanel.getPlacesList ().deselectAllRows ();
               }
           }
           resized ();
@@ -778,7 +782,7 @@ public:
               juce::PopupMenu p;
               auto favoriteTypes = m_applicationState.getFavoriteTypeList ();
               auto menuEntry = 1;
-              for (auto type : favoriteTypes)
+              for (const auto& type : favoriteTypes)
               {
                   p.addItem (menuEntry, "add to " + juce::String(
                                  type.toString ()));
@@ -802,27 +806,27 @@ public:
   private:
       inline void setupPlaces()
       {
-          m_browserSidepanel.getPlacesList ().addEntry(
-                      new DirectoryCategorieEntry("Home"
+          m_browserSidePanel.getPlacesList ().addEntry(
+                      new DirectoryCategoryEntry("Home"
                 , juce::File::getSpecialLocation (juce::File::userHomeDirectory)));
-          m_browserSidepanel.getPlacesList ().addEntry(
-                      new DirectoryCategorieEntry("Projects"
+          m_browserSidePanel.getPlacesList ().addEntry(
+                      new DirectoryCategoryEntry("Projects"
                 , juce::File::createFileWithoutCheckingPath (
                                              m_applicationState.m_projectsDir)));
-          m_browserSidepanel.getPlacesList ().addEntry (
-                      new DirectoryCategorieEntry("Samples"
+          m_browserSidePanel.getPlacesList ().addEntry (
+                      new DirectoryCategoryEntry("Samples"
                 , juce::File::createFileWithoutCheckingPath (
                                              m_applicationState.m_samplesDir)));
       }
 
-      inline void setuCategories()
+      inline void setupCategories()
       {
-          m_browserSidepanel.getCategoriesList ().addEntry (new PluginListCategorieEntry("Plugins"));
-          m_browserSidepanel.getCategoriesList ().selectRow(0);
+          m_browserSidePanel.getCategoriesList ().addEntry (new PluginListCategoryEntry("Plugins"));
+          m_browserSidePanel.getCategoriesList ().selectRow(0);
       }
 
       inline void addFavoritesEntry(
-              juce::Identifier type
+              const juce::Identifier& type
             , juce::Colour colour
             , juce::String name)
       {
@@ -835,20 +839,20 @@ public:
               }
           }
           m_applicationState.addFavoriteType (type);
-          auto entry = new FileListCategorieEntry(
-                      name
+          auto entry = new FileListCategoryEntry(
+                      std::move(name)
                     , colour
                     , type
                     , favoritesList
                     , m_applicationState);
-          m_browserSidepanel.getFavoritesList ().addEntry (entry);
+          m_browserSidePanel.getFavoritesList ().addEntry (entry);
       }
 
       inline void setupFavorites()
       {
-          addFavoritesEntry(IDs::red, juce::Colours::red, "rote Liste");
-          addFavoritesEntry(IDs::green, juce::Colours::green, "green");
-          addFavoritesEntry (IDs::orange, juce::Colours::orange, "ogange");
+          addFavoritesEntry(IDs::red, juce::Colours::red, "favorite basses");
+          addFavoritesEntry(IDs::green, juce::Colours::green, "my own samples");
+          addFavoritesEntry (IDs::orange, juce::Colours::orange, "orange list");
       }
 
       inline void setupDirectoryTreeView()
@@ -878,7 +882,7 @@ public:
       juce::TimeSliceThread             m_thread    {"file browser thread"};
       juce::DirectoryContentsList       m_dirConList{nullptr, m_thread};
       juce::FileTreeComponent           m_DirTreeViewBox      {m_dirConList};
-      BrowserPanel                      m_browserSidepanel;
+      BrowserPanel                      m_browserSidePanel;
       PluginListBoxComponent            m_pluginListBox;
       juce::StretchableLayoutManager    m_stretchableManager;
       juce::StretchableLayoutResizerBar m_resizerBar

@@ -1,16 +1,18 @@
 #include "PluginMenu.h"
+
+#include <utility>
 #include "Utilities.h"
 
 //==============================================================================
-PluginTreeItem::PluginTreeItem (const juce::PluginDescription& d)
-    : desc (d), xmlType (te::ExternalPlugin::xmlTypeName), isPlugin (true)
+PluginTreeItem::PluginTreeItem (juce::PluginDescription  d)
+    : desc (std::move(d)), xmlType (te::ExternalPlugin::xmlTypeName), isPlugin (true)
 {
     jassert (xmlType.isNotEmpty());
 }
 
 PluginTreeItem::PluginTreeItem (const juce::String& uniqueId, const juce::String& name,
-                                const juce::String& xmlType_, bool isSynth, bool isPlugin_)
-    : xmlType (xmlType_), isPlugin (isPlugin_)
+                                juce::String  xmlType_, bool isSynth, bool isPlugin_)
+    : xmlType (std::move(xmlType_)), isPlugin (isPlugin_)
 {
     jassert (xmlType.isNotEmpty());
     desc.name = name;
@@ -21,7 +23,7 @@ PluginTreeItem::PluginTreeItem (const juce::String& uniqueId, const juce::String
     desc.isInstrument = isSynth;
 }
 
-te::Plugin::Ptr PluginTreeItem::create (te::Edit& ed)
+te::Plugin::Ptr PluginTreeItem::create (te::Edit& ed) const
 {
     return ed.getPluginCache().createNewPlugin (xmlType, desc);
 }
@@ -55,7 +57,7 @@ PluginTreeGroup::PluginTreeGroup (te::Edit& edit, juce::KnownPluginList::PluginT
     populateFrom (tree);
 }
 
-PluginTreeGroup::PluginTreeGroup (const juce::String& s)  : name (s)
+PluginTreeGroup::PluginTreeGroup (juce::String  s)  : name (std::move(s))
 {
     jassert (name.isNotEmpty());
 }

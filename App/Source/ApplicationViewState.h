@@ -48,7 +48,7 @@ struct Favorite
         : m_tag (std::move(tag))
         , m_state(std::move(v))
     {
-        jassert(v.hasType(tag));
+        //jassert(v.hasType(tag));
         fullPath.referTo (m_state, IDs::Path, nullptr);
     }
     [[nodiscard]] juce::File getFile() const

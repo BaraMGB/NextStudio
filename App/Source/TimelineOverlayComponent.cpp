@@ -1,4 +1,6 @@
 #include "TimelineOverlayComponent.h"
+
+#include <utility>
 #include "Utilities.h"
 
 TimelineOverlayComponent::TimelineOverlayComponent(
@@ -6,7 +8,7 @@ TimelineOverlayComponent::TimelineOverlayComponent(
       , tracktion_engine::Track::Ptr track
       , TimeLineComponent& tlc)
     : m_editViewState (evs)
-    , m_track(track)
+    , m_track(std::move(track))
     , m_timelineComponent(tlc)
 {
     //setInterceptsMouseClicks (false, true);
@@ -35,6 +37,7 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
 bool TimelineOverlayComponent::hitTest(int x, int y)
 {
     updateClipRects ();
+
     for (auto cr : m_clipRects)
     {
         if (cr.contains (x, y)) return true;
@@ -73,7 +76,7 @@ void TimelineOverlayComponent::mouseMove(const juce::MouseEvent &e)
     }
 }
 
-void TimelineOverlayComponent::mouseExit(const juce::MouseEvent &e)
+void TimelineOverlayComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
     setMouseCursor (juce::MouseCursor::NormalCursor);
 }
@@ -81,7 +84,7 @@ void TimelineOverlayComponent::mouseExit(const juce::MouseEvent &e)
 void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_posAtMousedown = e.position;
-    if (auto mc = getMidiclipByPos (e.x))
+    if (auto mc = getMidiClipByPos(e.x))
     {
         m_cachedClip = mc;
         m_cachedPos = mc->getPosition ();
@@ -132,7 +135,7 @@ std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClips
     return midiClips;
 }
 
-tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiclipByPos(int x)
+tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
 {
     for (auto & clip : getMidiClipsOfTrack ())
     {

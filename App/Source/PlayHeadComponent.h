@@ -22,7 +22,7 @@ public:
     void mouseDown (const juce::MouseEvent&) override;
     void mouseUp (const juce::MouseEvent&) override;
 
-    bool isPlaying();
+    bool isPlaying() const;
 
 private:
     void timerCallback() override;

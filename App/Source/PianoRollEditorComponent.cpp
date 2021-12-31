@@ -77,12 +77,12 @@ void PianoRollComponent::resized()
     double firstVisibleNote = m_editViewState.m_pianoY1;
     double pianoRollNoteWidth = m_editViewState.m_pianorollNoteWidth;
 
-    m_keyboard.setKeyWidth (juce::jmax(0.1, pianoRollNoteWidth * 12 / 7));
+    m_keyboard.setKeyWidth (juce::jmax(0.1f, (float) pianoRollNoteWidth * 12 / 7));
     m_keyboard.setBounds (0
-                        , getHeight () - m_keyboard.getTotalKeyboardWidth ()
+                        , getHeight () - (int) m_keyboard.getTotalKeyboardWidth ()
                           + (firstVisibleNote * pianoRollNoteWidth)
                         , keyboard.getWidth ()
-                        , m_keyboard.getTotalKeyboardWidth ());
+                        , (int) m_keyboard.getTotalKeyboardWidth ());
 
     m_editViewState.m_pianoY1 =
             juce::jlimit(0.0

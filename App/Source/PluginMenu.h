@@ -11,7 +11,7 @@ class PluginTreeBase
 {
 public:
     virtual ~PluginTreeBase() = default;
-    virtual juce::String getUniqueName() const = 0;
+    [[nodiscard]] virtual juce::String getUniqueName() const = 0;
 
     void addSubItem (PluginTreeBase* itm)   { subitems.add (itm);       }
     int getNumSubItems()                    { return subitems.size();   }
@@ -25,16 +25,16 @@ private:
 class PluginTreeItem : public PluginTreeBase
 {
 public:
-    PluginTreeItem (const juce::PluginDescription&);
+    explicit PluginTreeItem (juce::PluginDescription );
     PluginTreeItem (const juce::String& uniqueId
                     , const juce::String& name
-                    , const juce::String& xmlType
+                    , juce::String  xmlType
                     , bool isSynth
                     , bool isPlugin);
 
-    te::Plugin::Ptr create (te::Edit&);
+    te::Plugin::Ptr create (te::Edit&) const;
 
-    juce::String getUniqueName() const override
+    [[nodiscard]] juce::String getUniqueName() const override
     {
         if (desc.fileOrIdentifier.startsWith (te::RackType::getRackPresetPrefix()))
             return desc.fileOrIdentifier;
@@ -54,9 +54,9 @@ class PluginTreeGroup : public PluginTreeBase
 {
 public:
     PluginTreeGroup (te::Edit&, juce::KnownPluginList::PluginTree&, te::Plugin::Type);
-    PluginTreeGroup (const juce::String&);
+    explicit PluginTreeGroup (juce::String );
 
-    juce::String getUniqueName() const override           { return name; }
+    [[nodiscard]] juce::String getUniqueName() const override           { return name; }
 
     juce::String name;
 
@@ -85,7 +85,7 @@ class PluginMenu : public juce::PopupMenu
 public:
     PluginMenu() = default;
 
-    PluginMenu (PluginTreeGroup& node)
+    explicit PluginMenu (PluginTreeGroup& node)
     {
         for (int i = 0; i < node.getNumSubItems(); ++i)
             if (auto subNode = dynamic_cast<PluginTreeGroup*> (node.getSubItem (i)))

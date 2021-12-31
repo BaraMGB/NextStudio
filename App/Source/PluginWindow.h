@@ -22,7 +22,7 @@ public:
 //==============================================================================
 struct AudioProcessorEditorContentComp : public PluginEditor
 {
-    AudioProcessorEditorContentComp (te::ExternalPlugin& plug) : plugin (plug)
+    explicit AudioProcessorEditorContentComp (te::ExternalPlugin& plug) : plugin (plug)
     {
         JUCE_AUTORELEASEPOOL
         {
@@ -88,7 +88,7 @@ struct AudioProcessorEditorContentComp : public PluginEditor
 class PluginWindow : public juce::DocumentWindow
 {
 public:
-    PluginWindow (te::Plugin&);
+    explicit PluginWindow (te::Plugin&);
     ~PluginWindow() override;
 
     static std::unique_ptr<juce::Component> create (te::Plugin&);
@@ -96,7 +96,7 @@ public:
     void show();
 
     void setEditor (std::unique_ptr<PluginEditor>);
-    PluginEditor* getEditor() const         { return editor.get(); }
+    [[nodiscard]] PluginEditor* getEditor() const         { return editor.get(); }
     
     void recreateEditor();
     void recreateEditorAsync();
@@ -105,7 +105,7 @@ private:
     void moved() override;
     void userTriedToCloseWindow() override          { plugin.windowState->closeWindowExplicitly(); }
     void closeButtonPressed() override              { userTriedToCloseWindow(); }
-    float getDesktopScaleFactor() const override    { return 1.0f; }
+    [[nodiscard]] float getDesktopScaleFactor() const override    { return 1.0f; }
 
     std::unique_ptr<PluginEditor> createContentComp();
 

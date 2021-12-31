@@ -41,7 +41,7 @@ void PlayheadComponent::mouseDrag (const juce::MouseEvent& e)
     timerCallback();
 }
 
-bool PlayheadComponent::isPlaying()
+bool PlayheadComponent::isPlaying() const
 {
     return m_editViewState.m_edit.getTransport ().isPlaying ();
 }

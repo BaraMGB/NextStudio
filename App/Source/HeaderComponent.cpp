@@ -250,46 +250,31 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
                                 , &m_playButton, &m_recordButton, &m_display, &m_clickButton, &m_loopButton
                                 , &m_followPlayheadButton, &m_pluginsButton, &m_settingsButton });
 
-
-    GUIHelpers::setDrawableonButton (m_newButton
-                                     , BinaryData::newbox_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_loadButton
-                                     , BinaryData::filedownload_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_saveButton
-                                     , BinaryData::contentsaveedit_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_playButton
-                                     , BinaryData::play_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_stopButton
-                                     , BinaryData::stop_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_recordButton
-                                     , BinaryData::record_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_settingsButton
-                                     , BinaryData::headphonessettings_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_pluginsButton
-                                     , BinaryData::powerplug_svg
-                                     , m_btn_col);
-    GUIHelpers::setDrawableonButton (m_loopButton
-                                     , BinaryData::cached_svg
-                                     , m_edit.getTransport ().looping
-                                       ? m_btn_col
-                                       : "#666666");
-    GUIHelpers::setDrawableonButton (m_clickButton
-                                     , BinaryData::metronome_svg
-                                     , m_edit.clickTrackEnabled
-                                       ? m_btn_col
-                                       : "#666666");
-    GUIHelpers::setDrawableonButton (m_followPlayheadButton
-                                    , BinaryData::follow_svg
-                                    , m_editViewState.viewFollowsPos ()
-                                        ? m_btn_col
-                                        : "#666666");
+    GUIHelpers::setDrawableOnButton(m_newButton, BinaryData::newbox_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(
+        m_loadButton, BinaryData::filedownload_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(
+        m_saveButton, BinaryData::contentsaveedit_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_playButton, BinaryData::play_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_stopButton, BinaryData::stop_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(
+        m_recordButton, BinaryData::record_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(
+        m_settingsButton, BinaryData::headphonessettings_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(
+        m_pluginsButton, BinaryData::powerplug_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_loopButton,
+                                    BinaryData::cached_svg,
+                                    m_edit.getTransport().looping ? m_btn_col
+                                                                  : "#666666");
+    GUIHelpers::setDrawableOnButton(m_clickButton,
+                                    BinaryData::metronome_svg,
+                                    m_edit.clickTrackEnabled ? m_btn_col
+                                                             : "#666666");
+    GUIHelpers::setDrawableOnButton(m_followPlayheadButton,
+                                    BinaryData::follow_svg,
+                                    m_editViewState.viewFollowsPos() ? m_btn_col
+                                                                     : "#666666");
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
     m_saveButton.addListener(this);
@@ -370,14 +355,13 @@ void HeaderComponent::buttonClicked(juce::Button* button)
                            ? BinaryData::pause_svg
                            : BinaryData::play_svg;
 
-        GUIHelpers::setDrawableonButton (m_playButton, svgbin, m_btn_col);
+        GUIHelpers::setDrawableOnButton(m_playButton, svgbin, m_btn_col);
     }
     if (button == &m_stopButton)
     {
         EngineHelpers::stopPlay(m_editViewState);
-        GUIHelpers::setDrawableonButton (m_playButton
-                                        , BinaryData::play_svg
-                                        , m_btn_col);
+        GUIHelpers::setDrawableOnButton(
+            m_playButton, BinaryData::play_svg, m_btn_col);
 
     }
     if (button == &m_recordButton)
@@ -423,30 +407,27 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     if (button == &m_loopButton)
     {
         EngineHelpers::toggleLoop (m_edit);
-        GUIHelpers::setDrawableonButton (m_loopButton
-                                         , BinaryData::cached_svg
-                                         , m_edit.getTransport ().looping
-                                           ? m_btn_col
-                                           : "#666666");
+        GUIHelpers::setDrawableOnButton(m_loopButton,
+                                        BinaryData::cached_svg,
+                                        m_edit.getTransport().looping ? m_btn_col
+                                                                      : "#666666");
     }
     if (button == &m_clickButton)
     {
         m_edit.clickTrackEnabled = !m_edit.clickTrackEnabled;
-        GUIHelpers::setDrawableonButton (m_clickButton
-                                         , BinaryData::metronome_svg
-                                         , m_edit.clickTrackEnabled
-                                           ? m_btn_col
-                                           : "#666666");
+        GUIHelpers::setDrawableOnButton(m_clickButton,
+                                        BinaryData::metronome_svg,
+                                        m_edit.clickTrackEnabled ? m_btn_col
+                                                                 : "#666666");
     }
 
     if (button == &m_followPlayheadButton)
     {
         m_editViewState.toggleFollowPlayhead();
-        GUIHelpers::setDrawableonButton (m_followPlayheadButton
-                                        , BinaryData::follow_svg
-                                        , m_editViewState.viewFollowsPos ()
-                                            ? m_btn_col
-                                            : "#666666");
+        GUIHelpers::setDrawableOnButton(
+            m_followPlayheadButton,
+            BinaryData::follow_svg,
+            m_editViewState.viewFollowsPos() ? m_btn_col : "#666666");
     }
 
     if (button == &m_saveButton)

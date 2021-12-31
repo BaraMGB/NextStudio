@@ -33,16 +33,16 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
     m_slider.setRange (0.0f, 3.0f, 0.01f);
     m_slider.setSkewFactorFromMidPoint (1.0f);
     m_slider.setSliderStyle (juce::Slider::RotaryVerticalDrag);
-    m_slider.setTextBoxStyle (juce::Slider::NoTextBox, 0, 0, false);
+    m_slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, false);
 
 }
 
 void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 {
     g.setColour (juce::Colours::white);
-    const int minimizedHeigth = m_automatableParameter.getTrack ()->state
+    const int minimizedHeight = m_automatableParameter.getTrack ()->state
             .getProperty (IDs::trackMinimized, 30);
-    auto area = getLocalBounds().removeFromTop(minimizedHeigth);
+    auto area = getLocalBounds().removeFromTop(minimizedHeight);
     area.removeFromLeft (10);
     GUIHelpers::drawFromSvg (g
                              , BinaryData::automation_svg
@@ -64,8 +64,6 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
         g.setColour(juce::Colour(0x55ffffff));
         strokeHeight = 3;
     }
-    int height = (int) m_automatableParameter.getTrack ()
-            ->state.getProperty (te::IDs::height) + getHeight ();
 
     auto r = juce::Rectangle<int>(
                 getLocalBounds ()
@@ -113,7 +111,7 @@ void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
         if (result == 2000)
         {
             m_automatableParameter.getCurve().clear();
-            m_automatableParameter.getCurve().removeAllAutomationCurvesRecursively(
+            te::AutomationCurve::removeAllAutomationCurvesRecursively(
                         m_automatableParameter.getCurve().parentState);
         }
     }
@@ -170,7 +168,7 @@ void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &/*event*/)
 
 //------------------------------------------------------------------------------
 
-TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t)
+TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, const te::Track::Ptr& t)
     : m_editViewState (evs)
     , m_track (t)
     , m_isMinimized (t->state.getProperty(IDs::isTrackMinimized))
@@ -228,7 +226,7 @@ TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, te::Track::Ptr t
 
 
             m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-            m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+            m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
 
         }
     }
@@ -290,12 +288,15 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
     }
 }
 
-void TrackHeaderComponent::valueTreeChildAdded(juce::ValueTree &parentTree
-                                               , juce::ValueTree &childWhichHasBeenAdded)
+void TrackHeaderComponent::valueTreeChildAdded(juce::ValueTree& /*parentTree*/
+                                               , juce::ValueTree& /*childWhichHasBeenAdded*/)
 {
 }
 
-void TrackHeaderComponent::valueTreeChildRemoved(juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved)
+void TrackHeaderComponent::valueTreeChildRemoved(
+    juce::ValueTree& /*parentTree*/
+    , juce::ValueTree &/*childWhichHasBeenRemoved*/
+    , int /*indexFromWhichChildWasRemoved*/)
 {
 }
 
@@ -622,10 +623,12 @@ void TrackHeaderComponent::resized()
     rect.removeFromTop(height);
     for (auto ahs : m_automationHeaders)
     {
-        int height = ahs->automatableParameter ().getCurve ().state
+        int automationHeight = ahs->automatableParameter ().getCurve ().state
                 .getProperty(tracktion_engine::IDs::height, minimizedHeigth);
         ahs->setBounds(rect.removeFromTop(
-                           height < minimizedHeigth ? minimizedHeigth : height));
+                           automationHeight < minimizedHeigth
+                                            ? minimizedHeigth
+                                            : automationHeight));
     }
 }
 
@@ -634,7 +637,7 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
     m_trackHeightATMouseDown = m_track->state.getProperty
             (te::IDs::height, (int) m_editViewState.m_trackHeightMinimized);
 
-    m_yPosAtMouseDown = event.mouseDownPosition.y;
+    m_yPosAtMouseDown = event.y;
     auto area = getLocalBounds ().removeFromLeft (20);
     if ( area.contains (event.getPosition ()))
     {
@@ -716,18 +719,18 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
     }
 }
 
-void TrackHeaderComponent::mouseUp(const juce::MouseEvent &event)
+void TrackHeaderComponent::mouseUp(const juce::MouseEvent& /*e*/)
 {
     m_isResizing = false;
     m_isDragging = false;
     repaint();
 }
 
-void TrackHeaderComponent::mouseMove(const juce::MouseEvent &event)
+void TrackHeaderComponent::mouseMove(const juce::MouseEvent& e)
 {
     m_isAboutToResizing = false;
     int height = m_track->state.getProperty (te::IDs::height, getHeight ());
-    if (event.y > height - 10 && !m_isMinimized)
+    if (e.y > height - 10 && !m_isMinimized)
     {
         m_isAboutToResizing = true;
         setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
@@ -739,7 +742,7 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent &event)
     repaint();
 }
 
-void TrackHeaderComponent::mouseExit(const juce::MouseEvent &event)
+void TrackHeaderComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
     m_isAboutToResizing = false;
     setMouseCursor (juce::MouseCursor::NormalCursor);
@@ -803,7 +806,7 @@ void TrackHeaderComponent::itemDragMove(
     repaint ();
 }
 void TrackHeaderComponent::itemDragExit(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+    const juce::DragAndDropTarget::SourceDetails& /*dragSourceDetails*/)
 {
     m_contentIsOver = false;
     m_trackIsOver = false;
@@ -822,7 +825,7 @@ void TrackHeaderComponent::itemDropped(
             {
                 getTrack()->pluginList.insertPlugin(
                     lbm->getSelectedPlugin()
-                  , getTrack()->pluginList.size() - 2 //set before LevelMeter and Volume
+                  , 0//getTrack()->pluginList.size() - 2 //set before LevelMeter and Volume
                   , nullptr);
             }
         }

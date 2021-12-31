@@ -13,7 +13,7 @@ public:
                     , juce::CachedValue<double> & x1
                     , juce::CachedValue<double> & x2
                     );
-    ~TimeLineComponent();
+    ~TimeLineComponent() override;
 
     void paint(juce::Graphics& g) override;
     void mouseDown(const juce::MouseEvent& event) override;
@@ -25,9 +25,9 @@ public:
 
 private:
     EditViewState & m_editViewState;
-    double m_cachedBeat;
+    double m_cachedBeat{};
     bool m_isMouseDown;
-    double m_cachedX1, m_cachedX2;
+    double m_cachedX1{}, m_cachedX2{};
     juce::CachedValue<double> & m_X1;
     juce::CachedValue<double> & m_X2;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)

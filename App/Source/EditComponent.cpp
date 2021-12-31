@@ -478,9 +478,9 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
                             , fileListComp->getFileList ()[lb->getLastRowSelected ()]);
                 if (audioFile.isValid ())
                 {
-                    destinationTrack->inserWave(
-                                fileListComp->getFileList ()[lb->getLastRowSelected ()]
-                            , dropTime);
+                    destinationTrack->insertWave(
+                        fileListComp->getFileList()[lb->getLastRowSelected()],
+                        dropTime);
                 }
             }
         }
@@ -520,7 +520,7 @@ void EditComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
                 (dragSourceDetails.sourceComponent.get()))
         {
             auto f = fileTreeComp->getSelectedFile();
-            destinationTrack->inserWave(f, dropTime);
+            destinationTrack->insertWave(f, dropTime);
         }
     }
     else

@@ -2,8 +2,8 @@
 
 //==============================================================================
 PluginWindowComponent::PluginWindowComponent
-    (EditViewState& evs, te::Plugin::Ptr p, juce::Colour tc)
-    : editViewState (evs), plugin (p), m_trackColour (tc)
+    (EditViewState& evs, te::Plugin::Ptr p)
+    : editViewState (evs), plugin (p)
 {
     name.setText(plugin->getName(),juce::NotificationType::dontSendNotification);
     name.setJustificationType(juce::Justification::centred);
@@ -12,15 +12,15 @@ PluginWindowComponent::PluginWindowComponent
 
     if (plugin->getPluginType() == "volume")
     {
-        m_pluginComponent = std::make_unique<VolumePluginComponent>(evs, p, tc);
+        m_pluginComponent = std::make_unique<VolumePluginComponent>(evs, p);
     }
     else if (plugin->getPluginType() == "vst")
     {
-        m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p, tc);
+        m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p);
     }
     else
     {
-        m_pluginComponent = std::make_unique<PluginViewComponent>(evs, p, tc);
+        m_pluginComponent = std::make_unique<PluginViewComponent>(evs, p);
     }
     addAndMakeVisible(*m_pluginComponent);
 }
@@ -38,12 +38,12 @@ void PluginWindowComponent::paint (juce::Graphics& g)
     GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true);
 
 
-
+    auto trackCol = getTrackColour();
     g.setColour(plugin->isEnabled () ?
-                       m_trackColour : m_trackColour.darker (0.7));
+                       trackCol : trackCol.darker (0.7));
 
     name.setColour(juce::Label::ColourIds::textColourId,
-                   m_trackColour.getBrightness() > 0.8
+                   trackCol.getBrightness() > 0.8
                                                  ? juce::Colour(0xff000000)
                                                  : juce::Colour(0xffffffff));
 
@@ -122,8 +122,8 @@ void PluginWindowComponent::resized()
 }
 
 PluginViewComponent::PluginViewComponent
-    (EditViewState& evs, te::Plugin::Ptr p, juce::Colour tc)
-    : m_editViewState (evs), m_plugin (p), m_trackColour (tc)
+    (EditViewState& evs, te::Plugin::Ptr p)
+    : m_editViewState (evs), m_plugin (p)
 {
 }
 
@@ -140,8 +140,8 @@ void PluginViewComponent::setPlugin(const te::Plugin::Ptr &plugin)
 //------------------------------------------------------------------------------
 
 VolumePluginComponent::VolumePluginComponent
-    (EditViewState& evs, te::Plugin::Ptr p, juce::Colour tc)
-    : PluginViewComponent(evs, p, tc)
+    (EditViewState& evs, te::Plugin::Ptr p)
+    : PluginViewComponent(evs, p)
 {
     addAndMakeVisible(m_volumeKnob);
     m_volumeKnob.setRange(0.0f, 3.0f, 0.01f);
@@ -171,8 +171,8 @@ void VolumePluginComponent::paint(juce::Graphics &g)
 // -----------------------------------------------------------------------------
 
 VstPluginComponent::VstPluginComponent
-    (EditViewState& evs, te::Plugin::Ptr p, juce::Colour tc)
-    : PluginViewComponent(evs, p, tc)
+    (EditViewState& evs, te::Plugin::Ptr p)
+    : PluginViewComponent(evs, p)
     , m_lastChangedParameterComponent(nullptr)
 {
     if (p)

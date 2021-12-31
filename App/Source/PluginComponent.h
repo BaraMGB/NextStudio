@@ -11,19 +11,20 @@ namespace te = tracktion_engine;
 class PluginViewComponent : public juce::Component
 {
 public:
-    PluginViewComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
+    PluginViewComponent (EditViewState&, te::Plugin::Ptr);
 
 
-    te::Plugin::Ptr getPlugin() const;
+    [[nodiscard]] te::Plugin::Ptr getPlugin() const;
 
     void setPlugin(const te::Plugin::Ptr &getPlugin);
-    virtual const int getNeededWidth() {return 1;}
+    virtual int getNeededWidth() {return 1;}
 
+    juce::Colour getTrackColour() {m_plugin->getOwnerTrack()->getColour();}
 
 private:
+
     EditViewState&     m_editViewState;
     te::Plugin::Ptr    m_plugin;
-    juce::Colour       m_trackColour;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginViewComponent)
 };
 
@@ -32,7 +33,7 @@ private:
 class VolumePluginComponent : public PluginViewComponent
 {
 public:
-    VolumePluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
+    VolumePluginComponent (EditViewState&, te::Plugin::Ptr);
 
 
     void paint (juce::Graphics&) override;
@@ -49,22 +50,20 @@ class ParameterComponent : public juce::Component
                          , public juce::ChangeBroadcaster
 {
 public:
-    ParameterComponent(te::AutomatableParameter& ap);
+    explicit ParameterComponent(te::AutomatableParameter& ap);
+    ~ParameterComponent() override= default;
 
-    ~ParameterComponent() override{}
     void resized() override;
-
     void mouseDown(const juce::MouseEvent& e) override;
-    te::AutomatableParameter & getParameter()
-    {
-        return m_parameter;
-    }
+
+    te::AutomatableParameter& getParameter(){return m_parameter;}
 
 private:
-    te::AutomatableParameter & m_parameter;
+
+    te::AutomatableParameter& m_parameter;
     juce::Label m_parameterName;
     AutomatableSliderComponent m_parameterSlider;
-    bool m_updateKnob {false};
+    [[maybe_unused]] bool m_updateKnob {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
 
 
@@ -74,10 +73,10 @@ class VstPluginComponent : public PluginViewComponent
                          , public juce::ChangeListener
 {
 public:
-    VstPluginComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
-    ~VstPluginComponent();
+    VstPluginComponent (EditViewState&, te::Plugin::Ptr);
+    ~VstPluginComponent() override;
 
-    const int getNeededWidth() override {return 2;}
+    int getNeededWidth() override {return 2;}
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
@@ -101,8 +100,8 @@ private:
 class PluginWindowComponent : public juce::Component
 {
 public:
-    PluginWindowComponent (EditViewState&, te::Plugin::Ptr, juce::Colour);
-    ~PluginWindowComponent();
+    PluginWindowComponent (EditViewState&, te::Plugin::Ptr);
+    ~PluginWindowComponent() override;
 
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
@@ -111,21 +110,23 @@ public:
 
     void resized() override;
 
+    juce::Colour getTrackColour() {plugin->getOwnerTrack()->getColour();}
     int getNeededWidthFactor() { return m_pluginComponent->getNeededWidth();}
-    void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
+    [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
     te::Plugin::Ptr getPlugin()
     {
         return plugin;
     }
 
+
+
 private:
     juce::Label name;
     int m_headerWidth {20};
-    int m_neededWidthFactor {1};
+    [[maybe_unused]] int m_neededWidthFactor {1};
     EditViewState& editViewState;
     te::Plugin::Ptr plugin;
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
-    juce::Colour m_trackColour;
 
     bool m_clickOnHeader {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginWindowComponent)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "EditViewState.h"
@@ -21,7 +23,7 @@ class PluginRackComponent : public juce::Component,
 {
 public:
     PluginRackComponent (EditViewState&, te::Track::Ptr);
-    ~PluginRackComponent();
+    ~PluginRackComponent() override;
 
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
@@ -55,7 +57,7 @@ public:
         repaint();
     }
 
-    void itemDragExit (const SourceDetails& dragSourceDetails) override
+    void itemDragExit (const SourceDetails& /*dragSourceDetails*/) override
     {
         m_isOver = false;
         repaint();
@@ -88,7 +90,7 @@ class AddButton : public juce::TextButton
                 , public juce::DragAndDropTarget
 {
 public:
-    AddButton(){}
+    AddButton()= default;
     inline bool isInterestedInDragSource (const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override
     {
@@ -117,12 +119,11 @@ public:
             auto pluginRackComp = dynamic_cast<PluginRackComponent*>(getParentComponent());
             if (pluginRackComp)
             {
-                auto sourceIndex = 0;
                 for (auto & pluginComp : pluginRackComp->getPluginComponents())
                 {
                     if (pluginComp == dragSourceDetails.sourceComponent)
                     {
-                        sourceIndex = pluginRackComp->getTrack()->getAllPlugins().indexOf(pluginComp->getPlugin());
+                        auto sourceIndex = pluginRackComp->getTrack()->getAllPlugins().indexOf(pluginComp->getPlugin());
                         auto plugToMove = pluginComp->getPlugin();
                         auto targetIndex = pluginRackComp->getAddButtons().indexOf(this);
 
@@ -147,7 +148,7 @@ public:
         repaint();
     }
     
-    void itemDragExit (const SourceDetails& dragSourceDetails) override
+    void itemDragExit (const SourceDetails& /*dragSourceDetails*/) override
     {
         isOver = false;
         repaint();
@@ -165,7 +166,7 @@ public:
         }
         int cornerSize = 5;
         auto area = getLocalBounds().toFloat();
-        g.fillRoundedRectangle(area, cornerSize);
+        g.fillRoundedRectangle(area, (float) cornerSize);
         area.reduce(1,1);
         g.setColour(juce::Colour(0xff1b1b1b));
 
@@ -175,7 +176,7 @@ public:
 
     void setPlugin(te::Plugin::Ptr pln)
     {
-        plugin = pln;
+        plugin = std::move(pln);
     }
 
     te::Plugin::Ptr plugin {nullptr};

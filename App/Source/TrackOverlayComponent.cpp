@@ -1,8 +1,8 @@
 #include "TrackOverlayComponent.h"
 
-TrackOverlayComponent::TrackOverlayComponent()
-{
-}
+#include <utility>
+
+
 
 void TrackOverlayComponent::drawImages(int offset)
 {
@@ -11,26 +11,15 @@ void TrackOverlayComponent::drawImages(int offset)
     repaint();
 }
 
-void TrackOverlayComponent::addOverlayImage(TrackOverlayComponent::OverlayImage overlay)
-{
-    m_imageList.add(overlay);
-}
-
 void TrackOverlayComponent::addOverlayImageList(juce::Array<TrackOverlayComponent::OverlayImage> il)
 {
     m_imageList.clear ();
-    m_imageList = il;
+    m_imageList = std::move(il);
 }
-
-void TrackOverlayComponent::clearOverlayImageList()
-{
-    m_imageList.clear ();
-}
-
 
 void TrackOverlayComponent::paint(juce::Graphics &g)
 {
-    for (auto clipImage : m_imageList)
+    for (const auto& clipImage : m_imageList)
     {
         if (clipImage.m_isValid)
         {

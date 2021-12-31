@@ -14,13 +14,13 @@ class PianoRollComponent : public juce::Component
                          , public te::ValueTreeAllEventListener
 {
 public:
-    PianoRollComponent (EditViewState&);
+    explicit PianoRollComponent (EditViewState&);
     ~PianoRollComponent() override;
 
-    void paintOverChildren(juce::Graphics &g);
+    void paintOverChildren(juce::Graphics &g) override;
     void resized () override;
 
-    void mouseMove(const juce::MouseEvent &event);
+    void mouseMove(const juce::MouseEvent &event) override;
 
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
@@ -30,8 +30,8 @@ public:
 
     void valueTreePropertyChanged(
             juce::ValueTree &treeWhosePropertyHasChanged
-          , const juce::Identifier &property);
-    void valueTreeChanged(){}
+          , const juce::Identifier &property) override;
+    void valueTreeChanged() override {}
 
 private:
     EditViewState& m_editViewState;

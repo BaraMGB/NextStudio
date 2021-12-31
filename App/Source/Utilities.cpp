@@ -35,8 +35,8 @@ void GUIHelpers::drawRoundedRectWithSide(
 
 void GUIHelpers::changeColor(
         juce::XmlElement &xml
-      , juce::String inputColour
-      , juce::String color_hex)
+      , const juce::String& inputColour
+      , const juce::String& color_hex)
 {
     forEachXmlChildElement(xml, xmlnode)
     {
@@ -67,7 +67,7 @@ void GUIHelpers::changeColor(
 void GUIHelpers::drawFromSvg(
         juce::Graphics &g
       , const char *svgbinary
-      , juce::String col_hex
+      , const juce::String& col_hex
       , juce::Rectangle<float> drawRect)
 {
     if (auto svg = juce::XmlDocument::parse (svgbinary))
@@ -84,10 +84,10 @@ void GUIHelpers::drawFromSvg(
     }
 }
 
-void GUIHelpers::setDrawableonButton(
+void GUIHelpers::setDrawableOnButton(
         juce::DrawableButton &button
       , const char *svgbinary
-      , juce::String col_hex)
+      , const juce::String& col_hex)
 {
     if (auto svg = juce::XmlDocument::parse (svgbinary))
     {
@@ -103,7 +103,7 @@ void GUIHelpers::setDrawableonButton(
 
 juce::Image GUIHelpers::getImageFromSvg(
         const char *svgbinary
-      , juce::String col_hex
+      , const juce::String& col_hex
       , int w
       , int h)
 {
@@ -120,7 +120,7 @@ juce::Image GUIHelpers::getImageFromSvg(
 
 void GUIHelpers::saveEdit(
         EditViewState& evs
-      , juce::File workDir)
+      , const juce::File& workDir)
 {
 
     auto editfile = te::EditFileOperations(evs.m_edit).getEditFile ();
@@ -147,7 +147,7 @@ void GUIHelpers::saveEdit(
     {
         juce::File selectedFile = browser.getSelectedFile (0)
                 .withFileExtension (".tracktionedit");
-        EngineHelpers::refreshRelativePathstoNewEditFile (evs, selectedFile);
+        EngineHelpers::refreshRelativePathsToNewEditFile(evs, selectedFile);
         evs.m_editName = selectedFile.getFileNameWithoutExtension ();
         te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false);
     }
@@ -181,7 +181,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
         }
         auto beatLenght = evs.beatsToX (x1beats + 1, boundingRect.getWidth (), x1beats, x2beats);
 
-        auto printText = [](juce::Graphics& graphic, juce::Rectangle<float> textRect, juce::String text)
+        auto printText = [](juce::Graphics& graphic, juce::Rectangle<float> textRect, const juce::String& text)
         {
             graphic.setColour (juce::Colour(0x70ffffff));
             graphic.drawText ("  " + text
@@ -192,7 +192,11 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
 
         if (printDescription && ((barsBeats.beats < 0.0001) || (barsBeats.beats > 3.9999)))
         {
-            auto barRect = juce::Rectangle<float>(x, 0, beatLenght*4, boundingRect.getHeight ());
+            auto barRect = juce::Rectangle<float>(
+                (float) x
+                , 0.f
+                , (float) beatLenght * 4.f
+                , boundingRect.toFloat().getHeight ());
             if (snaptype.level > 6)
                 printText(g, barRect, juce::String(barsNum));
             else
@@ -202,9 +206,15 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
         else if (barsBeats.getFractionalBeats () < 0.0001
                  || barsBeats.getFractionalBeats () > 0.9999)
         {
-            auto beatRect = juce::Rectangle<float>(x, 0, beatLenght, boundingRect.getHeight ());
+            auto beatRect = juce::Rectangle<float>(
+                (float) x
+                , 0.f
+                , (float) beatLenght
+                , boundingRect.toFloat().getHeight ());
+
             if (snaptype.level < 7 && printDescription)
                 printText(g, beatRect, juce::String(barsNum) + "." + juce::String(beatsNum));
+
             g.setColour (juce::Colour(0x40ffffff));
         }
         else
@@ -238,8 +248,8 @@ juce::String PlayHeadHelpers::barsBeatsString(
     pos.setTime(time);
     auto bars = pos.getBarsBeatsTime ().bars + 1;
     auto beat = (int)pos.getBarsBeatsTime ().beats + 1;
-    auto ticks = (int)(pos.getBarsBeatsTime ()
-                       .getFractionalBeats () * 960 + .5);
+    auto ticks = juce::roundToIntAccurate(pos.getBarsBeatsTime ()
+                       .getFractionalBeats () * 960);
     if (ticks == 960) {ticks = 0;}
 
     return juce::String(bars) + "."
@@ -286,7 +296,7 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
 void EngineHelpers::pasteClipboardToEdit(
         double pasteTime
       , double firstClipTime
-      , tracktion_engine::Track::Ptr destinationTrack
+      , const tracktion_engine::Track::Ptr& destinationTrack
       , EditViewState &evs
       , bool removeSource)
 {
@@ -309,7 +319,7 @@ void EngineHelpers::pasteClipboardToEdit(
 
             }
             //delete region under pasted clips
-            for (auto clip : clipContent->clips)
+            for (const auto& clip : clipContent->clips)
             {
                 auto clipShift = (float) clip.state.getProperty (te::IDs::start);
                 auto clipInsertTime = pasteTime + clipShift;
@@ -319,10 +329,9 @@ void EngineHelpers::pasteClipboardToEdit(
                 {
                     if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack))
                     {
-                        auto editrange = te::EditTimeRange(clipInsertTime
+                        auto range = te::EditTimeRange(clipInsertTime
                                                          , clipInsertTime + clipLength);
-                        at->deleteRegion ( editrange
-                                           ,&evs.m_selectionManager);
+                        at->deleteRegion (range,&evs.m_selectionManager);
                     }
                 }
             }
@@ -376,7 +385,7 @@ void EngineHelpers::browseForAudioFile(
 
 void EngineHelpers::removeAllClips(tracktion_engine::AudioTrack &track)
 {
-    auto clips = track.getClips();
+    const auto& clips = track.getClips();
 
     for (int i = clips.size(); --i >= 0;)
         clips.getUnchecked (i)->removeFromParentTrack();
@@ -442,8 +451,8 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
     return {};
 }
 
-void EngineHelpers::refreshRelativePathstoNewEditFile(
-        EditViewState & evs, juce::File newEditFile)
+void EngineHelpers::refreshRelativePathsToNewEditFile(
+        EditViewState & evs, const juce::File& newFile)
 {
     for (auto t : te::getAudioTracks (evs.m_edit))
     {
@@ -455,13 +464,12 @@ void EngineHelpers::refreshRelativePathstoNewEditFile(
                             c->state.getProperty (te::IDs::source));
                 c->state.setProperty (
                       te::IDs::source
-                    , source.getRelativePathFrom (
-                                newEditFile.getParentDirectory ())
+                    , source.getRelativePathFrom (newFile.getParentDirectory ())
                     , nullptr);
             }
         }
     }
-    evs.m_edit.editFileRetriever = [newEditFile] {return newEditFile;};
+    evs.m_edit.editFileRetriever = [newFile] {return newFile;};
 }
 
 void EngineHelpers::rewind(EditViewState &evs)
@@ -476,7 +484,7 @@ void EngineHelpers::rewind(EditViewState &evs)
 void EngineHelpers::stopPlay(EditViewState &evs)
 {
     auto& transport = evs.m_edit.getTransport ();
-    if (transport.isPlaying () == false)
+    if (!transport.isPlaying())
     {
         evs.m_playHeadStartTime = 0.0;
         transport.setCurrentPosition(evs.m_playHeadStartTime);
@@ -600,7 +608,7 @@ std::unique_ptr<juce::KnownPluginList::PluginTree> EngineHelpers::createPluginTr
 {
     auto& list = engine.getPluginManager().knownPluginList;
 
-    if (auto tree = list.createTree (
+    if (auto tree = juce::KnownPluginList::createTree (
                 list.getTypes()
               , juce::KnownPluginList::sortByManufacturer))
     {
@@ -663,7 +671,7 @@ void Thumbnail::mouseDown(const juce::MouseEvent &e)
 void Thumbnail::mouseDrag(const juce::MouseEvent &e)
 {
     jassert (getWidth() > 0);
-    const float proportion = e.position.x / getWidth();
+    const float proportion = (float) e.position.x / (float) getWidth();
     transport.position = proportion * transport.getLoopRange().getLength();
 }
 

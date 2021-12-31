@@ -3,7 +3,7 @@
 
     TimeLineComponent.cpp
     Created: 20 Feb 2020 12:06:14am
-    Author:  Zehn
+    Author:  Steffen Baranowsky
 
   ==============================================================================
 */
@@ -21,8 +21,7 @@ TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::CachedValue<doub
 }
 
 TimeLineComponent::~TimeLineComponent()
-{
-}
+= default;
 
 void TimeLineComponent::paint(juce::Graphics& g)
 {

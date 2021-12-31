@@ -9,6 +9,8 @@
 #pragma once
 
 
+#include <utility>
+
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "AudioMidiSettings.h"
 
@@ -45,7 +47,7 @@ namespace GUIHelpers
                   << ": " << message << std::endl;
     }
     template<typename T>
-    void log(juce::String d, T message)
+    void log(const juce::String& d, T message)
     {
         std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
                   << ": " << d << " : "
@@ -62,29 +64,29 @@ namespace GUIHelpers
 
     void changeColor(
           juce::XmlElement& xml
-        , juce::String inputColour
-        , juce::String color_hex);
+        , const juce::String& inputColour
+        , const juce::String& color_hex);
 
     void drawFromSvg(
             juce::Graphics &g
           , const char* svgbinary
-          ,juce::String col_hex
+          ,const juce::String& col_hex
           ,juce::Rectangle<float> drawRect);
 
-    void setDrawableonButton(
+    void setDrawableOnButton(
             juce::DrawableButton& button
           , const char* svgbinary
-          ,juce::String col_hex);
+          ,const juce::String& col_hex);
 
     juce::Image getImageFromSvg(
             const char* svgbinary
-          , juce::String col_hex
+          , const juce::String& col_hex
           , int w
           , int h);
 
     void saveEdit(
             EditViewState& evs
-          , juce::File workDir);
+          , const juce::File& workDir);
 
     void drawBarsAndBeatLines(juce::Graphics &g
           , EditViewState &evs
@@ -98,11 +100,11 @@ namespace GUIHelpers
     {
     public:
         DelayedOneShotLambda(int ms, std::function<void()> fn)
-        : m_func(fn)
+        : m_func(std::move(fn))
         {
             startTimer(ms);
         }
-        ~DelayedOneShotLambda() { stopTimer(); }
+        ~DelayedOneShotLambda() override { stopTimer(); }
 
         void timerCallback() override
         {
@@ -120,7 +122,7 @@ namespace PlayHeadHelpers
     juce::String barsBeatsString (te::Edit & edit, double time);
 
     struct TimeCodeStrings{
-        TimeCodeStrings(te::Edit & edit)
+        explicit TimeCodeStrings(te::Edit & edit)
         {
             auto currenttime = edit.getTransport ().getCurrentPosition ();
             bpm = juce::String(edit.tempoSequence.getTempoAt (currenttime).bpm, 2);
@@ -155,7 +157,7 @@ namespace EngineHelpers
     void pasteClipboardToEdit(
             double pasteTime
           , double firstClipTime
-          , tracktion_engine::Track::Ptr destinationTrack
+          , const tracktion_engine::Track::Ptr& destinationTrack
           , EditViewState &evs
           , bool removeSource);
 
@@ -182,10 +184,10 @@ namespace EngineHelpers
             EditViewState& evs
           , const juce::File& file
           , juce::Colour trackColour
-          , double inserTime = 0.0);
+          , double insertTime = 0.0);
 
-    void refreshRelativePathstoNewEditFile(EditViewState & evs
-                                       , juce::File newFile);
+    void refreshRelativePathsToNewEditFile(EditViewState & evs
+                                       , const juce::File& newFile);
 
     template<typename ClipType>
     typename ClipType::Ptr loopAroundClip (ClipType& clip)
@@ -222,7 +224,7 @@ public:
     //==============================================================================
     void markAndUpdate (bool& flag)     { flag = true; triggerAsyncUpdate(); }
 
-    bool compareAndReset (bool& flag) noexcept
+    static bool compareAndReset (bool& flag) noexcept
     {
         if (! flag)
             return false;
@@ -234,7 +236,7 @@ public:
 
 struct Thumbnail : public juce::Component
 {
-    Thumbnail (te::TransportControl& tc);
+    explicit Thumbnail (te::TransportControl& tc);
 
     void setFile (const te::AudioFile& file);
     void paint (juce::Graphics& g) override;

@@ -1,8 +1,10 @@
 #include "RecordingClipComponent.h"
 
+#include <utility>
+
 
 RecordingClipComponent::RecordingClipComponent (te::Track::Ptr t, EditViewState& evs)
-    : m_track (t), m_editViewState (evs)
+    : m_track (std::move(t)), m_editViewState (evs)
 {
     startTimerHz (10);
     initialiseThumbnailAndPunchTime();
@@ -34,7 +36,7 @@ void RecordingClipComponent::paint (juce::Graphics& g)
     auto area = getLocalBounds();
     area.reduce(1,1);
     g.setColour(juce::Colours::red.darker());
-    g.fillRect(area.removeFromTop(m_clipHeaderHight));
+    g.fillRect(area.removeFromTop(m_ClipHeaderHeight));
 
     if (m_editViewState.m_drawWaveforms)
         drawThumbnail (g, juce::Colours::black.withAlpha (0.5f));

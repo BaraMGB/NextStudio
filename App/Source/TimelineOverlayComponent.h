@@ -22,20 +22,20 @@ private:
     void mouseDrag(const juce::MouseEvent& e) override;
 
     std::vector<te::MidiClip*> getMidiClipsOfTrack();
-    tracktion_engine::MidiClip *getMidiclipByPos(int x);
+    tracktion_engine::MidiClip * getMidiClipByPos(int x);
 
     int timeToX(double time);
     double xToBeats(int x);
     void updateClipRects();
     EditViewState& m_editViewState;
     tracktion_engine::Track::Ptr m_track;
-    double m_loop1AtMousedown
-         , m_loop2AtMousedown;
+    [[maybe_unused]] double m_loop1AtMousedown{}
+         , m_loop2AtMousedown{};
     bool m_leftResized {false};
     bool m_rightResized{false};
-    juce::Point<float> m_posAtMousedown;
+    [[maybe_unused]] juce::Point<float> m_posAtMousedown;
     te::ClipPosition m_cachedPos;
-    te::MidiClip * m_cachedClip;
+    te::MidiClip * m_cachedClip{};
     TimeLineComponent & m_timelineComponent;
     juce::Array<juce::Rectangle<int>> m_clipRects;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimelineOverlayComponent)

@@ -23,7 +23,7 @@ private:
     bool getBoundsAndTime (
             juce::Rectangle<int>& bounds, juce::Range<double>& times) const;
 
-    int m_clipHeaderHight {10};
+    int m_ClipHeaderHeight {10};
 
     te::Track::Ptr m_track;
     EditViewState& m_editViewState;

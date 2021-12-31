@@ -14,7 +14,7 @@ namespace te = tracktion_engine;
 class AutomationLaneHeaderComponent : public juce::Component
 {
 public:
-    AutomationLaneHeaderComponent(te::AutomatableParameter& ap);
+    explicit AutomationLaneHeaderComponent(te::AutomatableParameter& ap);
     void paint (juce::Graphics& g) override;
     void resized() override;
 
@@ -32,7 +32,7 @@ public:
     void mouseDrag (const juce::MouseEvent &event) override;
     void mouseMove (const juce::MouseEvent &event) override;
     void mouseExit (const juce::MouseEvent &) override;
-    te::AutomatableParameter &automatableParameter() const;
+    [[nodiscard]] te::AutomatableParameter &automatableParameter() const;
 };
 
 class TrackHeaderComponent : public juce::Component
@@ -43,7 +43,7 @@ class TrackHeaderComponent : public juce::Component
                            , public juce::Label::Listener
 {
 public:
-    TrackHeaderComponent (EditViewState&, te::Track::Ptr);
+    TrackHeaderComponent (EditViewState&, const te::Track::Ptr&);
     ~TrackHeaderComponent() override;
 
     void paint (juce::Graphics& g) override;
@@ -51,12 +51,12 @@ public:
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent &event) override;
     void mouseUp(const juce::MouseEvent &event) override;
-    void mouseMove(const juce::MouseEvent &event) override;
+    void mouseMove(const juce::MouseEvent & e) override;
     void mouseExit(const juce::MouseEvent &event) override;
     bool keyPressed(const juce::KeyPress &key) override;
     juce::Colour getTrackColour();
 
-    te::Track::Ptr getTrack() const;
+    [[nodiscard]] te::Track::Ptr getTrack() const;
 
     void updateMidiInputs();
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
@@ -69,23 +69,22 @@ public:
     void childrenSetVisible(bool v);
 
 private:
-    void handleAsyncUpdate();
+    void handleAsyncUpdate() override;
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
     void valueTreeChildAdded(
-            juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenAdded);
+            juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenAdded) override;
     void valueTreeChildRemoved(
             juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenRemoved
-            , int indexFromWhichChildWasRemoved);
+            , int indexFromWhichChildWasRemoved) override;
 
     void showPopupMenu(te::AudioTrack* at);
     void deleteTrackFromEdit();
 
     EditViewState& m_editViewState;
     te::Track::Ptr m_track;
-    int m_trackHeightATMouseDown;
-    int m_yPosAtMouseDown;
-    double m_currentVolume = 0.0;
+    int m_trackHeightATMouseDown{};
+    int m_yPosAtMouseDown{};
     juce::ValueTree inputsState;
     juce::Label m_trackName;
     juce::ToggleButton m_armButton,
@@ -101,7 +100,6 @@ private:
          m_trackIsOver {false},
          m_isDragging {false},
          m_isAudioTrack {false},
-         m_updateVolumeKnob {false},
          m_updateAutomationLanes {false},
          m_updateTrackHeight {false},
          m_isMinimized {false};
