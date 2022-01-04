@@ -121,6 +121,13 @@ void PluginWindowComponent::resized()
     m_pluginComponent.get()->setBounds(area);
 }
 
+juce::Colour PluginWindowComponent::getTrackColour()
+{
+    if (plugin->getOwnerTrack())
+        return plugin->getOwnerTrack()->getColour();
+    return juce::Colours::grey;
+}
+
 PluginViewComponent::PluginViewComponent
     (EditViewState& evs, te::Plugin::Ptr p)
     : m_editViewState (evs), m_plugin (p)

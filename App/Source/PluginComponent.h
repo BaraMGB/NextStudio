@@ -110,7 +110,6 @@ public:
 
     void resized() override;
 
-    juce::Colour getTrackColour() {plugin->getOwnerTrack()->getColour();}
     int getNeededWidthFactor() { return m_pluginComponent->getNeededWidth();}
     [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
     te::Plugin::Ptr getPlugin()
@@ -118,9 +117,10 @@ public:
         return plugin;
     }
 
-
-
 private:
+
+    juce::Colour getTrackColour();
+
     juce::Label name;
     int m_headerWidth {20};
     [[maybe_unused]] int m_neededWidthFactor {1};
