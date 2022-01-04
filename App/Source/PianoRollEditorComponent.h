@@ -44,5 +44,5 @@ private:
                         m_pianoRollContentComponent{nullptr};
     PlayheadComponent m_playhead;
     juce::String m_NoteDescUnderCursor;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollEditorComponent)
 };
