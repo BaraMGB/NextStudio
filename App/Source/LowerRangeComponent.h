@@ -73,7 +73,7 @@ private:
     EditViewState& m_editViewState;
 
     juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
-    PianoRollComponent m_pianoRollEditor;
+    PianoRollEditorComponent m_pianoRollEditor;
     SplitterComponent m_splitter;
     const float m_splitterHeight {10.f};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LowerRangeComponent)

@@ -6,26 +6,26 @@
 #include "TimelineOverlayComponent.h"
 #include "PlayHeadComponent.h"
 #include "PianoRollContentComponent.h"
-
+#include "Utilities.h"
 namespace te = tracktion_engine;
 
-class PianoRollComponent : public juce::Component
+class PianoRollEditorComponent
+    : public juce::Component
                          , public juce::MidiKeyboardStateListener
                          , public te::ValueTreeAllEventListener
 {
 public:
-    explicit PianoRollComponent (EditViewState&);
-    ~PianoRollComponent() override;
+    explicit PianoRollEditorComponent(EditViewState&);
+    ~PianoRollEditorComponent() override;
 
     void paintOverChildren(juce::Graphics &g) override;
     void resized () override;
-
     void mouseMove(const juce::MouseEvent &event) override;
 
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
-    void setPianoRollClip(std::unique_ptr<PianoRollContentComponent>);
+    void setTrack(const tracktion_engine::Track::Ptr& track);
     void clearPianoRollClip();
 
     void valueTreePropertyChanged(
@@ -34,6 +34,7 @@ public:
     void valueTreeChanged() override {}
 
 private:
+
     EditViewState& m_editViewState;
     juce::MidiKeyboardState m_keybordstate;
     juce::MidiKeyboardComponent m_keyboard;

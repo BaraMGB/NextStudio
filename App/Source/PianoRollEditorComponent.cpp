@@ -1,6 +1,6 @@
 #include "PianoRollEditorComponent.h"
 
-PianoRollComponent::PianoRollComponent(EditViewState & evs)
+PianoRollEditorComponent::PianoRollEditorComponent(EditViewState & evs)
     : m_editViewState(evs)
     , m_keyboard (m_keybordstate
                   , juce::MidiKeyboardComponent::
@@ -21,13 +21,13 @@ PianoRollComponent::PianoRollComponent(EditViewState & evs)
     m_playhead.setAlwaysOnTop (true);
 }
 
-PianoRollComponent::~PianoRollComponent()
+PianoRollEditorComponent::~PianoRollEditorComponent()
 {
     m_editViewState.m_edit.state.removeListener (this);
     m_keybordstate.removeListener (this);
 }
 
-void PianoRollComponent::paintOverChildren(juce::Graphics &g)
+void PianoRollEditorComponent::paintOverChildren(juce::Graphics &g)
 {
     //cover left from timeline
     g.setColour (juce::Colour(0xff181818));
@@ -39,14 +39,14 @@ void PianoRollComponent::paintOverChildren(juce::Graphics &g)
                 , 0, 1
                 , m_timeline.getHeight ());
     //Footer
-    g.setColour(juce::Colour(0xff181818));
-    g.fillRect (0, getHeight() - 20, getWidth (), 20);
-
-    g.setColour (juce::Colour(0xff555555));
-    g.fillRect (m_keyboard.getWidth () - 1
-              , 0
-              , 1
-              , m_editViewState.m_timeLineHeight);
+//    g.setColour(juce::Colour(0xff181818));
+//    g.fillRect (0, getHeight() - 20, getWidth (), 20);
+//
+//    g.setColour (juce::Colour(0xff555555));
+//    g.fillRect (m_keyboard.getWidth () - 1
+//              , 0
+//              , 1
+//              , m_editViewState.m_timeLineHeight);
 
     g.setColour (juce::Colour(0xffffffff));
     const auto snapType = m_timeline.getBestSnapType ();
@@ -67,28 +67,28 @@ void PianoRollComponent::paintOverChildren(juce::Graphics &g)
               , juce::Justification::centredLeft);
 }
 
-void PianoRollComponent::resized()
+void PianoRollEditorComponent::resized()
 {
     auto area = getLocalBounds ();
     auto timeline = area.removeFromTop (m_editViewState.m_timeLineHeight);
     auto keyboard = area.removeFromLeft (50);
     timeline.removeFromLeft (keyboard.getWidth ());
     auto playhead = area.withTrimmedTop ( - m_editViewState.m_timeLineHeight);
-    double firstVisibleNote = m_editViewState.m_pianoY1;
+    double firstVisibleNote = m_editViewState.m_pianoStartNoteBottom;
     double pianoRollNoteWidth = m_editViewState.m_pianorollNoteWidth;
 
     m_keyboard.setKeyWidth (juce::jmax(0.1f, (float) pianoRollNoteWidth * 12 / 7));
     m_keyboard.setBounds (0
                         , getHeight () - (int) m_keyboard.getTotalKeyboardWidth ()
-                          + (firstVisibleNote * pianoRollNoteWidth)
+                          + (int) (firstVisibleNote * pianoRollNoteWidth)
                         , keyboard.getWidth ()
                         , (int) m_keyboard.getTotalKeyboardWidth ());
 
-    m_editViewState.m_pianoY1 =
+    m_editViewState.m_pianoStartNoteBottom =
             juce::jlimit(0.0
                        , 127.0
                          - (getHeight () / m_editViewState.m_pianorollNoteWidth)
-                       , (double) m_editViewState.m_pianoY1);
+                       , (double) m_editViewState.m_pianoStartNoteBottom);
 
     m_timeline.setBounds (timeline);
     if (m_timelineOverlay)
@@ -99,49 +99,42 @@ void PianoRollComponent::resized()
     if (m_pianoRollContentComponent)
     {
         m_pianoRollContentComponent->setBounds (area);
-        m_pianoRollContentComponent->setKeyWidth (m_keyboard.getKeyWidth ());
     }
 
     m_playhead.setBounds (playhead);
 
 }
 
-void PianoRollComponent::mouseMove(const juce::MouseEvent &event)
+void PianoRollEditorComponent::mouseMove(const juce::MouseEvent &event)
 {
-    auto firstNote = (double) m_editViewState.m_pianoY1;
-    auto noteNum = firstNote
-            + ((getHeight () - event.y - m_editViewState.m_timeLineHeight)
-               / m_editViewState.m_pianorollNoteWidth);
-
     m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName (
-                noteNum
+                m_pianoRollContentComponent->getNoteNumber(event.y)
                 , true
                 , true
                 , 3);
 }
 
-void PianoRollComponent::handleNoteOn(juce::MidiKeyboardState *
+void PianoRollEditorComponent::handleNoteOn(juce::MidiKeyboardState *
                                       , int /*midiChannel*/
                                       , int midiNoteNumber
-                                      , float v)
+                                      , float velocity)
 {
     if (m_pianoRollContentComponent)
     {
-        if (auto mc =
-                m_pianoRollContentComponent->getMidiClipsOfTrack ().at (0))
+        if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().at (0))
         {
-            auto midichannel = mc->getMidiChannel ();
+            auto ch = mc->getMidiChannel ();
             mc->getAudioTrack ()->playGuideNote
                               (midiNoteNumber
-                             , midichannel
-                             , 127.0 * v
+                             , ch
+                             , (int) (127 * velocity)
                              , false
                              , true);
         }
     }
 }
 
-void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
+void PianoRollEditorComponent::handleNoteOff(juce::MidiKeyboardState *
                                        , int /*midiChannel*/
                                        , int /*midiNoteNumber*/
                                        , float)
@@ -150,17 +143,16 @@ void PianoRollComponent::handleNoteOff(juce::MidiKeyboardState *
     {
         if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().at (0))
         {
-            auto midichannel = mc->getMidiChannel ();
-            mc->getAudioTrack ()->turnOffGuideNotes (midichannel);
+            auto ch = mc->getMidiChannel ();
+            mc->getAudioTrack ()->turnOffGuideNotes (ch);
         }
     }
 }
 
-void PianoRollComponent::setPianoRollClip(
-        std::unique_ptr<PianoRollContentComponent> pianoRollContentComponent)
+void PianoRollEditorComponent::setTrack(const tracktion_engine::Track::Ptr& track)
 {
-    addAndMakeVisible (*pianoRollContentComponent);
-    m_pianoRollContentComponent = std::move (pianoRollContentComponent);
+    m_pianoRollContentComponent = std::make_unique<PianoRollContentComponent>(m_editViewState, track);
+    addAndMakeVisible (*m_pianoRollContentComponent);
     m_timelineOverlay = std::make_unique<TimelineOverlayComponent>
             (m_editViewState
            , m_pianoRollContentComponent->getTrack ()
@@ -170,21 +162,20 @@ void PianoRollComponent::setPianoRollClip(
     resized ();
 }
 
-void PianoRollComponent::clearPianoRollClip()
+void PianoRollEditorComponent::clearPianoRollClip()
 {
     m_timelineOverlay.reset (nullptr);
     m_pianoRollContentComponent.reset (nullptr);
     resized ();
 }
 
-void PianoRollComponent::valueTreePropertyChanged(
+void PianoRollEditorComponent::valueTreePropertyChanged(
         juce::ValueTree &treeWhosePropertyHasChanged
       , const juce::Identifier &property)
 {
     if (treeWhosePropertyHasChanged.hasType (IDs::EDITVIEWSTATE))
     {
         if (property == IDs::pianoY1
-        ||  property == IDs::pianoY2
         ||  property == IDs::pianorollNoteWidth) resized ();
     }
 }

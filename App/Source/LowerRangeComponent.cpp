@@ -27,7 +27,7 @@ void SplitterComponent::mouseExit(const juce::MouseEvent &)
 void SplitterComponent::mouseDown(const juce::MouseEvent &)
 {
     m_pianorollHeightAtMousedown = m_editViewState.m_pianorollHeight;
-    m_cachedPianoNoteNum = (double) m_editViewState.m_pianoY1;
+    m_cachedPianoNoteNum = (double) m_editViewState.m_pianoStartNoteBottom;
 }
 
 void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
@@ -39,7 +39,7 @@ void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
         auto noteHeight = (double) m_editViewState.m_pianorollNoteWidth;
         auto noteDist = event.getDistanceFromDragStartY () / noteHeight;
 
-        m_editViewState.m_pianoY1 =
+        m_editViewState.m_pianoStartNoteBottom =
                 juce::jlimit(0.0
                            , 127.0 - (getHeight ()
                                 / m_editViewState.m_pianorollNoteWidth)
@@ -214,11 +214,8 @@ void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr& trac
         }
 
         m_pianoRollEditor.setVisible (true);
-        m_pianoRollEditor.setPianoRollClip (std::make_unique<PianoRollContentComponent>(m_editViewState, track));
+        m_pianoRollEditor.setTrack (track);
 
-
-
-        
         resized ();
     }
 }
