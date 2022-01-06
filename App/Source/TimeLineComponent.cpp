@@ -25,10 +25,7 @@ TimeLineComponent::~TimeLineComponent()
 
 void TimeLineComponent::paint(juce::Graphics& g)
 {
-    g.setColour(juce::Colour(0xff181818));
-    g.fillRect(getLocalBounds());
     g.setColour(juce::Colour(0xff555555));
-    //g.fillRect (0, getHeight () - 1, getWidth(), 1);
     g.setFont(12);
 
     g.setColour(juce::Colour(0xffffffff));

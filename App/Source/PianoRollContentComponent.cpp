@@ -376,7 +376,7 @@ void PianoRollContentComponent::mouseMove(const juce::MouseEvent &e)
         }
     }
     getParentComponent ()->mouseMove (e);
-    repaint ();
+    //repaint ();
 }
 
 void PianoRollContentComponent::mouseExit(const juce::MouseEvent &)
@@ -405,18 +405,9 @@ void PianoRollContentComponent::mouseWheelMove(const juce::MouseEvent &event
                                                     + deltaX1);
         m_editViewState.m_pianoX2 =  m_editViewState.m_pianoX2 + deltaX2;
     }
-//    else if (event.mods.isCtrlDown ())
-//    {
-//        auto deltaY1 = wheel.deltaY >= 0 ? 1 : -1;
-//        m_editViewState.m_pianorollNoteWidth =
-//                juce::jlimit(1.0
-//                           , 30.0
-//                           , m_editViewState.m_pianorollNoteWidth - deltaY1);
-
-//    }
     else
     {
-        scrollPianoRoll((float) wheel.deltaY >= 0 ? 3 : -3);
+        scrollPianoRoll((float) wheel.deltaY * 5 );
     }
 }
 
