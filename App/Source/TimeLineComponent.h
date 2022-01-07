@@ -24,6 +24,7 @@ public:
     EditViewState& getEditViewState();
 
 private:
+
     EditViewState & m_editViewState;
     double m_cachedBeat{};
     bool m_isMouseDown;

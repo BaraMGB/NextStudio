@@ -66,24 +66,26 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 
 void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
 {
-    // Work out the scale of the new range
     auto unitDistance = 50.0f;
     auto scaleFactor
-            = 1.0 / std::pow (
-                2, (float) event.getDistanceFromDragStartY() / unitDistance);
+            = std::pow (2, (float) event.getDistanceFromDragStartY() / unitDistance);
 
-    // Now position it so that the mouse continues to point at the same
-    // place on the ruler.
-    auto visibleLength = std::min(240.0,
-                                  std::max (0.05,
-                                            (m_cachedX2 - m_cachedX1) / scaleFactor));
-    auto rangeBegin =  std::max (
-                0.0
-              , m_cachedBeat - visibleLength * (event.x)
-                / getWidth());
-    rangeBegin = juce::jmin(m_editViewState.getEndScrollBeat () - visibleLength, rangeBegin);
-    m_X1 = rangeBegin;
-    m_X2 = rangeBegin + visibleLength;
+    auto newVisibleLengthBeats = juce::jlimit(
+        0.05, 240.0
+        , (m_cachedX2 - m_cachedX1) * scaleFactor);
+
+    auto currentXinBeats = juce::jmap(
+        (double)event.x
+        , 0.0,(double) getWidth()
+        , 0.0, newVisibleLengthBeats);
+
+    auto newRangeStartBeats = juce::jlimit(
+        0.0
+        , m_editViewState.getEndScrollBeat() - newVisibleLengthBeats
+        , m_cachedBeat - currentXinBeats);
+
+    m_X1 = newRangeStartBeats;
+    m_X2 = newRangeStartBeats + newVisibleLengthBeats;
 }
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)

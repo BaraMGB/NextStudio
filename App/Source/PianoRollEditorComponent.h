@@ -38,11 +38,22 @@ public:
 
     juce::MidiKeyboardComponent& getKeyboard() { return m_keyboard; }
 
+
 private:
+
+    float getNoteNum(int y)
+    {
+        auto noteHeight = (double) m_editViewState.m_pianorollNoteWidth;
+        auto noteNumb =
+            static_cast<float>(m_editViewState.m_pianoStartNoteBottom
+                               + ((getHeight() - y) / noteHeight));
+        return noteNumb;
+    }
 
     juce::MidiKeyboardComponent m_keyboard;
     EditViewState& m_editViewState;
 
+    float m_clickedNote;
     double m_pianoStartNoteCached;
     double m_pianoRollKeyWidthCached;
 };

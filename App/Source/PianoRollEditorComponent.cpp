@@ -4,28 +4,24 @@ void KeyboardView::mouseDown(const juce::MouseEvent& e)
 {
     m_pianoStartNoteCached = m_editViewState.m_pianoStartNoteBottom;
     m_pianoRollKeyWidthCached = m_editViewState.m_pianorollNoteWidth;
+    m_clickedNote = getNoteNum(e.y);
 }
 
 void KeyboardView::mouseDrag(const juce::MouseEvent& e)
 {
-    m_editViewState.m_pianorollNoteWidth
-        = m_pianoRollKeyWidthCached
-          + e.getDistanceFromDragStartX()
-            * 0.1;
+    auto unitDistance = 50.0f;
+    float scaleFactor
+        = std::powf (2,(float) e.getDistanceFromDragStartX() / unitDistance);
 
-    double newPianoStartNote = m_pianoStartNoteCached
-          + (e.getDistanceFromDragStartY()
-             / m_editViewState.m_pianorollNoteWidth)
-          + e.getDistanceFromDragStartX()
-             * 0.1;
+    auto visibleNotes = (float) (getHeight() / m_pianoRollKeyWidthCached);
 
-    m_editViewState.m_pianoStartNoteBottom = juce::jlimit(
-        0.0
-        , 127.0 - (getHeight() / m_editViewState.m_pianorollNoteWidth)
-            , newPianoStartNote);
+    float scaledVisibleNotes = juce::jlimit(0.f , 127.f
+                                      , visibleNotes * scaleFactor );
 
+    m_editViewState.m_pianoStartNoteBottom = juce::jmax(0.f,(float) m_clickedNote - ((scaledVisibleNotes * ((float)getHeight() - e.position.y)) / (float) getHeight()));
+    float maxKeyHeight = (float) getHeight() / (float)(127.f - m_editViewState.m_pianoStartNoteBottom);
+    m_editViewState.m_pianorollNoteWidth = juce::jmax((float)getHeight() / scaledVisibleNotes, maxKeyHeight);
 }
-
 //-----------------------------------------------------------------------------------
 
 PianoRollEditorComponent::PianoRollEditorComponent(EditViewState & evs)
@@ -109,7 +105,7 @@ void PianoRollEditorComponent::resized()
 void PianoRollEditorComponent::mouseMove(const juce::MouseEvent &event)
 {
     m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName (
-                m_pianoRollContentComponent->getNoteNumber(event.y)
+                (int) m_pianoRollContentComponent->getNoteNumber(event.y)
                 , true
                 , true
                 , 3);
