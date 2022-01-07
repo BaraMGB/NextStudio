@@ -100,12 +100,18 @@ juce::Rectangle<float> PianoRollContentComponent::getNoteRect(
                                        m_editViewState.m_pianoX1,
                                        m_editViewState.m_pianoX2) + 1;
 
-    auto yOffset = (float) n->getNoteNumber () - getfirstNote() + 1;
+    return getNoteRect(n->getNoteNumber(), x1, x2);
+}
+
+juce::Rectangle<float> PianoRollContentComponent::getNoteRect(const int noteNum,
+                                                              int x1,
+                                                              int x2) const
+{
+    auto yOffset = (float) noteNum - getfirstNote() + 1;
     auto noteY = (float) getHeight() - (yOffset * getNoteHeight());
     return {
         float (x1), float (noteY)
                        , float (x2 - x1), float (getNoteHeight())};
-
 }
 
 double PianoRollContentComponent::getNoteEndBeat(te::MidiClip* const& midiClip,
@@ -144,34 +150,13 @@ void PianoRollContentComponent::drawNoteLines(juce::Graphics& g,
 {
     auto lastNote= ((float) getHeight () / getNoteHeight()) + getfirstNote();
 
-    drawBottomNoteLine(g, area);
-
-    for (auto i = (int) getfirstNote() + 1; i <= (int) lastNote; i++)
+    for (auto i = (int) getfirstNote() ; i <= (int) lastNote; i++)
     {
         g.setColour (juce::MidiMessage::isMidiNoteBlack (i)
                 ? juce::Colour(0x11ffffff)
                 : juce::Colour(0x22ffffff));
-        g.fillRect (area.removeFromBottom ((int) getNoteHeight()).reduced (0, 1));
+        g.fillRect (getNoteRect(i, 0, getWidth()).reduced(0, 1));
     }
-}
-
-void PianoRollContentComponent::drawBottomNoteLine(juce::Graphics& g,
-                                                   juce::Rectangle<int>& area) const
-{
-    auto firstNoteRect = area.removeFromBottom ((int) getFirstNoteHeight());
-
-    g.setColour (juce::MidiMessage::isMidiNoteBlack ((int) getfirstNote())
-            ? juce::Colour(0x11ffffff)
-            : juce::Colour(0x22ffffff));
-    g.fillRect (firstNoteRect.reduced(0,1));
-}
-
-float PianoRollContentComponent::getFirstNoteHeight() const
-{
-    return getNoteHeight()
-           - (getNoteHeight()
-              * (getfirstNote() - (float(int(getfirstNote()))))
-              );
 }
 
 float PianoRollContentComponent::getNoteHeight() const
@@ -202,7 +187,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                         .removeNote (*m_clickedNote
                                      , &m_editViewState
                                      .m_edit.getUndoManager ());
-                repaint();
+                //repaint();
             }
         }
         else
@@ -243,7 +228,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                   , false
                   , true);
         m_clickOffsetBeats = m_clickedNote->getStartBeat () - clickedBeat;
-        repaint();
+        //repaint();
         m_noteAdding = true;
     }
 
@@ -308,7 +293,7 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
                               , true);
                 }
                 //update displayed note number under cursor
-                getParentComponent ()->mouseMove (e);
+                //getParentComponent ()->mouseMove (e);
             }
         }
         repaint ();

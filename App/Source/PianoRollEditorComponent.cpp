@@ -8,20 +8,22 @@ void KeyboardView::mouseDown(const juce::MouseEvent& e)
 
 void KeyboardView::mouseDrag(const juce::MouseEvent& e)
 {
-    auto newPianoStartNote = m_pianoStartNoteCached
+    m_editViewState.m_pianorollNoteWidth
+        = m_pianoRollKeyWidthCached
+          + e.getDistanceFromDragStartX()
+            * 0.1;
+
+    double newPianoStartNote = m_pianoStartNoteCached
           + (e.getDistanceFromDragStartY()
              / m_editViewState.m_pianorollNoteWidth)
-          + ((e.getDistanceFromDragStartX() * 2.0)
-             * 0.1);
+          + e.getDistanceFromDragStartX()
+             * 0.1;
+
     m_editViewState.m_pianoStartNoteBottom = juce::jlimit(
         0.0
         , 127.0 - (getHeight() / m_editViewState.m_pianorollNoteWidth)
             , newPianoStartNote);
 
-    m_editViewState.m_pianorollNoteWidth
-        = m_pianoRollKeyWidthCached
-          + e.getDistanceFromDragStartX()
-            * 0.1;
 }
 
 //-----------------------------------------------------------------------------------
@@ -88,12 +90,6 @@ void PianoRollEditorComponent::resized()
     auto playhead = area.withTrimmedTop ( - m_editViewState.m_timeLineHeight);
 
     m_keyboard.setBounds (keyboard);
-
-//    m_editViewState.m_pianoStartNoteBottom =
-//            juce::jlimit(0.0
-//                       , 127.0
-//                         - (getHeight () / m_editViewState.m_pianorollNoteWidth)
-//                       , (double) m_editViewState.m_pianoStartNoteBottom);
 
     m_timeline.setBounds (timeline);
     if (m_timelineOverlay)
@@ -185,8 +181,8 @@ void PianoRollEditorComponent::valueTreePropertyChanged(
         ||  property == IDs::pianorollNoteWidth)
         {
             m_keyboard.resized();
-            m_pianoRollContentComponent->repaint();
-            resized ();
+//            m_pianoRollContentComponent->repaint();
+            //resized ();
         }
     }
 }

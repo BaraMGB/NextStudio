@@ -25,7 +25,6 @@ public:
     te::Track::Ptr getTrack();
     std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
     te::MidiNote* getNoteByPos (juce::Point<float> pos);
-    [[nodiscard]] float getFirstNoteHeight() const;
     int getNoteNumber (int y);
 
 private:
@@ -38,40 +37,38 @@ private:
                   tracktion_engine::MidiClip* const& midiClip,
                   const tracktion_engine::MidiNote* n) const;
 
-    void drawBottomNoteLine(juce::Graphics& g, juce::Rectangle<int>& area) const;
-
-
     [[nodiscard]] float    getfirstNote() const;
     [[nodiscard]] float    getNoteHeight() const;
     te::MidiClip*          getMidiClipByPos(int y);
     juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip* const& midiClip
                            , const tracktion_engine::MidiNote* n) const;
+    juce::Rectangle<float> getNoteRect(const int noteNum, int x1, int x2) const;
     static double          getNoteStartBeat(te::MidiClip* const& midiClip
                            , const te::MidiNote* n) ;
     static double          getNoteEndBeat(te::MidiClip* const& midiClip
                            , const te::MidiNote* n) ;
     juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip
                            , const tracktion_engine::MidiNote* n) const;
-    static float           getVelocity(const tracktion_engine::MidiNote* note);
 
+    static float           getVelocity(const tracktion_engine::MidiNote* note);
     [[nodiscard]] double   xToBeats(const int& x) const;
     [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
+
     [[nodiscard]] double   getQuantizedBeat(double beat) const;
 
     void scrollPianoRoll(float delta);
-
     static bool isBeforeClipStart(double beats) ;
+
     static bool isAfterClipEnd(tracktion_engine::MidiClip* const& midiClip,
                                double beats) ;
-
     juce::Point<float>                  m_clickedPos;
     EditViewState&                      m_editViewState;
     te::Track::Ptr                      m_track;
     te::MidiNote*                       m_clickedNote {nullptr};
     double                              m_clickOffsetBeats{0};
+
     bool                                m_expandLeft {false}
                                         , m_expandRight{false}
                                         , m_noteAdding {false};
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
 };
