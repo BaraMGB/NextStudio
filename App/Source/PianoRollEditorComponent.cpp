@@ -2,25 +2,30 @@
 
 void KeyboardView::mouseDown(const juce::MouseEvent& e)
 {
-    m_pianoStartNoteCached = m_editViewState.m_pianoStartNoteBottom;
-    m_pianoRollKeyWidthCached = m_editViewState.m_pianorollNoteWidth;
-    m_clickedNote = getNoteNum(e.y);
+    m_startKeyCached = m_editViewState.m_pianoStartKey;
+    m_keyWidthCached = m_editViewState.m_pianoKeyWidth;
+    m_clickedKey = getKey(e.y);
 }
 
 void KeyboardView::mouseDrag(const juce::MouseEvent& e)
 {
-    auto unitDistance = 50.0f;
-    float scaleFactor
-        = std::powf (2,(float) e.getDistanceFromDragStartX() / unitDistance);
+    auto visibleKeys = (float) (getHeight() / m_keyWidthCached);
 
-    auto visibleNotes = (float) (getHeight() / m_pianoRollKeyWidthCached);
+    auto scaleFactor = GUIHelpers::getScaleFactor(e.getDistanceFromDragStartX());
+    auto scaledVisibleKeys = juce::jlimit(12.f , 64.f
+            , visibleKeys * scaleFactor);
 
-    float scaledVisibleNotes = juce::jlimit(0.f , 127.f
-                                      , visibleNotes * scaleFactor );
+    auto currentYtoKeys = juce::jmap(
+                               (float) getHeight() - e.position.y
+                               , 0.f , (float) getHeight()
+                               , 0.f , scaledVisibleKeys);
 
-    m_editViewState.m_pianoStartNoteBottom = juce::jmax(0.f,(float) m_clickedNote - ((scaledVisibleNotes * ((float)getHeight() - e.position.y)) / (float) getHeight()));
-    float maxKeyHeight = (float) getHeight() / (float)(127.f - m_editViewState.m_pianoStartNoteBottom);
-    m_editViewState.m_pianorollNoteWidth = juce::jmax((float)getHeight() / scaledVisibleNotes, maxKeyHeight);
+    auto newStartKey = juce::jmax(0.f, m_clickedKey - currentYtoKeys);
+    auto maxKeyHeight = (float) getHeight() / (float) (127.f - newStartKey);
+    auto newKeyWidth = juce::jmax((float) getHeight() / scaledVisibleKeys, maxKeyHeight);
+
+    m_editViewState.m_pianoStartKey = newStartKey;
+    m_editViewState.m_pianoKeyWidth = newKeyWidth;
 }
 //-----------------------------------------------------------------------------------
 

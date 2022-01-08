@@ -40,6 +40,8 @@ namespace Helpers
 
 namespace GUIHelpers
 {
+    float getScaleFactor(int delta);
+
     template<typename T>
     void log(T message)
     {

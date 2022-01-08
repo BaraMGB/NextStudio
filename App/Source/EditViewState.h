@@ -102,8 +102,8 @@ public:
         m_viewY.referTo (m_state, IDs::viewY, um, 0);
         m_pianoX1.referTo (m_state, IDs::pianoX1, um, 0);
         m_pianoX2.referTo (m_state, IDs::pianoX2, um, 4);
-        m_pianoStartNoteBottom.referTo (m_state, IDs::pianoY1, um, 24);
-        m_pianorollNoteWidth.referTo(m_state, IDs::pianorollNoteWidth, um, 15.0);
+        m_pianoStartKey.referTo (m_state, IDs::pianoY1, um, 24);
+        m_pianoKeyWidth.referTo(m_state, IDs::pianorollNoteWidth, um, 15.0);
         m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
         m_pianorollHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
         m_lastNoteLength.referTo (m_state, IDs::lastNoteLenght, um, 0);
@@ -227,10 +227,9 @@ public:
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY
-                            , m_pianoStartNoteBottom, m_pianoX1
+                            , m_pianoStartKey, m_pianoX1
                             , m_pianoX2
-                            , m_pianorollNoteWidth
-                            , m_lastNoteLength
+                            , m_pianoKeyWidth, m_lastNoteLength
                             , m_playHeadStartTime;
     juce::CachedValue<int> m_pianorollHeight;
     juce::CachedValue<int> m_snapType;

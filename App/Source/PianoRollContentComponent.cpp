@@ -161,12 +161,12 @@ void PianoRollContentComponent::drawNoteLines(juce::Graphics& g,
 
 float PianoRollContentComponent::getNoteHeight() const
 {
-    return  (float) m_editViewState.m_pianorollNoteWidth;
+    return  (float) m_editViewState.m_pianoKeyWidth;
 }
 
 float PianoRollContentComponent::getfirstNote() const
 {
-    return (float) m_editViewState.m_pianoStartNoteBottom;
+    return (float) m_editViewState.m_pianoStartKey;
 }
 
 void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
@@ -398,10 +398,10 @@ void PianoRollContentComponent::mouseWheelMove(const juce::MouseEvent &event
 
 void PianoRollContentComponent::scrollPianoRoll(float delta)
 {
-    m_editViewState.m_pianoStartNoteBottom =
+    m_editViewState.m_pianoStartKey =
             juce::jlimit(0.f
-                       , 127.f - (float) (getHeight() / m_editViewState.m_pianorollNoteWidth)
-                       , (float) m_editViewState.m_pianoStartNoteBottom + delta);
+                       , 127.f - (float) (getHeight() / m_editViewState.m_pianoKeyWidth)
+                       , (float) m_editViewState.m_pianoStartKey + delta);
 }
 
 std::vector<te::MidiClip*> PianoRollContentComponent::getMidiClipsOfTrack()
@@ -430,8 +430,9 @@ void PianoRollContentComponent::drawVerticalLines(juce::Graphics &g, juce::Colou
 
 int PianoRollContentComponent::getNoteNumber(int y)
 {
-    auto noteHeight = (double) m_editViewState.m_pianorollNoteWidth;
-    auto noteNumb = (int)(m_editViewState.m_pianoStartNoteBottom + ((double)(getHeight () - y) / noteHeight));
+    auto noteHeight = (double) m_editViewState.m_pianoKeyWidth;
+    auto noteNumb = (int)(m_editViewState.m_pianoStartKey
+                           + ((double)(getHeight () - y) / noteHeight));
     return noteNumb;
 }
 

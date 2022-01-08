@@ -759,3 +759,11 @@ void GUIHelpers::moveView(EditViewState& evs, double newBeatPos)
     evs.m_viewX1 = evs.m_viewX1 - delta;
     evs.m_viewX2 = evs.m_viewX1 + zoom;
 }
+
+float GUIHelpers::getScaleFactor(int delta)
+{
+    auto unitDistance = 50.0f;
+    float scaleFactor
+            = std::powf (2,(float) delta / unitDistance);
+    return scaleFactor;
+}

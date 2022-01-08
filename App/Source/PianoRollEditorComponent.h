@@ -25,8 +25,8 @@ public:
     void mouseDrag (const juce::MouseEvent& e) override;
     void resized() override
     {
-        double firstVisibleNote = m_editViewState.m_pianoStartNoteBottom;
-        double pianoRollNoteWidth = m_editViewState.m_pianorollNoteWidth;
+        double firstVisibleNote = m_editViewState.m_pianoStartKey;
+        double pianoRollNoteWidth = m_editViewState.m_pianoKeyWidth;
 
         m_keyboard.setKeyWidth (juce::jmax(0.1f, (float) pianoRollNoteWidth * 12 / 7));
         m_keyboard.setBounds (getWidth() - 50
@@ -41,21 +41,21 @@ public:
 
 private:
 
-    float getNoteNum(int y)
+    float getKey(int y)
     {
-        auto noteHeight = (double) m_editViewState.m_pianorollNoteWidth;
+        auto noteHeight = (double) m_editViewState.m_pianoKeyWidth;
         auto noteNumb =
-            static_cast<float>(m_editViewState.m_pianoStartNoteBottom
-                               + ((getHeight() - y) / noteHeight));
+            static_cast<float>(m_editViewState.m_pianoStartKey
+                                           + ((getHeight() - y) / noteHeight));
         return noteNumb;
     }
 
     juce::MidiKeyboardComponent m_keyboard;
     EditViewState& m_editViewState;
 
-    float m_clickedNote;
-    double m_pianoStartNoteCached;
-    double m_pianoRollKeyWidthCached;
+    float m_clickedKey;
+    double m_startKeyCached;
+    double m_keyWidthCached;
 };
 
 
