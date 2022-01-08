@@ -11,7 +11,8 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
 {
     auto visibleKeys = (float) (getHeight() / m_keyWidthCached);
 
-    auto scaleFactor = GUIHelpers::getScaleFactor(e.getDistanceFromDragStartX());
+    auto scaleFactor = GUIHelpers::getScaleFactor(e.getDistanceFromDragStartX()
+                                        , m_editViewState.getTimeLineZoomUnit());
     auto scaledVisibleKeys = juce::jlimit(12.f , 64.f
             , visibleKeys * scaleFactor);
 

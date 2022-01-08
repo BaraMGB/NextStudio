@@ -19,48 +19,44 @@ public:
     void mouseMove (const juce::MouseEvent &) override;
     void mouseExit (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
-    void mouseWheelMove (const juce::MouseEvent &event
-                         , const juce::MouseWheelDetails &wheel) override;
+    void mouseWheelMove (const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
     te::Track::Ptr getTrack();
     std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
-    te::MidiNote* getNoteByPos (juce::Point<float> pos);
+
     int getNoteNumber (int y);
 
 private:
 
-    void drawVerticalLines (juce::Graphics& g, juce::Colour colour);
-    void drawNoteLines(juce::Graphics& g, juce::Rectangle<int>& area) const;
-    void drawClipRange(juce::Graphics& g,
-                       tracktion_engine::MidiClip* const& midiClip) const;
-    void drawNote(juce::Graphics& g,
-                  tracktion_engine::MidiClip* const& midiClip,
-                  const tracktion_engine::MidiNote* n) const;
+    void drawBarsAndBeatLines(juce::Graphics& g, juce::Colour colour);
+    void drawKeyLines(juce::Graphics& g, juce::Rectangle<int>& area) const;
+    void drawClipRange(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip) const;
+    void drawNote(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n) const;
 
-    [[nodiscard]] float    getfirstNote() const;
-    [[nodiscard]] float    getNoteHeight() const;
+    [[nodiscard]] float    getStartKey() const;
+    [[nodiscard]] float    getKeyWidth() const;
+
+    [[nodiscard]] juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n) const;
+    [[nodiscard]] juce::Rectangle<float> getNoteRect(int noteNum, int x1, int x2) const;
+
+    static double          getNoteStartBeat(te::MidiClip* const& midiClip, const te::MidiNote* n) ;
+    static double          getNoteEndBeat(te::MidiClip* const& midiClip, const te::MidiNote* n) ;
+    juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n) const;
+
     te::MidiClip*          getMidiClipByPos(int y);
-    juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip* const& midiClip
-                           , const tracktion_engine::MidiNote* n) const;
-    juce::Rectangle<float> getNoteRect(const int noteNum, int x1, int x2) const;
-    static double          getNoteStartBeat(te::MidiClip* const& midiClip
-                           , const te::MidiNote* n) ;
-    static double          getNoteEndBeat(te::MidiClip* const& midiClip
-                           , const te::MidiNote* n) ;
-    juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip
-                           , const tracktion_engine::MidiNote* n) const;
+    te::MidiNote*          getNoteByPos (juce::Point<float> pos);
 
     static float           getVelocity(const tracktion_engine::MidiNote* note);
+
     [[nodiscard]] double   xToBeats(const int& x) const;
     [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
-
     [[nodiscard]] double   getQuantizedBeat(double beat) const;
 
     void scrollPianoRoll(float delta);
-    static bool isBeforeClipStart(double beats) ;
 
-    static bool isAfterClipEnd(tracktion_engine::MidiClip* const& midiClip,
-                               double beats) ;
+    static bool isBeforeClipStart(double beats) ;
+    static bool isAfterClipEnd(tracktion_engine::MidiClip* const& midiClip, double beats) ;
+
     juce::Point<float>                  m_clickedPos;
     EditViewState&                      m_editViewState;
     te::Track::Ptr                      m_track;

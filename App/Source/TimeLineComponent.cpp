@@ -66,7 +66,9 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
 
 void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
 {
-    auto scaleFactor = GUIHelpers::getScaleFactor(event.getDistanceFromDragStartY());
+    auto scaleFactor = GUIHelpers::getScaleFactor(
+        event.getDistanceFromDragStartY()
+        , m_editViewState.getTimeLineZoomUnit());
     auto newVisibleLengthBeats = juce::jlimit(
         0.05, 240.0
         , (m_cachedX2 - m_cachedX1) * scaleFactor);

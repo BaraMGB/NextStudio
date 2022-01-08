@@ -15,8 +15,8 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds ();
 
-    drawNoteLines(g, area);
-    drawVerticalLines (g, juce::Colours::black);
+    drawKeyLines(g, area);
+    drawBarsAndBeatLines(g, juce::Colours::black);
 
     for (auto & midiClip : getMidiClipsOfTrack())
     {
@@ -107,11 +107,11 @@ juce::Rectangle<float> PianoRollContentComponent::getNoteRect(const int noteNum,
                                                               int x1,
                                                               int x2) const
 {
-    auto yOffset = (float) noteNum - getfirstNote() + 1;
-    auto noteY = (float) getHeight() - (yOffset * getNoteHeight());
+    auto yOffset = (float) noteNum - getStartKey() + 1;
+    auto noteY = (float) getHeight() - (yOffset * getKeyWidth());
     return {
         float (x1), float (noteY)
-                       , float (x2 - x1), float (getNoteHeight())};
+                       , float (x2 - x1), float (getKeyWidth())};
 }
 
 double PianoRollContentComponent::getNoteEndBeat(te::MidiClip* const& midiClip,
@@ -145,12 +145,12 @@ void PianoRollContentComponent::drawClipRange(
     g.fillRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight());
 }
 
-void PianoRollContentComponent::drawNoteLines(juce::Graphics& g,
+void PianoRollContentComponent::drawKeyLines(juce::Graphics& g,
                                               juce::Rectangle<int>& area) const
 {
-    auto lastNote= ((float) getHeight () / getNoteHeight()) + getfirstNote();
+    auto lastNote= ((float) getHeight () / getKeyWidth()) + getStartKey();
 
-    for (auto i = (int) getfirstNote() ; i <= (int) lastNote; i++)
+    for (auto i = (int) getStartKey() ; i <= (int) lastNote; i++)
     {
         g.setColour (juce::MidiMessage::isMidiNoteBlack (i)
                 ? juce::Colour(0x11ffffff)
@@ -159,12 +159,12 @@ void PianoRollContentComponent::drawNoteLines(juce::Graphics& g,
     }
 }
 
-float PianoRollContentComponent::getNoteHeight() const
+float PianoRollContentComponent::getKeyWidth() const
 {
     return  (float) m_editViewState.m_pianoKeyWidth;
 }
 
-float PianoRollContentComponent::getfirstNote() const
+float PianoRollContentComponent::getStartKey() const
 {
     return (float) m_editViewState.m_pianoStartKey;
 }
@@ -420,7 +420,7 @@ std::vector<te::MidiClip*> PianoRollContentComponent::getMidiClipsOfTrack()
     return midiClips;
 }
 
-void PianoRollContentComponent::drawVerticalLines(juce::Graphics &g, juce::Colour colour)
+void PianoRollContentComponent::drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour)
 {
     g.setColour(colour);
     double x1 = m_editViewState.m_pianoX1;

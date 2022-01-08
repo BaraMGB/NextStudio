@@ -64,6 +64,8 @@ namespace IDs
     DECLARE_ID (automationFollowsClip)
     DECLARE_ID (playHeadStartTime)
     DECLARE_ID (followsPlayhead)
+    DECLARE_ID (timeLineZoomUnit)
+    DECLARE_ID (zoomMode)
     #undef DECLARE_ID
 }
 
@@ -112,6 +114,20 @@ public:
         m_followPlayhead.referTo (m_state, IDs::followsPlayhead, um, true);
         m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
         m_editName.referTo(m_state, IDs::name, um, "unknown");
+        m_timeLineZoomUnit.referTo(m_state, IDs::timeLineZoomUnit, um, 50);
+        m_zoomMode.referTo(m_state, IDs::zoomMode, um, "B");
+    }
+
+    float getTimeLineZoomUnit ()
+    {
+        if(m_zoomMode == "B")
+            return m_timeLineZoomUnit;
+        return m_timeLineZoomUnit * (-1);
+    }
+
+    juce::String getZoomMode ()
+    {
+        return m_zoomMode;
     }
 
     [[nodiscard]] int beatsToX (double beats, int width, double x1beats, double x2beats) const
@@ -230,7 +246,8 @@ public:
                             , m_pianoStartKey, m_pianoX1
                             , m_pianoX2
                             , m_pianoKeyWidth, m_lastNoteLength
-                            , m_playHeadStartTime;
+                            , m_playHeadStartTime
+                            , m_timeLineZoomUnit;
     juce::CachedValue<int> m_pianorollHeight;
     juce::CachedValue<int> m_snapType;
 
@@ -240,7 +257,8 @@ public:
                          , m_timeLineHeight
                          , m_footerBarHeight;
 
-    juce::CachedValue<juce::String> m_editName;
+    juce::CachedValue<juce::String> m_editName
+                                    , m_zoomMode;
     juce::ValueTree m_state;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };
