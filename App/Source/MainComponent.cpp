@@ -67,8 +67,8 @@ void MainComponent::resized()
     m_header->setBounds(header);
     area.removeFromTop(10);
     auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
-                       ? m_editComponent->getEditViewState().m_pianorollHeight
-                       : 250);
+                       ? m_editComponent->getEditViewState().m_midiEditorHeight
+            : 250);
     Component* comps[] = {
         m_sideBarBrowser.get ()
       , &m_resizerBar

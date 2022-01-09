@@ -1,35 +1,5 @@
 #include "PianoRollEditorComponent.h"
 
-void KeyboardView::mouseDown(const juce::MouseEvent& e)
-{
-    m_startKeyCached = m_editViewState.m_pianoStartKey;
-    m_keyWidthCached = m_editViewState.m_pianoKeyWidth;
-    m_clickedKey = getKey(e.y);
-}
-
-void KeyboardView::mouseDrag(const juce::MouseEvent& e)
-{
-    auto visibleKeys = (float) (getHeight() / m_keyWidthCached);
-
-    auto scaleFactor = GUIHelpers::getScaleFactor(e.getDistanceFromDragStartX()
-                                        , m_editViewState.getTimeLineZoomUnit());
-    auto scaledVisibleKeys = juce::jlimit(12.f , 64.f
-            , visibleKeys * scaleFactor);
-
-    auto currentYtoKeys = juce::jmap(
-                               (float) getHeight() - e.position.y
-                               , 0.f , (float) getHeight()
-                               , 0.f , scaledVisibleKeys);
-
-    auto newStartKey = juce::jmax(0.f, m_clickedKey - currentYtoKeys);
-    auto maxKeyHeight = (float) getHeight() / (float) (127.f - newStartKey);
-    auto newKeyWidth = juce::jmax((float) getHeight() / scaledVisibleKeys, maxKeyHeight);
-
-    m_editViewState.m_pianoStartKey = newStartKey;
-    m_editViewState.m_pianoKeyWidth = newKeyWidth;
-}
-//-----------------------------------------------------------------------------------
-
 PianoRollEditorComponent::PianoRollEditorComponent(EditViewState & evs)
     : m_editViewState(evs)
     , m_keyboard (m_keybordstate, evs)
@@ -48,13 +18,42 @@ PianoRollEditorComponent::PianoRollEditorComponent(EditViewState & evs)
     m_timeline.setAlwaysOnTop (true);
     m_playhead.setAlwaysOnTop (true);
 }
-
 PianoRollEditorComponent::~PianoRollEditorComponent()
 {
     m_editViewState.m_edit.state.removeListener (this);
     m_keybordstate.removeListener (this);
 }
+void PianoRollEditorComponent::paint(juce::Graphics& g)
+{
+    auto area = getLocalBounds();
+    g.setColour(juce::Colour(0xff181818));
+    g.fillRect(area.removeFromTop(m_editViewState.m_timeLineHeight));
 
+    g.setColour(juce::Colours::white);
+    g.fillRect(area.removeFromTop(1));
+    auto footer = area.removeFromBottom(19);
+    auto velocity = area.removeFromBottom(m_editViewState.m_velocityEditorHeight);
+    g.setColour(juce::Colour(0xff181818));
+    g.fillRect(footer);
+
+    g.setColour(juce::Colour(0xff272727));
+    g.fillRect(area);
+
+    g.setColour(juce::Colours::white);
+    area.removeFromTop(m_editViewState.m_timeLineHeight - 1);
+
+    g.fillRect(area.removeFromTop(1));
+
+    g.fillRect(velocity.removeFromBottom(1));
+
+    g.fillRect(area.removeFromBottom(1));
+
+    auto keyboard = getLocalBounds();
+    keyboard.removeFromTop(m_editViewState.m_timeLineHeight);
+    keyboard.removeFromBottom(20);
+    keyboard.removeFromRight(getWidth() - 150);
+    g.fillRect(keyboard.removeFromRight(1));
+}
 void PianoRollEditorComponent::paintOverChildren(juce::Graphics &g)
 {
     g.setColour (juce::Colour(0xffffffff));
@@ -74,8 +73,9 @@ void PianoRollEditorComponent::paintOverChildren(juce::Graphics &g)
               , 90
               , 20
               , juce::Justification::centredLeft);
-}
 
+
+}
 void PianoRollEditorComponent::resized()
 {
     auto area = getLocalBounds ();
@@ -88,7 +88,7 @@ void PianoRollEditorComponent::resized()
     auto timeline = area.removeFromTop (m_editViewState.m_timeLineHeight);
 
     keyboard.removeFromTop(1);
-
+    keyboard.removeFromBottom(m_editViewState.m_velocityEditorHeight);
     auto playhead = area.withTrimmedTop ( - m_editViewState.m_timeLineHeight);
 
     m_keyboard.setBounds (keyboard);
@@ -99,15 +99,20 @@ void PianoRollEditorComponent::resized()
         m_timelineOverlay->setBounds (timeline);
     }
 
+    if (m_velocityEditor)
+    {
+        m_velocityEditor->setBounds(area.removeFromBottom(m_editViewState.m_velocityEditorHeight));
+    }
+
     if (m_pianoRollContentComponent)
     {
         m_pianoRollContentComponent->setBounds (area);
     }
 
+
     m_playhead.setBounds (playhead);
 
 }
-
 void PianoRollEditorComponent::mouseMove(const juce::MouseEvent &event)
 {
     m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName (
@@ -117,7 +122,6 @@ void PianoRollEditorComponent::mouseMove(const juce::MouseEvent &event)
                 , 3);
     repaint();
 }
-
 void PianoRollEditorComponent::handleNoteOn(juce::MidiKeyboardState *
                                       , int /*midiChannel*/
                                       , int midiNoteNumber
@@ -137,7 +141,6 @@ void PianoRollEditorComponent::handleNoteOn(juce::MidiKeyboardState *
         }
     }
 }
-
 void PianoRollEditorComponent::handleNoteOff(juce::MidiKeyboardState *
                                        , int /*midiChannel*/
                                        , int /*midiNoteNumber*/
@@ -152,60 +155,67 @@ void PianoRollEditorComponent::handleNoteOff(juce::MidiKeyboardState *
         }
     }
 }
-
 void PianoRollEditorComponent::setTrack(const tracktion_engine::Track::Ptr& track)
 {
     m_pianoRollContentComponent = std::make_unique<PianoRollContentComponent>(m_editViewState, track);
     addAndMakeVisible (*m_pianoRollContentComponent);
+
     m_timelineOverlay = std::make_unique<TimelineOverlayComponent>
             (m_editViewState
            , m_pianoRollContentComponent->getTrack ()
            , m_timeline);
     m_timelineOverlay->setAlwaysOnTop (true);
     addAndMakeVisible (*m_timelineOverlay);
+
+    m_velocityEditor = std::make_unique<VelocityEditor>(
+        m_editViewState, m_pianoRollContentComponent->getTrack());
+    addAndMakeVisible(*m_velocityEditor);
+
     resized ();
 }
-
-void PianoRollEditorComponent::clearPianoRollClip()
+void PianoRollEditorComponent::clearTrack()
 {
     m_timelineOverlay.reset (nullptr);
     m_pianoRollContentComponent.reset (nullptr);
+    m_velocityEditor.reset(nullptr);
     resized ();
 }
-
 void PianoRollEditorComponent::valueTreePropertyChanged(
         juce::ValueTree &treeWhosePropertyHasChanged
       , const juce::Identifier &property)
 {
+    if (treeWhosePropertyHasChanged.hasType(te::IDs::NOTE))
+    {
+        if (property == te::IDs::v)
+        {
+            markAndUpdate(m_updateNoteEditor);
+        }
+        markAndUpdate(m_updateVelocity);
+    }
+
     if (treeWhosePropertyHasChanged.hasType (IDs::EDITVIEWSTATE))
     {
         if (property == IDs::pianoY1
         ||  property == IDs::pianorollNoteWidth)
         {
-            m_keyboard.resized();
-//            m_pianoRollContentComponent->repaint();
-            //resized ();
+            markAndUpdate(m_updateKeyboard);
         }
     }
 }
-void PianoRollEditorComponent::paint(juce::Graphics& g)
+void PianoRollEditorComponent::handleAsyncUpdate()
 {
-    auto area = getLocalBounds();
-    g.setColour(juce::Colour(0xff181818));
-    g.fillRect(area.removeFromTop(m_editViewState.m_timeLineHeight));
+    if (m_updateKeyboard)
+    {
+        m_keyboard.resized();
+    }
 
-    g.setColour(juce::Colours::white);
-    g.fillRect(area.removeFromTop(1));
-    auto footer = area.removeFromBottom(20);
-    g.setColour(juce::Colour(0xff181818));
-    g.fillRect(footer);
+    if (m_updateNoteEditor)
+    {
+        m_pianoRollContentComponent->repaint();
+    }
 
-    g.setColour(juce::Colour(0xff272727));
-    g.fillRect(area);
-
-    g.setColour(juce::Colours::white);
-    area.removeFromTop(m_editViewState.m_timeLineHeight);
-    g.fillRect(area.removeFromTop(1));
-
-    g.fillRect(area.removeFromBottom(1));
+    if (m_updateVelocity)
+    {
+        m_velocityEditor->repaint();
+    }
 }

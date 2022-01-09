@@ -58,6 +58,8 @@ namespace GUIHelpers
 
     void centerView(EditViewState& evs);
 
+    juce::Rectangle<int> getSensibleArea(juce::Point<int> p, int w);
+
     void drawRoundedRectWithSide(
           juce::Graphics & g
         , juce::Rectangle<float> area

@@ -1,0 +1,57 @@
+#pragma once
+
+#include <utility>
+
+#include "../JuceLibraryCode/JuceHeader.h"
+#include "EditViewState.h"
+#include "Utilities.h"
+
+
+class VelocityEditor : public juce::Component
+{
+public:
+    VelocityEditor(EditViewState& evs, te::Track::Ptr t)
+        : m_editViewState(evs)
+        , m_track(t)
+    {
+    }
+    ~VelocityEditor() override
+    {
+    }
+
+    void paint(juce::Graphics& g) override;
+    void mouseDown(const juce::MouseEvent&) override;
+    void mouseDrag(const juce::MouseEvent&) override;
+    void mouseMove(const juce::MouseEvent&) override;
+    void mouseExit(const juce::MouseEvent&) override;
+    void mouseUp(const juce::MouseEvent&) override;
+    void mouseWheelMove(const juce::MouseEvent& event,
+                        const juce::MouseWheelDetails& wheel) override;
+
+private:
+
+    std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
+
+    tracktion_engine::MidiNote * getNote(juce::Point<int> p);
+
+    void drawBarsAndBeatLines(juce::Graphics& g, juce::Colour colour);
+    double getNoteStartBeat(te::MidiClip* const& pClip,
+                            const te::MidiNote* pNote) const;
+    double getNoteEndBeat(te::MidiClip* const& pClip,
+                          const te::MidiNote* pNote) const;
+    juce::Range<int> getXLineRange(te::MidiClip* const& midiClip, const te::MidiNote* n) const;
+
+    int getVelocityPixel(const te::MidiNote* n) const;
+
+    EditViewState& m_editViewState;
+    te::Track::Ptr m_track;
+    void drawVelocityRuler(juce::Graphics& graphics,
+                           tracktion_engine::MidiClip*& midiClip,
+                           tracktion_engine::MidiNote* n);
+    int beatsToX (double beats);
+    int getVelocity(int y);
+    void clearNotesFlags();
+    te::MidiNote* getHoveredNote();
+    int m_cachedVelocity;
+};
+

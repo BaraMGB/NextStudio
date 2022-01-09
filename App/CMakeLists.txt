@@ -14,6 +14,7 @@ endif()
 # If we are compiling for macOS we want to target OS versions down to 10.11
 if (APPLE)
     set (CMAKE_OSX_DEPLOYMENT_TARGET "10.11" CACHE INTERNAL "")
+    set (CMAKE_OSX_ARCHITECTURES "x86_64")
 endif()
 
 # Compile with werror in release builds
@@ -65,6 +66,8 @@ target_sources(${TargetName} PRIVATE
         Source/AudioClipComponent.cpp
         Source/MidiClipComponent.cpp
         Source/RecordingClipComponent.cpp
+        Source/VelocityEditor.cpp
+        Source/KeyboardView.cpp
         Source/Utilities.cpp
         )
 

@@ -47,9 +47,12 @@ void PianoRollContentComponent::drawNote(juce::Graphics& g,
     noteRect.reduce(1, 1);
     g.fillRect (noteRect);
 
-    g.setColour(juce::Colours::black);
-    g.drawText(juce::MidiMessage::getMidiNoteName(n->getNoteNumber(),true, true, 3)
-                   , noteRect, juce::Justification::centredLeft);
+    if (m_editViewState.m_pianoKeyWidth > 13)
+    {
+        g.setColour(juce::Colours::black);
+        g.drawText(juce::MidiMessage::getMidiNoteName(n->getNoteNumber(),true, true, 3)
+            , noteRect, juce::Justification::centredLeft);
+    }
 }
 juce::Colour PianoRollContentComponent::getNoteColour(
     tracktion_engine::MidiClip* const& midiClip,
@@ -63,7 +66,7 @@ juce::Colour PianoRollContentComponent::getNoteColour(
     else if (n->getColour () == 127)
         return juce::Colours::white;
 
-    return m_track->getColour().darker(getVelocity(n));
+    return m_track->getColour().darker(1.f - getVelocity(n));
 }
 
 float PianoRollContentComponent::getVelocity(
@@ -134,15 +137,16 @@ void PianoRollContentComponent::drawClipRange(
     auto clipStartX = m_editViewState.beatsToX (midiClip->getStartBeat (),
                                                getWidth(),
                                                m_editViewState.m_pianoX1,
-                                               m_editViewState.m_pianoX2);
-    auto clipLengthX = m_editViewState.beatsToX (midiClip->getEndBeat (),
+                                               m_editViewState.m_pianoX2) + 1;
+    auto clipEndX = m_editViewState.beatsToX (midiClip->getEndBeat (),
                                                 getWidth(),
                                                 m_editViewState.m_pianoX1,
                                                 m_editViewState.m_pianoX2);
     g.setColour (midiClip->getColour ());
-    g.drawRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight());
+    g.drawLine(clipStartX, 0, clipStartX, getHeight());
+    g.drawLine(clipEndX, 0, clipEndX, getHeight());
     g.setColour (midiClip->getColour ().withAlpha (0.2f));
-    g.fillRect (clipStartX  , 0, clipLengthX - clipStartX, getHeight());
+    g.fillRect (clipStartX, 0, clipEndX - clipStartX, getHeight());
 }
 
 void PianoRollContentComponent::drawKeyLines(juce::Graphics& g,
@@ -187,7 +191,6 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                         .removeNote (*m_clickedNote
                                      , &m_editViewState
                                      .m_edit.getUndoManager ());
-                //repaint();
             }
         }
         else
@@ -218,7 +221,8 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                 (getNoteNumber (e.y)
                  , beat
                  , m_editViewState.m_lastNoteLength == 0
-                    ? 0.25 : m_editViewState.m_lastNoteLength, 127
+                    ? 0.25 : m_editViewState.m_lastNoteLength
+                 , m_editViewState.m_lastVelocity
                  , 111
                  , &m_editViewState.m_edit.getUndoManager ());
         clickedClip->getAudioTrack ()->playGuideNote (
@@ -228,7 +232,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                   , false
                   , true);
         m_clickOffsetBeats = m_clickedNote->getStartBeat () - clickedBeat;
-        //repaint();
+
         m_noteAdding = true;
     }
 
@@ -436,7 +440,7 @@ int PianoRollContentComponent::getNoteNumber(int y)
     return noteNumb;
 }
 
-tracktion_engine::MidiNote *PianoRollContentComponent::getNoteByPos(juce::Point<float> pos)
+tracktion_engine::MidiNote* PianoRollContentComponent::getNoteByPos(juce::Point<float> pos)
 {
     for (auto& mc : getMidiClipsOfTrack ())
     {
@@ -458,7 +462,7 @@ tracktion_engine::MidiNote *PianoRollContentComponent::getNoteByPos(juce::Point<
     return nullptr;
 }
 
-tracktion_engine::MidiClip *PianoRollContentComponent::getMidiClipByPos(int y)
+tracktion_engine::MidiClip* PianoRollContentComponent::getMidiClipByPos(int y)
 {
     for (auto & clip : getMidiClipsOfTrack ())
     {

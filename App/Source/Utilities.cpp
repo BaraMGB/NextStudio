@@ -764,3 +764,7 @@ float GUIHelpers::getScaleFactor(int delta, float unitDistance)
 {
     return std::powf (2,(float) delta / unitDistance);
 }
+juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
+{
+    return {p.x - (w/2), p.y - (w/2), w, w};
+}

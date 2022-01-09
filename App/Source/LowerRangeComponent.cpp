@@ -26,7 +26,7 @@ void SplitterComponent::mouseExit(const juce::MouseEvent &)
 
 void SplitterComponent::mouseDown(const juce::MouseEvent &)
 {
-    m_pianorollHeightAtMousedown = m_editViewState.m_pianorollHeight;
+    m_pianorollHeightAtMousedown = m_editViewState.m_midiEditorHeight;
     m_cachedPianoNoteNum = (double) m_editViewState.m_pianoStartKey;
 }
 
@@ -44,7 +44,7 @@ void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
                            , 127.0 - (getHeight ()
                                 / m_editViewState.m_pianoKeyWidth)
                            , m_cachedPianoNoteNum + noteDist);
-        m_editViewState.m_pianorollHeight = std::max(20, newHeight);
+        m_editViewState.m_midiEditorHeight = std::max(20, newHeight);
     }
 }
 
@@ -190,7 +190,7 @@ void LowerRangeComponent::removePluginRackwithTrack(const te::Track::Ptr& track)
 void LowerRangeComponent::showPluginRack(const te::Track::Ptr& track)
 {
     m_pianoRollEditor.setVisible (false);
-    m_pianoRollEditor.clearPianoRollClip ();
+    m_pianoRollEditor.clearTrack();
 
 
     for (auto &prc : m_pluginRackComps)

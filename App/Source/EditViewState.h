@@ -66,6 +66,9 @@ namespace IDs
     DECLARE_ID (followsPlayhead)
     DECLARE_ID (timeLineZoomUnit)
     DECLARE_ID (zoomMode)
+    DECLARE_ID (velocityEditorHeight)
+    DECLARE_ID (isHovered)
+    DECLARE_ID (lastVelocity)
     #undef DECLARE_ID
 }
 
@@ -107,7 +110,7 @@ public:
         m_pianoStartKey.referTo (m_state, IDs::pianoY1, um, 24);
         m_pianoKeyWidth.referTo(m_state, IDs::pianorollNoteWidth, um, 15.0);
         m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
-        m_pianorollHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
+        m_midiEditorHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
         m_lastNoteLength.referTo (m_state, IDs::lastNoteLenght, um, 0);
         m_snapType.referTo(m_state, IDs::snapType, um, 9);
         m_playHeadStartTime.referTo (m_state, IDs::playHeadStartTime, um, 0.0);
@@ -116,6 +119,8 @@ public:
         m_editName.referTo(m_state, IDs::name, um, "unknown");
         m_timeLineZoomUnit.referTo(m_state, IDs::timeLineZoomUnit, um, 50);
         m_zoomMode.referTo(m_state, IDs::zoomMode, um, "B");
+        m_velocityEditorHeight.referTo(m_state, IDs::velocityEditorHeight, um, 100);
+        m_lastVelocity.referTo(m_state, IDs::lastVelocity, um, 100);
     }
 
     float getTimeLineZoomUnit ()
@@ -248,14 +253,16 @@ public:
                             , m_pianoKeyWidth, m_lastNoteLength
                             , m_playHeadStartTime
                             , m_timeLineZoomUnit;
-    juce::CachedValue<int> m_pianorollHeight;
+    juce::CachedValue<int> m_midiEditorHeight
+                            , m_velocityEditorHeight;
     juce::CachedValue<int> m_snapType;
 
     juce::CachedValue<int> m_trackHeightMinimized
                          , m_trackDefaultHeight
                          , m_trackHeaderWidth
                          , m_timeLineHeight
-                         , m_footerBarHeight;
+                         , m_footerBarHeight
+                         , m_lastVelocity;
 
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;
