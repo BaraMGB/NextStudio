@@ -69,6 +69,7 @@ namespace IDs
     DECLARE_ID (velocityEditorHeight)
     DECLARE_ID (isHovered)
     DECLARE_ID (lastVelocity)
+    DECLARE_ID (pianoRollKeyboardWidth)
     #undef DECLARE_ID
 }
 
@@ -121,6 +122,7 @@ public:
         m_zoomMode.referTo(m_state, IDs::zoomMode, um, "B");
         m_velocityEditorHeight.referTo(m_state, IDs::velocityEditorHeight, um, 100);
         m_lastVelocity.referTo(m_state, IDs::lastVelocity, um, 100);
+        m_keyboardWidth.referTo(m_state, IDs::pianoRollKeyboardWidth, um, 120);
     }
 
     float getTimeLineZoomUnit ()
@@ -262,7 +264,9 @@ public:
                          , m_trackHeaderWidth
                          , m_timeLineHeight
                          , m_footerBarHeight
-                         , m_lastVelocity;
+                         , m_lastVelocity
+                         ,
+        m_keyboardWidth;
 
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;

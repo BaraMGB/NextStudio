@@ -50,5 +50,15 @@ private:
 
     bool m_updateKeyboard {false}, m_updateVelocity {false}, m_updateNoteEditor{false};
 
+    juce::Rectangle<int> getHeaderRect();
+    juce::Rectangle<int> getTimeLineRect();
+    juce::Rectangle<int> getTimelineHelperRect();
+    juce::Rectangle<int> getKeyboardRect();
+    juce::Rectangle<int> getMidiEditorRect();
+    juce::Rectangle<int> getParameterToolbarRect();
+    juce::Rectangle<int> getVelocityEditorRect();
+    juce::Rectangle<int> getFooterRect();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollEditorComponent)
+    juce::Rectangle<int> getPlayHeadRect();
 };
