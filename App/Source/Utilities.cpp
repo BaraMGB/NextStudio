@@ -768,3 +768,29 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
 {
     return {p.x - (w/2), p.y - (w/2), w, w};
 }
+int GUIHelpers::getTrackHeight(tracktion_engine::AudioTrack* track, EditViewState& evs)
+{
+    bool isMinimized = (bool) track->state.getProperty(IDs::isTrackMinimized);
+    auto trackHeight =
+            isMinimized
+            ? evs.m_trackHeightMinimized
+            : (int) track->state.getProperty(tracktion_engine::IDs::height, 0);
+
+    if (!isMinimized)
+    {
+        for (auto apEditItems: track->getAllAutomatableEditItems())
+        {
+            for (auto ap: apEditItems->getAutomatableParameters())
+            {
+                if (ap->getCurve().getNumPoints() > 0)
+                {
+                    int height = ap->getCurve().state.getProperty(
+                            tracktion_engine::IDs::height, 0);
+                    trackHeight += height;
+                }
+            }
+        }
+    }
+
+    return trackHeight;
+}

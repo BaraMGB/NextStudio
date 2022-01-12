@@ -68,6 +68,7 @@ target_sources(${TargetName} PRIVATE
         Source/RecordingClipComponent.cpp
         Source/VelocityEditor.cpp
         Source/KeyboardView.cpp
+        Source/LassoSelectionTool.cpp
         Source/Utilities.cpp
         )
 

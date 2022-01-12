@@ -8,8 +8,8 @@ PianoRollEditorComponent::PianoRollEditorComponent(EditViewState & evs)
 {
     m_keybordstate.addListener (this);
     evs.m_edit.state.addListener (this);
-    m_keyboard.getKeyboard().setBlackNoteWidthProportion (0.5);
-    m_keyboard.getKeyboard().setBlackNoteLengthProportion (0.6);
+    m_keyboard.getKeyboard().setBlackNoteWidthProportion (0.5f);
+    m_keyboard.getKeyboard().setBlackNoteLengthProportion (0.6f);
     m_keyboard.getKeyboard().setScrollButtonsVisible (false);
 
     addAndMakeVisible (m_keyboard);

@@ -4,84 +4,6 @@
 #include "NextLookAndFeel.h"
 
 
-void LassoSelectionComponent::paint(juce::Graphics &g)
-{
-    if (m_isLassoSelecting)
-    {
-        g.setColour (juce::Colour(0x99FFFFFF));
-        g.drawRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
-        g.setColour (juce::Colour(0x22FFFFFF));
-        g.fillRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
-    }
-}
-
-void LassoSelectionComponent::mouseDown(const juce::MouseEvent &e)
-{
-    m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    m_cachedY = m_editViewState.m_viewY;
-}
-
-void LassoSelectionComponent::mouseDrag(const juce::MouseEvent &e)
-{
-    m_isLassoSelecting = true;
-    auto offsetY = m_editViewState.m_viewY - m_cachedY;
-
-    te::EditTimeRange timeRange(
-                juce::jmin(
-                    m_editViewState.xToTime (e.getPosition ().x, getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2)
-                    , m_clickedTime)
-                , juce::jmax(
-                    m_editViewState.xToTime (e.getPosition ().x, getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2)
-                    , m_clickedTime));
-    double top = juce::jmin(
-                e.getMouseDownY () + offsetY
-                , (double) e.getPosition ().y );
-    double bottom = juce::jmax(
-                e.getMouseDownY () + offsetY
-                , (double) e.getPosition ().y );
-
-    m_lassoRect = {timeRange, top, bottom};
-    updateSelection(e.mods.isCtrlDown ());
-    repaint ();
-}
-
-void LassoSelectionComponent::mouseUp(const juce::MouseEvent &)
-{
-    m_isLassoSelecting = false;
-    repaint();
-}
-
-void LassoSelectionComponent::updateSelection(bool add)
-{
-    if (auto editComp = dynamic_cast<EditComponent*>(getParentComponent ()))
-    {
-        if (!add)
-            m_editViewState.m_selectionManager.deselectAll ();
-        if (!editComp->getTrackComps ().isEmpty ())
-        {
-            for (auto t : editComp->getTrackComps ())
-            {
-                juce::Range<double> trackVerticalRange = {
-                    (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
-                  , (double) t->getPosition ().y - m_editViewState.m_timeLineHeight
-                        + (double) t->getHeight () };
-                if (trackVerticalRange.intersects (m_lassoRect.m_verticalRange))
-                {
-                    for (auto c : t->getClipComponents ())
-                    {
-                        if (m_lassoRect.m_startTime
-                                < c->getClip ()->getPosition ().getEnd ()
-                                && m_lassoRect.m_endTime > c->getClip ()->getPosition ().getStart ())
-                        {
-                            m_editViewState.m_selectionManager.addToSelection (c->getClip ());
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 //--------------------------------------------------------------------------------------------------------
 
 
@@ -178,7 +100,6 @@ void EditComponent::resized()
 {
     jassert (m_headers.size() == m_trackComps.size());
     const int timelineHeight = m_editViewState.m_timeLineHeight;
-    const int trackGap = 0;
     const int trackHeaderWidth = m_editViewState.m_showHeaders
                           ? m_editViewState.m_trackHeaderWidth
                           : 10;
@@ -221,7 +142,7 @@ void EditComponent::resized()
                               , y
                               , getWidth() - trackHeaderWidth
                               , trackHeaderHeight);
-        y += trackHeaderHeight + trackGap;
+        y += trackHeaderHeight;
         allTracksHeight += trackHeaderHeight;
     }
 
@@ -728,7 +649,7 @@ void EditComponent::buildTracks()
     resized();
 }
 
-LassoSelectionComponent* EditComponent::getLasso()
+LassoSelectionTool* EditComponent::getLasso()
 {
     return &m_lassoComponent;
 }
@@ -785,13 +706,4 @@ LowerRangeComponent& EditComponent::lowerRange()
     return m_lowerRange;
 }
 
-juce::Rectangle<int> LassoSelectionComponent::LassoRect::getRect(EditViewState& evs,
-                                                                 int width) const
-{
-    auto x = evs.timeToX (m_startTime, width, evs.m_viewX1, evs.m_viewX2);
-    auto y = (int) m_top;
-    auto w = evs.timeToX (m_endTime, width, evs.m_viewX1, evs.m_viewX2) - x;
-    auto h = (int) m_bottom - (int) m_top;
 
-    return  {x, y, w, h};
-}

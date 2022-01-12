@@ -40,6 +40,9 @@ namespace Helpers
 
 namespace GUIHelpers
 {
+
+    int getTrackHeight(tracktion_engine::AudioTrack* track, EditViewState& evs);
+
     float getScaleFactor(int delta, float unitDistance);
 
     template<typename T>
@@ -218,6 +221,7 @@ namespace EngineHelpers
     bool isInputMonitoringEnabled (te::AudioTrack& t, int position = 0);
     void enableInputMonitoring (te::AudioTrack& t, bool im, int position = 0);
     bool trackHasInput (te::AudioTrack& t, int position = 0);
+
     std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree (
             te::Engine& engine);
 }

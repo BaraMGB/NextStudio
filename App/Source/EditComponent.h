@@ -9,51 +9,7 @@
 #include "PluginRackComponent.h"
 #include "PlayHeadComponent.h"
 #include "LowerRangeComponent.h"
-
-
-namespace te = tracktion_engine;
-
-
-class LassoSelectionComponent : public juce::Component
-{
-public:
-    explicit LassoSelectionComponent(EditViewState& evs)
-        : m_editViewState(evs) {}
-    void paint(juce::Graphics &g) override;
-    void mouseDown(const juce::MouseEvent&) override;
-    void mouseDrag(const juce::MouseEvent &) override;
-    void mouseUp(const juce::MouseEvent &) override;
-
-    void updateSelection(bool add);
-private:
-    struct LassoRect
-    {
-        LassoRect ()= default;
-        [[maybe_unused]] LassoRect (te::EditTimeRange timeRange, double top, double bottom)
-            : m_timeRange(timeRange)
-            , m_verticalRange(top, bottom)
-            , m_startTime(timeRange.getStart ())
-            , m_endTime (timeRange.getEnd ())
-            , m_top (top)
-            , m_bottom (bottom){}
-
-        juce::Rectangle<int> getRect (EditViewState& evs, int width) const;
-        te::EditTimeRange m_timeRange { 0,0 };
-        juce::Range<double> m_verticalRange { 0,0 };
-        double m_startTime { 0 };
-        double m_endTime { 0 };
-        double m_top { 0 };
-        double m_bottom { 0 };
-    };
-    bool                           m_isLassoSelecting = false;
-    EditViewState&                 m_editViewState;
-    double                         m_clickedTime{};
-    double                         m_cachedY{};
-    LassoRect                      m_lassoRect;
-
-
-};
-
+#include "LassoSelectionTool.h"
 
 //------------------------------------------------------------------------------
 
@@ -124,7 +80,7 @@ public:
 
     void turnoffAllTrackOverlays ();
     EditViewState& getEditViewState () { return m_editViewState; }
-    LassoSelectionComponent* getLasso ();
+    LassoSelectionTool* getLasso ();
 
 private:
 
@@ -163,7 +119,7 @@ private:
                                               , m_editViewState.m_viewX2 };
     LowerRangeComponent                     m_lowerRange { m_editViewState };
     juce::Rectangle<float>                  m_songeditorRect;
-    LassoSelectionComponent                          m_lassoComponent;
+    LassoSelectionTool m_lassoComponent;
     juce::Array<juce::Colour>               m_trackColours;
 
     bool m_updateTracks = false, m_updateZoom = false;
