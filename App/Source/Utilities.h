@@ -41,7 +41,7 @@ namespace Helpers
 namespace GUIHelpers
 {
 
-    int getTrackHeight(tracktion_engine::AudioTrack* track, EditViewState& evs);
+    int getTrackHeight(tracktion_engine::AudioTrack* track, EditViewState& evs, bool withAutomation=true);
 
     float getScaleFactor(int delta, float unitDistance);
 

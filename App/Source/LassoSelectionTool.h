@@ -14,12 +14,12 @@ public:
     explicit LassoSelectionTool(EditViewState& evs)
         : m_editViewState(evs) {}
     void paint(juce::Graphics &g) override;
-    void mouseDown(const juce::MouseEvent&) override;
-    void mouseDrag(const juce::MouseEvent &) override;
-    void mouseUp(const juce::MouseEvent &) override;
 
-    void updateSelection(bool add);
+    void startLasso(const juce::MouseEvent& e);
+    void updateLasso(const juce::MouseEvent& e);
+    void stopLasso();
 private:
+    void updateSelection(bool add);
 
     struct LassoRect
     {
@@ -44,8 +44,13 @@ private:
 
     double xToTime(const int x);
     bool                           m_isLassoSelecting {false};
+
+
+
+private:
     EditViewState&                 m_editViewState;
     double                         m_clickedTime{};
     double                         m_cachedY{};
     LassoRect                      m_lassoRect;
+    te::EditTimeRange getDraggedTimeRange(const juce::MouseEvent& e);
 };

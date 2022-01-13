@@ -212,8 +212,7 @@ void EditComponent::mouseDown(const juce::MouseEvent &e)
     }
     else
     {
-        m_lassoComponent.setVisible (true);
-        m_lassoComponent.mouseDown (e.getEventRelativeTo (&m_lassoComponent));
+        m_lassoComponent.startLasso(e.getEventRelativeTo (&m_lassoComponent));
     }
 }
 
@@ -222,7 +221,7 @@ void EditComponent::mouseDrag(const juce::MouseEvent &e)
     if (m_lassoComponent.isVisible ())
     {
         setMouseCursor (juce::MouseCursor::CrosshairCursor);
-        m_lassoComponent.mouseDrag (e.getEventRelativeTo (&m_lassoComponent));
+        m_lassoComponent.updateLasso(e.getEventRelativeTo (&m_lassoComponent));
     }
 }
 
@@ -231,8 +230,7 @@ void EditComponent::mouseUp(const juce::MouseEvent &e)
     if (m_lassoComponent.isVisible ())
     {
         setMouseCursor (juce::MouseCursor::NormalCursor);
-        m_lassoComponent.mouseUp (e.getEventRelativeTo (&m_lassoComponent));
-        m_lassoComponent.setVisible (false);
+        m_lassoComponent.stopLasso();
     }
 }
 
