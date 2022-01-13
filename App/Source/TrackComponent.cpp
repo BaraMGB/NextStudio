@@ -50,7 +50,7 @@ void TrackComponent::paint (juce::Graphics& g)
 
 void TrackComponent::mouseDown (const juce::MouseEvent&event)
 {
-    m_editViewState.m_selectionManager.selectOnly (m_track);
+    //m_editViewState.m_selectionManager.selectOnly (m_track);
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     if (event.mods.isRightButtonDown())
     {

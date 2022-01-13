@@ -52,5 +52,6 @@ private:
     double                         m_clickedTime{};
     double                         m_cachedY{};
     LassoRect                      m_lassoRect;
+    juce::Array<te::Clip*>         m_cachedSelectedClips;
     te::EditTimeRange getDraggedTimeRange(const juce::MouseEvent& e);
 };

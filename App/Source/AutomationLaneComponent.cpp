@@ -145,7 +145,9 @@ void AutomationLaneComponent::mouseExit(const juce::MouseEvent &/*e*/)
 
 void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
-    m_editViewState.m_selectionManager.selectOnly (m_curve.getOwnerParameter ()->getTrack ());
+    if (!e.mods.isCtrlDown())
+        m_editViewState.m_selectionManager.selectOnly (m_curve.getOwnerParameter ()->getTrack ());
+    
     if (m_hoveredPoint == -1)
     {
         bool isTimePositive = m_hoveredTime > 0;

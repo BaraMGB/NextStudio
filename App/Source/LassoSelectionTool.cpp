@@ -24,6 +24,11 @@ void LassoSelectionTool::paint(juce::Graphics &g)
 
 void LassoSelectionTool::startLasso(const juce::MouseEvent& e)
 {
+    m_cachedSelectedClips.clear();
+    for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+    {
+        m_cachedSelectedClips.add(c);
+    }
     setVisible(true);
     m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ()
                                                                    , m_editViewState.m_viewX1, m_editViewState.m_viewX2);
@@ -31,6 +36,7 @@ void LassoSelectionTool::startLasso(const juce::MouseEvent& e)
 }
 void LassoSelectionTool::updateLasso(const juce::MouseEvent& e)
 {
+
     m_isLassoSelecting = true;
 
     auto viewOffsetY = m_editViewState.m_viewY - m_cachedY;
@@ -55,6 +61,7 @@ te::EditTimeRange LassoSelectionTool::getDraggedTimeRange(const juce::MouseEvent
 
 void LassoSelectionTool::updateSelection(bool add)
 {
+
     m_editViewState.m_selectionManager.deselectAll ();
 
     double trackPosY = m_editViewState.m_viewY;
@@ -76,6 +83,12 @@ void LassoSelectionTool::updateSelection(bool add)
             }
         }
         trackPosY += GUIHelpers::getTrackHeight(track, m_editViewState);
+    }
+
+    if (add)
+    {
+        for (auto c : m_cachedSelectedClips)
+            m_editViewState.m_selectionManager.addToSelection(c);
     }
 }
 
