@@ -250,7 +250,7 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
         {
             if (m_expandLeft)
             {
-                expandClickedNoteLeft(e.x, !e.mods.isShiftDown());
+                expandClickedNoteLeft(e.x, e.mods.isShiftDown());
             }
             else if (m_expandRight || m_noteAdding)
             {
