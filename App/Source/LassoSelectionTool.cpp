@@ -1,12 +1,14 @@
 #include "LassoSelectionTool.h"
-#include "EditComponent.h"
 
-juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState& evs,
-                                                            int viewWidth) const
+
+juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState& evs
+                                                            , double viewX1
+                                                            , double viewX2
+                                                            , int viewWidth) const
 {
-    auto x = evs.timeToX (m_startTime, viewWidth, evs.m_viewX1, evs.m_viewX2);
+    auto x = evs.timeToX (m_startTime, viewWidth, viewX1, viewX2);
     auto y = (int) m_top;
-    auto w = evs.timeToX (m_endTime, viewWidth, evs.m_viewX1, evs.m_viewX2) - x;
+    auto w = evs.timeToX (m_endTime, viewWidth, viewX1, viewX2) - x;
     auto h = (int) m_bottom - (int) m_top;
 
     return  {x, y, w, h};
@@ -16,27 +18,35 @@ void LassoSelectionTool::paint(juce::Graphics &g)
     if (m_isLassoSelecting)
     {
         g.setColour (juce::Colour(0x99FFFFFF));
-        g.drawRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
+        auto rect = m_lassoRect.getRect (m_editViewState
+                                        , m_X1
+                                        , m_X2
+                                        , getWidth ());
+        g.drawRect (rect);
         g.setColour (juce::Colour(0x22FFFFFF));
-        g.fillRect (m_lassoRect.getRect (m_editViewState, getWidth ()));
+        g.fillRect (rect);
     }
 }
 
 void LassoSelectionTool::startLasso(const juce::MouseEvent& e)
 {
-    m_cachedSelectedClips.clear();
-    for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
-    {
-        m_cachedSelectedClips.add(c);
-    }
+    updateClipCache();
+
     setVisible(true);
-    m_clickedTime = m_editViewState.xToTime (e.getMouseDownX (), getWidth ()
-                                                                   , m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+
+    m_clickedTime = xToTime (e.getMouseDownX ());
+
     m_cachedY = m_editViewState.m_viewY;
+}
+void LassoSelectionTool::updateClipCache()
+{
+    m_cachedSelectedClips.clear();
+
+    for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+        m_cachedSelectedClips.add(c);
 }
 void LassoSelectionTool::updateLasso(const juce::MouseEvent& e)
 {
-
     m_isLassoSelecting = true;
 
     auto viewOffsetY = m_editViewState.m_viewY - m_cachedY;
@@ -67,20 +77,10 @@ void LassoSelectionTool::updateSelection(bool add)
     double trackPosY = m_editViewState.m_viewY;
     for (auto track: te::getAudioTracks(m_editViewState.m_edit))
     {
-        auto trackTop = (double) trackPosY;
-        auto trackBottom = trackTop + (double) GUIHelpers::getTrackHeight(track, m_editViewState, false);
-        juce::Range<double> trackVerticalRange = {trackTop , trackBottom};
-
-        if (trackVerticalRange.intersects (m_lassoRect.m_verticalRange))
+        if (getVerticalRangeOfTrack(trackPosY, track)
+                .intersects (m_lassoRect.m_verticalRange))
         {
-            for (auto c : track->getClips())
-            {
-                if (m_lassoRect.m_startTime < c->getPosition ().getEnd ()
-                    && m_lassoRect.m_endTime > c->getPosition ().getStart ())
-                {
-                    m_editViewState.m_selectionManager.addToSelection(c);
-                }
-            }
+            selectCatchedClips(track);
         }
         trackPosY += GUIHelpers::getTrackHeight(track, m_editViewState);
     }
@@ -91,7 +91,26 @@ void LassoSelectionTool::updateSelection(bool add)
             m_editViewState.m_selectionManager.addToSelection(c);
     }
 }
+void LassoSelectionTool::selectCatchedClips(
+    const tracktion_engine::AudioTrack* track)
+{
+    for (auto c : track->getClips())
+    {
+        if (m_lassoRect.m_startTime < c->getPosition ().getEnd ()
+            && m_lassoRect.m_endTime > c->getPosition ().getStart ())
+        {
+            m_editViewState.m_selectionManager.addToSelection(c);
+        }
+    }
+}
+juce::Range<double> LassoSelectionTool::getVerticalRangeOfTrack(
+    double trackPosY, tracktion_engine::AudioTrack* track) const
+{
+    auto trackTop = (double) trackPosY;
+    auto trackBottom = trackTop + (double) GUIHelpers::getTrackHeight(track, m_editViewState, false);
 
+    return {trackTop , trackBottom};
+}
 double LassoSelectionTool::xToTime(const int x)
 {
     return m_editViewState.xToTime (x, getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);

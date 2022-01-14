@@ -16,7 +16,7 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm, juce::Array
   , m_editViewState (e, sm)
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
-  , m_lassoComponent (m_editViewState)
+  , m_lassoComponent (m_editViewState, m_editViewState.m_viewX1, m_editViewState.m_viewX2)
   , m_trackColours(std::move(tc))
 {
     m_edit.state.addListener (this);

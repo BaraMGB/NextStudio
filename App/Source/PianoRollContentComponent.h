@@ -66,5 +66,10 @@ private:
     bool                                m_expandLeft {false}
                                         , m_expandRight{false}
                                         , m_noteAdding {false};
+    bool clipContains(const te::MidiClip* clip, te::MidiNote* note);
+    void removeNote(te::MidiClip* clip, te::MidiNote* note);
+    void playNote(const te::MidiClip* clip, te::MidiNote* note) const;
+    te::MidiNote* addNote(int noteNumb, const te::MidiClip* clip, double beat);
+    void expandClickedNoteLeft(int targetX, bool snap);
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
 };

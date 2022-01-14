@@ -70,6 +70,7 @@ namespace IDs
     DECLARE_ID (isHovered)
     DECLARE_ID (lastVelocity)
     DECLARE_ID (pianoRollKeyboardWidth)
+    DECLARE_ID (selected)
     #undef DECLARE_ID
 }
 
