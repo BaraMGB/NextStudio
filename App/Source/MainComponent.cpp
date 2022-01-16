@@ -18,6 +18,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
 
     addAndMakeVisible(m_menuBar);
     addAndMakeVisible(m_editNameLabel);
+    addAndMakeVisible(m_editComponent->lowerRange());
     addAndMakeVisible (m_resizerBar);
 
     m_editNameLabel.setJustificationType (juce::Justification::centred);

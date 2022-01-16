@@ -257,6 +257,18 @@ juce::String PlayHeadHelpers::barsBeatsString(
             + juce::String::formatted("%03d", ticks);
 }
 
+te::AudioTrack::Ptr EngineHelpers::getAudioTrack(te::Track::Ptr track, EditViewState& evs)
+{
+    for (auto at : te::getAudioTracks(evs.m_edit))
+    {
+        if (at == track)
+        {
+            return at;
+        }
+    }
+    return nullptr;
+}
+
 void EngineHelpers::deleteSelectedClips(EditViewState &evs)
 {
     for (auto selectedClip : evs.m_selectionManager
@@ -760,7 +772,7 @@ void GUIHelpers::moveView(EditViewState& evs, double newBeatPos)
     evs.m_viewX2 = evs.m_viewX1 + zoom;
 }
 
-float GUIHelpers::getScaleFactor(int delta, float unitDistance)
+float GUIHelpers::getZoomScaleFactor(int delta, float unitDistance)
 {
     return std::powf (2,(float) delta / unitDistance);
 }

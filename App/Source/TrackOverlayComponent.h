@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"

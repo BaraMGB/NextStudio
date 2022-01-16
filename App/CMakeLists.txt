@@ -69,6 +69,8 @@ target_sources(${TargetName} PRIVATE
         Source/VelocityEditor.cpp
         Source/KeyboardView.cpp
         Source/LassoSelectionTool.cpp
+        Source/TrackListView.cpp
+        Source/SongEditorView.cpp
         Source/Utilities.cpp
         )
 

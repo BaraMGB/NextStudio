@@ -10,6 +10,8 @@
 #include "PlayHeadComponent.h"
 #include "LowerRangeComponent.h"
 #include "LassoSelectionTool.h"
+#include "SongEditorView.h"
+#include "TrackListView.h"
 
 //------------------------------------------------------------------------------
 
@@ -45,7 +47,6 @@ class EditComponent : public  juce::Component
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
                     , private juce::ScrollBar::Listener
-                    , public juce::DragAndDropTarget
 {
 public:
     EditComponent (te::Edit&
@@ -57,30 +58,19 @@ public:
     void paintOverChildren (juce::Graphics &g) override;
     void resized () override;
     void mouseDown (const juce::MouseEvent &) override;
-    void mouseDrag (const juce::MouseEvent &) override;
-    void mouseUp (const juce::MouseEvent &) override;
     void mouseWheelMove (const juce::MouseEvent &event
                         , const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved (juce::ScrollBar *scrollBarThatHasMoved
                         , double newRangeStart) override;
 
-    inline bool isInterestedInDragSource (
-            const SourceDetails&) override { return true; }
-    void itemDragMove (const SourceDetails& dragSourceDetails) override;
-    void itemDropped (const SourceDetails& dragSourceDetails) override;
-    void itemDragExit (const SourceDetails&) override;
 
     LowerRangeComponent& lowerRange ();
-    juce::OwnedArray<TrackComponent>& getTrackComps ();
+
     TrackComponent * getTrackComponent (int y);
-    TrackComponent * getTrackCompForTrack (const te::Track::Ptr& track);
-    ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
 
     te::AudioTrack::Ptr addAudioTrack (bool isMidi, juce::Colour);
 
-    void turnoffAllTrackOverlays ();
     EditViewState& getEditViewState () { return m_editViewState; }
-    LassoSelectionTool* getLasso ();
 
 private:
 
@@ -98,12 +88,12 @@ private:
     void buildTracks ();
     void refreshSnaptypeDesc ();
 
-    juce::OwnedArray<TrackComponent>        m_trackComps;
-    juce::OwnedArray<TrackHeaderComponent>  m_headers;
 
     te::Edit&                               m_edit;
     EditViewState                           m_editViewState;
 
+    SongEditorView                          m_songEditor;
+    TrackListView                           m_trackListView;
     TimeLineComponent                       m_timeLine {
                                                 m_editViewState
                                               , m_editViewState.m_viewX1
@@ -118,11 +108,17 @@ private:
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2 };
     LowerRangeComponent                     m_lowerRange { m_editViewState };
-    juce::Rectangle<float>                  m_songeditorRect;
-    LassoSelectionTool m_lassoComponent;
+
     juce::Array<juce::Colour>               m_trackColours;
 
     bool m_updateTracks = false, m_updateZoom = false;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
     void updateHorizontalScrollBar();
+    juce::Rectangle<int> getEditorHeaderRect();
+    juce::Rectangle<int> getTimeLineRect();
+    juce::Rectangle<int> getTrackListToolsRect();
+    juce::Rectangle<int> getTrackListRect();
+    juce::Rectangle<int> getSongEditorRect();
+    juce::Rectangle<int> getFooterRect();
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
+    juce::Rectangle<int> getPlayHeadRect();
 };

@@ -126,10 +126,10 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 void ClipComponent::mouseUp(const juce::MouseEvent& event)
 {
     m_editViewState.m_edit.getTransport().setUserDragging(false);
-    if (auto ec = dynamic_cast<EditComponent*>(
+    if (auto se = dynamic_cast<SongEditorView*>(
                 getParentComponent ()->getParentComponent ()))
     {
-        ec->turnoffAllTrackOverlays ();
+        se->turnoffAllTrackOverlays ();
     }
     setMouseCursor (juce::MouseCursor::NormalCursor);
     if (m_isDragging)

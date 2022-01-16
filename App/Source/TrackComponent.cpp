@@ -68,9 +68,9 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
         }
         else
         {
-            if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
+            if (auto se = dynamic_cast<SongEditorView*>(getParentComponent ()))
             {
-                ec->getLasso()->startLasso(event.getEventRelativeTo (ec->getLasso()));
+                se->getLasso().startLasso(event.getEventRelativeTo (&se->getLasso()));
             }
         }
     }
@@ -78,11 +78,11 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
 
 void TrackComponent::mouseDrag(const juce::MouseEvent &e)
 {
-    if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
+    if (auto se = dynamic_cast<SongEditorView*>(getParentComponent ()))
     {
-        if ( ec->getLasso ()->isVisible())
+        if ( se->getLasso ().isVisible())
         {
-            ec->getLasso()->updateLasso(e.getEventRelativeTo (ec->getLasso()));
+            se->getLasso().updateLasso(e.getEventRelativeTo (&se->getLasso()));
             setMouseCursor (juce::MouseCursor::CrosshairCursor);
         }
     }
@@ -94,11 +94,11 @@ void TrackComponent::mouseUp(const juce::MouseEvent &e)
     {
         m_editViewState.m_selectionManager.deselectAll ();
     }
-    if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
+    if (auto se = dynamic_cast<SongEditorView*>(getParentComponent ()))
     {
-        if (ec->getLasso ()->isVisible())
+        if (se->getLasso ().isVisible())
         {
-            ec->getLasso()->stopLasso();
+            se->getLasso ().stopLasso();
             setMouseCursor (juce::MouseCursor::NormalCursor);
         }
     }
@@ -427,3 +427,4 @@ void TrackComponent::itemDropped(
     isOver = false;
     repaint();
 }
+

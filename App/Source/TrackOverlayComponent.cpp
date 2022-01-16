@@ -1,9 +1,5 @@
 #include "TrackOverlayComponent.h"
 
-#include <utility>
-
-
-
 void TrackOverlayComponent::drawImages(int offset)
 {
     m_mouseOffset = offset;

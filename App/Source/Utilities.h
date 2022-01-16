@@ -43,7 +43,7 @@ namespace GUIHelpers
 
     int getTrackHeight(tracktion_engine::AudioTrack* track, EditViewState& evs, bool withAutomation=true);
 
-    float getScaleFactor(int delta, float unitDistance);
+    float getZoomScaleFactor(int delta, float unitDistance);
 
     template<typename T>
     void log(T message)
@@ -155,6 +155,8 @@ namespace PlayHeadHelpers
 
 namespace EngineHelpers
 {
+    te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);
+
     void deleteSelectedClips(EditViewState & evs);
 
     void duplicateSelectedClips (tracktion_engine::Edit &edit
