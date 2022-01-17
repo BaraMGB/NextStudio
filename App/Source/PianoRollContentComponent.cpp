@@ -199,7 +199,6 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
                 + clickedClip->getOffsetInBeats ();
 
         beat = getQuantizedBeat(beat);
-        std::cout << getNoteNumber(e.y) << std::endl;
         m_clickedNote = addNote (getNoteNumber(e.y), clickedClip, beat);
         playNote(clickedClip, m_clickedNote);
         m_clickOffsetBeats = m_clickedNote->getStartBeat () - clickedBeat;

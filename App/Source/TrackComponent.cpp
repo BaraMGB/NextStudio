@@ -3,8 +3,8 @@
 //#include <utility>
 
 
-TrackComponent::TrackComponent (EditViewState& evs, te::Track::Ptr t)
-    : m_editViewState (evs), m_track (std::move(t))
+TrackComponent::TrackComponent (EditViewState& evs, LowerRangeComponent& lr, te::Track::Ptr t)
+    : m_editViewState (evs), m_lowerRange(lr),  m_track (std::move(t))
 {
     setWantsKeyboardFocus(true);
 
@@ -294,13 +294,12 @@ void TrackComponent::buildClips()
             {
                 m_clipComponents.add (cc);
                 addAndMakeVisible (cc);
-                if (auto ec = dynamic_cast<EditComponent*>(getParentComponent ()))
+
+                if (auto mcc = dynamic_cast<MidiClipComponent*>(cc))
                 {
-                    if (auto mcc = dynamic_cast<MidiClipComponent*>(cc))
-                    {
-                        mcc->addChangeListener (&ec->lowerRange ());
-                    }
+                    mcc->addChangeListener (&m_lowerRange);
                 }
+
             }
         }
     }

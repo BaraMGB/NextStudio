@@ -33,7 +33,7 @@ juce::OwnedArray<TrackComponent>& SongEditorView::getTrackViews()
 {
     return m_views;
 }
-void SongEditorView::addTrackViews(TrackComponent& tc)
+void SongEditorView::addTrackView(TrackComponent& tc)
 {
     m_views.add(&tc);
 }

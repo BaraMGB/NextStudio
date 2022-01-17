@@ -168,7 +168,8 @@ void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &/*event*/)
 
 //------------------------------------------------------------------------------
 
-TrackHeaderComponent::TrackHeaderComponent (EditViewState& evs, const te::Track::Ptr& t)
+TrackHeaderComponent::TrackHeaderComponent (
+    EditViewState& evs, const te::Track::Ptr& t)
     : m_editViewState (evs)
     , m_track (t)
     , m_isMinimized (t->state.getProperty(IDs::isTrackMinimized))

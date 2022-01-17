@@ -26,7 +26,7 @@ public:
     juce::OwnedArray<TrackComponent>& getTrackViews();
     TrackComponent * getTrackComponent (int y);
 
-    void addTrackViews(TrackComponent& tc);
+    void addTrackView(TrackComponent& tc);
 
     void updateViews();
 

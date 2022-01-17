@@ -296,38 +296,43 @@ void EditComponent::buildTracks()
         if (t->isTempoTrack())
         {
             if (m_editViewState.m_showGlobalTrack)
-                tc = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState, m_lowerRange, t);
         }
         else if (t->isMarkerTrack())
         {
             if (m_editViewState.m_showMarkerTrack)
-                tc = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
         }
         else if (t->isChordTrack())
         {
             if (m_editViewState.m_showChordTrack)
-                tc = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
         }
         else if (t->isArrangerTrack())
         {
             if (m_editViewState.m_showArrangerTrack)
-                tc = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
         }
         else if (t->isMasterTrack())
         {
             if (m_editViewState.m_showMasterTrack)
-                tc = new TrackComponent (m_editViewState, t);
+                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
         }
         else
         {
-            tc = new TrackComponent (m_editViewState, t);
+            tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
         }
 
         if (tc != nullptr)
         {
             auto th = new TrackHeaderComponent (m_editViewState, t);
+            th->addChangeListener(&m_lowerRange);
             m_trackListView.addHeaderViews(*th);
-            m_songEditor.addTrackViews(*tc);
+
+            auto pr = new PluginRackComponent (m_editViewState, t);
+            m_lowerRange.addPluginRackComp(pr);
+
+            m_songEditor.addTrackView(*tc);
         }
     }
 

@@ -9,6 +9,7 @@
 #include "PluginRackComponent.h"
 #include "TrackOverlayComponent.h"
 #include "AutomationLaneComponent.h"
+#include "LowerRangeComponent.h"
 
 
 class TrackComponent : public juce::Component,
@@ -18,7 +19,7 @@ class TrackComponent : public juce::Component,
                        public juce::DragAndDropTarget
 {
 public:
-    TrackComponent (EditViewState&, te::Track::Ptr);
+    TrackComponent (EditViewState&, LowerRangeComponent& lr, te::Track::Ptr);
     ~TrackComponent() override;
 
     void paint (juce::Graphics& g) override;
@@ -66,7 +67,7 @@ private:
     std::unique_ptr<RecordingClipComponent> recordingClip;
 
     TrackOverlayComponent m_trackOverlay;
-
+    LowerRangeComponent& m_lowerRange;
     bool updateClips = false,
          updatePositions = false,
          updateRecordClips = false,
