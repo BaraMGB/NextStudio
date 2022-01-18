@@ -1,8 +1,6 @@
-//
-// Created by Zehn on 14.01.2022.
-//
-
 #include "SongEditorView.h"
+
+
 SongEditorView::SongEditorView(EditViewState& evs)
         : m_editViewState(evs)
         , m_lassoComponent(evs, evs.m_viewX1, evs.m_viewX2)
@@ -223,7 +221,6 @@ void SongEditorView::itemDropped(
                                                    , dropTime);
         }
     }
-    //track dropped
 
     setMouseCursor (juce::MouseCursor::NormalCursor);
 }
@@ -274,14 +271,59 @@ TrackComponent*
 }
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
 {
-    m_lassoComponent.startLasso(e.getEventRelativeTo (&m_lassoComponent));
+    startLasso(e);
+}
+void SongEditorView::updateClipCache()
+{
+    m_cachedSelectedClips.clear();
+
+    for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+        m_cachedSelectedClips.add(c);
 }
 void SongEditorView::mouseDrag(const juce::MouseEvent&e)
 {
-    if (m_lassoComponent.isVisible ())
+    updateLasso (e);
+}
+void SongEditorView::updateSelection(bool add)
+{
+    m_editViewState.m_selectionManager.deselectAll ();
+
+    double trackPosY = m_editViewState.m_viewY;
+    for (auto track: te::getAudioTracks(m_editViewState.m_edit))
     {
-        setMouseCursor (juce::MouseCursor::CrosshairCursor);
-        m_lassoComponent.updateLasso(e.getEventRelativeTo (&m_lassoComponent));
+        std::cout << "Hello" << std::endl;
+        auto lassoRangeY = m_lassoComponent.getLassoRect ().m_verticalRange;
+        if (getVerticalRangeOfTrack(trackPosY, track)
+                .intersects (lassoRangeY.movedToStartAt (lassoRangeY.getStart () + m_editViewState.m_viewY)))
+        {
+            selectCatchedClips(track);
+        }
+        trackPosY += GUIHelpers::getTrackHeight(track, m_editViewState);
+    }
+
+    if (add)
+    {
+        for (auto c : m_cachedSelectedClips)
+            m_editViewState.m_selectionManager.addToSelection(c);
+    }
+}
+juce::Range<double> SongEditorView::getVerticalRangeOfTrack(
+    double trackPosY, tracktion_engine::AudioTrack* track) const
+{
+    auto trackTop = (double) trackPosY;
+    auto trackBottom = trackTop + (double) GUIHelpers::getTrackHeight(track, m_editViewState, false);
+
+    return {trackTop , trackBottom};
+}
+void SongEditorView::selectCatchedClips(const tracktion_engine::AudioTrack *track)
+{
+    for (auto c : track->getClips())
+    {
+        if (m_lassoComponent.getLassoRect ().m_startTime < c->getPosition ().getEnd ()
+                && m_lassoComponent.getLassoRect ().m_endTime > c->getPosition ().getStart ())
+        {
+            m_editViewState.m_selectionManager.addToSelection(c);
+        }
     }
 }
 void SongEditorView::mouseUp(const juce::MouseEvent&)

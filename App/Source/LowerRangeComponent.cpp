@@ -61,6 +61,8 @@ void SplitterComponent::paint(juce::Graphics &g)
     }
 }
 
+
+
 //------------------------------------------------------------------------------
 
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
@@ -86,7 +88,6 @@ void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * sourc
 
     if (auto trackHeaderComp = dynamic_cast<TrackHeaderComponent*>(source))
     {
-        std::cout << "th" << std::endl;
         showPluginRack (trackHeaderComp->getTrack ());
         resized ();
         repaint ();

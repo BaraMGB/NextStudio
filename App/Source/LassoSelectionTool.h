@@ -11,21 +11,6 @@ namespace te = tracktion_engine;
 class LassoSelectionTool : public juce::Component
 {
 public:
-    explicit LassoSelectionTool(EditViewState& evs
-                                , juce::CachedValue<double>& x1
-                                , juce::CachedValue<double>& x2)
-        : m_editViewState(evs)
-        , m_X1(x1)
-        , m_X2(x2)
-    {}
-    void paint(juce::Graphics &g) override;
-
-    void startLasso(const juce::MouseEvent& e);
-    void updateLasso(const juce::MouseEvent& e);
-    void stopLasso();
-private:
-    void updateSelection(bool add);
-
     struct LassoRect
     {
         LassoRect ()= default;
@@ -47,21 +32,39 @@ private:
         double m_bottom { 0 };
     };
 
-    double xToTime(const int x);
-    bool                           m_isLassoSelecting {false};
+    explicit LassoSelectionTool(EditViewState& evs
+                                , juce::CachedValue<double>& x1
+                                , juce::CachedValue<double>& x2)
+        : m_editViewState(evs)
+        , m_X1(x1)
+        , m_X2(x2)
+
+    {}
+    void paint(juce::Graphics &g) override;
+
+    void startLasso(const juce::MouseEvent& e);
+    void updateLasso(const juce::MouseEvent& e);
+    void stopLasso();
+    LassoSelectionTool::LassoRect getLassoRect() const;
 
 private:
+
+    double xToTime(const int x);
+    bool                           m_isLassoSelecting {false};
+    bool                           m_isSongEditor;
+
     EditViewState&                 m_editViewState;
+    LassoRect                      m_lassoRect;
     juce::CachedValue<double>&     m_X1;
     juce::CachedValue<double>&     m_X2;
+
     double                         m_clickedTime{};
-    double                         m_cachedY{};
-    LassoRect                      m_lassoRect;
-    juce::Array<te::Clip*>         m_cachedSelectedClips;
+
     te::EditTimeRange getDraggedTimeRange(const juce::MouseEvent& e);
     void updateClipCache();
     juce::Range<double>
         getVerticalRangeOfTrack(double trackPosY,
                                 tracktion_engine::AudioTrack* track) const;
-    void selectCatchedClips(const tracktion_engine::AudioTrack* track);
+
+
 };

@@ -53,11 +53,19 @@ private:
     void buildRecordClips();
     te::MidiClip::Ptr createNewMidiClip(double beatPos);
     bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
-    bool isSelected()
+    bool isSelected();
+
+    double xToBeats(int x)
     {
-        return m_editViewState.m_selectionManager.getItemsOfType<te::Track>().contains (m_track);
+        return m_editViewState.xToBeats (
+                    x
+                    , getWidth ()
+                    , m_editViewState.m_viewX1
+                    , m_editViewState.m_viewX2));
     }
+
     EditViewState& m_editViewState;
+    LowerRangeComponent& m_lowerRange;
     te::Track::Ptr m_track;
     [[maybe_unused]] te::Clipboard m_clipBoard;
     juce::OwnedArray<ClipComponent> m_clipComponents;
@@ -67,7 +75,6 @@ private:
     std::unique_ptr<RecordingClipComponent> recordingClip;
 
     TrackOverlayComponent m_trackOverlay;
-    LowerRangeComponent& m_lowerRange;
     bool updateClips = false,
          updatePositions = false,
          updateRecordClips = false,

@@ -48,21 +48,21 @@ void TrackComponent::paint (juce::Graphics& g)
     }
 }
 
-void TrackComponent::mouseDown (const juce::MouseEvent&event)
+void TrackComponent::mouseDown (const juce::MouseEvent&e)
 {
     //m_editViewState.m_selectionManager.selectOnly (m_track);
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
-    if (event.mods.isRightButtonDown())
+    if (e.mods.isRightButtonDown())
     {
 //        juce::PopupMenu m;
     }
-    else if (event.mods.isLeftButtonDown ())
+    else if (e.mods.isLeftButtonDown ())
     {
-        if (event.getNumberOfClicks () > 1)
+        if (e.getNumberOfClicks () > 1)
         {
             if (isMidiTrack)
             {
-                createNewMidiClip (m_editViewState.xToBeats (event.x,getWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
+                createNewMidiClip (xToBeats(e.x));
                 resized ();
             }
         }
@@ -70,7 +70,7 @@ void TrackComponent::mouseDown (const juce::MouseEvent&event)
         {
             if (auto se = dynamic_cast<SongEditorView*>(getParentComponent ()))
             {
-                se->getLasso().startLasso(event.getEventRelativeTo (&se->getLasso()));
+                se->startLasso(e.getEventRelativeTo (se));
             }
         }
     }
@@ -80,10 +80,9 @@ void TrackComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (auto se = dynamic_cast<SongEditorView*>(getParentComponent ()))
     {
-        if ( se->getLasso ().isVisible())
+        if (se->getLasso ().isVisible())
         {
-            se->getLasso().updateLasso(e.getEventRelativeTo (&se->getLasso()));
-            setMouseCursor (juce::MouseCursor::CrosshairCursor);
+            se->updateLasso(e.getEventRelativeTo (&se->getLasso ()));
         }
     }
 }
@@ -103,8 +102,6 @@ void TrackComponent::mouseUp(const juce::MouseEvent &e)
         }
     }
 }
-
-
 void TrackComponent::changeListenerCallback (juce::ChangeBroadcaster* cbc)
 {
     if (cbc == &m_editViewState.m_selectionManager)
@@ -117,7 +114,6 @@ void TrackComponent::changeListenerCallback (juce::ChangeBroadcaster* cbc)
     }
     markAndUpdate (updateRecordClips);
 }
-
 void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i)
 {
     if (te::Clip::isClipState (v))
@@ -145,7 +141,6 @@ void TrackComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::I
          markAndUpdate(updateClips);
     }
 }
-
 void TrackComponent::valueTreeChildAdded (juce::ValueTree&v, juce::ValueTree& c)
 {
     if (te::Clip::isClipState (c))
@@ -160,7 +155,6 @@ void TrackComponent::valueTreeChildAdded (juce::ValueTree&v, juce::ValueTree& c)
         }
     }
 }
-
 void TrackComponent::valueTreeChildRemoved (juce::ValueTree&v, juce::ValueTree& c, int)
 {
     if (v.hasType (te::IDs::SEQUENCE))
@@ -176,14 +170,12 @@ void TrackComponent::valueTreeChildRemoved (juce::ValueTree&v, juce::ValueTree& 
     }
 
 }
-
 void TrackComponent::valueTreeChildOrderChanged (juce::ValueTree& v, int a, int b)
 {
     if (te::Clip::isClipState (v.getChild (a))
         || te::Clip::isClipState (v.getChild (b)))
         markAndUpdate (updatePositions);
 }
-
 void TrackComponent::handleAsyncUpdate()
 {
     if (compareAndReset (updateClips))
@@ -200,7 +192,6 @@ void TrackComponent::handleAsyncUpdate()
     if (compareAndReset (updateRecordClips))
         buildRecordClips();
 }
-
 void TrackComponent::resized()
 {
     for (auto cc : m_clipComponents)
@@ -229,7 +220,6 @@ void TrackComponent::resized()
         nextLaneStart = nextLaneStart + al->getHeight();
     }
 }
-
 void TrackComponent::insertWave(const juce::File& f, double time)
 {
     tracktion_engine::AudioFile audioFile(m_editViewState.m_edit.engine, f);
@@ -249,7 +239,6 @@ void TrackComponent::insertWave(const juce::File& f, double time)
         }
     }
 }
-
 void TrackComponent::buildClips()
 {
     m_clipComponents.clear();
@@ -309,7 +298,6 @@ void TrackComponent::buildClips()
         resized();
     buildAutomationLanes();
 }
-
 void TrackComponent::buildAutomationLanes()
 {
     m_automationLanes.clear(true);
@@ -327,7 +315,6 @@ void TrackComponent::buildAutomationLanes()
     }
     resized();
 }
-
 void TrackComponent::buildRecordClips()
 {
     bool needed = false;
@@ -354,7 +341,6 @@ void TrackComponent::buildRecordClips()
         recordingClip = nullptr;
     }
 }
-
 tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos)
 {
     if (auto audiotrack = dynamic_cast<te::AudioTrack*>(m_track.get ()))
@@ -370,29 +356,28 @@ tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos
     }
     return nullptr;
 }
-
+bool TrackComponent::isSelected()
+{
+    return m_editViewState.m_selectionManager.getItemsOfType<te::Track>().contains (m_track);
+}
 TrackOverlayComponent& TrackComponent::getTrackOverlay()
 {
     return m_trackOverlay;
 }
-
 bool TrackComponent::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
     if (!(dragSourceDetails.description == "PluginListEntry"))
         return false;
     return true;
 }
-
 juce::OwnedArray<ClipComponent> &TrackComponent::getClipComponents()
 {
     return m_clipComponents;
 }
-
 te::Track::Ptr TrackComponent::getTrack() const
 {
     return m_track;
 }
-
 void TrackComponent::itemDragMove(
         const juce::DragAndDropTarget::SourceDetails& /*dragSourceDetails*/)
 {
@@ -408,7 +393,7 @@ void TrackComponent::itemDragExit(
 void TrackComponent::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
-    if(dragSourceDetails.description == "PluginListEntry")
+    if (dragSourceDetails.description == "PluginListEntry")
     {
         if (auto listbox = dynamic_cast<juce::ListBox*>(
             dragSourceDetails.sourceComponent.get ()))
@@ -426,4 +411,3 @@ void TrackComponent::itemDropped(
     isOver = false;
     repaint();
 }
-

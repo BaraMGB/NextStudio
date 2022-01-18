@@ -2,6 +2,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "LassoSelectionTool.h"
 
 namespace te = tracktion_engine;
 
@@ -14,6 +15,7 @@ public:
     ~PianoRollContentComponent() override;
 
     void paint (juce::Graphics& g) override;
+    void resized() override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseMove (const juce::MouseEvent &) override;
@@ -43,10 +45,17 @@ private:
     static double          getNoteEndBeat(te::MidiClip* const& midiClip, const te::MidiNote* n) ;
     juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n) const;
 
+    te::MidiNote*          addNote(int noteNumb, const te::MidiClip* clip, double beat);
     te::MidiClip*          getMidiClipByPos(int y);
     te::MidiNote*          getNoteByPos (juce::Point<float> pos);
-
+    void                   removeNote(te::MidiClip* clip, te::MidiNote* note);
+    void                   playNote(const te::MidiClip* clip, te::MidiNote* note) const;
     static float           getVelocity(const tracktion_engine::MidiNote* note);
+    void                   expandClickedNoteLeft(int targetX, bool snap);
+
+    bool                   clipContains(const te::MidiClip* clip, te::MidiNote* note);
+
+    juce::Array<te::MidiNote*> getSelectedNotes();
 
     [[nodiscard]] double   xToBeats(const int& x) const;
     [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
@@ -57,19 +66,23 @@ private:
     static bool isBeforeClipStart(double beats) ;
     static bool isAfterClipEnd(tracktion_engine::MidiClip* const& midiClip, double beats) ;
 
+    void startLasso(const juce::MouseEvent &e);
+    void updateLasso(const juce::MouseEvent &e);
+    void stopLasso();
+
+    void setNoteSelected(te::MidiNote &n, bool selected);
+
+
     juce::Point<float>                  m_clickedPos;
     EditViewState&                      m_editViewState;
     te::Track::Ptr                      m_track;
+    LassoSelectionTool                  m_lassoTool;
     te::MidiNote*                       m_clickedNote {nullptr};
     double                              m_clickOffsetBeats{0};
 
     bool                                m_expandLeft {false}
                                         , m_expandRight{false}
                                         , m_noteAdding {false};
-    bool clipContains(const te::MidiClip* clip, te::MidiNote* note);
-    void removeNote(te::MidiClip* clip, te::MidiNote* note);
-    void playNote(const te::MidiClip* clip, te::MidiNote* note) const;
-    te::MidiNote* addNote(int noteNumb, const te::MidiClip* clip, double beat);
-    void expandClickedNoteLeft(int targetX, bool snap);
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
 };

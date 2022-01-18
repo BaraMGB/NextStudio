@@ -5,7 +5,9 @@ PianoRollContentComponent::PianoRollContentComponent(EditViewState & evs
                                    , tracktion_engine::Track::Ptr track)
     : m_editViewState(evs)
     , m_track (std::move(track))
+    , m_lassoTool (evs, evs.m_pianoX1, evs.m_pianoX2)
 {
+    addChildComponent (m_lassoTool);
 }
 
 PianoRollContentComponent::~PianoRollContentComponent()
@@ -29,6 +31,12 @@ void PianoRollContentComponent::paint(juce::Graphics &g)
         }
     }
 }
+
+void PianoRollContentComponent::resized()
+{
+    auto area = getLocalBounds ();
+    m_lassoTool.setBounds (area);
+}
 void PianoRollContentComponent::drawNote(juce::Graphics& g,
                                          tracktion_engine::MidiClip* const& midiClip,
                                          const tracktion_engine::MidiNote* n) const
@@ -43,9 +51,13 @@ void PianoRollContentComponent::drawNote(juce::Graphics& g,
     noteRect.reduce(1, 1);
     g.fillRect(noteRect);
 
+    if (n->state.getProperty (IDs::selected))
+        g.setColour (juce::Colours::green);
     g.setColour(clipCol);
     noteRect.reduce(1, 1);
     g.fillRect (noteRect);
+
+
 
     if (m_editViewState.m_pianoKeyWidth > 13)
     {
@@ -173,6 +185,19 @@ float PianoRollContentComponent::getStartKey() const
     return (float) m_editViewState.m_pianoStartKey;
 }
 
+void PianoRollContentComponent::startLasso(const juce::MouseEvent& e)
+{
+    m_lassoTool.startLasso(e.getEventRelativeTo (&m_lassoTool));
+}
+
+void PianoRollContentComponent::setNoteSelected(tracktion_engine::MidiNote& n, bool selected)
+{
+    n.state.setProperty (
+                IDs::selected
+                , selected
+                , &m_editViewState.m_edit.getUndoManager ());
+}
+
 void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_noteAdding = false;
@@ -188,6 +213,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
         }
         else
         {
+            setNoteSelected(*m_clickedNote, true);
             m_clickOffsetBeats = m_clickedNote->getStartBeat () - clickedBeat;
             playNote(clickedClip, m_clickedNote);
         }
@@ -204,6 +230,12 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent &e)
         m_clickOffsetBeats = m_clickedNote->getStartBeat () - clickedBeat;
 
         m_noteAdding = true;
+    }
+    else
+    {
+//        for (auto n : getSelectedNotes ())
+//             setNoteSelected (*n,false);
+        startLasso(e);
     }
 
 }
@@ -237,6 +269,11 @@ void PianoRollContentComponent::removeNote(te::MidiClip* clip,
     if (clipContains(clip, note))
         clip->getSequence().removeNote(*m_clickedNote,
                                        &m_editViewState.m_edit.getUndoManager());
+}
+
+void PianoRollContentComponent::updateLasso(const juce::MouseEvent &e)
+{
+    m_lassoTool.updateLasso(e.getEventRelativeTo (&m_lassoTool));
 }
 
 void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
@@ -292,6 +329,10 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent &e)
                 //update displayed note number under cursor
                 //getParentComponent ()->mouseMove (e);
             }
+        }
+        else if (m_lassoTool.isVisible ())
+        {
+            updateLasso(e);
         }
         repaint ();
     }
@@ -377,12 +418,22 @@ void PianoRollContentComponent::mouseExit(const juce::MouseEvent &)
     setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
+void PianoRollContentComponent::stopLasso()
+{
+    if (m_lassoTool.isVisible ())
+    {
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+        m_lassoTool.stopLasso();
+    }
+}
+
 void PianoRollContentComponent::mouseUp(const juce::MouseEvent &)
 {
     if (auto at = dynamic_cast<te::AudioTrack*>(&(*m_track)))
     {
         at->turnOffGuideNotes ();
     }
+    stopLasso();
 }
 
 void PianoRollContentComponent::mouseWheelMove(const juce::MouseEvent &event
@@ -487,4 +538,16 @@ bool PianoRollContentComponent::clipContains(const te::MidiClip* clip
                                              , te::MidiNote* note)
 {
     return clip->getSequence ().getNotes ().contains (note);
+}
+
+juce::Array<tracktion_engine::MidiNote *> PianoRollContentComponent::getSelectedNotes()
+{
+    juce::Array<tracktion_engine::MidiNote *> selectedNotes;
+
+    for (auto c : getMidiClipsOfTrack ())
+        for (auto n : c->getSequence ().getNotes ())
+            if (n->state.getProperty (IDs::selected).equals (true))
+                selectedNotes.add (n);
+
+    return selectedNotes;
 }

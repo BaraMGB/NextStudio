@@ -30,7 +30,6 @@ public:
 
     void updateViews();
 
-    //drop stuff//
 
     void turnoffAllTrackOverlays()
     {
@@ -47,18 +46,41 @@ public:
 
     void clear();
     int getSize();
-private:
-
-    LassoSelectionTool m_lassoComponent;
-    ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
-
-public:
     LassoSelectionTool& getLasso();
+    LassoSelectionTool::LassoRect getCurrentLassoRect();
+
+    void startLasso(const juce::MouseEvent& e)
+    {
+        m_lassoComponent.startLasso(e.getEventRelativeTo (&m_lassoComponent));
+        m_cachedY = m_editViewState.m_viewY;
+        updateClipCache ();
+    }
+
+    void updateLasso(const juce::MouseEvent& e)
+    {
+        if (m_lassoComponent.isVisible ())
+        {
+            setMouseCursor (juce::MouseCursor::CrosshairCursor);
+            m_lassoComponent.updateLasso(e.getEventRelativeTo (&m_lassoComponent));
+            updateSelection(e.mods.isShiftDown ());
+        }
+    }
 
 private:
+
     TrackComponent *getTrackCompForTrack(const tracktion_engine::Track::Ptr& track);
     EditViewState& m_editViewState;
-    juce::OwnedArray<TrackComponent> m_views;
+    LassoSelectionTool m_lassoComponent;
+    ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
+    juce::OwnedArray<TrackComponent>    m_views;
+    juce::Array<te::Clip*>              m_cachedSelectedClips;
+    double                              m_cachedY;
+
+    void updateSelection(bool add);
+    void updateClipCache();
+    juce::Range<double> getVerticalRangeOfTrack(
+        double trackPosY, tracktion_engine::AudioTrack* track) const;
+    void selectCatchedClips(const tracktion_engine::AudioTrack* track);
 
 };
 
