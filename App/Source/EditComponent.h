@@ -111,7 +111,7 @@ private:
 
     juce::Array<juce::Colour>               m_trackColours;
 
-    bool m_updateTracks = false, m_updateZoom = false;
+    bool m_updateTracks = false, m_updateZoom = false, m_updateSongEditor = false;
     void updateHorizontalScrollBar();
     juce::Rectangle<int> getEditorHeaderRect();
     juce::Rectangle<int> getTimeLineRect();

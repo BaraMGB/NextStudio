@@ -48,14 +48,13 @@ private:
     te::MidiNote*          addNote(int noteNumb, const te::MidiClip* clip, double beat);
     te::MidiClip*          getMidiClipByPos(int y);
     te::MidiNote*          getNoteByPos (juce::Point<float> pos);
+    double getKeyFromY(int y);
     void                   removeNote(te::MidiClip* clip, te::MidiNote* note);
     void                   playNote(const te::MidiClip* clip, te::MidiNote* note) const;
     static float           getVelocity(const tracktion_engine::MidiNote* note);
     void                   expandClickedNoteLeft(int targetX, bool snap);
-
     bool                   clipContains(const te::MidiClip* clip, te::MidiNote* note);
 
-    juce::Array<te::MidiNote*> getSelectedNotes();
 
     [[nodiscard]] double   xToBeats(const int& x) const;
     [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
@@ -70,14 +69,31 @@ private:
     void updateLasso(const juce::MouseEvent &e);
     void stopLasso();
 
-    void setNoteSelected(te::MidiNote &n, bool selected);
+    void updateSelection();
 
+    juce::Array<te::MidiNote*> getSelectedNotes();
+    void setNoteSelected(te::MidiNote &n, bool selected);
+    void unselectAll();
+
+    juce::Range<double> getLassoVerticalRange()
+    {
+        if (m_lassoTool.isVisible())
+        {
+            auto top = m_lassoTool.getLassoRect().m_top;
+            auto bottom = m_lassoTool.getLassoRect().m_bottom;
+            juce::Range<double> range (juce::jmin(getKeyFromY(top), getKeyFromY(bottom))
+                                      ,juce::jmax(getKeyFromY(top), getKeyFromY(bottom)));
+            return range;
+        }
+        return {0,0};
+    }
 
     juce::Point<float>                  m_clickedPos;
     EditViewState&                      m_editViewState;
     te::Track::Ptr                      m_track;
     LassoSelectionTool                  m_lassoTool;
     te::MidiNote*                       m_clickedNote {nullptr};
+    double                              m_clickedKey;
     double                              m_clickOffsetBeats{0};
 
     bool                                m_expandLeft {false}
@@ -85,4 +101,5 @@ private:
                                         , m_noteAdding {false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
+    int getYfromKey(double key);
 };

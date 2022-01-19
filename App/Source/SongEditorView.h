@@ -61,7 +61,8 @@ public:
         if (m_lassoComponent.isVisible ())
         {
             setMouseCursor (juce::MouseCursor::CrosshairCursor);
-            m_lassoComponent.updateLasso(e.getEventRelativeTo (&m_lassoComponent));
+            m_lassoComponent.updateLasso(e.getEventRelativeTo (&m_lassoComponent)
+                                             , e.getMouseDownY() + (m_editViewState.m_viewY - m_cachedY));
             updateSelection(e.mods.isShiftDown ());
         }
     }

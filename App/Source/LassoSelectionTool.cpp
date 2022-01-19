@@ -35,14 +35,12 @@ void LassoSelectionTool::startLasso(const juce::MouseEvent& e)
 
     m_clickedTime = xToTime (e.getMouseDownX ());
 }
-void LassoSelectionTool::updateLasso(const juce::MouseEvent& e)
+void LassoSelectionTool::updateLasso(const juce::MouseEvent& e, int newTop)
 {
     m_isLassoSelecting = true;
-
-    auto startY = e.getMouseDownY ();
-
-    double top =    juce::jmin(startY, e.y);
-    double bottom = juce::jmax(startY, e.y);
+    std::cout << newTop << std::endl;
+    double top =    juce::jmin(newTop, e.y);
+    double bottom = juce::jmax(newTop, e.y);
 
     m_lassoRect = {getDraggedTimeRange(e), top, bottom};
 

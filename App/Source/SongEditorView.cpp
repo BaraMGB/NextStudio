@@ -291,10 +291,9 @@ void SongEditorView::updateSelection(bool add)
     double trackPosY = m_editViewState.m_viewY;
     for (auto track: te::getAudioTracks(m_editViewState.m_edit))
     {
-        std::cout << "Hello" << std::endl;
+
         auto lassoRangeY = m_lassoComponent.getLassoRect ().m_verticalRange;
-        if (getVerticalRangeOfTrack(trackPosY, track)
-                .intersects (lassoRangeY.movedToStartAt (lassoRangeY.getStart () + m_editViewState.m_viewY)))
+        if (getVerticalRangeOfTrack(trackPosY, track).intersects (lassoRangeY))
         {
             selectCatchedClips(track);
         }

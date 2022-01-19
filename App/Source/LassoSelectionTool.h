@@ -43,7 +43,7 @@ public:
     void paint(juce::Graphics &g) override;
 
     void startLasso(const juce::MouseEvent& e);
-    void updateLasso(const juce::MouseEvent& e);
+    void updateLasso(const juce::MouseEvent& e, int newTop);
     void stopLasso();
     LassoSelectionTool::LassoRect getLassoRect() const;
 

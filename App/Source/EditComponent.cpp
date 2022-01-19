@@ -186,7 +186,7 @@ void EditComponent::valueTreePropertyChanged (
         }
         else if (i == IDs::viewY)
         {
-            resized ();
+            markAndUpdate(m_updateSongEditor);
         }
         else if (i == IDs::drawWaveforms)
         {
@@ -254,6 +254,10 @@ void EditComponent::handleAsyncUpdate()
             tv->resized ();
         }
         updateHorizontalScrollBar();
+    }
+    if (compareAndReset(m_updateSongEditor))
+    {
+        resized();
     }
 }
 

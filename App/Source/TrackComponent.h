@@ -61,7 +61,7 @@ private:
                     x
                     , getWidth ()
                     , m_editViewState.m_viewX1
-                    , m_editViewState.m_viewX2));
+                    , m_editViewState.m_viewX2);
     }
 
     EditViewState& m_editViewState;
