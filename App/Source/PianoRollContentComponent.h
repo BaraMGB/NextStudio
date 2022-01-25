@@ -5,8 +5,6 @@
 #include "LassoSelectionTool.h"
 
 namespace te = tracktion_engine;
-
-
 class PianoRollContentComponent : public juce::Component
 {
 public:
@@ -24,16 +22,17 @@ public:
     void mouseWheelMove (const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
     te::Track::Ptr getTrack();
-    std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
+    juce::Array<te::MidiClip*> getMidiClipsOfTrack();
 
     int getNoteNumber (int y);
 
+    void drawClipRange(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip) const;
+    void drawNote(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip,te::MidiNote* n
+                  , double timeDelta=0.0, int noteDelta=0, double timeLeftDelta=0.0, double timeRightDelta=0.0);
 private:
 
     void drawBarsAndBeatLines(juce::Graphics& g, juce::Colour colour);
     void drawKeyLines(juce::Graphics& g, juce::Rectangle<int>& area) const;
-    void drawClipRange(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip) const;
-    void drawNote(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n) const;
 
     [[nodiscard]] float    getStartKey() const;
     [[nodiscard]] float    getKeyWidth() const;
@@ -43,7 +42,7 @@ private:
 
     static double          getNoteStartBeat(te::MidiClip* const& midiClip, const te::MidiNote* n) ;
     static double          getNoteEndBeat(te::MidiClip* const& midiClip, const te::MidiNote* n) ;
-    juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n) const;
+    juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, tracktion_engine::MidiNote* n);
 
     te::MidiNote*          addNote(int noteNumb, const te::MidiClip* clip, double beat);
     te::MidiClip*          getMidiClipByPos(int y);
@@ -52,11 +51,16 @@ private:
     void                   removeNote(te::MidiClip* clip, te::MidiNote* note);
     void                   playNote(const te::MidiClip* clip, te::MidiNote* note) const;
     static float           getVelocity(const tracktion_engine::MidiNote* note);
-    void                   expandClickedNoteLeft(int targetX, bool snap);
     bool                   clipContains(const te::MidiClip* clip, te::MidiNote* note);
 
+    void expandSelectedNotesLeft(const juce::MouseEvent& e);
+    void expandSelectedNotesRight(const juce::MouseEvent& e);
+    void moveSelectedNotesToMousePos(const juce::MouseEvent& e);
 
+    [[nodiscard]] double beatsToTime(double beats);
+    [[nodiscard]] int beatsToX(double beats);
     [[nodiscard]] double   xToBeats(const int& x) const;
+    [[nodiscard]] double   timeToX(const double& time) const;
     [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
     [[nodiscard]] double   getQuantizedBeat(double beat) const;
 
@@ -72,7 +76,7 @@ private:
     void updateSelection();
 
     juce::Array<te::MidiNote*> getSelectedNotes();
-    void setNoteSelected(te::MidiNote &n, bool selected);
+    void setNoteSelected(te::MidiNote &n, tracktion_engine::MidiClip& c);
     void unselectAll();
 
     juce::Range<double> getLassoVerticalRange()
@@ -93,13 +97,22 @@ private:
     te::Track::Ptr                      m_track;
     LassoSelectionTool                  m_lassoTool;
     te::MidiNote*                       m_clickedNote {nullptr};
+    std::unique_ptr<te::SelectedMidiEvents>    m_selectedEvents;
     double                              m_clickedKey;
     double                              m_clickOffsetBeats{0};
 
-    bool                                m_expandLeft {false}
-                                        , m_expandRight{false}
-                                        , m_noteAdding {false};
+    bool                                m_expandLeft            {false}
+                                        , m_expandRight         {false}
+                                        , m_noteAdding          {false};
+    int getYfromKey(double key);
+    void deleteSelectedNotes();
+    bool isSelected(tracktion_engine::MidiNote* note);
+    te::MidiClip* m_clickedClip;
+    double m_draggedTimeDelta {0.0};
+    int m_draggedNoteDelta {0};
+    double m_leftTimeDelta{0.0};
+    double m_rightTimeDelta{0.0};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
-    int getYfromKey(double key);
+
 };

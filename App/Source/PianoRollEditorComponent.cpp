@@ -125,7 +125,7 @@ void PianoRollEditorComponent::handleNoteOn(juce::MidiKeyboardState *
 {
     if (m_pianoRollContentComponent)
     {
-        if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().at (0))
+        if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().getFirst())
         {
             auto ch = mc->getMidiChannel ();
             mc->getAudioTrack ()->playGuideNote
@@ -144,7 +144,7 @@ void PianoRollEditorComponent::handleNoteOff(juce::MidiKeyboardState *
 {
     if (m_pianoRollContentComponent)
     {
-        if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().at (0))
+        if (auto mc = m_pianoRollContentComponent->getMidiClipsOfTrack ().getFirst())
         {
             auto ch = mc->getMidiChannel ();
             mc->getAudioTrack ()->turnOffGuideNotes (ch);

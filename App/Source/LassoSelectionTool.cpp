@@ -38,7 +38,7 @@ void LassoSelectionTool::startLasso(const juce::MouseEvent& e)
 void LassoSelectionTool::updateLasso(const juce::MouseEvent& e, int newTop)
 {
     m_isLassoSelecting = true;
-    std::cout << newTop << std::endl;
+
     double top =    juce::jmin(newTop, e.y);
     double bottom = juce::jmax(newTop, e.y);
 

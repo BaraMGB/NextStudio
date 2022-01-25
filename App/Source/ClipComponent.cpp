@@ -15,22 +15,32 @@ void ClipComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
     g.setColour (juce::Colour(0x50000000));
-    if (m_editViewState.m_selectionManager.isSelected (m_clip))
-        g.setColour (juce::Colour(0xaaffffff));
     g.fillRect (area);
+
     area.reduce (1,1);
     g.setColour (m_clip->getColour().brighter (.5));
     g.fillRect (area);
+
     area.reduce (1,1);
     g.setColour(m_clip->getColour());
     g.fillRect (area);
+
     area.reduce (1,1);
-    g.setColour (juce::Colour(0x33000000));
+    g.setColour (juce::Colour(0x55000000));
     area = area.removeFromTop (m_editViewState.m_trackHeightMinimized/2);
     g.fillRect (area);
-    g.setColour (juce::Colour(0x99000000));
-    g.drawText (m_clip->getName (), area, juce::Justification::centredLeft);
 
+    if (m_editViewState.m_selectionManager.isSelected (m_clip))
+    {
+        auto a = getLocalBounds();
+        g.setColour (juce::Colour(0x99ffffff));
+        auto edge = juce::Path();
+        edge.addRectangle(a.reduced(3));
+        g.strokePath(edge, juce::PathStrokeType(3));
+    }
+
+    g.setColour (juce::Colour(0x99ffffff));
+    g.drawText (m_clip->getName (), area, juce::Justification::centredLeft);
 }
 
 void ClipComponent::mouseMove(const juce::MouseEvent &clipEvent)
