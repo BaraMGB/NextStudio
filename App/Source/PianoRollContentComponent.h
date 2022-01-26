@@ -6,6 +6,7 @@
 
 namespace te = tracktion_engine;
 class PianoRollContentComponent : public juce::Component
+                                , public juce::Timer
 {
 public:
 
@@ -20,6 +21,8 @@ public:
     void mouseExit (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
     void mouseWheelMove (const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
+
+    void timerCallback() override;
 
     te::Track::Ptr getTrack();
     juce::Array<te::MidiClip*> getMidiClipsOfTrack();
@@ -49,7 +52,7 @@ private:
     te::MidiNote*          getNoteByPos (juce::Point<float> pos);
     double getKeyFromY(int y);
     void                   removeNote(te::MidiClip* clip, te::MidiNote* note);
-    void                   playNote(const te::MidiClip* clip, te::MidiNote* note) const;
+    void                   playNote(const te::MidiClip* clip,const int noteNumb, int vel=100);
     static float           getVelocity(const tracktion_engine::MidiNote* note);
     bool                   clipContains(const te::MidiClip* clip, te::MidiNote* note);
 
@@ -115,4 +118,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
 
+    void drawKeyNum(juce::Graphics& g,
+                    const tracktion_engine::MidiNote* n,
+                    int noteDelta,
+                    juce::Rectangle<float>& noteRect) const;
 };
