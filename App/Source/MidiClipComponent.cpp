@@ -65,14 +65,7 @@ void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
             || m_mouseDownX > getWidth () - 10)
        && m_editViewState.m_isPianoRollVisible)
     {
-        auto pianorollZoom = m_editViewState.m_pianoX2
-                           - m_editViewState.m_pianoX1;
-
-        m_editViewState.m_pianoX1 = juce::jmax(0.0
-                                             , m_clip->getStartBeat ()
-                                                 - (pianorollZoom/2)
-                                                 + (m_clip->getLengthInBeats ()/2));
-        m_editViewState.m_pianoX2 = m_editViewState.m_pianoX1 + pianorollZoom;
+        GUIHelpers::centerMidiEditorToClip(m_editViewState, m_clip);
     }
     m_posAtMouseDown =  m_clip->getPosition();
     m_clipWidthMouseDown = getWidth();

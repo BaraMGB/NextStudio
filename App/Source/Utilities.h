@@ -101,6 +101,8 @@ namespace GUIHelpers
           , double x2beats
           , juce::Rectangle<int> boundingRect, bool printDescription=false);
     void moveView(EditViewState& evs, double newBeatPos);
+    void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c);
+
     }
 
     class DelayedOneShotLambda : public juce::Timer

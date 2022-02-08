@@ -209,11 +209,8 @@ void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr& trac
 {
     if (track->state.getProperty (IDs::isMidiTrack))
     {
-        //hide all PluginRacks
-        for (auto &pluginrack : m_pluginRackComps)
-        {
-            pluginrack->setVisible (false);
-        }
+        for (auto &pr : m_pluginRackComps)
+           pr->setVisible (false);
 
         m_pianoRollEditor.setVisible (true);
         m_pianoRollEditor.setTrack (track);

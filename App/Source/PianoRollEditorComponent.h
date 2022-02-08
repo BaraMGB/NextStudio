@@ -36,6 +36,11 @@ private:
         juce::ValueTree &treeWhosePropertyHasChanged
         , const juce::Identifier &property) override;
     void valueTreeChanged() override {}
+    void valueTreeChildAdded(juce::ValueTree& tree,
+                             juce::ValueTree& property) override;
+    void valueTreeChildRemoved(juce::ValueTree& tree,
+                               juce::ValueTree& property,
+                               int ) override;
 
     EditViewState& m_editViewState;
     juce::MidiKeyboardState m_keybordstate;
@@ -48,7 +53,11 @@ private:
     juce::String m_NoteDescUnderCursor;
     void handleAsyncUpdate() override;
 
-    bool m_updateKeyboard {false}, m_updateVelocity {false}, m_updateNoteEditor{false};
+    bool m_updateKeyboard {false}
+        , m_updateVelocity {false}
+        , m_updateNoteEditor{false}
+        , m_updateClips{false}
+        , m_updateTracks{false};
 
     juce::Rectangle<int> getHeaderRect();
     juce::Rectangle<int> getTimeLineRect();
@@ -58,7 +67,6 @@ private:
     juce::Rectangle<int> getParameterToolbarRect();
     juce::Rectangle<int> getVelocityEditorRect();
     juce::Rectangle<int> getFooterRect();
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollEditorComponent)
     juce::Rectangle<int> getPlayHeadRect();
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollEditorComponent)
 };

@@ -15,7 +15,6 @@ PianoRollEditorComponent::PianoRollEditorComponent(EditViewState & evs)
     addAndMakeVisible (m_keyboard);
     addAndMakeVisible (m_timeline);
     addAndMakeVisible (m_playhead);
-    m_timeline.setAlwaysOnTop (true);
     m_playhead.setAlwaysOnTop (true);
 }
 PianoRollEditorComponent::~PianoRollEditorComponent()
@@ -41,6 +40,10 @@ void PianoRollEditorComponent::paint(juce::Graphics& g)
     g.fillRect(getMidiEditorRect());
     g.fillRect(getVelocityEditorRect());
     g.fillRect(getParameterToolbarRect());
+
+    g.setColour(juce::Colours::white);
+    if (m_pianoRollContentComponent == nullptr)
+        g.drawText("select a clip for edit midi", getMidiEditorRect(), juce::Justification::centred);
 }
 void PianoRollEditorComponent::paintOverChildren(juce::Graphics &g)
 {
@@ -75,7 +78,6 @@ void PianoRollEditorComponent::paintOverChildren(juce::Graphics &g)
 }
 void PianoRollEditorComponent::resized()
 {
-
     auto keyboard = getKeyboardRect();
     auto timeline = getTimeLineRect();
     auto playhead = getPlayHeadRect();
@@ -83,23 +85,16 @@ void PianoRollEditorComponent::resized()
     m_keyboard.setBounds (keyboard);
     m_timeline.setBounds (timeline);
 
-    if (m_timelineOverlay)
-    {
+    if (m_timelineOverlay != nullptr)
         m_timelineOverlay->setBounds (timeline);
-    }
 
-    if (m_velocityEditor)
-    {
+    if (m_velocityEditor != nullptr)
         m_velocityEditor->setBounds(getVelocityEditorRect());
-    }
 
-    if (m_pianoRollContentComponent)
-    {
+    if (m_pianoRollContentComponent != nullptr)
         m_pianoRollContentComponent->setBounds (getMidiEditorRect());
-    }
 
     m_playhead.setBounds (playhead);
-
 }
 juce::Rectangle<int> PianoRollEditorComponent::getPlayHeadRect()
 {
@@ -111,12 +106,15 @@ juce::Rectangle<int> PianoRollEditorComponent::getPlayHeadRect()
 }
 void PianoRollEditorComponent::mouseMove(const juce::MouseEvent &event)
 {
-    m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName (
-                (int) m_pianoRollContentComponent->getNoteNumber(event.y)
-                , true
-                , true
-                , 3);
-    repaint();
+    if (m_pianoRollContentComponent)
+    {
+        m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName (
+            (int) m_pianoRollContentComponent->getNoteNumber(event.y)
+            , true
+            , true
+            , 3);
+        repaint();
+    }
 }
 void PianoRollEditorComponent::handleNoteOn(juce::MidiKeyboardState *
                                       , int /*midiChannel*/
@@ -153,24 +151,20 @@ void PianoRollEditorComponent::handleNoteOff(juce::MidiKeyboardState *
 }
 void PianoRollEditorComponent::setTrack(const tracktion_engine::Track::Ptr& track)
 {
-    m_pianoRollContentComponent = std::make_unique<PianoRollContentComponent>(m_editViewState, track);
+    m_pianoRollContentComponent = std::make_unique<PianoRollContentComponent> (m_editViewState, track);
     addAndMakeVisible (*m_pianoRollContentComponent);
 
-    m_timelineOverlay = std::make_unique<TimelineOverlayComponent>
-            (m_editViewState
-           , m_pianoRollContentComponent->getTrack ()
-           , m_timeline);
-    m_timelineOverlay->setAlwaysOnTop (true);
+    m_timelineOverlay = std::make_unique<TimelineOverlayComponent> (m_editViewState, track, m_timeline);
     addAndMakeVisible (*m_timelineOverlay);
 
-    m_velocityEditor = std::make_unique<VelocityEditor>(
-        m_editViewState, m_pianoRollContentComponent->getTrack());
+    m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track);
     addAndMakeVisible(*m_velocityEditor);
 
     resized ();
 }
 void PianoRollEditorComponent::clearTrack()
 {
+    GUIHelpers::log("track cleared");
     m_timelineOverlay.reset (nullptr);
     m_pianoRollContentComponent.reset (nullptr);
     m_velocityEditor.reset(nullptr);
@@ -198,22 +192,40 @@ void PianoRollEditorComponent::valueTreePropertyChanged(
         }
     }
 }
+void PianoRollEditorComponent::valueTreeChildAdded(juce::ValueTree&,
+                                                   juce::ValueTree& property)
+{
+    if (te::Clip::isClipState (property))
+        markAndUpdate (m_updateClips);
+}
+void PianoRollEditorComponent::valueTreeChildRemoved(juce::ValueTree& ,
+                                                     juce::ValueTree& property,
+                                                     int)
+{
+    if (te::Clip::isClipState (property))
+        markAndUpdate (m_updateClips);
+
+    if (m_pianoRollContentComponent != nullptr
+        && property == m_pianoRollContentComponent->getTrack()->state)
+            markAndUpdate(m_updateTracks);
+
+}
 void PianoRollEditorComponent::handleAsyncUpdate()
 {
-    if (m_updateKeyboard)
-    {
+    if (compareAndReset(m_updateKeyboard))
         m_keyboard.resized();
-    }
 
-    if (m_updateNoteEditor)
-    {
+    if (m_pianoRollContentComponent != nullptr && compareAndReset(m_updateNoteEditor))
         m_pianoRollContentComponent->repaint();
-    }
 
-    if (m_updateVelocity)
-    {
+    if (m_pianoRollContentComponent != nullptr && compareAndReset(m_updateVelocity))
         m_velocityEditor->repaint();
-    }
+
+    if (m_pianoRollContentComponent != nullptr && compareAndReset(m_updateClips))
+        m_pianoRollContentComponent->updateSelectedEvents();
+
+    if (m_pianoRollContentComponent != nullptr && compareAndReset(m_updateTracks))
+        clearTrack();
 }
 juce::Rectangle<int> PianoRollEditorComponent::getHeaderRect()
 {

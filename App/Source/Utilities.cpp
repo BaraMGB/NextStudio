@@ -328,7 +328,6 @@ void EngineHelpers::pasteClipboardToEdit(
             if (removeSource)
             {
                 deleteSelectedClips (evs);
-
             }
             //delete region under pasted clips
             for (const auto& clip : clipContent->clips)
@@ -774,7 +773,7 @@ void GUIHelpers::moveView(EditViewState& evs, double newBeatPos)
 
 float GUIHelpers::getZoomScaleFactor(int delta, float unitDistance)
 {
-    return std::powf (2,(float) delta / unitDistance);
+    return std::pow (2,(float) delta / unitDistance);
 }
 juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
 {
@@ -809,4 +808,12 @@ int GUIHelpers::getTrackHeight(tracktion_engine::AudioTrack* track, EditViewStat
     }
 
     return trackHeight;
+}
+void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
+{
+    auto pianorollZoom = evs.m_pianoX2
+                         - evs.m_pianoX1;
+
+    evs.m_pianoX1 = juce::jmax(0.0, c->getStartBeat () - (pianorollZoom/2) + (c->getLengthInBeats ()/2));
+    evs.m_pianoX2 = evs.m_pianoX1 + pianorollZoom;
 }

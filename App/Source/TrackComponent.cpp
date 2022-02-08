@@ -352,6 +352,7 @@ tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos
                     newPos
                   , &m_editViewState.m_selectionManager);
         mc->setName (audiotrack->getName ());
+        GUIHelpers::centerMidiEditorToClip(m_editViewState, mc);
         return mc;
     }
     return nullptr;
