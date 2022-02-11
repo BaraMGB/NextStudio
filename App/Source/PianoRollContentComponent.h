@@ -34,7 +34,8 @@ public:
 private:
 
     void                   drawClipRange(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip);
-    void                   drawNote(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip,te::MidiNote* n, double timeDelta=0.0, int noteDelta=0, double timeLeftDelta=0.0, double timeRightDelta=0.0);
+    void                   drawNote(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip,te::MidiNote* n);
+    void                   drawDraggedNotes(juce::Graphics& g, te::MidiNote* n, te::MidiClip* clip);
     void                   drawBarsAndBeatLines(juce::Graphics& g, juce::Colour colour);
     void                   drawKeyLines(juce::Graphics& g) const;
     void                   drawKeyNum(juce::Graphics& g, const tracktion_engine::MidiNote* n, int noteDelta, juce::Rectangle<float>& noteRect) const;
@@ -57,22 +58,15 @@ private:
     te::MidiClip*          getNearestClipBefor(int x);
 
     double                 getKeyForY(int y);
+    te::MidiNote*          getNoteByPos(juce::Point<float> pos);
     juce::Array<te::MidiNote*>
-                           getNotesByPos(juce::Point<float> pos);
-
-    juce::Array<te::MidiNote*>
-                           getNotesInRange(juce::Range<double> beatRange,
-                                               const te::MidiClip* clip);
-
-    void                   cleanUnderNote(int noteNumb, juce::Range<double> beatRange,
-                        const te::MidiClip* clip);
+                           getNotesInRange(juce::Range<double> beatRange, const te::MidiClip* clip);
+    void                   cleanUnderNote(int noteNumb, juce::Range<double> beatRange, const te::MidiClip* clip);
     void                   removeNote(te::MidiClip* clip, te::MidiNote* note);
     static float           getVelocity(const tracktion_engine::MidiNote* note);
 
     void                   playGuideNote(const te::MidiClip* clip,const int noteNumb, int vel= 100);
 
-    void                   expandSelectedNotesLeft(const juce::MouseEvent& e);
-    void                   expandSelectedNotesRight(const juce::MouseEvent& e);
     void                   moveSelectedNotesToMousePos(const juce::MouseEvent& e);
 
     [[nodiscard]] double   beatsToTime(double beats);
@@ -84,6 +78,7 @@ private:
     [[nodiscard]] te::TimecodeSnapType
                            getBestSnapType() const;
     [[nodiscard]] double   getQuantizedBeat(double beat, bool down=true) const;
+    void                   snapToGrid(te::MidiNote* note, const te::MidiClip* clip) const;
 
     void                   scrollPianoRoll(float delta);
 
@@ -96,10 +91,9 @@ private:
 
     void                   setNoteSelected(te::MidiNote* n, bool addToSelection);
     void                   deleteSelectedNotes();
-    juce::Array<te::MidiNote*>
-                           getSelectedNotes();
     bool                   isSelected(tracktion_engine::MidiNote* note);
     void                   unselectAll();
+    bool                   areNotesDragged();
 
     int                    getYForKey(double key);
 
@@ -120,5 +114,4 @@ private:
     double                                      m_rightTimeDelta{0.0};
     bool m_expandLeft {false}, m_expandRight {false}, m_noteAdding {false}, m_snap {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
-    void snapToGrid(te::MidiNote* note, const te::MidiClip* clip) const;
 };
