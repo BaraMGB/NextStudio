@@ -55,7 +55,7 @@ private:
 
     te::MidiClip*          getMidiClipAt(int x);
     te::MidiClip*          getNearestClipAfter(int x);
-    te::MidiClip*          getNearestClipBefor(int x);
+    te::MidiClip* getNearestClipBefore(int x);
 
     double                 getKeyForY(int y);
     te::MidiNote*          getNoteByPos(juce::Point<float> pos);
@@ -77,7 +77,8 @@ private:
     [[nodiscard]] double   timeToBeat(double time);
     [[nodiscard]] te::TimecodeSnapType
                            getBestSnapType() const;
-    [[nodiscard]] double   getQuantizedBeat(double beat, bool down=true) const;
+    [[nodiscard]] double   getQuantisedBeat(double beat, bool down=true) const;
+    [[nodiscard]] double   getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down=true) const;
     void                   snapToGrid(te::MidiNote* note, const te::MidiClip* clip) const;
 
     void                   scrollPianoRoll(float delta);
@@ -93,7 +94,7 @@ private:
     void                   deleteSelectedNotes();
     bool                   isSelected(tracktion_engine::MidiNote* note);
     void                   unselectAll();
-    bool                   areNotesDragged();
+    bool                   areNotesDragged() const;
 
     int                    getYForKey(double key);
 
@@ -114,4 +115,5 @@ private:
     double                                      m_rightTimeDelta{0.0};
     bool m_expandLeft {false}, m_expandRight {false}, m_noteAdding {false}, m_snap {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
+    juce::Array<te::MidiNote*> getSelectedNotes();
 };
