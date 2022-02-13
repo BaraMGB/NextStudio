@@ -38,7 +38,7 @@ private:
     void                   drawDraggedNotes(juce::Graphics& g, te::MidiNote* n, te::MidiClip* clip);
     void                   drawBarsAndBeatLines(juce::Graphics& g, juce::Colour colour);
     void                   drawKeyLines(juce::Graphics& g) const;
-    void                   drawKeyNum(juce::Graphics& g, const tracktion_engine::MidiNote* n, int noteDelta, juce::Rectangle<float>& noteRect) const;
+    void                   drawKeyNum(juce::Graphics& g, const tracktion_engine::MidiNote* n,juce::Rectangle<float>& noteRect) const;
 
     [[nodiscard]] float    getStartKey() const;
     [[nodiscard]] float    getKeyWidth() const;
