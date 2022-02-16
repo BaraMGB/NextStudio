@@ -272,7 +272,7 @@ juce::Rectangle<int> PianoRollEditorComponent::getParameterToolbarRect()
     area.removeFromBottom(getFooterRect().getHeight());
     area.removeFromRight(getWidth() - m_editViewState.m_keyboardWidth);
 
-    return area.removeFromBottom(m_editViewState.m_velocityEditorHeight);
+    return area.removeFromBottom(getVelocityEditorRect().getHeight());
 }
 juce::Rectangle<int> PianoRollEditorComponent::getVelocityEditorRect()
 {
@@ -281,7 +281,11 @@ juce::Rectangle<int> PianoRollEditorComponent::getVelocityEditorRect()
     area.removeFromBottom(getFooterRect().getHeight());
     area.removeFromLeft(m_editViewState.m_keyboardWidth);
 
-    return area.removeFromBottom(m_editViewState.m_velocityEditorHeight);
+    int height = getHeight() < 400
+        ? getHeight() < 300 ? 0 : getHeight() / 5
+        : m_editViewState.m_velocityEditorHeight;
+
+    return area.removeFromBottom(height);
 }
 juce::Rectangle<int> PianoRollEditorComponent::getFooterRect()
 {

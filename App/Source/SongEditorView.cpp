@@ -19,7 +19,7 @@ int SongEditorView::getTrackHeight(const TrackComponent* tc) const
 void SongEditorView::resized()
 {
     int y = juce::roundToInt (m_editViewState.m_viewY.get());
-    for (auto trackView : m_views)
+    for (auto trackView : m_trackViews)
     {
         auto trackHeight = getTrackHeight(trackView);
         trackView->setBounds (0, y, getWidth(), trackHeight);
@@ -29,38 +29,39 @@ void SongEditorView::resized()
 }
 juce::OwnedArray<TrackComponent>& SongEditorView::getTrackViews()
 {
-    return m_views;
+    return m_trackViews;
 }
 void SongEditorView::addTrackView(TrackComponent& tc)
 {
-    m_views.add(&tc);
+    m_trackViews.add(&tc);
 }
 void SongEditorView::updateViews()
 {
-    for (auto v : m_views)
-    {
+    for (auto v : m_trackViews)
         addAndMakeVisible(v);
-    }
+
     resized();
 }
 const TrackComponent& SongEditorView::getTrackView(te::Track::Ptr track)
 {
-    for (auto tv : m_views)
+    for (auto tv : m_trackViews)
         if (tv->getTrack() == track)
             return *tv;
 }
 void SongEditorView::clear()
 {
-    m_views.clear(true);
+    m_trackViews.clear(true);
     resized();
 }
 int SongEditorView::getSize()
 {
-    return m_views.size();
+    return m_trackViews.size();
 }
 bool SongEditorView::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails&)
-{ return true; }
+{
+    return true;
+}
 void SongEditorView::itemDragMove(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
@@ -226,12 +227,11 @@ void SongEditorView::itemDropped(
 }
 void SongEditorView::itemDragExit(const juce::DragAndDropTarget::SourceDetails&)
 {
-
 }
 TrackComponent* SongEditorView::getTrackComponent(int y)
 {
     auto tcHeight = 0;
-    for (auto & tc : m_views)
+    for (auto & tc : m_trackViews)
     {
         if (y - m_editViewState.m_viewY > tcHeight
             && y - m_editViewState.m_viewY <= tcHeight + tc->getHeight ())
@@ -245,7 +245,7 @@ TrackComponent* SongEditorView::getTrackComponent(int y)
 ClipComponent*
     SongEditorView::getClipComponentForClip(const tracktion_engine::Clip::Ptr& clip)
 {
-    for (auto& track : m_views)
+    for (auto& track : m_trackViews)
     {
         for (auto &c : track->getClipComponents ())
         {
@@ -260,7 +260,7 @@ ClipComponent*
 TrackComponent*
     SongEditorView::getTrackCompForTrack(const tracktion_engine::Track::Ptr& track)
 {
-    for (auto &tc : m_views)
+    for (auto &tc : m_trackViews)
     {
         if (tc->getTrack () == track)
         {

@@ -40,7 +40,7 @@ public:
     }
     juce::OwnedArray<TrackComponent>& getTrackComps ()
     {
-        return m_views;
+        return m_trackViews;
     }
     const TrackComponent& getTrackView(te::Track::Ptr track);
 
@@ -73,7 +73,7 @@ private:
     EditViewState& m_editViewState;
     LassoSelectionTool m_lassoComponent;
     ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
-    juce::OwnedArray<TrackComponent>    m_views;
+    juce::OwnedArray<TrackComponent>    m_trackViews;
     juce::Array<te::Clip*>              m_cachedSelectedClips;
     double                              m_cachedY;
 

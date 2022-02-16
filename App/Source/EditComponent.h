@@ -119,6 +119,7 @@ private:
     juce::Rectangle<int> getTrackListRect();
     juce::Rectangle<int> getSongEditorRect();
     juce::Rectangle<int> getFooterRect();
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
     juce::Rectangle<int> getPlayHeadRect();
+    int                  getSongHeight();
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
 };
