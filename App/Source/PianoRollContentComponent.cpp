@@ -71,7 +71,7 @@ void PianoRollContentComponent::drawNote(juce::Graphics& g,
     }
     
     g.setColour(borderColour);
-    drawKeyNum(g, n, 0, noteRect);
+    drawKeyNum(g, n, noteRect);
 }
 void PianoRollContentComponent::drawDraggedNotes(juce::Graphics& g, te::MidiNote* n, te::MidiClip* clip)
 {
@@ -102,16 +102,15 @@ void PianoRollContentComponent::drawDraggedNotes(juce::Graphics& g, te::MidiNote
 
     noteRect.reduce(1, 1);
     g.setColour(borderColour);
-    drawKeyNum(g, &mn, m_draggedNoteDelta, noteRect);
+    drawKeyNum(g, &mn, noteRect);
 }
 void PianoRollContentComponent::drawKeyNum(juce::Graphics& g,
                                            const tracktion_engine::MidiNote* n,
-                                           int noteDelta,
                                            juce::Rectangle<float>& noteRect) const
 {
     if (m_editViewState.m_pianoKeyWidth > 13)
         g.drawText(juce::MidiMessage::getMidiNoteName(
-                       n->getNoteNumber() + noteDelta, true, true, 3),
+                       n->getNoteNumber() , true, true, 3),
                    noteRect, juce::Justification::centredLeft);
 
 }
