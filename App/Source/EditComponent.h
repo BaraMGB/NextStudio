@@ -72,6 +72,8 @@ public:
 
     EditViewState& getEditViewState () { return m_editViewState; }
 
+    void loopAroundSelection();
+
 private:
 
     void valueTreeChanged () override {}
@@ -86,8 +88,21 @@ private:
     void handleAsyncUpdate () override;
 
     void buildTracks ();
-    void refreshSnaptypeDesc ();
 
+    void refreshSnapTypeDesc();
+
+    tracktion_engine::EditTimeRange getSelectedClipRange();
+
+    void updateHorizontalScrollBar();
+
+    juce::Rectangle<int> getEditorHeaderRect();
+    juce::Rectangle<int> getTimeLineRect();
+    juce::Rectangle<int> getTrackListToolsRect();
+    juce::Rectangle<int> getTrackListRect();
+    juce::Rectangle<int> getSongEditorRect();
+    juce::Rectangle<int> getFooterRect();
+    juce::Rectangle<int> getPlayHeadRect();
+    int                  getSongHeight();
 
     te::Edit&                               m_edit;
     EditViewState                           m_editViewState;
@@ -112,14 +127,6 @@ private:
     juce::Array<juce::Colour>               m_trackColours;
 
     bool m_updateTracks = false, m_updateZoom = false, m_updateSongEditor = false;
-    void updateHorizontalScrollBar();
-    juce::Rectangle<int> getEditorHeaderRect();
-    juce::Rectangle<int> getTimeLineRect();
-    juce::Rectangle<int> getTrackListToolsRect();
-    juce::Rectangle<int> getTrackListRect();
-    juce::Rectangle<int> getSongEditorRect();
-    juce::Rectangle<int> getFooterRect();
-    juce::Rectangle<int> getPlayHeadRect();
-    int                  getSongHeight();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
 };

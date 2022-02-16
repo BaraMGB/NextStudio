@@ -244,7 +244,7 @@ void EditComponent::handleAsyncUpdate()
         buildTracks();
     if (compareAndReset (m_updateZoom))
     {
-        refreshSnaptypeDesc ();
+        refreshSnapTypeDesc();
 
         m_timeLine.repaint ();
 
@@ -262,7 +262,7 @@ void EditComponent::handleAsyncUpdate()
 }
 
 
-void EditComponent::refreshSnaptypeDesc()
+void EditComponent::refreshSnapTypeDesc()
 {
     m_footerbar.m_snapTypeDesc =
             m_timeLine.getEditViewState ().getSnapTypeDescription (
@@ -406,4 +406,31 @@ int EditComponent::getSongHeight()
         h = h + tc->getHeight();
     }
     return h;
+}
+void EditComponent::loopAroundSelection()
+{
+    auto& transport = m_edit.getTransport();
+    if (getSelectedClipRange().getLength() > 0)
+        transport.setLoopRange (getSelectedClipRange());
+}
+tracktion_engine::EditTimeRange EditComponent::getSelectedClipRange()
+{
+    if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size() == 0)
+        return {0.0, 0.0};
+
+    auto start = m_edit.getLength();
+    auto end = 0.0;
+
+    for (auto c: m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+    {
+        start = c->getPosition().getStart() < start
+            ? c->getPosition().getStart()
+            : start;
+
+        end = c->getPosition().getEnd() > end
+            ? c->getPosition().getEnd()
+            : end;
+    }
+
+    return {start, end};
 }

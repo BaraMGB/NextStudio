@@ -161,6 +161,9 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
         return true;
     }
 
+    if (key == juce::KeyPress::createFromDescription ("l"))
+        m_editComponent->loopAroundSelection();
+
 #if JUCE_MAC
     if (key == juce::KeyPress::createFromDescription ("command + D"))
 #else
