@@ -80,8 +80,9 @@ public:
 
     [[nodiscard]] juce::File loadingFile() const;
 
-private:
+    void updateLoopButton();
 
+private:
     EditViewState& m_editViewState;
     [[nodiscard]] static juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify) ;
     static void addButtonsToFlexBox(juce::FlexBox& box,const juce::Array<juce::Component*>& buttons, int w, int h, int margin);
@@ -100,8 +101,8 @@ private:
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
     juce::String m_btn_col { "#dbdbdb" };
-    PositionDisplayComponent m_display;
 
+    PositionDisplayComponent m_display;
     juce::File m_loadingFile {};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };

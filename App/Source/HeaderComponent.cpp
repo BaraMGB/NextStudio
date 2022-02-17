@@ -407,10 +407,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     if (button == &m_loopButton)
     {
         EngineHelpers::toggleLoop (m_edit);
-        GUIHelpers::setDrawableOnButton(m_loopButton,
-                                        BinaryData::cached_svg,
-                                        m_edit.getTransport().looping ? m_btn_col
-                                                                      : "#666666");
+        updateLoopButton();
     }
     if (button == &m_clickButton)
     {
@@ -460,6 +457,13 @@ void HeaderComponent::buttonClicked(juce::Button* button)
             sendChangeMessage ();
         }
     }
+}
+void HeaderComponent::updateLoopButton()
+{
+    GUIHelpers::setDrawableOnButton(m_loopButton,
+                                            BinaryData::cached_svg,
+                                    m_edit.getTransport().looping ? m_btn_col
+                                                                  : "#666666");
 }
 
 void HeaderComponent::timerCallback()

@@ -173,6 +173,11 @@ void EditComponent::valueTreePropertyChanged (
         m_songEditor.resized();
     }
 
+    if (i == te::IDs::loopPoint1
+        || i == te::IDs::loopPoint2
+        || i == te::IDs::looping)
+        markAndUpdate(m_updateZoom);
+
     if (v.hasType (IDs::EDITVIEWSTATE))
     {
         if (i == IDs::viewX1
@@ -181,17 +186,11 @@ void EditComponent::valueTreePropertyChanged (
             || i == IDs::pianorollHeight
             || i == IDs::showHeaders
             || i == IDs::showFooters)
-        {
             markAndUpdate (m_updateZoom);
-        }
         else if (i == IDs::viewY)
-        {
             markAndUpdate(m_updateSongEditor);
-        }
         else if (i == IDs::drawWaveforms)
-        {
             repaint();
-        }
     }
 }
 

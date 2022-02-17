@@ -12,6 +12,7 @@
 #include "TimeLineComponent.h"
 #include "Utilities.h"
 
+
 TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::CachedValue<double> &x1, juce::CachedValue<double> &x2)
     : m_editViewState(evs)
     , m_isMouseDown(false)
@@ -47,61 +48,162 @@ void TimeLineComponent::paint(juce::Graphics& g)
         g.fillRect(md, 1, 1, getHeight()-1);
     }
 
+    if (m_editViewState.m_edit.getTransport().looping)
+        g.setColour(juce::Colour(0xffFFFFFF));
+    else
+        g.setColour(juce::Colour(0x22FFFFFF));
+    drawLoopRange(g);
 }
-
-void TimeLineComponent::mouseDown(const juce::MouseEvent& event)
+void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 {
-    event.source.enableUnboundedMouseMovement(true, false);
-    m_isMouseDown = true;
-    m_cachedBeat = m_editViewState.xToBeats(event.getMouseDownPosition().getX(), getWidth (), m_X1, m_X2);
-    m_cachedX1 = m_X1;
-    m_cachedX2 = m_X2;
-    if (event.getNumberOfClicks() > 1)
+    auto llr = getLoopRangeRect();
+
+    if (llr.contains(e.getPosition()))
     {
-        auto newTime = m_editViewState.beatToTime(m_cachedBeat);
-        m_editViewState.m_playHeadStartTime = newTime;
-        m_editViewState.m_edit.getTransport().setCurrentPosition(newTime);
+        if (e.x > llr.getHorizontalRange().getStart()
+            && e.x < llr.getHorizontalRange().getStart() + 10)
+        {
+            setMouseCursor (juce::MouseCursor::LeftEdgeResizeCursor);
+            m_leftResized = true;
+            m_rightResized = false;
+        }
+        else if (e.x > llr.getHorizontalRange ().getEnd () - 10
+                 && e.x < llr.getHorizontalRange ().getEnd ())
+        {
+            setMouseCursor (juce::MouseCursor::RightEdgeResizeCursor);
+            m_rightResized = true;
+            m_leftResized = false;
+        }
+        else
+        {
+            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+            m_leftResized = false;
+            m_rightResized = false;
+        }
+    }
+}
+void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
+{
+    if (getLoopRangeRect().contains(e.getPosition()))
+    {
+        m_loopRangeClicked = true;
+        m_cachedL1 = m_editViewState.m_edit.getTransport().loopPoint1;
+        m_cachedL2 = m_editViewState.m_edit.getTransport().loopPoint2;
+    }
+    else
+    {
+        e.source.enableUnboundedMouseMovement(true, false);
+        m_isMouseDown = true;
+        m_cachedBeat = m_editViewState.xToBeats(
+            e.getMouseDownPosition().getX(), getWidth (), m_X1, m_X2);
+        m_cachedX1 = m_X1;
+        m_cachedX2 = m_X2;
+        if (e.getNumberOfClicks() > 1)
+        {
+            auto newTime = m_editViewState.beatToTime(m_cachedBeat);
+            m_editViewState.m_playHeadStartTime = newTime;
+            m_editViewState.m_edit.getTransport().setCurrentPosition(newTime);
+        }
     }
 }
 
-void TimeLineComponent::mouseDrag(const juce::MouseEvent& event)
+void TimeLineComponent::mouseDrag(const juce::MouseEvent& e)
+{
+    if (m_loopRangeClicked)
+        moveLoopRange(e);
+    else
+        updateViewRange(e);
+}
+void TimeLineComponent::updateViewRange(const juce::MouseEvent& e)
 {
     auto scaleFactor = GUIHelpers::getZoomScaleFactor(
-        event.getDistanceFromDragStartY(), m_editViewState.getTimeLineZoomUnit());
+        e.getDistanceFromDragStartY(), m_editViewState.getTimeLineZoomUnit());
+
     auto newVisibleLengthBeats = juce::jlimit(
-        0.05, 240.0
-        , (m_cachedX2 - m_cachedX1) * scaleFactor);
+        0.05, 240.0, (m_cachedX2 - m_cachedX1) * scaleFactor);
 
     auto currentXinBeats = juce::jmap(
-        (double)event.x
-        , 0.0,(double) getWidth()
-        , 0.0, newVisibleLengthBeats);
+        (double) e.x, 0.0,(double) getWidth(), 0.0, newVisibleLengthBeats);
 
     auto newRangeStartBeats = juce::jlimit(
-        0.0
-        , m_editViewState.getEndScrollBeat() - newVisibleLengthBeats
-        , m_cachedBeat - currentXinBeats);
+        0.0,
+        m_editViewState.getEndScrollBeat() - newVisibleLengthBeats,
+        m_cachedBeat - currentXinBeats);
 
     m_X1 = newRangeStartBeats;
     m_X2 = newRangeStartBeats + newVisibleLengthBeats;
 }
+void TimeLineComponent::moveLoopRange(const juce::MouseEvent& e)
+{
+    auto& t = m_editViewState.m_edit.getTransport();
+    if (m_leftResized)
+        t.loopPoint1 = getMovedTime(e, m_cachedL1);
+    else if (m_rightResized)
+        t.loopPoint2 = getMovedTime(e, m_cachedL2);
+    else
+        t.setLoopRange({getMovedTime(e, m_cachedL1),
+                        getMovedTime(e, m_cachedL1) + t.getLoopRange().getLength()});
+}
+double TimeLineComponent::getMovedTime(const juce::MouseEvent& e, double oldTime)
+{
+    auto scroll = beatToTime(m_X1);
+    auto offset = xToTime(e.getDistanceFromDragStartX());
+    auto movedTime = oldTime + offset - scroll;
+    auto snaped = getBestSnapType().roundTimeDown (
+        movedTime,
+        m_editViewState.m_edit.tempoSequence);
+    movedTime = e.mods.isShiftDown () ? movedTime : snaped;
 
+    return movedTime;
+}
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 {
+    m_leftResized= false;
+    m_rightResized= false;
+    m_loopRangeClicked= false;
     m_isMouseDown = false;
+
+    setMouseCursor (juce::MouseCursor::NormalCursor);
     repaint();
 }
-
 tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
 {
-    return m_editViewState.getBestSnapType (
-                m_X1
-              , m_X2
-              , getWidth());
+    return m_editViewState.getBestSnapType (m_X1, m_X2, getWidth());
 }
-
 EditViewState &TimeLineComponent::getEditViewState()
 {
     return m_editViewState;
 }
+int TimeLineComponent::timeToX(double time)
+{
+    return m_editViewState.timeToX(time, getWidth(), m_X1, m_X2);
+}
+void TimeLineComponent::drawLoopRange(juce::Graphics& g)
+{
+    if (getLoopRangeRect().getWidth() == 0)
+        return;
 
+    g.fillRect(getLoopRangeRect());
+}
+juce::Rectangle<int> TimeLineComponent::getLoopRangeRect()
+{
+    auto& t = m_editViewState.m_edit.getTransport();
+
+    auto start = timeToX(t.getLoopRange().getStart());
+    auto end = timeToX(t.getLoopRange().getEnd());
+    auto h = 5;
+
+    return {start, getHeight() - h, end - start, h};
+}
+double TimeLineComponent::xToTime(int x)
+{
+    return m_editViewState.xToTime(x, getWidth(), m_X1, m_X2);
+}
+double TimeLineComponent::beatToTime(double beats)
+{
+    return m_editViewState.beatToTime(beats);
+}
+int TimeLineComponent::beatsToX(double beats)
+{
+    return m_editViewState.beatsToX(beats, getWidth(), m_X1, m_X2);
+}

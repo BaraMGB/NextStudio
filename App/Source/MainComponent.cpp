@@ -160,9 +160,15 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
         std::cout << editString << std::endl;
         return true;
     }
-
-    if (key == juce::KeyPress::createFromDescription ("l"))
+#if JUCE_MAC
+    if (key == juce::KeyPress::createFromDescription ("command + L"))
+#else
+    if (key == juce::KeyPress::createFromDescription ("ctrl + l"))
+#endif
         m_editComponent->loopAroundSelection();
+
+    if (key == juce::KeyPress::createFromDescription("l"))
+        EngineHelpers::toggleLoop(*m_edit);
 
 #if JUCE_MAC
     if (key == juce::KeyPress::createFromDescription ("command + D"))
@@ -204,18 +210,19 @@ void MainComponent::valueTreePropertyChanged(
         juce::ValueTree &vt
       , const juce::Identifier &property)
 {
+    if (property == te::IDs::looping)
+        m_header->updateLoopButton();
+
     if (vt.hasType (IDs::EDITVIEWSTATE))
     {
+
         if (property == te::IDs::name)
-        {
             m_editNameLabel.setText (m_editComponent->getEditViewState ().m_editName
                                    , juce::dontSendNotification);
-        }
+
         if (property == IDs::pianorollHeight
         || property == IDs::isPianoRollVisible)
-        {
             resized ();
-        }
     }
 }
 

@@ -33,7 +33,6 @@ private:
          , m_loop2AtMousedown{};
     bool m_leftResized {false};
     bool m_rightResized{false};
-    [[maybe_unused]] juce::Point<float> m_posAtMousedown;
     te::ClipPosition m_cachedPos;
     te::MidiClip * m_cachedClip{};
     TimeLineComponent & m_timelineComponent;

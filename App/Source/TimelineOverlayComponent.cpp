@@ -25,13 +25,6 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
         g.setColour (juce::Colours::black);
         g.drawRect (cr);
     }
-
-//    auto loopRange = m_editViewState.m_edit.getTransport ().getLoopRange ();
-//    auto loopStartX = timeToX (loopRange.getStart ());
-//    auto loopEndX = timeToX (loopRange.getEnd ());
-
-//    g.setColour (juce::Colours::grey);
-//    g.fillRect (loopStartX, getHeight () - 10, loopEndX - loopStartX, 10);
 }
 
 bool TimelineOverlayComponent::hitTest(int x, int y)
@@ -83,7 +76,6 @@ void TimelineOverlayComponent::mouseExit(const juce::MouseEvent &/*e*/)
 
 void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
-    m_posAtMousedown = e.position;
     if (auto mc = getMidiClipByPos(e.x))
     {
         m_cachedClip = mc;
