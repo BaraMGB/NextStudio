@@ -136,13 +136,17 @@ void TimeLineComponent::updateViewRange(const juce::MouseEvent& e)
 void TimeLineComponent::moveLoopRange(const juce::MouseEvent& e)
 {
     auto& t = m_editViewState.m_edit.getTransport();
-    if (m_leftResized)
-        t.loopPoint1 = getMovedTime(e, m_cachedL1);
-    else if (m_rightResized)
-        t.loopPoint2 = getMovedTime(e, m_cachedL2);
-    else
-        t.setLoopRange({getMovedTime(e, m_cachedL1),
-                        getMovedTime(e, m_cachedL1) + t.getLoopRange().getLength()});
+
+    if (t.getLoopRange ().getLength () > 0)
+    {
+        if (m_leftResized)
+            t.loopPoint1 = getMovedTime(e, m_cachedL1);
+        else if (m_rightResized)
+            t.loopPoint2 = getMovedTime(e, m_cachedL2);
+        else
+            t.setLoopRange({getMovedTime(e, m_cachedL1),
+                            getMovedTime(e, m_cachedL1) + t.getLoopRange().getLength()});
+    }
 }
 double TimeLineComponent::getMovedTime(const juce::MouseEvent& e, double oldTime)
 {

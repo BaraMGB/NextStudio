@@ -9,6 +9,7 @@ PianoRollContentComponent::PianoRollContentComponent(
 {
     addChildComponent(m_lassoTool);
     updateSelectedEvents();
+    setWantsKeyboardFocus (true);
 }
 
 PianoRollContentComponent::~PianoRollContentComponent() = default;
@@ -45,13 +46,11 @@ void PianoRollContentComponent::drawNote(juce::Graphics& g,
 {
     auto noteRect = getNoteRect(midiClip, n);
     noteRect.removeFromBottom(1);
-    
-    auto scroll = beatsToX(0) * (-1);
-    
+
     auto noteColor = getNoteColour(midiClip, n);
     auto innerGlow = noteColor.brighter(0.5f);
     auto selectedColour = juce::Colour(0xccffffff);
-    auto borderColour = juce::Colour(0xff000000); 
+    auto borderColour = juce::Colour(0xff000000);
 
     g.setColour(borderColour);
     g.fillRect(noteRect);
@@ -69,7 +68,7 @@ void PianoRollContentComponent::drawNote(juce::Graphics& g,
         g.setColour(selectedColour);
         g.drawRect(noteRect.expanded(2, 2));
     }
-    
+
     g.setColour(borderColour);
     drawKeyNum(g, n, noteRect);
 }
@@ -325,9 +324,9 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent& e)
 void PianoRollContentComponent::moveSelectedNotesToMousePos(
     const juce::MouseEvent& e)
 {
-    auto scrollTime = beatsToTime(m_editViewState.m_pianoX1);
+    auto scroll = beatsToTime(m_editViewState.m_pianoX1);
 
-    m_draggedTimeDelta = xToTime(e.getDistanceFromDragStartX()) - scrollTime;
+    m_draggedTimeDelta = xToTime(e.getDistanceFromDragStartX()) - scroll;
     m_draggedNoteDelta = getNoteNumber(e.y) - m_clickedNote->getNoteNumber();
     m_clickedClip->getAudioTrack()->turnOffGuideNotes();
 
@@ -430,7 +429,7 @@ void PianoRollContentComponent::mouseUp(const juce::MouseEvent& e)
             timeToBeat (m_leftTimeDelta * (-1)) + timeToBeat(m_rightTimeDelta);
 
         juce::Array<std::pair<te::MidiNote*, te::MidiClip*>> temp;
-        moveSelectedNotesToTemp(startDelta, lengthDelta, temp);
+        moveSelectedNotesToTemp(startDelta, lengthDelta, temp, e.mods.isCtrlDown ());
         //all notes remain in their clips
         if (m_expandLeft || m_expandRight || m_clickedClip == targetClip)
         {
@@ -477,10 +476,11 @@ void PianoRollContentComponent::cleanUpFlags()
 void PianoRollContentComponent::moveSelectedNotesToTemp(
     const double startDelta,
     const double lengthDelta,
-    juce::Array<std::pair<te::MidiNote*, te::MidiClip*>>& temp)
+    juce::Array<std::pair<te::MidiNote*, te::MidiClip*>>& temp,
+    bool copy)
 {
     auto& um = m_editViewState.m_edit.getUndoManager();
-    
+
     for (auto n: getSelectedNotes())
     {
         auto clip = m_selectedEvents->clipForEvent(n);
@@ -494,8 +494,24 @@ void PianoRollContentComponent::moveSelectedNotesToTemp(
         std::pair<te::MidiNote*, te::MidiClip*> pair = {mn, clip};
         temp.add(pair);
 
-        clip->getSequence().removeNote(*n, &um);
+        if (copy)
+            m_selectedEvents->removeSelectedEvent (n);
+        else
+            clip->getSequence().removeNote(*n, &um);
     }
+}
+void PianoRollContentComponent::duplicateSelectedNotes()
+{
+    auto range = m_selectedEvents->getSelectedRange ();
+    auto rangeLength = timeToBeat (range.getLength ());
+    juce::Array<std::pair<te::MidiNote*, te::MidiClip*>> temp;
+
+    moveSelectedNotesToTemp(rangeLength, 0, temp, true);
+
+    for (auto p: temp)
+        insertNote(p.first, p.second);
+
+    m_editViewState.m_selectionManager.addToSelection (*m_selectedEvents);
 }
 void PianoRollContentComponent::insertNote(te::MidiNote* note, te::MidiClip* clip)
 {
@@ -551,6 +567,56 @@ void PianoRollContentComponent::mouseWheelMove(const juce::MouseEvent& event,
     {
         scrollPianoRoll((float) wheel.deltaY * 5);
     }
+}
+bool PianoRollContentComponent::keyPressed(const juce::KeyPress &key)
+{
+    if (key == juce::KeyPress::createFromDescription ("ctrl + d"))
+    {
+        duplicateSelectedNotes ();
+        return true;
+    }
+    else if (key == juce::KeyPress::deleteKey
+             || key == juce::KeyPress::backspaceKey)
+    {
+        for (auto n : getSelectedNotes ())
+            m_selectedEvents->clipForEvent (n)->getSequence ().removeNote
+                    (*n, &m_editViewState.m_edit.getUndoManager ());
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription ("cursor up"))
+    {
+        m_selectedEvents->nudge (getBestSnapType (),0, 1);
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription ("cursor down"))
+    {
+        if (key.getModifiers ().isCtrlDown ())
+            m_selectedEvents->nudge (getBestSnapType (),0, -1);
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription ("cursor left"))
+    {
+        m_selectedEvents->nudge (getBestSnapType (),-1, 0);
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription ("cursor right"))
+    {
+        m_selectedEvents->nudge (getBestSnapType (),1, 0);
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor up"))
+    {
+        m_selectedEvents->nudge (getBestSnapType (),0, 12);
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor down"))
+    {
+        m_selectedEvents->nudge (getBestSnapType (),0, -12);
+        return true;
+    }
+
+
+    return false;
 }
 void PianoRollContentComponent::scrollPianoRoll(float delta)
 {

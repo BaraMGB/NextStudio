@@ -22,6 +22,9 @@ public:
     void mouseUp (const juce::MouseEvent &) override;
     void mouseWheelMove (const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
+    bool keyPressed(const juce::KeyPress &key);
+
+
     void timerCallback() override;
 
     te::Track::Ptr getTrack();
@@ -98,8 +101,11 @@ private:
 
     int                    getYForKey(double key);
 
-    void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, juce::Array<std::pair<te::MidiNote*, te::MidiClip*>>& temp);
+    void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, juce::Array<std::pair<te::MidiNote*, te::MidiClip*>>& temp, bool copy=false);
+    void                   duplicateSelectedNotes();
     void                   cleanUpFlags();
+    juce::Array<te::MidiNote*>
+                           getSelectedNotes();
 
     EditViewState&                              m_editViewState;
     te::Track::Ptr                              m_track;
@@ -115,5 +121,5 @@ private:
     double                                      m_rightTimeDelta{0.0};
     bool m_expandLeft {false}, m_expandRight {false}, m_noteAdding {false}, m_snap {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollContentComponent)
-    juce::Array<te::MidiNote*> getSelectedNotes();
+
 };

@@ -176,10 +176,7 @@ void PianoRollEditorComponent::valueTreePropertyChanged(
 {
     if (treeWhosePropertyHasChanged.hasType(te::IDs::NOTE))
     {
-        if (property == te::IDs::v)
-        {
-            markAndUpdate(m_updateNoteEditor);
-        }
+        markAndUpdate(m_updateNoteEditor);
         markAndUpdate(m_updateVelocity);
     }
 
