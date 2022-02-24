@@ -14,32 +14,41 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
 void ClipComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
-    g.setColour (juce::Colour(0x50000000));
+    auto isSelected = m_editViewState.m_selectionManager.isSelected (m_clip);
+
+    auto clipColor = getClip ()->getColour ();
+    auto innerGlow = clipColor.brighter(0.5f);
+    auto selectedColour = juce::Colour(0xccffffff);
+    auto borderColour = juce::Colour(0xff000000);
+    auto labelBGColour = juce::Colour(0x55000000);
+    auto selLabelBGColour = juce::Colour(0x88000000);
+
+    g.setColour (borderColour);
     g.fillRect (area);
 
-    area.reduce (1,1);
-    g.setColour (m_clip->getColour().brighter (.5));
+    g.setColour (innerGlow);
+    area.reduce (1, 1);
     g.fillRect (area);
 
-    area.reduce (1,1);
-    g.setColour(m_clip->getColour());
+    g.setColour (clipColor);
+    area.reduce (1, 1);
     g.fillRect (area);
 
-    area.reduce (1,1);
-    g.setColour (juce::Colour(0x55000000));
-    area = area.removeFromTop (m_editViewState.m_trackHeightMinimized/2);
-    g.fillRect (area);
-
-    if (m_editViewState.m_selectionManager.isSelected (m_clip))
+    if (isSelected)
     {
-        auto a = getLocalBounds();
-        g.setColour (juce::Colour(0x99ffffff));
-        auto edge = juce::Path();
-        edge.addRectangle(a.reduced(3));
-        g.strokePath(edge, juce::PathStrokeType(3));
+        g.setColour (selectedColour);
+        g.drawRect (area.expanded (1, 1));
     }
 
+    area = area.removeFromTop (20);
+    area.reduce (2, 2);
+    g.setColour (labelBGColour);
+    if (isSelected)
+        g.setColour (selLabelBGColour);
+    g.fillRect (area);
     g.setColour (juce::Colour(0x99ffffff));
+    if (isSelected)
+        g.setColour (juce::Colour(0xccffffff));
     g.drawText (m_clip->getName (), area, juce::Justification::centredLeft);
 }
 

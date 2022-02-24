@@ -29,13 +29,13 @@ TrackComponent::~TrackComponent()
 
 void TrackComponent::paint (juce::Graphics& g)
 {
+    auto area = getLocalBounds ();
+    area.reduce (0, 1);
     g.setColour(juce::Colour(0xff222222));
     if (isSelected ())
         g.setColour(juce::Colour(0xff444444));
-    g.fillAll ();
-    g.setColour(  juce::Colour(0xff2b2b2b));
-    g.drawRect(0,0, getWidth(), m_track->state.getProperty(
-                   tracktion_engine::IDs::height));
+    g.fillRect (area);
+
     double x2beats = m_editViewState.m_viewX2;
     double x1beats = m_editViewState.m_viewX1;
     g.setColour(juce::Colour(0xff333333));

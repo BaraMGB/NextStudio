@@ -48,15 +48,26 @@ EditComponent::~EditComponent()
 void EditComponent::paint (juce::Graphics &g)
 {
     g.setColour(juce::Colour(0xff181818));
-    g.fillRect(getEditorHeaderRect().reduced(1,1));
-    g.fillRect(getTrackListToolsRect().reduced(1,1));
-    g.fillRect(getTrackListRect().reduced(1,1));
-    g.fillRect(getTimeLineRect().reduced(1,1));
-    g.fillRect(getSongEditorRect().reduced(1,1));
+    g.fillRect(getEditorHeaderRect());
+    g.setColour(juce::Colour(0xff272727));
+
+    g.fillRect(getTrackListToolsRect());
+    g.fillRect(getTrackListRect());
+    g.fillRect(getTimeLineRect());
+    g.fillRect(getSongEditorRect());
 }
 
 void EditComponent::paintOverChildren(juce::Graphics &g)
 {
+    g.setColour(juce::Colours::white);
+    g.drawHorizontalLine (getEditorHeaderRect ().getBottom (), 0, getWidth ());
+    g.drawHorizontalLine (getTimeLineRect ().getBottom () - 1, 0, getWidth ());
+    g.drawHorizontalLine (getSongEditorRect ().getBottom (), 0, getWidth ());
+
+    g.drawVerticalLine (getTrackListRect ().getRight (),
+                        getTimeLineRect ().getY (),
+                        getTimeLineRect ().getBottom ());
+
     //rounded corners
     g.setColour(juce::Colour(0xff555555));
 

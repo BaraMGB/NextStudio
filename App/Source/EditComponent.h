@@ -36,7 +36,6 @@ public:
                   , getHeight ()
                   , juce::Justification::centredRight);
         g.setColour (juce::Colour (0xff555555));
-        g.drawLine (.0f, .0f, (float) getWidth (), 1.0f);
     }
     juce::String m_snapTypeDesc;
 };
