@@ -242,22 +242,16 @@ void MainComponent::openValidStartEdit()
 {
     auto tempDirectory = m_engine.getTemporaryFileManager().getTempDirectory();
     tempDirectory.createDirectory();
-    auto f = Helpers::findRecentEdit (tempDirectory);
-    if (f.existsAsFile ())
+
+    setupEdit (tempDirectory.getNonexistentChildFile ("Untitled"
+                                                      , ".tracktionedit"
+                                                      , false));
+    auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
+    for (auto & t : atList)
     {
-        setupEdit (f);
+        m_edit->deleteTrack (t);
     }
-    else
-    {
-        setupEdit (tempDirectory.getNonexistentChildFile ("Untitled"
-                         , ".tracktionedit"
-                         , false));
-        auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
-        for (auto & t : atList)
-        {
-            m_edit->deleteTrack (t);
-        }
-    }
+
 }
 
 void MainComponent::setupSideBrowser()
