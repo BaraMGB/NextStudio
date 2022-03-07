@@ -20,10 +20,12 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
     updateClipRects ();
     for (auto cr : m_clipRects)
     {
-        g.setColour (colour);
-        g.fillRect (cr);
         g.setColour (juce::Colours::black);
-        g.drawRect (cr);
+        g.fillRoundedRectangle(cr.withHeight(cr.getWidth()).toFloat(),10);
+
+        cr.reduce(1, 1);
+        g.setColour (colour);
+        g.fillRoundedRectangle(cr.withHeight(cr.getWidth()).toFloat(),9);
     }
 }
 
@@ -162,7 +164,7 @@ void TimelineOverlayComponent::updateClipRects()
     {
         for (auto c : audiotrack->getClips ())
         {
-            auto startX = timeToX (c->getPosition ().getStart ());
+            auto startX = timeToX (c->getPosition ().getStart () );
             auto endX = timeToX (c->getPosition ().getEnd ()) + 1;
             juce::Rectangle<int> clipRect = {startX,getHeight () - (getHeight ()/3)
                                              , endX-startX, (getHeight() / 3)};

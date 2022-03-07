@@ -9,17 +9,17 @@ namespace te = tracktion_engine;
 //SnapTypeNumber 1 : 2 ticks
 //SnapTypeNumber 2 : 5 ticks
 //SnapTypeNumber 3 : 1/64 beat
-//SnapTypeNumber 4 : 1/32 beat
-//SnapTypeNumber 5 : 1/16 beat
-//SnapTypeNumber 6 : 1/8 beat
-//SnapTypeNumber 7 : 1/4 beat
-//SnapTypeNumber 8 : 1/2 beat
-//SnapTypeNumber 9 : Beat
-//SnapTypeNumber 10 : Bar
-//SnapTypeNumber 11 : 2 bars
-//SnapTypeNumber 12 : 4 bars
-//SnapTypeNumber 13 : 8 bars
-//SnapTypeNumber 14 : 16 bars
+//SnapTypeNumber 4 : 1/32 beat      0.03125
+//SnapTypeNumber 5 : 1/16 beat      0.0625
+//SnapTypeNumber 6 : 1/8 beat       0.125
+//SnapTypeNumber 7 : 1/4 beat       0.25
+//SnapTypeNumber 8 : 1/2 beat       0.5
+//SnapTypeNumber 9 : Beat           1
+//SnapTypeNumber 10 : Bar           4
+//SnapTypeNumber 11 : 2 bars        8
+//SnapTypeNumber 12 : 4 bars        16
+//SnapTypeNumber 13 : 8 bars        32
+//SnapTypeNumber 14 : 16 bars       64
 //SnapTypeNumber 15 : 64 bars
 //SnapTypeNumber 16 : 128 bars
 //SnapTypeNumber 17 : 256 bars

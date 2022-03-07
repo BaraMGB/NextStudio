@@ -31,9 +31,9 @@ void TrackComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds ();
     area.reduce (0, 1);
-    g.setColour(juce::Colour(0xff222222));
+    g.setColour(juce::Colour(0xff181818));
     if (isSelected ())
-        g.setColour(juce::Colour(0xff444444));
+        g.setColour(juce::Colour(0xff242424));
     g.fillRect (area);
 
     double x2beats = m_editViewState.m_viewX2;

@@ -170,7 +170,7 @@ double PianoRollContentComponent::getNoteStartBeat(const te::MidiClip* midiClip,
 void PianoRollContentComponent::drawClipRange(
     juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip)
 {
-    auto clipStartX = beatsToX(midiClip->getStartBeat()) + 1;
+    auto clipStartX = beatsToX(midiClip->getStartBeat());
     auto clipEndX = juce::jmax(clipStartX, beatsToX(midiClip->getEndBeat()));
 
     g.setColour(midiClip->getColour());

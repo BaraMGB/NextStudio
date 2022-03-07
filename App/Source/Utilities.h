@@ -103,6 +103,23 @@ namespace GUIHelpers
     void moveView(EditViewState& evs, double newBeatPos);
     void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c);
 
+    double getSnapBeats(const te::TimecodeSnapType& snapType);
+    void drawBarBeatsShadow(juce::Graphics& g,
+                             const EditViewState& evs,
+                             double x1beats,
+                             double x2beats,
+                             const juce::Rectangle<int>& boundingRect,
+                             const juce::Colour& shade);
+    void drawSnapLines(juce::Graphics& g,
+                       const EditViewState& evs,
+                       double x1beats,
+                       double x2beats,
+                       const juce::Rectangle<int>& boundingRect,
+                       const juce::Colour& colour);
+    void printTextAt(juce::Graphics& graphic,
+                     juce::Rectangle<float> textRect,
+                     const juce::String& text,
+                     const juce::Colour& textColour);
     }
 
     class DelayedOneShotLambda : public juce::Timer
