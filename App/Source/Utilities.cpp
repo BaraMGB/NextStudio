@@ -192,7 +192,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
             const auto barString = juce::String(bar + 1);
             const auto beatString = "." + juce::String(b + 1);
 
-            if (b == 0 && printDescription)
+            if (b == 0 && printDescription && snapLevel > 7)
                 printTextAt(g,
                             beatRect.withWidth(beatRect.getWidth() * 4),
                             barString,
