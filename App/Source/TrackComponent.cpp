@@ -53,7 +53,6 @@ void TrackComponent::paint (juce::Graphics& g)
 
 void TrackComponent::mouseDown (const juce::MouseEvent&e)
 {
-    //m_editViewState.m_selectionManager.selectOnly (m_track);
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     if (e.mods.isRightButtonDown())
     {
@@ -65,16 +64,23 @@ void TrackComponent::mouseDown (const juce::MouseEvent&e)
         {
             if (isMidiTrack)
             {
-                createNewMidiClip (xToBeats(e.x));
+                auto st = m_editViewState.getBestSnapType(
+                    m_editViewState.m_viewX1,
+                    m_editViewState.m_viewX2,
+                    getWidth());
+
+                createNewMidiClip (m_editViewState.getQuantizedBeat(
+                    xToBeats(e.x),
+                    st,
+                    true));
+
                 resized ();
             }
         }
         else
         {
             if (auto se = dynamic_cast<SongEditorView*>(getParentComponent ()))
-            {
                 se->startLasso(e.getEventRelativeTo (se));
-            }
         }
     }
 }
@@ -346,16 +352,18 @@ void TrackComponent::buildRecordClips()
 }
 tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos)
 {
-    if (auto audiotrack = dynamic_cast<te::AudioTrack*>(m_track.get ()))
+    if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get ()))
     {
         te::EditTimeRange newPos;
         newPos.start = juce::jmax(0.0, m_editViewState.beatToTime (beatPos));
         newPos.end = newPos.start + m_editViewState.beatToTime (4);
-        auto mc = audiotrack->insertMIDIClip (
-                    newPos
-                  , &m_editViewState.m_selectionManager);
-        mc->setName (audiotrack->getName ());
+
+        at->deleteRegion(newPos, &m_editViewState.m_selectionManager);
+
+        auto mc = at->insertMIDIClip (newPos, &m_editViewState.m_selectionManager);
+        mc->setName (at->getName ());
         GUIHelpers::centerMidiEditorToClip(m_editViewState, mc);
+
         return mc;
     }
     return nullptr;
