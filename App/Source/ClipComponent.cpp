@@ -21,7 +21,7 @@ void ClipComponent::paint (juce::Graphics& g)
     auto selectedColour = juce::Colour(0xccffffff);
     auto borderColour = juce::Colour(0xff000000);
     auto labelBGColour = juce::Colour(0x55000000);
-    auto selLabelBGColour = juce::Colour(0x88000000);
+    auto selLabelBGColour = juce::Colour(0xdd000000);
 
     g.setColour (borderColour);
     g.fillRect (area);
@@ -50,6 +50,12 @@ void ClipComponent::paint (juce::Graphics& g)
     if (isSelected)
         g.setColour (juce::Colour(0xccffffff));
     g.drawText (m_clip->getName (), area, juce::Justification::centredLeft);
+
+    if (isSelected)
+    {
+        g.setColour(juce::Colour(0x50ffffff));
+        g.fillRect(getLocalBounds());
+    }
 }
 
 void ClipComponent::mouseMove(const juce::MouseEvent &clipEvent)

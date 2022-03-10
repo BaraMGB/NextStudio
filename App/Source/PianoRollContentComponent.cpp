@@ -120,7 +120,7 @@ juce::Colour PianoRollContentComponent::getNoteColour(
     auto s = getNoteStartBeat(midiClip, n);
     auto e = getNoteEndBeat(midiClip, n);
     bool isBeforeClipStart = s < 0;
-    bool isAfterClipEnd = e > midiClip->getEndBeat() - midiClip->getStartBeat();
+    bool isAfterClipEnd = e > midiClip->getEndBeat() - midiClip->getStartBeat() + 0.00001;
 
     if (isBeforeClipStart || isAfterClipEnd)
         return juce::Colours::grey;
@@ -172,11 +172,14 @@ void PianoRollContentComponent::drawClipRange(
 {
     auto clipStartX = beatsToX(midiClip->getStartBeat());
     auto clipEndX = juce::jmax(clipStartX, beatsToX(midiClip->getEndBeat()));
+    auto clipColour = midiClip->getColour();
 
-    g.setColour(midiClip->getColour());
+    g.setColour(clipColour.brighter(0.7f));
     g.drawVerticalLine(clipStartX, 0, static_cast<float> (getHeight()));
     g.drawVerticalLine(clipEndX, 0, static_cast<float> (getHeight()));
-    g.setColour(midiClip->getColour().withAlpha(0.2f));
+    g.setColour(juce::Colour(0x20ffffff));
+    g.fillRect(clipStartX, 0, clipEndX - clipStartX, getHeight());
+    g.setColour(midiClip->getColour().withAlpha(0.1f));
     g.fillRect(clipStartX, 0, clipEndX - clipStartX, getHeight());
 }
 void PianoRollContentComponent::drawKeyLines(juce::Graphics& g) const

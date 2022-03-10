@@ -32,13 +32,16 @@ void TrackComponent::paint (juce::Graphics& g)
     auto area = getLocalBounds ();
     area.reduce (0, 1);
     g.setColour(juce::Colour(0xff181818));
-    if (isSelected ())
-        g.setColour(juce::Colour(0xff242424));
     g.fillRect (area);
 
     double x2beats = m_editViewState.m_viewX2;
     double x1beats = m_editViewState.m_viewX1;
-    g.setColour(juce::Colour(0xff333333));
+
+    if (isSelected ())
+    {
+        g.setColour(juce::Colour(0xff242424));
+        g.fillRect(area);
+    }
 
     GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, x1beats, x2beats, getBounds ());
     if (isOver)

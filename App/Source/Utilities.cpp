@@ -192,7 +192,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
             const auto barString = juce::String(bar + 1);
             const auto beatString = "." + juce::String(b + 1);
 
-            if (b == 0 && printDescription && snapLevel > 7)
+            if (b == 0 && printDescription && snapLevel > 5)
                 printTextAt(g,
                             beatRect.withWidth(beatRect.getWidth() * 4),
                             barString,
@@ -222,7 +222,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
                     if (printDescription)
                         printTextAt(g,
                                     fracRect,
-                                    barString + fracString,
+                                    barString + beatString + fracString,
                                     textColour);
 
                     g.setColour(fracColour);
@@ -280,7 +280,7 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
         evs.getBestSnapType(x1beats,x2beats, boundingRect.getWidth());
     int num = evs.m_edit.tempoSequence.getTimeSigAt(0).numerator;
     int shadowDelta = num * 4;
-    if (snapType.getLevel() <= 7)
+    if (snapType.getLevel() <= 9)
         shadowDelta = num;
     if (snapType.getLevel() <= 4)
         shadowDelta = 1;

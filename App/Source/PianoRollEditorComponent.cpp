@@ -33,7 +33,7 @@ void PianoRollEditorComponent::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff181818));
     g.fillRect(getFooterRect());
 
-    g.setColour(juce::Colour(0xff181818));
+    g.setColour(juce::Colour(0xff272727));
     g.fillRect(getTimeLineRect());
     g.fillRect(getTimelineHelperRect());
     g.fillRect(getKeyboardRect());
