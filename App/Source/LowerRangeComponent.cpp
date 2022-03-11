@@ -221,7 +221,7 @@ void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr& trac
 
 void LowerRangeComponent::addPluginRackComp(PluginRackComponent *pluginrack)
 {
-    addAndMakeVisible (pluginrack);
+    addChildComponent(pluginrack);
     m_pluginRackComps.add (pluginrack);
 }
 
