@@ -6,10 +6,9 @@ EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm, juce::Array
     : m_edit (e)
   , m_editViewState (e, sm)
     , m_songEditor(m_editViewState)
-    , m_trackListView(m_editViewState)
+    , m_trackListView(m_editViewState, std::move(tc))
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
-  , m_trackColours(std::move(tc))
 {
     m_edit.state.addListener (this);
 
@@ -105,27 +104,7 @@ void EditComponent::updateHorizontalScrollBar()
                                   , m_editViewState.m_viewX2});
 }
 
-void EditComponent::mouseDown(const juce::MouseEvent &e)
-{
-    if (e.mods.isPopupMenu())
-    {
-        juce::PopupMenu m;
-        m.addItem (10, "Add instrument track");
-        m.addItem (11, "Add AudioTrack");
-        m.addSeparator();
 
-        const int res = m.show();
-        auto colour = m_trackColours[m_trackListView.getSize () % m_trackColours.size ()];
-        if (res == 10)
-        {
-            addAudioTrack (true, colour);
-        }
-        else if (res == 11)
-        {
-            addAudioTrack (false, colour);
-        }
-    }
-}
 
 void EditComponent::mouseWheelMove(const juce::MouseEvent &event
                                    , const juce::MouseWheelDetails &wheel)
@@ -278,23 +257,6 @@ void EditComponent::refreshSnapTypeDesc()
             m_timeLine.getEditViewState ().getSnapTypeDescription (
                 m_timeLine.getBestSnapType ().level);
     m_footerbar.repaint ();
-}
-
-
-
-tracktion_engine::AudioTrack::Ptr EditComponent::addAudioTrack(
-        bool isMidiTrack
-      , juce::Colour trackColour)
-{
-    if (auto track = EngineHelpers::addAudioTrack(
-                isMidiTrack
-              , trackColour
-              , m_editViewState))
-    {
-         markAndUpdate (m_updateTracks);
-         return track;
-    }
-    return nullptr;
 }
 
 void EditComponent::buildTracks()

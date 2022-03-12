@@ -63,11 +63,14 @@ public:
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
     void itemDragExit(const SourceDetails& dragSourceDetails) override;
-    void itemDropped(const SourceDetails& dragSourceDetails) override;
+    void itemDropped(const SourceDetails& details) override;
 
 
     void labelTextChanged(juce::Label *labelThatHasChanged) override;
     void childrenSetVisible(bool v);
+
+    void collapseTrack(bool minimize);
+
 
 private:
     void handleAsyncUpdate() override;

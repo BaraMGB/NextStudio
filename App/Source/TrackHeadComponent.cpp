@@ -189,8 +189,8 @@ TrackHeaderComponent::TrackHeaderComponent (
 
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
     {
-
         m_isAudioTrack = true;
+
         levelMeterComp = std::make_unique<LevelMeterComponent>(
                     audioTrack->getLevelMeterPlugin()->measurer);
         addAndMakeVisible(levelMeterComp.get());
@@ -204,10 +204,12 @@ TrackHeaderComponent::TrackHeaderComponent (
             m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack)
                                       , juce::dontSendNotification);
         };
+
         m_muteButton.onClick = [audioTrack]
         {
             audioTrack->setMute (! audioTrack->isMuted (false));
         };
+
         m_soloButton.onClick = [audioTrack]
         {
             audioTrack->setSolo (! audioTrack->isSolo (false));
@@ -797,13 +799,10 @@ void TrackHeaderComponent::itemDragMove(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginListEntry")
-    {
         m_contentIsOver = true;
-    }
     else if (dragSourceDetails.description == "Track")
-    {
         m_trackIsOver = true;
-    }
+
     repaint ();
 }
 void TrackHeaderComponent::itemDragExit(
@@ -814,34 +813,23 @@ void TrackHeaderComponent::itemDragExit(
     repaint();
 }
 void TrackHeaderComponent::itemDropped(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+    const juce::DragAndDropTarget::SourceDetails& details)
 {
-    if(dragSourceDetails.description == "PluginListEntry")
-    {
-        if (auto listbox = dynamic_cast<juce::ListBox*>(
-                dragSourceDetails.sourceComponent.get ()))
-        {
-            if (auto lbm =
-                    dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
-            {
-                getTrack()->pluginList.insertPlugin(
-                    lbm->getSelectedPlugin()
-                  , 0//getTrack()->pluginList.size() - 2 //set before LevelMeter and Volume
-                  , nullptr);
-            }
-        }
-    }
-    if (dragSourceDetails.description == "Track")
-    {
-        if (auto tc = dynamic_cast<TrackHeaderComponent*>(dragSourceDetails.sourceComponent.get ()))
-        {
+    auto listbox = dynamic_cast<juce::ListBox*>(details.sourceComponent.get ());
+    auto isPlug = details.description == "PluginListEntry";
 
-            m_editViewState.m_edit.moveTrack (
-                        tc->getTrack ()
-                        , { nullptr
-                          , getTrack ()->getSiblingTrack (-1, false)});
-        }
-    }
+    if  (listbox && isPlug)
+        if (auto lbm = dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
+            getTrack()->pluginList.insertPlugin(lbm->getSelectedPlugin(), 0, nullptr);
+
+
+    auto tc = dynamic_cast<TrackHeaderComponent*>(details.sourceComponent.get ());
+    auto isTrack = details.description == "Track";
+    auto tip = te::TrackInsertPoint(nullptr, getTrack ()->getSiblingTrack (-1, false));
+
+    if (tc && isTrack)
+        m_editViewState.m_edit.moveTrack (tc->getTrack (), tip);
+
     m_contentIsOver = false;
     m_trackIsOver = false;
     repaint();
@@ -881,5 +869,7 @@ void TrackHeaderComponent::handleAsyncUpdate()
         getParentComponent ()->resized ();
     }
 }
-
-
+void TrackHeaderComponent::collapseTrack(bool minimize)
+{
+    m_track->state.setProperty(IDs::isTrackMinimized, minimize, &m_editViewState.m_edit.getUndoManager());
+}

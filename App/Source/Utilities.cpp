@@ -870,41 +870,31 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
 {
     return {p.x - (w/2), p.y - (w/2), w, w};
 }
-int GUIHelpers::getTrackHeight(tracktion_engine::AudioTrack* track, EditViewState& evs, bool withAutomation)
+int GUIHelpers::getTrackHeight(
+    tracktion_engine::AudioTrack* track, EditViewState& evs, bool withAutomation)
 {
     bool isMinimized = (bool) track->state.getProperty(IDs::isTrackMinimized);
-    auto trackHeight =
-            isMinimized
+    auto trackHeight = isMinimized
             ? evs.m_trackHeightMinimized
             : (int) track->state.getProperty(tracktion_engine::IDs::height, 50);
 
-    if (!isMinimized)
-    {
-        if (withAutomation)
-        {
-            for (auto apEditItems: track->getAllAutomatableEditItems())
-            {
-                for (auto ap: apEditItems->getAutomatableParameters())
+    if (!isMinimized && withAutomation)
+        for (auto apEditItems : track->getAllAutomatableEditItems())
+            for (auto ap : apEditItems->getAutomatableParameters())
+                if (ap->getCurve().getNumPoints() > 0)
                 {
-                    if (ap->getCurve().getNumPoints() > 0)
-                    {
-                        int height = ap->getCurve().state.getProperty(
-                            tracktion_engine::IDs::height, 50);
-                        trackHeight += height;
-                    }
+                    int automationHeight =
+                        ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50);
+                    trackHeight += automationHeight;
                 }
-            }
-        }
-
-    }
 
     return trackHeight;
 }
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
 {
-    auto pianorollZoom = evs.m_pianoX2
-                         - evs.m_pianoX1;
+    auto zoom = evs.m_pianoX2 - evs.m_pianoX1;
 
-    evs.m_pianoX1 = juce::jmax(0.0, c->getStartBeat () - (pianorollZoom/2) + (c->getLengthInBeats ()/2));
-    evs.m_pianoX2 = evs.m_pianoX1 + pianorollZoom;
+    evs.m_pianoX1 =
+        juce::jmax(0.0, c->getStartBeat () - (zoom /2) + (c->getLengthInBeats ()/2));
+    evs.m_pianoX2 = evs.m_pianoX1 + zoom;
 }

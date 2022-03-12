@@ -58,9 +58,11 @@ int SongEditorView::getSize()
     return m_trackViews.size();
 }
 bool SongEditorView::isInterestedInDragSource(
-    const juce::DragAndDropTarget::SourceDetails&)
+    const juce::DragAndDropTarget::SourceDetails& sourceDetails)
 {
-    return true;
+    if (sourceDetails.description == "Clip")
+        return true;
+    return false;
 }
 void SongEditorView::itemDragMove(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
@@ -271,6 +273,7 @@ TrackComponent*
 }
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
 {
+    m_editViewState.m_selectionManager.deselectAll();
     startLasso(e);
 }
 void SongEditorView::updateClipCache()

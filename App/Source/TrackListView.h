@@ -7,16 +7,23 @@
 
 class TrackListView  : public juce::Component
                      , public juce::DragAndDropTarget
+                     , private juce::ChangeListener
 {
 public:
-    TrackListView(EditViewState& evs)
+    TrackListView(EditViewState& evs, juce::Array<juce::Colour> tc)
         : m_editViewState (evs)
+        , m_trackColours(std::move(tc))
     {
-        setInterceptsMouseClicks(false, true);
+        m_editViewState.m_selectionManager.addChangeListener(this);
     }
-    ~TrackListView(){}
+    ~TrackListView()
+    {
+        m_editViewState.m_selectionManager.removeChangeListener(this);
+    }
 
     void resized() override;
+
+    void mouseDown (const juce::MouseEvent &) override;
 
     inline bool isInterestedInDragSource (const SourceDetails&) override{return true;}
     void itemDragMove (const SourceDetails& dragSourceDetails) override{}
@@ -28,10 +35,16 @@ public:
     void updateViews();
 
     void clear();
-    int getSize();
 
 private:
 
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
+
+    te::AudioTrack::Ptr addTrack(bool isMidiTrack, juce::Colour trackColour);
+
     EditViewState& m_editViewState;
-    juce::OwnedArray<TrackHeaderComponent> m_views;
+    juce::OwnedArray<TrackHeaderComponent> m_trackHeaders;
+    juce::Array<juce::Colour>               m_trackColours;
+    const int getPopupResult();
+    void collapseTracks(bool minimize);
 };

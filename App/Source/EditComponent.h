@@ -56,7 +56,6 @@ public:
     void paint (juce::Graphics &g) override;
     void paintOverChildren (juce::Graphics &g) override;
     void resized () override;
-    void mouseDown (const juce::MouseEvent &) override;
     void mouseWheelMove (const juce::MouseEvent &event
                         , const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved (juce::ScrollBar *scrollBarThatHasMoved
@@ -66,8 +65,6 @@ public:
     LowerRangeComponent& lowerRange ();
 
     TrackComponent * getTrackComponent (int y);
-
-    te::AudioTrack::Ptr addAudioTrack (bool isMidi, juce::Colour);
 
     EditViewState& getEditViewState () { return m_editViewState; }
 
@@ -123,7 +120,7 @@ private:
                                               , m_editViewState.m_viewX2 };
     LowerRangeComponent                     m_lowerRange { m_editViewState };
 
-    juce::Array<juce::Colour>               m_trackColours;
+
 
     bool m_updateTracks = false, m_updateZoom = false, m_updateSongEditor = false;
 
