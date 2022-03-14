@@ -41,7 +41,7 @@ namespace Helpers
 namespace GUIHelpers
 {
 
-    int getTrackHeight(tracktion_engine::AudioTrack* track, EditViewState& evs, bool withAutomation=true);
+    int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
 
     float getZoomScaleFactor(int delta, float unitDistance);
 
@@ -203,6 +203,10 @@ namespace EngineHelpers
 
     te::AudioTrack* getOrInsertAudioTrackAt (te::Edit& edit, int index);
 
+    tracktion_engine::FolderTrack::Ptr addFolderTrack(
+        juce::Colour trackColour,
+        EditViewState &evs);
+
     tracktion_engine::AudioTrack::Ptr addAudioTrack(
             bool isMidiTrack
           , juce::Colour trackColour
@@ -240,9 +244,9 @@ namespace EngineHelpers
     void toggleRecord (te::Edit& edit);
     void armTrack (te::AudioTrack& t, bool arm, int position = 0);
     bool isTrackArmed (te::AudioTrack& t, int position = 0);
-    bool isInputMonitoringEnabled (te::AudioTrack& t, int position = 0);
-    void enableInputMonitoring (te::AudioTrack& t, bool im, int position = 0);
-    bool trackHasInput (te::AudioTrack& t, int position = 0);
+    bool isInputMonitoringEnabled (te::Track& t, int position = 0);
+    void enableInputMonitoring (te::Track& t, bool im, int position = 0);
+    bool trackHasInput (te::Track& t, int position = 0);
 
     std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree (
             te::Engine& engine);

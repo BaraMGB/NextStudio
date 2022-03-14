@@ -500,6 +500,28 @@ tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(
     edit.ensureNumberOfAudioTracks (index + 1);
     return te::getAudioTracks (edit)[index];
 }
+tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(
+    juce::Colour trackColour,
+    EditViewState &evs)
+{
+    te::TrackInsertPoint tip (te::getAllTracks(evs.m_edit).getLast(), false);
+    auto ft = evs.m_edit.insertNewFolderTrack(tip, &evs.m_selectionManager, true);
+
+    ft->state.setProperty (te::IDs::height
+                             , (int) evs.m_trackDefaultHeight
+                             , nullptr);
+    ft->state.setProperty (IDs::isTrackMinimized, true, nullptr);
+
+    ft->state.setProperty(  IDs::isMidiTrack
+                             , false
+                             , &evs.m_edit.getUndoManager());
+
+    juce::String num = juce::String(te::getAudioTracks(evs.m_edit).size());
+    ft->setName("Folder " + num);
+    ft->setColour(trackColour);
+    evs.m_selectionManager.selectOnly(ft);
+    return ft;
+}
 
 tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
         bool isMidiTrack
@@ -672,7 +694,7 @@ bool EngineHelpers::isTrackArmed(tracktion_engine::AudioTrack &t, int position)
     return false;
 }
 
-bool EngineHelpers::isInputMonitoringEnabled(tracktion_engine::AudioTrack &t, int position)
+bool EngineHelpers::isInputMonitoringEnabled(tracktion_engine::Track &t, int position)
 {
     auto& edit = t.edit;
     for (auto instance : edit.getAllInputDevices())
@@ -683,7 +705,7 @@ bool EngineHelpers::isInputMonitoringEnabled(tracktion_engine::AudioTrack &t, in
 }
 
 void EngineHelpers::enableInputMonitoring(
-        tracktion_engine::AudioTrack &t
+        tracktion_engine::Track &t
       , bool im, int position)
 {
     if (isInputMonitoringEnabled (t, position) != im)
@@ -695,8 +717,9 @@ void EngineHelpers::enableInputMonitoring(
     }
 }
 
-bool EngineHelpers::trackHasInput(tracktion_engine::AudioTrack &t, int position)
+bool EngineHelpers::trackHasInput(tracktion_engine::Track &t, int position)
 {
+
     auto& edit = t.edit;
     for (auto instance : edit.getAllInputDevices())
         if (instance->isOnTargetTrack (t, position))
@@ -871,7 +894,7 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
     return {p.x - (w/2), p.y - (w/2), w, w};
 }
 int GUIHelpers::getTrackHeight(
-    tracktion_engine::AudioTrack* track, EditViewState& evs, bool withAutomation)
+    tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
 {
     bool isMinimized = (bool) track->state.getProperty(IDs::isTrackMinimized);
     auto trackHeight = isMinimized
@@ -887,6 +910,9 @@ int GUIHelpers::getTrackHeight(
                         ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50);
                     trackHeight += automationHeight;
                 }
+
+    if (track->isFolderTrack())
+        trackHeight = evs.m_folderTrackHeight;
 
     return trackHeight;
 }

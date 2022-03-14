@@ -267,7 +267,7 @@ void TrackComponent::buildClips()
                 }
                 else
                 {
-                    GUIHelpers::log ("couldn't insert audio clip on midi track");
+                    GUIHelpers::log ("couldn't insert audio clip on this track");
                     //c->removeFromParentTrack ();
                     wrongTrack = true;
                 }
@@ -281,7 +281,19 @@ void TrackComponent::buildClips()
                 }
                 else
                 {
-                    GUIHelpers::log("couldn't insert midi clip on audio track");
+                    GUIHelpers::log("couldn't insert midi clip on this track");
+                    wrongTrack = true;
+                }
+            }
+            else if (dynamic_cast<te::CollectionClip*> (c))
+            {
+                if (isFolderTrack())
+                {
+                    cc = new ClipComponent (m_editViewState, c);
+                }
+                else
+                {
+                    GUIHelpers::log("couldn't insert collection clip on this track");
                     wrongTrack = true;
                 }
             }
@@ -422,4 +434,8 @@ void TrackComponent::itemDropped(
     }
     isOver = false;
     repaint();
+}
+bool TrackComponent::isFolderTrack()
+{
+    return m_track->isFolderTrack();
 }

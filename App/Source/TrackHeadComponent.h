@@ -65,9 +65,10 @@ public:
     void itemDragExit(const SourceDetails& dragSourceDetails) override;
     void itemDropped(const SourceDetails& details) override;
 
-
     void labelTextChanged(juce::Label *labelThatHasChanged) override;
     void childrenSetVisible(bool v);
+
+    bool isFolderTrack(){ return m_track->isFolderTrack(); }
 
     void collapseTrack(bool minimize);
 
@@ -82,7 +83,7 @@ private:
             juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenRemoved
             , int indexFromWhichChildWasRemoved) override;
 
-    void showPopupMenu(te::AudioTrack* at);
+    void showPopupMenu(te::Track* at);
     void deleteTrackFromEdit();
 
     EditViewState& m_editViewState;

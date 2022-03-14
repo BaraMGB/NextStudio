@@ -30,7 +30,7 @@ public:
     void itemDragExit (const SourceDetails&) override{}
     void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override;
 
-    int getTrackHeight(const TrackHeaderComponent* header) const;
+    int getTrackHeight(TrackHeaderComponent* header) const;
     void addHeaderViews(TrackHeaderComponent& th);
     void updateViews();
 
@@ -40,11 +40,12 @@ private:
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
-    te::AudioTrack::Ptr addTrack(bool isMidiTrack, juce::Colour trackColour);
+    te::AudioTrack::Ptr addTrack(bool isMidiTrack, bool isFolderTrack, juce::Colour trackColour);
 
     EditViewState& m_editViewState;
     juce::OwnedArray<TrackHeaderComponent> m_trackHeaders;
     juce::Array<juce::Colour>               m_trackColours;
     const int getPopupResult();
     void collapseTracks(bool minimize);
+    TrackHeaderComponent* getTrackHeaderView(tracktion_engine::Track::Ptr track);
 };

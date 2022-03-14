@@ -29,9 +29,9 @@ public:
     void drawImages(int offset);
     void addOverlayImageList(juce::Array<OverlayImage> il);
 
+    juce::Array<OverlayImage> m_imageList;
 private:
 
-    juce::Array<OverlayImage> m_imageList;
     int m_mouseOffset{};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackOverlayComponent)
 };

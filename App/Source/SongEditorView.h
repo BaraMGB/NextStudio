@@ -31,13 +31,7 @@ public:
     void updateViews();
 
 
-    void turnoffAllTrackOverlays()
-    {
-        for (auto &tc : getTrackComps ())
-        {
-            tc->getTrackOverlay ().setVisible (false);
-        }
-    }
+    void turnoffAllTrackOverlays();
     juce::OwnedArray<TrackComponent>& getTrackComps ()
     {
         return m_trackViews;
@@ -80,8 +74,15 @@ private:
     void updateSelection(bool add);
     void updateClipCache();
     juce::Range<double> getVerticalRangeOfTrack(
-        double trackPosY, tracktion_engine::AudioTrack* track) const;
-    void selectCatchedClips(const tracktion_engine::AudioTrack* track);
+        double scrollY, tracktion_engine::Track* track) const;
+    void selectCatchedClips(const tracktion_engine::Track* track);
 
+    double getPasteTime(double dropTime, ClipComponent* draggedClip) const;
+    bool trackWantsClip(const te::Clip* clip, const TrackComponent* track) const;
+    TrackOverlayComponent::OverlayImage
+        getClipOverlayImage(bool isValid, ClipComponent* clipView, int xDelta) const;
+    int getSnapedX(int x) const;
+    juce::Array<te::Clip*>
+        cacheSelectedClips(juce::Array<te::Clip*>& selectedClips) const;
 };
 

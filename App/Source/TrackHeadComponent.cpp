@@ -175,7 +175,6 @@ TrackHeaderComponent::TrackHeaderComponent (
     , m_isMinimized (t->state.getProperty(IDs::isTrackMinimized))
 {
     Helpers::addAndMakeVisible (*this, { &m_trackName,
-                                         &m_armButton,
                                          &m_muteButton,
                                          &m_soloButton
                                          });
@@ -187,6 +186,32 @@ TrackHeaderComponent::TrackHeaderComponent (
     m_trackName.setInterceptsMouseClicks(false, false);
     m_trackName.setEditable (false, false, true);
 
+    if (auto folderTrack = dynamic_cast<te::FolderTrack*> (m_track.get()))
+    {
+        m_muteButton.onClick = [folderTrack]
+        {
+            folderTrack->setMute (! folderTrack->isMuted (false));
+        };
+
+        m_soloButton.onClick = [folderTrack]
+        {
+            folderTrack->setSolo (! folderTrack->isSolo (false));
+        };
+
+        if (folderTrack->getVolumePlugin())
+        {
+            m_volumeKnob = std::make_unique<AutomatableSliderComponent>(
+                folderTrack->getVolumePlugin()
+                    ->getAutomatableParameterByID("volume"));
+            m_volumeKnob->setOpaque(false);
+            addAndMakeVisible(m_volumeKnob.get());
+            m_volumeKnob->setRange(0.0f, 3.0f, 0.01f);
+            m_volumeKnob->setSkewFactorFromMidPoint(1.0f);
+            m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+            m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
+        }
+    }
+
     if (auto audioTrack = dynamic_cast<te::AudioTrack*> (m_track.get()))
     {
         m_isAudioTrack = true;
@@ -194,7 +219,7 @@ TrackHeaderComponent::TrackHeaderComponent (
         levelMeterComp = std::make_unique<LevelMeterComponent>(
                     audioTrack->getLevelMeterPlugin()->measurer);
         addAndMakeVisible(levelMeterComp.get());
-
+        addAndMakeVisible(m_armButton);
         m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack)
                                     , juce::dontSendNotification);
         m_armButton.onClick = [this, audioTrack]
@@ -204,6 +229,8 @@ TrackHeaderComponent::TrackHeaderComponent (
             m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack)
                                       , juce::dontSendNotification);
         };
+        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack)
+                                  , juce::dontSendNotification);
 
         m_muteButton.onClick = [audioTrack]
         {
@@ -215,8 +242,6 @@ TrackHeaderComponent::TrackHeaderComponent (
             audioTrack->setSolo (! audioTrack->isSolo (false));
         };
 
-        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack)
-                                  , juce::dontSendNotification);
         if (audioTrack->getVolumePlugin())
         {
             m_volumeKnob = std::make_unique<AutomatableSliderComponent>(
@@ -247,7 +272,9 @@ TrackHeaderComponent::TrackHeaderComponent (
     valueTreePropertyChanged (m_track->state, te::IDs::mute);
     valueTreePropertyChanged (m_track->state, te::IDs::solo);
     valueTreePropertyChanged (inputsState, te::IDs::targetIndex);
-    buildAutomationHeader();
+
+    if (!isFolderTrack())
+        buildAutomationHeader();
 }
 
 TrackHeaderComponent::~TrackHeaderComponent()
@@ -303,8 +330,9 @@ void TrackHeaderComponent::valueTreeChildRemoved(
 {
 }
 
-void TrackHeaderComponent::showPopupMenu(tracktion_engine::AudioTrack *at)
+void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
 {
+    std::cout << "showPopup" << std::endl;
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     at->edit.playInStopEnabled = true;
     juce::PopupMenu m;
@@ -363,52 +391,59 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::AudioTrack *at)
         EngineHelpers::enableInputMonitoring(
             *at, !EngineHelpers::isInputMonitoringEnabled(*at));
     }
-    else if (result >= 100)
+    else if (result >= 100 && !m_track->isFolderTrack())
     {
-        int id = 100;
+        if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
+        {
+            int id = 100;
 
-        for (auto instance: at->edit.getAllInputDevices())
-        {
-            if (instance->getInputDevice().getDeviceType()
-                == te::InputDevice::physicalMidiDevice)
+            for (auto instance: at->edit.getAllInputDevices())
             {
-                if (id == result)
+                if (instance->getInputDevice().getDeviceType()
+                    == te::InputDevice::physicalMidiDevice)
                 {
+                    if (id == result)
                     {
-                        instance->setTargetTrack(*at, 0, true);
+                        {
+                            instance->setTargetTrack(*aut, 0, true);
+                        }
                     }
+                    id++;
                 }
-                id++;
             }
+            //toDO ... hack!
+            EngineHelpers::enableInputMonitoring(
+                *at, !EngineHelpers::isInputMonitoringEnabled(*at));
+            EngineHelpers::enableInputMonitoring(
+                *at, !EngineHelpers::isInputMonitoringEnabled(*at));
         }
-        //toDO ... hack!
-        EngineHelpers::enableInputMonitoring(
-            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
-        EngineHelpers::enableInputMonitoring(
-            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
     }
-    else if (result >= 1)
+    else if (result >= 1 && !m_track->isFolderTrack())
     {
-        int id = 1;
-        for (auto instance: at->edit.getAllInputDevices())
+        if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
         {
-            if (instance->getInputDevice().getDeviceType()
-                == te::InputDevice::waveDevice)
+            int id = 1;
+            for (auto instance: at->edit.getAllInputDevices())
             {
-                if (id == result)
+                if (instance->getInputDevice().getDeviceType()
+                    == te::InputDevice::waveDevice)
                 {
-                    if (instance->getTargetTracks().getFirst() == at)
+                    if (id == result)
                     {
-                        instance->removeTargetTrack(*at);
+                        if (instance->getTargetTracks().getFirst() == at)
+                        {
+                            instance->removeTargetTrack(*aut);
+                        }
+                        else
+                        {
+                            instance->setTargetTrack(*aut, 0, true);
+                        }
                     }
-                    else
-                    {
-                        instance->setTargetTrack(*at, 0, true);
-                    }
+                    id++;
                 }
-                id++;
             }
         }
+
     }
 }
 
@@ -554,18 +589,20 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                           , strokeHeight));
         }
 
-        if (m_trackIsOver)
+        if (m_trackIsOver && !isFolderTrack())
         {
             g.setColour(juce::Colour(0x66ffffff));
-            g.drawRect(getLocalBounds().removeFromTop(1));
+            g.drawRect(getLocalBounds().removeFromTop(1));        
         }
-        GUIHelpers::drawFromSvg (g
-                                 , m_track->state.getProperty(IDs::isMidiTrack)
-                                    ? BinaryData::piano5_svg
-                                    : BinaryData::wavetest5_svg
-                                 , "#ffffff"
-                                 , {20, 6
-                                    , 18, 18});
+        
+        const char* icon = BinaryData::wavetest5_svg;;
+        if (m_track->isFolderTrack())
+            icon = BinaryData::folderopen_svg;
+        if (m_track->state.getProperty(IDs::isMidiTrack))
+            icon = BinaryData::piano5_svg;
+
+        GUIHelpers::drawFromSvg (g, icon, "#ffffff", {20, 6, 18, 18});
+
         if (m_contentIsOver)
         {
             g.setColour(juce::Colours::white);
@@ -651,9 +688,9 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
         {
             if (event.mods.isRightButtonDown ())
             {
-                if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get()))
+                if (m_track->isAudioTrack() || m_track->isFolderTrack())
                 {
-                    showPopupMenu(at);
+                    showPopupMenu(m_track);
                 }
             }
             else if (event.mods.isShiftDown())
@@ -693,7 +730,7 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (event.mouseWasDraggedSinceMouseDown ())
     {
-        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10 && !m_isMinimized)
+        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10 && !m_isMinimized && !isFolderTrack())
         {
             m_isResizing = true;
             auto newHeight = static_cast<int> (m_trackHeightATMouseDown
@@ -825,10 +862,16 @@ void TrackHeaderComponent::itemDropped(
 
     auto tc = dynamic_cast<TrackHeaderComponent*>(details.sourceComponent.get ());
     auto isTrack = details.description == "Track";
-    auto tip = te::TrackInsertPoint(nullptr, getTrack ()->getSiblingTrack (-1, false));
+    auto tip = te::TrackInsertPoint(*getTrack (), true);
 
     if (tc && isTrack)
+    {
+        if (isFolderTrack())
+            tip = te::TrackInsertPoint(m_track, m_track->getAllSubTracks(false).getLast());
+
         m_editViewState.m_edit.moveTrack (tc->getTrack (), tip);
+    }
+
 
     m_contentIsOver = false;
     m_trackIsOver = false;

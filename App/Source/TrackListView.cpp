@@ -4,11 +4,12 @@
 
 #include "TrackListView.h"
 
-int TrackListView::getTrackHeight(const TrackHeaderComponent* header) const
+int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
 {
-    auto at = EngineHelpers::getAudioTrack(header->getTrack(), m_editViewState);
-
-    return GUIHelpers::getTrackHeight(at, m_editViewState, true);
+    if (auto at = EngineHelpers::getAudioTrack(header->getTrack(), m_editViewState))
+        return GUIHelpers::getTrackHeight(at, m_editViewState, true);
+    if (header->isFolderTrack())
+        return m_editViewState.m_folderTrackHeight;
 }
 void TrackListView::resized()
 {
@@ -17,9 +18,21 @@ void TrackListView::resized()
     for (auto header : m_trackHeaders)
     {
         auto trackHeaderHeight = getTrackHeight(header);
+        auto leftEdge = 0;
+        auto w = getWidth();
 
-        header->setBounds (0, y, getWidth(), trackHeaderHeight);
+        if (auto ft = header->getTrack()->getParentFolderTrack() )
+        {
+            if (auto ftv = getTrackHeaderView(ft))
+            {
+                leftEdge = ftv->getX() + 5;
+                w = ftv->getWidth() - 5;
+            }
+            if (ft->state.getProperty(IDs::isTrackMinimized))
+                trackHeaderHeight = 0;
+        }
 
+        header->setBounds(leftEdge, y, w, trackHeaderHeight);
         y += trackHeaderHeight;
         allTracksHeight += trackHeaderHeight;
     }
@@ -33,12 +46,14 @@ void TrackListView::mouseDown(const juce::MouseEvent &e)
         const int res = getPopupResult();
 
         if (res == 10)
-            addTrack (true, colour);
+            addTrack (true, false, colour);
         else if (res == 11)
-            addTrack (false, colour);
+            addTrack (false, false, colour);
         else if (res == 12)
-            collapseTracks(true);
+            addTrack (false, true, colour);
         else if (res == 13)
+            collapseTracks(true);
+        else if (res == 14)
             collapseTracks(false);
     }
     else
@@ -75,10 +90,11 @@ void TrackListView::clear()
     m_trackHeaders.clear(true);
     resized();
 }
-te::AudioTrack::Ptr TrackListView::addTrack(bool isMidiTrack, juce::Colour trackColour)
+te::AudioTrack::Ptr TrackListView::addTrack(bool isMidiTrack, bool isFolderTrack, juce::Colour trackColour)
 {
-    if (auto track = EngineHelpers::addAudioTrack(
-            isMidiTrack, trackColour, m_editViewState))
+    if (isFolderTrack)
+        EngineHelpers::addFolderTrack(trackColour, m_editViewState);
+    else if (auto track = EngineHelpers::addAudioTrack(isMidiTrack, trackColour, m_editViewState))
         return track;
 
     return nullptr;
@@ -88,9 +104,10 @@ const int TrackListView::getPopupResult()
     juce::PopupMenu m;
     m.addItem (10, "Add instrument track");
     m.addItem (11, "Add audio track");
+    m.addItem (12, "Add folder track");
     m.addSeparator();
-    m.addItem (12, "collapse all tracks");
-    m.addItem (13, "expand all tracks");
+    m.addItem (13, "collapse all tracks");
+    m.addItem (14, "expand all tracks");
 
     return m.show();
 }
@@ -104,4 +121,14 @@ void TrackListView::changeListenerCallback(juce::ChangeBroadcaster* source)
     if (source == &m_editViewState.m_selectionManager)
         for(auto th : m_trackHeaders)
             th->repaint();
+}
+TrackHeaderComponent *
+    TrackListView::getTrackHeaderView(tracktion_engine::Track::Ptr track)
+{
+    for (auto thv : m_trackHeaders)
+    {
+        if (thv->getTrack() == track)
+            return thv;
+    }
+    return nullptr;
 }

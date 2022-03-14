@@ -116,22 +116,6 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 {
     if (event.mouseWasDraggedSinceMouseDown ())
     {
-        te::Clipboard::getInstance()->clear();
-        auto clipContent = std::make_unique<te::Clipboard::Clips>();
-        auto currentIndex = getTrack (m_clip)->getIndexInEditTrackList ();
-        for (auto selectedClip
-             : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
-        {
-            int clipOffset = 0;
-            if (selectedClip != m_clip.get ())
-            {
-                auto idx = getTrack (selectedClip)->getIndexInEditTrackList ();
-                clipOffset = idx - currentIndex;
-            }
-            clipContent->addClip(clipOffset, selectedClip->state);
-        }
-        te::Clipboard::getInstance()->setContent(std::move(clipContent));
-
         juce::DragAndDropContainer* dragC =
                 juce::DragAndDropContainer::findParentDragContainerFor(this);
         m_isShiftDown = false;

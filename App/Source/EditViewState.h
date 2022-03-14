@@ -60,6 +60,7 @@ namespace IDs
     DECLARE_ID (lastNoteLenght)
     DECLARE_ID (name)
     DECLARE_ID (footerBarHeight)
+    DECLARE_ID (folderTrackHeight)
     DECLARE_ID (isTrackMinimized)
     DECLARE_ID (automationFollowsClip)
     DECLARE_ID (playHeadStartTime)
@@ -103,6 +104,7 @@ public:
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
         m_trackDefaultHeight.referTo(m_state, IDs::headerHeight, um, 50);
         m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 250);
+        m_folderTrackHeight.referTo(m_state, IDs::folderTrackHeight, um, 30);
         m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
         m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0 * 4);
@@ -264,10 +266,10 @@ public:
                          , m_trackDefaultHeight
                          , m_trackHeaderWidth
                          , m_timeLineHeight
+                         , m_folderTrackHeight
                          , m_footerBarHeight
                          , m_lastVelocity
-                         ,
-        m_keyboardWidth;
+                         , m_keyboardWidth;
 
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;
