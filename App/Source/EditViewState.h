@@ -195,10 +195,10 @@ public:
         return timeToBeat (getSnapedTime (beatToTime (beat), snapType, downwards));
     }
 
-    [[nodiscard]] int snapedX (int x, int width, te::TimecodeSnapType snapType, double x1beats, double x2beats) const
+    [[nodiscard]] int snapedX (int x, int width, te::TimecodeSnapType snapType, double x1beats, double x2beats, bool down=false) const
     {
         auto insertTime = xToTime (x, width, x1beats, x2beats);
-        auto snapedTime = getSnapedTime (insertTime, snapType);
+        auto snapedTime = getSnapedTime (insertTime, snapType, down);
         return timeToX (snapedTime, width, x1beats, x2beats);
     }
 

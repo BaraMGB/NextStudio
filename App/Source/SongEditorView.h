@@ -81,8 +81,20 @@ private:
     bool trackWantsClip(const te::Clip* clip, const TrackComponent* track) const;
     TrackOverlayComponent::OverlayImage
         getClipOverlayImage(bool isValid, ClipComponent* clipView, int xDelta) const;
-    int getSnapedX(int x) const;
-    juce::Array<te::Clip*>
-        cacheSelectedClips(juce::Array<te::Clip*>& selectedClips) const;
+    int getSnapedX(int x, bool down=false) const;
+    double m_draggedTimeDelta;
+
+    int getVerticalOffset(const SourceDetails& dragSourceDetails,
+                          const juce::Point<int>& dropPos);
+
+    TrackComponent *getTrackForClip(int verticalOffset, const te::Clip *clip);
+
+    double xtoTime(int x);
+
+    double m_cachedEditLength {0.0};
+
+    double getSnapedTime(double time);
+
+    void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
 };
 

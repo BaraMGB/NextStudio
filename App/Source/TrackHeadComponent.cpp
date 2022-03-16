@@ -332,7 +332,6 @@ void TrackHeaderComponent::valueTreeChildRemoved(
 
 void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
 {
-    std::cout << "showPopup" << std::endl;
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     at->edit.playInStopEnabled = true;
     juce::PopupMenu m;

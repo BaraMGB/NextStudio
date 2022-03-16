@@ -396,55 +396,6 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
     }
 }
 
-void EngineHelpers::pasteClipboardToEdit(
-        double pasteTime
-      , double firstClipTime
-      , const tracktion_engine::Track::Ptr& destinationTrack
-      , EditViewState &evs
-      , bool removeSource)
-{
-    if (destinationTrack)
-    {
-        auto clipboard = tracktion_engine::Clipboard::getInstance();
-        if (clipboard->hasContentWithType<te::Clipboard::Clips>())
-        {
-            auto clipContent = clipboard
-                    ->getContentWithType<te::Clipboard::Clips>();
-
-            te::EditInsertPoint insertPoint (evs.m_edit);
-            insertPoint.setNextInsertPoint (0, destinationTrack);
-            te::Clipboard::ContentType::EditPastingOptions options
-                    (evs.m_edit, insertPoint, &evs.m_selectionManager);
-
-            if (removeSource)
-            {
-                deleteSelectedClips (evs);
-            }
-            //delete region under pasted clips
-            for (const auto& clip : clipContent->clips)
-            {
-                auto clipShift = (float) clip.state.getProperty (te::IDs::start);
-                auto clipInsertTime = pasteTime + clipShift;
-                auto clipLength = (float) clip.state.getProperty (te::IDs::length);
-                if (auto targetTrack = evs.m_edit.getTrackList ()
-                        [destinationTrack->getIndexInEditTrackList () + clip.trackOffset])
-                {
-                    if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack))
-                    {
-                        auto range = te::EditTimeRange(clipInsertTime
-                                                         , clipInsertTime + clipLength);
-                        at->deleteRegion (range,&evs.m_selectionManager);
-                    }
-                }
-            }
-            options.startTime = pasteTime;
-            options.setTransportToEnd = true;
-
-            clipContent->pasteIntoEdit(options);
-        }
-    }
-}
-
 tracktion_engine::Project::Ptr EngineHelpers::createTempProject(
         tracktion_engine::Engine &engine)
 {
@@ -549,7 +500,7 @@ tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
     return nullptr;
 }
 
-tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileAsClip(
+tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
         EditViewState &evs
       , const juce::File &file
       , juce::Colour trackColour

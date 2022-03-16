@@ -29,8 +29,6 @@ void SideBarBrowser::fileDoubleClicked(const juce::File &)
         auto colour = trackColours[
                 m_editViewState.m_edit.getTrackList().size()
               % trackColours.size()];
-        EngineHelpers::loadAudioFileAsClip (m_editViewState
-                                          , selectedFile
-                                          , colour);
+        EngineHelpers::loadAudioFileOnNewTrack(m_editViewState, selectedFile, colour);
     }
 }

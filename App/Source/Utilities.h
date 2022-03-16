@@ -182,13 +182,6 @@ namespace EngineHelpers
                                , te::SelectionManager& selectionManager
                                , bool withAutomation);
 
-    void pasteClipboardToEdit(
-            double pasteTime
-          , double firstClipTime
-          , const tracktion_engine::Track::Ptr& destinationTrack
-          , EditViewState &evs
-          , bool removeSource);
-
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm
                                                      , bool copy);
@@ -212,7 +205,7 @@ namespace EngineHelpers
           , juce::Colour trackColour
           , EditViewState &evs);
 
-    te::WaveAudioClip::Ptr loadAudioFileAsClip (
+    te::WaveAudioClip::Ptr loadAudioFileOnNewTrack (
             EditViewState& evs
           , const juce::File& file
           , juce::Colour trackColour
