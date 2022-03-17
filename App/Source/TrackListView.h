@@ -10,9 +10,8 @@ class TrackListView  : public juce::Component
                      , private juce::ChangeListener
 {
 public:
-    TrackListView(EditViewState& evs, juce::Array<juce::Colour> tc)
+    TrackListView(EditViewState& evs)
         : m_editViewState (evs)
-        , m_trackColours(std::move(tc))
     {
         m_editViewState.m_selectionManager.addChangeListener(this);
     }
@@ -44,7 +43,6 @@ private:
 
     EditViewState& m_editViewState;
     juce::OwnedArray<TrackHeaderComponent> m_trackHeaders;
-    juce::Array<juce::Colour>               m_trackColours;
     const int getPopupResult();
     void collapseTracks(bool minimize);
     TrackHeaderComponent* getTrackHeaderView(tracktion_engine::Track::Ptr track);

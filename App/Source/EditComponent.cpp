@@ -2,11 +2,11 @@
 
 #include <utility>
 #include "NextLookAndFeel.h"
-EditComponent::EditComponent (te::Edit& e, te::SelectionManager& sm, juce::Array<juce::Colour> tc)
+EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm)
     : m_edit (e)
-  , m_editViewState (e, sm)
+  , m_editViewState (e, sm, avs)
     , m_songEditor(m_editViewState)
-    , m_trackListView(m_editViewState, std::move(tc))
+    , m_trackListView(m_editViewState)
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
 {

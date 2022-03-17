@@ -49,8 +49,8 @@ class EditComponent : public  juce::Component
 {
 public:
     EditComponent (te::Edit&
-                 , te::SelectionManager&
-                 , juce::Array<juce::Colour> tc);
+                   , ApplicationViewState & avs
+                 , te::SelectionManager&);
     ~EditComponent() override;
 
     void paint (juce::Graphics &g) override;

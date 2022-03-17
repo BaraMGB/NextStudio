@@ -1,9 +1,7 @@
 #pragma once
 
-#include <utility>
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities.h"
 
 namespace IDs
 {
@@ -28,6 +26,8 @@ namespace IDs
     DECLARE_ID (WindowY)
     DECLARE_ID (WindowWidth)
     DECLARE_ID (WindowHeight)
+    DECLARE_ID (FolderTrackIndent)
+    DECLARE_ID (ThemeState)
     #undef DECLARE_ID
 }
 
@@ -48,7 +48,6 @@ struct Favorite
         : m_tag (std::move(tag))
         , m_state(std::move(v))
     {
-        //jassert(v.hasType(tag));
         fullPath.referTo (m_state, IDs::Path, nullptr);
     }
     [[nodiscard]] juce::File getFile() const
@@ -128,6 +127,10 @@ public:
         m_windowYpos.referTo (windowState, IDs::WindowY, nullptr, 50);
         m_windowWidth.referTo (windowState, IDs::WindowWidth, nullptr, 1600);
         m_windowHeight.referTo (windowState, IDs::WindowHeight, nullptr, 1000);
+
+        auto themeState = m_applicationStateValueTree
+                .getOrCreateChildWithName(IDs::ThemeState, nullptr);
+        m_folderTrackIndent.referTo (themeState, IDs::FolderTrackIndent, nullptr, 10);
     }
 
     void addFavoriteType(const juce::Identifier& type)
@@ -180,11 +183,11 @@ public:
         auto xmlToWrite = m_applicationStateValueTree.createXml ();
         if (xmlToWrite->writeTo (settingsFile))
         {
-            GUIHelpers::log ("settings written to: " + settingsFile.getFullPathName ());
+            std::cout << "settings written to: " + settingsFile.getFullPathName () << std::endl;
         }
         else
         {
-            GUIHelpers::log ("couldn't write to: " + settingsFile.getFullPathName ());
+            std::cout << "couldn't write to: " + settingsFile.getFullPathName () << std::endl;
         }
     }
 
@@ -225,6 +228,11 @@ public:
         return currentFileList;
     }
 
+    juce::Colour getRandomTrackColour()
+    {
+        auto rdm = juce::Random::getSystemRandom().nextInt(m_trackColours.size());
+        return m_trackColours[rdm];
+    }
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;
     juce::Array<juce::Colour> m_trackColours
@@ -243,6 +251,7 @@ public:
     juce::CachedValue<int>          m_windowXpos,
                                     m_windowYpos,
                                     m_windowWidth,
-                                    m_windowHeight;
+                                    m_windowHeight,
+                                    m_folderTrackIndent;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ApplicationViewState)
 };

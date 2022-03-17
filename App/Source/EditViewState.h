@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 
 namespace te = tracktion_engine;
 
@@ -80,8 +81,8 @@ namespace IDs
 class EditViewState
 {
 public:
-    EditViewState (te::Edit& e, te::SelectionManager& s)
-        : m_edit (e), m_selectionManager (s)
+    EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs)
+        : m_edit (e), m_selectionManager (s), m_applicationState(avs)
     {
         m_state = m_edit.state.getOrCreateChildWithName (
                     IDs::EDITVIEWSTATE, nullptr);
@@ -274,5 +275,6 @@ public:
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;
     juce::ValueTree m_state;
+    ApplicationViewState& m_applicationState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };

@@ -15,6 +15,7 @@ void TrackListView::resized()
 {
     int y = juce::roundToInt (m_editViewState.m_viewY.get());
     int allTracksHeight = 0;
+    auto folderIndent = static_cast<int>(m_editViewState.m_applicationState.m_folderTrackIndent);
     for (auto header : m_trackHeaders)
     {
         auto trackHeaderHeight = getTrackHeight(header);
@@ -25,8 +26,8 @@ void TrackListView::resized()
         {
             if (auto ftv = getTrackHeaderView(ft))
             {
-                leftEdge = ftv->getX() + 5;
-                w = ftv->getWidth() - 5;
+                leftEdge = ftv->getX() + folderIndent;
+                w = ftv->getWidth() - folderIndent;
             }
             if (ft->state.getProperty(IDs::isTrackMinimized))
                 trackHeaderHeight = 0;
@@ -39,7 +40,7 @@ void TrackListView::resized()
 }
 void TrackListView::mouseDown(const juce::MouseEvent &e)
 {
-    auto colour = m_trackColours[m_trackHeaders.size () % m_trackColours.size ()];
+    auto colour = m_editViewState.m_applicationState.getRandomTrackColour();
 
     if (e.mods.isPopupMenu())
     {

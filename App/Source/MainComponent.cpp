@@ -300,8 +300,8 @@ void MainComponent::setupEdit(juce::File editFile)
     te::EditFileOperations (*m_edit).save (true, true, false);
     m_editComponent = std::make_unique<EditComponent> (
                 *m_edit
-              , m_selectionManager
-              , m_applicationState.m_trackColours);
+              , m_applicationState
+              , m_selectionManager);
     m_edit->state.addListener (this);
     m_editNameLabel.setText (m_editComponent->getEditViewState ().m_editName
                              , juce::dontSendNotification);
