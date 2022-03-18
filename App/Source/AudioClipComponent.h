@@ -12,9 +12,7 @@ public:
     AudioClipComponent (EditViewState&, te::Clip::Ptr);
 
     void paint (juce::Graphics& g) override;
-    void mouseExit(const juce::MouseEvent&) override;
-    void mouseDown (const juce::MouseEvent&) override;
-    void mouseDrag(const juce::MouseEvent &) override;
+
 
     te::WaveAudioClip* getWaveAudioClip();
 
@@ -37,12 +35,6 @@ private:
 
     std::unique_ptr<te::SmartThumbnail> thumbnail;
 
-    //used for shrinking and expanding
-    te::TimecodeSnapType getCurrentSnapType();
-    double getDistanceInTime (int distanceInPixel);
-    double getDistanceInTime(int distanceInPixel, bool snap);
-    double clipEndSnaped();
-
     //used for drawing thumbnail
     int getViewportOffset();
     int getViewportEnd();
@@ -51,13 +43,5 @@ private:
     juce::Range<int> getDrawingRange();
     juce::Rectangle<int> getDrawingRect();
 
-    void setNewTimeAndOffset(double newTime, double newOffset);
-
-    //helper
-
-    int m_mouseDownX {0};
-    int m_cachedClipWidth{};
-    double m_oldDistanceTime{0.0};
-    tracktion_engine::ClipPosition m_clipPosCached;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioClipComponent)
 };

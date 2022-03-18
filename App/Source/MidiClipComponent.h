@@ -21,12 +21,7 @@ public:
     void paint (juce::Graphics& g) override;
     void mouseExit(const juce::MouseEvent&) override;
     void mouseDown (const juce::MouseEvent&) override;
-    void mouseDrag(const juce::MouseEvent &) override;
 
 private:
-    int m_mouseDownX {0};
-    int m_clipWidthMouseDown{};
-    double m_oldDistTime{0.0};
-    tracktion_engine::ClipPosition m_posAtMouseDown;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiClipComponent)
 };

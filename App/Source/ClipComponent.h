@@ -15,11 +15,17 @@ public:
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
+    void mouseExit(const juce::MouseEvent&) override;
     
     te::Clip::Ptr getClip () { return m_clip; }
 
     [[nodiscard]] bool isCtrlDown () const { return m_isCtrlDown; }
     [[nodiscard]] bool isShiftDown () const { return m_isShiftDown; }
+    [[nodiscard]] bool isResizeLeft() const;
+    [[nodiscard]] bool isResizeRight() const;
+
+    void setResizeLeft(bool mResizeLeft){ m_resizeLeft = mResizeLeft; }
+    void setResizeRight(bool mResizeRight){ m_resizeRight = mResizeRight; }
 
     [[nodiscard]] double getClickPosTime () const { return m_clickedTime; }
     [[nodiscard]] int getClipPosOffsetX () const
@@ -28,6 +34,7 @@ public:
     }
 
     te::Track::Ptr getTrack(const te::Clip::Ptr& clip);
+
 
 protected:
 
@@ -39,12 +46,14 @@ protected:
 
 private:
 
-    [[nodiscard]] double getTime(int x) const;
+    [[nodiscard]] double xToTime(int x) const;
 
     double m_clickedTime {0.0};
     bool m_isCtrlDown{false};
     bool m_isShiftDown{false};
     bool m_isDragging{false};
+    bool m_resizeLeft{false};
+    bool m_resizeRight{false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ClipComponent)
 };
 

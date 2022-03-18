@@ -96,5 +96,15 @@ private:
     double getSnapedTime(double time);
 
     void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
+
+    void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
+
+    void moveSelectedClips(double dropTime, ClipComponent *draggedClip, int verticalOffset);
+
+    int timeToX (double time);
+
+    void drawResizingOverlays (const ClipComponent *draggedClip);
+
+    void drawDraggingOverlays (const ClipComponent *draggedClip, const juce::Point<int> &dropPos, int verticalOffset);
 };
 

@@ -60,97 +60,15 @@ void MidiClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 
 void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
 {
-    m_mouseDownX = e.getMouseDownX();
-    if (!(m_mouseDownX < 10
-            || m_mouseDownX > getWidth () - 10)
-       && m_editViewState.m_isPianoRollVisible)
-    {
-        GUIHelpers::centerMidiEditorToClip(m_editViewState, m_clip);
-    }
-    m_posAtMouseDown =  m_clip->getPosition();
-    m_clipWidthMouseDown = getWidth();
-    m_oldDistTime = 0.0;
     ClipComponent::mouseDown(e);
-    if (e.getNumberOfClicks () > 1
-     || m_editViewState.m_isPianoRollVisible)
+    if ((!isResizeLeft() && !isResizeRight()) && m_editViewState.m_isPianoRollVisible)
+        GUIHelpers::centerMidiEditorToClip(m_editViewState, m_clip);
+    
+    if (e.getNumberOfClicks () > 1 || m_editViewState.m_isPianoRollVisible)
     {
         m_editViewState.m_isPianoRollVisible = true;
         sendChangeMessage ();
     }
 }
 
-void MidiClipComponent::mouseDrag(const juce::MouseEvent &e)
-{
-    const auto distanceBeats = m_editViewState.xToBeats(
-                e.getDistanceFromDragStartX(),getParentWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    auto snapType = m_editViewState.getBestSnapType (
-                m_editViewState.m_viewX1
-              , m_editViewState.m_viewX2
-              , getParentWidth ());
 
-    const auto distanceTime = e.mods.isShiftDown ()
-            ? m_editViewState.beatToTime(
-                  distanceBeats  - m_editViewState.m_viewX1)
-            : m_editViewState.getSnapedTime (
-                  m_editViewState.beatToTime(
-                      distanceBeats  - m_editViewState.m_viewX1), snapType);
-    //mouse hovers left edge of clip
-    if ((m_mouseDownX < 10) && (m_clipWidthMouseDown > 30))
-    {
-        auto distTimeDelta = distanceTime - m_oldDistTime;
-
-        auto resizeTime = juce::jmax(0.0, m_clip->getPosition().getStart()
-                                     + distTimeDelta);
-        //move left
-        if (distTimeDelta > 0.0)
-        {
-            auto firstNoteTime = m_editViewState.beatToTime (
-                        getMidiClip ()->getSequence ().getFirstBeatNumber ());
-            if ((firstNoteTime - m_clip->getPosition ().getOffset ())
-                    - distTimeDelta < 0.0)
-            {
-                m_clip->setStart(resizeTime, true, false);
-            }
-            else
-            {
-                m_clip->setStart(resizeTime, false, false);
-                getMidiClip ()->getSequence ()
-                        .moveAllBeatPositions (
-                            m_editViewState.timeToBeat (-distTimeDelta)
-                            , nullptr);
-            }
-        }//or Right
-        else if (distTimeDelta < 0.0)
-        {
-            if (m_clip->getPosition ().getOffset () > 0.0)
-            {
-                m_clip->setOffset (m_clip->getPosition ().getOffset () + distTimeDelta);
-                m_clip->setStart(resizeTime, false, false);
-            }
-            else
-            {
-                getMidiClip()->extendStart(
-                            juce::jmax (
-                                0.0, m_clip->getPosition().getStart() + distTimeDelta));
-            }
-            m_posAtMouseDown = m_clip->getPosition();
-        }
-        m_oldDistTime = distanceTime;
-        m_updateRegion = true;
-    }
-    //mouse hovers right edge of clip
-    else if (m_mouseDownX > m_clipWidthMouseDown - 10
-             && m_clipWidthMouseDown > 30)
-    {
-        auto snapedTime = m_editViewState.getSnapedTime (
-                    m_posAtMouseDown.getEnd ()
-                  , snapType);
-        m_clip->setEnd(snapedTime + distanceTime, true);
-        m_updateRegion = true;
-    }
-    //mouse hovers middle of clip
-    else
-    {
-        ClipComponent::mouseDrag(e);
-    }
-}

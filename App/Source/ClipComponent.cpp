@@ -79,7 +79,7 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
 {
     toFront (true);
     m_isCtrlDown = false;
-    m_clickedTime = getTime(event.x);
+    m_clickedTime = xToTime(event.x);
 
     if (juce::ModifierKeys::getCurrentModifiers().isCtrlDown())
     {
@@ -102,8 +102,12 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
         showContextMenu();
         return;
     }
+    if (event.x < 10)
+        m_resizeLeft = true;
+    else if (event.x > getWidth() - 10)
+        m_resizeRight = true;
 }
-double ClipComponent::getTime(const int x) const
+double ClipComponent::xToTime(const int x) const
 {
     return m_editViewState.xToTime(x
                                    , getParentWidth()
@@ -159,6 +163,10 @@ void ClipComponent::mouseUp(const juce::MouseEvent& event)
         track->addClip (getClip ());
     }
 }
+void ClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
+{
+    setMouseCursor(juce::MouseCursor::NormalCursor);
+}
 
 tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Clip::Ptr& clip)
 {
@@ -204,5 +212,13 @@ void ClipComponent::showContextMenu()
         te::Clipboard::getInstance()->setContent(
                     std::move(clipContent));
     }
+}
+
+bool ClipComponent::isResizeLeft() const {
+    return m_resizeLeft;
+}
+
+bool ClipComponent::isResizeRight() const {
+    return m_resizeRight;
 }
 
