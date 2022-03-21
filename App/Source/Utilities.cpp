@@ -813,6 +813,15 @@ void EngineHelpers::duplicateSelectedClips(
     }
 }
 
+void EngineHelpers::insertPlugin (te::Track::Ptr track, te::Plugin::Ptr plugin, int index)
+{
+    auto& plugins = track->pluginList;
+    if (index == -1)
+        index = plugins.size() - 2;
+    plugin->state.setProperty (te::IDs::remapOnTempoChange, true, nullptr);
+    plugins.insertPlugin (plugin->state, index);
+}
+
 void GUIHelpers::centerView(EditViewState &evs)
 {
     if (evs.viewFollowsPos())

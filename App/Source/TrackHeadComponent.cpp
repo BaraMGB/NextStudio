@@ -856,7 +856,7 @@ void TrackHeaderComponent::itemDropped(
 
     if  (listbox && isPlug)
         if (auto lbm = dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
-            getTrack()->pluginList.insertPlugin(lbm->getSelectedPlugin(), 0, nullptr);
+            EngineHelpers::insertPlugin (getTrack(), lbm->getSelectedPlugin());
 
 
     auto tc = dynamic_cast<TrackHeaderComponent*>(details.sourceComponent.get ());

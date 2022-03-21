@@ -214,6 +214,8 @@ namespace EngineHelpers
     void refreshRelativePathsToNewEditFile(EditViewState & evs
                                        , const juce::File& newFile);
 
+    void insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
+
     template<typename ClipType>
     typename ClipType::Ptr loopAroundClip (ClipType& clip)
     {

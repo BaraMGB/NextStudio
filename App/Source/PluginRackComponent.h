@@ -103,10 +103,9 @@ public:
                     auto pluginRackComp = dynamic_cast<PluginRackComponent*>(getParentComponent());
                     if (pluginRackComp)
                     {
-                        pluginRackComp->getTrack()->pluginList.insertPlugin(
-                                    lbm->getSelectedPlugin ()
-                                    , pluginRackComp->getAddButtons ().indexOf (this)
-                                    , nullptr);
+                        EngineHelpers::insertPlugin (pluginRackComp->getTrack(),
+                                                     lbm->getSelectedPlugin(),
+                                                     pluginRackComp->getAddButtons ().indexOf (this));
                     }
                 }
 

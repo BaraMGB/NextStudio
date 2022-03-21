@@ -26,11 +26,9 @@ void PluginRackComponent::buttonClicked(juce::Button* button)
         if (b == button)
         {
             if (auto plugin = showMenuAndCreatePlugin (track->edit))
-                {
-                    track->pluginList.insertPlugin (plugin, addButtons.indexOf(b),
-                                                    &editViewState.m_selectionManager);
-                }
-                editViewState.m_selectionManager.selectOnly (track);
+                EngineHelpers::insertPlugin (track, plugin, addButtons.indexOf (b));
+
+            editViewState.m_selectionManager.selectOnly (track);
         }
     }
 }
@@ -139,20 +137,11 @@ void PluginRackComponent::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if(dragSourceDetails.description == "PluginListEntry")
-    {
         if (auto listbox = dynamic_cast<juce::ListBox*>(
             dragSourceDetails.sourceComponent.get ()))
-        {
-            if (auto lbm =
-                dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
-            {
-                getTrack()->pluginList.insertPlugin(
-                    lbm->getSelectedPlugin()
-                    , getTrack()->pluginList.size() - 2 //set before LevelMeter and Volume
-                    , nullptr);
-            }
-        }
-    }
+            if (auto lbm = dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
+                EngineHelpers::insertPlugin (getTrack(), lbm->getSelectedPlugin());
+
     m_isOver = false;
     repaint();
 }
