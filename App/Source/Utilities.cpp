@@ -457,7 +457,7 @@ tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(
     juce::Colour trackColour,
     EditViewState &evs)
 {
-    te::TrackInsertPoint tip (te::getAllTracks(evs.m_edit).getLast(), false);
+    te::TrackInsertPoint tip (*te::getAllTracks(evs.m_edit).getLast(), false);
     auto ft = evs.m_edit.insertNewFolderTrack(tip, &evs.m_selectionManager, true);
 
     ft->state.setProperty (te::IDs::height
