@@ -116,6 +116,8 @@ namespace GUIHelpers
                        double x2beats,
                        const juce::Rectangle<int>& boundingRect,
                        const juce::Colour& colour);
+    void drawPolyObject(juce::Graphics& g, juce::Rectangle<int> area, int edges, float tilt, float rotation,float radiusFac, float heightFac, float scale);
+    void drawLogoQuad(juce::Graphics&g, juce::Rectangle<int> area);
     void printTextAt(juce::Graphics& graphic,
                      juce::Rectangle<float> textRect,
                      const juce::String& text,

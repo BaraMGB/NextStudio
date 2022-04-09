@@ -22,6 +22,8 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     return {};
 }
 
+
+
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area
@@ -883,4 +885,61 @@ void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
     evs.m_pianoX1 =
         juce::jmax(0.0, c->getStartBeat () - (zoom /2) + (c->getLengthInBeats ()/2));
     evs.m_pianoX2 = evs.m_pianoX1 + zoom;
+}
+
+void GUIHelpers::drawPolyObject (juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation,float radiusFac, float heightFac, float scale)
+{
+    const float pi = static_cast<float> (3.141592653589793238L);
+    auto phi = 0.f + tilt;
+
+    auto xm = area.getWidth() / 2;
+    auto rx = (area.getHeight() / 3) * radiusFac * scale;
+    auto yRot = juce::jmap (rotation, 0.f , static_cast<float>(rx));
+
+    auto ry = ((area.getHeight() / 3) * scale * radiusFac) - yRot;
+
+    int x = xm + rx * sinf(phi);
+    int zLength = ((area.getHeight() - (area.getHeight() - juce::jmap(rotation, 0.f, static_cast<float>(area.getHeight())))) * heightFac) * 2 * scale;
+
+    auto ym = area.getHeight() / 2 + (zLength/2);
+    int y = ym + ry * cosf(phi);
+
+    juce::Path poly;
+
+    while (phi < (2 * pi) + tilt)
+    {
+        auto oldX = x;
+        auto oldY = y;
+
+        phi = phi + (2 * pi / edges);
+
+        x = xm + rx * sinf(phi);
+        y = ym + ry * cosf(phi);
+
+        juce::Line<float> zEdge (oldX, oldY - zLength, oldX, oldY);
+        juce::Line<float> topEdge (oldX, oldY - zLength, x, y - zLength);
+        juce::Line<float> bottomEdge (oldX, oldY, x, y);
+
+        poly.addLineSegment (zEdge, 2);
+        poly.addLineSegment (topEdge, 2);
+        poly.addLineSegment (bottomEdge, 2);
+    }
+    auto st = juce::PathStrokeType(2);
+    st.setJointStyle (juce::PathStrokeType::JointStyle::beveled);
+
+    g.strokePath (poly, st);
+}
+
+void GUIHelpers::drawLogoQuad (juce::Graphics &g, juce::Rectangle<int> area)
+{
+    const float pi = static_cast<float> (3.141592653589793238L);
+    juce::Path path;
+    auto roundEdge = 50;
+
+    path.startNewSubPath (area.getX(), area.getY() + roundEdge/2);
+    path.addArc (area.getX() ,area.getY(),roundEdge,roundEdge, pi + (pi/2) , 2*pi );
+    path.lineTo (area.getWidth() - roundEdge, area.getY());
+    path.addArc (area.getWidth() - roundEdge, area.getY(), roundEdge, roundEdge, pi + (pi/2)+ (pi/2), 2*pi+ (pi/2) );
+
+    g.strokePath (path, juce::PathStrokeType(2));
 }
