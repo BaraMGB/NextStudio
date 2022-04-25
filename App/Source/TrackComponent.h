@@ -55,6 +55,8 @@ private:
     bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
     bool isSelected();
 
+	double getSnapedTime(double t);
+
     double xToBeats(int x)
     {
         return m_editViewState.xToBeats (

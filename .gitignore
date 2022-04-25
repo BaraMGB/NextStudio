@@ -9,3 +9,5 @@ CMakeLists.txt.user
 cmake-build-debug
 cmake-build-release
 .vs
+compile_commands.json
+

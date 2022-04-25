@@ -521,6 +521,7 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
                 { { insertTime, insertTime + audioFile.getLength() }, 0.0 }, true))
                 {
                     GUIHelpers::log("loading : " + file.getFullPathName ());
+					newClip->setAutoTempo(false);
                     return newClip;
                 }
         }

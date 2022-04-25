@@ -65,9 +65,9 @@ int SongEditorView::getSize()
 bool SongEditorView::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails& sourceDetails)
 {
-    if (sourceDetails.description == "Clip"
-    || sourceDetails.description == "")
-        return true;
+    if (sourceDetails.description == "Clip")
+  //  || sourceDetails.description == "")
+	      return true;
     return false;
 }
 void SongEditorView::itemDragMove(
@@ -207,6 +207,7 @@ bool SongEditorView::trackWantsClip(const te::Clip* clip,
 void SongEditorView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
+	std::cout << "DROOPING" << std::endl;
     auto dropPos = dragSourceDetails.localPosition;
     m_cachedEditLength = m_editViewState.m_edit.getLength();
     auto dropTime = m_editViewState.xToTime (
@@ -222,6 +223,7 @@ void SongEditorView::itemDropped(
     {
         if (auto lb = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
         {
+			std::cout << "wave file dropped from ListBox on SE" << std::endl;
             if (auto fileListComp =
                     dynamic_cast<FileListBoxComponent*>(lb->getModel ()))
             {
@@ -240,6 +242,9 @@ void SongEditorView::itemDropped(
         if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
         (dragSourceDetails.sourceComponent.get()))
         {
+			std::cout << "wave file dropped from FileTreeComponent on Track"  << std::endl;
+
+			std::cout <<  "desc: " << dragSourceDetails.description.toString() << std::endl;
             auto f = fileTreeComp->getSelectedFile();
             destinationTrack->insertWave(f, dropTime);
         }
