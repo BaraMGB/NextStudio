@@ -138,29 +138,23 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 
 void ClipComponent::mouseUp(const juce::MouseEvent& event)
 {
+    setMouseCursor (juce::MouseCursor::NormalCursor);
+
     m_editViewState.m_edit.getTransport().setUserDragging(false);
     if (auto se = dynamic_cast<SongEditorView*>(
                 getParentComponent ()->getParentComponent ()))
     {
         se->turnoffAllTrackOverlays ();
     }
-    setMouseCursor (juce::MouseCursor::NormalCursor);
+
     if (m_isDragging)
     {
         m_isDragging = false;
-    }else if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size () > 1
+    }
+	else if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size () > 1
           && !event.mods.isAnyModifierKeyDown ())
     {
         m_editViewState.m_selectionManager.selectOnly (m_clip);
-    }
-    if (m_updateRegion)
-    {
-        m_updateRegion = false;
-        auto track = getClip ()->getClipTrack ();
-        track->deleteRegion (
-                    getClip ()->getPosition ().time
-                    , &m_editViewState.m_selectionManager);
-        track->addClip (getClip ());
     }
 }
 void ClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
