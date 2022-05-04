@@ -209,7 +209,7 @@ void SongEditorView::itemDropped(
 {
 	std::cout << "DROOPING" << std::endl;
     auto dropPos = dragSourceDetails.localPosition;
-    m_cachedEditLength = m_editViewState.m_edit.getLength();
+    m_cachedEditLength = m_editViewState.m_edit.getLength() * 100 ;
     auto dropTime = m_editViewState.xToTime (
         dropPos.getX()
         , getWidth()
@@ -341,6 +341,7 @@ void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
     auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
 
     if (fromLeftEdge)
+	{
         for (auto sc : selectedClips)
         {
             auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
@@ -348,29 +349,33 @@ void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
             if (snap)
                 newStart = getSnapedTime (newStart);
             sc->setStart(newStart, true, false);
+
+			//save clip for damage
             sc->setStart(sc->getPosition().getStart() + m_cachedEditLength, false, true);
         }
+	}
     else
     {
         for (auto sc : selectedClips)
         {
-            sc->setStart(sc->getPosition().getStart() + m_cachedEditLength, false, true);
-
             double newEnd = sc->getPosition().getEnd() + m_draggedTimeDelta;
+
             if (snap)
                 newEnd = getSnapedTime (newEnd);
-
             sc->setEnd(newEnd, true);
+			//save clip for damage
+            sc->setStart(sc->getPosition().getStart() + m_cachedEditLength, false, true);
         }
     }
 
     for (auto sc : selectedClips)
     {
         auto ct = sc->getClipTrack();
-        ct->deleteRegion({sc->getPosition().getStart() - m_cachedEditLength,
-                          sc->getPosition().getEnd() - m_cachedEditLength},
-                          &m_editViewState.m_selectionManager);
+		const juce::Range<double> range = {sc->getPosition().getStart() - m_cachedEditLength,
+										   sc->getPosition().getEnd() - m_cachedEditLength};
+        ct->deleteRegion(range, &m_editViewState.m_selectionManager);
 
+		//restore clip
         sc->setStart(sc->getPosition().getStart() - m_cachedEditLength, false, true);
     }
 }

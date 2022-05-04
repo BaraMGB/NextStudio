@@ -102,9 +102,11 @@ void ClipComponent::mouseDown (const juce::MouseEvent&event)
         showContextMenu();
         return;
     }
-    if (event.x < 10)
+
+    if (event.getPosition().getX() < 10 && getWidth () > 30)
         m_resizeLeft = true;
-    else if (event.x > getWidth() - 10)
+    else if (event.getPosition().getX() > getWidth() - 10
+         &&  getWidth () > 30)
         m_resizeRight = true;
 }
 double ClipComponent::xToTime(const int x) const
@@ -115,18 +117,15 @@ double ClipComponent::xToTime(const int x) const
                                    , m_editViewState.m_viewX2
                                      );
 }
-
 void ClipComponent::mouseDrag(const juce::MouseEvent & event)
 {
     if (event.mouseWasDraggedSinceMouseDown ())
     {
         juce::DragAndDropContainer* dragC =
                 juce::DragAndDropContainer::findParentDragContainerFor(this);
-        m_isShiftDown = false;
-        if (event.mods.isShiftDown())
-        {
-            m_isShiftDown = true;
-        }
+
+        m_isShiftDown = event.mods.isShiftDown();
+
         if (!dragC->isDragAndDropActive())
         {
             dragC->startDragging("Clip", this
@@ -135,22 +134,19 @@ void ClipComponent::mouseDrag(const juce::MouseEvent & event)
         }
     }
 }
-
 void ClipComponent::mouseUp(const juce::MouseEvent& event)
 {
     setMouseCursor (juce::MouseCursor::NormalCursor);
 
     m_editViewState.m_edit.getTransport().setUserDragging(false);
+
     if (auto se = dynamic_cast<SongEditorView*>(
                 getParentComponent ()->getParentComponent ()))
-    {
         se->turnoffAllTrackOverlays ();
-    }
 
     if (m_isDragging)
-    {
         m_isDragging = false;
-    }
+
 	else if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size () > 1
           && !event.mods.isAnyModifierKeyDown ())
     {
@@ -161,7 +157,6 @@ void ClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
     setMouseCursor(juce::MouseCursor::NormalCursor);
 }
-
 tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Clip::Ptr& clip)
 {
     for (auto t : m_editViewState.m_edit.getTrackList ())
@@ -179,7 +174,6 @@ tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Cli
     }
     return nullptr;
 }
-
 void ClipComponent::showContextMenu()
 {
     juce::PopupMenu m;
@@ -207,12 +201,12 @@ void ClipComponent::showContextMenu()
                     std::move(clipContent));
     }
 }
-
-bool ClipComponent::isResizeLeft() const {
+bool ClipComponent::isResizeLeft() const 
+{
     return m_resizeLeft;
 }
-
-bool ClipComponent::isResizeRight() const {
+bool ClipComponent::isResizeRight() const 
+{
     return m_resizeRight;
 }
 
