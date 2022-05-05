@@ -14,6 +14,13 @@ int SongEditorView::getTrackHeight(const TrackComponent* tc) const
 {
     return GUIHelpers::getTrackHeight(tc->getTrack(),m_editViewState);
 }
+
+void SongEditorView::paint(juce::Graphics& g)
+{
+	auto area = getLocalBounds();
+	g.setColour(juce::Colour(0xff222222));
+	g.fillRect(area);
+}
 void SongEditorView::resized()
 {
     int y = juce::roundToInt (m_editViewState.m_viewY.get());
@@ -165,10 +172,13 @@ int SongEditorView::getVerticalOffset(
     auto targetTrackComp = getTrackComponent(dropPos.getY ());
     auto sourceTrackComp = dynamic_cast<TrackComponent*>
         (dragSourceDetails.sourceComponent.get()->getParentComponent ());
-
-    auto verticalOffset = m_trackViews.indexOf(targetTrackComp)
-                              - m_trackViews.indexOf(sourceTrackComp);
-    return verticalOffset;
+	if (targetTrackComp)
+	{
+		auto verticalOffset = m_trackViews.indexOf(targetTrackComp)
+		                    - m_trackViews.indexOf(sourceTrackComp);
+		return verticalOffset;
+	}
+	return 0;
 }
 int SongEditorView::getSnapedX(int x, bool down) const
 {
@@ -249,29 +259,30 @@ void SongEditorView::itemDropped(
             destinationTrack->insertWave(f, dropTime);
         }
 
-        //copy/moving selected clips by drag and drop // resizing
-        if (auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ()))
-        {
-            setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-            auto verticalOffset = getVerticalOffset(dragSourceDetails, dropPos);
-            auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-
-            if (draggedClip->isResizeRight())
-                resizeSelectedClips(!draggedClip->isShiftDown());
-            else if (draggedClip->isResizeLeft())
-                resizeSelectedClips(!draggedClip->isShiftDown(), true);
-            else
-                moveSelectedClips(dropTime, draggedClip, verticalOffset);
-
-            draggedClip->setResizeLeft(false);
-            draggedClip->setResizeRight(false);
-        }
-
+       
     }
     else
     {
         addWaveFileToNewTrack(dragSourceDetails, dropTime);
     }
+ //copy/moving selected clips by drag and drop // resizing
+    if (auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ()))
+    {
+        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+        auto verticalOffset = getVerticalOffset(dragSourceDetails, dropPos);
+        auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+
+        if (draggedClip->isResizeRight())
+            resizeSelectedClips(!draggedClip->isShiftDown());
+        else if (draggedClip->isResizeLeft())
+            resizeSelectedClips(!draggedClip->isShiftDown(), true);
+        else
+            moveSelectedClips(dropTime, draggedClip, verticalOffset);
+
+        draggedClip->setResizeLeft(false);
+        draggedClip->setResizeRight(false);
+    }
+
     m_draggedTimeDelta = 0;
     setMouseCursor (juce::MouseCursor::NormalCursor);
 }
@@ -414,7 +425,12 @@ void SongEditorView::itemDragExit(const juce::DragAndDropTarget::SourceDetails&)
 {
 }
 TrackComponent* SongEditorView::getTrackComponent(int y)
-{
+{	
+	if (m_trackViews.isEmpty())
+	    return nullptr;
+	if (y < 0)
+		return m_trackViews.getFirst();
+
     auto tcHeight = 0;
     for (auto & tc : m_trackViews)
     {
@@ -425,7 +441,7 @@ TrackComponent* SongEditorView::getTrackComponent(int y)
         }
         tcHeight = tcHeight + tc->getHeight ();
     }
-    return nullptr;
+	return m_trackViews.getLast();
 }
 ClipComponent*
     SongEditorView::getClipComponentForClip(const tracktion_engine::Clip::Ptr& clip)

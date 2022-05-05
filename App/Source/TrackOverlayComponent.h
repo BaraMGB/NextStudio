@@ -29,12 +29,13 @@ public:
     void drawImages(int offset);
     void addResizingImage(int startX, int endX)
     {
+		
         auto widthX = endX - startX;
         juce::Image image (juce::Image::ARGB, widthX, getHeight(), true);
         juce::Graphics g (image);
 
-        g.setColour (juce::Colours::white);
-        g.drawRect (juce::Rectangle<int>{0, 0, widthX, getHeight()});
+		g.setColour (juce::Colour(0x99ffffff));
+        g.fillRect (juce::Rectangle<int>{0, 0, widthX, getHeight()});
 
         OverlayImage oli {image, startX, true};
         m_imageList.add(oli);

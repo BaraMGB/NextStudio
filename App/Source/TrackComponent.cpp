@@ -217,8 +217,11 @@ void TrackComponent::resized()
             cc->setBounds (startX, 0, endX - startX + 1, clipHeight);
         }
     }
-    m_trackOverlay.setBounds(0, 0, getWidth(), m_track->state.getProperty(
-                                 tracktion_engine::IDs::height, 50));
+    m_trackOverlay.setBounds(0, 0, getWidth(), (bool) m_track->state.getProperty (IDs::isTrackMinimized)
+                    ? (int) m_editViewState.m_trackHeightMinimized
+                    : (int) m_track->state.getProperty(
+                          tracktion_engine::IDs::height, 50));
+
     double nextLaneStart = m_track->state.getProperty(
                 tracktion_engine::IDs::height);
     for (auto al : m_automationLanes)

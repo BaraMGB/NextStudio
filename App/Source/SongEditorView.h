@@ -12,6 +12,7 @@ public:
     ~SongEditorView(){}
 
     int getTrackHeight(const TrackComponent* tc) const;
+	void paint(juce::Graphics& g);
     void resized();
 
     void mouseDown (const juce::MouseEvent &) override;
