@@ -11,13 +11,22 @@ PlayheadComponent::PlayheadComponent (te::Edit& e
 
 void PlayheadComponent::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colours::antiquewhite);
-    g.drawRect (m_xPosition, 0, 2, getHeight());
+	if (m_edit.getTransport().isPlaying())
+	{
+	    g.setColour (m_editViewState.m_applicationState.getPrimeColour());
+		g.drawRect (m_xPosition, 0, 2, getHeight());
+	}
+	else
+	{
+		g.setColour(juce::Colour(0x66ffffff));
+		g.drawRect(m_xPosition,0, 1, getHeight());
+	}
 }
 
-bool PlayheadComponent::hitTest (int x, int)
+bool PlayheadComponent::hitTest (int x, int y)
 {
-    if (std::abs (x - m_xPosition) <= 3)
+    if (std::abs (x - m_xPosition) <= 3 
+		&& y <= m_editViewState.m_timeLineHeight)
     {
         return true;
     }
