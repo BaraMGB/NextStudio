@@ -45,8 +45,6 @@ void PianoRollContentComponent::drawNote(juce::Graphics& g,
                                          )
 {
     auto noteRect = getNoteRect(midiClip, n);
-    noteRect.removeFromBottom(1);
-
     auto noteColor = getNoteColour(midiClip, n);
     auto innerGlow = noteColor.brighter(0.5f);
     auto selectedColour = juce::Colour(0xccffffff);
@@ -220,6 +218,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent& e)
     m_clickedClip = getMidiClipAt(e.x);
     m_snap = false;
     const auto clickedBeat = xToBeats(e.x);
+
     if (m_clickedNote && m_clickedClip)
     {
         if (e.mods.isRightButtonDown())
@@ -268,7 +267,7 @@ te::MidiNote* PianoRollContentComponent::addNewNote(int noteNumb,
                                                  const te::MidiClip* clip,
                                                  double beat)
 {
-    auto length = m_editViewState.m_lastNoteLength == 0
+    auto length = m_editViewState.m_lastNoteLength <= 0
                       ? 0.25
                       : m_editViewState.m_lastNoteLength;
     cleanUnderNote(noteNumb, {beat, beat + length}, clip);
@@ -307,6 +306,7 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent& e)
 
     if (e.mods.isLeftButtonDown() && e.mouseWasDraggedSinceMouseDown())
     {
+		setMouseCursor(juce::MouseCursor::NoCursor);
         if (m_clickedNote && m_clickedClip)
         {
             auto scrollTime = beatsToTime(m_editViewState.m_pianoX1);
@@ -434,9 +434,9 @@ void PianoRollContentComponent::mouseUp(const juce::MouseEvent& e)
         juce::Array<std::pair<te::MidiNote*, te::MidiClip*>> temp;
         moveSelectedNotesToTemp(startDelta, lengthDelta, temp, e.mods.isCtrlDown ());
         //all notes remain in their clips
-        if (m_expandLeft || m_expandRight || m_clickedClip == targetClip)
+        if (m_expandLeft || m_expandRight || m_noteAdding || m_clickedClip == targetClip)
         {
-            if (m_expandRight)
+            if (m_expandRight || m_noteAdding)
                 for (auto i = temp.size() - 1; i >= 0; i--)
                     insertNote(temp[i].first, temp[i].second);
             else
@@ -460,7 +460,7 @@ void PianoRollContentComponent::mouseUp(const juce::MouseEvent& e)
     }
 
     cleanUpFlags();
-
+	setMouseCursor(juce::MouseCursor::NormalCursor);
     repaint();
 }
 void PianoRollContentComponent::cleanUpFlags()
@@ -533,6 +533,7 @@ void PianoRollContentComponent::insertNote(te::MidiNote* note, te::MidiClip* cli
                                           &um);
 
     m_selectedEvents->addSelectedEvent(mn, true);
+	m_editViewState.m_lastNoteLength = note->getLengthBeats();
 }
 void PianoRollContentComponent::snapToGrid(te::MidiNote* note,
                                            const te::MidiClip* clip) const
@@ -544,7 +545,7 @@ void PianoRollContentComponent::snapToGrid(te::MidiNote* note,
             getQuantisedNoteBeat(note->getStartBeat(), clip),
                                 note->getEndBeat() - getQuantisedNoteBeat(note->getStartBeat(), clip),
                                 &um);
-    else if (m_expandRight)
+    else if (m_expandRight || m_noteAdding)
         note->setStartAndLength(note->getStartBeat(),
                                 getQuantisedNoteBeat(note->getEndBeat(), clip) - note->getStartBeat(),
                                 &um);
