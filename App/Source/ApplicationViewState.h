@@ -28,6 +28,7 @@ namespace IDs
     DECLARE_ID (WindowHeight)
     DECLARE_ID (FolderTrackIndent)
     DECLARE_ID (ThemeState)
+    DECLARE_ID (PrimeColour)
     #undef DECLARE_ID
 }
 
@@ -131,8 +132,15 @@ public:
         auto themeState = m_applicationStateValueTree
                 .getOrCreateChildWithName(IDs::ThemeState, nullptr);
         m_folderTrackIndent.referTo (themeState, IDs::FolderTrackIndent, nullptr, 10);
+
+		
+		m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
     }
 
+	juce::Colour getPrimeColour()
+	{
+		return juce::Colour::fromString(juce::String(m_primeColour));
+	}
     void addFavoriteType(const juce::Identifier& type)
     {
         auto favoriteTypes = m_applicationStateValueTree
@@ -247,7 +255,8 @@ public:
                                     m_presetDir,
                                     m_clipsDir,
                                     m_samplesDir,
-                                    m_projectsDir;
+                                    m_projectsDir,
+									m_primeColour;
     juce::CachedValue<int>          m_windowXpos,
                                     m_windowYpos,
                                     m_windowWidth,
