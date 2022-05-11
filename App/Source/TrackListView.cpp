@@ -6,10 +6,7 @@
 
 int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
 {
-    if (auto at = EngineHelpers::getAudioTrack(header->getTrack(), m_editViewState))
-        return GUIHelpers::getTrackHeight(at, m_editViewState, true);
-    if (header->isFolderTrack())
-        return m_editViewState.m_folderTrackHeight;
+        return GUIHelpers::getTrackHeight(header->getTrack(), m_editViewState, true);
 }
 void TrackListView::resized()
 {

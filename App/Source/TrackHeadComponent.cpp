@@ -188,6 +188,8 @@ TrackHeaderComponent::TrackHeaderComponent (
 
     if (auto folderTrack = dynamic_cast<te::FolderTrack*> (m_track.get()))
     {
+		addAndMakeVisible(m_muteButton);
+		addAndMakeVisible(m_soloButton);
         m_muteButton.onClick = [folderTrack]
         {
             folderTrack->setMute (! folderTrack->isMuted (false));
@@ -273,8 +275,7 @@ TrackHeaderComponent::TrackHeaderComponent (
     valueTreePropertyChanged (m_track->state, te::IDs::solo);
     valueTreePropertyChanged (inputsState, te::IDs::targetIndex);
 
-    if (!isFolderTrack())
-        buildAutomationHeader();
+    buildAutomationHeader();
 }
 
 TrackHeaderComponent::~TrackHeaderComponent()
@@ -581,6 +582,8 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                 strokeHeight = 3;
             }
             int height = m_track->state.getProperty (te::IDs::height);
+			if (isFolderTrack())
+				height = m_editViewState.m_folderTrackHeight;
             g.fillRect (juce::Rectangle<int>(
                             headWidth - 1
                           , height - strokeHeight
@@ -588,7 +591,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                           , strokeHeight));
         }
 
-        if (m_trackIsOver && !isFolderTrack())
+        if (m_trackIsOver)
         {
             g.setColour(juce::Colour(0x66ffffff));
             g.drawRect(getLocalBounds().removeFromTop(1));        
@@ -613,8 +616,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 void TrackHeaderComponent::resized()
 {
     const int gap = 3;
-    const int minimizedHeigth = m_track->state
-            .getProperty (IDs::trackMinimized, 30);
+    const int minimizedHeigth = 30;
     auto area = getLocalBounds().removeFromTop(minimizedHeigth);//getLocalBounds();
     auto peakdisplay = area.removeFromRight (15);//getLocalBounds ().removeFromRight (15);
     peakdisplay.reduce (gap, gap);
@@ -655,15 +657,16 @@ void TrackHeaderComponent::resized()
     m_trackName.setBounds(area);
 
     //AutomationLanes
-    const int height = m_track->state
+    int height = m_track->state
             .getProperty (te::IDs::height, minimizedHeigth);
+	if (isFolderTrack())
+		height = static_cast<int>(m_editViewState.m_folderTrackHeight);
     auto rect = getLocalBounds();
     rect.removeFromLeft(peakdisplay.getWidth());
     rect.removeFromTop(height);
     for (auto ahs : m_automationHeaders)
     {
-        int automationHeight = ahs->automatableParameter ().getCurve ().state
-                .getProperty(tracktion_engine::IDs::height, minimizedHeigth);
+        int automationHeight = ahs->automatableParameter ().getCurve ().state.getProperty(tracktion_engine::IDs::height,static_cast<int> (m_editViewState.m_trackDefaultHeight));
         ahs->setBounds(rect.removeFromTop(
                            automationHeight < minimizedHeigth
                                             ? minimizedHeigth
@@ -769,7 +772,7 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent& e)
 {
     m_isAboutToResizing = false;
     int height = m_track->state.getProperty (te::IDs::height, getHeight ());
-    if (e.y > height - 10 && !m_isMinimized)
+    if (e.y > height - 10 && !m_isMinimized && !isFolderTrack())
     {
         m_isAboutToResizing = true;
         setMouseCursor (juce::MouseCursor::UpDownResizeCursor);

@@ -12,7 +12,7 @@ SongEditorView::SongEditorView(EditViewState& evs)
 }
 int SongEditorView::getTrackHeight(const TrackComponent* tc) const
 {
-    return GUIHelpers::getTrackHeight(tc->getTrack(),m_editViewState);
+    return GUIHelpers::getTrackHeight(tc->getTrack(),m_editViewState, true);
 }
 
 void SongEditorView::paint(juce::Graphics& g)
@@ -27,8 +27,6 @@ void SongEditorView::resized()
     for (auto trackView : m_trackViews)
     {
         auto trackHeight = getTrackHeight(trackView);
-        if (trackView->getTrack()->isFolderTrack())
-            trackHeight = m_editViewState.m_folderTrackHeight;
 
         if (auto ft = trackView->getTrack()->getParentFolderTrack())
             if (ft->state.getProperty(IDs::isTrackMinimized))
@@ -217,7 +215,6 @@ bool SongEditorView::trackWantsClip(const te::Clip* clip,
 void SongEditorView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
-	std::cout << "DROOPING" << std::endl;
     auto dropPos = dragSourceDetails.localPosition;
     m_cachedEditLength = m_editViewState.m_edit.getLength() * 100 ;
     auto dropTime = m_editViewState.xToTime (
@@ -226,14 +223,11 @@ void SongEditorView::itemDropped(
         , m_editViewState.m_viewX1
         , m_editViewState.m_viewX2);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
-    auto destinationTrack = getTrackComponent (dropPos.getY ());
-
-
-    if (destinationTrack)
+    
+    if (auto destinationTrack = getTrackComponent (dropPos.getY ()))
     {
         if (auto lb = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
         {
-			std::cout << "wave file dropped from ListBox on SE" << std::endl;
             if (auto fileListComp =
                     dynamic_cast<FileListBoxComponent*>(lb->getModel ()))
             {
@@ -252,20 +246,15 @@ void SongEditorView::itemDropped(
         if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
         (dragSourceDetails.sourceComponent.get()))
         {
-			std::cout << "wave file dropped from FileTreeComponent on Track"  << std::endl;
-
-			std::cout <<  "desc: " << dragSourceDetails.description.toString() << std::endl;
             auto f = fileTreeComp->getSelectedFile();
             destinationTrack->insertWave(f, dropTime);
         }
-
-       
     }
     else
     {
         addWaveFileToNewTrack(dragSourceDetails, dropTime);
     }
- //copy/moving selected clips by drag and drop // resizing
+	//copy/moving selected clips by drag and drop // resizing
     if (auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ()))
     {
         setMouseCursor(juce::MouseCursor::DraggingHandCursor);
@@ -346,7 +335,6 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
         }
     }
 }
-
 void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
 {
     auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
@@ -401,7 +389,6 @@ SongEditorView::addWaveFileToNewTrack(const juce::DragAndDropTarget::SourceDetai
         EngineHelpers::loadAudioFileOnNewTrack(m_editViewState, f, juce::Colour(0xffff33cc), dropTime);
     }
 }
-
 double SongEditorView::getPasteTime(double dropTime,
                                     ClipComponent* draggedClip) const
 {
@@ -530,13 +517,18 @@ void SongEditorView::selectCatchedClips(const tracktion_engine::Track *track)
         }
     }
 }
-void SongEditorView::mouseUp(const juce::MouseEvent&)
+void SongEditorView::mouseUp(const juce::MouseEvent& e)
 {
     if (m_lassoComponent.isVisible ())
     {
         setMouseCursor (juce::MouseCursor::NormalCursor);
         m_lassoComponent.stopLasso();
     }
+	if(!e.mouseWasDraggedSinceMouseDown())
+	{
+        m_editViewState.m_selectionManager.deselectAll ();
+		m_editViewState.m_edit.getTransport().setCurrentPosition(getSnapedTime(xtoTime(e.x), true));	
+	}
 }
 LassoSelectionTool& SongEditorView::getLasso()
 {
@@ -556,11 +548,13 @@ double SongEditorView::xtoTime(int x)
     return m_editViewState.xToTime(x, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 }
 
-double SongEditorView::getSnapedTime(double time)
+double SongEditorView::getSnapedTime(double time, bool downwards)
 {
     return m_editViewState.getSnapedTime(
-            time, m_editViewState.getBestSnapType(
-                    m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth()));
+            time,
+			m_editViewState.getBestSnapType(
+                    m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth()),
+			downwards);
 }
 
 int SongEditorView::timeToX (double time)

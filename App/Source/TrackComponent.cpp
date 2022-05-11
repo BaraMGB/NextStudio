@@ -98,10 +98,11 @@ void TrackComponent::mouseDrag(const juce::MouseEvent &e)
 
 void TrackComponent::mouseUp(const juce::MouseEvent &e)
 {
-    if (!e.mouseWasDraggedSinceMouseDown ())
+    if (!e.mouseWasDraggedSinceMouseDown () && e.getNumberOfClicks() < 2)
     {
-        m_editViewState.m_selectionManager.deselectAll ();
+		getParentComponent()->mouseUp(e.getEventRelativeTo(getParentComponent()));
     }
+
     if (auto se = dynamic_cast<SongEditorView*>(getParentComponent ()))
     {
         if (se->getLasso ().isVisible())
@@ -224,10 +225,12 @@ void TrackComponent::resized()
 
     double nextLaneStart = m_track->state.getProperty(
                 tracktion_engine::IDs::height);
+	if (m_track->isFolderTrack())
+		nextLaneStart = m_editViewState.m_folderTrackHeight;
     for (auto al : m_automationLanes)
     {
         int height = al->getCurve ().state.getProperty(
-                    tracktion_engine::IDs::height, (int) m_editViewState.m_trackHeightMinimized);
+                    tracktion_engine::IDs::height, (int) m_editViewState.m_trackDefaultHeight);
         al->setBounds(0, (int) nextLaneStart, getWidth(), height);
         nextLaneStart = nextLaneStart + al->getHeight();
     }

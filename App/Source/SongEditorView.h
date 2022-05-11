@@ -94,7 +94,7 @@ private:
 
     double m_cachedEditLength {0.0};
 
-    double getSnapedTime(double time);
+    double getSnapedTime(double time, bool downwards=false);
 
     void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
 

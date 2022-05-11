@@ -397,6 +397,16 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
                                 , copy);
     }
 }
+void EngineHelpers::moveAutomation(te::Track* src, te::Track* dst, te::EditTimeRange range, double insertTime, bool copy)
+{
+	te::TrackAutomationSection sections;
+	sections.src = src;
+	sections.dst = dst;
+	sections.position = range;
+	auto offset = insertTime - range.getStart();
+
+	te::moveAutomation(sections, offset, copy);
+}
 
 tracktion_engine::Project::Ptr EngineHelpers::createTempProject(
         tracktion_engine::Engine &engine)
@@ -512,18 +522,17 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
     if (audioFile.isValid())
     {
         if (auto track = addAudioTrack(false, trackColour, evs))
-        {
-            removeAllClips (*track);
-
-
-                if (auto newClip = track->insertWaveClip (
-                            file.getFileNameWithoutExtension(), file,
-                { { insertTime, insertTime + audioFile.getLength() }, 0.0 }, true))
-                {
-                    GUIHelpers::log("loading : " + file.getFullPathName ());
-					newClip->setAutoTempo(false);
-                    return newClip;
-                }
+        {            
+			removeAllClips (*track);
+            if (auto newClip = track->insertWaveClip (
+                     file.getFileNameWithoutExtension(), file,
+		              { { insertTime, insertTime + audioFile.getLength() }, 0.0 }, true))
+            {
+				GUIHelpers::log("loading : " + file.getFullPathName ());
+				newClip->setAutoTempo(false);
+				newClip->setAutoPitch(false);
+				return newClip;
+            }
         }
     }
     return {};
@@ -860,7 +869,7 @@ int GUIHelpers::getTrackHeight(
     tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
 {
     bool isMinimized = (bool) track->state.getProperty(IDs::isTrackMinimized);
-    auto trackHeight = isMinimized
+    auto trackHeight = isMinimized || track->isFolderTrack()
             ? evs.m_trackHeightMinimized
             : (int) track->state.getProperty(tracktion_engine::IDs::height, 50);
 
@@ -873,9 +882,6 @@ int GUIHelpers::getTrackHeight(
                         ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50);
                     trackHeight += automationHeight;
                 }
-
-    if (track->isFolderTrack())
-        trackHeight = evs.m_folderTrackHeight;
 
     return trackHeight;
 }
