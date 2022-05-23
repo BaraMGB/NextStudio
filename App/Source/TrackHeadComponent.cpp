@@ -1,7 +1,6 @@
 #include "TrackHeadComponent.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
-    :
-      m_automatableParameter(ap)
+	: m_automatableParameter(ap)
     , m_slider(ap)
 {
     addAndMakeVisible(m_parameterName);

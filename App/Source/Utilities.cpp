@@ -389,23 +389,25 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
         juce::Array<te::TrackAutomationSection> sections;
 
         for (auto& selectedClip : clipSelection)
-        {
             sections.add (te::TrackAutomationSection(*selectedClip));
-        }
-            te::moveAutomation (  sections
-                                , offset
-                                , copy);
+     
+		te::moveAutomation (sections, offset, copy);
     }
 }
-void EngineHelpers::moveAutomation(te::Track* src, te::Track* dst, te::EditTimeRange range, double insertTime, bool copy)
+void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, te::EditTimeRange range, double insertTime, bool copy)
 {
-	te::TrackAutomationSection sections;
-	sections.src = src;
-	sections.dst = dst;
-	sections.position = range;
+	GUIHelpers::log(range.start);
+	te::TrackAutomationSection section;
+	section.src = src;
+	section.dst = src;
+	section.position = range;
+	section.activeParameters.add(par);
+	
+	juce::Array<te::TrackAutomationSection> secs;
+	secs.add (section);
 	auto offset = insertTime - range.getStart();
 
-	te::moveAutomation(sections, offset, copy);
+	te::moveAutomation(secs, offset, copy);
 }
 
 tracktion_engine::Project::Ptr EngineHelpers::createTempProject(

@@ -337,6 +337,7 @@ void TrackComponent::buildAutomationLanes()
             {
                 m_automationLanes.add(new AutomationLaneComponent(ap->getCurve(), m_editViewState));
                 addAndMakeVisible(m_automationLanes.getLast());
+                m_automationLanes.getLast()->grabKeyboardFocus();
             }
 
         }

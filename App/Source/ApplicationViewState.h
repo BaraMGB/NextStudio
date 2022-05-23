@@ -29,6 +29,7 @@ namespace IDs
     DECLARE_ID (FolderTrackIndent)
     DECLARE_ID (ThemeState)
     DECLARE_ID (PrimeColour)
+    DECLARE_ID (BackgroundColour)
     #undef DECLARE_ID
 }
 
@@ -135,12 +136,17 @@ public:
 
 		
 		m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
+		m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff181818).toString());
     }
 
 	juce::Colour getPrimeColour()
 	{
 		return juce::Colour::fromString(juce::String(m_primeColour));
 	}
+	juce::Colour getBackgroundColour()
+	{
+		return juce::Colour::fromString(juce::String(m_backgroundColour));
+    }
     void addFavoriteType(const juce::Identifier& type)
     {
         auto favoriteTypes = m_applicationStateValueTree
@@ -256,6 +262,7 @@ public:
                                     m_clipsDir,
                                     m_samplesDir,
                                     m_projectsDir,
+                                    m_backgroundColour,
 									m_primeColour;
     juce::CachedValue<int>          m_windowXpos,
                                     m_windowYpos,

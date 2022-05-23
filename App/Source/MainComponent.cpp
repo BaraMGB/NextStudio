@@ -87,9 +87,9 @@ void MainComponent::resized()
 
 bool MainComponent::keyPressed(const juce::KeyPress &key)
 {
-    GUIHelpers::log("MainComponent: keypressed");
     auto scaleFactor = 0.2;
 
+    GUIHelpers::log (key.getTextDescription ());
     if (key == juce::KeyPress::numberPadAdd)
     {
         auto &x1 = m_editComponent->getEditViewState ().m_viewX1;
@@ -202,7 +202,6 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
         m_editComponent->getEditViewState ().m_edit.redo ();
         return true;
     }
-    GUIHelpers::log (key.getTextDescription ());
     return true;
 }
 

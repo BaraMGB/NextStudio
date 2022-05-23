@@ -188,7 +188,8 @@ namespace EngineHelpers
                                                      , te::SelectionManager& sm
                                                      , bool copy);
 
-	void moveAutomation(te::Track* src, te::Track* dst, te::EditTimeRange range, double insertTime, bool copy);
+	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, te::EditTimeRange range, double insertTime, bool copy);
+
 
     te::Project::Ptr createTempProject (te::Engine& engine);
 

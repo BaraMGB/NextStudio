@@ -73,6 +73,8 @@ namespace IDs
     DECLARE_ID (lastVelocity)
     DECLARE_ID (pianoRollKeyboardWidth)
     DECLARE_ID (selected)
+	DECLARE_ID (selectedRangeStart)
+	DECLARE_ID (selectedRangeEnd)
     #undef DECLARE_ID
 }
 

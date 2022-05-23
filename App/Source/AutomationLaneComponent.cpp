@@ -4,10 +4,11 @@
 
 #include "AutomationLaneComponent.h"
 
-AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCurve &curve, EditViewState &evs)
+AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCurve& curve, EditViewState &evs)
     : m_curve(curve)
     , m_editViewState(evs)
 {
+    setWantsKeyboardFocus(true);
 }
 
 void AutomationLaneComponent::paint(juce::Graphics &g)
@@ -17,6 +18,10 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
                                     , m_editViewState.beatToTime(m_editViewState.m_viewX2));
 
     float oldX = 0.f, oldY = (float) getYPos(m_curve.getValueAt(0.0));
+   auto selCol = m_editViewState.m_applicationState.getPrimeColour();
+    g.setColour(selCol.withAlpha(0.3f));
+    auto range = getSelectedRange();
+    g.fillRect(juce::Rectangle<int>{ getXPos(range.start), 0, getXPos(range.end) - getXPos(range.start), getHeight() });
 
     juce::Path curvePath;
     juce::Path hoveredCurve;
@@ -89,6 +94,28 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
     g.strokePath(dots, juce::PathStrokeType(2.0f));
     g.setColour(juce::Colours::white);
     g.strokePath(hoveredDot, juce::PathStrokeType(2.0f));
+    g.setColour(juce::Colour(0x66ffffff));
+    g.drawHorizontalLine(0,0,getWidth());
+    if (m_moveSelection && m_rangeAtMouseDown.getLength() > 0)
+    {
+        auto screenStart = m_editViewState.beatToTime(m_editViewState.m_viewX1);
+        auto newStart = m_rangeAtMouseDown.start + m_draggedTime - screenStart;
+        if (m_snap)
+            newStart = getSnapedTime(newStart);
+
+        auto mrange = m_rangeAtMouseDown.movedToStartAt(newStart);
+        auto x = getXPos(mrange.start);
+        auto w =  getXPos(mrange.end) - getXPos(mrange.start);
+
+        if (w > 0)
+        {
+            auto targetRect = juce::Rectangle<int>{x, 0, w, getHeight()};
+            g.setColour(m_editViewState.m_applicationState.getBackgroundColour());
+            g.fillRect(targetRect);
+            g.setColour(juce::Colours::white);
+            g.drawImage( m_rangeImage, targetRect.toFloat(),juce::RectanglePlacement::doNotResize, true);
+        }
+    }
 }
 
 void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
@@ -98,7 +125,8 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
 
 
     m_hoveredPoint = getIndexOfHoveredPoint (e);
-
+    m_selectingTime = false;
+    m_moveSelection = false;
     m_hoveredCurve = -1;
     if (m_hoveredPoint == -1)
     {
@@ -120,6 +148,13 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
         }
         else
         {
+            auto range = te::EditTimeRange((double) m_curve.state.getProperty(IDs::selectedRangeStart, 0),
+                                   (double)  m_curve.state.getProperty(IDs::selectedRangeEnd,0));
+
+            if (range.contains(getTime(e.x)))
+                m_moveSelection = true;
+            else
+                m_selectingTime = true;
             m_hoveredTime = 0;
             m_hoveredRect = {0,0,0,0};
         }
@@ -138,6 +173,7 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
 
 void AutomationLaneComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
+    m_moveSelection = false;
     m_hoveredPoint = -1;
     m_hoveredCurve = -1;
     repaint();
@@ -145,9 +181,20 @@ void AutomationLaneComponent::mouseExit(const juce::MouseEvent &/*e*/)
 
 void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
+    m_rangeAtMouseDown = getSelectedRange();
+    if (m_rangeAtMouseDown.getLength() > 0)
+    {
+        auto tmp = m_moveSelection;
+        m_moveSelection = false;
+        auto rs = getXPos(m_rangeAtMouseDown.start);
+        auto rw = getXPos(m_rangeAtMouseDown.getLength());
+        auto viewRect = juce::Rectangle<int> (rs, 0, rw, getHeight());
+        m_rangeImage = this->createComponentSnapshot(viewRect, true);
+        m_moveSelection = tmp;
+    }
     if (!e.mods.isCtrlDown())
         m_editViewState.m_selectionManager.selectOnly (m_curve.getOwnerParameter ()->getTrack ());
-    
+
     if (m_hoveredPoint == -1)
     {
         bool isTimePositive = m_hoveredTime > 0;
@@ -173,7 +220,7 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     }
     else
     {
-        if (e.mods.isRightButtonDown())
+        if (e.mods.isRightButtonDown() && !e.mods.isCtrlDown())
         {
             m_curve.removePoint(m_hoveredPoint);
             m_hoveredPoint = -1;
@@ -186,16 +233,20 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     }
     m_curveAtMousedown = m_curve.getPoint(m_hoveredCurve - 1).curve;
 }
+double AutomationLaneComponent::getSnapedTime(double time)
+{
+    auto snapType = m_editViewState.getBestSnapType (
+                       m_editViewState.m_viewX1
+                     , m_editViewState.m_viewX2
+                     , getWidth());
+    auto snapedTime = m_editViewState.getSnapedTime(time, snapType, false);
+
+    return snapedTime;
+}
 
 double AutomationLaneComponent::getNewTime(const juce::MouseEvent &e)
 {
-    auto snapType = m_editViewState.getBestSnapType (
-        m_editViewState.m_viewX1
-        , m_editViewState.m_viewX2
-        , getWidth());
-    auto snapedTime = m_editViewState.getSnapedTime(
-        getTime(e.x)
-            , snapType);
+    auto snapedTime = getSnapedTime(getTime(e.x));
     auto newTime = e.mods.isCtrlDown ()
                        ? m_timeAtMousedown
                        : e.mods.isShiftDown()
@@ -213,12 +264,9 @@ int AutomationLaneComponent::getIndexOfHoveredPoint(const juce::MouseEvent &e)
                                         , getPointWidth ()
                                             , getPointWidth () };
     for (auto i = 0; i < m_curve.getNumPoints(); i++)
-    {
         if (hoveredRect.contains (getPoint (m_curve.getPoint (i))))
-        {
             p = i;
-        }
-    }
+        
     return p;
 }
 
@@ -226,6 +274,7 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
     //change curve
     bool setCurveSteep = e.mods.isCtrlDown ();
+    m_snap = !e.mods.isShiftDown();
     if (m_hoveredCurve != -1 && setCurveSteep)
     {
         m_hoveredRect = {0,0,0,0};
@@ -248,9 +297,89 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
         m_curve.movePoint(m_hoveredPoint
                           , newTime
                           , (float) getValue(e.y)
-                              , false);
+                            , false);
         repaint();
     }
+
+    if (m_selectingTime)
+    {
+        auto screenStart = m_editViewState.beatToTime(m_editViewState.m_viewX1);
+
+        auto clickTime = getTime(e.getMouseDownX());
+        auto dragedTime = getTime(e.getDistanceFromDragStartX());
+
+        auto s = juce::jmin(clickTime, clickTime + dragedTime);
+        auto end = s + std::abs(dragedTime) - screenStart;
+
+        s = juce::jmax(0.0, s);
+        end = juce::jmax(0.0, end);
+
+        if (!e.mods.isShiftDown())
+        {
+            s = getSnapedTime(s);
+            end = getSnapedTime(end);
+        }
+
+        m_curve.state.setProperty(IDs::selectedRangeStart , s, nullptr);
+        m_curve.state.setProperty(IDs::selectedRangeEnd , end, nullptr);
+        repaint();
+    }
+    else if (m_moveSelection)
+    {
+         m_draggedTime = getTime(e.getDistanceFromDragStartX());
+         repaint();
+    }
+
+}
+void AutomationLaneComponent::mouseUp(const juce::MouseEvent& e)
+{
+    if (m_moveSelection)
+    {
+        te::TrackAutomationSection::ActiveParameters par;
+        par.param = m_curve.getOwnerParameter();
+        par.curve = m_curve;
+        auto screenStart = m_editViewState.beatToTime(m_editViewState.m_viewX1);
+        auto newStart = m_snap ? getSnapedTime(m_rangeAtMouseDown.start + m_draggedTime - screenStart)
+                               : m_rangeAtMouseDown.start + m_draggedTime - screenStart;
+        newStart = juce::jmax(0.0, newStart);
+        auto range = m_rangeAtMouseDown.movedToStartAt(newStart);
+
+        m_curve.state.setProperty(IDs::selectedRangeStart, range.start, nullptr);
+        m_curve.state.setProperty(IDs::selectedRangeEnd, range.end, nullptr);
+
+        EngineHelpers::moveAutomation( getTrack(), par, m_rangeAtMouseDown, range.start, e.mods.isCtrlDown());
+    }
+    m_draggedTime = 0.0;
+    m_snap = false;
+    m_moveSelection = false;
+    m_selectingTime = false;
+}
+
+bool AutomationLaneComponent::keyPressed(const juce::KeyPress &e)
+{
+   if (e == juce::KeyPress::createFromDescription("CTRL + D"))
+   {
+        te::TrackAutomationSection::ActiveParameters par;
+        par.param = m_curve.getOwnerParameter();
+        par.curve = m_curve;
+        auto range = getSelectedRange();
+        m_curve.state.setProperty(IDs::selectedRangeStart, range.end, nullptr);
+        m_curve.state.setProperty(IDs::selectedRangeEnd, range.end + range.getLength(), nullptr);
+        EngineHelpers::moveAutomation( getTrack(), par, range,range.end, true);
+       GUIHelpers::log("CTRL + D in AutomationLane");
+      repaint();
+      return true;
+   }
+    return false;
+}
+
+te::EditTimeRange 
+ AutomationLaneComponent::getSelectedRange()
+{ 
+    auto start = juce::jmax (0.0, (double) m_curve.state.getProperty(IDs::selectedRangeStart, 0));
+    auto end = juce::jmax (start, (double) m_curve.state.getProperty(IDs::selectedRangeEnd, 0));
+ 
+    return {start, end};
 }
 
 te::AutomationCurve &AutomationLaneComponent::getCurve() const
@@ -265,6 +394,8 @@ double AutomationLaneComponent::getTime(int x)
 
 int AutomationLaneComponent::getXPos(double time)
 {
+    if (getWidth() == 0)
+        return 0;
     return m_editViewState.timeToX(time, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 }
 
@@ -319,4 +450,4 @@ int AutomationLaneComponent::getPointWidth()
     return 8;
 }
 
-//==============================================================================
+//======

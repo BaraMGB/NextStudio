@@ -20,10 +20,15 @@ public:
     void mouseExit(const juce::MouseEvent &e) override;
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent& e) override;
+    void mouseUp(const juce::MouseEvent& e) override;
 
+
+	bool keyPressed(const juce::KeyPress &e) override;
     [[nodiscard]] te::AutomationCurve &getCurve() const;
 private:
+    te::EditTimeRange getSelectedRange();
 
+    double getSnapedTime(double time);
     double getTime (int x);
     int getXPos (double time);
     double getValue(int y);
@@ -38,6 +43,11 @@ private:
     double getNewTime(const juce::MouseEvent &e);
     int getIndexOfHoveredPoint(const juce::MouseEvent &e);
 
+	te::Track* getTrack()
+	{
+		return m_curve.getOwnerParameter()->getTrack();
+	}
+
     te::AutomationCurve&        m_curve;
     int                         m_hoveredPoint{};
     int                         m_hoveredCurve = -1;
@@ -47,6 +57,10 @@ private:
     double                      m_timeAtMousedown{};
     EditViewState&              m_editViewState;
     bool                        m_isVertical {false};
+	bool						m_selectingTime {false};
+    bool                        m_moveSelection {false};
+    bool                        m_snap{false};
+    te::EditTimeRange           m_rangeAtMouseDown;
+    double                      m_draggedTime;
+    juce::Image                 m_rangeImage;
 };
-
-
