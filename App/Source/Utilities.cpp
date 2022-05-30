@@ -396,7 +396,6 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
 }
 void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, te::EditTimeRange range, double insertTime, bool copy)
 {
-	GUIHelpers::log(range.start);
 	te::TrackAutomationSection section;
 	section.src = src;
 	section.dst = src;

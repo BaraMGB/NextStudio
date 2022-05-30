@@ -15,7 +15,8 @@ class AutomationLaneComponent : public juce::Component
 public:
     AutomationLaneComponent(te::AutomationCurve& curve, EditViewState& evs);
     void paint (juce::Graphics& g) override;
-
+    void paintCurves(juce::Graphics &g, double start, double end);
+    void paintOverChildren(juce::Graphics &g) override;
     void mouseMove (const juce::MouseEvent& e) override;
     void mouseExit(const juce::MouseEvent &e) override;
     void mouseDown (const juce::MouseEvent& e) override;
@@ -28,6 +29,7 @@ public:
 private:
     te::EditTimeRange getSelectedRange();
 
+    void updateDragImage();
     double getSnapedTime(double time);
     double getTime (int x);
     int getXPos (double time);
@@ -39,6 +41,7 @@ private:
     int getLaneHeight();
     bool isBeyondLastPoint(double time, float value);
     int getPointWidth();
+    void deleteSelected();
 
     double getNewTime(const juce::MouseEvent &e);
     int getIndexOfHoveredPoint(const juce::MouseEvent &e);

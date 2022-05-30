@@ -153,7 +153,6 @@ public:
                 .getOrCreateChildWithName (IDs::FavoriteTypes, nullptr);
         favoriteTypes.getOrCreateChildWithName (type, nullptr);
     }
-
     [[nodiscard]] juce::Array<juce::Identifier> getFavoriteTypeList() const
     {
         juce::Array<juce::Identifier> result;
