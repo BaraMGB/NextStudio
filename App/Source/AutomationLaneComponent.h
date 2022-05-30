@@ -43,7 +43,6 @@ private:
     int getPointWidth();
     void deleteSelected();
 
-    double getNewTime(const juce::MouseEvent &e);
     int getIndexOfHoveredPoint(const juce::MouseEvent &e);
 
 	te::Track* getTrack()
@@ -58,6 +57,7 @@ private:
     juce::Rectangle<int>        m_hoveredRect;
     double                      m_curveAtMousedown{};
     double                      m_timeAtMousedown{};
+    juce::Point<int>            m_hovedPointXY;
     EditViewState&              m_editViewState;
     bool                        m_isVertical {false};
 	bool						m_selectingTime {false};

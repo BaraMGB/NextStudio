@@ -54,13 +54,13 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, double start, doubl
     float oldX = getXPos(start);
     float oldY = (float) getYPos(m_curve.getValueAt(getTime(oldX)));
     float length = getXPos(end) - oldX;
-
+    float lineThickness = 2.0;
     juce::Path curvePath;
     juce::Path hoveredCurve;
     juce::Path dots;
     juce::Path hoveredDot;
     juce::Path hoveredDotOnCurve;
-
+    auto hoveredRect = m_hoveredRect.reduced(lineThickness, lineThickness).toFloat ();
     curvePath.startNewSubPath(oldX, oldY);
     for (auto i = 0; i < m_curve.getNumPoints(); i++)
     {
@@ -81,27 +81,26 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, double start, doubl
                 hoveredCurve.startNewSubPath (oldX, oldY);
                 hoveredCurve.quadraticTo (curveControlPoint, {x,y});
     
-                hoveredDotOnCurve.addEllipse (m_hoveredRect.toFloat ());
+                hoveredDotOnCurve.addEllipse (hoveredRect);
             }
             oldX = x; oldY = y;
     
+            float w = getPointWidth() - (lineThickness * 2);
+            juce::Rectangle<float> ellipse = {x - w/2
+                                      , y - w/2 
+                                      , w 
+                                      , w};
             if (m_hoveredPoint == i)
             {
-                hoveredDot.addEllipse(x - (float) getPointWidth ()/2
-                                      , y - (float) getPointWidth ()/2
-                                      , (float) getPointWidth ()
-                                          , (float) getPointWidth ());
+                hoveredDot.addEllipse(ellipse);
             }
-            dots.addEllipse(x - (float) getPointWidth ()/2
-                            , y - (float) getPointWidth ()/2
-                            , (float) getPointWidth ()
-                                , (float) getPointWidth ());
+            dots.addEllipse(ellipse);
         }
     }
 
     if (m_hoveredCurve > m_curve.getNumPoints () - 1)
     {
-        hoveredDotOnCurve.addEllipse (m_hoveredRect.toFloat ());
+        hoveredDotOnCurve.addEllipse (hoveredRect);
     }
 
     //close the path
@@ -124,9 +123,9 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, double start, doubl
     g.setColour(juce::Colour(0xff2b2b2b));
     g.fillPath(dots);
     g.setColour(juce::Colour(0xff888888));
-    g.strokePath(dots, juce::PathStrokeType(2.0f));
+    g.strokePath(dots, juce::PathStrokeType(lineThickness));
     g.setColour(juce::Colours::white);
-    g.strokePath(hoveredDot, juce::PathStrokeType(2.0f));
+    g.strokePath(hoveredDot, juce::PathStrokeType(lineThickness));
 }
 void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
 {
@@ -230,6 +229,11 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         }
     }
     m_curveAtMousedown = m_curve.getPoint(m_hoveredCurve - 1).curve;
+    auto x = getXPos(m_curve.getPoint(m_hoveredPoint).time);
+    auto y = getYPos(m_curve.getPoint(m_hoveredPoint).value);
+
+    m_hovedPointXY = {x, y};
+
 }
 void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
@@ -253,12 +257,22 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
     }
     //move Point
     if (m_hoveredPoint != -1 && e.mouseWasDraggedSinceMouseDown ())
-    {
-        auto newTime = getNewTime(e);
-        m_curve.movePoint(m_hoveredPoint
-                          , newTime
-                          , (float) getValue(e.y)
-                            , false);
+    { 
+        auto snapedTime = getSnapedTime(getTime(e.x));
+        bool forceValue = e.mods.isCtrlDown();
+        bool snap = !e.mods.isShiftDown();
+        auto draggedTime = getTime(m_hovedPointXY.getX() + e.getDistanceFromDragStartX());
+
+        auto newTime =  forceValue
+                       ? m_timeAtMousedown
+                       : snap
+                             ? snapedTime
+                             : draggedTime;
+
+        auto newValue = (float) getValue(m_hovedPointXY.getY()+ e.getDistanceFromDragStartY());
+
+        m_curve.movePoint(m_hoveredPoint, newTime, newValue, false);
+
         repaint();
     }
 
@@ -381,17 +395,6 @@ double AutomationLaneComponent::getSnapedTime(double time)
     return snapedTime;
 }
 
-double AutomationLaneComponent::getNewTime(const juce::MouseEvent &e)
-{
-    auto snapedTime = getSnapedTime(getTime(e.x));
-    auto newTime = e.mods.isCtrlDown ()
-                       ? m_timeAtMousedown
-                       : e.mods.isShiftDown()
-                             ? getTime(e.x)
-                             : snapedTime;
-
-    return newTime;
-}
 
 int AutomationLaneComponent::getIndexOfHoveredPoint(const juce::MouseEvent &e)
 {
@@ -436,15 +439,17 @@ int AutomationLaneComponent::getXPos(double time)
 
 double AutomationLaneComponent::getValue(int y)
 {
-    return 1.0 - (double)(y + (getPointWidth ()/2.0+1) +1)
-                     / (double) (getLaneHeight());
+    double pwh = getPointWidth() / 2;
+    double lh = getLaneHeight();
+    return 1.0 - juce::jmap((double)y, pwh, lh - pwh, 0.0, 1.0);
 }
 
 int AutomationLaneComponent::getYPos(double value)
 {
     double lh = getLaneHeight();
-    double pw = getPointWidth();
-    return juce::roundToInt((lh - value * lh) + (pw/2.0) + 1.0);
+    double pwh = getPointWidth()/2;
+
+    return getHeight() - juce::jmap(value, 0.0, 1.0, pwh, lh - pwh);
 }
 
 juce::Point<int> AutomationLaneComponent::getPoint(const tracktion_engine::AutomationCurve::AutomationPoint &ap)
@@ -455,7 +460,7 @@ juce::Point<int> AutomationLaneComponent::getPoint(const tracktion_engine::Autom
 double AutomationLaneComponent::xToYRatio()
 {
     //1 screen unit in value / 1 screen unit in time
-    double screenUnitInValue = 1.0/getLaneHeight();
+    double screenUnitInValue = 1.0/(getLaneHeight() - getPointWidth());
     double screenUnitInTime =
         (m_editViewState.beatToTime(m_editViewState.m_viewX2)
          - m_editViewState.beatToTime(m_editViewState.m_viewX1))
@@ -465,7 +470,7 @@ double AutomationLaneComponent::xToYRatio()
 
 int AutomationLaneComponent::getLaneHeight()
 {
-    return getHeight() - getPointWidth () - 3;
+    return getHeight() ;
 }
 
 bool AutomationLaneComponent::isBeyondLastPoint(double time, float value)
@@ -481,8 +486,8 @@ bool AutomationLaneComponent::isBeyondLastPoint(double time, float value)
 int AutomationLaneComponent::getPointWidth()
 {
     if (getHeight () <= 50)
-        return 4;
-    return 8;
+        return 8;
+    return 12;
 }
 
 //======
