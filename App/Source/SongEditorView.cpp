@@ -287,6 +287,7 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
                 draggedClip->isCtrlDown ());
 
     juce::Array<te::Clip*> copyOfSelectedClips;
+
     for (auto sc : selectedClips)
     {
         auto sourceTrack = sc->getTrack();
@@ -307,19 +308,21 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
         }
     }
 
+    auto sourceTime = draggedClip->getClip()->getPosition().getStart();
+    auto targetTime = draggedClip->getClip()->getPosition().getStart()  + m_draggedTimeDelta;
+    if (!draggedClip->isShiftDown())
+        targetTime = getSnapedTime(targetTime);
+    
+    auto delta = targetTime - sourceTime - m_cachedEditLength;
+
     for (auto newClip: copyOfSelectedClips)
     {
         auto sourceTrack = newClip->getTrack();
         auto idxSourceTrack = m_trackViews.indexOf(&getTrackView(sourceTrack));
         if (auto targetTrack = m_trackViews[idxSourceTrack + verticalOffset])
         {
-            auto pasteTime = newClip->getPosition().getStart()
-                             - m_cachedEditLength
-                             + m_draggedTimeDelta;
-
-            if (!draggedClip->isShiftDown())
-                pasteTime = getSnapedTime(pasteTime);
-
+            auto pasteTime = newClip->getPosition().getStart() + delta;
+                            
             if (trackWantsClip(newClip, targetTrack))
             {
                 auto ct = newClip->getClipTrack();
