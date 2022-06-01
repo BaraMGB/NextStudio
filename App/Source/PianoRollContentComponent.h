@@ -22,7 +22,7 @@ public:
     void mouseUp (const juce::MouseEvent &) override;
     void mouseWheelMove (const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
-    bool keyPressed(const juce::KeyPress &key);
+    bool keyPressed(const juce::KeyPress &key) override;
 
 
     void timerCallback() override;
