@@ -71,6 +71,7 @@ private:
     void                   playGuideNote(const te::MidiClip* clip,const int noteNumb, int vel= 100);
 
     void                   moveSelectedNotesToMousePos(const juce::MouseEvent& e);
+    double                 getDraggedTimeDelta(const juce::MouseEvent& e, double oldTime);
 
     [[nodiscard]] double   beatsToTime(double beats);
     [[nodiscard]] int      beatsToX(double beats);
@@ -83,7 +84,7 @@ private:
     [[nodiscard]] double   getQuantisedBeat(double beat, bool down=true) const;
     [[nodiscard]] double   getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down=true) const;
     void                   snapToGrid(te::MidiNote* note, const te::MidiClip* clip) const;
-
+    double                 getSnapedTime(double time);
     void                   scrollPianoRoll(float delta);
 
     void                   startLasso(const juce::MouseEvent &e);
