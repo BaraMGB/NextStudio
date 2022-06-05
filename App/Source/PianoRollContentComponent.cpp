@@ -345,9 +345,8 @@ void PianoRollContentComponent::mouseUp(const juce::MouseEvent& e)
             for (auto p : temp)
             {
                 auto clipDelta = targetClip->getStartBeat() - p.second->getStartBeat();
-                p.first->setStartAndLength(p.first->getStartBeat() - clipDelta,
-                                           p.first->getLengthBeats(),
-                                           &um);
+                p.first->state.setProperty(te::IDs::b, p.first->getStartBeat() - clipDelta,&um); 
+
                 insertNote(p.first, targetClip);
             }
         }
@@ -526,18 +525,15 @@ void PianoRollContentComponent::duplicateSelectedNotes()
 }
 void PianoRollContentComponent::insertNote(te::MidiNote* note, te::MidiClip* clip)
 {
-    //if (m_snap)
-    //    snapToGrid(note, clip);
-
     auto& um = m_editViewState.m_edit.getUndoManager();
 
     cleanUnderNote(note->getNoteNumber(), note->getRangeBeats(), clip);
 
-    auto mn = clip->getSequence().addNote(note->getNoteNumber(),
-                                          note->getStartBeat(),
-                                          note->getLengthBeats(),
-                                          note->getVelocity(),
-                                          note->getColour(),
+    auto mn = clip->getSequence().addNote(note->state.getProperty(te::IDs::p),
+                                          note->state.getProperty(te::IDs::b),
+                                          note->state.getProperty(te::IDs::l),
+                                          note->state.getProperty(te::IDs::v),
+                                          note->state.getProperty(te::IDs::c),
                                           &um);
 
     m_selectedEvents->addSelectedEvent(mn, true);
