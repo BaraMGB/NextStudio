@@ -7,13 +7,11 @@ AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::A
     : m_automatableParameter(ap)
     , m_trackColour(ap->getTrack()->getColour())
 {
-    m_automatableParameter->addListener(this);
-    setValue(m_automatableParameter->getCurrentValue());
+    bindSliderToParameter();
 }
 
 AutomatableSliderComponent::~AutomatableSliderComponent()
 {
-    m_automatableParameter->removeListener(this);
 }
 
 void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
@@ -40,47 +38,26 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
         juce::Slider::mouseDown(e);
 }
 
-void AutomatableSliderComponent::valueChanged()
-{
-    m_automatableParameter->setParameter((float)getValue()
-                                             , juce::dontSendNotification);
-}
-
 juce::Colour AutomatableSliderComponent::getTrackColour() const
 {
     return m_trackColour;
-}
-
-void AutomatableSliderComponent::curveHasChanged(tracktion_engine::AutomatableParameter &)
-{
-}
-
-void AutomatableSliderComponent::currentValueChanged(tracktion_engine::AutomatableParameter &, float v)
-{
-    m_cachedValue = v;
-    markAndUpdate(m_updateSlider);
-}
-
-void AutomatableSliderComponent::parameterChanged(tracktion_engine::AutomatableParameter &, float)
-{
-}
-
-void AutomatableSliderComponent::handleAsyncUpdate()
-{
-    if (compareAndReset(m_updateSlider))
-    {
-        if (m_automatableParameter->isAutomationActive())
-        {
-            setValue(m_cachedValue, juce::dontSendNotification);
-        }
-        else
-        {
-            setValue(m_cachedValue);
-        }
-    }
 }
 
 te::AutomatableParameter::Ptr AutomatableSliderComponent::getAutomatableParameter()
 {
     return m_automatableParameter;
 }
+
+void AutomatableSliderComponent::bindSliderToParameter ()
+{
+    const auto v = m_automatableParameter->valueRange;
+    const auto range = juce::NormalisableRange<double> (static_cast<double> (v.start),
+                                                  static_cast<double> (v.end),
+                                                  static_cast<double> (v.interval),
+                                                  static_cast<double> (v.skew),
+                                                  v.symmetricSkew);
+ 
+    setNormalisableRange (range);
+    getValueObject().referTo (juce::Value (new ParameterValueSource (m_automatableParameter)));
+}
+

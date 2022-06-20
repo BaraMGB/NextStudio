@@ -7,6 +7,30 @@
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
+class ParameterComponent : public juce::Component
+                         , public juce::ChangeBroadcaster
+{
+public:
+    explicit ParameterComponent(te::AutomatableParameter& ap);
+    ~ParameterComponent() override= default;
+
+    void resized() override;
+    void mouseDown(const juce::MouseEvent& e) override;
+
+    te::AutomatableParameter& getParameter(){return m_parameter;}
+
+private:
+
+    te::AutomatableParameter& m_parameter;
+    juce::Label m_parameterName;
+    AutomatableSliderComponent m_parameterSlider;
+    [[maybe_unused]] bool m_updateKnob {false};
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
+
+
+};
+
 
 class PluginViewComponent : public juce::Component
 {
@@ -40,34 +64,12 @@ public:
     void resized() override;
 
 private:
-    juce::Slider       m_volumeKnob;
+    std::unique_ptr<AutomatableSliderComponent>       m_volumeKnob;
+    std::unique_ptr<AutomatableSliderComponent>       m_panKnob;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumePluginComponent)
 };
 
 //------------------------------------------------------------------------------
-
-class ParameterComponent : public juce::Component
-                         , public juce::ChangeBroadcaster
-{
-public:
-    explicit ParameterComponent(te::AutomatableParameter& ap);
-    ~ParameterComponent() override= default;
-
-    void resized() override;
-    void mouseDown(const juce::MouseEvent& e) override;
-
-    te::AutomatableParameter& getParameter(){return m_parameter;}
-
-private:
-
-    te::AutomatableParameter& m_parameter;
-    juce::Label m_parameterName;
-    AutomatableSliderComponent m_parameterSlider;
-    [[maybe_unused]] bool m_updateKnob {false};
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
-
-
-};
 
 class VstPluginComponent : public PluginViewComponent
                          , public juce::ChangeListener

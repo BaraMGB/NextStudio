@@ -14,13 +14,9 @@ PluginWindowComponent::PluginWindowComponent
     {
         m_pluginComponent = std::make_unique<VolumePluginComponent>(evs, p);
     }
-    else if (plugin->getPluginType() == "vst")
-    {
-        m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p);
-    }
     else
     {
-        m_pluginComponent = std::make_unique<PluginViewComponent>(evs, p);
+        m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p);
     }
     addAndMakeVisible(*m_pluginComponent);
 }
@@ -150,29 +146,32 @@ VolumePluginComponent::VolumePluginComponent
     (EditViewState& evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
 {
-    addAndMakeVisible(m_volumeKnob);
-    m_volumeKnob.setRange(0.0f, 3.0f, 0.01f);
-    m_volumeKnob.setSkewFactorFromMidPoint(1.0f);
-    if (auto volumePlugin
+   if (auto volumePlugin
             = dynamic_cast<te::VolumeAndPanPlugin*> (getPlugin().get()))
     {
-        m_volumeKnob.getValueObject().referTo(
-                    volumePlugin->volume.getPropertyAsValue());
-        m_volumeKnob.setValue(volumePlugin->volume);
+        m_volumeKnob = std::make_unique<AutomatableSliderComponent>(volumePlugin->volParam);
+        m_panKnob = std::make_unique<AutomatableSliderComponent>(volumePlugin->panParam);
+
+        addAndMakeVisible(*m_volumeKnob);
+        addAndMakeVisible(*m_panKnob);
+        m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+        m_panKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+        m_panKnob->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+        m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
+
     }
-    m_volumeKnob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    m_volumeKnob.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
 }
 
 void VolumePluginComponent::resized()
 {
-    m_volumeKnob.setBounds(getLocalBounds());
+    auto bounds = getLocalBounds();
+    m_panKnob->setBounds(bounds.removeFromTop(bounds.getHeight()/2));
+    m_volumeKnob->setBounds(bounds);
 }
+
 
 void VolumePluginComponent::paint(juce::Graphics &g)
 {
-    g.setColour(juce::Colour(0xff00ff00));
-    g.fillAll();
 }
 
 // -----------------------------------------------------------------------------
@@ -184,6 +183,7 @@ VstPluginComponent::VstPluginComponent
 {
     if (p)
     {
+        std::cout << "num: " << p->getNumAutomatableParameters() << std::endl;
         for (auto & param : p->getAutomatableParameters())
         {
             if (param)
@@ -236,7 +236,10 @@ void VstPluginComponent::resized()
     int scrollPos = m_viewPort.getVerticalScrollBar().getCurrentRangeStart();
     auto area = getLocalBounds();
     const auto widgetHeight = 30;
-    m_lastChangedParameterComponent->setBounds(area.removeFromTop(widgetHeight));
+    if (m_lastChangedParameterComponent)
+    {
+         m_lastChangedParameterComponent->setBounds(area.removeFromTop(widgetHeight));
+    }
     m_viewPort.setBounds(area);
     m_pluginListComponent.setBounds(area.getX()
                                     , area.getY()
@@ -264,12 +267,8 @@ ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &a
     m_parameterSlider.setOpaque(false);
     addAndMakeVisible(m_parameterName);
     addAndMakeVisible(m_parameterSlider);
-    m_parameterSlider.setRange(0.0f, 3.0f, 0.01f);
-    m_parameterSlider.setSkewFactorFromMidPoint(1.0f);
-    //m_parameterSlider.setValue(ap.getCurrentValue());
     m_parameterSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     m_parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
-    m_parameterSlider.onValueChange = [this] { sendChangeMessage(); };
 }
 
 void ParameterComponent::resized()
@@ -285,3 +284,5 @@ void ParameterComponent::mouseDown(const juce::MouseEvent &e)
     if (e.mods.isLeftButtonDown())
         sendChangeMessage();
 }
+
+

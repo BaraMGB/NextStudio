@@ -16,9 +16,9 @@ namespace te = tracktion_engine;
 class AddButton;
 
 class PluginRackComponent : public juce::Component,
-                             private FlaggedAsyncUpdater,
-                             private te::ValueTreeAllEventListener,
-                             public juce::Button::Listener,
+                            private FlaggedAsyncUpdater,
+                            private te::ValueTreeAllEventListener,
+                            public juce::Button::Listener,
                             public juce::DragAndDropTarget
 {
 public:

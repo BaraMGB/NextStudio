@@ -29,8 +29,6 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
     m_parameterName.setColour (juce::Label::backgroundColourId, juce::Colour(0xff333333));
     m_parameterName.setInterceptsMouseClicks(false, false);
     m_parameterName.setEditable (false, false, true);
-    m_slider.setRange (0.0f, 3.0f, 0.01f);
-    m_slider.setSkewFactorFromMidPoint (1.0f);
     m_slider.setSliderStyle (juce::Slider::RotaryVerticalDrag);
     m_slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, false);
 
@@ -206,8 +204,6 @@ TrackHeaderComponent::TrackHeaderComponent (
                     ->getAutomatableParameterByID("volume"));
             m_volumeKnob->setOpaque(false);
             addAndMakeVisible(m_volumeKnob.get());
-            m_volumeKnob->setRange(0.0f, 3.0f, 0.01f);
-            m_volumeKnob->setSkewFactorFromMidPoint(1.0f);
             m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
             m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
         }

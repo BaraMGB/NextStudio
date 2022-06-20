@@ -271,7 +271,8 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 
         auto newValue = (float) getValue(m_hovedPointXY.getY()+ e.getDistanceFromDragStartY());
 
-        m_curve.movePoint(m_hoveredPoint, newTime, newValue, false);
+        double v = m_curve.getOwnerParameter()->valueRange.convertFrom0to1(newValue);
+        m_curve.movePoint(m_hoveredPoint, newTime, v, false);
 
         repaint();
     }
@@ -449,7 +450,8 @@ int AutomationLaneComponent::getYPos(double value)
     double lh = getLaneHeight();
     double pwh = getPointWidth()/2;
 
-    return getHeight() - juce::jmap(value, 0.0, 1.0, pwh, lh - pwh);
+    double v = m_curve.getOwnerParameter()->valueRange.convertTo0to1(value);
+    return getHeight() - juce::jmap(v, 0.0, 1.0, pwh, lh - pwh);
 }
 
 juce::Point<int> AutomationLaneComponent::getPoint(const tracktion_engine::AutomationCurve::AutomationPoint &ap)
