@@ -41,7 +41,7 @@ PluginTreeGroup::PluginTreeGroup (te::Edit& edit, juce::KnownPluginList::PluginT
     }
 
     {
-        auto racksFolder = new PluginTreeGroup (TRANS("Plugin Racks"));
+/*        auto racksFolder = new PluginTreeGroup (TRANS("Plugin Racks"));
         addSubItem (racksFolder);
 
         racksFolder->addSubItem (new PluginTreeItem (juce::String (te::RackType::getRackPresetPrefix()) + "-1",
@@ -52,6 +52,7 @@ PluginTreeGroup::PluginTreeGroup (te::Edit& edit, juce::KnownPluginList::PluginT
         for (auto rf : edit.getRackList().getTypes())
             racksFolder->addSubItem (new PluginTreeItem ("RACK__" + juce::String (i++), rf->rackName,
                                                          te::RackInstance::xmlTypeName, false, false));
+*/
     }
 
     populateFrom (tree);
@@ -82,7 +83,7 @@ void PluginTreeGroup::populateFrom (juce::KnownPluginList::PluginTree& tree)
 void PluginTreeGroup::createBuiltInItems (int& num, te::Plugin::Type types)
 {
     addInternalPlugin<te::VolumeAndPanPlugin> (*this, num);
-    addInternalPlugin<te::LevelMeterPlugin> (*this, num);
+//    addInternalPlugin<te::LevelMeterPlugin> (*this, num);
     addInternalPlugin<te::EqualiserPlugin> (*this, num);
     addInternalPlugin<te::ReverbPlugin> (*this, num);
     addInternalPlugin<te::DelayPlugin> (*this, num);
@@ -91,13 +92,13 @@ void PluginTreeGroup::createBuiltInItems (int& num, te::Plugin::Type types)
     addInternalPlugin<te::CompressorPlugin> (*this, num);
     addInternalPlugin<te::PitchShiftPlugin> (*this, num);
     addInternalPlugin<te::LowPassPlugin> (*this, num);
-    addInternalPlugin<te::MidiModifierPlugin> (*this, num);
-    addInternalPlugin<te::MidiPatchBayPlugin> (*this, num);
-    addInternalPlugin<te::PatchBayPlugin> (*this, num);
-    addInternalPlugin<te::AuxSendPlugin> (*this, num);
-    addInternalPlugin<te::AuxReturnPlugin> (*this, num);
-    addInternalPlugin<te::TextPlugin> (*this, num);
-    addInternalPlugin<te::FreezePointPlugin> (*this, num);
+//    addInternalPlugin<te::MidiModifierPlugin> (*this, num);
+//    addInternalPlugin<te::MidiPatchBayPlugin> (*this, num);
+//    addInternalPlugin<te::PatchBayPlugin> (*this, num);
+//    addInternalPlugin<te::AuxSendPlugin> (*this, num);
+//    addInternalPlugin<te::AuxReturnPlugin> (*this, num);
+//    addInternalPlugin<te::TextPlugin> (*this, num);
+//    addInternalPlugin<te::FreezePointPlugin> (*this, num);
 
    #if TRACKTION_ENABLE_REWIRE
     addInternalPlugin<te::ReWirePlugin> (*this, num, true);
@@ -109,7 +110,7 @@ void PluginTreeGroup::createBuiltInItems (int& num, te::Plugin::Type types)
         addInternalPlugin<te::FourOscPlugin> (*this, num, true);
     }
 
-    addInternalPlugin<te::InsertPlugin> (*this, num);
+//    addInternalPlugin<te::InsertPlugin> (*this, num);
 
    #if ENABLE_INTERNAL_PLUGINS
     for (auto& d : PluginTypeBase::getAllPluginDescriptions())
