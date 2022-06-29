@@ -3,11 +3,12 @@
 
 
 
-AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::AutomatableParameter::Ptr& ap)
+AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::AutomatableParameter::Ptr ap)
     : m_automatableParameter(ap)
-    , m_trackColour(ap->getTrack()->getColour())
 {
     bindSliderToParameter();
+    if (auto t = m_automatableParameter->getTrack())
+        m_trackColour = t->getColour();
 }
 
 AutomatableSliderComponent::~AutomatableSliderComponent()

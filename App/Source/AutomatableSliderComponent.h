@@ -47,12 +47,11 @@ namespace te = tracktion_engine;
      }
  };
 
-
 class AutomatableSliderComponent : public juce::Slider
 {
 public:
 
-    explicit AutomatableSliderComponent(const te::AutomatableParameter::Ptr& ap);
+    explicit AutomatableSliderComponent(const te::AutomatableParameter::Ptr ap);
     ~AutomatableSliderComponent() override;
     void mouseDown (const juce::MouseEvent& e) override;
 
@@ -68,6 +67,113 @@ private:
 
     te::AutomatableParameter::Ptr m_automatableParameter;
     juce::Colour m_trackColour;
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableSliderComponent)
 };
+
+class AutomatableParameterComponent : public juce::Component
+{
+public:
+    AutomatableParameterComponent(const te::AutomatableParameter::Ptr ap, juce::String name)
+        : m_automatableParameter (ap)
+    {
+        m_knob = std::make_unique<AutomatableSliderComponent>(ap);
+        m_knob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        m_knob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+        m_knob->setDoubleClickReturnValue(true, ap->getCurrentValue());
+
+        addAndMakeVisible(*m_knob);
+
+        m_valueLabel.setJustificationType(juce::Justification::centredTop);
+        m_valueLabel.setFont(juce::Font(11.0f, juce::Font::plain));
+        updateLabel();
+        addAndMakeVisible(m_valueLabel);
+        
+        m_titleLabel.setJustificationType(juce::Justification::centredBottom);
+        m_titleLabel.setFont(juce::Font(11.0f, juce::Font::bold));
+        m_titleLabel.setText(name, juce::dontSendNotification);
+
+        addAndMakeVisible(m_titleLabel);
+    }
+    void paint (juce::Graphics&g) override
+    {
+        auto area = getLocalBounds();
+        auto d = (area.getWidth() - area.getHeight()) *.5;
+        area.reduce(d, 5);
+        g.setColour(juce::Colour(0xff444444));
+        g.fillRoundedRectangle(area.toFloat(), 10);
+    }
+    void resized() override
+    {
+        auto area = getLocalBounds();
+        auto h = area.getHeight() / 4;
+
+        m_titleLabel.setBounds(area.removeFromTop(h));
+        m_knob->setBounds(area.removeFromTop(h * 2));
+        m_valueLabel.setBounds(area.removeFromTop(h));
+    }
+
+    void updateLabel ()
+    {
+        m_valueLabel.setText(m_automatableParameter->getCurrentValueAsString(), juce::NotificationType::dontSendNotification);
+    }
+private:
+    std::unique_ptr<AutomatableSliderComponent>       m_knob;
+    juce::Label                                       m_valueLabel;
+    juce::Label                                       m_titleLabel;
+    te::AutomatableParameter::Ptr                     m_automatableParameter;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableParameterComponent)
+};
+
+class NonAutomatableParameterComponent : public juce::Component
+{
+public:
+    NonAutomatableParameterComponent(juce::Value v, juce::String name)
+    {
+        m_knob.setRange(1, 1000, 1); 
+        m_knob.getValueObject().referTo(v);
+        m_titleLabel.setText(name, juce::dontSendNotification);
+        m_knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        m_knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+
+        m_knob.onValueChange = [this] { updateLabel(); };
+        m_valueLabel.setJustificationType(juce::Justification::centredTop);
+        m_valueLabel.setFont(juce::Font(11.0f, juce::Font::plain));
+        updateLabel();
+        
+        m_titleLabel.setJustificationType(juce::Justification::centredBottom);
+        m_titleLabel.setFont(juce::Font(11.0f, juce::Font::bold));
+  
+        Helpers::addAndMakeVisible(*this,{&m_titleLabel, &m_knob, &m_valueLabel});
+    }
+    void paint (juce::Graphics&g) override
+    {
+        auto area = getLocalBounds();
+        auto d = (area.getWidth() - area.getHeight()) *.5;
+        area.reduce(d, 5);
+        g.setColour(juce::Colour(0xff444444));
+        g.fillRoundedRectangle(area.toFloat(), 10);
+    }
+   
+    void resized() override
+    {
+        auto area = getLocalBounds();
+        auto h = area.getHeight() / 4;
+
+        m_titleLabel.setBounds(area.removeFromTop(h));
+        m_knob.setBounds(area.removeFromTop(h * 2));
+        m_valueLabel.setBounds(area.removeFromTop(h));
+    }
+   void updateLabel ()
+    {
+        m_valueLabel.setText(juce::String(m_knob.getValue()), juce::dontSendNotification);
+    }
+private:
+
+
+    juce::Slider       m_knob;
+    juce::Label        m_valueLabel;
+    juce::Label        m_titleLabel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NonAutomatableParameterComponent)
+};
+
