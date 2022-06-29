@@ -217,6 +217,11 @@ void EditComponent::valueTreeChildRemoved (
     {
         markAndUpdate(m_updateTracks);
     }
+    if (c.hasType(te::IDs::PLUGIN))
+    {
+        markAndUpdate(m_updateTracks);
+    }
+
 }
 
 void EditComponent::valueTreeChildOrderChanged (
