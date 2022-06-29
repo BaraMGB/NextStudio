@@ -14,6 +14,18 @@ PluginWindowComponent::PluginWindowComponent
     {
         m_pluginComponent = std::make_unique<VolumePluginComponent>(evs, p);
     }
+    else if (plugin->getPluginType() == "4bandEq")
+    {
+        m_pluginComponent = std::make_unique<EqPluginComponent>(evs, p);
+    }
+    else if (plugin->getPluginType() == "delay")
+    {
+        m_pluginComponent = std::make_unique<DelayPluginComponent>(evs, p);
+    }
+    else if (plugin->getPluginType() == "lowpass")
+    {
+        m_pluginComponent = std::make_unique<FilterPluginComponent>(evs, p);
+    }
     else
     {
         m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p);
@@ -141,32 +153,81 @@ void PluginViewComponent::setPlugin(const te::Plugin::Ptr &plugin)
 }
 
 //------------------------------------------------------------------------------
+FilterPluginComponent::FilterPluginComponent
+    (EditViewState& evs, te::Plugin::Ptr p)
+    : PluginViewComponent(evs, p)
+{
+    auto um = &evs.m_edit.getUndoManager();
+
+    m_freqPar = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("frequency"), "Freq");
+    m_modeLabel.setJustificationType(juce::Justification::centred);
+
+
+    m_modeButton.onStateChange = [this, um] 
+    {
+        if (m_modeButton.getToggleState())
+            m_plugin->state.setProperty(te::IDs::mode, "highpass", um);
+        else
+            m_plugin->state.setProperty(te::IDs::mode, "lowpass", um);
+        updateLabel(*um);
+    };
+
+    addAndMakeVisible(m_modeButton);
+    addAndMakeVisible(m_modeLabel);
+    addAndMakeVisible(*m_freqPar);
+    m_plugin->state.addListener(this);
+    updateLabel(*um);
+};
+
+void FilterPluginComponent::resized()
+{
+    auto bounds = getLocalBounds();
+    auto h = bounds.getHeight()/12;
+    bounds.removeFromTop(h);
+    auto modeButtonRect = bounds.removeFromTop(h*3);
+    m_modeButton.setBounds(modeButtonRect.reduced(modeButtonRect.getWidth() / 4, modeButtonRect.getHeight() / 4)); 
+    m_modeLabel.setBounds(bounds.removeFromTop(h));
+
+    bounds.removeFromTop(h*2);
+    m_freqPar->setBounds(bounds.removeFromTop(h*4));
+}
+
+
+void FilterPluginComponent::paint(juce::Graphics &g)
+{
+}
+void FilterPluginComponent::updateLabel (juce::UndoManager& um)
+{
+    auto mode = m_plugin->state.getPropertyAsValue(
+                    te::IDs::mode,&um).toString();
+    if (mode == "highpass")
+        mode = "Highpass";
+    else
+        mode = "Lowpass";
+    
+    m_modeLabel.setText(mode, juce::NotificationType::dontSendNotification); 
+}
 
 VolumePluginComponent::VolumePluginComponent
     (EditViewState& evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
 {
-   if (auto volumePlugin
-            = dynamic_cast<te::VolumeAndPanPlugin*> (getPlugin().get()))
-    {
-        m_volumeKnob = std::make_unique<AutomatableSliderComponent>(volumePlugin->volParam);
-        m_panKnob = std::make_unique<AutomatableSliderComponent>(volumePlugin->panParam);
+        m_panParComp =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("pan"), "Pan");
+        addAndMakeVisible(*m_panParComp);
+        m_volParComp =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("volume"), "Vol");
+        addAndMakeVisible(*m_volParComp);
+        m_plugin->state.addListener(this);
 
-        addAndMakeVisible(*m_volumeKnob);
-        addAndMakeVisible(*m_panKnob);
-        m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-        m_panKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-        m_panKnob->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
-        m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
-
-    }
 }
 
 void VolumePluginComponent::resized()
 {
     auto bounds = getLocalBounds();
-    m_panKnob->setBounds(bounds.removeFromTop(bounds.getHeight()/2));
-    m_volumeKnob->setBounds(bounds);
+    auto h = bounds.getHeight()/12;
+    bounds.removeFromTop(h);
+    m_volParComp->setBounds(bounds.removeFromTop(h*4));
+    bounds.removeFromTop(h*2);
+    m_panParComp->setBounds(bounds.removeFromTop(h*4));
 }
 
 
