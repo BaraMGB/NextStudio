@@ -46,11 +46,12 @@ void LassoSelectionTool::updateLasso(const juce::MouseEvent& e, int newTop)
 
     repaint ();
 }
-te::EditTimeRange LassoSelectionTool::getDraggedTimeRange(const juce::MouseEvent& e)
+tracktion::core::TimeRange LassoSelectionTool::getDraggedTimeRange(const juce::MouseEvent& e)
 {
     auto draggedTime = xToTime(e.x);
-    te::EditTimeRange timeRange(juce::jmin(draggedTime, m_clickedTime)
-                              , juce::jmax(draggedTime, m_clickedTime));
+
+    tracktion::core::TimeRange timeRange(EngineHelpers::getTimePos(juce::jmin(draggedTime, m_clickedTime))
+                              , EngineHelpers::getTimePos(juce::jmax(draggedTime, m_clickedTime)));
     return timeRange;
 }
 double LassoSelectionTool::xToTime(const int x)

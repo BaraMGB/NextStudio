@@ -87,8 +87,8 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
     if (getLoopRangeRect().contains(e.getPosition()))
     {
         m_loopRangeClicked = true;
-        m_cachedL1 = m_editViewState.m_edit.getTransport().loopPoint1;
-        m_cachedL2 = m_editViewState.m_edit.getTransport().loopPoint2;
+        m_cachedL1 = m_editViewState.m_edit.getTransport().loopPoint1->inSeconds();
+        m_cachedL2 = m_editViewState.m_edit.getTransport().loopPoint2->inSeconds();
     }
     else
     {
@@ -137,15 +137,15 @@ void TimeLineComponent::moveLoopRange(const juce::MouseEvent& e)
 {
     auto& t = m_editViewState.m_edit.getTransport();
 
-    if (t.getLoopRange ().getLength () > 0)
+    if (t.getLoopRange ().getLength ().inSeconds() > 0)
     {
         if (m_leftResized)
-            t.loopPoint1 = getMovedTime(e, m_cachedL1);
+            t.loopPoint1 = EngineHelpers::getTimePos(getMovedTime(e, m_cachedL1));
         else if (m_rightResized)
-            t.loopPoint2 = getMovedTime(e, m_cachedL2);
+            t.loopPoint2 = EngineHelpers::getTimePos(getMovedTime(e, m_cachedL2));
         else
-            t.setLoopRange({getMovedTime(e, m_cachedL1),
-                            getMovedTime(e, m_cachedL1) + t.getLoopRange().getLength()});
+            t.setLoopRange({EngineHelpers::getTimePos(getMovedTime(e, m_cachedL1)),
+                            EngineHelpers::getTimePos(getMovedTime(e, m_cachedL1)) + t.getLoopRange().getLength()});
     }
 }
 double TimeLineComponent::getMovedTime(const juce::MouseEvent& e, double oldTime)
@@ -154,8 +154,8 @@ double TimeLineComponent::getMovedTime(const juce::MouseEvent& e, double oldTime
     auto offset = xToTime(e.getDistanceFromDragStartX());
     auto movedTime = oldTime + offset - scroll;
     auto snaped = getBestSnapType().roundTimeDown (
-        movedTime,
-        m_editViewState.m_edit.tempoSequence);
+       EngineHelpers::getTimePos(movedTime),
+        m_editViewState.m_edit.tempoSequence).inSeconds();
     movedTime = e.mods.isShiftDown () ? movedTime : snaped;
 
     return movedTime;
@@ -193,8 +193,8 @@ juce::Rectangle<int> TimeLineComponent::getLoopRangeRect()
 {
     auto& t = m_editViewState.m_edit.getTransport();
 
-    auto start = timeToX(t.getLoopRange().getStart());
-    auto end = timeToX(t.getLoopRange().getEnd());
+    auto start = timeToX(t.getLoopRange().getStart().inSeconds());
+    auto end = timeToX(t.getLoopRange().getEnd().inSeconds());
     auto h = 5;
 
     return {start, getHeight() - h, end - start, h};

@@ -170,12 +170,16 @@ public:
     [[nodiscard]] double beatToTime (double b) const
     {
         auto& ts = m_edit.tempoSequence;
-        return ts.beatsToTime (b);
+        auto bp = tracktion::core::BeatPosition::fromBeats(b);
+        return ts.beatsToTime(bp).inSeconds();
     }
 
     [[nodiscard]] double timeToBeat (double t) const
     {
-        return m_edit.tempoSequence.timeToBeats (t);
+
+        auto& ts = m_edit.tempoSequence;
+        auto tp = tracktion::core::TimePosition::fromSeconds(t);
+        return ts.timeToBeats(tp).inBeats();
     }
 
     [[nodiscard]] double getSnapedTime (
@@ -185,12 +189,14 @@ public:
     {
         auto & transport = m_edit.getTransport ();
         auto & temposequ = m_edit.tempoSequence;
+
+        auto tp = tracktion::core::TimePosition::fromSeconds(t);
         transport.setSnapType ({te::TimecodeType::barsBeats, snapType.getLevel ()});
         return downwards
                 ? transport.getSnapType ()
-                  .roundTimeDown (t, temposequ)
+                  .roundTimeDown (tp, temposequ).inSeconds()
                 : transport.getSnapType ()
-                  .roundTimeNearest (t, temposequ);
+                  .roundTimeNearest (tp, temposequ).inSeconds();
     }
 
     [[nodiscard]] double getQuantizedBeat(double beat, te::TimecodeSnapType snapType, bool downwards = false) const
@@ -210,25 +216,29 @@ public:
         double x1time = beatToTime (beat1);
         double x2time = beatToTime (beat2);
 
-        auto pos = m_edit.getTransport ().getCurrentPosition ();
-        te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat ()
+        auto td = tracktion::core::TimeDuration::fromSeconds(x2time - x1time);
+
+        auto pos = m_edit.getTransport ().getCurrentPosition();
+        auto tp = tracktion::core::TimePosition::fromSeconds(pos); 
+        te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat()
                 .getBestSnapType (
-                    m_edit.tempoSequence.getTempoAt (pos)
-                    , (x2time - x1time) / width
+                    m_edit.tempoSequence.getTempoAt (tp)
+                    , td 
                     , false);
         return snaptype;
     }
 
     [[nodiscard]] juce::String getSnapTypeDescription(int idx) const
     {
-        tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (
-                    m_edit.getTransport ().getCurrentPosition ());
+
+        auto tp = tracktion::core::TimePosition::fromSeconds(m_edit.getTransport ().getCurrentPosition ()); 
+        tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (tp);
         return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo, false);
     }
 
     [[nodiscard]] double getEndScrollBeat() const
     {
-        return timeToBeat (m_edit.getLength ()) + (480);
+        return timeToBeat ( m_edit.getLength ().inSeconds()) + (480);
     }
 
     void toggleFollowPlayhead()

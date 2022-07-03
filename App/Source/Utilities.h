@@ -153,16 +153,17 @@ namespace PlayHeadHelpers
         explicit TimeCodeStrings(te::Edit & edit)
         {
             auto currenttime = edit.getTransport ().getCurrentPosition ();
-            bpm = juce::String(edit.tempoSequence.getTempoAt (currenttime).bpm, 2);
-            auto& timesig = edit.tempoSequence.getTimeSigAt (currenttime);
+            auto tp = tracktion::core::TimePosition::fromSeconds(currenttime);
+            bpm = juce::String(edit.tempoSequence.getTempoAt (tp).bpm, 2);
+            auto& timesig = edit.tempoSequence.getTimeSigAt (tp);
             signature = juce::String(juce::String(timesig.numerator) + " / "
                                      + juce::String(timesig.denominator));
             time = timeToTimecodeString (currenttime);
             beats = barsBeatsString (edit, currenttime);
             loopIn  = barsBeatsString (edit, edit.getTransport ()
-                                       .getLoopRange ().getStart ());
+                                       .getLoopRange ().getStart().inSeconds());
             loopOut = barsBeatsString (edit, edit.getTransport ()
-                                       .getLoopRange ().getEnd ());
+                                       .getLoopRange ().getEnd ().inSeconds());
         }
 
         juce::String bpm,
@@ -176,6 +177,7 @@ namespace PlayHeadHelpers
 
 namespace EngineHelpers
 {
+    tracktion::core::TimePosition getTimePos(double t);
     te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);
 
     void deleteSelectedClips(EditViewState & evs);
@@ -188,7 +190,7 @@ namespace EngineHelpers
                                                      , te::SelectionManager& sm
                                                      , bool copy);
 
-	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, te::EditTimeRange range, double insertTime, bool copy);
+	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
 
 
     te::Project::Ptr createTempProject (te::Engine& engine);

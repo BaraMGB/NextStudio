@@ -16,9 +16,9 @@ MidiClipComponent::~MidiClipComponent()
 
 void MidiClipComponent::paint (juce::Graphics& g)
 {
-    auto startX = m_editViewState.timeToX(getClip()->getPosition().getStart(),
+    auto startX = m_editViewState.timeToX(getClip()->getPosition().getStart().inSeconds(),
                                           getParentComponent()->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    auto endX = m_editViewState.timeToX(getClip()->getPosition().getEnd(),
+    auto endX = m_editViewState.timeToX(getClip()->getPosition().getEnd().inSeconds(),
                                         getParentComponent()->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
     if (!(endX < 0 || startX > getParentComponent()->getWidth()))
     {
@@ -29,8 +29,8 @@ void MidiClipComponent::paint (juce::Graphics& g)
             auto& seq = mc->getSequence();
             for (auto n: seq.getNotes())
             {
-                double sBeat = n->getStartBeat() - mc->getOffsetInBeats();
-                double eBeat = n->getEndBeat() - mc->getOffsetInBeats();
+                double sBeat = n->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats();
+                double eBeat = n->getEndBeat().inBeats() - mc->getOffsetInBeats().inBeats();
                 if (auto p = getParentComponent())
                 {
                     auto y =  (1.f - (float)(n->getNoteNumber()) / 127.f)

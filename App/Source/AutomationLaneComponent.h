@@ -27,7 +27,7 @@ public:
 	bool keyPressed(const juce::KeyPress &e) override;
     [[nodiscard]] te::AutomationCurve &getCurve() const;
 private:
-    te::EditTimeRange getSelectedRange();
+    tracktion::core::TimeRange getSelectedRange();
 
     void updateDragImage();
     double getSnapedTime(double time);
@@ -63,7 +63,7 @@ private:
 	bool						m_selectingTime {false};
     bool                        m_moveSelection {false};
     bool                        m_snap{false};
-    te::EditTimeRange           m_rangeAtMouseDown;
+    tracktion::core::TimeRange  m_rangeAtMouseDown;
     double                      m_draggedTime;
     juce::Image                 m_rangeImage;
 };

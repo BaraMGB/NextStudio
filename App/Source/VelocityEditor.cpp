@@ -76,14 +76,14 @@ double VelocityEditor::getNoteStartBeat(te::MidiClip* const& midiClip,
                                         const te::MidiNote* n) const
 {
     auto sBeat= n->getStartBeat() - midiClip->getOffsetInBeats();
-    return sBeat;
+    return sBeat.inBeats();
 }
 
 double VelocityEditor::getNoteEndBeat(te::MidiClip* const& midiClip,
                                       const te::MidiNote* n) const
 {
     auto eBeat= n->getEndBeat() - midiClip->getOffsetInBeats();
-    return eBeat;
+    return eBeat.inBeats();
 }
 std::vector<tracktion_engine::MidiClip*> VelocityEditor::getMidiClipsOfTrack()
 {
@@ -130,11 +130,11 @@ juce::Range<int> VelocityEditor::getXLineRange(te::MidiClip* const& midiClip,
     double sBeat = getNoteStartBeat(midiClip, n);
     double eBeat = getNoteEndBeat(midiClip, n);
 
-    auto x1 = m_editViewState.beatsToX(sBeat + midiClip->getStartBeat(),
+    auto x1 = m_editViewState.beatsToX(sBeat + midiClip->getStartBeat().inBeats(),
                                        getWidth(),
                                        m_editViewState.m_pianoX1,
                                        m_editViewState.m_pianoX2);
-    auto x2 = m_editViewState.beatsToX(eBeat + midiClip->getStartBeat(),
+    auto x2 = m_editViewState.beatsToX(eBeat + midiClip->getStartBeat().inBeats(),
                                        getWidth(),
                                        m_editViewState.m_pianoX1,
                                        m_editViewState.m_pianoX2) + 1;
@@ -160,7 +160,7 @@ tracktion_engine::MidiNote* VelocityEditor::getNote(juce::Point<int> p)
         for (auto note: mc->getSequence().getNotes())
         {
             auto y = getVelocityPixel(note);
-            auto x = beatsToX(getNoteStartBeat(mc, note) + mc->getStartBeat());
+            auto x = beatsToX(getNoteStartBeat(mc, note) + mc->getStartBeat().inBeats());
 
             if (GUIHelpers::getSensibleArea(p, 10).contains(x,y))
             {

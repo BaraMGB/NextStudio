@@ -27,7 +27,8 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
         const int result = m.show();
         if (result == 2000)
         {
-            m_automatableParameter->getCurve().addPoint(0.0, (float) getValue(), 0.0);
+            auto start = tracktion::core::TimePosition::fromSeconds(0.0);
+            m_automatableParameter->getCurve().addPoint(start, (float) getValue(), 0.0);
             m_automatableParameter->getTrack()->state.setProperty(
                         IDs::isTrackMinimized
                         , false

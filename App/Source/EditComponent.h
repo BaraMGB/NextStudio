@@ -87,7 +87,7 @@ private:
 
     void refreshSnapTypeDesc();
 
-    tracktion_engine::EditTimeRange getSelectedClipRange();
+    tracktion::core::TimeRange getSelectedClipRange();
 
     void updateHorizontalScrollBar();
 

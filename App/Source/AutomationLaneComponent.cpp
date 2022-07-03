@@ -7,19 +7,20 @@
 AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCurve& curve, EditViewState &evs)
     : m_curve(curve)
     , m_editViewState(evs)
+    , m_rangeAtMouseDown({tracktion::core::TimePosition::fromSeconds(0.0), tracktion::core::TimePosition::fromSeconds(0.0)})
 {
     setWantsKeyboardFocus(true);
 }
 void AutomationLaneComponent::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colours::white);
-    auto tr = te::EditTimeRange( m_editViewState.beatToTime(m_editViewState.m_viewX1)
-                                    , m_editViewState.beatToTime(m_editViewState.m_viewX2));
 
     auto selCol = m_editViewState.m_applicationState.getPrimeColour();
     g.setColour(selCol.withAlpha(0.3f));
     auto range = getSelectedRange();
-    g.fillRect(juce::Rectangle<int>{ getXPos(range.start), 0, getXPos(range.end) - getXPos(range.start), getHeight() });
+
+    
+    g.fillRect(juce::Rectangle<int>{ getXPos(range.getStart().inSeconds()), 0, getXPos(range.getEnd().inSeconds()) - getXPos(range.getStart().inSeconds()), getHeight() });
 
     auto start =  m_editViewState.beatToTime(m_editViewState.m_viewX1);
     auto end = m_editViewState.beatToTime(m_editViewState.m_viewX2);
@@ -30,16 +31,16 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
 }
 void AutomationLaneComponent::paintOverChildren(juce::Graphics &g)
 {
-    if (m_moveSelection && m_rangeAtMouseDown.getLength() > 0)
+    if (m_moveSelection && m_rangeAtMouseDown.getStart().inSeconds() > 0)
     {
         auto screenStart = m_editViewState.beatToTime(m_editViewState.m_viewX1);
-        auto newStart = m_rangeAtMouseDown.start + m_draggedTime - screenStart;
+        auto newStart = m_rangeAtMouseDown.getStart().inSeconds() + m_draggedTime - screenStart;
         if (m_snap)
             newStart = getSnapedTime(newStart);
 
-        auto mrange = m_rangeAtMouseDown.movedToStartAt(newStart);
-        auto x = getXPos(mrange.start);
-        auto w =  getXPos(mrange.end) - getXPos(mrange.start);
+        auto mrange = m_rangeAtMouseDown.movedToStartAt(tracktion::core::TimePosition::fromSeconds(newStart));
+        auto x = getXPos(mrange.getStart().inSeconds());
+        auto w =  getXPos(mrange.getEnd().inSeconds() - getXPos(mrange.getStart().inSeconds()));
         if (w > 0)
         {
             auto targetRect = juce::Rectangle<int>{x, 0, w, getHeight()};
@@ -51,8 +52,11 @@ void AutomationLaneComponent::paintOverChildren(juce::Graphics &g)
 }
 void AutomationLaneComponent::paintCurves(juce::Graphics &g, double start, double end)
 {
+    auto s = tracktion::core::TimePosition::fromSeconds(start);
+    auto e = tracktion::core::TimePosition::fromSeconds(end);
+
     float oldX = getXPos(start);
-    float oldY = (float) getYPos(m_curve.getValueAt(getTime(oldX)));
+    float oldY = (float) getYPos(m_curve.getValueAt(tracktion::core::TimePosition::fromSeconds(getTime(oldX))));
     float length = getXPos(end) - oldX;
     float lineThickness = 2.0;
     juce::Path curvePath;
@@ -64,10 +68,10 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, double start, doubl
     curvePath.startNewSubPath(oldX, oldY);
     for (auto i = 0; i < m_curve.getNumPoints(); i++)
     {
-        if (m_curve.getPoint(i).time >= start
-                && m_curve.getPoint(i).time <= end)
+        if (m_curve.getPoint(i).time >= s
+                && m_curve.getPoint(i).time <= e)
         {
-            float x = (float) getXPos(m_curve.getPoint(i).time);
+            float x = (float) getXPos(m_curve.getPoint(i).time.inSeconds());
             float y = (float) getYPos(m_curve.getPoint(i).value);
             float curve = m_curve.getPoint(i - 1).curve;
     
@@ -107,7 +111,7 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, double start, doubl
     curvePath.lineTo((float) length + 1.f, oldY);
     curvePath.lineTo((float) length + 1.f, (float) getHeight() + 1.f);
     curvePath.lineTo(-1.f, (float) getHeight() + 1.f);
-    curvePath.lineTo (-1 , (float) getYPos(m_curve.getValueAt(0.0)));
+    curvePath.lineTo (-1 , (float) getYPos(m_curve.getValueAt(tracktion::core::TimePosition::fromSeconds(0.0))));
     curvePath.closeSubPath();
 
     if (getHeight () <= 50)
@@ -139,14 +143,15 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
     m_hoveredCurve = -1;
     if (m_hoveredPoint == -1)
     {
-        int yPosAtHoveredTime = getYPos(m_curve.getValueAt(timeHovered));
+        auto ht = tracktion::core::TimePosition::fromSeconds(timeHovered);
+        int yPosAtHoveredTime = getYPos(m_curve.getValueAt(ht));
         m_hoveredRect = {e.x - getPointWidth ()/2
                          , yPosAtHoveredTime - getPointWidth ()/2
                          , getPointWidth ()
                              , getPointWidth ()};
-        auto nearestPoint = m_curve.getNearestPoint (timeHovered, valueHovered , xToYRatio ());
+        auto nearestPoint = m_curve.getNearestPoint (ht, valueHovered , xToYRatio ());
 
-        m_isVertical = m_curve.getPoint (nearestPoint).time == timeHovered;
+        m_isVertical = m_curve.getPoint (nearestPoint).time == ht;
 
         if (m_hoveredRect.contains (e.x, e.y)
             || m_isVertical
@@ -186,8 +191,8 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         if (isTimePositive && leftMouseButton && !m_isVertical)
         {
             auto newPoint = m_curve.addPoint(
-                m_hoveredTime
-                , m_curve.getValueAt (m_hoveredTime)
+                EngineHelpers::getTimePos(m_hoveredTime)
+                , m_curve.getValueAt (EngineHelpers::getTimePos(m_hoveredTime))
                     , 0.0);
             m_hoveredPoint = newPoint;
             m_hoveredCurve = -1;
@@ -197,8 +202,8 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 
         if (m_hoveredCurve == -1 && e.mods.isLeftButtonDown())
         {
-            auto range = te::EditTimeRange((double) m_curve.state.getProperty(IDs::selectedRangeStart, 0),
-                                   (double)  m_curve.state.getProperty(IDs::selectedRangeEnd,0));
+            auto range = juce::Range(m_curve.state.getProperty(IDs::selectedRangeStart, 0),
+                                     m_curve.state.getProperty(IDs::selectedRangeEnd,0));
 
             if (m_hoveredPoint == -1)
             {
@@ -225,11 +230,11 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         }
         else
         {
-            m_timeAtMousedown = m_curve.getPointTime (m_hoveredPoint);
+            m_timeAtMousedown = m_curve.getPointTime (m_hoveredPoint).inSeconds();
         }
     }
     m_curveAtMousedown = m_curve.getPoint(m_hoveredCurve - 1).curve;
-    auto x = getXPos(m_curve.getPoint(m_hoveredPoint).time);
+    auto x = getXPos(m_curve.getPoint(m_hoveredPoint).time.inSeconds());
     auto y = getYPos(m_curve.getPoint(m_hoveredPoint).value);
 
     m_hovedPointXY = {x, y};
@@ -272,7 +277,7 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
         auto newValue = (float) getValue(m_hovedPointXY.getY()+ e.getDistanceFromDragStartY());
 
         double v = m_curve.getOwnerParameter()->valueRange.convertFrom0to1(newValue);
-        m_curve.movePoint(m_hoveredPoint, newTime, v, false);
+        m_curve.movePoint(m_hoveredPoint,EngineHelpers::getTimePos(newTime), v, false);
 
         repaint();
     }
@@ -316,15 +321,15 @@ void AutomationLaneComponent::mouseUp(const juce::MouseEvent& e)
         par.param = m_curve.getOwnerParameter();
         par.curve = m_curve;
         auto screenStart = m_editViewState.beatToTime(m_editViewState.m_viewX1);
-        auto newStart = m_snap ? getSnapedTime(m_rangeAtMouseDown.start + m_draggedTime - screenStart)
-                               : m_rangeAtMouseDown.start + m_draggedTime - screenStart;
+        auto newStart = m_snap ? getSnapedTime(m_rangeAtMouseDown.getStart().inSeconds() + m_draggedTime - screenStart)
+                               : m_rangeAtMouseDown.getStart().inSeconds() + m_draggedTime - screenStart;
         newStart = juce::jmax(0.0, newStart);
-        auto range = m_rangeAtMouseDown.movedToStartAt(newStart);
+        auto range = m_rangeAtMouseDown.movedToStartAt(EngineHelpers::getTimePos(newStart));
 
-        m_curve.state.setProperty(IDs::selectedRangeStart, range.start, nullptr);
-        m_curve.state.setProperty(IDs::selectedRangeEnd, range.end, nullptr);
+        m_curve.state.setProperty(IDs::selectedRangeStart, range.getStart().inSeconds(), nullptr);
+        m_curve.state.setProperty(IDs::selectedRangeEnd, range.getEnd().inSeconds(), nullptr);
 
-        EngineHelpers::moveAutomation( getTrack(), par, m_rangeAtMouseDown, range.start, e.mods.isCtrlDown());
+        EngineHelpers::moveAutomation( getTrack(), par, m_rangeAtMouseDown, range.getStart().inSeconds(), e.mods.isCtrlDown());
     }
     else if (m_selectingTime && !e.mouseWasDraggedSinceMouseDown())
     {
@@ -353,9 +358,9 @@ bool AutomationLaneComponent::keyPressed(const juce::KeyPress &e)
         par.param = m_curve.getOwnerParameter();
         par.curve = m_curve;
         auto range = getSelectedRange();
-        m_curve.state.setProperty(IDs::selectedRangeStart, range.end, nullptr);
-        m_curve.state.setProperty(IDs::selectedRangeEnd, range.end + range.getLength(), nullptr);
-        EngineHelpers::moveAutomation( getTrack(), par, range,range.end, true);
+        m_curve.state.setProperty(IDs::selectedRangeStart, range.getEnd().inSeconds(), nullptr);
+        m_curve.state.setProperty(IDs::selectedRangeEnd, range.getEnd().inSeconds() + range.getLength().inSeconds(), nullptr);
+        EngineHelpers::moveAutomation( getTrack(), par, range,range.getEnd().inSeconds(), true);
         GUIHelpers::log("CTRL + D in AutomationLane");
       repaint();
       return true;
@@ -377,8 +382,8 @@ void AutomationLaneComponent::updateDragImage()
         auto tmp = m_moveSelection;
         m_moveSelection = false;
  
-        auto rs = getXPos(getSelectedRange().start);
-        auto rw = getXPos(getSelectedRange().end) - getXPos(getSelectedRange().start);
+        auto rs = getXPos(getSelectedRange().getStart().inSeconds());
+        auto rw = getXPos(getSelectedRange().getEnd().inSeconds()) - getXPos(getSelectedRange().getStart().inSeconds());
         auto viewRect = juce::Rectangle<int> (rs, getBoundsInParent().getY(), rw, getHeight());
         m_rangeImage = getParentComponent()->createComponentSnapshot(viewRect);
         m_rangeImage.multiplyAllAlphas(.7f);
@@ -412,13 +417,15 @@ int AutomationLaneComponent::getIndexOfHoveredPoint(const juce::MouseEvent &e)
 }
 
 
-te::EditTimeRange 
+ tracktion::core::TimeRange 
  AutomationLaneComponent::getSelectedRange()
 { 
     auto start = juce::jmax (0.0, (double) m_curve.state.getProperty(IDs::selectedRangeStart, 0));
     auto end = juce::jmax (start, (double) m_curve.state.getProperty(IDs::selectedRangeEnd, 0));
- 
-    return {start, end};
+
+    auto spos = tracktion::core::TimePosition::fromSeconds(start);
+    auto epos = tracktion::core::TimePosition::fromSeconds(end);
+    return {spos,  epos};
 }
 
 te::AutomationCurve &AutomationLaneComponent::getCurve() const
@@ -456,7 +463,7 @@ int AutomationLaneComponent::getYPos(double value)
 
 juce::Point<int> AutomationLaneComponent::getPoint(const tracktion_engine::AutomationCurve::AutomationPoint &ap)
 {
-    return {getXPos (ap.time), getYPos (ap.value)};
+    return {getXPos (ap.time.inSeconds()), getYPos (ap.value)};
 }
 
 double AutomationLaneComponent::xToYRatio()
@@ -477,7 +484,8 @@ int AutomationLaneComponent::getLaneHeight()
 
 bool AutomationLaneComponent::isBeyondLastPoint(double time, float value)
 {
-    auto nearestPoint = m_curve.getNearestPoint (time, value , xToYRatio ());
+    auto tp = EngineHelpers::getTimePos(time);
+    auto nearestPoint = m_curve.getNearestPoint (tp, value , xToYRatio ());
     if (nearestPoint > m_curve.getNumPoints () - 1)
     {
         return true;

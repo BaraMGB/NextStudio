@@ -30,7 +30,8 @@ private:
                       te::SmartThumbnail& thumb,
                       juce::Rectangle<int> area,
                       bool useHighRes,
-                      te::EditTimeRange time, bool useLeft, bool useRight,
+                      tracktion::core::TimeRange time
+                      , bool useLeft, bool useRight,
                       float leftGain, float rightGain);
 
     std::unique_ptr<te::SmartThumbnail> thumbnail;

@@ -208,8 +208,8 @@ void TrackComponent::resized()
     {
         if (auto c = cc->getClip ())
         {
-            int startX = m_editViewState.beatsToX (c->getStartBeat (), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-            int endX = m_editViewState.beatsToX (c->getEndBeat (), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            int startX = m_editViewState.beatsToX (c->getStartBeat ().inBeats(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            int endX = m_editViewState.beatsToX (c->getEndBeat ().inBeats(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             int clipHeight = (bool) m_track->state.getProperty (IDs::isTrackMinimized)
                     ? (int) m_editViewState.m_trackHeightMinimized
                     : (int) m_track->state.getProperty(
@@ -246,7 +246,7 @@ void TrackComponent::insertWave(const juce::File& f, double time)
             if (auto newClip = audioTrack->insertWaveClip(
                         f.getFileNameWithoutExtension()
                       , f
-                      , { { time, time + audioFile.getLength() }, 0.0 }
+                      ,  { { {}, tracktion::core::TimePosition::fromSeconds (audioFile.getLength()) }, {} }
                       , true))
             {
                 newClip->setColour(m_track->getColour());
@@ -374,10 +374,10 @@ tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos
 {
     if (auto at = dynamic_cast<te::AudioTrack*>(m_track.get ()))
     {
-        te::EditTimeRange newPos;
-        newPos.start = juce::jmax(0.0, m_editViewState.beatToTime (beatPos));
-        newPos.end = newPos.start + m_editViewState.beatToTime (4);
+        auto start = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime (beatPos)));
+        auto end   = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime (beatPos)) + m_editViewState.beatToTime (4));
 
+        tracktion::core::TimeRange newPos(start, end);
         at->deleteRegion(newPos, &m_editViewState.m_selectionManager);
 
         auto mc = at->insertMIDIClip (newPos, &m_editViewState.m_selectionManager);

@@ -14,16 +14,16 @@ public:
     struct LassoRect
     {
         LassoRect ()= default;
-        [[maybe_unused]] LassoRect (te::EditTimeRange timeRange, double top, double bottom)
+        [[maybe_unused]] LassoRect (tracktion::core::TimeRange timeRange, double top, double bottom)
             : m_timeRange(timeRange)
             , m_verticalRange(top, bottom)
-            , m_startTime(timeRange.getStart ())
-            , m_endTime (timeRange.getEnd ())
+            , m_startTime(timeRange.getStart ().inSeconds())
+            , m_endTime (timeRange.getEnd ().inSeconds())
             , m_top (top)
             , m_bottom (bottom){}
 
         juce::Rectangle<int> getRect (EditViewState& evs, double viewX1, double viewX2, int viewWidth) const;
-        te::EditTimeRange m_timeRange { 0,0 };
+        tracktion::core::TimeRange m_timeRange;
         juce::Range<double> m_verticalRange { 0,0 };
 
         double m_startTime { 0 };
@@ -60,7 +60,7 @@ private:
 
     double                         m_clickedTime{};
 
-    te::EditTimeRange getDraggedTimeRange(const juce::MouseEvent& e);
+    tracktion::core::TimeRange getDraggedTimeRange(const juce::MouseEvent& e);
     void updateClipCache();
     juce::Range<double>
         getVerticalRangeOfTrack(double trackPosY,

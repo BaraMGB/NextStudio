@@ -98,12 +98,12 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                                       int xOffset)
 {
     auto getTimeRangeForDrawing =
-            [this] (const int l, const int r) -> te::EditTimeRange
+            [this] (const int l, const int r) -> tracktion::core::TimeRange
     {
         if (auto p = getParentComponent())
         {
-            double t1 = m_editViewState.xToTime (l, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-            double t2 = m_editViewState.xToTime (r, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            auto t1 = EngineHelpers::getTimePos(m_editViewState.xToTime (l, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
+            auto t2 = EngineHelpers::getTimePos(m_editViewState.xToTime (r, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
             return { t1, t2 };
         }
         return {};
@@ -144,12 +144,12 @@ void AudioClipComponent::drawWaveform(juce::Graphics& g,
                        , gainR);
         }
     }
-    else if (c.getLoopLength() == 0)
+    else if (c.getLoopLength().inSeconds() == 0)
     {
         auto region = getTimeRangeForDrawing (left, right);
 
-        auto t1 = (region.getStart() + offset) * speedRatio;
-        auto t2 = (region.getEnd()   + offset) * speedRatio;
+        auto t1 = EngineHelpers::getTimePos((region.getStart().inSeconds() + offset.inSeconds()) * speedRatio);
+        auto t2 = EngineHelpers::getTimePos((region.getEnd().inSeconds()   + offset.inSeconds()) * speedRatio);
         bool useHighres = true;
         drawChannels(g
                    , thumb
@@ -167,7 +167,7 @@ void AudioClipComponent::drawChannels(juce::Graphics& g
                                     , te::SmartThumbnail& thumb
                                     , juce::Rectangle<int> area
                                     , bool useHighRes
-                                    , te::EditTimeRange time
+                                    , tracktion::core::TimeRange time
                                     , bool useLeft
                                     , bool useRight
                                     , float leftGain

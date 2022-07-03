@@ -49,7 +49,7 @@ void RecordingClipComponent::drawThumbnail (juce::Graphics& g
         return;
 
     juce::Rectangle<int> bounds;
-    juce::Range<double> times;
+    tracktion::TimeRange times;
     getBoundsAndTime (bounds, times);
     auto w = bounds.getWidth();
 
@@ -61,20 +61,20 @@ void RecordingClipComponent::drawThumbnail (juce::Graphics& g
 }
 
 
-bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, juce::Range<double>& times) const
+bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, tracktion::TimeRange& times) const
 {
-    auto editTimeToX = [this] (double t)
+    auto editTimeToX = [this] (tracktion::TimePosition& t)
     {
         if (auto p = getParentComponent())
-            return m_editViewState.timeToX (t, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2) - getX();
+            return m_editViewState.timeToX (t.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2) - getX();
         return 0;
     };
     
     auto xToEditTime = [this] (int x)
     {
         if (auto p = getParentComponent())
-            return m_editViewState.xToTime (x + getX(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-        return 0.0;
+            return tracktion::TimePosition::fromSeconds(m_editViewState.xToTime (x + getX(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
+        return tracktion::TimePosition::fromSeconds(0.0);
     };
     
     bool hasLooped = false;
@@ -85,25 +85,27 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, juc
         auto localBounds = getLocalBounds();
         
         auto timeStarted = m_thumbnail->punchInTime;
-        auto unloopedPos = timeStarted + m_thumbnail->thumb.getTotalLength();
+        auto unloopedPos = timeStarted + tracktion::TimeDuration::fromSeconds(m_thumbnail->thumb.getTotalLength());
         
         auto t1 = timeStarted;
         auto t2 = unloopedPos;
         
-        if (epc->isLooping() && t2 >= epc->getLoopTimes().end)
+        if (epc->isLooping() && t2 >= epc->getLoopTimes().getEnd())
         {
             hasLooped = true;
             
-            t1 = juce::jmin (t1, epc->getLoopTimes().start);
+            t1 = juce::jmin (t1, epc->getLoopTimes().getStart());
             t2 = epc->getPosition();
             
-            t1 = juce::jmax (m_editViewState.m_viewX1.get(), t1);
-            t2 = juce::jmin (m_editViewState.m_viewX2.get(), t2);
+            auto x1t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX1.get()));
+            auto x2t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX2.get()));
+            t1 = juce::jmax (x1t, t1);
+            t2 = juce::jmin (x2t, t2);
         }
         else if (edit.recordingPunchInOut)
         {
-            const double in  = m_thumbnail->punchInTime;
-            const double out = edit.getTransport().getLoopRange().getEnd();
+            const auto in  = m_thumbnail->punchInTime;
+            const auto out = edit.getTransport().getLoopRange().getEnd();
             
             t1 = juce::jlimit (in, out, t1);
             t2 = juce::jlimit (in, out, t2);
@@ -113,13 +115,13 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, juc
                  .withRight (juce::jmin (localBounds.getRight(), editTimeToX (t2)));
         
         auto loopRange = epc->getLoopTimes();
-        const double recordedTime = unloopedPos - epc->getLoopTimes().start;
+        const tracktion::TimeDuration recordedTime = unloopedPos - epc->getLoopTimes().getStart();
         const int numLoops = (int) (recordedTime / loopRange.getLength());
         
-        const juce::Range<double> editTimes (xToEditTime (bounds.getX()),
+        const tracktion::TimeRange editTimes (xToEditTime (bounds.getX()),
                                        xToEditTime (bounds.getRight()));
         
-        times = (editTimes + (numLoops * loopRange.getLength())) - timeStarted;
+        times = (editTimes + (loopRange.getLength()) * numLoops) - toDuration(timeStarted);
     }
     
     return hasLooped;
@@ -136,17 +138,17 @@ void RecordingClipComponent::updatePosition()
     
     if (auto epc = edit.getTransport().getCurrentPlaybackContext())
     {
-        double t1 = m_punchInTime >= 0 ? m_punchInTime : edit.getTransport().getTimeWhenStarted();
-        double t2 = juce::jmax (t1, epc->getUnloopedPosition());
+        auto t1 = m_punchInTime >= tracktion::TimePosition::fromSeconds(0) ? m_punchInTime : edit.getTransport().getTimeWhenStarted();
+        auto t2 = juce::jmax (t1, epc->getUnloopedPosition());
         
         if (epc->isLooping())
         {
             auto loopTimes = epc->getLoopTimes();
             
-            if (t2 >= loopTimes.end)
+            if (t2 >= loopTimes.getEnd())
             {
-                t1 = juce::jmin (t1, loopTimes.start);
-                t2 = loopTimes.end;
+                t1 = juce::jmin (t1, loopTimes.getStart());
+                t2 = loopTimes.getEnd();
             }
         }
         else if (edit.recordingPunchInOut)
@@ -159,13 +161,16 @@ void RecordingClipComponent::updatePosition()
             t2 = juce::jlimit (in, out, t2);
         }
         
-        t1 = juce::jmax (t1, m_editViewState.m_viewX1.get());
-        t2 = juce::jmin (t2, m_editViewState.m_viewX2.get());
+        auto x1t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX1.get()));
+        auto x2t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX2.get()));
+
+        t1 = juce::jmax (t1, x1t);
+        t2 = juce::jmin (t2, x2t);
     
         if (auto p = getParentComponent())
         {
-            int x1 = m_editViewState.timeToX (t1, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-            int x2 = m_editViewState.timeToX (t2, p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            int x1 = m_editViewState.timeToX (t1.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            int x2 = m_editViewState.timeToX (t2.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             
             setBounds (x1, 0, x2 - x1, p->getHeight());
             return;

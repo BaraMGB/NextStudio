@@ -21,7 +21,7 @@ private:
     void initialiseThumbnailAndPunchTime();
     void drawThumbnail (juce::Graphics& g, juce::Colour waveformColour) const;
     bool getBoundsAndTime (
-            juce::Rectangle<int>& bounds, juce::Range<double>& times) const;
+            juce::Rectangle<int>& bounds, tracktion::TimeRange& times) const;
 
     int m_ClipHeaderHeight {10};
 
@@ -30,6 +30,6 @@ private:
 
     te::RecordingThumbnailManager::Thumbnail::Ptr m_thumbnail;
 
-    double m_punchInTime = -1.0;
+    tracktion::TimePosition m_punchInTime = tracktion::TimePosition::fromSeconds(-1.0);
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RecordingClipComponent)
 };

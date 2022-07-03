@@ -387,27 +387,27 @@ int EditComponent::getSongHeight()
 void EditComponent::loopAroundSelection()
 {
     auto& transport = m_edit.getTransport();
-    if (getSelectedClipRange().getLength() > 0)
+    if (getSelectedClipRange().getLength().inSeconds() > 0)
         transport.setLoopRange (getSelectedClipRange());
 }
-tracktion_engine::EditTimeRange EditComponent::getSelectedClipRange()
+tracktion::core::TimeRange EditComponent::getSelectedClipRange()
 {
     if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size() == 0)
-        return {0.0, 0.0};
+        return {EngineHelpers::getTimePos(0.0),EngineHelpers::getTimePos(0.0)};
 
-    auto start = m_edit.getLength();
+    auto start = m_edit.getLength().inSeconds();
     auto end = 0.0;
 
     for (auto c: m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
     {
-        start = c->getPosition().getStart() < start
-            ? c->getPosition().getStart()
+        start = c->getPosition().getStart().inSeconds() < start
+            ? c->getPosition().getStart().inSeconds()
             : start;
 
-        end = c->getPosition().getEnd() > end
-            ? c->getPosition().getEnd()
+        end = c->getPosition().getEnd().inSeconds() > end
+            ? c->getPosition().getEnd().inSeconds()
             : end;
     }
 
-    return {start, end};
+    return {EngineHelpers::getTimePos(start), EngineHelpers::getTimePos(end)};
 }

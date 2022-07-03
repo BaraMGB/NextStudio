@@ -84,7 +84,7 @@ void SongEditorView::itemDragMove(
     {
         const auto dropPos = dragSourceDetails.localPosition;
         int verticalOffset = getVerticalOffset(dragSourceDetails, dropPos);
-        m_draggedTimeDelta = xtoTime(dropPos.getX() - draggedClip->getClipPosOffsetX()) - draggedClip->getClip()->getPosition().getStart();
+        m_draggedTimeDelta = xtoTime(dropPos.getX() - draggedClip->getClipPosOffsetX()) - draggedClip->getClip()->getPosition().getStart().inSeconds();
 
         if (draggedClip->isResizeLeft() || draggedClip->isResizeRight())
         {
@@ -132,8 +132,8 @@ void SongEditorView::drawResizingOverlays (const ClipComponent *draggedClip)
     auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
     for (auto sc: selectedClips)
     {
-        auto newStart = sc->getPosition().getStart();
-        auto newEnd = sc->getPosition().getEnd();
+        auto newStart = sc->getPosition().getStart().inSeconds();
+        auto newEnd = sc->getPosition().getEnd().inSeconds();
 
         if (draggedClip->isResizeRight())
         {
@@ -143,7 +143,7 @@ void SongEditorView::drawResizingOverlays (const ClipComponent *draggedClip)
         }
         else
         {
-            double clipStart = sc->getPosition ().getStart () - sc->getPosition ().getOffset ();
+            double clipStart = sc->getPosition ().getStart ().inSeconds() - sc->getPosition ().getOffset ().inSeconds();
             newStart = juce::jmax (clipStart, newStart + m_draggedTimeDelta);
 
             if (!draggedClip->isShiftDown())
@@ -216,7 +216,7 @@ void SongEditorView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     auto dropPos = dragSourceDetails.localPosition;
-    m_cachedEditLength = m_editViewState.m_edit.getLength() * 100 ;
+    m_cachedEditLength = m_editViewState.m_edit.getLength().inSeconds() * 100 ;
     auto dropTime = m_editViewState.xToTime (
         dropPos.getX()
         , getWidth()
@@ -298,7 +298,7 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
             {
                 auto newClip = te::duplicateClip(*sc);
                 copyOfSelectedClips.add(newClip);
-                newClip->setStart(newClip->getPosition().getStart() + m_cachedEditLength, false, true);
+                newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
 
                 if (!draggedClip->isCtrlDown())
                     sc->removeFromParentTrack();
@@ -308,8 +308,8 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
         }
     }
 
-    auto sourceTime = draggedClip->getClip()->getPosition().getStart();
-    auto targetTime = draggedClip->getClip()->getPosition().getStart()  + m_draggedTimeDelta;
+    auto sourceTime = draggedClip->getClip()->getPosition().getStart().inSeconds();
+    auto targetTime = draggedClip->getClip()->getPosition().getStart().inSeconds() + m_draggedTimeDelta;
     if (!draggedClip->isShiftDown())
         targetTime = getSnapedTime(targetTime);
     
@@ -321,17 +321,17 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
         auto idxSourceTrack = m_trackViews.indexOf(&getTrackView(sourceTrack));
         if (auto targetTrack = m_trackViews[idxSourceTrack + verticalOffset])
         {
-            auto pasteTime = newClip->getPosition().getStart() + delta;
+            auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
                             
             if (trackWantsClip(newClip, targetTrack))
             {
                 auto ct = newClip->getClipTrack();
-                ct->deleteRegion({pasteTime,
-                                  pasteTime + newClip->getPosition().getLength()},
+                ct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
+                                  tracktion::TimeDuration::fromSeconds(newClip->getPosition().getLength())},
                                   &m_editViewState.m_selectionManager);
 
                 newClip->moveToTrack(*targetTrack->getTrack());
-                newClip->setStart(pasteTime, false, true);
+                newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
 
                 m_editViewState.m_selectionManager.addToSelection(newClip);
             }
@@ -347,38 +347,38 @@ void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
         for (auto sc : selectedClips)
         {
             auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
-                                       sc->getPosition().getStart() + m_draggedTimeDelta);
+                                       sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta));
             if (snap)
-                newStart = getSnapedTime (newStart);
+                newStart = tracktion::TimePosition::fromSeconds(getSnapedTime (newStart.inSeconds()));
             sc->setStart(newStart, true, false);
 
 			//save clip for damage
-            sc->setStart(sc->getPosition().getStart() + m_cachedEditLength, false, true);
+            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
         }
 	}
     else
     {
         for (auto sc : selectedClips)
         {
-            double newEnd = sc->getPosition().getEnd() + m_draggedTimeDelta;
+            auto newEnd = sc->getPosition().getEnd() + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta);
 
             if (snap)
-                newEnd = getSnapedTime (newEnd);
+                newEnd = tracktion::TimePosition::fromSeconds(getSnapedTime (newEnd.inSeconds()));
             sc->setEnd(newEnd, true);
 			//save clip for damage
-            sc->setStart(sc->getPosition().getStart() + m_cachedEditLength, false, true);
+            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
         }
     }
 
     for (auto sc : selectedClips)
     {
         auto ct = sc->getClipTrack();
-		const juce::Range<double> range = {sc->getPosition().getStart() - m_cachedEditLength,
-										   sc->getPosition().getEnd() - m_cachedEditLength};
+		const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(m_cachedEditLength),
+										   sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(m_cachedEditLength)};
         ct->deleteRegion(range, &m_editViewState.m_selectionManager);
 
 		//restore clip
-        sc->setStart(sc->getPosition().getStart() - m_cachedEditLength, false, true);
+        sc->setStart(sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
     }
 }
 void
@@ -407,8 +407,8 @@ double SongEditorView::getPasteTime(double dropTime,
         , getWidth());
     const auto snapedTime = m_editViewState.getSnapedTime (rawTime, snapType);
     const auto pasteTime = !snap
-                               ? rawTime - firstClipTime
-                               : snapedTime - firstClipTime;
+                               ? rawTime - firstClipTime.inSeconds()
+                               : snapedTime - firstClipTime.inSeconds();
     return pasteTime;
 }
 void SongEditorView::itemDragExit(const juce::DragAndDropTarget::SourceDetails&)
@@ -513,8 +513,8 @@ void SongEditorView::selectCatchedClips(const tracktion_engine::Track *track)
     for (auto ti = 0; ti < track->getNumTrackItems(); ti++)
     {
         auto item = track->getTrackItem(ti);
-        if (m_lassoComponent.getLassoRect ().m_startTime < item->getPosition ().getEnd ()
-                && m_lassoComponent.getLassoRect ().m_endTime > item->getPosition ().getStart ())
+        if (m_lassoComponent.getLassoRect ().m_startTime < item->getPosition ().getEnd ().inSeconds()
+                && m_lassoComponent.getLassoRect ().m_endTime > item->getPosition ().getStart ().inSeconds())
         {
             m_editViewState.m_selectionManager.addToSelection(item);
         }

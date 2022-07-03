@@ -164,7 +164,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     const auto shadowShade = juce::Colour(0x50000000);
     const auto textColour = juce::Colour(0xffaaaaaa);
     const auto num = static_cast<int> (
-        evs.m_edit.tempoSequence.getTimeSigAt(evs.beatToTime(0)).numerator);
+        evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
 
     if (!printDescription)
         drawBarBeatsShadow(g, evs, x1beats, x2beats, boundingRect, shadowShade);
@@ -213,7 +213,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
             if (snapLevel <= 3)
             {
                 const int den = evs.m_edit.tempoSequence.getTimeSigAt(
-                                                      evs.beatToTime(0)).denominator;
+                        tracktion::TimePosition::fromSeconds(0)).denominator;
                 const float frac = beatRect.getWidth() / (16 / den);
 
                 for (auto i = 1; i <= 16 / den; i++)
@@ -280,7 +280,7 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
 {
     const te::TimecodeSnapType& snapType =
         evs.getBestSnapType(x1beats,x2beats, boundingRect.getWidth());
-    int num = evs.m_edit.tempoSequence.getTimeSigAt(0).numerator;
+    int num = evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator;
     int shadowDelta = num * 4;
     if (snapType.getLevel() <= 9)
         shadowDelta = num;
@@ -337,12 +337,12 @@ juce::String PlayHeadHelpers::barsBeatsString(
         tracktion_engine::Edit &edit
       , double time)
 {
-    te::TempoSequencePosition pos(edit.tempoSequence);
-    pos.setTime(time);
-    auto bars = pos.getBarsBeatsTime ().bars + 1;
-    auto beat = (int)pos.getBarsBeatsTime ().beats + 1;
-    auto ticks = juce::roundToIntAccurate(pos.getBarsBeatsTime ()
-                       .getFractionalBeats () * 960);
+    
+    const auto pos = edit.tempoSequence.toBarsAndBeats(tracktion::TimePosition::fromSeconds(time));
+
+    int bars = pos.bars + 1;
+    int beat = pos.beats.inBeats() + 1;
+    auto ticks = juce::roundToIntAccurate(pos.getFractionalBeats().inBeats() * 960);
 
 
     return juce::String(bars) + "."
@@ -362,6 +362,10 @@ te::AudioTrack::Ptr EngineHelpers::getAudioTrack(te::Track::Ptr track, EditViewS
     return nullptr;
 }
 
+tracktion::core::TimePosition EngineHelpers::getTimePos(double t)
+{
+    return tracktion::core::TimePosition::fromSeconds(t);
+}
 void EngineHelpers::deleteSelectedClips(EditViewState &evs)
 {
     for (auto selectedClip : evs.m_selectionManager
@@ -391,10 +395,10 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
         for (auto& selectedClip : clipSelection)
             sections.add (te::TrackAutomationSection(*selectedClip));
      
-		te::moveAutomation (sections, offset, copy);
+		te::moveAutomation (sections, tracktion::TimeDuration::fromSeconds(offset), copy);
     }
 }
-void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, te::EditTimeRange range, double insertTime, bool copy)
+void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy)
 {
 	te::TrackAutomationSection section;
 	section.src = src;
@@ -404,7 +408,7 @@ void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::Ac
 	
 	juce::Array<te::TrackAutomationSection> secs;
 	secs.add (section);
-	auto offset = insertTime - range.getStart();
+	auto offset = tracktion::TimePosition::fromSeconds(insertTime) - range.getStart();
 
 	te::moveAutomation(secs, offset, copy);
 }
@@ -523,11 +527,17 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
     if (audioFile.isValid())
     {
         if (auto track = addAudioTrack(false, trackColour, evs))
-        {            
+        {           
+            
 			removeAllClips (*track);
             if (auto newClip = track->insertWaveClip (
                      file.getFileNameWithoutExtension(), file,
-		              { { insertTime, insertTime + audioFile.getLength() }, 0.0 }, true))
+                      { { tracktion::TimePosition::fromSeconds(insertTime),
+                          tracktion::TimeDuration::fromSeconds (audioFile.getLength()) },
+                          {} }
+                     ,
+                     true))
+
             {
 				GUIHelpers::log("loading : " + file.getFullPathName ());
 				newClip->setAutoTempo(false);
@@ -747,7 +757,7 @@ void Thumbnail::paint(juce::Graphics &g)
     {
         const float brightness = smartThumbnail.isOutOfDate() ? 0.4f : 0.66f;
         g.setColour (colour.withMultipliedBrightness (brightness));
-        smartThumbnail.drawChannels (g, r, true, { 0.0, smartThumbnail.getTotalLength() }, 1.0f);
+        smartThumbnail.drawChannels (g, r, true, { tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(smartThumbnail.getTotalLength()) }, 1.0f);
     }
 }
 
@@ -761,7 +771,7 @@ void Thumbnail::mouseDrag(const juce::MouseEvent &e)
 {
     jassert (getWidth() > 0);
     const float proportion = (float) e.position.x / (float) getWidth();
-    transport.position = proportion * transport.getLoopRange().getLength();
+    transport.position = tracktion::TimePosition::fromSeconds(transport.getLoopRange().getLength().inSeconds()* proportion);
 }
 
 void Thumbnail::mouseUp(const juce::MouseEvent &)
@@ -771,7 +781,7 @@ void Thumbnail::mouseUp(const juce::MouseEvent &)
 
 void Thumbnail::updateCursorPosition()
 {
-    const double loopLength = transport.getLoopRange().getLength();
+    const double loopLength = transport.getLoopRange().getLength().inSeconds();
     const double proportion = loopLength == 0.0 ? 0.0 : transport.getCurrentPosition() / loopLength;
 
     auto r = getLocalBounds().toFloat();
@@ -790,7 +800,7 @@ void EngineHelpers::duplicateSelectedClips(
     if (clipSelection.size () > 0)
     {
         auto selectionRange = te::getTimeRangeForSelectedItems (clipSelection);
-        edit.getTransport ().setCurrentPosition (selectionRange.end);
+        edit.getTransport ().setCurrentPosition (selectionRange.getEnd().inSeconds());
 
         //collect automation sections
         juce::Array<te::TrackAutomationSection> sections;
@@ -801,10 +811,10 @@ void EngineHelpers::duplicateSelectedClips(
             //delete destination region
             if (auto at = dynamic_cast<te::AudioTrack*>(selectedClip->getClipTrack ()))
             {
-                auto clipstart = selectedClip->getEditTimeRange ().start
-                                  - selectionRange.start;
-                te::EditTimeRange targetRange = {selectionRange.end + clipstart
-                                      , selectionRange.end + clipstart
+                auto clipstart = selectedClip->getEditTimeRange ().getStart()
+                                  - selectionRange.getStart();
+                tracktion::TimeRange targetRange = {selectionRange.getStart() + clipstart
+                                      , selectionRange.getEnd() + clipstart
                                                            + selectedClip
                                         ->getEditTimeRange ().getLength ()};
                 at->deleteRegion (targetRange, &selectionManager);
@@ -891,7 +901,7 @@ void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
     auto zoom = evs.m_pianoX2 - evs.m_pianoX1;
 
     evs.m_pianoX1 =
-        juce::jmax(0.0, c->getStartBeat () - (zoom /2) + (c->getLengthInBeats ()/2));
+        juce::jmax(0.0, c->getStartBeat ().inBeats() - (zoom /2) + (c->getLengthInBeats ().inBeats()/2));
     evs.m_pianoX2 = evs.m_pianoX1 + zoom;
 }
 

@@ -79,8 +79,8 @@ void PianoRollContentComponent::drawDraggedNotes(juce::Graphics& g, te::MidiNote
 
     te::MidiNote mn = te::MidiNote(
         te::MidiNote::createNote(*n,
-                                 n->getStartBeat() + startDelta,
-                                 n->getLengthBeats() + lengthDelta));
+                                 tracktion::core::BeatPosition::fromBeats(n->getStartBeat().inBeats() + startDelta),
+                                 tracktion::core::BeatDuration::fromBeats(n->getLengthBeats().inBeats() + lengthDelta)));
     mn.setNoteNumber(mn.getNoteNumber() + m_draggedNoteDelta, nullptr);
 
     auto noteRect = getNoteRect(clip, &mn);
@@ -114,7 +114,7 @@ juce::Colour PianoRollContentComponent::getNoteColour(
     auto s = getNoteStartBeat(midiClip, n);
     auto e = getNoteEndBeat(midiClip, n);
     bool isBeforeClipStart = s < 0;
-    bool isAfterClipEnd = e > midiClip->getEndBeat() - midiClip->getStartBeat() + 0.00001;
+    bool isAfterClipEnd = e > midiClip->getEndBeat().inBeats() - midiClip->getStartBeat().inBeats() + 0.00001;
 
     if (isBeforeClipStart || isAfterClipEnd)
         return juce::Colours::grey;
@@ -135,8 +135,8 @@ juce::Rectangle<float>
 {
     double sBeat = getNoteStartBeat(midiClip, n);
     double eBeat = getNoteEndBeat(midiClip, n);
-    auto x1 = beatsToX(sBeat + midiClip->getStartBeat());
-    auto x2 = beatsToX(eBeat + midiClip->getStartBeat()) + 1;
+    auto x1 = beatsToX(sBeat + midiClip->getStartBeat().inBeats());
+    auto x2 = beatsToX(eBeat + midiClip->getStartBeat().inBeats()) + 1;
 
     return getNoteRect(n->getNoteNumber(), x1, x2);
 }
@@ -153,19 +153,19 @@ double PianoRollContentComponent::getNoteEndBeat(const te::MidiClip* midiClip,
                                                  const te::MidiNote* n)
 {
     auto eBeat = n->getEndBeat() - midiClip->getOffsetInBeats();
-    return eBeat;
+    return eBeat.inBeats();
 }
 double PianoRollContentComponent::getNoteStartBeat(const te::MidiClip* midiClip,
                                                    const te::MidiNote* n)
 {
     auto sBeat = n->getStartBeat() - midiClip->getOffsetInBeats();
-    return sBeat;
+    return sBeat.inBeats();
 }
 void PianoRollContentComponent::drawClipRange(
     juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip)
 {
-    auto clipStartX = beatsToX(midiClip->getStartBeat());
-    auto clipEndX = juce::jmax(clipStartX, beatsToX(midiClip->getEndBeat()));
+    auto clipStartX = beatsToX(midiClip->getStartBeat().inBeats());
+    auto clipEndX = juce::jmax(clipStartX, beatsToX(midiClip->getEndBeat().inBeats()));
     auto clipColour = midiClip->getColour();
 
     g.setColour(clipColour.brighter(0.7f));
@@ -200,10 +200,10 @@ void PianoRollContentComponent::mouseMove(const juce::MouseEvent& e)
 
         if (auto note = getNoteByPos(e.position))
         {
-            auto startX = beatsToX(note->getStartBeat()
-                                   + mc->getStartBeat() - mc->getOffsetInBeats());
-            auto endX = beatsToX(note->getEndBeat()
-                                 + mc->getStartBeat() - mc->getOffsetInBeats());
+            auto startX = beatsToX(note->getStartBeat().inBeats()
+                                   + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats());
+            auto endX = beatsToX(note->getEndBeat().inBeats()
+                                 + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats());
             note->setColour(127, nullptr);
 
             if (e.x < startX + 10)
@@ -266,7 +266,7 @@ void PianoRollContentComponent::mouseDown(const juce::MouseEvent& e)
         m_clickedNote = addNewNote (
             getNoteNumber(e.y),
             m_clickedClip,
-            beat - m_clickedClip->getStartBeat() + m_clickedClip->getOffsetInBeats());
+            beat - m_clickedClip->getStartBeat().inBeats() + m_clickedClip->getOffsetInBeats().inBeats());
 
         setNoteSelected(m_clickedNote, false);
 
@@ -294,9 +294,9 @@ void PianoRollContentComponent::mouseDrag(const juce::MouseEvent& e)
         if (m_clickedNote && m_clickedClip)
         {
             if (m_expandLeft)
-                m_leftTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditStartTime(*m_clickedClip)); 
+                m_leftTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditStartTime(*m_clickedClip).inSeconds()); 
             else if (m_expandRight || m_noteAdding)
-                m_rightTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditEndTime(*m_clickedClip)); 
+                m_rightTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditEndTime(*m_clickedClip).inSeconds()); 
             else
                 moveSelectedNotesToMousePos(e);
         }
@@ -345,7 +345,7 @@ void PianoRollContentComponent::mouseUp(const juce::MouseEvent& e)
             for (auto p : temp)
             {
                 auto clipDelta = targetClip->getStartBeat() - p.second->getStartBeat();
-                p.first->state.setProperty(te::IDs::b, p.first->getStartBeat() - clipDelta,&um); 
+                p.first->state.setProperty(te::IDs::b, p.first->getStartBeat().inBeats() - clipDelta.inBeats(),&um); 
 
                 insertNote(p.first, targetClip);
             }
@@ -388,7 +388,7 @@ double PianoRollContentComponent::getDraggedTimeDelta(const juce::MouseEvent& e,
 void PianoRollContentComponent::moveSelectedNotesToMousePos(
     const juce::MouseEvent& e)
 {
-    m_draggedTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditStartTime(*m_clickedClip));
+    m_draggedTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditStartTime(*m_clickedClip).inSeconds());
     m_draggedNoteDelta = getNoteNumber(e.y) - m_clickedNote->getNoteNumber();
     m_clickedClip->getAudioTrack()->turnOffGuideNotes();
 
@@ -404,8 +404,8 @@ double PianoRollContentComponent::getQuantisedBeat(double beat, bool down) const
 double PianoRollContentComponent::getQuantisedNoteBeat(
     double beat,const te::MidiClip* c, bool down) const
 {
-    auto editBeat = c->getStartBeat() + beat;
-    return getQuantisedBeat(editBeat, down) - c->getStartBeat();
+    auto editBeat = c->getStartBeat().inBeats() + beat;
+    return getQuantisedBeat(editBeat, down) - c->getStartBeat().inBeats();
 }
 te::TimecodeSnapType PianoRollContentComponent::getBestSnapType() const
 {
@@ -431,8 +431,8 @@ te::MidiNote* PianoRollContentComponent::addNewNote(int noteNumb,
                       : m_editViewState.m_lastNoteLength;
     cleanUnderNote(noteNumb, {beat, beat + length}, clip);
     return clip->getSequence().addNote(noteNumb,
-                                       beat,
-                                       length,
+                                       tracktion::core::BeatPosition::fromBeats(beat),
+                                       tracktion::core::BeatDuration::fromBeats(length),
                                        m_editViewState.m_lastVelocity,
                                        111,
                                        &m_editViewState.m_edit.getUndoManager());
@@ -497,8 +497,8 @@ void PianoRollContentComponent::moveSelectedNotesToTemp(
 
         te::MidiNote* mn = new te::MidiNote(
             te::MidiNote::createNote(*n,
-                                     n->getStartBeat() + startDelta,
-                                     n->getLengthBeats() + lengthDelta));
+                                     n->getStartBeat() + tracktion::core::BeatDuration::fromBeats(startDelta),
+                                     n->getLengthBeats() + tracktion::core::BeatDuration::fromBeats(lengthDelta)));
         mn->setNoteNumber(n->getNoteNumber() + m_draggedNoteDelta, &um);
 
         std::pair<te::MidiNote*, te::MidiClip*> pair = {mn, clip};
@@ -513,7 +513,7 @@ void PianoRollContentComponent::moveSelectedNotesToTemp(
 void PianoRollContentComponent::duplicateSelectedNotes()
 {
     auto range = m_selectedEvents->getSelectedRange ();
-    auto rangeLength = timeToBeat (range.getLength ());
+    auto rangeLength = timeToBeat (range.getLength ().inSeconds());
     juce::Array<std::pair<te::MidiNote*, te::MidiClip*>> temp;
 
     moveSelectedNotesToTemp(rangeLength, 0, temp, true);
@@ -527,17 +527,16 @@ void PianoRollContentComponent::insertNote(te::MidiNote* note, te::MidiClip* cli
 {
     auto& um = m_editViewState.m_edit.getUndoManager();
 
-    cleanUnderNote(note->getNoteNumber(), note->getRangeBeats(), clip);
-
+    cleanUnderNote(note->getNoteNumber(), {note->getStartBeat().inBeats(), note->getEndBeat().inBeats()}, clip);
     auto mn = clip->getSequence().addNote(note->state.getProperty(te::IDs::p),
-                                          note->state.getProperty(te::IDs::b),
-                                          note->state.getProperty(te::IDs::l),
+                                          tracktion::BeatPosition::fromBeats(note->state.getProperty(te::IDs::b)),
+                                          tracktion::BeatDuration::fromBeats(note->state.getProperty(te::IDs::l)),
                                           note->state.getProperty(te::IDs::v),
                                           note->state.getProperty(te::IDs::c),
                                           &um);
 
     m_selectedEvents->addSelectedEvent(mn, true);
-	m_editViewState.m_lastNoteLength = note->getLengthBeats();
+	m_editViewState.m_lastNoteLength = note->getLengthBeats().inBeats();
 }
 void PianoRollContentComponent::snapToGrid(te::MidiNote* note,
                                            const te::MidiClip* clip) const
@@ -546,16 +545,16 @@ void PianoRollContentComponent::snapToGrid(te::MidiNote* note,
 
     if (m_expandLeft)
         note->setStartAndLength(
-            getQuantisedNoteBeat(note->getStartBeat(), clip),
-                                note->getEndBeat() - getQuantisedNoteBeat(note->getStartBeat(), clip),
+                                tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getStartBeat().inBeats(), clip)),
+                                note->getEndBeat() - tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getStartBeat().inBeats(), clip)),
                                 &um);
     else if (m_expandRight || m_noteAdding)
         note->setStartAndLength(note->getStartBeat(),
-                                getQuantisedNoteBeat(note->getEndBeat(), clip) - note->getStartBeat(),
+                                tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getEndBeat().inBeats(), clip)) - note->getStartBeat(),
                                 &um);
     else
         note->setStartAndLength(
-            getQuantisedNoteBeat(note->getStartBeat(),clip),
+            tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getStartBeat().inBeats(),clip)),
                                 note->getLengthBeats(),
                                 &um);
 }
@@ -663,12 +662,12 @@ te::MidiNote* PianoRollContentComponent::getNoteByPos(juce::Point<float> pos)
     {
         for (auto note: mc->getSequence().getNotes())
         {
-            auto clickedBeat = xToBeats((int) pos.x) + mc->getOffsetInBeats();
-            auto clipStart = mc->getStartBeat();
+            auto clickedBeat = xToBeats((int) pos.x) + mc->getOffsetInBeats().inBeats();
+            auto clipStart = mc->getStartBeat().inBeats();
             auto isNoteNum
                 = (note->getNoteNumber() == getNoteNumber(static_cast<int> (pos.y)));
-            auto noteStart = note->getStartBeat() + clipStart;
-            auto noteEnd = note->getEndBeat() + clipStart;
+            auto noteStart = note->getStartBeat().inBeats() + clipStart;
+            auto noteEnd = note->getEndBeat().inBeats() + clipStart;
 
             if (isNoteNum
                 && juce::Range<double> (noteStart, noteEnd).contains(clickedBeat))
@@ -680,7 +679,7 @@ te::MidiNote* PianoRollContentComponent::getNoteByPos(juce::Point<float> pos)
 tracktion_engine::MidiClip* PianoRollContentComponent::getMidiClipAt(int x)
 {
     for (auto& c: getMidiClipsOfTrack())
-        if ((c->getStartBeat() < xToBeats(x)) && (c->getEndBeat() > xToBeats(x)))
+        if ((c->getStartBeat().inBeats() < xToBeats(x)) && (c->getEndBeat().inBeats() > xToBeats(x)))
             return c;
 
     return nullptr;
@@ -782,25 +781,26 @@ void PianoRollContentComponent::cleanUnderNote(int noteNumb, juce::Range<double>
 
             if (startBeat >= beatRange.getStart() && endBeat > beatRange.getEnd())
             {
-                n->setStartAndLength(beatRange.getEnd(),
-                                     endBeat - beatRange.getEnd(), um);
+                n->setStartAndLength(tracktion::BeatPosition::fromBeats(beatRange.getEnd()),
+                                     tracktion::BeatPosition::fromBeats(endBeat)
+                                        - tracktion::BeatPosition::fromBeats(beatRange.getEnd()), um);
                 continue;
             }
 
             if (startBeat < beatRange.getStart() && endBeat <= beatRange.getEnd())
             {
-                n->setStartAndLength(startBeat,
-                                     beatRange.getStart() - startBeat, um);
+                n->setStartAndLength(tracktion::BeatPosition::fromBeats(startBeat),
+                                     tracktion::BeatDuration::fromBeats(beatRange.getStart() - startBeat), um);
                 continue;
             }
 
             if (startBeat < beatRange.getStart() && endBeat > beatRange.getEnd())
             {
-                n->setStartAndLength(startBeat,
-                                     beatRange.getStart() - startBeat, um);
+                n->setStartAndLength(tracktion::BeatPosition::fromBeats(startBeat),
+                                     tracktion::BeatDuration::fromBeats(beatRange.getStart() - startBeat), um);
                 clip->getSequence().addNote(noteNumb,
-                                            beatRange.getEnd(),
-                                            endBeat - beatRange.getEnd(),
+                                            tracktion::BeatPosition::fromBeats(beatRange.getEnd()),
+                                            tracktion::BeatDuration::fromBeats(endBeat - beatRange.getEnd()),
                                             n->getVelocity(),
                                             n->getColour(),
                                             um);
@@ -815,7 +815,7 @@ juce::Array<te::MidiNote*>
     juce::Array<te::MidiNote*> notesInRange;
 
     for(auto n : clip->getSequence().getNotes())
-        if (beatRange.intersects (n->getRangeBeats()))
+        if (beatRange.intersects ({ n->getStartBeat().inBeats(), n->getEndBeat().inBeats()}))
                 notesInRange.add(n);
 
     return notesInRange;
@@ -832,7 +832,7 @@ te::MidiClip* PianoRollContentComponent::getNearestClipBefore(int x)
     auto cPtr = getMidiClipsOfTrack().getFirst();
 
     for (auto c : getMidiClipsOfTrack())
-        if (c->getEndBeat() < xToBeats(x))
+        if (c->getEndBeat().inBeats() < xToBeats(x))
             if (c->getEndBeat() > cPtr->getEndBeat())
                 cPtr = c;
 
@@ -846,8 +846,8 @@ te::MidiClip* PianoRollContentComponent::getNearestClipAfter(int x)
     te::MidiClip* clip = nullptr;
 
     for (auto c : getMidiClipsOfTrack())
-        if (c->getStartBeat() > xToBeats(x)
-            && (clip == nullptr || clip->getStartBeat() > c->getStartBeat()))
+        if (c->getStartBeat().inBeats() > xToBeats(x)
+            && (clip == nullptr || clip->getStartBeat().inBeats() > c->getStartBeat().inBeats()))
                 clip = c;
 
     return clip;

@@ -89,7 +89,7 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (e.mouseWasDraggedSinceMouseDown ())
     {
-        auto offset = e.getMouseDownX () - timeToX (m_cachedPos.getStart ());
+        auto offset = e.getMouseDownX () - timeToX (m_cachedPos.getStart ().inSeconds());
         if (m_cachedClip)
         {
             if (m_leftResized)
@@ -102,9 +102,9 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
             }
             else
             {
-                auto newStart = m_editViewState.beatToTime (xToBeats (e.x - offset));
+                auto newStart = EngineHelpers::getTimePos(m_editViewState.beatToTime (xToBeats (e.x - offset)));
                 auto snaped = m_timelineComponent.getBestSnapType ().roundTimeDown (
-                            newStart, m_editViewState.m_edit.tempoSequence);
+                            EngineHelpers::getTimePos(newStart.inSeconds()), m_editViewState.m_edit.tempoSequence);
                 newStart = e.mods.isShiftDown () ? newStart
                                                  : snaped;
                 m_cachedClip->setStart (newStart, false, true);
@@ -133,8 +133,8 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
 {
     for (auto & clip : getMidiClipsOfTrack ())
     {
-        if (clip->getStartBeat () < xToBeats (x)
-                &&  clip->getEndBeat () > xToBeats (x))
+        if (clip->getStartBeat ().inBeats() < xToBeats (x)
+                &&  clip->getEndBeat ().inBeats() > xToBeats (x))
         {
             return clip;
         }
@@ -144,7 +144,7 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
 
 int TimelineOverlayComponent::timeToX(double time)
 {
-    auto beats = m_editViewState.m_edit.tempoSequence.timeToBeats (time);
+    auto beats = m_editViewState.m_edit.tempoSequence.toBeats(EngineHelpers::getTimePos(time)).inBeats();
     return juce::roundToInt (((beats - m_editViewState.m_pianoX1)
                               *  getWidth())
                              / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
@@ -164,8 +164,8 @@ void TimelineOverlayComponent::updateClipRects()
     {
         for (auto c : audiotrack->getClips ())
         {
-            auto startX = timeToX (c->getPosition ().getStart () );
-            auto endX = timeToX (c->getPosition ().getEnd ()) + 1;
+            auto startX = timeToX (c->getPosition ().getStart ().inSeconds() );
+            auto endX = timeToX (c->getPosition ().getEnd ().inSeconds()) + 1;
             juce::Rectangle<int> clipRect = {startX,getHeight () - (getHeight ()/3)
                                              , endX-startX, (getHeight() / 3)};
             m_clipRects.add(clipRect);
