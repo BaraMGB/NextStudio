@@ -327,7 +327,7 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
             {
                 auto ct = newClip->getClipTrack();
                 ct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
-                                  tracktion::TimeDuration::fromSeconds(newClip->getPosition().getLength())},
+                                  newClip->getPosition().getLength()},
                                   &m_editViewState.m_selectionManager);
 
                 newClip->moveToTrack(*targetTrack->getTrack());
