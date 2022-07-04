@@ -32,11 +32,20 @@ set_property(GLOBAL PROPERTY USE_FOLDERS YES)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Enable Module Source Groups" ON)
 
 
+add_subdirectory(../modules/tracktion_engine/modules/juce ./cmake_build_juce)                                   
+add_subdirectory(../modules/tracktion_engine/modules ./cmake_build_tracktion)
+
 
 add_subdirectory(resources)
 
 juce_add_gui_app(${TargetName} PRODUCT_NAME "NextStudio")
 juce_generate_juce_header(${TargetName})
+
+target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
+ 
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+     C_VISIBILITY_PRESET hidden
+     CXX_VISIBILITY_PRESET hidden)
 
 target_sources(${TargetName} PRIVATE
         Source/AutomationLaneComponent.cpp
@@ -97,12 +106,22 @@ target_compile_definitions (${TargetName} PUBLIC
 
 target_link_libraries(${TargetName} PRIVATE
         Pictures
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
+        #     juce::juce_recommended_config_flags
+        #     juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
-        juce::juce_gui_extra
-        tracktion_engine
+        juce::juce_audio_devices
+        juce::juce_audio_processors
+        juce::juce_audio_utils
+
+        tracktion::tracktion_core
+        tracktion::tracktion_engine
+        tracktion::tracktion_graph
 	)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
+endif()
+
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "-latomic")

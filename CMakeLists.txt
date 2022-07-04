@@ -8,11 +8,11 @@ option(JUCE_BUILD_EXTRAS "Build JUCE Examples" OFF)
 option(JUCE_BUILD_EXAMPLES "Build JUCE Extras" OFF)
 
 #adding juce as a subdirectory:
-add_subdirectory(modules/tracktion_engine/modules/juce)
-
-juce_add_modules(modules/tracktion_engine/modules/tracktion_engine)
-juce_add_modules(modules/tracktion_engine/modules/tracktion_graph)
-
+#add_subdirectory(modules/tracktion_engine/modules/juce)
+#add_subdirectory(modules/tracktion_engine)
+#juce_add_modules(modules/tracktion_engine/modules/tracktion_engine)
+#juce_add_modules(modules/tracktion_engine/modules/tracktion_graph)
+#juce_add_modules(modules/tracktion_engine/modules/tracktion_core)
 #adding project folders:
 add_subdirectory(App)
 
