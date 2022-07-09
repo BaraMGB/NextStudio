@@ -401,6 +401,7 @@ double PianoRollContentComponent::getQuantisedBeat(double beat, bool down) const
 {
     return m_editViewState.getQuantizedBeat(beat, getBestSnapType(), down);
 }
+//snapes relative to clip start
 double PianoRollContentComponent::getQuantisedNoteBeat(
     double beat,const te::MidiClip* c, bool down) const
 {

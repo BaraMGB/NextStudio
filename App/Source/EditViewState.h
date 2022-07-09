@@ -96,8 +96,8 @@ public:
         m_showChordTrack.referTo (m_state, IDs::showChordTrack, um, false);
         m_showArrangerTrack.referTo (m_state, IDs::showArranger, um, false);
         m_showMasterTrack.referTo(m_state, IDs::showMaster, um, false);
-        m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um, true);
-        m_showHeaders.referTo (m_state, IDs::showHeaders, um, true);
+        m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um, false);//true);
+        m_showHeaders.referTo (m_state, IDs::showHeaders, um,false);// true);
         m_showFooters.referTo (m_state, IDs::showFooters, um, false);
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
         m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
@@ -164,22 +164,22 @@ public:
     [[nodiscard]] double xToTime(int x, int width, double x1beats, double x2beats) const
     {
         return (double (x) / width)
-                * (beatToTime (x2beats) - beatToTime(x1beats)) + beatToTime (x1beats);
+                * (beatToTime (x2beats) - beatToTime(x1beats))
+                + beatToTime (x1beats);
     }
 
     [[nodiscard]] double beatToTime (double b) const
     {
-        auto& ts = m_edit.tempoSequence;
         auto bp = tracktion::core::BeatPosition::fromBeats(b);
-        return ts.beatsToTime(bp).inSeconds();
+        auto& ts = m_edit.tempoSequence;
+        return ts.toTime(bp).inSeconds();
     }
 
     [[nodiscard]] double timeToBeat (double t) const
     {
-
-        auto& ts = m_edit.tempoSequence;
         auto tp = tracktion::core::TimePosition::fromSeconds(t);
-        return ts.timeToBeats(tp).inBeats();
+        auto& ts = m_edit.tempoSequence;
+        return ts.toBeats(tp).inBeats();
     }
 
     [[nodiscard]] double getSnapedTime (
@@ -218,20 +218,18 @@ public:
 
         auto td = tracktion::core::TimeDuration::fromSeconds(x2time - x1time);
 
-        auto pos = m_edit.getTransport ().getCurrentPosition();
-        auto tp = tracktion::core::TimePosition::fromSeconds(pos); 
+        auto pos = m_edit.getTransport ().getPosition();
         te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat()
                 .getBestSnapType (
-                    m_edit.tempoSequence.getTempoAt (tp)
-                    , td 
+                    m_edit.tempoSequence.getTempoAt (pos)
+                    , td / width
                     , false);
         return snaptype;
     }
 
     [[nodiscard]] juce::String getSnapTypeDescription(int idx) const
     {
-
-        auto tp = tracktion::core::TimePosition::fromSeconds(m_edit.getTransport ().getCurrentPosition ()); 
+        auto tp = m_edit.getTransport ().getPosition (); 
         tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (tp);
         return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo, false);
     }
