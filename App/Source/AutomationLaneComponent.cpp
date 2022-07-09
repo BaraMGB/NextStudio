@@ -22,9 +22,11 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
     
     g.fillRect(juce::Rectangle<int>{ getXPos(range.getStart().inSeconds()), 0, getXPos(range.getEnd().inSeconds()) - getXPos(range.getStart().inSeconds()), getHeight() });
 
-    auto start =  m_editViewState.beatToTime(m_editViewState.m_viewX1);
-    auto end = m_editViewState.beatToTime(m_editViewState.m_viewX2);
-    paintCurves(g, start, end);
+    auto start =  tracktion::TimePosition::fromSeconds(m_editViewState.beatToTime(m_editViewState.m_viewX1));
+    auto end = tracktion::TimePosition::fromSeconds(m_editViewState.beatToTime(m_editViewState.m_viewX2));
+    auto s = m_curve.getPoint(m_curve.indexBefore(start)).time.inSeconds();
+    auto e = m_curve.getPoint(m_curve.nextIndexAfter(end)).time.inSeconds();
+    paintCurves(g, s, e);
 
     g.setColour(juce::Colour(0x66ffffff));
     g.drawHorizontalLine(0,0,getWidth());
