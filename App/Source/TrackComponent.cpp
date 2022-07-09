@@ -68,8 +68,7 @@ void TrackComponent::mouseDown (const juce::MouseEvent&e)
                     m_editViewState.m_viewX1,
                     m_editViewState.m_viewX2,
                     getWidth());
-
-                createNewMidiClip (m_editViewState.getQuantizedBeat(
+                    createNewMidiClip (m_editViewState.getQuantizedBeat(
                     xToBeats(e.x),
                     st,
                     true));
@@ -376,7 +375,6 @@ tracktion_engine::MidiClip::Ptr TrackComponent::createNewMidiClip(double beatPos
     {
         auto start = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime (beatPos)));
         auto end   = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime (beatPos)) + m_editViewState.beatToTime (4));
-
         tracktion::core::TimeRange newPos(start, end);
         at->deleteRegion(newPos, &m_editViewState.m_selectionManager);
 

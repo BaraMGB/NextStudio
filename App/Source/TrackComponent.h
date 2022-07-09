@@ -1,6 +1,8 @@
 #pragma once
 
+
 #include "../JuceLibraryCode/JuceHeader.h"
+
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "ClipComponent.h"
