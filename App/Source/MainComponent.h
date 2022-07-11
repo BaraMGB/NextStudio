@@ -48,27 +48,22 @@ private:
     void openValidStartEdit();
     void setupSideBrowser();
 
-    MenuBar                     m_menuBar;
 
-    std::unique_ptr<HeaderComponent> m_header;
-    juce::Label                      m_editNameLabel { "No Edit Loaded" };
-    NextLookAndFeel                  m_nextLookAndFeel;
+    std::unique_ptr<HeaderComponent>                    m_header;
+    NextLookAndFeel                                     m_nextLookAndFeel;
 
-    tracktion_engine::Engine m_engine
+    tracktion_engine::Engine                            m_engine
                                 { ProjectInfo::projectName
                                 , std::make_unique<ExtendedUIBehaviour>()
                                 , nullptr };
-    tracktion_engine::SelectionManager      m_selectionManager{ m_engine };
-    std::unique_ptr<tracktion_engine::Edit> m_edit;
-    std::unique_ptr<EditComponent>          m_editComponent;
-    ApplicationViewState &                  m_applicationState;
-    std::unique_ptr<SideBarBrowser>         m_sideBarBrowser;
-    juce::StretchableLayoutManager m_stretchableManager;
-    juce::StretchableLayoutResizerBar m_resizerBar
-                                            {&m_stretchableManager, 1, true};
-    [[maybe_unused]] bool m_settingsLoaded {false};
-
-// todo : into settings
-    const int c_headerHeight = 100;
+    tracktion_engine::SelectionManager                  m_selectionManager{ m_engine };
+    std::unique_ptr<tracktion_engine::Edit>             m_edit;
+    std::unique_ptr<EditComponent>                      m_editComponent;
+    ApplicationViewState &                              m_applicationState;
+    std::unique_ptr<SideBarBrowser>                     m_sideBarBrowser;
+    juce::StretchableLayoutManager                      m_stretchableManager;
+    juce::StretchableLayoutResizerBar                   m_resizerBar
+                                {&m_stretchableManager, 1, true};
+    [[maybe_unused]] bool                               m_settingsLoaded {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

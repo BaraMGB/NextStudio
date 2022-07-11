@@ -344,7 +344,6 @@ juce::String PlayHeadHelpers::barsBeatsString(
     int beat = pos.beats.inBeats() + 1;
     auto ticks = juce::roundToIntAccurate(pos.getFractionalBeats().inBeats() * 960);
 
-
     return juce::String(bars) + "."
             + juce::String(beat) + "."
             + juce::String::formatted("%03d", ticks);

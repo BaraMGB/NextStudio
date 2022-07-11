@@ -15,13 +15,8 @@ MainComponent::MainComponent(ApplicationViewState &state)
 
     openValidStartEdit();
 
-
-    addAndMakeVisible(m_menuBar);
-    addAndMakeVisible(m_editNameLabel);
     addAndMakeVisible(m_editComponent->lowerRange());
     addAndMakeVisible (m_resizerBar);
-
-    m_editNameLabel.setJustificationType (juce::Justification::centred);
 
     m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.15);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
@@ -41,29 +36,15 @@ void MainComponent::paint (juce::Graphics& g)
 {
     g.setColour (juce::Colour(0xff555555));
     g.fillRect (getLocalBounds ());
-    auto area = getLocalBounds();
-    area.reduce(10, 10);
-    auto header = area.removeFromTop(c_headerHeight).toFloat();
-    g.setColour(juce::Colour(0xff242424));
-    g.fillRoundedRectangle (
-                header.getX ()
-              , header.getY ()
-              , header.getWidth()
-              , header.getHeight()
-              , 10);
-}
+    }
 
 void MainComponent::resized()
 {
     auto area = getLocalBounds();
     area.reduce(10, 10);
 
-    auto header = area.removeFromTop(c_headerHeight);
-    auto menu = header.removeFromTop(header.getHeight() / 2);
-    menu.reduce(5, 5);
+    auto header = area.removeFromTop(60);
 
-    m_menuBar.setBounds(menu);
-    m_editNameLabel.setBounds(menu);
 
     m_header->setBounds(header);
     area.removeFromTop(10);
@@ -213,16 +194,9 @@ void MainComponent::valueTreePropertyChanged(
         m_header->updateLoopButton();
 
     if (vt.hasType (IDs::EDITVIEWSTATE))
-    {
-
-        if (property == te::IDs::name)
-            m_editNameLabel.setText (m_editComponent->getEditViewState ().m_editName
-                                   , juce::dontSendNotification);
-
         if (property == IDs::pianorollHeight
         || property == IDs::isPianoRollVisible)
             resized ();
-    }
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
@@ -247,10 +221,7 @@ void MainComponent::openValidStartEdit()
                                                       , false));
     auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
     for (auto & t : atList)
-    {
         m_edit->deleteTrack (t);
-    }
-
 }
 
 void MainComponent::setupSideBrowser()
@@ -266,9 +237,7 @@ void MainComponent::setupEdit(juce::File editFile)
     if(m_edit)
     {
         if(!handleUnsavedEdit ())
-        {
             return;
-        }
     }
     if (editFile == juce::File())
     {
@@ -302,8 +271,6 @@ void MainComponent::setupEdit(juce::File editFile)
               , m_applicationState
               , m_selectionManager);
     m_edit->state.addListener (this);
-    m_editNameLabel.setText (m_editComponent->getEditViewState ().m_editName
-                             , juce::dontSendNotification);
     addAndMakeVisible (*m_editComponent);
     addAndMakeVisible(m_editComponent->lowerRange());
     m_header = std::make_unique<HeaderComponent>(m_editComponent->getEditViewState (), m_applicationState);
@@ -356,22 +323,18 @@ void MainComponent::createTracksAndAssignInputs()
             wip->setStereoPair (false);
 
     for (int i = 0; i < dm.getNumWaveInDevices(); i++)
-    {
         if (auto wip = dm.getWaveInDevice (i))
         {
             wip->setEndToEnd (true);
             wip->setEnabled (true);
         }
-    }
 
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
-    {
         if (auto mip = dm.getMidiInDevice (i))
         {
             mip->setEndToEndEnabled (true);
             mip->setEnabled (true);
         }
-    }
 
     m_edit->getTransport().ensureContextAllocated();
     m_edit->restartPlayback();

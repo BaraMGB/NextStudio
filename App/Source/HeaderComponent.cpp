@@ -42,12 +42,12 @@ void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)
 {
     m_mousedownPosition = event.getMouseDownPosition ();
     m_mousedownBPM = m_edit.tempoSequence.getTempos ()[0]->getBpm ();
-    m_mousedownBarsBeats = m_edit.tempoSequence.toBeats(m_edit.getTransport ().getPosition ()).inBeats();
-    m_mousedownTime = m_edit.getTransport ().getCurrentPosition ();
-    m_mousedownNumerator = m_edit.tempoSequence.getTimeSigAt (EngineHelpers::getTimePos(m_mousedownTime)).numerator;
-    m_mousedownDenominator = m_edit.tempoSequence.getTimeSigAt (EngineHelpers::getTimePos(m_mousedownTime)).denominator;
-    m_mousedownLoopIn = m_edit.getTransport ().getLoopRange ().getStart ().inSeconds();
-    m_mousedownLoopOut = m_edit.getTransport ().getLoopRange ().getEnd ().inSeconds();
+    m_mousedownBeatPosition = m_edit.tempoSequence.toBeats(m_edit.getTransport ().getPosition ());
+    m_mousedownTime = m_edit.getTransport ().getPosition ();
+    m_mousedownNumerator = m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).numerator;
+    m_mousedownDenominator = m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator;
+    m_mousedownLoopIn = m_edit.tempoSequence.toBeats(m_edit.getTransport ().getLoopRange ().getStart ());
+    m_mousedownLoopOut = m_edit.tempoSequence.toBeats(m_edit.getTransport ().getLoopRange ().getEnd ());
 }
 
 void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
@@ -59,13 +59,13 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
     {
         auto r = m_bmpRect;
 
-        auto& tempo = m_edit.tempoSequence.getTempoAt (EngineHelpers::getTimePos(m_mousedownTime));
+        auto& tempo = m_edit.tempoSequence.getTempoAt (m_mousedownTime);
         tempo.setBpm (r.removeFromLeft (r.getWidth ()/2)
                       .contains (m_mousedownPosition)
                       ? (int) (m_mousedownBPM - (draggedDist / 10.0))
                       : m_mousedownBPM - (draggedDist / 1000.0));
         //set the Position back to the Beat Position on Mouse down
-        m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(tracktion::core::BeatPosition::fromBeats(m_mousedownBarsBeats)));
+        m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(m_mousedownBeatPosition));
     }
     else if (m_sigRect.contains (m_mousedownPosition))
     {
@@ -74,13 +74,13 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
                 .contains (m_mousedownPosition))
         {
             auto newNum = juce::jlimit (1,16, m_mousedownNumerator - draggedDist);
-            m_edit.tempoSequence.getTimeSigAt (EngineHelpers::getTimePos(m_mousedownTime)).numerator
+            m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).numerator
                     = newNum;
         }
         else
         {
             auto newDen = juce::jlimit ( 1,16, m_mousedownDenominator - draggedDist);
-            m_edit.tempoSequence.getTimeSigAt (EngineHelpers::getTimePos(m_mousedownTime)).denominator
+            m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator
                     = newDen;
         }
     }
@@ -90,70 +90,71 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         auto leftRect   = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
 
-        auto divisor = leftRect.contains (m_mousedownPosition)
-                ? 0.25
-                : centerRect.contains (m_mousedownPosition)
-                    ? 1.0
-                    : 960.0;
-        m_edit.getTransport ()
-                .setCurrentPosition (
-                    draggedNewTime (draggedDist
-                                    , m_mousedownTime
-                                    , divisor
-                                    , true));
+        if (leftRect.contains(m_mousedownPosition))
+            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
+                        m_mousedownBeatPosition 
+                        - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist ))));
+        else if (centerRect.contains(m_mousedownPosition))
+            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
+                        m_mousedownBeatPosition 
+                        - (tracktion::BeatDuration::fromBeats( draggedDist ))));
+        else
+            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
+                        m_mousedownBeatPosition 
+                        - (tracktion::BeatDuration::fromBeats((double)draggedDist/960.0 ))));
     }
     else if (m_timeRect.contains (m_mousedownPosition))
     {
         auto r = m_timeRect;
         auto leftRect   = r.removeFromLeft (m_timeRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_timeRect.getWidth ()/3);
-        auto divisor = leftRect.contains (m_mousedownPosition)
-                ? 1/60.0
-                : centerRect.contains (m_mousedownPosition)
-                    ? 1.0
-                    : 1000.0;
-        m_edit.getTransport ()
-                .setCurrentPosition (
-                    draggedNewTime (draggedDist
-                                    , m_mousedownTime
-                                    , divisor
-                                    , false));
+
+        if (leftRect.contains(m_mousedownPosition))
+            m_edit.getTransport ()
+                    .setPosition(m_mousedownTime - std::chrono::duration<double>(draggedDist*60));
+        if (leftRect.contains(m_mousedownPosition))
+            m_edit.getTransport ()
+                    .setPosition(m_mousedownTime - std::chrono::duration<double>(draggedDist));
+        else
+            m_edit.getTransport ()
+                    .setPosition(m_mousedownTime - std::chrono::duration<double>((double)draggedDist/1000));
     }
     else if (m_loopInrect.contains (m_mousedownPosition))
     {
         auto r = m_loopInrect;
         auto leftRect   = r.removeFromLeft (m_loopInrect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_loopInrect.getWidth ()/3);
+        if (leftRect.contains(m_mousedownPosition))
+            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(
+                        m_mousedownLoopIn 
+                        - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist ))));
+        else if (centerRect.contains(m_mousedownPosition))
+            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(
+                        m_mousedownLoopIn 
+                        - (tracktion::BeatDuration::fromBeats( draggedDist ))));
+        else
+            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(
+                        m_mousedownLoopIn 
+                        - (tracktion::BeatDuration::fromBeats((double)draggedDist/960.0 ))));
 
-        auto divisor = leftRect.contains (m_mousedownPosition)
-                ? 0.25
-                : centerRect.contains (m_mousedownPosition)
-                    ? 1.0
-                    : 960.0;
-        m_edit.getTransport ()
-                .setLoopIn (EngineHelpers::getTimePos(
-                    draggedNewTime (draggedDist
-                                    , m_mousedownLoopIn
-                                    , divisor
-                                    , true)));
     }
     else if (m_loopOutRect.contains (m_mousedownPosition))
     {
         auto r = m_loopOutRect;
         auto leftRect   = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
-
-        auto divisor = leftRect.contains (m_mousedownPosition)
-                ? 0.25
-                : centerRect.contains (m_mousedownPosition)
-                    ? 1.0
-                    : 960.0;
-        m_edit.getTransport ()
-                .setLoopOut (EngineHelpers::getTimePos(
-                    draggedNewTime (draggedDist
-                                    , m_mousedownLoopOut
-                                    , divisor
-                                    , true)));
+        if (leftRect.contains(m_mousedownPosition))
+            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
+                        m_mousedownLoopOut 
+                        - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist ))));
+        else if (centerRect.contains(m_mousedownPosition))
+            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
+                        m_mousedownLoopOut 
+                        - (tracktion::BeatDuration::fromBeats( draggedDist ))));
+        else
+            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
+                        m_mousedownLoopOut 
+                        - (tracktion::BeatDuration::fromBeats((double)draggedDist/960.0 ))));
     }
 }
 
@@ -198,29 +199,6 @@ void PositionDisplayComponent::update()
     m_loopOutLabel.setText (positionStr.loopOut, nt);
 }
 
-double PositionDisplayComponent::draggedNewTime(
-          int draggedDistance
-        , double timeAtMouseDown
-        , double unitfactor
-        , bool inBeat
-        , int dragfactor) const
-{
-/*    te::TempoSequencePosition pos(m_edit.tempoSequence);
-    pos.setTime (timeAtMouseDown);
-    if (inBeat)
-    {
-        pos.addBeats (((double) Helpers::invert(draggedDistance) / dragfactor)
-                      / unitfactor);
-    }
-    else
-    {
-        pos.setTime (timeAtMouseDown +
-                ((double) Helpers::invert(draggedDistance) / dragfactor)
-                     / unitfactor);
-    }
-    return pos.getTime ();*/
-    return 0.0;
-}
 
 
 
@@ -290,6 +268,17 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
 
 HeaderComponent::~HeaderComponent()
 = default;
+void HeaderComponent::paint(juce::Graphics &g)
+{
+    auto area = getLocalBounds();
+    g.setColour(juce::Colour(0xff242424));
+    g.fillRoundedRectangle (
+                area.getX ()
+              , area.getY ()
+              , area.getWidth()
+              , area.getHeight()
+              , 10);
+}
 
 void HeaderComponent::resized()
 {
@@ -303,9 +292,7 @@ void HeaderComponent::resized()
     juce::FlexBox settings    = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
     juce::FlexBox container   = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
 
-    area.removeFromBottom(gap);
-    area.reduce(gap, 0);
-    auto buttonSize = area.getHeight();
+    auto buttonSize = area.getHeight() - (gap*2);
 
     addButtonsToFlexBox(fileButtons
                         , {&m_newButton, &m_loadButton, &m_saveButton}

@@ -31,11 +31,6 @@ public:
 
     void update();
 
-    [[nodiscard]] double draggedNewTime(int draggedDistance
-                          , double timeAtMouseDown
-                          , double unitfactor
-                          , bool inBeat
-                          , int dragfactor=10) const;
 private:
     te::Edit& m_edit;
     juce::Rectangle<int> m_bmpRect
@@ -53,10 +48,14 @@ private:
 
     juce::Point<int>     m_mousedownPosition;
 
-    double               m_mousedownBPM{}
-                       , m_mousedownBarsBeats{}, m_mousedownTime{}
-                       , m_mousedownLoopIn{}
-                       , m_mousedownLoopOut{};
+    double               m_mousedownBPM{};
+    tracktion::TimePosition 
+                         m_mousedownTime;
+    tracktion::BeatPosition
+                         m_mousedownBeatPosition
+                       , m_mousedownLoopIn
+                       , m_mousedownLoopOut;
+
 
     int                  m_mousedownNumerator{}
                        , m_mousedownDenominator{};
@@ -74,6 +73,7 @@ public:
     HeaderComponent(EditViewState &, ApplicationViewState & applicationState);
     ~HeaderComponent() override;
 
+    void paint(juce::Graphics &g) override;
     void resized() override;
     void buttonClicked(juce::Button* button) override;
     void timerCallback() override;
