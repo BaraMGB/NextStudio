@@ -255,10 +255,7 @@ void GUIHelpers::drawSnapLines(juce::Graphics& g,
                                const juce::Colour& colour)
 {
     auto snapType = evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth());
-    double beatDelta = getSnapBeats(snapType);
-
     auto it = 0.0;
-
 
     while (it <= x2beats)
     {
@@ -268,7 +265,10 @@ void GUIHelpers::drawSnapLines(juce::Graphics& g,
             auto x = evs.beatsToX(it, boundingRect.getWidth(), x1beats, x2beats);
             g.drawVerticalLine(x, 0, boundingRect.getHeight());
         }
-        it = it + beatDelta;
+
+        auto& tempo = evs.m_edit.tempoSequence.getTempoAt(tracktion::BeatPosition::fromBeats(it));
+        auto delta = evs.timeToBeat(snapType.getApproxIntervalTime(tempo).inSeconds());
+        it = it + delta;
     }
 }
 void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
@@ -305,21 +305,6 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
         i += shadowDelta;
     }
 }
-double GUIHelpers::getSnapBeats(const te::TimecodeSnapType& snapType)
-{
-    double beatDelta = 1024;
-    auto l = 18;
-    while (l > snapType.getLevel())
-    {
-        l--;
-        beatDelta = beatDelta / 2;
-    }
-    if (snapType.getLevel() < 10)
-    {
-        beatDelta = beatDelta / 2;
-    }
-    return beatDelta;
-}
 
 juce::String PlayHeadHelpers::timeToTimecodeString(double seconds)
 {
@@ -333,20 +318,23 @@ juce::String PlayHeadHelpers::timeToTimecodeString(double seconds)
                                     absMillisecs % 1000);
 }
 
+juce::StringArray PlayHeadHelpers::getTimeCodeParts(
+        tracktion_engine::Edit &edit
+      , double time)
+{
+    auto st = tracktion::TimePosition::fromSeconds(time);
+    auto timeCode = edit.getTimecodeFormat().getString(edit.tempoSequence, st, false);
+
+    juce::StringArray parts;
+    parts.addTokens(timeCode, "|", "");
+
+    return parts;
+}
 juce::String PlayHeadHelpers::barsBeatsString(
         tracktion_engine::Edit &edit
       , double time)
 {
-    
-    const auto pos = edit.tempoSequence.toBarsAndBeats(tracktion::TimePosition::fromSeconds(time));
-
-    int bars = pos.bars + 1;
-    int beat = pos.beats.inBeats() + 1;
-    auto ticks = juce::roundToIntAccurate(pos.getFractionalBeats().inBeats() * 960);
-
-    return juce::String(bars) + "."
-            + juce::String(beat) + "."
-            + juce::String::formatted("%03d", ticks);
+    return getTimeCodeParts(edit, time).joinIntoString(".");
 }
 
 te::AudioTrack::Ptr EngineHelpers::getAudioTrack(te::Track::Ptr track, EditViewState& evs)

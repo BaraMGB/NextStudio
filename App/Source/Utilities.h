@@ -147,6 +147,7 @@ namespace GUIHelpers
 namespace PlayHeadHelpers
 {
     juce::String timeToTimecodeString (double seconds);
+    juce::StringArray getTimeCodeParts(te::Edit & edit, double time);
     juce::String barsBeatsString (te::Edit & edit, double time);
 
     struct TimeCodeStrings{

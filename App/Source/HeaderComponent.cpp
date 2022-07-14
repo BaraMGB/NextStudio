@@ -1,6 +1,5 @@
 #include "HeaderComponent.h"
 #include "Utilities.h"
-
 PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit)
     : m_edit(edit)
 {
@@ -64,7 +63,7 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
                       .contains (m_mousedownPosition)
                       ? (int) (m_mousedownBPM - (draggedDist / 10.0))
                       : m_mousedownBPM - (draggedDist / 1000.0));
-        //set the Position back to the Beat Position on Mouse down
+        //set the Position back to the Beat Position at Mouse down
         m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(m_mousedownBeatPosition));
     }
     else if (m_sigRect.contains (m_mousedownPosition))
@@ -72,35 +71,38 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         auto r = m_sigRect;
         if (r.removeFromLeft (r.getWidth ()/2)
                 .contains (m_mousedownPosition))
-        {
-            auto newNum = juce::jlimit (1,16, m_mousedownNumerator - draggedDist);
             m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).numerator
-                    = newNum;
-        }
+                    = juce::jlimit (1,16, m_mousedownNumerator - draggedDist);
         else
-        {
-            auto newDen = juce::jlimit ( 1,16, m_mousedownDenominator - draggedDist);
             m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator
-                    = newDen;
-        }
+                    = juce::jlimit (1,16, m_mousedownDenominator - draggedDist);
     }
     else if (m_barBeatTickRect.contains (m_mousedownPosition))
     {
+
+        auto timeAtMd = m_edit.tempoSequence.toTime(m_mousedownBeatPosition);
+        te::TimecodeSnapType snapType;
+        snapType.type = te::TimecodeType::barsBeats;
+        snapType.level = 0;
+
+
+        auto snapedTime = snapType.roundTimeNearest(timeAtMd, m_edit.tempoSequence);
+        auto snapedBeat = m_edit.tempoSequence.toBeats(snapedTime);
         auto r = m_barBeatTickRect;
         auto leftRect   = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
 
         if (leftRect.contains(m_mousedownPosition))
             m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
-                        m_mousedownBeatPosition 
+                        snapedBeat
                         - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist ))));
         else if (centerRect.contains(m_mousedownPosition))
             m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
-                        m_mousedownBeatPosition 
+                        snapedBeat 
                         - (tracktion::BeatDuration::fromBeats( draggedDist ))));
         else
             m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
-                        m_mousedownBeatPosition 
+                        snapedBeat 
                         - (tracktion::BeatDuration::fromBeats((double)draggedDist/960.0 ))));
     }
     else if (m_timeRect.contains (m_mousedownPosition))
@@ -111,13 +113,13 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
 
         if (leftRect.contains(m_mousedownPosition))
             m_edit.getTransport ()
-                    .setPosition(m_mousedownTime - std::chrono::duration<double>(draggedDist*60));
-        if (leftRect.contains(m_mousedownPosition))
+                    .setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds(draggedDist*60));
+        if (centerRect.contains(m_mousedownPosition))
             m_edit.getTransport ()
-                    .setPosition(m_mousedownTime - std::chrono::duration<double>(draggedDist));
+                    .setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds(draggedDist));
         else
             m_edit.getTransport ()
-                    .setPosition(m_mousedownTime - std::chrono::duration<double>((double)draggedDist/1000));
+                    .setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds((double)draggedDist/1000));
     }
     else if (m_loopInrect.contains (m_mousedownPosition))
     {
@@ -143,6 +145,7 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         auto r = m_loopOutRect;
         auto leftRect   = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
         auto centerRect = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
+     
         if (leftRect.contains(m_mousedownPosition))
             m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
                         m_mousedownLoopOut 
@@ -150,7 +153,7 @@ void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
         else if (centerRect.contains(m_mousedownPosition))
             m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
                         m_mousedownLoopOut 
-                        - (tracktion::BeatDuration::fromBeats( draggedDist ))));
+                        - (tracktion::BeatDuration::fromBeats(draggedDist))));
         else
             m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
                         m_mousedownLoopOut 

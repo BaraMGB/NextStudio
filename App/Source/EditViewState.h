@@ -187,16 +187,12 @@ public:
           , te::TimecodeSnapType snapType
           , bool downwards = false) const
     {
-        auto & transport = m_edit.getTransport ();
         auto & temposequ = m_edit.tempoSequence;
 
         auto tp = tracktion::core::TimePosition::fromSeconds(t);
-        transport.setSnapType ({te::TimecodeType::barsBeats, snapType.getLevel ()});
         return downwards
-                ? transport.getSnapType ()
-                  .roundTimeDown (tp, temposequ).inSeconds()
-                : transport.getSnapType ()
-                  .roundTimeNearest (tp, temposequ).inSeconds();
+                ? snapType.roundTimeDown (tp, temposequ).inSeconds()
+                : snapType.roundTimeNearest (tp, temposequ).inSeconds();
     }
 
     [[nodiscard]] double getQuantizedBeat(double beat, te::TimecodeSnapType snapType, bool downwards = false) const
