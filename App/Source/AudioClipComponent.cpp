@@ -1,7 +1,5 @@
 #include "AudioClipComponent.h"
 
-#include <utility>
-
 AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : ClipComponent (evs, std::move(c))
 {
@@ -28,7 +26,8 @@ int AudioClipComponent::getDrawingStartX()
 {
     auto left = ((getX() < 0
                          ? Helpers::invert (getX())
-                         : 0) - getViewportOffset ());
+                         : getMargin())
+                - getViewportOffset ());
 
     return left;
 }
@@ -38,7 +37,7 @@ int AudioClipComponent::getDrawingEndX()
     auto clipendX = getX() + getWidth();
     auto cutAtViewportEnd = (clipendX > getViewportEnd()
                           ?  clipendX - getViewportEnd ()
-                          :  0);
+                          :  getMargin());
     auto right = getWidth () - cutAtViewportEnd - getViewportOffset ();
 
     return right;
@@ -67,7 +66,7 @@ void AudioClipComponent::paint (juce::Graphics& g)
 {
     ClipComponent::paint (g);
 
-    auto rect = getDrawingRect ().reduced (2, 0);
+    auto rect = getDrawingRect ();
 
     if (m_editViewState.m_drawWaveforms && thumbnail)
     {

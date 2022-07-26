@@ -96,7 +96,7 @@ public:
         m_showChordTrack.referTo (m_state, IDs::showChordTrack, um, false);
         m_showArrangerTrack.referTo (m_state, IDs::showArranger, um, false);
         m_showMasterTrack.referTo(m_state, IDs::showMaster, um, false);
-        m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um, false);//true);
+        m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um,/* false);*/true);
         m_showHeaders.referTo (m_state, IDs::showHeaders, um,false);// true);
         m_showFooters.referTo (m_state, IDs::showFooters, um, false);
         m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);

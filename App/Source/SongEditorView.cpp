@@ -84,7 +84,7 @@ void SongEditorView::itemDragMove(
     {
         const auto dropPos = dragSourceDetails.localPosition;
         int verticalOffset = getVerticalOffset(dragSourceDetails, dropPos);
-        m_draggedTimeDelta = xtoTime(dropPos.getX() - draggedClip->getClipPosOffsetX()) - draggedClip->getClip()->getPosition().getStart().inSeconds();
+        m_draggedTimeDelta = xtoTime(dropPos.getX() - draggedClip->getClickPosOffsetX()) - draggedClip->getClip()->getPosition().getStart().inSeconds();
 
         if (draggedClip->isResizeLeft() || draggedClip->isResizeRight())
         {
@@ -98,123 +98,10 @@ void SongEditorView::itemDragMove(
         }
     }
 }
-
-void SongEditorView::drawDraggingOverlays (const ClipComponent *draggedClip, const juce::Point<int> &dropPos,
-                                           int verticalOffset)
-{
-    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-    for (auto sc: selectedClips)
-    {
-        if (auto newTrackForSelectedClip = getTrackForClip (verticalOffset, sc))
-        {
-            bool isValid = trackWantsClip (sc, newTrackForSelectedClip);
-
-            if (auto selectedClipView = getClipComponentForClip (sc))
-            {
-                auto startOffsetX = selectedClipView->getPosition().x - draggedClip->getPosition().x;
-
-                newTrackForSelectedClip->getTrackOverlay().m_imageList.add(
-                        getClipOverlayImage (isValid, selectedClipView, startOffsetX));
-
-                auto insertPos = dropPos.getX() - draggedClip->getClipPosOffsetX();
-                int snapedX = getSnapedX (insertPos);
-
-                insertPos = draggedClip->isShiftDown() ? insertPos : snapedX;
-
-                newTrackForSelectedClip->getTrackOverlay().drawImages(insertPos);
-            }
-        }
-    }
-}
-
-void SongEditorView::drawResizingOverlays (const ClipComponent *draggedClip)
-{
-    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-    for (auto sc: selectedClips)
-    {
-        auto newStart = sc->getPosition().getStart().inSeconds();
-        auto newEnd = sc->getPosition().getEnd().inSeconds();
-
-        if (draggedClip->isResizeRight())
-        {
-            newEnd = newEnd + m_draggedTimeDelta;
-            if (!draggedClip->isShiftDown())
-                newEnd = getSnapedTime (newEnd);
-        }
-        else
-        {
-            double clipStart = sc->getPosition ().getStart ().inSeconds() - sc->getPosition ().getOffset ().inSeconds();
-            newStart = juce::jmax (clipStart, newStart + m_draggedTimeDelta);
-
-            if (!draggedClip->isShiftDown())
-                newStart = juce::jmax (clipStart, getSnapedTime (newStart));
-        }
-
-        if (auto track = getTrackForClip (0, sc))
-        {
-            track->getTrackOverlay().addResizingImage (timeToX (newStart), timeToX (newEnd));
-            track->getTrackOverlay().drawImages (0);
-        }
-    }
-}
-
-TrackComponent *SongEditorView::getTrackForClip(int verticalOffset, const te::Clip *clip)
-{
-    auto idx = m_trackViews.indexOf(&getTrackView(clip->getTrack()));
-    return m_trackViews[idx + verticalOffset];
-}
-int SongEditorView::getVerticalOffset(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails,
-    const juce::Point<int>& dropPos)
-{
-    auto targetTrackComp = getTrackComponent(dropPos.getY ());
-    auto sourceTrackComp = dynamic_cast<TrackComponent*>
-        (dragSourceDetails.sourceComponent.get()->getParentComponent ());
-	if (targetTrackComp)
-	{
-		auto verticalOffset = m_trackViews.indexOf(targetTrackComp)
-		                    - m_trackViews.indexOf(sourceTrackComp);
-		return verticalOffset;
-	}
-	return 0;
-}
-int SongEditorView::getSnapedX(int x, bool down) const
-{
-    auto snapType = m_editViewState.getBestSnapType(
-        m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
-    int snapedX = m_editViewState.snapedX(x, getWidth(),
-                                          snapType, m_editViewState.m_viewX1, m_editViewState.m_viewX2, down);
-    return snapedX;
-}
-TrackOverlayComponent::OverlayImage SongEditorView::getClipOverlayImage(bool isValid,
-                                                      ClipComponent* clipView,
-                                                      int xDelta) const
-{
-    auto clipViewRect = juce::Rectangle<int>(0,
-                                             0,
-                                             clipView->getWidth(),
-                                             clipView->getHeight());
-    const juce::Image& image =
-        clipView->createComponentSnapshot(clipViewRect,
-                                                  false);
-    TrackOverlayComponent::OverlayImage
-        overlayImage (image, xDelta, isValid);
-
-    return overlayImage;
-}
-bool SongEditorView::trackWantsClip(const te::Clip* clip,
-                                    const TrackComponent* track) const
-{
-    if (track->getTrack()->isFolderTrack())
-        return false;
-
-    return
-        clip->isMidi() ==
-        static_cast<bool>(track->getTrack()->state.getProperty( IDs::isMidiTrack));
-}
 void SongEditorView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
+    turnoffAllTrackOverlays();
     auto dropPos = dragSourceDetails.localPosition;
     m_cachedEditLength = m_editViewState.m_edit.getLength().inSeconds() * 100 ;
     auto dropTime = m_editViewState.xToTime (
@@ -274,6 +161,103 @@ void SongEditorView::itemDropped(
 
     m_draggedTimeDelta = 0;
     setMouseCursor (juce::MouseCursor::NormalCursor);
+}
+void SongEditorView::itemDragExit(const juce::DragAndDropTarget::SourceDetails&)
+{
+    turnoffAllTrackOverlays();
+}
+
+void SongEditorView::drawDraggingOverlays (const ClipComponent *draggedClip, const juce::Point<int> &dropPos,
+                                           int verticalOffset)
+{
+    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+    for (auto sc: selectedClips)
+    {
+        if (auto newTrackForSelectedClip = getTrackForClip (verticalOffset, sc))
+        {
+            bool isValid = trackWantsClip (sc, newTrackForSelectedClip);
+
+            if (auto selectedClipView = getClipComponentForClip (sc))
+            {
+                auto startOffsetX = selectedClipView->getPosition().x - draggedClip->getPosition().x;
+                auto insertPos = dropPos.getX() - draggedClip->getClickPosOffsetX();
+                insertPos = draggedClip->isShiftDown() ? insertPos : getSnapedX(insertPos);
+
+                newTrackForSelectedClip->addDraggedClip(isValid, insertPos + startOffsetX, selectedClipView->getWidth(), false); 
+                newTrackForSelectedClip->repaint();
+            }
+        }
+    }
+}
+
+void SongEditorView::drawResizingOverlays (const ClipComponent *draggedClip)
+{
+    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+    for (auto sc: selectedClips)
+    {
+        auto newStart = sc->getPosition().getStart().inSeconds();
+        auto newEnd = sc->getPosition().getEnd().inSeconds();
+
+        if (draggedClip->isResizeRight())
+        {
+            newEnd = newEnd + m_draggedTimeDelta;
+            if (!draggedClip->isShiftDown())
+                newEnd = getSnapedTime (newEnd);
+        }
+        else
+        {
+            double clipStart = sc->getPosition ().getStart ().inSeconds() - sc->getPosition ().getOffset ().inSeconds();
+            newStart = juce::jmax (clipStart, newStart + m_draggedTimeDelta);
+
+            if (!draggedClip->isShiftDown())
+                newStart = juce::jmax (clipStart, getSnapedTime (newStart));
+        }
+
+        if (auto track = getTrackForClip (0, sc))
+        {
+            track->addDraggedClip(true, timeToX(newStart), timeToX(newEnd) - timeToX(newStart), true);
+            track->repaint();
+        }
+    }
+}
+
+TrackComponent *SongEditorView::getTrackForClip(int verticalOffset, const te::Clip *clip)
+{
+    auto idx = m_trackViews.indexOf(&getTrackView(clip->getTrack()));
+    return m_trackViews[idx + verticalOffset];
+}
+int SongEditorView::getVerticalOffset(
+    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails,
+    const juce::Point<int>& dropPos)
+{
+    auto targetTrackComp = getTrackComponent(dropPos.getY ());
+    auto sourceTrackComp = dynamic_cast<TrackComponent*>
+        (dragSourceDetails.sourceComponent.get()->getParentComponent ());
+	if (targetTrackComp)
+	{
+		auto verticalOffset = m_trackViews.indexOf(targetTrackComp)
+		                    - m_trackViews.indexOf(sourceTrackComp);
+		return verticalOffset;
+	}
+	return 0;
+}
+int SongEditorView::getSnapedX(int x, bool down) const
+{
+    auto snapType = m_editViewState.getBestSnapType(
+        m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
+    int snapedX = m_editViewState.snapedX(x, getWidth(),
+                                          snapType, m_editViewState.m_viewX1, m_editViewState.m_viewX2, down);
+    return snapedX;
+}
+bool SongEditorView::trackWantsClip(const te::Clip* clip,
+                                    const TrackComponent* track) const
+{
+    if (track->getTrack()->isFolderTrack())
+        return false;
+
+    return
+        clip->isMidi() ==
+        static_cast<bool>(track->getTrack()->state.getProperty( IDs::isMidiTrack));
 }
 
 void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedClip, int verticalOffset)
@@ -411,9 +395,6 @@ double SongEditorView::getPasteTime(double dropTime,
                                : snapedTime - firstClipTime.inSeconds();
     return pasteTime;
 }
-void SongEditorView::itemDragExit(const juce::DragAndDropTarget::SourceDetails&)
-{
-}
 TrackComponent* SongEditorView::getTrackComponent(int y)
 {	
 	if (m_trackViews.isEmpty())
@@ -541,8 +522,7 @@ void SongEditorView::turnoffAllTrackOverlays()
 {
     for (auto &tc : getTrackComps ())
     {
-        tc->getTrackOverlay ().m_imageList.clear();
-        tc->getTrackOverlay ().setVisible (false);
+        tc->clearDraggedClips();
     }
 }
 

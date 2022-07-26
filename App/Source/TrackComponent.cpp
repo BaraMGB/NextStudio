@@ -1,6 +1,5 @@
 #include "TrackComponent.h"
 #include "EditComponent.h"
-//#include <utility>
 
 
 TrackComponent::TrackComponent (EditViewState& evs, LowerRangeComponent& lr, te::Track::Ptr t)
@@ -14,9 +13,6 @@ TrackComponent::TrackComponent (EditViewState& evs, LowerRangeComponent& lr, te:
     m_track->edit.getTransport().addChangeListener (this);
 
     markAndUpdate (updateClips);
-    addAndMakeVisible(m_trackOverlay);
-    m_trackOverlay.setAlwaysOnTop(true);
-    m_trackOverlay.setVisible(false);
 }
 
 TrackComponent::~TrackComponent()
@@ -31,7 +27,7 @@ void TrackComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds ();
     area.reduce (0, 1);
-    g.setColour(juce::Colour(0xff181818));
+    g.setColour(juce::Colour(0xff505050));
     g.fillRect (area);
 
     double x2beats = m_editViewState.m_viewX2;
@@ -39,11 +35,20 @@ void TrackComponent::paint (juce::Graphics& g)
 
     if (isSelected ())
     {
-        g.setColour(juce::Colour(0xff242424));
+        g.setColour(juce::Colour(0xff505050));
         g.fillRect(area);
     }
 
-    GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, x1beats, x2beats, getBounds ());
+    if (m_track->isFolderTrack())
+    {
+        g.setColour(juce::Colour(0xff000000));
+        g.fillRect (area);
+    }
+    else
+    {
+        GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, x1beats, x2beats, getBounds ());
+    }
+
     if (isOver)
     {
         g.setColour(juce::Colours::white);
@@ -51,6 +56,43 @@ void TrackComponent::paint (juce::Graphics& g)
     }
 }
 
+void TrackComponent::paintOverChildren (juce::Graphics& g)
+{
+    drawDraggingOverlays(g);
+}
+void TrackComponent::drawDraggingOverlays(juce::Graphics& g)
+{
+    for (auto oc : m_overlayClips)
+    {
+        auto s = juce::jmax(-5,oc->getClipBounds().getX()) ;
+        auto w = juce::jmin(getWidth() + 5, oc->getClipBounds().getRight()) - s;
+
+        if (oc->isResizing())
+        {
+            g.setColour(juce::Colours::gainsboro);
+            g.drawRect(s, 0, w, getClipHeight(), 2); 
+        }
+        else
+        {
+            auto area = juce::Rectangle<int>(s, 0, w, getClipHeight());  
+            auto clipColor = m_track->getColour();
+            auto innerGlow = clipColor.brighter(0.5f);
+            auto borderColour = juce::Colour(0xff000000);
+        
+            g.setColour (borderColour);
+            g.fillRect (area);
+        
+            g.setColour (innerGlow);
+            area.reduce (1, 1);
+            g.fillRect (area);
+        
+            g.setColour (clipColor);                                                                                                                                                                                 
+            area.reduce (1, 1);
+            g.fillRect (area);
+
+        }
+    }
+}
 void TrackComponent::mouseDown (const juce::MouseEvent&e)
 {
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
@@ -209,18 +251,10 @@ void TrackComponent::resized()
         {
             int startX = m_editViewState.beatsToX (c->getStartBeat ().inBeats(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             int endX = m_editViewState.beatsToX (c->getEndBeat ().inBeats(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-            int clipHeight = (bool) m_track->state.getProperty (IDs::isTrackMinimized)
-                    ? (int) m_editViewState.m_trackHeightMinimized
-                    : (int) m_track->state.getProperty(
-                          tracktion_engine::IDs::height, 50);
-
+            auto clipHeight = getClipHeight(); 
             cc->setBounds (startX, 0, endX - startX + 1, clipHeight);
         }
     }
-    m_trackOverlay.setBounds(0, 0, getWidth(), (bool) m_track->state.getProperty (IDs::isTrackMinimized)
-                    ? (int) m_editViewState.m_trackHeightMinimized
-                    : (int) m_track->state.getProperty(
-                          tracktion_engine::IDs::height, 50));
 
     double nextLaneStart = m_track->state.getProperty(
                 tracktion_engine::IDs::height);
@@ -390,9 +424,13 @@ bool TrackComponent::isSelected()
 {
     return m_editViewState.m_selectionManager.getItemsOfType<te::Track>().contains (m_track);
 }
-TrackOverlayComponent& TrackComponent::getTrackOverlay()
+int TrackComponent::getClipHeight()
 {
-    return m_trackOverlay;
+    int clipHeight = (bool) m_track->state.getProperty (IDs::isTrackMinimized)
+                    ? (int) m_editViewState.m_trackHeightMinimized
+                    : (int) m_track->state.getProperty(
+                          tracktion_engine::IDs::height, 50);
+    return clipHeight;
 }
 bool TrackComponent::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {

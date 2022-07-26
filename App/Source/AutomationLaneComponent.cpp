@@ -131,52 +131,6 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, double start, doubl
     g.setColour(juce::Colours::white);
     g.strokePath(hoveredDot, juce::PathStrokeType(lineThickness));
 }
-void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
-{
-    auto timeHovered = getTime(e.x);
-    auto valueHovered = (float) getValue (e.y);
-
-
-    m_hoveredPoint = getIndexOfHoveredPoint (e);
-    m_selectingTime = false;
-    m_moveSelection = false;
-    m_hoveredCurve = -1;
-    if (m_hoveredPoint == -1)
-    {
-        auto ht = tracktion::core::TimePosition::fromSeconds(timeHovered);
-        int yPosAtHoveredTime = getYPos(m_curve.getValueAt(ht));
-        m_hoveredRect = {e.x - getPointWidth ()/2
-                         , yPosAtHoveredTime - getPointWidth ()/2
-                         , getPointWidth ()
-                             , getPointWidth ()};
-        auto nearestPoint = m_curve.getNearestPoint (ht, valueHovered , xToYRatio ());
-
-        m_isVertical = m_curve.getPoint (nearestPoint).time == ht;
-
-        if (m_hoveredRect.contains (e.x, e.y)
-            || m_isVertical
-            || ((isBeyondLastPoint (timeHovered, valueHovered)) && m_hoveredRect.contains (e.x, e.y)))
-        {
-            m_hoveredCurve = nearestPoint;
-            m_hoveredTime = timeHovered;
-        }
-        else
-        {
-           m_hoveredTime = 0;
-            m_hoveredRect = {0,0,0,0};
-        }
-    }
-    if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
-    {
-        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
-        m_hoveredRect = {0,0,0,0};
-    }
-    else{
-        setMouseCursor (juce::MouseCursor::NormalCursor);
-    }
-
-    repaint();
-}
 void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_rangeAtMouseDown = getSelectedRange();
@@ -239,6 +193,52 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 
     m_hovedPointXY = {x, y};
 
+}
+void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
+{
+    auto timeHovered = getTime(e.x);
+    auto valueHovered = (float) getValue (e.y);
+
+
+    m_hoveredPoint = getIndexOfHoveredPoint (e);
+    m_selectingTime = false;
+    m_moveSelection = false;
+    m_hoveredCurve = -1;
+    if (m_hoveredPoint == -1)
+    {
+        auto ht = tracktion::core::TimePosition::fromSeconds(timeHovered);
+        int yPosAtHoveredTime = getYPos(m_curve.getValueAt(ht));
+        m_hoveredRect = {e.x - getPointWidth ()/2
+                         , yPosAtHoveredTime - getPointWidth ()/2
+                         , getPointWidth ()
+                             , getPointWidth ()};
+        auto nearestPoint = m_curve.getNearestPoint (ht, valueHovered , xToYRatio ());
+
+        m_isVertical = m_curve.getPoint (nearestPoint).time == ht;
+
+        if (m_hoveredRect.contains (e.x, e.y)
+            || m_isVertical
+            || ((isBeyondLastPoint (timeHovered, valueHovered)) && m_hoveredRect.contains (e.x, e.y)))
+        {
+            m_hoveredCurve = nearestPoint;
+            m_hoveredTime = timeHovered;
+        }
+        else
+        {
+           m_hoveredTime = 0;
+            m_hoveredRect = {0,0,0,0};
+        }
+    }
+    if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
+    {
+        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        m_hoveredRect = {0,0,0,0};
+    }
+    else{
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
+    repaint();
 }
 void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
@@ -400,8 +400,6 @@ double AutomationLaneComponent::getSnapedTime(double time)
 
     return snapedTime;
 }
-
-
 int AutomationLaneComponent::getIndexOfHoveredPoint(const juce::MouseEvent &e)
 {
     int p = -1;
@@ -415,8 +413,6 @@ int AutomationLaneComponent::getIndexOfHoveredPoint(const juce::MouseEvent &e)
         
     return p;
 }
-
-
  tracktion::core::TimeRange 
  AutomationLaneComponent::getSelectedRange()
 { 
@@ -427,31 +423,26 @@ int AutomationLaneComponent::getIndexOfHoveredPoint(const juce::MouseEvent &e)
     auto epos = tracktion::core::TimePosition::fromSeconds(end);
     return {spos,  epos};
 }
-
 te::AutomationCurve &AutomationLaneComponent::getCurve() const
 {
     return m_curve;
 }
-
 double AutomationLaneComponent::getTime(int x)
 {
     return m_editViewState.xToTime(x, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 }
-
 int AutomationLaneComponent::getXPos(double time)
 {
     if (getWidth() == 0)
         return 0;
     return m_editViewState.timeToX(time, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 }
-
 double AutomationLaneComponent::getValue(int y)
 {
     double pwh = getPointWidth() / 2;
     double lh = getLaneHeight();
     return 1.0 - juce::jmap((double)y, pwh, lh - pwh, 0.0, 1.0);
 }
-
 int AutomationLaneComponent::getYPos(double value)
 {
     double lh = getLaneHeight();
@@ -460,12 +451,10 @@ int AutomationLaneComponent::getYPos(double value)
     double v = m_curve.getOwnerParameter()->valueRange.convertTo0to1(value);
     return getHeight() - juce::jmap(v, 0.0, 1.0, pwh, lh - pwh);
 }
-
 juce::Point<int> AutomationLaneComponent::getPoint(const tracktion_engine::AutomationCurve::AutomationPoint &ap)
 {
     return {getXPos (ap.time.inSeconds()), getYPos (ap.value)};
 }
-
 double AutomationLaneComponent::xToYRatio()
 {
     //1 screen unit in value / 1 screen unit in time
@@ -476,12 +465,10 @@ double AutomationLaneComponent::xToYRatio()
         / getWidth();
     return screenUnitInValue / screenUnitInTime;
 }
-
 int AutomationLaneComponent::getLaneHeight()
 {
     return getHeight() ;
 }
-
 bool AutomationLaneComponent::isBeyondLastPoint(double time, float value)
 {
     auto tp = EngineHelpers::getTimePos(time);
@@ -492,12 +479,9 @@ bool AutomationLaneComponent::isBeyondLastPoint(double time, float value)
     }
     return false;
 }
-
 int AutomationLaneComponent::getPointWidth()
 {
     if (getHeight () <= 50)
         return 8;
     return 12;
 }
-
-//======

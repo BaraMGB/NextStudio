@@ -244,7 +244,6 @@ VstPluginComponent::VstPluginComponent
 {
     if (p)
     {
-        std::cout << "num: " << p->getNumAutomatableParameters() << std::endl;
         for (auto & param : p->getAutomatableParameters())
         {
             if (param)

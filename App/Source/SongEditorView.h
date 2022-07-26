@@ -80,8 +80,6 @@ private:
 
     double getPasteTime(double dropTime, ClipComponent* draggedClip) const;
     bool trackWantsClip(const te::Clip* clip, const TrackComponent* track) const;
-    TrackOverlayComponent::OverlayImage
-        getClipOverlayImage(bool isValid, ClipComponent* clipView, int xDelta) const;
     int getSnapedX(int x, bool down=false) const;
     double m_draggedTimeDelta;
 

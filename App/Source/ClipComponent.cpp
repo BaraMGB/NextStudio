@@ -8,20 +8,24 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : m_editViewState(evs)
     , m_clip(std::move(c))
 {
-    setPaintingIsUnclipped (true);
+    addAndMakeVisible(m_nameLabel);
+    m_nameLabel.setText(m_clip->getName(), juce::dontSendNotification);
+    m_nameLabel.setInterceptsMouseClicks(false, false);
+    m_nameLabel.setJustificationType(juce::Justification::topLeft);
+    auto bg = m_clip->getColour().darker(0.7);
+    m_nameLabel.setColour(juce::Label::ColourIds::backgroundColourId, bg.withAlpha(0.6f));
 }
 
 void ClipComponent::paint (juce::Graphics& g)
 {
-    auto area = getLocalBounds();
+   
+    auto area = getVisibleBounds(); 
     auto isSelected = m_editViewState.m_selectionManager.isSelected (m_clip);
 
     auto clipColor = getClip ()->getColour ();
     auto innerGlow = clipColor.brighter(0.5f);
-    auto selectedColour = juce::Colour(0xccffffff);
+    auto selectedColour = juce::Colour(0xffcccccc);
     auto borderColour = juce::Colour(0xff000000);
-    auto labelBGColour = juce::Colour(0x55000000);
-    auto selLabelBGColour = juce::Colour(0xdd000000);
 
     g.setColour (borderColour);
     g.fillRect (area);
@@ -37,29 +41,32 @@ void ClipComponent::paint (juce::Graphics& g)
     if (isSelected)
     {
         g.setColour (selectedColour);
-        g.drawRect (area.expanded (1, 1));
-    }
-
-    area = area.removeFromTop (20);
-    area.reduce (2, 2);
-    g.setColour (labelBGColour);
-    if (isSelected)
-        g.setColour (selLabelBGColour);
-    g.fillRect (area);
-    g.setColour (juce::Colour(0x99ffffff));
-    if (isSelected)
-        g.setColour (juce::Colour(0xccffffff));
-    g.drawText (m_clip->getName (), area, juce::Justification::centredLeft);
-
-    if (isSelected)
-    {
-        g.setColour(juce::Colour(0x50ffffff));
-        g.fillRect(getLocalBounds());
+        g.drawRect (area.expanded (2, 2), 2);
     }
 }
 
+juce::Rectangle<int> ClipComponent::getVisibleBounds()
+{
+    auto area = getLocalBounds();
+
+    auto s = getBoundsInParent().getX();
+    auto e = getBoundsInParent().getRight();
+    int gap = 5;
+    if (s < - gap)
+        area.removeFromLeft(std::abs(s + gap));
+    if (e > getParentWidth() + gap)
+        area.removeFromRight(e - getParentWidth() - gap);
+   
+    return area;
+}
+void ClipComponent::mouseEnter(const juce::MouseEvent &clipEvent)
+{
+    repaint();
+}
 void ClipComponent::mouseMove(const juce::MouseEvent &clipEvent)
 {
+    repaint();
+
     if (clipEvent.getPosition().getX() < 10 && getWidth () > 30)
     {
         setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
@@ -156,6 +163,13 @@ void ClipComponent::mouseUp(const juce::MouseEvent& event)
 void ClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
     setMouseCursor(juce::MouseCursor::NormalCursor);
+}
+
+void ClipComponent::resized()
+{
+    auto area = getLocalBounds();
+    area.reduce(2, 2);
+    m_nameLabel.setBounds(area.removeFromTop(20));
 }
 tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Clip::Ptr& clip)
 {

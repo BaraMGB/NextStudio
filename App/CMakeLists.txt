@@ -71,7 +71,6 @@ target_sources(${TargetName} PRIVATE
         Source/AudioMidiSettings.cpp
         Source/PianoRollContentComponent.cpp
         Source/TimelineOverlayComponent.cpp
-        Source/TrackOverlayComponent.cpp
         Source/AudioClipComponent.cpp
         Source/MidiClipComponent.cpp
         Source/RecordingClipComponent.cpp

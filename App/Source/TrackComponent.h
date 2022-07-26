@@ -9,11 +9,28 @@
 #include "RecordingClipComponent.h"
 #include "AudioClipComponent.h"
 #include "PluginRackComponent.h"
-#include "TrackOverlayComponent.h"
 #include "AutomationLaneComponent.h"
 #include "LowerRangeComponent.h"
 
+class OverlayClip
+{
+public:
+    OverlayClip(juce::Rectangle<int> clipBounds, bool isValid, bool isResizing) :
+        m_clipBounds(clipBounds),
+        m_isValid(isValid),
+        m_isResizing(isResizing)
+    {
+    }
 
+    juce::Rectangle<int> getClipBounds(){ return m_clipBounds; }
+    bool isValid() {return m_isValid;}
+    bool isResizing() {return m_isResizing;}
+private:
+    juce::Rectangle<int> m_clipBounds;
+    bool                 m_isValid;
+    bool                 m_isResizing;
+
+};
 class TrackComponent : public juce::Component,
                        private te::ValueTreeAllEventListener,
                        private FlaggedAsyncUpdater,
@@ -25,6 +42,7 @@ public:
     ~TrackComponent() override;
 
     void paint (juce::Graphics& g) override;
+    void paintOverChildren (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent& e) override;
     void mouseUp (const juce::MouseEvent& e) override;
@@ -33,14 +51,25 @@ public:
     [[nodiscard]] te::Track::Ptr getTrack() const;
     void insertWave(const juce::File& f, double time);
     juce::OwnedArray<ClipComponent>& getClipComponents();
-    TrackOverlayComponent& getTrackOverlay();
 
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
     void itemDragExit(const SourceDetails& dragSourceDetails) override;
     void itemDropped(const SourceDetails& dragSourceDetails) override;
 
+    void addDraggedClip(bool isValid, int startX, int width, bool isResizing)
+    {
+       m_overlayClips.add(std::make_unique<OverlayClip>(juce::Rectangle<int> (startX, 0, width, getHeight()), isValid, isResizing));
+    }
+
+    void clearDraggedClips()
+    {
+        m_overlayClips.clear();
+        repaint();
+    }
+
 private:
+    void drawDraggingOverlays(juce::Graphics& g);
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
@@ -57,6 +86,7 @@ private:
     bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
     bool isSelected();
 
+    int getClipHeight();
 	double getSnapedTime(double t);
 
     double xToBeats(int x)
@@ -78,11 +108,11 @@ private:
     [[maybe_unused]] juce::Image m_dragImage;
     std::unique_ptr<RecordingClipComponent> recordingClip;
 
-    TrackOverlayComponent m_trackOverlay;
+    juce::OwnedArray<OverlayClip> m_overlayClips;
     bool updateClips = false,
          updatePositions = false,
          updateRecordClips = false,
          isOver = false;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackComponent)
     bool isFolderTrack();
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackComponent)
 };
