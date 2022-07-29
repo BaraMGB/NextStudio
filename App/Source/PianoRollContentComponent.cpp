@@ -44,29 +44,37 @@ void PianoRollContentComponent::drawNote(juce::Graphics& g,
                                          tracktion_engine::MidiNote* n
                                          )
 {
+    
     auto noteRect = getNoteRect(midiClip, n);
+    auto visibleRect = noteRect;
+    if (visibleRect.getX() < -2)
+        visibleRect.removeFromLeft(std::abs(noteRect.getX()) - 2);
+
+    if (visibleRect.getRight() > getWidth() + 2)
+        visibleRect.removeFromRight(noteRect.getRight() - getWidth() - 2);
     auto noteColor = getNoteColour(midiClip, n);
     auto innerGlow = noteColor.brighter(0.5f);
     auto selectedColour = juce::Colour(0xccffffff);
     auto borderColour = juce::Colour(0xff000000);
 
     g.setColour(borderColour);
-    g.fillRect(noteRect);
+    g.fillRect(visibleRect );
 
     g.setColour(innerGlow);
-    noteRect.reduce(1, 1);
-    g.fillRect(noteRect);
+    visibleRect.reduce(1, 1);
+    g.fillRect(visibleRect );
 
     g.setColour(noteColor);
-    noteRect.reduce(1, 1);
-    g.fillRect(noteRect);
+    visibleRect.reduce(1, 1);
+    g.fillRect(visibleRect );
 
     if (isSelected(n))
     {
         g.setColour(selectedColour);
-        g.drawRect(noteRect.expanded(2, 2));
+        g.drawRect(visibleRect .expanded(2, 2));
     }
 
+    noteRect.reduce(2, 2);
     g.setColour(borderColour);
     drawKeyNum(g, n, noteRect);
 }
