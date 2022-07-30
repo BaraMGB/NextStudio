@@ -309,15 +309,17 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
                             
             if (trackWantsClip(newClip, targetTrack))
             {
-                auto ct = newClip->getClipTrack();
-                ct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
-                                  newClip->getPosition().getLength()},
-                                  &m_editViewState.m_selectionManager);
-
-                newClip->moveToTrack(*targetTrack->getTrack());
-                newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
-
-                m_editViewState.m_selectionManager.addToSelection(newClip);
+                if (auto tct = dynamic_cast<te::ClipTrack*>(targetTrack->getTrack().get()))
+                {
+                    tct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
+                                      newClip->getPosition().getLength()},
+                                      &m_editViewState.m_selectionManager);
+    
+                    newClip->moveToTrack(*targetTrack->getTrack());
+                    newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
+    
+                    m_editViewState.m_selectionManager.addToSelection(newClip);
+                }
             }
         }
     }
