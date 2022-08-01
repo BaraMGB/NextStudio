@@ -62,6 +62,19 @@ public:
         }
     }
 
+    void duplicateSelectedClips()
+    {
+        auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+
+        m_cachedEditLength = m_editViewState.m_edit.getLength().inSeconds() * 100;
+        auto range = te::getTimeRangeForSelectedItems(selectedClips);
+        m_draggedTimeDelta = range.getLength().inSeconds();
+        if (auto cc = getClipComponentForClip(selectedClips.getFirst()))
+        {
+            moveSelectedClips(range.getEnd().inSeconds(),cc, 0, true); 
+            std::cout << "duplicated! " << range.getEnd().inSeconds()<< std::endl;
+        }
+    }
 private:
 
     TrackComponent *getTrackCompForTrack(const tracktion_engine::Track::Ptr& track);
@@ -98,8 +111,8 @@ private:
 
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
 
-    void moveSelectedClips(double dropTime, ClipComponent *draggedClip, int verticalOffset);
 
+    void moveSelectedClips(double dropTime, ClipComponent *draggedClip, int verticalOffset, bool copy);
     int timeToX (double time);
 
     void drawResizingOverlays (const ClipComponent *draggedClip);

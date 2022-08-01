@@ -352,7 +352,7 @@ void AutomationLaneComponent::mouseExit(const juce::MouseEvent &/*e*/)
 }
 bool AutomationLaneComponent::keyPressed(const juce::KeyPress &e)
 {
-   if (e == juce::KeyPress::createFromDescription("CTRL + D"))
+   if (e == juce::KeyPress::createFromDescription("CTRL + D") && !getSelectedRange().isEmpty())
    {
         te::TrackAutomationSection::ActiveParameters par;
         par.param = m_curve.getOwnerParameter();

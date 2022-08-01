@@ -69,6 +69,7 @@ public:
     EditViewState& getEditViewState () { return m_editViewState; }
 
     void loopAroundSelection();
+    SongEditorView& getSongEditor() {return m_songEditor;}
 
 private:
 

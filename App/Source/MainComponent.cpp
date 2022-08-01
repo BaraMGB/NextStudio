@@ -157,10 +157,7 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
     if (key == juce::KeyPress::createFromDescription ("ctrl + d"))
 #endif
     {
-        EngineHelpers::duplicateSelectedClips (
-                    m_editComponent->getEditViewState ().m_edit
-                  , m_selectionManager
-                  , m_editComponent->getEditViewState ().m_automationFollowsClip);
+        m_editComponent->getSongEditor().duplicateSelectedClips();
         return true;
     }
 

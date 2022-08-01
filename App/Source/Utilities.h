@@ -183,10 +183,6 @@ namespace EngineHelpers
 
     void deleteSelectedClips(EditViewState & evs);
 
-    void duplicateSelectedClips (tracktion_engine::Edit &edit
-                               , te::SelectionManager& selectionManager
-                               , bool withAutomation);
-
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm
                                                      , bool copy);

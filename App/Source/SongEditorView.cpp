@@ -153,7 +153,7 @@ void SongEditorView::itemDropped(
         else if (draggedClip->isResizeLeft())
             resizeSelectedClips(!draggedClip->isShiftDown(), true);
         else
-            moveSelectedClips(dropTime, draggedClip, verticalOffset);
+            moveSelectedClips(dropTime, draggedClip, verticalOffset, draggedClip->isCtrlDown());
 
         draggedClip->setResizeLeft(false);
         draggedClip->setResizeRight(false);
@@ -260,15 +260,15 @@ bool SongEditorView::trackWantsClip(const te::Clip* clip,
         static_cast<bool>(track->getTrack()->state.getProperty( IDs::isMidiTrack));
 }
 
-void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedClip, int verticalOffset)
+void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedClip, int verticalOffset, bool copy)
 {
     auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
 
     if (verticalOffset == 0)
         EngineHelpers::copyAutomationForSelectedClips(
-                getPasteTime(dropTime, draggedClip),
+                m_draggedTimeDelta,
                 m_editViewState.m_selectionManager,
-                draggedClip->isCtrlDown ());
+                copy);
 
     juce::Array<te::Clip*> copyOfSelectedClips;
 
@@ -284,7 +284,7 @@ void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedCl
                 copyOfSelectedClips.add(newClip);
                 newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
 
-                if (!draggedClip->isCtrlDown())
+                if (!copy)
                     sc->removeFromParentTrack();
                 else
                     m_editViewState.m_selectionManager.deselect(sc);
