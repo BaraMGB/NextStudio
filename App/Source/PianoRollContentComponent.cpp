@@ -606,8 +606,7 @@ bool PianoRollContentComponent::keyPressed(const juce::KeyPress &key)
     }
     else if (key == juce::KeyPress::createFromDescription ("cursor down"))
     {
-        if (key.getModifiers ().isCtrlDown ())
-            m_selectedEvents->nudge (getBestSnapType (),0, -1);
+        m_selectedEvents->nudge (getBestSnapType (),0, -1);
         return true;
     }
     else if (key == juce::KeyPress::createFromDescription ("cursor left"))
