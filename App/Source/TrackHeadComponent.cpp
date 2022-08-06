@@ -546,14 +546,14 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
             buttonColour = buttonColour.darker (0.4f);
         }
         g.setColour(buttonColour);
-        GUIHelpers::drawRoundedRectWithSide(g,area,cornerSize,true);
+        GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize,true, false, true, false);
 
         juce::Rectangle<float> trackColorIndicator
                 = getLocalBounds().removeFromLeft(headWidth).toFloat();
         auto trackColor =  m_track->getColour();
-        g.setColour (trackColor);
+        g.setColour(trackColor);
         GUIHelpers::drawRoundedRectWithSide(
-                    g, trackColorIndicator.reduced(1, 1), cornerSize, true);
+                    g, trackColorIndicator.reduced(1, 1), cornerSize, true, false, true, false);
         GUIHelpers::drawFromSvg (
                     g
                   , (bool) m_track->state.getProperty (IDs::isTrackMinimized)

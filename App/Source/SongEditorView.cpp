@@ -1,4 +1,5 @@
 #include "SongEditorView.h"
+#include "Utilities.h"
 
 
 SongEditorView::SongEditorView(EditViewState& evs)
@@ -153,7 +154,7 @@ void SongEditorView::itemDropped(
         else if (draggedClip->isResizeLeft())
             resizeSelectedClips(!draggedClip->isShiftDown(), true);
         else
-            moveSelectedClips(dropTime, draggedClip, verticalOffset, draggedClip->isCtrlDown());
+            moveSelectedClips(draggedClip, verticalOffset);
 
         draggedClip->setResizeLeft(false);
         draggedClip->setResizeRight(false);
@@ -221,6 +222,98 @@ void SongEditorView::drawResizingOverlays (const ClipComponent *draggedClip)
     }
 }
 
+void SongEditorView::startLasso(const juce::MouseEvent& e)
+{
+    m_lassoComponent.startLasso(e.getEventRelativeTo (&m_lassoComponent));
+    m_cachedY = m_editViewState.m_viewY;
+    updateClipCache ();
+}
+void SongEditorView::updateLasso(const juce::MouseEvent& e)
+{
+    if (m_lassoComponent.isVisible ())
+    {
+        setMouseCursor (juce::MouseCursor::CrosshairCursor);
+        m_lassoComponent.updateLasso(e.getEventRelativeTo (&m_lassoComponent)
+                                         , e.getMouseDownY() + (m_editViewState.m_viewY - m_cachedY));
+        updateSelection(e.mods.isShiftDown ());
+    }
+}
+void SongEditorView::duplicateSelectedClips()
+{
+    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+
+    m_cachedEditLength = m_editViewState.m_edit.getLength().inSeconds() * 100;
+    auto range = te::getTimeRangeForSelectedItems(selectedClips);
+    m_draggedTimeDelta = range.getLength().inSeconds();
+    if (auto cc = getClipComponentForClip(selectedClips.getFirst()))
+        moveSelectedClips(cc, 0); 
+}
+void SongEditorView::moveSelectedClips(ClipComponent *draggedClip, int verticalOffset)
+{
+    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+    auto copy = draggedClip->isCtrlDown();
+    if (verticalOffset == 0)
+        EngineHelpers::copyAutomationForSelectedClips(
+                m_draggedTimeDelta,
+                m_editViewState.m_selectionManager,
+                copy);
+
+    juce::Array<te::Clip*> copyOfSelectedClips;
+
+    for (auto sc : selectedClips)
+    {
+        auto sourceTrack = sc->getTrack();
+        auto idxSourceTrack = m_trackViews.indexOf(&getTrackView(sourceTrack));
+        if (auto targetTrack = m_trackViews[idxSourceTrack + verticalOffset])
+        {
+            if (trackWantsClip(sc, targetTrack))
+            {
+                auto newClip = te::duplicateClip(*sc);
+                copyOfSelectedClips.add(newClip);
+                newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
+
+                if (!copy)
+                    sc->removeFromParentTrack();
+                else
+                    m_editViewState.m_selectionManager.deselect(sc);
+            }
+        }
+    }
+
+    auto sourceTime = draggedClip->getClip()->getPosition().getStart().inSeconds();
+    auto targetTime = sourceTime + m_draggedTimeDelta;
+    if (!draggedClip->isShiftDown())
+        targetTime = getSnapedTime(targetTime);
+    
+    auto delta = targetTime - sourceTime - m_cachedEditLength;
+
+    for (auto newClip: copyOfSelectedClips)
+    {
+        auto sourceTrack = newClip->getTrack();
+        auto idxSourceTrack = m_trackViews.indexOf(&getTrackView(sourceTrack));
+        if (auto targetTrack = m_trackViews[idxSourceTrack + verticalOffset])
+        {
+            auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
+                            
+            if (trackWantsClip(newClip, targetTrack))
+            {
+                if (auto tct = dynamic_cast<te::ClipTrack*>(targetTrack->getTrack().get()))
+                {
+                    tct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
+                                      newClip->getPosition().getLength()},
+                                      &m_editViewState.m_selectionManager);
+    
+                    newClip->moveToTrack(*targetTrack->getTrack());
+                    newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
+    
+                    m_editViewState.m_selectionManager.addToSelection(newClip);
+                }
+            }
+        }
+    }
+}
+
+
 TrackComponent *SongEditorView::getTrackForClip(int verticalOffset, const te::Clip *clip)
 {
     auto idx = m_trackViews.indexOf(&getTrackView(clip->getTrack()));
@@ -260,112 +353,14 @@ bool SongEditorView::trackWantsClip(const te::Clip* clip,
         static_cast<bool>(track->getTrack()->state.getProperty( IDs::isMidiTrack));
 }
 
-void SongEditorView::moveSelectedClips(double dropTime, ClipComponent *draggedClip, int verticalOffset, bool copy)
-{
-    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-
-    if (verticalOffset == 0)
-        EngineHelpers::copyAutomationForSelectedClips(
-                m_draggedTimeDelta,
-                m_editViewState.m_selectionManager,
-                copy);
-
-    juce::Array<te::Clip*> copyOfSelectedClips;
-
-    for (auto sc : selectedClips)
-    {
-        auto sourceTrack = sc->getTrack();
-        auto idxSourceTrack = m_trackViews.indexOf(&getTrackView(sourceTrack));
-        if (auto targetTrack = m_trackViews[idxSourceTrack + verticalOffset])
-        {
-            if (trackWantsClip(sc, targetTrack))
-            {
-                auto newClip = te::duplicateClip(*sc);
-                copyOfSelectedClips.add(newClip);
-                newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
-
-                if (!copy)
-                    sc->removeFromParentTrack();
-                else
-                    m_editViewState.m_selectionManager.deselect(sc);
-            }
-        }
-    }
-
-    auto sourceTime = draggedClip->getClip()->getPosition().getStart().inSeconds();
-    auto targetTime = draggedClip->getClip()->getPosition().getStart().inSeconds() + m_draggedTimeDelta;
-    if (!draggedClip->isShiftDown())
-        targetTime = getSnapedTime(targetTime);
-    
-    auto delta = targetTime - sourceTime - m_cachedEditLength;
-
-    for (auto newClip: copyOfSelectedClips)
-    {
-        auto sourceTrack = newClip->getTrack();
-        auto idxSourceTrack = m_trackViews.indexOf(&getTrackView(sourceTrack));
-        if (auto targetTrack = m_trackViews[idxSourceTrack + verticalOffset])
-        {
-            auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
-                            
-            if (trackWantsClip(newClip, targetTrack))
-            {
-                if (auto tct = dynamic_cast<te::ClipTrack*>(targetTrack->getTrack().get()))
-                {
-                    tct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
-                                      newClip->getPosition().getLength()},
-                                      &m_editViewState.m_selectionManager);
-    
-                    newClip->moveToTrack(*targetTrack->getTrack());
-                    newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
-    
-                    m_editViewState.m_selectionManager.addToSelection(newClip);
-                }
-            }
-        }
-    }
-}
 void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
 {
-    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+    auto snapType = m_editViewState.getBestSnapType (
+        m_editViewState.m_viewX1
+        , m_editViewState.m_viewX2
+        , getWidth());
 
-    if (fromLeftEdge)
-	{
-        for (auto sc : selectedClips)
-        {
-            auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
-                                       sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta));
-            if (snap)
-                newStart = tracktion::TimePosition::fromSeconds(getSnapedTime (newStart.inSeconds()));
-            sc->setStart(newStart, true, false);
-
-			//save clip for damage
-            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
-        }
-	}
-    else
-    {
-        for (auto sc : selectedClips)
-        {
-            auto newEnd = sc->getPosition().getEnd() + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta);
-
-            if (snap)
-                newEnd = tracktion::TimePosition::fromSeconds(getSnapedTime (newEnd.inSeconds()));
-            sc->setEnd(newEnd, true);
-			//save clip for damage
-            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
-        }
-    }
-
-    for (auto sc : selectedClips)
-    {
-        auto ct = sc->getClipTrack();
-		const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(m_cachedEditLength),
-										   sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(m_cachedEditLength)};
-        ct->deleteRegion(range, &m_editViewState.m_selectionManager);
-
-		//restore clip
-        sc->setStart(sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(m_cachedEditLength), false, true);
-    }
+    EngineHelpers::resizeSelectedClips(snap, fromLeftEdge, m_draggedTimeDelta, m_editViewState, snapType);
 }
 void
 SongEditorView::addWaveFileToNewTrack(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails,
@@ -383,7 +378,6 @@ double SongEditorView::getPasteTime(double dropTime,
 {
     const auto firstClipTime = draggedClip->getClip ()->getPosition ().getStart ();
     const auto offset = draggedClip->getClickPosTime ();
-    const auto removeSource = !draggedClip->isCtrlDown ();
     const auto snap = !draggedClip->isShiftDown ();
     const auto xTime = m_editViewState.beatToTime(m_editViewState.m_viewX1);
     const auto rawTime = juce::jmax(0.0, dropTime - offset + xTime);
@@ -416,6 +410,13 @@ TrackComponent* SongEditorView::getTrackComponent(int y)
     }
 	return m_trackViews.getLast();
 }
+
+juce::OwnedArray<TrackComponent>& SongEditorView::getTrackComps ()
+{
+    return m_trackViews;
+}
+
+
 ClipComponent*
     SongEditorView::getClipComponentForClip(const tracktion_engine::Clip::Ptr& clip)
 {

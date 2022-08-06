@@ -58,7 +58,7 @@ private:
 
     te::MidiClip*          getMidiClipAt(int x);
     te::MidiClip*          getNearestClipAfter(int x);
-    te::MidiClip* getNearestClipBefore(int x);
+    te::MidiClip*          getNearestClipBefore(int x);
 
     double                 getKeyForY(int y);
     te::MidiNote*          getNoteByPos(juce::Point<float> pos);

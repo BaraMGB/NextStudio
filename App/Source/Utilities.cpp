@@ -28,11 +28,19 @@ void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area
       , float cornerSize
-      , bool left)
+      , bool topLeft 
+      , bool topRight
+      , bool bottomLeft
+      , bool bottomRight)
 {
-    g.fillRoundedRectangle(area, cornerSize);
-    auto rightRect = area.withTrimmedLeft(area.getWidth()/2);
-    g.fillRect(rightRect);
+        juce::Path p;
+        auto x = area.getX();
+        auto y = area.getY();
+        auto w = area.getWidth();
+        auto h = area.getHeight();
+        p.addRoundedRectangle(x,y,w,h,cornerSize,cornerSize,topLeft, topRight, bottomLeft, bottomRight);
+        g.fillPath(p);
+   
 }
 
 void GUIHelpers::changeColor(
@@ -398,6 +406,52 @@ void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::Ac
 	auto offset = tracktion::TimePosition::fromSeconds(insertTime) - range.getStart();
 
 	te::moveAutomation(secs, offset, copy);
+}
+
+void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double delta, EditViewState & evs, te::TimecodeSnapType snapType)
+{
+    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
+
+    if (fromLeftEdge)
+	{
+        for (auto sc : selectedClips)
+        {
+            auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
+                                       sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(delta));
+            if (snap)
+                newStart = tracktion::TimePosition::fromSeconds(evs.getSnapedTime (newStart.inSeconds(), snapType, false));
+            sc->setStart(newStart, true, false);
+
+			//save clip for damage
+            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+        }
+	}
+    else
+    {
+        for (auto sc : selectedClips)
+        {
+            auto newEnd = sc->getPosition().getEnd() + tracktion::TimeDuration::fromSeconds(delta);
+
+            if (snap)
+                newEnd = tracktion::TimePosition::fromSeconds(evs.getSnapedTime (newEnd.inSeconds(), snapType, false));
+            sc->setEnd(newEnd, true);
+			//save clip for damage
+            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+        }
+    }
+
+    for (auto sc : selectedClips)
+    {
+        auto ct = sc->getClipTrack();
+		const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition),
+										   sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
+        ct->deleteRegion(range, &evs.m_selectionManager);
+
+		//restore clip
+        sc->setStart(sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+    }
+
 }
 
 tracktion_engine::Project::Ptr EngineHelpers::createTempProject(

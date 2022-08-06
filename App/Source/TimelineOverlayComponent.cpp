@@ -20,12 +20,16 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
     updateClipRects ();
     for (auto cr : m_clipRects)
     {
-        g.setColour (juce::Colours::black);
-        g.fillRoundedRectangle(cr.withHeight(cr.getWidth()).toFloat(),10);
-
+        g.setColour(juce::Colours::black);
+        GUIHelpers::drawRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
         cr.reduce(1, 1);
-        g.setColour (colour);
-        g.fillRoundedRectangle(cr.withHeight(cr.getWidth()).toFloat(),9);
+        g.setColour(colour);
+        GUIHelpers::drawRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
+    }
+    if (m_drawDraggedClip)
+    {
+        g.setColour(colour.withAlpha(.3f));
+        GUIHelpers::drawRoundedRectWithSide(g, m_draggedClipRect.withBottom(getHeight()).toFloat(), 10, true, true, false, false);
     }
 }
 
@@ -47,6 +51,7 @@ void TimelineOverlayComponent::mouseMove(const juce::MouseEvent &e)
     {
         if (cr.contains (e.x, e.y))
         {
+            m_move = false;
             if (e.x > cr.getHorizontalRange ().getStart ()
             && e.x < cr.getHorizontalRange ().getStart () + 10)
             {
@@ -66,6 +71,7 @@ void TimelineOverlayComponent::mouseMove(const juce::MouseEvent &e)
                 setMouseCursor (juce::MouseCursor::DraggingHandCursor);
                 m_leftResized = false;
                 m_rightResized = false;
+                m_move = true;
             }
         }
     }
@@ -89,30 +95,68 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (e.mouseWasDraggedSinceMouseDown ())
     {
-        auto offset = e.getMouseDownX () - timeToX (m_cachedPos.getStart ().inSeconds());
+        auto clickOffset = e.getMouseDownX () - timeToX (m_cachedPos.getStart ().inSeconds());
+        auto mouseTime = EngineHelpers::getTimePos(m_editViewState.xToTime(e.x, getWidth(), m_timelineComponent.m_X1, m_timelineComponent.m_X2));
+        mouseTime = e.mods.isShiftDown() ? mouseTime : m_timelineComponent.getBestSnapType().roundTimeDown(mouseTime, m_editViewState.m_edit.tempoSequence);
+        m_drawDraggedClip = false; 
         if (m_cachedClip)
         {
+            auto cs = m_cachedPos.getStart();
+
             if (m_leftResized)
             {
+                auto co = m_cachedPos.getOffset();
+                auto newStart = juce::jmax(mouseTime, cs - co);
 
+                m_draggedTimeDelta = cs.inSeconds() - newStart.inSeconds();
+                m_draggedClipRect = getClipRect(m_cachedClip);
+                m_draggedClipRect.setLeft(timeToX(newStart.inSeconds()));
+                repaint();
             }
             else if (m_rightResized)
             {
+                auto newEnd = juce::jmax(cs, mouseTime);
 
+                m_draggedTimeDelta = m_cachedPos.getEnd().inSeconds() - mouseTime.inSeconds();
+                m_draggedClipRect = getClipRect(m_cachedClip);
+                m_draggedClipRect.setRight(timeToX(newEnd.inSeconds()));
+                repaint();
             }
             else
             {
-                auto newStart = EngineHelpers::getTimePos(m_editViewState.beatToTime (xToBeats (e.x - offset)));
+                auto newStart = EngineHelpers::getTimePos(m_editViewState.beatToTime (xToBeats (e.x - clickOffset)));
                 auto snaped = m_timelineComponent.getBestSnapType ().roundTimeDown (
-                            EngineHelpers::getTimePos(newStart.inSeconds()), m_editViewState.m_edit.tempoSequence);
+                            newStart, m_editViewState.m_edit.tempoSequence);
                 newStart = e.mods.isShiftDown () ? newStart
                                                  : snaped;
-                m_cachedClip->setStart (newStart, false, true);
+                m_draggedTimeDelta = cs.inSeconds() - newStart.inSeconds();
+                m_draggedClipRect = getClipRect(m_cachedClip);
+                m_draggedClipRect.setPosition(timeToX(newStart.inSeconds()), m_draggedClipRect.getY());
+                repaint();
             }
+
+            m_editViewState.m_selectionManager.selectOnly(m_cachedClip);
+            m_drawDraggedClip = true; 
         }
     }
 }
+void TimelineOverlayComponent::mouseUp(const juce::MouseEvent &e)
+{
+    if (m_leftResized || m_rightResized)
+    {
+        EngineHelpers::resizeSelectedClips(!e.mods.isShiftDown(), m_leftResized, -m_draggedTimeDelta, m_editViewState, m_timelineComponent.getBestSnapType());
+    }
+    else if (m_move)
+        moveSelectedClips(e.mods.isCtrlDown(), !e.mods.isShiftDown());
+    m_drawDraggedClip = false;
+    m_draggedTimeDelta = 0;
+    repaint();
+}
 
+double TimelineOverlayComponent::getSnapedTime(double time)
+{
+    return m_editViewState.getSnapedTime(time, m_timelineComponent.getBestSnapType());
+}
 std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClipsOfTrack()
 {
     std::vector<te::MidiClip*> midiClips;
@@ -141,20 +185,50 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
     }
     return nullptr;
 }
+void TimelineOverlayComponent::moveSelectedClips(bool copy, bool snap)
+{
+    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+    auto tempPos = m_editViewState.m_edit.getLength().inSeconds() * 100;
+    auto sourceTime = m_cachedClip->getPosition().getStart().inSeconds();
+    auto targetTime = snap ? getSnapedTime(sourceTime - m_draggedTimeDelta) : sourceTime - m_draggedTimeDelta;
+    auto delta = targetTime - sourceTime - tempPos;
+    juce::Array<te::Clip*> copyOfSelectedClips;
 
+    EngineHelpers::copyAutomationForSelectedClips(-m_draggedTimeDelta, m_editViewState.m_selectionManager, copy);
+
+    for (auto sc : selectedClips)
+    {
+        auto newClip = te::duplicateClip(*sc);
+        copyOfSelectedClips.add(newClip);
+        newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPos), false, true);
+
+        if (!copy)
+            sc->removeFromParentTrack();
+        else
+            m_editViewState.m_selectionManager.deselect(sc);
+    }   
+
+    for (auto newClip: copyOfSelectedClips)
+    {
+        auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
+                            
+        newClip->getClipTrack()->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
+                          newClip->getPosition().getLength()},
+                          &m_editViewState.m_selectionManager);
+ 
+        newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
+ 
+        m_editViewState.m_selectionManager.addToSelection(newClip);
+    }
+}
 int TimelineOverlayComponent::timeToX(double time)
 {
-    auto beats = m_editViewState.m_edit.tempoSequence.toBeats(EngineHelpers::getTimePos(time)).inBeats();
-    return juce::roundToInt (((beats - m_editViewState.m_pianoX1)
-                              *  getWidth())
-                             / (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1));
+    return m_editViewState.timeToX(time, getWidth(), m_timelineComponent.m_X1, m_timelineComponent.m_X2);
 }
 
 double TimelineOverlayComponent::xToBeats(int x)
 {
-    return (double (x) / getWidth())
-            * (m_editViewState.m_pianoX2 - m_editViewState.m_pianoX1)
-            + m_editViewState.m_pianoX1;
+    return m_editViewState.xToBeats(x, getWidth(), m_timelineComponent.m_X1, m_timelineComponent.m_X2);
 }
 
 void TimelineOverlayComponent::updateClipRects()
@@ -164,11 +238,16 @@ void TimelineOverlayComponent::updateClipRects()
     {
         for (auto c : audiotrack->getClips ())
         {
-            auto startX = timeToX (c->getPosition ().getStart ().inSeconds() );
-            auto endX = timeToX (c->getPosition ().getEnd ().inSeconds()) + 1;
-            juce::Rectangle<int> clipRect = {startX,getHeight () - (getHeight ()/3)
-                                             , endX-startX, (getHeight() / 3)};
-            m_clipRects.add(clipRect);
+            m_clipRects.add(getClipRect(c));
         }
     }
+}
+juce::Rectangle<int> TimelineOverlayComponent::getClipRect(te::Clip::Ptr c)    
+{
+    auto startX = timeToX (c->getPosition ().getStart ().inSeconds() );
+    auto endX = timeToX (c->getPosition ().getEnd ().inSeconds()) + 1;
+    auto tlr = m_timelineComponent.getBounds();
+    juce::Rectangle<int> clipRect = {startX,tlr.getHeight () - (tlr.getHeight ()/3)
+                                     , endX-startX, (tlr.getHeight() / 3)};
+    return clipRect;
 }

@@ -86,7 +86,7 @@ void PianoRollEditorComponent::resized()
     m_timeline.setBounds (timeline);
 
     if (m_timelineOverlay != nullptr)
-        m_timelineOverlay->setBounds (timeline);
+        m_timelineOverlay->setBounds (getTimeLineRect().getUnion(getMidiEditorRect()));
 
     if (m_velocityEditor != nullptr)
         m_velocityEditor->setBounds(getVelocityEditorRect());

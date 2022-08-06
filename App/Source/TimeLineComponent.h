@@ -25,6 +25,9 @@ public:
     te::TimecodeSnapType    getBestSnapType();
     EditViewState&          getEditViewState();
 
+    juce::CachedValue<double> & m_X1;
+    juce::CachedValue<double> & m_X2;
+
 private:
 
     void                    drawLoopRange(juce::Graphics& g);
@@ -45,9 +48,6 @@ private:
                             m_rightResized,
                             m_loopRangeClicked;
     double                  m_cachedX1{}, m_cachedX2{};
-
-    juce::CachedValue<double> & m_X1;
-    juce::CachedValue<double> & m_X2;
 
     double                  m_cachedL1;
     double                  m_cachedL2;

@@ -41,14 +41,13 @@ PluginWindowComponent::~PluginWindowComponent()
 void PluginWindowComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
-    g.setColour(juce::Colour(0xff242424));
     auto cornerSize = 10.0f;
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true);
+    g.setColour(juce::Colour(0xff242424));
+    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
 
 
-    auto trackCol = getTrackColour();
-    g.setColour(plugin->isEnabled () ?
-                       trackCol : trackCol.darker (0.7));
+    auto trackCol = plugin->isEnabled () ?
+                       getTrackColour() : getTrackColour().darker (0.7);
 
     name.setColour(juce::Label::ColourIds::textColourId,
                    trackCol.getBrightness() > 0.8
@@ -56,7 +55,8 @@ void PluginWindowComponent::paint (juce::Graphics& g)
                                                  : juce::Colour(0xffffffff));
 
     auto header = area.removeFromLeft(m_headerWidth);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true);
+    g.setColour(trackCol);
+    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
 
     if (m_clickOnHeader)
     {

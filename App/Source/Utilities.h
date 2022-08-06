@@ -8,11 +8,10 @@
 
 #pragma once
 
-
-#include <utility>
-
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "AudioMidiSettings.h"
+#include "ClipComponent.h"
+#include "EditViewState.h"
 
 namespace te = tracktion_engine;
 
@@ -64,10 +63,13 @@ namespace GUIHelpers
     juce::Rectangle<int> getSensibleArea(juce::Point<int> p, int w);
 
     void drawRoundedRectWithSide(
-          juce::Graphics & g
-        , juce::Rectangle<float> area
-        , float cornerSize
-        , bool left);
+        juce::Graphics &g
+      , juce::Rectangle<float> area
+      , float cornerSize
+      , bool topLeft 
+      , bool topRight
+      , bool bottomLeft
+      , bool bottomRight);
 
     void changeColor(
           juce::XmlElement& xml
@@ -189,6 +191,7 @@ namespace EngineHelpers
 
 	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
 
+    void resizeSelectedClips(bool snap, bool fromLeftEdge, double delta, EditViewState & evs, te::TimecodeSnapType snapType);
 
     te::Project::Ptr createTempProject (te::Engine& engine);
 

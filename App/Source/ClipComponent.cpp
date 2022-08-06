@@ -59,7 +59,7 @@ juce::Rectangle<int> ClipComponent::getVisibleBounds()
    
     return area;
 }
-void ClipComponent::mouseEnter(const juce::MouseEvent &/* clipEvent */)
+void ClipComponent::mouseEnter(const juce::MouseEvent &clipEvent)
 {
     repaint();
 }
