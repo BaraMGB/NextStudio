@@ -1,4 +1,5 @@
 #include "Utilities.h"
+#include "EditViewState.h"
 
 void Helpers::addAndMakeVisible(juce::Component &parent, const juce::Array<juce::Component *> &children)
 {
@@ -374,7 +375,78 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
         selectedClip->removeFromParentTrack ();
     }
 }
+bool EngineHelpers::trackWantsClip(const te::Clip* clip,
+                                    const te::Track* track) 
+{
+    if (track == nullptr)
+        return false;
+    if (track->isFolderTrack())
+        return false;
 
+    return
+        clip->isMidi() ==
+        static_cast<bool>(track->state.getProperty( IDs::isMidiTrack));
+}
+
+te::Track* EngineHelpers::getTargetTrack(te::Track* sourceTrack, int verticalOffset)
+{
+    auto &edit = sourceTrack->edit;
+    auto tracks = te::getAllTracks(edit);
+    auto targetTrack = tracks[tracks.indexOf(sourceTrack) + verticalOffset];
+
+    return targetTrack;
+}
+
+void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype)
+{
+    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
+    auto targetTime = snap ? evs.getSnapedTime(sourceTime + timeDelta, snaptype): sourceTime + timeDelta;
+    auto delta = targetTime - sourceTime - tempPosition;
+
+    if (verticalOffset == 0) EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
+
+    juce::Array<te::Clip*> copyOfSelectedClips;
+
+    for (auto sc : selectedClips)
+    {
+        auto targetTrack = EngineHelpers::getTargetTrack(sc->getTrack(), verticalOffset);
+
+        if (EngineHelpers::trackWantsClip(sc, targetTrack))
+        {
+            auto newClip = te::duplicateClip(*sc);
+            copyOfSelectedClips.add(newClip);
+            newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+
+            if (!copy)
+                sc->removeFromParentTrack();
+            else
+                evs.m_selectionManager.deselect(sc);
+        }
+    }
+
+    for (auto newClip: copyOfSelectedClips)
+    {
+        auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
+        auto targetTrack = EngineHelpers::getTargetTrack(newClip->getTrack(), verticalOffset);
+                        
+        if (EngineHelpers::trackWantsClip(newClip, targetTrack))
+        {
+            if (auto tct = dynamic_cast<te::ClipTrack*>(targetTrack))
+            {
+                tct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
+                                  newClip->getPosition().getLength()},
+                                  &evs.m_selectionManager);
+    
+                newClip->moveToTrack(*targetTrack);
+                newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
+    
+                evs.m_selectionManager.addToSelection(newClip);
+            }
+        }
+    }
+
+}
 void EngineHelpers::copyAutomationForSelectedClips(double offset
                                                  , te::SelectionManager& sm
                                                  , bool copy)

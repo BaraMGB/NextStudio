@@ -187,39 +187,8 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
 }
 void TimelineOverlayComponent::moveSelectedClips(bool copy, bool snap)
 {
-    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-    auto tempPos = m_editViewState.m_edit.getLength().inSeconds() * 100;
     auto sourceTime = m_cachedClip->getPosition().getStart().inSeconds();
-    auto targetTime = snap ? getSnapedTime(sourceTime - m_draggedTimeDelta) : sourceTime - m_draggedTimeDelta;
-    auto delta = targetTime - sourceTime - tempPos;
-    juce::Array<te::Clip*> copyOfSelectedClips;
-
-    EngineHelpers::copyAutomationForSelectedClips(-m_draggedTimeDelta, m_editViewState.m_selectionManager, copy);
-
-    for (auto sc : selectedClips)
-    {
-        auto newClip = te::duplicateClip(*sc);
-        copyOfSelectedClips.add(newClip);
-        newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPos), false, true);
-
-        if (!copy)
-            sc->removeFromParentTrack();
-        else
-            m_editViewState.m_selectionManager.deselect(sc);
-    }   
-
-    for (auto newClip: copyOfSelectedClips)
-    {
-        auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
-                            
-        newClip->getClipTrack()->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
-                          newClip->getPosition().getLength()},
-                          &m_editViewState.m_selectionManager);
- 
-        newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
- 
-        m_editViewState.m_selectionManager.addToSelection(newClip);
-    }
+    EngineHelpers::moveSelectedClips(sourceTime, copy, snap, -m_draggedTimeDelta, 0, m_editViewState, m_timelineComponent.getBestSnapType());
 }
 int TimelineOverlayComponent::timeToX(double time)
 {

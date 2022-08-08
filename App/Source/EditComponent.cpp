@@ -267,7 +267,7 @@ void EditComponent::refreshSnapTypeDesc()
 void EditComponent::buildTracks()
 {
     m_lowerRange.clearPluginRacks ();
-    m_songEditor.clear();
+    m_songEditor.clearTracks();
     m_trackListView.clear();
 
     for (auto t : getAllTracks (m_edit))

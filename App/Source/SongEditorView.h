@@ -1,4 +1,5 @@
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ClipComponent.h"
 #include "EditViewState.h"
 #include "TrackComponent.h"
 #include "LassoSelectionTool.h"
@@ -31,61 +32,46 @@ public:
 
     void turnoffAllTrackOverlays();
     juce::OwnedArray<TrackComponent>& getTrackComps ();
-    const TrackComponent& getTrackView(te::Track::Ptr track);
+    void clearTracks();
+    int countTracks();
 
-    void clear();
-    int getSize();
     LassoSelectionTool& getLasso();
     LassoSelectionTool::LassoRect getCurrentLassoRect();
-
     void startLasso(const juce::MouseEvent& e);
-
     void updateLasso(const juce::MouseEvent& e);
     void duplicateSelectedClips();
-    void moveSelectedClips(ClipComponent *draggedClip, int verticalOffset);
 private:
 
+    void moveSelectedClips(double sourceTime, bool copy, bool snap, double delta, int verticalOffset);  
     int timeToX (double time);
     int getSnapedX(int x, bool down=false) const;
+    double xtoTime(int x);
+    double getSnapedTime(double time, bool downwards=false);
 
-    TrackComponent *getTrackCompForTrack(const tracktion_engine::Track::Ptr& track);
-    EditViewState& m_editViewState;
-    LassoSelectionTool m_lassoComponent;
     ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
-    juce::OwnedArray<TrackComponent>    m_trackViews;
-    juce::Array<te::Clip*>              m_cachedSelectedClips;
-    double                              m_cachedY;
+    TrackComponent *getTrackForClip(int verticalOffset, const te::Clip *clip);
+    TrackComponent *getTrackCompForTrack(const tracktion_engine::Track::Ptr& track);
 
     void updateSelection(bool add);
     void updateClipCache();
-    juce::Range<double> getVerticalRangeOfTrack(
-        double scrollY, tracktion_engine::Track* track) const;
+    juce::Range<double> getVerticalRangeOfTrack(double scrollY, tracktion_engine::Track* track) const;
     void selectCatchedClips(const tracktion_engine::Track* track);
 
     double getPasteTime(double dropTime, ClipComponent* draggedClip) const;
-    bool trackWantsClip(const te::Clip* clip, const TrackComponent* track) const;
-    double m_draggedTimeDelta;
-
-    int getVerticalOffset(const SourceDetails& dragSourceDetails,
-                          const juce::Point<int>& dropPos);
-
-    TrackComponent *getTrackForClip(int verticalOffset, const te::Clip *clip);
-
-    double xtoTime(int x);
-
-    double m_cachedEditLength {0.0};
-
-    double getSnapedTime(double time, bool downwards=false);
+    int getVerticalOffset(const SourceDetails& dragSourceDetails, const juce::Point<int>& dropPos);
 
     void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
-
-
 
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
     void drawResizingOverlays (const ClipComponent *draggedClip);
     void drawDraggingOverlays (const ClipComponent *draggedClip, const juce::Point<int> &dropPos, int verticalOffset);
 
-
+    EditViewState&                      m_editViewState;
+    LassoSelectionTool                  m_lassoComponent;
+    juce::OwnedArray<TrackComponent>    m_trackViews;
+    juce::Array<te::Clip*>              m_cachedSelectedClips;
+    double                              m_cachedY;
+    double                              m_draggedTimeDelta;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };

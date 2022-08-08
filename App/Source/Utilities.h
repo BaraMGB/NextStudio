@@ -10,7 +10,6 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "AudioMidiSettings.h"
-#include "ClipComponent.h"
 #include "EditViewState.h"
 
 namespace te = tracktion_engine;
@@ -183,8 +182,11 @@ namespace EngineHelpers
     tracktion::core::TimePosition getTimePos(double t);
     te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);
 
+    bool trackWantsClip(const te::Clip* clip, const te::Track* track);
+    te::Track* getTargetTrack(te::Track*, int verticalOffset);
     void deleteSelectedClips(EditViewState & evs);
 
+    void moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype);
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm
                                                      , bool copy);
