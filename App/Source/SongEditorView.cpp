@@ -144,11 +144,11 @@ void SongEditorView::itemDropped(
         auto startTime = draggedClip->getClip()->getPosition().getStart().inSeconds();
         auto copy = draggedClip->isCtrlDown();
         auto snap = !draggedClip->isShiftDown();
+        auto resizeL = draggedClip->isResizeLeft();
+        auto resizeR = draggedClip->isResizeLeft();
 
-        if (draggedClip->isResizeRight())
-            resizeSelectedClips(snap);
-        else if (draggedClip->isResizeLeft())
-            resizeSelectedClips(snap);
+        if (resizeR || resizeL)
+            resizeSelectedClips(snap, resizeL);
         else
             moveSelectedClips(startTime, copy, snap, m_draggedTimeDelta, verticalOffset);
 
