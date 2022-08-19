@@ -115,7 +115,7 @@ void SongEditorView::itemDropped(
         auto copy = draggedClip->isCtrlDown();
         auto snap = !draggedClip->isShiftDown();
         auto resizeL = draggedClip->isResizeLeft();
-        auto resizeR = draggedClip->isResizeLeft();
+        auto resizeR = draggedClip->isResizeRight();
 
         if (resizeR || resizeL)
             resizeSelectedClips(snap, resizeL);
