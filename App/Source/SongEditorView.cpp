@@ -105,36 +105,6 @@ void SongEditorView::itemDropped(
         , m_editViewState.m_viewX2);
     dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
     
-    if (auto destinationTrack = getTrackComponent (dropPos.getY ()))
-    {
-        if (auto lb = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
-        {
-            if (auto fileListComp =
-                    dynamic_cast<FileListBoxComponent*>(lb->getModel ()))
-            {
-                tracktion_engine::AudioFile audioFile(
-                    m_editViewState.m_edit.engine
-                    , fileListComp->getFileList ()[lb->getLastRowSelected ()]);
-                if (audioFile.isValid ())
-                {
-                    destinationTrack->insertWave(
-                        fileListComp->getFileList()[lb->getLastRowSelected()],
-                        dropTime);
-                }
-            }
-        }
-        //wave file dropped
-        if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
-        (dragSourceDetails.sourceComponent.get()))
-        {
-            auto f = fileTreeComp->getSelectedFile();
-            destinationTrack->insertWave(f, dropTime);
-        }
-    }
-    else
-    {
-        addWaveFileToNewTrack(dragSourceDetails, dropTime);
-    }
 	//copy/moving selected clips by drag and drop // resizing
     if (auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ()))
     {
