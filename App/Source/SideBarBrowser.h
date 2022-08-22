@@ -7,6 +7,7 @@
 #include "ApplicationViewState.h"
 #include "AudioClipComponent.h"
 #include "Utilities.h"
+#include "tracktion_core/utilities/tracktion_Time.h"
 
 namespace te = tracktion_engine;
 
@@ -56,8 +57,10 @@ public:
             auto& ptp = m_previewEdit->getTransport();
             m_previewEdit->dispatchPendingUpdatesSynchronously ();
             ptp.ensureContextAllocated();
+  
+            ptp.setCurrentPosition(m_previewEdit->getLength().inSeconds());
+            ptp.play(false);
             ptp.setCurrentPosition (0.0);
-            ptp.play (false);
         }
     }
     void setFile(const juce::File& file)
@@ -77,11 +80,12 @@ public:
                 m_previewEdit = te::Edit::createEditForPreviewingFile (
                             m_currentEdit.engine
                             , file
-                            , nullptr
+                            , &m_currentEdit 
                             , false
                             , false
                             , nullptr
                             , juce::ValueTree());
+                    
                 m_volumeSlider = std::make_unique<juce::Slider>();
                 m_volumeSlider->addListener (this);
                 m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
