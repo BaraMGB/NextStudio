@@ -13,6 +13,7 @@ namespace te = tracktion_engine;
 
 class SamplePreviewComponent : public juce::Component
                              , public juce::Slider::Listener
+                             , public juce::Timer
 {
 public:
     explicit SamplePreviewComponent(te::Edit & edit)
@@ -50,6 +51,13 @@ public:
         }
     }
 
+    void timerCallback() override
+    {
+        if (m_previewEdit)
+        {
+            m_previewEdit->getTransport().stop(false, true); 
+        }
+    }
     void play()
     {
         if (m_previewEdit)
@@ -58,8 +66,10 @@ public:
             m_previewEdit->dispatchPendingUpdatesSynchronously ();
             ptp.ensureContextAllocated();
   
-            ptp.setCurrentPosition(m_previewEdit->getLength().inSeconds());
+            auto sampleLenght = m_previewEdit->getLength().inSeconds() + 0.5;
+            ptp.setCurrentPosition(sampleLenght);
             ptp.play(false);
+            startTimer(sampleLenght * 1000);
             ptp.setCurrentPosition (0.0);
         }
     }
