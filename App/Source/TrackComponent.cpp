@@ -31,36 +31,29 @@ TrackComponent::~TrackComponent()
 
 void TrackComponent::paint(juce::Graphics& g)
 {
-    auto area = getLocalBounds();
-    area.reduce(0, 1);
-    g.setColour(juce::Colour(0xff505050));
-    g.fillRect(area);
-
+    g.setColour(juce::Colour(0x60ffffff));
+    g.drawLine(0, getHeight(), getWidth(), getHeight());
+    // area.reduce(0, 1);
+    // g.setColour(juce::Colour(0xff1B1F27));
+    // g.fillRect(area);
+    //
     double x2beats = m_editViewState.m_viewX2;
     double x1beats = m_editViewState.m_viewX1;
+    //
+    // if (isSelected())
+    // {
+    //     g.setColour(juce::Colour(0xff606060));
+    //     g.fillRect(area);
+    // }
+    //
+    GUIHelpers::drawBarsAndBeatLines(
+    g, m_editViewState, x1beats, x2beats, getBounds());
 
-    if (isSelected())
-    {
-        g.setColour(juce::Colour(0xff505050));
-        g.fillRect(area);
-    }
-
-    if (m_track->isFolderTrack())
-    {
-        g.setColour(juce::Colour(0xff000000));
-        g.fillRect(area);
-    }
-    else
-    {
-        GUIHelpers::drawBarsAndBeatLines(
-            g, m_editViewState, x1beats, x2beats, getBounds());
-    }
-
-    if (isOver)
-    {
-        g.setColour(juce::Colours::white);
-        g.drawRect(getLocalBounds());
-    }
+    // if (isOver)
+    // {
+    //     g.setColour(juce::Colours::white);
+    //     g.drawRect(getLocalBounds());
+    // }
 }
 
 void TrackComponent::paintOverChildren(juce::Graphics& g)
@@ -73,29 +66,32 @@ void TrackComponent::drawDraggingOverlays(juce::Graphics& g)
     {
         auto s = juce::jmax(-5, oc->getClipBounds().getX());
         auto w = juce::jmin(getWidth() + 5, oc->getClipBounds().getRight()) - s;
+        auto area = juce::Rectangle<int>(s, 0, w, getClipHeight());
+        auto clipColor = m_track->getColour();
+        auto innerGlow = clipColor.brighter(0.7f);
+        auto borderColour = juce::Colour(0xff000000);
 
-        if (oc->isResizing())
+        if (oc->isValid())
         {
-            g.setColour(juce::Colours::gainsboro);
-            g.drawRect(s, 0, w, getClipHeight(), 2);
-        }
-        else
-        {
-            auto area = juce::Rectangle<int>(s, 0, w, getClipHeight());
-            auto clipColor = m_track->getColour();
-            auto innerGlow = clipColor.brighter(0.5f);
-            auto borderColour = juce::Colour(0xff000000);
-
             g.setColour(borderColour);
-            g.fillRect(area);
+            g.drawRect(area);
 
             g.setColour(innerGlow);
             area.reduce(1, 1);
-            g.fillRect(area);
+            g.drawRect(area, 2);
 
-            g.setColour(clipColor);
+            g.setColour(clipColor.withAlpha(0.7f));
             area.reduce(1, 1);
             g.fillRect(area);
+        }
+        else
+        {
+            g.setColour(juce::Colour(0xff000000));
+            g.fillRect(area);
+            area.reduce(2,2);
+            g.fillCheckerBoard(area.toFloat(), 1.f, 1.f, juce::Colour(0xff777777), juce::Colour(0xff333333));
+            g.setColour(juce::Colour(0xffffffff));
+            g.drawText("not allowed!", area, juce::Justification::centred);
         }
     }
 }
@@ -260,7 +256,7 @@ void TrackComponent::resized()
                                                 m_editViewState.m_viewX1,
                                                 m_editViewState.m_viewX2);
             auto clipHeight = getClipHeight();
-            cc->setBounds(startX, 0, endX - startX + 1, clipHeight);
+            cc->setBounds(startX, 1, endX - startX + 1, clipHeight);
         }
     }
 

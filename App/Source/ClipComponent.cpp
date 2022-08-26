@@ -11,38 +11,39 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
     addAndMakeVisible(m_nameLabel);
     m_nameLabel.setText(m_clip->getName(), juce::dontSendNotification);
     m_nameLabel.setInterceptsMouseClicks(false, false);
-    m_nameLabel.setJustificationType(juce::Justification::topLeft);
-    auto bg = m_clip->getColour().darker(0.7);
-    m_nameLabel.setColour(juce::Label::ColourIds::backgroundColourId, bg.withAlpha(0.6f));
+    m_nameLabel.setJustificationType(juce::Justification::centredLeft);
+    m_nameLabel.setMinimumHorizontalScale(1.0f);
 }
 
 void ClipComponent::paint (juce::Graphics& g)
 {
    
     auto area = getVisibleBounds(); 
+    auto header = area.withHeight(m_editViewState.m_clipHeaderHeight);
     auto isSelected = m_editViewState.m_selectionManager.isSelected (m_clip);
 
     auto clipColor = getClip ()->getColour ();
     auto innerGlow = clipColor.brighter(0.5f);
-    auto selectedColour = juce::Colour(0xffcccccc);
-    auto borderColour = juce::Colour(0xff000000);
-
-    g.setColour (borderColour);
-    g.fillRect (area);
-
-    g.setColour (innerGlow);
-    area.reduce (1, 1);
-    g.fillRect (area);
-
-    g.setColour (clipColor);
-    area.reduce (1, 1);
-    g.fillRect (area);
-
+    auto borderColour = clipColor.darker(0.95f);
+    auto backgroundColor = borderColour.withAlpha(0.6f);
+    
+    area.removeFromBottom(1);
+    g.setColour(backgroundColor);
+    g.fillRect(area.reduced(1, 1));
+ 
+    g.setColour(innerGlow);
+    g.drawRect(header);
+    g.drawRect(area);
+    g.setColour(clipColor);
     if (isSelected)
-    {
-        g.setColour (selectedColour);
-        g.drawRect (area.expanded (2, 2), 2);
-    }
+        g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
+
+    g.fillRect(header.reduced(2,2));
+
+    m_nameLabel.setColour(juce::Label::ColourIds::backgroundColourId, juce::Colour(0x00ffffff));
+    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.withLightness(.85f));
+    if (clipColor.getPerceivedBrightness() > 0.5f)
+        m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.darker(0.95f));
 }
 
 juce::Rectangle<int> ClipComponent::getVisibleBounds()
@@ -168,8 +169,8 @@ void ClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
 void ClipComponent::resized()
 {
     auto area = getLocalBounds();
-    area.reduce(2, 2);
-    m_nameLabel.setBounds(area.removeFromTop(20));
+    area = area.removeFromTop(m_editViewState.m_clipHeaderHeight);
+    m_nameLabel.setBounds(area);
 }
 tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Clip::Ptr& clip)
 {

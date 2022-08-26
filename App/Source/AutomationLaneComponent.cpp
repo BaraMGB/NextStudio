@@ -13,12 +13,9 @@ AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCur
 }
 void AutomationLaneComponent::paint(juce::Graphics &g)
 {
-    g.setColour(juce::Colours::white);
-
     auto selCol = m_editViewState.m_applicationState.getPrimeColour();
     g.setColour(selCol.withAlpha(0.3f));
     auto range = getSelectedRange();
-
     
     g.fillRect(juce::Rectangle<int>{ getXPos(range.getStart().inSeconds()), 0, getXPos(range.getEnd().inSeconds()) - getXPos(range.getStart().inSeconds()), getHeight() });
 
@@ -26,8 +23,8 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
     auto end = juce::jmax(m_curve.getPoint(m_curve.getNumPoints() -1 ).time.inSeconds() ,m_editViewState.beatToTime(m_editViewState.m_viewX2));
     paintCurves(g, start , end);
 
-    g.setColour(juce::Colour(0x66ffffff));
-    g.drawHorizontalLine(0,0,getWidth());
+    g.setColour(juce::Colour(0x60ffffff));
+    g.drawLine(0, 0, getWidth(), 0);
 }
 void AutomationLaneComponent::paintOverChildren(juce::Graphics &g)
 {

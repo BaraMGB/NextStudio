@@ -75,6 +75,7 @@ namespace IDs
     DECLARE_ID (selected)
 	DECLARE_ID (selectedRangeStart)
 	DECLARE_ID (selectedRangeEnd)
+    DECLARE_ID (clipHeaderHeight)                                               
     #undef DECLARE_ID
 }
 
@@ -110,7 +111,7 @@ public:
         m_folderTrackHeight.referTo(m_state, IDs::folderTrackHeight, um, 30);
         m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
-        m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0 * 4);
+        m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0);
         m_viewY.referTo (m_state, IDs::viewY, um, 0);
         m_pianoX1.referTo (m_state, IDs::pianoX1, um, 0);
         m_pianoX2.referTo (m_state, IDs::pianoX2, um, 4);
@@ -129,6 +130,7 @@ public:
         m_velocityEditorHeight.referTo(m_state, IDs::velocityEditorHeight, um, 100);
         m_lastVelocity.referTo(m_state, IDs::lastVelocity, um, 100);
         m_keyboardWidth.referTo(m_state, IDs::pianoRollKeyboardWidth, um, 120);
+        m_clipHeaderHeight.referTo(m_state, IDs::clipHeaderHeight, um, 20);
     }
 
     float getTimeLineZoomUnit ()
@@ -266,7 +268,8 @@ public:
                             , m_playHeadStartTime
                             , m_timeLineZoomUnit;
     juce::CachedValue<int> m_midiEditorHeight
-                            , m_velocityEditorHeight;
+                            , m_velocityEditorHeight
+                            , m_clipHeaderHeight;
     juce::CachedValue<int> m_snapType;
 
     juce::CachedValue<int> m_trackHeightMinimized

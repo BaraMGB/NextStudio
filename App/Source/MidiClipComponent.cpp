@@ -22,13 +22,14 @@ void MidiClipComponent::paint (juce::Graphics& g)
     if (!(endX < 0 || startX > getParentComponent()->getWidth()))
     {
         ClipComponent::paint(g);
-        auto clipHeader = m_nameLabel.getHeight();
+        auto clipHeader = static_cast<int>(m_editViewState.m_clipHeaderHeight);
         if (auto mc = getMidiClip())
         {
             auto& seq = mc->getSequence();
             auto range = seq.getNoteNumberRange();
             auto lines = juce::jmax(20, range.getLength());
             auto noteHeight = juce::jmax(1,((getHeight() - clipHeader) / lines)/2);
+            auto noteColor = m_clip->getColour().withLightness(0.6f);
             for (auto n: seq.getNotes())
             {
                 double sBeat = n->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats();
@@ -51,8 +52,9 @@ void MidiClipComponent::paint (juce::Graphics& g)
                     auto area = getVisibleBounds();
                     x1 = juce::jmax(area.getX(), x1);
                     x2 = juce::jmin(area.getRight(), x2);
-                    g.setColour(juce::Colours::white);
-                    g.fillRect(x1, y, x2 - x1, noteHeight);
+                    auto w = juce::jmax(0, x2 - x1);
+                    g.setColour(noteColor);
+                    g.fillRect(x1, y, w, noteHeight);
                 }
             }
         }

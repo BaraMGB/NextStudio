@@ -53,12 +53,12 @@ juce::Range<int> AudioClipComponent::getDrawingRange()
 
 juce::Rectangle<int> AudioClipComponent::getDrawingRect()
 {
+    auto headerHeight = static_cast<int>(m_editViewState.m_clipHeaderHeight);
     auto drawingRect = juce::Rectangle<int> (
                         getDrawingRange ().getStart ()
-                      , m_editViewState.m_trackHeightMinimized/2 + 3
+                      , headerHeight 
                       , getDrawingRange().getLength ()
-                      , getHeight()
-                        - m_editViewState.m_trackHeightMinimized/2 - 5);
+                      , getHeight() - headerHeight - 2);
     return drawingRect;
 }
 
@@ -70,10 +70,11 @@ void AudioClipComponent::paint (juce::Graphics& g)
 
     if (m_editViewState.m_drawWaveforms && thumbnail)
     {
+        auto colour = m_clip->getColour().withLightness(0.6f);
         drawWaveform(g
                    , *getWaveAudioClip()
                    , *thumbnail
-                   , juce::Colours::black.withAlpha(0.5f)
+                   , colour 
                    , rect.getX()
                    , rect.getRight ()
                    , rect.getY ()

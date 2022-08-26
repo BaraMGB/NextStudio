@@ -116,8 +116,9 @@ void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
     {
         m_mouseDownY = event.y;
         m_heightAtMouseDown = getHeight ();
+        getParentComponent ()->mouseDown (event);
     }
-    getParentComponent ()->mouseDown (event);
+
 
 
 }
@@ -444,22 +445,9 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
 
 void TrackHeaderComponent::deleteTrackFromEdit()
 {
+    m_editViewState.m_selectionManager.deselectAll();
     te::Clipboard::getInstance()->clear();
-    m_track->deselect();
     m_track->edit.deleteTrack(m_track);
-    auto i = te::getAllTracks(m_editViewState.m_edit).getLast();
-
-    if (!(i->isArrangerTrack()
-        || i->isTempoTrack()
-        || i->isMarkerTrack()
-        || i->isChordTrack()))
-    {
-        m_editViewState.m_selectionManager.selectOnly(i);
-    }
-    else
-    {
-        m_editViewState.m_selectionManager.deselectAll();
-    }
 }
 
 void TrackHeaderComponent::buildAutomationHeader()

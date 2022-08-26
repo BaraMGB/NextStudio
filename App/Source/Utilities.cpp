@@ -591,7 +591,7 @@ tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(
     ft->state.setProperty (te::IDs::height
                              , (int) evs.m_trackDefaultHeight
                              , nullptr);
-    ft->state.setProperty (IDs::isTrackMinimized, true, nullptr);
+    ft->state.setProperty (IDs::isTrackMinimized, false, nullptr);
 
     ft->state.setProperty(  IDs::isMidiTrack
                              , false
@@ -615,7 +615,7 @@ tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
          track->state.setProperty (te::IDs::height
                                  , (int) evs.m_trackDefaultHeight
                                  , nullptr);
-         track->state.setProperty (IDs::isTrackMinimized, true, nullptr);
+         track->state.setProperty (IDs::isTrackMinimized, false, nullptr);
 
          track->state.setProperty(  IDs::isMidiTrack
                                   , isMidiTrack
@@ -721,9 +721,15 @@ void EngineHelpers::toggleLoop (tracktion_engine::Edit &edit)
 void EngineHelpers::play (EditViewState &evs)
 {
     auto& transport = evs.m_edit.getTransport ();
+ 
     if (transport.isPlaying ())
         transport.setCurrentPosition (evs.m_playHeadStartTime);
+    //hack for prevent not playing the first transient of a sample
+    //that starts direct on play position
+    auto currentPos = transport.getCurrentPosition();
+    transport.setCurrentPosition(evs.m_edit.getLength().inSeconds());
     transport.play (true);
+    transport.setCurrentPosition(currentPos);
 }
 
 void EngineHelpers::pause (EditViewState &evs)
@@ -928,10 +934,9 @@ void GUIHelpers::centerView(EditViewState &evs)
 
 void GUIHelpers::moveView(EditViewState& evs, double newBeatPos)
 {
-    auto delta = evs.m_viewX1 - newBeatPos;
     auto zoom = evs.m_viewX2 - evs.m_viewX1;
-    evs.m_viewX1 = evs.m_viewX1 - delta;
-    evs.m_viewX2 = evs.m_viewX1 + zoom;
+    evs.m_viewX1 = newBeatPos;
+    evs.m_viewX2 = newBeatPos + zoom;
 }
 
 float GUIHelpers::getZoomScaleFactor(int delta, float unitDistance)
