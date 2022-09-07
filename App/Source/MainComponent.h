@@ -26,6 +26,8 @@ class MainComponent   : public juce::Component
                       , public juce::DragAndDropContainer
                       , public juce::ChangeListener
                       , public te::ValueTreeAllEventListener
+                      , private FlaggedAsyncUpdater
+                      , private juce::Timer
 {
 public:
     explicit MainComponent(ApplicationViewState& state);
@@ -42,12 +44,15 @@ public:
     bool handleUnsavedEdit();
 
 private:
+    void handleAsyncUpdate () override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
     void saveSettings();
     void createTracksAndAssignInputs();
+    void saveTempEdit();
     void openValidStartEdit();
     void setupSideBrowser();
 
+    void timerCallback() override;
 
     std::unique_ptr<HeaderComponent>                    m_header;
     NextLookAndFeel                                     m_nextLookAndFeel;
@@ -65,5 +70,8 @@ private:
     juce::StretchableLayoutResizerBar                   m_resizerBar
                                 {&m_stretchableManager, 1, true};
     [[maybe_unused]] bool                               m_settingsLoaded {false};
+    bool                                                m_saveTemp{false}, m_updateView{false}, m_updateSource{false};
+    bool m_hasUnsavedTemp {true};
+    juce::File m_tempDir;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

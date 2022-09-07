@@ -21,6 +21,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.15);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
+    startTimer (static_cast<int>(m_applicationState.m_autoSaveInterval));
 }
 
 MainComponent::~MainComponent()
@@ -190,12 +191,39 @@ void MainComponent::valueTreePropertyChanged(
     if (property == te::IDs::looping)
         m_header->updateLoopButton();
 
-    if (vt.hasType (IDs::EDITVIEWSTATE))
-        if (property == IDs::pianorollHeight
+    if (property == IDs::pianorollHeight
         || property == IDs::isPianoRollVisible)
-            resized ();
+            markAndUpdate(m_updateView);
+
+    if (property == te::IDs::source || property == te::IDs::state)
+        markAndUpdate(m_updateSource);
+   
+    if (property == te::IDs::lastSignificantChange)
+        markAndUpdate(m_saveTemp);
+}
+void MainComponent::handleAsyncUpdate()
+{
+    if (compareAndReset (m_saveTemp)  && !compareAndReset(m_updateSource))
+    {
+        m_hasUnsavedTemp = true;
+        stopTimer();
+        startTimer (static_cast<int>(m_applicationState.m_autoSaveInterval));
+    }
+
+    if (compareAndReset(m_updateView))
+    {
+        resized();
+    }
 }
 
+void MainComponent::timerCallback()
+{
+    if (m_hasUnsavedTemp)
+    {
+        saveTempEdit();
+        m_hasUnsavedTemp = false;
+    }
+}
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
     if (source == m_header.get ())
@@ -208,13 +236,40 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
     }
 }
 
+void MainComponent::saveTempEdit()
+{
+    auto temp = m_edit->getTempDirectory(false);
+    auto editFile = Helpers::findRecentEdit(temp);
+    auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
+
+    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
+    te::EditFileOperations(*m_edit).writeToFile(editFile, false);
+    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
+    m_edit->sendSourceFileUpdate();
+    GUIHelpers::log("Temp file saved!");
+}
+
 void MainComponent::openValidStartEdit()
 {
-    auto tempDirectory = m_engine.getTemporaryFileManager().getTempDirectory();
-    tempDirectory.createDirectory();
+    m_tempDir = m_engine.getTemporaryFileManager().getTempDirectory();
+    m_tempDir.createDirectory();
 
-    setupEdit (tempDirectory.getNonexistentChildFile ("Untitled"
-                                                      , ".tracktionedit"
+    auto f = Helpers::findRecentEdit(m_tempDir);
+    if (f.existsAsFile())
+    {
+        auto result = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+                                                         "Restore crashed project?",
+                                                         "It seems, NextStudio is crashed last time. Do you want to restore the last session?",
+                                                         "Yes",
+                                                         "No");
+        if (result) 
+        {
+            setupEdit(f);
+            return;
+        }
+    }
+    setupEdit (m_tempDir.getNonexistentChildFile ("untitled"
+                                                      , ".nextTemp"
                                                       , false));
     auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
     for (auto & t : atList)
@@ -257,23 +312,32 @@ void MainComponent::setupEdit(juce::File editFile)
         m_edit = te::createEmptyEdit (m_engine, editFile);
 
     m_edit->playInStopEnabled = true;
-    auto& transport = m_edit->getTransport();
-    transport.addChangeListener (this);
+    
+    m_edit->setTempDirectory(m_tempDir);
 
+    m_edit->getTransport().addChangeListener (this);
 
     createTracksAndAssignInputs();
-    te::EditFileOperations (*m_edit).save (true, true, false);
+
+    te::EditFileOperations (*m_edit).writeToFile(editFile, true);
+
     m_editComponent = std::make_unique<EditComponent> (
                 *m_edit
               , m_applicationState
               , m_selectionManager);
+
     m_edit->state.addListener (this);
-    addAndMakeVisible (*m_editComponent);
-    addAndMakeVisible(m_editComponent->lowerRange());
+
     m_header = std::make_unique<HeaderComponent>(m_editComponent->getEditViewState (), m_applicationState);
     m_header->addChangeListener (this);
+
+
+    addAndMakeVisible (*m_editComponent);
+    addAndMakeVisible(m_editComponent->lowerRange());
     addAndMakeVisible(*m_header);
+
     setupSideBrowser();
+
     resized ();
 }
 
@@ -310,7 +374,7 @@ bool MainComponent::handleUnsavedEdit()
     }
     return true;
 }
-
+ 
 void MainComponent::createTracksAndAssignInputs()
 {
     auto& dm = m_engine.getDeviceManager();
@@ -337,3 +401,4 @@ void MainComponent::createTracksAndAssignInputs()
     m_edit->restartPlayback();
 
 }
+

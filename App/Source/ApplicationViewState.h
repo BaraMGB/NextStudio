@@ -30,6 +30,8 @@ namespace IDs
     DECLARE_ID (ThemeState)
     DECLARE_ID (PrimeColour)
     DECLARE_ID (BackgroundColour)
+    DECLARE_ID (Behavior)
+    DECLARE_ID (AutoSaveInterval)           
     #undef DECLARE_ID
 }
 
@@ -137,6 +139,9 @@ public:
 		
 		m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
 		m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff181818).toString());
+        auto behavior = m_applicationStateValueTree
+                .getOrCreateChildWithName(IDs::Behavior, nullptr);  
+        m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 5000);
     }
 
 	juce::Colour getPrimeColour()
@@ -267,6 +272,7 @@ public:
                                     m_windowYpos,
                                     m_windowWidth,
                                     m_windowHeight,
-                                    m_folderTrackIndent;
+                                    m_folderTrackIndent,
+                                    m_autoSaveInterval;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ApplicationViewState)
 };

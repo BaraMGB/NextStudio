@@ -14,7 +14,7 @@ juce::String Helpers::getStringOrDefault(const juce::String &stringToTest, const
 
 juce::File Helpers::findRecentEdit(const juce::File &dir)
 {
-    auto files = dir.findChildFiles (juce::File::findFiles, false, "*.tracktionedit");
+    auto files = dir.findChildFiles (juce::File::findFiles, false, "*.nextTemp");
     if (files.size() > 0)
     {
         files.sort();
@@ -134,17 +134,13 @@ void GUIHelpers::saveEdit(
       , const juce::File& workDir)
 {
 
-    auto editfile = te::EditFileOperations(evs.m_edit).getEditFile ();
-    auto file = editfile.getFileName () != "Untitled.tracktionedit"
-            ? editfile
-            : workDir;
     juce::WildcardFileFilter wildcardFilter ("*.tracktionedit"
                                              , juce::String()
                                              , "Next Studio Project File");
 
     juce::FileBrowserComponent browser (juce::FileBrowserComponent::saveMode
                                         + juce::FileBrowserComponent::canSelectFiles
-                                        , file
+                                        , workDir 
                                         , &wildcardFilter
                                         , nullptr);
 
@@ -158,9 +154,13 @@ void GUIHelpers::saveEdit(
     {
         juce::File selectedFile = browser.getSelectedFile (0)
                 .withFileExtension (".tracktionedit");
-        EngineHelpers::refreshRelativePathsToNewEditFile(evs, selectedFile);
         evs.m_editName = selectedFile.getFileNameWithoutExtension ();
+
+        auto cf = evs.m_edit.editFileRetriever();
+        EngineHelpers::refreshRelativePathsToNewEditFile(evs, selectedFile);
         te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false);
+        EngineHelpers::refreshRelativePathsToNewEditFile(evs, cf);
+        evs.m_edit.sendSourceFileUpdate();    
     }
 }
 
@@ -671,12 +671,10 @@ void EngineHelpers::refreshRelativePathsToNewEditFile(
         {
             if (c->state.getProperty (te::IDs::source) != "")
             {
-                auto source = evs.m_edit.filePathResolver(
-                            c->state.getProperty (te::IDs::source));
-                c->state.setProperty (
-                      te::IDs::source
-                    , source.getRelativePathFrom (newFile.getParentDirectory ())
-                    , nullptr);
+                auto source = evs.m_edit.filePathResolver(c->state.getProperty (te::IDs::source));
+                auto relPath = source.getRelativePathFrom (newFile.getParentDirectory ());
+
+                c->state.setProperty (te::IDs::source, relPath, nullptr);
             }
         }
     }

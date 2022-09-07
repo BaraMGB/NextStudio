@@ -19,7 +19,7 @@ int SongEditorView::getTrackHeight(const TrackComponent* tc) const
 void SongEditorView::paint(juce::Graphics& g)
 {
 	auto area = getLocalBounds();
-	g.setColour(juce::Colour(0xff222222));
+	g.setColour(juce::Colour(0xff303030));
 	g.fillRect(area);
 }
 void SongEditorView::resized()
