@@ -233,20 +233,28 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
             auto editfile = m_header->loadingFile ();
             setupEdit (editfile);
         }
+        else
+        {
+            m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
+            openValidStartEdit();
+        }
     }
 }
 
 void MainComponent::saveTempEdit()
 {
-    auto temp = m_edit->getTempDirectory(false);
-    auto editFile = Helpers::findRecentEdit(temp);
-    auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
+    if (!m_edit->getTransport().isPlaying())
+    {
+        auto temp = m_edit->getTempDirectory(false);
+        auto editFile = Helpers::findRecentEdit(temp);
+        auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
 
-    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
-    te::EditFileOperations(*m_edit).writeToFile(editFile, false);
-    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
-    m_edit->sendSourceFileUpdate();
-    GUIHelpers::log("Temp file saved!");
+        EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
+        te::EditFileOperations(*m_edit).writeToFile(editFile, false);
+        EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
+        m_edit->sendSourceFileUpdate();
+        GUIHelpers::log("Temp file saved!");
+    }
 }
 
 void MainComponent::openValidStartEdit()

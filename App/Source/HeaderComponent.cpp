@@ -445,6 +445,11 @@ void HeaderComponent::buttonClicked(juce::Button* button)
             sendChangeMessage ();
         }
     }
+    if (button == &m_newButton)
+    {
+        m_loadingFile = juce::File();
+        sendChangeMessage();
+    }
 }
 void HeaderComponent::updateLoopButton()
 {
