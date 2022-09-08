@@ -53,7 +53,7 @@ void MainComponent::resized()
                        ? m_editComponent->getEditViewState().m_midiEditorHeight
             : 250);
     Component* comps[] = {
-        m_sideBarBrowser.get ()
+        m_sideBarBrowser.get()
       , &m_resizerBar
       , m_editComponent.get ()};
     m_stretchableManager.layOutComponents (
@@ -96,8 +96,8 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
     {
         auto &x1 = m_editComponent->getEditViewState ().m_viewX1;
         auto &x2 = m_editComponent->getEditViewState ().m_viewX2;
-        x1 = x1 + (scaleFactor/5);
         x2 = x2 + (scaleFactor/5);
+        x1 = x1 + (scaleFactor/5);
 
         return true;
     }
@@ -106,8 +106,8 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
     {
         auto &x1 = m_editComponent->getEditViewState ().m_viewX1;
         auto &x2 = m_editComponent->getEditViewState ().m_viewX2;
-        x1 = x1 - (scaleFactor/5);
         x2 = x2 - (scaleFactor/5);
+        x1 = x1 - (scaleFactor/5);
 
         return true;
     }
@@ -250,7 +250,7 @@ void MainComponent::saveTempEdit()
         auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
 
         EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
-        te::EditFileOperations(*m_edit).writeToFile(editFile, false);
+        te::EditFileOperations(*m_edit).writeToFile(editFile, true);
         EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
         m_edit->sendSourceFileUpdate();
         GUIHelpers::log("Temp file saved!");
