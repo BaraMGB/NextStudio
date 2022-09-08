@@ -29,7 +29,7 @@ public:
 
 private:
     EditViewState& m_editViewState;
-    static juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify) ;
+       static juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify) ;
     int getButtonSize();
     int getGapSize();
 
@@ -46,10 +46,12 @@ private:
                        , m_loopButton
                        , m_clickButton
                        , m_followPlayheadButton;
-    PositionDisplayComponent m_display;
-
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
+
+
+    PositionDisplayComponent m_display;
+
     juce::String m_btn_col { "#dbdbdb" };
 
     juce::File m_loadingFile {};
