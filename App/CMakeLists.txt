@@ -66,6 +66,7 @@ target_sources(${TargetName} PRIVATE
         Source/PluginRackComponent.cpp
         Source/PianoRollEditorComponent.cpp
         Source/PlayHeadComponent.cpp
+        Source/PositionDisplayComponent.cpp
         Source/LowerRangeComponent.cpp
         Source/TrackHeadComponent.cpp
         Source/AudioMidiSettings.cpp
@@ -83,6 +84,7 @@ target_sources(${TargetName} PRIVATE
         )
 
 target_compile_definitions(${TargetName} PRIVATE
+        TRACKTION_JUCE7=1
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_PROJECT_NAME>"
@@ -99,7 +101,8 @@ target_compile_definitions (${TargetName} PUBLIC
         JUCE_USE_MP3AUDIOFORMAT=1
         JUCE_USE_WINDOWS_MEDIA_FORMAT=1
         DONT_SET_USING_JUCE_NAMESPACE=1
-	JUCE_MODAL_LOOPS_PERMITTED=1)
+     	JUCE_MODAL_LOOPS_PERMITTED=1
+        )
 
 
 

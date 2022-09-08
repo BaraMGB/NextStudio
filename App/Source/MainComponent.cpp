@@ -185,11 +185,11 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
 }
 
 void MainComponent::valueTreePropertyChanged(
-        juce::ValueTree &vt
+        juce::ValueTree &/* vt */
       , const juce::Identifier &property)
 {
     if (property == te::IDs::looping)
-        m_header->updateLoopButton();
+        m_header->loopButtonClicked();
 
     if (property == IDs::pianorollHeight
         || property == IDs::isPianoRollVisible)
@@ -228,9 +228,9 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
     if (source == m_header.get ())
     {
-        if (m_header->loadingFile ().exists ())
+        if (m_header->getSelectedFile ().exists ())
         {
-            auto editfile = m_header->loadingFile ();
+            auto editfile = m_header->getSelectedFile ();
             setupEdit (editfile);
         }
         else

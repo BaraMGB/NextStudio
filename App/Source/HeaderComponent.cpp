@@ -1,211 +1,5 @@
 #include "HeaderComponent.h"
-#include "Utilities.h"
-PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit)
-    : m_edit(edit)
-{
-    Helpers::addAndMakeVisible (*this, {   &m_bpmLabel,
-                                           &m_sigLabel,
-                                           &m_barBeatTickLabel,
-                                           &m_timeLabel,
-                                           &m_loopInLabel,
-                                           &m_loopOutLabel  });
-    m_bpmLabel.setJustificationType (juce::Justification::centred);
-    m_sigLabel.setJustificationType (juce::Justification::centred);
-    m_barBeatTickLabel.setJustificationType (juce::Justification::centred);
-    m_barBeatTickLabel.setFont (28);
-    m_timeLabel.setJustificationType (juce::Justification::centred);
-    m_loopInLabel.setJustificationType (juce::Justification::centred);
-    m_loopOutLabel.setJustificationType (juce::Justification::centred);
 
-    m_bpmLabel.setInterceptsMouseClicks (false, false);
-    m_sigLabel.setInterceptsMouseClicks (false, false);
-    m_barBeatTickLabel.setInterceptsMouseClicks (false, false);
-    m_timeLabel.setInterceptsMouseClicks (false, false);
-    m_loopInLabel.setInterceptsMouseClicks (false, false);
-    m_loopOutLabel.setInterceptsMouseClicks (false, false);
-
-    update ();
-}
-
-void PositionDisplayComponent::paint(juce::Graphics &g)
-{
-    auto area = getLocalBounds ();
-
-    g.setColour (juce::Colour(0xff1c1c1c));
-    g.fillRoundedRectangle (area.toFloat (), 5.0f);
-    g.setColour (juce::Colour(0xff999999));
-    g.drawRoundedRectangle (area.reduced(1).toFloat (), 5.0f, 0.5f);
-}
-
-void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)
-{
-    m_mousedownPosition = event.getMouseDownPosition ();
-    m_mousedownBPM = m_edit.tempoSequence.getTempos ()[0]->getBpm ();
-    m_mousedownBeatPosition = m_edit.tempoSequence.toBeats(m_edit.getTransport ().getPosition ());
-    m_mousedownTime = m_edit.getTransport ().getPosition ();
-    m_mousedownNumerator = m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).numerator;
-    m_mousedownDenominator = m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator;
-    m_mousedownLoopIn = m_edit.tempoSequence.toBeats(m_edit.getTransport ().getLoopRange ().getStart ());
-    m_mousedownLoopOut = m_edit.tempoSequence.toBeats(m_edit.getTransport ().getLoopRange ().getEnd ());
-}
-
-void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
-{
-    event.source.enableUnboundedMouseMovement (true);
-
-    auto draggedDist = event.getDistanceFromDragStartY ();
-    if (m_bmpRect.contains (m_mousedownPosition))
-    {
-        auto r = m_bmpRect;
-
-        auto& tempo = m_edit.tempoSequence.getTempoAt (m_mousedownTime);
-        tempo.setBpm (r.removeFromLeft (r.getWidth ()/2)
-                      .contains (m_mousedownPosition)
-                      ? (int) (m_mousedownBPM - (draggedDist / 10.0))
-                      : m_mousedownBPM - (draggedDist / 1000.0));
-        //set the Position back to the Beat Position at Mouse down
-        m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(m_mousedownBeatPosition));
-    }
-    else if (m_sigRect.contains (m_mousedownPosition))
-    {
-        auto r = m_sigRect;
-        if (r.removeFromLeft (r.getWidth ()/2)
-                .contains (m_mousedownPosition))
-            m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).numerator
-                    = juce::jlimit (1,16, m_mousedownNumerator - draggedDist);
-        else
-            m_edit.tempoSequence.getTimeSigAt (m_mousedownTime).denominator
-                    = juce::jlimit (1,16, m_mousedownDenominator - draggedDist);
-    }
-    else if (m_barBeatTickRect.contains (m_mousedownPosition))
-    {
-
-        auto timeAtMd = m_edit.tempoSequence.toTime(m_mousedownBeatPosition);
-        te::TimecodeSnapType snapType;
-        snapType.type = te::TimecodeType::barsBeats;
-        snapType.level = 0;
-
-
-        auto snapedTime = snapType.roundTimeNearest(timeAtMd, m_edit.tempoSequence);
-        auto snapedBeat = m_edit.tempoSequence.toBeats(snapedTime);
-        auto r = m_barBeatTickRect;
-        auto leftRect   = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
-        auto centerRect = r.removeFromLeft (m_barBeatTickRect.getWidth ()/3);
-
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
-                        snapedBeat
-                        - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist ))));
-        else if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
-                        snapedBeat 
-                        - (tracktion::BeatDuration::fromBeats( draggedDist ))));
-        else
-            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(
-                        snapedBeat 
-                        - (tracktion::BeatDuration::fromBeats((double)draggedDist/960.0 ))));
-    }
-    else if (m_timeRect.contains (m_mousedownPosition))
-    {
-        auto r = m_timeRect;
-        auto leftRect   = r.removeFromLeft (m_timeRect.getWidth ()/3);
-        auto centerRect = r.removeFromLeft (m_timeRect.getWidth ()/3);
-
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport ()
-                    .setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds(draggedDist*60));
-        if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport ()
-                    .setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds(draggedDist));
-        else
-            m_edit.getTransport ()
-                    .setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds((double)draggedDist/1000));
-    }
-    else if (m_loopInrect.contains (m_mousedownPosition))
-    {
-        auto r = m_loopInrect;
-        auto leftRect   = r.removeFromLeft (m_loopInrect.getWidth ()/3);
-        auto centerRect = r.removeFromLeft (m_loopInrect.getWidth ()/3);
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(
-                        m_mousedownLoopIn 
-                        - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist ))));
-        else if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(
-                        m_mousedownLoopIn 
-                        - (tracktion::BeatDuration::fromBeats( draggedDist ))));
-        else
-            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(
-                        m_mousedownLoopIn 
-                        - (tracktion::BeatDuration::fromBeats((double)draggedDist/960.0 ))));
-
-    }
-    else if (m_loopOutRect.contains (m_mousedownPosition))
-    {
-        auto r = m_loopOutRect;
-        auto leftRect   = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
-        auto centerRect = r.removeFromLeft (m_loopOutRect.getWidth ()/3);
-     
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
-                        m_mousedownLoopOut 
-                        - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist ))));
-        else if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
-                        m_mousedownLoopOut 
-                        - (tracktion::BeatDuration::fromBeats(draggedDist))));
-        else
-            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(
-                        m_mousedownLoopOut 
-                        - (tracktion::BeatDuration::fromBeats((double)draggedDist/960.0 ))));
-    }
-}
-
-void PositionDisplayComponent::mouseUp(const juce::MouseEvent &)
-{
-    m_edit.getTransport ().setUserDragging (false);
-}
-
-void PositionDisplayComponent::resized()
-{
-    auto area = getLocalBounds ();
-    auto leftColumb = area.removeFromLeft (getWidth ()/4);
-
-    m_bmpRect = leftColumb.removeFromTop (leftColumb.getHeight ()/2);
-    m_sigRect = leftColumb;
-
-    auto rightColumb = area.removeFromRight (getWidth ()/4);
-
-    m_loopInrect = rightColumb.removeFromTop (rightColumb.getHeight ()/2);
-    m_loopOutRect = rightColumb;
-    m_barBeatTickRect = area.removeFromTop ( (getHeight ()/3) * 2);
-    m_timeRect = area;
-
-    m_bpmLabel.setBounds (m_bmpRect);
-    m_sigLabel.setBounds (m_sigRect);
-    m_barBeatTickLabel.setBounds (m_barBeatTickRect);
-    m_timeLabel.setBounds (m_timeRect);
-    m_loopInLabel.setBounds (m_loopInrect);
-    m_loopOutLabel.setBounds (m_loopOutRect);
-}
-
-void PositionDisplayComponent::update()
-{
-    const auto nt = juce::NotificationType::dontSendNotification;
-    PlayHeadHelpers::TimeCodeStrings positionStr(m_edit);
-
-    m_bpmLabel.setText (positionStr.bpm, nt);
-    m_sigLabel.setText (positionStr.signature, nt);
-    m_barBeatTickLabel.setText (positionStr.beats, nt);
-    m_timeLabel.setText (positionStr.time, nt);
-    m_loopInLabel.setText (positionStr.loopIn, nt);
-    m_loopOutLabel.setText (positionStr.loopOut, nt);
-}
-
-
-
-
-//==============================================================================
 
 HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & applicationState)
     : m_editViewState(evs)
@@ -225,35 +19,24 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     , m_display (m_edit)
 {
     Helpers::addAndMakeVisible(*this,
-                                { &m_newButton, &m_loadButton, &m_saveButton, &m_stopButton
-                                , &m_playButton, &m_recordButton, &m_display, &m_clickButton, &m_loopButton
-                                , &m_followPlayheadButton, &m_pluginsButton, &m_settingsButton });
+        { &m_newButton, &m_loadButton, &m_saveButton, &m_stopButton
+        , &m_playButton, &m_recordButton, &m_display, &m_clickButton, &m_loopButton
+        , &m_followPlayheadButton, &m_pluginsButton, &m_settingsButton });
 
     GUIHelpers::setDrawableOnButton(m_newButton, BinaryData::newbox_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(
-        m_loadButton, BinaryData::filedownload_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(
-        m_saveButton, BinaryData::contentsaveedit_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_loadButton, BinaryData::filedownload_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_saveButton, BinaryData::contentsaveedit_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_playButton, BinaryData::play_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_stopButton, BinaryData::stop_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(
-        m_recordButton, BinaryData::record_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(
-        m_settingsButton, BinaryData::headphonessettings_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(
-        m_pluginsButton, BinaryData::powerplug_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_loopButton,
-                                    BinaryData::cached_svg,
-                                    m_edit.getTransport().looping ? m_btn_col
-                                                                  : "#666666");
-    GUIHelpers::setDrawableOnButton(m_clickButton,
-                                    BinaryData::metronome_svg,
-                                    m_edit.clickTrackEnabled ? m_btn_col
-                                                             : "#666666");
-    GUIHelpers::setDrawableOnButton(m_followPlayheadButton,
-                                    BinaryData::follow_svg,
-                                    m_editViewState.viewFollowsPos() ? m_btn_col
-                                                                     : "#666666");
+    GUIHelpers::setDrawableOnButton(m_recordButton, BinaryData::record_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_settingsButton, BinaryData::headphonessettings_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_pluginsButton, BinaryData::powerplug_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg,
+                                    m_edit.getTransport().looping ? m_btn_col : "#666666");
+    GUIHelpers::setDrawableOnButton(m_clickButton, BinaryData::metronome_svg,
+                                    m_edit.clickTrackEnabled ? m_btn_col : "#666666");
+    GUIHelpers::setDrawableOnButton(m_followPlayheadButton, BinaryData::follow_svg,
+                                    m_editViewState.viewFollowsPos() ? m_btn_col : "#666666");
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
     m_saveButton.addListener(this);
@@ -270,52 +53,55 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
 }
 
 HeaderComponent::~HeaderComponent()
-= default;
+{
+    m_newButton.removeListener(this);
+    m_loadButton.removeListener(this);
+    m_saveButton.removeListener(this);
+    m_playButton.removeListener(this);
+    m_stopButton.removeListener(this);
+    m_recordButton.removeListener(this);
+    m_settingsButton.removeListener(this);
+    m_pluginsButton.removeListener(this);
+    m_loopButton.removeListener (this);
+    m_clickButton.removeListener (this);
+    m_followPlayheadButton.removeListener (this);
+}
+
 void HeaderComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
     g.setColour(juce::Colour(0xff242424));
-    g.fillRoundedRectangle (
-                area.getX ()
-              , area.getY ()
-              , area.getWidth()
-              , area.getHeight()
-              , 10);
+    g.fillRoundedRectangle (area.toFloat(), 10);
 }
 
 void HeaderComponent::resized()
 {
-    juce::Rectangle<int> area = getLocalBounds();
-    auto gap = area.getHeight()/8;
+    auto area = getLocalBounds();
 
-    juce::FlexBox fileButtons = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
-    juce::FlexBox transport   = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
-    juce::FlexBox position    = createFlexBox(juce::FlexBox::JustifyContent::center);
-    juce::FlexBox timelineSet = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
-    juce::FlexBox settings    = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
-    juce::FlexBox container   = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
+    auto fileButtonsBox = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
+    auto transportBox   = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
+    auto positionBox    = createFlexBox(juce::FlexBox::JustifyContent::center);
+    auto timelineSetBox = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
+    auto settingsBox    = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
 
-    auto buttonSize = area.getHeight() - (gap*2);
+    auto container      = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
 
-    addButtonsToFlexBox(fileButtons
-                        , {&m_newButton, &m_loadButton, &m_saveButton}
-                        , buttonSize, buttonSize, gap);
-    addButtonsToFlexBox(transport
-                        , {&m_playButton, &m_stopButton, &m_recordButton}
-                        , buttonSize, buttonSize, gap);
-    addButtonsToFlexBox(position, {&m_display}
-                        , area.getWidth()/5 - gap * 4
-                        , buttonSize
-                        , gap);
-    addButtonsToFlexBox(timelineSet
-                        , {&m_clickButton, &m_loopButton, &m_followPlayheadButton}
-                        , buttonSize, buttonSize, gap);
-    addButtonsToFlexBox(settings
-                        , {&m_pluginsButton, &m_settingsButton}
-                        , buttonSize, buttonSize, gap);
-    addFlexBoxToFlexBox( container
-                        , {&fileButtons, &transport, &position, &timelineSet, &settings}
-                        , area.getWidth()/5, buttonSize);
+    auto fileButtons      = {&m_newButton, &m_loadButton, &m_saveButton};
+    auto transportButtons = {&m_playButton, &m_stopButton, &m_recordButton};
+    auto timeLineButtons  = {&m_clickButton, &m_loopButton, &m_followPlayheadButton};
+    auto SettingsButtons  = {&m_pluginsButton, &m_settingsButton};
+
+
+    auto displayWidth =  (area.getWidth()/5) - (getGapSize() * 4) ;
+
+    addButtonsToFlexBox(fileButtonsBox, fileButtons);
+    addButtonsToFlexBox(transportBox, transportButtons);
+    addButtonsToFlexBox(positionBox, {&m_display}, displayWidth);
+    addButtonsToFlexBox(timelineSetBox, timeLineButtons);
+    addButtonsToFlexBox(settingsBox, SettingsButtons);
+
+    auto containers = {&fileButtonsBox, &transportBox, &positionBox, &timelineSetBox, &settingsBox};
+    addFlexBoxToFlexBox(container, containers);
 
     container.performLayout(area);
 }
@@ -332,10 +118,6 @@ juce::FlexBox HeaderComponent::createFlexBox(juce::FlexBox::JustifyContent justi
 
 void HeaderComponent::buttonClicked(juce::Button* button)
 {
-    if (button == &m_newButton)
-    {
-    }
-
     if (button == &m_playButton)
     {
         EngineHelpers::togglePlay(m_editViewState);
@@ -395,7 +177,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     if (button == &m_loopButton)
     {
         EngineHelpers::toggleLoop (m_edit);
-        updateLoopButton();
+        loopButtonClicked();
     }
     if (button == &m_clickButton)
     {
@@ -437,7 +219,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
                                         "Please choose some kind of file that you want to load...",
                                         browser,
                                         true,
-                                        juce::Colours::lightgrey);
+                                        juce::Colour::fromString(m_btn_col));
 
         if (dialogBox.show())
         {
@@ -451,7 +233,8 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         sendChangeMessage();
     }
 }
-void HeaderComponent::updateLoopButton()
+
+void HeaderComponent::loopButtonClicked()
 {
     GUIHelpers::setDrawableOnButton(m_loopButton,
                                             BinaryData::cached_svg,
@@ -464,27 +247,45 @@ void HeaderComponent::timerCallback()
     m_display.update ();
 }
 
-juce::File HeaderComponent::loadingFile() const
+juce::File HeaderComponent::getSelectedFile() const
 {
     return m_loadingFile;
 }
 
 void HeaderComponent::addButtonsToFlexBox(juce::FlexBox& box,
                                           const juce::Array<juce::Component*>& buttons,
-                                          int w, int h, int margin)
+                                          int width)
 {
+    auto w = (width == 0) ?     getButtonSize() : width;
+    auto h = getButtonSize();
+    auto margin = getGapSize();
+
     for (auto b : buttons)
-    {
         box.items.add(juce::FlexItem((float) w,(float) h,*b).withMargin((float) margin));
-    }
 }
 
 void HeaderComponent::addFlexBoxToFlexBox(juce::FlexBox& target
-                                          , const juce::Array<juce::FlexBox*>& items
-                                          , int w, int h)
+                                          , const juce::Array<juce::FlexBox*>& items)
 {
+    auto w = getWidth() / items.size();
+    auto h = getButtonSize();
+     
     for (auto b : items)
-    {
         target.items.add(juce::FlexItem((float) w,(float) h,*b));
-    }
+}
+
+int HeaderComponent::getButtonSize()
+{
+    auto h = getLocalBounds().getHeight();
+    auto margin = getGapSize() * 2;
+
+    return h - margin;
+}
+
+int HeaderComponent::getGapSize()
+{
+    auto h = getLocalBounds().getHeight();
+    const auto div = 8;
+
+    return h / div;
 }
