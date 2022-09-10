@@ -178,7 +178,7 @@ void LowerRangeComponent::removePluginRackwithTrack(const te::Track::Ptr& track)
 {
     for (auto &prc : m_pluginRackComps)
     {
-        if (prc->getTrack() == track)
+        if (prc->getTrack() && prc->getTrack() == track)
         {
             prc->setVisible (false);
             m_pluginRackComps.removeObject (prc);
