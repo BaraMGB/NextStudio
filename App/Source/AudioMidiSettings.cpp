@@ -12,8 +12,10 @@ AudioMidiSettings::AudioMidiSettings(tracktion_engine::Engine &engine)
 {
     addAndMakeVisible (m_audioSettings);
     addAndMakeVisible (m_midiDefaultChooser);
+    addAndMakeVisible (m_midiDefaultLabel);
     m_midiDefaultChooser.addListener (this);
-
+    m_midiDefaultLabel.attachToComponent(&m_midiDefaultChooser, true);
+    m_midiDefaultLabel.setText("default Controller : ", juce::dontSendNotification);
     auto& dm = engine.getDeviceManager ();
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
     {
@@ -31,8 +33,11 @@ AudioMidiSettings::AudioMidiSettings(tracktion_engine::Engine &engine)
 void AudioMidiSettings::resized()
 {
     auto area = getLocalBounds ();
-    m_audioSettings.setBounds(area.removeFromTop (getHeight ()/2));
-    m_midiDefaultChooser.setBounds (area.removeFromTop (50));
+    m_audioSettings.setBounds(area.removeFromTop (m_audioSettings.getItemHeight() * 16));
+    auto defaultController = area.removeFromTop(30);
+    defaultController.removeFromRight(getWidth() * 0.05);
+    defaultController.removeFromLeft(defaultController.getWidth() / 3);
+    m_midiDefaultChooser.setBounds (defaultController );
 }
 
 void AudioMidiSettings::comboBoxChanged(juce::ComboBox *comboBox)
