@@ -248,10 +248,9 @@ VstPluginComponent::VstPluginComponent
         {
             if (param)
             {
-                ParameterComponent* parameterComp
-                        = new ParameterComponent(*param);
+                ParameterComponent* parameterComp = new ParameterComponent(*param);
+                param->addListener(this);
                 m_parameterComponents.add(parameterComp);
-                parameterComp->addChangeListener(this);
                 m_pluginListComponent.addAndMakeVisible(parameterComp);
             }
         }
@@ -275,22 +274,6 @@ VstPluginComponent::~VstPluginComponent()
 
 }
 
-void VstPluginComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
-{
-    if (auto pc = dynamic_cast<ParameterComponent*>(source))
-    {
-        if (pc->getParameter().paramID
-                != m_lastChangedParameterComponent->getParameter().paramID)
-        {
-            removeChildComponent(m_lastChangedParameterComponent.get());
-            m_lastChangedParameterComponent
-                    = std::make_unique<ParameterComponent>(pc->getParameter());
-            addAndMakeVisible(m_lastChangedParameterComponent.get());
-            resized();
-        }
-    }
-}
-
 void VstPluginComponent::resized()
 {
     int scrollPos = m_viewPort.getVerticalScrollBar().getCurrentRangeStart();
@@ -312,6 +295,15 @@ void VstPluginComponent::resized()
         pc->setBounds(pcb.removeFromTop(widgetHeight));
     }
     m_viewPort.getVerticalScrollBar().setCurrentRangeStart(scrollPos);
+}
+
+void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, float /*newValue*/)  
+{
+    removeChildComponent(m_lastChangedParameterComponent.get());
+    m_lastChangedParameterComponent
+            = std::make_unique<ParameterComponent>(param);
+    addAndMakeVisible(m_lastChangedParameterComponent.get());
+    resized();
 }
 
 //------------------------------------------------------------------------------

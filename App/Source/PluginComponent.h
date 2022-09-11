@@ -307,16 +307,13 @@ private:
 //------------------------------------------------------------------------------
 
 class VstPluginComponent : public PluginViewComponent
-                         , public juce::ChangeListener
+                         , private te::AutomatableParameter::Listener
 {
 public:
     VstPluginComponent (EditViewState&, te::Plugin::Ptr);
     ~VstPluginComponent() override;
 
     int getNeededWidth() override {return 2;}
-
-    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
-
     void mouseDown(const juce::MouseEvent& ) override
     {
     }
@@ -325,6 +322,9 @@ public:
 
 private:
 
+    void curveHasChanged(te::AutomatableParameter&) override{} 
+
+    void parameterChanged (te::AutomatableParameter& param, float /*newValue*/) override;
     juce::OwnedArray<ParameterComponent> m_parameterComponents;
     std::unique_ptr<ParameterComponent> m_lastChangedParameterComponent;
     juce::Viewport m_viewPort;
