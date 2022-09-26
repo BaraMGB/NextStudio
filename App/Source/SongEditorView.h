@@ -39,7 +39,9 @@ public:
     LassoSelectionTool::LassoRect getCurrentLassoRect();
     void startLasso(const juce::MouseEvent& e);
     void updateLasso(const juce::MouseEvent& e);
+    void stopLasso();
     void duplicateSelectedClips();
+    void setAutomationClicked(bool clicked);
 private:
 
     void moveSelectedClips(double sourceTime, bool copy, bool snap, double delta, int verticalOffset);  
@@ -52,8 +54,11 @@ private:
     TrackComponent *getTrackForClip(int verticalOffset, const te::Clip *clip);
     TrackComponent *getTrackCompForTrack(const tracktion_engine::Track::Ptr& track);
 
-    void updateSelection(bool add);
+    void updateClipSelection(bool add);
     void updateClipCache();
+    void updateAutomationSelection(bool add);
+    void updateAutomationCache();
+
     juce::Range<double> getVerticalRangeOfTrack(double scrollY, tracktion_engine::Track* track) const;
     void selectCatchedClips(const tracktion_engine::Track* track);
 
@@ -70,8 +75,9 @@ private:
     LassoSelectionTool                  m_lassoComponent;
     juce::OwnedArray<TrackComponent>    m_trackViews;
     juce::Array<te::Clip*>              m_cachedSelectedClips;
-    double                              m_cachedY;
+    juce::Array<AutomationPoint*>        m_cachedSelectedAutomation;
     double                              m_draggedTimeDelta;
+    bool                                m_automationClicked{false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };

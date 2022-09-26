@@ -68,6 +68,8 @@ public:
         repaint();
     }
 
+    const juce::OwnedArray<AutomationLaneComponent> &getAutomationLanes() const;
+
 private:
     void drawDraggingOverlays(juce::Graphics& g);
     void changeListenerCallback (juce::ChangeBroadcaster*) override;

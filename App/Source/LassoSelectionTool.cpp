@@ -27,33 +27,36 @@ void LassoSelectionTool::paint(juce::Graphics &g)
         g.fillRect (rect);
     }
 }
-void LassoSelectionTool::startLasso(const juce::MouseEvent& e)
+void LassoSelectionTool::startLasso(const juce::Point<int> mousePos, int startYScroll)
 {
     setMouseCursor (juce::MouseCursor::CrosshairCursor);
 
     setVisible(true);
 
-    m_clickedTime = xToTime (e.getMouseDownX ());
+    m_clickedTime = xToTime (mousePos.getX());
+    m_startYScroll = startYScroll;
+    m_startPos = mousePos;
 }
-void LassoSelectionTool::updateLasso(const juce::MouseEvent& e, int newTop)
+void LassoSelectionTool::updateLasso(const juce::Point<int> mousePos, int yScroll)
 {
     m_isLassoSelecting = true;
 
-    double top =    juce::jmin(newTop, e.y);
-    double bottom = juce::jmax(newTop, e.y);
+    auto oldY = m_startPos.getY() + (yScroll - m_startYScroll);
 
-    m_lassoRect = {getDraggedTimeRange(e), top, bottom};
+    double top =    juce::jmin(oldY, mousePos.y);
+    double bottom = juce::jmax(oldY, mousePos.y);
+
+    auto currentTime = xToTime(mousePos.x);
+    auto start = tracktion::TimePosition::fromSeconds(juce::jmin(currentTime, m_clickedTime));
+    auto end = tracktion::TimePosition::fromSeconds(juce::jmax(currentTime, m_clickedTime));
+
+    tracktion::TimeRange tr(start, end);
+
+    m_lassoRect = {tr, top, bottom};
 
     repaint ();
 }
-tracktion::core::TimeRange LassoSelectionTool::getDraggedTimeRange(const juce::MouseEvent& e)
-{
-    auto draggedTime = xToTime(e.x);
 
-    tracktion::core::TimeRange timeRange(EngineHelpers::getTimePos(juce::jmin(draggedTime, m_clickedTime))
-                              , EngineHelpers::getTimePos(juce::jmax(draggedTime, m_clickedTime)));
-    return timeRange;
-}
 double LassoSelectionTool::xToTime(const int x)
 {
     return m_editViewState.xToTime (x, getWidth (), m_X1, m_X2);

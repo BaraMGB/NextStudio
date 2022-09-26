@@ -42,8 +42,8 @@ public:
     {}
     void paint(juce::Graphics &g) override;
 
-    void startLasso(const juce::MouseEvent& e);
-    void updateLasso(const juce::MouseEvent& e, int newTop);
+    void startLasso(const juce::Point<int> mousePos, int startYScroll);
+    void updateLasso(const juce::Point<int> mousePos, int yScroll);
     void stopLasso();
     LassoSelectionTool::LassoRect getLassoRect() const;
 
@@ -51,16 +51,15 @@ private:
 
     double xToTime(const int x);
     bool                           m_isLassoSelecting {false};
-    bool                           m_isSongEditor;
-
     EditViewState&                 m_editViewState;
     LassoRect                      m_lassoRect;
     juce::CachedValue<double>&     m_X1;
     juce::CachedValue<double>&     m_X2;
 
     double                         m_clickedTime{};
+    int                            m_startYScroll;
+    juce::Point<int>               m_startPos{};
 
-    tracktion::core::TimeRange getDraggedTimeRange(const juce::MouseEvent& e);
     void updateClipCache();
     juce::Range<double>
         getVerticalRangeOfTrack(double trackPosY,

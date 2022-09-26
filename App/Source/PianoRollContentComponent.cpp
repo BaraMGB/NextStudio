@@ -468,7 +468,7 @@ float PianoRollContentComponent::getStartKey() const
 }
 void PianoRollContentComponent::startLasso(const juce::MouseEvent& e)
 {
-    m_lassoTool.startLasso(e.getEventRelativeTo(&m_lassoTool));
+    m_lassoTool.startLasso({e.x, e.y}, (m_editViewState.m_pianoStartKey * m_editViewState.m_pianoKeyWidth));
 }
 void PianoRollContentComponent::setNoteSelected(tracktion_engine::MidiNote* n,
                                                 bool addToSelection)
@@ -478,8 +478,7 @@ void PianoRollContentComponent::setNoteSelected(tracktion_engine::MidiNote* n,
 }
 void PianoRollContentComponent::updateLasso(const juce::MouseEvent& e)
 {
-    auto top = getYForKey(m_clickedKey);
-    m_lassoTool.updateLasso(e.getEventRelativeTo(&m_lassoTool), top);
+    m_lassoTool.updateLasso({e.x, e.y}, (m_editViewState.m_pianoStartKey * m_editViewState.m_pianoKeyWidth));
     updateLassoSelection();
 }
 void PianoRollContentComponent::stopLasso()

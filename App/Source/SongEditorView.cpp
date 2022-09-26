@@ -6,6 +6,7 @@ SongEditorView::SongEditorView(EditViewState& evs)
         : m_editViewState(evs)
         , m_lassoComponent(evs, evs.m_viewX1, evs.m_viewX2)
 {
+    setName("SongEditorView");
     addChildComponent(m_lassoComponent);
     m_lassoComponent.setVisible(false);
     m_lassoComponent.setAlwaysOnTop (true);
@@ -53,8 +54,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
 {
     if (m_lassoComponent.isVisible ())
     {
-        setMouseCursor (juce::MouseCursor::NormalCursor);
-        m_lassoComponent.stopLasso();
+        stopLasso();
     }
 	if(!e.mouseWasDraggedSinceMouseDown())
 	{
@@ -224,19 +224,41 @@ void SongEditorView::drawResizingOverlays (const ClipComponent *draggedClip)
 
 void SongEditorView::startLasso(const juce::MouseEvent& e)
 {
-    m_lassoComponent.startLasso(e.getEventRelativeTo (&m_lassoComponent));
-    m_cachedY = m_editViewState.m_viewY;
-    updateClipCache ();
+    std::cout << "Component: " << e.eventComponent->getName() << std::endl;
+    m_lassoComponent.startLasso({e.x, e.y}, m_editViewState.m_viewY);
+
+    if (m_automationClicked)
+    {
+        updateAutomationCache();
+    }
+    else
+    {
+        updateClipCache ();
+    }
 }
 void SongEditorView::updateLasso(const juce::MouseEvent& e)
 {
     if (m_lassoComponent.isVisible ())
     {
         setMouseCursor (juce::MouseCursor::CrosshairCursor);
-        m_lassoComponent.updateLasso(e.getEventRelativeTo (&m_lassoComponent)
-                                         , e.getMouseDownY() + (m_editViewState.m_viewY - m_cachedY));
-        updateSelection(e.mods.isShiftDown ());
+
+        m_lassoComponent.updateLasso({e.x, e.y}, m_editViewState.m_viewY);
+        if (m_automationClicked)
+        {
+            updateAutomationSelection(e.mods.isShiftDown());
+        }
+        else
+        {
+            updateClipSelection(e.mods.isShiftDown ());
+        }
     }
+}
+
+void SongEditorView::stopLasso()
+{
+    setMouseCursor (juce::MouseCursor::NormalCursor);
+    m_lassoComponent.stopLasso();
+    m_automationClicked = false;
 }
 void SongEditorView::duplicateSelectedClips()
 {
@@ -249,6 +271,11 @@ void SongEditorView::duplicateSelectedClips()
     {
         moveSelectedClips(sourceTime, true, false, delta, 0);
     }
+}
+
+void SongEditorView::setAutomationClicked(bool clicked)
+{
+    m_automationClicked = clicked;
 }
 
 void SongEditorView::moveSelectedClips(double sourceTime, bool copy, bool snap, double delta, int verticalOffset)
@@ -363,18 +390,68 @@ ClipComponent* SongEditorView::getClipComponentForClip(const tracktion_engine::C
 }
 void SongEditorView::updateClipCache()
 {
+    m_cachedSelectedAutomation.clear();
     m_cachedSelectedClips.clear();
 
     for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
         m_cachedSelectedClips.add(c);
 }
-void SongEditorView::updateSelection(bool add)
+
+void SongEditorView::updateAutomationSelection(bool add)
+{
+    auto& sm = m_editViewState.m_selectionManager;
+    sm.deselectAll();
+
+    double scrollY = m_editViewState.m_viewY;
+    for (auto tv: m_trackViews)
+    {
+        if (!tv->getTrack()->state.getProperty(IDs::isTrackMinimized))
+        {
+            scrollY += static_cast<int>(tv->getTrack()->state.getProperty(te::IDs::height));
+            auto automationHeight = 0;
+            for (auto al : tv->getAutomationLanes())
+            {
+                auto range = m_lassoComponent.getLassoRect().m_timeRange;
+                auto firstPoint = al->getCurve().nextIndexAfter(range.getStart());
+                auto lastPoint = al->getCurve().indexBefore(range.getEnd());
+                for (auto i = firstPoint ; i <= lastPoint; i++)
+                {
+                    auto p = al->getCurve().getPoint(i);
+
+                    auto pointPos = al->getPointXY(p.time, p.value);
+                    pointPos.addXY(0, scrollY + automationHeight);
+                    if (m_lassoComponent.getLassoRect().m_verticalRange.contains(pointPos.getY()))
+                        al->selectPoint(i, true);
+                }
+
+                automationHeight += al->getHeight();
+            }
+            scrollY += automationHeight;
+        }
+    }
+
+
+//    if (add)
+//        for (auto p : m_cachedSelectedAutomation)
+//            m_editViewState.m_selectionManager.addToSelection(p);
+}
+
+void SongEditorView::updateAutomationCache()
+{
+    m_cachedSelectedAutomation.clear();
+    m_cachedSelectedClips.clear();
+
+    for (auto p : m_editViewState.m_selectionManager.getItemsOfType<AutomationPoint>())
+        m_cachedSelectedAutomation.add(p);
+}
+void SongEditorView::updateClipSelection(bool add)
 {
     m_editViewState.m_selectionManager.deselectAll ();
 
     double scrollY = m_editViewState.m_viewY;
     for (auto tv: m_trackViews)
     {
+
         if (auto track = tv->getTrack())
         {
             auto lassoRangeY = m_lassoComponent.getLassoRect ().m_verticalRange;

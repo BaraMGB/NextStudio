@@ -546,3 +546,8 @@ double TrackComponent::getSnapedTime(double t)
         m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
     return m_editViewState.getSnapedTime(t, st, true);
 }
+
+const juce::OwnedArray<AutomationLaneComponent> &TrackComponent::getAutomationLanes() const
+{
+    return m_automationLanes;
+}
