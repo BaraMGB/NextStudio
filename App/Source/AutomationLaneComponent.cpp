@@ -21,9 +21,23 @@ void AutomationLaneComponent::paint(juce::Graphics &g)
 
     g.setColour(juce::Colour(0x60ffffff));
     g.drawLine(0, 0, getWidth(), 0);
+
 }
 void AutomationLaneComponent::paintOverChildren(juce::Graphics &g)
 {
+    if (getSelectedTimeRange() != tracktion::TimeRange())
+    {
+        auto s = getXPos(getSelectedTimeRange().getStart().inSeconds());
+        auto e = getXPos(getSelectedTimeRange().getEnd().inSeconds());
+    
+        auto sc = juce::Colours::white;
+        g.setColour(sc);
+        g.drawVerticalLine(s, 0, getHeight());
+        g.drawVerticalLine(e, 0, getHeight());
+        g.setColour(sc.withAlpha(0.5f));
+        g.fillRect(s,0,e-s,getHeight());
+    }
+
 }
 void AutomationLaneComponent::paintCurves(juce::Graphics &g, tracktion::TimeRange drawRange)
 {
@@ -190,8 +204,7 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
             if (se)
             {
                 GUIHelpers::log("start Lasso in AutomationLane");
-                se->startLasso(e.getEventRelativeTo(se));
-                se->setAutomationClicked(true);
+                se->startLasso(e.getEventRelativeTo(se), true, e.mods.isAltDown());
             }
         }
     }//automation point clicked
@@ -265,7 +278,7 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
         else if (!e.mods.isCtrlDown())
         {
             auto oldPos = tracktion::TimePosition::fromSeconds(xToTime(m_hovedPointXY.getX()));
-            draggedTime = getSnapedTime(oldPos + draggedTime) - oldPos;
+            draggedTime = getSnapedTime(oldPos + draggedTime, false) - oldPos;
         }
 
         for (auto p : m_selPointsAtMousedown)
@@ -322,13 +335,13 @@ double AutomationLaneComponent::getValueAt(int x)
     auto pos = getTimePosFromX(x);
     return m_curve.getValueAt(pos);
 }
-tracktion::TimePosition AutomationLaneComponent::getSnapedTime(tracktion::TimePosition time)
+tracktion::TimePosition AutomationLaneComponent::getSnapedTime(tracktion::TimePosition time, bool down=false)
 {
     auto snapType = m_editViewState.getBestSnapType (
                        m_editViewState.m_viewX1
                      , m_editViewState.m_viewX2
                      , getWidth());
-    auto snapedTime = m_editViewState.getSnapedTime(time.inSeconds(), snapType, false);
+    auto snapedTime = m_editViewState.getSnapedTime(time.inSeconds(), snapType, down);
 
     return tracktion::TimePosition::fromSeconds(snapedTime);
 }
@@ -364,11 +377,11 @@ void AutomationLaneComponent::selectPoint(int index, bool add)
 {
     GUIHelpers::log("select Automation point in AutomationLane");
     if (index >= 0 && index < m_curve.getNumPoints() && ! isPointSelected (index))
-        m_selectionManager.select(createPoint (index), add);
+        m_selectionManager.select(createSelectablePoint (index), add);
     GUIHelpers::log("selected Automation Points: ", m_selectionManager.getItemsOfType<AutomationPoint>().size());
 }
 
-AutomationPoint* AutomationLaneComponent::createPoint(int index)
+AutomationPoint* AutomationLaneComponent::createSelectablePoint(int index)
 {
     auto ap = new AutomationPoint(index, m_curve);
     return ap;
@@ -381,6 +394,34 @@ bool AutomationLaneComponent::isPointSelected(int index)
             return true;
 
     return false;
+}
+
+void AutomationLaneComponent::setSelectedTimeRange(tracktion::TimeRange timerange, bool snap)
+{
+    auto s = timerange.getStart();
+    auto e = timerange.getEnd();
+    if (snap)
+    {
+        s = getSnapedTime(s, true);
+        e = getSnapedTime(e, false);
+    }
+
+    m_curve.state.setProperty(IDs::selectedRangeStart,s.inSeconds() , &m_editViewState.m_edit.getUndoManager());
+    m_curve.state.setProperty(IDs::selectedRangeEnd, e.inSeconds(), &m_editViewState.m_edit.getUndoManager());
+}
+
+tracktion::TimeRange AutomationLaneComponent::getSelectedTimeRange()
+{
+    auto start = tracktion::TimePosition::fromSeconds((double) m_curve.state.getProperty(IDs::selectedRangeStart));
+    auto end = tracktion::TimePosition::fromSeconds((double) m_curve.state.getProperty(IDs::selectedRangeEnd));
+
+    return {start, end};
+}
+
+
+void AutomationLaneComponent::clearSelectedTimeRange()
+{
+    setSelectedTimeRange(tracktion::TimeRange());
 }
 
 te::AutomationCurve &AutomationLaneComponent::getCurve() const

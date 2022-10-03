@@ -33,31 +33,32 @@ void TrackComponent::paint(juce::Graphics& g)
 {
     g.setColour(juce::Colour(0x60ffffff));
     g.drawLine(0, getHeight(), getWidth(), getHeight());
-    // area.reduce(0, 1);
-    // g.setColour(juce::Colour(0xff1B1F27));
-    // g.fillRect(area);
-    //
+
     double x2beats = m_editViewState.m_viewX2;
     double x1beats = m_editViewState.m_viewX1;
-    //
-    // if (isSelected())
-    // {
-    //     g.setColour(juce::Colour(0xff606060));
-    //     g.fillRect(area);
-    // }
-    //
+
     GUIHelpers::drawBarsAndBeatLines(
     g, m_editViewState, x1beats, x2beats, getBounds());
 
-    // if (isOver)
-    // {
-    //     g.setColour(juce::Colours::white);
-    //     g.drawRect(getLocalBounds());
-    // }
 }
 
 void TrackComponent::paintOverChildren(juce::Graphics& g)
 {
+    if (getSelectedTimeRange() != tracktion::TimeRange())
+    {
+        auto s = timeToX(getSelectedTimeRange().getStart().inSeconds());
+        auto e = timeToX(getSelectedTimeRange().getEnd().inSeconds());
+        auto sc = juce::Colours::white;
+        auto height = GUIHelpers::getTrackHeight(m_track, m_editViewState, false);
+
+        g.setColour(sc);
+        g.drawVerticalLine(s, 0, height);
+        g.drawVerticalLine(e, 0, height);
+        g.setColour(sc.withAlpha(0.5f));
+        g.fillRect(s,0,e-s,height);
+    }
+
+
     drawDraggingOverlays(g);
 }
 void TrackComponent::drawDraggingOverlays(juce::Graphics& g)
@@ -119,7 +120,7 @@ void TrackComponent::mouseDown(const juce::MouseEvent& e)
         else
         {
             if (auto se = dynamic_cast<SongEditorView*>(getParentComponent()))
-                se->startLasso(e.getEventRelativeTo(se));
+                se->startLasso(e.getEventRelativeTo(se), false, e.mods.isAltDown());
         }
     }
 }
@@ -506,14 +507,14 @@ void TrackComponent::itemDropped(
                 fileListComp->getFileList()[lb->getLastRowSelected()]);
             if (audioFile.isValid())
                 insertWave(fileListComp->getFileList()[lb->getLastRowSelected()],
-                           getSnapedTime(dropTime));
+                           getSnapedTime(dropTime, true));
         }
     }
     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(
             dragSourceDetails.sourceComponent.get()))
     {
         auto f = fileTreeComp->getSelectedFile();
-        insertWave(f, getSnapedTime(dropTime));
+        insertWave(f, getSnapedTime(dropTime, true));
     }
 
     if (dragSourceDetails.description == "PluginListEntry")
@@ -540,14 +541,44 @@ bool TrackComponent::isFolderTrack()
 {
     return m_track->isFolderTrack();
 }
-double TrackComponent::getSnapedTime(double t)
+double TrackComponent::getSnapedTime(double t, bool down)
 {
     auto st = m_editViewState.getBestSnapType(
         m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
-    return m_editViewState.getSnapedTime(t, st, true);
+    return m_editViewState.getSnapedTime(t, st, down);
 }
 
+int TrackComponent::timeToX (double time)
+{
+    return m_editViewState.timeToX(time, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+}
 const juce::OwnedArray<AutomationLaneComponent> &TrackComponent::getAutomationLanes() const
 {
     return m_automationLanes;
+}
+void TrackComponent::setSelectedTimeRange(tracktion::TimeRange timerange, bool snap)
+{
+    auto s = timerange.getStart().inSeconds();
+    auto e = timerange.getEnd().inSeconds();
+    if (snap)
+    {
+        s = getSnapedTime(s, true);
+        e = getSnapedTime(e, false);
+    }
+
+    m_track->state.setProperty(IDs::selectedRangeStart,s , &m_editViewState.m_edit.getUndoManager());
+    m_track->state.setProperty(IDs::selectedRangeEnd, e, &m_editViewState.m_edit.getUndoManager());
+   }
+
+tracktion::TimeRange TrackComponent::getSelectedTimeRange()
+{
+    auto start = tracktion::TimePosition::fromSeconds((double) m_track->state.getProperty(IDs::selectedRangeStart));
+    auto end = tracktion::TimePosition::fromSeconds((double) m_track->state.getProperty(IDs::selectedRangeEnd));
+
+    return {start, end};
+}
+
+void TrackComponent::clearSelectedTimeRange()
+{
+    setSelectedTimeRange(tracktion::TimeRange());
 }

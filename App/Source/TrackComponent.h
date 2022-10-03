@@ -70,6 +70,10 @@ public:
 
     const juce::OwnedArray<AutomationLaneComponent> &getAutomationLanes() const;
 
+    void setSelectedTimeRange(tracktion::TimeRange timerange, bool snap=true);
+    tracktion::TimeRange getSelectedTimeRange();
+    void clearSelectedTimeRange();
+                
 private:
     void drawDraggingOverlays(juce::Graphics& g);
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -89,7 +93,7 @@ private:
     bool isSelected();
 
     int getClipHeight();
-	double getSnapedTime(double t);
+	double getSnapedTime(double t, bool roundDown);
 
     double xToBeats(int x)
     {
@@ -99,6 +103,8 @@ private:
                     , m_editViewState.m_viewX1
                     , m_editViewState.m_viewX2);
     }
+
+    int timeToX (double time);
 
     EditViewState& m_editViewState;
     LowerRangeComponent& m_lowerRange;

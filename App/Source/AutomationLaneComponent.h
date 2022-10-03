@@ -7,6 +7,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "tracktion_core/utilities/tracktion_TimeRange.h"
 
 namespace te = tracktion_engine;
 class AutomationPoint  : public te::Selectable
@@ -44,6 +45,11 @@ public:
 
     void selectPoint(int index, bool add);
     bool isPointSelected(int index);
+    
+    void setSelectedTimeRange(tracktion::TimeRange timerange, bool snap=true);
+    tracktion::TimeRange getSelectedTimeRange();
+    void clearSelectedTimeRange();
+
 private:
 
     struct CurvePoint
@@ -58,14 +64,14 @@ private:
     };
 
 
-    tracktion::TimePosition getSnapedTime(tracktion::TimePosition time);
+    tracktion::TimePosition getSnapedTime(tracktion::TimePosition time, bool down);
     tracktion::TimePosition getTimePosFromX (int x);
     int getXPos (double time);
     double getValue(int y);
     int getYPos (double value);
     double xToYRatio();
 
-    AutomationPoint* createPoint(int index);
+    AutomationPoint* createSelectablePoint(int index);
     tracktion::TimeRange getCurveTimeRangeToDraw();
     juce::Rectangle<int> getHoveredRect(const juce::MouseEvent &e);
     double getValueAt(int x);

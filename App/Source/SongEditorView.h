@@ -16,6 +16,7 @@ public:
 	void paint(juce::Graphics& g) override;
     void resized() override;
 
+    void mouseMove (const juce::MouseEvent &) override;
     void mouseDown (const juce::MouseEvent &) override;
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
@@ -37,11 +38,11 @@ public:
 
     LassoSelectionTool& getLasso();
     LassoSelectionTool::LassoRect getCurrentLassoRect();
-    void startLasso(const juce::MouseEvent& e);
+    void startLasso(const juce::MouseEvent& e, bool fromAutomation, bool selectRange);
     void updateLasso(const juce::MouseEvent& e);
     void stopLasso();
     void duplicateSelectedClips();
-    void setAutomationClicked(bool clicked);
+
 private:
 
     void moveSelectedClips(double sourceTime, bool copy, bool snap, double delta, int verticalOffset);  
@@ -58,8 +59,10 @@ private:
     void updateClipCache();
     void updateAutomationSelection(bool add);
     void updateAutomationCache();
+    void updateRangeSelection(); 
+    void clearSelectedTimeRange();
 
-    juce::Range<double> getVerticalRangeOfTrack(double scrollY, tracktion_engine::Track* track) const;
+    juce::Range<double> getVerticalRangeOfTrack(double scrollY, tracktion_engine::Track* track, bool withAutomation) const;
     void selectCatchedClips(const tracktion_engine::Track* track);
 
     double getPasteTime(double dropTime, ClipComponent* draggedClip) const;
@@ -78,6 +81,7 @@ private:
     juce::Array<AutomationPoint*>        m_cachedSelectedAutomation;
     double                              m_draggedTimeDelta;
     bool                                m_automationClicked{false};
+    bool                                m_selectTimerange{false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };

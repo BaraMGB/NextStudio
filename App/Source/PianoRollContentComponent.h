@@ -87,7 +87,7 @@ private:
     double                 getSnapedTime(double time);
     void                   scrollPianoRoll(float delta);
 
-    void                   startLasso(const juce::MouseEvent &e);
+    void                   startLasso(const juce::MouseEvent &e, bool isRangeTool=false);
     void                   updateLasso(const juce::MouseEvent &e);
     void                   stopLasso();
     void                   updateLassoSelection();

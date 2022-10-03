@@ -15,7 +15,7 @@ juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState& evs
 }
 void LassoSelectionTool::paint(juce::Graphics &g)
 {
-    if (m_isLassoSelecting)
+    if (m_isLassoSelecting && !m_isRangeSelecting)
     {
         g.setColour (juce::Colour(0x99FFFFFF));
         auto rect = m_lassoRect.getRect (m_editViewState
@@ -27,11 +27,14 @@ void LassoSelectionTool::paint(juce::Graphics &g)
         g.fillRect (rect);
     }
 }
-void LassoSelectionTool::startLasso(const juce::Point<int> mousePos, int startYScroll)
+void LassoSelectionTool::startLasso(const juce::Point<int> mousePos, int startYScroll, bool isRangeTool)
 {
-    setMouseCursor (juce::MouseCursor::CrosshairCursor);
-
+    m_isRangeSelecting = isRangeTool;
     setVisible(true);
+    if (!isRangeTool)
+        setMouseCursor (juce::MouseCursor::CrosshairCursor);
+    else
+        setMouseCursor (juce::MouseCursor::IBeamCursor);
 
     m_clickedTime = xToTime (mousePos.getX());
     m_startYScroll = startYScroll;

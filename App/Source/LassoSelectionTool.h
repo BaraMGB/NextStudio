@@ -42,7 +42,7 @@ public:
     {}
     void paint(juce::Graphics &g) override;
 
-    void startLasso(const juce::Point<int> mousePos, int startYScroll);
+    void startLasso(const juce::Point<int> mousePos, int startYScroll, bool isRangeTool);
     void updateLasso(const juce::Point<int> mousePos, int yScroll);
     void stopLasso();
     LassoSelectionTool::LassoRect getLassoRect() const;
@@ -51,6 +51,7 @@ private:
 
     double xToTime(const int x);
     bool                           m_isLassoSelecting {false};
+    bool                           m_isRangeSelecting {false};
     EditViewState&                 m_editViewState;
     LassoRect                      m_lassoRect;
     juce::CachedValue<double>&     m_X1;
