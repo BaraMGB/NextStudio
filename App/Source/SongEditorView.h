@@ -1,4 +1,5 @@
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "AutomationLaneComponent.h"
 #include "ClipComponent.h"
 #include "EditViewState.h"
 #include "TrackComponent.h"
@@ -53,7 +54,11 @@ private:
 
     ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
     TrackComponent *getTrackForClip(int verticalOffset, const te::Clip *clip);
-    TrackComponent *getTrackCompForTrack(const tracktion_engine::Track::Ptr& track);
+    TrackComponent *getTrackCompForTrack(tracktion_engine::Track::Ptr track);
+    AutomationLaneComponent *getAutomationLaneForAutomatableParameter(te::AutomatableParameter::Ptr ap);
+
+    te::Track::Ptr getTrackAt(int y);
+    te::AutomatableParameter::Ptr getAutomatableParamAt(int y);
 
     void updateClipSelection(bool add);
     void updateClipCache();
@@ -62,7 +67,7 @@ private:
     void updateRangeSelection(); 
     void clearSelectedTimeRange();
 
-    juce::Range<double> getVerticalRangeOfTrack(double scrollY, tracktion_engine::Track* track, bool withAutomation) const;
+    juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
     void selectCatchedClips(const tracktion_engine::Track* track);
 
     double getPasteTime(double dropTime, ClipComponent* draggedClip) const;
@@ -82,6 +87,12 @@ private:
     double                              m_draggedTimeDelta;
     bool                                m_automationClicked{false};
     bool                                m_selectTimerange{false};
+
+    te::Track::Ptr                      m_hoveredTrack {nullptr};
+    te::AutomatableParameter::Ptr       m_hoveredAutamatableParam{nullptr};
+    int                                 m_hoveredAutomationPoint {-1};
+    te::Clip::Ptr                       m_hoveredClip {nullptr};
+    int                                 m_hoveredCurve {-1};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };

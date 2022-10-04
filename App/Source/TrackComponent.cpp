@@ -11,7 +11,9 @@ TrackComponent::TrackComponent(EditViewState& evs,
     , m_lowerRange(lr)
     , m_track(std::move(t))
 {
-    setWantsKeyboardFocus(true);
+    // setWantsKeyboardFocus(true);
+    setInterceptsMouseClicks(false, false);
+
 
     m_editViewState.m_state.addListener(this);
     m_editViewState.m_selectionManager.addChangeListener(this);

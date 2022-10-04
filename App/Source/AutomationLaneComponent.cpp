@@ -13,7 +13,9 @@ AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCur
     , m_editViewState(evs)
     , m_rangeAtMouseDown({tracktion::core::TimePosition::fromSeconds(0.0), tracktion::core::TimePosition::fromSeconds(0.0)})
 {
-    setWantsKeyboardFocus(true);
+
+    setName(m_curve.getOwnerParameter()->getFullName());
+    //setWantsKeyboardFocus(true);
 }
 void AutomationLaneComponent::paint(juce::Graphics &g)
 {

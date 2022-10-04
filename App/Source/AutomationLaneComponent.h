@@ -50,6 +50,16 @@ public:
     tracktion::TimeRange getSelectedTimeRange();
     void clearSelectedTimeRange();
 
+    juce::Rectangle<int> getHoveredRect(const juce::MouseEvent &e);
+    juce::Point<int> getPoint(const te::AutomationCurve::AutomationPoint& ap);
+
+    tracktion::TimePosition getSnapedTime(tracktion::TimePosition time, bool down);
+    tracktion::TimePosition getTimePosFromX (int x);
+    int getXPos (double time);
+    double getValue(int y);
+    int getYPos (double value);
+    double xToYRatio();
+
 private:
 
     struct CurvePoint
@@ -64,20 +74,12 @@ private:
     };
 
 
-    tracktion::TimePosition getSnapedTime(tracktion::TimePosition time, bool down);
-    tracktion::TimePosition getTimePosFromX (int x);
-    int getXPos (double time);
-    double getValue(int y);
-    int getYPos (double value);
-    double xToYRatio();
 
     AutomationPoint* createSelectablePoint(int index);
     tracktion::TimeRange getCurveTimeRangeToDraw();
-    juce::Rectangle<int> getHoveredRect(const juce::MouseEvent &e);
     double getValueAt(int x);
     juce::Rectangle<float> getRectFromPoint(juce::Point<int> p);
     double xToTime(const int x);
-    juce::Point<int> getPoint(const te::AutomationCurve::AutomationPoint& ap);
     int getLaneHeight();
     bool isBeyondLastPoint(tracktion::TimePosition time, float value);
     int getPointWidth();
