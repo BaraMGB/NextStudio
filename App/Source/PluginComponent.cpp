@@ -1,4 +1,5 @@
 #include "PluginComponent.h"
+#include <utility>
 
 //==============================================================================
 PluginWindowComponent::PluginWindowComponent
@@ -241,16 +242,16 @@ VstPluginComponent::VstPluginComponent
     (EditViewState& evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
     , m_lastChangedParameterComponent(nullptr)
+    , m_plugin(p)
 {
     if (p)
     {
-        for (auto & param : p->getAutomatableParameters())
+        for (auto& param : p->getAutomatableParameters())
         {
             if (param)
             {
-                ParameterComponent* parameterComp = new ParameterComponent(*param);
                 param->addListener(this);
-                m_parameterComponents.add(parameterComp);
+                auto parameterComp = new ParameterComponent(*param);
                 m_pluginListComponent.addAndMakeVisible(parameterComp);
             }
         }
@@ -271,7 +272,16 @@ VstPluginComponent::VstPluginComponent
 
 VstPluginComponent::~VstPluginComponent()
 {
-
+    if (m_plugin)
+    {
+        for (auto & param : m_plugin->getAutomatableParameters())
+        {
+            if (param)
+            {
+                param->removeListener(this);
+            }
+        }
+    }
 }
 
 void VstPluginComponent::resized()
@@ -287,10 +297,10 @@ void VstPluginComponent::resized()
     m_pluginListComponent.setBounds(area.getX()
                                     , area.getY()
                                     , area.getWidth()
-                                    ,m_parameterComponents.size() * widgetHeight);
+                                    ,m_pluginListComponent.getChildren().size() * widgetHeight);
 
     auto pcb = m_pluginListComponent.getBounds();
-    for (auto & pc : m_parameterComponents)
+    for (auto & pc : m_pluginListComponent.getChildren())
     {
         pc->setBounds(pcb.removeFromTop(widgetHeight));
     }
@@ -299,11 +309,13 @@ void VstPluginComponent::resized()
 
 void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, float /*newValue*/)  
 {
-    removeChildComponent(m_lastChangedParameterComponent.get());
-    m_lastChangedParameterComponent
-            = std::make_unique<ParameterComponent>(param);
-    addAndMakeVisible(m_lastChangedParameterComponent.get());
-    resized();
+    if (!m_lastChangedParameterComponent->isDragged() && &m_lastChangedParameterComponent->getParameter() != &param)
+    {
+        removeChildComponent(m_lastChangedParameterComponent.get());
+        m_lastChangedParameterComponent = std::make_unique<ParameterComponent>(param);
+        addAndMakeVisible(m_lastChangedParameterComponent.get());
+        resized();
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -333,8 +345,12 @@ void ParameterComponent::resized()
 
 void ParameterComponent::mouseDown(const juce::MouseEvent &e)
 {
-    if (e.mods.isLeftButtonDown())
-        sendChangeMessage();
+    m_isDragged = true;
 }
 
 
+void ParameterComponent::mouseUp(const juce::MouseEvent& e) 
+{
+
+    m_isDragged = false;
+}
