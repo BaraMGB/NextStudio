@@ -5,9 +5,9 @@
 #include "TrackComponent.h"
 #include "LassoSelectionTool.h"
 #include "Utilities.h"
+#include "tracktion_core/utilities/tracktion_Time.h"
 
 class SongEditorView : public juce::Component
-                     , public juce::DragAndDropTarget
 {
 public:
     SongEditorView(EditViewState& evs);
@@ -21,11 +21,6 @@ public:
     void mouseDown (const juce::MouseEvent &) override;
     void mouseDrag (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
-
-    inline bool isInterestedInDragSource (const SourceDetails&) override;
-    void itemDragMove (const SourceDetails& dragSourceDetails) override;
-    void itemDropped (const SourceDetails& dragSourceDetails) override;
-    void itemDragExit (const SourceDetails&) override;
 
     juce::OwnedArray<TrackComponent>& getTrackViews();
     TrackComponent * getTrackComponent (int y);
@@ -57,6 +52,7 @@ private:
     TrackComponent *getTrackCompForTrack(tracktion_engine::Track::Ptr track);
     AutomationLaneComponent *getAutomationLaneForAutomatableParameter(te::AutomatableParameter::Ptr ap);
 
+    int getVerticalOffset(TrackComponent* sourceTrackComp, const juce::Point<int>& dropPos);
     te::Track::Ptr getTrackAt(int y);
     te::AutomatableParameter::Ptr getAutomatableParamAt(int y);
 
@@ -71,9 +67,8 @@ private:
     void selectCatchedClips(const tracktion_engine::Track* track);
 
     double getPasteTime(double dropTime, ClipComponent* draggedClip) const;
-    int getVerticalOffset(const SourceDetails& dragSourceDetails, const juce::Point<int>& dropPos);
 
-    void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
+    // void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
 
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
     void drawResizingOverlays (const ClipComponent *draggedClip);
@@ -83,17 +78,26 @@ private:
     LassoSelectionTool                  m_lassoComponent;
     juce::OwnedArray<TrackComponent>    m_trackViews;
     juce::Array<te::Clip*>              m_cachedSelectedClips;
-    juce::Array<AutomationPoint*>        m_cachedSelectedAutomation;
-    double                              m_draggedTimeDelta;
+    juce::Array<AutomationPoint*>       m_cachedSelectedAutomation;
     bool                                m_automationClicked{false};
     bool                                m_selectTimerange{false};
 
     te::Track::Ptr                      m_hoveredTrack {nullptr};
     te::AutomatableParameter::Ptr       m_hoveredAutamatableParam{nullptr};
     int                                 m_hoveredAutomationPoint {-1};
+    tracktion::TimePosition             m_timeOfHoveredAutomationPoint;
     te::Clip::Ptr                       m_hoveredClip {nullptr};
     int                                 m_hoveredCurve {-1};
+    bool                                m_leftBorderHovered{false};
+    bool                                m_rightBorderHovered;
 
+    juce::Array<AutomationLaneComponent::CurvePoint*>
+                                        m_selPointsAtMousedown;
+
+    double                              m_curveAtMousedown{0.f};
+    ClipComponent*                      m_draggedClipComponent;
+    double                              m_draggedTimeDelta{0.0};
+    double                              m_clipPosAtMouseDown;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };
 

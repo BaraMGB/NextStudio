@@ -276,7 +276,7 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
         {
             draggedTime = tracktion::TimeDuration::fromSeconds(0.0);
         }
-        //don't snap
+        //snap
         else if (!e.mods.isCtrlDown())
         {
             auto oldPos = tracktion::TimePosition::fromSeconds(xToTime(m_hovedPointXY.getX()));
@@ -378,7 +378,7 @@ juce::Rectangle<float> AutomationLaneComponent::getRectFromPoint(juce::Point<int
 void AutomationLaneComponent::selectPoint(int index, bool add)
 {
     GUIHelpers::log("select Automation point in AutomationLane");
-    if (index >= 0 && index < m_curve.getNumPoints() && ! isPointSelected (index))
+    if (index >= 0 && index < m_curve.getNumPoints())
         m_selectionManager.select(createSelectablePoint (index), add);
     GUIHelpers::log("selected Automation Points: ", m_selectionManager.getItemsOfType<AutomationPoint>().size());
 }
@@ -396,6 +396,13 @@ bool AutomationLaneComponent::isPointSelected(int index)
             return true;
 
     return false;
+}
+
+void AutomationLaneComponent::deselectPoint(int index)
+{
+    for (auto p : m_selectionManager.getItemsOfType<AutomationPoint>())
+        if (p->m_curve.getOwnerParameter() == m_curve.getOwnerParameter() && p->index == index)
+            p->deselect();
 }
 
 void AutomationLaneComponent::setSelectedTimeRange(tracktion::TimeRange timerange, bool snap)

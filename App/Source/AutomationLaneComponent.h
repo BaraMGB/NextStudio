@@ -45,6 +45,7 @@ public:
 
     void selectPoint(int index, bool add);
     bool isPointSelected(int index);
+    void deselectPoint(int index);
     
     void setSelectedTimeRange(tracktion::TimeRange timerange, bool snap=true);
     tracktion::TimeRange getSelectedTimeRange();
@@ -60,7 +61,14 @@ public:
     int getYPos (double value);
     double xToYRatio();
 
-private:
+    void setHover (int hoveredPoint, int hoveredCurve, juce::Rectangle<int> hoveredRect)
+    {
+        m_hoveredPoint = hoveredPoint;
+        m_hoveredCurve = hoveredCurve;
+        m_hoveredRect = hoveredRect.toFloat();
+    }
+
+    juce::Rectangle<float> getRectFromPoint(juce::Point<int> p);
 
     struct CurvePoint
     {
@@ -73,12 +81,18 @@ private:
         te::AutomatableParameter& param;
     };
 
+    void setIsDragging(bool isDragging)
+    {
+        m_isDragging = isDragging;
+    }
+
+private:
+
 
 
     AutomationPoint* createSelectablePoint(int index);
     tracktion::TimeRange getCurveTimeRangeToDraw();
     double getValueAt(int x);
-    juce::Rectangle<float> getRectFromPoint(juce::Point<int> p);
     double xToTime(const int x);
     int getLaneHeight();
     bool isBeyondLastPoint(tracktion::TimePosition time, float value);
@@ -96,7 +110,7 @@ private:
 
     juce::Array<CurvePoint*>     m_selPointsAtMousedown;
     te::AutomationCurve&        m_curve;
-    int                         m_hoveredPoint{};
+    int                         m_hoveredPoint = -1;
     int                         m_hoveredCurve = -1;
     tracktion::TimePosition     m_hoveredTime;
     juce::Rectangle<float>      m_hoveredRect;

@@ -1,6 +1,8 @@
 #include "SongEditorView.h"
+#include "AutomationLaneComponent.h"
 #include "Utilities.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
+#include <memory>
 
 
 SongEditorView::SongEditorView(EditViewState& evs)
@@ -48,6 +50,8 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     m_hoveredAutamatableParam = getAutomatableParamAt(e.y);
     m_hoveredAutomationPoint = -1;
     m_hoveredCurve = -1;
+    m_leftBorderHovered = false;
+    m_rightBorderHovered = false;
 
     auto mousePosTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
 
@@ -58,7 +62,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
         auto curve = m_hoveredAutamatableParam->getCurve();
         GUIHelpers::log("Parameter: ",m_hoveredAutamatableParam->getFullName());
 
-        auto hoveredRect =  al->getHoveredRect(alEvent);   
+        const auto hoveredRect =  al->getHoveredRect(alEvent);   
         for (auto i = 0; curve.getNumPoints() > i; i++)
         {
             auto pointXy = al->getPointXY(curve.getPointTime(i),
@@ -74,12 +78,18 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
         auto valueAtMouseTime = m_hoveredAutamatableParam->getCurve().getValueAt(mousePosTime);
         auto curvePointAtMouseTime = juce::Point<int>(alEvent.x,al->getYPos(valueAtMouseTime));
 
-        if (hoveredRect.contains(curvePointAtMouseTime))
+        if (hoveredRect.contains(curvePointAtMouseTime) && m_hoveredAutomationPoint == -1)
         {
-            m_hoveredCurve = curve.indexBefore(mousePosTime);
+            m_hoveredCurve = curve.nextIndexAfter(mousePosTime);
+            m_curveAtMousedown = al->getCurve().getPoint(m_hoveredCurve - 1).curve;
             GUIHelpers::log("curve:hovered: " , m_hoveredCurve);
         }
+        
+        auto cp = al->getPointXY(mousePosTime, valueAtMouseTime);
+        auto rect = al->getRectFromPoint(cp);
 
+        al->setHover(m_hoveredAutomationPoint, m_hoveredCurve, rect.toNearestInt());
+        al->repaint();
     }
 
     if (auto at = dynamic_cast<te::AudioTrack*>(m_hoveredTrack.get()))
@@ -90,7 +100,23 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             if (clip->getEditTimeRange().contains(mousePosTime))
             {
                 m_hoveredClip = clip;
-                GUIHelpers::log("Clip: " , getClipComponentForClip(clip)->getClip()->getName());
+                if (auto cc = getClipComponentForClip(clip))
+                {
+                    GUIHelpers::log("Clip: " , cc->getClip()->getName());
+                    if (e.getPosition().getX() < cc->getX() + 10 && cc->getWidth () > 30)
+                    { 
+                        GUIHelpers::log("Left Border: " , cc->getClip()->getName());
+                        m_leftBorderHovered = true;
+                    }
+                    else if (e.getPosition().getX() > cc->getRight() - 10
+                         &&  cc->getWidth () > 30)
+
+                    {
+                        GUIHelpers::log("Right Border: " , cc->getClip()->getName());
+                        m_rightBorderHovered = true;
+
+                    }
+                }
             }
         }
     }
@@ -99,99 +125,246 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     {
         GUIHelpers::log("FolderTrack : ", m_hoveredTrack->getName());
     }
+
+    
 }
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
 {
-    m_editViewState.m_selectionManager.deselectAll();
-    startLasso(e, false, e.mods.isAltDown());
+    m_draggedClipComponent = nullptr;
+    m_draggedTimeDelta = 0.0;
+    m_timeOfHoveredAutomationPoint = tracktion::TimePosition::fromSeconds(0.0);
+    auto &sm = m_editViewState.m_selectionManager;
+
+    if (e.mods.isRightButtonDown())
+    {
+       if (m_hoveredAutamatableParam && m_hoveredAutomationPoint != -1)
+            m_hoveredAutamatableParam->getCurve().removePoint(m_hoveredAutomationPoint);
+    }
+    else if (e.mods.isLeftButtonDown())
+    {
+        if (e.mods.isCtrlDown()) 
+        {
+            if (m_hoveredClip)
+            {
+
+            }
+        }
+        else if (e.mods.isShiftDown())
+        {
+
+        }
+        else if (e.mods.isAltDown())
+        {
+            startLasso(e, true, true);
+        }
+        else 
+        {
+            if (m_hoveredClip)
+            {
+                if (!sm.isSelected(m_hoveredClip))
+                {
+                    sm.selectOnly(m_hoveredClip);
+                }
+                m_clipPosAtMouseDown = m_hoveredClip->getPosition().getStart().inSeconds();
+            }
+            else if (m_hoveredAutomationPoint != -1)
+            {
+
+                if (auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam))
+                {
+                    if (!al->isPointSelected(m_hoveredAutomationPoint))
+                        al->selectPoint(m_hoveredAutomationPoint, false);
+                }
+            }
+            else if (m_hoveredCurve != -1)
+            {
+                if (auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam))
+                {
+                    auto mousePosTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
+                    auto valueAtMouseTime = m_hoveredAutamatableParam->getCurve().getValueAt(mousePosTime);
+                    
+                    auto p = al->getCurve().addPoint(mousePosTime, valueAtMouseTime, 0.f);
+                    m_hoveredCurve = -1;
+                    m_hoveredAutomationPoint = p;
+                    al->selectPoint(p, false);
+                    al->setIsDragging(true);
+                }
+            }
+            else if (m_hoveredAutamatableParam)
+            {
+                startLasso(e, true, false);
+            }
+            else if (m_hoveredTrack)
+            {
+                sm.deselectAll();
+                startLasso(e, false, false);
+            }
+        }
+
+
+        m_selPointsAtMousedown.clear();
+        for (auto p : sm.getItemsOfType<AutomationPoint>())
+        {
+            auto cp = new AutomationLaneComponent::CurvePoint(
+                                     p->m_curve.getPointTime(p->index),
+                                     p->m_curve.getOwnerParameter()->valueRange.convertTo0to1(p->m_curve.getPointValue(p->index)),
+                                     p->index,
+                                    *p->m_curve.getOwnerParameter());
+
+            m_selPointsAtMousedown.add(cp);
+        }
+
+    }
+
+    if (m_hoveredAutamatableParam && m_hoveredAutomationPoint != -1)
+        m_timeOfHoveredAutomationPoint = m_hoveredAutamatableParam->getCurve().getPointTime(m_hoveredAutomationPoint);
 }
 
 void SongEditorView::mouseDrag(const juce::MouseEvent&e)
 {
-    updateLasso (e);
+    auto &sm = m_editViewState.m_selectionManager;
+    auto screenStartTime = xtoTime(0);
+    m_draggedTimeDelta = xtoTime(e.getDistanceFromDragStartX()) - screenStartTime;
+
+    if (!sm.isSelected(m_hoveredClip))
+    {
+        sm.addToSelection(m_hoveredClip);
+    }
+
+    if (m_lassoComponent.isVisible () || m_selectTimerange)
+    {
+        updateLasso (e);
+    }
+
+    if (m_hoveredAutomationPoint != -1 && e.mouseWasDraggedSinceMouseDown ())
+    { 
+        auto oldPos = m_timeOfHoveredAutomationPoint;
+        auto newPos = tracktion::TimePosition::fromSeconds(xtoTime(e.x)); 
+
+        //lock time
+        if (e.mods.isShiftDown())
+        {
+            newPos = oldPos;
+        }
+        //snap
+        else if (!e.mods.isCtrlDown())
+        {
+            newPos = tracktion::TimePosition::fromSeconds(getSnapedTime(xtoTime(e.x)));
+        }
+        
+        auto draggedTime = newPos - oldPos;
+
+        //move all selected Points 
+        for (auto p : m_selPointsAtMousedown)
+        {
+            auto al = getAutomationLaneForAutomatableParameter(p->param);
+            auto newTime =  p->time + draggedTime;
+
+            auto newValue = p->value - al->getValue(al->getHeight() - e.getDistanceFromDragStartY());
+
+            newValue = p->param.valueRange.convertFrom0to1(newValue);
+            p->param.getCurve().movePoint(p->index, newTime, newValue, false);
+        }
+
+        repaint();
+    }
+       //change curve steepness
+    if (m_hoveredAutomationPoint == -1 && m_hoveredCurve != -1 && e.mods.isCtrlDown ())
+    {
+        if (m_hoveredAutamatableParam)
+        {
+            auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam);
+
+            al->setIsDragging(true);
+
+            auto valueP1 = al->getCurve().getPointValue(m_hoveredCurve - 1);
+            auto valueP2 = al->getCurve().getPointValue(m_hoveredCurve);
+            auto delta =  valueP1 < valueP2 ? e.getDistanceFromDragStartY() *  0.01 
+                                    : e.getDistanceFromDragStartY() * -0.01;
+            auto newSteep = juce::jlimit(-0.5f, 0.5f, (float) (m_curveAtMousedown + delta));
+
+            al->getCurve().setCurveValue(m_hoveredCurve - 1, newSteep);
+  
+            repaint();
+           
+        }
+    }
+ 
 }
 void SongEditorView::mouseUp(const juce::MouseEvent& e)
 {
+    auto &sm = m_editViewState.m_selectionManager;
+
     if (m_lassoComponent.isVisible () || m_selectTimerange)
     {
         stopLasso();
     }
-	if(!e.mouseWasDraggedSinceMouseDown())
-	{
-        m_editViewState.m_selectionManager.deselectAll ();
-		m_editViewState.m_edit.getTransport().setCurrentPosition(getSnapedTime(xtoTime(e.x), true));	
-	}
-}
 
-bool SongEditorView::isInterestedInDragSource(
-    const juce::DragAndDropTarget::SourceDetails& sourceDetails)
-{
-    if (sourceDetails.description == "Clip")
-	      return true;
-    return false;
-}
-void SongEditorView::itemDragMove(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
-{
-    turnoffAllTrackOverlays();
-
-    if (auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ()))
+    if (e.mods.isLeftButtonDown())
     {
-        const auto dropPos = dragSourceDetails.localPosition;
-        int verticalOffset = getVerticalOffset(dragSourceDetails, dropPos);
-        m_draggedTimeDelta = xtoTime(dropPos.getX() - draggedClip->getClickPosOffsetX()) - draggedClip->getClip()->getPosition().getStart().inSeconds();
-
-        if (draggedClip->isResizeLeft() || draggedClip->isResizeRight())
+        if (auto cc = getClipComponentForClip(m_hoveredClip) && e.mouseWasDraggedSinceMouseDown())
         {
-            drawResizingOverlays (draggedClip);
-        }
-        else
-        {
-            setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-
-            drawDraggingOverlays (draggedClip, dropPos, verticalOffset);
-        }
-    }
-}
-void SongEditorView::itemDropped(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
-{
-    turnoffAllTrackOverlays();
-    auto dropPos = dragSourceDetails.localPosition;
-    auto dropTime = m_editViewState.xToTime (
-        dropPos.getX()
-        , getWidth()
-        , m_editViewState.m_viewX1
-        , m_editViewState.m_viewX2);
-    dropTime = juce::jlimit(0.0,(double) m_editViewState.m_viewX2, dropTime);
+            auto snap = !e.mods.isShiftDown();
+            auto snapType = m_editViewState.getBestSnapType(m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
+            auto verticalOffset = getVerticalOffset(getTrackCompForTrack(m_hoveredClip->getTrack()), e.position.toInt());
     
-	//copy/moving selected clips by drag and drop // resizing
-    if (auto draggedClip = dynamic_cast<ClipComponent*>(dragSourceDetails.sourceComponent.get ()))
-    {
-        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-        auto verticalOffset = getVerticalOffset(dragSourceDetails, dropPos);
-        auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-        auto startTime = draggedClip->getClip()->getPosition().getStart().inSeconds();
-        auto copy = draggedClip->isCtrlDown();
-        auto snap = !draggedClip->isShiftDown();
-        auto resizeL = draggedClip->isResizeLeft();
-        auto resizeR = draggedClip->isResizeRight();
-
-        if (resizeR || resizeL)
-            resizeSelectedClips(snap, resizeL);
-        else
-            moveSelectedClips(startTime, copy, snap, m_draggedTimeDelta, verticalOffset);
-
-        draggedClip->setResizeLeft(false);
-        draggedClip->setResizeRight(false);
+            if (m_leftBorderHovered || m_rightBorderHovered)
+            {
+                EngineHelpers::resizeSelectedClips(snap, m_leftBorderHovered, m_draggedTimeDelta, m_editViewState, snapType);
+            }
+            else
+            {
+                EngineHelpers::moveSelectedClips(m_clipPosAtMouseDown, e.mods.isCtrlDown(), snap, m_draggedTimeDelta, verticalOffset, m_editViewState, snapType);
+            }
+        }
+        else if (m_hoveredClip && !e.mouseWasDraggedSinceMouseDown() && !e.mods.isCtrlDown())
+        {
+            sm.selectOnly(m_hoveredClip);
+        }
+        else if (m_hoveredClip && !e.mouseWasDraggedSinceMouseDown())
+        {
+            if (sm.isSelected(m_hoveredClip))
+            {
+                sm.deselect(m_hoveredClip);
+            }
+            else
+            {
+                sm.addToSelection(m_hoveredClip);
+            }
+        }
+        else if (m_hoveredAutomationPoint != -1 && !e.mouseWasDraggedSinceMouseDown())
+        {
+            if (m_hoveredAutamatableParam)
+            {
+                if (e.mods.isCtrlDown())
+                {
+                    auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam);
+    
+                    if (al->isPointSelected(m_hoveredAutomationPoint))
+                        al->deselectPoint(m_hoveredAutomationPoint);
+                    else
+                        al->selectPoint(m_hoveredAutomationPoint, true);
+                }
+                else
+                {
+                    auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam);
+                    al->selectPoint(m_hoveredAutomationPoint, false);
+                }
+            }
+        }
+        else if (m_hoveredAutomationPoint == -1 && m_hoveredCurve == -1 && m_hoveredClip == nullptr && !e.mouseWasDraggedSinceMouseDown())
+        {
+            sm.deselectAll();
+        }
     }
 
-    m_draggedTimeDelta = 0;
-    setMouseCursor (juce::MouseCursor::NormalCursor);
-}
-void SongEditorView::itemDragExit(const juce::DragAndDropTarget::SourceDetails&)
-{
-    turnoffAllTrackOverlays();
+    if (m_hoveredAutamatableParam)
+    {
+        auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam);
+        al->setHover(-1, -1, juce::Rectangle<int>());
+        al->setIsDragging(false);
+    }
+
 }
 
 juce::OwnedArray<TrackComponent>& SongEditorView::getTrackViews()
@@ -444,13 +617,11 @@ TrackComponent *SongEditorView::getTrackForClip(int verticalOffset, const te::Cl
     auto idx = m_trackViews.indexOf(getTrackCompForTrack(clip->getTrack()));
     return m_trackViews[idx + verticalOffset];
 }
-int SongEditorView::getVerticalOffset(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails,
-    const juce::Point<int>& dropPos)
+
+int SongEditorView::getVerticalOffset(TrackComponent* sourceTrackComp, const juce::Point<int>& dropPos)
 {
     auto targetTrackComp = getTrackComponent(dropPos.getY ());
-    auto sourceTrackComp = dynamic_cast<TrackComponent*>
-        (dragSourceDetails.sourceComponent.get()->getParentComponent ());
+
 	if (targetTrackComp)
 	{
 		auto verticalOffset = m_trackViews.indexOf(targetTrackComp)
@@ -459,6 +630,7 @@ int SongEditorView::getVerticalOffset(
 	}
 	return 0;
 }
+
 int SongEditorView::getSnapedX(int x, bool down) const
 {
     auto snapType = m_editViewState.getBestSnapType(
@@ -476,15 +648,15 @@ void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
 
     EngineHelpers::resizeSelectedClips(snap, fromLeftEdge, m_draggedTimeDelta, m_editViewState, snapType);
 }
-void SongEditorView::addWaveFileToNewTrack(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails, double dropTime) const
-{
-    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
-        (dragSourceDetails.sourceComponent.get()))
-    {
-        auto f = fileTreeComp->getSelectedFile();
-        EngineHelpers::loadAudioFileOnNewTrack(m_editViewState, f, juce::Colour(0xffff33cc), dropTime);
-    }
-}
+// void SongEditorView::addWaveFileToNewTrack(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails, double dropTime) const
+// {
+//     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+//         (dragSourceDetails.sourceComponent.get()))
+//     {
+//         auto f = fileTreeComp->getSelectedFile();
+//         EngineHelpers::loadAudioFileOnNewTrack(m_editViewState, f, juce::Colour(0xffff33cc), dropTime);
+//     }
+// }
 double SongEditorView::getPasteTime(double dropTime,
                                     ClipComponent* draggedClip) const
 {
@@ -557,34 +729,39 @@ void SongEditorView::updateRangeSelection()
 {
     auto& sm = m_editViewState.m_selectionManager;
     sm.deselectAll();
-   
-    double scrollY = m_editViewState.m_viewY;
-    auto range = m_lassoComponent.getLassoRect().m_timeRange;
     clearSelectedTimeRange();
+   
+    auto scrollY = static_cast<double>(m_editViewState.m_viewY);
+    auto range = m_lassoComponent.getLassoRect().m_timeRange;
+
     for (auto tv: m_trackViews)
     {
         auto trackVRange = getVerticalRangeOfTrack(tv->getTrack(), false);
         juce::Range<int> lassoRangeY = {(int) m_lassoComponent.getLassoRect ().m_verticalRange.getStart(),
-                            (int)  m_lassoComponent.getLassoRect ().m_verticalRange.getEnd()};
+                                        (int) m_lassoComponent.getLassoRect ().m_verticalRange.getEnd()};
+
         if (trackVRange.intersects (lassoRangeY) && !(tv->getTrack()->isFolderTrack()))
         {
             tv->setSelectedTimeRange(range);
         }
+
         scrollY += trackVRange.getLength();
 
         for (auto al : tv->getAutomationLanes())
         {
-            juce::Range<int> r (scrollY,al->getHeight());
+            juce::Range<int> r (scrollY,scrollY + al->getHeight());
+
             if (r.intersects(lassoRangeY))
             {
                 al->setSelectedTimeRange(range);
             }
+
             scrollY += al->getHeight();
             al->repaint();
         }
+
         tv->repaint();
     }
-
 }
 
 void SongEditorView::clearSelectedTimeRange()
