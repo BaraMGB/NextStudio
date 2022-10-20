@@ -382,33 +382,7 @@ int TrackComponent::getClipHeight()
             : (int) m_track->state.getProperty(tracktion_engine::IDs::height, 50);
     return clipHeight;
 }
-bool TrackComponent::isInterestedInDragSource(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
-{
-    if (dragSourceDetails.description == "PluginListEntry")
-        return true;
 
-    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(
-            dragSourceDetails.sourceComponent.get()))
-    {
-        auto f = te::AudioFile(m_editViewState.m_edit.engine,
-                               fileTreeComp->getSelectedFile());
-        if (f.isValid())
-            return true;
-    }
-    if (auto lb =
-            dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
-        if (auto fileListComp = dynamic_cast<FileListBoxComponent*>(lb->getModel()))
-        {
-            tracktion_engine::AudioFile audioFile(
-                m_editViewState.m_edit.engine,
-                fileListComp->getFileList()[lb->getLastRowSelected()]);
-            if (audioFile.isValid())
-                return true;
-        }
-
-    return false;
-}
 juce::OwnedArray<ClipComponent>& TrackComponent::getClipComponents()
 {
     return m_clipComponents;
@@ -417,68 +391,7 @@ te::Track::Ptr TrackComponent::getTrack() const
 {
     return m_track;
 }
-void TrackComponent::itemDragMove(
-    const juce::DragAndDropTarget::SourceDetails& /*dragSourceDetails*/)
-{
-    isOver = true;
-    repaint();
-}
-void TrackComponent::itemDragExit(
-    const juce::DragAndDropTarget::SourceDetails& /*dragSourceDetails*/)
-{
-    isOver = false;
-    repaint();
-}
-void TrackComponent::itemDropped(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
-{
-    auto dropPos = dragSourceDetails.localPosition;
-    auto dropTime = m_editViewState.xToTime(dropPos.getX(),
-                                            getWidth(),
-                                            m_editViewState.m_viewX1,
-                                            m_editViewState.m_viewX2);
-    dropTime = juce::jlimit(0.0, (double) m_editViewState.m_viewX2, dropTime);
 
-    if (auto lb =
-            dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get()))
-    {
-        if (auto fileListComp = dynamic_cast<FileListBoxComponent*>(lb->getModel()))
-        {
-            tracktion_engine::AudioFile audioFile(
-                m_editViewState.m_edit.engine,
-                fileListComp->getFileList()[lb->getLastRowSelected()]);
-            if (audioFile.isValid())
-                insertWave(fileListComp->getFileList()[lb->getLastRowSelected()],
-                           getSnapedTime(dropTime, true));
-        }
-    }
-    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(
-            dragSourceDetails.sourceComponent.get()))
-    {
-        auto f = fileTreeComp->getSelectedFile();
-        insertWave(f, getSnapedTime(dropTime, true));
-    }
-
-    if (dragSourceDetails.description == "PluginListEntry")
-    {
-        if (auto listbox = dynamic_cast<juce::ListBox*>(
-                dragSourceDetails.sourceComponent.get()))
-        {
-            if (auto lbm =
-                    dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
-            {
-                getTrack()->pluginList.insertPlugin(
-                    lbm->getSelectedPlugin(),
-                    getTrack()->pluginList.size()
-                        - 2 //set before LevelMeter and Volume
-                    ,
-                    nullptr);
-            }
-        }
-    }
-    isOver = false;
-    repaint();
-}
 bool TrackComponent::isFolderTrack()
 {
     return m_track->isFolderTrack();

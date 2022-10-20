@@ -2,6 +2,7 @@
 #include "AutomationLaneComponent.h"
 #include "Utilities.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
+#include <ctime>
 #include <memory>
 
 
@@ -196,8 +197,19 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
             }
             else if (m_hoveredTrack)
             {
-                sm.deselectAll();
-                startLasso(e, false, false);
+                if (e.getNumberOfClicks() > 1)
+                {
+                    auto beat = xToSnapedBeat(e.x);
+
+                    auto tc = getTrackCompForTrack(m_hoveredTrack);
+                    if (tc->isMidiTrack())
+                        tc->createNewMidiClip(beat);
+                }
+                else
+                {
+                    sm.deselectAll();
+                    startLasso(e, false, false);
+                }
             }
         }
 
@@ -826,4 +838,11 @@ double SongEditorView::getSnapedTime(double time, bool downwards)
 int SongEditorView::timeToX (double time)
 {
     return m_editViewState.timeToX (time, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+}
+
+double SongEditorView::xToSnapedBeat (int x)
+{
+    auto time = xtoTime(x);
+    time = getSnapedTime(time);
+    return m_editViewState.timeToBeat(time);
 }

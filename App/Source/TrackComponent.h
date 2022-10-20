@@ -34,8 +34,7 @@ private:
 class TrackComponent : public juce::Component,
                        private te::ValueTreeAllEventListener,
                        private FlaggedAsyncUpdater,
-                       private juce::ChangeListener,
-                       public juce::DragAndDropTarget
+                       private juce::ChangeListener
 {
 public:
     TrackComponent (EditViewState&, LowerRangeComponent& lr, te::Track::Ptr);
@@ -48,11 +47,6 @@ public:
     [[nodiscard]] te::Track::Ptr getTrack() const;
     void insertWave(const juce::File& f, double time);
     juce::OwnedArray<ClipComponent>& getClipComponents();
-
-    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
-    void itemDragMove(const SourceDetails& dragSourceDetails) override;
-    void itemDragExit(const SourceDetails& dragSourceDetails) override;
-    void itemDropped(const SourceDetails& dragSourceDetails) override;
 
     void addDraggedClip(bool isValid, int startX, int width, bool isResizing)
     {
@@ -70,7 +64,10 @@ public:
     void setSelectedTimeRange(tracktion::TimeRange timerange, bool snap=true);
     tracktion::TimeRange getSelectedTimeRange();
     void clearSelectedTimeRange();
-                
+
+    te::MidiClip::Ptr createNewMidiClip(double beatPos);
+    bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
+               
 private:
     void drawDraggingOverlays(juce::Graphics& g);
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -85,8 +82,6 @@ private:
     void buildClips();
     void buildAutomationLanes();
     void buildRecordClips();
-    te::MidiClip::Ptr createNewMidiClip(double beatPos);
-    bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
     bool isSelected();
 
     int getClipHeight();

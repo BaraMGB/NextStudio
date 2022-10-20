@@ -43,6 +43,7 @@ private:
 
     void moveSelectedClips(double sourceTime, bool copy, bool snap, double delta, int verticalOffset);  
     int timeToX (double time);
+    double xToSnapedBeat (int x);
     int getSnapedX(int x, bool down=false) const;
     double xtoTime(int x);
     double getSnapedTime(double time, bool downwards=false);
