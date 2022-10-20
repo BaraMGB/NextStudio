@@ -963,8 +963,12 @@ int GUIHelpers::getTrackHeight(
                     trackHeight += automationHeight;
                 }
 
+    if (track->isPartOfSubmix() && track->getParentFolderTrack()->state.getProperty(IDs::isTrackMinimized))
+        trackHeight = 0;
+
     return trackHeight;
 }
+
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
 {
     auto zoom = evs.m_pianoX2 - evs.m_pianoX1;

@@ -7,7 +7,6 @@
 namespace te = tracktion_engine;
 
 class MidiClipComponent : public ClipComponent
-                        , public juce::ChangeBroadcaster
 {
 public:
     MidiClipComponent (EditViewState&, te::Clip::Ptr);
@@ -19,9 +18,6 @@ public:
     }
 
     void paint (juce::Graphics& g) override;
-    void mouseExit(const juce::MouseEvent&) override;
-    void mouseDown (const juce::MouseEvent&) override;
-
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiClipComponent)
 };

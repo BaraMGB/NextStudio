@@ -66,13 +66,9 @@ private:
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
     void selectCatchedClips(const tracktion_engine::Track* track);
 
-    double getPasteTime(double dropTime, ClipComponent* draggedClip) const;
-
     // void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
 
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
-    void drawResizingOverlays (const ClipComponent *draggedClip);
-    void drawDraggingOverlays (const ClipComponent *draggedClip, const juce::Point<int> &dropPos, int verticalOffset);
 
     EditViewState&                      m_editViewState;
     LassoSelectionTool                  m_lassoComponent;

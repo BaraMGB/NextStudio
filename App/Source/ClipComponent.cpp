@@ -60,63 +60,7 @@ juce::Rectangle<int> ClipComponent::getVisibleBounds()
    
     return area;
 }
-void ClipComponent::mouseEnter(const juce::MouseEvent &clipEvent)
-{
-    repaint();
-}
-void ClipComponent::mouseMove(const juce::MouseEvent &clipEvent)
-{
-    repaint();
 
-    if (clipEvent.getPosition().getX() < 10 && getWidth () > 30)
-    {
-        setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
-    }
-    else if (clipEvent.getPosition().getX() > getWidth() - 10
-         &&  getWidth () > 30)
-    {
-        setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
-    }
-    else
-    {
-        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-    }
-}
-
-void ClipComponent::mouseDown (const juce::MouseEvent&event)
-{
-    toFront (true);
-    m_isCtrlDown = false;
-    m_clickedTime = xToTime(event.x);
-
-    if (juce::ModifierKeys::getCurrentModifiers().isCtrlDown())
-    {
-        m_isCtrlDown = true;
-        for (auto &t: m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
-        {
-            t->deselect ();
-        }
-        m_editViewState.m_selectionManager.addToSelection(getClip());
-        m_editViewState.m_selectionManager.addToSelection (getClip ()->getTrack ());
-    }
-    else if (!m_editViewState.m_selectionManager.isSelected (m_clip))
-    {
-        m_editViewState.m_selectionManager.selectOnly(getClip());
-        m_editViewState.m_selectionManager.addToSelection (getClip ()->getTrack ());
-    }
-
-    if (event.mods.isRightButtonDown())
-    {
-        showContextMenu();
-        return;
-    }
-
-    if (event.getPosition().getX() < 10 && getWidth () > 30)
-        m_resizeLeft = true;
-    else if (event.getPosition().getX() > getWidth() - 10
-         &&  getWidth () > 30)
-        m_resizeRight = true;
-}
 double ClipComponent::xToTime(const int x) const
 {
     return m_editViewState.xToTime(x
@@ -125,46 +69,6 @@ double ClipComponent::xToTime(const int x) const
                                    , m_editViewState.m_viewX2
                                      );
 }
-void ClipComponent::mouseDrag(const juce::MouseEvent & event)
-{
-    if (event.mouseWasDraggedSinceMouseDown ())
-    {
-        juce::DragAndDropContainer* dragC =
-                juce::DragAndDropContainer::findParentDragContainerFor(this);
-
-        m_isShiftDown = event.mods.isShiftDown();
-
-        if (!dragC->isDragAndDropActive())
-        {
-            dragC->startDragging("Clip", this
-                                 , juce::Image(juce::Image::ARGB,1,1,true), false);
-            m_isDragging = true;
-        }
-    }
-}
-void ClipComponent::mouseUp(const juce::MouseEvent& event)
-{
-    setMouseCursor (juce::MouseCursor::NormalCursor);
-
-    m_editViewState.m_edit.getTransport().setUserDragging(false);
-
-    if (auto se = dynamic_cast<SongEditorView*>(
-                getParentComponent ()->getParentComponent ()))
-        se->turnoffAllTrackOverlays ();
-
-    if (m_isDragging)
-        m_isDragging = false;
-
-	else if (m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size () > 1
-          && !event.mods.isAnyModifierKeyDown ())
-    {
-        m_editViewState.m_selectionManager.selectOnly (m_clip);
-    }
-}
-void ClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
-{
-    setMouseCursor(juce::MouseCursor::NormalCursor);
-}
 
 void ClipComponent::resized()
 {
@@ -172,6 +76,7 @@ void ClipComponent::resized()
     area = area.removeFromTop(m_editViewState.m_clipHeaderHeight);
     m_nameLabel.setBounds(area);
 }
+
 tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Clip::Ptr& clip)
 {
     for (auto t : m_editViewState.m_edit.getTrackList ())
@@ -189,6 +94,7 @@ tracktion_engine::Track::Ptr ClipComponent::getTrack(const tracktion_engine::Cli
     }
     return nullptr;
 }
+
 void ClipComponent::showContextMenu()
 {
     juce::PopupMenu m;
@@ -216,12 +122,5 @@ void ClipComponent::showContextMenu()
                     std::move(clipContent));
     }
 }
-bool ClipComponent::isResizeLeft() const 
-{
-    return m_resizeLeft;
-}
-bool ClipComponent::isResizeRight() const 
-{
-    return m_resizeRight;
-}
+
 

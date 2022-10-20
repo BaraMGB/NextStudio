@@ -10,23 +10,10 @@ class ClipComponent : public juce::Component
 public:
     ClipComponent (EditViewState&, te::Clip::Ptr);
     void paint (juce::Graphics& g) override;
-    void mouseEnter (const juce::MouseEvent&) override;
-    void mouseMove (const juce::MouseEvent&) override;
-    void mouseDown (const juce::MouseEvent&) override;
-    void mouseDrag (const juce::MouseEvent &) override;
-    void mouseUp (const juce::MouseEvent &) override;
-    void mouseExit(const juce::MouseEvent&) override;
     
     void resized () override;
     te::Clip::Ptr getClip () { return m_clip; }
 
-    [[nodiscard]] bool isCtrlDown () const { return m_isCtrlDown; }
-    [[nodiscard]] bool isShiftDown () const { return m_isShiftDown; }
-    [[nodiscard]] bool isResizeLeft() const;
-    [[nodiscard]] bool isResizeRight() const;
-
-    void setResizeLeft(bool mResizeLeft){ m_resizeLeft = mResizeLeft; }
-    void setResizeRight(bool mResizeRight){ m_resizeRight = mResizeRight; }
 
     [[nodiscard]] juce::Rectangle<int> getVisibleBounds();
 

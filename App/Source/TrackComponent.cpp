@@ -98,62 +98,7 @@ void TrackComponent::drawDraggingOverlays(juce::Graphics& g)
         }
     }
 }
-void TrackComponent::mouseDown(const juce::MouseEvent& e)
-{
-    bool isMidiTrack = m_track->state.getProperty(IDs::isMidiTrack);
-    if (e.mods.isRightButtonDown())
-    {
-        //        juce::PopupMenu m;
-    }
-    else if (e.mods.isLeftButtonDown())
-    {
-        if (e.getNumberOfClicks() > 1)
-        {
-            if (isMidiTrack)
-            {
-                auto st = m_editViewState.getBestSnapType(
-                    m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
-                createNewMidiClip(
-                    m_editViewState.getQuantizedBeat(xToBeats(e.x), st, true));
 
-                resized();
-            }
-        }
-        else
-        {
-            if (auto se = dynamic_cast<SongEditorView*>(getParentComponent()))
-                se->startLasso(e.getEventRelativeTo(se), false, e.mods.isAltDown());
-        }
-    }
-}
-
-void TrackComponent::mouseDrag(const juce::MouseEvent& e)
-{
-    if (auto se = dynamic_cast<SongEditorView*>(getParentComponent()))
-    {
-        if (se->getLasso().isVisible())
-        {
-            se->updateLasso(e.getEventRelativeTo(&se->getLasso()));
-        }
-    }
-}
-
-void TrackComponent::mouseUp(const juce::MouseEvent& e)
-{
-    if (!e.mouseWasDraggedSinceMouseDown() && e.getNumberOfClicks() < 2)
-    {
-        getParentComponent()->mouseUp(e.getEventRelativeTo(getParentComponent()));
-    }
-
-    if (auto se = dynamic_cast<SongEditorView*>(getParentComponent()))
-    {
-        if (se->getLasso().isVisible())
-        {
-            se->getLasso().stopLasso();
-            setMouseCursor(juce::MouseCursor::NormalCursor);
-        }
-    }
-}
 void TrackComponent::changeListenerCallback(juce::ChangeBroadcaster* cbc)
 {
     if (cbc == &m_editViewState.m_selectionManager)
@@ -350,11 +295,6 @@ void TrackComponent::buildClips()
             {
                 m_clipComponents.add(cc);
                 addAndMakeVisible(cc);
-
-                if (auto mcc = dynamic_cast<MidiClipComponent*>(cc))
-                {
-                    mcc->addChangeListener(&m_lowerRange);
-                }
             }
         }
     }

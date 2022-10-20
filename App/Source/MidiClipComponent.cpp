@@ -10,7 +10,6 @@ MidiClipComponent::MidiClipComponent (EditViewState& evs, te::Clip::Ptr c)
 
 MidiClipComponent::~MidiClipComponent()
 {
-    removeAllChangeListeners ();
 }
 
 void MidiClipComponent::paint (juce::Graphics& g)
@@ -58,24 +57,6 @@ void MidiClipComponent::paint (juce::Graphics& g)
                 }
             }
         }
-    }
-}
-
-void MidiClipComponent::mouseExit(const juce::MouseEvent &/*e*/)
-{
-    setMouseCursor(juce::MouseCursor::NormalCursor);
-}
-
-void MidiClipComponent::mouseDown(const juce::MouseEvent &e)
-{
-    ClipComponent::mouseDown(e);
-    if ((!isResizeLeft() && !isResizeRight()) && m_editViewState.m_isPianoRollVisible)
-        GUIHelpers::centerMidiEditorToClip(m_editViewState, m_clip);
-
-    if (e.getNumberOfClicks () > 1 || m_editViewState.m_isPianoRollVisible)
-    {
-        m_editViewState.m_isPianoRollVisible = true;
-        sendChangeMessage ();
     }
 }
 
