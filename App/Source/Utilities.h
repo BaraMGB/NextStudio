@@ -193,14 +193,14 @@ namespace EngineHelpers
     juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
     void deleteSelectedClips(EditViewState & evs);
 
-    void moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype);
+    void moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs);
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm
                                                      , bool copy);
 
 	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
 
-    void resizeSelectedClips(bool snap, bool fromLeftEdge, double delta, EditViewState & evs, te::TimecodeSnapType snapType);
+    void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs);
 
     te::Project::Ptr createTempProject (te::Engine& engine);
 

@@ -440,11 +440,11 @@ juce::Array<te::Track*> EngineHelpers::getSortedTrackList(te::Edit& edit)
 
     return tracks;
 }
-void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype)
+void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
-    auto targetTime = snap ? evs.getSnapedTime(sourceTime + timeDelta, snaptype): sourceTime + timeDelta;
+    auto targetTime = sourceTime + timeDelta;
     auto delta = targetTime - sourceTime - tempPosition;
 
     if (verticalOffset == 0) EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
@@ -523,7 +523,7 @@ void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::Ac
 	te::moveAutomation(secs, offset, copy);
 }
 
-void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double delta, EditViewState & evs, te::TimecodeSnapType snapType)
+void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
@@ -534,8 +534,6 @@ void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double del
         {
             auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
                                        sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(delta));
-            if (snap)
-                newStart = tracktion::TimePosition::fromSeconds(evs.getSnapedTime (newStart.inSeconds(), snapType, false));
             sc->setStart(newStart, true, false);
 
 			//save clip for damage
@@ -548,8 +546,6 @@ void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double del
         {
             auto newEnd = sc->getPosition().getEnd() + tracktion::TimeDuration::fromSeconds(delta);
 
-            if (snap)
-                newEnd = tracktion::TimePosition::fromSeconds(evs.getSnapedTime (newEnd.inSeconds(), snapType, false));
             sc->setEnd(newEnd, true);
 			//save clip for damage
             sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);

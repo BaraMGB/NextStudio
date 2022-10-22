@@ -30,7 +30,7 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
 {
     using namespace juce::Colours;
     auto &sm = m_editViewState.m_selectionManager;
-    int scroll = timeToX(0);
+    int scroll = timeToX(0) *(-1);
     if (m_draggedClipComponent)
     {
         for (auto sc : sm.getItemsOfType<te::Clip>())
@@ -39,7 +39,7 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
             {
                 auto cc = getClipComponentForClip(sc);
                 
-                juce::Rectangle<int> targetRect = {cc->getX() + timeToX(m_draggedTimeDelta) - scroll,
+                juce::Rectangle<int> targetRect = {cc->getX() + timeToX(m_draggedTimeDelta) + scroll,
                                                    getYForTrack(targetTrack),
                                                    cc->getWidth(),
                                                     GUIHelpers::getTrackHeight(targetTrack, m_editViewState)};
@@ -272,7 +272,7 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
 {
     auto &sm = m_editViewState.m_selectionManager;
     auto screenStartTime = xtoTime(0);
-    m_draggedTimeDelta = xtoTime(e.getDistanceFromDragStartX()) - screenStartTime;
+    // m_draggedTimeDelta = xtoTime(e.getDistanceFromDragStartX()) - screenStartTime;
 
     if (!sm.isSelected(m_hoveredClip))
     {
@@ -283,6 +283,13 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
     {
         m_draggedClipComponent = getClipComponentForClip(m_hoveredClip);
         m_draggedVerticalOffset = getVerticalOffset(getTrackCompForTrack(m_hoveredTrack), {e.x, e.y});
+
+        auto startTime = m_draggedClipComponent->getClip()->getPosition().getStart().inSeconds();
+        auto targetTime = startTime + xtoTime(e.getDistanceFromDragStartX());
+        if (!e.mods.isShiftDown())
+            targetTime = getSnapedTime(targetTime);
+
+        m_draggedTimeDelta = targetTime - startTime;
     }
 
     if (m_lassoComponent.isVisible () || m_selectTimerange)
@@ -353,17 +360,17 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
     {
         if (auto cc = getClipComponentForClip(m_hoveredClip) && e.mouseWasDraggedSinceMouseDown())
         {
-            auto snap = !e.mods.isShiftDown();
+            auto snap =false;// !e.mods.isShiftDown();
             auto snapType = m_editViewState.getBestSnapType(m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
             auto verticalOffset = getVerticalOffset(getTrackCompForTrack(m_hoveredClip->getTrack()), e.position.toInt());
     
             if (m_leftBorderHovered || m_rightBorderHovered)
             {
-                EngineHelpers::resizeSelectedClips(snap, m_leftBorderHovered, m_draggedTimeDelta, m_editViewState, snapType);
+                EngineHelpers::resizeSelectedClips(m_leftBorderHovered, m_draggedTimeDelta, m_editViewState);
             }
             else
             {
-                EngineHelpers::moveSelectedClips(m_clipPosAtMouseDown, e.mods.isCtrlDown(), snap, m_draggedTimeDelta, verticalOffset, m_editViewState, snapType);
+                EngineHelpers::moveSelectedClips(m_clipPosAtMouseDown, e.mods.isCtrlDown(), m_draggedTimeDelta, verticalOffset, m_editViewState);
             }
         }
         else if (m_hoveredClip && !e.mouseWasDraggedSinceMouseDown() && !e.mods.isCtrlDown())
@@ -620,9 +627,7 @@ void SongEditorView::duplicateSelectedClips()
 
 void SongEditorView::moveSelectedClips(double sourceTime, bool copy, bool snap, double delta, int verticalOffset)
 {
-    auto snapType = m_editViewState.getBestSnapType(
-                        m_editViewState.m_viewX1, m_editViewState.m_viewX2, getWidth());
-    EngineHelpers::moveSelectedClips(sourceTime, copy, snap, delta, verticalOffset,m_editViewState, snapType); 
+    EngineHelpers::moveSelectedClips(sourceTime, copy, delta, verticalOffset,m_editViewState); 
 }
 TrackComponent *SongEditorView::getTrackForClip(int verticalOffset, const te::Clip *clip)
 {
@@ -653,12 +658,7 @@ int SongEditorView::getSnapedX(int x, bool down) const
 }
 void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
 {
-    auto snapType = m_editViewState.getBestSnapType (
-        m_editViewState.m_viewX1
-        , m_editViewState.m_viewX2
-        , getWidth());
-
-    EngineHelpers::resizeSelectedClips(snap, fromLeftEdge, m_draggedTimeDelta, m_editViewState, snapType);
+    EngineHelpers::resizeSelectedClips(fromLeftEdge, m_draggedTimeDelta, m_editViewState);
 }
 // void SongEditorView::addWaveFileToNewTrack(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails, double dropTime) const
 // {
