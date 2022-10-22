@@ -249,10 +249,10 @@ void MainComponent::saveTempEdit()
         auto editFile = Helpers::findRecentEdit(temp);
         auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
 
-        // EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
-        // te::EditFileOperations(*m_edit).writeToFile(editFile, true);
-        // EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
-        // m_edit->sendSourceFileUpdate();
+        EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
+        te::EditFileOperations(*m_edit).writeToFile(editFile, true);
+        EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
+        m_edit->sendSourceFileUpdate();
         GUIHelpers::log("Temp file saved!");
     }
 }
