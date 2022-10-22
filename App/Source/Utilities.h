@@ -61,6 +61,12 @@ namespace GUIHelpers
 
     juce::Rectangle<int> getSensibleArea(juce::Point<int> p, int w);
 
+    void drawClip(juce::Graphics& g,
+                  juce::Rectangle<int> rect,
+                  te::Clip * clip,
+                  juce::Colour color,
+                  EditViewState& evs);
+
     void drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area
@@ -184,6 +190,7 @@ namespace EngineHelpers
 
     bool trackWantsClip(const te::Clip* clip, const te::Track* track);
     te::Track* getTargetTrack(te::Track*, int verticalOffset);
+    juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
     void deleteSelectedClips(EditViewState & evs);
 
     void moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype);

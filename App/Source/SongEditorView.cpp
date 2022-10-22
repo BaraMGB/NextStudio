@@ -1,9 +1,6 @@
 #include "SongEditorView.h"
 #include "AutomationLaneComponent.h"
 #include "Utilities.h"
-#include "tracktion_core/utilities/tracktion_Time.h"
-#include <ctime>
-#include <memory>
 
 
 SongEditorView::SongEditorView(EditViewState& evs)
@@ -27,6 +24,43 @@ void SongEditorView::paint(juce::Graphics& g)
 	g.setColour(juce::Colour(0xff303030));
 	g.fillRect(area);
 }
+
+
+void SongEditorView::paintOverChildren (juce::Graphics& g)
+{
+    using namespace juce::Colours;
+    auto &sm = m_editViewState.m_selectionManager;
+    int scroll = timeToX(0);
+    if (m_draggedClipComponent)
+    {
+        for (auto sc : sm.getItemsOfType<te::Clip>())
+        {
+            if (auto targetTrack = EngineHelpers::getTargetTrack(sc->getTrack(), m_draggedVerticalOffset))
+            {
+                auto cc = getClipComponentForClip(sc);
+                
+                juce::Rectangle<int> targetRect = {cc->getX() + timeToX(m_draggedTimeDelta) - scroll,
+                                                   getYForTrack(targetTrack),
+                                                   cc->getWidth(),
+                                                    GUIHelpers::getTrackHeight(targetTrack, m_editViewState)};
+                g.setColour(white);
+                g.drawRect(targetRect);
+                if (EngineHelpers::trackWantsClip(sc, targetTrack))
+                {
+                    GUIHelpers::drawClip(g, targetRect, sc, targetTrack->getColour().withAlpha(0.1f), m_editViewState);
+                }
+                else
+                {
+                    g.setColour(grey);
+                    g.fillRect(targetRect.reduced(1,1));
+                    g.setColour(black);
+                    g.drawFittedText("not allowed",targetRect,juce::Justification::centred, 1);
+                }
+            }
+        }
+    }
+}
+
 void SongEditorView::resized()
 {
     int y = juce::roundToInt (m_editViewState.m_viewY.get());
@@ -131,9 +165,11 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
 }
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
 {
+    m_draggedVerticalOffset = 0;
     m_draggedClipComponent = nullptr;
     m_draggedTimeDelta = 0.0;
     m_timeOfHoveredAutomationPoint = tracktion::TimePosition::fromSeconds(0.0);
+    m_selectedClipsImages = getSelectedClipImages();
     auto &sm = m_editViewState.m_selectionManager;
 
     if (e.mods.isRightButtonDown())
@@ -243,6 +279,12 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
         sm.addToSelection(m_hoveredClip);
     }
 
+    if (m_hoveredClip)
+    {
+        m_draggedClipComponent = getClipComponentForClip(m_hoveredClip);
+        m_draggedVerticalOffset = getVerticalOffset(getTrackCompForTrack(m_hoveredTrack), {e.x, e.y});
+    }
+
     if (m_lassoComponent.isVisible () || m_selectTimerange)
     {
         updateLasso (e);
@@ -277,8 +319,6 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
             newValue = p->param.valueRange.convertFrom0to1(newValue);
             p->param.getCurve().movePoint(p->index, newTime, newValue, false);
         }
-
-        repaint();
     }
        //change curve steepness
     if (m_hoveredAutomationPoint == -1 && m_hoveredCurve != -1 && e.mods.isCtrlDown ())
@@ -296,12 +336,9 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
             auto newSteep = juce::jlimit(-0.5f, 0.5f, (float) (m_curveAtMousedown + delta));
 
             al->getCurve().setCurveValue(m_hoveredCurve - 1, newSteep);
-  
-            repaint();
-           
         }
     }
- 
+    repaint(); 
 }
 void SongEditorView::mouseUp(const juce::MouseEvent& e)
 {
@@ -377,6 +414,8 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         al->setIsDragging(false);
     }
 
+    m_draggedClipComponent = nullptr;
+    repaint();
 }
 
 juce::OwnedArray<TrackComponent>& SongEditorView::getTrackViews()
@@ -443,6 +482,21 @@ te::Track::Ptr SongEditorView::getTrackAt(int y)
     //
     
     return nullptr;
+}
+
+int SongEditorView::getYForTrack (te::Track* track)
+{
+    int scrollY = m_editViewState.m_viewY;
+    for (auto t : tracktion::getAllTracks(m_editViewState.m_edit))
+    {
+        if (t == track)
+            return scrollY;
+        if (!t->isAutomationTrack() && !t->isArrangerTrack() && !t->isChordTrack() && !t->isMarkerTrack() && !t->isTempoTrack() && !t->isMasterTrack())
+        {
+            scrollY += GUIHelpers::getTrackHeight(t, m_editViewState);
+        }
+    }
+    return getHeight();
 }
 
 te::AutomatableParameter::Ptr SongEditorView::getAutomatableParamAt(int y)
@@ -714,6 +768,18 @@ void SongEditorView::clearSelectedTimeRange()
             al->clearSelectedTimeRange();
     }
 
+}
+
+juce::Array<juce::Image> SongEditorView::getSelectedClipImages()
+{
+    auto &sm = m_editViewState.m_selectionManager;
+    juce::Array<juce::Image> images;
+    for (auto sc : sm.getItemsOfType<te::Clip>())
+    {
+        auto cc = getClipComponentForClip(sc);
+        images.add(cc->createComponentSnapshot(cc->getLocalBounds()));
+    }
+    return images;
 }
 
 void SongEditorView::updateAutomationSelection(bool add)

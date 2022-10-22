@@ -15,6 +15,7 @@ public:
 
     int getTrackHeight(const TrackComponent* tc) const;
 	void paint(juce::Graphics& g) override;
+	void paintOverChildren (juce::Graphics& g) override;
     void resized() override;
 
     void mouseMove (const juce::MouseEvent &) override;
@@ -55,6 +56,7 @@ private:
 
     int getVerticalOffset(TrackComponent* sourceTrackComp, const juce::Point<int>& dropPos);
     te::Track::Ptr getTrackAt(int y);
+    int getYForTrack (te::Track* track);
     te::AutomatableParameter::Ptr getAutomatableParamAt(int y);
 
     void updateClipSelection(bool add);
@@ -63,6 +65,7 @@ private:
     void updateAutomationCache();
     void updateRangeSelection(); 
     void clearSelectedTimeRange();
+    juce::Array<juce::Image> getSelectedClipImages();
 
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
     void selectCatchedClips(const tracktion_engine::Track* track);
@@ -95,6 +98,10 @@ private:
     ClipComponent*                      m_draggedClipComponent;
     double                              m_draggedTimeDelta{0.0};
     double                              m_clipPosAtMouseDown;
+    bool                                m_isDragging {false};
+    juce::Array<juce::Image>            m_selectedClipsImages; 
+    int                                 m_draggedVerticalOffset{0};
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };
 

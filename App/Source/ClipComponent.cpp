@@ -1,5 +1,6 @@
 #include "ClipComponent.h"
 #include "EditComponent.h"
+#include "Utilities.h"
 
 
 
@@ -19,26 +20,9 @@ void ClipComponent::paint (juce::Graphics& g)
 {
    
     auto area = getVisibleBounds(); 
-    auto header = area.withHeight(m_editViewState.m_clipHeaderHeight);
-    auto isSelected = m_editViewState.m_selectionManager.isSelected (m_clip);
-
-    auto clipColor = getClip ()->getColour ();
-    auto innerGlow = clipColor.brighter(0.5f);
-    auto borderColour = clipColor.darker(0.95f);
-    auto backgroundColor = borderColour.withAlpha(0.6f);
-    
-    area.removeFromBottom(1);
-    g.setColour(backgroundColor);
-    g.fillRect(area.reduced(1, 1));
- 
-    g.setColour(innerGlow);
-    g.drawRect(header);
-    g.drawRect(area);
-    g.setColour(clipColor);
-    if (isSelected)
-        g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
-
-    g.fillRect(header.reduced(2,2));
+   
+    auto clipColor = m_clip->getColour();
+    GUIHelpers::drawClip(g, area, m_clip, clipColor, m_editViewState);
 
     m_nameLabel.setColour(juce::Label::ColourIds::backgroundColourId, juce::Colour(0x00ffffff));
     m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.withLightness(.85f));

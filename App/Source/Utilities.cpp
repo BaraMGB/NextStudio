@@ -23,6 +23,34 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     return {};
 }
 
+void GUIHelpers::drawClip(juce::Graphics& g,
+                  juce::Rectangle<int> rect,
+                  te::Clip * clip,
+                  juce::Colour color,
+                  EditViewState& evs)
+{
+    auto area = rect;
+    auto header = area.withHeight(evs.m_clipHeaderHeight);
+    auto isSelected = evs.m_selectionManager.isSelected (clip);
+
+    auto clipColor = color;
+    auto innerGlow = clipColor.brighter(0.5f);
+    auto borderColour = clipColor.darker(0.95f);
+    auto backgroundColor = borderColour.withAlpha(0.6f);
+    
+    // area.removeFromBottom(1);
+    g.setColour(backgroundColor);
+    g.fillRect(area.reduced(1, 1));
+ 
+    g.setColour(innerGlow);
+    g.drawRect(header);
+    g.drawRect(area);
+    g.setColour(clipColor);
+    if (isSelected)
+        g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
+
+    g.fillRect(header.reduced(2,2));
+}
 
 
 void GUIHelpers::drawRoundedRectWithSide(
@@ -391,12 +419,27 @@ bool EngineHelpers::trackWantsClip(const te::Clip* clip,
 te::Track* EngineHelpers::getTargetTrack(te::Track* sourceTrack, int verticalOffset)
 {
     auto &edit = sourceTrack->edit;
-    auto tracks = te::getAllTracks(edit);
-    auto targetTrack = tracks[tracks.indexOf(sourceTrack) + verticalOffset];
+    auto tracks = getSortedTrackList(edit);
+    auto targetIdx = tracks.indexOf(sourceTrack) + verticalOffset;
+    auto targetTrack = tracks[targetIdx];
 
     return targetTrack;
 }
 
+juce::Array<te::Track*> EngineHelpers::getSortedTrackList(te::Edit& edit)
+{
+    juce::Array<te::Track*> tracks;
+
+    edit.visitAllTracks ([&] (te::Track& t)
+        {
+            if (t.isAutomationTrack() || t.isArrangerTrack() || t.isChordTrack() || t.isMarkerTrack() || t.isTempoTrack() || t.isMasterTrack())
+               return true;
+            tracks.add (&t);
+            return true; 
+        }, true);
+
+    return tracks;
+}
 void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
@@ -963,8 +1006,17 @@ int GUIHelpers::getTrackHeight(
                     trackHeight += automationHeight;
                 }
 
-    if (track->isPartOfSubmix() && track->getParentFolderTrack()->state.getProperty(IDs::isTrackMinimized))
-        trackHeight = 0;
+
+
+    auto it = track;
+    while (it->isPartOfSubmix())
+    {
+        it = it->getParentFolderTrack();
+        if (it->state.getProperty((IDs::isTrackMinimized)))
+        {
+            trackHeight = 0;
+        }
+    }
 
     return trackHeight;
 }

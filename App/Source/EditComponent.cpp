@@ -1,6 +1,4 @@
 #include "EditComponent.h"
-
-#include <utility>
 #include "NextLookAndFeel.h"
 EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm)
     : m_edit (e)

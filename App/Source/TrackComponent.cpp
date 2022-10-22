@@ -204,7 +204,7 @@ void TrackComponent::resized()
                                                 m_editViewState.m_viewX1,
                                                 m_editViewState.m_viewX2);
             auto clipHeight = getClipHeight();
-            cc->setBounds(startX, 1, endX - startX + 1, clipHeight);
+            cc->setBounds(startX, 0, endX - startX, clipHeight);
         }
     }
 
