@@ -39,7 +39,6 @@ public:
 class TrackHeaderComponent : public juce::Component
                            , private te::ValueTreeAllEventListener
                            , private FlaggedAsyncUpdater
-                           , public juce::ChangeBroadcaster
                            , public juce::DragAndDropTarget
                            , public juce::Label::Listener
 {

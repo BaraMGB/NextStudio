@@ -3,8 +3,9 @@
 #include "Utilities.h"
 
 
-SongEditorView::SongEditorView(EditViewState& evs)
+SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr)
         : m_editViewState(evs)
+        , m_lowerRange(lr)
         , m_lassoComponent(evs, evs.m_viewX1, evs.m_viewX2)
 {
     setName("SongEditorView");
@@ -198,6 +199,11 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
         {
             if (m_hoveredClip)
             {
+                if (e.getNumberOfClicks() > 1 || m_editViewState.m_isPianoRollVisible)
+                {
+                    m_lowerRange.showPianoRoll(m_hoveredClip->getTrack());
+                }
+
                 if (!sm.isSelected(m_hoveredClip))
                 {
                     sm.selectOnly(m_hoveredClip);

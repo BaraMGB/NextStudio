@@ -37,14 +37,11 @@ private:
 };
 
 class LowerRangeComponent : public juce::Component
-                          , public juce::ChangeListener
                           , public te::ValueTreeAllEventListener
 {
 public:
     explicit LowerRangeComponent (EditViewState& evs);
      ~LowerRangeComponent() override;
-
-    void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
     void paint (juce::Graphics& g) override;
     void paintOverChildren(juce::Graphics &g) override;
@@ -59,6 +56,7 @@ public:
     {
         m_pluginRackComps.clear ();
     }
+
 private:
 
     void valueTreeChanged() override {}

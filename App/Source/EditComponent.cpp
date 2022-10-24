@@ -3,8 +3,8 @@
 EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm)
     : m_edit (e)
   , m_editViewState (e, sm, avs)
-    , m_songEditor(m_editViewState)
-    , m_trackListView(m_editViewState)
+    , m_songEditor(m_editViewState, m_lowerRange)
+    , m_trackListView(m_editViewState, m_lowerRange)
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
 {
@@ -305,7 +305,6 @@ void EditComponent::buildTracks()
         if (tc != nullptr)
         {
             auto th = new TrackHeaderComponent (m_editViewState, t);
-            th->addChangeListener(&m_lowerRange);
             m_trackListView.addHeaderViews(*th);
 
             auto pr = new PluginRackComponent (m_editViewState, t);

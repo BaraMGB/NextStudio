@@ -10,7 +10,7 @@
 class SongEditorView : public juce::Component
 {
 public:
-    SongEditorView(EditViewState& evs);
+    SongEditorView(EditViewState& evs, LowerRangeComponent& lr);
     ~SongEditorView(){}
 
     int getTrackHeight(const TrackComponent* tc) const;
@@ -75,6 +75,7 @@ private:
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
 
     EditViewState&                      m_editViewState;
+    LowerRangeComponent&                m_lowerRange;
     LassoSelectionTool                  m_lassoComponent;
     juce::OwnedArray<TrackComponent>    m_trackViews;
     juce::Array<te::Clip*>              m_cachedSelectedClips;

@@ -79,26 +79,7 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
 
 LowerRangeComponent::~LowerRangeComponent()
 {
-    m_editViewState.m_selectionManager.removeChangeListener(this);
     m_editViewState.m_edit.state.removeListener (this);
-}
-
-void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster * source)
-{
-
-    if (auto trackHeaderComp = dynamic_cast<TrackHeaderComponent*>(source))
-    {
-        showPluginRack (trackHeaderComp->getTrack ());
-        resized ();
-        repaint ();
-    }
-
-    if (auto midiClipComp = dynamic_cast<MidiClipComponent*>(source))
-    {
-        showPianoRoll (midiClipComp->getClip()->getTrack());
-        resized();
-        repaint ();
-    }
 }
 
 void LowerRangeComponent::paint(juce::Graphics &g)
@@ -203,6 +184,10 @@ void LowerRangeComponent::showPluginRack(const te::Track::Ptr& track)
             prc->setVisible(true);
         }
     }
+
+    m_editViewState.m_isPianoRollVisible = false;
+    resized();
+    repaint();
 }
 
 void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr& track)
@@ -214,9 +199,11 @@ void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr& trac
 
         m_pianoRollEditor.setVisible (true);
         m_pianoRollEditor.setTrack (track);
-
-        resized ();
     }
+
+    m_editViewState.m_isPianoRollVisible = true;
+    resized();
+    repaint();
 }
 
 void LowerRangeComponent::addPluginRackComp(PluginRackComponent *pluginrack)
