@@ -444,8 +444,6 @@ void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeD
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
-    auto targetTime = sourceTime + timeDelta;
-    auto delta = targetTime - sourceTime - tempPosition;
 
     if (verticalOffset == 0) EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
 
@@ -470,7 +468,7 @@ void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeD
 
     for (auto newClip: copyOfSelectedClips)
     {
-        auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
+        auto pasteTime = newClip->getPosition().getStart().inSeconds() + timeDelta - tempPosition;
         auto targetTrack = EngineHelpers::getTargetTrack(newClip->getTrack(), verticalOffset);
                         
         if (EngineHelpers::trackWantsClip(newClip, targetTrack))

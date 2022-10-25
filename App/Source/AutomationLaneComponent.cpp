@@ -75,7 +75,7 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, tracktion::TimeRang
                 hoveredCurvePath.startNewSubPath (oldPoint.toFloat());
                 hoveredCurvePath.quadraticTo (curveControlPoint , pointPos.toFloat());
                 if (!m_isDragging) 
-                    hoveredDotOnCurvePath.addEllipse (m_hoveredRect.reduced(2, 2).toFloat());
+                    hoveredDotOnCurvePath.addEllipse (m_hoveredRect.reduced(1, 1).toFloat());
             }
     
             oldPoint = pointPos;
@@ -99,7 +99,7 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, tracktion::TimeRang
 
     if (m_hoveredCurve > m_curve.getNumPoints () - 1)
     {
-        hoveredDotOnCurvePath.addEllipse (hoveredRect);
+        hoveredDotOnCurvePath.addEllipse (m_hoveredRect.reduced(1, 1).toFloat());
     }
 
     //close the path
