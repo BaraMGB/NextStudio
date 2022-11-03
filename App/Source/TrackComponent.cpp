@@ -424,7 +424,6 @@ void TrackComponent::setSelectedTimeRange(tracktion::TimeRange timerange, bool s
     m_track->state.setProperty(IDs::selectedRangeStart,s , &m_editViewState.m_edit.getUndoManager());
     m_track->state.setProperty(IDs::selectedRangeEnd, e, &m_editViewState.m_edit.getUndoManager());
    }
-
 tracktion::TimeRange TrackComponent::getSelectedTimeRange()
 {
     auto start = tracktion::TimePosition::fromSeconds((double) m_track->state.getProperty(IDs::selectedRangeStart));

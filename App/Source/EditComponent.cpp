@@ -265,7 +265,7 @@ void EditComponent::refreshSnapTypeDesc()
 void EditComponent::buildTracks()
 {
     m_lowerRange.clearPluginRacks ();
-    m_songEditor.clearTracks();
+    m_songEditor.clearTrackViews();
     m_trackListView.clear();
 
     for (auto t : getAllTracks (m_edit))
@@ -297,7 +297,7 @@ void EditComponent::buildTracks()
             if (m_editViewState.m_showMasterTrack)
                 tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
         }
-        else
+        else if (static_cast<bool>(t->state.getProperty(IDs::tmpTrack)) == false)
         {
             tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
         }

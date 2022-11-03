@@ -440,6 +440,11 @@ juce::Array<te::Track*> EngineHelpers::getSortedTrackList(te::Edit& edit)
 
     return tracks;
 }
+
+bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti, tracktion::TimeRange tr)
+{
+    return ti->getEditTimeRange().intersects(tr);
+}
 void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();

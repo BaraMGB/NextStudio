@@ -6,6 +6,7 @@
 #include "LassoSelectionTool.h"
 #include "Utilities.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
+#include "tracktion_core/utilities/tracktion_TimeRange.h"
 
 class SongEditorView : public juce::Component
 {
@@ -30,8 +31,8 @@ public:
 
     void turnoffAllTrackOverlays();
     juce::OwnedArray<TrackComponent>& getTrackComps ();
-    void clearTracks();
-    int countTracks();
+    void clearTrackViews();
+    int countTrackViews();
 
     LassoSelectionTool& getLasso();
     LassoSelectionTool::LassoRect getCurrentLassoRect();
@@ -51,7 +52,7 @@ private:
 
     ClipComponent *getClipComponentForClip (const te::Clip::Ptr& clip);
     TrackComponent *getTrackForClip(int verticalOffset, const te::Clip *clip);
-    TrackComponent *getTrackCompForTrack(tracktion_engine::Track::Ptr track);
+    TrackComponent *getTrackViewForTrack(tracktion_engine::Track::Ptr track);
     AutomationLaneComponent *getAutomationLaneForAutomatableParameter(te::AutomatableParameter::Ptr ap);
 
     int getVerticalOffset(TrackComponent* sourceTrackComp, const juce::Point<int>& dropPos);
@@ -65,11 +66,16 @@ private:
     void updateAutomationCache();
     void updateRangeSelection(); 
     void clearSelectedTimeRange();
+    void setSelectedTimeRange(tracktion::TimeRange tr);
+    juce::Array<te::Track*> getTracksWithSelectedTimeRange(tracktion::TimeRange);
     juce::Array<juce::Image> getSelectedClipImages();
 
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
     void selectCatchedClips(const tracktion_engine::Track* track);
 
+    void moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy);
+
+    void moveSelectedRangeOfTrack(te::Track *,tracktion::TimeDuration td, bool copy);
     // void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
 
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
@@ -81,7 +87,9 @@ private:
     juce::Array<te::Clip*>              m_cachedSelectedClips;
     juce::Array<AutomationPoint*>       m_cachedSelectedAutomation;
     bool                                m_automationClicked{false};
-    bool                                m_selectTimerange{false};
+    bool                                m_isSelectingTimeRange{false},
+                                        m_isDraggingSelectedTimeRange{false};
+    tracktion::TimeRange                m_selectedTimeRange;
 
     te::Track::Ptr                      m_hoveredTrack {nullptr};
     te::AutomatableParameter::Ptr       m_hoveredAutamatableParam{nullptr};
@@ -91,6 +99,8 @@ private:
     int                                 m_hoveredCurve {-1};
     bool                                m_leftBorderHovered{false};
     bool                                m_rightBorderHovered;
+    bool                                m_hoveredTimeRange{false};
+    juce::Image                         m_timeRangeImage;
 
     juce::Array<AutomationLaneComponent::CurvePoint*>
                                         m_selPointsAtMousedown;

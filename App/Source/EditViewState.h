@@ -76,6 +76,8 @@ namespace IDs
 	DECLARE_ID (selectedRangeStart)
 	DECLARE_ID (selectedRangeEnd)
     DECLARE_ID (clipHeaderHeight)                                               
+    DECLARE_ID (tmpTrack)                                               
+    
     #undef DECLARE_ID
 }
 
