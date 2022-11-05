@@ -9,11 +9,16 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
     : m_editViewState(evs)
     , m_clip(std::move(c))
 {
+    auto clipColor = m_clip->getColour();
     addAndMakeVisible(m_nameLabel);
     m_nameLabel.setText(m_clip->getName(), juce::dontSendNotification);
     m_nameLabel.setInterceptsMouseClicks(false, false);
     m_nameLabel.setJustificationType(juce::Justification::centredLeft);
     m_nameLabel.setMinimumHorizontalScale(1.0f);
+    m_nameLabel.setColour(juce::Label::ColourIds::backgroundColourId, juce::Colour(0x00ffffff));
+    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.withLightness(.85f));
+    if (clipColor.getPerceivedBrightness() > 0.5f)
+        m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.darker(0.95f));
 }
 
 void ClipComponent::paint (juce::Graphics& g)
@@ -24,10 +29,7 @@ void ClipComponent::paint (juce::Graphics& g)
     auto clipColor = m_clip->getColour();
     GUIHelpers::drawClip(g, area, m_clip, clipColor, m_editViewState);
 
-    m_nameLabel.setColour(juce::Label::ColourIds::backgroundColourId, juce::Colour(0x00ffffff));
-    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.withLightness(.85f));
-    if (clipColor.getPerceivedBrightness() > 0.5f)
-        m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.darker(0.95f));
+    
 }
 
 juce::Rectangle<int> ClipComponent::getVisibleBounds()
