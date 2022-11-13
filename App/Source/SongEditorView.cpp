@@ -400,7 +400,11 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
 
         auto screenStartTime = xtoTime(0);
         auto draggedTime = xtoTime(e.getDistanceFromDragStartX()) - screenStartTime; 
+
         auto startTime = m_draggedClipComponent->getClip()->getPosition().getStart().inSeconds();
+        if (m_rightBorderHovered)
+            startTime = m_draggedClipComponent->getClip()->getPosition().getEnd().inSeconds();
+
         auto targetTime = startTime + draggedTime;
         if (!e.mods.isShiftDown())
             targetTime = getSnapedTime(targetTime);
