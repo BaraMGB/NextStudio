@@ -114,7 +114,11 @@ bool MainComponent::keyPressed(const juce::KeyPress &key)
 
     if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
     {
-        EngineHelpers::deleteSelectedClips (m_editComponent->getEditViewState ());
+        if (m_editComponent->getSongEditor().getTracksWithSelectedTimeRange().size() > 0)
+            m_editComponent->getSongEditor().deleteSelectedTimeRange();
+        else 
+            EngineHelpers::deleteSelectedClips (m_editComponent->getEditViewState ());
+
         return true;
     }
 

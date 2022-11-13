@@ -30,8 +30,8 @@ public:
     void updateLasso(const juce::MouseEvent& e);
     void stopLasso();
     void duplicateSelectedClips();
-
     
+    void deleteSelectedTimeRange();
     juce::Array<te::Track*> getTracksWithSelectedTimeRange();
     tracktion::TimeRange getSelectedTimeRange();
 

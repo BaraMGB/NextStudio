@@ -481,6 +481,9 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
 
     if (e.mods.isLeftButtonDown())
     {
+        if (m_hoveredTimeRange && e.mouseWasDraggedSinceMouseDown() == false)
+            clearSelectedTimeRange();
+
         if (m_isDraggingSelectedTimeRange)
         {
             moveSelectedTimeRanges(tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta), e.mods.isCtrlDown());
@@ -740,13 +743,21 @@ void SongEditorView::stopLasso()
 
 void SongEditorView::duplicateSelectedClips()
 {
-    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
-    auto range = te::getTimeRangeForSelectedItems(selectedClips);
-    auto delta = range.getLength().inSeconds();
-    auto sourceTime = range.getStart().inSeconds();
+    if (m_selectedRange.selectedTracks.size() == 0)
+    {
+        auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+        auto range = te::getTimeRangeForSelectedItems(selectedClips);
+        auto delta = range.getLength().inSeconds();
+        auto sourceTime = range.getStart().inSeconds();
 
-    if (auto cc = getClipViewForClip(selectedClips.getFirst()))
-        moveSelectedClips(sourceTime, true, delta, 0);
+        if (auto cc = getClipViewForClip(selectedClips.getFirst()))
+            moveSelectedClips(sourceTime, true, delta, 0);
+    }
+    else 
+    {
+        moveSelectedTimeRanges(m_selectedRange.getLength(), true);
+        setSelectedTimeRange({m_selectedRange.getStart() + m_selectedRange.getLength(), m_selectedRange.getLength()});
+    }
 }
 
 void SongEditorView::moveSelectedClips(double sourceTime, bool copy,  double delta, int verticalOffset)
@@ -836,6 +847,19 @@ void SongEditorView::clearSelectedTimeRange()
    m_selectedRange.selectedTracks.clear();
 }
 
+void SongEditorView::deleteSelectedTimeRange()
+{
+    for (auto t : m_selectedRange.selectedTracks)
+    {
+        if (auto ct = dynamic_cast<te::ClipTrack*>(t))
+            ct->deleteRegion(m_selectedRange.timeRange, &m_editViewState.m_selectionManager);
+
+        if (m_editViewState.m_syncAutomation)
+            if (auto tv = getTrackViewForTrack(t))
+                for (auto al : tv->getAutomationLanes())
+                    al->getCurve().removePointsInRegion(m_selectedRange.timeRange);
+    }
+}
 void SongEditorView::setSelectedTimeRange(tracktion::TimeRange tr)
 {
     auto start = tr.getStart();
@@ -968,10 +992,10 @@ void SongEditorView::moveSelectedRangeOfTrack(te::Track::Ptr track, tracktion::T
            if (EngineHelpers::isTrackItemInRange(c, m_selectedRange.timeRange))
                clipContent->addClip(0, c->state);
 
-        ct->deleteRegion({targetStart, targetEnd}, nullptr);
+        ct->deleteRegion({targetStart, targetEnd}, &m_editViewState.m_selectionManager);
 
         if (!copy)
-           ct->deleteRegion(m_selectedRange.timeRange, nullptr);
+           ct->deleteRegion(m_selectedRange.timeRange, &m_editViewState.m_selectionManager);
 
         te::EditInsertPoint insertPoint(m_editViewState.m_edit);
         insertPoint.setNextInsertPoint(tracktion::TimePosition(), track);
@@ -1005,7 +1029,7 @@ void SongEditorView::moveSelectedRangeOfTrack(te::Track::Ptr track, tracktion::T
                 par.curve = al->getCurve();
                 as.activeParameters.add(par);
             }
-
+            
             te::moveAutomation(as, duration, copy);
         }
     }
