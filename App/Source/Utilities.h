@@ -193,7 +193,7 @@ namespace EngineHelpers
     juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
     void deleteSelectedClips(EditViewState & evs);
 
-    bool isTrackItemInRange (te::TrackItem* ti, tracktion::TimeRange tr);
+    bool isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr);
     void moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs);
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm

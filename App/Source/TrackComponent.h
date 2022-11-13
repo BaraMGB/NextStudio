@@ -61,15 +61,12 @@ public:
 
     const juce::OwnedArray<AutomationLaneComponent> &getAutomationLanes() const;
 
-    void setSelectedTimeRange(tracktion::TimeRange timerange, bool snap=true);
     tracktion::TimeRange getSelectedTimeRange();
-    void clearSelectedTimeRange();
 
     te::MidiClip::Ptr createNewMidiClip(double beatPos);
     bool isMidiTrack() {return m_track->state.getProperty (IDs::isMidiTrack, false);}
                
 private:
-    void drawDraggingOverlays(juce::Graphics& g);
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;

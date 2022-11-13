@@ -441,7 +441,7 @@ juce::Array<te::Track*> EngineHelpers::getSortedTrackList(te::Edit& edit)
     return tracks;
 }
 
-bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti, tracktion::TimeRange tr)
+bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr)
 {
     return ti->getEditTimeRange().intersects(tr);
 }

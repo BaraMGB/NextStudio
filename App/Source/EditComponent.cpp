@@ -375,7 +375,7 @@ juce::Rectangle<int> EditComponent::getPlayHeadRect()
 int EditComponent::getSongHeight()
 {
     auto h = 0;
-    for (auto tc : m_songEditor.getTrackComps())
+    for (auto tc : m_songEditor.getTrackViews())
     {
         h = h + tc->getHeight();
     }

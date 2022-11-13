@@ -37,7 +37,6 @@ public:
     void mouseDrag(const juce::MouseEvent& e) override;
     void mouseUp(const juce::MouseEvent& e) override;
 
-
 	bool keyPressed(const juce::KeyPress &e) override;
     [[nodiscard]] te::AutomationCurve &getCurve() const;
 
@@ -47,9 +46,7 @@ public:
     bool isPointSelected(int index);
     void deselectPoint(int index);
     
-    void setSelectedTimeRange(tracktion::TimeRange timerange, bool snap=true);
     tracktion::TimeRange getSelectedTimeRange();
-    void clearSelectedTimeRange();
 
     juce::Rectangle<int> getHoveredRect(const juce::MouseEvent &e);
     juce::Point<int> getPoint(const te::AutomationCurve::AutomationPoint& ap);
@@ -57,7 +54,7 @@ public:
     tracktion::TimePosition getSnapedTime(tracktion::TimePosition time, bool down);
     tracktion::TimePosition getTimePosFromX (int x);
     int getXPos (double time);
-    double getValue(int y);
+    double getValue(double y);
     int getYPos (double value);
     double xToYRatio();
 

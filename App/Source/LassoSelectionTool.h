@@ -24,12 +24,12 @@ public:
 
         juce::Rectangle<int> getRect (EditViewState& evs, double viewX1, double viewX2, int viewWidth) const;
         tracktion::core::TimeRange m_timeRange;
-        juce::Range<double> m_verticalRange { 0,0 };
+        juce::Range<int> m_verticalRange { 0,0 };
 
         double m_startTime { 0 };
         double m_endTime { 0 };
-        double m_top { 0 };
-        double m_bottom { 0 };
+        int m_top { 0 };
+        int m_bottom { 0 };
     };
 
     explicit LassoSelectionTool(EditViewState& evs

@@ -60,45 +60,7 @@ void TrackComponent::paintOverChildren(juce::Graphics& g)
         g.fillRect(s,0,e-s,height);
     }
 
-
-    drawDraggingOverlays(g);
 }
-void TrackComponent::drawDraggingOverlays(juce::Graphics& g)
-{
-    for (auto oc: m_overlayClips)
-    {
-        auto s = juce::jmax(-5, oc->getClipBounds().getX());
-        auto w = juce::jmin(getWidth() + 5, oc->getClipBounds().getRight()) - s;
-        auto area = juce::Rectangle<int>(s, 0, w, getClipHeight());
-        auto clipColor = m_track->getColour();
-        auto innerGlow = clipColor.brighter(0.7f);
-        auto borderColour = juce::Colour(0xff000000);
-
-        if (oc->isValid())
-        {
-            g.setColour(borderColour);
-            g.drawRect(area);
-
-            g.setColour(innerGlow);
-            area.reduce(1, 1);
-            g.drawRect(area, 2);
-
-            g.setColour(clipColor.withAlpha(0.7f));
-            area.reduce(1, 1);
-            g.fillRect(area);
-        }
-        else
-        {
-            g.setColour(juce::Colour(0xff000000));
-            g.fillRect(area);
-            area.reduce(2,2);
-            g.fillCheckerBoard(area.toFloat(), 1.f, 1.f, juce::Colour(0xff777777), juce::Colour(0xff333333));
-            g.setColour(juce::Colour(0xffffffff));
-            g.drawText("not allowed!", area, juce::Justification::centred);
-        }
-    }
-}
-
 void TrackComponent::changeListenerCallback(juce::ChangeBroadcaster* cbc)
 {
     if (cbc == &m_editViewState.m_selectionManager)
@@ -411,28 +373,14 @@ const juce::OwnedArray<AutomationLaneComponent> &TrackComponent::getAutomationLa
 {
     return m_automationLanes;
 }
-void TrackComponent::setSelectedTimeRange(tracktion::TimeRange timerange, bool snap)
-{
-    auto s = timerange.getStart().inSeconds();
-    auto e = timerange.getEnd().inSeconds();
-    if (snap)
-    {
-        s = getSnapedTime(s, true);
-        e = getSnapedTime(e, false);
-    }
 
-    m_track->state.setProperty(IDs::selectedRangeStart,s , &m_editViewState.m_edit.getUndoManager());
-    m_track->state.setProperty(IDs::selectedRangeEnd, e, &m_editViewState.m_edit.getUndoManager());
-   }
 tracktion::TimeRange TrackComponent::getSelectedTimeRange()
 {
-    auto start = tracktion::TimePosition::fromSeconds((double) m_track->state.getProperty(IDs::selectedRangeStart));
-    auto end = tracktion::TimePosition::fromSeconds((double) m_track->state.getProperty(IDs::selectedRangeEnd));
+    if (auto se = dynamic_cast<SongEditorView*>(getParentComponent()))
+        if (se->getTracksWithSelectedTimeRange().contains(m_track))
+            return se->getSelectedTimeRange();
 
-    return {start, end};
+    return tracktion::TimeRange();
 }
 
-void TrackComponent::clearSelectedTimeRange()
-{
-    setSelectedTimeRange(tracktion::TimeRange());
-}
+

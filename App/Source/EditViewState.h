@@ -77,6 +77,7 @@ namespace IDs
 	DECLARE_ID (selectedRangeEnd)
     DECLARE_ID (clipHeaderHeight)                                               
     DECLARE_ID (tmpTrack)                                               
+    DECLARE_ID (syncAutomation)
     
     #undef DECLARE_ID
 }
@@ -133,6 +134,7 @@ public:
         m_lastVelocity.referTo(m_state, IDs::lastVelocity, um, 100);
         m_keyboardWidth.referTo(m_state, IDs::pianoRollKeyboardWidth, um, 120);
         m_clipHeaderHeight.referTo(m_state, IDs::clipHeaderHeight, um, 20);
+        m_syncAutomation.referTo(m_state, IDs::syncAutomation, um, true);
     }
 
     float getTimeLineZoomUnit ()
@@ -260,7 +262,8 @@ public:
                           , m_isPianoRollVisible
                           , m_isAutoArmed
                           , m_automationFollowsClip
-                          , m_followPlayhead;
+                          , m_followPlayhead
+                          , m_syncAutomation;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY

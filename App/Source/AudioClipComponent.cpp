@@ -7,6 +7,27 @@ AudioClipComponent::AudioClipComponent (EditViewState& evs, te::Clip::Ptr c)
     setPaintingIsUnclipped(true);
 }
 
+void AudioClipComponent::paint (juce::Graphics& g)
+{
+    ClipComponent::paint (g);
+
+    auto rect = getDrawingRect ();
+
+    if (m_editViewState.m_drawWaveforms && thumbnail)
+    {
+        auto colour = m_clip->getColour().withLightness(0.6f);
+        drawWaveform(g
+                   , *getWaveAudioClip()
+                   , *thumbnail
+                   , colour 
+                   , rect.getX()
+                   , rect.getRight ()
+                   , rect.getY ()
+                   , rect.getHeight ()
+                   , getViewportOffset ());
+    }
+}
+
 int AudioClipComponent::getViewportOffset()
 {
     return Helpers::invert(m_editViewState.timeToX(0
@@ -62,26 +83,7 @@ juce::Rectangle<int> AudioClipComponent::getDrawingRect()
     return drawingRect;
 }
 
-void AudioClipComponent::paint (juce::Graphics& g)
-{
-    ClipComponent::paint (g);
 
-    auto rect = getDrawingRect ();
-
-    if (m_editViewState.m_drawWaveforms && thumbnail)
-    {
-        auto colour = m_clip->getColour().withLightness(0.6f);
-        drawWaveform(g
-                   , *getWaveAudioClip()
-                   , *thumbnail
-                   , colour 
-                   , rect.getX()
-                   , rect.getRight ()
-                   , rect.getY ()
-                   , rect.getHeight ()
-                   , getViewportOffset ());
-    }
-}
 tracktion_engine::WaveAudioClip *AudioClipComponent::getWaveAudioClip()
 {
     return dynamic_cast<te::WaveAudioClip*> (m_clip.get());
