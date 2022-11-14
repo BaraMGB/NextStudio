@@ -492,7 +492,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         {
             moveSelectedTimeRanges(tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta), e.mods.isCtrlDown());
             auto newStart = getSnapedTime(m_selectedRange.getStart().inSeconds() + m_draggedTimeDelta, true);
-            setSelectedTimeRange(m_selectedRange.timeRange.movedToStartAt(tracktion::TimePosition::fromSeconds(newStart)));
+            setSelectedTimeRange(m_selectedRange.timeRange.movedToStartAt(tracktion::TimePosition::fromSeconds(newStart)),true, false);
 
         }
         else if (auto cc = getClipViewForClip(m_hoveredClip) && e.mouseWasDraggedSinceMouseDown())
@@ -760,7 +760,7 @@ void SongEditorView::duplicateSelectedClips()
     else 
     {
         moveSelectedTimeRanges(m_selectedRange.getLength(), true);
-        setSelectedTimeRange({m_selectedRange.getStart() + m_selectedRange.getLength(), m_selectedRange.getLength()});
+        setSelectedTimeRange({m_selectedRange.getStart() + m_selectedRange.getLength(), m_selectedRange.getLength()},false, false);
     }
 }
 
@@ -842,7 +842,7 @@ void SongEditorView::updateRangeSelection()
             verticalScroll += al->getHeight();
     }
 
-    setSelectedTimeRange(range);
+    setSelectedTimeRange(range,true, false);
 }
 
 void SongEditorView::clearSelectedTimeRange()
@@ -864,12 +864,12 @@ void SongEditorView::deleteSelectedTimeRange()
                     al->getCurve().removePointsInRegion(m_selectedRange.timeRange);
     }
 }
-void SongEditorView::setSelectedTimeRange(tracktion::TimeRange tr)
+void SongEditorView::setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd)
 {
     auto start = tr.getStart();
     auto end = tr.getEnd();
-    m_selectedRange.timeRange = {tracktion::TimePosition::fromSeconds(getSnapedTime(start.inSeconds(), true)),
-                                tracktion::TimePosition::fromSeconds(getSnapedTime(end.inSeconds(), false))};
+    m_selectedRange.timeRange = {tracktion::TimePosition::fromSeconds(getSnapedTime(start.inSeconds(), snapDownAtStart)),
+                                tracktion::TimePosition::fromSeconds(getSnapedTime(end.inSeconds(), snapDownAtEnd))};
 }
 
 juce::Array<te::Track*> SongEditorView::getTracksWithSelectedTimeRange()

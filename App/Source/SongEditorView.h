@@ -59,7 +59,7 @@ private:
     void updateAutomationCache();
     void updateRangeSelection(); 
     void clearSelectedTimeRange();
-    void setSelectedTimeRange(tracktion::TimeRange tr);
+    void setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd);
 
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
     void selectCatchedClips(const tracktion_engine::Track* track);
