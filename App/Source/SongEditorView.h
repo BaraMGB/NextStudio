@@ -96,6 +96,8 @@ private:
     bool                                m_leftBorderHovered{false};
     bool                                m_rightBorderHovered{false};
     bool                                m_hoveredTimeRange{false};
+    bool                                m_hoveredTimeRangeLeft{false};
+    bool                                m_hoveredTimeRangeRight{false};
 
     //caches
     juce::Array<te::Clip*>              m_cachedSelectedClips;

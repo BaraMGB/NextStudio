@@ -38,6 +38,21 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
         g.drawImageAt(m_timeRangeImage, x, y, false);
     }
 
+    if (m_hoveredTimeRangeLeft)
+    {
+        auto x = timeToX(m_selectedRange.getStart().inSeconds()); 
+        auto y = getYForTrack(m_selectedRange.selectedTracks.getLast()) + GUIHelpers::getTrackHeight(m_selectedRange.selectedTracks.getLast(), m_editViewState, true);
+        g.setColour(yellowgreen);
+        g.drawVerticalLine(x, 0, y);
+    }
+
+    if (m_hoveredTimeRangeRight)
+    {
+        auto x = timeToX(m_selectedRange.getEnd().inSeconds()); 
+        auto y = getYForTrack(m_selectedRange.selectedTracks.getLast()) + GUIHelpers::getTrackHeight(m_selectedRange.selectedTracks.getLast(), m_editViewState, true);
+        g.setColour(yellowgreen);
+        g.drawVerticalLine(x, 0, y);
+    }
 
     if (m_draggedClipComponent)
     {
@@ -122,6 +137,8 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     m_leftBorderHovered = false;
     m_rightBorderHovered = false;
     m_hoveredTimeRange = false;
+    m_hoveredTimeRangeLeft = false;
+    m_hoveredTimeRangeRight = false;
 
 
     auto mousePosTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
@@ -137,6 +154,14 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             && m_selectedRange.timeRange.contains(tracktion::TimePosition::fromSeconds(xtoTime(e.x)))
             && m_editViewState.m_syncAutomation)
         {
+            int leftX = timeToX(m_selectedRange.getStart().inSeconds());
+            int rightX = timeToX(m_selectedRange.getEnd().inSeconds());
+
+            if (e.x < leftX + 5)
+                m_hoveredTimeRangeLeft = true;
+            else if (e.x > rightX - 5)
+                m_hoveredTimeRangeRight = true;
+
             m_hoveredTimeRange = true;
         }
         else
@@ -173,7 +198,17 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     if (m_hoveredTrack)
     {
         if (m_selectedRange.selectedTracks.contains(m_hoveredTrack) && m_selectedRange.timeRange.contains(tracktion::TimePosition::fromSeconds(xtoTime(e.x))))
+        {
+            int leftX = timeToX(m_selectedRange.getStart().inSeconds());
+            int rightX = timeToX(m_selectedRange.getEnd().inSeconds());
+
+            if (e.x < leftX + 5)
+                m_hoveredTimeRangeLeft = true;
+            else if (e.x > rightX - 5)
+                m_hoveredTimeRangeRight = true;
+
             m_hoveredTimeRange = true;
+        }
     }
 
     if (auto at = dynamic_cast<te::AudioTrack*>(m_hoveredTrack.get()))
@@ -208,6 +243,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     {
     }
 
+    
     if (m_hoveredClip != nullptr && !m_hoveredTimeRange)   
     {
         if (m_leftBorderHovered)
@@ -249,7 +285,12 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     }
     else if (m_hoveredTimeRange)
     {
-        setMouseCursor(juce::MouseCursor::PointingHandCursor);
+        if (m_hoveredTimeRangeLeft)
+           setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
+        else if (m_hoveredTimeRangeRight)
+           setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
+        else
+            setMouseCursor(juce::MouseCursor::PointingHandCursor);
     }
 }
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
@@ -301,6 +342,8 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
         {
             if (m_hoveredClip)
             {
+                clearSelectedTimeRange();
+
                 if (e.getNumberOfClicks() > 1 || m_editViewState.m_isPianoRollVisible)
                 {
                     m_lowerRange.showPianoRoll(m_hoveredClip->getTrack());
@@ -310,10 +353,12 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
                 {
                     sm.selectOnly(m_hoveredClip);
                 }
+
                 m_clipPosAtMouseDown = m_hoveredClip->getPosition().getStart().inSeconds();
             }
             else if (m_hoveredAutomationPoint != -1)
             {
+                clearSelectedTimeRange();
 
                 if (auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam))
                 {
@@ -323,6 +368,8 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
             }
             else if (m_hoveredCurve != -1)
             {
+                clearSelectedTimeRange();
+
                 if (auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam))
                 {
                     auto mousePosTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
@@ -387,11 +434,24 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
     //move/copy selected timeRange
     if(m_hoveredTimeRange && !m_isSelectingTimeRange)
     {
-        m_isDraggingSelectedTimeRange = true;
+        if (m_hoveredTimeRangeLeft)
+        {
+            auto newStartTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
+            setSelectedTimeRange({newStartTime, m_selectedRange.getEnd()}, true, false);
+        }
+        else if (m_hoveredTimeRangeRight)
+        {
+            auto newEndTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
+            setSelectedTimeRange({m_selectedRange.getStart(), newEndTime}, false, false);
+        }
+        else
+        {
+            m_isDraggingSelectedTimeRange = true;
 
-        auto startTime = getSnapedTime(xtoTime(e.getMouseDownX()), true);
-        auto targetTime = getSnapedTime(xtoTime(e.x), false);
-        m_draggedTimeDelta = targetTime - startTime; 
+            auto startTime = getSnapedTime(xtoTime(e.getMouseDownX()), true);
+            auto targetTime = getSnapedTime(xtoTime(e.x), false);
+            m_draggedTimeDelta = targetTime - startTime; 
+        }
     }
     else if (m_hoveredClip)
     {
@@ -510,10 +570,12 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         }
         else if (m_hoveredClip && !e.mouseWasDraggedSinceMouseDown() && !e.mods.isCtrlDown())
         {
+            clearSelectedTimeRange();
             sm.selectOnly(m_hoveredClip);
         }
         else if (m_hoveredClip && !e.mouseWasDraggedSinceMouseDown())
         {
+            clearSelectedTimeRange();
             if (sm.isSelected(m_hoveredClip))
             {
                 sm.deselect(m_hoveredClip);
@@ -527,6 +589,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         {
             if (m_hoveredAutamatableParam)
             {
+                clearSelectedTimeRange();
                 if (e.mods.isCtrlDown())
                 {
                     auto al = getAutomationLaneForAutomatableParameter(m_hoveredAutamatableParam);
@@ -545,6 +608,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         }
         else if (m_hoveredAutomationPoint == -1 && m_hoveredCurve == -1 && m_hoveredClip == nullptr && !e.mouseWasDraggedSinceMouseDown())
         {
+            clearSelectedTimeRange();
             sm.deselectAll();
         }
     }
@@ -558,6 +622,8 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
 
     m_draggedClipComponent = nullptr;
     m_isDraggingSelectedTimeRange = false;
+    m_hoveredTimeRangeRight = false;
+    m_hoveredTimeRangeLeft = false;
     repaint();
 }
 
