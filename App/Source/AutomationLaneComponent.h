@@ -83,6 +83,7 @@ public:
         m_isDragging = isDragging;
     }
 
+    te::AutomatableParameter * getParameter() { return m_curve.getOwnerParameter(); }
 private:
 
 

@@ -117,6 +117,16 @@ namespace GUIHelpers
                              double x2beats,
                              const juce::Rectangle<int>& boundingRect,
                              const juce::Colour& shade);
+struct SelectedTimeRange 
+    {
+        juce::Array<te::Track*> selectedTracks;
+        juce::Array<te::AutomatableParameter*> selectedAutomations;
+        tracktion::TimeRange timeRange;
+
+        tracktion::TimePosition getStart() { return timeRange.getStart(); }
+        tracktion::TimeDuration getLength() { return timeRange.getLength(); }
+        tracktion::TimePosition getEnd() { return timeRange.getEnd(); }
+    };
     void drawSnapLines(juce::Graphics& g,
                        const EditViewState& evs,
                        double x1beats,
