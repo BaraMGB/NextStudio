@@ -89,6 +89,7 @@ private:
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
     void selectCatchedClips(const tracktion_engine::Track* track);
 
+    te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter* a, tracktion::TimeRange tr);
     void moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy);
     void moveSelectedRangeOfTrack(te::Track::Ptr,tracktion::TimeDuration td, bool copy);
 
@@ -97,11 +98,21 @@ private:
 
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
 
+    te::SmartThumbnail* getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
+
+    struct ClipThumbNail 
+    {
+        ClipThumbNail (te::WaveAudioClip::Ptr wac, te::SmartThumbnail& sn) : waveAudioClip (wac), smartThumbnail (sn) {}
+
+        te::WaveAudioClip::Ptr waveAudioClip;
+        te::SmartThumbnail& smartThumbnail;
+    };
     //essentials
     EditViewState&                      m_editViewState;
     LowerRangeComponent&                m_lowerRange;
     LassoSelectionTool                  m_lassoComponent;
     juce::OwnedArray<TrackComponent>    m_trackViews;
+    juce::Array<ClipThumbNail*>         m_thumbnails;
 
     //flags
     bool                                m_isDragging {false};

@@ -951,7 +951,13 @@ void SongEditorView::updateRangeSelection()
         verticalScroll += trackVRange.getLength();
 
         for (auto al : tv->getAutomationLanes())
+        {
+            auto vRange = juce::Range<int>().withStartAndLength(verticalScroll , al->getHeight());
+            if (vRange.intersects(lassoRangeY))
+                m_selectedRange.selectedAutomations.add(al->getParameter());
+
             verticalScroll += al->getHeight();
+        }
     }
 
     setSelectedTimeRange(range,true, false);
@@ -961,20 +967,17 @@ void SongEditorView::clearSelectedTimeRange()
 {
    m_selectedRange.timeRange = tracktion::TimeRange();
    m_selectedRange.selectedTracks.clear();
+    m_selectedRange.selectedAutomations.clear();
 }
 
 void SongEditorView::deleteSelectedTimeRange()
 {
     for (auto t : m_selectedRange.selectedTracks)
-    {
         if (auto ct = dynamic_cast<te::ClipTrack*>(t))
             ct->deleteRegion(m_selectedRange.timeRange, &m_editViewState.m_selectionManager);
 
-        if (m_editViewState.m_syncAutomation)
-            if (auto tv = getTrackViewForTrack(t))
-                for (auto al : tv->getAutomationLanes())
-                    al->getCurve().removePointsInRegion(m_selectedRange.timeRange);
-    }
+    for (auto a : m_selectedRange.selectedAutomations)
+        a->getCurve().removePointsInRegion(m_selectedRange.timeRange);
 }
 void SongEditorView::setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd)
 {
@@ -1100,8 +1103,26 @@ void SongEditorView::moveSelectedTimeRanges(tracktion::TimeDuration td, bool cop
     for (auto t : m_selectedRange.selectedTracks)
         if (t!= nullptr)
             moveSelectedRangeOfTrack(t, td, copy);
+ for (auto a : m_selectedRange.selectedAutomations)
+    {
+        auto as = getTrackAutomationSection(a, m_selectedRange.timeRange);
+        te::moveAutomation(as, td, copy);
+    }
 }
 
+te::TrackAutomationSection SongEditorView::getTrackAutomationSection(te::AutomatableParameter* a, tracktion::TimeRange tr)
+{
+    te::TrackAutomationSection as;
+    as.src = a->getTrack();
+    as.dst = a->getTrack();
+    as.position = tr;
+    te::TrackAutomationSection::ActiveParameters par;
+    par.param = a;
+    par.curve = a->getCurve();
+    as.activeParameters.add(par);
+
+    return as;
+}
 void SongEditorView::moveSelectedRangeOfTrack(te::Track::Ptr track, tracktion::TimeDuration duration, bool copy)
 {
     if (auto ct = dynamic_cast<te::ClipTrack*>(track.get()))
@@ -1134,28 +1155,6 @@ void SongEditorView::moveSelectedRangeOfTrack(te::Track::Ptr track, tracktion::T
         {
             constrainClipInRange (clip, {targetStart, targetEnd});
             m_editViewState.m_selectionManager.deselect(clip);
-        }
-    }
-
-    //AUTOMATION
-    if (m_editViewState.m_syncAutomation && m_selectedRange.selectedTracks.contains(track))
-    {
-        te::TrackAutomationSection as;
-        as.src = track;
-        as.dst = track;
-        as.position = m_selectedRange.timeRange;
-
-        if (auto tv = getTrackViewForTrack(track))
-        {
-            for (auto al : tv->getAutomationLanes())
-            {
-                te::TrackAutomationSection::ActiveParameters par;
-                par.param = al->getCurve().getOwnerParameter();
-                par.curve = al->getCurve();
-                as.activeParameters.add(par);
-            }
-            
-            te::moveAutomation(as, duration, copy);
         }
     }
 }
@@ -1202,4 +1201,36 @@ double SongEditorView::xToSnapedBeat (int x)
     auto time = xtoTime(x);
     time = getSnapedTime(time);
     return m_editViewState.timeToBeat(time);
+}
+
+te::SmartThumbnail* SongEditorView::getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
+{
+
+    for (auto tn : m_thumbnails)
+        if (tn->waveAudioClip == wac)
+            return &tn->smartThumbnail;
+
+    te::AudioFile af (wac->getAudioFile());
+    te::SmartThumbnail* thumbnail = nullptr;
+
+    if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
+    {
+        if (af.isValid())
+        {
+            const te::AudioFile proxy(
+                        (wac->hasAnyTakes() && wac->isShowingTakes())
+                        ? wac->getAudioFile()
+                        : wac->getPlaybackFile());
+
+            thumbnail = new te::SmartThumbnail(
+                        wac->edit.engine
+                      , proxy
+                      , *this
+                      , &wac->edit);
+        }
+    }
+    auto clipThumbnail = new ClipThumbNail (wac, *thumbnail);
+    m_thumbnails.add(clipThumbnail);
+
+    return &m_thumbnails.getLast()->smartThumbnail;
 }
