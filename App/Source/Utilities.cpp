@@ -396,11 +396,15 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
          .getSelectedObjects ()
          .getItemsOfType<te::Clip>())
     {
-        for (auto ap : selectedClip->getTrack ()->getAllAutomatableParams ())
+        if (selectedClip->getTrack() != nullptr)
         {
-            ap->getCurve ().removePointsInRegion (selectedClip->getEditTimeRange ());
+            for (auto ap : selectedClip->getTrack ()->getAllAutomatableParams ())
+            {
+                ap->getCurve ().removePointsInRegion (selectedClip->getEditTimeRange ());
+            }
+
+            selectedClip->removeFromParentTrack ();
         }
-        selectedClip->removeFromParentTrack ();
     }
 }
 bool EngineHelpers::trackWantsClip(const te::Clip* clip,
@@ -418,6 +422,9 @@ bool EngineHelpers::trackWantsClip(const te::Clip* clip,
 
 te::Track* EngineHelpers::getTargetTrack(te::Track* sourceTrack, int verticalOffset)
 {
+    if (sourceTrack == nullptr)
+        return nullptr;
+
     auto &edit = sourceTrack->edit;
     auto tracks = getSortedTrackList(edit);
     auto targetIdx = tracks.indexOf(sourceTrack) + verticalOffset;
@@ -506,8 +513,11 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
         juce::Array<te::TrackAutomationSection> sections;
 
         for (const auto& selectedClip : clipSelection)
-            sections.add (te::TrackAutomationSection(*selectedClip));
-     
+        {
+            if (selectedClip->getTrack() != nullptr)
+                sections.add (te::TrackAutomationSection(*selectedClip));
+        }
+
 		te::moveAutomation (sections, tracktion::TimeDuration::fromSeconds(offset), copy);
     }
 }
@@ -557,12 +567,14 @@ void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditVie
 
     for (auto sc : selectedClips)
     {
-        auto ct = sc->getClipTrack();
-		const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition),
-										   sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
-        ct->deleteRegion(range, &evs.m_selectionManager);
+        if (auto ct = sc->getClipTrack())
+        {
+            const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition),
+                                               sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
+            ct->deleteRegion(range, &evs.m_selectionManager);
+        }
 
-		//restore clip
+        //restore clip
         sc->setStart(sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
     }
 

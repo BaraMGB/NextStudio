@@ -21,41 +21,6 @@ ClipComponent::ClipComponent (EditViewState& evs, te::Clip::Ptr c)
         m_nameLabel.setColour(juce::Label::ColourIds::textColourId, clipColor.darker(0.95f));
 }
 
-void ClipComponent::paint (juce::Graphics& g)
-{
-   
-    auto area = getVisibleBounds(); 
-   
-    auto clipColor = m_clip->getColour();
-    GUIHelpers::drawClip(g, area, m_clip, clipColor, m_editViewState);
-
-    
-}
-
-juce::Rectangle<int> ClipComponent::getVisibleBounds()
-{
-    auto area = getLocalBounds();
-
-    auto s = getBoundsInParent().getX();
-    auto e = getBoundsInParent().getRight();
-    int gap = 5;
-    if (s < - gap)
-        area.removeFromLeft(std::abs(s + gap));
-    if (e > getParentWidth() + gap)
-        area.removeFromRight(e - getParentWidth() - gap);
-   
-    return area;
-}
-
-double ClipComponent::xToTime(const int x) const
-{
-    return m_editViewState.xToTime(x
-                                   , getParentWidth()
-                                   , m_editViewState.m_viewX1
-                                   , m_editViewState.m_viewX2
-                                     );
-}
-
 void ClipComponent::resized()
 {
     auto area = getLocalBounds();

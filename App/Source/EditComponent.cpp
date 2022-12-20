@@ -1,5 +1,6 @@
 #include "EditComponent.h"
 #include "NextLookAndFeel.h"
+
 EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm)
     : m_edit (e)
   , m_editViewState (e, sm, avs)
@@ -270,47 +271,47 @@ void EditComponent::buildTracks()
 
     for (auto t : getAllTracks (m_edit))
     {
-        TrackComponent* tc = nullptr;
+        std::unique_ptr<TrackComponent> tc;
 
         if (t->isTempoTrack())
         {
             if (m_editViewState.m_showGlobalTrack)
-                tc = new TrackComponent (m_editViewState, m_lowerRange, t);
+                tc = std::make_unique<TrackComponent> (m_editViewState, m_lowerRange, t);
         }
         else if (t->isMarkerTrack())
         {
             if (m_editViewState.m_showMarkerTrack)
-                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
+                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
         }
         else if (t->isChordTrack())
         {
             if (m_editViewState.m_showChordTrack)
-                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
+                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
         }
         else if (t->isArrangerTrack())
         {
             if (m_editViewState.m_showArrangerTrack)
-                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
+                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
         }
         else if (t->isMasterTrack())
         {
             if (m_editViewState.m_showMasterTrack)
-                tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
+                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
         }
         else if (static_cast<bool>(t->state.getProperty(IDs::tmpTrack)) == false)
         {
-            tc = new TrackComponent (m_editViewState,  m_lowerRange, t);
+            tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
         }
 
         if (tc != nullptr)
         {
-            auto th = new TrackHeaderComponent (m_editViewState, t);
-            m_trackListView.addHeaderViews(*th);
+            auto th = std::make_unique<TrackHeaderComponent> (m_editViewState, t);
+            m_trackListView.addHeaderViews(std::move(th));
 
             auto pr = new PluginRackComponent (m_editViewState, t);
             m_lowerRange.addPluginRackComp(pr);
 
-            m_songEditor.addTrackView(*tc);
+            m_songEditor.addTrackView(std::move(tc));
         }
     }
 

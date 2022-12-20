@@ -2,6 +2,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "tracktion_core/utilities/tracktion_Time.h"
 
 namespace te = tracktion_engine;
 
@@ -188,6 +189,13 @@ public:
         return ts.toBeats(tp).inBeats();
     }
 
+    tracktion::TimeRange getSongEditorViewedTimeRange()
+    {
+        auto s = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX1));
+        auto e = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX2));
+
+        return {s,e};
+    }
     [[nodiscard]] double getSnapedTime (
             double t
           , te::TimecodeSnapType snapType

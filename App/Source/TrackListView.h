@@ -31,7 +31,7 @@ public:
     void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override;
 
     int getTrackHeight(TrackHeaderComponent* header) const;
-    void addHeaderViews(TrackHeaderComponent& th);
+    void addHeaderViews(std::unique_ptr<TrackHeaderComponent> header);
     void updateViews();
 
     void clear();

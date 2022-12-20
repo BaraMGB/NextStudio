@@ -2,7 +2,6 @@
 #include "AutomationLaneComponent.h"
 #include "Utilities.h"
 
-
 SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr)
         : m_editViewState(evs)
         , m_lowerRange(lr)
@@ -21,6 +20,19 @@ void SongEditorView::paint(juce::Graphics& g)
 	auto area = getLocalBounds();
 	g.setColour(juce::Colour(0xff303030));
 	g.fillRect(area);
+
+    for (auto t : te::getAllTracks(m_editViewState.m_edit))
+    {
+        if (auto ct = dynamic_cast<te::ClipTrack*>(t))
+        {
+            auto x = 0;
+            auto y = getYForTrack(t);
+            auto w = getWidth();
+            auto h = GUIHelpers::getTrackHeight(t, m_editViewState, false);
+
+            drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorViewedTimeRange());
+        }
+    }
 }
 
 
@@ -246,20 +258,20 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     updateCursor(e.mods);
 
     //log 
-    GUIHelpers::log("------------------------------------------------------------");
-    GUIHelpers::log("ToolMode    : ", (int) m_toolMode);
-    GUIHelpers::log("TimeRange   : ", m_hoveredTimeRange);
-    GUIHelpers::log("TimeRange L : ", m_hoveredTimeRangeLeft);
-    GUIHelpers::log("TimeRange R : ", m_hoveredTimeRangeRight);
-    GUIHelpers::log("Track       : ", m_hoveredTrack != nullptr);
-    GUIHelpers::log("Clip        : ", m_hoveredClip != nullptr);
-    GUIHelpers::log("Clip      L : ", m_leftBorderHovered);
-    GUIHelpers::log("Clip      R : ", m_rightBorderHovered);
-    GUIHelpers::log("Automation  : ", m_hoveredAutamatableParam != nullptr);
-    if (m_hoveredAutamatableParam)
-       std::cout << "Automation Y: " << getYForAutomatableParam(m_hoveredAutamatableParam) << " Height: " << getHeightOfAutomation(m_hoveredAutamatableParam) << std::endl;
-    GUIHelpers::log("Point       : ", m_hoveredAutomationPoint) ;
-    GUIHelpers::log("Curve       : ", m_hoveredCurve);
+    // GUIHelpers::log("------------------------------------------------------------");
+    // GUIHelpers::log("ToolMode    : ", (int) m_toolMode);
+    // GUIHelpers::log("TimeRange   : ", m_hoveredTimeRange);
+    // GUIHelpers::log("TimeRange L : ", m_hoveredTimeRangeLeft);
+    // GUIHelpers::log("TimeRange R : ", m_hoveredTimeRangeRight);
+    // GUIHelpers::log("Track       : ", m_hoveredTrack != nullptr);
+    // GUIHelpers::log("Clip        : ", m_hoveredClip != nullptr);
+    // GUIHelpers::log("Clip      L : ", m_leftBorderHovered);
+    // GUIHelpers::log("Clip      R : ", m_rightBorderHovered);
+    // GUIHelpers::log("Automation  : ", m_hoveredAutamatableParam != nullptr);
+    // if (m_hoveredAutamatableParam)
+    //    std::cout << "Automation Y: " << getYForAutomatableParam(m_hoveredAutamatableParam) << " Height: " << getHeightOfAutomation(m_hoveredAutamatableParam) << std::endl;
+    // GUIHelpers::log("Point       : ", m_hoveredAutomationPoint) ;
+    // GUIHelpers::log("Curve       : ", m_hoveredCurve);
 }
 
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
@@ -573,9 +585,9 @@ juce::OwnedArray<TrackComponent>& SongEditorView::getTrackViews()
 {
     return m_trackViews;
 }
-void SongEditorView::addTrackView(TrackComponent& tc)
+void SongEditorView::addTrackView(std::unique_ptr<TrackComponent> tc)
 {
-    m_trackViews.add(&tc);
+    m_trackViews.add(std::move(tc));
 }
 void SongEditorView::updateViews()
 {
@@ -1103,7 +1115,8 @@ void SongEditorView::moveSelectedTimeRanges(tracktion::TimeDuration td, bool cop
     for (auto t : m_selectedRange.selectedTracks)
         if (t!= nullptr)
             moveSelectedRangeOfTrack(t, td, copy);
- for (auto a : m_selectedRange.selectedAutomations)
+
+    for (auto a : m_selectedRange.selectedAutomations)
     {
         auto as = getTrackAutomationSection(a, m_selectedRange.timeRange);
         te::moveAutomation(as, td, copy);
@@ -1203,15 +1216,15 @@ double SongEditorView::xToSnapedBeat (int x)
     return m_editViewState.timeToBeat(time);
 }
 
-te::SmartThumbnail* SongEditorView::getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
+std::unique_ptr<te::SmartThumbnail>& SongEditorView::getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
 {
 
     for (auto tn : m_thumbnails)
         if (tn->waveAudioClip == wac)
-            return &tn->smartThumbnail;
+            return tn->smartThumbnail;
 
     te::AudioFile af (wac->getAudioFile());
-    te::SmartThumbnail* thumbnail = nullptr;
+    std::unique_ptr<te::SmartThumbnail> thumbnail;
 
     if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
     {
@@ -1222,15 +1235,186 @@ te::SmartThumbnail* SongEditorView::getOrCreateThumbnail (te::WaveAudioClip::Ptr
                         ? wac->getAudioFile()
                         : wac->getPlaybackFile());
 
-            thumbnail = new te::SmartThumbnail(
+            thumbnail = std::make_unique<te::SmartThumbnail>(
                         wac->edit.engine
                       , proxy
                       , *this
                       , &wac->edit);
         }
     }
-    auto clipThumbnail = new ClipThumbNail (wac, *thumbnail);
-    m_thumbnails.add(clipThumbnail);
+    auto clipThumbnail = std::make_unique<ClipThumbNail> (wac, std::move(thumbnail));
+    m_thumbnails.add(std::move(clipThumbnail));
 
-    return &m_thumbnails.getLast()->smartThumbnail;
+    return m_thumbnails.getLast()->smartThumbnail;
 }
+
+void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr)
+{
+    for (auto clipIdx = 0; clipIdx < clipTrack->getNumTrackItems(); clipIdx++)
+    {
+        auto clip = clipTrack->getTrackItem(clipIdx);
+
+        if (clip->getPosition().time.intersects(etr))
+        {
+            int x = timeToX(clip->getPosition().getStart().inSeconds());
+            int y = displayedRect.getY();
+            int w = timeToX(clip->getPosition().getEnd().inSeconds()) - x;
+            int h = displayedRect.getHeight();
+
+            juce::Rectangle<int> clipRect = {x,y,w,h};
+
+            auto color = clip->getTrack()->getColour();
+            if (auto c = dynamic_cast<te::Clip*>(clip))
+                drawClip(g,clipRect, c, color, displayedRect); 
+        }
+    }
+}
+
+void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect)
+{
+    GUIHelpers::log(clip->getName());
+
+    auto area = clipRect;
+    if (clipRect.getX() < displayedRect.getX())
+        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
+    if (clipRect.getRight() > displayedRect.getRight())
+        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
+
+    auto& evs = m_editViewState;
+    auto header = area.withHeight(evs.m_clipHeaderHeight);
+    auto isSelected = evs.m_selectionManager.isSelected (clip);
+
+    auto clipColor = color;
+    auto innerGlow = clipColor.brighter(0.5f);
+    auto borderColour = clipColor.darker(0.95f);
+    auto backgroundColor = borderColour.withAlpha(0.6f);
+
+    // area.removeFromBottom(1);
+    g.setColour(backgroundColor);
+    g.fillRect(area.reduced(1, 1));
+
+    g.setColour(innerGlow);
+    g.drawRect(header);
+    g.drawRect(area);
+    g.setColour(clipColor);
+    if (isSelected)
+        g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
+
+    g.fillRect(header.reduced(2,2));
+
+    if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
+    {
+        clipRect.removeFromTop(header.getHeight());
+        clipRect.reduce(1,1);
+        auto&thumb = getOrCreateThumbnail(wac);
+        drawWaveform(g, *wac, *thumb, color, clipRect , displayedRect);
+    }
+}
+
+void SongEditorView::drawWaveform(juce::Graphics& g,
+                                      te::AudioClipBase& c,
+                                      te::SmartThumbnail& thumb,
+                                      juce::Colour colour,
+                                      juce::Rectangle<int> clipRect,
+                                      juce::Rectangle<int> displayedRect)
+{
+    auto getTimeRangeForDrawing = [this] (const te::AudioClipBase& c, const juce::Rectangle<int> clipRect, const juce::Rectangle<int> displayedRect)
+        -> tracktion::core::TimeRange
+    {
+        auto t1 = EngineHelpers::getTimePos(0.0);
+        auto t2 = t1 + c.getPosition().getLength();
+
+        if (clipRect.getX() < displayedRect.getX())
+            t1 = t1 + tracktion::TimeDuration::fromSeconds(xtoTime(displayedRect.getX()) - xtoTime(clipRect.getX()));
+
+        if (clipRect.getRight() > displayedRect.getRight())
+            t2 = t2 - tracktion::TimeDuration::fromSeconds(xtoTime(clipRect.getRight()) - xtoTime(displayedRect.getRight()));
+
+        return { t1, t2 };
+    };
+
+    auto area = clipRect;
+    if (clipRect.getX() < displayedRect.getX())
+        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
+    if (clipRect.getRight() > displayedRect.getRight())
+        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
+
+    const auto gain = c.getGain();
+    const auto pan = thumb.getNumChannels() == 1 ? 0.0f : c.getPan();
+
+    const float pv = pan * gain;
+    const float gainL = (gain - pv);
+    const float gainR = (gain + pv);
+
+    const bool usesTimeStretchedProxy = c.usesTimeStretchedProxy();
+
+    const auto clipPos = c.getPosition();
+    auto offset = clipPos.getOffset();
+    auto speedRatio = c.getSpeedRatio();
+
+    g.setColour (colour);
+
+    bool showBothChannels = displayedRect.getHeight() > 100;
+
+    if (usesTimeStretchedProxy)
+    {
+
+        if (!thumb.isOutOfDate())
+        {
+            drawChannels(g
+                       , thumb
+                       ,  area
+                       , false
+                       , getTimeRangeForDrawing(c, clipRect, displayedRect)
+                       , c.isLeftChannelActive() && showBothChannels
+                       , c.isRightChannelActive()
+                       , gainL
+                       , gainR);
+        }
+    }
+    else if (c.getLoopLength().inSeconds() == 0)
+    {
+        auto region = getTimeRangeForDrawing (c, clipRect, displayedRect);
+
+        auto t1 = EngineHelpers::getTimePos((region.getStart().inSeconds() + offset.inSeconds()) * speedRatio);
+        auto t2 = EngineHelpers::getTimePos((region.getEnd().inSeconds()   + offset.inSeconds()) * speedRatio);
+        bool useHighres = true;
+        drawChannels(g
+                   , thumb
+                   , area
+                   , useHighres
+                   , {t1, t2}
+                   , c.isLeftChannelActive()
+                   , c.isRightChannelActive() && showBothChannels
+                   , gainL
+                   , gainR);
+    }
+}
+
+void SongEditorView::drawChannels(juce::Graphics& g
+                                    , te::SmartThumbnail& thumb
+                                    , juce::Rectangle<int> area
+                                    , bool useHighRes
+                                    , tracktion::core::TimeRange time
+                                    , bool useLeft
+                                    , bool useRight
+                                    , float leftGain
+                                    , float rightGain)
+{
+    if (useLeft && useRight && thumb.getNumChannels() > 1)
+    {
+        thumb.drawChannel(g
+                        , area.removeFromTop(area.getHeight() / 2)
+                        , useHighRes
+                        , time
+                        , 0
+                        , leftGain);
+        thumb.drawChannel(g, area, useHighRes, time, 1, rightGain);
+    }
+    else if (useLeft)
+        thumb.drawChannel (g, area, useHighRes, time, 0, leftGain);
+    else if (useRight)
+        thumb.drawChannel (g, area, useHighRes, time, 1, rightGain);
+}
+
+

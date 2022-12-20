@@ -23,7 +23,7 @@ public:
     void mouseUp (const juce::MouseEvent &) override;
 
     juce::OwnedArray<TrackComponent>& getTrackViews();
-    void addTrackView(TrackComponent& tc);
+    void addTrackView(std::unique_ptr<TrackComponent> tc);
     void updateViews();
 
     void clearTrackViews();
@@ -98,21 +98,42 @@ private:
 
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
 
-    te::SmartThumbnail* getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
+    std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
 
     struct ClipThumbNail 
     {
-        ClipThumbNail (te::WaveAudioClip::Ptr wac, te::SmartThumbnail& sn) : waveAudioClip (wac), smartThumbnail (sn) {}
+        ClipThumbNail (te::WaveAudioClip::Ptr wac, std::unique_ptr<te::SmartThumbnail> sn) : waveAudioClip (wac), smartThumbnail (std::move(sn)) {}
 
         te::WaveAudioClip::Ptr waveAudioClip;
-        te::SmartThumbnail& smartThumbnail;
+        std::unique_ptr<te::SmartThumbnail> smartThumbnail;
     };
+
+    
+    void drawTrack(juce::Graphics& g, juce::Rectangle<int> rect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr);
+
+    void drawClip(juce::Graphics& g, juce::Rectangle<int> rect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect);
+
+    void drawAudioClip(juce::Graphics& g, juce::Rectangle<int> rect, te::WaveAudioClip::Ptr audioClip, juce::Colour color);
+
+    void drawWaveform(juce::Graphics& g,
+                      te::AudioClipBase& c,
+                      te::SmartThumbnail& thumb,
+                      juce::Colour colour,
+                      juce::Rectangle<int>,
+                      juce::Rectangle<int> displayedRect);
+    static void drawChannels(juce::Graphics& g,
+                      te::SmartThumbnail& thumb,
+                      juce::Rectangle<int> area,
+                      bool useHighRes,
+                      tracktion::core::TimeRange time
+                      , bool useLeft, bool useRight,
+                      float leftGain, float rightGain);
     //essentials
     EditViewState&                      m_editViewState;
     LowerRangeComponent&                m_lowerRange;
     LassoSelectionTool                  m_lassoComponent;
     juce::OwnedArray<TrackComponent>    m_trackViews;
-    juce::Array<ClipThumbNail*>         m_thumbnails;
+    juce::OwnedArray<ClipThumbNail>     m_thumbnails;
 
     //flags
     bool                                m_isDragging {false};

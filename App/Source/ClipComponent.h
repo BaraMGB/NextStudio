@@ -9,19 +9,9 @@ class ClipComponent : public juce::Component
 {
 public:
     ClipComponent (EditViewState&, te::Clip::Ptr);
-    void paint (juce::Graphics& g) override;
-    
+   
     void resized () override;
     te::Clip::Ptr getClip () { return m_clip; }
-
-
-    [[nodiscard]] juce::Rectangle<int> getVisibleBounds();
-
-    [[nodiscard]] double getClickPosTime () const {return m_clickedTime; }
-    [[nodiscard]] int getClickPosOffsetX () const
-    {
-        return m_editViewState.timeToX (m_clickedTime, getParentWidth (), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    }
 
     te::Track::Ptr getTrack(const te::Clip::Ptr& clip);
 

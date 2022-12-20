@@ -3,6 +3,7 @@
 //
 
 #include "TrackListView.h"
+#include <algorithm>
 
 int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
 {
@@ -70,9 +71,9 @@ void TrackListView::itemDropped(
         if (auto thc = dynamic_cast<TrackHeaderComponent*>(dragSourceDetails.sourceComponent.get()))
             m_editViewState.m_edit.moveTrack(thc->getTrack(), ip);
 }
-void TrackListView::addHeaderViews(TrackHeaderComponent& th)
+void TrackListView::addHeaderViews(std::unique_ptr<TrackHeaderComponent> header)
 {
-    m_trackHeaders.add(&th);
+    m_trackHeaders.add(std::move(header));
 }
 void TrackListView::updateViews()
 {
