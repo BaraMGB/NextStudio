@@ -656,7 +656,7 @@ void PianoRollContentComponent::drawBarsAndBeatLines(juce::Graphics& g,
     g.setColour(colour);
     double x1 = m_editViewState.m_pianoX1;
     double x2 = m_editViewState.m_pianoX2;
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1, x2, getBounds());
+    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1, x2, getLocalBounds());
 }
 int PianoRollContentComponent::getNoteNumber(int y)
 {

@@ -40,8 +40,6 @@ public:
     TrackComponent (EditViewState&, LowerRangeComponent& lr, te::Track::Ptr);
     ~TrackComponent() override;
 
-    void paint (juce::Graphics& g) override;
-    void paintOverChildren (juce::Graphics& g) override;
     void resized() override;
 
     [[nodiscard]] te::Track::Ptr getTrack() const;

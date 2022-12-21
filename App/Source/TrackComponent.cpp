@@ -31,46 +31,8 @@ TrackComponent::~TrackComponent()
     m_track->edit.getTransport().removeChangeListener(this);
 }
 
-void TrackComponent::paint(juce::Graphics& g)
-{
-    g.setColour(juce::Colour(0x60ffffff));
-    g.drawLine(0, getHeight(), getWidth(), getHeight());
-
-    double x2beats = m_editViewState.m_viewX2;
-    double x1beats = m_editViewState.m_viewX1;
-
-    GUIHelpers::drawBarsAndBeatLines(
-    g, m_editViewState, x1beats, x2beats, getBounds());
-
-}
-
-void TrackComponent::paintOverChildren(juce::Graphics& g)
-{
-    if (getSelectedTimeRange() != tracktion::TimeRange())
-    {
-        auto s = timeToX(getSelectedTimeRange().getStart().inSeconds());
-        auto e = timeToX(getSelectedTimeRange().getEnd().inSeconds());
-        auto sc = juce::Colours::white;
-        auto height = GUIHelpers::getTrackHeight(m_track, m_editViewState, false);
-
-        g.setColour(sc);
-        g.drawVerticalLine(s, 0, height);
-        g.drawVerticalLine(e, 0, height);
-        g.setColour(sc.withAlpha(0.5f));
-        g.fillRect(s,0,e-s,height);
-    }
-
-}
 void TrackComponent::changeListenerCallback(juce::ChangeBroadcaster* cbc)
 {
-    if (cbc == &m_editViewState.m_selectionManager)
-    {
-        for (auto& cc: m_clipComponents)
-        {
-            cc->repaint();
-        }
-        getParentComponent()->repaint();
-    }
     markAndUpdate(updateRecordClips);
 }
 void TrackComponent::valueTreePropertyChanged(juce::ValueTree& v,
@@ -86,13 +48,6 @@ void TrackComponent::valueTreePropertyChanged(juce::ValueTree& v,
 
     if (v.hasType(te::IDs::NOTE))
     {
-        if (i != te::IDs::c)
-        {
-            for (auto& clip: m_clipComponents)
-            {
-                clip->repaint();
-            }
-        }
     }
 
     if (i.toString() == "bpm")

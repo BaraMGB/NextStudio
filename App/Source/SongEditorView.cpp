@@ -25,12 +25,15 @@ void SongEditorView::paint(juce::Graphics& g)
     {
         if (auto ct = dynamic_cast<te::ClipTrack*>(t))
         {
-            auto x = 0;
-            auto y = getYForTrack(t);
-            auto w = getWidth();
-            auto h = GUIHelpers::getTrackHeight(t, m_editViewState, false);
+            if (!ct->isMasterTrack() && !ct->isTempoTrack() && !ct->isAutomationTrack() && !ct->isArrangerTrack() && !ct->isMarkerTrack() && !ct->isChordTrack())
+            {
+                auto x = 0;
+                auto y = getYForTrack(t);
+                auto w = getWidth();
+                auto h = GUIHelpers::getTrackHeight(t, m_editViewState, false);
 
-            drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorViewedTimeRange());
+                drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorViewedTimeRange());
+            }
         }
     }
 }
@@ -1250,6 +1253,14 @@ std::unique_ptr<te::SmartThumbnail>& SongEditorView::getOrCreateThumbnail (te::W
 
 void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr)
 {
+    g.setColour(juce::Colour(0x60ffffff));
+    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
+
+    double x2beats = m_editViewState.timeToBeat(xtoTime(displayedRect.getRight()));
+    double x1beats = m_editViewState.timeToBeat(xtoTime(displayedRect.getX()));
+
+    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, displayedRect);
+
     for (auto clipIdx = 0; clipIdx < clipTrack->getNumTrackItems(); clipIdx++)
     {
         auto clip = clipTrack->getTrackItem(clipIdx);
@@ -1272,8 +1283,6 @@ void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayed
 
 void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect)
 {
-    GUIHelpers::log(clip->getName());
-
     auto area = clipRect;
     if (clipRect.getX() < displayedRect.getX())
         area.removeFromLeft(displayedRect.getX() - clipRect.getX());

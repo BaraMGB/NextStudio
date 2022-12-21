@@ -226,7 +226,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
                 x1beats + 1, boundingRect.getWidth (), x1beats, x2beats);
             const auto beatX = barStartX + beatWidth * b;
             const auto beatRect = juce::Rectangle<float>(
-                (float) beatX, 0.f, (float) beatWidth,
+                (float) beatX + boundingRect.getX(), boundingRect.getY(), (float) beatWidth,
                 boundingRect.toFloat().getHeight ());
             const auto barString = juce::String(bar + 1);
             const auto beatString = "." + juce::String(b + 1);
@@ -239,8 +239,13 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
 
             if (snapLevel <= 7)
             {
-                g.setColour(beatColour);
-                g.drawVerticalLine(beatX, 0, boundingRect.getHeight());
+
+                if (beatX + boundingRect.getX() > boundingRect.getX()
+                    && beatX + boundingRect.getX() < boundingRect.getRight())
+                {
+                    g.setColour(beatColour);
+                    g.drawVerticalLine(beatX + boundingRect.getX(), boundingRect.getY(), boundingRect.getBottom());
+                }
             }
 
             if (snapLevel <= 5 && printDescription)
@@ -264,15 +269,23 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
                                     barString + beatString + fracString,
                                     textColour);
 
-                    g.setColour(fracColour);
-                    g.drawVerticalLine(
-                        fracRect.getX(),0, boundingRect.getHeight());
+                    if (fracRect.getX() > boundingRect.getX()
+                        && fracRect.getX() < boundingRect.getRight())
+                    {
+                        g.setColour(fracColour);
+                        g.drawVerticalLine(
+                        fracRect.getX(),boundingRect.getY(), boundingRect.getBottom());
+                    }
                 }
             }
         }
 
-        g.setColour (BarColour);
-        g.drawVerticalLine(barStartX, 0, boundingRect.getHeight());
+        if (barStartX + boundingRect.getX() > boundingRect.getX())
+        {
+            g.setColour (BarColour);
+            g.drawVerticalLine(barStartX + boundingRect.getX(), boundingRect.getY(), boundingRect.getBottom());
+
+        }
     }
 }
 void GUIHelpers::printTextAt(juce::Graphics& graphic,
@@ -284,6 +297,7 @@ void GUIHelpers::printTextAt(juce::Graphics& graphic,
         graphic.drawText(
             "  " + text, textRect, juce::Justification::centredLeft, false);
 }
+
 void GUIHelpers::drawSnapLines(juce::Graphics& g,
                                const EditViewState& evs,
                                double x1beats,
@@ -299,8 +313,8 @@ void GUIHelpers::drawSnapLines(juce::Graphics& g,
         if (it >= x1beats)
         {
             g.setColour(colour);
-            auto x = evs.beatsToX(it, boundingRect.getWidth(), x1beats, x2beats);
-            g.drawVerticalLine(x, 0, boundingRect.getHeight());
+            int x = boundingRect.getX() + evs.beatsToX(it, boundingRect.getWidth(), x1beats, x2beats);
+            g.drawVerticalLine(x, boundingRect.getY(), boundingRect.getBottom());
         }
 
         auto& tempo = evs.m_edit.tempoSequence.getTempoAt(tracktion::BeatPosition::fromBeats(it));
@@ -308,6 +322,7 @@ void GUIHelpers::drawSnapLines(juce::Graphics& g,
         it = it + delta;
     }
 }
+
 void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
                                      const EditViewState& evs,
                                      double x1beats,
@@ -318,28 +333,35 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
     const te::TimecodeSnapType& snapType =
         evs.getBestSnapType(x1beats,x2beats, boundingRect.getWidth());
     int num = evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator;
-    int shadowDelta = num * 4;
+    int shadowBeatDelta = num * 4;
     if (snapType.getLevel() <= 9)
-        shadowDelta = num;
+        shadowBeatDelta = num;
     if (snapType.getLevel() <= 4)
-        shadowDelta = 1;
+        shadowBeatDelta = 1;
 
-    auto i = static_cast<int>(x1beats);
-    while(i % shadowDelta != 0)
-        i--;
+    auto beatIter = static_cast<int>(x1beats);
+    while(beatIter % shadowBeatDelta != 0)
+        beatIter--;
 
-    while (i <= x2beats)
+    while (beatIter <= x2beats)
     {
-        if ((i/shadowDelta) %2 == 0)
+        if ((beatIter/shadowBeatDelta) %2 == 0)
         {
-            int x = evs.beatsToX(i, boundingRect.getWidth(), x1beats, x2beats);
-            int w = evs.beatsToX(i + shadowDelta, boundingRect.getWidth(), x1beats, x2beats) - x;
-            juce::Rectangle<int> shadowRect {x, 0, w, boundingRect.getHeight()};
+            int x = evs.beatsToX(beatIter, boundingRect.getWidth(), x1beats, x2beats);
+            int w = evs.beatsToX(beatIter + shadowBeatDelta, boundingRect.getWidth(), x1beats, x2beats) - x;
+            juce::Rectangle<int> shadowRect {x + boundingRect.getX(), boundingRect.getY(), w, boundingRect.getHeight()};
+
+            if (shadowRect.getX() < boundingRect.getX())
+                shadowRect.removeFromLeft(boundingRect.getX() - shadowRect.getX());
+
+            if (shadowRect.getRight() > boundingRect.getRight())
+                shadowRect.removeFromRight(shadowRect.getRight() - boundingRect.getRight());
 
             g.setColour(shade);
             g.fillRect(shadowRect);
         }
-        i += shadowDelta;
+
+        beatIter += shadowBeatDelta;
     }
 }
 
