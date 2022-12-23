@@ -1311,12 +1311,16 @@ void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, 
 
     g.fillRect(header.reduced(2,2));
 
+    clipRect.removeFromTop(header.getHeight());
+    clipRect.reduce(1,1);
     if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
     {
-        clipRect.removeFromTop(header.getHeight());
-        clipRect.reduce(1,1);
         auto&thumb = getOrCreateThumbnail(wac);
         drawWaveform(g, *wac, *thumb, color, clipRect , displayedRect);
+    }
+    else if (auto mc = dynamic_cast<te::MidiClip*>(clip))
+    {
+        drawMidiClip(g, mc, clipRect, displayedRect, color);
     }
 }
 
@@ -1427,3 +1431,41 @@ void SongEditorView::drawChannels(juce::Graphics& g
 }
 
 
+void  SongEditorView::drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color)
+{
+    auto area = clipRect;
+
+    if (clipRect.getX() < displayedRect.getX())
+        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
+
+    if (clipRect.getRight() > displayedRect.getRight())
+        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
+
+    auto& seq = clip->getSequence();
+    auto range = seq.getNoteNumberRange();
+    auto lines = range.getLength();
+    auto noteHeight = juce::jmax(1,((clipRect.getHeight() ) / 20));
+    auto noteColor = color.withLightness(0.6f);
+
+    for (auto n: seq.getNotes())
+    {
+        double sBeat = n->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats();
+        double eBeat = n->getEndBeat().inBeats() - clip->getOffsetInBeats().inBeats();
+        auto y = clipRect.getCentreY();
+        if (!range.isEmpty())
+            y = juce::jmap(n->getNoteNumber(), range.getStart() + lines, range.getStart(), clipRect.getY() + (noteHeight/2), clipRect.getY() + clipRect.getHeight() - noteHeight - (noteHeight/2));
+
+        int x1 = clipRect.getX() + timeToX(m_editViewState.beatToTime(sBeat )) +(timeToX(0.0) * -1);
+        int x2 = clipRect.getX() + timeToX(m_editViewState.beatToTime(eBeat )) +(timeToX(0.0) * -1);
+
+        int gap = 2;
+        x1 = juce::jmin(juce::jmax(gap, x1), clipRect.getRight() - gap);
+        x2 = juce::jmin(juce::jmax(gap, x2), clipRect.getRight () - gap);
+
+        x1 = juce::jmax(area.getX(), x1);
+        x2 = juce::jmin(area.getRight(), x2);
+        auto w = juce::jmax(0, x2 - x1);
+        g.setColour(noteColor);
+        g.fillRect(x1, y, w, noteHeight);
+    }
+}

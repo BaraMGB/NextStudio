@@ -121,13 +121,15 @@ private:
                       juce::Colour colour,
                       juce::Rectangle<int>,
                       juce::Rectangle<int> displayedRect);
-    static void drawChannels(juce::Graphics& g,
+    void drawChannels(juce::Graphics& g,
                       te::SmartThumbnail& thumb,
                       juce::Rectangle<int> area,
                       bool useHighRes,
                       tracktion::core::TimeRange time
                       , bool useLeft, bool useRight,
                       float leftGain, float rightGain);
+
+    void drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color);
     //essentials
     EditViewState&                      m_editViewState;
     LowerRangeComponent&                m_lowerRange;
