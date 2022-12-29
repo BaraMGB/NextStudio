@@ -6,6 +6,7 @@
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "SongEditorView.h"
+#include "tracktion_core/utilities/tracktion_Time.h"
 
 
 AutomationLaneComponent::AutomationLaneComponent(tracktion_engine::AutomationCurve& curve, EditViewState &evs)
@@ -82,7 +83,7 @@ void AutomationLaneComponent::paintCurves(juce::Graphics &g, tracktion::TimeRang
 
             juce::Rectangle<float> ellipse = getRectFromPoint(pointPos.toInt());
 
-            if (m_hoveredPoint == i)
+            if (m_hoveredAutomationPoint == i)
             {
                 hoveredDotPath.addEllipse(ellipse);
             }
@@ -138,199 +139,7 @@ tracktion::TimeRange AutomationLaneComponent::getCurveTimeRangeToDraw()
 
     return {tracktion::TimePosition::fromSeconds(0.0), lastTime};
 }
-void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
-{
-    auto timeHovered = getTimePosFromX(e.x);
-    auto valueOnMousePos = (float) getValueAt (e.y);
-    auto valueAtHoveredTime = m_curve.getValueAt(timeHovered); 
 
-    m_hoveredPoint = getIndexOfHoveredPoint (e);
-    m_hoveredCurve = -1;
-
-    if (m_hoveredPoint == -1)
-    {
-        m_hoveredRect = getRectFromPoint({e.x, getYPos(valueAtHoveredTime)}).expanded(2, 2);
-        auto isCurveHovered = getHoveredRect(e).contains (e.x, getYPos(valueAtHoveredTime));
-        
-        if (isCurveHovered
-         || ((isBeyondLastPoint (timeHovered, valueOnMousePos)) && isCurveHovered))
-            m_hoveredCurve = m_curve.indexBefore(timeHovered) + 1;
-
-        m_hoveredTime = timeHovered;
-
-        if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
-            setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
-        else
-            setMouseCursor (juce::MouseCursor::NormalCursor);
-    }
-    repaint();
-}
-
-void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
-{
-    bool leftMouseButton = e.mods.isLeftButtonDown();
-    bool rightMouseButton = e.mods.isRightButtonDown();
-    bool isCtrlDown = e.mods.isCtrlDown ();
-
-
-    //no automation point clicked
-    if (m_hoveredPoint == -1)
-    {        
-        m_selectionManager.deselectAll();
-        if (m_hoveredCurve != -1 && leftMouseButton && !isCtrlDown)
-        {
-            auto newPoint = m_curve.addPoint(m_hoveredTime, m_curve.getValueAt (m_hoveredTime), 0.0);
-            m_hoveredPoint = newPoint;
-            m_hoveredCurve = -1;
-            m_timeAtMousedown = m_curve.getPointTime (m_hoveredPoint);
-            selectPoint(m_hoveredPoint, false);
-            repaint();
-        }
-        else //reset curve steepness to 0
-        if (m_hoveredCurve != -1 && rightMouseButton)
-        {
-            m_curve.setCurveValue(m_hoveredCurve - 1, 0.0);
-            m_hoveredCurve = -1;
-            repaint();
-        }
-        else //curve clicked / select both automation points
-        if (m_hoveredCurve != -1 && leftMouseButton)
-        {
-            selectPoint(m_hoveredCurve, false);
-            selectPoint(m_hoveredCurve - 1, true);
-        }
-        else //no curve clicked / start Lasso
-        if (m_hoveredCurve == -1 && e.mods.isLeftButtonDown())
-        {
-            auto se = dynamic_cast<SongEditorView*>(this->getParentComponent()->getParentComponent());
-            if (se)
-            {
-                se->startLasso(e.getEventRelativeTo(se), true, e.mods.isAltDown());
-            }
-        }
-    }//automation point clicked
-    else
-    {
-        if (rightMouseButton && !isCtrlDown)
-        {
-            m_curve.removePoint(m_hoveredPoint);
-            m_hoveredPoint = -1;
-            repaint();
-        }
-        else
-        {
-            m_timeAtMousedown = m_curve.getPointTime (m_hoveredPoint);
-        }
-
-        if(leftMouseButton ||!rightMouseButton)
-        {
-            selectPoint(m_hoveredPoint, isCtrlDown);
-        }
-    }
-
-    m_curveAtMousedown = m_curve.getPoint(m_hoveredCurve - 1).curve;
-
-    auto t = m_curve.getPoint(m_hoveredPoint).time;
-    auto v = m_curve.getPoint(m_hoveredPoint).value;
-
-    m_hovedPointXY = getPointXY(t, v);
-
-    m_selPointsAtMousedown.clear();
-    for (auto p : m_selectionManager.getItemsOfType<AutomationPoint>())
-    {
-        auto cp = new CurvePoint(p->m_curve.getPointTime(p->index),
-                                 p->m_curve.getOwnerParameter()->valueRange.convertTo0to1(p->m_curve.getPointValue(p->index)),
-                                 p->index,
-                                 *p->m_curve.getOwnerParameter());
-        m_selPointsAtMousedown.add(cp);
-    }
-}
-
-void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
-{
-    //change curve steepness
-    if (m_hoveredCurve != -1 && e.mods.isCtrlDown ())
-    { 
-        m_isDragging = true;
-
-        auto valueP1 = m_curve.getPointValue(m_hoveredCurve - 1);
-        auto valueP2 = m_curve.getPointValue(m_hoveredCurve);
-        auto delta =  valueP1 < valueP2 ? e.getDistanceFromDragStartY() *  0.01 
-                                    : e.getDistanceFromDragStartY() * -0.01;
-        auto newSteep = juce::jlimit(-0.5f, 0.5f, (float) (m_curveAtMousedown + delta));
-
-        m_curve.setCurveValue(m_hoveredCurve - 1, newSteep);
-  
-        repaint();
-    }
-           
-    //move Point
-    else if (m_hoveredPoint != -1 && e.mouseWasDraggedSinceMouseDown ())
-    { 
-        auto screenTime = tracktion::TimeDuration::fromSeconds(xToTime(0));
-        auto draggedTime = tracktion::TimeDuration::fromSeconds(xToTime(e.getDistanceFromDragStartX()));
-
-        //lock time
-        if (e.mods.isShiftDown())
-        {
-            draggedTime = tracktion::TimeDuration::fromSeconds(0.0);
-        }
-        //snap
-        else if (!e.mods.isCtrlDown())
-        {
-            auto oldPos = tracktion::TimePosition::fromSeconds(xToTime(m_hovedPointXY.getX()));
-            draggedTime = getSnapedTime(oldPos + draggedTime, false) - oldPos;
-        }
-
-        for (auto p : m_selPointsAtMousedown)
-        {
-            auto newTime =  p->time + draggedTime - screenTime;
-
-            auto newValue = p->value - getValue(getHeight() - e.getDistanceFromDragStartY());
-
-            newValue = p->param.valueRange.convertFrom0to1(newValue);
-            p->param.getCurve().movePoint(p->index, newTime, newValue, false);
-        }
-
-        getParentComponent()->getParentComponent()->repaint();
-    }
-    else
-    {
-        auto se = dynamic_cast<SongEditorView*>(this->getParentComponent()->getParentComponent());
-        if (se)
-        {
-            se->updateLasso(e.getEventRelativeTo(se));
-        }
-    }
-
-}
-
-
-void AutomationLaneComponent::mouseUp(const juce::MouseEvent& e)
-{
-    m_isDragging = false;
-    m_hoveredPoint = -1;
-    m_hoveredCurve = -1;
-    m_draggedTime = tracktion::TimeDuration::fromSeconds(0.0);
-    if (m_hoveredCurve == -1 && m_hoveredPoint == -1 && e.mods.isLeftButtonDown())
-    {
-        auto se = dynamic_cast<SongEditorView*>(this->getParentComponent()->getParentComponent());
-        if (se)
-        {
-            se->stopLasso();
-        }
-    }
-}
-void AutomationLaneComponent::mouseExit(const juce::MouseEvent &/*e*/)
-{
-    m_hoveredPoint = -1;
-    m_hoveredCurve = -1;
-    repaint();
-}
-bool AutomationLaneComponent::keyPressed(const juce::KeyPress &e)
-{
-   return false;
-}
 double AutomationLaneComponent::getValueAt(int x)
 {
     auto pos = getTimePosFromX(x);
@@ -416,8 +225,7 @@ te::AutomationCurve &AutomationLaneComponent::getCurve() const
 
 tracktion::TimePosition AutomationLaneComponent::getTimePosFromX(int x)
 {
-    auto time = m_editViewState.xToTime(x, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    return tracktion::TimePosition::fromSeconds(time);
+    return tracktion::TimePosition::fromSeconds(xToTime(x));
 }
 
 

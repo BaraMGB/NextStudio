@@ -25,20 +25,21 @@ public:
     juce::OwnedArray<TrackComponent>& getTrackViews();
     void addTrackView(std::unique_ptr<TrackComponent> tc);
     void updateViews();
-
     void clearTrackViews();
 
     void startLasso(const juce::MouseEvent& e, bool fromAutomation, bool selectRange);
     void updateLasso(const juce::MouseEvent& e);
     void stopLasso();
+
     void duplicateSelectedClips();
     
     void deleteSelectedTimeRange();
     juce::Array<te::Track*> getTracksWithSelectedTimeRange();
     tracktion::TimeRange getSelectedTimeRange();
-    void splitClipAt(int x, int y);
 
 private:
+
+
     void updateCursor(juce::ModifierKeys);
     void moveSelectedClips(double sourceTime, bool copy, double delta, int verticalOffset);  
 
@@ -54,29 +55,22 @@ private:
     int getVerticalOffset(TrackComponent* sourceTrackComp, const juce::Point<int>& dropPos);
     te::Track::Ptr getTrackAt(int y);
     int getYForTrack (te::Track* track);
-    te::AutomatableParameter::Ptr getAutomatableParamAt(int y);
 
+    te::AutomatableParameter::Ptr getAutomatableParamAt(int y);
+    juce::Rectangle<int> getAutomationRect (te::AutomatableParameter::Ptr ap);
     int getHeightOfAutomation (te::AutomatableParameter::Ptr ap);
     int getYForAutomatableParam(te::AutomatableParameter::Ptr ap);
+    juce::Point<int> getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap); 
+    int getAutomationPointWidth (te::AutomatableParameter::Ptr ap);
+    int getYPos (double value, te::AutomatableParameter::Ptr ap);
+    double getValue (int y, te::AutomatableParameter::Ptr ap);
+
     void addAutomationPointAt(te::AutomatableParameter::Ptr par, tracktion::TimePosition pos);
-
-    juce::Array<AutomationLaneComponent::CurvePoint*> getSelectedPoints()
-    {
-        auto &sm = m_editViewState.m_selectionManager;
-        juce::Array<AutomationLaneComponent::CurvePoint*> points;
-        for (auto p : sm.getItemsOfType<AutomationPoint>())
-        {
-            auto cp = new AutomationLaneComponent::CurvePoint(
-                                     p->m_curve.getPointTime(p->index),
-                                     p->m_curve.getPointValue(p->index),
-                                     p->index,
-                                    *p->m_curve.getOwnerParameter());
-
-            points.add(cp);
-        }
-
-        return points;
-    }
+    void selectAutomationPoint(te::AutomatableParameter::Ptr ap,int index, bool add);
+    AutomationPoint* createSelectablePoint(te::AutomatableParameter::Ptr ap, int index);
+    bool isAutomationPointSelected(te::AutomatableParameter::Ptr ap, int index);
+    void deselectAutomationPoint(te::AutomatableParameter::Ptr ap, int index);
+    juce::Array<AutomationLaneComponent::CurvePoint*> getSelectedPoints();
 
     void updateClipSelection(bool add);
     void updateClipCache();
@@ -95,11 +89,10 @@ private:
 
     void constrainClipInRange(te::Clip* c, tracktion::TimeRange r);
     // void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
-
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
+    void splitClipAt(int x, int y);
 
     std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
-
     struct ClipThumbNail 
     {
         ClipThumbNail (te::WaveAudioClip::Ptr wac, std::unique_ptr<te::SmartThumbnail> sn) : waveAudioClip (wac), smartThumbnail (std::move(sn)) {}
@@ -107,29 +100,14 @@ private:
         te::WaveAudioClip::Ptr waveAudioClip;
         std::unique_ptr<te::SmartThumbnail> smartThumbnail;
     };
-
     
     void drawTrack(juce::Graphics& g, juce::Rectangle<int> rect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr);
-
     void drawClip(juce::Graphics& g, juce::Rectangle<int> rect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect);
-
     void drawAudioClip(juce::Graphics& g, juce::Rectangle<int> rect, te::WaveAudioClip::Ptr audioClip, juce::Colour color);
-
-    void drawWaveform(juce::Graphics& g,
-                      te::AudioClipBase& c,
-                      te::SmartThumbnail& thumb,
-                      juce::Colour colour,
-                      juce::Rectangle<int>,
-                      juce::Rectangle<int> displayedRect);
-    void drawChannels(juce::Graphics& g,
-                      te::SmartThumbnail& thumb,
-                      juce::Rectangle<int> area,
-                      bool useHighRes,
-                      tracktion::core::TimeRange time
-                      , bool useLeft, bool useRight,
-                      float leftGain, float rightGain);
-
+    void drawWaveform(juce::Graphics& g, te::AudioClipBase& c, te::SmartThumbnail& thumb, juce::Colour colour, juce::Rectangle<int>, juce::Rectangle<int> displayedRect);
+    void drawChannels(juce::Graphics& g, te::SmartThumbnail& thumb, juce::Rectangle<int> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
     void drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color);
+
     //essentials
     EditViewState&                      m_editViewState;
     LowerRangeComponent&                m_lowerRange;

@@ -31,13 +31,7 @@ public:
     void paint (juce::Graphics& g) override;
     void paintCurves(juce::Graphics &g, tracktion::TimeRange drawRange);
     void paintOverChildren(juce::Graphics &g) override;
-    void mouseMove (const juce::MouseEvent& e) override;
-    void mouseExit(const juce::MouseEvent &e) override;
-    void mouseDown (const juce::MouseEvent& e) override;
-    void mouseDrag(const juce::MouseEvent& e) override;
-    void mouseUp(const juce::MouseEvent& e) override;
 
-	bool keyPressed(const juce::KeyPress &e) override;
     [[nodiscard]] te::AutomationCurve &getCurve() const;
 
     juce::Point<int> getPointXY (tracktion::TimePosition t, double v);
@@ -60,7 +54,7 @@ public:
 
     void setHover (int hoveredPoint, int hoveredCurve, juce::Rectangle<int> hoveredRect)
     {
-        m_hoveredPoint = hoveredPoint;
+        m_hoveredAutomationPoint = hoveredPoint;
         m_hoveredCurve = hoveredCurve;
         m_hoveredRect = hoveredRect.toFloat();
     }
@@ -108,7 +102,7 @@ private:
 
     juce::Array<CurvePoint*>     m_selPointsAtMousedown;
     te::AutomationCurve&        m_curve;
-    int                         m_hoveredPoint = -1;
+    int                         m_hoveredAutomationPoint = -1;
     int                         m_hoveredCurve = -1;
     tracktion::TimePosition     m_hoveredTime;
     juce::Rectangle<float>      m_hoveredRect;
