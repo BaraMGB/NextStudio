@@ -128,14 +128,6 @@ void TrackComponent::resized()
     double nextLaneStart = m_track->state.getProperty(tracktion_engine::IDs::height);
     if (m_track->isFolderTrack())
         nextLaneStart = m_editViewState.m_folderTrackHeight;
-    for (auto al: m_automationLanes)
-    {
-        int height = al->getCurve().state.getProperty(
-            tracktion_engine::IDs::height,
-            (int) m_editViewState.m_trackDefaultHeight);
-        al->setBounds(0, (int) nextLaneStart, getWidth(), height);
-        nextLaneStart = nextLaneStart + al->getHeight();
-    }
 }
 void TrackComponent::insertWave(const juce::File& f, double time)
 {
@@ -219,25 +211,6 @@ void TrackComponent::buildClips()
         m_editViewState.m_edit.undo();
     else
         resized();
-    buildAutomationLanes();
-}
-void TrackComponent::buildAutomationLanes()
-{
-    m_automationLanes.clear(true);
-    for (auto apEditItems: m_track->getAllAutomatableEditItems())
-    {
-        for (auto ap: apEditItems->getAutomatableParameters())
-        {
-            if (ap->getCurve().getNumPoints() > 0)
-            {
-                m_automationLanes.add(
-                    new AutomationLaneComponent(ap->getCurve(), m_editViewState));
-                addAndMakeVisible(m_automationLanes.getLast());
-                m_automationLanes.getLast()->grabKeyboardFocus();
-            }
-        }
-    }
-    resized();
 }
 void TrackComponent::buildRecordClips()
 {
@@ -323,10 +296,6 @@ double TrackComponent::getSnapedTime(double t, bool down)
 int TrackComponent::timeToX (double time)
 {
     return m_editViewState.timeToX(time, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-}
-const juce::OwnedArray<AutomationLaneComponent> &TrackComponent::getAutomationLanes() const
-{
-    return m_automationLanes;
 }
 
 tracktion::TimeRange TrackComponent::getSelectedTimeRange()

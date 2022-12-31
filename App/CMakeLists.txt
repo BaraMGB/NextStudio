@@ -48,7 +48,6 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
      CXX_VISIBILITY_PRESET hidden)
 
 target_sources(${TargetName} PRIVATE
-        Source/AutomationLaneComponent.cpp
         Source/AutomatableSliderComponent.cpp
         Source/Main.cpp
         Source/MainComponent.cpp

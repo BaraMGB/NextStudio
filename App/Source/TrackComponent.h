@@ -9,7 +9,6 @@
 #include "RecordingClipComponent.h"
 #include "AudioClipComponent.h"
 #include "PluginRackComponent.h"
-#include "AutomationLaneComponent.h"
 #include "LowerRangeComponent.h"
 
 class OverlayClip
@@ -57,7 +56,6 @@ public:
         repaint();
     }
 
-    const juce::OwnedArray<AutomationLaneComponent> &getAutomationLanes() const;
 
     tracktion::TimeRange getSelectedTimeRange();
 
@@ -75,7 +73,6 @@ private:
     void handleAsyncUpdate() override;
 
     void buildClips();
-    void buildAutomationLanes();
     void buildRecordClips();
     bool isSelected();
 
@@ -98,7 +95,6 @@ private:
     te::Track::Ptr m_track;
     [[maybe_unused]] te::Clipboard m_clipBoard;
     juce::OwnedArray<ClipComponent> m_clipComponents;
-    juce::OwnedArray<AutomationLaneComponent> m_automationLanes;
 
     [[maybe_unused]] juce::Image m_dragImage;
     std::unique_ptr<RecordingClipComponent> recordingClip;

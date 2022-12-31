@@ -1,11 +1,24 @@
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "AutomationLaneComponent.h"
 #include "ClipComponent.h"
 #include "EditViewState.h"
 #include "TrackComponent.h"
 #include "LassoSelectionTool.h"
 
 enum class Tool {pointer, draw, range, eraser, knife};
+
+class AutomationPoint  : public te::Selectable
+{
+public:
+    AutomationPoint (int i, te::AutomationCurve& c)  : index (i), m_curve (c) {}
+    ~AutomationPoint() override {notifyListenersOfDeletion();}
+
+    juce::String getSelectableDescription() override {return juce::String("AutomationPoint");}
+    static bool arePointsConsecutive (const te::SelectableList&);
+    static bool arePointsOnSameCurve (const te::SelectableList&);
+
+    int index = 0;
+    te::AutomationCurve&        m_curve;
+};
 
 class SongEditorView : public juce::Component
 {
@@ -38,6 +51,16 @@ public:
     tracktion::TimeRange getSelectedTimeRange();
 
 private:
+    struct CurvePoint
+    {
+        CurvePoint(tracktion::TimePosition t, double v, int i, te::AutomatableParameter& p)
+                : time(t), value(v), index(i), param(p) {}
+        ~CurvePoint() {}
+        tracktion::TimePosition   time;
+        double                    value;
+        int                       index;
+        te::AutomatableParameter& param;
+    };
 
 
     void updateCursor(juce::ModifierKeys);
@@ -50,7 +73,6 @@ private:
 
     ClipComponent *getClipViewForClip (const te::Clip::Ptr& clip);
     TrackComponent *getTrackViewForTrack(tracktion_engine::Track::Ptr track);
-    AutomationLaneComponent *getAutomationLaneForAutomatableParameter(te::AutomatableParameter::Ptr ap);
 
     int getVerticalOffset(TrackComponent* sourceTrackComp, const juce::Point<int>& dropPos);
     te::Track::Ptr getTrackAt(int y);
@@ -70,7 +92,7 @@ private:
     AutomationPoint* createSelectablePoint(te::AutomatableParameter::Ptr ap, int index);
     bool isAutomationPointSelected(te::AutomatableParameter::Ptr ap, int index);
     void deselectAutomationPoint(te::AutomatableParameter::Ptr ap, int index);
-    juce::Array<AutomationLaneComponent::CurvePoint*> getSelectedPoints();
+    juce::Array<CurvePoint*> getSelectedPoints();
 
     void updateClipSelection(bool add);
     void updateClipCache();
@@ -107,7 +129,8 @@ private:
     void drawWaveform(juce::Graphics& g, te::AudioClipBase& c, te::SmartThumbnail& thumb, juce::Colour colour, juce::Rectangle<int>, juce::Rectangle<int> displayedRect);
     void drawChannels(juce::Graphics& g, te::SmartThumbnail& thumb, juce::Rectangle<int> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
     void drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color);
-
+    
+    void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap);
     //essentials
     EditViewState&                      m_editViewState;
     LowerRangeComponent&                m_lowerRange;
@@ -134,8 +157,9 @@ private:
 
     GUIHelpers::SelectedTimeRange                   m_selectedRange;
     juce::Image                         m_timeRangeImage;
+    juce::Rectangle<int>                m_hoveredRectOnAutomation;
 
-    juce::Array<AutomationLaneComponent::CurvePoint*>
+    juce::Array<CurvePoint*>
                                         m_selPointsAtMousedown;
     double                              m_curveSteepAtMousedown{0.f};
     double                              m_curveAtMousedown{0.f};
