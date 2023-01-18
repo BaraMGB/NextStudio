@@ -442,8 +442,8 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
 
     if (isDraggingAutomationPoint)
     { 
-        auto lockTime = e.mods.isShiftDown();
-        auto snap = e.mods.isShiftDown();
+        auto lockTime = e.mods.isCtrlDown();
+        auto snap = !e.mods.isShiftDown();
 
         auto oldPos = m_timeOfHoveredAutomationPoint;
         auto newPos = tracktion::TimePosition::fromSeconds(xtoTime(e.x)); 
@@ -1522,12 +1522,16 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
 
     float startX = timeToX(drawRange.getStart().inSeconds());
     float startY = getYPos(ap->getCurve().getValueAt(drawRange.getStart()),ap) + drawRect.getY();
+
     curvePath.startNewSubPath({startX, startY});
+
     juce::Point<int> oldPoint = {(int)startX, (int)startY };
+
     for (auto i = 0; i < ap->getCurve().getNumPoints(); i++)
     {
-        if (ap->getCurve().getPoint(i).time >= drawRange.getStart()
-         && ap->getCurve().getPoint(i).time <= drawRange.getEnd())
+        auto pointIsVisible = ap->getCurve().getPoint(i).time >= drawRange.getStart() && ap->getCurve().getPoint(i).time <= drawRange.getEnd();
+
+        if (pointIsVisible)
         {
             auto time = ap->getCurve().getPoint(i).time;
             auto value = ap->getCurve().getPoint(i).value;
@@ -1565,10 +1569,22 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
         }
     }
 
+    float currentX = curvePath.getCurrentPosition().getX();
+    float currentY = curvePath.getCurrentPosition().getY();
     float endX = timeToX(drawRange.getEnd().inSeconds());
     float endY = getYPos(ap->getCurve().getValueAt(drawRange.getEnd()),ap) + drawRect.getY();
 
     curvePath.lineTo(endX, endY);
+
+    if (m_hoveredCurve == ap->getCurve().getNumPoints())
+    {
+
+        hoveredCurvePath.startNewSubPath (currentX, currentY);
+        hoveredCurvePath.lineTo(endX, endY);
+        if (!m_isDragging) 
+            hoveredDotOnCurvePath.addEllipse (m_hoveredRectOnAutomation.toFloat());
+    }
+
     fillPath = curvePath;
 
     fillPath.lineTo(drawRect.getBottomRight().toFloat());
