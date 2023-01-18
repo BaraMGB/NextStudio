@@ -429,6 +429,23 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
         }
     }
 }
+
+bool EngineHelpers::isTrackShowable(te::Track::Ptr track)
+{
+    if (track->isChordTrack()
+        || track->isTempoTrack()
+        || track->isMarkerTrack()
+        || track->isArrangerTrack()
+        || track->isAutomationTrack()
+        || track->isMasterTrack()
+    )
+    {
+        return false;
+    }
+
+    return true;
+}
+    
 bool EngineHelpers::trackWantsClip(const te::Clip* clip,
                                     const te::Track* track) 
 {

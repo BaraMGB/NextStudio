@@ -5,7 +5,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
-#include "AudioClipComponent.h"
 #include "Utilities.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
 

@@ -8,8 +8,6 @@
 #include "PluginMenu.h"
 #include "PianoRollEditorComponent.h"
 #include "PluginRackComponent.h"
-#include "ClipComponent.h"
-#include "MidiClipComponent.h"
 #include "TrackHeadComponent.h"
 #include "TimelineOverlayComponent.h"
 

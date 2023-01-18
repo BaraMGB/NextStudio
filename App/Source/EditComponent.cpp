@@ -1,5 +1,6 @@
 #include "EditComponent.h"
 #include "NextLookAndFeel.h"
+#include "Utilities.h"
 
 EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm)
     : m_edit (e)
@@ -157,16 +158,20 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
 void EditComponent::valueTreePropertyChanged (
         juce::ValueTree& v, const juce::Identifier& i)
 {
-    if (i == te::IDs::height || i == IDs::isTrackMinimized)
-    {
-        m_songEditor.resized();
-    }
-
     if (i == te::IDs::loopPoint1
         || i == te::IDs::loopPoint2
         || i == te::IDs::looping)
         markAndUpdate(m_updateZoom);
 
+    if (i == te::IDs::height || i == IDs::isTrackMinimized )
+    {
+        markAndUpdate(m_updateSongEditor);
+    }
+
+    if (i == te::IDs::lastSignificantChange)
+    {
+        markAndUpdate(m_updateSongEditor);
+    }
     if (v.hasType (IDs::EDITVIEWSTATE))
     {
         if (i == IDs::viewX1
@@ -234,22 +239,23 @@ void EditComponent::valueTreeChildOrderChanged (
 void EditComponent::handleAsyncUpdate()
 {
     if (compareAndReset (m_updateTracks))
+    {
         buildTracks();
+        m_songEditor.repaint();
+    }
     if (compareAndReset (m_updateZoom))
     {
         refreshSnapTypeDesc();
 
         m_timeLine.repaint ();
+        m_songEditor.repaint();
 
-        for (auto tv : m_songEditor.getTrackViews())
-        {
-            tv->repaint ();
-            tv->resized ();
-        }
         updateHorizontalScrollBar();
     }
     if (compareAndReset(m_updateSongEditor))
     {
+        m_songEditor.repaint();
+        m_songEditor.repaint();
         resized();
     }
 }
@@ -266,57 +272,21 @@ void EditComponent::refreshSnapTypeDesc()
 void EditComponent::buildTracks()
 {
     m_lowerRange.clearPluginRacks ();
-    m_songEditor.clearTrackViews();
     m_trackListView.clear();
-
     for (auto t : getAllTracks (m_edit))
     {
-        std::unique_ptr<TrackComponent> tc;
-
-        if (t->isTempoTrack())
-        {
-            if (m_editViewState.m_showGlobalTrack)
-                tc = std::make_unique<TrackComponent> (m_editViewState, m_lowerRange, t);
-        }
-        else if (t->isMarkerTrack())
-        {
-            if (m_editViewState.m_showMarkerTrack)
-                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
-        }
-        else if (t->isChordTrack())
-        {
-            if (m_editViewState.m_showChordTrack)
-                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
-        }
-        else if (t->isArrangerTrack())
-        {
-            if (m_editViewState.m_showArrangerTrack)
-                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
-        }
-        else if (t->isMasterTrack())
-        {
-            if (m_editViewState.m_showMasterTrack)
-                tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
-        }
-        else if (static_cast<bool>(t->state.getProperty(IDs::tmpTrack)) == false)
-        {
-            tc = std::make_unique<TrackComponent> (m_editViewState,  m_lowerRange, t);
-        }
-
-        if (tc != nullptr)
+        if (EngineHelpers::isTrackShowable(t))
         {
             auto th = std::make_unique<TrackHeaderComponent> (m_editViewState, t);
             m_trackListView.addHeaderViews(std::move(th));
 
             auto pr = new PluginRackComponent (m_editViewState, t);
             m_lowerRange.addPluginRackComp(pr);
-
-            m_songEditor.addTrackView(std::move(tc));
         }
     }
 
+
     m_trackListView.updateViews();
-    m_songEditor.updateViews();
     m_playhead.toFront (false);
     resized();
 }
@@ -376,10 +346,10 @@ juce::Rectangle<int> EditComponent::getPlayHeadRect()
 int EditComponent::getSongHeight()
 {
     auto h = 0;
-    for (auto tc : m_songEditor.getTrackViews())
-    {
-        h = h + tc->getHeight();
-    }
+        
+    for (auto t : m_songEditor.getShowedTracks())
+        h += GUIHelpers::getTrackHeight(t, m_editViewState);
+        
     return h;
 }
 void EditComponent::loopAroundSelection()

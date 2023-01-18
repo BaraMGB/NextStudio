@@ -4,7 +4,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
-#include "ClipComponent.h"
 #include "LevelMeterComponent.h"
 #include "LowerRangeComponent.h"
 #include "PluginRackComponent.h"
