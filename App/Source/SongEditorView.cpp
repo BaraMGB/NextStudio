@@ -177,7 +177,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
         else
         {
             juce::Point<int> hoveredPointInLane = {e.x, e.y - getYForAutomatableParam(m_hoveredAutamatableParam)};
-            const auto hoveredRectOnLane = GUIHelpers::getSensibleArea(hoveredPointInLane, 3) ;   
+            const auto hoveredRectOnLane = GUIHelpers::getSensibleArea(hoveredPointInLane, getAutomationPointWidth(m_hoveredAutamatableParam) * 2) ;   
             auto curve = m_hoveredAutamatableParam->getCurve();
 
             for (auto i = 0; curve.getNumPoints() > i; i++)
@@ -1483,19 +1483,24 @@ juce::Point<int> SongEditorView::getPointOnAutomationRect (tracktion::TimePositi
 
 int SongEditorView::getYPos (double value, te::AutomatableParameter::Ptr ap)
 {
-    double height = getAutomationRect(ap).getHeight();
-    double pwh = getAutomationPointWidth(ap);
+    double pixelRangeStart = getAutomationPointWidth(ap) * .5;
+    double pixelRangeEnd = getAutomationRect(ap).getHeight() - (getAutomationPointWidth(ap) * .5);
 
-    double v = ap->valueRange.convertTo0to1(value);
-    return height - juce::jmap(v, 0.0, 1.0, pwh, height - pwh);
+    double valueRangeStart = ap->valueRange.start;
+    double valueRangeEnd = ap->valueRange.end;
+
+    return static_cast<int>(juce::jmap(value, valueRangeStart, valueRangeEnd, pixelRangeEnd, pixelRangeStart));
 }
 
 double SongEditorView::getValue (int y, te::AutomatableParameter::Ptr ap)
 {
-    double pwh = (double) getAutomationPointWidth(ap) / 2;
-    double lh = getAutomationRect(ap).getHeight();
+    double pixelRangeStart = getAutomationPointWidth(ap) * .5;
+    double pixelRangeEnd = getAutomationRect(ap).getHeight() - (getAutomationPointWidth(ap)  * .5);
 
-    return 1.0 - juce::jmap((double)y, pwh, lh - pwh, 0.0, 1.0);
+    double valueRangeStart = ap->valueRange.start;
+    double valueRangeEnd = ap->valueRange.end;
+
+    return juce::jmap(static_cast<double>(y), pixelRangeStart, pixelRangeEnd, valueRangeEnd, valueRangeStart);
 }
 
 int SongEditorView::getAutomationPointWidth (te::AutomatableParameter::Ptr ap)
