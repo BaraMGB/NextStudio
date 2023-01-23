@@ -23,36 +23,6 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     return {};
 }
 
-void GUIHelpers::drawClip(juce::Graphics& g,
-                  juce::Rectangle<int> rect,
-                  te::Clip * clip,
-                  juce::Colour color,
-                  EditViewState& evs)
-{
-    auto area = rect;
-    auto header = area.withHeight(evs.m_clipHeaderHeight);
-    auto isSelected = evs.m_selectionManager.isSelected (clip);
-
-    auto clipColor = color;
-    auto innerGlow = clipColor.brighter(0.5f);
-    auto borderColour = clipColor.darker(0.95f);
-    auto backgroundColor = borderColour.withAlpha(0.6f);
-    
-    // area.removeFromBottom(1);
-    g.setColour(backgroundColor);
-    g.fillRect(area.reduced(1, 1));
- 
-    g.setColour(innerGlow);
-    g.drawRect(header);
-    g.drawRect(area);
-    g.setColour(clipColor);
-    if (isSelected)
-        g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
-
-    g.fillRect(header.reduced(2,2));
-}
-
-
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area

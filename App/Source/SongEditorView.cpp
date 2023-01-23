@@ -84,11 +84,11 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
     }
     if (m_draggedClip)
     {
-        for (auto sc : sm.getItemsOfType<te::Clip>())
+        for (auto selectedClip : sm.getItemsOfType<te::Clip>())
         {
-            if (auto targetTrack = EngineHelpers::getTargetTrack(sc->getTrack(), m_draggedVerticalOffset))
+            if (auto targetTrack = EngineHelpers::getTargetTrack(selectedClip->getTrack(), m_draggedVerticalOffset))
             {
-                auto clipRect = getClipRect(sc);
+                auto clipRect = getClipRect(selectedClip);
                 juce::Rectangle<int> targetRect = {clipRect.getX() + timeToX(m_draggedTimeDelta) + scroll,
                                                        getYForTrack(targetTrack),
                                                        clipRect.getWidth(),
@@ -96,7 +96,7 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
                
                 if (m_leftBorderHovered)
                 {
-                    auto offset = sc->getPosition().getOffset().inSeconds();
+                    auto offset = selectedClip->getPosition().getOffset().inSeconds();
                     auto timeDelta = juce::jmax(0.0 - offset , m_draggedTimeDelta);
                     auto deltaX =  timeToX(timeDelta) + scroll;
 
@@ -114,9 +114,10 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
                 g.setColour(white);
                 g.drawRect(targetRect);
 
-                if (EngineHelpers::trackWantsClip(sc, targetTrack))
+                if (EngineHelpers::trackWantsClip(selectedClip, targetTrack))
                 {
-                    GUIHelpers::drawClip(g, targetRect, sc, targetTrack->getColour().withAlpha(0.1f), m_editViewState);
+                    juce::Rectangle<int> trackRect = {0, getYForTrack(targetTrack), getWidth(), GUIHelpers::getTrackHeight(targetTrack,m_editViewState, false)};
+                    drawClip(g, targetRect, selectedClip, targetTrack->getColour().withAlpha(0.1f), trackRect, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
                 }
                 else
                 {
