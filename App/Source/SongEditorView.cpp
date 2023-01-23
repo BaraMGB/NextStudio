@@ -36,6 +36,15 @@ void SongEditorView::paint(juce::Graphics& g)
                 auto h = GUIHelpers::getTrackHeight(t, m_editViewState, false);
 
                 drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorViewedTimeRange());
+
+                if (m_selectedRange.selectedTracks.contains(t) && m_selectedRange.getLength().inSeconds() > 0)
+                {
+                    auto x = timeToX(m_selectedRange.getStart().inSeconds());
+                    auto w = timeToX(m_selectedRange.getEnd().inSeconds()) - x;
+
+                    g.setColour(juce::Colour(0x50ffffff));
+                    g.fillRect(juce::Rectangle<int>{x, y, w, h});
+                }
             }
         }
 
@@ -46,7 +55,20 @@ void SongEditorView::paint(juce::Graphics& g)
                 auto rect = getAutomationRect(ap);
                     
                 if (rect.getHeight() > 0)
+                {
                     drawAutomationLane(g, m_editViewState.getSongEditorViewedTimeRange(), rect, ap, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+
+                    if (m_selectedRange.selectedTracks.contains(t) && m_selectedRange.getLength().inSeconds() > 0)
+                    {
+                        auto x = timeToX(m_selectedRange.getStart().inSeconds());
+                        auto y = rect.getY();
+                        auto w = timeToX(m_selectedRange.getEnd().inSeconds()) - x;
+                        auto h = rect.getHeight();
+
+                        g.setColour(juce::Colour(0x50ffffff));
+                        g.fillRect(juce::Rectangle<int>{x, y, w, h});
+                    }
+                }
             }
         }
     }
@@ -173,6 +195,8 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                 m_hoveredTimeRangeLeft = true;
             else if (e.x > rightX - 5)
                 m_hoveredTimeRangeRight = true;
+
+            repaint();
 
         }
         else
