@@ -530,6 +530,211 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
 		te::moveAutomation (sections, tracktion::TimeDuration::fromSeconds(offset), copy);
     }
 }
+static tracktion::AutomationCurve* getDestCurve (tracktion::Track& t, const tracktion::AutomatableParameter::Ptr& p)
+{
+    if (p != nullptr)
+    {
+        if (auto plugin = p->getPlugin())
+        {
+            auto name = plugin->getName();
+
+            for (auto f : t.getAllPlugins())
+                if (f->getName() == name)
+                    if (auto param = f->getAutomatableParameter (plugin->indexOfAutomatableParameter (p)))
+                        return &param->getCurve();
+        }
+    }
+
+    return {};
+}
+static bool mergeInto (const tracktion::TrackAutomationSection& s,
+                       juce::Array<tracktion::TrackAutomationSection>& dst)
+{
+    for (auto& dstSeg : dst)
+    {
+        if (dstSeg.overlaps (s))
+        {
+            dstSeg.mergeIn (s);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void mergeSections (const juce::Array<tracktion::TrackAutomationSection>& src,
+                           juce::Array<tracktion::TrackAutomationSection>& dst)
+{
+    for (const auto& srcSeg : src)
+        if (! mergeInto (srcSeg, dst))
+            dst.add (srcSeg);
+}
+
+void EngineHelpers::moveAutomationOrCopy(const juce::Array<tracktion::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy)
+{
+    if (origSections.isEmpty())
+        return;
+
+    juce::Array<tracktion::TrackAutomationSection> sections;
+    mergeSections (origSections, sections);
+
+    // find all the original curves
+    for (auto&& section : sections)
+    {
+        for (auto& ap : section.activeParameters)
+            ap.curve.state = ap.curve.state.createCopy();
+    }
+
+    // delete all the old curves
+    if (! copy)
+    {
+        for (auto& section : sections)
+        {
+            auto sectionTime = section.position;
+
+            for (auto&& activeParam : section.activeParameters)
+            {
+                auto param = activeParam.param;
+                auto& curve = param->getCurve();
+                constexpr auto tolerance = tracktion::TimeDuration::fromSeconds (0.0001);
+
+                auto startValue = curve.getValueAt (sectionTime.getStart() - tolerance);
+                auto endValue   = curve.getValueAt (sectionTime.getEnd()   + tolerance);
+
+                auto idx = curve.indexBefore (sectionTime.getEnd() + tolerance);
+                auto endCurve = (idx == -1) ? 0.0f : curve.getPointCurve(idx);
+
+                curve.removePointsInRegion (sectionTime.expanded (tolerance));
+
+                if (std::abs (startValue - endValue) < 0.0001f)
+                {
+                    curve.addPoint (sectionTime.getStart(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), endValue, endCurve);
+                }
+                else if (startValue > endValue)
+                {
+                    curve.addPoint (sectionTime.getStart(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getStart(), endValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), endValue, endCurve);
+                }
+                else
+                {
+                    curve.addPoint (sectionTime.getStart(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), endValue, endCurve);
+                }
+
+                curve.removeRedundantPoints (sectionTime.expanded (tolerance));
+            }
+        }
+    }
+
+    // recreate the curves
+    for (auto& section : sections)
+    {
+        for (auto& activeParam : section.activeParameters)
+        {
+            auto sectionTime = section.position;
+
+            if (auto dstCurve = (section.src == section.dst) ? &activeParam.param->getCurve()
+                                                             : getDestCurve (*section.dst, activeParam.param))
+            {
+                constexpr auto errorMargin = tracktion::TimeDuration::fromSeconds (0.0001);
+
+                auto start    = sectionTime.getStart();
+                auto end      = sectionTime.getEnd();
+                auto newStart = start + offset;
+                auto newEnd   = end   + offset;
+
+                auto& srcCurve = activeParam.curve;
+
+                auto idx1 = srcCurve.indexBefore (newEnd + errorMargin);
+                auto endCurve = idx1 < 0 ? 0 : srcCurve.getPointCurve (idx1);
+
+                auto idx2 = srcCurve.indexBefore (start - errorMargin);
+                auto startCurve = idx2 < 0 ? 0 : srcCurve.getPointCurve (idx2);
+
+                auto srcStartVal = srcCurve.getValueAt (start - errorMargin);
+                auto srcEndVal   = srcCurve.getValueAt (end   + errorMargin);
+
+                auto dstStartVal = dstCurve->getValueAt (newStart - errorMargin);
+                auto dstEndVal   = dstCurve->getValueAt (newEnd   + errorMargin);
+
+                tracktion::TimeRange totalRegionWithMargin  (newStart - errorMargin, newEnd   + errorMargin);
+                tracktion::TimeRange startWithMargin        (newStart - errorMargin, newStart + errorMargin);
+                tracktion::TimeRange endWithMargin          (newEnd   - errorMargin, newEnd   + errorMargin);
+
+                juce::Array<tracktion::AutomationCurve::AutomationPoint> origPoints;
+
+                for (int i = 0; i < srcCurve.getNumPoints(); ++i)
+                {
+                    auto pt = srcCurve.getPoint (i);
+
+                    if (pt.time >= start - errorMargin && pt.time <= sectionTime.getEnd() + errorMargin)
+                        origPoints.add (pt);
+                }
+
+                dstCurve->removePointsInRegion (totalRegionWithMargin);
+
+                for (const auto& pt : origPoints)
+                    dstCurve->addPoint (pt.time + offset, pt.value, pt.curve);
+
+                auto startPoints = dstCurve->getPointsInRegion (startWithMargin);
+                auto endPoints   = dstCurve->getPointsInRegion (endWithMargin);
+
+                dstCurve->removePointsInRegion (startWithMargin);
+                dstCurve->removePointsInRegion (endWithMargin);
+
+                dstCurve->addPoint (newStart, dstStartVal, startCurve);
+                dstCurve->addPoint (newStart, srcStartVal, startCurve);
+
+                for (auto& point : startPoints)
+                    dstCurve->addPoint (newStart, point.value, point.curve);
+
+                for (auto& point : endPoints)
+                    dstCurve->addPoint (newEnd, point.value, point.curve);
+
+                dstCurve->addPoint (newEnd, srcEndVal, endCurve);
+                dstCurve->addPoint (newEnd, dstEndVal, endCurve);
+
+                dstCurve->removeRedundantPoints (totalRegionWithMargin);
+            }
+        }
+    }
+
+    // activate the automation curves on the new tracks
+    juce::Array<tracktion::Track*> src, dst;
+
+    for (auto& section : sections)
+    {
+        if (section.src != section.dst)
+        {
+            if (! src.contains (section.src.get()))
+            {
+                src.add (section.src.get());
+                dst.add (section.dst.get());
+            }
+        }
+    }
+
+    for (int i = 0; i < src.size(); ++i)
+    {
+        if (auto ap = src.getUnchecked (i)->getCurrentlyShownAutoParam())
+        {
+            for (auto p : dst.getUnchecked (i)->getAllAutomatableParams())
+            {
+                if (p->getPluginAndParamName() == ap->getPluginAndParamName())
+                {
+                    dst.getUnchecked (i)->setCurrentlyShownAutoParam (p);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
+
 void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy)
 {
 	te::TrackAutomationSection section;
@@ -1008,25 +1213,35 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
 {
     return {p.x - (w/2), p.y - (w/2), w, w};
 }
+bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
+{
+    return ap.getCurve().getNumPoints() > 0;
+}
 int GUIHelpers::getTrackHeight(
     tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
 {
+    if(track == nullptr)
+        return 0;
+
     bool isMinimized = (bool) track->state.getProperty(IDs::isTrackMinimized);
     auto trackHeight = isMinimized || track->isFolderTrack()
             ? evs.m_trackHeightMinimized
             : (int) track->state.getProperty(tracktion_engine::IDs::height, 50);
 
     if (!isMinimized && withAutomation)
-        for (auto apEditItems : track->getAllAutomatableEditItems())
-            for (auto ap : apEditItems->getAutomatableParameters())
-                if (ap->getCurve().getNumPoints() > 0)
-                {
-                    int automationHeight =
-                        ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50);
-                    trackHeight += automationHeight;
-                }
+    {
+        int automationHeight = 0;
 
+        for (auto ap : te::getAllAutomatableParameter(evs.m_edit))
+        {
+            if (ap->getTrack() == track && isAutomationVisible(*ap))
+            {
+                automationHeight += static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
+            }
+        }
 
+        trackHeight += automationHeight;
+    }   
 
     auto it = track;
     while (it->isPartOfSubmix())

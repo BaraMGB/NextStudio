@@ -39,6 +39,8 @@ namespace Helpers
 namespace GUIHelpers
 {
 
+    bool isAutomationVisible(const te::AutomatableParameter& ap);
+
     int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
 
     float getZoomScaleFactor(int delta, float unitDistance);
@@ -211,6 +213,7 @@ namespace EngineHelpers
                                                      , te::SelectionManager& sm
                                                      , bool copy);
 
+    void moveAutomationOrCopy(const juce::Array<te::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy);
 	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
 
     void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs);

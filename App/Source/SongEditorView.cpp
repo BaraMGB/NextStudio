@@ -50,7 +50,7 @@ void SongEditorView::paint(juce::Graphics& g)
 
         for (auto& ap : t->getAllAutomatableParams())
         {
-            if (ap->getCurve().getNumPoints() > 0)
+            if (GUIHelpers::isAutomationVisible(*ap))
             {
                 auto rect = getAutomationRect(ap);
                     
@@ -58,7 +58,7 @@ void SongEditorView::paint(juce::Graphics& g)
                 {
                     drawAutomationLane(g, m_editViewState.getSongEditorViewedTimeRange(), rect, ap, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 
-                    if (m_selectedRange.selectedTracks.contains(t) && m_selectedRange.getLength().inSeconds() > 0)
+                    if (m_selectedRange.selectedAutomations.contains(ap) && m_selectedRange.getLength().inSeconds() > 0)
                     {
                         auto x = timeToX(m_selectedRange.getStart().inSeconds());
                         auto y = rect.getY();
@@ -84,9 +84,31 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
 
     if (m_isDraggingSelectedTimeRange)
     {
-        auto x = timeToX(m_selectedRange.getStart().inSeconds() + m_draggedTimeDelta);
-        auto y = getYForTrack(m_selectedRange.selectedTracks.getFirst());
-        g.drawImageAt(m_timeRangeImage, x, y, false);
+        for (auto track : m_selectedRange.selectedTracks)
+        {
+            auto x = timeToX(m_selectedRange.getStart().inSeconds()); 
+            auto y = getYForTrack(track);
+            auto w = timeToX(m_selectedRange.getEnd().inSeconds()) - x;
+            auto h = GUIHelpers::getTrackHeight(track, m_editViewState, false);
+
+            x = x + timeToX(m_draggedTimeDelta) + scroll;
+
+            g.setColour(juce::Colour(0x50ff0000));
+            g.fillRect(juce::Rectangle(x, y , w, h));
+        }
+
+        for (auto automation : m_selectedRange.selectedAutomations)
+        {
+            auto x = timeToX(m_selectedRange.getStart().inSeconds()); 
+            auto y = getAutomationRect(automation).getY();
+            auto w = timeToX(m_selectedRange.getEnd().inSeconds()) - x;
+            auto h = getHeightOfAutomation(automation);
+
+            x = x + timeToX(m_draggedTimeDelta) + scroll;
+
+            g.setColour(juce::Colour(0x5000ff00));
+            g.fillRect(juce::Rectangle(x, y , w, h));
+        }
     }
 
     if (m_hoveredTimeRangeLeft)
@@ -228,8 +250,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             repaint();
         }
     }
-    //track hit test 
-    if (m_hoveredTrack)
+    if (m_hoveredTrack && m_hoveredAutamatableParam == nullptr)
     {
         if (m_selectedRange.selectedTracks.contains(m_hoveredTrack) && m_selectedRange.timeRange.contains(tracktion::TimePosition::fromSeconds(xtoTime(e.x))))
         {
@@ -297,10 +318,14 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     // {
     //     GUIHelpers::log("Automation  : ", m_hoveredAutamatableParam != nullptr);
     //     GUIHelpers::log("Track: ", m_hoveredAutamatableParam->getTrack()->getName());
+    //     std::cout << "Automation name: " << m_hoveredAutamatableParam->getParameterName() << std::endl;
+    //
     //     std::cout << "Automation Y: " << getYForAutomatableParam(m_hoveredAutamatableParam) << " Height: " << getHeightOfAutomation(m_hoveredAutamatableParam) << std::endl;
     //     GUIHelpers::log("Point       : ", m_hoveredAutomationPoint) ;
     //     GUIHelpers::log("Curve       : ", m_hoveredCurve);
+    //
     // }
+    repaint();
 }
 
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
@@ -642,21 +667,23 @@ te::AutomatableParameter::Ptr SongEditorView::getAutomatableParamAt(int y)
 
             if (!t->state.getProperty(IDs::isTrackMinimized) && trackHeight > 0)
             {
-                for (auto p : t->getAllAutomatableParams())
+                for (auto ap : t->getAllAutomatableParams())
                 {
-                    if (p->getCurve().getNumPoints() > 0)
+                    if (ap->getTrack() == t && GUIHelpers::isAutomationVisible(*ap))
                     {
-                        int h = p->getCurve().state.getProperty(te::IDs::height, static_cast<int>(m_editViewState.m_trackDefaultHeight));
+                        int h = ap->getCurve().state.getProperty(te::IDs::height, static_cast<int>(m_editViewState.m_trackDefaultHeight));
 
                         if (juce::Range<int>(scrollY + trackHeight, scrollY + trackHeight + h).contains(y))
                         {
-                            return p;
+                            return ap;
                         }
+
+                        scrollY += h;
                     }
                 }
             }
 
-            scrollY += GUIHelpers::getTrackHeight(t,m_editViewState, true);
+            scrollY += trackHeight;
         }
     }
 
@@ -702,6 +729,8 @@ juce::Rectangle<int> SongEditorView::getAutomationRect (te::AutomatableParameter
 
 int SongEditorView::getHeightOfAutomation (te::AutomatableParameter::Ptr ap)
 {
+    if (ap->getTrack() == nullptr)
+        return 0;
     if (GUIHelpers::getTrackHeight(ap->getTrack(), m_editViewState) == 0 || ap->getTrack()->state.getProperty(IDs::isTrackMinimized))
         return 0;
 
@@ -984,20 +1013,23 @@ void SongEditorView::updateRangeSelection()
     clearSelectedTimeRange();
    
     auto range = m_lassoComponent.getLassoRect().m_timeRange;
+    juce::Range<int> lassoRangeY = m_lassoComponent.getLassoRect().m_verticalRange; 
 
     for (auto t: getShowedTracks())
     {
         auto trackVRange = getVerticalRangeOfTrack(t, false);
-        juce::Range<int> lassoRangeY = m_lassoComponent.getLassoRect().m_verticalRange; 
         if (trackVRange.intersects (lassoRangeY))
             m_selectedRange.selectedTracks.add(t);
+    }
 
-        for (auto ap : t->getAllAutomatableParams())
+    for (auto& ap : te::getAllAutomatableParameter(m_editViewState.m_edit))
+    {
+        if (GUIHelpers::isAutomationVisible(*ap))
         {
             auto rect = getAutomationRect(ap);
             juce::Range<int> vRange = {rect.getY(), rect.getBottom()};
             if (vRange.intersects(lassoRangeY))
-                m_selectedRange.selectedAutomations.add(ap);
+                m_selectedRange.selectedAutomations.addIfNotAlreadyThere(ap);
         }
     }
 
@@ -1137,22 +1169,23 @@ void SongEditorView::moveSelectedTimeRanges(tracktion::TimeDuration td, bool cop
         if (t!= nullptr)
             moveSelectedRangeOfTrack(t, td, copy);
 
-    for (auto a : m_selectedRange.selectedAutomations)
+    for (auto ap : m_selectedRange.selectedAutomations)
     {
-        auto as = getTrackAutomationSection(a, m_selectedRange.timeRange);
-        te::moveAutomation(as, td, copy);
+        auto as = getTrackAutomationSection(ap, m_selectedRange.timeRange);
+        // te::moveAutomation(as, td, copy);
+        EngineHelpers::moveAutomationOrCopy(as, td, copy);
     }
 }
 
-te::TrackAutomationSection SongEditorView::getTrackAutomationSection(te::AutomatableParameter* a, tracktion::TimeRange tr)
+te::TrackAutomationSection SongEditorView::getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr)
 {
     te::TrackAutomationSection as;
-    as.src = a->getTrack();
-    as.dst = a->getTrack();
+    as.src = ap->getTrack();
+    as.dst = ap->getTrack();
     as.position = tr;
     te::TrackAutomationSection::ActiveParameters par;
-    par.param = a;
-    par.curve = a->getCurve();
+    par.param = ap;
+    par.curve = ap->getCurve();
     as.activeParameters.add(par);
 
     return as;
