@@ -1232,11 +1232,14 @@ int GUIHelpers::getTrackHeight(
     {
         int automationHeight = 0;
 
-        for (auto ap : te::getAllAutomatableParameter(evs.m_edit))
+        for (auto apEditItems : track->getAllAutomatableEditItems())
         {
-            if (ap->getTrack() == track && isAutomationVisible(*ap))
+            for (auto ap : apEditItems->getAutomatableParameters())
             {
-                automationHeight += static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
+                if (isAutomationVisible(*ap))
+                {
+                    automationHeight += static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
+                }
             }
         }
 

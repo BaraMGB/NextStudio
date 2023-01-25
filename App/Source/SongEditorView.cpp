@@ -325,7 +325,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     //     GUIHelpers::log("Curve       : ", m_hoveredCurve);
     //
     // }
-    repaint();
+    // repaint();
 }
 
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
