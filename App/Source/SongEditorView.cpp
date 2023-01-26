@@ -56,7 +56,7 @@ void SongEditorView::paint(juce::Graphics& g)
                     
                 if (rect.getHeight() > 0)
                 {
-                    drawAutomationLane(g, m_editViewState.getSongEditorViewedTimeRange(), rect, ap, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+                    drawAutomationLane(g, m_editViewState.getSongEditorViewedTimeRange(), rect, ap);
 
                     if (m_selectedRange.selectedAutomations.contains(ap) && m_selectedRange.getLength().inSeconds() > 0)
                     {
@@ -84,17 +84,22 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
 
     if (m_isDraggingSelectedTimeRange)
     {
+        auto selectedRangeRect = juce::Rectangle<int>();
+
         for (auto track : m_selectedRange.selectedTracks)
         {
             auto x = timeToX(m_selectedRange.getStart().inSeconds()); 
             auto y = getYForTrack(track);
             auto w = timeToX(m_selectedRange.getEnd().inSeconds()) - x;
             auto h = GUIHelpers::getTrackHeight(track, m_editViewState, false);
-
+                
             x = x + timeToX(m_draggedTimeDelta) + scroll;
 
-            g.setColour(juce::Colour(0x50ff0000));
-            g.fillRect(juce::Rectangle(x, y , w, h));
+            juce::Rectangle<int> rect = {x, y, w, h};
+
+            selectedRangeRect = selectedRangeRect.getUnion(rect);
+
+            drawTrack(g, rect, track, m_selectedRange.timeRange, true);
         }
 
         for (auto automation : m_selectedRange.selectedAutomations)
@@ -106,9 +111,14 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
 
             x = x + timeToX(m_draggedTimeDelta) + scroll;
 
-            g.setColour(juce::Colour(0x5000ff00));
-            g.fillRect(juce::Rectangle(x, y , w, h));
+            juce::Rectangle<int> rect = {x, y, w, h};
+
+            drawAutomationLane(g, m_selectedRange.timeRange, rect, automation, true);
+
+            selectedRangeRect = selectedRangeRect.getUnion(rect);
         }
+        g.setColour(juce::Colours::yellowgreen);
+        g.drawRect(selectedRangeRect);
     }
 
     if (m_hoveredTimeRangeLeft)
@@ -232,7 +242,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                 auto time = curve.getPoint(i).time;
                 auto value = curve.getPoint(i).value;
 
-                auto pointXy = getPointOnAutomationRect(time, value, m_hoveredAutamatableParam);
+                auto pointXy = getPointOnAutomationRect(time, value, m_hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 
                 if (hoveredRectOnLane.contains(pointXy))
                     m_hoveredAutomationPoint = i;
@@ -244,7 +254,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             if (hoveredRectOnLane.contains(curvePointAtMouseTime) && m_hoveredAutomationPoint == -1)
                 m_hoveredCurve = curve.nextIndexAfter(mousePosTime);
             
-            auto cp = getPointOnAutomationRect(mousePosTime, valueAtMouseTime, m_hoveredAutamatableParam);
+            auto cp = getPointOnAutomationRect(mousePosTime, valueAtMouseTime, m_hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             cp = cp.translated (0, getYForAutomatableParam(m_hoveredAutamatableParam));
             m_hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
             repaint();
@@ -1099,7 +1109,7 @@ void SongEditorView::updateAutomationSelection(bool add)
                 for (auto i = firstPoint ; i <= lastPoint; i++)
                 {
                     auto p = ap->getCurve().getPoint(i);
-                    auto pointPos = getPointOnAutomationRect(p.time, p.value, ap);
+                    auto pointPos = getPointOnAutomationRect(p.time, p.value, ap, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
                     pointPos.addXY(0, getYForAutomatableParam(ap));
 
                     if (m_lassoComponent.getLassoRect().m_verticalRange.contains(pointPos.getY()))
@@ -1302,13 +1312,15 @@ std::unique_ptr<te::SmartThumbnail>& SongEditorView::getOrCreateThumbnail (te::W
     return m_thumbnails.getLast()->smartThumbnail;
 }
 
-void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr)
+void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
 {
-    g.setColour(juce::Colour(0x60ffffff));
-    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
-
     double x1beats = m_editViewState.timeToBeat(etr.getStart().inSeconds());
     double x2beats = m_editViewState.timeToBeat(etr.getEnd().inSeconds());
+
+    g.setColour(juce::Colour(0x60ffffff));
+    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
+    g.setColour(juce::Colour(0xff252525));
+    g.fillRect(displayedRect);
 
     GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, displayedRect);
 
@@ -1318,14 +1330,18 @@ void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayed
 
         if (clip->getPosition().time.intersects(etr))
         {
-            int x = m_editViewState.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
+            int x = displayedRect.getX() + m_editViewState.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
             int y = displayedRect.getY();
-            int w = m_editViewState.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats) - x;
+            int w = (displayedRect.getX() + m_editViewState.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
             int h = displayedRect.getHeight();
 
             juce::Rectangle<int> clipRect = {x,y,w,h};
 
             auto color = clip->getTrack()->getColour();
+
+            if (forDragging)
+                color = color.withAlpha(0.7f);
+
             if (auto c = dynamic_cast<te::Clip*>(clip))
                 drawClip(g,clipRect, c, color, displayedRect, x1beats, x2beats); 
         }
@@ -1542,9 +1558,10 @@ void  SongEditorView::drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, ju
         g.fillRect(x1, y, w, noteHeight);
     }
 }
-juce::Point<int> SongEditorView::getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap) 
+juce::Point<int> SongEditorView::getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap, int w, double x1b, double x2b) 
 {
-   return {timeToX(t.inSeconds()), getYPos(v, ap)}; 
+   return {m_editViewState.timeToX(t.inSeconds(), w, x1b, x2b)
+           , getYPos(v, ap)}; 
 }
 
 int SongEditorView::getYPos (double value, te::AutomatableParameter::Ptr ap)
@@ -1577,11 +1594,16 @@ int SongEditorView::getAutomationPointWidth (te::AutomatableParameter::Ptr ap)
     return 8;
 }
 
-void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap, double x1Beat, double x2beat)
+void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging)
 {
     using namespace juce::Colours;
+    double x1beats = m_editViewState.timeToBeat(drawRange.getStart().inSeconds());
+    double x2beats = m_editViewState.timeToBeat(drawRange.getEnd().inSeconds());
 
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, m_editViewState.m_viewX1, m_editViewState.m_viewX2, drawRect);
+
+    g.setColour(juce::Colour(0xff252525));
+    g.fillRect(drawRect);
+    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats,  drawRect);
 
     juce::Path pointsPath;
     juce::Path selectedPointsPath;
@@ -1606,7 +1628,7 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
         {
             auto time = ap->getCurve().getPoint(i).time;
             auto value = ap->getCurve().getPoint(i).value;
-            juce::Point<int> pointPos = getPointOnAutomationRect(time, value, ap).translated(0, drawRect.getY());
+            juce::Point<int> pointPos = getPointOnAutomationRect(time, value, ap, drawRect.getWidth(), x1beats, x2beats).translated(drawRect.getX(), drawRect.getY());
 
             auto curve = juce::jlimit(-.5f, .5f, ap->getCurve().getPoint(i - 1).curve);
             auto x = oldPoint.x + ( (pointPos.x - oldPoint.x) * (.5f + curve) );
