@@ -83,7 +83,11 @@ private:
     juce::Rectangle<int> getAutomationRect (te::AutomatableParameter::Ptr ap);
     int getHeightOfAutomation (te::AutomatableParameter::Ptr ap);
     int getYForAutomatableParam(te::AutomatableParameter::Ptr ap);
-    juce::Point<int> getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap, int w, double x1b, double x2b); 
+
+    int nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const;
+    juce::Point<float> getPointOnAutomation(te::AutomatableParameter::Ptr ap, int index, juce::Rectangle<int> drawRect, double startBeat, double endBeat);
+    juce::Point<float> getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap, int w, double x1b, double x2b); 
+    juce::Point<float> getCurveControlPoint(juce::Point<float> p1, juce::Point<float> p2, float curve);
     int getAutomationPointWidth (te::AutomatableParameter::Ptr ap);
     int getYPos (double value, te::AutomatableParameter::Ptr ap);
     double getValue (int y, te::AutomatableParameter::Ptr ap);

@@ -38,7 +38,6 @@ namespace Helpers
 
 namespace GUIHelpers
 {
-
     bool isAutomationVisible(const te::AutomatableParameter& ap);
 
     int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);

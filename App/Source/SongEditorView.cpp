@@ -244,7 +244,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
 
                 auto pointXy = getPointOnAutomationRect(time, value, m_hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 
-                if (hoveredRectOnLane.contains(pointXy))
+                if (hoveredRectOnLane.contains(pointXy.toInt()))
                     m_hoveredAutomationPoint = i;
             }
 
@@ -254,7 +254,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             if (hoveredRectOnLane.contains(curvePointAtMouseTime) && m_hoveredAutomationPoint == -1)
                 m_hoveredCurve = curve.nextIndexAfter(mousePosTime);
             
-            auto cp = getPointOnAutomationRect(mousePosTime, valueAtMouseTime, m_hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            juce::Point<int> cp = getPointOnAutomationRect(mousePosTime, valueAtMouseTime, m_hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2).toInt();
             cp = cp.translated (0, getYForAutomatableParam(m_hoveredAutamatableParam));
             m_hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
             repaint();
@@ -1322,7 +1322,9 @@ void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayed
     g.setColour(juce::Colour(0xff252525));
     g.fillRect(displayedRect);
 
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, displayedRect);
+    auto ba = m_editViewState.xToBeats(displayedRect.getX(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+    auto be = m_editViewState.xToBeats(displayedRect.getRight(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, ba, be, displayedRect);
 
     for (auto clipIdx = 0; clipIdx < clipTrack->getNumTrackItems(); clipIdx++)
     {
@@ -1558,10 +1560,41 @@ void  SongEditorView::drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, ju
         g.fillRect(x1, y, w, noteHeight);
     }
 }
-juce::Point<int> SongEditorView::getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap, int w, double x1b, double x2b) 
+
+int SongEditorView::nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const
 {
-   return {m_editViewState.timeToX(t.inSeconds(), w, x1b, x2b)
-           , getYPos(v, ap)}; 
+    auto num = ap->getCurve().getNumPoints();
+
+    for (int i = 0; i < num; ++i)
+        if (ap->getCurve().getPointTime (i) >= t)
+            return i;
+
+    return -1;
+}
+
+juce::Point<float> SongEditorView::getPointOnAutomation(te::AutomatableParameter::Ptr ap, int index, juce::Rectangle<int> drawRect, double startBeat, double endBeat)
+{
+    auto time = ap->getCurve().getPoint(index).time;
+    auto value = ap->getCurve().getPoint(index).value;
+    auto point = getPointOnAutomationRect(time, value, ap, drawRect.getWidth(), startBeat, endBeat).translated((float) drawRect.getX(),(float) drawRect.getY());
+
+    return point;
+}
+
+juce::Point<float> SongEditorView::getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap, int w, double x1b, double x2b) 
+{
+   return {static_cast<float>(m_editViewState.timeToX(t.inSeconds(), w, x1b, x2b))
+           , static_cast<float>(getYPos(v, ap))}; 
+}
+
+juce::Point<float> SongEditorView::getCurveControlPoint(juce::Point<float> p1, juce::Point<float> p2, float curve)
+{
+    auto controlX = p1.x + ( (p2.x - p1.x) * (.5f + curve) ) ;
+    auto controlY = p1.y + ( (p2.y - p1.y) * (.5f - curve) ) ;
+
+    auto curveControlPoint = juce::Point<float>(controlX, controlY);
+
+    return curveControlPoint;
 }
 
 int SongEditorView::getYPos (double value, te::AutomatableParameter::Ptr ap)
@@ -1596,14 +1629,16 @@ int SongEditorView::getAutomationPointWidth (te::AutomatableParameter::Ptr ap)
 
 void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging)
 {
-    using namespace juce::Colours;
-    double x1beats = m_editViewState.timeToBeat(drawRange.getStart().inSeconds());
-    double x2beats = m_editViewState.timeToBeat(drawRange.getEnd().inSeconds());
-
-
+    g.saveState();
+    g.reduceClipRegion(drawRect);
+    double startBeat = m_editViewState.timeToBeat(drawRange.getStart().inSeconds());
+    double endBeat = m_editViewState.timeToBeat(drawRange.getEnd().inSeconds());
     g.setColour(juce::Colour(0xff252525));
     g.fillRect(drawRect);
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats,  drawRect);
+
+    auto ba = m_editViewState.xToBeats(drawRect.getX(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+    auto be = m_editViewState.xToBeats(drawRect.getRight(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, ba, be, drawRect);
 
     juce::Path pointsPath;
     juce::Path selectedPointsPath;
@@ -1615,63 +1650,79 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
 
     float startX =  static_cast<float>(drawRect.getX());
     float startY =  static_cast<float>(getYPos(ap->getCurve().getValueAt(drawRange.getStart()),ap) + drawRect.getY());
+    float endX = drawRect.toFloat().getRight();
+    float endY = static_cast<float>(getYPos(ap->getCurve().getValueAt(drawRange.getEnd()),ap) + drawRect.getY());
 
-    curvePath.startNewSubPath({startX, startY});
+    auto pointBeforeDrawRange = ap->getCurve().indexBefore(drawRange.getStart());
+    auto pointAfterDrawRange = nextIndexAfter(drawRange.getEnd(), ap);
+    auto numPointsInDrawRange = ap->getCurve().countPointsInRegion(drawRange);
+    auto numPoints = ap->getCurve().getNumPoints();
 
-    juce::Point<int> oldPoint = {(int)startX, (int)startY };
-
-    for (auto i = 0; i < ap->getCurve().getNumPoints(); i++)
+    auto ellipseRect = juce::Rectangle<int>();
+    if (numPoints < 2)
     {
-        auto pointIsVisible = ap->getCurve().getPoint(i).time >= drawRange.getStart() && ap->getCurve().getPoint(i).time <= drawRange.getEnd();
-
-        if (pointIsVisible)
+        curvePath.startNewSubPath({startX, startY});
+        if (numPointsInDrawRange > 0)
         {
-            auto time = ap->getCurve().getPoint(i).time;
-            auto value = ap->getCurve().getPoint(i).value;
-            juce::Point<int> pointPos = getPointOnAutomationRect(time, value, ap, drawRect.getWidth(), x1beats, x2beats).translated(drawRect.getX(), drawRect.getY());
+            ellipseRect = GUIHelpers::getSensibleArea(getPointOnAutomation(ap, 0,drawRect, startBeat, endBeat).toInt(), getAutomationPointWidth(ap));
+            pointsPath.addEllipse(ellipseRect.toFloat());
+            if (m_hoveredAutomationPoint == 0)
+                hoveredPointPath.addEllipse(ellipseRect.toFloat());
+            if (isAutomationPointSelected(ap, 0))
+                selectedPointsPath.addEllipse(ellipseRect.toFloat());
+        }
+        curvePath.lineTo({endX, endY});
+    }
+    else
+    {
+        if (pointBeforeDrawRange == -1)
+        {
+            curvePath.startNewSubPath({startX, startY});
+            pointBeforeDrawRange = 0;
+        }
+        else
+        {
+            curvePath.startNewSubPath(getPointOnAutomation(ap, pointBeforeDrawRange, drawRect, startBeat, endBeat));
+        }
 
+        if (pointAfterDrawRange == -1)
+            pointAfterDrawRange = ap->getCurve().getNumPoints() -1;
+
+        for (auto i = pointBeforeDrawRange; i <= pointAfterDrawRange; i++)
+        {
+            auto pointXY = getPointOnAutomation(ap, i, drawRect, startBeat, endBeat);
+            
             auto curve = juce::jlimit(-.5f, .5f, ap->getCurve().getPoint(i - 1).curve);
-            auto x = oldPoint.x + ( (pointPos.x - oldPoint.x) * (.5f + curve) );
-            auto y = oldPoint.y + ( (pointPos.y - oldPoint.y) * (.5f - curve) );
-            auto curveControlPoint = juce::Point<float>(x, y);
+            auto curveControlPoint = getCurveControlPoint(curvePath.getCurrentPosition(), pointXY, curve);
 
-            curvePath.quadraticTo(curveControlPoint, {pointPos.toFloat().x, pointPos.toFloat().y});
-            auto ellipseRect = GUIHelpers::getSensibleArea(pointPos, getAutomationPointWidth(ap)).toFloat();
- 
-            if (m_hoveredCurve == i)
+            if (m_hoveredCurve == i && m_hoveredAutamatableParam == ap)
             {
-                hoveredCurvePath.startNewSubPath (oldPoint.toFloat());
-                hoveredCurvePath.quadraticTo (curveControlPoint , pointPos.toFloat());
+                hoveredCurvePath.startNewSubPath (curvePath.getCurrentPosition());
+                hoveredCurvePath.quadraticTo (curveControlPoint , pointXY);
                 if (!m_isDragging) 
                     hoveredDotOnCurvePath.addEllipse (m_hoveredRectOnAutomation.toFloat());
             }
 
-            oldPoint = pointPos;
+            curvePath.quadraticTo(curveControlPoint, pointXY);
 
-            if (m_hoveredAutomationPoint == i)
-            {
-                hoveredPointPath.addEllipse(ellipseRect);
-            }
+            ellipseRect = GUIHelpers::getSensibleArea(getPointOnAutomation(ap, i,drawRect, startBeat, endBeat).toInt(), getAutomationPointWidth(ap));
+            pointsPath.addEllipse(ellipseRect.toFloat());
 
+            if (m_hoveredAutomationPoint == i && m_hoveredAutamatableParam == ap)
+                hoveredPointPath.addEllipse(ellipseRect.toFloat());
             if (isAutomationPointSelected(ap, i))
-            {
-                selectedPointsPath.addEllipse(ellipseRect);
-            }
-
-            pointsPath.addEllipse(ellipseRect);
+                selectedPointsPath.addEllipse(ellipseRect.toFloat());
         }
+
+        if (ap->getCurve().getPoint(pointAfterDrawRange).time < drawRange.getEnd())
+            curvePath.lineTo({endX, endY});
     }
 
     float currentX = curvePath.getCurrentPosition().getX();
     float currentY = curvePath.getCurrentPosition().getY();
-    float endX = drawRect.toFloat().getRight();
-    float endY = static_cast<float>(getYPos(ap->getCurve().getValueAt(drawRange.getEnd()),ap) + drawRect.getY());
-
-    curvePath.lineTo(endX, endY);
 
     if (m_hoveredCurve == ap->getCurve().getNumPoints())
     {
-
         hoveredCurvePath.startNewSubPath (currentX, currentY);
         hoveredCurvePath.lineTo(endX, endY);
         if (!m_isDragging) 
@@ -1679,7 +1730,6 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
     }
 
     fillPath = curvePath;
-
     fillPath.lineTo(drawRect.getBottomRight().toFloat());
     fillPath.lineTo(drawRect.getBottomLeft().toFloat());
     fillPath.closeSubPath();
@@ -1713,6 +1763,8 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
 
     g.setColour(juce::Colours::red);
     g.strokePath(selectedPointsPath, juce::PathStrokeType(lineThickness));
+    
+    g.restoreState();
 }
 
 void SongEditorView::buildRecordingClips(te::Track::Ptr track)
