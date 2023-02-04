@@ -18,6 +18,11 @@ SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr)
     m_editViewState.m_edit.getTransport().addChangeListener(this);
 }
 
+SongEditorView::~SongEditorView()
+{
+    m_editViewState.m_edit.getTransport().removeChangeListener(this);
+}
+
 void SongEditorView::paint(juce::Graphics& g)
 {
 	auto area = getLocalBounds();
@@ -851,7 +856,7 @@ void SongEditorView::stopLasso()
     m_isSelectingTimeRange = false;  
 }
 
-void SongEditorView::duplicateSelectedClips()
+void SongEditorView::duplicateSelectedClipsOrTimeRange()
 {
     if (m_selectedRange.selectedTracks.size() == 0)
     {
@@ -943,13 +948,9 @@ juce::Array<te::Track::Ptr> SongEditorView::getShowedTracks ()
     juce::Array<te::Track::Ptr> showedTracks;
 
     for (auto t : te::getAllTracks(m_editViewState.m_edit))
-    {
         if (EngineHelpers::isTrackShowable(t))
-        {
             if (GUIHelpers::getTrackHeight(t, m_editViewState) > 0)
                 showedTracks.add(t);
-        }
-    }
 
     return showedTracks;
 }
@@ -1181,25 +1182,11 @@ void SongEditorView::moveSelectedTimeRanges(tracktion::TimeDuration td, bool cop
 
     for (auto ap : m_selectedRange.selectedAutomations)
     {
-        auto as = getTrackAutomationSection(ap, m_selectedRange.timeRange);
-        // te::moveAutomation(as, td, copy);
+        auto as = EngineHelpers::getTrackAutomationSection(ap, m_selectedRange.timeRange);
         EngineHelpers::moveAutomationOrCopy(as, td, copy);
     }
 }
 
-te::TrackAutomationSection SongEditorView::getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr)
-{
-    te::TrackAutomationSection as;
-    as.src = ap->getTrack();
-    as.dst = ap->getTrack();
-    as.position = tr;
-    te::TrackAutomationSection::ActiveParameters par;
-    par.param = ap;
-    par.curve = ap->getCurve();
-    as.activeParameters.add(par);
-
-    return as;
-}
 void SongEditorView::moveSelectedRangeOfTrack(te::Track::Ptr track, tracktion::TimeDuration duration, bool copy)
 {
     if (auto ct = dynamic_cast<te::ClipTrack*>(track.get()))

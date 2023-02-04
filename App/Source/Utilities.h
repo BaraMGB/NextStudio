@@ -118,7 +118,7 @@ namespace GUIHelpers
                              double x2beats,
                              const juce::Rectangle<int>& boundingRect,
                              const juce::Colour& shade);
-struct SelectedTimeRange 
+    struct SelectedTimeRange 
     {
         juce::Array<te::Track*> selectedTracks;
         juce::Array<te::AutomatableParameter*> selectedAutomations;
@@ -214,6 +214,8 @@ namespace EngineHelpers
 
     void moveAutomationOrCopy(const juce::Array<te::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy);
 	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
+    
+    te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr);
 
     void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs);
 

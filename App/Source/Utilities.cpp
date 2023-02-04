@@ -750,6 +750,19 @@ void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::Ac
 	te::moveAutomation(secs, offset, copy);
 }
 
+te::TrackAutomationSection EngineHelpers::getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr)
+{
+    te::TrackAutomationSection as;
+    as.src = ap->getTrack();
+    as.dst = ap->getTrack();
+    as.position = tr;
+    te::TrackAutomationSection::ActiveParameters par;
+    par.param = ap;
+    par.curve = ap->getCurve();
+    as.activeParameters.add(par);
+
+    return as;
+}
 void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
