@@ -189,7 +189,7 @@ public:
         return ts.toBeats(tp).inBeats();
     }
 
-    tracktion::TimeRange getSongEditorViewedTimeRange()
+    tracktion::TimeRange getSongEditorVisibleTimeRange()
     {
         auto s = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX1));
         auto e = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX2));

@@ -25,6 +25,10 @@ SongEditorView::~SongEditorView()
 
 void SongEditorView::paint(juce::Graphics& g)
 {
+    using namespace juce::Colours;
+    auto &sm = m_editViewState.m_selectionManager;
+    auto scroll = timeToX(0) * (-1);
+
 	auto area = getLocalBounds();
 	g.setColour(juce::Colour(0xff303030));
 	g.fillRect(area);
@@ -33,14 +37,14 @@ void SongEditorView::paint(juce::Graphics& g)
     {
         if (auto ct = dynamic_cast<te::ClipTrack*>(t))
         {
-            if (!ct->isMasterTrack() && !ct->isTempoTrack() && !ct->isAutomationTrack() && !ct->isArrangerTrack() && !ct->isMarkerTrack() && !ct->isChordTrack())
+            if (EngineHelpers::isTrackShowable(t))
             {
                 auto x = 0;
                 auto y = getYForTrack(t);
                 auto w = getWidth();
                 auto h = GUIHelpers::getTrackHeight(t, m_editViewState, false);
 
-                drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorViewedTimeRange());
+                drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorVisibleTimeRange());
 
                 if (m_selectedRange.selectedTracks.contains(t) && m_selectedRange.getLength().inSeconds() > 0)
                 {
@@ -61,7 +65,7 @@ void SongEditorView::paint(juce::Graphics& g)
                     
                 if (rect.getHeight() > 0)
                 {
-                    drawAutomationLane(g, m_editViewState.getSongEditorViewedTimeRange(), rect, ap);
+                    drawAutomationLane(g, m_editViewState.getSongEditorVisibleTimeRange(), rect, ap);
 
                     if (m_selectedRange.selectedAutomations.contains(ap) && m_selectedRange.getLength().inSeconds() > 0)
                     {
@@ -77,15 +81,6 @@ void SongEditorView::paint(juce::Graphics& g)
             }
         }
     }
-}
-
-
-void SongEditorView::paintOverChildren (juce::Graphics& g)
-{
-    using namespace juce::Colours;
-    auto &sm = m_editViewState.m_selectionManager;
-    auto scroll = timeToX(0) * (-1);
-
 
     if (m_isDraggingSelectedTimeRange)
     {
@@ -188,6 +183,11 @@ void SongEditorView::paintOverChildren (juce::Graphics& g)
             }
         }
     }
+
+}
+
+void SongEditorView::paintOverChildren (juce::Graphics& g)
+{
 }
 
 void SongEditorView::resized()
@@ -1366,7 +1366,12 @@ void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, 
     auto borderColour = clipColor.darker(0.95f);
     auto backgroundColor = borderColour.withAlpha(0.6f);
 
-    // area.removeFromBottom(1);
+    auto labelBackground = juce::Colour(0x00ffffff);
+    auto labelTextColor = clipColor.getPerceivedBrightness() < 0.5f
+                        ? clipColor.withLightness(.75f)
+                        : clipColor.darker(.75f);
+
+
     g.setColour(backgroundColor);
     g.fillRect(area.reduced(1, 1));
 
@@ -1378,6 +1383,13 @@ void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, 
         g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
 
     g.fillRect(header.reduced(2,2));
+
+    if (isSelected)
+        labelTextColor = juce::Colours::black;
+    g.setColour(labelTextColor);
+    juce::Font labelFont (14.0f, juce::Font::bold);
+    g.setFont(labelFont);
+    g.drawText(clip->getName(), header.reduced(4, 0), juce::Justification::centredLeft, false);
 
     clipRect.removeFromTop(header.getHeight());
     clipRect.reduce(1,1);

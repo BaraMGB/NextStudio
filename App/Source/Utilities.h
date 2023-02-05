@@ -140,27 +140,7 @@ namespace GUIHelpers
                      juce::Rectangle<float> textRect,
                      const juce::String& text,
                      const juce::Colour& textColour);
-    }
-
-    class DelayedOneShotLambda : public juce::Timer
-    {
-    public:
-        DelayedOneShotLambda(int ms, std::function<void()> fn)
-        : m_func(std::move(fn))
-        {
-            startTimer(ms);
-        }
-        ~DelayedOneShotLambda() override { stopTimer(); }
-
-        void timerCallback() override
-        {
-            auto f = m_func;
-            delete this;
-            f();
-        }
-    private:
-        std::function<void()> m_func;
-    };
+}
 
 namespace PlayHeadHelpers
 {
