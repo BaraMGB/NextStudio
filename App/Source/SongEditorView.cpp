@@ -292,12 +292,14 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                     m_hoveredClip = clip;
                     auto clipRect = getClipRect(clip);
                     {
-                        if (e.getPosition().getX() < clipRect.getX() + 10 && clipRect.getWidth () > 30)
+
+                        auto borderWidth = clipRect.getWidth() > 30 ? 10 : clipRect.getWidth() / 3;
+
+                        if (e.getPosition().getX() < clipRect.getX() + borderWidth)
                         { 
                             m_leftBorderHovered = true;
                         }
-                        else if (e.getPosition().getX() > clipRect.getRight() - 10
-                             &&  clipRect.getWidth () > 30)
+                        else if (e.getPosition().getX() > clipRect.getRight() - borderWidth)
                         {
                             m_rightBorderHovered = true;
                         }

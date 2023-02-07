@@ -214,13 +214,15 @@ void PianoRollContentComponent::mouseMove(const juce::MouseEvent& e)
                                  + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats());
             note->setColour(127, nullptr);
 
-            if (e.x < startX + 10)
+            auto borderWidth = getNoteRect(mc, note).getWidth() > 30 ? 10 : getNoteRect(mc, note).getWidth() / 3;
+
+            if (e.x < startX + borderWidth)
             {
                 setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
                 m_expandLeft = true;
                 m_expandRight = false;
             }
-            else if (e.x > endX - 10)
+            else if (e.x > endX - borderWidth)
             {
                 setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
                 m_expandLeft = false;
