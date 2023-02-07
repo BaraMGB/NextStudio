@@ -184,7 +184,7 @@ private:
     te::Clip::Ptr                       m_hoveredClip {nullptr};
     int                                 m_hoveredCurve {-1};
 
-
+    void logMousePositionInfo();
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };

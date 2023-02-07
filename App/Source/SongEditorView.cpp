@@ -315,32 +315,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
 
     updateCursor(e.mods);
 
-    //log 
-    // GUIHelpers::log("------------------------------------------------------------");
-    // GUIHelpers::log("ToolMode    : ", (int) m_toolMode);
-    // GUIHelpers::log("TimeRange   : ", m_hoveredTimeRange);
-    // GUIHelpers::log("TimeRange L : ", m_hoveredTimeRangeLeft);
-    // GUIHelpers::log("TimeRange R : ", m_hoveredTimeRangeRight);
-    //  GUIHelpers::log("Track       : ", m_hoveredTrack != nullptr);
-    // if (m_hoveredTrack)
-    // {
-    //     GUIHelpers::log("Track : ", m_hoveredTrack->getName());
-    // }
-    // GUIHelpers::log("Clip        : ", m_hoveredClip != nullptr);
-    // GUIHelpers::log("Clip      L : ", m_leftBorderHovered);
-    // GUIHelpers::log("Clip      R : ", m_rightBorderHovered);
-    // if (m_hoveredAutamatableParam)
-    // {
-    //     GUIHelpers::log("Automation  : ", m_hoveredAutamatableParam != nullptr);
-    //     GUIHelpers::log("Track: ", m_hoveredAutamatableParam->getTrack()->getName());
-    //     std::cout << "Automation name: " << m_hoveredAutamatableParam->getParameterName() << std::endl;
-    //
-    //     std::cout << "Automation Y: " << getYForAutomatableParam(m_hoveredAutamatableParam) << " Height: " << getHeightOfAutomation(m_hoveredAutamatableParam) << std::endl;
-    //     GUIHelpers::log("Point       : ", m_hoveredAutomationPoint) ;
-    //     GUIHelpers::log("Curve       : ", m_hoveredCurve);
-    //
-    // }
-    // repaint();
+    //logMousePositionInfo();
 }
 
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
@@ -371,7 +346,6 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
 
     if (clickedOnTimeRange && leftButton)
     {
-        // m_timeRangeImage = createSnapshotOfTimeRange();
         return;
     }
 
@@ -462,13 +436,21 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
     auto isDraggingMultiSelectionToolSpan = m_lassoComponent.isVisible () || m_isSelectingTimeRange;
     auto isDraggingAutomationPoint = m_hoveredAutomationPoint != -1 && e.mouseWasDraggedSinceMouseDown ();
     auto isChangingCurveSteepness = m_hoveredAutomationPoint == -1 && m_hoveredCurve != -1 && e.mods.isCtrlDown ();
+    auto snap = !e.mods.isShiftDown();
 
     if (isDraggingTimeRange)
     {
         m_isDraggingSelectedTimeRange = true;
 
-        auto startTime = getSnapedTime(xtoTime(e.getMouseDownX()), true);
-        auto targetTime = getSnapedTime(xtoTime(e.x), false);
+        auto startTime = xtoTime(e.getMouseDownX());
+        auto targetTime = xtoTime(e.x);
+
+        if (snap)
+        {
+            startTime = getSnapedTime(startTime, true);
+            targetTime = getSnapedTime(targetTime, false);
+        }
+
         m_draggedTimeDelta = targetTime - startTime; 
     }
         
@@ -510,7 +492,6 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
     if (isDraggingAutomationPoint)
     { 
         auto lockTime = e.mods.isCtrlDown();
-        auto snap = !e.mods.isShiftDown();
 
         auto oldPos = m_timeOfHoveredAutomationPoint;
         auto newPos = tracktion::TimePosition::fromSeconds(xtoTime(e.x)); 
@@ -1802,4 +1783,33 @@ void SongEditorView::buildRecordingClips(te::Track::Ptr track)
             if (rc->getTrack() == track)
                 m_recordingClips.removeObject(rc, true);
     }
+}
+
+void SongEditorView::logMousePositionInfo()
+{
+    GUIHelpers::log("------------------------------------------------------------");
+    GUIHelpers::log("ToolMode    : ", (int) m_toolMode);
+    GUIHelpers::log("TimeRange   : ", m_hoveredTimeRange);
+    GUIHelpers::log("TimeRange L : ", m_hoveredTimeRangeLeft);
+    GUIHelpers::log("TimeRange R : ", m_hoveredTimeRangeRight);
+     GUIHelpers::log("Track       : ", m_hoveredTrack != nullptr);
+    if (m_hoveredTrack)
+    {
+        GUIHelpers::log("Track : ", m_hoveredTrack->getName());
+    }
+    GUIHelpers::log("Clip        : ", m_hoveredClip != nullptr);
+    GUIHelpers::log("Clip      L : ", m_leftBorderHovered);
+    GUIHelpers::log("Clip      R : ", m_rightBorderHovered);
+    if (m_hoveredAutamatableParam)
+    {
+        GUIHelpers::log("Automation  : ", m_hoveredAutamatableParam != nullptr);
+        GUIHelpers::log("Track: ", m_hoveredAutamatableParam->getTrack()->getName());
+        std::cout << "Automation name: " << m_hoveredAutamatableParam->getParameterName() << std::endl;
+
+        std::cout << "Automation Y: " << getYForAutomatableParam(m_hoveredAutamatableParam) << " Height: " << getHeightOfAutomation(m_hoveredAutamatableParam) << std::endl;
+        GUIHelpers::log("Point       : ", m_hoveredAutomationPoint) ;
+        GUIHelpers::log("Curve       : ", m_hoveredCurve);
+
+    }
+    repaint();
 }
