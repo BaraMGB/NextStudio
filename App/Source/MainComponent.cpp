@@ -222,7 +222,7 @@ void MainComponent::handleAsyncUpdate()
 
 void MainComponent::timerCallback()
 {
-    if (m_hasUnsavedTemp)
+    if (m_hasUnsavedTemp && !m_editComponent->getEditViewState().m_isSavingLocked)
     {
         saveTempEdit();
         m_hasUnsavedTemp = false;
@@ -247,18 +247,15 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 
 void MainComponent::saveTempEdit()
 {
-    if (!m_edit->getTransport().isPlaying())
-    {
-        auto temp = m_edit->getTempDirectory(false);
-        auto editFile = Helpers::findRecentEdit(temp);
-        auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
+    auto temp = m_edit->getTempDirectory(false);
+    auto editFile = Helpers::findRecentEdit(temp);
+    auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
 
-        EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
-        te::EditFileOperations(*m_edit).writeToFile(editFile, true);
-        EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
-        m_edit->sendSourceFileUpdate();
-        GUIHelpers::log("Temp file saved!");
-    }
+    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
+    te::EditFileOperations(*m_edit).writeToFile(editFile, true);
+    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
+    m_edit->sendSourceFileUpdate();
+    GUIHelpers::log("Temp file saved!");
 }
 
 void MainComponent::openValidStartEdit()

@@ -297,6 +297,7 @@ public:
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;
     juce::ValueTree m_state;
+    bool m_isSavingLocked {false};
     ApplicationViewState& m_applicationState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };

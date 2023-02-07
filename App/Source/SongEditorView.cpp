@@ -345,6 +345,8 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
 
 void SongEditorView::mouseDown(const juce::MouseEvent&e)
 {
+    m_editViewState.m_isSavingLocked = true;
+
     auto &sm = m_editViewState.m_selectionManager;
 
     //init
@@ -630,6 +632,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
     m_hoveredTimeRangeRight = false;
     m_hoveredTimeRangeLeft = false;
     m_isDragging = false;
+    m_editViewState.m_isSavingLocked = false;
             
     mouseMove(e);
 }
