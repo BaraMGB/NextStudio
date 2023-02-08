@@ -214,13 +214,15 @@ void PianoRollContentComponent::mouseMove(const juce::MouseEvent& e)
                                  + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats());
             note->setColour(127, nullptr);
 
-            if (e.x < startX + 10)
+            auto borderWidth = getNoteRect(mc, note).getWidth() > 30 ? 10 : getNoteRect(mc, note).getWidth() / 3;
+
+            if (e.x < startX + borderWidth)
             {
                 setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
                 m_expandLeft = true;
                 m_expandRight = false;
             }
-            else if (e.x > endX - 10)
+            else if (e.x > endX - borderWidth)
             {
                 setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
                 m_expandLeft = false;
@@ -466,9 +468,9 @@ float PianoRollContentComponent::getStartKey() const
 {
     return (float) m_editViewState.m_pianoStartKey;
 }
-void PianoRollContentComponent::startLasso(const juce::MouseEvent& e)
+void PianoRollContentComponent::startLasso(const juce::MouseEvent& e, bool isRangeTool)
 {
-    m_lassoTool.startLasso(e.getEventRelativeTo(&m_lassoTool));
+    m_lassoTool.startLasso({e.x, e.y}, (m_editViewState.m_pianoStartKey * m_editViewState.m_pianoKeyWidth), isRangeTool);
 }
 void PianoRollContentComponent::setNoteSelected(tracktion_engine::MidiNote* n,
                                                 bool addToSelection)
@@ -478,8 +480,7 @@ void PianoRollContentComponent::setNoteSelected(tracktion_engine::MidiNote* n,
 }
 void PianoRollContentComponent::updateLasso(const juce::MouseEvent& e)
 {
-    auto top = getYForKey(m_clickedKey);
-    m_lassoTool.updateLasso(e.getEventRelativeTo(&m_lassoTool), top);
+    m_lassoTool.updateLasso({e.x, e.y}, (m_editViewState.m_pianoStartKey * m_editViewState.m_pianoKeyWidth));
     updateLassoSelection();
 }
 void PianoRollContentComponent::stopLasso()
@@ -657,7 +658,7 @@ void PianoRollContentComponent::drawBarsAndBeatLines(juce::Graphics& g,
     g.setColour(colour);
     double x1 = m_editViewState.m_pianoX1;
     double x2 = m_editViewState.m_pianoX2;
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1, x2, getBounds());
+    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1, x2, getLocalBounds());
 }
 int PianoRollContentComponent::getNoteNumber(int y)
 {

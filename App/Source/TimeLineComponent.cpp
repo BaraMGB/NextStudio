@@ -38,7 +38,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
               , m_editViewState
               , x1beats
               , x2beats
-              , getBounds ()
+              , getLocalBounds()
               , true);
 
     if (m_isMouseDown)

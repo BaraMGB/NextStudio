@@ -38,6 +38,7 @@ namespace Helpers
 
 namespace GUIHelpers
 {
+    bool isAutomationVisible(const te::AutomatableParameter& ap);
 
     int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
 
@@ -60,6 +61,12 @@ namespace GUIHelpers
     void centerView(EditViewState& evs);
 
     juce::Rectangle<int> getSensibleArea(juce::Point<int> p, int w);
+
+    void drawClip(juce::Graphics& g,
+                  juce::Rectangle<int> rect,
+                  te::Clip * clip,
+                  juce::Colour color,
+                  EditViewState& evs);
 
     void drawRoundedRectWithSide(
         juce::Graphics &g
@@ -111,6 +118,16 @@ namespace GUIHelpers
                              double x2beats,
                              const juce::Rectangle<int>& boundingRect,
                              const juce::Colour& shade);
+    struct SelectedTimeRange 
+    {
+        juce::Array<te::Track*> selectedTracks;
+        juce::Array<te::AutomatableParameter*> selectedAutomations;
+        tracktion::TimeRange timeRange;
+
+        tracktion::TimePosition getStart() { return timeRange.getStart(); }
+        tracktion::TimeDuration getLength() { return timeRange.getLength(); }
+        tracktion::TimePosition getEnd() { return timeRange.getEnd(); }
+    };
     void drawSnapLines(juce::Graphics& g,
                        const EditViewState& evs,
                        double x1beats,
@@ -123,27 +140,7 @@ namespace GUIHelpers
                      juce::Rectangle<float> textRect,
                      const juce::String& text,
                      const juce::Colour& textColour);
-    }
-
-    class DelayedOneShotLambda : public juce::Timer
-    {
-    public:
-        DelayedOneShotLambda(int ms, std::function<void()> fn)
-        : m_func(std::move(fn))
-        {
-            startTimer(ms);
-        }
-        ~DelayedOneShotLambda() override { stopTimer(); }
-
-        void timerCallback() override
-        {
-            auto f = m_func;
-            delete this;
-            f();
-        }
-    private:
-        std::function<void()> m_func;
-    };
+}
 
 namespace PlayHeadHelpers
 {
@@ -184,16 +181,23 @@ namespace EngineHelpers
 
     bool trackWantsClip(const te::Clip* clip, const te::Track* track);
     te::Track* getTargetTrack(te::Track*, int verticalOffset);
+    juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
     void deleteSelectedClips(EditViewState & evs);
 
-    void moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype);
+    bool isTrackShowable(te::Track::Ptr track);
+
+    bool isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr);
+    void moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs);
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm
                                                      , bool copy);
 
+    void moveAutomationOrCopy(const juce::Array<te::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy);
 	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
+    
+    te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr);
 
-    void resizeSelectedClips(bool snap, bool fromLeftEdge, double delta, EditViewState & evs, te::TimecodeSnapType snapType);
+    void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs);
 
     te::Project::Ptr createTempProject (te::Engine& engine);
 

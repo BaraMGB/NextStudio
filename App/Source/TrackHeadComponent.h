@@ -4,7 +4,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
-#include "ClipComponent.h"
 #include "LevelMeterComponent.h"
 #include "LowerRangeComponent.h"
 #include "PluginRackComponent.h"
@@ -39,7 +38,6 @@ public:
 class TrackHeaderComponent : public juce::Component
                            , private te::ValueTreeAllEventListener
                            , private FlaggedAsyncUpdater
-                           , public juce::ChangeBroadcaster
                            , public juce::DragAndDropTarget
                            , public juce::Label::Listener
 {

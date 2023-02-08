@@ -1,4 +1,5 @@
 #include "TrackHeadComponent.h"
+#include "EditComponent.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
 	: m_automatableParameter(ap)
     , m_slider(ap)
@@ -276,7 +277,6 @@ TrackHeaderComponent::TrackHeaderComponent (
 
 TrackHeaderComponent::~TrackHeaderComponent()
 {
-    removeAllChangeListeners ();
     m_trackName.removeListener (this);
     m_track->state.removeListener (this);
 }
@@ -704,8 +704,10 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 updateMidiInputs ();
                 if (event.getNumberOfClicks () > 1 || !m_editViewState.m_isPianoRollVisible)
                 {
-                    m_editViewState.m_isPianoRollVisible = false;
-                    sendChangeMessage ();
+                    if (auto tl = dynamic_cast<TrackListView*>(getParentComponent()))
+                    {
+                        tl->getLowerRange().showPluginRack(getTrack());
+                    }
                 }
             }
     }

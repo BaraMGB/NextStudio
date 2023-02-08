@@ -35,9 +35,9 @@ public:
         return addButtons;
     }
 
-    tracktion_engine::Track::Ptr getTrack()
+    tracktion_engine::Track* getTrack()
     {
-        return track;
+        return track.get();
     }
 
     juce::OwnedArray<PluginWindowComponent> & getPluginComponents()

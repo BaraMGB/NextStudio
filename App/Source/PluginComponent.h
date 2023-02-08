@@ -8,7 +8,6 @@
 
 namespace te = tracktion_engine;
 class ParameterComponent : public juce::Component
-                         , public juce::ChangeBroadcaster
 {
 public:
     explicit ParameterComponent(te::AutomatableParameter& ap);
@@ -16,7 +15,9 @@ public:
 
     void resized() override;
     void mouseDown(const juce::MouseEvent& e) override;
+    void mouseUp(const juce::MouseEvent& e) override;
 
+    bool isDragged() { return m_isDragged; }
     te::AutomatableParameter& getParameter(){return m_parameter;}
 
 private:
@@ -24,7 +25,8 @@ private:
     te::AutomatableParameter& m_parameter;
     juce::Label m_parameterName;
     AutomatableSliderComponent m_parameterSlider;
-    [[maybe_unused]] bool m_updateKnob {false};
+
+    bool m_isDragged {false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
 
@@ -325,10 +327,10 @@ private:
     void curveHasChanged(te::AutomatableParameter&) override{} 
 
     void parameterChanged (te::AutomatableParameter& param, float /*newValue*/) override;
-    juce::OwnedArray<ParameterComponent> m_parameterComponents;
     std::unique_ptr<ParameterComponent> m_lastChangedParameterComponent;
     juce::Viewport m_viewPort;
     juce::Component m_pluginListComponent;
+    te::Plugin::Ptr m_plugin;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VstPluginComponent)
 };
 

@@ -2,6 +2,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "tracktion_core/utilities/tracktion_Time.h"
 
 namespace te = tracktion_engine;
 
@@ -76,6 +77,9 @@ namespace IDs
 	DECLARE_ID (selectedRangeStart)
 	DECLARE_ID (selectedRangeEnd)
     DECLARE_ID (clipHeaderHeight)                                               
+    DECLARE_ID (tmpTrack)                                               
+    DECLARE_ID (syncAutomation)
+    
     #undef DECLARE_ID
 }
 
@@ -131,6 +135,7 @@ public:
         m_lastVelocity.referTo(m_state, IDs::lastVelocity, um, 100);
         m_keyboardWidth.referTo(m_state, IDs::pianoRollKeyboardWidth, um, 120);
         m_clipHeaderHeight.referTo(m_state, IDs::clipHeaderHeight, um, 20);
+        m_syncAutomation.referTo(m_state, IDs::syncAutomation, um, true);
     }
 
     float getTimeLineZoomUnit ()
@@ -184,6 +189,13 @@ public:
         return ts.toBeats(tp).inBeats();
     }
 
+    tracktion::TimeRange getSongEditorVisibleTimeRange()
+    {
+        auto s = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX1));
+        auto e = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX2));
+
+        return {s,e};
+    }
     [[nodiscard]] double getSnapedTime (
             double t
           , te::TimecodeSnapType snapType
@@ -258,7 +270,8 @@ public:
                           , m_isPianoRollVisible
                           , m_isAutoArmed
                           , m_automationFollowsClip
-                          , m_followPlayhead;
+                          , m_followPlayhead
+                          , m_syncAutomation;
     juce::CachedValue<double> m_viewX1
                             , m_viewX2
                             , m_viewY
@@ -284,6 +297,7 @@ public:
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;
     juce::ValueTree m_state;
+    bool m_isSavingLocked {false};
     ApplicationViewState& m_applicationState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };

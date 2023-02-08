@@ -23,8 +23,6 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     return {};
 }
 
-
-
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area
@@ -198,7 +196,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
                 x1beats + 1, boundingRect.getWidth (), x1beats, x2beats);
             const auto beatX = barStartX + beatWidth * b;
             const auto beatRect = juce::Rectangle<float>(
-                (float) beatX, 0.f, (float) beatWidth,
+                (float) beatX + boundingRect.getX(), boundingRect.getY(), (float) beatWidth,
                 boundingRect.toFloat().getHeight ());
             const auto barString = juce::String(bar + 1);
             const auto beatString = "." + juce::String(b + 1);
@@ -211,8 +209,13 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
 
             if (snapLevel <= 7)
             {
-                g.setColour(beatColour);
-                g.drawVerticalLine(beatX, 0, boundingRect.getHeight());
+
+                if (beatX + boundingRect.getX() > boundingRect.getX()
+                    && beatX + boundingRect.getX() < boundingRect.getRight())
+                {
+                    g.setColour(beatColour);
+                    g.drawVerticalLine(beatX + boundingRect.getX(), boundingRect.getY(), boundingRect.getBottom());
+                }
             }
 
             if (snapLevel <= 5 && printDescription)
@@ -236,15 +239,23 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
                                     barString + beatString + fracString,
                                     textColour);
 
-                    g.setColour(fracColour);
-                    g.drawVerticalLine(
-                        fracRect.getX(),0, boundingRect.getHeight());
+                    if (fracRect.getX() > boundingRect.getX()
+                        && fracRect.getX() < boundingRect.getRight())
+                    {
+                        g.setColour(fracColour);
+                        g.drawVerticalLine(
+                        fracRect.getX(),boundingRect.getY(), boundingRect.getBottom());
+                    }
                 }
             }
         }
 
-        g.setColour (BarColour);
-        g.drawVerticalLine(barStartX, 0, boundingRect.getHeight());
+        if (barStartX + boundingRect.getX() > boundingRect.getX())
+        {
+            g.setColour (BarColour);
+            g.drawVerticalLine(barStartX + boundingRect.getX(), boundingRect.getY(), boundingRect.getBottom());
+
+        }
     }
 }
 void GUIHelpers::printTextAt(juce::Graphics& graphic,
@@ -256,6 +267,7 @@ void GUIHelpers::printTextAt(juce::Graphics& graphic,
         graphic.drawText(
             "  " + text, textRect, juce::Justification::centredLeft, false);
 }
+
 void GUIHelpers::drawSnapLines(juce::Graphics& g,
                                const EditViewState& evs,
                                double x1beats,
@@ -271,8 +283,8 @@ void GUIHelpers::drawSnapLines(juce::Graphics& g,
         if (it >= x1beats)
         {
             g.setColour(colour);
-            auto x = evs.beatsToX(it, boundingRect.getWidth(), x1beats, x2beats);
-            g.drawVerticalLine(x, 0, boundingRect.getHeight());
+            int x = boundingRect.getX() + evs.beatsToX(it, boundingRect.getWidth(), x1beats, x2beats);
+            g.drawVerticalLine(x, boundingRect.getY(), boundingRect.getBottom());
         }
 
         auto& tempo = evs.m_edit.tempoSequence.getTempoAt(tracktion::BeatPosition::fromBeats(it));
@@ -280,6 +292,7 @@ void GUIHelpers::drawSnapLines(juce::Graphics& g,
         it = it + delta;
     }
 }
+
 void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
                                      const EditViewState& evs,
                                      double x1beats,
@@ -290,28 +303,35 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
     const te::TimecodeSnapType& snapType =
         evs.getBestSnapType(x1beats,x2beats, boundingRect.getWidth());
     int num = evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator;
-    int shadowDelta = num * 4;
+    int shadowBeatDelta = num * 4;
     if (snapType.getLevel() <= 9)
-        shadowDelta = num;
+        shadowBeatDelta = num;
     if (snapType.getLevel() <= 4)
-        shadowDelta = 1;
+        shadowBeatDelta = 1;
 
-    auto i = static_cast<int>(x1beats);
-    while(i % shadowDelta != 0)
-        i--;
+    auto beatIter = static_cast<int>(x1beats);
+    while(beatIter % shadowBeatDelta != 0)
+        beatIter--;
 
-    while (i <= x2beats)
+    while (beatIter <= x2beats)
     {
-        if ((i/shadowDelta) %2 == 0)
+        if ((beatIter/shadowBeatDelta) %2 == 0)
         {
-            int x = evs.beatsToX(i, boundingRect.getWidth(), x1beats, x2beats);
-            int w = evs.beatsToX(i + shadowDelta, boundingRect.getWidth(), x1beats, x2beats) - x;
-            juce::Rectangle<int> shadowRect {x, 0, w, boundingRect.getHeight()};
+            int x = evs.beatsToX(beatIter, boundingRect.getWidth(), x1beats, x2beats);
+            int w = evs.beatsToX(beatIter + shadowBeatDelta, boundingRect.getWidth(), x1beats, x2beats) - x;
+            juce::Rectangle<int> shadowRect {x + boundingRect.getX(), boundingRect.getY(), w, boundingRect.getHeight()};
+
+            if (shadowRect.getX() < boundingRect.getX())
+                shadowRect.removeFromLeft(boundingRect.getX() - shadowRect.getX());
+
+            if (shadowRect.getRight() > boundingRect.getRight())
+                shadowRect.removeFromRight(shadowRect.getRight() - boundingRect.getRight());
 
             g.setColour(shade);
             g.fillRect(shadowRect);
         }
-        i += shadowDelta;
+
+        beatIter += shadowBeatDelta;
     }
 }
 
@@ -368,13 +388,34 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
          .getSelectedObjects ()
          .getItemsOfType<te::Clip>())
     {
-        for (auto ap : selectedClip->getTrack ()->getAllAutomatableParams ())
+        if (selectedClip->getTrack() != nullptr)
         {
-            ap->getCurve ().removePointsInRegion (selectedClip->getEditTimeRange ());
+            for (auto ap : selectedClip->getTrack ()->getAllAutomatableParams ())
+            {
+                ap->getCurve ().removePointsInRegion (selectedClip->getEditTimeRange ());
+            }
+
+            selectedClip->removeFromParentTrack ();
         }
-        selectedClip->removeFromParentTrack ();
     }
 }
+
+bool EngineHelpers::isTrackShowable(te::Track::Ptr track)
+{
+    if (track->isChordTrack()
+        || track->isTempoTrack()
+        || track->isMarkerTrack()
+        || track->isArrangerTrack()
+        || track->isAutomationTrack()
+        || track->isMasterTrack()
+    )
+    {
+        return false;
+    }
+
+    return true;
+}
+    
 bool EngineHelpers::trackWantsClip(const te::Clip* clip,
                                     const te::Track* track) 
 {
@@ -390,19 +431,40 @@ bool EngineHelpers::trackWantsClip(const te::Clip* clip,
 
 te::Track* EngineHelpers::getTargetTrack(te::Track* sourceTrack, int verticalOffset)
 {
+    if (sourceTrack == nullptr)
+        return nullptr;
+
     auto &edit = sourceTrack->edit;
-    auto tracks = te::getAllTracks(edit);
-    auto targetTrack = tracks[tracks.indexOf(sourceTrack) + verticalOffset];
+    auto tracks = getSortedTrackList(edit);
+    auto targetIdx = tracks.indexOf(sourceTrack) + verticalOffset;
+    auto targetTrack = tracks[targetIdx];
 
     return targetTrack;
 }
 
-void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, bool snap, double timeDelta, int verticalOffset,EditViewState& evs, te::TimecodeSnapType snaptype)
+juce::Array<te::Track*> EngineHelpers::getSortedTrackList(te::Edit& edit)
+{
+    juce::Array<te::Track*> tracks;
+
+    edit.visitAllTracks ([&] (te::Track& t)
+        {
+            if (t.isAutomationTrack() || t.isArrangerTrack() || t.isChordTrack() || t.isMarkerTrack() || t.isTempoTrack() || t.isMasterTrack())
+               return true;
+            tracks.add (&t);
+            return true; 
+        }, true);
+
+    return tracks;
+}
+
+bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr)
+{
+    return ti->getEditTimeRange().intersects(tr);
+}
+void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
-    auto targetTime = snap ? evs.getSnapedTime(sourceTime + timeDelta, snaptype): sourceTime + timeDelta;
-    auto delta = targetTime - sourceTime - tempPosition;
 
     if (verticalOffset == 0) EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
 
@@ -427,7 +489,7 @@ void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, bool snap, d
 
     for (auto newClip: copyOfSelectedClips)
     {
-        auto pasteTime = newClip->getPosition().getStart().inSeconds() + delta;
+        auto pasteTime = newClip->getPosition().getStart().inSeconds() + timeDelta - tempPosition;
         auto targetTrack = EngineHelpers::getTargetTrack(newClip->getTrack(), verticalOffset);
                         
         if (EngineHelpers::trackWantsClip(newClip, targetTrack))
@@ -460,11 +522,219 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
         juce::Array<te::TrackAutomationSection> sections;
 
         for (const auto& selectedClip : clipSelection)
-            sections.add (te::TrackAutomationSection(*selectedClip));
-     
+        {
+            if (selectedClip->getTrack() != nullptr)
+                sections.add (te::TrackAutomationSection(*selectedClip));
+        }
+
 		te::moveAutomation (sections, tracktion::TimeDuration::fromSeconds(offset), copy);
     }
 }
+static tracktion::AutomationCurve* getDestCurve (tracktion::Track& t, const tracktion::AutomatableParameter::Ptr& p)
+{
+    if (p != nullptr)
+    {
+        if (auto plugin = p->getPlugin())
+        {
+            auto name = plugin->getName();
+
+            for (auto f : t.getAllPlugins())
+                if (f->getName() == name)
+                    if (auto param = f->getAutomatableParameter (plugin->indexOfAutomatableParameter (p)))
+                        return &param->getCurve();
+        }
+    }
+
+    return {};
+}
+static bool mergeInto (const tracktion::TrackAutomationSection& s,
+                       juce::Array<tracktion::TrackAutomationSection>& dst)
+{
+    for (auto& dstSeg : dst)
+    {
+        if (dstSeg.overlaps (s))
+        {
+            dstSeg.mergeIn (s);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void mergeSections (const juce::Array<tracktion::TrackAutomationSection>& src,
+                           juce::Array<tracktion::TrackAutomationSection>& dst)
+{
+    for (const auto& srcSeg : src)
+        if (! mergeInto (srcSeg, dst))
+            dst.add (srcSeg);
+}
+
+void EngineHelpers::moveAutomationOrCopy(const juce::Array<tracktion::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy)
+{
+    if (origSections.isEmpty())
+        return;
+
+    juce::Array<tracktion::TrackAutomationSection> sections;
+    mergeSections (origSections, sections);
+
+    // find all the original curves
+    for (auto&& section : sections)
+    {
+        for (auto& ap : section.activeParameters)
+            ap.curve.state = ap.curve.state.createCopy();
+    }
+
+    // delete all the old curves
+    if (! copy)
+    {
+        for (auto& section : sections)
+        {
+            auto sectionTime = section.position;
+
+            for (auto&& activeParam : section.activeParameters)
+            {
+                auto param = activeParam.param;
+                auto& curve = param->getCurve();
+                constexpr auto tolerance = tracktion::TimeDuration::fromSeconds (0.0001);
+
+                auto startValue = curve.getValueAt (sectionTime.getStart() - tolerance);
+                auto endValue   = curve.getValueAt (sectionTime.getEnd()   + tolerance);
+
+                auto idx = curve.indexBefore (sectionTime.getEnd() + tolerance);
+                auto endCurve = (idx == -1) ? 0.0f : curve.getPointCurve(idx);
+
+                curve.removePointsInRegion (sectionTime.expanded (tolerance));
+
+                if (std::abs (startValue - endValue) < 0.0001f)
+                {
+                    curve.addPoint (sectionTime.getStart(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), endValue, endCurve);
+                }
+                else if (startValue > endValue)
+                {
+                    curve.addPoint (sectionTime.getStart(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getStart(), endValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), endValue, endCurve);
+                }
+                else
+                {
+                    curve.addPoint (sectionTime.getStart(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), startValue, 0.0f);
+                    curve.addPoint (sectionTime.getEnd(), endValue, endCurve);
+                }
+
+                curve.removeRedundantPoints (sectionTime.expanded (tolerance));
+            }
+        }
+    }
+
+    // recreate the curves
+    for (auto& section : sections)
+    {
+        for (auto& activeParam : section.activeParameters)
+        {
+            auto sectionTime = section.position;
+
+            if (auto dstCurve = (section.src == section.dst) ? &activeParam.param->getCurve()
+                                                             : getDestCurve (*section.dst, activeParam.param))
+            {
+                constexpr auto errorMargin = tracktion::TimeDuration::fromSeconds (0.0001);
+
+                auto start    = sectionTime.getStart();
+                auto end      = sectionTime.getEnd();
+                auto newStart = start + offset;
+                auto newEnd   = end   + offset;
+
+                auto& srcCurve = activeParam.curve;
+
+                auto idx1 = srcCurve.indexBefore (newEnd + errorMargin);
+                auto endCurve = idx1 < 0 ? 0 : srcCurve.getPointCurve (idx1);
+
+                auto idx2 = srcCurve.indexBefore (start - errorMargin);
+                auto startCurve = idx2 < 0 ? 0 : srcCurve.getPointCurve (idx2);
+
+                auto srcStartVal = srcCurve.getValueAt (start - errorMargin);
+                auto srcEndVal   = srcCurve.getValueAt (end   + errorMargin);
+
+                auto dstStartVal = dstCurve->getValueAt (newStart - errorMargin);
+                auto dstEndVal   = dstCurve->getValueAt (newEnd   + errorMargin);
+
+                tracktion::TimeRange totalRegionWithMargin  (newStart - errorMargin, newEnd   + errorMargin);
+                tracktion::TimeRange startWithMargin        (newStart - errorMargin, newStart + errorMargin);
+                tracktion::TimeRange endWithMargin          (newEnd   - errorMargin, newEnd   + errorMargin);
+
+                juce::Array<tracktion::AutomationCurve::AutomationPoint> origPoints;
+
+                for (int i = 0; i < srcCurve.getNumPoints(); ++i)
+                {
+                    auto pt = srcCurve.getPoint (i);
+
+                    if (pt.time >= start - errorMargin && pt.time <= sectionTime.getEnd() + errorMargin)
+                        origPoints.add (pt);
+                }
+
+                dstCurve->removePointsInRegion (totalRegionWithMargin);
+
+                for (const auto& pt : origPoints)
+                    dstCurve->addPoint (pt.time + offset, pt.value, pt.curve);
+
+                auto startPoints = dstCurve->getPointsInRegion (startWithMargin);
+                auto endPoints   = dstCurve->getPointsInRegion (endWithMargin);
+
+                dstCurve->removePointsInRegion (startWithMargin);
+                dstCurve->removePointsInRegion (endWithMargin);
+
+                dstCurve->addPoint (newStart, dstStartVal, startCurve);
+                dstCurve->addPoint (newStart, srcStartVal, startCurve);
+
+                for (auto& point : startPoints)
+                    dstCurve->addPoint (newStart, point.value, point.curve);
+
+                for (auto& point : endPoints)
+                    dstCurve->addPoint (newEnd, point.value, point.curve);
+
+                dstCurve->addPoint (newEnd, srcEndVal, endCurve);
+                dstCurve->addPoint (newEnd, dstEndVal, endCurve);
+
+                dstCurve->removeRedundantPoints (totalRegionWithMargin);
+            }
+        }
+    }
+
+    // activate the automation curves on the new tracks
+    juce::Array<tracktion::Track*> src, dst;
+
+    for (auto& section : sections)
+    {
+        if (section.src != section.dst)
+        {
+            if (! src.contains (section.src.get()))
+            {
+                src.add (section.src.get());
+                dst.add (section.dst.get());
+            }
+        }
+    }
+
+    for (int i = 0; i < src.size(); ++i)
+    {
+        if (auto ap = src.getUnchecked (i)->getCurrentlyShownAutoParam())
+        {
+            for (auto p : dst.getUnchecked (i)->getAllAutomatableParams())
+            {
+                if (p->getPluginAndParamName() == ap->getPluginAndParamName())
+                {
+                    dst.getUnchecked (i)->setCurrentlyShownAutoParam (p);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
+
 void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy)
 {
 	te::TrackAutomationSection section;
@@ -480,7 +750,20 @@ void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::Ac
 	te::moveAutomation(secs, offset, copy);
 }
 
-void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double delta, EditViewState & evs, te::TimecodeSnapType snapType)
+te::TrackAutomationSection EngineHelpers::getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr)
+{
+    te::TrackAutomationSection as;
+    as.src = ap->getTrack();
+    as.dst = ap->getTrack();
+    as.position = tr;
+    te::TrackAutomationSection::ActiveParameters par;
+    par.param = ap;
+    par.curve = ap->getCurve();
+    as.activeParameters.add(par);
+
+    return as;
+}
+void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
@@ -491,8 +774,6 @@ void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double del
         {
             auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
                                        sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(delta));
-            if (snap)
-                newStart = tracktion::TimePosition::fromSeconds(evs.getSnapedTime (newStart.inSeconds(), snapType, false));
             sc->setStart(newStart, true, false);
 
 			//save clip for damage
@@ -505,8 +786,6 @@ void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double del
         {
             auto newEnd = sc->getPosition().getEnd() + tracktion::TimeDuration::fromSeconds(delta);
 
-            if (snap)
-                newEnd = tracktion::TimePosition::fromSeconds(evs.getSnapedTime (newEnd.inSeconds(), snapType, false));
             sc->setEnd(newEnd, true);
 			//save clip for damage
             sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
@@ -515,12 +794,14 @@ void EngineHelpers::resizeSelectedClips(bool snap, bool fromLeftEdge, double del
 
     for (auto sc : selectedClips)
     {
-        auto ct = sc->getClipTrack();
-		const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition),
-										   sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
-        ct->deleteRegion(range, &evs.m_selectionManager);
+        if (auto ct = sc->getClipTrack())
+        {
+            const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition),
+                                               sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
+            ct->deleteRegion(range, &evs.m_selectionManager);
+        }
 
-		//restore clip
+        //restore clip
         sc->setStart(sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
     }
 
@@ -945,26 +1226,52 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
 {
     return {p.x - (w/2), p.y - (w/2), w, w};
 }
+bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
+{
+    return ap.getCurve().getNumPoints() > 0;
+}
 int GUIHelpers::getTrackHeight(
     tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
 {
+    if(track == nullptr)
+        return 0;
+
     bool isMinimized = (bool) track->state.getProperty(IDs::isTrackMinimized);
     auto trackHeight = isMinimized || track->isFolderTrack()
             ? evs.m_trackHeightMinimized
             : (int) track->state.getProperty(tracktion_engine::IDs::height, 50);
 
     if (!isMinimized && withAutomation)
+    {
+        int automationHeight = 0;
+
         for (auto apEditItems : track->getAllAutomatableEditItems())
+        {
             for (auto ap : apEditItems->getAutomatableParameters())
-                if (ap->getCurve().getNumPoints() > 0)
+            {
+                if (isAutomationVisible(*ap))
                 {
-                    int automationHeight =
-                        ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50);
-                    trackHeight += automationHeight;
+                    automationHeight += static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
                 }
+            }
+        }
+
+        trackHeight += automationHeight;
+    }   
+
+    auto it = track;
+    while (it->isPartOfSubmix())
+    {
+        it = it->getParentFolderTrack();
+        if (it->state.getProperty((IDs::isTrackMinimized)))
+        {
+            trackHeight = 0;
+        }
+    }
 
     return trackHeight;
 }
+
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
 {
     auto zoom = evs.m_pianoX2 - evs.m_pianoX1;

@@ -4,7 +4,6 @@
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "TimeLineComponent.h"
-#include "TrackComponent.h"
 #include "TrackHeadComponent.h"
 #include "PluginRackComponent.h"
 #include "PlayHeadComponent.h"
@@ -64,10 +63,7 @@ public:
 
     LowerRangeComponent& lowerRange ();
 
-    TrackComponent * getTrackComponent (int y);
-
     EditViewState& getEditViewState () { return m_editViewState; }
-
     void loopAroundSelection();
     SongEditorView& getSongEditor() {return m_songEditor;}
 

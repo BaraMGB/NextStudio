@@ -1,6 +1,6 @@
 #include "RecordingClipComponent.h"
-
-#include <utility>
+#include "SongEditorView.h"
+#include "Utilities.h"
 
 
 RecordingClipComponent::RecordingClipComponent (te::Track::Ptr t, EditViewState& evs)
@@ -167,12 +167,15 @@ void RecordingClipComponent::updatePosition()
         t1 = juce::jmax (t1, x1t);
         t2 = juce::jmin (t2, x2t);
     
-        if (auto p = getParentComponent())
+        if (auto p = dynamic_cast<SongEditorView*>(getParentComponent()))
         {
             int x1 = m_editViewState.timeToX (t1.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             int x2 = m_editViewState.timeToX (t2.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             
-            setBounds (x1, 0, x2 - x1, p->getHeight());
+            int y = p->getYForTrack(m_track);
+            int h = GUIHelpers::getTrackHeight(m_track, m_editViewState, false);
+
+            setBounds (x1, y, x2 - x1, h);
             return;
         }
     }

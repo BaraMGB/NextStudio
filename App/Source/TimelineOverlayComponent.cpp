@@ -2,6 +2,7 @@
 
 #include <utility>
 #include "Utilities.h"
+#include "tracktion_core/utilities/tracktion_Time.h"
 
 TimelineOverlayComponent::TimelineOverlayComponent(
         EditViewState &evs
@@ -107,7 +108,8 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
             {
                 auto co = m_cachedPos.getOffset();
                 auto newStart = juce::jmax(mouseTime, cs - co);
-
+                if (!e.mods.isShiftDown())
+                    newStart = tracktion::TimePosition::fromSeconds(getSnapedTime(newStart.inSeconds()));
                 m_draggedTimeDelta = cs.inSeconds() - newStart.inSeconds();
                 m_draggedClipRect = getClipRect(m_cachedClip);
                 m_draggedClipRect.setLeft(timeToX(newStart.inSeconds()));
@@ -116,6 +118,8 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
             else if (m_rightResized)
             {
                 auto newEnd = juce::jmax(cs, mouseTime);
+                if (!e.mods.isShiftDown())
+                    newEnd = tracktion::TimePosition::fromSeconds(getSnapedTime(newEnd.inSeconds()));
 
                 m_draggedTimeDelta = m_cachedPos.getEnd().inSeconds() - mouseTime.inSeconds();
                 m_draggedClipRect = getClipRect(m_cachedClip);
@@ -144,7 +148,7 @@ void TimelineOverlayComponent::mouseUp(const juce::MouseEvent &e)
 {
     if (m_leftResized || m_rightResized)
     {
-        EngineHelpers::resizeSelectedClips(!e.mods.isShiftDown(), m_leftResized, -m_draggedTimeDelta, m_editViewState, m_timelineComponent.getBestSnapType());
+        EngineHelpers::resizeSelectedClips(m_leftResized, -m_draggedTimeDelta, m_editViewState);
     }
     else if (m_move)
         moveSelectedClips(e.mods.isCtrlDown(), !e.mods.isShiftDown());
@@ -188,7 +192,7 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
 void TimelineOverlayComponent::moveSelectedClips(bool copy, bool snap)
 {
     auto sourceTime = m_cachedClip->getPosition().getStart().inSeconds();
-    EngineHelpers::moveSelectedClips(sourceTime, copy, snap, -m_draggedTimeDelta, 0, m_editViewState, m_timelineComponent.getBestSnapType());
+    EngineHelpers::moveSelectedClips(sourceTime, copy, -m_draggedTimeDelta, 0, m_editViewState);
 }
 int TimelineOverlayComponent::timeToX(double time)
 {
