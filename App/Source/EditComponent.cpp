@@ -37,6 +37,8 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
                 te::getAllTracks (m_edit).getLast ());
+
+    updateHorizontalScrollBar();
 }
 
 EditComponent::~EditComponent()
