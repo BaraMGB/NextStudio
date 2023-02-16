@@ -1545,7 +1545,8 @@ void  SongEditorView::drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, ju
         g.fillRect(x1, y, w, noteHeight);
     }
 }
-
+//reimplemented from te::AutomatonCurve because we 
+//need to return -1 if there is no point after this position 
 int SongEditorView::nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const
 {
     auto num = ap->getCurve().getNumPoints();
