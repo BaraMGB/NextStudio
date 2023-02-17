@@ -50,14 +50,16 @@ void TimeLineComponent::paint(juce::Graphics& g)
     }
 
     if (m_editViewState.m_edit.getTransport().looping)
-        g.setColour(juce::Colour(0xffFFFFFF));
+        g.setColour(juce::Colour(0x99FFFFFF));
     else
-        g.setColour(juce::Colour(0x22FFFFFF));
+        g.setColour(juce::Colour(0x44FFFFFF));
     drawLoopRange(g);
 }
 
 void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 {
+    setMouseCursor (juce::MouseCursor::NormalCursor);
+
     auto loopRangeRect = getLoopRangeRect();
     auto loopRangeArea = juce::Rectangle<int>(0, getHeight() - loopRangeRect.getHeight(), getWidth(), loopRangeRect.getHeight());
 
@@ -175,7 +177,7 @@ void TimeLineComponent::moveOrResizeLoopRange()
     auto& t = m_editViewState.m_edit.getTransport();
 
     if (t.getLoopRange ().getLength ().inSeconds() > 0)
-        t.setLoopRange(getLoopRangeToBeMovedOrResized());
+        t.setLoopRange (getLoopRangeToBeMovedOrResized());
 }
 
 tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
@@ -195,19 +197,22 @@ int TimeLineComponent::timeToX(double time)
 
 void TimeLineComponent::drawLoopRange(juce::Graphics& g)
 {
-    g.fillRect(getLoopRangeRect());
     if (m_draggedTime != tracktion::TimeDuration())
     {
         g.setColour(m_editViewState.m_applicationState.getPrimeColour().withAlpha(0.5f));
         g.fillRect(getTimeRangeRect(getLoopRangeToBeMovedOrResized()));
     }
+    else
+    {
+        g.fillRect(getLoopRangeRect());
+    }        
 }
 
 juce::Rectangle<int> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange tr)
 {
     auto x = timeToX (tr.getStart().inSeconds());
     auto w = timeToX (tr.getEnd().inSeconds()) - x;  
-    auto h = 5;
+    auto h = 10;
 
     return {x, getHeight() - h, w, h};
 }
@@ -216,11 +221,7 @@ juce::Rectangle<int> TimeLineComponent::getLoopRangeRect()
 {
     auto& t = m_editViewState.m_edit.getTransport();
 
-    auto start = timeToX(t.getLoopRange().getStart().inSeconds());
-    auto end = timeToX(t.getLoopRange().getEnd().inSeconds());
-    auto h = 5;
-
-    return {start, getHeight() - h, end - start, h};
+    return getTimeRangeRect(t.getLoopRange());
 }
 
 tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
@@ -233,18 +234,26 @@ tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
         auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) 
                                      : draggedLoopRange.getStart() + m_draggedTime;
 
-        draggedLoopRange = draggedLoopRange.withStart(newStart);
+        if (newStart > draggedLoopRange.getEnd())
+            draggedLoopRange = {draggedLoopRange.getEnd(), newStart};
+        else
+            draggedLoopRange = {newStart, draggedLoopRange.getEnd()};
     }
     else if (m_rightResized)
     {
         auto newEnd = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getEnd() + m_draggedTime, t) 
                                      : draggedLoopRange.getEnd() + m_draggedTime;
-        draggedLoopRange = draggedLoopRange.withEnd(newEnd);
+
+        if (newEnd < draggedLoopRange.getStart())
+            draggedLoopRange = {newEnd, draggedLoopRange.getStart()};
+        else
+            draggedLoopRange = {draggedLoopRange.getStart(), newEnd};
     }
     else
     {
         auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) 
                                      : draggedLoopRange.getStart() + m_draggedTime;
+        newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0.0), newStart);
 
         draggedLoopRange = draggedLoopRange.movedToStartAt(newStart);
     }
