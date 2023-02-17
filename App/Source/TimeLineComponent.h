@@ -3,6 +3,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "EditViewState.h"
+#include "tracktion_core/utilities/tracktion_TimeRange.h"
 
 namespace te = tracktion_engine;
 
@@ -31,26 +32,30 @@ public:
 private:
 
     void                    drawLoopRange(juce::Graphics& g);
-    double                  getMovedTime(const juce::MouseEvent& e, double oldTime);
-    void                    moveLoopRange(const juce::MouseEvent& e);
+    void                    moveOrResizeLoopRange();
+    tracktion::TimeRange    getLoopRangeToBeMovedOrResized();
     void                    updateViewRange(const juce::MouseEvent& e);
+
+    juce::Rectangle<int>    getTimeRangeRect(tracktion::TimeRange tr);
     juce::Rectangle<int>    getLoopRangeRect();
 
     int                     timeToX (double time);
     int                     beatsToX (double beats);
-    double                  xToTime (int x);
-    double                  beatToTime(double beats);
+    tracktion::TimeDuration xToTimeDuration (int x);
+    tracktion::TimePosition beatToTime(tracktion::BeatPosition beats);
 
     EditViewState &         m_editViewState;
     double                  m_cachedBeat{};
     bool                    m_isMouseDown,
+                            m_isSnapping {true},
                             m_leftResized,
                             m_rightResized,
+                            m_changeLoopRange{false},
                             m_loopRangeClicked;
     double                  m_cachedX1{}, m_cachedX2{};
 
-    double                  m_cachedL1;
-    double                  m_cachedL2;
+    tracktion::TimeRange    m_cachedLoopRange; 
+    tracktion::TimeDuration m_draggedTime;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
 };
