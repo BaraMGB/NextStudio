@@ -32,7 +32,6 @@ public:
 private:
 
     void                    drawLoopRange(juce::Graphics& g);
-    void                    moveOrResizeLoopRange();
     tracktion::TimeRange    getLoopRangeToBeMovedOrResized();
     void                    updateViewRange(const juce::MouseEvent& e);
 
@@ -43,6 +42,7 @@ private:
     int                     beatsToX (double beats);
     tracktion::TimeDuration xToTimeDuration (int x);
     tracktion::TimePosition beatToTime(tracktion::BeatPosition beats);
+    tracktion::TimePosition xToTimePos(int x);
 
     EditViewState &         m_editViewState;
     double                  m_cachedBeat{};
@@ -55,6 +55,7 @@ private:
     double                  m_cachedX1{}, m_cachedX2{};
 
     tracktion::TimeRange    m_cachedLoopRange; 
+    tracktion::TimeRange    m_newLoopRange; 
     tracktion::TimeDuration m_draggedTime;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
