@@ -3,10 +3,8 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "EditViewState.h"
-#include "tracktion_core/utilities/tracktion_TimeRange.h"
 
-namespace te = tracktion_engine;
-
+    
 class TimeLineComponent : public juce::Component
 {
 public:
@@ -36,7 +34,6 @@ private:
     void                    updateViewRange(const juce::MouseEvent& e);
 
     juce::Rectangle<int>    getTimeRangeRect(tracktion::TimeRange tr);
-    juce::Rectangle<int>    getLoopRangeRect();
 
     int                     timeToX (double time);
     int                     beatsToX (double beats);

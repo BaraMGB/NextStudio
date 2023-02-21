@@ -61,7 +61,8 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 {
     setMouseCursor (juce::MouseCursor::NormalCursor);
 
-    auto loopRangeRect = getLoopRangeRect();
+    auto loopRange = m_editViewState.m_edit.getTransport().getLoopRange();
+    auto loopRangeRect = getTimeRangeRect(loopRange);
 
     if (loopRangeRect.contains(e.getPosition()))
     {
@@ -91,14 +92,16 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 
 void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
 {
-    auto loopRangeArea = getTimeRangeRect(m_editViewState.getSongEditorVisibleTimeRange());
     m_changeLoopRange = false;
     m_cachedLoopRange = m_editViewState.m_edit.getTransport().getLoopRange();
+        
+    auto loopRangeArea = getTimeRangeRect(m_editViewState.getSongEditorVisibleTimeRange());
+    auto loopRange = m_editViewState.m_edit.getTransport().getLoopRange();
 
     if (loopRangeArea.contains(e.getPosition()))
         m_changeLoopRange = true;
 
-    if (getLoopRangeRect().contains(e.getPosition()))
+    if (getTimeRangeRect(loopRange).contains(e.getPosition()))
     {
         m_changeLoopRange = false;
         m_loopRangeClicked = true;
@@ -226,7 +229,8 @@ void TimeLineComponent::drawLoopRange(juce::Graphics& g)
     }
     else
     {
-        g.fillRect(getLoopRangeRect());
+        auto loopRange = m_editViewState.m_edit.getTransport().getLoopRange();
+        g.fillRect(getTimeRangeRect(loopRange));
     }        
 }
 
@@ -234,16 +238,9 @@ juce::Rectangle<int> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange tr
 {
     auto x = timeToX (tr.getStart().inSeconds());
     auto w = timeToX (tr.getEnd().inSeconds()) - x;  
-    auto h = 10;
+    auto h = getHeight() / 5;
 
     return {x, getHeight() - h, w, h};
-}
-
-juce::Rectangle<int> TimeLineComponent::getLoopRangeRect()
-{
-    auto& t = m_editViewState.m_edit.getTransport();
-
-    return getTimeRangeRect(t.getLoopRange());
 }
 
 tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
