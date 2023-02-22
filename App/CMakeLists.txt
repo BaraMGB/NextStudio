@@ -58,8 +58,6 @@ target_sources(${TargetName} PRIVATE
         Source/EditComponent.cpp
         Source/PluginWindow.cpp
         Source/PluginComponent.cpp
-        # Source/TrackComponent.cpp
-        # Source/ClipComponent.cpp
         Source/PluginMenu.cpp
         Source/LevelMeterComponent.cpp
         Source/PluginRackComponent.cpp
@@ -71,8 +69,6 @@ target_sources(${TargetName} PRIVATE
         Source/AudioMidiSettings.cpp
         Source/PianoRollContentComponent.cpp
         Source/TimelineOverlayComponent.cpp
-        # Source/AudioClipComponent.cpp
-        # Source/MidiClipComponent.cpp
         Source/RecordingClipComponent.cpp
         Source/VelocityEditor.cpp
         Source/KeyboardView.cpp
