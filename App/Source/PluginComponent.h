@@ -336,11 +336,12 @@ private:
 
 //-------------------------------------------------------------------------------------
 
-class PluginWindowComponent : public juce::Component
+class RackWindowComponent : public juce::Component
+                          , public juce::Button::Listener
 {
 public:
-    PluginWindowComponent (EditViewState&, te::Plugin::Ptr);
-    ~PluginWindowComponent() override;
+    RackWindowComponent (EditViewState&, te::Plugin::Ptr);
+    ~RackWindowComponent() override;
 
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
@@ -348,6 +349,8 @@ public:
     void mouseUp (const juce::MouseEvent&) override;
 
     void resized() override;
+
+    void buttonClicked(juce::Button* button) override;
 
     int getNeededWidthFactor() { return m_pluginComponent->getNeededWidth();}
     [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
@@ -366,7 +369,7 @@ private:
     EditViewState& editViewState;
     te::Plugin::Ptr plugin;
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
-
+    juce::DrawableButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginWindowComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackWindowComponent)
 };

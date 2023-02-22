@@ -22,6 +22,7 @@ juce_add_binary_data(Pictures SOURCES
     follow.svg
     folderopen.svg
     folderclosed.svg
+    expandPluginPlain18.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

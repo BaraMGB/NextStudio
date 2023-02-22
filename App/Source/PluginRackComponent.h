@@ -40,7 +40,7 @@ public:
         return track.get();
     }
 
-    juce::OwnedArray<PluginWindowComponent> & getPluginComponents()
+    juce::OwnedArray<RackWindowComponent> & getPluginComponents()
     {
         return plugins;
     }
@@ -77,7 +77,7 @@ private:
     EditViewState& editViewState;
     te::Track::Ptr track;
 
-    juce::OwnedArray<PluginWindowComponent> plugins;
+    juce::OwnedArray<RackWindowComponent> plugins;
     
     juce::OwnedArray<AddButton> addButtons;
 

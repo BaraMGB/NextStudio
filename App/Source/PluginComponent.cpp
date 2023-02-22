@@ -1,16 +1,21 @@
 #include "PluginComponent.h"
+#include "Utilities.h"
 #include <utility>
 
 //==============================================================================
-PluginWindowComponent::PluginWindowComponent
+RackWindowComponent::RackWindowComponent
     (EditViewState& evs, te::Plugin::Ptr p)
     : editViewState (evs), plugin (p)
+    , m_showPluginBtn( "Show Plugin", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
+    addAndMakeVisible(m_showPluginBtn);
+    m_showPluginBtn.addListener(this);
+    GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,"#ffffff");
     name.setText(plugin->getName(),juce::NotificationType::dontSendNotification);
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks (false, true);
-
+    
     if (plugin->getPluginType() == "volume")
     {
         m_pluginComponent = std::make_unique<VolumePluginComponent>(evs, p);
@@ -34,12 +39,12 @@ PluginWindowComponent::PluginWindowComponent
     addAndMakeVisible(*m_pluginComponent);
 }
 
-PluginWindowComponent::~PluginWindowComponent()
+RackWindowComponent::~RackWindowComponent()
 {
     plugin->hideWindowForShutdown ();
 }
 
-void PluginWindowComponent::paint (juce::Graphics& g)
+void RackWindowComponent::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
     auto cornerSize = 10.0f;
@@ -66,7 +71,7 @@ void PluginWindowComponent::paint (juce::Graphics& g)
     }
 }
 
-void PluginWindowComponent::mouseDown (const juce::MouseEvent& e)
+void RackWindowComponent::mouseDown (const juce::MouseEvent& e)
 {
     if (e.getMouseDownX () < m_headerWidth)
     {
@@ -80,10 +85,6 @@ void PluginWindowComponent::mouseDown (const juce::MouseEvent& e)
                        , [this] {plugin->setEnabled (!plugin->isEnabled ());});
             m.show();
         }
-        else if(e.getMouseDownY () < m_headerWidth)
-        {
-            plugin->showWindowExplicitly();
-        }
     }
     else
     {
@@ -92,7 +93,7 @@ void PluginWindowComponent::mouseDown (const juce::MouseEvent& e)
     repaint ();
 }
 
-void PluginWindowComponent::mouseDrag(const juce::MouseEvent &e)
+void RackWindowComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (e.getMouseDownX () < m_headerWidth)
     {
@@ -109,15 +110,17 @@ void PluginWindowComponent::mouseDrag(const juce::MouseEvent &e)
     }
 }
 
-void PluginWindowComponent::mouseUp(const juce::MouseEvent &event)
+void RackWindowComponent::mouseUp(const juce::MouseEvent &event)
 {
     m_clickOnHeader = false;
     repaint ();
 }
 
-void PluginWindowComponent::resized()
+void RackWindowComponent::resized()
 {
     auto area = getLocalBounds();
+    juce::Rectangle<int> showButton = {area.getX(), area.getY(), m_headerWidth, m_headerWidth};
+    m_showPluginBtn.setBounds(showButton);
     auto nameLabelRect = juce::Rectangle<int>(area.getX()
                                               , area.getHeight() - m_headerWidth
                                               , area.getHeight()
@@ -130,7 +133,13 @@ void PluginWindowComponent::resized()
     m_pluginComponent.get()->setBounds(area);
 }
 
-juce::Colour PluginWindowComponent::getTrackColour()
+void RackWindowComponent::buttonClicked(juce::Button* button)
+{
+    if (button == &m_showPluginBtn)
+        plugin->showWindowExplicitly();
+}
+
+juce::Colour RackWindowComponent::getTrackColour()
 {
     if (plugin->getOwnerTrack())
         return plugin->getOwnerTrack()->getColour();
