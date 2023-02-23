@@ -10,7 +10,7 @@ RackWindowComponent::RackWindowComponent
 {
     addAndMakeVisible(m_showPluginBtn);
     m_showPluginBtn.addListener(this);
-    GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,"#ffffff");
+
     name.setText(plugin->getName(),juce::NotificationType::dontSendNotification);
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
@@ -53,13 +53,15 @@ void RackWindowComponent::paint (juce::Graphics& g)
 
 
     auto trackCol = plugin->isEnabled () ?
-                       getTrackColour() : getTrackColour().darker (0.7);
+                       getTrackColour() : getTrackColour().darker (0.7f);
 
-    name.setColour(juce::Label::ColourIds::textColourId,
-                   trackCol.getBrightness() > 0.8
-                                                 ? juce::Colour(0xff000000)
-                                                 : juce::Colour(0xffffffff));
+    auto labelingCol = trackCol.getBrightness() > 0.8f
+             ? juce::Colour(0xff000000)
+             : juce::Colour(0xffffffff);
 
+    name.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+
+    GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,"#" + labelingCol.toString().substring(2));
     auto header = area.removeFromLeft(m_headerWidth);
     g.setColour(trackCol);
     GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
@@ -119,7 +121,7 @@ void RackWindowComponent::mouseUp(const juce::MouseEvent &event)
 void RackWindowComponent::resized()
 {
     auto area = getLocalBounds();
-    juce::Rectangle<int> showButton = {area.getX(), area.getY(), m_headerWidth, m_headerWidth};
+    juce::Rectangle<int> showButton = {area.getX(), area.getY() + 5, m_headerWidth, m_headerWidth};
     m_showPluginBtn.setBounds(showButton);
     auto nameLabelRect = juce::Rectangle<int>(area.getX()
                                               , area.getHeight() - m_headerWidth

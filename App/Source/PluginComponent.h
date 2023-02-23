@@ -7,6 +7,19 @@
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
+
+
+class BorderlessButton : public juce::DrawableButton
+
+{
+public:
+    BorderlessButton(const juce::String& buttonName
+                   , juce::DrawableButton::ButtonStyle buttonStyle) 
+    : juce::DrawableButton(buttonName, buttonStyle) {   }
+        
+    void paint (juce::Graphics& g) override {}
+};
+
 class ParameterComponent : public juce::Component
 {
 public:
@@ -369,7 +382,7 @@ private:
     EditViewState& editViewState;
     te::Plugin::Ptr plugin;
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
-    juce::DrawableButton   m_showPluginBtn;    
+    BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackWindowComponent)
 };
