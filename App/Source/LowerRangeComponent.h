@@ -45,15 +45,12 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
     void resized () override;
 
-    void removePluginRackwithTrack(const te::Track::Ptr& track);
-    void showPluginRack(const tracktion_engine::Track::Ptr&);
-    void showPianoRoll(const te::Track::Ptr&);
-    void addPluginRackComp (PluginRackComponent * pluginrack);
+    void showRackView(const tracktion_engine::Track::Ptr);
+    void showPianoRoll(const te::Track::Ptr);
 
-    void clearPluginRacks()
-    {
-        m_pluginRackComps.clear ();
-    }
+    void addRackView (std::unique_ptr<RackView> rackView);
+    void clearPluginRacks();
+    const RackView* getVisibleRackView();
 
 private:
 
@@ -67,10 +64,10 @@ private:
                                 , int) override;
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
 
-    EditViewState& m_editViewState;
+    EditViewState& m_evs;
 
-    juce::OwnedArray<PluginRackComponent> m_pluginRackComps;
-    PianoRollEditorComponent m_pianoRollEditor;
+    juce::OwnedArray<RackView> m_rackViews;
+    PianoRollEditor m_pianoRollEditor;
     SplitterComponent m_splitter;
     const float m_splitterHeight {10.f};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LowerRangeComponent)

@@ -349,12 +349,12 @@ private:
 
 //-------------------------------------------------------------------------------------
 
-class RackWindowComponent : public juce::Component
+class RackItemView : public juce::Component
                           , public juce::Button::Listener
 {
 public:
-    RackWindowComponent (EditViewState&, te::Plugin::Ptr);
-    ~RackWindowComponent() override;
+    RackItemView (EditViewState&, te::Plugin::Ptr);
+    ~RackItemView() override;
 
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
@@ -384,5 +384,5 @@ private:
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
     BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackWindowComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackItemView)
 };

@@ -706,7 +706,7 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 {
                     if (auto tl = dynamic_cast<TrackListView*>(getParentComponent()))
                     {
-                        tl->getLowerRange().showPluginRack(getTrack());
+                        tl->getLowerRange().showRackView(getTrack());
                     }
                 }
             }

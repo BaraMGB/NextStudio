@@ -15,15 +15,15 @@ namespace te = tracktion_engine;
 
 class AddButton;
 
-class PluginRackComponent : public juce::Component,
+class RackView : public juce::Component,
                             private FlaggedAsyncUpdater,
                             private te::ValueTreeAllEventListener,
                             public juce::Button::Listener,
                             public juce::DragAndDropTarget
 {
 public:
-    PluginRackComponent (EditViewState&, te::Track::Ptr);
-    ~PluginRackComponent() override;
+    RackView (EditViewState&, te::Track::Ptr);
+    ~RackView() override;
 
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
@@ -32,20 +32,19 @@ public:
 
     juce::OwnedArray<AddButton> & getAddButtons()
     {
-        return addButtons;
+        return m_addButtons;
     }
 
-    tracktion_engine::Track* getTrack()
+    tracktion_engine::Track::Ptr getTrack()
     {
-        return track.get();
+        return m_track;
     }
 
-    juce::OwnedArray<RackWindowComponent> & getPluginComponents()
+    juce::OwnedArray<RackItemView> & getPluginComponents()
     {
-        return plugins;
+        return m_rackItems;
     }
 
-    void buildPlugins();
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override
     {
@@ -73,17 +72,20 @@ private:
 
     void handleAsyncUpdate() override;
 
+    void rebuildView();
+    bool isIdValid();
 
-    EditViewState& editViewState;
-    te::Track::Ptr track;
+    EditViewState& m_evs;
+    te::Track::Ptr m_track;
 
-    juce::OwnedArray<RackWindowComponent> plugins;
+    juce::OwnedArray<RackItemView> m_rackItems;
     
-    juce::OwnedArray<AddButton> addButtons;
+    juce::OwnedArray<AddButton> m_addButtons;
 
-    bool updatePlugins = false;
+    bool m_updatePlugins = false;
     bool m_isOver = false;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginRackComponent)
+    te::EditItemID m_id;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackView)
 };
 
 class AddButton : public juce::TextButton
@@ -100,7 +102,7 @@ public:
             {
                 if (auto lbm = dynamic_cast<PluginListBoxComponent*> (listbox->getModel ()))
                 {
-                    auto pluginRackComp = dynamic_cast<PluginRackComponent*>(getParentComponent());
+                    auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
                     if (pluginRackComp)
                     {
                         EngineHelpers::insertPlugin (pluginRackComp->getTrack(),
@@ -115,7 +117,7 @@ public:
 
         if (dragSourceDetails.description == "PluginComp")
         {
-            auto pluginRackComp = dynamic_cast<PluginRackComponent*>(getParentComponent());
+            auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
             if (pluginRackComp)
             {
                 for (auto & pluginComp : pluginRackComp->getPluginComponents())

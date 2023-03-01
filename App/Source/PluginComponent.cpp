@@ -3,7 +3,7 @@
 #include <utility>
 
 //==============================================================================
-RackWindowComponent::RackWindowComponent
+RackItemView::RackItemView
     (EditViewState& evs, te::Plugin::Ptr p)
     : editViewState (evs), plugin (p)
     , m_showPluginBtn( "Show Plugin", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -39,12 +39,12 @@ RackWindowComponent::RackWindowComponent
     addAndMakeVisible(*m_pluginComponent);
 }
 
-RackWindowComponent::~RackWindowComponent()
+RackItemView::~RackItemView()
 {
     plugin->hideWindowForShutdown ();
 }
 
-void RackWindowComponent::paint (juce::Graphics& g)
+void RackItemView::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
     auto cornerSize = 10.0f;
@@ -73,7 +73,7 @@ void RackWindowComponent::paint (juce::Graphics& g)
     }
 }
 
-void RackWindowComponent::mouseDown (const juce::MouseEvent& e)
+void RackItemView::mouseDown (const juce::MouseEvent& e)
 {
     if (e.getMouseDownX () < m_headerWidth)
     {
@@ -95,7 +95,7 @@ void RackWindowComponent::mouseDown (const juce::MouseEvent& e)
     repaint ();
 }
 
-void RackWindowComponent::mouseDrag(const juce::MouseEvent &e)
+void RackItemView::mouseDrag(const juce::MouseEvent &e)
 {
     if (e.getMouseDownX () < m_headerWidth)
     {
@@ -112,13 +112,13 @@ void RackWindowComponent::mouseDrag(const juce::MouseEvent &e)
     }
 }
 
-void RackWindowComponent::mouseUp(const juce::MouseEvent &event)
+void RackItemView::mouseUp(const juce::MouseEvent &event)
 {
     m_clickOnHeader = false;
     repaint ();
 }
 
-void RackWindowComponent::resized()
+void RackItemView::resized()
 {
     auto area = getLocalBounds();
     juce::Rectangle<int> showButton = {area.getX(), area.getY() + 5, m_headerWidth, m_headerWidth};
@@ -135,13 +135,13 @@ void RackWindowComponent::resized()
     m_pluginComponent.get()->setBounds(area);
 }
 
-void RackWindowComponent::buttonClicked(juce::Button* button)
+void RackItemView::buttonClicked(juce::Button* button)
 {
     if (button == &m_showPluginBtn)
         plugin->showWindowExplicitly();
 }
 
-juce::Colour RackWindowComponent::getTrackColour()
+juce::Colour RackItemView::getTrackColour()
 {
     if (plugin->getOwnerTrack())
         return plugin->getOwnerTrack()->getColour();

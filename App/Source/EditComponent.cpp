@@ -216,7 +216,6 @@ void EditComponent::valueTreeChildRemoved (
     }
     if (te::TrackList::isTrack (c))
     {
-        m_lowerRange.removePluginRackwithTrack (m_edit.getTrackList ().getTrackFor (c));
         markAndUpdate (m_updateTracks);
     }
     if (c.hasType(te::IDs::POINT))
@@ -275,6 +274,7 @@ void EditComponent::buildTracks()
 {
     m_lowerRange.clearPluginRacks ();
     m_trackListView.clear();
+        
     for (auto t : getAllTracks (m_edit))
     {
         if (EngineHelpers::isTrackShowable(t))
@@ -282,8 +282,8 @@ void EditComponent::buildTracks()
             auto th = std::make_unique<TrackHeaderComponent> (m_editViewState, t);
             m_trackListView.addHeaderViews(std::move(th));
 
-            auto pr = new PluginRackComponent (m_editViewState, t);
-            m_lowerRange.addPluginRackComp(pr);
+            auto pr = std::make_unique<RackView> (m_editViewState, t);
+            m_lowerRange.addRackView(std::move(pr));
         }
     }
 

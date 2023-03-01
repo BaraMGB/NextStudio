@@ -1,57 +1,57 @@
 #include "PluginRackComponent.h"
 
-#include <utility>
 
-PluginRackComponent::PluginRackComponent (EditViewState& evs, te::Track::Ptr t)
-    : editViewState (evs), track (std::move(t))
+RackView::RackView (EditViewState& evs, te::Track::Ptr t)
+    : m_evs (evs), m_track (std::move(t))
 {
-    buildPlugins();
+    rebuildView();
 
-    track->state.addListener (this);
+    m_track->state.addListener (this);
 }
 
-PluginRackComponent::~PluginRackComponent()
+RackView::~RackView()
 {
-    for (auto &b : addButtons)
+    for (auto &b : m_addButtons)
     {
         b->removeListener(this);
     }
-    track->state.removeListener (this);
+
+    m_track->state.removeListener (this);
 }
 
-void PluginRackComponent::buttonClicked(juce::Button* button)
+void RackView::buttonClicked(juce::Button* button)
 {
-    for (auto &b : addButtons)
+    for (auto &b : m_addButtons)
     {
         if (b == button)
         {
-            if (auto plugin = showMenuAndCreatePlugin (track->edit))
-                EngineHelpers::insertPlugin (track, plugin, addButtons.indexOf (b));
+            if (auto plugin = showMenuAndCreatePlugin (m_track->edit))
+                EngineHelpers::insertPlugin (m_track, plugin, m_addButtons.indexOf (b));
 
-            editViewState.m_selectionManager.selectOnly (track);
+            m_evs.m_selectionManager.selectOnly (m_track);
         }
     }
 }
 
-void PluginRackComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
+void RackView::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 {
     if (c.hasType (te::IDs::PLUGIN))
-        markAndUpdate (updatePlugins);
+        markAndUpdate (m_updatePlugins);
 }
 
-void PluginRackComponent::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree& c, int)
+void RackView::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree& c, int)
 {
     if (c.hasType (te::IDs::PLUGIN))
-        markAndUpdate (updatePlugins);
+        markAndUpdate (m_updatePlugins);
 }
 
-void PluginRackComponent::valueTreeChildOrderChanged (juce::ValueTree& c, int, int)
+void RackView::valueTreeChildOrderChanged (juce::ValueTree& c, int, int)
 {
     if (c.hasType (te::IDs::PLUGIN))
-        markAndUpdate (updatePlugins);
+        markAndUpdate (m_updatePlugins);
 }
 
-void PluginRackComponent::paint (juce::Graphics& g)
+void RackView::paint (juce::Graphics& g)
 {
     g.setColour (juce::Colour(0x181818));
     g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
@@ -62,28 +62,28 @@ void PluginRackComponent::paint (juce::Graphics& g)
     }
 }
 
-void PluginRackComponent::mouseDown (const juce::MouseEvent&)
+void RackView::mouseDown (const juce::MouseEvent&)
 {
     //editViewState.selectionManager.selectOnly (track.get());
 }
 
-void PluginRackComponent::resized()
+void RackView::resized()
 {
     auto area = getLocalBounds().reduced (5);
 
-    for (auto &b : addButtons)
+    for (auto &b : m_addButtons)
     {
         b->removeListener(this);
     }
-    addButtons.clear();
+    m_addButtons.clear();
     auto firstAdder = new AddButton;
-    addButtons.add(firstAdder);
+    m_addButtons.add(firstAdder);
     addAndMakeVisible(*firstAdder);
     firstAdder->addListener(this);
     firstAdder->setButtonText("+");
     firstAdder->setBounds(area.removeFromLeft(15));
 
-    for (auto p : plugins)
+    for (auto p : m_rackItems)
     {
         area.removeFromLeft (5);
         p->setBounds (area.removeFromLeft((area.getHeight() * p->getNeededWidthFactor()) / 2 ));
@@ -92,7 +92,7 @@ void PluginRackComponent::resized()
 
         auto adder = new AddButton;
         adder->setPlugin(p->getPlugin());
-        addButtons.add(adder);
+        m_addButtons.add(adder);
         addAndMakeVisible(*adder);
         adder->setButtonText("+");
         adder->setBounds(area.removeFromLeft(15));
@@ -101,29 +101,35 @@ void PluginRackComponent::resized()
     area.removeFromLeft (5);
 }
 
-void PluginRackComponent::handleAsyncUpdate()
+void RackView::handleAsyncUpdate()
 {
-    if (compareAndReset (updatePlugins))
-        buildPlugins();
+    if (compareAndReset (m_updatePlugins))
+        rebuildView();
 }
 
-void PluginRackComponent::buildPlugins()
+void RackView::rebuildView()
 {
-    plugins.clear();
+    m_rackItems.clear();
 
-    for (auto plugin : track->pluginList)
+    for (auto plugin : m_track->pluginList)
     {
         //don't show the default volume and levelmeter plugin
-        if (track->pluginList.indexOf(plugin)  < track->pluginList.size() - 2 )
+        if (m_track->pluginList.indexOf(plugin)  < m_track->pluginList.size() - 2 )
         {
-            auto p = new RackWindowComponent (editViewState, plugin);
+            auto p = new RackItemView (m_evs, plugin);
             addAndMakeVisible (p);
-            plugins.add (p);
+            m_rackItems.add (p);
         }
     }
     resized();
 }
-bool PluginRackComponent::isInterestedInDragSource(
+
+bool RackView::isIdValid()
+{
+    return te::findTrackForID(m_evs.m_edit, m_id) != nullptr;
+}
+
+bool RackView::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginListEntry")
@@ -133,7 +139,7 @@ bool PluginRackComponent::isInterestedInDragSource(
     return false;
 }
 
-void PluginRackComponent::itemDropped(
+void RackView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if(dragSourceDetails.description == "PluginListEntry")

@@ -9,15 +9,15 @@
 #include "VelocityEditor.h"
 #include "KeyboardView.h"
 
-class PianoRollEditorComponent
+class PianoRollEditor
     : public juce::Component
                          , public juce::MidiKeyboardStateListener
                          , private te::ValueTreeAllEventListener
                          , private FlaggedAsyncUpdater
 {
 public:
-    explicit PianoRollEditorComponent(EditViewState&);
-    ~PianoRollEditorComponent() override;
+    explicit PianoRollEditor(EditViewState&);
+    ~PianoRollEditor() override;
 
     void paint( juce::Graphics& g) override;
     void paintOverChildren(juce::Graphics &g) override;
@@ -27,7 +27,7 @@ public:
     void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
-    void setTrack(const tracktion_engine::Track::Ptr& track);
+    void setTrack(tracktion_engine::Track::Ptr track);
     void clearTrack();
 
 private:
@@ -47,7 +47,7 @@ private:
     KeyboardView m_keyboard;
     TimeLineComponent m_timeline;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
-    std::unique_ptr<PianoRollContentComponent> m_pianoRollContentComponent{nullptr};
+    std::unique_ptr<PianoRollViewPort> m_pianoRollViewPort{nullptr};
     std::unique_ptr<VelocityEditor> m_velocityEditor{nullptr};
     PlayheadComponent m_playhead;
     juce::String m_NoteDescUnderCursor;
@@ -68,5 +68,5 @@ private:
     juce::Rectangle<int> getVelocityEditorRect();
     juce::Rectangle<int> getFooterRect();
     juce::Rectangle<int> getPlayHeadRect();
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollEditorComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollEditor)
 };

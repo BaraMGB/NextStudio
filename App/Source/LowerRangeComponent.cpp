@@ -1,4 +1,5 @@
 #include "LowerRangeComponent.h"
+#include <algorithm>
 
 
 SplitterComponent::SplitterComponent(EditViewState &evs) : m_editViewState(evs)
@@ -66,20 +67,20 @@ void SplitterComponent::paint(juce::Graphics &g)
 //------------------------------------------------------------------------------
 
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
-    : m_editViewState(evs)
+    : m_evs(evs)
     , m_pianoRollEditor (evs)
     , m_splitter (evs)
 {
-    m_editViewState.m_isPianoRollVisible = false;
-    m_pluginRackComps.clear(true);
+    m_evs.m_isPianoRollVisible = false;
+    m_rackViews.clear(true);
     addAndMakeVisible (m_splitter);
     addChildComponent (m_pianoRollEditor);
-    m_editViewState.m_edit.state.addListener (this);
+    m_evs.m_edit.state.addListener (this);
 }
 
 LowerRangeComponent::~LowerRangeComponent()
 {
-    m_editViewState.m_edit.state.removeListener (this);
+    m_evs.m_edit.state.removeListener (this);
 }
 
 void LowerRangeComponent::paint(juce::Graphics &g)
@@ -141,7 +142,7 @@ void LowerRangeComponent::resized()
 
         m_splitter.setBounds (area.removeFromTop ((int) m_splitterHeight));
 
-        for (auto& pluginRackComp : m_pluginRackComps)
+        for (auto& pluginRackComp : m_rackViews)
         {
             if (pluginRackComp->isVisible())
             {
@@ -152,66 +153,62 @@ void LowerRangeComponent::resized()
         if (m_pianoRollEditor.isVisible ())
         {
             m_pianoRollEditor.setBounds (area);
-
         }
 }
-void LowerRangeComponent::removePluginRackwithTrack(const te::Track::Ptr& track)
-{
-    for (auto &prc : m_pluginRackComps)
-    {
-        if (prc->getTrack() && prc->getTrack() == track.get())
-        {
-            prc->setVisible (false);
-            m_pluginRackComps.removeObject (prc);
-            if (!m_pluginRackComps.isEmpty ())
-            {
-                m_pluginRackComps.getFirst ()->setVisible (true);
-            }
-        }
-    }
-}
-void LowerRangeComponent::showPluginRack(const te::Track::Ptr& track)
+void LowerRangeComponent::showRackView(const te::Track::Ptr track)
 {
     m_pianoRollEditor.setVisible (false);
     m_pianoRollEditor.clearTrack();
 
 
-    for (auto &prc : m_pluginRackComps)
+    for (auto &rackView : m_rackViews)
     {
-        prc->setVisible(false);
-        if (prc->getTrack() == track.get())
-        {
-            prc->setVisible(true);
-        }
+        rackView->setVisible(false);
+
+        if (rackView->getTrack() == track)
+            rackView->setVisible(true);
     }
 
-    m_editViewState.m_isPianoRollVisible = false;
+    m_evs.m_isPianoRollVisible = false;
     resized();
     repaint();
 }
 
-void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr& track)
+void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr track)
 {
     if (track->state.getProperty (IDs::isMidiTrack))
     {
-        for (auto &pr : m_pluginRackComps)
+        for (auto &pr : m_rackViews)
            pr->setVisible (false);
 
         m_pianoRollEditor.setVisible (true);
         m_pianoRollEditor.setTrack (track);
+        m_evs.m_isPianoRollVisible = true;
+        resized();
+        repaint();
     }
 
-    m_editViewState.m_isPianoRollVisible = true;
-    resized();
-    repaint();
 }
 
-void LowerRangeComponent::addPluginRackComp(PluginRackComponent *pluginrack)
+void LowerRangeComponent::addRackView(std::unique_ptr<RackView> pluginrack)
 {
-    addChildComponent(pluginrack);
-    m_pluginRackComps.add (pluginrack);
+    addChildComponent(pluginrack.get());
+    m_rackViews.add (std::move(pluginrack));
 }
 
+void LowerRangeComponent::clearPluginRacks()
+{
+    std::cout << "cleat racks vector" << std::endl;
+    m_rackViews.clear ();
+}
+const RackView* LowerRangeComponent::getVisibleRackView()
+{
+    for (auto rv : m_rackViews)
+        if (rv->isVisible())
+            return rv;
+
+    return nullptr;
+}
 void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
         if (v.hasType (tracktion_engine::IDs::MIDICLIP))
