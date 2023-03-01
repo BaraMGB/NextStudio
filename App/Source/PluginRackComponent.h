@@ -22,7 +22,7 @@ class RackView : public juce::Component,
                             public juce::DragAndDropTarget
 {
 public:
-    RackView (EditViewState&, te::Track::Ptr);
+    RackView (EditViewState&);
     ~RackView() override;
 
     void paint (juce::Graphics& g) override;
@@ -30,38 +30,16 @@ public:
     void resized() override;
     void buttonClicked(juce::Button* button) override;
 
-    juce::OwnedArray<AddButton> & getAddButtons()
-    {
-        return m_addButtons;
-    }
+    void setTrack(te::Track::Ptr track);
+    void clearTrack();
+    juce::String getCurrentTrackID();
 
-    tracktion_engine::Track::Ptr getTrack()
-    {
-        return m_track;
-    }
-
-    juce::OwnedArray<RackItemView> & getPluginComponents()
-    {
-        return m_rackItems;
-    }
+    juce::OwnedArray<AddButton> & getAddButtons();
+    juce::OwnedArray<RackItemView> & getPluginComponents();
 
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
-    void itemDragMove(const SourceDetails& dragSourceDetails) override
-    {
-        if (dragSourceDetails.description == "PluginComp"
-            || dragSourceDetails.description == "PluginListEntry")
-        {
-            m_isOver = true;
-        }
-        repaint();
-    }
-
-    void itemDragExit (const SourceDetails& /*dragSourceDetails*/) override
-    {
-        m_isOver = false;
-        repaint();
-    }
-
+    void itemDragMove(const SourceDetails& dragSourceDetails) override;
+    void itemDragExit (const SourceDetails& /*dragSourceDetails*/) override;
     void itemDropped(const SourceDetails& dragSourceDetails) override;
 
 private:
@@ -73,10 +51,10 @@ private:
     void handleAsyncUpdate() override;
 
     void rebuildView();
-    bool isIdValid();
 
     EditViewState& m_evs;
     te::Track::Ptr m_track;
+    juce::String m_trackID{""};
 
     juce::OwnedArray<RackItemView> m_rackItems;
     
@@ -92,7 +70,7 @@ class AddButton : public juce::TextButton
                 , public juce::DragAndDropTarget
 {
 public:
-    AddButton()= default;
+    AddButton(te::Track::Ptr track) : m_track(track) {}
     inline bool isInterestedInDragSource (const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override
     {
@@ -105,7 +83,7 @@ public:
                     auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
                     if (pluginRackComp)
                     {
-                        EngineHelpers::insertPlugin (pluginRackComp->getTrack(),
+                        EngineHelpers::insertPlugin (m_track,
                                                      lbm->getSelectedPlugin(),
                                                      pluginRackComp->getAddButtons ().indexOf (this));
                     }
@@ -124,14 +102,14 @@ public:
                 {
                     if (pluginComp == dragSourceDetails.sourceComponent)
                     {
-                        auto sourceIndex = pluginRackComp->getTrack()->getAllPlugins().indexOf(pluginComp->getPlugin());
+                        auto sourceIndex = m_track->getAllPlugins().indexOf(pluginComp->getPlugin());
                         auto plugToMove = pluginComp->getPlugin();
                         auto targetIndex = pluginRackComp->getAddButtons().indexOf(this);
 
                         targetIndex = targetIndex > sourceIndex ? targetIndex - 1 : targetIndex;
 
                         plugToMove->deleteFromParent();
-                        pluginRackComp->getTrack()->pluginList.insertPlugin(plugToMove, targetIndex,nullptr);
+                        m_track->pluginList.insertPlugin(plugToMove, targetIndex,nullptr);
                     }
                 }
             }
@@ -183,6 +161,7 @@ public:
     te::Plugin::Ptr plugin {nullptr};
 private:
     bool isOver {false};
+    te::Track::Ptr m_track;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AddButton)
 };
 

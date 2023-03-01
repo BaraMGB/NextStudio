@@ -48,10 +48,6 @@ public:
     void showRackView(const tracktion_engine::Track::Ptr);
     void showPianoRoll(const te::Track::Ptr);
 
-    void addRackView (std::unique_ptr<RackView> rackView);
-    void clearPluginRacks();
-    const RackView* getVisibleRackView();
-
 private:
 
     void valueTreeChanged() override {}
@@ -66,7 +62,7 @@ private:
 
     EditViewState& m_evs;
 
-    juce::OwnedArray<RackView> m_rackViews;
+    RackView m_rackView;
     PianoRollEditor m_pianoRollEditor;
     SplitterComponent m_splitter;
     const float m_splitterHeight {10.f};

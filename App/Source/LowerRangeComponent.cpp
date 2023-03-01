@@ -68,13 +68,14 @@ void SplitterComponent::paint(juce::Graphics &g)
 
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     : m_evs(evs)
+    , m_rackView(evs)
     , m_pianoRollEditor (evs)
     , m_splitter (evs)
 {
     m_evs.m_isPianoRollVisible = false;
-    m_rackViews.clear(true);
     addAndMakeVisible (m_splitter);
     addChildComponent (m_pianoRollEditor);
+    addAndMakeVisible (m_rackView);
     m_evs.m_edit.state.addListener (this);
 }
 
@@ -142,13 +143,7 @@ void LowerRangeComponent::resized()
 
         m_splitter.setBounds (area.removeFromTop ((int) m_splitterHeight));
 
-        for (auto& pluginRackComp : m_rackViews)
-        {
-            if (pluginRackComp->isVisible())
-            {
-                pluginRackComp->setBounds(area);
-            }
-        }
+        m_rackView.setBounds(area);
 
         if (m_pianoRollEditor.isVisible ())
         {
@@ -159,17 +154,11 @@ void LowerRangeComponent::showRackView(const te::Track::Ptr track)
 {
     m_pianoRollEditor.setVisible (false);
     m_pianoRollEditor.clearTrack();
-
-
-    for (auto &rackView : m_rackViews)
-    {
-        rackView->setVisible(false);
-
-        if (rackView->getTrack() == track)
-            rackView->setVisible(true);
-    }
-
     m_evs.m_isPianoRollVisible = false;
+
+    m_rackView.setTrack(track);
+    m_rackView.setVisible(true);
+
     resized();
     repaint();
 }
@@ -178,9 +167,7 @@ void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr track
 {
     if (track->state.getProperty (IDs::isMidiTrack))
     {
-        for (auto &pr : m_rackViews)
-           pr->setVisible (false);
-
+        m_rackView.setVisible (false);
         m_pianoRollEditor.setVisible (true);
         m_pianoRollEditor.setTrack (track);
         m_evs.m_isPianoRollVisible = true;
@@ -190,25 +177,6 @@ void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr track
 
 }
 
-void LowerRangeComponent::addRackView(std::unique_ptr<RackView> pluginrack)
-{
-    addChildComponent(pluginrack.get());
-    m_rackViews.add (std::move(pluginrack));
-}
-
-void LowerRangeComponent::clearPluginRacks()
-{
-    std::cout << "cleat racks vector" << std::endl;
-    m_rackViews.clear ();
-}
-const RackView* LowerRangeComponent::getVisibleRackView()
-{
-    for (auto rv : m_rackViews)
-        if (rv->isVisible())
-            return rv;
-
-    return nullptr;
-}
 void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
         if (v.hasType (tracktion_engine::IDs::MIDICLIP))
@@ -229,14 +197,26 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
         }
 }
 
-void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &)
+void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &v, juce::ValueTree &i)
 {
+    if (!m_evs.m_isPianoRollVisible && v.hasType(te::IDs::TRACK))
+    {
+        auto track = te::findTrackForState (m_evs.m_edit, v);
+        if (track != nullptr)
+        {
+            m_rackView.setTrack(track);
+            m_rackView.setVisible(true);
+        }
+    }
     resized ();
     repaint ();
 }
 
-void LowerRangeComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int)
+void LowerRangeComponent::valueTreeChildRemoved(juce::ValueTree &v, juce::ValueTree &i, int)
 {
+    if (i.getProperty(te::IDs::id).toString() == m_rackView.getCurrentTrackID())
+        m_rackView.clearTrack();
+
     resized ();
     repaint ();
 }

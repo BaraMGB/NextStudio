@@ -272,7 +272,6 @@ void EditComponent::refreshSnapTypeDesc()
 
 void EditComponent::buildTracks()
 {
-    m_lowerRange.clearPluginRacks ();
     m_trackListView.clear();
         
     for (auto t : getAllTracks (m_edit))
@@ -281,12 +280,8 @@ void EditComponent::buildTracks()
         {
             auto th = std::make_unique<TrackHeaderComponent> (m_editViewState, t);
             m_trackListView.addHeaderViews(std::move(th));
-
-            auto pr = std::make_unique<RackView> (m_editViewState, t);
-            m_lowerRange.addRackView(std::move(pr));
         }
     }
-
 
     m_trackListView.updateViews();
     m_playhead.toFront (false);
