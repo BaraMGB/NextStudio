@@ -1,4 +1,4 @@
-#include "PianoRollEditorComponent.h"
+#include "PianoRollEditor.h"
 
 PianoRollEditor::PianoRollEditor(EditViewState & evs)
     : m_editViewState(evs)
@@ -151,7 +151,7 @@ void PianoRollEditor::handleNoteOff(juce::MidiKeyboardState *
 }
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {
-    m_pianoRollViewPort = std::make_unique<PianoRollViewPort> (m_editViewState, track);
+    m_pianoRollViewPort = std::make_unique<MidiViewport> (m_editViewState, track);
     addAndMakeVisible (*m_pianoRollViewPort);
 
     m_timelineOverlay = std::make_unique<TimelineOverlayComponent> (m_editViewState, track, m_timeline);

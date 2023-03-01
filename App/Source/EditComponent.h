@@ -5,7 +5,7 @@
 #include "Utilities.h"
 #include "TimeLineComponent.h"
 #include "TrackHeadComponent.h"
-#include "PluginRackComponent.h"
+#include "RackView.h"
 #include "PlayHeadComponent.h"
 #include "LowerRangeComponent.h"
 #include "LassoSelectionTool.h"

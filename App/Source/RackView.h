@@ -1,14 +1,10 @@
 #pragma once
 
-#include <utility>
-
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "PluginComponent.h"
-#include "PluginMenu.h"
-#include "PianoRollEditorComponent.h"
 #include "SideBarBrowser.h"
 
 namespace te = tracktion_engine;

@@ -60,14 +60,14 @@ target_sources(${TargetName} PRIVATE
         Source/PluginComponent.cpp
         Source/PluginMenu.cpp
         Source/LevelMeterComponent.cpp
-        Source/PluginRackComponent.cpp
-        Source/PianoRollEditorComponent.cpp
+        Source/RackView.cpp
+        Source/PianoRollEditor.cpp
         Source/PlayHeadComponent.cpp
         Source/PositionDisplayComponent.cpp
         Source/LowerRangeComponent.cpp
         Source/TrackHeadComponent.cpp
         Source/AudioMidiSettings.cpp
-        Source/PianoRollContentComponent.cpp
+        Source/MidiViewport.cpp
         Source/TimelineOverlayComponent.cpp
         Source/RecordingClipComponent.cpp
         Source/VelocityEditor.cpp

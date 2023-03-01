@@ -1,5 +1,5 @@
 #include "LassoSelectionTool.h"
-#include "PianoRollContentComponent.h"
+#include "MidiViewport.h"
 
 juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState& evs
                                                             , double viewX1

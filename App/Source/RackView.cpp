@@ -1,4 +1,5 @@
-#include "PluginRackComponent.h"
+#include "RackView.h"
+#include "PluginMenu.h"
 #include "Utilities.h"
 
 

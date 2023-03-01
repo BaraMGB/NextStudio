@@ -6,7 +6,7 @@
 #include "Utilities.h"
 #include "LevelMeterComponent.h"
 #include "LowerRangeComponent.h"
-#include "PluginRackComponent.h"
+#include "RackView.h"
 #include "AutomatableSliderComponent.h"
 
 namespace te = tracktion_engine;

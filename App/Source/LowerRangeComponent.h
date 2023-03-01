@@ -6,8 +6,8 @@
 #include "Utilities.h"
 #include "PluginComponent.h"
 #include "PluginMenu.h"
-#include "PianoRollEditorComponent.h"
-#include "PluginRackComponent.h"
+#include "PianoRollEditor.h"
+#include "RackView.h"
 #include "TrackHeadComponent.h"
 #include "TimelineOverlayComponent.h"
 

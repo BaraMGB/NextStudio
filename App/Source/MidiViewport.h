@@ -5,13 +5,13 @@
 #include "LassoSelectionTool.h"
 
 namespace te = tracktion_engine;
-class PianoRollViewPort : public juce::Component
+class MidiViewport : public juce::Component
                                 , public juce::Timer
 {
 public:
 
-    PianoRollViewPort (EditViewState&, te::Track::Ptr);
-    ~PianoRollViewPort() override;
+    MidiViewport (EditViewState&, te::Track::Ptr);
+    ~MidiViewport() override;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -121,6 +121,6 @@ private:
     double                                      m_leftTimeDelta{0.0};
     double                                      m_rightTimeDelta{0.0};
     bool m_expandLeft {false}, m_expandRight {false}, m_noteAdding {false}, m_snap {false};
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollViewPort)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiViewport)
 
 };
