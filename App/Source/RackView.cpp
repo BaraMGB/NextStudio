@@ -100,7 +100,8 @@ void RackView::setTrack(te::Track::Ptr track)
 
 void RackView::clearTrack()
 {
-    m_track->state.removeListener(this);
+    if (m_track != nullptr)
+        m_track->state.removeListener(this);
     m_track = nullptr;
     m_trackID = "";
     rebuildView();
