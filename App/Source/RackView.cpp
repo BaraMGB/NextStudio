@@ -48,7 +48,7 @@ void RackView::paint (juce::Graphics& g)
 
         m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
         // GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,"#" + labelingCol.toString().substring(2));
-        auto header = area.removeFromLeft(20);
+        auto header = area.removeFromLeft(HEADERWIDTH);
         g.setColour(trackCol);
         GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
     };
@@ -61,18 +61,17 @@ void RackView::mouseDown (const juce::MouseEvent&)
 
 void RackView::resized()
 {
-
     auto area = getLocalBounds();
     auto nameLabelRect = juce::Rectangle<int>(area.getX()
-                                              , area.getHeight() - 20 
+                                              , area.getHeight() - HEADERWIDTH 
                                               , area.getHeight()
-                                              , 20);
+                                              , HEADERWIDTH);
     m_nameLabel.setBounds(nameLabelRect);
     m_nameLabel.setTransform(juce::AffineTransform::rotation ( - (juce::MathConstants<float>::halfPi)
                                                  , nameLabelRect.getX() + 10.0
                                                  , nameLabelRect.getY() + 10.0 ));
-    area = getLocalBounds().reduced (5);
-    area.removeFromLeft(30);
+    area.removeFromLeft(HEADERWIDTH);
+    area = area.reduced (5);
 
     for (auto &b : m_addButtons)
     {
@@ -87,7 +86,7 @@ void RackView::resized()
         addAndMakeVisible(*firstAdder);
         firstAdder->addListener(this);
         firstAdder->setButtonText("+");
-        firstAdder->setBounds(area.removeFromLeft(15));
+        firstAdder->setBounds(area.removeFromLeft(15).reduced(0,10));
 
         for (auto p : m_rackItems)
         {
@@ -101,7 +100,7 @@ void RackView::resized()
             m_addButtons.add(adder);
             addAndMakeVisible(*adder);
             adder->setButtonText("+");
-            adder->setBounds(area.removeFromLeft(15));
+            adder->setBounds(area.removeFromLeft(15).reduced(0, 10));
             adder->addListener(this);
         }
         area.removeFromLeft (5);

@@ -60,6 +60,7 @@ private:
     bool m_updatePlugins = false;
     bool m_isOver = false;
     te::EditItemID m_id;
+    const int HEADERWIDTH = 20;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackView)
 };
 
@@ -140,9 +141,9 @@ public:
         {
             g.setColour(juce::Colours::grey);
         }
-        int cornerSize = 5;
+        auto cornerSize = 5.f;
         auto area = getLocalBounds().toFloat();
-        g.fillRoundedRectangle(area, (float) cornerSize);
+        GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize, false, true, false, true);
         area.reduce(1,1);
         g.setColour(juce::Colour(0xff1b1b1b));
 
