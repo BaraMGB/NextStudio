@@ -6,6 +6,8 @@
 RackView::RackView (EditViewState& evs)
     : m_evs (evs)
 {
+    addAndMakeVisible(m_nameLabel);
+    m_nameLabel.setJustificationType(juce::Justification::centred);
     rebuildView();
 }
 
@@ -26,11 +28,30 @@ void RackView::paint (juce::Graphics& g)
     g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
     g.setColour(juce::Colours::white);
         
+    auto area = getLocalBounds();
+
     if (m_isOver)
-        g.drawRect(getLocalBounds(), 2);
+        g.drawRect(area, 2);
     
     if (m_track == nullptr)
+    {
         g.drawText("select a track for showing rack", getLocalBounds(), juce::Justification::centred);
+    }
+    else
+    {  
+
+        auto trackCol = m_track->getColour();
+        auto cornerSize = 10.0f;
+        auto labelingCol = trackCol.getBrightness() > 0.8f
+                 ? juce::Colour(0xff000000)
+                 : juce::Colour(0xffffffff);
+
+        m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+        // GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,"#" + labelingCol.toString().substring(2));
+        auto header = area.removeFromLeft(20);
+        g.setColour(trackCol);
+        GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
+    };
 }
 
 void RackView::mouseDown (const juce::MouseEvent&)
@@ -40,7 +61,18 @@ void RackView::mouseDown (const juce::MouseEvent&)
 
 void RackView::resized()
 {
-    auto area = getLocalBounds().reduced (5);
+
+    auto area = getLocalBounds();
+    auto nameLabelRect = juce::Rectangle<int>(area.getX()
+                                              , area.getHeight() - 20 
+                                              , area.getHeight()
+                                              , 20);
+    m_nameLabel.setBounds(nameLabelRect);
+    m_nameLabel.setTransform(juce::AffineTransform::rotation ( - (juce::MathConstants<float>::halfPi)
+                                                 , nameLabelRect.getX() + 10.0
+                                                 , nameLabelRect.getY() + 10.0 ));
+    area = getLocalBounds().reduced (5);
+    area.removeFromLeft(30);
 
     for (auto &b : m_addButtons)
     {
@@ -95,6 +127,7 @@ void RackView::setTrack(te::Track::Ptr track)
     m_track = track;
     m_track->state.addListener(this);
     m_trackID = m_track->itemID.toString();
+    m_nameLabel.setText(m_track->getName(), juce::dontSendNotification);
     rebuildView();
 }
 

@@ -50,6 +50,7 @@ private:
 
     EditViewState& m_evs;
     te::Track::Ptr m_track;
+    juce::Label m_nameLabel;
     juce::String m_trackID{""};
 
     juce::OwnedArray<RackItemView> m_rackItems;
