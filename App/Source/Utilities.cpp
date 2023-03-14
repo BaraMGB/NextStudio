@@ -378,6 +378,18 @@ te::AudioTrack::Ptr EngineHelpers::getAudioTrack(te::Track::Ptr track, EditViewS
     return nullptr;
 }
 
+te::MidiInputDevice& EngineHelpers::getVirtuelMidiInputDevice(te::Engine& engine)
+{
+    auto& dm = engine.getDeviceManager();
+    for (auto i = 0; i < dm.getNumMidiInDevices(); i++)
+    {
+        auto midiInDev = dm.getMidiInDevice(i);
+        if (midiInDev->getName() == "vitualMidiIn")
+            return *midiInDev;
+    }
+    dm.createVirtualMidiDevice("vitualMidiIn");
+    return *dm.getMidiInDevice(dm.getNumMidiInDevices() -1);
+}
 tracktion::core::TimePosition EngineHelpers::getTimePos(double t)
 {
     return tracktion::core::TimePosition::fromSeconds(t);

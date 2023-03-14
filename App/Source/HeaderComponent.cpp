@@ -1,7 +1,7 @@
 #include "HeaderComponent.h"
 
 
-HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & applicationState)
+HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & applicationState, juce::ApplicationCommandManager& commandManager)
     : m_editViewState(evs)
     , m_newButton ("New", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loadButton ("Load", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -16,6 +16,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     , m_followPlayheadButton("Follow", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_edit(evs.m_edit)
     , m_applicationState (applicationState)
+    , m_commandManager(commandManager)
     , m_display (m_edit)
 {
     Helpers::addAndMakeVisible(*this,
@@ -149,7 +150,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         o.dialogTitle = TRANS("Audio Settings");
         o.dialogBackgroundColour = juce::LookAndFeel::getDefaultLookAndFeel()
                 .findColour (juce::ResizableWindow::backgroundColourId);
-        auto audiosettings = new AudioMidiSettings(m_edit.engine);
+        auto audiosettings = new SettingsView(m_edit.engine, m_commandManager);
         o.content.setOwned (audiosettings);
         o.content->setSize (400, 600);
         o.runModal ();

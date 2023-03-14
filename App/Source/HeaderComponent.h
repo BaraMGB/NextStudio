@@ -15,7 +15,7 @@ class HeaderComponent    : public juce::Component
                          , public juce::ChangeBroadcaster
 {
 public:
-    HeaderComponent(EditViewState &, ApplicationViewState & applicationState);
+    HeaderComponent(EditViewState &, ApplicationViewState & applicationState, juce::ApplicationCommandManager& commandManager);
     ~HeaderComponent() override;
 
     void paint(juce::Graphics &g) override;
@@ -49,7 +49,7 @@ private:
     te::Edit& m_edit;
     ApplicationViewState& m_applicationState;
 
-
+    juce::ApplicationCommandManager & m_commandManager;
     PositionDisplayComponent m_display;
 
     juce::String m_btn_col { "#dbdbdb" };

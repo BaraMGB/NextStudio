@@ -24,8 +24,9 @@ public:
     SongEditorView(EditViewState& evs, LowerRangeComponent& lr);
     ~SongEditorView() override;
 
-	void paint(juce::Graphics& g) override;
-	void paintOverChildren (juce::Graphics& g) override;
+  	void paint(juce::Graphics& g) override;
+  	void paintOverChildren (juce::Graphics& g) override;
+
     void resized() override;
 
     void mouseMove (const juce::MouseEvent &) override;
