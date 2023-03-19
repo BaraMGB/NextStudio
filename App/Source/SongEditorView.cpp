@@ -1290,8 +1290,6 @@ void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayed
     double x1beats = m_editViewState.timeToBeat(etr.getStart().inSeconds());
     double x2beats = m_editViewState.timeToBeat(etr.getEnd().inSeconds());
 
-    g.setColour(juce::Colour(0x60ffffff));
-    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
     g.setColour(juce::Colour(0xff252525));
     g.fillRect(displayedRect);
 
@@ -1321,6 +1319,9 @@ void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayed
                 drawClip(g,clipRect, c, color, displayedRect, x1beats, x2beats); 
         }
     }
+
+    g.setColour(juce::Colour(0x60ffffff));
+    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
 }
 
 juce::Rectangle<int> SongEditorView::getClipRect (te::Clip::Ptr clip)
@@ -1750,6 +1751,9 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
     g.setColour(juce::Colours::red);
     g.strokePath(selectedPointsPath, juce::PathStrokeType(lineThickness));
     
+    g.setColour(juce::Colour(0x60ffffff));
+    g.drawLine(drawRect.getX(),drawRect.getBottom(), drawRect.getRight(), drawRect.getBottom());
+
     g.restoreState();
 }
 
