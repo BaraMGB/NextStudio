@@ -25,7 +25,7 @@ class ParameterComponent : public juce::Component
 public:
     explicit ParameterComponent(te::AutomatableParameter& ap);
     ~ParameterComponent() override= default;
-
+    void paint(juce::Graphics& g) override;
     void resized() override;
     void mouseDown(const juce::MouseEvent& e) override;
     void mouseUp(const juce::MouseEvent& e) override;
@@ -328,13 +328,16 @@ public:
     VstPluginComponent (EditViewState&, te::Plugin::Ptr);
     ~VstPluginComponent() override;
 
-    int getNeededWidth() override {return 2;}
+
+    void paint (juce::Graphics& g) override;
+    void resized() override;
+
     void mouseDown(const juce::MouseEvent& ) override
     {
     }
 
-    void resized() override;
 
+    int getNeededWidth() override {return 2;}
 private:
 
     void curveHasChanged(te::AutomatableParameter&) override{} 

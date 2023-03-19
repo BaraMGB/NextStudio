@@ -132,6 +132,7 @@ void RackItemView::resized()
                                                  , nameLabelRect.getX() + 10.0
                                                  , nameLabelRect.getY() + 10.0 ));
     area.removeFromLeft(m_headerWidth);
+    area.reduce(1,1);
     m_pluginComponent.get()->setBounds(area);
 }
 
@@ -295,6 +296,15 @@ VstPluginComponent::~VstPluginComponent()
     }
 }
 
+void VstPluginComponent::paint (juce::Graphics& g) 
+{
+    g.setColour(juce::Colour::fromString("#ff333333"));
+    g.fillAll();
+    auto h = m_lastChangedParameterComponent->getHeight();
+    g.setColour(juce::Colours::black);
+    g.drawLine(0, h, getWidth(), h);
+}
+
 void VstPluginComponent::resized()
 {
     int scrollPos = m_viewPort.getVerticalScrollBar().getCurrentRangeStart();
@@ -346,6 +356,15 @@ ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &a
     m_parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
 }
 
+void ParameterComponent::paint(juce::Graphics& g) 
+{
+
+    g.setColour(juce::Colour::fromString("#ff171717"));
+    auto area = getLocalBounds();
+    area.reduce(2, 2);
+    area.removeFromRight(10);
+    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), 10, true, false, true,  false);
+}
 void ParameterComponent::resized()
 {
     auto area = getLocalBounds();
