@@ -59,7 +59,6 @@ class MainComponent   : public juce::Component
                       , public juce::ChangeListener
                       , public te::ValueTreeAllEventListener
                       , private FlaggedAsyncUpdater
-                      , private juce::Timer
 {
 public:
     explicit MainComponent(ApplicationViewState& state);
@@ -84,6 +83,7 @@ public:
 
 private:
 
+
     void handleAsyncUpdate () override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
     void saveSettings();
@@ -94,7 +94,6 @@ private:
 
     
 
-    void timerCallback() override;
 
     std::unique_ptr<HeaderComponent>                    m_header;
     NextLookAndFeel                                     m_nextLookAndFeel;

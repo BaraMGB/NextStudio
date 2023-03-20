@@ -9,6 +9,7 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     , m_trackListView(m_editViewState, m_lowerRange)
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
+  , m_autosaveThread(m_editViewState)
 {
     m_edit.state.addListener (this);
 
@@ -39,10 +40,12 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
                 te::getAllTracks (m_edit).getLast ());
 
     updateHorizontalScrollBar();
+    startTimer (static_cast<int>(m_editViewState.m_applicationState.m_autoSaveInterval));
 }
 
 EditComponent::~EditComponent()
 {
+    m_autosaveThread.stopThread(5000);
     m_edit.state.removeListener (this);
 }
 
@@ -157,6 +160,19 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
     }
 }
 
+void EditComponent::timerCallback() 
+{
+    if (m_editViewState.m_isSavingLocked)
+        return;
+
+    if (m_edit.getTransport().isPlaying() || m_edit.getTransport().isRecording())
+        return;
+    if (m_editViewState.m_needAutoSave)
+    {
+        m_autosaveThread.startThread();
+        m_editViewState.m_needAutoSave = false; 
+    }
+}
 void EditComponent::valueTreePropertyChanged (
         juce::ValueTree& v, const juce::Identifier& i)
 {
@@ -173,6 +189,7 @@ void EditComponent::valueTreePropertyChanged (
     if (i == te::IDs::lastSignificantChange)
     {
         markAndUpdate(m_updateSongEditor);
+        m_editViewState.m_needAutoSave = true;
     }
     if (v.hasType (IDs::EDITVIEWSTATE))
     {

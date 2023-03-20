@@ -45,6 +45,7 @@ class EditComponent : public  juce::Component
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
                     , private juce::ScrollBar::Listener
+                    , private juce::Timer
 {
 public:
     EditComponent (te::Edit&
@@ -69,6 +70,29 @@ public:
 
 private:
 
+    class AutoSaveThread : public juce::Thread
+    {
+    public:
+        AutoSaveThread(EditViewState& evs) : juce::Thread("Auto Save Thread"), m_evs(evs) {}
+
+        void run() override
+        {
+            auto temp = m_evs.m_edit.getTempDirectory(false);
+            auto editFile = Helpers::findRecentEdit(temp);
+            auto currentFile =  te::EditFileOperations(m_evs.m_edit).getEditFile();
+
+            EngineHelpers::refreshRelativePathsToNewEditFile(m_evs, editFile);
+            te::EditFileOperations(m_evs.m_edit).writeToFile(editFile, true);
+            EngineHelpers::refreshRelativePathsToNewEditFile(m_evs, currentFile);
+            m_evs.m_edit.sendSourceFileUpdate();
+            GUIHelpers::log("Temp file saved!");
+        }
+    private:
+        EditViewState& m_evs;
+    };
+
+    AutoSaveThread m_autosaveThread;
+    void timerCallback() override;
     void valueTreeChanged () override {}
     void valueTreePropertyChanged (juce::ValueTree&
                                    , const juce::Identifier&) override;

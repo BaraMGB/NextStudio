@@ -141,7 +141,7 @@ public:
 		m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff181818).toString());
         auto behavior = m_applicationStateValueTree
                 .getOrCreateChildWithName(IDs::Behavior, nullptr);  
-        m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 15000);
+        m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
     }
 
 	juce::Colour getPrimeColour()

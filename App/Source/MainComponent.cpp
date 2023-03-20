@@ -21,7 +21,6 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.15);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
-    startTimer (static_cast<int>(m_applicationState.m_autoSaveInterval));
     m_commandManager.registerAllCommandsForTarget(this);
     juce::Timer::callAfterDelay (300, [this] { grabKeyboardFocus(); }); // ensure that key presses are sent to the KeyPressTarget object
 }
@@ -537,23 +536,11 @@ void MainComponent::handleAsyncUpdate()
     if (compareAndReset (m_saveTemp)  && !compareAndReset(m_updateSource))
     {
         m_hasUnsavedTemp = true;
-        stopTimer();
-        startTimer (static_cast<int>(m_applicationState.m_autoSaveInterval));
     }
 
     if (compareAndReset(m_updateView))
     {
         resized();
-    }
-}
-
-
-void MainComponent::timerCallback()
-{
-    if (m_hasUnsavedTemp && !m_editComponent->getEditViewState().m_isSavingLocked)
-    {
-        saveTempEdit();
-        m_hasUnsavedTemp = false;
     }
 }
 
@@ -572,19 +559,6 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
             openValidStartEdit();
         }
     }
-}
-
-void MainComponent::saveTempEdit()
-{
-    auto temp = m_edit->getTempDirectory(false);
-    auto editFile = Helpers::findRecentEdit(temp);
-    auto currentFile =  te::EditFileOperations(*m_edit).getEditFile();
-
-    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), editFile);
-    te::EditFileOperations(*m_edit).writeToFile(editFile, true);
-    EngineHelpers::refreshRelativePathsToNewEditFile(m_editComponent->getEditViewState(), currentFile);
-    m_edit->sendSourceFileUpdate();
-    GUIHelpers::log("Temp file saved!");
 }
 
 void MainComponent::openValidStartEdit()

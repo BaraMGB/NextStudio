@@ -79,6 +79,7 @@ namespace IDs
     DECLARE_ID (clipHeaderHeight)                                               
     DECLARE_ID (tmpTrack)                                               
     DECLARE_ID (syncAutomation)
+    DECLARE_ID (needAutoSave)
     
     #undef DECLARE_ID
 }
@@ -297,7 +298,7 @@ public:
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;
     juce::ValueTree m_state;
-    bool m_isSavingLocked {false};
+    bool m_isSavingLocked {false}, m_needAutoSave {false};
     ApplicationViewState& m_applicationState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };
