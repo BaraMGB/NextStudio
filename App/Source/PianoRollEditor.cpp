@@ -122,16 +122,14 @@ void PianoRollEditor::handleNoteOn(juce::MidiKeyboardState *
                                       , int midiNoteNumber
                                       , float velocity)
 {
-    auto& virtMidiInput = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit.engine);
-    virtMidiInput.handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, midiNoteNumber, velocity));
+    m_editViewState.m_edit.engine.getDeviceManager().getDefaultMidiInDevice()->handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, midiNoteNumber, velocity));
 }
 void PianoRollEditor::handleNoteOff(juce::MidiKeyboardState *
                                        , int /*midiChannel*/
                                        , int midiNoteNumbr
                                        , float)
 {
-    auto& virtMidiInput = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit.engine);
-    virtMidiInput.handleIncomingMidiMessage(juce::MidiMessage::noteOff(0, midiNoteNumbr, 0.8f));
+    m_editViewState.m_edit.engine.getDeviceManager().getDefaultMidiInDevice()->handleIncomingMidiMessage(juce::MidiMessage::noteOff(0, midiNoteNumbr, 0.8f));
 }
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {
