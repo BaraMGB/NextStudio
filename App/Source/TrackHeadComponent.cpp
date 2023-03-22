@@ -327,17 +327,17 @@ void TrackHeaderComponent::valueTreeChildRemoved(
 {
 }
 
-void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *track)
+void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
 {
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
-    track->edit.playInStopEnabled = true;
+    at->edit.playInStopEnabled = true;
     juce::PopupMenu m;
     m.addItem(2000, "delete Track");
     m.addSeparator();
 
-    if (EngineHelpers::trackHasInput(*track))
+    if (EngineHelpers::trackHasInput(*at))
     {
-        bool ticked = EngineHelpers::isInputMonitoringEnabled(*track);
+        bool ticked = EngineHelpers::isInputMonitoringEnabled(*at);
         m.addItem(1000, "Input Monitoring", true, ticked);
         m.addSeparator();
     }
@@ -345,17 +345,14 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *track)
     int id = 0;
     if (!isMidiTrack)
     {
+
         id = 1;
-        auto &dm = m_editViewState.m_edit.engine.getDeviceManager();
-
-        for (auto i = 0; i < dm.getNumInputDevices();i++)
+        for (auto instance: at->edit.getAllInputDevices())
         {
-            auto instance = dm.getInputDevice(i)->createInstance(*m_editViewState.m_edit.getCurrentPlaybackContext());
-
             if (instance->getInputDevice().getDeviceType()
                 == te::InputDevice::waveDevice)
             {
-                bool ticked = instance->getTargetTracks().getFirst() == track;
+                bool ticked = instance->getTargetTracks().getFirst() == at;
                 m.addItem(id++,
                           instance->getInputDevice().getName(),
                           true,
@@ -367,25 +364,16 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *track)
     }else
     {
         id = 100;
-
-        auto &dm = m_editViewState.m_edit.engine.getDeviceManager();
-
-        for (auto i = 0; i < dm.getNumMidiInDevices() ;i++)
+        for (auto instance: at->edit.getAllInputDevices())
         {
-            auto instance = dm.getMidiInDevice(i)->createInstance(*m_editViewState.m_edit.getCurrentPlaybackContext());
-
             if (instance->getInputDevice().getDeviceType()
                 == te::InputDevice::physicalMidiDevice)
             {
-
-                if (auto at = dynamic_cast<te::AudioTrack*>(getTrack ().get ()))
-                {
-                    bool ticked = instance->getTargetTracks().contains(at);
-                    m.addItem(id++,
-                              instance->getInputDevice().getName(),
-                              true,
-                              ticked);
-                }
+                bool ticked = instance->getTargetTracks().getFirst() == at;
+                m.addItem(id++,
+                          instance->getInputDevice().getName(),
+                          true,
+                          ticked);
             }
         }
     }
@@ -397,33 +385,33 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *track)
     else if (result == 1000)
     {
         EngineHelpers::enableInputMonitoring(
-            *track, !EngineHelpers::isInputMonitoringEnabled(*track));
+            *at, !EngineHelpers::isInputMonitoringEnabled(*at));
     }
     else if (result >= 100 && !m_track->isFolderTrack())
     {
         if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
         {
             int id = 100;
-            auto &dm = m_editViewState.m_edit.engine.getDeviceManager ();
 
-            for (auto i = 0; i < dm.getNumMidiInDevices();i++)
+            for (auto instance: at->edit.getAllInputDevices())
             {
-                
-                auto instance = dm.getMidiInDevice(i)->createInstance(*m_editViewState.m_edit.getCurrentPlaybackContext());
-
-                instance->clearFromTracks();
-                if ((&instance->getInputDevice() == dm.getDefaultMidiInDevice())
-                || (id == result))
+                if (instance->getInputDevice().getDeviceType()
+                    == te::InputDevice::physicalMidiDevice)
                 {
-                    instance->setTargetTrack(*aut, 0, true);
+                    if (id == result)
+                    {
+                        {
+                            instance->setTargetTrack(*aut, 0, true);
+                        }
+                    }
+                    id++;
                 }
-                id++;
             }
             //toDO ... hack!
             EngineHelpers::enableInputMonitoring(
-                *track, !EngineHelpers::isInputMonitoringEnabled(*track));
+                *at, !EngineHelpers::isInputMonitoringEnabled(*at));
             EngineHelpers::enableInputMonitoring(
-                *track, !EngineHelpers::isInputMonitoringEnabled(*track));
+                *at, !EngineHelpers::isInputMonitoringEnabled(*at));
         }
     }
     else if (result >= 1 && !m_track->isFolderTrack())
@@ -431,16 +419,21 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *track)
         if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
         {
             int id = 1;
-            auto &dm = m_editViewState.m_edit.engine.getDeviceManager();
-            for (auto i = 0; i < dm.getNumInputDevices() ;i++)
+            for (auto instance: at->edit.getAllInputDevices())
             {
-                auto instance = dm.getInputDevice(i)->createInstance(*m_editViewState.m_edit.getCurrentPlaybackContext());
                 if (instance->getInputDevice().getDeviceType()
                     == te::InputDevice::waveDevice)
                 {
                     if (id == result)
                     {
-                        instance->setTargetTrack(*aut, 0, false);
+                        if (instance->getTargetTracks().getFirst() == at)
+                        {
+                            instance->removeTargetTrack(*aut);
+                        }
+                        else
+                        {
+                            instance->setTargetTrack(*aut, 0, true);
+                        }
                     }
                     id++;
                 }
@@ -488,13 +481,12 @@ void TrackHeaderComponent::updateMidiInputs()
         if ( at->state.getProperty (IDs::isMidiTrack))
         {
             auto &dm = m_editViewState.m_edit.engine.getDeviceManager ();
-            m_editViewState.m_edit.getAllInputDevices();
-
-            for (auto i = 0; i < dm.getNumMidiInDevices();i++)
+            for (auto instance: m_editViewState.m_edit.getAllInputDevices())
             {
-                auto instance = dm.getMidiInDevice(i)->createInstance(*m_editViewState.m_edit.getCurrentPlaybackContext());
+                if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
+                {
 
-                    if ((&instance->getInputDevice() == dm.getDefaultMidiInDevice ()) || (instance->getInputDevice().getName() == "vitualMidiIn"))
+                    if (midiIn == dm.getDefaultMidiInDevice ())
                     {
                         instance->setTargetTrack(*at, 0, true);
                         m_editViewState.m_edit.restartPlayback();
@@ -513,6 +505,8 @@ void TrackHeaderComponent::updateMidiInputs()
                 EngineHelpers::armTrack (*at, true);
             }
         }
+    }
+
 }
 
 void TrackHeaderComponent::paint (juce::Graphics& g)
@@ -909,3 +903,4 @@ void TrackHeaderComponent::collapseTrack(bool minimize)
 {
     m_track->state.setProperty(IDs::isTrackMinimized, minimize, &m_editViewState.m_edit.getUndoManager());
 }
+
