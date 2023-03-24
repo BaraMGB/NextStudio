@@ -1,15 +1,14 @@
 #include "PianoRollEditor.h"
+#include "KeyboardView.h"
 #include "Utilities.h"
 
 PianoRollEditor::PianoRollEditor(EditViewState & evs)
     : m_editViewState(evs)
-    , m_keyboard (evs)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
     evs.m_edit.state.addListener (this);
 
-    addAndMakeVisible (m_keyboard);
     addAndMakeVisible (m_timeline);
     addAndMakeVisible (m_playhead);
     m_playhead.setAlwaysOnTop (true);
@@ -78,7 +77,8 @@ void PianoRollEditor::resized()
     auto timeline = getTimeLineRect();
     auto playhead = getPlayHeadRect();
 
-    m_keyboard.setBounds (keyboard);
+    if (m_keyboard != nullptr)
+        m_keyboard->setBounds (keyboard);
     m_timeline.setBounds (timeline);
 
     if (m_timelineOverlay != nullptr)
@@ -123,6 +123,8 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
     m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track);
     addAndMakeVisible(*m_velocityEditor);
 
+    m_keyboard = std::make_unique<KeyboardView>(m_editViewState, track);
+    addAndMakeVisible (*m_keyboard);
     resized ();
 }
 void PianoRollEditor::clearTrack()
@@ -131,6 +133,7 @@ void PianoRollEditor::clearTrack()
     m_timelineOverlay.reset (nullptr);
     m_pianoRollViewPort.reset (nullptr);
     m_velocityEditor.reset(nullptr);
+    m_keyboard.reset(nullptr);
     resized ();
 }
 void PianoRollEditor::valueTreePropertyChanged(
@@ -173,7 +176,7 @@ void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree& ,
 void PianoRollEditor::handleAsyncUpdate()
 {
     if (compareAndReset(m_updateKeyboard))
-        m_keyboard.resized();
+        m_keyboard->resized();
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateNoteEditor))
         m_pianoRollViewPort->repaint();

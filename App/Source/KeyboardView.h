@@ -42,9 +42,11 @@ class PianoRollVertKeyboard : public juce::KeyboardComponentBase
 class KeyboardView: public juce::Component
 {
 public:
-    explicit KeyboardView(EditViewState& evs) 
+    explicit KeyboardView(EditViewState& evs, te::Track::Ptr track) 
         : m_editViewState(evs)
+        , m_track(track)
     {
+        EngineHelpers::updateMidiInputs(evs, track);
         addAndMakeVisible(&m_keyboard);
     }
     ~KeyboardView() = default;
@@ -65,8 +67,6 @@ public:
                              , (int) m_keyboard.getTotalKeyboardWidth ());
     }
 
-
-
 private:
 
     float getKey(int y)
@@ -80,6 +80,8 @@ private:
 
     EditViewState& m_editViewState;
     PianoRollVertKeyboard m_keyboard;
+
+    te::Track::Ptr m_track;
 
     float m_clickedKey;
     double m_keyWidthCached;

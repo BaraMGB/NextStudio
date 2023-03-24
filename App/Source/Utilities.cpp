@@ -378,6 +378,39 @@ te::AudioTrack::Ptr EngineHelpers::getAudioTrack(te::Track::Ptr track, EditViewS
     return nullptr;
 }
 
+void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)    
+{
+    if (auto at = dynamic_cast<te::AudioTrack*>(track.get()))
+    {
+        if ( at->state.getProperty (IDs::isMidiTrack))
+        {
+            auto &dm = evs.m_edit.engine.getDeviceManager ();
+            for (auto instance: evs.m_edit.getAllInputDevices())
+            {
+                if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
+                {
+
+                    if (midiIn == dm.getDefaultMidiInDevice ())
+                    {
+                        instance->setTargetTrack(*at, 0, true);
+                        evs.m_edit.restartPlayback();
+                    }
+                }
+            }
+            if (evs.m_isAutoArmed)
+            {
+                for (auto&i : evs.m_edit.getTrackList ())
+                {
+                    if (auto audioTrack = dynamic_cast<te::AudioTrack*>(i))
+                    {
+                        EngineHelpers::armTrack (*audioTrack,false);
+                    }
+                }
+                EngineHelpers::armTrack (*at, true);
+            }
+        }
+    }
+}
 te::MidiInputDevice& EngineHelpers::getVirtuelMidiInputDevice(te::Engine& engine)
 {
     auto& dm = engine.getDeviceManager();

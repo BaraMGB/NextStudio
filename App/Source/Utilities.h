@@ -176,7 +176,7 @@ namespace PlayHeadHelpers
 
 namespace EngineHelpers
 {
-    
+    void updateMidiInputs(EditViewState& evs, te::Track::Ptr track);    
     te::MidiInputDevice& getVirtuelMidiInputDevice(te::Engine& engine);
     tracktion::core::TimePosition getTimePos(double t);
     te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);

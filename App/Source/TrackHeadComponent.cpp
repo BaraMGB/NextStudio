@@ -1,5 +1,6 @@
 #include "TrackHeadComponent.h"
 #include "EditComponent.h"
+#include "Utilities.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
 	: m_automatableParameter(ap)
     , m_slider(ap)
@@ -476,37 +477,7 @@ te::Track::Ptr TrackHeaderComponent::getTrack() const
 
 void TrackHeaderComponent::updateMidiInputs()
 {
-    if (auto at = dynamic_cast<te::AudioTrack*>(getTrack ().get ()))
-    {
-        if ( at->state.getProperty (IDs::isMidiTrack))
-        {
-            auto &dm = m_editViewState.m_edit.engine.getDeviceManager ();
-            for (auto instance: m_editViewState.m_edit.getAllInputDevices())
-            {
-                if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
-                {
-
-                    if (midiIn == dm.getDefaultMidiInDevice ())
-                    {
-                        instance->setTargetTrack(*at, 0, true);
-                        m_editViewState.m_edit.restartPlayback();
-                    }
-                }
-            }
-            if (m_editViewState.m_isAutoArmed)
-            {
-                for (auto&i : m_editViewState.m_edit.getTrackList ())
-                {
-                    if (auto audioTrack = dynamic_cast<te::AudioTrack*>(i))
-                    {
-                        EngineHelpers::armTrack (*audioTrack,false);
-                    }
-                }
-                EngineHelpers::armTrack (*at, true);
-            }
-        }
-    }
-
+    EngineHelpers::updateMidiInputs(m_editViewState, getTrack());
 }
 
 void TrackHeaderComponent::paint (juce::Graphics& g)

@@ -40,11 +40,11 @@ private:
                                int ) override;
 
     EditViewState& m_editViewState;
-    KeyboardView m_keyboard;
     TimeLineComponent m_timeline;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
     std::unique_ptr<MidiViewport> m_pianoRollViewPort{nullptr};
     std::unique_ptr<VelocityEditor> m_velocityEditor{nullptr};
+    std::unique_ptr<KeyboardView> m_keyboard;
     PlayheadComponent m_playhead;
     juce::String m_NoteDescUnderCursor;
     void handleAsyncUpdate() override;

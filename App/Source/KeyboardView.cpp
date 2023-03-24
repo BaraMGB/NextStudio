@@ -5,6 +5,7 @@ void KeyboardView::mouseDown(const juce::MouseEvent& e)
 {
     if (m_keyboard.getBounds().contains(e.getPosition()))
         EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit.engine).handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, getKey(e.y), .8f));
+
     m_keyWidthCached = m_editViewState.m_pianoKeyWidth;
     m_clickedKey = getKey(e.y);
 }
