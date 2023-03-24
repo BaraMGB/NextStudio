@@ -3,15 +3,11 @@
 
 PianoRollEditor::PianoRollEditor(EditViewState & evs)
     : m_editViewState(evs)
-    , m_keyboard (m_keybordstate, evs)
+    , m_keyboard (evs)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
-    m_keybordstate.addListener (this);
     evs.m_edit.state.addListener (this);
-    m_keyboard.getKeyboard().setBlackNoteWidthProportion (0.5f);
-    m_keyboard.getKeyboard().setBlackNoteLengthProportion (0.6f);
-    m_keyboard.getKeyboard().setScrollButtonsVisible (false);
 
     addAndMakeVisible (m_keyboard);
     addAndMakeVisible (m_timeline);
@@ -21,7 +17,6 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
 PianoRollEditor::~PianoRollEditor()
 {
     m_editViewState.m_edit.state.removeListener (this);
-    m_keybordstate.removeListener (this);
 }
 void PianoRollEditor::paint(juce::Graphics& g)
 {
@@ -116,22 +111,6 @@ void PianoRollEditor::mouseMove(const juce::MouseEvent &event)
             , 3);
         repaint();
     }
-}
-void PianoRollEditor::handleNoteOn(juce::MidiKeyboardState *
-                                      , int /*midiChannel*/
-                                      , int midiNoteNumber
-                                      , float velocity)
-{
-    auto& virtMidiInput = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit.engine);
-    virtMidiInput.handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, midiNoteNumber, velocity));
-}
-void PianoRollEditor::handleNoteOff(juce::MidiKeyboardState *
-                                       , int /*midiChannel*/
-                                       , int midiNoteNumbr
-                                       , float)
-{
-    auto& virtMidiInput = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit.engine);
-    virtMidiInput.handleIncomingMidiMessage(juce::MidiMessage::noteOff(0, midiNoteNumbr, 0.8f));
 }
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {

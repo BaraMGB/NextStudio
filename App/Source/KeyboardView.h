@@ -5,20 +5,53 @@
 
 namespace te = tracktion_engine;
 
-class KeyboardView
-    : public juce::Component
+class PianoRollVertKeyboard : public juce::KeyboardComponentBase
+{
+    public: 
+    PianoRollVertKeyboard()
+        : juce::KeyboardComponentBase(juce::MidiKeyboardComponent::Orientation::verticalKeyboardFacingRight)
+    {
+        setBlackNoteWidthProportion (0.5f);
+        setBlackNoteLengthProportion (0.6f);
+        setScrollButtonsVisible (false);
+
+        setInterceptsMouseClicks(false, false);
+    }
+
+    ~PianoRollVertKeyboard() = default;
+    void drawKeyboardBackground(juce::Graphics &g, juce::Rectangle<float> area) override
+    {
+    }
+    void drawWhiteKey(int midiNoteNumberm, juce::Graphics& g, juce::Rectangle<float> area) override
+    {
+        
+        g.setColour(juce::Colours::white);
+        g.fillRect(area);
+    }
+    void drawBlackKey(int midiNoteNumberm, juce::Graphics& g, juce::Rectangle<float> area) override
+    {
+
+        g.setColour(juce::Colours::black);
+        g.fillRect(area);
+    }
+};
+
+
+
+
+class KeyboardView: public juce::Component
 {
 public:
-    explicit KeyboardView(juce::MidiKeyboardState& mks, EditViewState& evs)
-        : m_keyboard(mks,  juce::MidiKeyboardComponent::Orientation::verticalKeyboardFacingRight)
-        , m_editViewState(evs)
+    explicit KeyboardView(EditViewState& evs) 
+        : m_editViewState(evs)
     {
-        addAndMakeVisible(m_keyboard);
+        addAndMakeVisible(&m_keyboard);
     }
-    ~KeyboardView() override = default;
+    ~KeyboardView() = default;
 
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
     void resized() override
     {
         double firstVisibleNote = m_editViewState.m_pianoStartKey;
@@ -32,7 +65,6 @@ public:
                              , (int) m_keyboard.getTotalKeyboardWidth ());
     }
 
-    juce::MidiKeyboardComponent& getKeyboard() { return m_keyboard; }
 
 
 private:
@@ -46,8 +78,8 @@ private:
         return noteNumb;
     }
 
-    juce::MidiKeyboardComponent m_keyboard;
     EditViewState& m_editViewState;
+    PianoRollVertKeyboard m_keyboard;
 
     float m_clickedKey;
     double m_keyWidthCached;

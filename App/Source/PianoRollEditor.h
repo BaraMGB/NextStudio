@@ -11,9 +11,8 @@
 
 class PianoRollEditor
     : public juce::Component
-                         , public juce::MidiKeyboardStateListener
-                         , private te::ValueTreeAllEventListener
-                         , private FlaggedAsyncUpdater
+    , private te::ValueTreeAllEventListener
+    , private FlaggedAsyncUpdater
 {
 public:
     explicit PianoRollEditor(EditViewState&);
@@ -24,8 +23,6 @@ public:
     void resized () override;
     void mouseMove(const juce::MouseEvent &event) override;
 
-    void handleNoteOn(juce::MidiKeyboardState*, int, int, float) override;
-    void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override;
 
     void setTrack(tracktion_engine::Track::Ptr track);
     void clearTrack();
@@ -43,7 +40,6 @@ private:
                                int ) override;
 
     EditViewState& m_editViewState;
-    juce::MidiKeyboardState m_keybordstate;
     KeyboardView m_keyboard;
     TimeLineComponent m_timeline;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
