@@ -623,6 +623,10 @@ void MainComponent::setupEdit(juce::File editFile)
     else
         m_edit = te::createEmptyEdit (m_engine, editFile);
 
+    if (auto w = dynamic_cast<juce::DocumentWindow*>(getParentComponent()))
+    {
+        w->setName(editFile.getFileNameWithoutExtension());
+    }
     m_edit->playInStopEnabled = true;
     
     m_edit->setTempDirectory(m_tempDir);
