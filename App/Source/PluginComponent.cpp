@@ -300,9 +300,12 @@ void VstPluginComponent::paint (juce::Graphics& g)
 {
     g.setColour(juce::Colour::fromString("#ff333333"));
     g.fillAll();
-    auto h = m_lastChangedParameterComponent->getHeight();
-    g.setColour(juce::Colours::black);
-    g.drawLine(0, h, getWidth(), h);
+    if (m_lastChangedParameterComponent)
+    {
+        auto h = m_lastChangedParameterComponent->getHeight();
+        g.setColour(juce::Colours::black);
+        g.drawLine(0, h, getWidth(), h);
+    }
 }
 
 void VstPluginComponent::resized()
