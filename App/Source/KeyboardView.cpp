@@ -27,15 +27,10 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
     {
         auto visibleKeys = (float) (getHeight() / m_keyWidthCached);
 
-        auto scaleFactor = GUIHelpers::getZoomScaleFactor(
-            e.getDistanceFromDragStartX(), m_editViewState.getTimeLineZoomUnit());
-        auto scaledVisibleKeys = juce::jlimit(12.f , 64.f
-                                              , visibleKeys * scaleFactor);
+        auto scaleFactor = GUIHelpers::getZoomScaleFactor(e.getDistanceFromDragStartX(), m_editViewState.getTimeLineZoomUnit());
+        auto scaledVisibleKeys = juce::jlimit(12.f , 64.f, visibleKeys * scaleFactor);
 
-        auto currentYtoKeys = juce::jmap(
-            (float) getHeight() - e.position.y
-            , 0.f , (float) getHeight()
-                , 0.f , scaledVisibleKeys);
+        auto currentYtoKeys = juce::jmap((float) getHeight() - e.position.y, 0.f , (float) getHeight(), 0.f , scaledVisibleKeys);
 
         auto newStartKey = juce::jmax(0.f, m_clickedKey - currentYtoKeys);
         auto maxKeyHeight = (float) getHeight() / (float) (127.f - newStartKey);
@@ -49,4 +44,25 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
 void KeyboardView::mouseUp (const juce::MouseEvent& e) 
 {
     EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit.engine).handleIncomingMidiMessage(juce::MidiMessage::noteOff(0, m_clickedKey));
+}
+
+void KeyboardView::resized() 
+{
+    double firstVisibleNote = m_editViewState.m_pianoStartKey;
+    double pianoRollNoteWidth = m_editViewState.m_pianoKeyWidth;
+
+    m_keyboard.setKeyWidth (juce::jmax(0.1f, (float) pianoRollNoteWidth * 12 / 7));
+    m_keyboard.setBounds (getWidth() - 50
+                         , (getHeight () - (int) m_keyboard.getTotalKeyboardWidth ()
+                          + (int) (firstVisibleNote * pianoRollNoteWidth)) + 2
+                         , 50
+                         , (int) m_keyboard.getTotalKeyboardWidth ());
+}
+float KeyboardView::getKey(int y)
+{
+    auto noteHeight = (double) m_editViewState.m_pianoKeyWidth;
+    auto noteNumb =
+        static_cast<float>(m_editViewState.m_pianoStartKey
+                           + ((getHeight() - y) / noteHeight));
+    return noteNumb;
 }

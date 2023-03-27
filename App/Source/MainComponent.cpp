@@ -7,6 +7,7 @@
 */
 
 #include "MainComponent.h"
+#include "Utilities.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
@@ -201,55 +202,7 @@ bool MainComponent::keyStateChanged(bool isKeyDown)
             m_pressedKeysForMidiKeyboard.removeFirstMatchingValue(kp);
             //send noteOff
             auto command = m_commandManager.getKeyMappings()->findCommandForKeyPress(kp);
-            if (command == KeyPressCommandIDs::midiNoteC)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteCsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteD)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteDsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteE)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteF)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteFsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteG)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteGsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteA)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteAsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteB)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperC)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperCsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperD)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperDsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperE)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperF)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperFsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperG)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperGsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperA)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperAsharp)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteUpperB)
-                gap = (int) command - 1;
-            else if (command == KeyPressCommandIDs::midiNoteTopC)
+            if (command >= KeyPressCommandIDs::midiNoteC && command <= KeyPressCommandIDs::midiNoteTopC)
                 gap = (int) command - 1;
 
         EngineHelpers::getVirtuelMidiInputDevice(m_engine).handleIncomingMidiMessage(juce::MidiMessage::noteOff(0,rootNote + gap));
@@ -284,7 +237,9 @@ void MainComponent::getAllCommands (juce::Array<juce::CommandID>& commands)
             KeyPressCommandIDs::midiNoteUpperA,
             KeyPressCommandIDs::midiNoteUpperAsharp ,
             KeyPressCommandIDs::midiNoteUpperB,
-            KeyPressCommandIDs::midiNoteTopC
+            KeyPressCommandIDs::midiNoteTopC,
+
+            KeyPressCommandIDs::togglePlay
         };
 
     commands.addArray(ids);
@@ -394,6 +349,11 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
         case KeyPressCommandIDs::midiNoteTopC :
             result.setInfo("noteUpper C", "set MIDI noteUpper C", "virtual Midi keyboard", 0);
             result.addDefaultKeypress(juce::KeyPress::createFromDescription("i").getKeyCode() , 0);
+            break;
+        case KeyPressCommandIDs::togglePlay :
+            result.setInfo("Play/Pause", "Toggle play", "Transport", 0);
+            result.addDefaultKeypress(juce::KeyPress::spaceKey , 0);
+            result.addDefaultKeypress(juce::KeyPress::returnKey , 0);
             break;
         default:
             break;
@@ -507,6 +467,9 @@ bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
         case KeyPressCommandIDs::midiNoteTopC:
             EngineHelpers::getVirtuelMidiInputDevice(m_engine).handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, rootNote + info.commandID - 1, .8f));
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
+            break;
+        case KeyPressCommandIDs::togglePlay:
+            EngineHelpers::togglePlay(m_editComponent->getEditViewState());
             break;
         default:
             return false;

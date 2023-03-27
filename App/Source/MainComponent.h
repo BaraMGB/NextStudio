@@ -22,7 +22,6 @@
 
 namespace te = tracktion_engine;
 
-
 enum KeyPressCommandIDs
 {
     midiNoteC = 1,
@@ -49,7 +48,10 @@ enum KeyPressCommandIDs
     midiNoteUpperA,
     midiNoteUpperAsharp ,
     midiNoteUpperB,
-    midiNoteTopC
+    midiNoteTopC,
+
+
+    togglePlay
 };
 
 

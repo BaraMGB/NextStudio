@@ -24,13 +24,20 @@ class PianoRollVertKeyboard : public juce::KeyboardComponentBase
     }
     void drawWhiteKey(int midiNoteNumberm, juce::Graphics& g, juce::Rectangle<float> area) override
     {
-        
-        g.setColour(juce::Colours::white);
+        g.setColour(juce::Colour(0xffdddddd));
         g.fillRect(area);
+        g.setColour(juce::Colours::black);
+        g.drawHorizontalLine(0, area.getX(), area.getRight());
+        if (juce::MidiMessage::getMidiNoteName(midiNoteNumberm, true, false, 3) == "C")
+        {
+            auto name = juce::MidiMessage::getMidiNoteName(midiNoteNumberm, true , true, 3);
+
+            g.drawText(name, area, juce::Justification::right);
+        }
+
     }
     void drawBlackKey(int midiNoteNumberm, juce::Graphics& g, juce::Rectangle<float> area) override
     {
-
         g.setColour(juce::Colours::black);
         g.fillRect(area);
     }
@@ -54,29 +61,11 @@ public:
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseDrag (const juce::MouseEvent& e) override;
     void mouseUp (const juce::MouseEvent& e) override;
-    void resized() override
-    {
-        double firstVisibleNote = m_editViewState.m_pianoStartKey;
-        double pianoRollNoteWidth = m_editViewState.m_pianoKeyWidth;
-
-        m_keyboard.setKeyWidth (juce::jmax(0.1f, (float) pianoRollNoteWidth * 12 / 7));
-        m_keyboard.setBounds (getWidth() - 50
-                             , (getHeight () - (int) m_keyboard.getTotalKeyboardWidth ()
-                              + (int) (firstVisibleNote * pianoRollNoteWidth)) + 2
-                             , 50
-                             , (int) m_keyboard.getTotalKeyboardWidth ());
-    }
+    void resized() override;
 
 private:
 
-    float getKey(int y)
-    {
-        auto noteHeight = (double) m_editViewState.m_pianoKeyWidth;
-        auto noteNumb =
-            static_cast<float>(m_editViewState.m_pianoStartKey
-                               + ((getHeight() - y) / noteHeight));
-        return noteNumb;
-    }
+    float getKey(int y);
 
     EditViewState& m_editViewState;
     PianoRollVertKeyboard m_keyboard;
