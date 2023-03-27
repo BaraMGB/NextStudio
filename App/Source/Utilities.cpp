@@ -4,7 +4,10 @@
 void Helpers::addAndMakeVisible(juce::Component &parent, const juce::Array<juce::Component *> &children)
 {
     for (auto c : children)
+    {
         parent.addAndMakeVisible (c);
+        c->setWantsKeyboardFocus(false);
+    }
 }
 
 juce::String Helpers::getStringOrDefault(const juce::String &stringToTest, const juce::String &stringToReturnIfEmpty)
