@@ -271,6 +271,28 @@ void GUIHelpers::printTextAt(juce::Graphics& graphic,
             "  " + text, textRect, juce::Justification::centredLeft, false);
 }
 
+void GUIHelpers::drawRectWithShadow(juce::Graphics& g,
+                            juce::Rectangle<float> area,
+                            float cornerSize,
+                            const juce::Colour& colour,
+                            const juce::Colour& shade)
+{
+    g.setColour(shade);
+    g.fillRoundedRectangle(area.translated(2, 2), cornerSize);
+    g.setColour(colour);
+    g.fillRoundedRectangle(area, cornerSize);
+}
+
+void GUIHelpers::drawCircleWithShadow(juce::Graphics& g,
+                          juce::Rectangle<float> area,
+                          const juce::Colour& colour,
+                          const juce::Colour& shade)
+{
+    g.setColour(shade);
+    g.fillEllipse(area.translated(2, 2));
+    g.setColour(colour);
+    g.fillEllipse(area);
+}
 void GUIHelpers::drawSnapLines(juce::Graphics& g,
                                const EditViewState& evs,
                                double x1beats,
@@ -337,6 +359,52 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
         beatIter += shadowBeatDelta;
     }
 }
+
+void GUIHelpers::drawLogo (juce::Graphics& g, juce::Colour colour, float scale)
+    {
+        juce::Path logoPath;
+        juce::AffineTransform transform;
+
+        // square
+        logoPath.startNewSubPath(12 , 2);
+        logoPath.lineTo(3, 2);
+        logoPath.quadraticTo(2,2, 2,3);
+
+        logoPath.lineTo(2, 13);
+        logoPath.quadraticTo(2,14,3,14);
+
+        logoPath.lineTo(12, 14);
+        logoPath.quadraticTo(13,14, 13, 13);
+        logoPath.quadraticTo(9, 8, 13, 3);
+        logoPath.quadraticTo(13,2, 12,2);
+        logoPath.closeSubPath();
+
+        // 
+        // // Second path
+        logoPath.addRoundedRectangle(juce::Rectangle<float>(15,2,4,12), 1.f);
+        logoPath.addRoundedRectangle(juce::Rectangle<float>(20,2,4,12), 1.f);
+        // //
+        // // Triangle
+        logoPath.startNewSubPath(26, 3);
+        logoPath.quadraticTo(26,2,27,2);
+        logoPath.lineTo(37,7);
+        logoPath.quadraticTo(38,8,37,9);
+        logoPath.lineTo(27,14);
+        logoPath.quadraticTo(26,14, 26,13);
+        logoPath.quadraticTo(29,8, 26,3);
+
+        logoPath.closeSubPath();
+
+        // Apply transformation and scale
+        transform = juce::AffineTransform::scale(scale, scale);
+        logoPath.applyTransform(transform);
+
+        // Set the fill color
+        g.setColour(colour);
+
+        // Draw the logo path
+        g.fillPath(logoPath);
+    }
 
 juce::String PlayHeadHelpers::timeToTimecodeString(double seconds)
 {

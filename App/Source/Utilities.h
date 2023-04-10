@@ -140,6 +140,17 @@ namespace GUIHelpers
                      juce::Rectangle<float> textRect,
                      const juce::String& text,
                      const juce::Colour& textColour);
+    void drawRectWithShadow(juce::Graphics& g,
+                            juce::Rectangle<float> area,
+                            float cornerSize,
+                            const juce::Colour& colour,
+                            const juce::Colour& shade);
+    void drawCircleWithShadow(juce::Graphics& g,
+                              juce::Rectangle<float> area,
+                              const juce::Colour& colour,
+                              const juce::Colour& shade);
+    
+    void drawLogo (juce::Graphics& g, juce::Colour colour, float scale);
 }
 
 namespace PlayHeadHelpers
