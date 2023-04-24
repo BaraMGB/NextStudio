@@ -191,8 +191,7 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
 }
 void TimelineOverlayComponent::moveSelectedClips(bool copy, bool snap)
 {
-    auto sourceTime = m_cachedClip->getPosition().getStart().inSeconds();
-    EngineHelpers::moveSelectedClips(sourceTime, copy, -m_draggedTimeDelta, 0, m_editViewState);
+    EngineHelpers::moveSelectedClips(copy, -m_draggedTimeDelta, 0, m_editViewState);
 }
 int TimelineOverlayComponent::timeToX(double time)
 {

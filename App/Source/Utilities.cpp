@@ -577,7 +577,7 @@ bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeR
 {
     return ti->getEditTimeRange().intersects(tr);
 }
-void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs)
+void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState& evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
@@ -628,8 +628,9 @@ void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeD
 
 void EngineHelpers::duplicateSelectedClips(EditViewState& evs)
 { 
-    moveSelectedClips(0, true, 0, 0, evs);
+    moveSelectedClips(true, getTimeRangeOfSelectedClips(evs).getLength().inSeconds(), 0, evs);
 }
+
 void EngineHelpers::copyAutomationForSelectedClips(double offset
                                                  , te::SelectionManager& sm
                                                  , bool copy)
@@ -1143,6 +1144,12 @@ void EngineHelpers::loopAroundSelection (EditViewState &evs)
 {
     auto& transport = evs.m_edit.getTransport ();
 
+    transport.setLoopRange (getTimeRangeOfSelectedClips(evs));
+    transport.looping = true;
+}
+
+tracktion::TimeRange EngineHelpers::getTimeRangeOfSelectedClips(EditViewState &evs)
+{
     if (evs.m_selectionManager.getItemsOfType<te::Clip>().size() > 0)
     {
         auto end = tracktion::TimePosition::fromSeconds(0);
@@ -1157,13 +1164,13 @@ void EngineHelpers::loopAroundSelection (EditViewState &evs)
         }
 
         if (start == end)
-            return;
+            return {};
         if (end < start)
-            return;
+            return {};
 
-        transport.setLoopRange ({start, end});
-        transport.looping = true;
+        return {start, end};
     }
+    return {};
 }
 
 void EngineHelpers::loopOff (te::Edit& edit)

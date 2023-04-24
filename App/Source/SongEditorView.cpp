@@ -565,7 +565,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
             }
             else
             {
-                EngineHelpers::moveSelectedClips(m_clipPosAtMouseDown, e.mods.isCtrlDown(), m_draggedTimeDelta, verticalOffset, m_editViewState);
+                EngineHelpers::moveSelectedClips(e.mods.isCtrlDown(), m_draggedTimeDelta, verticalOffset, m_editViewState);
             }
         }
         else if (m_hoveredClip && !e.mouseWasDraggedSinceMouseDown() && !e.mods.isCtrlDown())
@@ -849,9 +849,8 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
         auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
         auto range = te::getTimeRangeForSelectedItems(selectedClips);
         auto delta = range.getLength().inSeconds();
-        auto sourceTime = range.getStart().inSeconds();
 
-        moveSelectedClips(sourceTime, true, delta, 0);
+        moveSelectedClips(true, delta, 0);
     }
     else 
     {
@@ -924,9 +923,9 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
     }
 }
 
-void SongEditorView::moveSelectedClips(double sourceTime, bool copy,  double delta, int verticalOffset)
+void SongEditorView::moveSelectedClips(bool copy,  double delta, int verticalOffset)
 {
-    EngineHelpers::moveSelectedClips(sourceTime, copy, delta, verticalOffset,m_editViewState); 
+    EngineHelpers::moveSelectedClips(copy, delta, verticalOffset,m_editViewState); 
 }
 
 juce::Array<te::Track::Ptr> SongEditorView::getShowedTracks ()

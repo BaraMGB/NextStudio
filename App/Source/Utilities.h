@@ -192,7 +192,7 @@ namespace EngineHelpers
     bool isTrackShowable(te::Track::Ptr track);
 
     bool isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr);
-    void moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs);
+    void moveSelectedClips(bool copy, double timeDelta, int verticalOffset,EditViewState& evs);
     void duplicateSelectedClips(EditViewState& evs);
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm
@@ -253,6 +253,7 @@ namespace EngineHelpers
     }
 
 
+    tracktion::TimeRange getTimeRangeOfSelectedClips(EditViewState &evs);
 
     void play (EditViewState &evs);
     void pause (EditViewState &evs);

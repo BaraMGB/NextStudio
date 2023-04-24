@@ -110,7 +110,7 @@ private:
     void moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy);
     void moveSelectedRangeOfTrack(te::Track::Ptr,tracktion::TimeDuration td, bool copy);
 
-    void moveSelectedClips(double sourceTime, bool copy, double delta, int verticalOffset);  
+    void moveSelectedClips(bool copy, double delta, int verticalOffset);  
     void constrainClipInRange(te::Clip* c, tracktion::TimeRange r);
     // void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
