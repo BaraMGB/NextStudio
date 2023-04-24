@@ -239,7 +239,29 @@ void MainComponent::getAllCommands (juce::Array<juce::CommandID>& commands)
             KeyPressCommandIDs::midiNoteUpperB,
             KeyPressCommandIDs::midiNoteTopC,
 
-            KeyPressCommandIDs::togglePlay
+            KeyPressCommandIDs::togglePlay,
+            KeyPressCommandIDs::toggleRecord,
+            KeyPressCommandIDs::play,
+            KeyPressCommandIDs::stop,
+            KeyPressCommandIDs::deleteSelectedClips,
+            KeyPressCommandIDs::duplicateSelectedClips,
+            KeyPressCommandIDs::selectAllClips,
+            KeyPressCommandIDs::selectAllTracks,
+            KeyPressCommandIDs::selectAllClipsOnTrack,
+            
+            KeyPressCommandIDs::loopAroundSelection,
+            KeyPressCommandIDs::loopOn,
+            KeyPressCommandIDs::loopOff,
+            KeyPressCommandIDs::loopAroundAll,
+            KeyPressCommandIDs::loopToggle,
+
+            KeyPressCommandIDs::toggleSnap,
+            KeyPressCommandIDs::toggleMetronome,
+            KeyPressCommandIDs::snapToBar,
+            KeyPressCommandIDs::snapToBeat,
+            KeyPressCommandIDs::snapToGrid,
+            KeyPressCommandIDs::snapToTime,
+            KeyPressCommandIDs::snapToOff,
         };
 
     commands.addArray(ids);
@@ -353,7 +375,35 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
         case KeyPressCommandIDs::togglePlay :
             result.setInfo("Play/Pause", "Toggle play", "Transport", 0);
             result.addDefaultKeypress(juce::KeyPress::spaceKey , 0);
-            result.addDefaultKeypress(juce::KeyPress::returnKey , 0);
+            result.addDefaultKeypress(juce::KeyPress::numberPad0 , 0);
+            break;
+        case KeyPressCommandIDs::play :
+            result.setInfo("Play", "Play", "Transport", 0);
+            result.addDefaultKeypress(juce::KeyPress::returnKey, 0);
+            break;
+        case KeyPressCommandIDs::toggleRecord :
+            result.setInfo("Record", "Record", "Transport", 0);
+            result.addDefaultKeypress(juce::KeyPress::numberPadMultiply , 0);
+            break;
+        case KeyPressCommandIDs::stop :
+            result.setInfo("Stop", "Stop", "Transport", 0);
+            result.addDefaultKeypress(juce::KeyPress::numberPadDecimalPoint , 0);
+            break;
+        case KeyPressCommandIDs::loopToggle :
+            result.setInfo("Loop", "Loop", "Transport", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("l").getKeyCode() , juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::loopAroundSelection :
+            result.setInfo("Loop around selection", "Loop around selection", "Selection", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("l").getKeyCode() , juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
+            break;
+        case KeyPressCommandIDs::loopAroundAll :
+            result.setInfo("Loop around all", "Loop around all", "Transport", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("l").getKeyCode() , juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier | juce::ModifierKeys::altModifier);
+            break;
+        case KeyPressCommandIDs::toggleMetronome :
+            result.setInfo("Metronome", "Metronome", "Transport", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("m").getKeyCode() , juce::ModifierKeys::commandModifier);
             break;
         default:
             break;
@@ -471,6 +521,70 @@ bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
         case KeyPressCommandIDs::togglePlay:
             EngineHelpers::togglePlay(m_editComponent->getEditViewState());
             break;
+        case KeyPressCommandIDs::play:
+            EngineHelpers::play(m_editComponent->getEditViewState());
+            break;
+        case KeyPressCommandIDs::stop:
+            EngineHelpers::stopPlay(m_editComponent->getEditViewState());
+            break;
+        case KeyPressCommandIDs::toggleRecord:
+            std::cout << "toggleRecord" << std::endl;
+            EngineHelpers::toggleRecord(m_editComponent->getEditViewState().m_edit);
+            break;
+        case KeyPressCommandIDs::loopToggle:
+            EngineHelpers::toggleLoop(*m_edit);
+            break;
+        case KeyPressCommandIDs::loopAroundSelection:
+            EngineHelpers::loopAroundSelection(m_editComponent->getEditViewState());
+            break;
+        case KeyPressCommandIDs::loopOff:
+            EngineHelpers::loopOff(*m_edit);
+            break;
+        case KeyPressCommandIDs::loopOn:
+            EngineHelpers::loopOn(*m_edit);
+            break;
+        case KeyPressCommandIDs::loopAroundAll:
+            EngineHelpers::loopAroundAll(*m_edit);
+            break;
+        case KeyPressCommandIDs::toggleSnap:
+            EngineHelpers::toggleSnap(m_editComponent->getEditViewState());
+            break;
+        case KeyPressCommandIDs::toggleMetronome:
+            EngineHelpers::toggleMetronome(*m_edit);
+            break;
+        case KeyPressCommandIDs::deleteSelectedClips:
+            EngineHelpers::deleteSelectedClips(m_editComponent->getEditViewState());
+            break;
+        case KeyPressCommandIDs::duplicateSelectedClips:
+            EngineHelpers::duplicateSelectedClips(m_editComponent->getEditViewState());
+            break;
+        case KeyPressCommandIDs::selectAllClips:
+            EngineHelpers::selectAllClips(m_editComponent->getEditViewState().m_selectionManager, *m_edit);
+            break;
+        case KeyPressCommandIDs::selectAllClipsOnTrack:
+        {
+            auto t = m_editComponent->getEditViewState().m_selectionManager.getItemsOfType<te::Track>().getLast();
+            if (auto at = dynamic_cast<te::AudioTrack*>(t))
+            {
+                EngineHelpers::selectAllClipsOnTrack(m_editComponent->getEditViewState().m_selectionManager,*at);
+            }
+            break;
+        }
+        // case KeyPressCommandIDs::snapToBar:
+        //     EngineHelpers::snapToBar(m_editComponent->getEditViewState());
+        //     break;
+        // case KeyPressCommandIDs::snapToBeat:
+        //     EngineHelpers::snapToBeat(m_editComponent->getEditViewState());
+        //     break;
+        // case KeyPressCommandIDs::snapToGrid:
+        //     EngineHelpers::snapToGrid(m_editComponent->getEditViewState());
+        //     break;
+        // case KeyPressCommandIDs::snapToTime:
+        //     EngineHelpers::snapToTime(m_editComponent->getEditViewState());
+        //     break;
+        // case KeyPressCommandIDs::snapToOff:
+        //     EngineHelpers::snapToOff(m_editComponent->getEditViewState());
+        //     break;
         default:
             return false;
     }

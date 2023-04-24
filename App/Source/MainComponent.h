@@ -51,7 +51,35 @@ enum KeyPressCommandIDs
     midiNoteTopC,
 
 
-    togglePlay
+    togglePlay,
+    toggleRecord,
+    play,
+    stop,
+    deleteSelectedClips,
+    duplicateSelectedClips,
+    selectAllClips,
+    selectAllTracks,
+    selectAllClipsOnTrack,
+     
+    loopAroundSelection,
+    loopOn,
+    loopOff,
+    loopAroundAll,
+    loopToggle,
+
+    toggleSnap,
+    toggleMetronome,
+    snapToBar,
+    snapToBeat,
+    snapToGrid,
+    snapToTime,
+    snapToOff,
+
+
+    
+    
+    debugOutputEdit 
+
 };
 
 

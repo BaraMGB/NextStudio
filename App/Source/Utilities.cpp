@@ -625,6 +625,11 @@ void EngineHelpers::moveSelectedClips(double sourceTime, bool copy, double timeD
     }
 
 }
+
+void EngineHelpers::duplicateSelectedClips(EditViewState& evs)
+{ 
+    moveSelectedClips(0, true, 0, 0, evs);
+}
 void EngineHelpers::copyAutomationForSelectedClips(double offset
                                                  , te::SelectionManager& sm
                                                  , bool copy)
@@ -644,6 +649,27 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
         }
 
 		te::moveAutomation (sections, tracktion::TimeDuration::fromSeconds(offset), copy);
+    }
+}
+void EngineHelpers::selectAllClips(te::SelectionManager& sm, te::Edit& edit)
+{
+    sm.deselectAll();
+
+    for (auto t : te::getAudioTracks(edit))
+    {
+        for (auto c : t->getClips())
+        {
+            sm.addToSelection(c);
+        }
+    }
+}
+void EngineHelpers::selectAllClipsOnTrack(te::SelectionManager& sm, te::AudioTrack& at)
+{
+    sm.deselectAll();
+
+    for (auto c : at.getClips())
+    {
+        sm.addToSelection(c);
     }
 }
 static tracktion::AutomationCurve* getDestCurve (tracktion::Track& t, const tracktion::AutomatableParameter::Ptr& p)
@@ -1113,8 +1139,68 @@ void EngineHelpers::toggleLoop (tracktion_engine::Edit &edit)
         transport.looping = true;
 }
 
+void EngineHelpers::loopAroundSelection (EditViewState &evs)
+{
+    auto& transport = evs.m_edit.getTransport ();
+
+    if (evs.m_selectionManager.getItemsOfType<te::Clip>().size() > 0)
+    {
+        auto end = tracktion::TimePosition::fromSeconds(0);
+        auto start = end + evs.m_edit.getLength();
+
+        for (auto c : evs.m_selectionManager.getItemsOfType<te::Clip>())
+        {
+            if (c->getPosition().getStart() < start)
+                start = c->getPosition().getStart();
+            if (c->getPosition().getEnd() > end)
+                end = c->getPosition().getEnd();
+        }
+
+        if (start == end)
+            return;
+        if (end < start)
+            return;
+
+        transport.setLoopRange ({start, end});
+        transport.looping = true;
+    }
+}
+
+void EngineHelpers::loopOff (te::Edit& edit)
+{
+    auto& transport = edit.getTransport ();
+    transport.looping = false;
+}
+
+void EngineHelpers::loopOn (te::Edit& edit)
+{
+    auto& transport = edit.getTransport ();
+    transport.looping = true;
+}
+void EngineHelpers::loopAroundAll(te::Edit &edit)
+{
+    auto& transport = edit.getTransport ();
+    transport.setLoopRange ({tracktion::TimePosition::fromSeconds(0), edit.getLength()});
+    transport.looping = true;
+}
+
+void EngineHelpers::toggleSnap (EditViewState &evs)
+{
+
+    if (evs.m_snapToGrid)
+        evs.m_snapToGrid = false;
+    else
+        evs.m_snapToGrid = true;
+}
+
+void EngineHelpers::toggleMetronome (te::Edit& edit)
+{
+    GUIHelpers::log("toggle metronome");
+    edit.clickTrackEnabled = !edit.clickTrackEnabled;
+}
 void EngineHelpers::play (EditViewState &evs)
 {
+    GUIHelpers::log("play");
     auto& transport = evs.m_edit.getTransport ();
  
     if (transport.isPlaying ())

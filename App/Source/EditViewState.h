@@ -80,6 +80,8 @@ namespace IDs
     DECLARE_ID (tmpTrack)                                               
     DECLARE_ID (syncAutomation)
     DECLARE_ID (needAutoSave)
+    DECLARE_ID (snapToGrid)
+
     
     #undef DECLARE_ID
 }
@@ -137,6 +139,7 @@ public:
         m_keyboardWidth.referTo(m_state, IDs::pianoRollKeyboardWidth, um, 120);
         m_clipHeaderHeight.referTo(m_state, IDs::clipHeaderHeight, um, 20);
         m_syncAutomation.referTo(m_state, IDs::syncAutomation, um, true);
+        m_snapToGrid.referTo(m_state, IDs::snapToGrid, um, true);
     }
 
     float getTimeLineZoomUnit ()
@@ -285,7 +288,7 @@ public:
                             , m_velocityEditorHeight
                             , m_clipHeaderHeight;
     juce::CachedValue<int> m_snapType;
-
+    juce::CachedValue<bool> m_snapToGrid;
     juce::CachedValue<int> m_trackHeightMinimized
                          , m_trackDefaultHeight
                          , m_trackHeaderWidth

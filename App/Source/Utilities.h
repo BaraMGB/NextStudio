@@ -1,11 +1,3 @@
-/*
-    ,--.                     ,--.     ,--.  ,--.
-  ,-'  '-.,--.--.,--,--.,---.|  |,-.,-'  '-.`--' ,---. ,--,--,      Copyright 2018
-  '-.  .-'|  .--' ,-.  | .--'|     /'-.  .-',--.| .-. ||      \   Tracktion Software
-    |  |  |  |  \ '-'  \ `--.|  \  \  |  |  |  |' '-' '|  ||  |       Corporation
-    `---' `--'   `--`--'`---'`--'`--' `---' `--' `---' `--''--'    www.tracktion.com
-*/
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -201,10 +193,16 @@ namespace EngineHelpers
 
     bool isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr);
     void moveSelectedClips(double sourceTime, bool copy, double timeDelta, int verticalOffset,EditViewState& evs);
+    void duplicateSelectedClips(EditViewState& evs);
     void copyAutomationForSelectedClips(double offset
                                                      , te::SelectionManager& sm
                                                      , bool copy);
 
+
+
+
+    void selectAllClips(te::SelectionManager& sm, te::Edit& edit);
+    void selectAllClipsOnTrack(te::SelectionManager& sm, te::AudioTrack& at);
     void moveAutomationOrCopy(const juce::Array<te::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy);
 	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
     
@@ -261,6 +259,14 @@ namespace EngineHelpers
     void rewind(EditViewState &evs);
     void stopPlay(EditViewState &evs);
     void toggleLoop (te::Edit& edit);
+    void loopAroundSelection (EditViewState &evs);
+    void loopOff (te::Edit& edit);
+    void loopOn (te::Edit& edit);
+    void loopAroundAll (te::Edit& edit);
+
+    void toggleSnap (EditViewState &evs);
+    void toggleMetronome (te::Edit& edit);
+
     void togglePlay (EditViewState &evs);
     void toggleRecord (te::Edit& edit);
     void armTrack (te::AudioTrack& t, bool arm, int position = 0);
