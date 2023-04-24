@@ -42,7 +42,7 @@ class TrackHeaderComponent : public juce::Component
                            , public juce::Label::Listener
 {
 public:
-    TrackHeaderComponent (EditViewState&, const te::Track::Ptr&);
+    TrackHeaderComponent (EditViewState&, te::Track::Ptr);
     ~TrackHeaderComponent() override;
 
     void paint (juce::Graphics& g) override;
