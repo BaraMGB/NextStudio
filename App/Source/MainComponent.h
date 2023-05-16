@@ -22,65 +22,6 @@
 
 namespace te = tracktion_engine;
 
-enum KeyPressCommandIDs
-{
-    midiNoteC = 1,
-    midiNoteCsharp ,
-    midiNoteD,
-    midiNoteDsharp ,
-    midiNoteE,
-    midiNoteF,
-    midiNoteFsharp ,
-    midiNoteG,
-    midiNoteGsharp ,
-    midiNoteA,
-    midiNoteAsharp ,
-    midiNoteB,
-    midiNoteUpperC,
-    midiNoteUpperCsharp ,
-    midiNoteUpperD,
-    midiNoteUpperDsharp ,
-    midiNoteUpperE,
-    midiNoteUpperF,
-    midiNoteUpperFsharp ,
-    midiNoteUpperG,
-    midiNoteUpperGsharp ,
-    midiNoteUpperA,
-    midiNoteUpperAsharp ,
-    midiNoteUpperB,
-    midiNoteTopC,
-
-
-    togglePlay,
-    toggleRecord,
-    play,
-    stop,
-    deleteSelectedClips,
-    duplicateSelectedClips,
-    selectAllClips,
-    selectAllTracks,
-    selectAllClipsOnTrack,
-     
-    loopAroundSelection,
-    loopOn,
-    loopOff,
-    loopAroundAll,
-    loopToggle,
-
-    toggleSnap,
-    toggleMetronome,
-    snapToBar,
-    snapToBeat,
-    snapToGrid,
-    snapToTime,
-    snapToOff,
-
-
-    
-    
-    debugOutputEdit 
-
-};
 
 
 class MainComponent   : public juce::Component
@@ -96,6 +37,7 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
+    // bool keyPressed(const juce::KeyPress &key) override;
 
     bool keyStateChanged(bool isKeyDown) override ;
     ApplicationCommandTarget* getNextCommandTarget() override   { return nullptr; }

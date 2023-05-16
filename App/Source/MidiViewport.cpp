@@ -9,7 +9,7 @@ MidiViewport::MidiViewport(
 {
     addChildComponent(m_lassoTool);
     updateSelectedEvents();
-    setWantsKeyboardFocus (true);
+    // setWantsKeyboardFocus (true);
 }
 
 MidiViewport::~MidiViewport() = default;
@@ -585,55 +585,57 @@ void MidiViewport::mouseWheelMove(const juce::MouseEvent& event,
         scrollPianoRoll((float) wheel.deltaY * 5);
     }
 }
-bool MidiViewport::keyPressed(const juce::KeyPress &key)
-{
-    if (key == juce::KeyPress::createFromDescription ("ctrl + d"))
-    {
-        duplicateSelectedNotes ();
-        return true;
-    }
-    else if (key == juce::KeyPress::deleteKey
-             || key == juce::KeyPress::backspaceKey)
-    {
-        for (auto n : getSelectedNotes ())
-            m_selectedEvents->clipForEvent (n)->getSequence ().removeNote
-                    (*n, &m_evs.m_edit.getUndoManager ());
-        return true;
-    }
-    else if (key == juce::KeyPress::createFromDescription ("cursor up"))
-    {
-        m_selectedEvents->nudge (getBestSnapType (),0, 1);
-        return true;
-    }
-    else if (key == juce::KeyPress::createFromDescription ("cursor down"))
-    {
-        m_selectedEvents->nudge (getBestSnapType (),0, -1);
-        return true;
-    }
-    else if (key == juce::KeyPress::createFromDescription ("cursor left"))
-    {
-        m_selectedEvents->nudge (getBestSnapType (),-1, 0);
-        return true;
-    }
-    else if (key == juce::KeyPress::createFromDescription ("cursor right"))
-    {
-        m_selectedEvents->nudge (getBestSnapType (),1, 0);
-        return true;
-    }
-    else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor up"))
-    {
-        m_selectedEvents->nudge (getBestSnapType (),0, 12);
-        return true;
-    }
-    else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor down"))
-    {
-        m_selectedEvents->nudge (getBestSnapType (),0, -12);
-        return true;
-    }
-
-
-    return false;
-}
+// bool MidiViewport::keyPressed(const juce::KeyPress &key)
+// {
+//     GUIHelpers::log ("MidiEditor", key.getTextDescription ());
+//
+//     if (key == juce::KeyPress::createFromDescription ("cmd + d"))
+//     {
+//         duplicateSelectedNotes ();
+//         return true;
+//     }
+//     else if (key == juce::KeyPress::deleteKey
+//              || key == juce::KeyPress::backspaceKey)
+//     {
+//         for (auto n : getSelectedNotes ())
+//             m_selectedEvents->clipForEvent (n)->getSequence ().removeNote
+//                     (*n, &m_evs.m_edit.getUndoManager ());
+//         return true;
+//     }
+//     else if (key == juce::KeyPress::createFromDescription ("cursor up"))
+//     {
+//         m_selectedEvents->nudge (getBestSnapType (),0, 1);
+//         return true;
+//     }
+//     else if (key == juce::KeyPress::createFromDescription ("cursor down"))
+//     {
+//         m_selectedEvents->nudge (getBestSnapType (),0, -1);
+//         return true;
+//     }
+//     else if (key == juce::KeyPress::createFromDescription ("cursor left"))
+//     {
+//         m_selectedEvents->nudge (getBestSnapType (),-1, 0);
+//         return true;
+//     }
+//     else if (key == juce::KeyPress::createFromDescription ("cursor right"))
+//     {
+//         m_selectedEvents->nudge (getBestSnapType (),1, 0);
+//         return true;
+//     }
+//     else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor up"))
+//     {
+//         m_selectedEvents->nudge (getBestSnapType (),0, 12);
+//         return true;
+//     }
+//     else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor down"))
+//     {
+//         m_selectedEvents->nudge (getBestSnapType (),0, -12);
+//         return true;
+//     }
+//
+//
+//     return false;
+// }
 void MidiViewport::scrollPianoRoll(float delta)
 {
     m_evs.m_pianoStartKey =
@@ -884,6 +886,10 @@ void MidiViewport::updateSelectedEvents()
     else
         m_selectedEvents.reset(nullptr);
 }
+
+
+
+// -----------------------------------------------------------------------------
 double MidiViewport::xToTime(const int& x) const
 {
     return m_evs.xToTime(

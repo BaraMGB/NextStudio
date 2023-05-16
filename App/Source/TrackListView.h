@@ -8,6 +8,7 @@
 class TrackListView  : public juce::Component
                      , public juce::DragAndDropTarget
                      , private juce::ChangeListener
+                     , public juce::ApplicationCommandTarget
 {
 public:
     TrackListView(EditViewState& evs, LowerRangeComponent& lr)
@@ -15,6 +16,7 @@ public:
         , m_lowerRange(lr)
     {
         m_editViewState.m_selectionManager.addChangeListener(this);
+        setWantsKeyboardFocus(true);
     }
     ~TrackListView()
     {
@@ -29,6 +31,14 @@ public:
     void itemDragMove (const SourceDetails& dragSourceDetails) override{}
     void itemDragExit (const SourceDetails&) override{}
     void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override;
+
+    
+    ApplicationCommandTarget* getNextCommandTarget() override   { return findFirstTargetParentComponent(); }
+    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
+
+    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
+    
+    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
 
     int getTrackHeight(TrackHeaderComponent* header) const;
     void addHeaderViews(std::unique_ptr<TrackHeaderComponent> header);

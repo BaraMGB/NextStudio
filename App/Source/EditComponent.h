@@ -67,6 +67,8 @@ public:
     EditViewState& getEditViewState () { return m_editViewState; }
     void loopAroundSelection();
     SongEditorView& getSongEditor() {return m_songEditor;}
+    TrackListView& getTrackListView() {return m_trackListView;}
+    PianoRollEditor& getPianoRollEditor() {return m_lowerRange.getPianoRollEditor();}
 
 private:
 

@@ -7,6 +7,7 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
 {
+    setWantsKeyboardFocus(true);
     evs.m_edit.state.addListener (this);
 
     addAndMakeVisible (m_timeline);
@@ -112,6 +113,143 @@ void PianoRollEditor::mouseMove(const juce::MouseEvent &event)
         repaint();
     }
 }
+
+
+void PianoRollEditor::getAllCommands (juce::Array<juce::CommandID>& commands) 
+{
+
+    juce::Array<juce::CommandID> ids {
+
+            KeyPressCommandIDs::deleteSelectedNotes,
+            KeyPressCommandIDs::duplicateSelectedNotes,
+            KeyPressCommandIDs::nudgeNotesUp,
+            KeyPressCommandIDs::nudgeNotesDown,
+            KeyPressCommandIDs::nudgeNotesLeft,
+            KeyPressCommandIDs::nudgeNotesRight,
+            KeyPressCommandIDs::nudgeNotesOctaveUp,
+            KeyPressCommandIDs::nudgeNotesOctaveDown,
+        };
+
+    commands.addArray(ids);
+}
+
+
+void PianoRollEditor::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
+{
+
+    switch (commandID)
+    { 
+        case KeyPressCommandIDs::deleteSelectedNotes :
+            result.setInfo("delete selected notes", "delete selected", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
+            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::duplicateSelectedNotes:
+            result.setInfo("duplicate selected Notes", "duplicate selected Notes", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+
+        case KeyPressCommandIDs::nudgeNotesUp :
+
+            result.setInfo("move selected Notes up", "move selected notes up", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::upKey, 0);
+            break;
+        case KeyPressCommandIDs::nudgeNotesDown:
+            result.setInfo("move selected Notes down", "move selected notes down", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::downKey ,0);
+            break;
+        case KeyPressCommandIDs::nudgeNotesLeft :
+            result.setInfo("move selected Notes left", "move selected notes left ", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::leftKey ,0);
+            break;
+        case KeyPressCommandIDs::nudgeNotesRight :
+            result.setInfo("move selected Notes right", "move selected notes right", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::rightKey ,0);
+            break;
+        case KeyPressCommandIDs::nudgeNotesOctaveUp :
+            result.setInfo("move selected Notes ocatave up", "move selected notes octave up", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::upKey, juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::nudgeNotesOctaveDown :
+            result.setInfo("move selected Notes octave down", "move selected notes octave down", "Notes", 0);
+            result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
+            break;
+
+        default:
+            break;
+        }
+
+}
+
+bool PianoRollEditor::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
+{
+
+    GUIHelpers::log("PianoRollEditor perform");
+    switch (info.commandID)
+    { 
+        case KeyPressCommandIDs::deleteSelectedNotes:
+        {
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->deleteSelectedNotes();
+
+            break;
+        }
+        case KeyPressCommandIDs::duplicateSelectedNotes :
+        {   
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->duplicateSelectedNotes();
+
+            break;
+        }
+        case KeyPressCommandIDs::nudgeNotesUp :
+        {   
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 0, 1);
+
+            break;
+        }
+        case KeyPressCommandIDs::nudgeNotesDown :
+        {   
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 0, -1);
+            break;
+        }
+        case KeyPressCommandIDs::nudgeNotesLeft :
+        {   
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), -1, 0);
+
+            break;
+        }
+        case KeyPressCommandIDs::nudgeNotesRight :
+        {   
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 1, 0);
+
+            break;
+        }
+        case KeyPressCommandIDs::nudgeNotesOctaveUp :
+        {   
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(),0, 12);
+
+            break;
+        }
+        case KeyPressCommandIDs::nudgeNotesOctaveDown :
+        {   
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 0, -12);
+
+            break;
+        }
+        default:
+            return false;
+    }
+    return true;
+}
+
+
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {
     m_pianoRollViewPort = std::make_unique<MidiViewport> (m_editViewState, track);

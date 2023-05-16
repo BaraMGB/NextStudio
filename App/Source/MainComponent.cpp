@@ -12,6 +12,7 @@
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
 {
+    setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);
 
     openValidStartEdit();
@@ -23,7 +24,9 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     m_commandManager.registerAllCommandsForTarget(this);
-    juce::Timer::callAfterDelay (300, [this] { grabKeyboardFocus(); }); // ensure that key presses are sent to the KeyPressTarget object
+    m_commandManager.registerAllCommandsForTarget(&m_editComponent->getSongEditor());
+    m_commandManager.registerAllCommandsForTarget(&m_editComponent->getTrackListView());
+    m_commandManager.registerAllCommandsForTarget(&m_editComponent->getPianoRollEditor());
 }
 
 MainComponent::~MainComponent()
@@ -71,7 +74,21 @@ void MainComponent::resized()
 
 // bool MainComponent::keyPressed(const juce::KeyPress &key)
 // {
-//     auto scaleFactor = 0.2;
+
+//     GUIHelpers::log (key.getTextDescription ());
+//     if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
+//     {
+//         if (m_editComponent->getSongEditor().getTracksWithSelectedTimeRange().size() > 0)
+//             m_editComponent->getSongEditor().deleteSelectedTimeRange();
+//         else 
+//             EngineHelpers::deleteSelectedClips (m_editComponent->getEditViewState ());
+
+//         return true;
+//     }
+//     return false;
+// }
+
+
 //
 //     GUIHelpers::log (key.getTextDescription ());
 //     if (key == juce::KeyPress::numberPadAdd)
@@ -243,25 +260,20 @@ void MainComponent::getAllCommands (juce::Array<juce::CommandID>& commands)
             KeyPressCommandIDs::toggleRecord,
             KeyPressCommandIDs::play,
             KeyPressCommandIDs::stop,
-            KeyPressCommandIDs::deleteSelectedClips,
-            KeyPressCommandIDs::duplicateSelectedClips,
-            KeyPressCommandIDs::selectAllClips,
-            KeyPressCommandIDs::selectAllTracks,
-            KeyPressCommandIDs::selectAllClipsOnTrack,
-            
+
             KeyPressCommandIDs::loopAroundSelection,
-            KeyPressCommandIDs::loopOn,
-            KeyPressCommandIDs::loopOff,
+            // KeyPressCommandIDs::loopOn,
+            // KeyPressCommandIDs::loopOff,
             KeyPressCommandIDs::loopAroundAll,
             KeyPressCommandIDs::loopToggle,
 
-            KeyPressCommandIDs::toggleSnap,
+            // KeyPressCommandIDs::toggleSnap,
             KeyPressCommandIDs::toggleMetronome,
-            KeyPressCommandIDs::snapToBar,
-            KeyPressCommandIDs::snapToBeat,
-            KeyPressCommandIDs::snapToGrid,
-            KeyPressCommandIDs::snapToTime,
-            KeyPressCommandIDs::snapToOff,
+            // KeyPressCommandIDs::snapToBar,
+            // KeyPressCommandIDs::snapToBeat,
+            // KeyPressCommandIDs::snapToGrid,
+            // KeyPressCommandIDs::snapToTime,
+            // KeyPressCommandIDs::snapToOff,
 
 
             KeyPressCommandIDs::debugOutputEdit
@@ -396,10 +408,6 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
             result.setInfo("Loop", "Loop", "Transport", 0);
             result.addDefaultKeypress(juce::KeyPress::createFromDescription("l").getKeyCode() , juce::ModifierKeys::commandModifier);
             break;
-        case KeyPressCommandIDs::loopAroundSelection :
-            result.setInfo("Loop around selection", "Loop around selection", "Selection", 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("l").getKeyCode() , juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
-            break;
         case KeyPressCommandIDs::loopAroundAll :
             result.setInfo("Loop around all", "Loop around all", "Transport", 0);
             result.addDefaultKeypress(juce::KeyPress::createFromDescription("l").getKeyCode() , juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier | juce::ModifierKeys::altModifier);
@@ -408,15 +416,9 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
             result.setInfo("Metronome", "Metronome", "Transport", 0);
             result.addDefaultKeypress(juce::KeyPress::createFromDescription("m").getKeyCode() , juce::ModifierKeys::commandModifier);
             break;
-        case KeyPressCommandIDs::duplicateSelectedClips :
-            result.setInfo("Duplicate selected clips", "Duplicate selected clips", "Clips", 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode() , juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::deleteSelectedClips :
-            result.setInfo("Delete selected clips", "Delete selected clips", "Clips", 0);
-            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
-            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
+        case KeyPressCommandIDs::loopAroundSelection :
+            result.setInfo("Loop around selection", "Loop around selection", "Selection", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("l").getKeyCode() , juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
             break;
         case KeyPressCommandIDs::debugOutputEdit :
             result.setInfo("Debug output edit", "Debug output edit", "Debug", 0);
@@ -431,6 +433,7 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
 bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
 {
 
+    GUIHelpers::log("MainComponent perform");
     int rootNote = 48;
     switch (info.commandID)
     { 
@@ -569,37 +572,6 @@ bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
         case KeyPressCommandIDs::toggleMetronome:
             EngineHelpers::toggleMetronome(*m_edit);
             break;
-        case KeyPressCommandIDs::deleteSelectedClips:
-        {
-            GUIHelpers::log("deleteSelectedClips Outer");
-            // if (m_editComponent->getSongEditor().getTracksWithSelectedTimeRange().size() > 0)
-            // {
-            //     GUIHelpers::log("deleteSelectedTimeRange");
-            //     m_editComponent->getSongEditor().deleteSelectedTimeRange();
-            // }
-            // else 
-            // {
-            //     GUIHelpers::log("deleteSelectedClips");
-            //     EngineHelpers::deleteSelectedClips (m_editComponent->getEditViewState ());
-            //     EngineHelpers::deleteSelectedClips(m_editComponent->getEditViewState());
-            // }
-            break;
-        }
-        case KeyPressCommandIDs::duplicateSelectedClips:
-            m_editComponent->getSongEditor().duplicateSelectedClipsOrTimeRange();
-            break;
-        case KeyPressCommandIDs::selectAllClips:
-            EngineHelpers::selectAllClips(m_editComponent->getEditViewState().m_selectionManager, *m_edit);
-            break;
-        case KeyPressCommandIDs::selectAllClipsOnTrack:
-        {
-            auto t = m_editComponent->getEditViewState().m_selectionManager.getItemsOfType<te::Track>().getLast();
-            if (auto at = dynamic_cast<te::AudioTrack*>(t))
-            {
-                EngineHelpers::selectAllClipsOnTrack(m_editComponent->getEditViewState().m_selectionManager,*at);
-            }
-            break;
-        }
         case KeyPressCommandIDs::debugOutputEdit:
         {
             std::cout << "DEBUG EDIT: " << juce::Time::getCurrentTime().toString(true, true, true, true) << std::endl;

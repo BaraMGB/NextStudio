@@ -13,6 +13,7 @@ class PianoRollEditor
     : public juce::Component
     , private te::ValueTreeAllEventListener
     , private FlaggedAsyncUpdater
+    , public juce::ApplicationCommandTarget
 {
 public:
     explicit PianoRollEditor(EditViewState&);
@@ -23,6 +24,13 @@ public:
     void resized () override;
     void mouseMove(const juce::MouseEvent &event) override;
 
+    
+    ApplicationCommandTarget* getNextCommandTarget() override   { return findFirstTargetParentComponent(); }
+    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
+
+    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
+    
+    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
 
     void setTrack(tracktion_engine::Track::Ptr track);
     void clearTrack();

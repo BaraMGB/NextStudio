@@ -7,7 +7,8 @@ SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr)
         : m_editViewState(evs)
         , m_lowerRange(lr)
         , m_lassoComponent(evs, evs.m_viewX1, evs.m_viewX2)
-{
+{		
+    setWantsKeyboardFocus (true);
     setName("SongEditorView");
     addChildComponent(m_lassoComponent);
     m_lassoComponent.setVisible(false);
@@ -626,6 +627,77 @@ void SongEditorView::changeListenerCallback(juce::ChangeBroadcaster *source)
     {
         buildRecordingClips(t);
     }
+}
+
+void SongEditorView::getAllCommands (juce::Array<juce::CommandID>& commands) 
+{
+    juce::Array<juce::CommandID> ids {
+
+            KeyPressCommandIDs::deleteSelectedClips,
+            KeyPressCommandIDs::duplicateSelectedClips,
+            KeyPressCommandIDs::selectAllClips,
+        };
+
+    commands.addArray(ids);
+}
+void SongEditorView::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
+{
+    switch (commandID)
+    { 
+        case KeyPressCommandIDs::duplicateSelectedClips :
+            result.setInfo("Duplicate selected clips", "Duplicate selected clips", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode() , juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::deleteSelectedClips :
+            result.setInfo("Delete selected clips", "Delete selected clips", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
+            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::selectAllClips :
+            result.setInfo("select all Clips","select all Clips", "Song Editor", 0);
+
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("a").getKeyCode() , juce::ModifierKeys::commandModifier);
+            break;
+
+        case KeyPressCommandIDs::selectAllClipsOnTrack :
+            result.setInfo("select all Clips on track","select all Clips on track", "Song Editor", 0);
+        default:
+            break;
+        }
+
+}
+bool SongEditorView::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
+{
+    GUIHelpers::log("SongEditorView perform");
+    switch (info.commandID)
+    { 
+        //send NoteOn
+        case KeyPressCommandIDs::deleteSelectedClips:
+        {
+            GUIHelpers::log("deleteSelectedClips Outer");
+            if (getTracksWithSelectedTimeRange().size() > 0)
+            {
+                GUIHelpers::log("deleteSelectedTimeRange");
+                deleteSelectedTimeRange();
+            }
+            else 
+            {
+                GUIHelpers::log("deleteSelectedClips");
+                EngineHelpers::deleteSelectedClips (m_editViewState);
+            }
+            break;
+        }
+        case KeyPressCommandIDs::duplicateSelectedClips:
+            duplicateSelectedClipsOrTimeRange();
+            break;
+        case KeyPressCommandIDs::selectAllClips:
+            EngineHelpers::selectAllClips(m_editViewState.m_selectionManager, m_editViewState.m_edit);
+            break;
+        default:
+            return false;
+    }
+    return true;
 }
 
 te::Track::Ptr SongEditorView::getTrackAt(int y)
@@ -1397,6 +1469,9 @@ void SongEditorView::drawWaveform(juce::Graphics& g,
                                       juce::Rectangle<int> clipRect,
                                       juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
 {
+    if (m_editViewState.m_drawWaveforms == false)
+        return;
+
     auto getTimeRangeForDrawing = [this] (const te::AudioClipBase& clip, const juce::Rectangle<int> clRect, const juce::Rectangle<int> displRect, double x1Beats, double x2Beats)
         -> tracktion::core::TimeRange
     {

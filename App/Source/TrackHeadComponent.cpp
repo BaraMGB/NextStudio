@@ -747,34 +747,6 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent &/*e*/)
     repaint();
 }
 
-bool TrackHeaderComponent::keyPressed(const juce::KeyPress &key)
-{
-    if (key == juce::KeyPress::createFromDescription("CTRL + D"))
-    {
-        auto trackContent = std::make_unique<te::Clipboard::Tracks>();
-        trackContent->tracks.push_back (m_track->state);
-        te::EditInsertPoint insertPoint(m_editViewState.m_edit);
-        te::Clipboard::Tracks::EditPastingOptions options(m_editViewState.m_edit
-                                                          ,insertPoint
-                                                          , &m_editViewState.m_selectionManager);
-        options.startTrack = m_track;
-        trackContent->pasteIntoEdit (options);
-        return true;
-
-    }
-    if (key == juce::KeyPress::deleteKey)
-    {
-
-        for (auto t : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
-        {
-            m_editViewState.m_edit.deleteTrack (t);
-        }
-        return true;
-    }
-    return false;
-}
-
-
 juce::Colour TrackHeaderComponent::getTrackColour()
 {
     return m_track->getColour ();

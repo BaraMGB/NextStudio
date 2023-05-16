@@ -3,6 +3,7 @@
 #include "LassoSelectionTool.h"
 #include "LowerRangeComponent.h"
 #include "RecordingClipComponent.h"
+#include "Utilities.h"
 
 enum class Tool {pointer, draw, range, eraser, knife};
 
@@ -18,6 +19,7 @@ struct SelectableAutomationPoint  : public te::Selectable
 };
 
 class SongEditorView : public juce::Component
+                     , public juce::ApplicationCommandTarget
                      , public juce::ChangeListener
 {
 public:
@@ -35,6 +37,13 @@ public:
     void mouseUp (const juce::MouseEvent &) override;
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
+
+    ApplicationCommandTarget* getNextCommandTarget() override   { GUIHelpers::log("findFirstTargetParentComponent"); return findFirstTargetParentComponent(); }
+    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
+
+    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
+    
+    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
 
     void startLasso(const juce::MouseEvent& e, bool fromAutomation, bool selectRange);
     void updateLasso(const juce::MouseEvent& e);

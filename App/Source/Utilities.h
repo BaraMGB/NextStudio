@@ -6,6 +6,73 @@
 
 namespace te = tracktion_engine;
 
+enum KeyPressCommandIDs
+{
+    midiNoteC = 1,
+    midiNoteCsharp ,
+    midiNoteD,
+    midiNoteDsharp ,
+    midiNoteE,
+    midiNoteF,
+    midiNoteFsharp ,
+    midiNoteG,
+    midiNoteGsharp ,
+    midiNoteA,
+    midiNoteAsharp ,
+    midiNoteB,
+    midiNoteUpperC,
+    midiNoteUpperCsharp ,
+    midiNoteUpperD,
+    midiNoteUpperDsharp ,
+    midiNoteUpperE,
+    midiNoteUpperF,
+    midiNoteUpperFsharp ,
+    midiNoteUpperG,
+    midiNoteUpperGsharp ,
+    midiNoteUpperA,
+    midiNoteUpperAsharp ,
+    midiNoteUpperB,
+    midiNoteTopC,
+
+
+    togglePlay,
+    toggleRecord,
+    play,
+    stop,
+    deleteSelectedClips,
+    duplicateSelectedClips,
+    selectAllClips,
+    selectAllTracks,
+    selectAllClipsOnTrack,
+     
+    loopAroundSelection,
+    loopOn,
+    loopOff,
+    loopAroundAll,
+    loopToggle,
+
+    toggleSnap,
+    toggleMetronome,
+    snapToBar,
+    snapToBeat,
+    snapToGrid,
+    snapToTime,
+    snapToOff,
+    
+    deleteSelectedTracks,
+    duplicateSelectedTracks,
+
+    deleteSelectedNotes,
+    duplicateSelectedNotes,
+    nudgeNotesUp,
+    nudgeNotesDown,
+    nudgeNotesLeft,
+    nudgeNotesRight,
+    nudgeNotesOctaveUp,
+    nudgeNotesOctaveDown,
+
+    debugOutputEdit 
+};
 
 namespace Helpers
 {

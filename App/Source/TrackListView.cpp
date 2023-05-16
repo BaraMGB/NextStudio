@@ -3,6 +3,7 @@
 //
 
 #include "TrackListView.h"
+#include "Utilities.h"
 #include <algorithm>
 
 int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
@@ -71,6 +72,80 @@ void TrackListView::itemDropped(
         if (auto thc = dynamic_cast<TrackHeaderComponent*>(dragSourceDetails.sourceComponent.get()))
             m_editViewState.m_edit.moveTrack(thc->getTrack(), ip);
 }
+
+
+void TrackListView::getAllCommands (juce::Array<juce::CommandID>& commands) 
+{
+
+    juce::Array<juce::CommandID> ids {
+
+            KeyPressCommandIDs::deleteSelectedTracks,
+            KeyPressCommandIDs::duplicateSelectedTracks
+        };
+
+    commands.addArray(ids);
+}
+
+
+void TrackListView::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
+{
+
+    switch (commandID)
+    { 
+        case KeyPressCommandIDs::deleteSelectedTracks :
+            result.setInfo("delete selected tracks", "delete selected", "Tracks", 0);
+            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
+            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::duplicateSelectedTracks :
+            result.setInfo("duplicate selected tracks", "duplicate selected tracks", "Tracks", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        default:
+            break;
+        }
+
+}
+
+bool TrackListView::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
+{
+
+    GUIHelpers::log("TrackListView perform");
+    switch (info.commandID)
+    { 
+        case KeyPressCommandIDs::deleteSelectedTracks:
+        {
+            GUIHelpers::log("deleteSelectedTracks");
+
+            for (auto t : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
+            {
+                m_editViewState.m_edit.deleteTrack (t);
+            }
+            break;
+        }
+        case KeyPressCommandIDs::duplicateSelectedTracks :
+        {   
+            auto trackContent = std::make_unique<te::Clipboard::Tracks>();
+            auto selectedTracks =  m_editViewState.m_selectionManager.getItemsOfType<te::Track>();
+            for (auto t : selectedTracks) 
+            {
+                trackContent->tracks.push_back (t->state);
+            }
+            te::EditInsertPoint insertPoint(m_editViewState.m_edit);
+            te::Clipboard::Tracks::EditPastingOptions options(m_editViewState.m_edit
+                                                              ,insertPoint
+                                                              , &m_editViewState.m_selectionManager);
+            options.startTrack = selectedTracks.getLast();
+            trackContent->pasteIntoEdit (options);
+            break;
+        }
+        default:
+            return false;
+    }
+    return true;
+}
+
 void TrackListView::addHeaderViews(std::unique_ptr<TrackHeaderComponent> header)
 {
     m_trackHeaders.add(std::move(header));

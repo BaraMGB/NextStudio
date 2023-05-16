@@ -22,7 +22,7 @@ public:
     void mouseUp (const juce::MouseEvent &) override;
     void mouseWheelMove (const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
-    bool keyPressed(const juce::KeyPress &key) override;
+    // bool keyPressed(const juce::KeyPress &key) override;
 
 
     void timerCallback() override;
@@ -33,6 +33,13 @@ public:
     int getNoteNumber (int y);
 
     void updateSelectedEvents();
+    void duplicateSelectedNotes();
+
+    void deleteSelectedNotes();
+    
+    te::SelectedMidiEvents& getSelectedEvents() { return *m_selectedEvents;}
+
+    [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
 
 private:
 
@@ -79,8 +86,6 @@ private:
     [[nodiscard]] double   timeToX(const double& time) const;
     [[nodiscard]] double   xToTime(const int& x) const;
     [[nodiscard]] double   timeToBeat(double time);
-    [[nodiscard]] te::TimecodeSnapType
-                           getBestSnapType() const;
     [[nodiscard]] double   getQuantisedBeat(double beat, bool down=true) const;
     [[nodiscard]] double   getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down=true) const;
     void                   snapToGrid(te::MidiNote* note, const te::MidiClip* clip) const;
@@ -95,7 +100,6 @@ private:
     bool                   isInLassoRange(const te::MidiClip* clip, const tracktion_engine::MidiNote* midiNote);
 
     void                   setNoteSelected(te::MidiNote* n, bool addToSelection);
-    void                   deleteSelectedNotes();
     bool                   isSelected(tracktion_engine::MidiNote* note);
     void                   unselectAll();
     bool                   areNotesDragged() const;
@@ -103,7 +107,6 @@ private:
     int                    getYForKey(double key);
 
     void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, juce::Array<std::pair<te::MidiNote*, te::MidiClip*>>& temp, bool copy=false);
-    void                   duplicateSelectedNotes();
     void                   cleanUpFlags();
     juce::Array<te::MidiNote*>
                            getSelectedNotes();

@@ -47,6 +47,7 @@ public:
 
     void showRackView(const tracktion_engine::Track::Ptr);
     void showPianoRoll(const te::Track::Ptr);
+    PianoRollEditor& getPianoRollEditor() {return m_pianoRollEditor;}
 
 private:
 
