@@ -62,6 +62,8 @@ enum KeyPressCommandIDs
     deleteSelectedTracks,
     duplicateSelectedTracks,
 
+    renderSelectedTimeRangeToNewTrack,
+
     deleteSelectedNotes,
     duplicateSelectedNotes,
     nudgeNotesUp,
@@ -246,6 +248,10 @@ namespace PlayHeadHelpers
 
 namespace EngineHelpers
 {
+
+    void renderEditToFile(EditViewState& evs, juce::File renderFile);
+    bool renderToNewTrack(EditViewState& evs, juce::Array<tracktion_engine::AudioTrack*> tracksToRender, tracktion::TimeRange range);
+
     void updateMidiInputs(EditViewState& evs, te::Track::Ptr track);    
     te::MidiInputDevice& getVirtuelMidiInputDevice(te::Engine& engine);
     tracktion::core::TimePosition getTimePos(double t);

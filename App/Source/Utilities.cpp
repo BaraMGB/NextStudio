@@ -1,5 +1,6 @@
 #include "Utilities.h"
 #include "EditViewState.h"
+#include "tracktion_core/utilities/tracktion_Time.h"
 
 void Helpers::addAndMakeVisible(juce::Component &parent, const juce::Array<juce::Component *> &children)
 {
@@ -447,6 +448,63 @@ te::AudioTrack::Ptr EngineHelpers::getAudioTrack(te::Track::Ptr track, EditViewS
         }
     }
     return nullptr;
+}
+
+bool EngineHelpers::renderToNewTrack(EditViewState & evs, juce::Array<tracktion_engine::AudioTrack*> tracksToRender, tracktion::TimeRange range)
+{
+    auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
+    auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
+    
+    juce::BigInteger tracksToDo{ 0 };
+
+    for (auto ttr : tracksToRender)
+        for (auto i = 0; i< te::getAllTracks(evs.m_edit).size(); i++)
+            if (te::getAllTracks(evs.m_edit).getUnchecked(i) == ttr)
+                tracksToDo.setBit(i);
+
+    GUIHelpers::log("Tracks to Render: ", tracksToDo.countNumberOfSetBits());
+
+    te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo, true, {}, false);
+
+    EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum, range.getStart().inSeconds());
+    return true;
+}
+
+void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile)
+{
+    if (!renderFile.create())
+    {
+        juce::Logger::writeToLog("Error: Could not create file. Check permissions.");
+        return;
+    }
+    else
+    {
+        GUIHelpers::log("File exists");
+    }
+
+    tracktion::TimeRange range(tracktion::TimePosition::fromSeconds(0.0), evs.m_edit.getLength());
+
+    if (te::getAudioTracks(evs.m_edit).size() == 0)
+    {
+        juce::Logger::writeToLog("Error: The edit contains no tracks.");
+        return;
+    }
+
+    juce::BigInteger tracksToDo{ 0 };
+
+    for (auto i = 0; i < te::getAllTracks(evs.m_edit).size(); ++i)
+        tracksToDo.setBit(i);
+
+    auto result = te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo, true,{}, false);
+
+    if (result)
+    {
+        juce::Logger::writeToLog("Rendering started successfully.");
+    }
+    else
+    {
+        juce::Logger::writeToLog("Error: Failed to start rendering.");
+    }
 }
 
 void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)    
@@ -1063,6 +1121,7 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
     te::AudioFile audioFile (evs.m_edit.engine, file);
     if (audioFile.isValid())
     {
+        std::cout << "audio file valid" << std::endl;
         if (auto track = addAudioTrack(false, trackColour, evs))
         {           
             

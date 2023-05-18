@@ -636,6 +636,7 @@ void SongEditorView::getAllCommands (juce::Array<juce::CommandID>& commands)
             KeyPressCommandIDs::deleteSelectedClips,
             KeyPressCommandIDs::duplicateSelectedClips,
             KeyPressCommandIDs::selectAllClips,
+            KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack
         };
 
     commands.addArray(ids);
@@ -660,8 +661,9 @@ void SongEditorView::getCommandInfo (juce::CommandID commandID, juce::Applicatio
             result.addDefaultKeypress(juce::KeyPress::createFromDescription("a").getKeyCode() , juce::ModifierKeys::commandModifier);
             break;
 
-        case KeyPressCommandIDs::selectAllClipsOnTrack :
-            result.setInfo("select all Clips on track","select all Clips on track", "Song Editor", 0);
+        case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack :
+            result.setInfo("render time range to new track","render time range on new track", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("r").getKeyCode(), juce::ModifierKeys::commandModifier);
         default:
             break;
         }
@@ -693,6 +695,9 @@ bool SongEditorView::perform (const juce::ApplicationCommandTarget::InvocationIn
             break;
         case KeyPressCommandIDs::selectAllClips:
             EngineHelpers::selectAllClips(m_editViewState.m_selectionManager, m_editViewState.m_edit);
+            break;
+        case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack:
+            renderSelectedTimeRangeToNewTrack();
             break;
         default:
             return false;
@@ -1829,6 +1834,22 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
     g.drawLine(drawRect.getX(),drawRect.getBottom(), drawRect.getRight(), drawRect.getBottom());
 
     g.restoreState();
+}
+
+void SongEditorView::renderSelectedTimeRangeToNewTrack()
+{
+    if (getTracksWithSelectedTimeRange().size() <= 0)
+        return;
+
+    auto selectedTracks = m_selectedRange.selectedTracks;
+    juce::Array<te::AudioTrack*> audioTracksToRender;
+    for (auto t : selectedTracks)
+    if (auto at = dynamic_cast<te::AudioTrack*>(t))
+        audioTracksToRender.add(at);
+
+    auto range = getSelectedTimeRange();
+
+    EngineHelpers::renderToNewTrack(m_editViewState, audioTracksToRender, range);
 }
 
 void SongEditorView::buildRecordingClips(te::Track::Ptr track)

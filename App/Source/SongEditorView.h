@@ -149,6 +149,8 @@ private:
         
     void buildRecordingClips(te::Track::Ptr track);
 
+    void renderSelectedTimeRangeToNewTrack();
+
     juce::OwnedArray<RecordingClipComponent>  m_recordingClips;
     //essentials
     EditViewState&                      m_editViewState;
