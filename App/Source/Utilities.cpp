@@ -1,6 +1,7 @@
 #include "Utilities.h"
 #include "EditViewState.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
+#include "tracktion_core/utilities/tracktion_TimeRange.h"
 
 void Helpers::addAndMakeVisible(juce::Component &parent, const juce::Array<juce::Component *> &children)
 {
@@ -470,7 +471,7 @@ bool EngineHelpers::renderToNewTrack(EditViewState & evs, juce::Array<tracktion_
     return true;
 }
 
-void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile)
+void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, tracktion::TimeRange range)
 {
     if (!renderFile.create())
     {
@@ -482,7 +483,8 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile)
         GUIHelpers::log("File exists");
     }
 
-    tracktion::TimeRange range(tracktion::TimePosition::fromSeconds(0.0), evs.m_edit.getLength());
+    if (range == tracktion::TimeRange{})
+        range = {tracktion::TimePosition::fromSeconds(0.0), evs.m_edit.getLength()};
 
     if (te::getAudioTracks(evs.m_edit).size() == 0)
     {

@@ -32,6 +32,8 @@ public:
                     m_applicationState.m_presetDir);
         auto clipsDir = juce::File().createFileWithoutCheckingPath (
                     m_applicationState.m_clipsDir);
+        auto rendersDir = juce::File().createFileWithoutCheckingPath (
+                    m_applicationState.m_renderDir);
         auto samplesDir = juce::File().createFileWithoutCheckingPath (
                     m_applicationState.m_samplesDir);
         auto projectsDir = juce::File().createFileWithoutCheckingPath (
@@ -39,6 +41,7 @@ public:
         workingDir.createDirectory ();
         presetDir.createDirectory ();
         clipsDir.createDirectory ();
+        rendersDir.createDirectory();
         samplesDir.createDirectory ();
         projectsDir.createDirectory ();
 

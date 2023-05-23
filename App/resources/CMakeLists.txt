@@ -5,6 +5,7 @@ juce_add_binary_data(Pictures SOURCES
     file-music.svg
     pause.svg
     play.svg
+    render.svg
     record.svg
     stop.svg
     headphones-settings.svg

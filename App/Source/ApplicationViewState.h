@@ -13,6 +13,7 @@ namespace IDs
     DECLARE_ID (PresetDIR)
     DECLARE_ID (ClipsDIR)
     DECLARE_ID (SamplesDIR)
+    DECLARE_ID (RenderDIR)
     DECLARE_ID (ProjectsDIR)
     DECLARE_ID (FavoriteTypes)
     DECLARE_ID (Favorites)
@@ -105,6 +106,10 @@ public:
                                 juce::File::userHomeDirectory)
                             .getChildFile ("NextStudio/Clips/").getFullPathName ());
         fileBrowser.setProperty (IDs::ClipsDIR,juce::var(m_clipsDir),nullptr);
+        m_renderDir.referTo (fileBrowser, IDs::RenderDIR, nullptr
+                            , juce::File::getSpecialLocation (
+                                juce::File::userHomeDirectory)
+                            .getChildFile ("NextStudio/Renders/").getFullPathName ());
         m_samplesDir.referTo (fileBrowser, IDs::SamplesDIR, nullptr
                             , juce::File::getSpecialLocation (
                                 juce::File::userHomeDirectory)
@@ -265,6 +270,7 @@ public:
                                     m_presetDir,
                                     m_clipsDir,
                                     m_samplesDir,
+                                    m_renderDir,
                                     m_projectsDir,
                                     m_backgroundColour,
 									m_primeColour;

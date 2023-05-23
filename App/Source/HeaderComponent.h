@@ -38,6 +38,7 @@ private:
     juce::DrawableButton m_newButton
                        , m_loadButton
                        , m_saveButton
+                       , m_renderButton
                        , m_pluginsButton
                        , m_stopButton
                        , m_recordButton
