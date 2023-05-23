@@ -53,6 +53,20 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     m_clickButton.addListener (this);
     m_followPlayheadButton.addListener (this);
 
+
+    m_newButton.setTooltip(TRANS("Create new project"));
+    m_loadButton.setTooltip(TRANS("Load project from disk ... "));
+    m_saveButton.setTooltip(TRANS("Save project to disk ... "));
+    m_renderButton.setTooltip(TRANS("Render project to wave file ..."));
+    m_playButton.setTooltip(TRANS("Play"));
+    m_stopButton.setTooltip(TRANS("Stop"));
+    m_recordButton.setTooltip(TRANS("Recording"));
+    m_settingsButton.setTooltip(TRANS("Open settings dialog ... "));
+    m_pluginsButton.setTooltip(TRANS("Open plugin settings dialog ... "));
+    m_loopButton.setTooltip (TRANS("Loop around loop range"));
+    m_clickButton.setTooltip (TRANS("Toggle metronome on/off"));
+    m_followPlayheadButton.setTooltip (TRANS("View follows playhead on/off"));
+
     startTimer(30);
 }
 

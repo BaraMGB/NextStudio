@@ -56,5 +56,7 @@ private:
     juce::String m_btn_col { "#dbdbdb" };
 
     juce::File m_loadingFile {};
+
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HeaderComponent)
 };
