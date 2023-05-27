@@ -408,6 +408,14 @@ void GUIHelpers::drawLogo (juce::Graphics& g, juce::Colour colour, float scale)
         g.fillPath(logoPath);
     }
 
+juce::String GUIHelpers::translate (juce::String stringToTranslate, ApplicationViewState& avs)
+{
+    juce::LocalisedStrings translations(avs.getFileToTranslation(), false);
+    auto translatedString = translations.translate(stringToTranslate);
+
+    return translatedString;
+}
+
 juce::String PlayHeadHelpers::timeToTimecodeString(double seconds)
 {
     auto millisecs = juce::roundToInt (seconds * 1000.0);

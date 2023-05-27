@@ -118,3 +118,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "-latomic")
   target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "-m64")
 endif()
+
+
+
+# Language 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(APP_DATA_DIR "$ENV{HOME}/.config/${PROJECT_NAME}")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(APP_DATA_DIR "$ENV{HOME}/Library/${PROJECT_NAME}")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(APP_DATA_DIR "$ENV{LOCALAPPDATA}\\${PROJECT_NAME}")
+endif()
+
+add_custom_target(CopyLanguageFolder ALL
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${APP_DATA_DIR}/language
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/language ${APP_DATA_DIR}/language
+)
+

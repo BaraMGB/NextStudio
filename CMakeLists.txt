@@ -6,5 +6,3 @@ option(JUCE_BUILD_EXAMPLES "Build JUCE Extras" OFF)
 
 add_subdirectory(App)
 
-
-

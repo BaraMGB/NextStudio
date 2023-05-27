@@ -397,9 +397,6 @@ public:
         g.drawFittedText(text, area, juce::Justification::left, 1);
     }
 
-    juce::Colour m_BGcolour = juce::Colour(14, 14, 14);
-    juce::Colour m_DarkArea = juce::Colour(10, 10, 10);
-    juce::Colour m_BrightButton1 = juce::Colour(90, 90, 90);
-    juce::Colour m_BrightButton2 = juce::Colour(66, 66, 66);
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NextLookAndFeel)
 };

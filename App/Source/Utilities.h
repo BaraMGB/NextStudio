@@ -212,6 +212,8 @@ namespace GUIHelpers
                               const juce::Colour& shade);
     
     void drawLogo (juce::Graphics& g, juce::Colour colour, float scale);
+
+     juce::String translate (juce::String stringToTranslate, ApplicationViewState& aps);
 }
 
 namespace PlayHeadHelpers

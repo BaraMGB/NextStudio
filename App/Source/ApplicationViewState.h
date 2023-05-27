@@ -179,6 +179,21 @@ public:
         return result;
     }
 
+    juce::File getFileToTranslation()
+    {
+        juce::String systemLanguage = juce::SystemStats::getUserLanguage();
+        juce::String fileName = "NextStudio/language/translations_" + systemLanguage + ".lang";
+
+        juce::File languageFile(juce::File::getSpecialLocation (
+                    juce::File::userApplicationDataDirectory)
+                    .getChildFile (fileName));
+
+        if (languageFile.existsAsFile())
+            return languageFile;
+
+        return {};        
+    }
+
     void setBounds(juce::Rectangle<int> bounds)
     {
         m_windowXpos = bounds.getX();

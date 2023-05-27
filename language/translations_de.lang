@@ -1,0 +1,15 @@
+language: german
+countries: ch at de 
+
+"Create new project" = "Ein neues Projekt erstellen"
+"Load project from disk" = "Projekt öffnen"
+"Save project to disk" = "Projekt speichern unter.."
+"Render project to wave file" = "Projekt als WAV Datei rendern"
+"Play" = "Abspielen"
+"Stop" = "Stopp"
+"Recording" = "Aufnahme starten"
+"Open settings dialog" = "Einstellungen"
+"Open plugin settings dialog" = "Plugin Einstellungen"
+"Toggle loop on/off" = "In Schleife abspielen Ein/Aus"
+"Toggle metronome on/off" = "Metronom Ein/Aus"
+"View follows playhead on/off" = "Ansicht folgt der Songposition"

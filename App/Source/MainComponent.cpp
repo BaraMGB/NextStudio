@@ -14,6 +14,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
 {
     setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);
+    m_nextLookAndFeel.setColour(juce::TooltipWindow::outlineColourId, juce::Colours::white);
 
     openValidStartEdit();
 

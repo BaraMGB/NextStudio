@@ -1,5 +1,6 @@
 #include "HeaderComponent.h"
 #include "RenderDialog.h"
+#include "Utilities.h"
 
 HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & applicationState, juce::ApplicationCommandManager& commandManager)
     : m_editViewState(evs)
@@ -53,19 +54,18 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     m_clickButton.addListener (this);
     m_followPlayheadButton.addListener (this);
 
-
-    m_newButton.setTooltip(TRANS("Create new project"));
-    m_loadButton.setTooltip(TRANS("Load project from disk ... "));
-    m_saveButton.setTooltip(TRANS("Save project to disk ... "));
-    m_renderButton.setTooltip(TRANS("Render project to wave file ..."));
-    m_playButton.setTooltip(TRANS("Play"));
-    m_stopButton.setTooltip(TRANS("Stop"));
-    m_recordButton.setTooltip(TRANS("Recording"));
-    m_settingsButton.setTooltip(TRANS("Open settings dialog ... "));
-    m_pluginsButton.setTooltip(TRANS("Open plugin settings dialog ... "));
-    m_loopButton.setTooltip (TRANS("Loop around loop range"));
-    m_clickButton.setTooltip (TRANS("Toggle metronome on/off"));
-    m_followPlayheadButton.setTooltip (TRANS("View follows playhead on/off"));
+    m_newButton.setTooltip(GUIHelpers::translate("Create new project", m_editViewState.m_applicationState));
+    m_loadButton.setTooltip(GUIHelpers::translate("Load project from disk", m_editViewState.m_applicationState));
+    m_saveButton.setTooltip(GUIHelpers::translate("Save project to disk", m_editViewState.m_applicationState));
+    m_renderButton.setTooltip(GUIHelpers::translate("Render project to wave file", m_editViewState.m_applicationState));
+    m_playButton.setTooltip(GUIHelpers::translate("Play", m_editViewState.m_applicationState));
+    m_stopButton.setTooltip(GUIHelpers::translate("Stop", m_editViewState.m_applicationState));
+    m_recordButton.setTooltip(GUIHelpers::translate("Recording", m_editViewState.m_applicationState));
+    m_settingsButton.setTooltip(GUIHelpers::translate("Open settings dialog", m_editViewState.m_applicationState));
+    m_pluginsButton.setTooltip(GUIHelpers::translate ("Open plugin settings dialog", m_editViewState.m_applicationState));
+    m_loopButton.setTooltip (GUIHelpers::translate("Toggle loop on/off", m_editViewState.m_applicationState));
+    m_clickButton.setTooltip (GUIHelpers::translate("Toggle metronome on/off", m_editViewState.m_applicationState));
+    m_followPlayheadButton.setTooltip (GUIHelpers::translate ("View follows playhead on/off", m_editViewState.m_applicationState));
 
     startTimer(30);
 }
