@@ -216,9 +216,12 @@ TrackHeaderComponent::TrackHeaderComponent (
     {
         m_isAudioTrack = true;
 
-        levelMeterComp = std::make_unique<LevelMeterComponent>(
-                    audioTrack->getLevelMeterPlugin()->measurer);
-        addAndMakeVisible(levelMeterComp.get());
+        if (audioTrack->getLevelMeterPlugin() != nullptr)
+        {
+            levelMeterComp = std::make_unique<LevelMeterComponent>(
+                        audioTrack->getLevelMeterPlugin()->measurer);
+            addAndMakeVisible(levelMeterComp.get());
+        }
         addAndMakeVisible(m_armButton);
         m_armButton.setToggleState (EngineHelpers::isTrackArmed (*audioTrack)
                                     , juce::dontSendNotification);
