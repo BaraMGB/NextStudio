@@ -50,6 +50,7 @@ public:
         return m_lowerRange;
     }
 
+    void collapseTracks(bool minimize);
 
 private:
 
@@ -61,6 +62,5 @@ private:
     LowerRangeComponent& m_lowerRange;
     juce::OwnedArray<TrackHeaderComponent> m_trackHeaders;
     const int getPopupResult();
-    void collapseTracks(bool minimize);
     TrackHeaderComponent* getTrackHeaderView(tracktion_engine::Track::Ptr track);
 };

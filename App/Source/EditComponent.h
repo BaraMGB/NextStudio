@@ -11,6 +11,7 @@
 #include "LassoSelectionTool.h"
 #include "SongEditorView.h"
 #include "TrackListView.h"
+#include "MenuBar.h"
 
 //------------------------------------------------------------------------------
 
@@ -46,6 +47,7 @@ class EditComponent : public  juce::Component
                     , private FlaggedAsyncUpdater
                     , private juce::ScrollBar::Listener
                     , private juce::Timer
+                    , public juce::Button::Listener
 {
 public:
     EditComponent (te::Edit&
@@ -61,6 +63,7 @@ public:
     void scrollBarMoved (juce::ScrollBar *scrollBarThatHasMoved
                         , double newRangeStart) override;
 
+    void buttonClicked(juce::Button* button) override;
 
     LowerRangeComponent& lowerRange ();
 
@@ -134,6 +137,16 @@ private:
                                               , m_editViewState.m_viewX2
                                               };
     FooterBarComponent                      m_footerbar;
+
+    MenuBar                                 m_trackListToolsMenu;
+    juce::DrawableButton                    m_addAudioTrackBtn,
+                                            m_addMidiTrackBtn,
+                                            m_addFolderTrackBtn;
+
+    MenuBar                                 m_trackListControlMenu;
+    juce::DrawableButton                    m_expandAllBtn,
+                                            m_collapseAllBtn;
+
     juce::ScrollBar                         m_scrollbar_v
                                           , m_scrollbar_h;
     PlayheadComponent                       m_playhead {

@@ -10,6 +10,11 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
   , m_scrollbar_v (true)
   , m_scrollbar_h (false)
   , m_autosaveThread(m_editViewState)
+    , m_addFolderTrackBtn ("Add folder track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_addAudioTrackBtn("Add audio track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_addMidiTrackBtn ("Add midi track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_expandAllBtn("expand all tracks", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_collapseAllBtn("collapse all tracks", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     m_edit.state.addListener (this);
 
@@ -34,6 +39,37 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     addAndMakeVisible (m_footerbar);
     addAndMakeVisible (m_songEditor);
     addAndMakeVisible (m_trackListView);
+    addAndMakeVisible (m_trackListToolsMenu);
+    addAndMakeVisible (m_trackListControlMenu);
+
+
+    GUIHelpers::setDrawableOnButton(m_addAudioTrackBtn, BinaryData::wavetest5_svg,
+                                  "#ffffff");
+    m_addAudioTrackBtn.addListener(this);
+    m_addAudioTrackBtn.setTooltip(GUIHelpers::translate("Add audio track",m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_addMidiTrackBtn, BinaryData::piano5_svg, "#ffffff");
+    m_addMidiTrackBtn.addListener(this);
+    m_addMidiTrackBtn.setTooltip(GUIHelpers::translate("Add MIDI track", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_addFolderTrackBtn, BinaryData::folderopen_svg, "#ffffff");
+    m_addFolderTrackBtn.addListener(this);
+    m_addFolderTrackBtn.setTooltip(GUIHelpers::translate("Add folder track", m_editViewState.m_applicationState));
+
+    m_trackListToolsMenu.addButton(&m_addAudioTrackBtn);
+    m_trackListToolsMenu.addButton(&m_addMidiTrackBtn);
+    m_trackListToolsMenu.addButton(&m_addFolderTrackBtn);
+
+    GUIHelpers::setDrawableOnButton(m_expandAllBtn, BinaryData::expand_svg, "#ffffff");
+    m_expandAllBtn.addListener(this);
+    m_expandAllBtn.setTooltip(GUIHelpers::translate("Expand all tracks", m_editViewState.m_applicationState));
+    
+    m_trackListControlMenu.addButton(&m_expandAllBtn);
+    m_trackListControlMenu.addButton(&m_collapseAllBtn);
+    
+    GUIHelpers::setDrawableOnButton(m_collapseAllBtn, BinaryData::collapse_svg, "#ffffff");
+    m_collapseAllBtn.addListener(this);
+    m_collapseAllBtn.setTooltip(GUIHelpers::translate("Collapse all tracks", m_editViewState.m_applicationState));
 
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
@@ -45,6 +81,9 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
 
 EditComponent::~EditComponent()
 {
+    m_addAudioTrackBtn.removeListener(this);
+    m_addMidiTrackBtn.removeListener(this);
+    m_addFolderTrackBtn.removeListener(this);
     m_autosaveThread.stopThread(5000);
     m_edit.state.removeListener (this);
 }
@@ -92,6 +131,10 @@ void EditComponent::resized()
     m_timeLine.setBounds(getTimeLineRect());
     m_trackListView.setBounds(getTrackListRect());
     m_trackListView.resized();
+    m_trackListToolsMenu.setBounds(getTrackListToolsRect().removeFromRight(getTrackListToolsRect().getWidth()/2));
+    m_trackListToolsMenu.resized();
+    m_trackListControlMenu.setBounds(getTrackListToolsRect().removeFromLeft(getTrackListToolsRect().getWidth()/2));
+    m_trackListControlMenu.resized();
     m_songEditor.setBounds(getSongEditorRect());
     m_songEditor.resized();
     m_scrollbar_v.setBounds (getSongEditorRect().removeFromRight(20));
@@ -160,6 +203,32 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
     }
 }
 
+void EditComponent::buttonClicked(juce::Button* button) 
+{
+    if (button == &m_addAudioTrackBtn)
+    {
+        auto colour = m_editViewState.m_applicationState.getRandomTrackColour();
+        EngineHelpers::addAudioTrack(false, colour, m_editViewState);
+    }
+    else if (button == &m_addMidiTrackBtn)
+    {
+        auto colour = m_editViewState.m_applicationState.getRandomTrackColour();
+        EngineHelpers::addAudioTrack(true, colour, m_editViewState);
+    }
+    else if (button == &m_addFolderTrackBtn)
+    {
+        auto colour = m_editViewState.m_applicationState.getRandomTrackColour();
+        EngineHelpers::addFolderTrack(colour, m_editViewState);
+    }
+    else if (button == &m_collapseAllBtn)
+    {
+        m_trackListView.collapseTracks(true);
+    }
+    else if (button == &m_expandAllBtn)
+    {
+        m_trackListView.collapseTracks(false);
+    }
+}
 void EditComponent::timerCallback() 
 {
     if (m_editViewState.m_isSavingLocked)

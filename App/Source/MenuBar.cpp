@@ -11,18 +11,3 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "MenuBar.h"
 
-//==============================================================================
-MenuBar::MenuBar()
-= default;
-
-MenuBar::~MenuBar()
-= default;
-
-void MenuBar::paint (juce::Graphics& g)
-{
-    g.fillAll(juce::Colour(0xff181818));
-}
-
-void MenuBar::resized()
-{
-}

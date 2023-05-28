@@ -14,15 +14,78 @@
 
 namespace te = tracktion_engine;
 
-class MenuBar    : public juce::Component
+enum class Alignment
+{
+    Left,
+    Center,
+    Right
+};
+
+class MenuBar : public juce::Component
 {
 public:
-    MenuBar();
-    ~MenuBar() override;
+    MenuBar(Alignment align = Alignment::Left)
+    {
+        m_alignment = align;
+    }
 
-    void paint (juce::Graphics&) override;
-    void resized() override;
+    ~MenuBar() override
+    {
+        m_buttons.clear(false);
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(juce::Colour(0xff171717));
+    }
+
+    void addButton(juce::DrawableButton* button)
+    {
+        m_buttons.add(button);
+        addAndMakeVisible(button);
+    }
+
+    void resized() override
+    {
+            auto flexAlign = juce::FlexBox::JustifyContent::flexStart;
+
+        switch (m_alignment)
+        {
+        case Alignment::Left:
+            flexAlign = juce::FlexBox::JustifyContent::flexStart;
+            break;
+        case Alignment::Center:
+            flexAlign = juce::FlexBox::JustifyContent::center;
+            break;
+        case Alignment::Right:
+            flexAlign = juce::FlexBox::JustifyContent::flexEnd;
+            break;
+        }
+
+        juce::FlexBox fb;
+        fb.flexWrap = juce::FlexBox::Wrap::noWrap;
+        fb.justifyContent = flexAlign;
+        fb.alignItems = juce::FlexBox::AlignItems::center;
+
+        const float buttonSize = getHeight() - (2.0f * getHeight() / 5.0f);
+        const float buttonGap = getHeight() / 10.0f;
+
+        for (int i = 0; i < m_buttons.size(); ++i)
+        {
+            juce::FlexItem::Margin margin;
+            if (i < m_buttons.size() - 1) {
+                margin.right = buttonGap;
+            }
+
+            fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_buttons[i]).withMargin(margin));
+        }
+
+        fb.performLayout(getLocalBounds().reduced(getHeight() / 5.0f).toFloat());
+    }
 
 private:
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MenuBar)
+    Alignment m_alignment;
+    juce::OwnedArray<juce::DrawableButton> m_buttons;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MenuBar)
 };
