@@ -99,8 +99,8 @@ void SongEditorView::paint(juce::Graphics& g)
             juce::Rectangle<int> rect = {x, y, w, h};
 
             selectedRangeRect = selectedRangeRect.getUnion(rect);
-
-            drawTrack(g, rect, track, m_selectedRange.timeRange, true);
+            if (auto ct = dynamic_cast<te::ClipTrack*>(track))
+                drawTrack(g, rect, ct, m_selectedRange.timeRange, true);
         }
 
         for (auto automation : m_selectedRange.selectedAutomations)
@@ -1291,7 +1291,7 @@ void SongEditorView::constrainClipInRange(te::Clip* c, tracktion::TimeRange r)
 
     if (!r.intersects(c->getPosition().time))
     {
-        c->removeFromParentTrack();
+        c->removeFromParent();
     }
     else 
     {
@@ -1567,16 +1567,15 @@ void SongEditorView::drawChannels(juce::Graphics& g
     {
         thumb.drawChannel(g
                         , area.removeFromTop(area.getHeight() / 2)
-                        , useHighRes
                         , time
                         , 0
                         , leftGain);
-        thumb.drawChannel(g, area, useHighRes, time, 1, rightGain);
+        thumb.drawChannel(g, area,  time, 1, rightGain);
     }
     else if (useLeft)
-        thumb.drawChannel (g, area, useHighRes, time, 0, leftGain);
+        thumb.drawChannel (g, area, time, 0, leftGain);
     else if (useRight)
-        thumb.drawChannel (g, area, useHighRes, time, 1, rightGain);
+        thumb.drawChannel (g, area, time, 1, rightGain);
 }
 
 
@@ -1842,14 +1841,10 @@ void SongEditorView::renderSelectedTimeRangeToNewTrack()
         return;
 
     auto selectedTracks = m_selectedRange.selectedTracks;
-    juce::Array<te::AudioTrack*> audioTracksToRender;
-    for (auto t : selectedTracks)
-    if (auto at = dynamic_cast<te::AudioTrack*>(t))
-        audioTracksToRender.add(at);
 
     auto range = getSelectedTimeRange();
 
-    EngineHelpers::renderToNewTrack(m_editViewState, audioTracksToRender, range);
+    EngineHelpers::renderToNewTrack(m_editViewState, selectedTracks, range);
 }
 
 void SongEditorView::buildRecordingClips(te::Track::Ptr track)

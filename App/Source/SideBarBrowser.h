@@ -870,7 +870,7 @@ public:
 
       inline void setupDirectoryTreeView()
       {
-          m_thread.startThread(1);
+          m_thread.startThread();
           juce::File file = juce::File::createFileWithoutCheckingPath (
                       m_applicationState.m_workDir);
           if (!file.isDirectory ())

@@ -56,7 +56,8 @@ void RecordingClipComponent::drawThumbnail (juce::Graphics& g
     if (w > 0 && w < 10000)
     {
         g.setColour (waveformColour);
-        m_thumbnail->thumb.drawChannels (g, bounds, w, times, 1.0f);
+        m_thumbnail->thumb->drawChannels (g, bounds,times.getStart().inSeconds(), times.getEnd().inSeconds(), 1.0f);
+
     }
 }
 
@@ -85,7 +86,7 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, tra
         auto localBounds = getLocalBounds();
         
         auto timeStarted = m_thumbnail->punchInTime;
-        auto unloopedPos = timeStarted + tracktion::TimeDuration::fromSeconds(m_thumbnail->thumb.getTotalLength());
+        auto unloopedPos = timeStarted + tracktion::TimeDuration::fromSeconds(m_thumbnail->thumb->getTotalLength());
         
         auto t1 = timeStarted;
         auto t2 = unloopedPos;
