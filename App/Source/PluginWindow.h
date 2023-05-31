@@ -136,4 +136,39 @@ public:
 
         UIBehaviour::recreatePluginWindowContentAsync (p);
     }
+
+    void runTaskWithProgressBar (tracktion_engine::ThreadPoolJobWithProgress& t) override
+    {
+        TaskRunner runner (t);
+
+         while (runner.isThreadRunning())
+             if (! juce::MessageManager::getInstance()->runDispatchLoopUntil (10))
+                 break;
+    }
+
+    private:
+
+    struct TaskRunner  : public juce::Thread
+    {
+        TaskRunner (te::ThreadPoolJobWithProgress& t)
+            : Thread (t.getJobName()), task (t)
+        {
+            startThread();
+        }
+
+        ~TaskRunner() override
+        {
+            task.signalJobShouldExit();
+            waitForThreadToExit (10000);
+        }
+
+        void run() override
+        {
+            while (! threadShouldExit())
+                if (task.runJob() == juce::ThreadPoolJob::jobHasFinished)
+                    break;
+        }
+
+            te::ThreadPoolJobWithProgress& task;
+    };
 };

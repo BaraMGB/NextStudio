@@ -459,23 +459,26 @@ te::AudioTrack::Ptr EngineHelpers::getAudioTrack(te::Track::Ptr track, EditViewS
     return nullptr;
 }
 
-bool EngineHelpers::renderToNewTrack(EditViewState & evs, juce::Array<tracktion_engine::AudioTrack*> tracksToRender, tracktion::TimeRange range)
+bool EngineHelpers::renderToNewTrack(EditViewState & evs, juce::Array<tracktion_engine::Track*> tracksToRender, tracktion::TimeRange range)
 {
     auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
     auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
     
     juce::BigInteger tracksToDo{ 0 };
 
-    for (auto ttr : tracksToRender)
-        for (auto i = 0; i< te::getAllTracks(evs.m_edit).size(); i++)
-            if (te::getAllTracks(evs.m_edit).getUnchecked(i) == ttr)
-                tracksToDo.setBit(i);
+    auto allTracks = te::getAllTracks(evs.m_edit);
 
-    GUIHelpers::log("Tracks to Render: ", tracksToDo.countNumberOfSetBits());
+    for (auto* trackToRender : tracksToRender)
+    {
+        int index = allTracks.indexOf(trackToRender);
+        if (index != -1) 
+            tracksToDo.setBit(index);
+    }
 
-    te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo, true, {}, false);
+    te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 
     EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum, range.getStart().inSeconds());
+
     return true;
 }
 
@@ -505,7 +508,7 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, 
     for (auto i = 0; i < te::getAllTracks(evs.m_edit).size(); ++i)
         tracksToDo.setBit(i);
 
-    auto result = te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo, true,{}, false);
+    auto result = te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 
     if (result)
     {
@@ -579,7 +582,7 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
                 ap->getCurve ().removePointsInRegion (selectedClip->getEditTimeRange ());
             }
 
-            selectedClip->removeFromParentTrack ();
+            selectedClip->removeFromParent ();
         }
     }
 }
@@ -665,7 +668,7 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
             newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
 
             if (!copy)
-                sc->removeFromParentTrack();
+                sc->removeFromParent();
             else
                 evs.m_selectionManager.deselect(sc);
         }
@@ -684,7 +687,8 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
                                   newClip->getPosition().getLength()},
                                   &evs.m_selectionManager);
     
-                newClip->moveToTrack(*targetTrack);
+                if (auto owner = dynamic_cast<te::ClipOwner*>(targetTrack))
+                    newClip->moveTo(*owner);
                 newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
     
                 evs.m_selectionManager.addToSelection(newClip);
@@ -1063,7 +1067,7 @@ void EngineHelpers::removeAllClips(tracktion_engine::AudioTrack &track)
     const auto& clips = track.getClips();
 
     for (int i = clips.size(); --i >= 0;)
-        clips.getUnchecked (i)->removeFromParentTrack();
+        clips.getUnchecked (i)->removeFromParent();
 }
 
 tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(
@@ -1433,7 +1437,7 @@ void Thumbnail::paint(juce::Graphics &g)
     {
         const float brightness = smartThumbnail.isOutOfDate() ? 0.4f : 0.66f;
         g.setColour (colour.withMultipliedBrightness (brightness));
-        smartThumbnail.drawChannels (g, r, true, { tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(smartThumbnail.getTotalLength()) }, 1.0f);
+        smartThumbnail.drawChannels (g, r, { tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(smartThumbnail.getTotalLength()) }, 1.0f);
     }
 }
 

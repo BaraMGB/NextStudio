@@ -252,7 +252,7 @@ namespace EngineHelpers
 {
 
     void renderEditToFile(EditViewState& evs, juce::File renderFile, tracktion::TimeRange range={});
-    bool renderToNewTrack(EditViewState& evs, juce::Array<tracktion_engine::AudioTrack*> tracksToRender, tracktion::TimeRange range);
+    bool renderToNewTrack(EditViewState& evs, juce::Array<tracktion_engine::Track*> tracksToRender, tracktion::TimeRange range);
 
     void updateMidiInputs(EditViewState& evs, te::Track::Ptr track);    
     te::MidiInputDevice& getVirtuelMidiInputDevice(te::Engine& engine);
