@@ -72,6 +72,9 @@ enum KeyPressCommandIDs
     nudgeNotesRight,
     nudgeNotesOctaveUp,
     nudgeNotesOctaveDown,
+    
+    transposeClipDown,
+    transposeClipUp,
 
     debugOutputEdit 
 };

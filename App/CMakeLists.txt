@@ -86,6 +86,8 @@ target_compile_definitions(${TargetName} PRIVATE
         JUCE_USE_CURL=0
         JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_PROJECT_NAME>"
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_VERSION>"
+        TRACKTION_ENABLE_TIMESTRETCH_SOUNDTOUCH=1
+        TRACKTION_BUILD_RUBBERBAND=1
         )
 
 target_compile_definitions (${TargetName} PUBLIC
@@ -94,6 +96,7 @@ target_compile_definitions (${TargetName} PUBLIC
 #        JUCE_USE_WINRT_MIDI=1
         JUCE_PLUGINHOST_VST3=1
         JUCE_PLUGINHOST_LADSPA=1
+        JUCE_PLUGINHOST_LV2=1
         JUCE_PLUGINHOST_AU=1
         JUCE_USE_FLAC=1
         JUCE_USE_MP3AUDIOFORMAT=1

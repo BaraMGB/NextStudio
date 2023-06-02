@@ -636,7 +636,9 @@ void SongEditorView::getAllCommands (juce::Array<juce::CommandID>& commands)
             KeyPressCommandIDs::deleteSelectedClips,
             KeyPressCommandIDs::duplicateSelectedClips,
             KeyPressCommandIDs::selectAllClips,
-            KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack
+            KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack,
+            KeyPressCommandIDs::transposeClipUp,
+            KeyPressCommandIDs::transposeClipDown
         };
 
     commands.addArray(ids);
@@ -664,6 +666,15 @@ void SongEditorView::getCommandInfo (juce::CommandID commandID, juce::Applicatio
         case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack :
             result.setInfo("render time range to new track","render time range on new track", "Song Editor", 0);
             result.addDefaultKeypress(juce::KeyPress::createFromDescription("r").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::transposeClipUp :
+            result.setInfo("transpose up", "transpose selected clips up 1 key", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::upKey, juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::transposeClipDown :
+            result.setInfo("transpose Down", "transpose selected clips Down 1 key", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
+            break;  
         default:
             break;
         }
@@ -671,7 +682,8 @@ void SongEditorView::getCommandInfo (juce::CommandID commandID, juce::Applicatio
 }
 bool SongEditorView::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
 {
-    GUIHelpers::log("SongEditorView perform");
+    GUIHelpers::log("SongEditorView perform commandID: ", info.commandID);
+
     switch (info.commandID)
     { 
         //send NoteOn
@@ -698,6 +710,13 @@ bool SongEditorView::perform (const juce::ApplicationCommandTarget::InvocationIn
             break;
         case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack:
             renderSelectedTimeRangeToNewTrack();
+            break;
+        case KeyPressCommandIDs::transposeClipUp:
+            GUIHelpers::log("perform: transposeClipUp");
+            transposeSelectedClips( + 1.f);
+            break;
+        case KeyPressCommandIDs::transposeClipDown:
+            transposeSelectedClips( - 1.f);
             break;
         default:
             return false;
@@ -1148,6 +1167,20 @@ void SongEditorView::splitClipAt(int x, int y)
     if (m_hoveredClip)
     {
         te::splitClips({m_hoveredClip}, tracktion::TimePosition::fromSeconds(xtoTime(x)));
+    }
+}
+
+void SongEditorView::transposeSelectedClips(float pitchChange)
+{
+    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+        
+    for (auto c : selectedClips)
+    {
+        if (auto wac = dynamic_cast<te::WaveAudioClip*>(c))
+        {
+            auto pitch = wac->getPitchChange();
+            wac->setPitchChange(pitch + pitchChange);
+        }
     }
 }
 

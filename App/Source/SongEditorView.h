@@ -126,6 +126,8 @@ private:
     tracktion_engine::MidiClip::Ptr createNewMidiClip(double beatPos, te::Track::Ptr track);
     void splitClipAt(int x, int y);
 
+    void transposeSelectedClips(float pitchChange);
+
     std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
     struct ClipThumbNail 
     {
