@@ -75,6 +75,7 @@ enum KeyPressCommandIDs
     
     transposeClipDown,
     transposeClipUp,
+    reverseClip,
 
     debugOutputEdit 
 };

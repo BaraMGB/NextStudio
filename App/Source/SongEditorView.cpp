@@ -638,7 +638,8 @@ void SongEditorView::getAllCommands (juce::Array<juce::CommandID>& commands)
             KeyPressCommandIDs::selectAllClips,
             KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack,
             KeyPressCommandIDs::transposeClipUp,
-            KeyPressCommandIDs::transposeClipDown
+            KeyPressCommandIDs::transposeClipDown,
+            KeyPressCommandIDs::reverseClip
         };
 
     commands.addArray(ids);
@@ -675,6 +676,10 @@ void SongEditorView::getCommandInfo (juce::CommandID commandID, juce::Applicatio
             result.setInfo("transpose Down", "transpose selected clips Down 1 key", "Song Editor", 0);
             result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
             break;  
+        case KeyPressCommandIDs::reverseClip :
+            result.setInfo("Reverse wave of clip","Reverse wave of clip", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("b").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
         default:
             break;
         }
@@ -717,6 +722,9 @@ bool SongEditorView::perform (const juce::ApplicationCommandTarget::InvocationIn
             break;
         case KeyPressCommandIDs::transposeClipDown:
             transposeSelectedClips( - 1.f);
+            break;
+        case KeyPressCommandIDs::reverseClip:
+            reverseSelectedClips();
             break;
         default:
             return false;
@@ -1170,6 +1178,20 @@ void SongEditorView::splitClipAt(int x, int y)
     }
 }
 
+void SongEditorView::reverseSelectedClips()
+{
+    auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+        
+    for (auto c : selectedClips)
+    {
+        if (auto wac = dynamic_cast<te::WaveAudioClip*>(c))
+        {
+            auto reversed = wac->getIsReversed();
+            wac->setIsReversed(!reversed);
+            removeThumbnail(wac);
+        }
+    }
+}
 void SongEditorView::transposeSelectedClips(float pitchChange)
 {
     auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
@@ -1392,6 +1414,19 @@ std::unique_ptr<te::SmartThumbnail>& SongEditorView::getOrCreateThumbnail (te::W
     m_thumbnails.add(std::move(clipThumbnail));
 
     return m_thumbnails.getLast()->smartThumbnail;
+}
+void SongEditorView::removeThumbnail(te::WaveAudioClip::Ptr wac)
+{
+    for (int i = m_thumbnails.size(); --i >= 0;)
+    {
+        auto& clipThumbnail = *m_thumbnails.getUnchecked(i);
+
+        if (clipThumbnail.waveAudioClip == wac)
+        {
+            m_thumbnails.remove(i);
+            return;
+        }
+    }
 }
 
 void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
