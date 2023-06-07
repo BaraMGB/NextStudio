@@ -1475,6 +1475,10 @@ void SongEditorView::removeThumbnail(te::WaveAudioClip::Ptr wac)
 
 void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
 {
+    if (!getLocalBounds().intersects(displayedRect))
+        return;
+
+
     double x1beats = m_editViewState.timeToBeat(etr.getStart().inSeconds());
     double x2beats = m_editViewState.timeToBeat(etr.getEnd().inSeconds());
 
