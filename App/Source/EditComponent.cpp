@@ -341,7 +341,7 @@ void EditComponent::handleAsyncUpdate()
     }
     if (compareAndReset(m_updateSongEditor))
     {
-        m_songEditor.repaint();
+        m_songEditor.updateTrackHeights(m_editViewState);
         m_songEditor.repaint();
         resized();
     }
@@ -431,7 +431,7 @@ int EditComponent::getSongHeight()
     auto h = 0;
         
     for (auto t : m_songEditor.getShowedTracks())
-        h += GUIHelpers::getTrackHeight(t, m_editViewState);
+        h += m_songEditor.getTrackHeight(t, m_editViewState);
         
     return h;
 }

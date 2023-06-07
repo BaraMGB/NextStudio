@@ -1510,51 +1510,6 @@ bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
 {
     return ap.getCurve().getNumPoints() > 0;
 }
-int GUIHelpers::getTrackHeight(
-    tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
-{
-    if (track == nullptr)
-        return 0;
-
-    auto& trackState = track->state;
-
-    bool isMinimized = trackState.getProperty(IDs::isTrackMinimized, false);
-    auto trackHeight = isMinimized || track->isFolderTrack()
-        ? evs.m_trackHeightMinimized
-        : static_cast<int>(trackState.getProperty(tracktion_engine::IDs::height, 50));
-
-    if (!isMinimized && withAutomation)
-    {
-        int automationHeight = 0;
-
-        for (auto apEditItems : track->getAllAutomatableEditItems())
-        {
-            for (auto ap : apEditItems->getAutomatableParameters())
-            {
-                if (isAutomationVisible(*ap))
-                {
-                    auto& curveState = ap->getCurve().state;
-                    automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
-                }
-            }
-        }
-
-        trackHeight += automationHeight;
-    }
-
-    auto it = track;
-    while (it->isPartOfSubmix())
-    {
-        it = it->getParentFolderTrack();
-        if (it->state.getProperty(IDs::isTrackMinimized, false))
-        {
-            trackHeight = 0;
-            break;
-        }
-    }
-
-    return trackHeight;
-}
     
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
 {

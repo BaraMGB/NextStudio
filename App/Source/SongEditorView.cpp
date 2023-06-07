@@ -43,7 +43,7 @@ void SongEditorView::paint(juce::Graphics& g)
                 auto x = 0;
                 auto y = getYForTrack(t);
                 auto w = getWidth();
-                auto h = GUIHelpers::getTrackHeight(t, m_editViewState, false);
+                auto h = getTrackHeight(t, m_editViewState, false);
 
                 drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorVisibleTimeRange());
 
@@ -92,7 +92,7 @@ void SongEditorView::paint(juce::Graphics& g)
             auto x = timeToX(m_selectedRange.getStart().inSeconds()); 
             auto y = getYForTrack(track);
             auto w = timeToX(m_selectedRange.getEnd().inSeconds()) - x;
-            auto h = GUIHelpers::getTrackHeight(track, m_editViewState, false);
+            auto h = getTrackHeight(track, m_editViewState, false);
                 
             x = x + timeToX(m_draggedTimeDelta) + scroll;
 
@@ -125,7 +125,7 @@ void SongEditorView::paint(juce::Graphics& g)
     if (m_hoveredTimeRangeLeft)
     {
         auto x = timeToX(m_selectedRange.getStart().inSeconds()); 
-        auto y = getYForTrack(m_selectedRange.selectedTracks.getLast()) + GUIHelpers::getTrackHeight(m_selectedRange.selectedTracks.getLast(), m_editViewState, true);
+        auto y = getYForTrack(m_selectedRange.selectedTracks.getLast()) + getTrackHeight(m_selectedRange.selectedTracks.getLast(), m_editViewState, true);
         g.setColour(yellowgreen);
         g.drawVerticalLine(x, 0, y);
     }
@@ -133,7 +133,7 @@ void SongEditorView::paint(juce::Graphics& g)
     if (m_hoveredTimeRangeRight)
     {
         auto x = timeToX(m_selectedRange.getEnd().inSeconds()); 
-        auto y = getYForTrack(m_selectedRange.selectedTracks.getLast()) + GUIHelpers::getTrackHeight(m_selectedRange.selectedTracks.getLast(), m_editViewState, true);
+        auto y = getYForTrack(m_selectedRange.selectedTracks.getLast()) + getTrackHeight(m_selectedRange.selectedTracks.getLast(), m_editViewState, true);
         g.setColour(yellowgreen);
         g.drawVerticalLine(x, 0, y);
     }
@@ -147,7 +147,7 @@ void SongEditorView::paint(juce::Graphics& g)
                 juce::Rectangle<int> targetRect = {clipRect.getX() + timeToX(m_draggedTimeDelta) + scroll,
                                                        getYForTrack(targetTrack),
                                                        clipRect.getWidth(),
-                                                        GUIHelpers::getTrackHeight(targetTrack, m_editViewState, false)};
+                                                        getTrackHeight(targetTrack, m_editViewState, false)};
                
                 if (m_leftBorderHovered)
                 {
@@ -156,13 +156,13 @@ void SongEditorView::paint(juce::Graphics& g)
                     auto deltaX =  timeToX(timeDelta) + scroll;
 
                     targetRect = {clipRect.getX() + deltaX, getYForTrack(targetTrack),
-                                  clipRect.getWidth() - deltaX, GUIHelpers::getTrackHeight(targetTrack, m_editViewState, false)};
+                                  clipRect.getWidth() - deltaX, getTrackHeight(targetTrack, m_editViewState, false)};
 
                 }
                 else if (m_rightBorderHovered)
                 {
                     targetRect = {clipRect.getX(), getYForTrack(targetTrack),
-                                  clipRect.getWidth() + timeToX(m_draggedTimeDelta) + scroll, GUIHelpers::getTrackHeight(targetTrack, m_editViewState, false)};
+                                  clipRect.getWidth() + timeToX(m_draggedTimeDelta) + scroll, getTrackHeight(targetTrack, m_editViewState, false)};
 
                 }
 
@@ -171,7 +171,7 @@ void SongEditorView::paint(juce::Graphics& g)
 
                 if (EngineHelpers::trackWantsClip(selectedClip, targetTrack))
                 {
-                    juce::Rectangle<int> trackRect = {0, getYForTrack(targetTrack), getWidth(), GUIHelpers::getTrackHeight(targetTrack,m_editViewState, false)};
+                    juce::Rectangle<int> trackRect = {0, getYForTrack(targetTrack), getWidth(), getTrackHeight(targetTrack,m_editViewState, false)};
                     drawClip(g, targetRect, selectedClip, targetTrack->getColour().withAlpha(0.1f), trackRect, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
                 }
                 else
@@ -750,7 +750,7 @@ te::Track::Ptr SongEditorView::getTrackAt(int y)
     for (auto t : getShowedTracks())
     {
         auto s = getYForTrack(t);
-        auto e = s + GUIHelpers::getTrackHeight(t, m_editViewState);
+        auto e = s + getTrackHeight(t, m_editViewState);
         auto vRange = juce::Range<int> (s, e);
         if (vRange.contains(y))
             return t;
@@ -767,7 +767,7 @@ int SongEditorView::getYForTrack (te::Track* track)
         if (t.get() == track)
             return scrollY;
         
-        scrollY += GUIHelpers::getTrackHeight(t, m_editViewState);
+        scrollY += getTrackHeight(t, m_editViewState);
     }
 
     return getHeight();
@@ -781,7 +781,7 @@ te::AutomatableParameter::Ptr SongEditorView::getAutomatableParamAt(int y)
     {
         if (t->isAudioTrack() || t->isFolderTrack())
         {
-            int trackHeight = GUIHelpers::getTrackHeight(t, m_editViewState, false);
+            int trackHeight = getTrackHeight(t, m_editViewState, false);
 
             if (!t->state.getProperty(IDs::isTrackMinimized) && trackHeight > 0)
             {
@@ -813,7 +813,7 @@ int SongEditorView::getYForAutomatableParam(te::AutomatableParameter::Ptr ap)
     double scrollY = m_editViewState.m_viewY;
     for (auto t : getShowedTracks())
     {
-        auto trackHeight = GUIHelpers::getTrackHeight(t, m_editViewState, false); 
+        auto trackHeight = getTrackHeight(t, m_editViewState, false); 
         scrollY += trackHeight;
 
         bool isMinimized = (bool) t->state.getProperty(IDs::isTrackMinimized);
@@ -849,7 +849,7 @@ int SongEditorView::getHeightOfAutomation (te::AutomatableParameter::Ptr ap)
 {
     if (ap->getTrack() == nullptr)
         return 0;
-    if (GUIHelpers::getTrackHeight(ap->getTrack(), m_editViewState) == 0 || ap->getTrack()->state.getProperty(IDs::isTrackMinimized))
+    if (getTrackHeight(ap->getTrack(), m_editViewState) == 0 || ap->getTrack()->state.getProperty(IDs::isTrackMinimized))
         return 0;
 
     return ap->getCurve().state.getProperty(te::IDs::height, static_cast<int>(m_editViewState.m_trackDefaultHeight));
@@ -1059,7 +1059,7 @@ juce::Array<te::Track::Ptr> SongEditorView::getShowedTracks ()
 
     for (auto t : te::getAllTracks(m_editViewState.m_edit))
         if (EngineHelpers::isTrackShowable(t))
-            if (GUIHelpers::getTrackHeight(t, m_editViewState) > 0)
+            if (getTrackHeight(t, m_editViewState) > 0)
                 showedTracks.add(t);
 
     return showedTracks;
@@ -1259,7 +1259,7 @@ void SongEditorView::updateAutomationSelection(bool add)
 
     for (auto t : getShowedTracks())
     {
-        auto trackHeight = GUIHelpers::getTrackHeight(t, m_editViewState, false);
+        auto trackHeight = getTrackHeight(t, m_editViewState, false);
 
         if (!t->state.getProperty(IDs::isTrackMinimized) && trackHeight > 0)
         {
@@ -1317,7 +1317,7 @@ juce::Range<int> SongEditorView::getVerticalRangeOfTrack(
      tracktion_engine::Track::Ptr track, bool withAutomation) 
 {   
     auto trackY = getYForTrack(track);
-    auto trackHeight = GUIHelpers::getTrackHeight(track, m_editViewState, withAutomation);
+    auto trackHeight = getTrackHeight(track, m_editViewState, withAutomation);
 
     return {trackY , trackY + trackHeight};
 }
@@ -1517,7 +1517,7 @@ juce::Rectangle<int> SongEditorView::getClipRect (te::Clip::Ptr clip)
     int x = timeToX(clip->getPosition().getStart().inSeconds());
     int y = getYForTrack(clip->getClipTrack());
     int w = timeToX(clip->getPosition().getEnd().inSeconds()) - x;
-    int h = GUIHelpers::getTrackHeight(clip->getClipTrack(), m_editViewState, false);
+    int h = getTrackHeight(clip->getClipTrack(), m_editViewState, false);
 
     juce::Rectangle<int> clipRect = {x,y,w,h};
 
@@ -1993,6 +1993,77 @@ void SongEditorView::buildRecordingClips(te::Track::Ptr track)
             if (rc->getTrack() == track)
                 m_recordingClips.removeObject(rc, true);
     }
+}
+
+void SongEditorView::updateTrackHeights(EditViewState& evs)
+{
+    m_trackInfos.clear();
+
+    for (auto* track : te::getAllTracks(m_editViewState.m_edit))
+    {
+        if ((track != nullptr) && (EngineHelpers::isTrackShowable(track)))
+        {
+            TrackHeightInfo info;
+            info.m_track = track;
+            info.m_isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
+            info.m_height = info.m_isMinimized || track->isFolderTrack()
+                ? evs.m_trackHeightMinimized
+                : static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+
+            int automationHeight = 0;
+            if (!info.m_isMinimized)
+            {
+                for (auto apEditItems : track->getAllAutomatableEditItems())
+                {
+                    for (auto ap : apEditItems->getAutomatableParameters())
+                    {
+                        if (GUIHelpers::isAutomationVisible(*ap))
+                        {
+                            auto& curveState = ap->getCurve().state;
+                            automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
+                        }
+                    }
+                }
+            }
+
+            auto it = track;
+            while (it->isPartOfSubmix())
+            {
+                it = it->getParentFolderTrack();
+                if (it->state.getProperty(IDs::isTrackMinimized, false))
+                {
+                    info.m_height = 0;
+                    break;
+                }
+            }
+
+            info.m_automationHeight = automationHeight;
+            m_trackInfos.add(info);
+        }
+    }
+}
+
+int SongEditorView::getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
+{
+    if (track == nullptr)
+        return 0;
+
+    for (const auto& info : m_trackInfos)
+    {
+        if (info.m_track == track)
+        {
+            if (!info.m_isMinimized && withAutomation)
+            {
+                return info.m_height + info.m_automationHeight;
+            }
+            else
+            {
+                return info.m_height;
+            }
+        }
+    }
+
+    return 0; 
 }
 
 void SongEditorView::logMousePositionInfo()

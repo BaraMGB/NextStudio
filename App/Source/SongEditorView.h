@@ -56,7 +56,9 @@ public:
     juce::Array<te::Track::Ptr> getShowedTracks ();
 
     int getYForTrack (te::Track* track);
+    int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
 
+    void updateTrackHeights(EditViewState& evs);
 private:
 
     struct CurvePoint
@@ -156,6 +158,16 @@ private:
     void buildRecordingClips(te::Track::Ptr track);
 
     void renderSelectedTimeRangeToNewTrack();
+
+    struct TrackHeightInfo
+    {
+        tracktion_engine::Track* m_track;
+        int m_height;
+        int m_automationHeight;
+        bool m_isMinimized;
+    };
+
+    juce::Array<TrackHeightInfo> m_trackInfos;
 
 
 

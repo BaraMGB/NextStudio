@@ -8,8 +8,50 @@
 
 int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
 {
-        return GUIHelpers::getTrackHeight(header->getTrack(), m_editViewState, true);
+    auto track = header->getTrack();
+    if (track == nullptr)
+        return 0;
+
+    auto& trackState = track->state;
+
+    bool isMinimized = trackState.getProperty(IDs::isTrackMinimized, false);
+    auto trackHeight = isMinimized || track->isFolderTrack()
+        ? m_editViewState.m_trackHeightMinimized
+        : static_cast<int>(trackState.getProperty(tracktion_engine::IDs::height, 50));
+
+    if (!isMinimized)
+    {
+        int automationHeight = 0;
+
+        for (auto apEditItems : track->getAllAutomatableEditItems())
+        {
+            for (auto ap : apEditItems->getAutomatableParameters())
+            {
+                if (GUIHelpers::isAutomationVisible(*ap))
+                {
+                    auto& curveState = ap->getCurve().state;
+                    automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
+                }
+            }
+        }
+
+        trackHeight += automationHeight;
+    }
+
+    auto it = track;
+    while (it->isPartOfSubmix())
+    {
+        it = it->getParentFolderTrack();
+        if (it->state.getProperty(IDs::isTrackMinimized, false))
+        {
+            trackHeight = 0;
+            break;
+        }
+    }
+
+    return trackHeight;
 }
+
 void TrackListView::resized()
 {
     int y = juce::roundToInt (m_editViewState.m_viewY.get());
