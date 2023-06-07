@@ -1136,22 +1136,20 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
     if (audioFile.isValid())
     {
         std::cout << "audio file valid" << std::endl;
+        std::cout << "audio file length: " << audioFile.getLength() << std::endl;
         if (auto track = addAudioTrack(false, trackColour, evs))
         {           
             
 			removeAllClips (*track);
-            if (auto newClip = track->insertWaveClip (
-                     file.getFileNameWithoutExtension(), file,
-                      { { tracktion::TimePosition::fromSeconds(insertTime),
-                          tracktion::TimeDuration::fromSeconds (audioFile.getLength()) },
-                          {} }
-                     ,
-                     true))
-
+            te::ClipPosition pos;
+            pos.time = {tracktion::TimePosition::fromSeconds(insertTime),  tracktion::TimeDuration::fromSeconds (audioFile.getLength())};
+            auto name = file.getFileNameWithoutExtension();
+            if (auto newClip = track->insertWaveClip (name, file, pos, true))
             {
 				GUIHelpers::log("loading : " + file.getFullPathName ());
 				newClip->setAutoTempo(false);
 				newClip->setAutoPitch(false);
+                newClip->setPosition(pos);
 				return newClip;
             }
         }
@@ -1515,13 +1513,15 @@ bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
 int GUIHelpers::getTrackHeight(
     tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
 {
-    if(track == nullptr)
+    if (track == nullptr)
         return 0;
 
-    bool isMinimized = (bool) track->state.getProperty(IDs::isTrackMinimized);
+    auto& trackState = track->state;
+
+    bool isMinimized = trackState.getProperty(IDs::isTrackMinimized, false);
     auto trackHeight = isMinimized || track->isFolderTrack()
-            ? evs.m_trackHeightMinimized
-            : (int) track->state.getProperty(tracktion_engine::IDs::height, 50);
+        ? evs.m_trackHeightMinimized
+        : static_cast<int>(trackState.getProperty(tracktion_engine::IDs::height, 50));
 
     if (!isMinimized && withAutomation)
     {
@@ -1533,27 +1533,29 @@ int GUIHelpers::getTrackHeight(
             {
                 if (isAutomationVisible(*ap))
                 {
-                    automationHeight += static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
+                    auto& curveState = ap->getCurve().state;
+                    automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
                 }
             }
         }
 
         trackHeight += automationHeight;
-    }   
+    }
 
     auto it = track;
     while (it->isPartOfSubmix())
     {
         it = it->getParentFolderTrack();
-        if (it->state.getProperty((IDs::isTrackMinimized)))
+        if (it->state.getProperty(IDs::isTrackMinimized, false))
         {
             trackHeight = 0;
+            break;
         }
     }
 
     return trackHeight;
 }
-
+    
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
 {
     auto zoom = evs.m_pianoX2 - evs.m_pianoX1;

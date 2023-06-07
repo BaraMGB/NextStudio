@@ -26,6 +26,8 @@ juce_add_binary_data(Pictures SOURCES
     expandPluginPlain18.svg
     collapse.svg
     expand.svg
+    timeShiftCursor.svg
+    timeShiftCursor.png
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

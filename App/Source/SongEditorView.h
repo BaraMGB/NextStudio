@@ -128,6 +128,7 @@ private:
 
     void reverseSelectedClips();
     void transposeSelectedClips(float pitchChange);
+    void setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLegth);
 
     std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
 
@@ -155,6 +156,8 @@ private:
     void buildRecordingClips(te::Track::Ptr track);
 
     void renderSelectedTimeRangeToNewTrack();
+
+
 
     juce::OwnedArray<RecordingClipComponent>  m_recordingClips;
     //essentials

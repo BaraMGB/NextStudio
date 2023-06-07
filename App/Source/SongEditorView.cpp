@@ -364,6 +364,8 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
 
         m_clipPosAtMouseDown = m_hoveredClip->getPosition().getStart().inSeconds();
 
+        repaint();
+
         return;
     }
 
@@ -560,7 +562,18 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         {
             auto verticalOffset = getVerticalOffset(m_hoveredClip->getTrack(), e.position.toInt());
     
-            if (m_leftBorderHovered || m_rightBorderHovered)
+            if (e.mods.isCommandDown() && m_rightBorderHovered)
+            {
+                for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+                {
+                    if (auto wac = dynamic_cast<te::WaveAudioClip*>(c))
+                    {
+                        setNewTempoOfClipByNewLength(wac, c->getPosition().getLength().inSeconds() + m_draggedTimeDelta);
+                        removeThumbnail(wac);
+                    }
+                }
+            }
+            else if (m_leftBorderHovered || m_rightBorderHovered)
             {
                 EngineHelpers::resizeSelectedClips(m_leftBorderHovered, m_draggedTimeDelta, m_editViewState);
             }
@@ -976,7 +989,15 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
         }
         else if (m_rightBorderHovered)
         {
-            setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
+            if (modifierKeys.isCommandDown())
+            {
+
+                setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
+            }
+            else
+            {
+                setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
+            }
         }
         else
         {
@@ -1202,7 +1223,30 @@ void SongEditorView::transposeSelectedClips(float pitchChange)
         {
             auto pitch = wac->getPitchChange();
             wac->setPitchChange(pitch + pitchChange);
+            removeThumbnail(wac);
         }
+    }
+}
+
+void SongEditorView::setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLength)
+{
+    auto& engine = m_editViewState.m_edit.engine;
+
+    wac->setTimeStretchMode(te::TimeStretcher::soundtouchBetter);
+
+    const auto audioFileInfo = wac->getAudioFile().getInfo();
+
+    const auto loopInfo = audioFileInfo.loopInfo;
+    const auto tempo = loopInfo.getBpm (audioFileInfo);
+
+    GUIHelpers::log("file's BPM: ", tempo);
+
+    if (newLength != 0)
+    {
+        const double newSpeedRatio =  audioFileInfo.getLengthInSeconds() / newLength;
+
+        wac->setSpeedRatio(newSpeedRatio);
+        wac->setLength(tracktion::TimeDuration::fromSeconds(audioFileInfo.getLengthInSeconds()) / wac->getSpeedRatio(), true);
     }
 }
 
@@ -1526,6 +1570,7 @@ void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, 
     clipRect.reduce(1,1);
     if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
     {
+        // m_thumbnails.clear();
         if (auto& thumb = getOrCreateThumbnail(wac))
             drawWaveform(g, *wac, *thumb, color, clipRect , displayedRect, x1Beat, x2beat);
     }
