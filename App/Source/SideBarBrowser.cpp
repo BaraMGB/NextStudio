@@ -25,6 +25,7 @@ void SideBarBrowser::fileDoubleClicked(const juce::File &)
     }
     else if (audioFile.isValid ())
     {
+        m_samplePreviewComponent.stop();
         auto trackColours = m_applicationState.m_trackColours;
         auto colour = trackColours[
                 m_editViewState.m_edit.getTrackList().size()

@@ -1,6 +1,7 @@
 #include "SongEditorView.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include <ostream>
 
 
 SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr)
@@ -184,11 +185,21 @@ void SongEditorView::paint(juce::Graphics& g)
             }
         }
     }
+    if (m_dragItemRect.visible)
+    {
+        if (m_dragItemRect.valid)
+        {
+            drawClipBody(g, m_dragItemRect.name, m_dragItemRect.drawRect, false, m_dragItemRect.colour, m_dragItemRect.drawRect, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+        }
+        else
+        {
+            g.setColour(grey);
+            g.fillRect(m_dragItemRect.drawRect.reduced(1,1));
+            g.setColour(black);
+            g.drawFittedText("not allowed",m_dragItemRect.drawRect,juce::Justification::centred, 1);
+        }
+    }
 
-}
-
-void SongEditorView::paintOverChildren (juce::Graphics& g)
-{
 }
 
 void SongEditorView::resized()
@@ -745,6 +756,126 @@ bool SongEditorView::perform (const juce::ApplicationCommandTarget::InvocationIn
     return true;
 }
 
+bool SongEditorView::isInterestedInDragSource (const SourceDetails& dragSourceDetails) 
+{
+    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+        (dragSourceDetails.sourceComponent.get()))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void SongEditorView::itemDragEnter (const SourceDetails& dragSourceDetails)
+{
+    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+        (dragSourceDetails.sourceComponent.get()))
+    {
+    }
+}
+
+void SongEditorView::itemDragMove (const SourceDetails& dragSourceDetails) 
+{
+    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+        (dragSourceDetails.sourceComponent.get()))
+    {
+
+        auto pos = dragSourceDetails.localPosition;
+        bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
+        auto dropTime = isShiftDown ? xtoTime(pos.x) : getSnapedTime(xtoTime(pos.x)); 
+        auto f = fileTreeComp->getSelectedFile();
+
+        m_dragItemRect.valid = false;
+        if (auto targetTrack = getTrackAt(pos.y))
+        {
+
+            te::AudioFile audioFile (m_editViewState.m_edit.engine, f);
+            auto x = timeToX(dropTime);
+            auto y = getYForTrack(targetTrack);
+            auto w = timeToX(audioFile.getLength());
+            auto h = getTrackHeight(targetTrack, m_editViewState, false);
+            m_dragItemRect.drawRect = {x, y, w, h};
+            m_dragItemRect.name = f.getFileNameWithoutExtension();
+
+            m_dragItemRect.visible = true;
+            if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack.get()))
+            {
+                if (!at->state.getProperty(IDs::isMidiTrack))
+                {
+                    m_dragItemRect.valid = true;
+                    m_dragItemRect.colour = targetTrack->getColour();
+                }
+            }
+        }
+        else
+        {
+            auto lastTrack = getShowedTracks().getLast(); 
+            te::AudioFile audioFile (m_editViewState.m_edit.engine, f);
+            auto x = timeToX(dropTime);
+            auto y = lastTrack ? getYForTrack(lastTrack) + getTrackHeight(lastTrack, m_editViewState) : 0;
+            auto w = timeToX(audioFile.getLength());
+            auto h = static_cast<int>(m_editViewState.m_trackDefaultHeight);
+            m_dragItemRect.drawRect = {x, y, w, h};
+            m_dragItemRect.name = f.getFileNameWithoutExtension();
+            m_dragItemRect.valid = true;
+            m_dragItemRect.visible = true;
+            m_dragItemRect.colour = juce::Colours::greenyellow;
+        }
+    }
+
+    repaint();
+}
+
+void SongEditorView::itemDragExit (const SourceDetails& dragSourceDetails) 
+{
+    m_dragItemRect.visible = false;
+    repaint();
+}
+
+void SongEditorView::itemDropped (const SourceDetails& dragSourceDetails) 
+{
+    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
+        (dragSourceDetails.sourceComponent.get()))
+    {
+        auto pos = dragSourceDetails.localPosition;
+        bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
+        auto dropTime = isShiftDown ? xtoTime(pos.x) : getSnapedTime(xtoTime(pos.x)); 
+        auto f = fileTreeComp->getSelectedFile();
+
+        if (auto targetTrack = getTrackAt(pos.y))
+        {
+            if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack.get()))
+            {
+                if (!at->state.getProperty(IDs::isMidiTrack))
+                {
+                    te::AudioFile audioFile (m_editViewState.m_edit.engine, f);
+                    addWaveFileToTrack(audioFile, dropTime, at);
+                }
+            }
+        }
+        else 
+        {
+            EngineHelpers::loadAudioFileOnNewTrack(m_editViewState, f, m_editViewState.m_applicationState.getRandomTrackColour(), dropTime);
+        }
+    }
+    m_dragItemRect.visible = false;
+    repaint();
+}
+
+void SongEditorView::addWaveFileToTrack(te::AudioFile audioFile, double dropTime, te::AudioTrack::Ptr track) const
+{
+    if (audioFile.isValid())
+    {
+        auto length = tracktion::TimeDuration::fromSeconds(audioFile.getLength());
+        auto dropPos = tracktion::TimePosition::fromSeconds(dropTime);
+        te::ClipPosition clipPos;
+        clipPos.time = {dropPos,length};
+
+        EngineHelpers::loadAudioFileToTrack(audioFile.getFile(), track, clipPos);
+    }
+}
+
 te::Track::Ptr SongEditorView::getTrackAt(int y)
 {
     for (auto t : getShowedTracks())
@@ -1067,7 +1198,6 @@ juce::Array<te::Track::Ptr> SongEditorView::getShowedTracks ()
 
 int SongEditorView::getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int>& dropPos)
 {
-
     auto targetTrack = getTrackAt(dropPos.getY());
 
 	if (targetTrack)
@@ -1083,15 +1213,7 @@ void SongEditorView::resizeSelectedClips(bool snap, bool fromLeftEdge)
 {
     EngineHelpers::resizeSelectedClips(fromLeftEdge, m_draggedTimeDelta, m_editViewState);
 }
-// void SongEditorView::addWaveFileToNewTrack(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails, double dropTime) const
-// {
-//     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
-//         (dragSourceDetails.sourceComponent.get()))
-//     {
-//         auto f = fileTreeComp->getSelectedFile();
-//         EngineHelpers::loadAudioFileOnNewTrack(m_editViewState, f, juce::Colour(0xffff33cc), dropTime);
-//     }
-// }
+
 
 tracktion_engine::MidiClip::Ptr SongEditorView::createNewMidiClip(double beatPos, te::Track::Ptr track)
 {
@@ -1528,7 +1650,7 @@ juce::Rectangle<int> SongEditorView::getClipRect (te::Clip::Ptr clip)
     return clipRect;
 }
 
-void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+void SongEditorView::drawClipBody(juce::Graphics& g, juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
 {
     auto area = clipRect;
     if (clipRect.getX() < displayedRect.getX())
@@ -1538,7 +1660,6 @@ void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, 
 
     auto& evs = m_editViewState;
     auto header = area.withHeight(evs.m_clipHeaderHeight);
-    auto isSelected = evs.m_selectionManager.isSelected (clip);
 
     auto clipColor = color;
     auto innerGlow = clipColor.brighter(0.5f);
@@ -1568,10 +1689,19 @@ void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, 
     g.setColour(labelTextColor);
     juce::Font labelFont (14.0f, juce::Font::bold);
     g.setFont(labelFont);
-    g.drawText(clip->getName(), header.reduced(4, 0), juce::Justification::centredLeft, false);
+    g.drawText(name, header.reduced(4, 0), juce::Justification::centredLeft, false);
+}
+void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+{
 
+    auto& evs = m_editViewState;
+    auto isSelected = evs.m_selectionManager.isSelected (clip);
+    drawClipBody(g, clip->getName(), clipRect, isSelected, color, displayedRect, x1Beat, x2beat);
+
+    auto header = clipRect.withHeight(evs.m_clipHeaderHeight);
     clipRect.removeFromTop(header.getHeight());
     clipRect.reduce(1,1);
+
     if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
     {
         // m_thumbnails.clear();

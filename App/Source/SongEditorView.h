@@ -21,14 +21,13 @@ struct SelectableAutomationPoint  : public te::Selectable
 class SongEditorView : public juce::Component
                      , public juce::ApplicationCommandTarget
                      , public juce::ChangeListener
+                     , public juce::DragAndDropTarget
 {
 public:
     SongEditorView(EditViewState& evs, LowerRangeComponent& lr);
     ~SongEditorView() override;
 
   	void paint(juce::Graphics& g) override;
-  	void paintOverChildren (juce::Graphics& g) override;
-
     void resized() override;
 
     void mouseMove (const juce::MouseEvent &) override;
@@ -44,6 +43,13 @@ public:
     void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
     
     bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
+
+    bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override;
+    void itemDragEnter (const SourceDetails& dragSourceDetails) override;
+    void itemDragMove (const SourceDetails& dragSourceDetails) override;
+    void itemDragExit (const SourceDetails& dragSourceDetails) override;
+    void itemDropped (const SourceDetails& dragSourceDetails) override;
+    bool shouldDrawDragImageWhenOver() override {return false;};
 
     void startLasso(const juce::MouseEvent& e, bool fromAutomation, bool selectRange);
     void updateLasso(const juce::MouseEvent& e);
@@ -123,7 +129,7 @@ private:
 
     void moveSelectedClips(bool copy, double delta, int verticalOffset);  
     void constrainClipInRange(te::Clip* c, tracktion::TimeRange r);
-    // void addWaveFileToNewTrack(const SourceDetails &dragSourceDetails, double dropTime) const;
+    void addWaveFileToTrack(te::AudioFile audioFile, double dropTime, te::AudioTrack::Ptr track) const;
     void resizeSelectedClips(bool snap, bool fromLeftEdge=false);
     tracktion_engine::MidiClip::Ptr createNewMidiClip(double beatPos, te::Track::Ptr track);
     void splitClipAt(int x, int y);
@@ -147,6 +153,8 @@ private:
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
 
     void drawTrack(juce::Graphics& g, juce::Rectangle<int> rect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging=false);
+
+    void drawClipBody(juce::Graphics& g, juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
     void drawClip(juce::Graphics& g, juce::Rectangle<int> rect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
     void drawAudioClip(juce::Graphics& g, juce::Rectangle<int> rect, te::WaveAudioClip::Ptr audioClip, juce::Colour color, double x1Beat, double x2beat);
     void drawWaveform(juce::Graphics& g, te::AudioClipBase& c, te::SmartThumbnail& thumb, juce::Colour colour, juce::Rectangle<int>, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
@@ -169,7 +177,14 @@ private:
 
     juce::Array<TrackHeightInfo> m_trackInfos;
 
-
+    struct DragFileItemInfo
+    {
+        bool visible{false};
+        juce::String name;
+        juce::Rectangle<int> drawRect;
+        juce::Colour colour;
+        bool valid{false};
+    };
 
     juce::OwnedArray<RecordingClipComponent>  m_recordingClips;
     //essentials
@@ -208,6 +223,8 @@ private:
     te::Clip::Ptr                       m_draggedClip;
     double                              m_draggedTimeDelta{0.0};
     int                                 m_draggedVerticalOffset{0};
+
+    DragFileItemInfo                    m_dragItemRect;
 
     te::Track::Ptr                      m_hoveredTrack {nullptr};
     te::AutomatableParameter::Ptr       m_hoveredAutamatableParam{nullptr};

@@ -72,6 +72,15 @@ public:
             ptp.setCurrentPosition (0.0);
         }
     }
+    
+    void stop()
+    {
+        if (m_previewEdit)
+        {   
+            m_previewEdit->getTransport().stop(true, true);
+        }   
+    }
+
     void setFile(const juce::File& file)
     {
         if (!file.isDirectory ())
@@ -731,14 +740,6 @@ public:
           }
           m_samplePreviewComponent.setBounds (samplePreviewBounds);
       }
-      void mouseDrag(const juce::MouseEvent& /*event*/) override
-      {
-          auto dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
-          if (!dragC->isDragAndDropActive())
-          {
-              dragC->startDragging("Test", this);
-          }
-      }
 
       void changeListenerCallback (juce::ChangeBroadcaster *source) override
       {
@@ -808,8 +809,6 @@ public:
           else
           {
               m_DirTreeViewBox.setDragAndDropDescription(file.getFileName());
-              // play sample
-              previewSampleFile(file);
           }
       }
       void fileDoubleClicked(const juce::File&) override;

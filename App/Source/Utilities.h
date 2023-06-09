@@ -312,6 +312,11 @@ namespace EngineHelpers
           , juce::Colour trackColour
           , double insertTime = 0.0);
 
+    te::WaveAudioClip::Ptr loadAudioFileToTrack(
+            const juce::File& file
+          , te::AudioTrack::Ptr track
+          , te::ClipPosition pos);
+
     void refreshRelativePathsToNewEditFile(EditViewState & evs
                                        , const juce::File& newFile);
 

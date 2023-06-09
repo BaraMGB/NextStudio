@@ -1135,28 +1135,34 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
     te::AudioFile audioFile (evs.m_edit.engine, file);
     if (audioFile.isValid())
     {
-        std::cout << "audio file valid" << std::endl;
-        std::cout << "audio file length: " << audioFile.getLength() << std::endl;
         if (auto track = addAudioTrack(false, trackColour, evs))
         {           
-            
 			removeAllClips (*track);
             te::ClipPosition pos;
             pos.time = {tracktion::TimePosition::fromSeconds(insertTime),  tracktion::TimeDuration::fromSeconds (audioFile.getLength())};
-            auto name = file.getFileNameWithoutExtension();
-            if (auto newClip = track->insertWaveClip (name, file, pos, true))
-            {
-				GUIHelpers::log("loading : " + file.getFullPathName ());
-				newClip->setAutoTempo(false);
-				newClip->setAutoPitch(false);
-                newClip->setPosition(pos);
-				return newClip;
-            }
+            loadAudioFileToTrack(file, track, pos);
         }
     }
     return {};
 }
 
+tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileToTrack(
+        const juce::File &file
+      , te::AudioTrack::Ptr track
+      , te::ClipPosition pos)
+{
+
+    if (auto newClip = track->insertWaveClip (file.getFileNameWithoutExtension(), file, pos, true))
+    {
+        GUIHelpers::log("loading : " + file.getFullPathName ());
+        newClip->setAutoTempo(false);
+        newClip->setAutoPitch(false);
+        newClip->setPosition(pos);
+        return newClip;
+    }
+
+    return {};
+}
 void EngineHelpers::refreshRelativePathsToNewEditFile(
         EditViewState & evs, const juce::File& newFile)
 {
