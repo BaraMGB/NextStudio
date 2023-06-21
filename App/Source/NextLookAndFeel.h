@@ -20,6 +20,7 @@ public:
     NextLookAndFeel()
     {
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xff000000));
+        setColour(juce::TextButton::buttonColourId , juce::Colour(0xff474747));
     }
     void drawButtonBackground(juce::Graphics& g,
                               juce::Button& button,
@@ -27,24 +28,32 @@ public:
                               bool isMouseOverButton,
                               bool isButtonDown) override
     {
-        const juce::Rectangle<int> area = button.getLocalBounds ();
+        const juce::Rectangle<int> area = button.getLocalBounds ().reduced(1);
 
-        auto buttonColour = juce::Colour(0xff4b4b4b);
+        auto buttonColour = backgroundColour;
         if (button.isDown ())
         {
             buttonColour = buttonColour.darker (0.4f);
         }
-        g.setColour(buttonColour);
-        g.fillRoundedRectangle (area.toFloat (), 5.0f);
 
-        auto borderColour = juce::Colour(0xffcccccc);
+        auto cornerSize = 7.0f;
+        if (button.getWidth() < 35)
+            cornerSize = 4.f;
+        if (button.getWidth() < 25)
+            cornerSize = 2.f;
+
+        g.setColour(buttonColour);
+        g.fillRoundedRectangle (area.toFloat (), cornerSize);
+
+        auto borderColour = juce::Colour(0xff888888);
         if (button.isDown ())
         {
             borderColour = borderColour.darker (0.4f);
         }
         g.setColour(borderColour);
-        g.drawRoundedRectangle (area.reduced (1).toFloat (), 5.0f, 0.5f);
+        g.drawRoundedRectangle (area.toFloat (), cornerSize, 1.f);
     }
+
 
 
     void drawRotarySlider(juce::Graphics& g,
