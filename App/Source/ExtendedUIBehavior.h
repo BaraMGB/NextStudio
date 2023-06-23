@@ -2,6 +2,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "PluginWindow.h"
+#include "Thumbnail.h"
 
 namespace te = tracktion_engine;
 
@@ -41,6 +42,15 @@ public:
                 if (!juce::MessageManager::getInstance()->runDispatchLoopUntil(10))
                     break;
     }
+
+    std::unique_ptr<juce::AudioThumbnailBase> createAudioThumbnail (int sourceSamplesPerThumbnailSample,
+                                                                            juce::AudioFormatManager& formatManagerToUse,
+                                                                            juce::AudioThumbnailCache& cacheToUse) override
+    {
+        return std::make_unique<Thumbnail> (sourceSamplesPerThumbnailSample,
+                                                       formatManagerToUse, cacheToUse);
+    }
+
 
     private:
 

@@ -368,9 +368,9 @@ public:
     }
 };
 
-struct Thumbnail : public juce::Component
+struct SampleView : public juce::Component
 {
-    explicit Thumbnail (te::TransportControl& tc);
+    explicit SampleView (te::TransportControl& tc);
 
     void setFile (const te::AudioFile& file);
     void paint (juce::Graphics& g) override;

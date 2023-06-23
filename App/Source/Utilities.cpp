@@ -1343,7 +1343,7 @@ std::unique_ptr<juce::KnownPluginList::PluginTree> EngineHelpers::createPluginTr
     return {};
 }
 
-Thumbnail::Thumbnail(tracktion_engine::TransportControl &tc)
+SampleView::SampleView(tracktion_engine::TransportControl &tc)
     : transport (tc)
 {
     cursorUpdater.setCallback ([this]
@@ -1357,14 +1357,14 @@ Thumbnail::Thumbnail(tracktion_engine::TransportControl &tc)
     addAndMakeVisible (cursor);
 }
 
-void Thumbnail::setFile(const tracktion_engine::AudioFile &file)
+void SampleView::setFile(const tracktion_engine::AudioFile &file)
 {
     smartThumbnail.setNewFile (file);
     cursorUpdater.startTimerHz (25);
     repaint();
 }
 
-void Thumbnail::paint(juce::Graphics &g)
+void SampleView::paint(juce::Graphics &g)
 {
     auto r = getLocalBounds();
     const auto colour = findColour (juce::Label::textColourId);
@@ -1388,25 +1388,25 @@ void Thumbnail::paint(juce::Graphics &g)
     }
 }
 
-void Thumbnail::mouseDown(const juce::MouseEvent &e)
+void SampleView::mouseDown(const juce::MouseEvent &e)
 {
     transport.setUserDragging (true);
     mouseDrag (e);
 }
 
-void Thumbnail::mouseDrag(const juce::MouseEvent &e)
+void SampleView::mouseDrag(const juce::MouseEvent &e)
 {
     jassert (getWidth() > 0);
     const float proportion = (float) e.position.x / (float) getWidth();
     transport.position = tracktion::TimePosition::fromSeconds(transport.getLoopRange().getLength().inSeconds()* proportion);
 }
 
-void Thumbnail::mouseUp(const juce::MouseEvent &)
+void SampleView::mouseUp(const juce::MouseEvent &)
 {
     transport.setUserDragging (false);
 }
 
-void Thumbnail::updateCursorPosition()
+void SampleView::updateCursorPosition()
 {
     const double loopLength = transport.getLoopRange().getLength().inSeconds();
     const double proportion = loopLength == 0.0 ? 0.0 : transport.getCurrentPosition() / loopLength;

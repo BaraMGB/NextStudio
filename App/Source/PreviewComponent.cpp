@@ -217,7 +217,7 @@ void SamplePreviewComponent::setFile(const juce::File& file)
     m_volumeSlider->setValue (m_previewEdit->getMasterVolumePlugin ()->volume);
 
     addAndMakeVisible (*m_volumeSlider);
-    m_thumbnail = std::make_unique<Thumbnail>(m_previewEdit->getTransport ());
+    m_thumbnail = std::make_unique<SampleView>(m_previewEdit->getTransport ());
     m_thumbnail->setFile (audioFile);
     addAndMakeVisible (*m_thumbnail);
     resized ();

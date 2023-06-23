@@ -34,7 +34,7 @@ private:
     std::unique_ptr<juce::Slider> m_volumeSlider;
     juce::DrawableButton m_playBtn, m_stopBtn, m_syncTempoBtn;
     juce::Label m_fileName;
-    std::unique_ptr<Thumbnail>    m_thumbnail;
+    std::unique_ptr<SampleView>    m_thumbnail;
     bool m_syncTempo {false};
     juce::File m_file;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplePreviewComponent)

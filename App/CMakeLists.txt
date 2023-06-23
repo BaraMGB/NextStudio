@@ -79,6 +79,7 @@ target_sources(${TargetName} PRIVATE
         Source/TrackListView.cpp
         Source/SongEditorView.cpp
         Source/Utilities.cpp
+        Source/Thumbnail.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
