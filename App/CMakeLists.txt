@@ -65,6 +65,7 @@ target_sources(${TargetName} PRIVATE
         Source/RackView.cpp
         Source/PianoRollEditor.cpp
         Source/PlayHeadComponent.cpp
+        Source/PreviewComponent.cpp
         Source/PositionDisplayComponent.cpp
         Source/LowerRangeComponent.cpp
         Source/TrackHeadComponent.cpp

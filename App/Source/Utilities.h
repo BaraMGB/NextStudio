@@ -140,27 +140,16 @@ namespace GUIHelpers
       , bool bottomLeft
       , bool bottomRight);
 
-    void changeColor(
-          juce::XmlElement& xml
-        , const juce::String& inputColour
-        , const juce::String& color_hex);
-
     void drawFromSvg(
             juce::Graphics &g
           , const char* svgbinary
-          ,const juce::String& col_hex
+          , juce::Colour newColour
           ,juce::Rectangle<float> drawRect);
 
     void setDrawableOnButton(
             juce::DrawableButton& button
           , const char* svgbinary
-          ,const juce::String& col_hex);
-
-    juce::Image getImageFromSvg(
-            const char* svgbinary
-          , const juce::String& col_hex
-          , int w
-          , int h);
+          , juce::Colour colour);
 
     void saveEdit(
             EditViewState& evs
@@ -171,6 +160,7 @@ namespace GUIHelpers
           , double x1beats
           , double x2beats
           , juce::Rectangle<int> boundingRect, bool printDescription=false);
+    
     void moveView(EditViewState& evs, double newBeatPos);
     void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c);
 

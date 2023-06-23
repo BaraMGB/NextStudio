@@ -53,7 +53,7 @@ private:
     juce::ApplicationCommandManager & m_commandManager;
     PositionDisplayComponent m_display;
 
-    juce::String m_btn_col { "#dbdbdb" };
+    juce::Colour m_btn_col {0xffdbdbdb};
 
     juce::File m_loadingFile {};
 

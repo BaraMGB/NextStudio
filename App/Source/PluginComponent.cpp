@@ -61,7 +61,7 @@ void RackItemView::paint (juce::Graphics& g)
 
     name.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
-    GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,"#" + labelingCol.toString().substring(2));
+    GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,labelingCol);
     auto header = area.removeFromLeft(m_headerWidth);
     g.setColour(trackCol);
     GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);

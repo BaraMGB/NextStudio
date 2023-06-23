@@ -44,15 +44,15 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
 
 
     GUIHelpers::setDrawableOnButton(m_addAudioTrackBtn, BinaryData::wavetest5_svg,
-                                  "#ffffff");
+                                  juce::Colour(0xffffffff));
     m_addAudioTrackBtn.addListener(this);
     m_addAudioTrackBtn.setTooltip(GUIHelpers::translate("Add audio track",m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_addMidiTrackBtn, BinaryData::piano5_svg, "#ffffff");
+    GUIHelpers::setDrawableOnButton(m_addMidiTrackBtn, BinaryData::piano5_svg, juce::Colour(0xffffffff));
     m_addMidiTrackBtn.addListener(this);
     m_addMidiTrackBtn.setTooltip(GUIHelpers::translate("Add MIDI track", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_addFolderTrackBtn, BinaryData::folderopen_svg, "#ffffff");
+    GUIHelpers::setDrawableOnButton(m_addFolderTrackBtn, BinaryData::folderopen_svg, juce::Colour(0xffffffff));
     m_addFolderTrackBtn.addListener(this);
     m_addFolderTrackBtn.setTooltip(GUIHelpers::translate("Add folder track", m_editViewState.m_applicationState));
 
@@ -60,14 +60,14 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     m_trackListToolsMenu.addButton(&m_addMidiTrackBtn);
     m_trackListToolsMenu.addButton(&m_addFolderTrackBtn);
 
-    GUIHelpers::setDrawableOnButton(m_expandAllBtn, BinaryData::expand_svg, "#ffffff");
+    GUIHelpers::setDrawableOnButton(m_expandAllBtn, BinaryData::expand_svg, juce::Colour(0xffffffff));
     m_expandAllBtn.addListener(this);
     m_expandAllBtn.setTooltip(GUIHelpers::translate("Expand all tracks", m_editViewState.m_applicationState));
     
     m_trackListControlMenu.addButton(&m_expandAllBtn);
     m_trackListControlMenu.addButton(&m_collapseAllBtn);
     
-    GUIHelpers::setDrawableOnButton(m_collapseAllBtn, BinaryData::collapse_svg, "#ffffff");
+    GUIHelpers::setDrawableOnButton(m_collapseAllBtn, BinaryData::collapse_svg, juce::Colour(0xffffffff));
     m_collapseAllBtn.addListener(this);
     m_collapseAllBtn.setTooltip(GUIHelpers::translate("Collapse all tracks", m_editViewState.m_applicationState));
 

@@ -256,14 +256,14 @@ public:
 
            GUIHelpers::drawFromSvg (graph,
                                     BinaryData::folder_svg,
-                                    "#bbbbbb",
+                                    juce::Colour(0xffbbbbbb),
                                     rect);
         }
         else if (filename.endsWith (".wav"))
         {
             GUIHelpers::drawFromSvg (graph,
                                      BinaryData::filemusic_svg,
-                                     "#bbbbbb",
+                                     juce::Colour(0xffbbbbbb),
                                      rect);
         }
 
@@ -271,7 +271,7 @@ public:
         {
             GUIHelpers::drawFromSvg (graph,
                                      BinaryData::file_svg,
-                                     "#bbbbbb",
+                                     juce::Colour(0xffbbbbbb),
                                      rect);
         }
         icon = &iconImage;

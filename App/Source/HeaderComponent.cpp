@@ -36,11 +36,11 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     GUIHelpers::setDrawableOnButton(m_settingsButton, BinaryData::headphonessettings_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_pluginsButton, BinaryData::powerplug_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg,
-                                    m_edit.getTransport().looping ? m_btn_col : "#666666");
+                                    m_edit.getTransport().looping ? m_btn_col : juce::Colour(0xff666666));
     GUIHelpers::setDrawableOnButton(m_clickButton, BinaryData::metronome_svg,
-                                    m_edit.clickTrackEnabled ? m_btn_col : "#666666");
+                                    m_edit.clickTrackEnabled ? m_btn_col : juce::Colour(0xff666666));
     GUIHelpers::setDrawableOnButton(m_followPlayheadButton, BinaryData::follow_svg,
-                                    m_editViewState.viewFollowsPos() ? m_btn_col : "#666666");
+                                    m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
     m_newButton.addListener(this);
     m_loadButton.addListener(this);
     m_saveButton.addListener(this);
@@ -204,7 +204,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         GUIHelpers::setDrawableOnButton(m_clickButton,
                                         BinaryData::metronome_svg,
                                         m_edit.clickTrackEnabled ? m_btn_col
-                                                                 : "#666666");
+                                                                 : juce::Colour(0xff666666));
     }
 
     if (button == &m_followPlayheadButton)
@@ -213,7 +213,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         GUIHelpers::setDrawableOnButton(
             m_followPlayheadButton,
             BinaryData::follow_svg,
-            m_editViewState.viewFollowsPos() ? m_btn_col : "#666666");
+            m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
     }
 
     if (button == &m_saveButton)
@@ -238,7 +238,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
                                         "Please choose some kind of file that you want to load...",
                                         browser,
                                         true,
-                                        juce::Colour::fromString(m_btn_col));
+                                        m_btn_col);
 
         if (dialogBox.show())
         {
@@ -270,7 +270,7 @@ void HeaderComponent::loopButtonClicked()
     GUIHelpers::setDrawableOnButton(m_loopButton,
                                             BinaryData::cached_svg,
                                     m_edit.getTransport().looping ? m_btn_col
-                                                                  : "#666666");
+                                                                  : juce::Colour(0xff666666));
 }
 
 void HeaderComponent::timerCallback()

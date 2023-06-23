@@ -45,7 +45,7 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
     area.removeFromLeft (10);
     GUIHelpers::drawFromSvg (g
                              , BinaryData::automation_svg
-                             , "#ffffff"
+                             , juce::Colour(0xffffffff) 
                              , area.removeFromLeft (20).toFloat ());
     area.removeFromLeft (5);
 
@@ -521,7 +521,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                   , (bool) m_track->state.getProperty (IDs::isTrackMinimized)
                         ? BinaryData::arrowright18_svg
                         : BinaryData::arrowdown18_svg
-                  , "#000000"
+                  , juce::Colour(0xff000000)
                   , {1, 6, 18, 18});
 
         g.setColour (juce::Colours::black);
@@ -560,7 +560,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         if (m_track->state.getProperty(IDs::isMidiTrack))
             icon = BinaryData::piano5_svg;
 
-        GUIHelpers::drawFromSvg (g, icon, "#ffffff", {20, 6, 18, 18});
+        GUIHelpers::drawFromSvg (g, icon, juce::Colour(0xffffffff), {20, 6, 18, 18});
 
         if (m_contentIsOver)
         {

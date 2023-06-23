@@ -47,52 +47,21 @@ void GUIHelpers::drawRoundedRectWithSide(
    
 }
 
-void GUIHelpers::changeColor(
-        juce::XmlElement &xml
-      , const juce::String& inputColour
-      , const juce::String& color_hex)
-{
-    forEachXmlChildElement(xml, xmlnode)
-    {
-        if (xmlnode->hasAttribute ("fill"))
-        {
-            if (xmlnode->getStringAttribute ("fill") == inputColour)
-            {
-                xmlnode->setAttribute ("fill", color_hex);
-            }
-            if (xmlnode->hasAttribute ("style"))
-            {
-               juce::String att = xmlnode->getStringAttribute ("style");
-               xmlnode->setAttribute (
-                         "style"
-                       , att.replaceFirstOccurrenceOf (inputColour, color_hex));
-            }
-        }
-        if (xmlnode->hasAttribute ("stroke"))
-        {
-            if (xmlnode->getStringAttribute ("stroke") == inputColour)
-            {
-                xmlnode->setAttribute ("stroke", color_hex);
-            }
-        }
-    }
-}
-
 void GUIHelpers::drawFromSvg(
         juce::Graphics &g
       , const char *svgbinary
-      , const juce::String& col_hex
+      , juce::Colour newColour
       , juce::Rectangle<float> drawRect)
 {
     if (auto svg = juce::XmlDocument::parse (svgbinary))
     {
         std::unique_ptr<juce::Drawable> drawable;
-        GUIHelpers::changeColor (*svg, "#626262", col_hex);
         {
             const juce::MessageManagerLock mmLock;
             drawable = juce::Drawable::createFromSVG (*svg);
             drawable->setTransformToFit (drawRect
                                          , juce::RectanglePlacement::centred);
+            drawable->replaceColour(juce::Colour(0xff626262), newColour);
             drawable->draw (g, 1.f);
         }
     }
@@ -101,35 +70,18 @@ void GUIHelpers::drawFromSvg(
 void GUIHelpers::setDrawableOnButton(
         juce::DrawableButton &button
       , const char *svgbinary
-      , const juce::String& col_hex)
+      , juce::Colour colour)
 {
     if (auto svg = juce::XmlDocument::parse (svgbinary))
     {
         std::unique_ptr<juce::Drawable> drawable;
-        GUIHelpers::changeColor (*svg, "#626262", col_hex);
         {
             const juce::MessageManagerLock mmLock;
             drawable = juce::Drawable::createFromSVG (*svg);
         }
+        drawable->replaceColour(juce::Colour(0xff626262), colour);
         button.setImages (drawable.get ());
     }
-}
-
-juce::Image GUIHelpers::getImageFromSvg(
-        const char *svgbinary
-      , const juce::String& col_hex
-      , int w
-      , int h)
-{
-    juce::Image image (juce::Image::RGB, w, h, true);
-    juce::Graphics g (image);
-    drawFromSvg (
-                g
-              , svgbinary
-              , col_hex
-              , { 0.0, 0.0
-                , (float) w, (float) h });
-    return image;
 }
 
 void GUIHelpers::saveEdit(
