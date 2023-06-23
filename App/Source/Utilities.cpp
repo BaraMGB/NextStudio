@@ -460,16 +460,7 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, 
     for (auto i = 0; i < te::getAllTracks(evs.m_edit).size(); ++i)
         tracksToDo.setBit(i);
 
-    auto result = te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
-
-    if (result)
-    {
-        juce::Logger::writeToLog("Rendering started successfully.");
-    }
-    else
-    {
-        juce::Logger::writeToLog("Error: Failed to start rendering.");
-    }
+    te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 }
 
 void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)    

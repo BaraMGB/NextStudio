@@ -18,6 +18,7 @@
 #include "ApplicationViewState.h"
 #include "EditComponent.h"
 #include "Utilities.h"
+#include "ExtendedUIBehavior.h"
 #include "PluginWindow.h"
 
 namespace te = tracktion_engine;
