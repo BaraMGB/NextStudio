@@ -186,14 +186,14 @@ void SamplePreviewComponent::rewind()
     }
 }
  
-void SamplePreviewComponent::setFile(const juce::File& file)
+bool SamplePreviewComponent::setFile(const juce::File& file)
 {
     if (file.isDirectory ())
-        return;
+        return false;
 
     te::AudioFile audioFile (m_currentEdit.engine, file);
     if (!audioFile.isValid())
-        return;
+        return false;
 
     float oldVolume = -1;
     if (m_previewEdit)
@@ -221,6 +221,8 @@ void SamplePreviewComponent::setFile(const juce::File& file)
     m_thumbnail->setFile (audioFile);
     addAndMakeVisible (*m_thumbnail);
     resized ();
+
+    return true;
 }
 void SamplePreviewComponent::updateButtonColours()
 {

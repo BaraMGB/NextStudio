@@ -197,9 +197,11 @@ public:
 
       inline void previewSampleFile(const juce::File& file)
       {
-          m_samplePreviewComponent.setFile (file);
-          m_samplePreviewComponent.rewind();
-          m_samplePreviewComponent.play();
+          if (m_samplePreviewComponent.setFile (file))
+          {
+              m_samplePreviewComponent.rewind();
+              m_samplePreviewComponent.play();
+          }
       }
 
       void changeListenerCallback(juce::ChangeBroadcaster *source) override
@@ -658,9 +660,11 @@ public:
       }
       inline void previewSampleFile(const juce::File& file)
       {
-          m_samplePreviewComponent.setFile (file);
-          m_samplePreviewComponent.rewind();
-          m_samplePreviewComponent.play();
+          if (m_samplePreviewComponent.setFile (file))
+          {
+              m_samplePreviewComponent.rewind();
+              m_samplePreviewComponent.play();
+          }
       }
 
       void fileClicked (

@@ -21,7 +21,7 @@ public:
     void stop();
     void rewind();
 
-    void setFile(const juce::File& file);
+    bool setFile(const juce::File& file);
 
 
 private:
