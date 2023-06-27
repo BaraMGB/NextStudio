@@ -1653,8 +1653,9 @@ juce::Rectangle<int> SongEditorView::getClipRect (te::Clip::Ptr clip)
 void SongEditorView::drawClipBody(juce::Graphics& g, juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
 {
     auto area = clipRect;
+    auto startOffset = displayedRect.getX() - clipRect.getX();
     if (clipRect.getX() < displayedRect.getX())
-        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
+        area.removeFromLeft(startOffset);
     if (clipRect.getRight() > displayedRect.getRight())
         area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
 
@@ -1689,11 +1690,19 @@ void SongEditorView::drawClipBody(juce::Graphics& g, juce::String name, juce::Re
     g.setColour(labelTextColor);
     juce::Font labelFont (14.0f, juce::Font::bold);
     g.setFont(labelFont);
-    g.drawText(name, header.reduced(4, 0), juce::Justification::centredLeft, false);
+
+    g.saveState();
+    g.reduceClipRegion(header.reduced(4,0));
+
+    auto textArea = header.withWidth(getWidth());
+    textArea.removeFromLeft(4);
+    textArea = textArea.withPosition(textArea.getX() - juce::jmax(0, startOffset), textArea.getY());
+    g.drawText(name, textArea, juce::Justification::centredLeft, false);
+
+    g.restoreState();
 }
 void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
 {
-
     auto& evs = m_editViewState;
     auto isSelected = evs.m_selectionManager.isSelected (clip);
     drawClipBody(g, clip->getName(), clipRect, isSelected, color, displayedRect, x1Beat, x2beat);
