@@ -253,6 +253,11 @@ public:
         return timeToBeat ( m_edit.getLength ().inSeconds()) + (480);
     }
 
+    void followsPlayhead(bool shouldFollow)
+    {
+        m_followPlayhead = shouldFollow;        
+    }
+
     void toggleFollowPlayhead()
     {
         m_followPlayhead = !m_followPlayhead;

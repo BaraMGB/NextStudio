@@ -6,7 +6,7 @@ PlayheadComponent::PlayheadComponent (te::Edit& e
                                       , juce::CachedValue<double> &x2)
     : m_edit (e), m_editViewState (evs), m_X1 (x1), m_X2 (x2)
 {
-    startTimerHz (30);
+    startTimerHz (120);
 }
 
 void PlayheadComponent::paint (juce::Graphics& g)
