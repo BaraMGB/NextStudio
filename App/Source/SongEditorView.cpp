@@ -1653,11 +1653,6 @@ juce::Rectangle<int> SongEditorView::getClipRect (te::Clip::Ptr clip)
 void SongEditorView::drawClipBody(juce::Graphics& g, juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
 {
     auto area = clipRect;
-    auto startOffset = displayedRect.getX() - clipRect.getX();
-    if (clipRect.getX() < displayedRect.getX())
-        area.removeFromLeft(startOffset);
-    if (clipRect.getRight() > displayedRect.getRight())
-        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
 
     auto& evs = m_editViewState;
     auto header = area.withHeight(evs.m_clipHeaderHeight);
@@ -1672,33 +1667,44 @@ void SongEditorView::drawClipBody(juce::Graphics& g, juce::String name, juce::Re
                         ? clipColor.withLightness(.75f)
                         : clipColor.darker(.75f);
 
+    g.saveState();
+    {
+        g.reduceClipRegion(displayedRect);
 
-    g.setColour(backgroundColor);
-    g.fillRect(area.reduced(1, 1));
+        g.setColour(backgroundColor);
+        g.fillRect(area.reduced(1, 1));
 
-    g.setColour(innerGlow);
-    g.drawRect(header);
-    g.drawRect(area);
-    g.setColour(clipColor);
-    if (isSelected)
-        g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
+        g.setColour(innerGlow);
+        g.drawRect(header);
+        g.drawRect(area);
+        g.setColour(clipColor);
+        if (isSelected)
+            g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
 
-    g.fillRect(header.reduced(2,2));
-
-    if (isSelected)
-        labelTextColor = juce::Colours::black;
-    g.setColour(labelTextColor);
-    juce::Font labelFont (14.0f, juce::Font::bold);
-    g.setFont(labelFont);
+        g.fillRect(header.reduced(2,2));
+    }
+    g.restoreState();
 
     g.saveState();
-    g.reduceClipRegion(header.reduced(4,0));
+    {
+        header = header.reduced(4,0);
 
-    auto textArea = header.withWidth(getWidth());
-    textArea.removeFromLeft(4);
-    textArea = textArea.withPosition(textArea.getX() - juce::jmax(0, startOffset), textArea.getY());
-    g.drawText(name, textArea, juce::Justification::centredLeft, false);
+        auto startOffset = displayedRect.getX() - header.getX();
+        auto clipedHeader = header.withLeft(header.getX() + juce::jmax(0, startOffset));
+        auto endOffset = clipedHeader.getRight() - displayedRect.getRight();
+        clipedHeader = clipedHeader.withRight(clipedHeader.getRight() - juce::jmax(0, endOffset));
+        g.reduceClipRegion(clipedHeader);
 
+        if (isSelected)
+            labelTextColor = juce::Colours::black;
+        g.setColour(labelTextColor);
+        juce::Font labelFont (14.0f, juce::Font::bold);
+        g.setFont(labelFont);
+
+        auto textArea = header.withWidth(getWidth());
+        textArea.removeFromLeft(4);
+        g.drawText(name, textArea, juce::Justification::centredLeft, false);
+    }
     g.restoreState();
 }
 void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
