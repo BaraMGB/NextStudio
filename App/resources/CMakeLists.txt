@@ -27,7 +27,10 @@ juce_add_binary_data(Pictures SOURCES
     collapse.svg
     expand.svg
     timeShiftCursor.svg
-    timeShiftCursor.png
+    curveSteepnessCursor.svg
+    shiftCursorLeftEdge.svg
+    shiftCursorRightEdge.svg
+    timeShiftCursorRightEdge.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

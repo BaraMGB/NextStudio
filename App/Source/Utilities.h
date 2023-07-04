@@ -103,6 +103,19 @@ namespace Helpers
 
 namespace GUIHelpers
 {
+    enum class CustomMouseCursor
+{
+    ShiftLeft,
+    ShiftRight,
+    TimeShiftRight,
+    CurveSteepnes
+};
+
+    float getScale(const juce::Component& c);
+    juce::MouseCursor createCustomMouseCursor(CustomMouseCursor cursorType, const juce::Component& c);
+    juce::MouseCursor getMouseCursorFromPng(const char* png, const int size, juce::Point<int> hotPoint);
+    
+    juce::MouseCursor getMouseCursorFromSvg(const char* svgbinary, juce::Point<int> hitPoint, float scale=1.f);
     bool isAutomationVisible(const te::AutomatableParameter& ap);
 
     float getZoomScaleFactor(int delta, float unitDistance);
@@ -151,6 +164,16 @@ namespace GUIHelpers
           , const char* svgbinary
           , juce::Colour colour);
 
+    std::unique_ptr<juce::Drawable> getDrawableFromSvg(
+        const char* svgbinary,
+        juce::Colour colour,
+        int width = -1,
+        int height =-1
+);
+    juce::Image drawableToImage(
+            const juce::Drawable& drawable
+          , int targetWidth
+          , int targetHeight);
     void saveEdit(
             EditViewState& evs
           , const juce::File& workDir);

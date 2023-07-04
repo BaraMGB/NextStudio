@@ -1,4 +1,5 @@
 #include "SongEditorView.h"
+#include "BinaryData.h"
 #include "EditViewState.h"
 #include "Utilities.h"
 #include <ostream>
@@ -58,6 +59,16 @@ void SongEditorView::paint(juce::Graphics& g)
                 }
             }
         }
+        else if (t->isFolderTrack())
+        {
+            auto x = 0;
+            auto y = getYForTrack(t);
+            auto w = getWidth();
+            auto h = getTrackHeight(t, m_editViewState, false);
+
+            GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, m_editViewState.m_viewX1, m_editViewState.m_viewX2, {x,y,w,h});
+        }
+        
 
         for (auto& ap : t->getAllAutomatableParams())
         {
@@ -1109,6 +1120,11 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
 
 void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
 {
+    auto timeRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::TimeShiftRight, *this);
+    auto shiftRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, *this);
+    auto shiftLeftcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, *this);
+    auto curveSteepnesCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::CurveSteepnes, *this);
+
     if (m_hoveredTrack && m_hoveredTrack->isFolderTrack() && !m_hoveredTimeRange)
     {
     }
@@ -1116,18 +1132,18 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
     {
         if (m_leftBorderHovered)
         {
-            setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
+            setMouseCursor(shiftLeftcursor);
         }
         else if (m_rightBorderHovered)
         {
             if (modifierKeys.isCommandDown())
             {
 
-                setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
+                setMouseCursor(timeRightcursor);
             }
             else
             {
-                setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
+                setMouseCursor(shiftRightcursor);
             }
         }
         else
@@ -1151,7 +1167,7 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
         }
         else if (m_hoveredCurve != -1 && modifierKeys.isCtrlDown())
         {
-            setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+            setMouseCursor(curveSteepnesCursor);
             m_isDragging = true;
         }
         else if (m_hoveredCurve != -1)

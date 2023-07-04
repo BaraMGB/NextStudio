@@ -1,4 +1,5 @@
 #include "Utilities.h"
+#include "BinaryData.h"
 #include "EditViewState.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
 #include "tracktion_core/utilities/tracktion_TimeRange.h"
@@ -72,6 +73,17 @@ void GUIHelpers::setDrawableOnButton(
       , const char *svgbinary
       , juce::Colour colour)
 {
+    if (auto drawable = getDrawableFromSvg(svgbinary, colour))
+        button.setImages (drawable.get ());
+}
+
+std::unique_ptr<juce::Drawable> GUIHelpers::getDrawableFromSvg(
+    const char* svgbinary,
+    juce::Colour colour,
+    int width,
+    int height
+)
+{
     if (auto svg = juce::XmlDocument::parse (svgbinary))
     {
         std::unique_ptr<juce::Drawable> drawable;
@@ -79,10 +91,91 @@ void GUIHelpers::setDrawableOnButton(
             const juce::MessageManagerLock mmLock;
             drawable = juce::Drawable::createFromSVG (*svg);
         }
-        drawable->replaceColour(juce::Colour(0xff626262), colour);
-        button.setImages (drawable.get ());
+        
+        if (drawable != nullptr)
+        {
+            drawable->replaceColour(juce::Colour(0xff626262), colour);
+            if (width != -1 || height != -1)
+                drawable->setSize(width, height);
+        }
+        
+        return drawable;
     }
+    
+    return nullptr;
 }
+
+float GUIHelpers::getScale(const juce::Component& c)
+{
+    #if JUCE_MAC
+        return 1.0f;
+	#else
+		auto rc = c.localAreaToGlobal ( c.getLocalBounds () );
+		return float (juce::Desktop::getInstance ().getDisplays ().getDisplayForRect ( rc )->scale);
+	#endif
+}
+
+juce::MouseCursor GUIHelpers::createCustomMouseCursor(CustomMouseCursor cursorType, const juce::Component& c)
+{
+
+    auto scale = GUIHelpers::getScale(c);
+    switch (cursorType)
+    {
+        // case CustomMouseCursor::ShiftLeft:
+        //     return getMouseCursorFromPng(BinaryData::shiftCursorLeftEdge_png, BinaryData::shiftCursorLeftEdge_pngSize, {16, 16});
+        // case CustomMouseCursor::ShiftRight:
+        //     return getMouseCursorFromPng(BinaryData::shiftCursorRightEdge_png, BinaryData::shiftCursorRightEdge_pngSize, {16, 16});
+        // case CustomMouseCursor::TimeShiftRight:
+        //     return getMouseCursorFromPng(BinaryData::timeShiftCursorRightEdge_png, BinaryData::timeShiftCursorRightEdge_pngSize, {16, 16});
+        // case CustomMouseCursor::CurveSteepnes:
+        //     return getMouseCursorFromPng(BinaryData::curveSteepnessCursor_png, BinaryData::curveSteepnessCursor_pngSize, {16, 16});
+        case CustomMouseCursor::ShiftLeft:
+            return getMouseCursorFromSvg(BinaryData::shiftCursorLeftEdge_svg, {12, 12}, scale);
+        case CustomMouseCursor::ShiftRight:
+            return getMouseCursorFromSvg(BinaryData::shiftCursorRightEdge_svg, {12, 12}, scale);
+        case CustomMouseCursor::TimeShiftRight:
+            return getMouseCursorFromSvg(BinaryData::timeShiftCursorRightEdge_svg, {12, 12}, scale);
+        case CustomMouseCursor::CurveSteepnes:
+            return getMouseCursorFromSvg(BinaryData::curveSteepnessCursor_svg, {12, 12}, scale);
+
+        default:
+            break;
+    }
+
+    return juce::MouseCursor();
+}
+
+juce::MouseCursor GUIHelpers::getMouseCursorFromPng(const char* png, const int size, juce::Point<int> hotSpot)
+{
+    juce::MemoryInputStream pngInputStream(png, static_cast<size_t>(size), false);
+    juce::Image image = juce::ImageFileFormat::loadFrom(pngInputStream);
+    juce::ScaledImage si(image, 2);
+    
+    return juce::MouseCursor (si, hotSpot);
+}
+
+juce::MouseCursor GUIHelpers::getMouseCursorFromSvg(
+            const char* svgbinary
+            , juce::Point<int> hotSpot
+            , float scale)
+{
+    auto drawable = GUIHelpers::getDrawableFromSvg(svgbinary, juce::Colours::white, 24,24);
+    auto image = GUIHelpers::drawableToImage(*drawable.get(), scale * 24,scale * 24);
+
+    return juce::MouseCursor(image, hotSpot.getX(), hotSpot.getY());
+}
+
+juce::Image GUIHelpers::drawableToImage(const juce::Drawable& drawable, int targetWidth, int targetHeight)
+{
+    auto imageType = juce::Image::ARGB;
+    juce::Image image(imageType, targetWidth, targetHeight, true);
+    juce::Graphics g(image);
+    drawable.drawWithin(g, {static_cast<float>(targetWidth), static_cast<float>(targetHeight)}, 0, 1.f);
+
+    return image;
+}
+
+//--------------------------------------
 
 void GUIHelpers::saveEdit(
         EditViewState& evs
