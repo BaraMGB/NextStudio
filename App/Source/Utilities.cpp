@@ -107,11 +107,11 @@ std::unique_ptr<juce::Drawable> GUIHelpers::getDrawableFromSvg(
 
 float GUIHelpers::getScale(const juce::Component& c)
 {
-    #if JUCE_MAC
-        return 1.0f;
-	#else
-		auto rc = c.localAreaToGlobal ( c.getLocalBounds () );
+    #if JUCE_LINUX
+        auto rc = c.localAreaToGlobal ( c.getLocalBounds () );
 		return float (juce::Desktop::getInstance ().getDisplays ().getDisplayForRect ( rc )->scale);
+	#else
+		return 1.0f;
 	#endif
 }
 
@@ -121,14 +121,6 @@ juce::MouseCursor GUIHelpers::createCustomMouseCursor(CustomMouseCursor cursorTy
     auto scale = GUIHelpers::getScale(c);
     switch (cursorType)
     {
-        // case CustomMouseCursor::ShiftLeft:
-        //     return getMouseCursorFromPng(BinaryData::shiftCursorLeftEdge_png, BinaryData::shiftCursorLeftEdge_pngSize, {16, 16});
-        // case CustomMouseCursor::ShiftRight:
-        //     return getMouseCursorFromPng(BinaryData::shiftCursorRightEdge_png, BinaryData::shiftCursorRightEdge_pngSize, {16, 16});
-        // case CustomMouseCursor::TimeShiftRight:
-        //     return getMouseCursorFromPng(BinaryData::timeShiftCursorRightEdge_png, BinaryData::timeShiftCursorRightEdge_pngSize, {16, 16});
-        // case CustomMouseCursor::CurveSteepnes:
-        //     return getMouseCursorFromPng(BinaryData::curveSteepnessCursor_png, BinaryData::curveSteepnessCursor_pngSize, {16, 16});
         case CustomMouseCursor::ShiftLeft:
             return getMouseCursorFromSvg(BinaryData::shiftCursorLeftEdge_svg, {12, 12}, scale);
         case CustomMouseCursor::ShiftRight:
