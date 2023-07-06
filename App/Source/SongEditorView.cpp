@@ -1123,6 +1123,7 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
     auto timeRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::TimeShiftRight, *this);
     auto shiftRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, *this);
     auto shiftLeftcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, *this);
+    auto shiftHandCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, *this);
     auto curveSteepnesCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::CurveSteepnes, *this);
 
     if (m_hoveredTrack && m_hoveredTrack->isFolderTrack() && !m_hoveredTimeRange)
@@ -1148,7 +1149,7 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
         }
         else
         {
-            setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+            setMouseCursor(shiftHandCursor);
         }
     }
     else if (m_hoveredClip != nullptr && m_toolMode == Tool::knife)

@@ -60,10 +60,12 @@ void GUIHelpers::drawFromSvg(
         {
             const juce::MessageManagerLock mmLock;
             drawable = juce::Drawable::createFromSVG (*svg);
-            drawable->setTransformToFit (drawRect
-                                         , juce::RectanglePlacement::centred);
+        }
+        if (drawable!=nullptr)
+        {
+            drawable->setTransformToFit (drawRect, juce::RectanglePlacement::centred);
             drawable->replaceColour(juce::Colour(0xff626262), newColour);
-            drawable->draw (g, 1.f);
+            drawable->draw (g, 2.f);
         }
     }
 }
@@ -79,9 +81,7 @@ void GUIHelpers::setDrawableOnButton(
 
 std::unique_ptr<juce::Drawable> GUIHelpers::getDrawableFromSvg(
     const char* svgbinary,
-    juce::Colour colour,
-    int width,
-    int height
+    juce::Colour colour
 )
 {
     if (auto svg = juce::XmlDocument::parse (svgbinary))
@@ -95,8 +95,6 @@ std::unique_ptr<juce::Drawable> GUIHelpers::getDrawableFromSvg(
         if (drawable != nullptr)
         {
             drawable->replaceColour(juce::Colour(0xff626262), colour);
-            if (width != -1 || height != -1)
-                drawable->setSize(width, height);
         }
         
         return drawable;
@@ -129,6 +127,8 @@ juce::MouseCursor GUIHelpers::createCustomMouseCursor(CustomMouseCursor cursorTy
             return getMouseCursorFromSvg(BinaryData::timeShiftCursorRightEdge_svg, {12, 12}, scale);
         case CustomMouseCursor::CurveSteepnes:
             return getMouseCursorFromSvg(BinaryData::curveSteepnessCursor_svg, {12, 12}, scale);
+        case CustomMouseCursor::ShiftHand:
+            return getMouseCursorFromSvg(BinaryData::shiftHandCursor_svg, {12, 12}, scale);
 
         default:
             break;
@@ -151,18 +151,24 @@ juce::MouseCursor GUIHelpers::getMouseCursorFromSvg(
             , juce::Point<int> hotSpot
             , float scale)
 {
-    auto drawable = GUIHelpers::getDrawableFromSvg(svgbinary, juce::Colours::white, 24,24);
-    auto image = GUIHelpers::drawableToImage(*drawable.get(), scale * 24,scale * 24);
+    // auto drawable = GUIHelpers::getDrawableFromSvg(svgbinary, juce::Colours::white, 24,24);
+    // auto image = GUIHelpers::drawableToImage(*drawable.get(), scale * 32, scale * 32);
+
+    auto imageType = juce::Image::ARGB;
+    juce::Image image(imageType, 24 * scale, 24 * scale, true);
+    juce::Graphics g(image);
+    
+    GUIHelpers::drawFromSvg(g, svgbinary, juce::Colours::white , {24 * scale,24 * scale});
 
     return juce::MouseCursor(image, hotSpot.getX(), hotSpot.getY());
 }
 
-juce::Image GUIHelpers::drawableToImage(const juce::Drawable& drawable, int targetWidth, int targetHeight)
+juce::Image GUIHelpers::drawableToImage(const juce::Drawable& drawable, float targetWidth, float targetHeight)
 {
     auto imageType = juce::Image::ARGB;
     juce::Image image(imageType, targetWidth, targetHeight, true);
     juce::Graphics g(image);
-    drawable.drawWithin(g, {static_cast<float>(targetWidth), static_cast<float>(targetHeight)}, 0, 1.f);
+    drawable.draw(g, 1.f);
 
     return image;
 }

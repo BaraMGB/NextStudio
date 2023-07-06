@@ -31,6 +31,7 @@ juce_add_binary_data(Pictures SOURCES
     shiftCursorLeftEdge.svg
     shiftCursorRightEdge.svg
     timeShiftCursorRightEdge.svg
+    shiftHandCursor.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )
