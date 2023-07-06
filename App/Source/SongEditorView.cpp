@@ -653,6 +653,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
     m_isDragging = false;
     m_editViewState.m_isSavingLocked = false;
             
+    repaint();
     mouseMove(e);
 }
 
