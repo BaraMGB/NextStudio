@@ -160,7 +160,7 @@ juce::MouseCursor GUIHelpers::getMouseCursorFromSvg(
     
     GUIHelpers::drawFromSvg(g, svgbinary, juce::Colours::white , {24 * scale,24 * scale});
 
-    return juce::MouseCursor(image, hotSpot.getX(), hotSpot.getY());
+    return juce::MouseCursor(image, static_cast<int>(scale * hotSpot.getX()), static_cast<int> (scale * hotSpot.getY()));
 }
 
 juce::Image GUIHelpers::drawableToImage(const juce::Drawable& drawable, float targetWidth, float targetHeight)
