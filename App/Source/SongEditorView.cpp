@@ -584,7 +584,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         {
             auto verticalOffset = getVerticalOffset(m_hoveredClip->getTrack(), e.position.toInt());
     
-            if (e.mods.isCommandDown() && m_rightBorderHovered)
+            if (e.mods.isCommandDown() && m_rightBorderHovered && !m_hoveredClip->isMidi() )
             {
                 for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
                 {
@@ -1138,7 +1138,7 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
         }
         else if (m_rightBorderHovered)
         {
-            if (modifierKeys.isCommandDown())
+            if (modifierKeys.isCommandDown() && !m_hoveredClip->isMidi())
             {
 
                 setMouseCursor(timeRightcursor);
