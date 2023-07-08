@@ -7,8 +7,8 @@ NextStudio is a powerful Digital Audio Workstation (DAW) designed for music prod
   
 
 ## Features
-
   
+
 
 -  **Multi-Track Recording:** NextStudio allows you to record multiple audio tracks simultaneously, giving you the flexibility to capture performances from various instruments and sources.
 
@@ -30,10 +30,6 @@ NextStudio is a powerful Digital Audio Workstation (DAW) designed for music prod
 
   
 
--  **Mixing and Mastering:** NextStudio provides a comprehensive mixing environment with features like level adjustment, panning, automation, and an intuitive mixer interface. Achieve the perfect balance and polish your tracks with professional-grade mastering tools.
-
-  
-
 ## System Requirements
 
   
@@ -45,9 +41,6 @@ To run NextStudio, ensure that your system meets the following requirements:
 - Operating System: Windows 10/11, macOS 10.13 or later, Linux (compatible distributions)
 
 - MIDI Controller (optional): For MIDI input and control
-
-## Installation
-
   
 
 ## Installation
