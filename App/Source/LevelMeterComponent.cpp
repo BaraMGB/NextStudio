@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-﻿#include "LevelMeterComponent.h"
+#include "LevelMeterComponent.h"
 
 
 LevelMeterComponent::LevelMeterComponent (te::LevelMeasurer &lm)
