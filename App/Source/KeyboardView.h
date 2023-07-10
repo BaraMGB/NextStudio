@@ -23,10 +23,10 @@
 
 namespace te = tracktion_engine;
 
-class PianoRollVertKeyboard : public juce::KeyboardComponentBase
+class VirtualKeyboardComponent : public juce::KeyboardComponentBase
 {
     public: 
-    PianoRollVertKeyboard()
+    VirtualKeyboardComponent()
         : juce::KeyboardComponentBase(juce::MidiKeyboardComponent::Orientation::verticalKeyboardFacingRight)
     {
         setBlackNoteWidthProportion (0.5f);
@@ -36,7 +36,7 @@ class PianoRollVertKeyboard : public juce::KeyboardComponentBase
         setInterceptsMouseClicks(false, false);
     }
 
-    ~PianoRollVertKeyboard() = default;
+    ~VirtualKeyboardComponent() = default;
     void drawKeyboardBackground(juce::Graphics &g, juce::Rectangle<float> area) override
     {
     }
@@ -86,7 +86,7 @@ private:
     float getKey(int y);
 
     EditViewState& m_editViewState;
-    PianoRollVertKeyboard m_keyboard;
+    VirtualKeyboardComponent m_keyboard;
 
     te::Track::Ptr m_track;
 

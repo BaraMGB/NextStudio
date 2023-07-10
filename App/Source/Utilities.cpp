@@ -583,14 +583,21 @@ void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
             {
                 if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
                 {
-
+                    evs.m_edit.getEditInputDevices().getInstanceStateForInputDevice(*midiIn);
                     if (midiIn == dm.getDefaultMidiInDevice ())
                     {
                         instance->setTargetTrack(*at, 0, true);
                         evs.m_edit.restartPlayback();
                     }
                 }
+                if (auto vmi = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice()))
+                {
+                    evs.m_edit.getEditInputDevices().getInstanceStateForInputDevice(*vmi);
+                    instance->setTargetTrack(*at, 1, true);
+                    evs.m_edit.restartPlayback();
+                }
             }
+
             if (evs.m_isAutoArmed)
             {
                 for (auto&i : evs.m_edit.getTrackList ())
@@ -605,17 +612,25 @@ void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
         }
     }
 }
-te::MidiInputDevice& EngineHelpers::getVirtuelMidiInputDevice(te::Engine& engine)
+te::MidiInputDevice& EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
 {
+    auto& engine = edit.engine;
     auto& dm = engine.getDeviceManager();
-    for (auto i = 0; i < dm.getNumMidiInDevices(); i++)
+    auto name = "virtualMidiIn";
+    dm.createVirtualMidiDevice(name);
+
+    for (const auto instance : edit.getAllInputDevices())
     {
-        auto midiInDev = dm.getMidiInDevice(i);
-        if (midiInDev->getName() == "vitualMidiIn")
-            return *midiInDev;
+        DBG(instance->getInputDevice().getName());
+
+        if (instance->getInputDevice().getDeviceType() == te::InputDevice::virtualMidiDevice
+            && instance->getInputDevice().getName() == name)
+        {
+
+            auto mid = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice());
+            return *mid;
+        }
     }
-    dm.createVirtualMidiDevice("vitualMidiIn");
-    return *dm.getMidiInDevice(dm.getNumMidiInDevices() -1);
 }
 tracktion::core::TimePosition EngineHelpers::getTimePos(double t)
 {
