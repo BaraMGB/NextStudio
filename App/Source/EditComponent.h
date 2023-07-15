@@ -135,6 +135,7 @@ private:
 
     void updateHorizontalScrollBar();
 
+    juce::Rectangle<int> getToolBarRect();
     juce::Rectangle<int> getEditorHeaderRect();
     juce::Rectangle<int> getTimeLineRect();
     juce::Rectangle<int> getTrackListToolsRect();
@@ -155,6 +156,16 @@ private:
                                               , m_editViewState.m_viewX2
                                               };
     FooterBarComponent                      m_footerbar;
+
+    MenuBar                                 m_toolBar;
+    juce::DrawableButton                    m_selectButton,
+                                            m_lassoSelectButton,
+                                            m_timeRangeSelectButton,
+                                            m_splitClipButton,
+                                            m_timeStretchButton,
+                                            m_pitchButton,
+                                            m_reverseClipButton,
+                                            m_deleteClipButton;
 
     MenuBar                                 m_trackListToolsMenu;
     juce::DrawableButton                    m_addAudioTrackBtn,

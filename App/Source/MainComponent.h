@@ -30,7 +30,6 @@
 
 #include "HeaderComponent.h"
 #include "NextLookAndFeel.h"
-#include "MenuBar.h"
 #include "SideBarBrowser.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"

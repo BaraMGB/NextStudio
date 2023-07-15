@@ -16,7 +16,6 @@ juce_add_binary_data(Pictures SOURCES
     cached.svg
     piano5.svg
     wavetest5.svg
-    wavetest10.svg
     arrowright18.svg
     arrowdown18.svg
     automation.svg
@@ -32,6 +31,14 @@ juce_add_binary_data(Pictures SOURCES
     shiftCursorRightEdge.svg
     timeShiftCursorRightEdge.svg
     shiftHandCursor.svg
+    select_icon.svg
+    rubberband.svg
+    select_timerange.svg
+    split.svg
+    time_stretch_button.svg
+    pitch.svg
+    reverse_clip.svg
+    delete.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

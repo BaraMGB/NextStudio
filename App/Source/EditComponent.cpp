@@ -33,6 +33,14 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     , m_addMidiTrackBtn ("Add midi track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_expandAllBtn("expand all tracks", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_collapseAllBtn("collapse all tracks", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_selectButton("select clips or automation points", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_lassoSelectButton("select clips or automation points with lasso band", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_timeRangeSelectButton("select time range", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_splitClipButton("split clip", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_timeStretchButton("stretch tempo of clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_pitchButton("change pitch of clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_reverseClipButton("reverse clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_deleteClipButton("delete clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     m_edit.state.addListener (this);
 
@@ -58,9 +66,10 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     addAndMakeVisible (m_songEditor);
     addAndMakeVisible (m_trackListView);
     addAndMakeVisible (m_trackListToolsMenu);
+    addAndMakeVisible (m_toolBar);
     addAndMakeVisible (m_trackListControlMenu);
 
-
+    //TrackListTools 
     GUIHelpers::setDrawableOnButton(m_addAudioTrackBtn, BinaryData::wavetest5_svg,
                                   juce::Colour(0xffffffff));
     m_addAudioTrackBtn.addListener(this);
@@ -78,6 +87,7 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     m_trackListToolsMenu.addButton(&m_addMidiTrackBtn);
     m_trackListToolsMenu.addButton(&m_addFolderTrackBtn);
 
+    //TrackListControl 
     GUIHelpers::setDrawableOnButton(m_expandAllBtn, BinaryData::expand_svg, juce::Colour(0xffffffff));
     m_expandAllBtn.addListener(this);
     m_expandAllBtn.setTooltip(GUIHelpers::translate("Expand all tracks", m_editViewState.m_applicationState));
@@ -88,6 +98,52 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     GUIHelpers::setDrawableOnButton(m_collapseAllBtn, BinaryData::collapse_svg, juce::Colour(0xffffffff));
     m_collapseAllBtn.addListener(this);
     m_collapseAllBtn.setTooltip(GUIHelpers::translate("Collapse all tracks", m_editViewState.m_applicationState));
+
+    //SongEditorTools 
+
+    GUIHelpers::setDrawableOnButton(m_selectButton, BinaryData::select_icon_svg, juce::Colour(0xffffffff));
+    m_selectButton.addListener(this);
+    m_selectButton.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_lassoSelectButton, BinaryData::rubberband_svg, juce::Colour(0xffffffff));
+    m_lassoSelectButton.addListener(this);
+    m_lassoSelectButton.setTooltip(GUIHelpers::translate("lasso select clips or automation points", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_timeRangeSelectButton, BinaryData::select_timerange_svg, juce::Colour(0xffffffff));
+    m_timeRangeSelectButton.addListener(this);
+    m_timeRangeSelectButton.setTooltip(GUIHelpers::translate("select clips or automation points within a time range", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_splitClipButton, BinaryData::split_svg, juce::Colour(0xffffffff));
+    m_splitClipButton.addListener(this);
+    m_splitClipButton.setTooltip(GUIHelpers::translate("split selected clip at the cursor position", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_timeStretchButton, BinaryData::time_stretch_button_svg, juce::Colour(0xffffffff));
+    m_timeStretchButton.addListener(this);
+    m_timeStretchButton.setTooltip(GUIHelpers::translate("apply time stretching to the selected clip", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_pitchButton, BinaryData::pitch_svg, juce::Colour(0xffffffff));
+    m_pitchButton.addListener(this);
+    m_pitchButton.setTooltip(GUIHelpers::translate("apply pitch shifting to the selected clip", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_reverseClipButton, BinaryData::reverse_clip_svg, juce::Colour(0xffffffff));
+    m_reverseClipButton.addListener(this);
+    m_reverseClipButton.setTooltip(GUIHelpers::translate("reverse the playback of the selected clips", m_editViewState.m_applicationState));
+
+    GUIHelpers::setDrawableOnButton(m_deleteClipButton, BinaryData::delete_svg, juce::Colour(0xffffffff));
+    m_deleteClipButton.addListener(this);
+    m_deleteClipButton.setTooltip(GUIHelpers::translate("delete the selected clip", m_editViewState.m_applicationState));
+
+    m_toolBar.addButton(&m_selectButton);
+    m_toolBar.addButton(&m_lassoSelectButton);
+    m_toolBar.addButton(&m_timeRangeSelectButton);
+    m_toolBar.addButton(&m_deleteClipButton);
+    m_toolBar.addButton(&m_splitClipButton);
+    m_toolBar.addButton(&m_reverseClipButton);
+    m_toolBar.addButton(&m_timeStretchButton);
+    m_toolBar.addButton(&m_pitchButton);
+
+    m_toolBar.setButtonGap(2, 30);
+    m_toolBar.setButtonGap(5, 30);
 
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
@@ -102,6 +158,14 @@ EditComponent::~EditComponent()
     m_addAudioTrackBtn.removeListener(this);
     m_addMidiTrackBtn.removeListener(this);
     m_addFolderTrackBtn.removeListener(this);
+    m_selectButton.removeListener(this);
+    m_lassoSelectButton.removeListener(this);
+    m_timeRangeSelectButton.removeListener(this);
+    m_splitClipButton.removeListener(this);
+    m_timeStretchButton.removeListener(this);
+    m_pitchButton.removeListener(this);
+    m_reverseClipButton.removeListener(this);
+    m_deleteClipButton.removeListener(this);
     m_autosaveThread.stopThread(5000);
     m_edit.state.removeListener (this);
 }
@@ -146,6 +210,7 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
 
 void EditComponent::resized()
 {
+    m_toolBar.setBounds(getToolBarRect());
     m_timeLine.setBounds(getTimeLineRect());
     m_trackListView.setBounds(getTrackListRect());
     m_trackListView.resized();
@@ -395,6 +460,12 @@ void EditComponent::buildTracks()
 LowerRangeComponent& EditComponent::lowerRange()
 {
     return m_lowerRange;
+}
+juce::Rectangle<int> EditComponent::getToolBarRect()
+{
+    auto rect = getEditorHeaderRect();
+    rect.removeFromLeft(getTrackListView().getWidth());
+    return rect;
 }
 juce::Rectangle<int> EditComponent::getEditorHeaderRect()
 {

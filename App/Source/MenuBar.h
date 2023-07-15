@@ -60,24 +60,31 @@ public:
     void addButton(juce::DrawableButton* button)
     {
         m_buttons.add(button);
+        m_buttonGaps.set(m_buttons.indexOf(button), 5);
         addAndMakeVisible(button);
+    }
+
+    void setButtonGap(int index, int gap)
+    {
+        if (index >= 0 && index < m_buttons.size())
+            m_buttonGaps.set(index, gap);
     }
 
     void resized() override
     {
-            auto flexAlign = juce::FlexBox::JustifyContent::flexStart;
+        auto flexAlign = juce::FlexBox::JustifyContent::flexStart;
 
         switch (m_alignment)
         {
-        case Alignment::Left:
-            flexAlign = juce::FlexBox::JustifyContent::flexStart;
-            break;
-        case Alignment::Center:
-            flexAlign = juce::FlexBox::JustifyContent::center;
-            break;
-        case Alignment::Right:
-            flexAlign = juce::FlexBox::JustifyContent::flexEnd;
-            break;
+            case Alignment::Left:
+                flexAlign = juce::FlexBox::JustifyContent::flexStart;
+                break;
+            case Alignment::Center:
+                flexAlign = juce::FlexBox::JustifyContent::center;
+                break;
+            case Alignment::Right:
+                flexAlign = juce::FlexBox::JustifyContent::flexEnd;
+                break;
         }
 
         juce::FlexBox fb;
@@ -86,13 +93,13 @@ public:
         fb.alignItems = juce::FlexBox::AlignItems::center;
 
         const float buttonSize = getHeight() - (2.0f * getHeight() / 5.0f);
-        const float buttonGap = getHeight() / 10.0f;
 
         for (int i = 0; i < m_buttons.size(); ++i)
         {
             juce::FlexItem::Margin margin;
             if (i < m_buttons.size() - 1) {
-                margin.right = buttonGap;
+                int gap = m_buttonGaps[i];
+                margin.right = gap;
             }
 
             fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_buttons[i]).withMargin(margin));
@@ -102,8 +109,10 @@ public:
     }
 
 private:
+
     Alignment m_alignment;
     juce::OwnedArray<juce::DrawableButton> m_buttons;
+    juce::Array<int> m_buttonGaps; // Array für Lückenmaße
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MenuBar)
 };
