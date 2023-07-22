@@ -331,7 +331,7 @@ void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree& ,
 }
 void PianoRollEditor::handleAsyncUpdate()
 {
-    if (compareAndReset(m_updateKeyboard))
+    if (m_keyboard != nullptr && compareAndReset(m_updateKeyboard))
         m_keyboard->resized();
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateNoteEditor))
