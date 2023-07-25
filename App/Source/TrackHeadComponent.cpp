@@ -423,7 +423,7 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
                     if (id == result)
                     {
                         {
-                            instance->setTargetTrack(*aut, 0, true);
+                            instance->setTargetTrack(*aut, 0, true, &m_editViewState.m_edit.getUndoManager());
                         }
                     }
                     id++;
@@ -450,11 +450,11 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
                     {
                         if (instance->getTargetTracks().getFirst() == at)
                         {
-                            instance->removeTargetTrack(*aut);
+                            instance->removeTargetTrack(*aut, &m_editViewState.m_edit.getUndoManager());
                         }
                         else
                         {
-                            instance->setTargetTrack(*aut, 0, true);
+                            instance->setTargetTrack(*aut, 0, true, &m_editViewState.m_edit.getUndoManager());
                         }
                     }
                     id++;

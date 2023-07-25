@@ -586,14 +586,14 @@ void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
                     evs.m_edit.getEditInputDevices().getInstanceStateForInputDevice(*midiIn);
                     if (midiIn == dm.getDefaultMidiInDevice ())
                     {
-                        instance->setTargetTrack(*at, 0, true);
+                        instance->setTargetTrack(*at, 0, true, &evs.m_edit.getUndoManager());
                         evs.m_edit.restartPlayback();
                     }
                 }
                 if (auto vmi = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice()))
                 {
                     evs.m_edit.getEditInputDevices().getInstanceStateForInputDevice(*vmi);
-                    instance->setTargetTrack(*at, 1, true);
+                    instance->setTargetTrack(*at, 1, true, &evs.m_edit.getUndoManager());
                     evs.m_edit.restartPlayback();
                 }
             }
