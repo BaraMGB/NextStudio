@@ -7,7 +7,7 @@
    style="-ms-transform:rotate(360deg);-webkit-transform:rotate(360deg)"
    version="1.1"
    id="svg22"
-   sodipodi:docname="delete.svg"
+   sodipodi:docname="rubber.svg"
    inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -25,9 +25,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="true"
-     inkscape:zoom="3.6179736"
-     inkscape:cx="-17.136665"
-     inkscape:cy="4.8369618"
+     inkscape:zoom="11.752571"
+     inkscape:cx="-0.85087765"
+     inkscape:cy="12.805709"
      inkscape:window-width="1459"
      inkscape:window-height="827"
      inkscape:window-x="69"
@@ -54,17 +54,24 @@
      fill="rgba(0, 0, 0, 0)"
      id="rect20"
      style="display:none;fill:none;stroke-width:0.75" />
+  <rect
+     style="fill:none;stroke:#626262;stroke-width:0.93346;stroke-dasharray:none"
+     id="rect10317"
+     width="4.6612549"
+     height="9.3466978"
+     x="10.602365"
+     y="-4.5270433"
+     transform="matrix(0.73290635,0.68032954,-0.66121014,0.75020074,0,0)" />
+  <rect
+     style="fill:#626262;fill-opacity:1;stroke:#626262;stroke-width:0.93346;stroke-dasharray:none"
+     id="rect10319"
+     width="4.4000068"
+     height="6.6325622"
+     x="10.602365"
+     y="-4.5270433"
+     transform="matrix(0.73290635,0.68032954,-0.66121014,0.75020074,0,0)" />
   <path
-     style="fill:none;stroke:#626262;paint-order:fill markers stroke"
-     d="M 2,4 C 2,4 2,12 2,15 6,15 7,4 2,4 Z"
-     id="path6316"
-     sodipodi:nodetypes="ccc" />
-  <path
-     style="fill:none;stroke:#626262;paint-order:fill markers stroke"
-     d="M 11,4 H 7 v 6 h 3 -3 v 5 h 4"
-     id="path6318" />
-  <path
-     style="fill:none;stroke:#626262;paint-order:fill markers stroke;stroke-linecap:square"
-     d="M 16,15 H 12 V 4"
-     id="path6320" />
+     style="fill:#626262;fill-opacity:1;stroke:#626262;stroke-width:1;stroke-dasharray:none"
+     d="m 8,15 h 6"
+     id="path10436" />
 </svg>

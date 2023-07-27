@@ -24,9 +24,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="true"
-     inkscape:zoom="12.984568"
-     inkscape:cx="6.1611598"
-     inkscape:cy="21.063465"
+     inkscape:zoom="6.2557369"
+     inkscape:cx="-18.383126"
+     inkscape:cy="15.745547"
      inkscape:window-width="1851"
      inkscape:window-height="1027"
      inkscape:window-x="69"
@@ -37,7 +37,11 @@
        type="xygrid"
        id="grid132"
        originx="0"
-       originy="0" /></sodipodi:namedview><rect
+       originy="0" /><sodipodi:guide
+       position="9,19"
+       orientation="1,0"
+       id="guide2799"
+       inkscape:locked="false" /></sodipodi:namedview><rect
      x="0"
      y="0"
      width="18"
@@ -60,4 +64,7 @@
      width="4"
      height="2"
      x="7"
-     y="8" /></svg>
+     y="8" /><path
+     style="fill:none;stroke-width:1;stroke-linecap:square;stroke:#626262;stroke-opacity:1;stroke-dasharray:none"
+     d="m 9,3 h 6 V 15 H 9 V 3"
+     id="path2864" /></svg>

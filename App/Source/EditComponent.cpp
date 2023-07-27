@@ -38,7 +38,6 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     , m_timeRangeSelectButton("select time range", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_splitClipButton("split clip", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_timeStretchButton("stretch tempo of clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_pitchButton("change pitch of clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_reverseClipButton("reverse clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_deleteClipButton("delete clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
@@ -121,10 +120,6 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     m_timeStretchButton.addListener(this);
     m_timeStretchButton.setTooltip(GUIHelpers::translate("apply time stretching to the selected clip", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_pitchButton, BinaryData::pitch_svg, juce::Colour(0xffffffff));
-    m_pitchButton.addListener(this);
-    m_pitchButton.setTooltip(GUIHelpers::translate("apply pitch shifting to the selected clip", m_editViewState.m_applicationState));
-
     GUIHelpers::setDrawableOnButton(m_reverseClipButton, BinaryData::reverse_clip_svg, juce::Colour(0xffffffff));
     m_reverseClipButton.addListener(this);
     m_reverseClipButton.setTooltip(GUIHelpers::translate("reverse the playback of the selected clips", m_editViewState.m_applicationState));
@@ -136,14 +131,12 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     m_toolBar.addButton(&m_selectButton);
     m_toolBar.addButton(&m_lassoSelectButton);
     m_toolBar.addButton(&m_timeRangeSelectButton);
-    m_toolBar.addButton(&m_deleteClipButton);
-    m_toolBar.addButton(&m_splitClipButton);
-    m_toolBar.addButton(&m_reverseClipButton);
     m_toolBar.addButton(&m_timeStretchButton);
-    m_toolBar.addButton(&m_pitchButton);
+    m_toolBar.addButton(&m_splitClipButton);
+    m_toolBar.addButton(&m_deleteClipButton);
+    m_toolBar.addButton(&m_reverseClipButton);
 
-    m_toolBar.setButtonGap(2, 30);
-    m_toolBar.setButtonGap(5, 30);
+    m_toolBar.setButtonGap(4, 30);
 
     markAndUpdate (m_updateTracks);
     m_editViewState.m_selectionManager.selectOnly (
@@ -163,7 +156,6 @@ EditComponent::~EditComponent()
     m_timeRangeSelectButton.removeListener(this);
     m_splitClipButton.removeListener(this);
     m_timeStretchButton.removeListener(this);
-    m_pitchButton.removeListener(this);
     m_reverseClipButton.removeListener(this);
     m_deleteClipButton.removeListener(this);
     m_autosaveThread.stopThread(5000);

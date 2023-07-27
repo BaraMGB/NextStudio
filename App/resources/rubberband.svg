@@ -25,9 +25,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="true"
-     inkscape:zoom="14.629817"
-     inkscape:cx="7.8606588"
-     inkscape:cy="12.816292"
+     inkscape:zoom="26.579472"
+     inkscape:cx="7.8255881"
+     inkscape:cy="7.8443996"
      inkscape:window-width="1459"
      inkscape:window-height="827"
      inkscape:window-x="69"
@@ -48,151 +48,9 @@
      fill="rgba(0, 0, 0, 0)"
      id="rect20"
      style="display:none;fill:none;stroke-width:0.75" />
-  <rect
-     style="fill:#626262;fill-opacity:1;stroke-width:0.707107"
-     id="rect4138"
-     width="1"
-     height="1"
-     x="4"
-     y="4" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4557"
-     width="1"
-     height="1"
-     x="5"
-     y="4" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4561"
-     width="1"
-     height="1"
-     x="7"
-     y="4" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4563"
-     width="1"
-     height="1"
-     x="9"
-     y="4" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4565"
-     width="1"
-     height="1"
-     x="11"
-     y="4" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4567"
-     width="1"
-     height="1"
-     x="13"
-     y="6" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4569"
-     width="1"
-     height="1"
-     x="13"
-     y="8" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4571"
-     width="1"
-     height="1"
-     x="13"
-     y="10" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4573"
-     width="1"
-     height="1"
-     x="13"
-     y="12" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4575"
-     width="1"
-     height="1"
-     x="13"
-     y="4" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4577"
-     width="1"
-     height="1"
-     x="13"
-     y="4" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4579"
-     width="1"
-     height="1"
-     x="13"
-     y="13" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4581"
-     width="1"
-     height="1"
-     x="12"
-     y="13" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4583"
-     width="1"
-     height="1"
-     x="10"
-     y="13" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4585"
-     width="1"
-     height="1"
-     x="8"
-     y="13" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4587"
-     width="1"
-     height="1"
-     x="6"
-     y="13" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4589"
-     width="1"
-     height="1"
-     x="4"
-     y="13" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4591"
-     width="1"
-     height="1"
-     x="4"
-     y="11" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4593"
-     width="1"
-     height="1"
-     x="4"
-     y="9" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4595"
-     width="1"
-     height="1"
-     x="4"
-     y="7" />
-  <rect
-     style="fill:#626262;fill-opacity:1"
-     id="rect4597"
-     width="1"
-     height="1"
-     x="4"
-     y="5" />
+  <path
+     style="fill:none;stroke:#626262;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1, 1;stroke-dashoffset:6"
+     d="M 2,3 H 16 V 14 H 2 V 3"
+     id="path328"
+     sodipodi:nodetypes="ccccc" />
 </svg>

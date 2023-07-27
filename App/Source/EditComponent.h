@@ -163,7 +163,6 @@ private:
                                             m_timeRangeSelectButton,
                                             m_splitClipButton,
                                             m_timeStretchButton,
-                                            m_pitchButton,
                                             m_reverseClipButton,
                                             m_deleteClipButton;
 
