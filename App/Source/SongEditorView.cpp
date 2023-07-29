@@ -256,6 +256,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     m_toolMode = Tool::pointer;
 
     auto mousePosTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
+    m_timeAtMouseCursor = mousePosTime;
 
     //Automation Lane hit tests 
     if (m_hoveredAutamatableParam)
@@ -273,9 +274,6 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                 m_hoveredTimeRangeLeft = true;
             else if (e.x > rightX - 5)
                 m_hoveredTimeRangeRight = true;
-
-            repaint();
-
         }
         else
         {
@@ -303,7 +301,6 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             juce::Point<int> cp = getPointOnAutomationRect(mousePosTime, valueAtMouseTime, m_hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2).toInt();
             cp = cp.translated (0, getYForAutomatableParam(m_hoveredAutamatableParam));
             m_hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
-            repaint();
         }
     }
     if (m_hoveredTrack && m_hoveredAutamatableParam == nullptr)
@@ -358,6 +355,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
 
     updateCursor(e.mods);
 
+    repaint();
     //logMousePositionInfo();
 }
 
@@ -1748,6 +1746,17 @@ void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, 
     auto& evs = m_editViewState;
     auto isSelected = evs.m_selectionManager.isSelected (clip);
     drawClipBody(g, clip->getName(), clipRect, isSelected, color, displayedRect, x1Beat, x2beat);
+
+    if ((m_hoveredClip.get() == clip) && (m_toolMode == Tool::knife))
+    {
+        g.setColour(juce::Colours::white);
+        auto snapedTime = getSnapedTime(m_timeAtMouseCursor.inSeconds());
+        auto x = timeToX(snapedTime);
+        auto y = clipRect.getY();
+        auto h = clipRect.getHeight();
+
+        g.drawVerticalLine(x, y, y + h);
+    }
 
     auto header = clipRect.withHeight(evs.m_clipHeaderHeight);
     clipRect.removeFromTop(header.getHeight());

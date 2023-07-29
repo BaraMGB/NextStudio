@@ -248,6 +248,7 @@ private:
     te::AutomatableParameter::Ptr       m_hoveredAutamatableParam{nullptr};
     int                                 m_hoveredAutomationPoint {-1};
     tracktion::TimePosition             m_timeOfHoveredAutomationPoint;
+    tracktion::TimePosition             m_timeAtMouseCursor;
     te::Clip::Ptr                       m_hoveredClip {nullptr};
     int                                 m_hoveredCurve {-1};
 
