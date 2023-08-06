@@ -19,13 +19,15 @@
 #include "SongEditorView.h"
 #include "BinaryData.h"
 #include "EditViewState.h"
+#include "MenuBar.h"
 #include "Utilities.h"
 #include <ostream>
 
 
-SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr)
+SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr, MenuBar& toolBar)
         : m_editViewState(evs)
         , m_lowerRange(lr)
+        , m_toolBar(toolBar)
         , m_lassoComponent(evs, evs.m_viewX1, evs.m_viewX2)
 {		
     setWantsKeyboardFocus (true);
@@ -252,8 +254,6 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     m_hoveredTimeRange = false;
     m_hoveredTimeRangeLeft = false;
     m_hoveredTimeRangeRight = false;
-    //to do: implement tool buttons for choosing tool mode
-    m_toolMode = Tool::pointer;
 
     auto mousePosTime = tracktion::TimePosition::fromSeconds(xtoTime(e.x));
     m_timeAtMouseCursor = mousePosTime;
@@ -275,7 +275,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             else if (e.x > rightX - 5)
                 m_hoveredTimeRangeRight = true;
         }
-        else
+        else if (m_toolMode == Tool::pointer)
         {
             juce::Point<int> hoveredPointInLane = {e.x, e.y - getYForAutomatableParam(m_hoveredAutamatableParam)};
             const auto hoveredRectOnLane = GUIHelpers::getSensibleArea(hoveredPointInLane, getAutomationPointWidth(m_hoveredAutamatableParam) * 2) ;   
@@ -302,6 +302,10 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             cp = cp.translated (0, getYForAutomatableParam(m_hoveredAutamatableParam));
             m_hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
         }
+        // else if (m_toolMode == Tool::knife)
+        // {
+        //      
+        // }
     }
     if (m_hoveredTrack && m_hoveredAutamatableParam == nullptr)
     {
@@ -347,11 +351,11 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
         }
     }
 
-
-    if (e.mods.isCtrlDown() && e.mods.isShiftDown())
-        m_toolMode = Tool::knife;
-    else if (e.mods.isAltDown())
-        m_toolMode = Tool::range;
+    //
+    // if (e.mods.isCtrlDown() && e.mods.isShiftDown())
+    //     m_toolMode = Tool::knife;
+    // else if (e.mods.isAltDown())
+    //     m_toolMode = Tool::range;
 
     updateCursor(e.mods);
 
@@ -390,7 +394,7 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
         return;
     }
 
-    if (clickedOnClip && leftButton && m_toolMode == Tool::pointer)
+    if (clickedOnClip && leftButton && (m_toolMode == Tool::pointer || m_toolMode == Tool::timestretch))
     {
         clearSelectedTimeRange();
 
@@ -475,7 +479,7 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
     auto &sm = m_editViewState.m_selectionManager;
 
     auto isDraggingTimeRange = m_hoveredTimeRange && !m_isSelectingTimeRange && !m_hoveredTimeRangeLeft && !m_hoveredTimeRangeRight;
-    auto isDraggingClip = m_hoveredClip != nullptr;
+    auto isDraggingClip = m_hoveredClip != nullptr && (m_toolMode==Tool::pointer || m_toolMode==Tool::timestretch);
     auto isDraggingMultiSelectionToolSpan = m_lassoComponent.isVisible () || m_isSelectingTimeRange;
     auto isDraggingAutomationPoint = m_hoveredAutomationPoint != -1 && e.mouseWasDraggedSinceMouseDown ();
     auto isChangingCurveSteepness = m_hoveredAutomationPoint == -1 && m_hoveredCurve != -1 && e.mods.isCtrlDown ();
@@ -584,7 +588,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         stopLasso();
     }
 
-    if (e.mods.isLeftButtonDown())
+    if (e.mods.isLeftButtonDown() &&(m_toolMode == Tool::pointer || m_toolMode==Tool::timestretch))
     {
         if (m_hoveredTimeRange && e.mouseWasDraggedSinceMouseDown() == false)
             clearSelectedTimeRange();
@@ -600,7 +604,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
         {
             auto verticalOffset = getVerticalOffset(m_hoveredClip->getTrack(), e.position.toInt());
     
-            if (e.mods.isCommandDown() && m_rightBorderHovered && !m_hoveredClip->isMidi() )
+            if ((e.mods.isCommandDown() || m_toolMode==Tool::timestretch) && m_rightBorderHovered && !m_hoveredClip->isMidi() )
             {
                 for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
                 {
@@ -661,6 +665,10 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
             sm.deselectAll();
         }
     }
+    if (m_toolMode == Tool::timestretch || m_toolMode == Tool::range || m_toolMode == Tool::lasso)
+        for (auto b : m_toolBar.getButtons())
+            if (b->getName() == "select")
+                b->setToggleState(true, juce::sendNotification);
 
     m_draggedClip = nullptr;
     m_isDraggingSelectedTimeRange = false;
@@ -679,109 +687,6 @@ void SongEditorView::changeListenerCallback(juce::ChangeBroadcaster *source)
     {
         buildRecordingClips(t);
     }
-}
-
-void SongEditorView::getAllCommands (juce::Array<juce::CommandID>& commands) 
-{
-    juce::Array<juce::CommandID> ids {
-
-            KeyPressCommandIDs::deleteSelectedClips,
-            KeyPressCommandIDs::duplicateSelectedClips,
-            KeyPressCommandIDs::selectAllClips,
-            KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack,
-            KeyPressCommandIDs::transposeClipUp,
-            KeyPressCommandIDs::transposeClipDown,
-            KeyPressCommandIDs::reverseClip
-        };
-
-    commands.addArray(ids);
-}
-void SongEditorView::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
-{
-    switch (commandID)
-    { 
-        case KeyPressCommandIDs::duplicateSelectedClips :
-            result.setInfo("Duplicate selected clips", "Duplicate selected clips", "Song Editor", 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode() , juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::deleteSelectedClips :
-            result.setInfo("Delete selected clips", "Delete selected clips", "Song Editor", 0);
-            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
-            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::selectAllClips :
-            result.setInfo("select all Clips","select all Clips", "Song Editor", 0);
-
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("a").getKeyCode() , juce::ModifierKeys::commandModifier);
-            break;
-
-        case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack :
-            result.setInfo("render time range to new track","render time range on new track", "Song Editor", 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("r").getKeyCode(), juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::transposeClipUp :
-            result.setInfo("transpose up", "transpose selected clips up 1 key", "Song Editor", 0);
-            result.addDefaultKeypress(juce::KeyPress::upKey, juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::transposeClipDown :
-            result.setInfo("transpose Down", "transpose selected clips Down 1 key", "Song Editor", 0);
-            result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
-            break;  
-        case KeyPressCommandIDs::reverseClip :
-            result.setInfo("Reverse wave of clip","Reverse wave of clip", "Song Editor", 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("b").getKeyCode(), juce::ModifierKeys::commandModifier);
-            break;
-        default:
-            break;
-        }
-
-}
-bool SongEditorView::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
-{
-    GUIHelpers::log("SongEditorView perform commandID: ", info.commandID);
-
-    switch (info.commandID)
-    { 
-        //send NoteOn
-        case KeyPressCommandIDs::deleteSelectedClips:
-        {
-            GUIHelpers::log("deleteSelectedClips Outer");
-            if (getTracksWithSelectedTimeRange().size() > 0)
-            {
-                GUIHelpers::log("deleteSelectedTimeRange");
-                deleteSelectedTimeRange();
-            }
-            else 
-            {
-                GUIHelpers::log("deleteSelectedClips");
-                EngineHelpers::deleteSelectedClips (m_editViewState);
-            }
-            break;
-        }
-        case KeyPressCommandIDs::duplicateSelectedClips:
-            duplicateSelectedClipsOrTimeRange();
-            break;
-        case KeyPressCommandIDs::selectAllClips:
-            EngineHelpers::selectAllClips(m_editViewState.m_selectionManager, m_editViewState.m_edit);
-            break;
-        case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack:
-            renderSelectedTimeRangeToNewTrack();
-            break;
-        case KeyPressCommandIDs::transposeClipUp:
-            GUIHelpers::log("perform: transposeClipUp");
-            transposeSelectedClips( + 1.f);
-            break;
-        case KeyPressCommandIDs::transposeClipDown:
-            transposeSelectedClips( - 1.f);
-            break;
-        case KeyPressCommandIDs::reverseClip:
-            reverseSelectedClips();
-            break;
-        default:
-            return false;
-    }
-    return true;
 }
 
 bool SongEditorView::isInterestedInDragSource (const SourceDetails& dragSourceDetails) 
@@ -1146,7 +1051,7 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
     if (m_hoveredTrack && m_hoveredTrack->isFolderTrack() && !m_hoveredTimeRange)
     {
     }
-    else if (m_hoveredClip != nullptr && !m_hoveredTimeRange && m_toolMode == Tool::pointer)   
+    else if (m_hoveredClip != nullptr && !m_hoveredTimeRange && (m_toolMode == Tool::pointer || m_toolMode == Tool::timestretch))   
     {
         if (m_leftBorderHovered)
         {
@@ -1154,9 +1059,8 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
         }
         else if (m_rightBorderHovered)
         {
-            if (modifierKeys.isCommandDown() && !m_hoveredClip->isMidi())
+            if ((modifierKeys.isCommandDown() || m_toolMode == Tool::timestretch) && !m_hoveredClip->isMidi())
             {
-
                 setMouseCursor(timeRightcursor);
             }
             else

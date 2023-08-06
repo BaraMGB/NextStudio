@@ -61,6 +61,7 @@ public:
 //------------------------------------------------------------------------------
 
 class EditComponent : public  juce::Component
+                    , public juce::ApplicationCommandTarget
                     , private te::ValueTreeAllEventListener
                     , private FlaggedAsyncUpdater
                     , private juce::ScrollBar::Listener
@@ -70,7 +71,7 @@ class EditComponent : public  juce::Component
 public:
     EditComponent (te::Edit&
                    , ApplicationViewState & avs
-                 , te::SelectionManager&);
+                 , te::SelectionManager&, juce::ApplicationCommandManager& cm);
     ~EditComponent() override;
 
     void paint (juce::Graphics &g) override;
@@ -82,6 +83,13 @@ public:
                         , double newRangeStart) override;
 
     void buttonClicked(juce::Button* button) override;
+
+    ApplicationCommandTarget* getNextCommandTarget() override   { GUIHelpers::log("findFirstTargetParentComponent"); return findFirstTargetParentComponent(); }
+    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
+
+    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
+    
+    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
 
     LowerRangeComponent& lowerRange ();
 
@@ -149,6 +157,7 @@ private:
     EditViewState                           m_editViewState;
 
     SongEditorView                          m_songEditor;
+    juce::ApplicationCommandManager&        m_commandManager;
     TrackListView                           m_trackListView;
     TimeLineComponent                       m_timeLine {
                                                 m_editViewState

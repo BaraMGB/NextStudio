@@ -43,7 +43,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     m_commandManager.registerAllCommandsForTarget(this);
-    m_commandManager.registerAllCommandsForTarget(&m_editComponent->getSongEditor());
+    m_commandManager.registerAllCommandsForTarget(m_editComponent.get());
     m_commandManager.registerAllCommandsForTarget(&m_editComponent->getTrackListView());
     m_commandManager.registerAllCommandsForTarget(&m_editComponent->getPianoRollEditor());
 }
@@ -159,6 +159,8 @@ void MainComponent::getAllCommands (juce::Array<juce::CommandID>& commands)
             // KeyPressCommandIDs::snapToTime,
             // KeyPressCommandIDs::snapToOff,
 
+            KeyPressCommandIDs::undo,
+            KeyPressCommandIDs::redo,
 
             KeyPressCommandIDs::debugOutputEdit
         };
@@ -307,6 +309,14 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
         case KeyPressCommandIDs::debugOutputEdit :
             result.setInfo("Debug output edit", "Debug output edit", "Debug", 0);
             result.addDefaultKeypress(juce::KeyPress::F10Key, 0);
+            break;
+        case KeyPressCommandIDs::undo :
+            result.setInfo("Undo last action","Undo", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("z").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::redo :
+            result.setInfo("Redo last action","Redo", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("z").getKeyCode(), juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
             break;
         default:
             break;
@@ -466,6 +476,12 @@ bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
             break;
         }
         
+        case KeyPressCommandIDs::undo:
+            m_edit->undo();
+            break;
+        case KeyPressCommandIDs::redo:
+            m_edit->redo();
+            break;
         // case KeyPressCommandIDs::snapToBar:
         //     EngineHelpers::snapToBar(m_editComponent->getEditViewState());
         //     break;
@@ -613,7 +629,8 @@ void MainComponent::setupEdit(juce::File editFile)
     m_editComponent = std::make_unique<EditComponent> (
                 *m_edit
               , m_applicationState
-              , m_selectionManager);
+              , m_selectionManager
+              , m_commandManager);
 
     m_edit->state.addListener (this);
 

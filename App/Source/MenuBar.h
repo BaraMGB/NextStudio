@@ -49,7 +49,7 @@ public:
 
     ~MenuBar() override
     {
-        m_buttons.clear(false);
+        m_buttons.clear();
     }
 
     void paint(juce::Graphics& g) override
@@ -57,11 +57,17 @@ public:
         g.fillAll(juce::Colour(0xff171717));
     }
 
-    void addButton(juce::DrawableButton* button)
+    void addButton(juce::DrawableButton* button, int toggleGroupId=0)
     {
         m_buttons.add(button);
         m_buttonGaps.set(m_buttons.indexOf(button), 5);
         addAndMakeVisible(button);
+
+          if (toggleGroupId > 0)
+        {
+            button->setClickingTogglesState(true);
+            button->setRadioGroupId(toggleGroupId);
+        }
     }
 
     void setButtonGap(int index, int gap)
@@ -94,25 +100,74 @@ public:
 
         const float buttonSize = getHeight() - (2.0f * getHeight() / 5.0f);
 
+        const int maxButtons = m_buttons.size() + 1; 
+
+        int availableWidth = getWidth() - (2.0f * getHeight() / 5.0f);
+        int totalButtonWidth = 0;
+
         for (int i = 0; i < m_buttons.size(); ++i)
         {
-            juce::FlexItem::Margin margin;
-            if (i < m_buttons.size() - 1) {
-                int gap = m_buttonGaps[i];
-                margin.right = gap;
-            }
-
-            fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_buttons[i]).withMargin(margin));
+            totalButtonWidth += buttonSize + m_buttonGaps[i];
         }
 
-        fb.performLayout(getLocalBounds().reduced(getHeight() / 5.0f).toFloat());
+        if (totalButtonWidth > availableWidth)
+        {
+            removeAllChildren(); 
+
+            juce::DrawableButton* popupButton = new juce::DrawableButton("More...", juce::DrawableButton::ImageOnButtonBackground);
+            addAndMakeVisible(popupButton);
+            
+            juce::FlexItem::Margin margin;
+            margin.right = 5.0;
+
+            fb.items.add(juce::FlexItem(buttonSize, buttonSize, *popupButton).withMargin(margin));
+
+            fb.performLayout(getLocalBounds().reduced(getHeight() / 5.0f).toFloat());
+
+            juce::PopupMenu popupMenu;
+            for (int i = 0; i < m_buttons.size(); ++i)
+            {
+                popupMenu.addItem(i + 1, m_buttons[i]->getButtonText());
+            }
+
+            popupButton->onClick = [this, popupMenu]() mutable {
+                int result = popupMenu.show();
+                if (result > 0 && result <= m_buttons.size())
+                {
+                    m_buttons[result - 1]->triggerClick();
+                }
+            };
+        }
+        else 
+        {
+            removeAllChildren();
+            
+
+            for (int i = 0; i < m_buttons.size(); ++i)
+            {
+                addAndMakeVisible(*m_buttons[i]);
+                juce::FlexItem::Margin margin;
+                if (i < m_buttons.size() - 1) {
+                    int gap = m_buttonGaps[i];
+                    margin.right = gap;
+                }
+
+                fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_buttons[i]).withMargin(margin));
+            }
+
+            fb.performLayout(getLocalBounds().reduced(getHeight() / 5.0f).toFloat());
+        }
+    }
+
+    juce::Array<juce::DrawableButton*> getButtons()
+    {
+        return m_buttons;
     }
 
 private:
 
     Alignment m_alignment;
-    juce::OwnedArray<juce::DrawableButton> m_buttons;
-    juce::Array<int> m_buttonGaps; // Array für Lückenmaße
-
+    juce::Array<juce::DrawableButton*> m_buttons;
+    juce::Array<int> m_buttonGaps;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MenuBar)
 };

@@ -20,14 +20,15 @@
 #include "NextLookAndFeel.h"
 #include "Utilities.h"
 
-EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm)
+EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm, juce::ApplicationCommandManager& cm)
     : m_edit (e)
-  , m_editViewState (e, sm, avs)
-    , m_songEditor(m_editViewState, m_lowerRange)
+    , m_editViewState (e, sm, avs)
+    , m_songEditor(m_editViewState, m_lowerRange, m_toolBar)
+    , m_commandManager(cm)
     , m_trackListView(m_editViewState, m_lowerRange)
-  , m_scrollbar_v (true)
-  , m_scrollbar_h (false)
-  , m_autosaveThread(m_editViewState)
+    , m_scrollbar_v (true)
+    , m_scrollbar_h (false)
+    , m_autosaveThread(m_editViewState)
     , m_addFolderTrackBtn ("Add folder track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_addAudioTrackBtn("Add audio track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_addMidiTrackBtn ("Add midi track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -101,6 +102,7 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     //SongEditorTools 
 
     GUIHelpers::setDrawableOnButton(m_selectButton, BinaryData::select_icon_svg, juce::Colour(0xffffffff));
+    m_selectButton.setName("select");
     m_selectButton.addListener(this);
     m_selectButton.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
 
@@ -121,18 +123,17 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
     m_timeStretchButton.setTooltip(GUIHelpers::translate("apply time stretching to the selected clip", m_editViewState.m_applicationState));
 
     GUIHelpers::setDrawableOnButton(m_reverseClipButton, BinaryData::reverse_clip_svg, juce::Colour(0xffffffff));
-    m_reverseClipButton.addListener(this);
-    m_reverseClipButton.setTooltip(GUIHelpers::translate("reverse the playback of the selected clips", m_editViewState.m_applicationState));
+    m_reverseClipButton.setCommandToTrigger(&m_commandManager,KeyPressCommandIDs::reverseClip , true);
+
 
     GUIHelpers::setDrawableOnButton(m_deleteClipButton, BinaryData::delete_svg, juce::Colour(0xffffffff));
-    m_deleteClipButton.addListener(this);
-    m_deleteClipButton.setTooltip(GUIHelpers::translate("delete the selected clip", m_editViewState.m_applicationState));
+    m_deleteClipButton.setCommandToTrigger(&m_commandManager, KeyPressCommandIDs::deleteSelectedClips, true);
 
-    m_toolBar.addButton(&m_selectButton);
-    m_toolBar.addButton(&m_lassoSelectButton);
-    m_toolBar.addButton(&m_timeRangeSelectButton);
-    m_toolBar.addButton(&m_timeStretchButton);
-    m_toolBar.addButton(&m_splitClipButton);
+    m_toolBar.addButton(&m_selectButton, 1);
+    m_toolBar.addButton(&m_lassoSelectButton, 1);
+    m_toolBar.addButton(&m_timeRangeSelectButton, 1);
+    m_toolBar.addButton(&m_timeStretchButton, 1);
+    m_toolBar.addButton(&m_splitClipButton, 1);
     m_toolBar.addButton(&m_deleteClipButton);
     m_toolBar.addButton(&m_reverseClipButton);
 
@@ -156,8 +157,6 @@ EditComponent::~EditComponent()
     m_timeRangeSelectButton.removeListener(this);
     m_splitClipButton.removeListener(this);
     m_timeStretchButton.removeListener(this);
-    m_reverseClipButton.removeListener(this);
-    m_deleteClipButton.removeListener(this);
     m_autosaveThread.stopThread(5000);
     m_edit.state.removeListener (this);
 }
@@ -303,6 +302,26 @@ void EditComponent::buttonClicked(juce::Button* button)
     {
         m_trackListView.collapseTracks(false);
     }
+    else if (button == &m_selectButton)
+    {
+        m_songEditor.setTool(Tool::pointer);
+    }
+    else if (button == &m_lassoSelectButton)
+    {
+        m_songEditor.setTool(Tool::lasso);
+    }
+    else if (button == &m_timeRangeSelectButton)
+    {
+        m_songEditor.setTool(Tool::range);
+    }
+    else if (button == &m_splitClipButton)
+    {
+        m_songEditor.setTool(Tool::knife);
+    }
+    else if (button == &m_timeStretchButton)
+    {
+        m_songEditor.setTool(Tool::timestretch);
+    }
 }
 void EditComponent::timerCallback() 
 {
@@ -447,6 +466,110 @@ void EditComponent::buildTracks()
     m_trackListView.updateViews();
     m_playhead.toFront (false);
     resized();
+}
+
+void EditComponent::getAllCommands (juce::Array<juce::CommandID>& commands) 
+{
+    juce::Array<juce::CommandID> ids {
+
+            KeyPressCommandIDs::deleteSelectedClips,
+            KeyPressCommandIDs::duplicateSelectedClips,
+            KeyPressCommandIDs::selectAllClips,
+            KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack,
+            KeyPressCommandIDs::transposeClipUp,
+            KeyPressCommandIDs::transposeClipDown,
+            KeyPressCommandIDs::reverseClip,
+        };
+
+    commands.addArray(ids);
+}
+void EditComponent::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
+{
+    switch (commandID)
+    { 
+        case KeyPressCommandIDs::duplicateSelectedClips :
+            result.setInfo("Duplicate selected clips", "Duplicate selected clips", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode() , juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::deleteSelectedClips :
+            result.setInfo("Delete selected clips", "Delete selected clips", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
+            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::selectAllClips :
+            result.setInfo("select all Clips","select all Clips", "Song Editor", 0);
+
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("a").getKeyCode() , juce::ModifierKeys::commandModifier);
+            break;
+
+        case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack :
+            result.setInfo("render time range to new track","render time range on new track", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("r").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::transposeClipUp :
+            result.setInfo("transpose up", "transpose selected clips up 1 key", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::upKey, juce::ModifierKeys::commandModifier);
+            break;
+        case KeyPressCommandIDs::transposeClipDown :
+            result.setInfo("transpose Down", "transpose selected clips Down 1 key", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
+            break;  
+        case KeyPressCommandIDs::reverseClip :
+            result.setInfo("Reverse wave of clip","Reverse wave of clip", "Song Editor", 0);
+            result.addDefaultKeypress(juce::KeyPress::createFromDescription("b").getKeyCode(), juce::ModifierKeys::commandModifier);
+            break;
+        default:
+            break;
+        }
+
+}
+bool EditComponent::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
+{
+    GUIHelpers::log("SongEditorView perform commandID: ", info.commandID);
+
+    switch (info.commandID)
+    { 
+        //send NoteOn
+        case KeyPressCommandIDs::deleteSelectedClips:
+        {
+            GUIHelpers::log("deleteSelectedClips Outer");
+            if (m_songEditor.getTracksWithSelectedTimeRange().size() > 0)
+            {
+                GUIHelpers::log("deleteSelectedTimeRange");
+                m_songEditor.deleteSelectedTimeRange();
+            }
+            else 
+            {
+                GUIHelpers::log("deleteSelectedClips");
+                EngineHelpers::deleteSelectedClips (m_editViewState);
+            }
+            break;
+        }
+        case KeyPressCommandIDs::duplicateSelectedClips:
+            m_songEditor.duplicateSelectedClipsOrTimeRange();
+            break;
+        case KeyPressCommandIDs::selectAllClips:
+            EngineHelpers::selectAllClips(m_editViewState.m_selectionManager, m_editViewState.m_edit);
+            break;
+        case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack:
+            m_songEditor.renderSelectedTimeRangeToNewTrack();
+            break;
+        case KeyPressCommandIDs::transposeClipUp:
+            GUIHelpers::log("perform: transposeClipUp");
+            m_songEditor.transposeSelectedClips( + 1.f);
+            break;
+        case KeyPressCommandIDs::transposeClipDown:
+            m_songEditor.transposeSelectedClips( - 1.f);
+            break;
+        case KeyPressCommandIDs::reverseClip:
+            GUIHelpers::log("reverse!!!!");
+            m_songEditor.reverseSelectedClips();
+            break;
+        default:
+            return false;
+    }
+    return true;
 }
 
 LowerRangeComponent& EditComponent::lowerRange()

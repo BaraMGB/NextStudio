@@ -20,10 +20,11 @@
 #include "EditViewState.h"
 #include "LassoSelectionTool.h"
 #include "LowerRangeComponent.h"
+#include "MenuBar.h"
 #include "RecordingClipComponent.h"
 #include "Utilities.h"
 
-enum class Tool {pointer, draw, range, eraser, knife};
+enum class Tool {pointer, draw, range, eraser, knife, lasso, timestretch};
 
 struct SelectableAutomationPoint  : public te::Selectable
 {
@@ -37,12 +38,11 @@ struct SelectableAutomationPoint  : public te::Selectable
 };
 
 class SongEditorView : public juce::Component
-                     , public juce::ApplicationCommandTarget
                      , public juce::ChangeListener
                      , public juce::DragAndDropTarget
 {
 public:
-    SongEditorView(EditViewState& evs, LowerRangeComponent& lr);
+    SongEditorView(EditViewState& evs, LowerRangeComponent& lr, MenuBar& toolBar);
     ~SongEditorView() override;
 
   	void paint(juce::Graphics& g) override;
@@ -55,12 +55,6 @@ public:
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
-    ApplicationCommandTarget* getNextCommandTarget() override   { GUIHelpers::log("findFirstTargetParentComponent"); return findFirstTargetParentComponent(); }
-    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
-
-    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
-    
-    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
 
     bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override;
     void itemDragEnter (const SourceDetails& dragSourceDetails) override;
@@ -73,17 +67,25 @@ public:
     void updateLasso(const juce::MouseEvent& e);
     void stopLasso();
 
-    void duplicateSelectedClipsOrTimeRange();
-    void deleteSelectedTimeRange();
-    juce::Array<te::Track*> getTracksWithSelectedTimeRange();
-    tracktion::TimeRange getSelectedTimeRange();
-    juce::Array<te::Track::Ptr> getShowedTracks ();
 
     int getYForTrack (te::Track* track);
     int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
 
     void updateTrackHeights(EditViewState& evs);
+
+    void setTool (Tool tool) { m_toolMode = tool; }
+
+    juce::Array<te::Track::Ptr> getShowedTracks ();
+
+    void duplicateSelectedClipsOrTimeRange();
+    void deleteSelectedTimeRange();
+    void renderSelectedTimeRangeToNewTrack();
+    void transposeSelectedClips(float pitchChange);
+    void reverseSelectedClips();
+    juce::Array<te::Track*> getTracksWithSelectedTimeRange();
 private:
+
+    tracktion::TimeRange getSelectedTimeRange();
 
     struct CurvePoint
     {
@@ -152,8 +154,6 @@ private:
     tracktion_engine::MidiClip::Ptr createNewMidiClip(double beatPos, te::Track::Ptr track);
     void splitClipAt(int x, int y);
 
-    void reverseSelectedClips();
-    void transposeSelectedClips(float pitchChange);
     void setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLegth);
 
     std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
@@ -183,7 +183,6 @@ private:
         
     void buildRecordingClips(te::Track::Ptr track);
 
-    void renderSelectedTimeRangeToNewTrack();
 
     struct TrackHeightInfo
     {
@@ -208,6 +207,7 @@ private:
     //essentials
     EditViewState&                      m_editViewState;
     LowerRangeComponent&                m_lowerRange;
+    MenuBar&                            m_toolBar;
     LassoSelectionTool                  m_lassoComponent;
     juce::OwnedArray<ClipThumbNail>     m_thumbnails;
 
