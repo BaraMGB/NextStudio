@@ -25,7 +25,6 @@
 */
 
 #include "MainComponent.h"
-#include "Utilities.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
@@ -36,7 +35,6 @@ MainComponent::MainComponent(ApplicationViewState &state)
 
     openValidStartEdit();
 
-    addAndMakeVisible(m_editComponent->lowerRange());
     addAndMakeVisible (m_resizerBar);
 
     m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.15);
@@ -88,7 +86,7 @@ void MainComponent::resized()
               , area.getWidth()
               , area.getHeight()
               , false, true);
-    m_editComponent->lowerRange().setBounds(lowerRange);
+    m_lowerRange->setBounds(lowerRange);
 }
 
 bool MainComponent::keyStateChanged(bool isKeyDown)  
@@ -626,11 +624,9 @@ void MainComponent::setupEdit(juce::File editFile)
 
     te::EditFileOperations (*m_edit).writeToFile(editFile, true);
 
-    m_editComponent = std::make_unique<EditComponent> (
-                *m_edit
-              , m_applicationState
-              , m_selectionManager
-              , m_commandManager);
+    m_editViewState = std::make_unique<EditViewState> (*m_edit, m_selectionManager, m_applicationState);
+    m_lowerRange = std::make_unique<LowerRangeComponent>(*m_editViewState);
+    m_editComponent = std::make_unique<EditComponent> (*m_edit, m_applicationState, m_selectionManager, m_commandManager, *m_lowerRange);
 
     m_edit->state.addListener (this);
 
@@ -639,7 +635,7 @@ void MainComponent::setupEdit(juce::File editFile)
 
 
     addAndMakeVisible (*m_editComponent);
-    addAndMakeVisible(m_editComponent->lowerRange());
+    addAndMakeVisible(*m_lowerRange);
     addAndMakeVisible(*m_header);
 
     setupSideBrowser();

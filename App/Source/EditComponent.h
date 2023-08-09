@@ -71,7 +71,7 @@ class EditComponent : public  juce::Component
 public:
     EditComponent (te::Edit&
                    , ApplicationViewState & avs
-                 , te::SelectionManager&, juce::ApplicationCommandManager& cm);
+                 , te::SelectionManager&, juce::ApplicationCommandManager& cm, LowerRangeComponent& lr);
     ~EditComponent() override;
 
     void paint (juce::Graphics &g) override;
@@ -90,8 +90,6 @@ public:
     void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
     
     bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
-
-    LowerRangeComponent& lowerRange ();
 
     EditViewState& getEditViewState () { return m_editViewState; }
     void loopAroundSelection();
@@ -191,7 +189,7 @@ private:
                                               , m_editViewState
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2 };
-    LowerRangeComponent                     m_lowerRange { m_editViewState };
+    LowerRangeComponent&                    m_lowerRange;
 
 
 

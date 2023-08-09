@@ -139,7 +139,7 @@ void RackView::buttonClicked(juce::Button* button)
     }
 }
 
-void RackView::setTrack(te::Track::Ptr track)
+void RackView::setTrack(te::Track* track)
 {
     m_track = track;
     m_track->state.addListener(this);

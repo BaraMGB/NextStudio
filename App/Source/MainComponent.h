@@ -29,6 +29,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "HeaderComponent.h"
+#include "LowerRangeComponent.h"
 #include "NextLookAndFeel.h"
 #include "SideBarBrowser.h"
 #include "EditViewState.h"
@@ -85,7 +86,6 @@ private:
     
 
 
-    std::unique_ptr<HeaderComponent>                    m_header;
     NextLookAndFeel                                     m_nextLookAndFeel;
 
     tracktion_engine::Engine                            m_engine
@@ -96,9 +96,13 @@ private:
 
     tracktion_engine::SelectionManager                  m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit>             m_edit;
+    std::unique_ptr<EditViewState>                      m_editViewState;
+    std::unique_ptr<HeaderComponent>                    m_header;
     std::unique_ptr<EditComponent>                      m_editComponent;
-    ApplicationViewState &                              m_applicationState;
+    std::unique_ptr<LowerRangeComponent>                m_lowerRange;
     std::unique_ptr<SideBarBrowser>                     m_sideBarBrowser;
+
+    ApplicationViewState &                              m_applicationState;
     juce::StretchableLayoutManager                      m_stretchableManager;
     juce::StretchableLayoutResizerBar                   m_resizerBar
                                 {&m_stretchableManager, 1, true};

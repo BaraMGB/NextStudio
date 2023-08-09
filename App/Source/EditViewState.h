@@ -99,6 +99,7 @@ namespace IDs
     DECLARE_ID (syncAutomation)
     DECLARE_ID (needAutoSave)
     DECLARE_ID (snapToGrid)
+    DECLARE_ID (showLowerRange)
 
     
     #undef DECLARE_ID
@@ -323,6 +324,7 @@ public:
 
     juce::CachedValue<juce::String> m_editName
                                     , m_zoomMode;
+
     juce::ValueTree m_state;
     bool m_isSavingLocked {false}, m_needAutoSave {false};
     ApplicationViewState& m_applicationState;

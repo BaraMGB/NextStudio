@@ -20,9 +20,10 @@
 #include "NextLookAndFeel.h"
 #include "Utilities.h"
 
-EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm, juce::ApplicationCommandManager& cm)
+EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm, juce::ApplicationCommandManager& cm, LowerRangeComponent& lr)
     : m_edit (e)
     , m_editViewState (e, sm, avs)
+    , m_lowerRange(lr)
     , m_songEditor(m_editViewState, m_lowerRange, m_toolBar)
     , m_commandManager(cm)
     , m_trackListView(m_editViewState, m_lowerRange)
@@ -572,10 +573,6 @@ bool EditComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
     return true;
 }
 
-LowerRangeComponent& EditComponent::lowerRange()
-{
-    return m_lowerRange;
-}
 juce::Rectangle<int> EditComponent::getToolBarRect()
 {
     auto rect = getEditorHeaderRect();

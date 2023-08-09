@@ -18,6 +18,7 @@
 
 #include "TrackHeadComponent.h"
 #include "EditComponent.h"
+#include "EditViewState.h"
 #include "Utilities.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
 	: m_automatableParameter(ap)
@@ -696,9 +697,14 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 updateMidiInputs ();
                 if (event.getNumberOfClicks () > 1 || !m_editViewState.m_isPianoRollVisible)
                 {
-                    if (auto tl = dynamic_cast<TrackListView*>(getParentComponent()))
+                    m_editViewState.m_isPianoRollVisible = false;
+                    for (auto t : te::getAllTracks(m_editViewState.m_edit)) 
                     {
-                        tl->getLowerRange().showRackView(getTrack());
+                        t->state.setProperty(IDs::showLowerRange, false, nullptr);
+                        if (t == m_track.get())
+                        { 
+                            t->state.setProperty(IDs::showLowerRange, true, nullptr);
+                        }
                     }
                 }
             }

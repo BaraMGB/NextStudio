@@ -58,6 +58,7 @@ class TrackHeaderComponent : public juce::Component
                            , private FlaggedAsyncUpdater
                            , public juce::DragAndDropTarget
                            , public juce::Label::Listener
+                           , public juce::ChangeBroadcaster
 {
 public:
     TrackHeaderComponent (EditViewState&, te::Track::Ptr);

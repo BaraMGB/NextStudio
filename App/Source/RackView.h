@@ -44,7 +44,7 @@ public:
     void resized() override;
     void buttonClicked(juce::Button* button) override;
 
-    void setTrack(te::Track::Ptr track);
+    void setTrack(te::Track* track);
     void clearTrack();
     juce::String getCurrentTrackID();
 
@@ -67,7 +67,7 @@ private:
     void rebuildView();
 
     EditViewState& m_evs;
-    te::Track::Ptr m_track;
+    te::Track* m_track;
     juce::Label m_nameLabel;
     juce::String m_trackID{""};
 
@@ -86,7 +86,7 @@ class AddButton : public juce::TextButton
                 , public juce::DragAndDropTarget
 {
 public:
-    AddButton(te::Track::Ptr track) : m_track(track) {}
+    AddButton(te::Track* track) : m_track(track) {}
     inline bool isInterestedInDragSource (const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override
     {
@@ -177,7 +177,7 @@ public:
     te::Plugin::Ptr plugin {nullptr};
 private:
     bool isOver {false};
-    te::Track::Ptr m_track;
+    te::Track* m_track;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AddButton)
 };
 

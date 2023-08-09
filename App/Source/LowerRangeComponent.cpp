@@ -17,7 +17,6 @@
  */
 
 #include "LowerRangeComponent.h"
-#include <algorithm>
 
 
 SplitterComponent::SplitterComponent(EditViewState &evs) : m_editViewState(evs)
@@ -168,35 +167,28 @@ void LowerRangeComponent::resized()
             m_pianoRollEditor.setBounds (area);
         }
 }
-void LowerRangeComponent::showRackView(const te::Track::Ptr track)
-{
-    m_pianoRollEditor.setVisible (false);
-    m_pianoRollEditor.clearTrack();
-    m_evs.m_isPianoRollVisible = false;
-
-    m_rackView.setTrack(track);
-    m_rackView.setVisible(true);
-
-    resized();
-    repaint();
-}
-
-void LowerRangeComponent::showPianoRoll(const tracktion_engine::Track::Ptr track)
-{
-    if (track->state.getProperty (IDs::isMidiTrack))
-    {
-        m_rackView.setVisible (false);
-        m_pianoRollEditor.setVisible (true);
-        m_pianoRollEditor.setTrack (track);
-        m_evs.m_isPianoRollVisible = true;
-        resized();
-        repaint();
-    }
-
-}
 
 void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
+        if (v.hasType(te::IDs::TRACK) )
+        {
+            auto track = te::findTrackForState (m_evs.m_edit, v);
+            if ( (bool) v.getProperty(IDs::showLowerRange) == true)
+            {
+                if (m_evs.m_isPianoRollVisible)
+                {
+                    m_rackView.setVisible(false);
+                    m_pianoRollEditor.setTrack(track);
+                    m_pianoRollEditor.setVisible(true);
+                }
+                else
+                {
+                    m_pianoRollEditor.setVisible(false);
+                    m_rackView.setTrack(track);
+                    m_rackView.setVisible(true);
+                }
+            }
+        }
         if (v.hasType (tracktion_engine::IDs::MIDICLIP))
         {
             resized ();

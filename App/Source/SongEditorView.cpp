@@ -17,11 +17,6 @@
  */
 
 #include "SongEditorView.h"
-#include "BinaryData.h"
-#include "EditViewState.h"
-#include "MenuBar.h"
-#include "Utilities.h"
-#include <ostream>
 
 
 SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr, MenuBar& toolBar)
@@ -399,7 +394,17 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
         clearSelectedTimeRange();
 
         if (e.getNumberOfClicks() > 1 || m_editViewState.m_isPianoRollVisible)
-            m_lowerRange.showPianoRoll(m_hoveredClip->getTrack());
+        {
+            m_editViewState.m_isPianoRollVisible = true;
+
+            for (auto t : te::getAllTracks(m_editViewState.m_edit)) 
+            {
+                t->state.setProperty(IDs::showLowerRange, false, nullptr);
+
+                if (t == m_hoveredTrack.get())
+                    t->state.setProperty(IDs::showLowerRange, true, nullptr);
+            }
+        }
 
         if (!sm.isSelected(m_hoveredClip))
             sm.selectOnly(m_hoveredClip);
