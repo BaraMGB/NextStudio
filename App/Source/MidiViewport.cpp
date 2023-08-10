@@ -192,15 +192,15 @@ void MidiViewport::drawClipRange(
 {
     auto clipStartX = beatsToX(midiClip->getStartBeat().inBeats());
     auto clipEndX = juce::jmax(clipStartX, beatsToX(midiClip->getEndBeat().inBeats()));
-    auto clipColour = midiClip->getColour();
+    auto clipColour = midiClip->getTrack()->getColour();
 
-    g.setColour(clipColour.brighter(0.7f));
+    g.setColour(clipColour);
     g.drawVerticalLine(clipStartX, 0, static_cast<float> (getHeight()));
     g.drawVerticalLine(clipEndX, 0, static_cast<float> (getHeight()));
     g.setColour(juce::Colour(0x20ffffff));
-    g.fillRect(clipStartX, 0, clipEndX - clipStartX, getHeight());
+    g.fillRect(clipStartX + 1, 0, clipEndX - clipStartX - 2, getHeight());
     g.setColour(midiClip->getColour().withAlpha(0.1f));
-    g.fillRect(clipStartX, 0, clipEndX - clipStartX, getHeight());
+    g.fillRect(clipStartX + 1, 0, clipEndX - clipStartX - 2, getHeight());
 }
 void MidiViewport::drawKeyLines(juce::Graphics& g) const
 {

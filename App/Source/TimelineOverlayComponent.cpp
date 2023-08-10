@@ -39,9 +39,6 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
     updateClipRects ();
     for (auto cr : m_clipRects)
     {
-        g.setColour(juce::Colours::black);
-        GUIHelpers::drawRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
-        cr.reduce(1, 1);
         g.setColour(colour);
         GUIHelpers::drawRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
     }
