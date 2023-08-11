@@ -19,9 +19,8 @@
 #include "SongEditorView.h"
 
 
-SongEditorView::SongEditorView(EditViewState& evs, LowerRangeComponent& lr, MenuBar& toolBar)
+SongEditorView::SongEditorView(EditViewState& evs, MenuBar& toolBar)
         : m_editViewState(evs)
-        , m_lowerRange(lr)
         , m_toolBar(toolBar)
         , m_lassoComponent(evs, evs.m_viewX1, evs.m_viewX2)
 {		

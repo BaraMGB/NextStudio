@@ -43,7 +43,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_commandManager.registerAllCommandsForTarget(this);
     m_commandManager.registerAllCommandsForTarget(m_editComponent.get());
     m_commandManager.registerAllCommandsForTarget(&m_editComponent->getTrackListView());
-    m_commandManager.registerAllCommandsForTarget(&m_editComponent->getPianoRollEditor());
+    m_commandManager.registerAllCommandsForTarget(&m_lowerRange->getPianoRollEditor());
 }
 
 MainComponent::~MainComponent()
@@ -602,6 +602,7 @@ void MainComponent::setupEdit(juce::File editFile)
             return;
     }
 
+    m_lowerRange = nullptr;
     m_selectionManager.deselectAll();
     m_editComponent = nullptr;
 
@@ -625,8 +626,8 @@ void MainComponent::setupEdit(juce::File editFile)
     te::EditFileOperations (*m_edit).writeToFile(editFile, true);
 
     m_editViewState = std::make_unique<EditViewState> (*m_edit, m_selectionManager, m_applicationState);
+    m_editComponent = std::make_unique<EditComponent> (*m_edit, *m_editViewState, m_applicationState, m_selectionManager, m_commandManager);
     m_lowerRange = std::make_unique<LowerRangeComponent>(*m_editViewState);
-    m_editComponent = std::make_unique<EditComponent> (*m_edit, m_applicationState, m_selectionManager, m_commandManager, *m_lowerRange);
 
     m_edit->state.addListener (this);
 

@@ -36,7 +36,7 @@ RackView::~RackView()
         b->removeListener(this);
     }
 
-    if (m_track != nullptr)
+    if (m_track)
         m_track->state.removeListener(this);
 }
 
@@ -57,7 +57,6 @@ void RackView::paint (juce::Graphics& g)
     }
     else
     {  
-
         auto trackCol = m_track->getColour();
         auto cornerSize = 10.0f;
         auto labelingCol = trackCol.getBrightness() > 0.8f
@@ -139,7 +138,7 @@ void RackView::buttonClicked(juce::Button* button)
     }
 }
 
-void RackView::setTrack(te::Track* track)
+void RackView::setTrack(te::Track::Ptr track)
 {
     m_track = track;
     m_track->state.addListener(this);
@@ -202,18 +201,20 @@ void RackView::rebuildView()
 
     if (m_track != nullptr)
     {
-        for (auto plugin : m_track->pluginList)
+        if (m_track->pluginList.begin() != nullptr)
         {
-            //don't show the default volume and levelmeter plugin
-            if (m_track->pluginList.indexOf(plugin)  < m_track->pluginList.size() - 2 )
+            for (auto plugin : m_track->pluginList)
             {
-                auto p = new RackItemView (m_evs, plugin);
-                addAndMakeVisible (p);
-                m_rackItems.add (p);
+                //don't show the default volume and levelmeter plugin
+                if (m_track->pluginList.indexOf(plugin)  < m_track->pluginList.size() - 2 )
+                {
+                    auto p = new RackItemView (m_evs, plugin);
+                    addAndMakeVisible (p);
+                    m_rackItems.add (p);
+                }
             }
         }
     }
-    GUIHelpers::log("plugins changed");
     resized();
 }
 

@@ -21,8 +21,6 @@
 //
 
 #include "TrackListView.h"
-#include "Utilities.h"
-#include <algorithm>
 
 int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
 {

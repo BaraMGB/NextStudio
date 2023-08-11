@@ -29,9 +29,8 @@ class TrackListView  : public juce::Component
                      , public juce::ApplicationCommandTarget
 {
 public:
-    TrackListView(EditViewState& evs, LowerRangeComponent& lr)
+    TrackListView(EditViewState& evs)
         : m_editViewState (evs)
-        , m_lowerRange(lr)
     {
         m_editViewState.m_selectionManager.addChangeListener(this);
         setWantsKeyboardFocus(true);
@@ -63,10 +62,6 @@ public:
     void updateViews();
 
     void clear();
-    LowerRangeComponent& getLowerRange()
-    {
-        return m_lowerRange;
-    }
 
     void collapseTracks(bool minimize);
 
@@ -77,7 +72,6 @@ private:
     te::AudioTrack::Ptr addTrack(bool isMidiTrack, bool isFolderTrack, juce::Colour trackColour);
 
     EditViewState& m_editViewState;
-    LowerRangeComponent& m_lowerRange;
     juce::OwnedArray<TrackHeaderComponent> m_trackHeaders;
     const int getPopupResult();
     TrackHeaderComponent* getTrackHeaderView(tracktion_engine::Track::Ptr track);

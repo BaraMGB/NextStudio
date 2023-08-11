@@ -170,24 +170,30 @@ void LowerRangeComponent::resized()
 
 void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
-        if (v.hasType(te::IDs::TRACK) )
+        if (v.hasType(te::IDs::TRACK) || v.hasType(te::IDs::FOLDERTRACK))
         {
-            auto track = te::findTrackForState (m_evs.m_edit, v);
-            if ( (bool) v.getProperty(IDs::showLowerRange) == true)
+            GUIHelpers::log("LowerRangeComponent valueTreePropertyChanged --------------- ");
+            if (auto track = te::findTrackForState (m_evs.m_edit, v))
             {
-                if (m_evs.m_isPianoRollVisible)
+                GUIHelpers::log("LowerRangeComponent valueTreePropertyChanged ", track->getName());
+                if ( (bool) v.getProperty(IDs::showLowerRange) == true)
                 {
-                    m_rackView.setVisible(false);
-                    m_pianoRollEditor.setTrack(track);
-                    m_pianoRollEditor.setVisible(true);
-                }
-                else
-                {
-                    m_pianoRollEditor.setVisible(false);
-                    m_rackView.setTrack(track);
-                    m_rackView.setVisible(true);
+                    if (m_evs.m_isPianoRollVisible)
+                    {
+                        m_rackView.setVisible(false);
+                        m_pianoRollEditor.setTrack(track);
+                        m_pianoRollEditor.setVisible(true);
+                    }
+                    else
+                    {
+                        m_pianoRollEditor.setVisible(false);
+                        m_rackView.setTrack(track);
+                        m_rackView.setVisible(true);
+                        m_rackView.repaint();
+                    }
                 }
             }
+            
         }
         if (v.hasType (tracktion_engine::IDs::MIDICLIP))
         {

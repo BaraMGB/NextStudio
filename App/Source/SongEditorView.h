@@ -42,7 +42,7 @@ class SongEditorView : public juce::Component
                      , public juce::DragAndDropTarget
 {
 public:
-    SongEditorView(EditViewState& evs, LowerRangeComponent& lr, MenuBar& toolBar);
+    SongEditorView(EditViewState& evs, MenuBar& toolBar);
     ~SongEditorView() override;
 
   	void paint(juce::Graphics& g) override;
@@ -206,7 +206,6 @@ private:
     juce::OwnedArray<RecordingClipComponent>  m_recordingClips;
     //essentials
     EditViewState&                      m_editViewState;
-    LowerRangeComponent&                m_lowerRange;
     MenuBar&                            m_toolBar;
     LassoSelectionTool                  m_lassoComponent;
     juce::OwnedArray<ClipThumbNail>     m_thumbnails;

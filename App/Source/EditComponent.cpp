@@ -17,16 +17,14 @@
  */
 
 #include "EditComponent.h"
-#include "NextLookAndFeel.h"
 #include "Utilities.h"
 
-EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::SelectionManager& sm, juce::ApplicationCommandManager& cm, LowerRangeComponent& lr)
+EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewState& avs, te::SelectionManager& sm, juce::ApplicationCommandManager& cm)
     : m_edit (e)
-    , m_editViewState (e, sm, avs)
-    , m_lowerRange(lr)
-    , m_songEditor(m_editViewState, m_lowerRange, m_toolBar)
+    , m_editViewState (evs)
+    , m_songEditor(m_editViewState, m_toolBar)
     , m_commandManager(cm)
-    , m_trackListView(m_editViewState, m_lowerRange)
+    , m_trackListView(m_editViewState)
     , m_scrollbar_v (true)
     , m_scrollbar_h (false)
     , m_autosaveThread(m_editViewState)
@@ -150,15 +148,19 @@ EditComponent::EditComponent (te::Edit& e, ApplicationViewState& avs, te::Select
 
 EditComponent::~EditComponent()
 {
-    m_addAudioTrackBtn.removeListener(this);
-    m_addMidiTrackBtn.removeListener(this);
-    m_addFolderTrackBtn.removeListener(this);
-    m_selectButton.removeListener(this);
-    m_lassoSelectButton.removeListener(this);
-    m_timeRangeSelectButton.removeListener(this);
-    m_splitClipButton.removeListener(this);
-    m_timeStretchButton.removeListener(this);
     m_autosaveThread.stopThread(5000);
+    m_timeStretchButton.removeListener(this);
+    m_splitClipButton.removeListener(this);
+    m_timeRangeSelectButton.removeListener(this);
+    m_lassoSelectButton.removeListener(this);
+    m_selectButton.removeListener(this);
+    m_collapseAllBtn.removeListener(this);
+    m_expandAllBtn.removeListener(this);
+    m_addFolderTrackBtn.removeListener(this);
+    m_addMidiTrackBtn.removeListener(this);
+    m_addAudioTrackBtn.removeListener(this);
+    m_scrollbar_h.removeListener(this);
+    m_scrollbar_v.removeListener(this);
     m_edit.state.removeListener (this);
 }
 
@@ -576,7 +578,7 @@ bool EditComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
 juce::Rectangle<int> EditComponent::getToolBarRect()
 {
     auto rect = getEditorHeaderRect();
-    rect.removeFromLeft(getTrackListView().getWidth());
+    rect.reduce(rect.getWidth()/3, 0);
     return rect;
 }
 juce::Rectangle<int> EditComponent::getEditorHeaderRect()

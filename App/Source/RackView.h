@@ -44,7 +44,7 @@ public:
     void resized() override;
     void buttonClicked(juce::Button* button) override;
 
-    void setTrack(te::Track* track);
+    void setTrack(te::Track::Ptr track);
     void clearTrack();
     juce::String getCurrentTrackID();
 
@@ -67,7 +67,7 @@ private:
     void rebuildView();
 
     EditViewState& m_evs;
-    te::Track* m_track;
+    te::Track::Ptr m_track;
     juce::Label m_nameLabel;
     juce::String m_trackID{""};
 

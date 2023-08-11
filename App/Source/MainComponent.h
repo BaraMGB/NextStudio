@@ -97,8 +97,8 @@ private:
     tracktion_engine::SelectionManager                  m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit>             m_edit;
     std::unique_ptr<EditViewState>                      m_editViewState;
-    std::unique_ptr<HeaderComponent>                    m_header;
     std::unique_ptr<EditComponent>                      m_editComponent;
+    std::unique_ptr<HeaderComponent>                    m_header;
     std::unique_ptr<LowerRangeComponent>                m_lowerRange;
     std::unique_ptr<SideBarBrowser>                     m_sideBarBrowser;
 

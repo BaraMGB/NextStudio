@@ -300,8 +300,10 @@ TrackHeaderComponent::TrackHeaderComponent (
 
 TrackHeaderComponent::~TrackHeaderComponent()
 {
-    m_trackName.removeListener (this);
+    inputsState = m_track->edit.state.getChildWithName (te::IDs::INPUTDEVICES);
+    inputsState.removeListener (this);
     m_track->state.removeListener (this);
+    m_trackName.removeListener (this);
 }
 
 void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i)
@@ -686,7 +688,7 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 }
                 else if (event.getNumberOfClicks () > 1)
                 {
-                    m_trackName.showEditor ();
+                    // m_trackName.showEditor ();
                 }
                 else
                 {
@@ -695,10 +697,11 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 }
 
                 updateMidiInputs ();
+
                 if (event.getNumberOfClicks () > 1 || !m_editViewState.m_isPianoRollVisible)
                 {
                     m_editViewState.m_isPianoRollVisible = false;
-                    for (auto t : te::getAllTracks(m_editViewState.m_edit)) 
+                    for (auto t : te::getAllTracks(m_editViewState.m_edit))
                     {
                         t->state.setProperty(IDs::showLowerRange, false, nullptr);
                         if (t == m_track.get())

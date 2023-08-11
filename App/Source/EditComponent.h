@@ -69,9 +69,9 @@ class EditComponent : public  juce::Component
                     , public juce::Button::Listener
 {
 public:
-    EditComponent (te::Edit&
+    EditComponent (te::Edit&, EditViewState & m_editViewState
                    , ApplicationViewState & avs
-                 , te::SelectionManager&, juce::ApplicationCommandManager& cm, LowerRangeComponent& lr);
+                 , te::SelectionManager&, juce::ApplicationCommandManager& cm);
     ~EditComponent() override;
 
     void paint (juce::Graphics &g) override;
@@ -95,7 +95,6 @@ public:
     void loopAroundSelection();
     SongEditorView& getSongEditor() {return m_songEditor;}
     TrackListView& getTrackListView() {return m_trackListView;}
-    PianoRollEditor& getPianoRollEditor() {return m_lowerRange.getPianoRollEditor();}
 
 private:
 
@@ -120,7 +119,6 @@ private:
         EditViewState& m_evs;
     };
 
-    AutoSaveThread m_autosaveThread;
     void timerCallback() override;
     void valueTreeChanged () override {}
     void valueTreePropertyChanged (juce::ValueTree&
@@ -152,11 +150,11 @@ private:
     int                  getSongHeight();
 
     te::Edit&                               m_edit;
-    EditViewState                           m_editViewState;
-
+    EditViewState&                          m_editViewState;
     SongEditorView                          m_songEditor;
     juce::ApplicationCommandManager&        m_commandManager;
     TrackListView                           m_trackListView;
+    AutoSaveThread                          m_autosaveThread;
     TimeLineComponent                       m_timeLine {
                                                 m_editViewState
                                               , m_editViewState.m_viewX1
@@ -189,7 +187,6 @@ private:
                                               , m_editViewState
                                               , m_editViewState.m_viewX1
                                               , m_editViewState.m_viewX2 };
-    LowerRangeComponent&                    m_lowerRange;
 
 
 
