@@ -142,6 +142,7 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     m_editViewState.m_selectionManager.selectOnly (
                 te::getAllTracks (m_edit).getLast ());
 
+    markAndUpdate(m_updateSongEditor);
     updateHorizontalScrollBar();
     startTimer (static_cast<int>(m_editViewState.m_applicationState.m_autoSaveInterval));
 }
