@@ -30,7 +30,6 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-namespace te = tracktion_engine;
 
 enum class Alignment
 {

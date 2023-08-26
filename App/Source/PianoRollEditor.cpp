@@ -22,8 +22,14 @@
 
 PianoRollEditor::PianoRollEditor(EditViewState & evs)
     : m_editViewState(evs)
+    , m_toolBar(Alignment::Center)
     , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
     , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
+    , m_selectionBtn ("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_drawBtn ("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_rangeSelectBtn ("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_erasorBtn ("erasor mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_splitBtn ("split mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     setWantsKeyboardFocus(true);
     evs.m_edit.state.addListener (this);
@@ -31,9 +37,46 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
     addAndMakeVisible (m_timeline);
     addAndMakeVisible (m_playhead);
     m_playhead.setAlwaysOnTop (true);
+
+    GUIHelpers::setDrawableOnButton(m_selectionBtn, BinaryData::select_icon_svg, juce::Colour(0xffffffff));
+    m_selectionBtn.setName("select");
+    m_selectionBtn.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
+    m_selectionBtn.addListener(this);
+
+    GUIHelpers::setDrawableOnButton(m_drawBtn, BinaryData::pencil_svg, juce::Colour(0xffffffff));
+    m_drawBtn.setName("draw");
+    m_drawBtn.setTooltip(GUIHelpers::translate("draw mode", m_editViewState.m_applicationState));
+    m_drawBtn.addListener(this);
+
+    GUIHelpers::setDrawableOnButton(m_rangeSelectBtn, BinaryData::select_timerange_svg, juce::Colour(0xffffffff));
+    m_rangeSelectBtn.setName("range select");
+    m_rangeSelectBtn.setTooltip(GUIHelpers::translate("range select mode", m_editViewState.m_applicationState));
+    m_rangeSelectBtn.addListener(this);
+
+    GUIHelpers::setDrawableOnButton(m_erasorBtn, BinaryData::rubber_svg, juce::Colour(0xffffffff));
+    m_erasorBtn.setName("erasor");
+    m_erasorBtn.setTooltip(GUIHelpers::translate("erasor mode", m_editViewState.m_applicationState));
+    m_erasorBtn.addListener(this);
+
+    GUIHelpers::setDrawableOnButton(m_splitBtn, BinaryData::split_svg, juce::Colour(0xffffffff));
+    m_splitBtn.setName("split");
+    m_splitBtn.setTooltip(GUIHelpers::translate("split clips", m_editViewState.m_applicationState));
+    m_splitBtn.addListener(this);
+
+    addAndMakeVisible(m_toolBar);
+    m_toolBar.addButton(&m_selectionBtn, 1);
+    m_toolBar.addButton(&m_drawBtn, 1);
+    m_toolBar.addButton(&m_rangeSelectBtn, 1);
+    m_toolBar.addButton(&m_erasorBtn, 1);
+    m_toolBar.addButton(&m_splitBtn, 1);
 }
 PianoRollEditor::~PianoRollEditor()
 {
+    m_splitBtn.removeListener(this);
+    m_erasorBtn.removeListener(this);
+    m_rangeSelectBtn.removeListener(this);
+    m_drawBtn.removeListener(this);
+    m_selectionBtn.removeListener(this);
     m_editViewState.m_edit.state.removeListener (this);
 }
 void PianoRollEditor::paint(juce::Graphics& g)
@@ -95,6 +138,9 @@ void PianoRollEditor::resized()
     auto keyboard = getKeyboardRect();
     auto timeline = getTimeLineRect();
     auto playhead = getPlayHeadRect();
+    auto toolbar = getToolBarRect();
+
+    m_toolBar.setBounds(toolbar);
 
     if (m_keyboard != nullptr)
         m_keyboard->setBounds (keyboard);
@@ -203,7 +249,6 @@ void PianoRollEditor::getCommandInfo (juce::CommandID commandID, juce::Applicati
 bool PianoRollEditor::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
 {
 
-    GUIHelpers::log("PianoRollEditor perform");
     switch (info.commandID)
     { 
         case KeyPressCommandIDs::deleteSelectedNotes:
@@ -267,6 +312,34 @@ bool PianoRollEditor::perform (const juce::ApplicationCommandTarget::InvocationI
     return true;
 }
 
+void PianoRollEditor::buttonClicked(juce::Button* button) 
+{
+    if (m_pianoRollViewPort == nullptr)
+        return;
+
+    if (button == &m_selectionBtn)
+    {
+
+        m_pianoRollViewPort->setToolMode(Tool::pointer);
+    }
+    if (button == &m_drawBtn)
+    {
+        m_pianoRollViewPort->setToolMode(Tool::draw);
+    }
+    if (button == &m_rangeSelectBtn)
+    {
+        m_pianoRollViewPort->setToolMode(Tool::range);
+    }
+    if (button == &m_erasorBtn)
+    {
+        m_pianoRollViewPort->setToolMode(Tool::eraser);
+    }
+    if (button == &m_splitBtn)
+    {
+        m_pianoRollViewPort->setToolMode(Tool::knife);
+    }
+    
+}
 
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {
@@ -350,6 +423,14 @@ juce::Rectangle<int> PianoRollEditor::getHeaderRect()
 {
     auto area = getLocalBounds();
     return area.removeFromTop(m_editViewState.m_timeLineHeight);
+}
+juce::Rectangle<int> PianoRollEditor::getToolBarRect()
+{
+    auto area = getLocalBounds();
+    area = area.removeFromTop(m_editViewState.m_timeLineHeight);
+    area.reduce(area.getWidth() / 3, 0) ;
+
+    return area;
 }
 juce::Rectangle<int> PianoRollEditor::getTimeLineRect()
 {

@@ -20,6 +20,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "MenuBar.h"
 #include "TimeLineComponent.h"
 #include "TimelineOverlayComponent.h"
 #include "PlayHeadComponent.h"
@@ -32,6 +33,7 @@ class PianoRollEditor
     , private te::ValueTreeAllEventListener
     , private FlaggedAsyncUpdater
     , public juce::ApplicationCommandTarget
+    , public juce::Button::Listener
 {
 public:
     explicit PianoRollEditor(EditViewState&);
@@ -45,10 +47,10 @@ public:
     
     ApplicationCommandTarget* getNextCommandTarget() override   { return findFirstTargetParentComponent(); }
     void getAllCommands (juce::Array<juce::CommandID>& commands) override;
-
     void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
-    
     bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
+
+    void buttonClicked(juce::Button* button) override;
 
     void setTrack(tracktion_engine::Track::Ptr track);
     void clearTrack();
@@ -72,6 +74,14 @@ private:
     std::unique_ptr<VelocityEditor> m_velocityEditor{nullptr};
     std::unique_ptr<KeyboardView> m_keyboard;
     PlayheadComponent m_playhead;
+    MenuBar m_toolBar;
+
+    juce::DrawableButton    m_selectionBtn,
+                            m_drawBtn,
+                            m_rangeSelectBtn,
+                            m_erasorBtn,
+                            m_splitBtn;
+
     juce::String m_NoteDescUnderCursor;
     void handleAsyncUpdate() override;
 
@@ -82,6 +92,7 @@ private:
         , m_updateTracks{false};
 
     juce::Rectangle<int> getHeaderRect();
+    juce::Rectangle<int> getToolBarRect();
     juce::Rectangle<int> getTimeLineRect();
     juce::Rectangle<int> getTimelineHelperRect();
     juce::Rectangle<int> getKeyboardRect();

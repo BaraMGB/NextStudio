@@ -21,6 +21,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "LassoSelectionTool.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 class MidiViewport : public juce::Component
@@ -33,15 +34,13 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
+
+    void mouseMove (const juce::MouseEvent &) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent &) override;
-    void mouseMove (const juce::MouseEvent &) override;
-    void mouseExit (const juce::MouseEvent &) override;
     void mouseUp (const juce::MouseEvent &) override;
+    void mouseExit (const juce::MouseEvent &) override;
     void mouseWheelMove (const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
-
-    // bool keyPressed(const juce::KeyPress &key) override;
-
 
     void timerCallback() override;
 
@@ -58,6 +57,9 @@ public:
     te::SelectedMidiEvents& getSelectedEvents() { return *m_selectedEvents;}
 
     [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
+
+    void setToolMode (Tool mode){ m_toolMode = mode; }
+    Tool getToolMode () { return m_toolMode; }
 
 private:
 
@@ -79,18 +81,20 @@ private:
     juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, tracktion_engine::MidiNote* n);
 
     void                   insertNote(te::MidiNote* note, te::MidiClip* clip);
-    te::MidiNote*          addNewNote(int noteNumb, const te::MidiClip* clip, double beat);
+    te::MidiNote*          addNewNote(int noteNumb, const te::MidiClip* clip, double beat, double length=-1);
 
     te::MidiClip*          getMidiClipAt(int x);
     te::MidiClip*          getNearestClipAfter(int x);
     te::MidiClip*          getNearestClipBefore(int x);
 
     double                 getKeyForY(int y);
+    int                    getYForKey(double key);
     te::MidiNote*          getNoteByPos(juce::Point<float> pos);
     juce::Array<te::MidiNote*>
                            getNotesInRange(juce::Range<double> beatRange, const te::MidiClip* clip);
     void                   cleanUnderNote(int noteNumb, juce::Range<double> beatRange, const te::MidiClip* clip);
     void                   removeNote(te::MidiClip* clip, te::MidiNote* note);
+    void                   splitNoteAt(te::MidiClip* clip, te::MidiNote* note, double time);
     static float           getVelocity(const tracktion_engine::MidiNote* note);
 
     void                   playGuideNote(const te::MidiClip* clip,const int noteNumb, int vel= 100);
@@ -117,17 +121,21 @@ private:
     juce::Range<double>    getLassoVerticalKeyRange();
     bool                   isInLassoRange(const te::MidiClip* clip, const tracktion_engine::MidiNote* midiNote);
 
+    juce::Array<te::MidiNote*> getSelectedNotes();
     void                   setNoteSelected(te::MidiNote* n, bool addToSelection);
     bool                   isSelected(tracktion_engine::MidiNote* note);
     void                   unselectAll();
     bool                   areNotesDragged() const;
 
-    int                    getYForKey(double key);
-
+    bool                   isHovered(te::MidiNote* note);
+    void                   setHovered(te::MidiNote* note, bool hovered);
     void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, juce::Array<std::pair<te::MidiNote*, te::MidiClip*>>& temp, bool copy=false);
+
     void                   cleanUpFlags();
-    juce::Array<te::MidiNote*>
-                           getSelectedNotes();
+
+
+    juce::MouseCursor getRecommendedMouseCursor();
+    Tool                                        m_toolMode {Tool::pointer};
 
     EditViewState&                              m_evs;
     te::Track::Ptr                              m_track;
@@ -138,6 +146,8 @@ private:
     te::MidiClip*                               m_clickedClip{nullptr};
     double                                      m_draggedTimeDelta {0.0};
     int                                         m_draggedNoteDelta {0};
+
+    double                                      m_hoveredTime;
 
     double                                      m_leftTimeDelta{0.0};
     double                                      m_rightTimeDelta{0.0};

@@ -17,6 +17,7 @@
  */
 
 #include "MidiViewport.h"
+#include "EditViewState.h"
 #include "Utilities.h"
 
 MidiViewport::MidiViewport(
@@ -92,6 +93,13 @@ void MidiViewport::drawNote(juce::Graphics& g,
         g.drawRect(visibleRect .expanded(2, 2));
     }
 
+    if (isHovered(n) && m_toolMode == Tool::knife)
+    {
+        auto time = m_snap ? m_hoveredTime : getSnapedTime(m_hoveredTime);
+        g.setColour(juce::Colours::white);
+        g.drawVerticalLine(timeToX(time), visibleRect.getY(), visibleRect.getBottom());
+    }
+
     noteRect.reduce(2, 2);
     g.setColour(borderColour);
     drawKeyNum(g, n, noteRect);
@@ -144,7 +152,7 @@ juce::Colour MidiViewport::getNoteColour(
 
     if (isBeforeClipStart || isAfterClipEnd)
         return juce::Colours::grey;
-    else if (n->getColour() == 127)
+    else if (isHovered(n))
         return m_track->getColour().brighter(0.6);
 
     return m_track->getColour().darker(1.f - getVelocity(n));
@@ -217,39 +225,49 @@ void MidiViewport::drawKeyLines(juce::Graphics& g) const
 
 void MidiViewport::mouseMove(const juce::MouseEvent& e)
 {
-    setMouseCursor(juce::MouseCursor::NormalCursor);
+    setMouseCursor(getRecommendedMouseCursor()) ;
+
+    m_snap = false;
+    if (e.mods.isShiftDown())
+        m_snap = true;
+    m_hoveredTime = xToTime(e.x);
 
     if (auto mc = getMidiClipAt(e.x))
     {
         for (auto n: mc->getSequence().getNotes())
-            n->setColour(111, nullptr);
+            setHovered(n, false);
 
         if (auto note = getNoteByPos(e.position))
         {
+            setHovered(note, true);
+
             auto startX = beatsToX(note->getStartBeat().inBeats()
                                    + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats());
             auto endX = beatsToX(note->getEndBeat().inBeats()
                                  + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats());
-            note->setColour(127, nullptr);
 
-            auto borderWidth = getNoteRect(mc, note).getWidth() > 30 ? 10 : getNoteRect(mc, note).getWidth() / 3;
+            if (m_toolMode == Tool::pointer)
+            {
+                auto borderWidth = getNoteRect(mc, note).getWidth() > 30 ? 10 : getNoteRect(mc, note).getWidth() / 3;
 
-            if (e.x < startX + borderWidth)
-            {
-                setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
-                m_expandLeft = true;
-                m_expandRight = false;
-            }
-            else if (e.x > endX - borderWidth)
-            {
-                setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
-                m_expandLeft = false;
-                m_expandRight = true;
-            }
-            else
-            {
-                m_expandLeft = false;
-                m_expandRight = false;
+                if (e.x < startX + borderWidth)
+                {
+                    setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, *this));
+                    m_expandLeft = true;
+                    m_expandRight = false;
+                }
+                else if (e.x > endX - borderWidth)
+                {
+                    setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, *this));
+                    m_expandLeft = false;
+                    m_expandRight = true;
+                }
+                else
+                {
+                    setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand,*this));
+                    m_expandLeft = false;
+                    m_expandRight = false;
+                }
             }
         }
     }
@@ -260,19 +278,31 @@ void MidiViewport::mouseMove(const juce::MouseEvent& e)
 void MidiViewport::mouseDown(const juce::MouseEvent& e)
 {
     m_noteAdding = false;
+
     m_clickedNote = getNoteByPos(e.position);
     m_clickedKey = getKeyForY(e.y);
     m_clickedClip = getMidiClipAt(e.x);
-    m_snap = false;
+    
+    
+    auto isDrawMode = m_clickedClip
+                    && e.mods.isLeftButtonDown()
+                    && (e.getNumberOfClicks() > 1 || e.mods.isShiftDown() || m_toolMode == Tool::draw);
+
     const auto clickedBeat = xToBeats(e.x);
 
     if (m_clickedNote && m_clickedClip)
     {
-        if (e.mods.isRightButtonDown())
+        if (e.mods.isRightButtonDown() || m_toolMode == Tool::eraser)
         {
             if (!isSelected(m_clickedNote))
                 setNoteSelected(m_clickedNote, false);
+            setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Erasor, *this));
             deleteSelectedNotes();
+        }
+        else if (m_toolMode == Tool::knife)
+        {
+            auto time = m_snap ? m_hoveredTime : getSnapedTime(m_hoveredTime);
+            splitNoteAt(m_clickedClip, m_clickedNote, time);
         }
         else
         {
@@ -284,10 +314,9 @@ void MidiViewport::mouseDown(const juce::MouseEvent& e)
                           m_clickedNote->getVelocity());
         }
     }
-    else if (m_clickedClip
-             && e.mods.isLeftButtonDown()
-             && (e.getNumberOfClicks() > 1 || e.mods.isShiftDown()))
+    else if (isDrawMode)
     {
+        setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, *this));
         auto beat = clickedBeat;
         beat = getQuantisedBeat(beat);
 
@@ -383,7 +412,7 @@ void MidiViewport::mouseUp(const juce::MouseEvent& e)
     }
 
     cleanUpFlags();
-	setMouseCursor(juce::MouseCursor::NormalCursor);
+	setMouseCursor(getRecommendedMouseCursor());
     repaint();
 }
 void MidiViewport::mouseExit(const juce::MouseEvent&)
@@ -453,11 +482,13 @@ double MidiViewport::getSnapedTime(double time)
 
 te::MidiNote* MidiViewport::addNewNote(int noteNumb,
                                                  const te::MidiClip* clip,
-                                                 double beat)
+                                                 double beat, double length)
 {
-    auto length = m_evs.m_lastNoteLength <= 0
-                      ? 0.25
-                      : m_evs.m_lastNoteLength;
+    if (length == -1)
+        length = m_evs.m_lastNoteLength <= 0
+                          ? 0.25
+                          : m_evs.m_lastNoteLength;
+
     cleanUnderNote(noteNumb, {beat, beat + length}, clip);
     return clip->getSequence().addNote(noteNumb,
                                        tracktion::core::BeatPosition::fromBeats(beat),
@@ -473,11 +504,20 @@ void MidiViewport::playGuideNote(
             noteNumb, clip->getMidiChannel(), vel, false, true);
         startTimer(100);
 }
+
 void MidiViewport::removeNote(te::MidiClip* clip, te::MidiNote* note)
 {
     clip->getSequence().removeNote(*note,
                                    &m_evs.m_edit.getUndoManager());
 }
+
+
+void MidiViewport::splitNoteAt(te::MidiClip* clip, te::MidiNote* note, double time)
+{
+    auto newNoteLength = timeToBeat(note->getEditEndTime(*clip).inSeconds() - time);
+    addNewNote(note->getNoteNumber(), clip,  timeToBeat(time) - clip->getStartBeat().inBeats(), newNoteLength);
+}
+
 float MidiViewport::getKeyWidth() const
 {
     return (float) m_evs.m_pianoKeyWidth;
@@ -603,57 +643,7 @@ void MidiViewport::mouseWheelMove(const juce::MouseEvent& event,
         scrollPianoRoll((float) wheel.deltaY * 5);
     }
 }
-// bool MidiViewport::keyPressed(const juce::KeyPress &key)
-// {
-//     GUIHelpers::log ("MidiEditor", key.getTextDescription ());
-//
-//     if (key == juce::KeyPress::createFromDescription ("cmd + d"))
-//     {
-//         duplicateSelectedNotes ();
-//         return true;
-//     }
-//     else if (key == juce::KeyPress::deleteKey
-//              || key == juce::KeyPress::backspaceKey)
-//     {
-//         for (auto n : getSelectedNotes ())
-//             m_selectedEvents->clipForEvent (n)->getSequence ().removeNote
-//                     (*n, &m_evs.m_edit.getUndoManager ());
-//         return true;
-//     }
-//     else if (key == juce::KeyPress::createFromDescription ("cursor up"))
-//     {
-//         m_selectedEvents->nudge (getBestSnapType (),0, 1);
-//         return true;
-//     }
-//     else if (key == juce::KeyPress::createFromDescription ("cursor down"))
-//     {
-//         m_selectedEvents->nudge (getBestSnapType (),0, -1);
-//         return true;
-//     }
-//     else if (key == juce::KeyPress::createFromDescription ("cursor left"))
-//     {
-//         m_selectedEvents->nudge (getBestSnapType (),-1, 0);
-//         return true;
-//     }
-//     else if (key == juce::KeyPress::createFromDescription ("cursor right"))
-//     {
-//         m_selectedEvents->nudge (getBestSnapType (),1, 0);
-//         return true;
-//     }
-//     else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor up"))
-//     {
-//         m_selectedEvents->nudge (getBestSnapType (),0, 12);
-//         return true;
-//     }
-//     else if (key == juce::KeyPress::createFromDescription ("ctrl + cursor down"))
-//     {
-//         m_selectedEvents->nudge (getBestSnapType (),0, -12);
-//         return true;
-//     }
-//
-//
-//     return false;
-// }
+
 void MidiViewport::scrollPianoRoll(float delta)
 {
     m_evs.m_pianoStartKey =
@@ -920,7 +910,35 @@ bool MidiViewport::areNotesDragged() const
            || m_leftTimeDelta != 0.0
            || m_rightTimeDelta != 0.0;
 }
+
+bool MidiViewport::isHovered(te::MidiNote* note)
+{
+    return static_cast<bool>(note->state.getProperty(IDs::isHovered));
+}
+
+void MidiViewport::setHovered(te::MidiNote* note, bool hovered)
+{
+    note->state.setProperty(IDs::isHovered, true, nullptr);
+}
+
 juce::Array<te::MidiNote*> MidiViewport::getSelectedNotes()
 {
     return m_selectedEvents->getSelectedNotes();
+}
+juce::MouseCursor MidiViewport::getRecommendedMouseCursor()
+{
+    juce::MouseCursor cursor = juce::MouseCursor::CrosshairCursor;
+
+    if (m_toolMode == Tool::draw)
+        cursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, *this);
+    else if (m_toolMode == Tool::knife)
+        cursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Split, *this);
+    else if (m_toolMode == Tool::lasso)
+        cursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Lasso, *this);
+    else if (m_toolMode == Tool::range)
+        cursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Range, *this);
+    else if (m_toolMode == Tool::eraser)
+        cursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Erasor, *this);
+
+    return cursor;
 }

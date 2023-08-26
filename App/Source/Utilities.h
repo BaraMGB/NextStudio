@@ -24,6 +24,16 @@
 
 namespace te = tracktion_engine;
 
+enum class Tool 
+{
+    pointer,
+    draw,
+    range,
+    eraser,
+    knife,
+    lasso,      
+    timestretch
+};
 enum KeyPressCommandIDs
 {
     midiNoteC = 1,
@@ -130,7 +140,12 @@ namespace GUIHelpers
     ShiftRight,
     TimeShiftRight,
     CurveSteepnes,
-    ShiftHand
+    ShiftHand,
+    Draw,
+    Range,
+    Lasso,
+    Split,
+    Erasor
 };
 
     float getScale(const juce::Component& c);

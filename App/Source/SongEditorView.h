@@ -24,7 +24,6 @@
 #include "RecordingClipComponent.h"
 #include "Utilities.h"
 
-enum class Tool {pointer, draw, range, eraser, knife, lasso, timestretch};
 
 struct SelectableAutomationPoint  : public te::Selectable
 {

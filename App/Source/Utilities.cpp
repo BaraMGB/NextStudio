@@ -147,6 +147,16 @@ juce::MouseCursor GUIHelpers::createCustomMouseCursor(CustomMouseCursor cursorTy
             return getMouseCursorFromSvg(BinaryData::curveSteepnessCursor_svg, {12, 12}, scale);
         case CustomMouseCursor::ShiftHand:
             return getMouseCursorFromSvg(BinaryData::shiftHandCursor_svg, {12, 12}, scale);
+        case CustomMouseCursor::Draw:
+            return getMouseCursorFromSvg(BinaryData::pencil_svg, {1, 24}, scale);
+        case CustomMouseCursor::Lasso:
+            return juce::MouseCursor::CrosshairCursor;
+        case CustomMouseCursor::Range:
+            return juce::MouseCursor::IBeamCursor;
+        case CustomMouseCursor::Split:
+            return getMouseCursorFromSvg(BinaryData::split_svg, {12, 24}, scale);
+        case CustomMouseCursor::Erasor:
+            return getMouseCursorFromSvg(BinaryData::rubber_svg, {1, 24}, scale);
 
         default:
             break;

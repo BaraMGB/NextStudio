@@ -33,12 +33,14 @@ juce_add_binary_data(Pictures SOURCES
     shiftHandCursor.svg
     select_icon.svg
     rubberband.svg
+    rubber.svg
     select_timerange.svg
     split.svg
     time_stretch_button.svg
     pitch.svg
     reverse_clip.svg
     delete.svg
+    pencil.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )
