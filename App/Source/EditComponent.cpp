@@ -530,7 +530,7 @@ void EditComponent::getCommandInfo (juce::CommandID commandID, juce::Application
 }
 bool EditComponent::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
 {
-    GUIHelpers::log("SongEditorView perform commandID: ", info.commandID);
+    GUIHelpers::log("EditComponent perform commandID: ", info.commandID);
 
     switch (info.commandID)
     { 

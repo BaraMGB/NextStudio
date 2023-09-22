@@ -553,6 +553,23 @@ bool EngineHelpers::renderToNewTrack(EditViewState & evs, juce::Array<tracktion_
     return true;
 }
 
+bool EngineHelpers::renderCliptoNewTrack(EditViewState & evs, te::Clip::Ptr clip)
+{
+    auto range = clip->getEditTimeRange();
+    auto index = te::getAllTracks(evs.m_edit).indexOf(clip->getTrack());
+    auto trackToRender = juce::BigInteger{index};
+    
+    auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
+    auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
+
+    
+    te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, trackToRender);
+
+    EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum, range.getStart().inSeconds());
+
+    return true;
+}
+
 void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, tracktion::TimeRange range)
 {
     if (!renderFile.create())

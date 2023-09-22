@@ -83,10 +83,6 @@ private:
     void                   insertNote(te::MidiNote* note, te::MidiClip* clip);
     te::MidiNote*          addNewNote(int noteNumb, const te::MidiClip* clip, double beat, double length=-1);
 
-    te::MidiClip*          getMidiClipAt(int x);
-    te::MidiClip*          getNearestClipAfter(int x);
-    te::MidiClip*          getNearestClipBefore(int x);
-
     double                 getKeyForY(int y);
     int                    getYForKey(double key);
     te::MidiNote*          getNoteByPos(juce::Point<float> pos);
@@ -101,6 +97,12 @@ private:
 
     void                   moveSelectedNotesToMousePos(const juce::MouseEvent& e);
     double                 getDraggedTimeDelta(const juce::MouseEvent& e, double oldTime);
+
+    te::MidiClip*          getMidiClipAt(int x);
+    te::MidiClip*          getNearestClipAfter(int x);
+    te::MidiClip*          getNearestClipBefore(int x);
+    juce::Rectangle<float> getClipRect(te::Clip* clip);
+
 
     [[nodiscard]] double   beatsToTime(double beats);
     [[nodiscard]] int      beatsToX(double beats);

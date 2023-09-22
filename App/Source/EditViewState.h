@@ -100,6 +100,7 @@ namespace IDs
     DECLARE_ID (needAutoSave)
     DECLARE_ID (snapToGrid)
     DECLARE_ID (showLowerRange)
+    DECLARE_ID (editNoteOutsideOfClipRange)
 
     
     #undef DECLARE_ID
@@ -159,6 +160,7 @@ public:
         m_clipHeaderHeight.referTo(m_state, IDs::clipHeaderHeight, um, 20);
         m_syncAutomation.referTo(m_state, IDs::syncAutomation, um, true);
         m_snapToGrid.referTo(m_state, IDs::snapToGrid, um, true);
+        m_editNotesOutsideClipRange.referTo(m_state, IDs::editNoteOutsideOfClipRange, um, false);
     }
 
     float getTimeLineZoomUnit ()
@@ -311,8 +313,9 @@ public:
     juce::CachedValue<int> m_midiEditorHeight
                             , m_velocityEditorHeight
                             , m_clipHeaderHeight;
-    juce::CachedValue<int> m_snapType;
-    juce::CachedValue<bool> m_snapToGrid;
+    juce::CachedValue<int>  m_snapType;
+    juce::CachedValue<bool> m_snapToGrid,
+                            m_editNotesOutsideClipRange;
     juce::CachedValue<int> m_trackHeightMinimized
                          , m_trackDefaultHeight
                          , m_trackHeaderWidth

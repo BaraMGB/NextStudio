@@ -19,6 +19,7 @@
 #include "MidiViewport.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "juce_core/system/juce_PlatformDefs.h"
 
 MidiViewport::MidiViewport(
     EditViewState& evs, tracktion_engine::Track::Ptr track)
@@ -66,11 +67,23 @@ void MidiViewport::drawNote(juce::Graphics& g,
     
     auto noteRect = getNoteRect(midiClip, n);
     auto visibleRect = noteRect;
+    auto leftInvisible = std::abs(noteRect.getX()) - 2;
+    auto rightOffset = noteRect.getRight() - getWidth() - 2;
+    
     if (visibleRect.getX() < -2)
-        visibleRect.removeFromLeft(std::abs(noteRect.getX()) - 2);
+        visibleRect.removeFromLeft(leftInvisible);
 
     if (visibleRect.getRight() > getWidth() + 2)
-        visibleRect.removeFromRight(noteRect.getRight() - getWidth() - 2);
+        visibleRect.removeFromRight(rightOffset);
+
+    if (m_evs.m_editNotesOutsideClipRange == false)
+    {
+        auto clipRect = getClipRect(midiClip);
+        GUIHelpers::log("cipRect Right: ", clipRect.getRight());
+        GUIHelpers::log("visibleRect: ", visibleRect.getRight());
+        visibleRect = visibleRect.getIntersection(getClipRect(midiClip));
+    }
+
     auto noteColor = getNoteColour(midiClip, n);
     auto innerGlow = noteColor.brighter(0.5f);
     auto selectedColour = juce::Colour(0xccffffff);
@@ -153,7 +166,10 @@ juce::Colour MidiViewport::getNoteColour(
     if (isBeforeClipStart || isAfterClipEnd)
         return juce::Colours::grey;
     else if (isHovered(n))
+    {
+        GUIHelpers::log(juce::MidiMessage::getMidiNoteName(n->getNoteNumber(), true, true, 3));
         return m_track->getColour().brighter(0.6);
+    }
 
     return m_track->getColour().darker(1.f - getVelocity(n));
 }
@@ -198,8 +214,9 @@ double MidiViewport::getNoteStartBeat(const te::MidiClip* midiClip,
 void MidiViewport::drawClipRange(
     juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip)
 {
-    auto clipStartX = beatsToX(midiClip->getStartBeat().inBeats());
-    auto clipEndX = juce::jmax(clipStartX, beatsToX(midiClip->getEndBeat().inBeats()));
+    auto clipRect = getClipRect(midiClip);
+    auto clipStartX = static_cast<int>(clipRect.getX());
+    auto clipEndX = static_cast<int>(clipRect.getRight());
     auto clipColour = midiClip->getTrack()->getColour();
 
     g.setColour(clipColour);
@@ -225,6 +242,12 @@ void MidiViewport::drawKeyLines(juce::Graphics& g) const
 
 void MidiViewport::mouseMove(const juce::MouseEvent& e)
 {
+    for (auto c : getMidiClipsOfTrack())
+        for (auto n : c->getSequence().getNotes())
+             setHovered(n, false);
+
+
+
     setMouseCursor(getRecommendedMouseCursor()) ;
 
     m_snap = false;
@@ -234,8 +257,6 @@ void MidiViewport::mouseMove(const juce::MouseEvent& e)
 
     if (auto mc = getMidiClipAt(e.x))
     {
-        for (auto n: mc->getSequence().getNotes())
-            setHovered(n, false);
 
         if (auto note = getNoteByPos(e.position))
         {
@@ -871,6 +892,18 @@ te::MidiClip* MidiViewport::getNearestClipAfter(int x)
 
     return clip;
 }
+
+juce::Rectangle<float> MidiViewport::getClipRect(te::Clip* clip)
+{
+    auto clipX = static_cast<float>(beatsToX(clip->getStartBeat().inBeats()));
+    auto clipW = static_cast<float>(beatsToX(clip->getEndBeat().inBeats()) - clipX);
+
+    auto clipY = static_cast<float>(getYForKey(127.0));
+    auto clipH = static_cast<float>(getYForKey(0.0) - clipY);
+
+    return {clipX, clipY, clipW, clipH};
+}
+
 juce::Range<double> MidiViewport::getLassoVerticalKeyRange()
 {
     if (m_lassoTool.isVisible())
@@ -918,7 +951,7 @@ bool MidiViewport::isHovered(te::MidiNote* note)
 
 void MidiViewport::setHovered(te::MidiNote* note, bool hovered)
 {
-    note->state.setProperty(IDs::isHovered, true, nullptr);
+    note->state.setProperty(IDs::isHovered, hovered, nullptr);
 }
 
 juce::Array<te::MidiNote*> MidiViewport::getSelectedNotes()
