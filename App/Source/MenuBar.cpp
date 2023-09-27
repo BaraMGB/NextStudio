@@ -29,3 +29,117 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "MenuBar.h"
 
+void MenuBar::paint(juce::Graphics& g) 
+{
+    g.fillAll(juce::Colour(0xff171717));
+}
+
+void MenuBar::addButton(juce::DrawableButton* button, int toggleGroupId)
+{
+    m_buttons.add(button);
+    m_buttonGaps.set(m_buttons.indexOf(button), 5);
+    addAndMakeVisible(button);
+
+      if (toggleGroupId > 0)
+    {
+        button->setClickingTogglesState(true);
+        button->setRadioGroupId(toggleGroupId);
+    }
+}
+
+void MenuBar::setButtonGap(int index, int gap)
+{
+    if (index >= 0 && index < m_buttons.size())
+        m_buttonGaps.set(index, gap);
+}
+
+void MenuBar::resized() 
+{
+    auto flexAlign = juce::FlexBox::JustifyContent::flexStart;
+
+    switch (m_alignment)
+    {
+        case Alignment::Left:
+            flexAlign = juce::FlexBox::JustifyContent::flexStart;
+            break;
+        case Alignment::Center:
+            flexAlign = juce::FlexBox::JustifyContent::center;
+            break;
+        case Alignment::Right:
+            flexAlign = juce::FlexBox::JustifyContent::flexEnd;
+            break;
+    }
+
+    juce::FlexBox fb;
+    fb.flexWrap = juce::FlexBox::Wrap::noWrap;
+    fb.justifyContent = flexAlign;
+    fb.alignItems = juce::FlexBox::AlignItems::center;
+
+    const float buttonSize = getHeight() - (2.0f * getHeight() / 5.0f);
+
+    const int maxButtons = m_buttons.size() + 1; 
+
+    int availableWidth = getWidth() - (2.0f * getHeight() / 5.0f);
+    int totalButtonWidth = 0;
+
+    for (int i = 0; i < m_buttons.size(); ++i)
+    {
+        totalButtonWidth += buttonSize + m_buttonGaps[i];
+    }
+
+    bool enoughSpace = totalButtonWidth <= availableWidth;
+    if ((!enoughSpace) && (m_wasEnoughSpace == true))
+    {
+        m_wasEnoughSpace = false;
+        removeAllChildren(); 
+
+        juce::DrawableButton* popupButton = new juce::DrawableButton("More...", juce::DrawableButton::ImageOnButtonBackground);
+        addAndMakeVisible(popupButton);
+        
+        juce::FlexItem::Margin margin;
+        margin.right = 5.0;
+
+        fb.items.add(juce::FlexItem(buttonSize, buttonSize, *popupButton).withMargin(margin));
+
+        fb.performLayout(getLocalBounds().reduced(getHeight() / 5.0f).toFloat());
+
+        juce::PopupMenu popupMenu;
+        for (int i = 0; i < m_buttons.size(); ++i)
+        {
+            popupMenu.addItem(i + 1, m_buttons[i]->getButtonText());
+        }
+
+        popupButton->onClick = [this, popupMenu]() mutable {
+            int result = popupMenu.show();
+            if (result > 0 && result <= m_buttons.size())
+            {
+                m_buttons[result - 1]->triggerClick();
+            }
+        };
+    }
+    else if ((enoughSpace) && m_wasEnoughSpace == false) 
+    {
+        m_wasEnoughSpace = true;
+        removeAllChildren();
+        
+
+        for (int i = 0; i < m_buttons.size(); ++i)
+        {
+            addAndMakeVisible(*m_buttons[i]);
+            juce::FlexItem::Margin margin;
+            if (i < m_buttons.size() - 1) {
+                int gap = m_buttonGaps[i];
+                margin.right = gap;
+            }
+
+            fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_buttons[i]).withMargin(margin));
+        }
+
+        fb.performLayout(getLocalBounds().reduced(getHeight() / 5.0f).toFloat());
+    }
+}
+
+juce::Array<juce::DrawableButton*> MenuBar::getButtons()
+{
+    return m_buttons;
+}
