@@ -88,6 +88,12 @@ void MenuBar::resized()
     }
 
     bool enoughSpace = totalButtonWidth <= availableWidth;
+    if (m_firstTime)
+    {
+        m_wasEnoughSpace = !enoughSpace;
+        m_firstTime = false;
+    }
+
     if ((!enoughSpace) && (m_wasEnoughSpace == true))
     {
         m_wasEnoughSpace = false;

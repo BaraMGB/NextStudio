@@ -65,6 +65,7 @@ private:
     Alignment m_alignment;
     juce::Array<juce::DrawableButton*> m_buttons;
     juce::Array<int> m_buttonGaps;
-    bool m_wasEnoughSpace;
+    bool m_wasEnoughSpace   {false};
+    bool m_firstTime {true};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MenuBar)
 };
