@@ -205,6 +205,7 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
 
 void EditComponent::resized()
 {
+    GUIHelpers::log("EditComponent: resized()");
     m_toolBar.setBounds(getToolBarRect());
     m_timeLine.setBounds(getTimeLineRect());
     m_trackListView.setBounds(getTrackListRect());
@@ -368,7 +369,7 @@ void EditComponent::valueTreePropertyChanged (
             || i == IDs::showFooters)
             markAndUpdate (m_updateZoom);
         else if (i == IDs::viewY)
-            markAndUpdate(m_updateSongEditor);
+            resized();
         else if (i == IDs::drawWaveforms)
             repaint();
     }
@@ -396,7 +397,6 @@ void EditComponent::valueTreeChildRemoved (
 {
     if (te::MidiClip::isClipState (c))
     {
-        resized ();
     }
     if (te::TrackList::isTrack (c))
     {
@@ -441,7 +441,6 @@ void EditComponent::handleAsyncUpdate()
     {
         m_songEditor.updateTrackHeights(m_editViewState);
         m_songEditor.repaint();
-        resized();
     }
 }
 
