@@ -57,7 +57,7 @@ To install NextStudio, follow these steps:
 
 ```shell
 
-git clone --recurse-submodules https://github.com/BaraMGB/NextStudio.git
+git clone --recurse-submodules https://gitlab.com/nextstudiogroup/nextstudio.git
 
 ```
 
@@ -69,7 +69,7 @@ git clone --recurse-submodules https://github.com/BaraMGB/NextStudio.git
 
 ```shell
 
-cd NextStudio
+cd nextstudio
 
 ```
 
