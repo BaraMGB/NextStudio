@@ -876,7 +876,9 @@ int SongEditorView::getYForTrack (te::Track* track)
 
     return getHeight();
 }
-
+// ToDo:  getAutomatableParamAt() is very inefficiet. It needs to be refactored
+// I think it is nessesary to implement automation tracks for detecting an 
+// Automation Lane at a certain y position
 te::AutomatableParameter::Ptr SongEditorView::getAutomatableParamAt(int y)
 {
     int scrollY = m_editViewState.m_viewY;
