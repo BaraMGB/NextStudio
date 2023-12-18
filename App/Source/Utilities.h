@@ -159,8 +159,6 @@ namespace GUIHelpers
     void setDrawableOnButton(juce::DrawableButton& button, const char* svgbinary, juce::Colour colour);
     juce::Image drawableToImage(const juce::Drawable& drawable, float targetWidth, float targetHeight);
 
-    //
-
     bool isAutomationVisible(const te::AutomatableParameter& ap);
 
     float getZoomScaleFactor(int delta, float unitDistance);
@@ -208,6 +206,7 @@ namespace GUIHelpers
           , double x2beats
           , juce::Rectangle<int> boundingRect, bool printDescription=false);
     
+    void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<int> bounds);
     void moveView(EditViewState& evs, double newBeatPos);
     void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c);
 

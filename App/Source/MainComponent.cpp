@@ -25,6 +25,7 @@
 */
 
 #include "MainComponent.h"
+#include "SidebarComponent.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
@@ -577,9 +578,10 @@ void MainComponent::openValidStartEdit()
 
 void MainComponent::setupSideBrowser()
 {
-    m_sideBarBrowser = std::make_unique<SideBarBrowser>(
-                m_applicationState
-              , m_editComponent->getEditViewState ());
+    // m_sideBarBrowser = std::make_unique<SideBarBrowser>(
+    //             m_applicationState
+    //           , m_editComponent->getEditViewState ());
+    m_sideBarBrowser = std::make_unique<SidebarComponent>(m_applicationState);
     addAndMakeVisible (*m_sideBarBrowser);
 }
 

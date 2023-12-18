@@ -55,6 +55,8 @@ target_sources(${TargetName} PRIVATE
         Source/MainComponent.cpp
         Source/MenuBar.cpp
         Source/SideBarBrowser.cpp
+        Source/SidebarComponent.cpp
+        Source/SidebarMenu.cpp
         Source/HeaderComponent.cpp
         Source/TimeLineComponent.cpp
         Source/EditComponent.cpp

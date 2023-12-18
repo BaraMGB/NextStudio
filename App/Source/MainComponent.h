@@ -32,6 +32,7 @@
 #include "LowerRangeComponent.h"
 #include "NextLookAndFeel.h"
 #include "SideBarBrowser.h"
+#include "SidebarComponent.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
 #include "EditComponent.h"
@@ -100,7 +101,7 @@ private:
     std::unique_ptr<EditComponent>                      m_editComponent;
     std::unique_ptr<HeaderComponent>                    m_header;
     std::unique_ptr<LowerRangeComponent>                m_lowerRange;
-    std::unique_ptr<SideBarBrowser>                     m_sideBarBrowser;
+    std::unique_ptr<SidebarComponent>                   m_sideBarBrowser;
 
     ApplicationViewState &                              m_applicationState;
     juce::StretchableLayoutManager                      m_stretchableManager;

@@ -76,7 +76,7 @@ public:
     void setPlugin(const te::Plugin::Ptr &getPlugin);
     virtual int getNeededWidth() {return 1;}
 
-    juce::Colour getTrackColour() {m_plugin->getOwnerTrack()->getColour();}
+    juce::Colour getTrackColour() {return m_plugin->getOwnerTrack()->getColour();}
 protected:
     te::Plugin::Ptr    m_plugin;
     EditViewState&     m_editViewState;

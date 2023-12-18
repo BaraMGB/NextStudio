@@ -41,9 +41,10 @@ enum class Alignment
 class MenuBar : public juce::Component
 {
 public:
-    MenuBar(Alignment align = Alignment::Left)
+    MenuBar(Alignment align = Alignment::Left, bool vert = false)
     {
         m_alignment = align;
+        m_vertical = vert;
     }
 
     ~MenuBar() override
@@ -54,6 +55,7 @@ public:
     void paint(juce::Graphics& g) override;
 
     void addButton(juce::DrawableButton* button, int toggleGroupId=0);
+    void setButtonGap(int bg);
     void setButtonGap(int index, int gap);
 
     void resized() override;
@@ -67,5 +69,7 @@ private:
     juce::Array<int> m_buttonGaps;
     bool m_wasEnoughSpace   {false};
     bool m_firstTime {true};
+    bool m_vertical {false};
+    int m_defaultGap {5};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MenuBar)
 };

@@ -188,18 +188,7 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
                         getTimeLineRect ().getY (),
                         getTimeLineRect ().getBottom ());
 
-    //rounded corners
-    g.setColour(juce::Colour(0xff555555));
-
-    juce::Path fakeRoundedCorners;
-    auto bounds = getLocalBounds ();
-
-    const float cornerSize = 10.f;
-    fakeRoundedCorners.addRectangle(bounds);
-    fakeRoundedCorners.setUsingNonZeroWinding(false);
-    fakeRoundedCorners.addRoundedRectangle(bounds, cornerSize);
-
-    g.fillPath(fakeRoundedCorners);
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds());
 }
 
 

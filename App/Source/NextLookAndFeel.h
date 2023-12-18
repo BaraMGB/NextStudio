@@ -39,6 +39,14 @@ public:
     {
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xff000000));
         setColour(juce::TextButton::buttonColourId , juce::Colour(0xff474747));
+        setColour(juce::DrawableButton::backgroundColourId, juce::Colour(0xff474747));
+    }
+    void drawDrawableButton(juce::Graphics& g,
+                              juce::DrawableButton& button,
+                              bool isMouseOverButton,
+                              bool isButtonDown) override
+    {
+        drawButtonBackground(g, button, button.findColour(juce::DrawableButton::backgroundColourId) , isMouseOverButton,  isButtonDown);
     }
     void drawButtonBackground(juce::Graphics& g,
                               juce::Button& button,

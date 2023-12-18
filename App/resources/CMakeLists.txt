@@ -41,6 +41,12 @@ juce_add_binary_data(Pictures SOURCES
     reverse_clip.svg
     delete.svg
     pencil.svg
+    projectsButton.svg
+    pluginsButton.svg
+    presetsButton.svg
+    homeButton.svg
+    samplesButton.svg
+    settingsButton.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )
