@@ -162,20 +162,13 @@ PluginBrowser::PluginBrowser(te::Engine& engine)
     header.addColumn (TRANS ("Manufacturer"),4 , 200, 100, 300);
     header.addColumn (TRANS ("Description"), 5, 300, 100, 500, juce::TableHeaderComponent::notSortable);
 
-
     m_listbox.setModel(&m_model);
     m_listbox.setRowHeight (20);
-
     engine.getPluginManager().knownPluginList.addChangeListener(this);
     m_propertiesToUse = te::getApplicationSettings();
+
     m_setupButton.onClick = [this]
     {
-        // auto v = new juce::PluginListComponent (
-        //             m_engine.getPluginManager().pluginFormatManager
-        //             , m_model.getKnownPlugins()
-        //             , m_engine.getTemporaryFileManager()
-        //             .getTempFile ("PluginScanDeadMansPedal")
-        //             , te::getApplicationSettings());
         juce::PopupMenu m;
         m = createOptionsMenu();
         auto opt = juce::PopupMenu::Options().withTargetComponent(m_setupButton);
@@ -185,33 +178,33 @@ PluginBrowser::PluginBrowser(te::Engine& engine)
 
 PluginBrowser::~PluginBrowser()
 {
-        m_engine.getPluginManager().knownPluginList.removeChangeListener(this);
+    m_engine.getPluginManager().knownPluginList.removeChangeListener(this);
 }
 void PluginBrowser::resized()
 {
     auto area = getLocalBounds();
-
     auto buttonBar = area.removeFromBottom(20);
+
     m_setupButton.setBounds(buttonBar.removeFromLeft(30));
     m_listbox.setBounds(area);
 }
 
 void PluginBrowser::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto myScanner = dynamic_cast<Scanner*>(source))
+    if (auto myScanner = dynamic_cast<PluginScanner*>(source))
     {
         const auto blacklisted = m_engine.getPluginManager().knownPluginList.getBlacklistedFiles();
         std::set<juce::String> allBlacklistedFiles (blacklisted.begin(), blacklisted.end());
 
         std::vector<juce::String> newBlacklistedFiles;
-        auto initiallyBlacklistedFiles = myScanner->initiallyBlacklistedFiles;
+        auto initiallyBlacklistedFiles = myScanner->m_initiallyBlacklistedFiles;
         std::set_difference (allBlacklistedFiles.begin(), allBlacklistedFiles.end(),
                              initiallyBlacklistedFiles.begin(), initiallyBlacklistedFiles.end(),
                              std::back_inserter (newBlacklistedFiles));
-        scanFinished (myScanner->scanner != nullptr ? myScanner->scanner->getFailedFiles() : juce::StringArray(),
+        scanFinished (myScanner->m_scanner != nullptr ? myScanner->m_scanner->getFailedFiles() : juce::StringArray(),
                              newBlacklistedFiles);
     }
-    else if (auto kpl = dynamic_cast<juce::KnownPluginList*>(source))
+    else if (dynamic_cast<juce::KnownPluginList*>(source))
     {
         GUIHelpers::log("Liste changed");
         m_listbox.updateContent();
@@ -230,7 +223,6 @@ static void showFolderForPlugin (juce::KnownPluginList& list, int index)
         juce::File (list.getTypes()[index].fileOrIdentifier).revealToUser();
 }
 juce::PopupMenu PluginBrowser::createOptionsMenu()
-
 {
     juce::PopupMenu menu;
     auto& list = m_engine.getPluginManager().knownPluginList;
@@ -287,6 +279,36 @@ juce::PopupMenu PluginBrowser::createOptionsMenu()
 
     return menu;
 }
+void PluginBrowser::scanFinished (const juce::StringArray& failedFiles, const std::vector<juce::String>& newBlacklistedFiles)
+{
+    juce::StringArray warnings;
+
+    const auto addWarningText = [&warnings] (const auto& range, const auto& prefix)
+    {
+        if (range.size() == 0)
+            return;
+
+        juce::StringArray names;
+
+        for (auto& f : range)
+            names.add (juce::File::createFileWithoutCheckingPath (f).getFileName());
+
+        warnings.add (prefix + ":\n\n" + names.joinIntoString (", "));
+    };
+
+    addWarningText (newBlacklistedFiles,  TRANS ("The following files encountered fatal errors during validation"));
+    addWarningText (failedFiles,          TRANS ("The following files appeared to be plugin files, but failed to load correctly"));
+
+    currentScanner.reset(); // mustn't delete this before using the failed files array
+
+    if (! warnings.isEmpty())
+    {
+        auto options = juce::MessageBoxOptions::makeOptionsOk (juce::MessageBoxIconType::InfoIcon,
+                                                         TRANS ("Scan complete"),
+                                                         warnings.joinIntoString ("\n\n"));
+        m_messageBox = juce::AlertWindow::showScopedAsync (options, nullptr);
+    }
+}
 void PluginBrowser::removeSelectedPlugins()
 {
     auto selected = m_listbox.getSelectedRows();
@@ -327,7 +349,7 @@ void PluginBrowser::scanFor (juce::AudioPluginFormat& format, const juce::String
 {
     if (currentScanner != nullptr)
         currentScanner->removeAllChangeListeners();
-    currentScanner.reset (new Scanner (m_engine, format, filesOrIdentifiersToScan, m_propertiesToUse, m_allowAsync, m_numThreads,
+    currentScanner.reset (new PluginScanner (m_engine, format, filesOrIdentifiersToScan, m_propertiesToUse, m_allowAsync, m_numThreads,
                                        m_dialogTitle.isNotEmpty() ? m_dialogTitle : TRANS ("Scanning for plug-ins..."),
                                        m_dialogText.isNotEmpty()  ? m_dialogText  : TRANS ("Searching for all possible plug-in files...")));
     currentScanner->addChangeListener(this);

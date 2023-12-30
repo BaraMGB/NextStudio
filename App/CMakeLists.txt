@@ -83,6 +83,7 @@ target_sources(${TargetName} PRIVATE
         Source/Utilities.cpp
         Source/Thumbnail.cpp
         Source/PluginBrowser.cpp
+        Source/PluginScanner.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
