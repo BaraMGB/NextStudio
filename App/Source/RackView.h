@@ -23,7 +23,8 @@
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "PluginComponent.h"
-#include "SideBarBrowser.h"
+#include "PluginBrowser.h"
+// #include "SideBarBrowser.h"
 
 namespace te = tracktion_engine;
 
@@ -94,13 +95,13 @@ public:
         {
             if (auto listbox = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get ()))
             {
-                if (auto lbm = dynamic_cast<PluginListBoxComponent*> (listbox->getModel ()))
+                if (auto lbm = dynamic_cast<PluginListbox*> (listbox->getModel ()))
                 {
                     auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
                     if (pluginRackComp)
                     {
                         EngineHelpers::insertPlugin (m_track,
-                                                     lbm->getSelectedPlugin(),
+                                                     lbm->getSelectedPlugin(m_track->edit),
                                                      pluginRackComp->getAddButtons ().indexOf (this));
                     }
                 }

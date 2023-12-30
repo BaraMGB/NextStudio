@@ -42,3 +42,4 @@ void SideBarBrowser::fileDoubleClicked(const juce::File &)
         EngineHelpers::loadAudioFileOnNewTrack(m_editViewState, selectedFile, colour);
     }
 }
+

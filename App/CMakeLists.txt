@@ -54,7 +54,7 @@ target_sources(${TargetName} PRIVATE
         Source/Main.cpp
         Source/MainComponent.cpp
         Source/MenuBar.cpp
-        Source/SideBarBrowser.cpp
+#        Source/SideBarBrowser.cpp
         Source/SidebarComponent.cpp
         Source/SidebarMenu.cpp
         Source/HeaderComponent.cpp
@@ -82,6 +82,7 @@ target_sources(${TargetName} PRIVATE
         Source/SongEditorView.cpp
         Source/Utilities.cpp
         Source/Thumbnail.cpp
+        Source/PluginBrowser.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

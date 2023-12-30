@@ -581,7 +581,7 @@ void MainComponent::setupSideBrowser()
     // m_sideBarBrowser = std::make_unique<SideBarBrowser>(
     //             m_applicationState
     //           , m_editComponent->getEditViewState ());
-    m_sideBarBrowser = std::make_unique<SidebarComponent>(m_applicationState);
+    m_sideBarBrowser = std::make_unique<SidebarComponent>(m_applicationState, m_engine, m_commandManager);
     addAndMakeVisible (*m_sideBarBrowser);
 }
 

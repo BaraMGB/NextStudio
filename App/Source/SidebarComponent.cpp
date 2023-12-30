@@ -2,17 +2,11 @@
 #include "Utilities.h"
 
 
-void SidebarComponent::paint(juce::Graphics& g)
-{
-    auto area = getLocalBounds();
-    g.setColour(m_appState.getBackgroundColour());
-    g.fillRect(area);
-    g.setColour(juce::Colours::lightgrey);
-    g.drawVerticalLine(m_menu.getWidth(), 0, getHeight());
-}
-
 void SidebarComponent::paintOverChildren(juce::Graphics& g)
 {
+    auto area = getLocalBounds();
+    g.setColour(juce::Colours::lightgrey);
+    g.drawVerticalLine(m_menu.getWidth() -1, 0, getHeight());
     GUIHelpers::drawFakeRoundCorners(g, getLocalBounds());
 }
 
@@ -23,4 +17,25 @@ void SidebarComponent::buttonClicked (juce::Button* button)
     {
         db->getNormalImage()->replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
     }
+
+    if (button->getName() == "Settings")
+    {
+        setAllVisibleOff();
+        m_settingsView.setVisible(true);
+        resized();
+    }
+    else if (button->getName() == "Plugins")
+    {
+        setAllVisibleOff();
+        m_pluginList.setVisible(true);
+        // m_pluginList.resized();
+        resized();
+    }
+
+}
+
+void SidebarComponent::setAllVisibleOff()
+{
+    m_settingsView.setVisible(false);
+    m_pluginList.setVisible(false);
 }

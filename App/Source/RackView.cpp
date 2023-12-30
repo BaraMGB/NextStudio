@@ -248,10 +248,9 @@ void RackView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if(dragSourceDetails.description == "PluginListEntry")
-        if (auto listbox = dynamic_cast<juce::ListBox*>(
+        if (auto listbox = dynamic_cast<PluginListbox*>(
             dragSourceDetails.sourceComponent.get ()))
-            if (auto lbm = dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
-                EngineHelpers::insertPlugin (m_track, lbm->getSelectedPlugin());
+                EngineHelpers::insertPlugin (m_track, listbox->getSelectedPlugin(m_track->edit));
 
     m_isOver = false;
     repaint();

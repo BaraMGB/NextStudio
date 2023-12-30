@@ -428,7 +428,8 @@ public:
         g.setFont(juce::Font( juce::Typeface::createSystemTypefaceFor(
                                   BinaryData::IBMPlexSansRegular_ttf
                                 , BinaryData::IBMPlexSansRegular_ttfSize)->getName(), 12, juce::Font::FontStyleFlags::plain ));
-        g.setColour(*textColour);
+        if (textColour != nullptr)
+            g.setColour(*textColour);
         g.drawFittedText(text, area, juce::Justification::left, 1);
     }
 

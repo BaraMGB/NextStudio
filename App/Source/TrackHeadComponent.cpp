@@ -19,6 +19,7 @@
 #include "TrackHeadComponent.h"
 #include "EditComponent.h"
 #include "EditViewState.h"
+#include "PluginBrowser.h"
 #include "Utilities.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
 	: m_automatableParameter(ap)
@@ -812,12 +813,11 @@ void TrackHeaderComponent::itemDragExit(
 void TrackHeaderComponent::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& details)
 {
-    auto listbox = dynamic_cast<juce::ListBox*>(details.sourceComponent.get ());
+    auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ());
     auto isPlug = details.description == "PluginListEntry";
 
     if  (listbox && isPlug)
-        if (auto lbm = dynamic_cast<PluginListBoxComponent*>(listbox->getModel()))
-            EngineHelpers::insertPlugin (getTrack(), lbm->getSelectedPlugin());
+            EngineHelpers::insertPlugin (getTrack(), listbox->getSelectedPlugin(m_editViewState.m_edit));
 
 
     auto tc = dynamic_cast<TrackHeaderComponent*>(details.sourceComponent.get ());

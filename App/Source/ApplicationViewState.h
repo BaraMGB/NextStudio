@@ -247,6 +247,7 @@ public:
         }
     }
 
+//-------------------------------------------------------
     void addFileToFavorites(const juce::Identifier& tag, const juce::File& file)
     {
         for (auto favEntry : m_favorites)
@@ -284,6 +285,19 @@ public:
         return currentFileList;
     }
 
+    juce::Array<juce::File> getAllFavoritesOfType(const juce::Identifier& tag)
+    {
+        juce::Array<juce::File> fileList;
+        for (auto fav : m_favorites)
+        {
+            if (fav->m_tag == tag)
+            {
+                fileList.add(fav->getFile());
+            }
+        }
+        return fileList;
+    }
+//-------------------------------------------------------
     juce::Colour getRandomTrackColour()
     {
         auto rdm = juce::Random::getSystemRandom().nextInt(m_trackColours.size());
