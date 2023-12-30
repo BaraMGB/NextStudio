@@ -67,7 +67,7 @@ void PluginListBoxModel::paintCell(juce::Graphics &g, int row, int col, int widt
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::ladspaIcon_svg, juce::Colours::coral).release();
             else if (desc.pluginFormatName == "LA2")
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::la2Icon_svg, juce::Colours::cornflowerblue).release();
-            else if (desc.pluginFormatName == "AU")
+            else if (desc.pluginFormatName == "AudioUnit")
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::AUIcon_svg, juce::Colours::wheat).release();
 
             if (icon != nullptr)
