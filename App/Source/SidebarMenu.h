@@ -24,38 +24,38 @@
 #include "MenuBar.h"
 #include "Utilities.h"
 #include "PreviewComponent.h"
-
 class SidebarMenu : public MenuBar 
 {
 public:
+    const juce::DrawableButton::ButtonStyle bs {juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
     SidebarMenu(ApplicationViewState& appstate) : MenuBar(Alignment::Left, true)
-    , m_projectsButton("Projects", juce::DrawableButton::ButtonStyle::ImageFitted)// ImageOnButtonBackground)
-    , m_pluginsButton("Plugins", juce::DrawableButton::ButtonStyle::ImageFitted)
-    , m_samplesButton("Samples", juce::DrawableButton::ButtonStyle::ImageFitted)
-    , m_presetButton("Preset", juce::DrawableButton::ButtonStyle::ImageFitted)
-    , m_homeButton("Home", juce::DrawableButton::ButtonStyle::ImageFitted)
-    , m_settingsButton("Settings", juce::DrawableButton::ButtonStyle::ImageFitted)
+    , m_projectsButton("Projects", bs)// ImageOnButtonBackground)
+    , m_instrumentsButton("Instruments", bs)
+    , m_samplesButton("Samples",bs)
+    , m_effectsButton("Effects",bs)
+    , m_homeButton("Home",bs)
+    , m_settingsButton("Settings", bs)
     , m_appState(appstate)
     {
         addButton(&m_projectsButton);
         GUIHelpers::setDrawableOnButton(m_projectsButton, BinaryData::projectsButton_svg, juce::Colour(0xffffffff));
-        m_projectsButton.setTooltip(GUIHelpers::translate("opens projects", m_appState));
+        m_projectsButton.setTooltip(GUIHelpers::translate("handle projects", m_appState));
 
-        addButton(&m_pluginsButton);
-        GUIHelpers::setDrawableOnButton(m_pluginsButton, BinaryData::pluginsButton_svg, juce::Colour(0xffffffff));
-        m_pluginsButton.setTooltip(GUIHelpers::translate("opens plugins", m_appState));
+        addButton(&m_instrumentsButton);
+        GUIHelpers::setDrawableOnButton(m_instrumentsButton, BinaryData::presetsButton_svg, juce::Colour(0xffffffff));
+        m_instrumentsButton.setTooltip(GUIHelpers::translate("instrument plugins", m_appState));
 
         addButton(&m_samplesButton);
         GUIHelpers::setDrawableOnButton(m_samplesButton, BinaryData::samplesButton_svg, juce::Colour(0xffffffff));
-        m_samplesButton.setTooltip(GUIHelpers::translate("opens samples", m_appState));
+        m_samplesButton.setTooltip(GUIHelpers::translate("samples", m_appState));
 
-        addButton(&m_presetButton);
-        GUIHelpers::setDrawableOnButton(m_presetButton, BinaryData::presetsButton_svg, juce::Colour(0xffffffff));
-        m_presetButton.setTooltip(GUIHelpers::translate("opens presets", m_appState));
+        addButton(&m_effectsButton);
+        GUIHelpers::setDrawableOnButton(m_effectsButton, BinaryData::pluginsButton_svg, juce::Colour(0xffffffff));
+        m_effectsButton.setTooltip(GUIHelpers::translate("effect plugins", m_appState));
 
         addButton(&m_homeButton);
         GUIHelpers::setDrawableOnButton(m_homeButton, BinaryData::homeButton_svg, juce::Colour(0xffffffff));
-        m_homeButton.setTooltip(GUIHelpers::translate("returns to home", m_appState));
+        m_homeButton.setTooltip(GUIHelpers::translate("home folder file browser", m_appState));
 
         addButton(&m_settingsButton);
         GUIHelpers::setDrawableOnButton(m_settingsButton, BinaryData::settingsButton_svg, juce::Colour(0xffffffff));
@@ -66,9 +66,9 @@ public:
 
 private:
     juce::DrawableButton m_projectsButton
-                       , m_pluginsButton
+                       , m_instrumentsButton
                        , m_samplesButton
-                       , m_presetButton
+                       , m_effectsButton
                        , m_homeButton
                        , m_settingsButton;
     ApplicationViewState& m_appState;

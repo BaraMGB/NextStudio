@@ -148,13 +148,13 @@ void PluginScanner::startScan()
 {
     m_pathChooserWindow.setVisible (false);
 
-    m_scanner.reset (new juce::PluginDirectoryScanner (m_engine.getPluginManager().knownPluginList, m_formatToScan, m_pathList.getPath(),
+    m_dirScanner.reset (new juce::PluginDirectoryScanner (m_engine.getPluginManager().knownPluginList, m_formatToScan, m_pathList.getPath(),
                                                        true, m_engine.getTemporaryFileManager()
                                                        .getTempFile ("PluginScanDeadMansPedal"), m_allowAsync));
 
     if (! m_filesOrIdentifiersToScan.isEmpty())
     {
-        m_scanner->setFilesOrIdentifiersToScan (m_filesOrIdentifiersToScan);
+        m_dirScanner->setFilesOrIdentifiersToScan (m_filesOrIdentifiersToScan);
     }
     else if (m_propertiesToUse != nullptr)
     {
@@ -188,7 +188,7 @@ void PluginScanner::timerCallback()
     if (m_timerReentrancyCheck)
         return;
 
-    m_progress = m_scanner->getProgress();
+    m_progress = m_dirScanner->getProgress();
 
     if (m_threadPool == nullptr)
     {
@@ -209,7 +209,7 @@ void PluginScanner::timerCallback()
 
 bool PluginScanner::doNextScan()
 {
-    if (m_scanner->scanNextFile (true, m_pluginBeingScanned))
+    if (m_dirScanner->scanNextFile (true, m_pluginBeingScanned))
         return true;
 
     m_finished = true;

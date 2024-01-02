@@ -2,8 +2,7 @@
 #include "Utilities.h"
 
 PluginListBoxModel::PluginListBoxModel(tracktion::Engine &engine)
-    : m_knownPlugins(engine.getPluginManager()
-                     .knownPluginList)
+    : m_knownPlugins(engine.getPluginManager().knownPluginList)
     , m_engine(engine)
 {
 }
@@ -11,14 +10,13 @@ PluginListBoxModel::PluginListBoxModel(tracktion::Engine &engine)
 void PluginListBoxModel::paintRowBackground(juce::Graphics &g, int row, int width, int height, bool rowIsSelected)
 {
     if (row < 0|| row >= getNumRows())
-    {
         return;
-    }
+
     juce::Rectangle<int> bounds (0,0, width, height);
     g.setColour(juce::Colour(0xff171717));
     g.fillRect(bounds);
-    if (rowIsSelected)
 
+    if (rowIsSelected)
     {
         g.setColour(juce::Colour(0xff555555));
         g.fillRect(bounds);
@@ -27,7 +25,6 @@ void PluginListBoxModel::paintRowBackground(juce::Graphics &g, int row, int widt
 
 void PluginListBoxModel::paintCell(juce::Graphics &g, int row, int col, int width, int height, bool rowIsSelected)
 {
-
     juce::String text;
     bool isBlacklisted = row >= m_knownPlugins.getNumTypes();
 
@@ -41,19 +38,19 @@ void PluginListBoxModel::paintCell(juce::Graphics &g, int row, int col, int widt
     else
     {
         auto desc = m_knownPlugins.getTypes()[row];
+        auto type = m_knownPlugins.getTypes()[row];
 
         switch (col)
         {
-        case typeCol:         text = desc.pluginFormatName; break;
-        case nameCol:         text = desc.name; break;
-        case categoryCol:     text = desc.category.isNotEmpty() ? desc.category : "-"; break;
-        case manufacturerCol: text = desc.manufacturerName; break;
-        case descCol:         text = getPluginDescription (desc); break;
+            case typeCol:         text = desc.pluginFormatName; break;
+            case nameCol:         text = desc.name; break;
+            case categoryCol:     text = type.isInstrument ? "Klavier" : "EFFEKT"; break; //desc.category.isNotEmpty() ? desc.category : "-"; break;
+            case manufacturerCol: text = desc.manufacturerName; break;
+            case descCol:         text = getPluginDescription (desc); break;
 
-        default: jassertfalse; break;
+            default: jassertfalse; break;
         }
     }
-
     
     if (text.isNotEmpty())
     {
@@ -138,11 +135,30 @@ juce::var PluginListbox::getDragSourceDescription(const juce::SparseSet<int> &)
 
 tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit& edit)
 {
-    juce::Array<juce::PluginDescription> knownPlugins(edit.engine.getPluginManager()
-                    .knownPluginList.getTypes ());
-    return edit.getPluginCache ().createNewPlugin(
-                te::ExternalPlugin::xmlTypeName
-                , knownPlugins[getLastRowSelected ()]);
+    auto selectedRow = getLastRowSelected();
+
+    if (selectedRow < 0)
+        return nullptr;
+
+    juce::Array<juce::PluginDescription> instruments;
+    const auto& types = m_engine.getPluginManager().knownPluginList.getTypes();
+
+    for (auto& type : types)
+        if (type.isInstrument)
+            instruments.add(type);
+
+    if (isInstrumentList())
+    {
+        if (selectedRow < instruments.size())
+            return edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, instruments[selectedRow]);
+    }
+    else
+    {
+        if (selectedRow < types.size())
+            return edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, types[selectedRow]);
+    }
+
+    return nullptr;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -191,17 +207,17 @@ void PluginBrowser::resized()
 
 void PluginBrowser::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto myScanner = dynamic_cast<PluginScanner*>(source))
+    if (auto scanner = dynamic_cast<PluginScanner*>(source))
     {
         const auto blacklisted = m_engine.getPluginManager().knownPluginList.getBlacklistedFiles();
         std::set<juce::String> allBlacklistedFiles (blacklisted.begin(), blacklisted.end());
 
         std::vector<juce::String> newBlacklistedFiles;
-        auto initiallyBlacklistedFiles = myScanner->m_initiallyBlacklistedFiles;
+        auto initiallyBlacklistedFiles = scanner->m_initiallyBlacklistedFiles;
         std::set_difference (allBlacklistedFiles.begin(), allBlacklistedFiles.end(),
                              initiallyBlacklistedFiles.begin(), initiallyBlacklistedFiles.end(),
                              std::back_inserter (newBlacklistedFiles));
-        scanFinished (myScanner->m_scanner != nullptr ? myScanner->m_scanner->getFailedFiles() : juce::StringArray(),
+        scanFinished (scanner->m_dirScanner != nullptr ? scanner->m_dirScanner->getFailedFiles() : juce::StringArray(),
                              newBlacklistedFiles);
     }
     else if (dynamic_cast<juce::KnownPluginList*>(source))

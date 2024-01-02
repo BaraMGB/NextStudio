@@ -24,10 +24,29 @@ void SidebarComponent::buttonClicked (juce::Button* button)
         m_settingsView.setVisible(true);
         resized();
     }
-    else if (button->getName() == "Plugins")
+    else if (button->getName() == "Instruments")
     {
         setAllVisibleOff();
-        m_pluginList.setVisible(true);
+        m_instrumentList.setVisible(true);
+        // m_pluginList.resized();
+        resized();
+    }
+    else if (button->getName() == "Samples")
+    {
+        setAllVisibleOff();
+        // m_pluginList.resized();
+        resized();
+    }
+    else if (button->getName() == "Effects")
+    {
+        setAllVisibleOff();
+        // m_pluginList.resized();
+        resized();
+    }
+    else if (button->getName() == "Home")
+    {
+        setAllVisibleOff();
+        m_fileBrowser.setVisible(true);
         // m_pluginList.resized();
         resized();
     }
@@ -37,5 +56,6 @@ void SidebarComponent::buttonClicked (juce::Button* button)
 void SidebarComponent::setAllVisibleOff()
 {
     m_settingsView.setVisible(false);
-    m_pluginList.setVisible(false);
+    m_instrumentList.setVisible(false);
+    m_fileBrowser.setVisible(false);
 }

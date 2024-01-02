@@ -20,7 +20,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
-
+#include "PluginBrowser.h"
 
 namespace te = tracktion_engine;
 class MidiSettings : public juce::Component
@@ -52,9 +52,11 @@ public:
         , m_midiSettings(engine)
         , m_audioSettings(engine.getDeviceManager().deviceManager, 0, 512, 1, 512, false, false, false, false) 
         , m_keyMappingEditor(*m_commandManager.getKeyMappings(), true)
+        , m_pluginBrowser(engine)
     {
         addTab("Audio Settings", juce::Colours::darkgrey, &m_audioSettings, true);
         addTab("MIDI Settings", juce::Colours::darkgrey, &m_midiSettings, true);
+        addTab("Plugin Settings", juce::Colours::darkgrey, &m_pluginBrowser, true);
         addTab("KeyMapping", juce::Colours::darkgrey, &m_keyMappingEditor, true);
     }
 
@@ -64,6 +66,7 @@ private:
     MidiSettings m_midiSettings;
     juce::AudioDeviceSelectorComponent m_audioSettings;
     juce::KeyMappingEditorComponent m_keyMappingEditor;
+    PluginBrowser m_pluginBrowser;
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SettingsView)
 };
 

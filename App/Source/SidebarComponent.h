@@ -38,13 +38,20 @@ public:
         , m_commandManager(commandManager)
         , m_menu(as)
         , m_settingsView(m_engine, m_commandManager)
-        , m_pluginList(engine)
+        , m_instrumentList(engine)
     {
         addAndMakeVisible(m_menu);
         addChildComponent(m_settingsView);
-        addChildComponent(m_pluginList);
+        addChildComponent(m_instrumentList);
+        addAndMakeVisible(m_fileBrowser);
         for (auto b : m_menu.getButtons())
             b->addListener(this);
+    }
+
+    ~SidebarComponent() override
+    {
+        for (auto b : m_menu.getButtons())
+            b->removeListener(this);
     }
 
     void paintOverChildren(juce::Graphics& g) override;
@@ -55,8 +62,10 @@ public:
         m_menu.setBounds(area.removeFromLeft(80));
         if (m_settingsView.isVisible())
             m_settingsView.setBounds(area);
-        else if (m_pluginList.isVisible())
-            m_pluginList.setBounds(area);
+        else if (m_instrumentList.isVisible())
+            m_instrumentList.setBounds(area);
+        else if (m_fileBrowser.isVisible())
+            m_fileBrowser.setBounds(area);
     }
 
     void buttonClicked (juce::Button* button) override;
@@ -70,8 +79,9 @@ private:
     juce::ApplicationCommandManager& m_commandManager;
     SidebarMenu m_menu;
     SettingsView m_settingsView;
-    //juce::PluginListComponent m_pluginList;
-    PluginBrowser m_pluginList;
+    InstrumentBrowser m_instrumentList;
+    
+    juce::FileBrowserComponent m_fileBrowser{1+4+8+64, juce::File(m_appState.m_workDir), nullptr, nullptr};
 
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SidebarComponent)
 };

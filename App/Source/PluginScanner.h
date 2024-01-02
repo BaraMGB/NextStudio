@@ -37,7 +37,7 @@ public:
     void setLastSearchPath (juce::PropertiesFile& properties, juce::AudioPluginFormat& format, const juce::FileSearchPath& newPath);
 
     std::set<juce::String> m_initiallyBlacklistedFiles;
-    std::unique_ptr<juce::PluginDirectoryScanner> m_scanner;
+    std::unique_ptr<juce::PluginDirectoryScanner> m_dirScanner;
 
 private:
 

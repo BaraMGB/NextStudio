@@ -19,7 +19,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "AudioMidiSettings.h"
+// #include "AudioMidiSettings.h"
 #include "EditViewState.h"
 
 namespace te = tracktion_engine;
