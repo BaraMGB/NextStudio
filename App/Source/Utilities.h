@@ -21,6 +21,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 // #include "AudioMidiSettings.h"
 #include "EditViewState.h"
+#include "PluginMenu.h"
 
 namespace te = tracktion_engine;
 
@@ -371,6 +372,11 @@ namespace EngineHelpers
         return clip;
     }
 
+    juce::PluginDescription * getPluginDesc(const juce::String& uniqueId
+                                            , const juce::String& name,
+                                juce::String  xmlType_, bool isSynth);
+
+    juce::Array<juce::PluginDescription> getInternalPlugins();
 
     tracktion::TimeRange getTimeRangeOfSelectedClips(EditViewState &evs);
 

@@ -1,4 +1,6 @@
 #include "InstrumentEffectChooser.h"
+#include "PluginMenu.h"
+#include "Utilities.h"
 
 InstrumentEffectListModel::InstrumentEffectListModel(tracktion::Engine &engine, bool isInstrumentList) 
     : m_engine(engine), m_knownPlugins(engine.getPluginManager().knownPluginList)
@@ -12,6 +14,7 @@ void InstrumentEffectListModel::updatePluginLists()
     m_instruments.clear();
     m_effects.clear();
     
+
     for (auto& desc : m_knownPlugins.getTypes())
     {
         if (desc.isInstrument)
@@ -19,6 +22,15 @@ void InstrumentEffectListModel::updatePluginLists()
         else
             m_effects.add(desc);
     }
+
+    for (auto& desc : EngineHelpers::getInternalPlugins())
+    {
+        if (desc.isInstrument)
+            m_instruments.add(desc);
+        else
+            m_effects.add(desc);
+    }
+
     if (std::get<column>(m_order) == nameCol)
     {
         EngineHelpers::sortByName(m_instruments, std::get<bool>(m_order));
@@ -86,10 +98,13 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::la2Icon_svg, juce::Colours::cornflowerblue).release();
             else if (desc.pluginFormatName == "AudioUnit")
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::AUIcon_svg, juce::Colours::wheat).release();
+            else if (desc.pluginFormatName == getInternalPluginFormatName())
+                icon = GUIHelpers::getDrawableFromSvg(BinaryData::INTIcon_svg, juce::Colours::gold ).release();
 
             if (icon != nullptr)
             {
-                icon->setTransformToFit({static_cast<float>(width)/4, 0.f, static_cast<float>(width)/2.f, static_cast<float>(height)}, juce::RectanglePlacement::centred);
+                auto padding = 5.f;
+                icon->setTransformToFit({static_cast<float>(width)/4 - padding, padding, (static_cast<float>(width)/2.f) + padding, static_cast<float>(height - (padding*2))}, juce::RectanglePlacement::centred);
                 icon->draw(g, 1.0f);
                 delete icon;
             }
@@ -162,13 +177,19 @@ tracktion::Plugin::Ptr InstrumentEffectTable::getSelectedPlugin(tracktion::Edit 
     auto & list = m_model.getPluginList();
 
     if (selectedRow < list.size())
-        return edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, list[selectedRow]);
+    {
+        if (list[selectedRow].pluginFormatName == getInternalPluginFormatName())
+            return edit.getPluginCache().createNewPlugin(list[selectedRow].category, list[selectedRow]);
+        else
+            return edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, list[selectedRow]);
+    }
 
     return nullptr;
 }
 
 //----------------------------------------------------------------------------------------------------
 
+const auto formatWidth = 60;
 InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool isInstrumentList)
     : m_engine(engine)
     , m_isInstrumentList(isInstrumentList)
@@ -179,9 +200,13 @@ InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool
     m_listbox.setModel(&m_model);
     m_listbox.setRowHeight (20);
     juce::TableHeaderComponent& header = m_listbox.getHeader();
+    header.setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, juce::Colour(0xff171717));
+    header.setColour(juce::TableHeaderComponent::ColourIds::textColourId, juce::Colour(0xffffffff));
+    header.setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, juce::Colour(0xff888888));
+    header.setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, juce::Colour(0xff555555));
 
-    header.addColumn (TRANS ("Format"), 1, 40, 40, 40, juce::TableHeaderComponent::notResizable);
-    header.addColumn (TRANS ("Name"), 2, getWidth() - 40, 80,30000, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::notResizable);
+    header.addColumn (TRANS ("Format"), 1, formatWidth, formatWidth, formatWidth, juce::TableHeaderComponent::notResizable);
+    header.addColumn (TRANS ("Name"), 2, getWidth() - formatWidth + 1, 80,30000, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::notResizable);
 }
 
 void InstrumentEffectChooser::resized()
@@ -189,7 +214,7 @@ void InstrumentEffectChooser::resized()
     m_listbox.setBounds(getLocalBounds());
 
     juce::TableHeaderComponent& header = m_listbox.getHeader();
-    header.setColumnWidth(InstrumentEffectListModel::nameCol, getWidth() - 40);
+    header.setColumnWidth(InstrumentEffectListModel::nameCol, getWidth() - formatWidth + 1);
 }
 
 void InstrumentEffectChooser::changeListenerCallback(juce::ChangeBroadcaster *source)
