@@ -1690,3 +1690,30 @@ void GUIHelpers::drawLogoQuad (juce::Graphics &g, juce::Rectangle<int> area)
 
     g.strokePath (path, juce::PathStrokeType(2));
 }
+void EngineHelpers::sortByName(juce::Array<juce::PluginDescription>& list, bool forward)
+{
+    
+    if (forward)
+    {
+        CompareNameForward cf;
+        list.sort(cf);
+    }
+    else
+    {
+        CompareNameBackwards cb;
+        list.sort(cb);
+    }
+}
+void EngineHelpers::sortByFormatName(juce::Array<juce::PluginDescription>& list, bool forward)
+{
+    if (forward)
+    {
+        CompareFormatForward cf;
+        list.sort(cf);
+    }
+    else
+    {
+        CompareFormatBackward cb;
+        list.sort(cb);
+    }
+}

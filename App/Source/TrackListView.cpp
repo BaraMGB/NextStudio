@@ -22,6 +22,7 @@
 
 #include "TrackListView.h"
 #include "ApplicationViewState.h"
+#include "InstrumentEffectChooser.h"
 #include "Utilities.h"
 
 int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
@@ -132,14 +133,22 @@ void TrackListView::itemDropped(
         if (auto thc = dynamic_cast<TrackHeaderComponent*>(dragSourceDetails.sourceComponent.get()))
             m_editViewState.m_edit.moveTrack(thc->getTrack(), ip);
 
-
-    auto listbox = dynamic_cast<PluginListbox*>(dragSourceDetails.sourceComponent.get ());
-    auto isPlug = dragSourceDetails.description == "PluginListEntry";
-
-    if  (listbox && isPlug)
+    if  (dragSourceDetails.description == "PluginListEntry")
     {
-        auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
-        EngineHelpers::insertPlugin (track, listbox->getSelectedPlugin(m_editViewState.m_edit));
+        if (auto listbox = dynamic_cast<PluginListbox*>(dragSourceDetails.sourceComponent.get ()))
+        {
+            auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
+            EngineHelpers::insertPlugin (track, listbox->getSelectedPlugin(m_editViewState.m_edit));
+        }
+    }
+
+    if (dragSourceDetails.description == "Instrument or Effect")
+    {
+        if (auto lb = dynamic_cast<InstrumentEffectTable*>(dragSourceDetails.sourceComponent.get()))
+        {
+            auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
+            EngineHelpers::insertPlugin (track, lb->getSelectedPlugin(m_editViewState.m_edit));
+        }
     }
 }
 

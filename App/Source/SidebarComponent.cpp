@@ -40,6 +40,7 @@ void SidebarComponent::buttonClicked (juce::Button* button)
     else if (button->getName() == "Effects")
     {
         setAllVisibleOff();
+        m_effectList.setVisible(true);
         // m_pluginList.resized();
         resized();
     }
@@ -57,5 +58,6 @@ void SidebarComponent::setAllVisibleOff()
 {
     m_settingsView.setVisible(false);
     m_instrumentList.setVisible(false);
+    m_effectList.setVisible(false);
     m_fileBrowser.setVisible(false);
 }

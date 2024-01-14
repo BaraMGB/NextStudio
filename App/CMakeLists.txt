@@ -84,6 +84,7 @@ target_sources(${TargetName} PRIVATE
         Source/Thumbnail.cpp
         Source/PluginBrowser.cpp
         Source/PluginScanner.cpp
+        Source/InstrumentEffectChooser.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

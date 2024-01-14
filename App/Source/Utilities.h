@@ -397,6 +397,42 @@ namespace EngineHelpers
 
     std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree (
             te::Engine& engine);
+    
+    struct CompareNameForward{
+        static int compareElements (const juce::PluginDescription& first, 
+                                              const juce::PluginDescription& second)
+        {   
+            return first.name.compareNatural(second.name);
+        }
+    };
+
+    struct CompareNameBackwards{
+        static int compareElements(const juce::PluginDescription& first, 
+                                               const juce::PluginDescription& second)
+        {
+            return second.name.compareNatural(first.name);
+        }
+    };
+
+
+    struct CompareFormatForward{
+        static int compareElements(const juce::PluginDescription& first,
+                                                         const juce::PluginDescription& second)
+        {
+            return first.pluginFormatName.compareNatural(second.pluginFormatName);   
+        }
+    };
+
+    struct CompareFormatBackward{
+        static int compareElements(const juce::PluginDescription& first,
+                                                          const juce::PluginDescription& second)
+        {
+            return second.pluginFormatName.compareNatural(first.pluginFormatName);
+        }
+    };
+
+    void sortByFormatName(juce::Array<juce::PluginDescription>& list, bool forward);
+    void sortByName(juce::Array<juce::PluginDescription>& list, bool forward);
 }
 
 class FlaggedAsyncUpdater : public juce::AsyncUpdater

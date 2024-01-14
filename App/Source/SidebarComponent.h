@@ -26,6 +26,7 @@
 #include "PreviewComponent.h"
 #include "SidebarMenu.h"
 #include "PluginBrowser.h"
+#include "InstrumentEffectChooser.h"
 
 
 
@@ -38,11 +39,13 @@ public:
         , m_commandManager(commandManager)
         , m_menu(as)
         , m_settingsView(m_engine, m_commandManager)
-        , m_instrumentList(engine)
+        , m_instrumentList(engine, true)
+        , m_effectList(engine, false)
     {
         addAndMakeVisible(m_menu);
         addChildComponent(m_settingsView);
         addChildComponent(m_instrumentList);
+        addChildComponent(m_effectList);
         addAndMakeVisible(m_fileBrowser);
         for (auto b : m_menu.getButtons())
             b->addListener(this);
@@ -64,6 +67,8 @@ public:
             m_settingsView.setBounds(area);
         else if (m_instrumentList.isVisible())
             m_instrumentList.setBounds(area);
+        else if (m_effectList.isVisible())
+            m_effectList.setBounds(area);
         else if (m_fileBrowser.isVisible())
             m_fileBrowser.setBounds(area);
     }
@@ -79,7 +84,8 @@ private:
     juce::ApplicationCommandManager& m_commandManager;
     SidebarMenu m_menu;
     SettingsView m_settingsView;
-    InstrumentBrowser m_instrumentList;
+    InstrumentEffectChooser m_instrumentList;
+    InstrumentEffectChooser m_effectList;
     
     juce::FileBrowserComponent m_fileBrowser{1+4+8+64, juce::File(m_appState.m_workDir), nullptr, nullptr};
 

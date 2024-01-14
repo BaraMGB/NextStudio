@@ -21,6 +21,7 @@
 #include "EditViewState.h"
 #include "PluginBrowser.h"
 #include "Utilities.h"
+#include "InstrumentEffectChooser.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
 	: m_automatableParameter(ap)
     , m_slider(ap)
@@ -786,7 +787,8 @@ bool TrackHeaderComponent::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginListEntry"
-     || dragSourceDetails.description == "Track")
+     || dragSourceDetails.description == "Track"
+     || dragSourceDetails.description == "Instrument or Effect")
     {
         return true;
     }
@@ -813,12 +815,22 @@ void TrackHeaderComponent::itemDragExit(
 void TrackHeaderComponent::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& details)
 {
-    auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ());
-    auto isPlug = details.description == "PluginListEntry";
-
-    if  (listbox && isPlug)
+    
+    if  (details.description == "PluginListEntry")
+    {
+        if (auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ()))
+        {
             EngineHelpers::insertPlugin (getTrack(), listbox->getSelectedPlugin(m_editViewState.m_edit));
+        }
+    }
 
+    if (details.description == "Instrument or Effect")
+    {
+        if (auto lb = dynamic_cast<InstrumentEffectTable*>(details.sourceComponent.get()))
+        {
+            EngineHelpers::insertPlugin (getTrack(), lb->getSelectedPlugin(m_editViewState.m_edit));
+        }
+    }
 
     auto tc = dynamic_cast<TrackHeaderComponent*>(details.sourceComponent.get ());
     auto isTrack = details.description == "Track";

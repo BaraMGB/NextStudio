@@ -66,7 +66,7 @@ private:
     MidiSettings m_midiSettings;
     juce::AudioDeviceSelectorComponent m_audioSettings;
     juce::KeyMappingEditorComponent m_keyMappingEditor;
-    PluginBrowser m_pluginBrowser;
+    PluginSettings m_pluginBrowser;
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SettingsView)
 };
 

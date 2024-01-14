@@ -140,30 +140,17 @@ tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit& edit)
     if (selectedRow < 0)
         return nullptr;
 
-    juce::Array<juce::PluginDescription> instruments;
-    const auto& types = m_engine.getPluginManager().knownPluginList.getTypes();
+    auto types = m_engine.getPluginManager().knownPluginList.getTypes();
 
-    for (auto& type : types)
-        if (type.isInstrument)
-            instruments.add(type);
-
-    if (isInstrumentList())
-    {
-        if (selectedRow < instruments.size())
-            return edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, instruments[selectedRow]);
-    }
-    else
-    {
-        if (selectedRow < types.size())
-            return edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, types[selectedRow]);
-    }
+    if (selectedRow < types.size())
+        return edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, types[selectedRow]);
 
     return nullptr;
 }
 
 // ---------------------------------------------------------------------------------------------
 
-PluginBrowser::PluginBrowser(te::Engine& engine) 
+PluginSettings::PluginSettings(te::Engine& engine) 
   : m_engine(engine)
   , m_model(engine)
   , m_listbox(engine)
@@ -192,11 +179,11 @@ PluginBrowser::PluginBrowser(te::Engine& engine)
     };
 }
 
-PluginBrowser::~PluginBrowser()
+PluginSettings::~PluginSettings()
 {
     m_engine.getPluginManager().knownPluginList.removeChangeListener(this);
 }
-void PluginBrowser::resized()
+void PluginSettings::resized()
 {
     auto area = getLocalBounds();
     auto buttonBar = area.removeFromBottom(20);
@@ -205,7 +192,7 @@ void PluginBrowser::resized()
     m_listbox.setBounds(area);
 }
 
-void PluginBrowser::changeListenerCallback(juce::ChangeBroadcaster *source)
+void PluginSettings::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
     if (auto scanner = dynamic_cast<PluginScanner*>(source))
     {
@@ -238,7 +225,7 @@ static void showFolderForPlugin (juce::KnownPluginList& list, int index)
     if (canShowFolderForPlugin (list, index))
         juce::File (list.getTypes()[index].fileOrIdentifier).revealToUser();
 }
-juce::PopupMenu PluginBrowser::createOptionsMenu()
+juce::PopupMenu PluginSettings::createOptionsMenu()
 {
     juce::PopupMenu menu;
     auto& list = m_engine.getPluginManager().knownPluginList;
@@ -295,7 +282,7 @@ juce::PopupMenu PluginBrowser::createOptionsMenu()
 
     return menu;
 }
-void PluginBrowser::scanFinished (const juce::StringArray& failedFiles, const std::vector<juce::String>& newBlacklistedFiles)
+void PluginSettings::scanFinished (const juce::StringArray& failedFiles, const std::vector<juce::String>& newBlacklistedFiles)
 {
     juce::StringArray warnings;
 
@@ -325,7 +312,7 @@ void PluginBrowser::scanFinished (const juce::StringArray& failedFiles, const st
         m_messageBox = juce::AlertWindow::showScopedAsync (options, nullptr);
     }
 }
-void PluginBrowser::removeSelectedPlugins()
+void PluginSettings::removeSelectedPlugins()
 {
     auto selected = m_listbox.getSelectedRows();
 
@@ -334,7 +321,7 @@ void PluginBrowser::removeSelectedPlugins()
             removePluginItem (i);
 }
 
-void PluginBrowser::removePluginItem (int index)
+void PluginSettings::removePluginItem (int index)
 {
     auto& list = m_engine.getPluginManager().knownPluginList;
     if (index < list.getNumTypes())
@@ -342,7 +329,7 @@ void PluginBrowser::removePluginItem (int index)
     else
         list.removeFromBlacklist (list.getBlacklistedFiles() [index - list.getNumTypes()]);
 }
-void PluginBrowser::removeMissingPlugins()
+void PluginSettings::removeMissingPlugins()
 {
     auto& list = m_engine.getPluginManager().knownPluginList;
     auto types = list.getTypes();
@@ -356,12 +343,12 @@ void PluginBrowser::removeMissingPlugins()
             list.removeType (type);
     }
 }
-void PluginBrowser::scanFor (juce::AudioPluginFormat& format)
+void PluginSettings::scanFor (juce::AudioPluginFormat& format)
 {
     scanFor (format, juce::StringArray());
 }
 
-void PluginBrowser::scanFor (juce::AudioPluginFormat& format, const juce::StringArray& filesOrIdentifiersToScan)
+void PluginSettings::scanFor (juce::AudioPluginFormat& format, const juce::StringArray& filesOrIdentifiersToScan)
 {
     if (currentScanner != nullptr)
         currentScanner->removeAllChangeListeners();

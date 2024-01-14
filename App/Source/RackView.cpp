@@ -18,6 +18,7 @@
 
 #include "RackView.h"
 #include "PluginMenu.h"
+#include "InstrumentEffectChooser.h"
 #include "Utilities.h"
 
 
@@ -221,7 +222,8 @@ void RackView::rebuildView()
 bool RackView::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
-    if (dragSourceDetails.description == "PluginListEntry")
+    if (dragSourceDetails.description == "PluginListEntry"
+     || dragSourceDetails.description == "Instrument or Effect")
     {
         return true;
     }
@@ -231,7 +233,9 @@ bool RackView::isInterestedInDragSource(
 void RackView::itemDragMove(const SourceDetails& dragSourceDetails) 
 {
     if (dragSourceDetails.description == "PluginComp"
-        || dragSourceDetails.description == "PluginListEntry")
+        || dragSourceDetails.description == "PluginListEntry"
+        || dragSourceDetails.description == "Instrument or Effect")
+
     {
         m_isOver = true;
     }
@@ -245,12 +249,24 @@ void RackView::itemDragExit (const SourceDetails& /*dragSourceDetails*/)
 }
 
 void RackView::itemDropped(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+    const juce::DragAndDropTarget::SourceDetails& details)
 {
-    if(dragSourceDetails.description == "PluginListEntry")
-        if (auto listbox = dynamic_cast<PluginListbox*>(
-            dragSourceDetails.sourceComponent.get ()))
-                EngineHelpers::insertPlugin (m_track, listbox->getSelectedPlugin(m_track->edit));
+    
+    if  (details.description == "PluginListEntry")
+    {
+        if (auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ()))
+        {
+            EngineHelpers::insertPlugin (m_track, listbox->getSelectedPlugin(m_evs.m_edit));
+        }
+    }
+
+    if (details.description == "Instrument or Effect")
+    {
+        if (auto lb = dynamic_cast<InstrumentEffectTable*>(details.sourceComponent.get()))
+        {
+            EngineHelpers::insertPlugin (m_track, lb->getSelectedPlugin(m_evs.m_edit));
+        }
+    }
 
     m_isOver = false;
     repaint();
