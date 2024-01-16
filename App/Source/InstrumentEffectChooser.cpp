@@ -45,6 +45,8 @@ void InstrumentEffectListModel::updatePluginLists()
         EngineHelpers::sortByFormatName(m_instruments, std::get<bool>(m_order));
         EngineHelpers::sortByFormatName(m_effects, std::get<bool>(m_order));
     }
+
+    sendChangeMessage();
 }
 
 void InstrumentEffectListModel::paintRowBackground(juce::Graphics &g, int row, int width, int height, bool rowIsSelected)
@@ -116,9 +118,38 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
         }
         else
         {
-            g.setColour(juce::Colours::lightgrey);
-            g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
-            g.drawFittedText(text, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
+            juce::String preTerm, postTerm;
+            int termStartIndex = text.indexOfIgnoreCase(m_searchTerm);
+            juce::String searchTerm = text.substring(termStartIndex, termStartIndex + m_searchTerm.length());
+
+            if (termStartIndex != -1 && m_searchTerm.length() > 0)
+            {
+                preTerm = text.substring(0, termStartIndex);
+                postTerm = text.substring(termStartIndex + m_searchTerm.length());
+                auto colour = rowIsSelected ? juce::Colours::black : juce::Colours::darkgrey;
+                
+                g.setColour(colour);
+                g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+                g.drawFittedText(preTerm, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
+
+                int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
+
+                g.setColour(juce::Colours::coral);
+                g.drawFittedText(searchTerm, 4 + preTermWidth, 0, width - 6 - preTermWidth, height, juce::Justification::centredLeft, 1, 0.9f);
+
+                int termWidth = g.getCurrentFont().getStringWidth(searchTerm);
+
+                g.setColour(colour);
+                g.drawFittedText(postTerm, 4 + preTermWidth + termWidth, 0, width - 6 - preTermWidth - termWidth, height, juce::Justification::centredLeft, 1, 0.9f);
+            }
+            else
+            {
+                auto colour = rowIsSelected ? juce::Colours::black : juce::Colours::lightgrey;
+
+                g.setColour(colour);
+                g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+                g.drawFittedText(text, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
+            }
         }
     }
 
@@ -166,7 +197,7 @@ InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, Instrume
                , juce::Colour(0xff171717));
 }
 
-juce::var InstrumentEffectTable::getDragSourceDescription(const juce::SparseSet<int> &)
+    juce::var InstrumentEffectTable::getDragSourceDescription(const juce::SparseSet<int> &)
 {
     return {"Instrument or Effect"};
 }
@@ -201,6 +232,7 @@ InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool
     , m_listbox(engine, m_model)
 {
     addAndMakeVisible(m_listbox);
+    m_model.addChangeListener(this);
     m_listbox.setModel(&m_model);
     m_listbox.setRowHeight (20);
     juce::TableHeaderComponent& header = m_listbox.getHeader();
@@ -232,7 +264,8 @@ void InstrumentEffectChooser::changeListenerCallback(juce::ChangeBroadcaster *so
 {
     if (auto searchbox = dynamic_cast<SearchFieldComponent*>(source))
     {
-       m_model.changeSearchTerm(searchbox->getText()) ;
+        m_model.changeSearchTerm(searchbox->getText()) ;
+        repaint();
     }
 
        

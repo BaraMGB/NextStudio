@@ -4,6 +4,13 @@ SearchFieldComponent::SearchFieldComponent()
 {
     jassert(m_searchFunction != nullptr);
 
+
+    m_searchField.setColour(juce::TextEditor::ColourIds::backgroundColourId, juce::Colour(0xff171717));
+    m_searchField.setColour(juce::TextEditor::ColourIds::shadowColourId, juce::Colour(0xff171717));
+    m_searchField.setColour(juce::TextEditor::ColourIds::outlineColourId, juce::Colour(0xffffffff));
+    m_searchField.setColour(juce::TextEditor::ColourIds::textColourId, juce::Colour(0xffffffff));
+    m_searchField.setColour(juce::TextEditor::ColourIds::highlightColourId, juce::Colour(0xffffffff));
+
     addAndMakeVisible(m_searchField);
 
     m_searchField.onTextChange = [this] {
@@ -24,6 +31,10 @@ SearchFieldComponent::SearchFieldComponent()
     m_label.attachToComponent(&m_searchField, true);
 }
 
+void SearchFieldComponent::paint ( juce::Graphics& g) 
+{
+    g.fillAll(juce::Colour(0xff171717));
+}
 void SearchFieldComponent::resized()
 {
     auto area = getLocalBounds();

@@ -32,7 +32,7 @@ public:
     SearchFieldComponent();
 
     void resized() override;
-
+    void paint(juce::Graphics& g) override;
     juce::String getText();
 
 private:

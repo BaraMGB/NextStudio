@@ -251,22 +251,21 @@ void RackView::itemDragExit (const SourceDetails& /*dragSourceDetails*/)
 void RackView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& details)
 {
-    
+   
+
+    te::Track::Ptr track;
+    if (m_track != nullptr)
+        track = m_track;
+    else 
+        track = EngineHelpers::addAudioTrack(true, m_evs.m_applicationState.getRandomTrackColour(), m_evs);
+
     if  (details.description == "PluginListEntry")
-    {
         if (auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ()))
-        {
-            EngineHelpers::insertPlugin (m_track, listbox->getSelectedPlugin(m_evs.m_edit));
-        }
-    }
+            EngineHelpers::insertPlugin (track, listbox->getSelectedPlugin(m_evs.m_edit));
 
     if (details.description == "Instrument or Effect")
-    {
         if (auto lb = dynamic_cast<InstrumentEffectTable*>(details.sourceComponent.get()))
-        {
-            EngineHelpers::insertPlugin (m_track, lb->getSelectedPlugin(m_evs.m_edit));
-        }
-    }
+            EngineHelpers::insertPlugin (track, lb->getSelectedPlugin(m_evs.m_edit));
 
     m_isOver = false;
     repaint();

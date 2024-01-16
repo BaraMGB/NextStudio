@@ -114,6 +114,7 @@ public:
     ~InstrumentEffectChooser() override
     {
         m_searchField.removeChangeListener(this);
+        m_model.removeChangeListener(this);
     }
 
     void resized() override;
