@@ -20,7 +20,7 @@
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "PluginBrowser.h"
-#include <regex>
+#include "SearchFieldComponent.h"
 
 
 class InstrumentEffectListModel : public juce::TableListBoxModel
@@ -48,7 +48,27 @@ public:
         else
             return m_effects;
     }
+
+    void changeSearchTerm(juce::String searchTerm)
+    {
+        m_searchTerm = searchTerm;
+        updatePluginLists();
+    }
+
 private:
+
+    void filterList()
+    {
+        juce::Array<juce::PluginDescription>& list = m_isInstrumentList ? m_instruments : m_effects;
+        juce::Array<juce::PluginDescription> filteredList;
+
+        for (const auto& plugin : list)
+            if (plugin.name.containsIgnoreCase(m_searchTerm))
+                filteredList.add(plugin);
+
+        list = filteredList;
+    }
+
     juce::KnownPluginList& m_knownPlugins;
     te::Engine& m_engine;
     juce::Array<juce::PluginDescription> m_instruments;
@@ -56,6 +76,7 @@ private:
     bool m_isInstrumentList;
     std::tuple<column, bool> m_order;
 
+    juce::String m_searchTerm;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InstrumentEffectListModel)
 };
@@ -91,7 +112,9 @@ class InstrumentEffectChooser : public juce::Component
 public:
     InstrumentEffectChooser(te::Engine& engine, bool isInstrumentList);
     ~InstrumentEffectChooser() override
-    {}
+    {
+        m_searchField.removeChangeListener(this);
+    }
 
     void resized() override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
@@ -100,6 +123,7 @@ public:
 private:
     InstrumentEffectListModel m_model;
     InstrumentEffectTable m_listbox;
+    SearchFieldComponent m_searchField;
     te::Engine&                           m_engine;
     bool m_isInstrumentList;
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InstrumentEffectChooser)

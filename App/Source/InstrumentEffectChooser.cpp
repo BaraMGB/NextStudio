@@ -1,5 +1,6 @@
 #include "InstrumentEffectChooser.h"
 #include "PluginMenu.h"
+#include "SearchFieldComponent.h"
 #include "Utilities.h"
 
 InstrumentEffectListModel::InstrumentEffectListModel(tracktion::Engine &engine, bool isInstrumentList) 
@@ -23,6 +24,7 @@ void InstrumentEffectListModel::updatePluginLists()
             m_effects.add(desc);
     }
 
+
     for (auto& desc : EngineHelpers::getInternalPlugins())
     {
         if (desc.isInstrument)
@@ -30,6 +32,8 @@ void InstrumentEffectListModel::updatePluginLists()
         else
             m_effects.add(desc);
     }
+
+    filterList();
 
     if (std::get<column>(m_order) == nameCol)
     {
@@ -207,11 +211,18 @@ InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool
 
     header.addColumn (TRANS ("Format"), 1, formatWidth, formatWidth, formatWidth, juce::TableHeaderComponent::notResizable);
     header.addColumn (TRANS ("Name"), 2, getWidth() - formatWidth + 1, 80,30000, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::notResizable);
+
+    addAndMakeVisible(m_searchField);
+    m_searchField.addChangeListener(this);
 }
 
 void InstrumentEffectChooser::resized()
 {
-    m_listbox.setBounds(getLocalBounds());
+    auto area = getLocalBounds();
+    auto searchField = area.removeFromTop(30);
+
+    m_listbox.setBounds(area);
+    m_searchField.setBounds(searchField);
 
     juce::TableHeaderComponent& header = m_listbox.getHeader();
     header.setColumnWidth(InstrumentEffectListModel::nameCol, getWidth() - formatWidth + 1);
@@ -219,6 +230,12 @@ void InstrumentEffectChooser::resized()
 
 void InstrumentEffectChooser::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
+    if (auto searchbox = dynamic_cast<SearchFieldComponent*>(source))
+    {
+       m_model.changeSearchTerm(searchbox->getText()) ;
+    }
+
+       
     m_listbox.updateContent();
     getParentComponent()->resized();
 }
