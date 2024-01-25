@@ -39,7 +39,7 @@ juce_add_binary_data(Pictures SOURCES
     time_stretch_button.svg
     pitch.svg
     reverse_clip.svg
-    delete.svg
+    delete_icon.svg
     pencil.svg
     projectsButton.svg
     pluginsButton.svg

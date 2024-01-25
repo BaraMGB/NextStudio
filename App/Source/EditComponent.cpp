@@ -125,7 +125,7 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     m_reverseClipButton.setCommandToTrigger(&m_commandManager,KeyPressCommandIDs::reverseClip , true);
 
 
-    GUIHelpers::setDrawableOnButton(m_deleteClipButton, BinaryData::delete_svg, juce::Colour(0xffffffff));
+    GUIHelpers::setDrawableOnButton(m_deleteClipButton, BinaryData::delete_icon_svg, juce::Colour(0xffffffff));
     m_deleteClipButton.setCommandToTrigger(&m_commandManager, KeyPressCommandIDs::deleteSelectedClips, true);
 
     m_toolBar.addButton(&m_selectButton, 1);
