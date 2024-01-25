@@ -49,6 +49,7 @@ namespace IDs
     DECLARE_ID (ThemeState)
     DECLARE_ID (PrimeColour)
     DECLARE_ID (BackgroundColour)
+    DECLARE_ID (menuBackgroundColour)
     DECLARE_ID (Behavior)
     DECLARE_ID (AutoSaveInterval)           
     #undef DECLARE_ID
@@ -161,16 +162,22 @@ public:
 
 		
 		m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
-		m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff181818).toString());
+		m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
+		m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff343f34).toString());
         auto behavior = m_applicationStateValueTree
                 .getOrCreateChildWithName(IDs::Behavior, nullptr);  
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
+
     }
 
 	juce::Colour getPrimeColour()
 	{
 		return juce::Colour::fromString(juce::String(m_primeColour));
 	}
+	juce::Colour getMenuBackgroundColour()
+	{
+		return juce::Colour::fromString(juce::String(m_menuBackgroundColour));
+    }
 	juce::Colour getBackgroundColour()
 	{
 		return juce::Colour::fromString(juce::String(m_backgroundColour));
@@ -228,6 +235,7 @@ public:
         {
             favoritesState.addChild (favEntry->m_state, -1, nullptr);
         }
+
         auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName (
                     IDs::FileBrowser, nullptr);
 
@@ -319,6 +327,7 @@ public:
                                     m_samplesDir,
                                     m_renderDir,
                                     m_projectsDir,
+                                    m_menuBackgroundColour,
                                     m_backgroundColour,
 									m_primeColour;
     juce::CachedValue<int>          m_windowXpos,

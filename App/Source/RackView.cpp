@@ -43,7 +43,7 @@ RackView::~RackView()
 
 void RackView::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colour(0x181818));
+    g.setColour (m_evs.m_applicationState.getMenuBackgroundColour());
     g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
     g.setColour(juce::Colours::white);
         

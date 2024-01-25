@@ -107,7 +107,7 @@ HeaderComponent::~HeaderComponent()
 void HeaderComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
-    g.setColour(juce::Colour(0xff242424));
+    g.setColour(m_applicationState.getMenuBackgroundColour());
     g.fillRoundedRectangle (area.toFloat(), 10);
 }
 
@@ -269,7 +269,7 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         juce::DialogWindow::LaunchOptions options;
         options.content.setOwned (new RenderDialog(m_editViewState));
         options.dialogTitle = "Render Options";
-        options.dialogBackgroundColour = m_editViewState.m_applicationState.getBackgroundColour();
+        options.dialogBackgroundColour = m_editViewState.m_applicationState.getMenuBackgroundColour();
         options.escapeKeyTriggersCloseButton = true;
         options.useNativeTitleBar = false;
         options.resizable = false;

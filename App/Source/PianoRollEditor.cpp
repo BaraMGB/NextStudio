@@ -84,10 +84,8 @@ void PianoRollEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::pink);
     g.fillAll();
 
-    g.setColour(juce::Colour(0xff181818));
+    g.setColour(m_editViewState.m_applicationState.getMenuBackgroundColour());
     g.fillRect(getHeaderRect());
-
-    g.setColour(juce::Colour(0xff181818));
     g.fillRect(getFooterRect());
 
     g.setColour(juce::Colour(0xff272727));

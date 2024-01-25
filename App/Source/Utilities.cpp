@@ -335,9 +335,9 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     }
 }
 
-void GUIHelpers::drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<int> bounds)
+void GUIHelpers::drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<int> bounds, juce::Colour colour)
 {
-    g.setColour(juce::Colour(0xff555555));
+    g.setColour(colour);
 
     juce::Path fakeRoundedCorners;
 

@@ -17,6 +17,7 @@
  */
 
 #include "LowerRangeComponent.h"
+#include "Utilities.h"
 
 
 SplitterComponent::SplitterComponent(EditViewState &evs) : m_editViewState(evs)
@@ -110,55 +111,20 @@ void LowerRangeComponent::paint(juce::Graphics &g)
 
 void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
 {
-    float size = 20;
-    auto area = getLocalBounds ().toFloat();
-    g.setColour(juce::Colour(0xff555555));
-    juce::Path topLeft;
+    
+    auto area = getLocalBounds ();
+    area.removeFromTop(m_splitterHeight);
 
-    topLeft.addArc (area.getX(),area.getY() + m_splitterHeight, size, size
-              , juce::MathConstants<float>::pi * 1.5
-              , juce::MathConstants<float>::pi * 2
-              , true);
-    topLeft.lineTo (area.getX(),area.getY() + m_splitterHeight);
-    topLeft.closeSubPath ();
-    g.fillPath (topLeft);
-
-    juce::Path topRight;
-    topRight.addArc (
-                area.getWidth () - size
-              , area.getY () + m_splitterHeight
-              , size, size
-              , juce::MathConstants<float>::pi * 2
-              , juce::MathConstants<float>::pi * 2.5
-              , true);
-    topRight.lineTo (area.getWidth (), area.getY () - m_splitterHeight);
-    topRight.closeSubPath ();
-    g.fillPath (topRight);
-
-    juce::Path bottomRight;
-    bottomRight.addArc (area.getWidth () - size, area.getHeight () - size, size, size
-              , juce::MathConstants<float>::pi * 2.5
-              , juce::MathConstants<float>::pi * 3
-              , true);
-    bottomRight.lineTo (area.getWidth () , area.getHeight () );
-    bottomRight.closeSubPath ();
-    g.fillPath (bottomRight);
-
-    juce::Path bottomLeft;
-    bottomLeft.addArc (area.getX (), area.getHeight () - size, size, size
-              , juce::MathConstants<float>::pi * 3
-              , juce::MathConstants<float>::pi * 3.5
-              , true);
-    bottomLeft.lineTo (area.getX (), area.getHeight ());
-    bottomLeft.closeSubPath ();
-    g.fillPath (bottomLeft);
+    GUIHelpers::drawFakeRoundCorners(g, area, m_evs.m_applicationState.getBackgroundColour());
 }
 
 void LowerRangeComponent::resized()
 {
         auto area = getLocalBounds();
+        auto splitter = area.removeFromTop ((int) m_splitterHeight);
+        splitter.reduce(10, 1); 
 
-        m_splitter.setBounds (area.removeFromTop ((int) m_splitterHeight));
+        m_splitter.setBounds (splitter);
 
         m_rackView.setBounds(area);
 

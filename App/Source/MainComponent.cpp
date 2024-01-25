@@ -33,6 +33,8 @@ MainComponent::MainComponent(ApplicationViewState &state)
     setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);
     m_nextLookAndFeel.setColour(juce::TooltipWindow::outlineColourId, juce::Colours::white);
+    m_nextLookAndFeel.setColour(juce::TextButton::buttonColourId , m_applicationState.getBackgroundColour());
+    m_nextLookAndFeel.setColour(juce::DrawableButton::backgroundColourId, m_applicationState.getBackgroundColour());
 
     openValidStartEdit();
 
@@ -58,7 +60,7 @@ MainComponent::~MainComponent()
 
 void MainComponent::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colour(0xff555555));
+    g.setColour (m_applicationState.getBackgroundColour());
     g.fillRect (getLocalBounds ());
     }
 

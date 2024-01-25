@@ -40,12 +40,12 @@ public:
     = default;
     void paint (juce::Graphics &g) override
     {
-        g.setColour (juce::Colour (0xff181818));
-        g.fillRect (
-                    0
-                  , 0
-                  , getWidth ()
-                  , getHeight ());
+        // g.setColour (juce::Colour (0xff181818));
+        // g.fillRect (
+        //             0
+        //           , 0
+        //           , getWidth ()
+        //           , getHeight ());
         g.setColour (juce::Colour (0xffffffff));
         g.drawText (m_snapTypeDesc
                   , getWidth () - 100

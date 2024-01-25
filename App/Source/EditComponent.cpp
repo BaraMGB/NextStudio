@@ -167,8 +167,9 @@ EditComponent::~EditComponent()
 
 void EditComponent::paint (juce::Graphics &g)
 {
-    g.setColour(juce::Colour(0xff181818));
+    g.setColour(m_editViewState.m_applicationState.getMenuBackgroundColour());
     g.fillRect(getEditorHeaderRect());
+    g.fillRect(getFooterRect());
     g.setColour(juce::Colour(0xff272727));
 
     g.fillRect(getTrackListToolsRect());
@@ -187,8 +188,8 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
     g.drawVerticalLine (getTrackListRect ().getRight (),
                         getTimeLineRect ().getY (),
                         getTimeLineRect ().getBottom ());
-
-    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds());
+    auto background = m_editViewState.m_applicationState.getBackgroundColour();
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), background);
 }
 
 
