@@ -2,12 +2,15 @@
 #include "Utilities.h"
 
 
+void SidebarComponent::paint(juce::Graphics& g)
+{
+    g.fillAll(m_appState.getMenuBackgroundColour());
+}
 void SidebarComponent::paintOverChildren(juce::Graphics& g)
 {
-    auto area = getLocalBounds();
-    g.setColour(juce::Colours::lightgrey);
+    g.setColour(m_appState.getBorderColour());
     g.drawVerticalLine(m_menu.getWidth() -1, 0, getHeight());
-    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds());
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), m_appState.getBackgroundColour(),m_appState.getBorderColour());
 }
 
 void SidebarComponent::buttonClicked (juce::Button* button)

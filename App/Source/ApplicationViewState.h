@@ -48,6 +48,7 @@ namespace IDs
     DECLARE_ID (FolderTrackIndent)
     DECLARE_ID (ThemeState)
     DECLARE_ID (PrimeColour)
+    DECLARE_ID (BorderColour)
     DECLARE_ID (BackgroundColour)
     DECLARE_ID (menuBackgroundColour)
     DECLARE_ID (Behavior)
@@ -162,6 +163,7 @@ public:
 
 		
 		m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
+        m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff9dae9d).toString());
 		m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
 		m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff343f34).toString());
         auto behavior = m_applicationStateValueTree
@@ -170,6 +172,10 @@ public:
 
     }
 
+	juce::Colour getBorderColour()
+	{
+		return juce::Colour::fromString(juce::String(m_borderColour));
+	}
 	juce::Colour getPrimeColour()
 	{
 		return juce::Colour::fromString(juce::String(m_primeColour));
@@ -311,6 +317,15 @@ public:
         auto rdm = juce::Random::getSystemRandom().nextInt(m_trackColours.size());
         return m_trackColours[rdm];
     }
+
+    juce::Colour getProjectsColour(){ return juce::Colours::palegoldenrod; }
+    juce::Colour getInstrumentsColour(){ return juce::Colours::lightsalmon;}
+    juce::Colour getSamplesColour(){ return juce::Colours::dodgerblue;}
+    juce::Colour getEffectsColour(){ return juce::Colours::palegreen;}
+    juce::Colour getHomeColour(){ return juce::Colours::indianred;}
+    juce::Colour getSettingsColour(){ return juce::Colours::mediumpurple;}
+
+
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;
     juce::Array<juce::Colour> m_trackColours
@@ -329,7 +344,8 @@ public:
                                     m_projectsDir,
                                     m_menuBackgroundColour,
                                     m_backgroundColour,
-									m_primeColour;
+									m_primeColour,
+                                    m_borderColour;
     juce::CachedValue<int>          m_windowXpos,
                                     m_windowYpos,
                                     m_windowWidth,

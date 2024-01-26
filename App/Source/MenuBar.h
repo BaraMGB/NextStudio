@@ -52,7 +52,6 @@ public:
         m_buttons.clear();
     }
 
-    void paint(juce::Graphics& g) override;
 
     void addButton(juce::DrawableButton* button, int toggleGroupId=0);
     void setButtonGap(int bg);

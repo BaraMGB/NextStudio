@@ -1,11 +1,13 @@
 #include "InstrumentEffectChooser.h"
+#include "ApplicationViewState.h"
 #include "PluginMenu.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-InstrumentEffectListModel::InstrumentEffectListModel(tracktion::Engine &engine, bool isInstrumentList) 
+InstrumentEffectListModel::InstrumentEffectListModel(tracktion::Engine &engine, bool isInstrumentList, ApplicationViewState& appState) 
     : m_engine(engine), m_knownPlugins(engine.getPluginManager().knownPluginList)
     , m_isInstrumentList(isInstrumentList)
+    , m_appState(appState)
 {
     updatePluginLists();
 }
@@ -53,9 +55,9 @@ void InstrumentEffectListModel::paintRowBackground(juce::Graphics &g, int row, i
 {
     if (row < 0 || row >= getNumRows())
         return;
-
+    auto bgColour = row % 2 == 0 ? m_appState.getMenuBackgroundColour() : m_appState.getMenuBackgroundColour().brighter(0.05f);
     juce::Rectangle<int> bounds(0, 0, width, height);
-    g.setColour(juce::Colour(0xff171717));
+    g.setColour(bgColour);
     g.fillRect(bounds);
 
     if (rowIsSelected)
@@ -189,9 +191,10 @@ void InstrumentEffectListModel::sortOrderChanged(int newSortColumnId, bool isFor
 
 // ----------------------------------------------------------------------------------------------
 
-InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, InstrumentEffectListModel& model)
+InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, InstrumentEffectListModel& model, ApplicationViewState& appState)
     : m_engine(engine)
     , m_model(model)
+    , m_appState(appState)
 {
     setColour (juce::TableListBox::ColourIds::backgroundColourId
                , juce::Colour(0xff171717));
@@ -225,11 +228,12 @@ tracktion::Plugin::Ptr InstrumentEffectTable::getSelectedPlugin(tracktion::Edit 
 //----------------------------------------------------------------------------------------------------
 
 const auto formatWidth = 60;
-InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool isInstrumentList)
+InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool isInstrumentList, ApplicationViewState& appState)
     : m_engine(engine)
     , m_isInstrumentList(isInstrumentList)
-    , m_model(engine, isInstrumentList)
-    , m_listbox(engine, m_model)
+    , m_model(engine, isInstrumentList,appState)
+    , m_listbox(engine, m_model,appState)
+    , m_appState(appState)
 {
     addAndMakeVisible(m_listbox);
     m_model.addChangeListener(this);

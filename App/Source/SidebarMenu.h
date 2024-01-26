@@ -38,27 +38,27 @@ public:
     , m_appState(appstate)
     {
         addButton(&m_projectsButton);
-        GUIHelpers::setDrawableOnButton(m_projectsButton, BinaryData::projectsButton_svg, juce::Colour(0xffffffff));
+        GUIHelpers::setDrawableOnButton(m_projectsButton, BinaryData::projectsButton_svg, m_appState.getProjectsColour());
         m_projectsButton.setTooltip(GUIHelpers::translate("handle projects", m_appState));
 
         addButton(&m_instrumentsButton);
-        GUIHelpers::setDrawableOnButton(m_instrumentsButton, BinaryData::presetsButton_svg, juce::Colour(0xffffffff));
+        GUIHelpers::setDrawableOnButton(m_instrumentsButton, BinaryData::presetsButton_svg,m_appState.getInstrumentsColour());
         m_instrumentsButton.setTooltip(GUIHelpers::translate("instrument plugins", m_appState));
 
         addButton(&m_samplesButton);
-        GUIHelpers::setDrawableOnButton(m_samplesButton, BinaryData::samplesButton_svg, juce::Colour(0xffffffff));
+        GUIHelpers::setDrawableOnButton(m_samplesButton, BinaryData::samplesButton_svg,m_appState.getSamplesColour());
         m_samplesButton.setTooltip(GUIHelpers::translate("samples", m_appState));
 
         addButton(&m_effectsButton);
-        GUIHelpers::setDrawableOnButton(m_effectsButton, BinaryData::pluginsButton_svg, juce::Colour(0xffffffff));
+        GUIHelpers::setDrawableOnButton(m_effectsButton, BinaryData::pluginsButton_svg, m_appState.getEffectsColour());
         m_effectsButton.setTooltip(GUIHelpers::translate("effect plugins", m_appState));
 
         addButton(&m_homeButton);
-        GUIHelpers::setDrawableOnButton(m_homeButton, BinaryData::homeButton_svg, juce::Colour(0xffffffff));
+        GUIHelpers::setDrawableOnButton(m_homeButton, BinaryData::homeButton_svg, m_appState.getHomeColour());
         m_homeButton.setTooltip(GUIHelpers::translate("home folder file browser", m_appState));
 
         addButton(&m_settingsButton);
-        GUIHelpers::setDrawableOnButton(m_settingsButton, BinaryData::settingsButton_svg, juce::Colour(0xffffffff));
+        GUIHelpers::setDrawableOnButton(m_settingsButton, BinaryData::settingsButton_svg, m_appState.getSettingsColour());
         m_settingsButton.setTooltip(GUIHelpers::translate("opens settings", m_appState));
 
         setButtonGap(15);

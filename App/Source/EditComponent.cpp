@@ -189,7 +189,8 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
                         getTimeLineRect ().getY (),
                         getTimeLineRect ().getBottom ());
     auto background = m_editViewState.m_applicationState.getBackgroundColour();
-    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), background);
+    auto stroke = m_editViewState.m_applicationState.getBorderColour();
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), background, stroke);
 }
 
 

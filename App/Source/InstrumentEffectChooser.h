@@ -17,6 +17,7 @@
 
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "PluginBrowser.h"
@@ -33,7 +34,7 @@ public:
         nameCol = 2,
     };
 
-    InstrumentEffectListModel(te::Engine& engine, bool isInstrumentList);
+    InstrumentEffectListModel(te::Engine& engine, bool isInstrumentList, ApplicationViewState& appState);
 
     void paintRowBackground(juce::Graphics& g, int row, int width, int height, bool rowIsSelected) override;
     void paintCell(juce::Graphics& g, int row, int col, int width, int height, bool rowIsSelected) override;
@@ -71,6 +72,7 @@ private:
 
     juce::KnownPluginList& m_knownPlugins;
     te::Engine& m_engine;
+    ApplicationViewState& m_appState;
     juce::Array<juce::PluginDescription> m_instruments;
     juce::Array<juce::PluginDescription> m_effects;
     bool m_isInstrumentList;
@@ -86,7 +88,7 @@ private:
 class InstrumentEffectTable : public juce::TableListBox
 {
 public:
-    InstrumentEffectTable(te::Engine& engine, InstrumentEffectListModel& model);
+    InstrumentEffectTable(te::Engine& engine, InstrumentEffectListModel& model, ApplicationViewState& appState);
 
     juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
@@ -99,6 +101,7 @@ public:
 private:
     te::Engine& m_engine;
     InstrumentEffectListModel& m_model;
+    ApplicationViewState& m_appState;
 
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InstrumentEffectTable)
 };
@@ -110,7 +113,7 @@ class InstrumentEffectChooser : public juce::Component
                      , public juce::ChangeListener
 {
 public:
-    InstrumentEffectChooser(te::Engine& engine, bool isInstrumentList);
+    InstrumentEffectChooser(te::Engine& engine, bool isInstrumentList, ApplicationViewState& appState);
     ~InstrumentEffectChooser() override
     {
         m_searchField.removeChangeListener(this);
@@ -127,5 +130,6 @@ private:
     SearchFieldComponent m_searchField;
     te::Engine&                           m_engine;
     bool m_isInstrumentList;
+    ApplicationViewState& m_appState;
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InstrumentEffectChooser)
 };

@@ -207,7 +207,7 @@ namespace GUIHelpers
           , double x2beats
           , juce::Rectangle<int> boundingRect, bool printDescription=false);
     
-    void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<int> bounds, juce::Colour colour);
+    void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<int> bounds, juce::Colour colour, juce::Colour outline, int stroke=1);
     void moveView(EditViewState& evs, double newBeatPos);
     void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c);
 

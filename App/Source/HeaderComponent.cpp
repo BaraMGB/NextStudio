@@ -108,7 +108,9 @@ void HeaderComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
     g.setColour(m_applicationState.getMenuBackgroundColour());
-    g.fillRoundedRectangle (area.toFloat(), 10);
+    g.fillRect (area);
+
+    GUIHelpers::drawFakeRoundCorners(g, area, m_applicationState.getBackgroundColour(), m_applicationState.getBorderColour());  
 }
 
 void HeaderComponent::resized()

@@ -39,8 +39,8 @@ public:
         , m_commandManager(commandManager)
         , m_menu(as)
         , m_settingsView(m_engine, m_commandManager)
-        , m_instrumentList(engine, true)
-        , m_effectList(engine, false)
+        , m_instrumentList(engine, true, as)
+        , m_effectList(engine, false, as)
     {
         addAndMakeVisible(m_menu);
         addChildComponent(m_settingsView);
@@ -58,6 +58,7 @@ public:
     }
 
     void paintOverChildren(juce::Graphics& g) override;
+    void paint(juce::Graphics& g) override;
 
     void resized() override
     {

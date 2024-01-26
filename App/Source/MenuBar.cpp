@@ -29,10 +29,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "MenuBar.h"
 
-void MenuBar::paint(juce::Graphics& g) 
-{
-    g.fillAll(juce::Colour(0xff171717));
-}
 
 void MenuBar::addButton(juce::DrawableButton* button, int toggleGroupId)
 {

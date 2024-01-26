@@ -115,7 +115,7 @@ void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
     auto area = getLocalBounds ();
     area.removeFromTop(m_splitterHeight);
 
-    GUIHelpers::drawFakeRoundCorners(g, area, m_evs.m_applicationState.getBackgroundColour());
+    GUIHelpers::drawFakeRoundCorners(g, area, m_evs.m_applicationState.getBackgroundColour(), m_evs.m_applicationState.getBorderColour());
 }
 
 void LowerRangeComponent::resized()
