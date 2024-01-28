@@ -188,6 +188,10 @@ public:
 	{
 		return juce::Colour::fromString(juce::String(m_backgroundColour));
     }
+    juce::Colour getTextColour()
+    {
+        return juce::Colours::beige;
+    }
     void addFavoriteType(const juce::Identifier& type)
     {
         auto favoriteTypes = m_applicationStateValueTree

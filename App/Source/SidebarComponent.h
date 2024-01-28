@@ -64,14 +64,33 @@ public:
     {
         auto area = getLocalBounds();
         m_menu.setBounds(area.removeFromLeft(80));
+        area.removeFromTop(CONTENT_HEADER_HEIGHT);
+
         if (m_settingsView.isVisible())
+        {
             m_settingsView.setBounds(area);
+            m_headerName = "Settings";
+            m_headerColour = m_appState.getSettingsColour();
+        }
         else if (m_instrumentList.isVisible())
+        {
             m_instrumentList.setBounds(area);
+            m_headerName = "Instrument Plugins";
+            m_headerColour = m_appState.getInstrumentsColour();
+        }
         else if (m_effectList.isVisible())
+        {
             m_effectList.setBounds(area);
+            m_headerName = "Effect Plugins";
+            m_headerColour = m_appState.getEffectsColour();
+        }
         else if (m_fileBrowser.isVisible())
+        {
             m_fileBrowser.setBounds(area);
+            m_headerName = "Home Folder";
+            m_headerColour = m_appState.getHomeColour();
+        }
+        repaint();
     }
 
     void buttonClicked (juce::Button* button) override;
@@ -89,6 +108,9 @@ private:
     InstrumentEffectChooser m_effectList;
     
     juce::FileBrowserComponent m_fileBrowser{1+4+8+64, juce::File(m_appState.m_workDir), nullptr, nullptr};
+    const int CONTENT_HEADER_HEIGHT {30};
+    juce::String m_headerName;
+    juce::Colour m_headerColour;
 
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SidebarComponent)
 };
