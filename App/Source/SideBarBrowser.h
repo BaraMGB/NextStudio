@@ -16,18 +16,18 @@
 //  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 //  */
 //
-// #pragma once
-//
-//
-// #include "../JuceLibraryCode/JuceHeader.h"
-// #include "EditViewState.h"
-// #include "ApplicationViewState.h"
-// #include "Utilities.h"
-// #include "PreviewComponent.h"
-//
-// namespace te = tracktion_engine;
-//
-//     
+#pragma once
+
+
+#include "../JuceLibraryCode/JuceHeader.h"
+#include "EditViewState.h"
+#include "ApplicationViewState.h"
+#include "Utilities.h"
+#include "PreviewComponent.h"
+
+namespace te = tracktion_engine;
+
+    
 // struct CategoryListBoxEntry
 // {
 //     explicit CategoryListBoxEntry(juce::String n) : name (std::move(n)){}
@@ -124,16 +124,16 @@
 //         : m_applicationViewState(avs)
 //         , m_samplePreviewComponent(spc)
 //     {
-//         addAndMakeVisible (m_entries);
-//         m_entries.setModel (this);
-//         m_entries.setRowHeight (20);
-//         m_entries.setColour (
+//         addAndMakeVisible (m_listBox);
+//         m_listBox.setModel (this);
+//         m_listBox.setRowHeight (20);
+//         m_listBox.setColour (
 //                     juce::ListBox::ColourIds::backgroundColourId
 //                   , juce::Colour(0xff171717));
 //     }
 //     void resized() override
 //     {
-//         m_entries.setBounds (getLocalBounds ());
+//         m_listBox.setBounds (getLocalBounds ());
 //     }
 //     void paintListBoxItem(
 //             int rowNum
@@ -186,9 +186,9 @@
 //     void setFileList(juce::Identifier tag, const juce::Array<juce::File> &fileList)
 //     {
 //         m_tag = std::move(tag);
-//         m_entries.deselectAllRows ();
+//         m_listBox.deselectAllRows ();
 //         m_fileList = fileList;
-//         m_entries.updateContent ();
+//         m_listBox.updateContent ();
 //     }
 //     void listBoxItemClicked(int row, const juce::MouseEvent &e) override
 //     {
@@ -203,14 +203,14 @@
 //                 m_fileList = m_applicationViewState.removeFileFromFavorite (
 //                             m_tag
 //                           , getFileList ()[row]);
-//                 m_entries.updateContent ();
+//                 m_listBox.updateContent ();
 //               }
 //         }
 //
 //     }
 //       void selectedRowsChanged(int /*lastRowSelected*/) override
 //       {
-//           previewSampleFile (m_fileList[m_entries.getSelectedRow ()]);
+//           previewSampleFile (m_fileList[m_listBox.getSelectedRow ()]);
 //       }
 //
 //       inline void previewSampleFile(const juce::File& file)
@@ -228,20 +228,20 @@
 //           {
 //               m_fileList = entry->m_fileList;
 //               m_tag = entry->m_tag;
-//               m_entries.updateContent ();
+//               m_listBox.updateContent ();
 //           }
 //       }
 //
 //   private:
 //       ApplicationViewState &     m_applicationViewState;
 //       SamplePreviewComponent &   m_samplePreviewComponent;
-//       juce::ListBox              m_entries;
+//       juce::ListBox              m_listBox;
 //       juce::Array<juce::File>    m_fileList;
 //       juce::Identifier           m_tag;
-// //      juce::Typeface::Ptr        m_fontTypeface{
-// //          juce::Typeface::createSystemTypefaceFor(
-// //                      BinaryData::IBMPlexSansRegular_ttf
-// //                    , BinaryData::IBMPlexSansRegular_ttfSize)};
+//      juce::Typeface::Ptr        m_fontTypeface{
+//          juce::Typeface::createSystemTypefaceFor(
+//                      BinaryData::IBMPlexSansRegular_ttf
+//                    , BinaryData::IBMPlexSansRegular_ttfSize)};
 //   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileListBoxComponent)
 //
 //

@@ -17,6 +17,7 @@
  */
 
 #include "SongEditorView.h"
+#include "SampleBrowser.h"
 #include "Utilities.h"
 
 
@@ -733,9 +734,9 @@ bool SongEditorView::isInterestedInDragSource (const SourceDetails& dragSourceDe
 {
     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
         (dragSourceDetails.sourceComponent.get()))
-    {
         return true;
-    }
+    if (dragSourceDetails.description == "SampleBrowser")
+        return true;
 
     return false;
 }
@@ -750,28 +751,31 @@ void SongEditorView::itemDragEnter (const SourceDetails& dragSourceDetails)
 
 void SongEditorView::itemDragMove (const SourceDetails& dragSourceDetails) 
 {
-    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
-        (dragSourceDetails.sourceComponent.get()))
+    auto pos = dragSourceDetails.localPosition;
+    bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
+    auto dropTime = isShiftDown ? xtoTime(pos.x) : getSnapedTime(xtoTime(pos.x)); 
+    auto f = juce::File();
+    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(dragSourceDetails.sourceComponent.get()))
+        f = fileTreeComp->getSelectedFile();
+    else if (auto sampleBrowser = dynamic_cast<SampleListBox*>(dragSourceDetails.sourceComponent.get()))
+        f = sampleBrowser->getSelectedSample();
+
+    m_dragItemRect.valid = false;
+    if (f.exists())
     {
-
-        auto pos = dragSourceDetails.localPosition;
-        bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
-        auto dropTime = isShiftDown ? xtoTime(pos.x) : getSnapedTime(xtoTime(pos.x)); 
-        auto f = fileTreeComp->getSelectedFile();
-
-        m_dragItemRect.valid = false;
         if (auto targetTrack = getTrackAt(pos.y))
         {
-
             te::AudioFile audioFile (m_editViewState.m_edit.engine, f);
+
             auto x = timeToX(dropTime);
             auto y = getYForTrack(targetTrack);
             auto w = timeToX(audioFile.getLength());
             auto h = getTrackHeight(targetTrack, m_editViewState, false);
+
             m_dragItemRect.drawRect = {x, y, w, h};
             m_dragItemRect.name = f.getFileNameWithoutExtension();
-
             m_dragItemRect.visible = true;
+
             if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack.get()))
             {
                 if (!at->state.getProperty(IDs::isMidiTrack))
@@ -808,14 +812,18 @@ void SongEditorView::itemDragExit (const SourceDetails& dragSourceDetails)
 
 void SongEditorView::itemDropped (const SourceDetails& dragSourceDetails) 
 {
-    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>
-        (dragSourceDetails.sourceComponent.get()))
-    {
-        auto pos = dragSourceDetails.localPosition;
-        bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
-        auto dropTime = isShiftDown ? xtoTime(pos.x) : getSnapedTime(xtoTime(pos.x)); 
-        auto f = fileTreeComp->getSelectedFile();
+    auto pos = dragSourceDetails.localPosition;
+    bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
+    auto dropTime = isShiftDown ? xtoTime(pos.x) : getSnapedTime(xtoTime(pos.x)); 
+    auto f = juce::File();
 
+    if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(dragSourceDetails.sourceComponent.get()))
+        auto f = fileTreeComp->getSelectedFile();
+    else if (auto sampleBrowser = dynamic_cast<SampleListBox*>(dragSourceDetails.sourceComponent.get()))
+        f = sampleBrowser->getSelectedSample();
+
+    if (f.exists())
+    {
         if (auto targetTrack = getTrackAt(pos.y))
         {
             if (auto at = dynamic_cast<te::AudioTrack*>(targetTrack.get()))

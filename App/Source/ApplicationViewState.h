@@ -329,6 +329,8 @@ public:
     juce::Colour getHomeColour(){ return juce::Colours::indianred;}
     juce::Colour getSettingsColour(){ return juce::Colours::mediumpurple;}
 
+    juce::File getSamplesDir() { auto file = juce::File {};
+                                    file.create();}
 
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;

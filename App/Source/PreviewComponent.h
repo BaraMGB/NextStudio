@@ -29,7 +29,7 @@ class SamplePreviewComponent : public juce::Component
 {
 public:
 
-    explicit SamplePreviewComponent(te::Edit & edit, ApplicationViewState& avs);
+    explicit SamplePreviewComponent(te::Engine & engine, ApplicationViewState& avs);
     void paint(juce::Graphics &g) override;
     void resized() override;
     void sliderValueChanged(juce::Slider *slider) override;
@@ -46,7 +46,7 @@ private:
 
     void updateButtonColours();
 
-    te::Edit &    m_currentEdit;
+    te::Engine& m_engine;
     ApplicationViewState & m_avs;
     std::unique_ptr<te::Edit>     m_previewEdit;
     std::unique_ptr<juce::Slider> m_volumeSlider;

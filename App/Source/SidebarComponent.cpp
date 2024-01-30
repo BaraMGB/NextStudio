@@ -18,12 +18,15 @@ void SidebarComponent::paint(juce::Graphics& g)
 
     if (m_instrumentList.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::presetsButton_svg, m_headerColour, iconRect.toFloat());    
+    else if (m_sampleBrowser.isVisible())
+        GUIHelpers::drawFromSvg(g, BinaryData::samplesButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_effectList.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::pluginsButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_fileBrowser.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::homeButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_settingsView.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::settingsButton_svg, m_headerColour, iconRect.toFloat());
+
 }
 void SidebarComponent::paintOverChildren(juce::Graphics& g)
 {
@@ -51,27 +54,25 @@ void SidebarComponent::buttonClicked (juce::Button* button)
     {
         setAllVisibleOff();
         m_instrumentList.setVisible(true);
-        // m_pluginList.resized();
         resized();
     }
     else if (button->getName() == "Samples")
     {
         setAllVisibleOff();
-        // m_pluginList.resized();
+        m_sampleBrowser.setVisible(true);
+        m_samplePreview.setVisible(true);
         resized();
     }
     else if (button->getName() == "Effects")
     {
         setAllVisibleOff();
         m_effectList.setVisible(true);
-        // m_pluginList.resized();
         resized();
     }
     else if (button->getName() == "Home")
     {
         setAllVisibleOff();
         m_fileBrowser.setVisible(true);
-        // m_pluginList.resized();
         resized();
     }
 
@@ -83,4 +84,6 @@ void SidebarComponent::setAllVisibleOff()
     m_instrumentList.setVisible(false);
     m_effectList.setVisible(false);
     m_fileBrowser.setVisible(false);
+    m_sampleBrowser.setVisible(false);
+    m_samplePreview.setVisible(false);
 }

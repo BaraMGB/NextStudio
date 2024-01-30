@@ -22,12 +22,12 @@
 #include "AudioMidiSettings.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
+#include "SampleBrowser.h"
 #include "Utilities.h"
 #include "PreviewComponent.h"
 #include "SidebarMenu.h"
 #include "PluginBrowser.h"
 #include "InstrumentEffectChooser.h"
-
 
 
 class SidebarComponent : public juce::Component
@@ -41,14 +41,21 @@ public:
         , m_settingsView(m_engine, m_commandManager)
         , m_instrumentList(engine, true, as)
         , m_effectList(engine, false, as)
+        , m_samplePreview(engine, m_appState)
+        , m_sampleBrowser(m_appState, m_samplePreview)
     {
         addAndMakeVisible(m_menu);
         addChildComponent(m_settingsView);
         addChildComponent(m_instrumentList);
         addChildComponent(m_effectList);
+        addChildComponent(m_sampleBrowser);
+        addChildComponent(m_samplePreview);
         addAndMakeVisible(m_fileBrowser);
         for (auto b : m_menu.getButtons())
             b->addListener(this);
+
+        m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav" ) );
+        
     }
 
     ~SidebarComponent() override
@@ -57,9 +64,8 @@ public:
             b->removeListener(this);
     }
 
-    void paintOverChildren(juce::Graphics& g) override;
     void paint(juce::Graphics& g) override;
-
+    void paintOverChildren(juce::Graphics& g) override;
     void resized() override
     {
         auto area = getLocalBounds();
@@ -83,12 +89,21 @@ public:
             m_effectList.setBounds(area);
             m_headerName = "Effect Plugins";
             m_headerColour = m_appState.getEffectsColour();
-        }
+        }                   
         else if (m_fileBrowser.isVisible())
         {
             m_fileBrowser.setBounds(area);
             m_headerName = "Home Folder";
             m_headerColour = m_appState.getHomeColour();
+        }
+        else if (m_sampleBrowser.isVisible())
+        {
+            auto bounds = area;
+            auto preview = area.removeFromBottom(60);
+            m_sampleBrowser.setBounds(area);
+            m_samplePreview.setBounds(preview);
+            m_headerName = "Samples";
+            m_headerColour = m_appState.getSamplesColour();
         }
         repaint();
     }
@@ -107,7 +122,9 @@ private:
     InstrumentEffectChooser m_instrumentList;
     InstrumentEffectChooser m_effectList;
     
-    juce::FileBrowserComponent m_fileBrowser{1+4+8+64, juce::File(m_appState.m_workDir), nullptr, nullptr};
+        juce::FileBrowserComponent m_fileBrowser{1+4+8+64, juce::File(m_appState.m_workDir), nullptr, nullptr};
+    SamplePreviewComponent m_samplePreview;
+    SampleBrowserComponent m_sampleBrowser;                
     const int CONTENT_HEADER_HEIGHT {30};
     juce::String m_headerName;
     juce::Colour m_headerColour;

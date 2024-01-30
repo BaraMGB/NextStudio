@@ -86,6 +86,7 @@ target_sources(${TargetName} PRIVATE
         Source/PluginScanner.cpp
         Source/InstrumentEffectChooser.cpp
         Source/SearchFieldComponent.cpp
+        Source/SampleBrowser.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

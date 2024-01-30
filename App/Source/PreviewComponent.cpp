@@ -20,8 +20,8 @@
 #include "BinaryData.h"
 #include "Utilities.h"
 
-SamplePreviewComponent::SamplePreviewComponent(te::Edit & edit, ApplicationViewState& avs)
-    : m_currentEdit(edit)
+SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, ApplicationViewState& avs)
+    : m_engine(engine)
     , m_avs(avs)
 
     , m_playBtn ("Play/Pause",  juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
@@ -99,7 +99,7 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
     if (m_previewEdit)
     {
 
-        te::AudioFile audioFile (m_currentEdit.engine, m_file);
+        te::AudioFile audioFile (m_previewEdit->engine, m_file);
         if (audioFile.isValid())
         {
             const char* icon = BinaryData::wavetest5_svg;;
@@ -209,7 +209,7 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
     if (file.isDirectory ())
         return false;
 
-    te::AudioFile audioFile (m_currentEdit.engine, file);
+    te::AudioFile audioFile (m_engine, file);
     if (!audioFile.isValid())
         return false;
 
@@ -219,7 +219,7 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
 
     m_file = file;
     m_fileName.setText(m_file.getFileName(), juce::sendNotification);
-    m_previewEdit = te::Edit::createEditForPreviewingFile (m_currentEdit.engine, file, &m_currentEdit, m_syncTempo, false, nullptr, juce::ValueTree());
+    m_previewEdit = te::Edit::createEditForPreviewingFile (m_engine, file, nullptr, m_syncTempo, false, nullptr, juce::ValueTree());
 
     te::insertSpaceIntoEdit(*m_previewEdit, {tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(0.05)});
     m_volumeSlider = std::make_unique<juce::Slider>();
