@@ -1,9 +1,11 @@
 #include "SampleBrowser.h"
+#include "SearchFieldComponent.h"
+#include "Utilities.h"
 
 juce::File SampleListBox::getSelectedSample()
 {
     auto row = getSelectedRows()[0];
-    return m_sampleBrowser.getFileList()[row]; 
+    return m_sampleBrowser.getContentList()[row]; 
 }
 
 SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, SamplePreviewComponent &spc)
@@ -19,11 +21,15 @@ SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, Sample
     m_listBox.setColour (
                 juce::ListBox::ColourIds::backgroundColourId
                 , juce::Colour(0xff171717));
+    addAndMakeVisible(m_searchField);
+    m_searchField.addChangeListener(this);
 }
 
 void SampleBrowserComponent::resized()
 {
-    m_listBox.setBounds (getLocalBounds ());
+    auto area = getLocalBounds();
+    m_searchField.setBounds(area.removeFromTop(30));
+    m_listBox.setBounds (area);
 }
 
 void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
@@ -34,10 +40,11 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
     }
 
     juce::Rectangle<int> bounds (0,0, width, height);
-    auto textColour = juce::Colours::white;
-    g.setColour(juce::Colour(0xff171717));
+    auto textColour = m_applicationViewState.getTextColour();
+    g.setColour (rowNum%2==0 ? m_applicationViewState.getMenuBackgroundColour() : m_applicationViewState.getMenuBackgroundColour().brighter(0.05f));
     g.fillRect(bounds);
-
+    g.setColour(m_applicationViewState.getBorderColour());
+    g.drawHorizontalLine(height - 1, 0, width);
 
     if (rowIsSelected)
     {
@@ -45,10 +52,40 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
         g.fillRect(bounds);
     }
     bounds.reduce(10,0);
-    g.setColour(textColour);
-    g.drawFittedText(
-                m_fileList[rowNum].getFileName ()
-                , bounds, juce::Justification::left, 1);
+    if (m_searchTerm.isEmpty())
+    {
+        g.setColour(rowIsSelected ? juce::Colours::black : textColour);
+        g.drawFittedText(m_contentList[rowNum].getFileName (), bounds, juce::Justification::left, 1);
+    }
+    else
+    {
+        auto text = m_contentList[rowNum].getFileName ();
+
+        juce::String preTerm, postTerm;
+        int termStartIndex = text.indexOfIgnoreCase(m_searchTerm);
+        juce::String searchTerm = text.substring(termStartIndex, termStartIndex + m_searchTerm.length());
+
+        if (termStartIndex != -1 && m_searchTerm.length() > 0)
+        {
+            preTerm = text.substring(0, termStartIndex);
+            postTerm = text.substring(termStartIndex + m_searchTerm.length());
+            auto colour = rowIsSelected ? juce::Colours::black : textColour;
+
+            g.setColour(colour);
+            g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+            g.drawFittedText(preTerm, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
+
+            int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
+
+            g.setColour(juce::Colours::coral);
+            g.drawFittedText(searchTerm, 4 + preTermWidth, 0, width - 6 - preTermWidth, height, juce::Justification::centredLeft, 1, 0.9f);
+
+            int termWidth = g.getCurrentFont().getStringWidth(searchTerm);
+
+            g.setColour(colour);
+            g.drawFittedText(postTerm, 4 + preTermWidth + termWidth, 0, width - 6 - preTermWidth - termWidth, height, juce::Justification::centredLeft, 1, 0.9f);
+        }
+    }
 }
 
 juce::var SampleBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
@@ -60,7 +97,8 @@ void SampleBrowserComponent::setFileList(const juce::Array<juce::File> &fileList
 {
     m_listBox.deselectAllRows ();
     m_fileList = fileList;
-    m_listBox.updateContent ();
+
+    updateContentList();
 }
 
 void SampleBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e)
@@ -78,7 +116,7 @@ void SampleBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent 
 
 void SampleBrowserComponent::selectedRowsChanged(int)
 {
-    previewSampleFile (m_fileList[m_listBox.getSelectedRow ()]);
+    previewSampleFile (m_contentList[m_listBox.getSelectedRow ()]);
 }
 
 void SampleBrowserComponent::previewSampleFile(const juce::File &file)
@@ -92,4 +130,20 @@ void SampleBrowserComponent::previewSampleFile(const juce::File &file)
 
 void SampleBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
+    if (auto sf = dynamic_cast<SearchFieldComponent*>(source))
+    {
+        m_searchTerm = sf->getText();
+        updateContentList();
+    }
+}
+void SampleBrowserComponent::updateContentList()
+{
+    m_contentList.clear();
+
+    for (const auto& entry : m_fileList)
+        if (entry.getFileName().containsIgnoreCase(m_searchTerm))
+            m_contentList.add(entry);
+
+    m_listBox.updateContent();
+    repaint();
 }

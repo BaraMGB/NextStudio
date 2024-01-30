@@ -34,6 +34,8 @@ SearchFieldComponent::SearchFieldComponent()
 void SearchFieldComponent::paint ( juce::Graphics& g) 
 {
     g.fillAll(juce::Colour(0xff171717));
+    g.setColour(juce::Colour(0xff555555));
+    g.drawHorizontalLine(getHeight() - 1, 0, getWidth()) ;
 }
 void SearchFieldComponent::resized()
 {

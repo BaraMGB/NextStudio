@@ -23,6 +23,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
+#include "SearchFieldComponent.h"
 #include "Utilities.h"
 #include "PreviewComponent.h"
 
@@ -54,11 +55,11 @@ public:
     SampleBrowserComponent(ApplicationViewState& avs, SamplePreviewComponent& spc);
     void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
-    int getNumRows() override { return m_fileList.size (); }
+    int getNumRows() override { return m_contentList.size (); }
 
     juce::var getDragSourceDescription (const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
-    juce::Array<juce::File> &getFileList() { return m_fileList; }
+    juce::Array<juce::File> &getContentList() { return m_contentList; }
     void setFileList(const juce::Array<juce::File> &fileList);
     void listBoxItemClicked(int row, const juce::MouseEvent &e) override;
     void selectedRowsChanged(int /*lastRowSelected*/) override;
@@ -68,10 +69,17 @@ public:
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
     juce::ListBox& getListBox(){ return m_listBox; }
+
 private:
+    void updateContentList();
+
     ApplicationViewState &     m_applicationViewState;
     SamplePreviewComponent &   m_samplePreviewComponent;
     SampleListBox              m_listBox;
     juce::Array<juce::File>    m_fileList;
+    juce::Array<juce::File>    m_contentList;
+    SearchFieldComponent       m_searchField;
+
+    juce::String                m_searchTerm;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleBrowserComponent)
 };
