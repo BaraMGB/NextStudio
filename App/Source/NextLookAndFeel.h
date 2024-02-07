@@ -427,10 +427,10 @@ public:
             }
         }
     }
-    void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
-    {
-        g.fillAll (juce::Colours::red);
-    }
+    // void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
+    // {
+    //     g.fillAll (juce::Colours::red);
+    // }
     void drawPopupMenuItem(
             juce::Graphics &g
           , const juce::Rectangle<int> &area

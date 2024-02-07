@@ -3,6 +3,38 @@
 #include "Utilities.h"
 
 
+SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine, juce::ApplicationCommandManager& commandManager) : m_appState(as)
+    , m_engine(engine)
+    , m_commandManager(commandManager)
+    , m_menu(as)
+    , m_settingsView(m_engine, m_commandManager)
+    , m_instrumentList(engine, true, as)
+    , m_effectList(engine, false, as)
+    , m_samplePreview(engine, m_appState)
+    , m_sampleBrowser(m_appState, m_samplePreview)
+    , m_fileListBrowser(m_appState, m_samplePreview)
+{
+    addAndMakeVisible(m_menu);
+    addChildComponent(m_settingsView);
+    addChildComponent(m_instrumentList);
+    addChildComponent(m_effectList);
+    addChildComponent(m_sampleBrowser);
+    addChildComponent(m_samplePreview);
+    addAndMakeVisible(m_fileListBrowser);
+    for (auto b : m_menu.getButtons())
+        b->addListener(this);
+
+    m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav" ) );
+    
+    m_fileListBrowser.setFileList(juce::File(m_appState.m_workDir).findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories , false ) );
+}
+
+SidebarComponent::~SidebarComponent()
+{
+    for (auto b : m_menu.getButtons())
+        b->removeListener(this);
+}
+
 void SidebarComponent::paint(juce::Graphics& g)
 {
     g.fillAll(m_appState.getMenuBackgroundColour());
@@ -22,7 +54,7 @@ void SidebarComponent::paint(juce::Graphics& g)
         GUIHelpers::drawFromSvg(g, BinaryData::samplesButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_effectList.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::pluginsButton_svg, m_headerColour, iconRect.toFloat());
-    else if (m_fileBrowser.isVisible())
+    else if (m_fileListBrowser.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::homeButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_settingsView.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::settingsButton_svg, m_headerColour, iconRect.toFloat());
@@ -36,6 +68,47 @@ void SidebarComponent::paintOverChildren(juce::Graphics& g)
     GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), m_appState.getBackgroundColour(),m_appState.getBorderColour());
 }
 
+void SidebarComponent::resized() 
+{
+    auto area = getLocalBounds();
+    m_menu.setBounds(area.removeFromLeft(80));
+    area.removeFromTop(CONTENT_HEADER_HEIGHT);
+
+    if (m_settingsView.isVisible())
+    {
+        m_settingsView.setBounds(area);
+        m_headerName = "Settings";
+        m_headerColour = m_appState.getSettingsColour();
+    }
+    else if (m_instrumentList.isVisible())
+    {
+        m_instrumentList.setBounds(area);
+        m_headerName = "Instrument Plugins";
+        m_headerColour = m_appState.getInstrumentsColour();
+    }
+    else if (m_effectList.isVisible())
+    {
+        m_effectList.setBounds(area);
+        m_headerName = "Effect Plugins";
+        m_headerColour = m_appState.getEffectsColour();
+    }                   
+    else if (m_fileListBrowser.isVisible())
+    {
+        m_fileListBrowser.setBounds(area);
+        m_headerName = "Home Folder";
+        m_headerColour = m_appState.getHomeColour();
+    }
+    else if (m_sampleBrowser.isVisible())
+    {
+        auto bounds = area;
+        auto preview = area.removeFromBottom(60);
+        m_sampleBrowser.setBounds(area);
+        m_samplePreview.setBounds(preview);
+        m_headerName = "Samples";
+        m_headerColour = m_appState.getSamplesColour();
+    }
+    repaint();
+}
 void SidebarComponent::buttonClicked (juce::Button* button)
 {
     std::cout << "button clicked: " << button->getName() << std::endl;
@@ -72,7 +145,7 @@ void SidebarComponent::buttonClicked (juce::Button* button)
     else if (button->getName() == "Home")
     {
         setAllVisibleOff();
-        m_fileBrowser.setVisible(true);
+        m_fileListBrowser.setVisible(true);
         resized();
     }
 
@@ -83,7 +156,7 @@ void SidebarComponent::setAllVisibleOff()
     m_settingsView.setVisible(false);
     m_instrumentList.setVisible(false);
     m_effectList.setVisible(false);
-    m_fileBrowser.setVisible(false);
+    m_fileListBrowser.setVisible(false);
     m_sampleBrowser.setVisible(false);
     m_samplePreview.setVisible(false);
 }

@@ -34,7 +34,6 @@ class SampleListBox : public juce::ListBox
 public:
 SampleListBox(SampleBrowserComponent& sbc) : m_sampleBrowser(sbc) {}
 
-    // juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
     juce::File getSelectedSample();
 
