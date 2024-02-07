@@ -49,7 +49,7 @@ public:
         drawButtonBackground(g, button, button.findColour(juce::DrawableButton::backgroundColourId) , isMouseOverButton,  isButtonDown);
 
         const int textH = (button.getStyle() == juce::DrawableButton::ImageAboveTextLabel)
-                        ? juce::jmin (16, button.proportionOfHeight (0.25f))
+                        ? juce::jmin (16, button.proportionOfHeight (0.20f))
                         : 0;
 
         if (textH > 0)
@@ -61,8 +61,8 @@ public:
                             .withMultipliedAlpha (button.isEnabled() ? 1.0f : 0.4f));
 
             g.drawFittedText (button.getButtonText(),
-                              2, button.getHeight() - textH - 1,
-                              button.getWidth() - 4, textH,
+                              4, button.getHeight() - textH - 4,
+                              button.getWidth() - 8, textH,
                               juce::Justification::centred, 1);
         }
 
@@ -346,7 +346,7 @@ public:
                                juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize, 1.0f);
         }
 
-        if (isItemSelected)
+            if (isItemSelected)
             g.setColour (fileListComp != nullptr ? fileListComp->findColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId)
                                                  : findColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId));
         else

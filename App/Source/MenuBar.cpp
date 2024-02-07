@@ -82,7 +82,8 @@ void MenuBar::resized()
     fb.justifyContent = flexAlign;
     fb.alignItems = juce::FlexBox::AlignItems::center;
 
-    const float buttonSize = m_vertical ? getWidth() - (2.0f * getWidth() / 5.0f) : getHeight() - (2.0f * getHeight() / 5.0f);
+    const auto margin = 7.f;
+    const float buttonSize = m_vertical ? getWidth() - (2.0f * getWidth() / margin) : getHeight() - (2.0f * getHeight() / margin);
 
     const int maxButtons = m_buttons.size() + 1; 
 
@@ -110,14 +111,10 @@ void MenuBar::resized()
       
        juce::DrawableButton* popupButton = new juce::DrawableButton("More...", juce::DrawableButton::ImageOnButtonBackground);
        addAndMakeVisible(popupButton);
-       
-       juce::FlexItem::Margin margin;
-       margin.bottom = m_vertical ? 5.0 : 0.0;
-       margin.right = m_vertical ? 0.0 : 5.0;
       
-       fb.items.add(juce::FlexItem(buttonSize, buttonSize, *popupButton).withMargin(margin));
+       fb.items.add(juce::FlexItem(buttonSize, buttonSize, *popupButton));
       
-       fb.performLayout(getLocalBounds().reduced(m_vertical ? getWidth() / 5.0f : getHeight() / 5.0f).toFloat());
+       fb.performLayout(getLocalBounds());
       
        juce::PopupMenu popupMenu;
        for (int i = 0; i < m_buttons.size(); ++i)
