@@ -1,9 +1,11 @@
 #include "FileBrowser.h"
+#include "ApplicationViewState.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-PathComponent::PathComponent(juce::File dir) 
+PathComponent::PathComponent(juce::File dir, ApplicationViewState& appState) 
     : m_currentPath(dir)
+    , m_appState(appState)
 {
     addAndMakeVisible(m_currentPathField);
     m_currentPathField.setText(m_currentPath.getFullPathName());
@@ -16,11 +18,11 @@ PathComponent::PathComponent(juce::File dir)
         GUIHelpers::log("button");
         setDir(m_currentPath.getParentDirectory()); 
     };
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::backgroundColourId, juce::Colour(0xff171717));
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::shadowColourId, juce::Colour(0xff171717));
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::outlineColourId, juce::Colour(0xffffffff));
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::textColourId, juce::Colour(0xffffffff));
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::highlightColourId, juce::Colour(0xffffffff));
+    m_currentPathField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
+    m_currentPathField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getMenuBackgroundColour().darker(0.3f));
+    m_currentPathField.setColour(juce::TextEditor::ColourIds::outlineColourId, m_appState.getBorderColour());
+    m_currentPathField.setColour(juce::TextEditor::ColourIds::textColourId, m_appState.getTextColour());
+    m_currentPathField.setColour(juce::TextEditor::ColourIds::highlightColourId, m_appState.getPrimeColour());
 }
 
 void PathComponent::resized() 
@@ -61,25 +63,29 @@ juce::File FileListBox::getSelectedFile()
     return m_fileBrowser.getContentList()[row]; 
 }
 
-FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, SamplePreviewComponent &spc)
+FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine& engine)
     : m_applicationViewState(avs)
-    , m_samplePreviewComponent(spc)
-    , m_listBox(*this)
-    , m_currentPathField(juce::File(m_applicationViewState.m_workDir))
+    , m_samplePreviewComponent(engine, avs)
+    , m_listBox(*this, m_applicationViewState)
+    , m_searchField(m_applicationViewState)
+    , m_currentPathField(juce::File(m_applicationViewState.m_workDir), avs)
 {
     setName("SampleBrowser!");
+
     m_listBox.setName("ListBox");
     addAndMakeVisible (m_listBox);
     m_listBox.setModel (this);
     m_listBox.setRowHeight (20);
-    m_listBox.setColour (
-                juce::ListBox::ColourIds::backgroundColourId
-                , juce::Colour(0xff171717));
+    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getMenuBackgroundColour());
+
     addAndMakeVisible(m_searchField);
     m_searchField.addChangeListener(this);
+
     addAndMakeVisible(m_currentPathField);
     m_currentPathField.addChangeListener(this);
     m_currentPathField.setAlwaysOnTop(true);
+
+    addAndMakeVisible(m_samplePreviewComponent);
     
 }
 
@@ -91,11 +97,17 @@ FileBrowserComponent::~FileBrowserComponent()
 void FileBrowserComponent::resized()
 {
     auto area = getLocalBounds();
-    auto searchfield = area.removeFromTop(30);
     auto pathComp = area.removeFromTop(30);
+    
+    auto preview = area.removeFromBottom(50);
+    auto searchfield = area.removeFromBottom(30);
+
+    auto list = area;
+
     m_currentPathField.setBounds(pathComp);
     m_searchField.setBounds(searchfield);
-    m_listBox.setBounds (area);
+    m_listBox.setBounds (list);
+    m_samplePreviewComponent.setBounds(preview);
 }
 
 void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)

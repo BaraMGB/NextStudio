@@ -12,6 +12,7 @@ SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, Sample
     : m_applicationViewState(avs)
     , m_samplePreviewComponent(spc)
     , m_listBox(*this)
+    , m_searchField(avs)
 {
     setName("SampleBrowser!");
     m_listBox.setName("ListBox");

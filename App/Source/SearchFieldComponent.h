@@ -20,6 +20,7 @@
 
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "Utilities.h" 
 
 
@@ -29,7 +30,7 @@ class SearchFieldComponent : public juce::Component
 {
 public:
 
-    SearchFieldComponent();
+    SearchFieldComponent(ApplicationViewState& appState);
 
     void resized() override;
     void paint(juce::Graphics& g) override;
@@ -40,5 +41,7 @@ private:
     juce::TextEditor m_searchField;
     juce::TextButton m_clearButton;
     juce::Label m_label;
+
+    ApplicationViewState& m_appState;
 
 };

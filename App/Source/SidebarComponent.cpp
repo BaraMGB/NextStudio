@@ -12,7 +12,7 @@ SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine,
     , m_effectList(engine, false, as)
     , m_samplePreview(engine, m_appState)
     , m_sampleBrowser(m_appState, m_samplePreview)
-    , m_fileListBrowser(m_appState, m_samplePreview)
+    , m_fileListBrowser(m_appState, m_engine)
 {
     addAndMakeVisible(m_menu);
     addChildComponent(m_settingsView);

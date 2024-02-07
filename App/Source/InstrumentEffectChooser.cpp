@@ -233,6 +233,7 @@ InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool
     , m_isInstrumentList(isInstrumentList)
     , m_model(engine, isInstrumentList,appState)
     , m_listbox(engine, m_model,appState)
+    , m_searchField(appState)
     , m_appState(appState)
 {
     addAndMakeVisible(m_listbox);

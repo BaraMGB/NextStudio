@@ -1,15 +1,17 @@
 #include "SearchFieldComponent.h"
+#include "ApplicationViewState.h"
 
-SearchFieldComponent::SearchFieldComponent()
+SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
+   : m_appState(appState) 
 {
     jassert(m_searchFunction != nullptr);
 
 
-    m_searchField.setColour(juce::TextEditor::ColourIds::backgroundColourId, juce::Colour(0xff171717));
-    m_searchField.setColour(juce::TextEditor::ColourIds::shadowColourId, juce::Colour(0xff171717));
-    m_searchField.setColour(juce::TextEditor::ColourIds::outlineColourId, juce::Colour(0xffffffff));
-    m_searchField.setColour(juce::TextEditor::ColourIds::textColourId, juce::Colour(0xffffffff));
-    m_searchField.setColour(juce::TextEditor::ColourIds::highlightColourId, juce::Colour(0xffffffff));
+    m_searchField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
+    m_searchField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getMenuBackgroundColour().darker(0.3f));
+    m_searchField.setColour(juce::TextEditor::ColourIds::outlineColourId, m_appState.getBorderColour());
+    m_searchField.setColour(juce::TextEditor::ColourIds::textColourId, m_appState.getTextColour());
+    m_searchField.setColour(juce::TextEditor::ColourIds::highlightColourId, m_appState.getPrimeColour());
 
     addAndMakeVisible(m_searchField);
 
@@ -33,8 +35,8 @@ SearchFieldComponent::SearchFieldComponent()
 
 void SearchFieldComponent::paint ( juce::Graphics& g) 
 {
-    g.fillAll(juce::Colour(0xff171717));
-    g.setColour(juce::Colour(0xff555555));
+    g.fillAll(m_appState.getBackgroundColour());
+    g.setColour(m_appState.getBorderColour());
     g.drawHorizontalLine(getHeight() - 1, 0, getWidth()) ;
 }
 void SearchFieldComponent::resized()

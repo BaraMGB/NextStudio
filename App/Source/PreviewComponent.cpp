@@ -87,11 +87,11 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, ApplicationV
 
 void SamplePreviewComponent::paint(juce::Graphics &g) 
 {
-    g.setColour (juce::Colour(0xff171717));
+    g.setColour (m_avs.getBackgroundColour());
     g.fillRect (getLocalBounds ());
-    g.setColour(juce::Colour(0xff555555));
-    g.drawHorizontalLine(0, 0, getWidth());
+    g.setColour(m_avs.getBorderColour());
     g.drawHorizontalLine(30, 0, getWidth());
+    g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
 
     const int headWidth = 20;
     auto area = getLocalBounds();
@@ -103,7 +103,7 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
         if (audioFile.isValid())
         {
             const char* icon = BinaryData::wavetest5_svg;;
-            GUIHelpers::drawFromSvg (g, icon, juce::Colour(0xffffffff), {0, 6, 18, 18});
+            GUIHelpers::drawFromSvg (g, icon, m_avs.getTextColour(), {0, 6, 18, 18});
         }
     }
 

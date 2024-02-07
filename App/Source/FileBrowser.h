@@ -35,7 +35,14 @@ class PathComponent : public juce::Component
                     , public juce::ChangeBroadcaster
 {
 public:
-    PathComponent(juce::File dir) ;
+    PathComponent(juce::File dir, ApplicationViewState& appState) ;
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll(m_appState.getBackgroundColour());
+        g.setColour(m_appState.getBorderColour());
+        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
+    }
 
     void resized() override;
 
@@ -48,6 +55,8 @@ private:
     juce::TextEditor m_currentPathField;
     juce::TextButton m_button{"^"};
     juce::File m_currentPath;
+
+    ApplicationViewState& m_appState;
 };
 // ----------------------------------------------------------------------------------------------------
 //
@@ -57,13 +66,25 @@ private:
 class FileListBox : public juce::ListBox
 {
 public:
-FileListBox(FileBrowserComponent& sbc) : m_fileBrowser(sbc) {}
+FileListBox(FileBrowserComponent& sbc, ApplicationViewState& appState)
+    : m_fileBrowser(sbc)
+    , m_appState(appState)
+{}
 
 
     juce::File getSelectedFile();
 
+
+    void paintOverChildren (juce::Graphics& g) override
+    {
+        juce::ListBox::paintOverChildren(g);
+        g.setColour(m_appState.getBorderColour());
+        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
+    }
+
 private:
     FileBrowserComponent& m_fileBrowser;
+    ApplicationViewState& m_appState;
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileListBox)
 };
 // ----------------------------------------------------------------------------------------------------
@@ -76,7 +97,7 @@ class FileBrowserComponent : public juce::Component
         , public juce::ChangeListener
 {
 public:
-    FileBrowserComponent(ApplicationViewState& avs, SamplePreviewComponent& spc);
+    FileBrowserComponent(ApplicationViewState& avs, te::Engine&);
     ~FileBrowserComponent() override;
     void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
@@ -118,7 +139,7 @@ private:
     void updateContentList();
 
     ApplicationViewState&       m_applicationViewState;
-    SamplePreviewComponent&     m_samplePreviewComponent;
+    SamplePreviewComponent      m_samplePreviewComponent;
     FileListBox                 m_listBox;
     juce::Array<juce::File>     m_fileList;
     juce::Array<juce::File>     m_contentList;
