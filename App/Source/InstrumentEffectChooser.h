@@ -90,6 +90,13 @@ class InstrumentEffectTable : public juce::TableListBox
 public:
     InstrumentEffectTable(te::Engine& engine, InstrumentEffectListModel& model, ApplicationViewState& appState);
 
+
+
+    void paintOverChildren (juce::Graphics& g) override
+    {
+        g.setColour(m_appState.getBorderColour());
+        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
+    }
     juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
     te::Plugin::Ptr getSelectedPlugin(te::Edit& edit);

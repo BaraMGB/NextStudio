@@ -197,7 +197,7 @@ InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, Instrume
     , m_appState(appState)
 {
     setColour (juce::TableListBox::ColourIds::backgroundColourId
-               , juce::Colour(0xff171717));
+               , m_appState.getBackgroundColour());
 }
 
     juce::var InstrumentEffectTable::getDragSourceDescription(const juce::SparseSet<int> &)
@@ -256,7 +256,7 @@ InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool
 void InstrumentEffectChooser::resized()
 {
     auto area = getLocalBounds();
-    auto searchField = area.removeFromTop(30);
+    auto searchField = area.removeFromBottom(30);
 
     m_listbox.setBounds(area);
     m_searchField.setBounds(searchField);

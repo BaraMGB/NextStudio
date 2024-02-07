@@ -1,5 +1,6 @@
 #include "SearchFieldComponent.h"
 #include "ApplicationViewState.h"
+#include "Utilities.h"
 
 SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
    : m_appState(appState) 
@@ -29,7 +30,7 @@ SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
     };
 
     addAndMakeVisible(m_label);
-    m_label.setText("Find:", juce::dontSendNotification);
+    m_label.setText(GUIHelpers::translate("Find", m_appState) + ":  ", juce::dontSendNotification);
     m_label.attachToComponent(&m_searchField, true);
 }
 
@@ -46,7 +47,7 @@ void SearchFieldComponent::resized()
     auto buttonWidth = 40;
 
     m_label.setBounds(area.removeFromLeft(labelWidth));
-    m_searchField.setBounds(area.removeFromLeft(area.getWidth() - buttonWidth).reduced(5));
+    m_searchField.setBounds(area.removeFromLeft(area.getWidth() - buttonWidth).reduced(3));
     m_clearButton.setBounds(area.reduced(5));
 }
 

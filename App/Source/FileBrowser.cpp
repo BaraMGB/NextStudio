@@ -76,7 +76,7 @@ FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine
     addAndMakeVisible (m_listBox);
     m_listBox.setModel (this);
     m_listBox.setRowHeight (20);
-    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getMenuBackgroundColour());
+    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getBackgroundColour());
 
     addAndMakeVisible(m_searchField);
     m_searchField.addChangeListener(this);

@@ -11,7 +11,7 @@ juce::File SampleListBox::getSelectedSample()
 SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, SamplePreviewComponent &spc)
     : m_applicationViewState(avs)
     , m_samplePreviewComponent(spc)
-    , m_listBox(*this)
+    , m_listBox(*this, avs)
     , m_searchField(avs)
 {
     setName("SampleBrowser!");
@@ -19,9 +19,7 @@ SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, Sample
     addAndMakeVisible (m_listBox);
     m_listBox.setModel (this);
     m_listBox.setRowHeight (20);
-    m_listBox.setColour (
-                juce::ListBox::ColourIds::backgroundColourId
-                , juce::Colour(0xff171717));
+    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getBackgroundColour());
     addAndMakeVisible(m_searchField);
     m_searchField.addChangeListener(this);
 }
@@ -29,7 +27,7 @@ SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, Sample
 void SampleBrowserComponent::resized()
 {
     auto area = getLocalBounds();
-    m_searchField.setBounds(area.removeFromTop(30));
+    m_searchField.setBounds(area.removeFromBottom(30));
     m_listBox.setBounds (area);
 }
 

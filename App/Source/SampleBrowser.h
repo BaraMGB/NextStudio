@@ -32,13 +32,23 @@ class SampleBrowserComponent;
 class SampleListBox : public juce::ListBox
 {
 public:
-SampleListBox(SampleBrowserComponent& sbc) : m_sampleBrowser(sbc) {}
+SampleListBox(SampleBrowserComponent& sbc, ApplicationViewState& appState)
+    : m_sampleBrowser(sbc)
+    , m_appState(appState)
+{}
 
 
+    
+    void paintOverChildren (juce::Graphics& g) override
+    {
+        g.setColour(m_appState.getBorderColour());
+        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
+    }
     juce::File getSelectedSample();
 
 private:
     SampleBrowserComponent& m_sampleBrowser;
+    ApplicationViewState& m_appState;
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleListBox)
 };
 // ----------------------------------------------------------------------------------------------------
