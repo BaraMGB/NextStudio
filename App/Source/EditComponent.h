@@ -20,6 +20,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "FileBrowser.h"
 #include "Utilities.h"
 #include "TimeLineComponent.h"
 #include "TrackHeadComponent.h"
@@ -67,6 +68,7 @@ class EditComponent : public  juce::Component
                     , private juce::ScrollBar::Listener
                     , private juce::Timer
                     , public juce::Button::Listener
+                    , public juce::DragAndDropTarget
 {
 public:
     EditComponent (te::Edit&, EditViewState & m_editViewState
@@ -90,6 +92,13 @@ public:
     void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
     
     bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
+
+    bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override;
+    void itemDragEnter (const SourceDetails& dragSourceDetails) override;
+    void itemDragMove (const SourceDetails& dragSourceDetails) override;
+    void itemDragExit (const SourceDetails& dragSourceDetails) override;
+    void itemDropped (const SourceDetails& dragSourceDetails) override;
+    bool shouldDrawDragImageWhenOver() override {return false;};
 
     EditViewState& getEditViewState () { return m_editViewState; }
     void loopAroundSelection();
@@ -190,7 +199,7 @@ private:
 
 
 
-    bool m_updateTracks = false, m_updateZoom = false, m_updateSongEditor = false;
+    bool m_updateTracks = false, m_updateZoom = false, m_updateSongEditor = false, m_dragOver = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
 };

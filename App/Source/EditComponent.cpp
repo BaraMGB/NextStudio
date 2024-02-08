@@ -17,6 +17,7 @@
  */
 
 #include "EditComponent.h"
+#include "MainComponent.h"
 #include "Utilities.h"
 
 EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewState& avs, te::SelectionManager& sm, juce::ApplicationCommandManager& cm)
@@ -189,7 +190,8 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
                         getTimeLineRect ().getY (),
                         getTimeLineRect ().getBottom ());
     auto background = m_editViewState.m_applicationState.getBackgroundColour();
-    auto stroke = m_editViewState.m_applicationState.getBorderColour();
+
+    auto stroke = m_dragOver ? m_editViewState.m_applicationState.getPrimeColour() : m_editViewState.m_applicationState.getBorderColour();
     GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), background, stroke);
 }
 
@@ -566,6 +568,55 @@ bool EditComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
     return true;
 }
 
+
+bool EditComponent::isInterestedInDragSource (const SourceDetails& dragSourceDetails) 
+{
+    if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+    {
+        if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
+            return true;
+    }
+    return false;
+}
+
+
+void EditComponent::itemDragEnter (const SourceDetails& dragSourceDetails) 
+{
+    m_dragOver = true;
+    repaint();
+}
+
+void EditComponent::itemDragMove (const SourceDetails& dragSourceDetails) 
+{
+    m_dragOver = false;
+    auto f = juce::File();
+    if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+        f = b->getSelectedFile();
+    if (f.existsAsFile())
+        m_dragOver = true;
+
+    repaint();
+
+}
+void EditComponent::itemDragExit (const SourceDetails& dragSourceDetails) 
+{
+    m_dragOver = false;
+    repaint();
+
+}
+
+void EditComponent::itemDropped (const SourceDetails& dragSourceDetails) 
+{
+    auto f = juce::File();
+    if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+        f = b->getSelectedFile();
+
+    if (f.existsAsFile())
+        if (auto mc = dynamic_cast<MainComponent*>(getParentComponent()))
+            mc->setupEdit(f);
+
+    repaint();
+}
 juce::Rectangle<int> EditComponent::getToolBarRect()
 {
     auto rect = getEditorHeaderRect();

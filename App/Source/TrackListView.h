@@ -21,6 +21,7 @@
 #include "EditViewState.h"
 #include "TrackHeadComponent.h"
 #include "Utilities.h"
+#include "FileBrowser.h"
 
 
 class TrackListView  : public juce::Component
@@ -44,7 +45,16 @@ public:
 
     void mouseDown (const juce::MouseEvent &) override;
 
-    inline bool isInterestedInDragSource (const SourceDetails&) override{return true;}
+    inline bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override
+    {
+
+        if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+        {
+            if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
+                return false;
+        }
+        return true;
+    }
     void itemDragMove (const SourceDetails& dragSourceDetails) override{}
     void itemDragExit (const SourceDetails&) override{}
     void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override;
