@@ -97,7 +97,7 @@ class FileBrowserComponent : public juce::Component
         , public juce::ChangeListener
 {
 public:
-    FileBrowserComponent(ApplicationViewState& avs, te::Engine&);
+    FileBrowserComponent(ApplicationViewState& avs, te::Engine&, SamplePreviewComponent& spc);
     ~FileBrowserComponent() override;
     void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
@@ -139,7 +139,7 @@ private:
     void updateContentList();
 
     ApplicationViewState&       m_applicationViewState;
-    SamplePreviewComponent      m_samplePreviewComponent;
+    SamplePreviewComponent&      m_samplePreviewComponent;
     FileListBox                 m_listBox;
     juce::Array<juce::File>     m_fileList;
     juce::Array<juce::File>     m_contentList;

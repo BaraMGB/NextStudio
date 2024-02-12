@@ -12,7 +12,7 @@ SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine,
     , m_effectList(engine, false, as)
     , m_samplePreview(engine, m_appState)
     , m_sampleBrowser(m_appState, m_samplePreview)
-    , m_fileListBrowser(m_appState, m_engine)
+    , m_fileListBrowser(m_appState, m_engine, m_samplePreview)
 {
     addAndMakeVisible(m_menu);
     addChildComponent(m_settingsView);
@@ -94,7 +94,10 @@ void SidebarComponent::resized()
     }                   
     else if (m_fileListBrowser.isVisible())
     {
+        auto bounds = area;
+        auto preview = area.removeFromBottom(60);
         m_fileListBrowser.setBounds(area);
+        m_samplePreview.setBounds(preview);
         m_headerName = "Home Folder";
         m_headerColour = m_appState.getHomeColour();
     }
@@ -146,6 +149,7 @@ void SidebarComponent::buttonClicked (juce::Button* button)
     {
         setAllVisibleOff();
         m_fileListBrowser.setVisible(true);
+        m_samplePreview.setVisible(true);
         resized();
     }
 

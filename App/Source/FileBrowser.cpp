@@ -1,5 +1,6 @@
 #include "FileBrowser.h"
 #include "ApplicationViewState.h"
+#include "PreviewComponent.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
@@ -63,9 +64,9 @@ juce::File FileListBox::getSelectedFile()
     return m_fileBrowser.getContentList()[row]; 
 }
 
-FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine& engine)
+FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine& engine, SamplePreviewComponent& spc)
     : m_applicationViewState(avs)
-    , m_samplePreviewComponent(engine, avs)
+    , m_samplePreviewComponent(spc)
     , m_listBox(*this, m_applicationViewState)
     , m_searchField(m_applicationViewState)
     , m_currentPathField(juce::File(m_applicationViewState.m_workDir), avs)
@@ -84,9 +85,6 @@ FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine
     addAndMakeVisible(m_currentPathField);
     m_currentPathField.addChangeListener(this);
     m_currentPathField.setAlwaysOnTop(true);
-
-    addAndMakeVisible(m_samplePreviewComponent);
-    
 }
 
 FileBrowserComponent::~FileBrowserComponent() 
@@ -98,16 +96,12 @@ void FileBrowserComponent::resized()
 {
     auto area = getLocalBounds();
     auto pathComp = area.removeFromTop(30);
-    
-    auto preview = area.removeFromBottom(50);
     auto searchfield = area.removeFromBottom(30);
-
     auto list = area;
 
     m_currentPathField.setBounds(pathComp);
     m_searchField.setBounds(searchfield);
     m_listBox.setBounds (list);
-    m_samplePreviewComponent.setBounds(preview);
 }
 
 void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
@@ -243,19 +237,8 @@ void FileBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e
 void FileBrowserComponent::listBoxItemDoubleClicked(int row, const juce::MouseEvent &e)
 {
     auto clickedFile = m_contentList[row];
-    if (e.mods.isRightButtonDown ())
-    {
-        juce::PopupMenu p;
-        p.addItem (1, "Info");
-        const int result = p.show();
-        if(result == 1)
-        {
-        }
-    }
-    else if (clickedFile.isDirectory())
-    {
+    if (e.mods.isLeftButtonDown() && clickedFile.isDirectory())
         m_currentPathField.setDir(clickedFile);
-    }
 }
 
 void FileBrowserComponent::selectedRowsChanged(int)

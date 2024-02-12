@@ -743,8 +743,13 @@ bool SongEditorView::isInterestedInDragSource (const SourceDetails& dragSourceDe
         if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
             f = b->getSelectedFile();
         if (f.existsAsFile())
+        {
             if(f.getFileName().endsWith("tracktion_edit"))
                 return true;
+            auto af = te::AudioFile(m_editViewState.m_edit.engine, f);
+            if (af.isValid())
+                return true;
+        }
     }
     if (dragSourceDetails.description == "SampleBrowser")
         return true;
@@ -765,6 +770,7 @@ void SongEditorView::itemDragMove (const SourceDetails& dragSourceDetails)
     auto pos = dragSourceDetails.localPosition;
     bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
     auto dropTime = isShiftDown ? xtoTime(pos.x) : getSnapedTime(xtoTime(pos.x)); 
+
     auto f = juce::File();
     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(dragSourceDetails.sourceComponent.get()))
         f = fileTreeComp->getSelectedFile();
@@ -810,7 +816,7 @@ void SongEditorView::itemDragMove (const SourceDetails& dragSourceDetails)
             m_dragItemRect.name = f.getFileNameWithoutExtension();
             m_dragItemRect.valid = true;
             m_dragItemRect.visible = true;
-            m_dragItemRect.colour = juce::Colours::greenyellow;
+            m_dragItemRect.colour = m_editViewState.m_applicationState.getPrimeColour();
         }
     }
 
