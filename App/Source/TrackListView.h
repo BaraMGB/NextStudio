@@ -19,6 +19,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "ProjectsBrowser.h"
 #include "TrackHeadComponent.h"
 #include "Utilities.h"
 #include "FileBrowser.h"
@@ -53,6 +54,8 @@ public:
             if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
                 return false;
         }
+        else if (auto b = dynamic_cast<ProjectsListBox*>(dragSourceDetails.sourceComponent.get()))
+            return false;
         return true;
     }
     void itemDragMove (const SourceDetails& dragSourceDetails) override{}

@@ -13,6 +13,7 @@ SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine,
     , m_samplePreview(engine, m_appState)
     , m_sampleBrowser(m_appState, m_samplePreview)
     , m_fileListBrowser(m_appState, m_engine, m_samplePreview)
+    , m_projectsBrowser(m_appState)
 {
     addAndMakeVisible(m_menu);
     addChildComponent(m_settingsView);
@@ -20,13 +21,18 @@ SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine,
     addChildComponent(m_effectList);
     addChildComponent(m_sampleBrowser);
     addChildComponent(m_samplePreview);
-    addAndMakeVisible(m_fileListBrowser);
+    addChildComponent(m_fileListBrowser);
+    addChildComponent(m_projectsBrowser);
     for (auto b : m_menu.getButtons())
         b->addListener(this);
 
     m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav" ) );
-    
+    m_projectsBrowser.setFileList(juce::File(m_appState.m_projectsDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit" ) );
     m_fileListBrowser.setFileList(juce::File(m_appState.m_workDir).findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories , false ) );
+
+    
+    setAllVisibleOff();
+    m_projectsBrowser.setVisible(true);
 }
 
 SidebarComponent::~SidebarComponent()
@@ -50,6 +56,8 @@ void SidebarComponent::paint(juce::Graphics& g)
 
     if (m_instrumentList.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::presetsButton_svg, m_headerColour, iconRect.toFloat());    
+    else if (m_projectsBrowser.isVisible())
+        GUIHelpers::drawFromSvg(g, BinaryData::projectsButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_sampleBrowser.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::samplesButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_effectList.isVisible())
@@ -110,6 +118,14 @@ void SidebarComponent::resized()
         m_headerName = "Samples";
         m_headerColour = m_appState.getSamplesColour();
     }
+    else if (m_projectsBrowser.isVisible())
+    {
+        auto bounds = area;
+        m_projectsBrowser.setBounds(bounds);
+        m_headerColour = m_appState.getProjectsColour();
+        m_headerName = "Projects";
+            
+    }
     repaint();
 }
 void SidebarComponent::buttonClicked (juce::Button* button)
@@ -139,6 +155,12 @@ void SidebarComponent::buttonClicked (juce::Button* button)
         m_samplePreview.setVisible(true);
         resized();
     }
+    else if (button->getName() == "Projects")
+    {
+        setAllVisibleOff();
+        m_projectsBrowser.setVisible(true);
+        resized();
+    }
     else if (button->getName() == "Effects")
     {
         setAllVisibleOff();
@@ -161,6 +183,7 @@ void SidebarComponent::setAllVisibleOff()
     m_instrumentList.setVisible(false);
     m_effectList.setVisible(false);
     m_fileListBrowser.setVisible(false);
+    m_projectsBrowser.setVisible(false);
     m_sampleBrowser.setVisible(false);
     m_samplePreview.setVisible(false);
 }

@@ -24,6 +24,7 @@
 #include "ApplicationViewState.h"
 #include "SampleBrowser.h"
 #include "FileBrowser.h"
+#include "ProjectsBrowser.h"
 #include "Utilities.h"
 #include "PreviewComponent.h"
 #include "SidebarMenu.h"
@@ -60,6 +61,7 @@ private:
 
     SamplePreviewComponent m_samplePreview;
     SampleBrowserComponent m_sampleBrowser;                
+    ProjectsBrowserComponent m_projectsBrowser;
     const int CONTENT_HEADER_HEIGHT {30};
     juce::String m_headerName;
     juce::Colour m_headerColour;

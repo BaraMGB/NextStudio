@@ -88,6 +88,7 @@ target_sources(${TargetName} PRIVATE
         Source/SearchFieldComponent.cpp
         Source/SampleBrowser.cpp
         Source/FileBrowser.cpp
+        Source/ProjectsBrowser.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
