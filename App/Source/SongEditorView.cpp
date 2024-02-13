@@ -17,6 +17,7 @@
  */
 
 #include "SongEditorView.h"
+#include "Browser_Base.h"
 #include "FileBrowser.h"
 #include "SampleBrowser.h"
 #include "Utilities.h"
@@ -740,7 +741,7 @@ bool SongEditorView::isInterestedInDragSource (const SourceDetails& dragSourceDe
     if (dragSourceDetails.description == "FileBrowser")
     {
         auto f = juce::File();
-        if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+        if (auto b = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
             f = b->getSelectedFile();
         if (f.existsAsFile())
         {
@@ -774,9 +775,7 @@ void SongEditorView::itemDragMove (const SourceDetails& dragSourceDetails)
     auto f = juce::File();
     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(dragSourceDetails.sourceComponent.get()))
         f = fileTreeComp->getSelectedFile();
-    else if (auto sampleBrowser = dynamic_cast<SampleListBox*>(dragSourceDetails.sourceComponent.get()))
-        f = sampleBrowser->getSelectedSample();
-    else if (auto fileBrowser = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+    else if (auto fileBrowser = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
         f = fileBrowser->getSelectedFile();
 
     m_dragItemRect.valid = false;
@@ -838,9 +837,7 @@ void SongEditorView::itemDropped (const SourceDetails& dragSourceDetails)
 
     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent*>(dragSourceDetails.sourceComponent.get()))
         auto f = fileTreeComp->getSelectedFile();
-    else if (auto sampleBrowser = dynamic_cast<SampleListBox*>(dragSourceDetails.sourceComponent.get()))
-        f = sampleBrowser->getSelectedSample();
-    else if (auto fileBrowser = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+    else if (auto fileBrowser = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
         f = fileBrowser->getSelectedFile();
 
     if (f.exists())

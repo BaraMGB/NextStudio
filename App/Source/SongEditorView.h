@@ -72,7 +72,10 @@ public:
 
     void updateTrackHeights(EditViewState& evs);
 
-    void setTool (Tool tool) { m_toolMode = tool; }
+    void setTool (Tool tool) 
+    {
+        m_toolMode = tool;
+    }
 
     juce::Array<te::Track::Ptr> getShowedTracks ();
 

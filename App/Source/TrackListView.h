@@ -19,7 +19,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
-#include "ProjectsBrowser.h"
+#include "Browser_Base.h"
 #include "TrackHeadComponent.h"
 #include "Utilities.h"
 #include "FileBrowser.h"
@@ -49,13 +49,11 @@ public:
     inline bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override
     {
 
-        if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+        if (auto b = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
         {
             if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
                 return false;
         }
-        else if (auto b = dynamic_cast<ProjectsListBox*>(dragSourceDetails.sourceComponent.get()))
-            return false;
         return true;
     }
     void itemDragMove (const SourceDetails& dragSourceDetails) override{}

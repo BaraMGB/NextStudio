@@ -89,6 +89,7 @@ target_sources(${TargetName} PRIVATE
         Source/SampleBrowser.cpp
         Source/FileBrowser.cpp
         Source/ProjectsBrowser.cpp
+        Source/Browser_Base.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

@@ -571,14 +571,9 @@ bool EditComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
 
 bool EditComponent::isInterestedInDragSource (const SourceDetails& dragSourceDetails) 
 {
-    if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+    if (auto b = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
     {
         if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
-            return true;
-    }
-    else if (auto b = dynamic_cast<ProjectsListBox*>(dragSourceDetails.sourceComponent.get()))
-    {
-        if (b->getSelectedProject().getFileName().endsWith(".tracktionedit"))
             return true;
     }
     return false;
@@ -595,10 +590,8 @@ void EditComponent::itemDragMove (const SourceDetails& dragSourceDetails)
 {
     m_dragOver = false;
     auto f = juce::File();
-    if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+    if (auto b = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
         f = b->getSelectedFile();
-    else if (auto b = dynamic_cast<ProjectsListBox*>(dragSourceDetails.sourceComponent.get()))
-        f = b->getSelectedProject();
     if (f.existsAsFile())
         m_dragOver = true;
 
@@ -615,10 +608,8 @@ void EditComponent::itemDragExit (const SourceDetails& dragSourceDetails)
 void EditComponent::itemDropped (const SourceDetails& dragSourceDetails) 
 {
     auto f = juce::File();
-    if (auto b = dynamic_cast<FileListBox*>(dragSourceDetails.sourceComponent.get()))
+    if (auto b = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
         f = b->getSelectedFile();
-    else if (auto b = dynamic_cast<ProjectsListBox*>(dragSourceDetails.sourceComponent.get()))
-        f = b->getSelectedProject();
 
     if (f.existsAsFile())
         if (auto mc = dynamic_cast<MainComponent*>(getParentComponent()))

@@ -21,6 +21,7 @@
 
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "Browser_Base.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
 #include "SearchFieldComponent.h"
@@ -28,67 +29,39 @@
 #include "PreviewComponent.h"
 
 namespace te = tracktion_engine;
-class SampleBrowserComponent;
-class SampleListBox : public juce::ListBox
-{
-public:
-SampleListBox(SampleBrowserComponent& sbc, ApplicationViewState& appState)
-    : m_sampleBrowser(sbc)
-    , m_appState(appState)
-{}
-
-
-    
-    void paintOverChildren (juce::Graphics& g) override
-    {
-        g.setColour(m_appState.getBorderColour());
-        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
-    }
-    juce::File getSelectedSample();
-
-private:
-    SampleBrowserComponent& m_sampleBrowser;
-    ApplicationViewState& m_appState;
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleListBox)
-};
-// ----------------------------------------------------------------------------------------------------
-//
-//
-//
-// ----------------------------------------------------------------------------------------------------
-class SampleBrowserComponent : public juce::Component
-        , public juce::ListBoxModel
-        , public juce::ChangeListener
+class SampleBrowserComponent : public  BrowserBaseComponent
 {
 public:
     SampleBrowserComponent(ApplicationViewState& avs, SamplePreviewComponent& spc);
-    void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
-    int getNumRows() override { return m_contentList.size (); }
 
     juce::var getDragSourceDescription (const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
-    juce::Array<juce::File> &getContentList() { return m_contentList; }
-    void setFileList(const juce::Array<juce::File> &fileList);
     void listBoxItemClicked(int row, const juce::MouseEvent &e) override;
     void selectedRowsChanged(int /*lastRowSelected*/) override;
 
     void previewSampleFile(const juce::File& file);
-
-    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
-
-    juce::ListBox& getListBox(){ return m_listBox; }
-
 private:
-    void updateContentList();
 
-    ApplicationViewState &     m_applicationViewState;
+    void sortList(bool forward=true) override;
+
+    struct CompareNameForward{
+        static int compareElements (const juce::File& first, 
+                                              const juce::File& second)
+        {   
+            return first.getFileName().compareNatural(second.getFileName());
+        }
+    };
+
+    struct CompareNameBackwards{
+        static int compareElements(const juce::File& first, 
+                                               const juce::File& second)
+        {
+            return second.getFileName().compareNatural(first.getFileName());
+        }
+    };
+    void sortByName(juce::Array<juce::File>& list, bool forward);
     SamplePreviewComponent &   m_samplePreviewComponent;
-    SampleListBox              m_listBox;
-    juce::Array<juce::File>    m_fileList;
-    juce::Array<juce::File>    m_contentList;
-    SearchFieldComponent       m_searchField;
 
-    juce::String                m_searchTerm;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleBrowserComponent)
 };

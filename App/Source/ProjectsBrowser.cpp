@@ -1,33 +1,17 @@
 #include "ProjectsBrowser.h"
+#include "Browser_Base.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-juce::File ProjectsListBox::getSelectedProject()
-{
-    auto row = getSelectedRows()[0];
-    return m_projectsBrowser.getContentList()[row]; 
-}
 
 ProjectsBrowserComponent::ProjectsBrowserComponent(ApplicationViewState &avs)
-    : m_applicationViewState(avs)
-    , m_listBox(*this, avs)
-    , m_searchField(avs)
+    : BrowserBaseComponent(avs) 
 {
-    setName("ProjectsBrowser!");
-    m_listBox.setName("ListBox");
-    addAndMakeVisible (m_listBox);
-    m_listBox.setModel (this);
-    m_listBox.setRowHeight (20);
-    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getBackgroundColour());
-    addAndMakeVisible(m_searchField);
-    m_searchField.addChangeListener(this);
 }
 
-void ProjectsBrowserComponent::resized()
+juce::var ProjectsBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
 {
-    auto area = getLocalBounds();
-    m_searchField.setBounds(area.removeFromBottom(30));
-    m_listBox.setBounds (area);
+    return {"ProjectsBrowser"};
 }
 
 void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
@@ -57,7 +41,7 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
     }
     else
     {
-        auto text = m_contentList[rowNum].getFileName ().trimCharactersAtEnd(".tracktionedit");
+        auto text = m_contentList[rowNum].getFileName ();
 
         juce::String preTerm, postTerm;
         int termStartIndex = text.indexOfIgnoreCase(m_searchTerm);
@@ -85,20 +69,6 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
         }
     }
 }
-
-juce::var ProjectsBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
-{
-    return {"ProjectsBrowser"};
-}
-
-void ProjectsBrowserComponent::setFileList(const juce::Array<juce::File> &fileList)
-{
-    m_listBox.deselectAllRows ();
-    m_fileList = fileList;
-
-    updateContentList();
-}
-
 void ProjectsBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e)
 {
     if (e.mods.isRightButtonDown ())
@@ -116,23 +86,32 @@ void ProjectsBrowserComponent::selectedRowsChanged(int)
 {
 }
 
+void ProjectsBrowserComponent::sortList(bool forward)
+{
+    juce::Array<juce::File> fileList;
 
-void ProjectsBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
-{
-    if (auto sf = dynamic_cast<SearchFieldComponent*>(source))
-    {
-        m_searchTerm = sf->getText();
-        updateContentList();
-    }
-}
-void ProjectsBrowserComponent::updateContentList()
-{
+    for (auto f : m_contentList)
+        if (!f.isDirectory())
+            fileList.add(f);
+
+    sortByName(fileList, forward);
+
     m_contentList.clear();
-
-    for (const auto& entry : m_fileList)
-        if (entry.getFileName().trimCharactersAtEnd(".tracktionedit").containsIgnoreCase(m_searchTerm))
-            m_contentList.add(entry);
-
-    m_listBox.updateContent();
-    repaint();
+    m_contentList.addArray(fileList);
+}
+void ProjectsBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
+{
+    if (list.size() > 1)
+    {
+        if (forward)
+        {
+            CompareNameForward cf;
+            list.sort(cf);
+        }
+        else
+        {
+            CompareNameBackwards cb;
+            list.sort(cb);
+        }
+    }
 }

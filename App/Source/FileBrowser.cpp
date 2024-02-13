@@ -1,5 +1,6 @@
 #include "FileBrowser.h"
 #include "ApplicationViewState.h"
+#include "Browser_Base.h"
 #include "PreviewComponent.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
@@ -58,30 +59,13 @@ juce::File PathComponent::getCurrentPath()
 //
 //
 // ----------------------------------------------------------------------------------------------------
-juce::File FileListBox::getSelectedFile()
-{
-    auto row = getSelectedRows()[0];
-    return m_fileBrowser.getContentList()[row]; 
-}
 
 FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine& engine, SamplePreviewComponent& spc)
-    : m_applicationViewState(avs)
+    : BrowserBaseComponent(avs)
     , m_samplePreviewComponent(spc)
-    , m_listBox(*this, m_applicationViewState)
-    , m_searchField(m_applicationViewState)
-    , m_currentPathField(juce::File(m_applicationViewState.m_workDir), avs)
+    , m_currentPathField(juce::File(avs.m_workDir), avs)
 {
     setName("SampleBrowser!");
-
-    m_listBox.setName("ListBox");
-    addAndMakeVisible (m_listBox);
-    m_listBox.setModel (this);
-    m_listBox.setRowHeight (20);
-    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getBackgroundColour());
-
-    addAndMakeVisible(m_searchField);
-    m_searchField.addChangeListener(this);
-
     addAndMakeVisible(m_currentPathField);
     m_currentPathField.addChangeListener(this);
     m_currentPathField.setAlwaysOnTop(true);
@@ -90,7 +74,6 @@ FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine
 FileBrowserComponent::~FileBrowserComponent() 
 {
     m_currentPathField.removeChangeListener(this);
-    m_searchField.removeChangeListener(this);
 }
 void FileBrowserComponent::resized()
 {
@@ -186,14 +169,6 @@ void FileBrowserComponent::setDirecory(const juce::File& dir)
     }
 }
 
-void FileBrowserComponent::setFileList(const juce::Array<juce::File> &fileList)
-{
-    m_listBox.deselectAllRows ();
-    m_fileList = fileList;
-    
-    updateContentList();
-}
-
 void FileBrowserComponent::sortList(bool forward)
 {
     juce::Array<juce::File> dirList;
@@ -257,12 +232,8 @@ void FileBrowserComponent::previewSampleFile(const juce::File &file)
 
 void FileBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto sf = dynamic_cast<SearchFieldComponent*>(source))
-    {
-        m_searchTerm = sf->getText();
-        updateContentList();
-    }
-    else if (source == &m_currentPathField)
+    BrowserBaseComponent::changeListenerCallback(source);
+    if (source == &m_currentPathField)
     {
         GUIHelpers::log("FileBrowserComponent::setDir()");
         setDirecory(m_currentPathField.getCurrentPath());
@@ -283,16 +254,4 @@ void FileBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forwar
             list.sort(cb);
         }
     }
-}
-void FileBrowserComponent::updateContentList()
-{
-    m_contentList.clear();
-
-    for (const auto& entry : m_fileList)
-        if (entry.getFileName().containsIgnoreCase(m_searchTerm))
-            m_contentList.add(entry);
-
-    sortList();
-    m_listBox.updateContent();
-    repaint();
 }

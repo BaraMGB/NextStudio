@@ -1,35 +1,15 @@
 #include "SampleBrowser.h"
+#include "Browser_Base.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-juce::File SampleListBox::getSelectedSample()
-{
-    auto row = getSelectedRows()[0];
-    return m_sampleBrowser.getContentList()[row]; 
-}
 
 SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, SamplePreviewComponent &spc)
-    : m_applicationViewState(avs)
+    : BrowserBaseComponent(avs)
     , m_samplePreviewComponent(spc)
-    , m_listBox(*this, avs)
-    , m_searchField(avs)
 {
-    setName("SampleBrowser!");
-    m_listBox.setName("ListBox");
-    addAndMakeVisible (m_listBox);
-    m_listBox.setModel (this);
-    m_listBox.setRowHeight (20);
-    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getBackgroundColour());
-    addAndMakeVisible(m_searchField);
-    m_searchField.addChangeListener(this);
 }
 
-void SampleBrowserComponent::resized()
-{
-    auto area = getLocalBounds();
-    m_searchField.setBounds(area.removeFromBottom(30));
-    m_listBox.setBounds (area);
-}
 
 void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
 {
@@ -92,14 +72,6 @@ juce::var SampleBrowserComponent::getDragSourceDescription(const juce::SparseSet
     return {"SampleBrowser"};
 }
 
-void SampleBrowserComponent::setFileList(const juce::Array<juce::File> &fileList)
-{
-    m_listBox.deselectAllRows ();
-    m_fileList = fileList;
-
-    updateContentList();
-}
-
 void SampleBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e)
 {
     if (e.mods.isRightButtonDown ())
@@ -127,22 +99,32 @@ void SampleBrowserComponent::previewSampleFile(const juce::File &file)
     }
 }
 
-void SampleBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
+void SampleBrowserComponent::sortList(bool forward)
 {
-    if (auto sf = dynamic_cast<SearchFieldComponent*>(source))
-    {
-        m_searchTerm = sf->getText();
-        updateContentList();
-    }
-}
-void SampleBrowserComponent::updateContentList()
-{
+    juce::Array<juce::File> fileList;
+
+    for (auto f : m_contentList)
+        if (!f.isDirectory())
+            fileList.add(f);
+
+    sortByName(fileList, forward);
+
     m_contentList.clear();
-
-    for (const auto& entry : m_fileList)
-        if (entry.getFileName().containsIgnoreCase(m_searchTerm))
-            m_contentList.add(entry);
-
-    m_listBox.updateContent();
-    repaint();
+    m_contentList.addArray(fileList);
+}
+void SampleBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
+{
+    if (list.size() > 1)
+    {
+        if (forward)
+        {
+            CompareNameForward cf;
+            list.sort(cf);
+        }
+        else
+        {
+            CompareNameBackwards cb;
+            list.sort(cb);
+        }
+    }
 }
