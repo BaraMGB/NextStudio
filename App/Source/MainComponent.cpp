@@ -576,14 +576,12 @@ void MainComponent::openValidStartEdit()
     auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
     for (auto & t : atList)
         m_edit->deleteTrack (t);
+
 }
 
 void MainComponent::setupSideBrowser()
 {
-    // m_sideBarBrowser = std::make_unique<SideBarBrowser>(
-    //             m_applicationState
-    //           , m_editComponent->getEditViewState ());
-    m_sideBarBrowser = std::make_unique<SidebarComponent>(m_applicationState, m_engine, m_commandManager);
+    m_sideBarBrowser = std::make_unique<SidebarComponent>(m_applicationState, m_engine, *m_edit, m_commandManager);
     addAndMakeVisible (*m_sideBarBrowser);
 }
 

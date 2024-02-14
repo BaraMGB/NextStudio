@@ -36,7 +36,7 @@ class SidebarComponent : public juce::Component
                     
 {
 public:
-    SidebarComponent(ApplicationViewState& as, te::Engine& engine, juce::ApplicationCommandManager& commandManager);
+    SidebarComponent(ApplicationViewState& as, te::Engine& engine,te::Edit& edit, juce::ApplicationCommandManager& commandManager);
     ~SidebarComponent() override;
 
     void paint(juce::Graphics& g) override;
@@ -51,6 +51,7 @@ private:
 
     ApplicationViewState& m_appState;
     te::Engine& m_engine;
+    te::Edit& m_edit;
     juce::ApplicationCommandManager& m_commandManager;
     SidebarMenu m_menu;
     SettingsView m_settingsView;

@@ -31,7 +31,6 @@
 #include "HeaderComponent.h"
 #include "LowerRangeComponent.h"
 #include "NextLookAndFeel.h"
-#include "SideBarBrowser.h"
 #include "SidebarComponent.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"

@@ -20,14 +20,17 @@
 #include "BinaryData.h"
 #include "Utilities.h"
 
-SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, ApplicationViewState& avs)
+SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& edit, ApplicationViewState& avs)
     : m_engine(engine)
+    , m_edit(edit)
     , m_avs(avs)
-
     , m_playBtn ("Play/Pause",  juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
     , m_stopBtn ("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
     , m_syncTempoBtn ("Sync Tempo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
 {
+
+
+    m_isSync = new bool{false};
     m_volumeSlider = std::make_unique<juce::Slider>();
     m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
     m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
@@ -103,7 +106,8 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
         if (audioFile.isValid())
         {
             const char* icon = BinaryData::wavetest5_svg;;
-            GUIHelpers::drawFromSvg (g, icon, m_avs.getTextColour(), {0, 6, 18, 18});
+            auto colour = m_avs.getPrimeColour();
+            GUIHelpers::drawFromSvg (g, icon, colour, {0, 6, 18, 18});
         }
     }
 
@@ -219,9 +223,15 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
 
     m_file = file;
     m_fileName.setText(m_file.getFileName(), juce::sendNotification);
-    m_previewEdit = te::Edit::createEditForPreviewingFile (m_engine, file, nullptr, m_syncTempo, false, nullptr, juce::ValueTree());
+    m_previewEdit = te::Edit::createEditForPreviewingFile (m_engine, file, &m_edit, m_syncTempo, false, m_isSync, juce::ValueTree());
 
+    //is needed because, preview edit don't play the attacs of a sample if started. idky
     te::insertSpaceIntoEdit(*m_previewEdit, {tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(0.05)});
+
+    auto colour = *m_isSync ? m_avs.getPrimeColour() : m_avs.getTextColour();
+    m_fileName.setColour(juce::Label::textColourId, colour);
+    
+
     m_volumeSlider = std::make_unique<juce::Slider>();
     m_volumeSlider->addListener (this);
     m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);

@@ -29,7 +29,11 @@ class SamplePreviewComponent : public juce::Component
 {
 public:
 
-    explicit SamplePreviewComponent(te::Engine & engine, ApplicationViewState& avs);
+    explicit SamplePreviewComponent(te::Engine & engine, te::Edit& edit, ApplicationViewState& avs);
+        ~SamplePreviewComponent()
+    {
+        delete m_isSync;
+    }
     void paint(juce::Graphics &g) override;
     void resized() override;
     void sliderValueChanged(juce::Slider *slider) override;
@@ -47,6 +51,7 @@ private:
     void updateButtonColours();
 
     te::Engine& m_engine;
+    te::Edit& m_edit;
     ApplicationViewState & m_avs;
     std::unique_ptr<te::Edit>     m_previewEdit;
     std::unique_ptr<juce::Slider> m_volumeSlider;
@@ -54,6 +59,7 @@ private:
     juce::Label m_fileName;
     std::unique_ptr<SampleView>    m_thumbnail;
     bool m_syncTempo {false};
+    bool* m_isSync;
     juce::File m_file;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplePreviewComponent)
 };

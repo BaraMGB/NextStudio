@@ -3,14 +3,15 @@
 #include "Utilities.h"
 
 
-SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine, juce::ApplicationCommandManager& commandManager) : m_appState(as)
+SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine, te::Edit& edit, juce::ApplicationCommandManager& commandManager) : m_appState(as)
     , m_engine(engine)
+    , m_edit(edit)
     , m_commandManager(commandManager)
     , m_menu(as)
     , m_settingsView(m_engine, m_commandManager)
     , m_instrumentList(engine, true, as)
     , m_effectList(engine, false, as)
-    , m_samplePreview(engine, m_appState)
+    , m_samplePreview(engine, edit, m_appState)
     , m_sampleBrowser(m_appState, m_samplePreview)
     , m_fileListBrowser(m_appState, m_engine, m_samplePreview)
     , m_projectsBrowser(m_appState)
