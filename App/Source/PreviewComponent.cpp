@@ -32,9 +32,10 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
 
     m_isSync = new bool{false};
     m_volumeSlider = std::make_unique<juce::Slider>();
-    m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
+    m_volumeSlider->setRange(-100.0f, 6.0f);
+    m_volumeSlider->getValueObject().referTo(m_avs.m_previewSliderPos.getPropertyAsValue());
     m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
-    m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    m_volumeSlider->setSliderStyle(juce::Slider::LinearBarVertical);
     m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
     addAndMakeVisible(m_volumeSlider.get());
 
@@ -118,27 +119,29 @@ void SamplePreviewComponent::resized()
     auto area = getLocalBounds ();
     area.removeFromTop(1);
 
+    auto labelHeight = 30;
+    auto thumbnailHeight = (getHeight() - 30) / 2;
 
-    auto header = area.removeFromTop(30);
-    header.removeFromLeft(20);
-    m_fileName.setBounds(header.removeFromLeft(header.getWidth()/2));
+    auto thumbRect = area.removeFromTop(thumbnailHeight);
+    if (m_previewEdit)
+        m_thumbnail->setBounds (thumbRect);
+    m_fileName.setBounds(area.removeFromTop(labelHeight));
 
-    m_volumeSlider->setBounds(header.removeFromRight(30));
+    auto buttonMenu = area;
 
-    auto buttonwidth = 25;
+    m_volumeSlider->setBounds(buttonMenu.removeFromLeft(buttonMenu.getHeight() ));
+    auto buttonwidth = buttonMenu.getHeight() ;
 
     auto gapX = 1, gapY = 5;
-    auto sync = header.removeFromRight (buttonwidth).reduced(gapX, gapY);
-    auto stop = header.removeFromRight (buttonwidth).reduced(gapX, gapY);
-    auto play = header.removeFromRight (buttonwidth).reduced(gapX, gapY);
+    auto sync = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
+    auto stop = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
+    auto play = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
     m_syncTempoBtn.setBounds(sync);
     m_stopBtn.setBounds(stop);
     m_playBtn.setBounds(play);
 
     updateButtonColours();
 
-    if (m_previewEdit)
-        m_thumbnail->setBounds (area.reduced(3,3));
 
     repaint();
 }
@@ -147,12 +150,9 @@ void SamplePreviewComponent::sliderValueChanged(juce::Slider *slider)
 {
     if (slider == m_volumeSlider.get ())
     {
+        auto& sliderpos =  m_avs.m_previewSliderPos;
         if (m_previewEdit)
-        {
-            m_previewEdit->getMasterSliderPosParameter ()->setParameter (
-                (float) slider->getValue ()
-                , juce::dontSendNotification);
-        }
+            m_previewEdit->getMasterSliderPosParameter ()->setParameter(sliderpos , juce::dontSendNotification);
     }
 }
 
@@ -225,26 +225,15 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
     m_fileName.setText(m_file.getFileName(), juce::sendNotification);
     m_previewEdit = te::Edit::createEditForPreviewingFile (m_engine, file, &m_edit, m_syncTempo, false, m_isSync, juce::ValueTree());
 
+    auto& sliderpos =  m_avs.m_previewSliderPos;
+    if (m_previewEdit)
+        m_previewEdit->getMasterSliderPosParameter ()->setParameter(sliderpos , juce::dontSendNotification);
     //is needed because, preview edit don't play the attacs of a sample if started. idky
     te::insertSpaceIntoEdit(*m_previewEdit, {tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(0.05)});
 
     auto colour = *m_isSync ? m_avs.getPrimeColour() : m_avs.getTextColour();
     m_fileName.setColour(juce::Label::textColourId, colour);
     
-
-    m_volumeSlider = std::make_unique<juce::Slider>();
-    m_volumeSlider->addListener (this);
-    m_volumeSlider->setRange(0.0f, 3.0f, 0.01f);
-    m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
-    m_volumeSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
-
-    if (oldVolume!=-1)
-        m_previewEdit->getMasterVolumePlugin ()->volume = oldVolume;
-
-    m_volumeSlider->setValue (m_previewEdit->getMasterVolumePlugin ()->volume);
-
-    addAndMakeVisible (*m_volumeSlider);
     m_thumbnail = std::make_unique<SampleView>(m_previewEdit->getTransport ());
     m_thumbnail->setFile (audioFile);
     addAndMakeVisible (*m_thumbnail);

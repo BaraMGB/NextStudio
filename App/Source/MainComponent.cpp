@@ -29,6 +29,7 @@
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
+    , m_nextLookAndFeel(state)
 {
     setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);

@@ -86,6 +86,7 @@ private:
     
 
 
+    ApplicationViewState &                              m_applicationState;
     NextLookAndFeel                                     m_nextLookAndFeel;
 
     tracktion_engine::Engine                            m_engine
@@ -102,7 +103,6 @@ private:
     std::unique_ptr<LowerRangeComponent>                m_lowerRange;
     std::unique_ptr<SidebarComponent>                   m_sideBarBrowser;
 
-    ApplicationViewState &                              m_applicationState;
     juce::StretchableLayoutManager                      m_stretchableManager;
     juce::StretchableLayoutResizerBar                   m_resizerBar
                                 {&m_stretchableManager, 1, true};

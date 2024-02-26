@@ -61,6 +61,7 @@ private:
     bool m_syncTempo {false};
     bool* m_isSync;
     juce::File m_file;
+    float m_volume;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplePreviewComponent)
 };
 

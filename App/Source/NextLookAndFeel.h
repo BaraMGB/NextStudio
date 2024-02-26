@@ -16,26 +16,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
-  ==============================================================================
-
-    NextLookAndFeel.h
-    Created: 27 Dec 2019 11:29:28pm
-    Author:  Zehn
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TrackHeadComponent.h"
 #include "AutomatableSliderComponent.h"
+#include "ApplicationViewState.h"
 
 class NextLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
-    NextLookAndFeel()
+    NextLookAndFeel(ApplicationViewState& appState)
+        : m_appState(appState)
     {
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xff000000));
         setColour(juce::TextButton::buttonColourId , juce::Colour(0xff474747));
@@ -100,6 +92,31 @@ public:
     }
 
 
+    void drawLinearSlider (juce::Graphics&g, int x, int y, int width, int height,
+                           float sliderPos, float minSliderPos, float maxSliderPos,
+                           const juce::Slider::SliderStyle, juce::Slider& slider) override
+    {
+        auto area = juce::Rectangle<float>(x, y, width, height);
+        auto slide = area.toNearestInt();
+        slide.removeFromTop(sliderPos);
+
+        g.saveState();
+        g.reduceClipRegion(slide);
+
+        juce::Colour startColour = m_appState.getPrimeColour().withAlpha(0.5f);
+        juce::Colour endColour = startColour.withAlpha(0.0f); 
+        juce::ColourGradient gradient(startColour, x, sliderPos, endColour, x, sliderPos + height, false);
+        g.setGradientFill(gradient);
+        g.fillRect(area);
+
+        g.restoreState();
+
+        g.setColour(m_appState.getPrimeColour());
+        std::cout << "sliderpos: " << sliderPos << "  width: " << width << std::endl;
+        auto pos = slider.getPositionOfValue(slider.getValue());
+        std::cout << "pos: " << pos << std::endl;
+        g.fillRect(juce::Rectangle<int>(x,(int) sliderPos - 1, width, 3));
+    }
 
     void drawRotarySlider(juce::Graphics& g,
                           int x,
@@ -452,6 +469,8 @@ public:
         g.drawFittedText(text, area, juce::Justification::left, 1);
     }
 
+private:
+    ApplicationViewState& m_appState;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NextLookAndFeel)
 };
