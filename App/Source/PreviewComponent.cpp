@@ -32,12 +32,12 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
 
     m_isSync = new bool{false};
     m_volumeSlider = std::make_unique<juce::Slider>();
-    m_volumeSlider->setRange(-100.0f, 6.0f);
+    m_volumeSlider->setRange(.0f, 1.0f);
     m_volumeSlider->getValueObject().referTo(m_avs.m_previewSliderPos.getPropertyAsValue());
-    m_volumeSlider->setSkewFactorFromMidPoint(1.0f);
     m_volumeSlider->setSliderStyle(juce::Slider::LinearBarVertical);
     m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
     addAndMakeVisible(m_volumeSlider.get());
+    m_volumeSlider->addListener(this);
 
     Helpers::addAndMakeVisible(*this, {&m_playBtn, &m_stopBtn, &m_syncTempoBtn});
 
@@ -94,24 +94,13 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
     g.setColour (m_avs.getBackgroundColour());
     g.fillRect (getLocalBounds ());
     g.setColour(m_avs.getBorderColour());
-    g.drawHorizontalLine(30, 0, getWidth());
+    auto thumbnailHeight = (getHeight() - 30) / 2;
+    g.drawHorizontalLine(thumbnailHeight, 0, getWidth());
+    g.drawHorizontalLine(thumbnailHeight + 30, 0, getWidth());
     g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
 
     const int headWidth = 20;
     auto area = getLocalBounds();
-
-    if (m_previewEdit)
-    {
-
-        te::AudioFile audioFile (m_previewEdit->engine, m_file);
-        if (audioFile.isValid())
-        {
-            const char* icon = BinaryData::wavetest5_svg;;
-            auto colour = m_avs.getPrimeColour();
-            GUIHelpers::drawFromSvg (g, icon, colour, {0, 6, 18, 18});
-        }
-    }
-
 }
 
 void SamplePreviewComponent::resized() 
@@ -119,13 +108,16 @@ void SamplePreviewComponent::resized()
     auto area = getLocalBounds ();
     area.removeFromTop(1);
 
-    auto labelHeight = 30;
     auto thumbnailHeight = (getHeight() - 30) / 2;
-
     auto thumbRect = area.removeFromTop(thumbnailHeight);
     if (m_previewEdit)
         m_thumbnail->setBounds (thumbRect);
-    m_fileName.setBounds(area.removeFromTop(labelHeight));
+
+    auto labelHeight = 30;
+    auto iconwidth = 15;
+    auto labelrect = area.removeFromTop(labelHeight);
+    labelrect.removeFromLeft(iconwidth);
+    m_fileName.setBounds(labelrect);
 
     auto buttonMenu = area;
 

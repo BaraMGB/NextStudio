@@ -33,6 +33,7 @@ public:
         ~SamplePreviewComponent()
     {
         delete m_isSync;
+        m_volumeSlider->removeListener(this);
     }
     void paint(juce::Graphics &g) override;
     void resized() override;
