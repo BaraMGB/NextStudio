@@ -96,7 +96,7 @@ public:
                            float sliderPos, float minSliderPos, float maxSliderPos,
                            const juce::Slider::SliderStyle, juce::Slider& slider) override
     {
-        auto area = juce::Rectangle<float>(x, y, width, height);
+        const auto area = juce::Rectangle<float>(x, y, width, height);
         auto slide = area.toNearestInt();
         slide.removeFromTop(sliderPos);
 
@@ -105,16 +105,13 @@ public:
 
         juce::Colour startColour = m_appState.getPrimeColour().withAlpha(0.5f);
         juce::Colour endColour = startColour.withAlpha(0.0f); 
-        juce::ColourGradient gradient(startColour, x, sliderPos, endColour, x, sliderPos + height, false);
+        juce::ColourGradient gradient(startColour, x, 0, endColour, x, height, false);
         g.setGradientFill(gradient);
         g.fillRect(area);
 
         g.restoreState();
 
         g.setColour(m_appState.getPrimeColour());
-        std::cout << "sliderpos: " << sliderPos << "  width: " << width << std::endl;
-        auto pos = slider.getPositionOfValue(slider.getValue());
-        std::cout << "pos: " << pos << std::endl;
         g.fillRect(juce::Rectangle<int>(x,(int) sliderPos - 1, width, 3));
     }
 
