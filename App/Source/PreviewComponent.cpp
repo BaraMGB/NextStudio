@@ -27,8 +27,9 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
     , m_playBtn ("Play/Pause",  juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
     , m_stopBtn ("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
     , m_syncTempoBtn ("Sync Tempo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
+    , m_loopBtn("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
 {
-
+    m_avs.m_applicationStateValueTree.addListener(this);
 
     m_isSync = new bool{false};
     m_volumeSlider = std::make_unique<juce::Slider>();
@@ -36,16 +37,21 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
     m_volumeSlider->getValueObject().referTo(m_avs.m_previewSliderPos.getPropertyAsValue());
     m_volumeSlider->setSliderStyle(juce::Slider::LinearBarVertical);
     m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
-    addAndMakeVisible(m_volumeSlider.get());
     m_volumeSlider->addListener(this);
+    addAndMakeVisible(m_volumeSlider.get());
 
-    Helpers::addAndMakeVisible(*this, {&m_playBtn, &m_stopBtn, &m_syncTempoBtn});
+    addAndMakeVisible(m_fileName);
+    m_fileName.setJustificationType(juce::Justification::centred);
+
+    Helpers::addAndMakeVisible(*this, {&m_playBtn, &m_stopBtn,&m_loopBtn, &m_syncTempoBtn});
 
     GUIHelpers::setDrawableOnButton(m_playBtn, BinaryData::play_svg, juce::Colour(0xffffffff));
     GUIHelpers::setDrawableOnButton(m_stopBtn, BinaryData::stop_svg, juce::Colour(0xffffffff));
     GUIHelpers::setDrawableOnButton(m_syncTempoBtn, BinaryData::timeShiftCursor_svg , juce::Colour(0xffffffff));
+    GUIHelpers::setDrawableOnButton(m_loopBtn, BinaryData::cached_svg, juce::Colour(0xffffffff));
     m_stopBtn.setTooltip(GUIHelpers::translate("Stop playing", m_avs));
     m_playBtn.setTooltip(GUIHelpers::translate("Play sample", m_avs));
+    m_loopBtn.setTooltip(GUIHelpers::translate("Loop", m_avs));
     m_syncTempoBtn.setTooltip(GUIHelpers::translate("Sync to song tempo", m_avs));
     m_stopBtn.onClick = [this] 
     {
@@ -86,21 +92,37 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
         setFile(m_file); 
         resized();
     };
-    addAndMakeVisible(m_fileName);
+    m_loopBtn.onClick = [this]
+    {
+        m_avs.m_previewLoop = !m_avs.m_previewLoop;
+    };
 }
-
+SamplePreviewComponent::~SamplePreviewComponent()
+{
+    delete m_isSync;
+    m_volumeSlider->removeListener(this);
+    m_avs.m_applicationStateValueTree.removeListener(this);
+}
 void SamplePreviewComponent::paint(juce::Graphics &g) 
 {
     g.setColour (m_avs.getBackgroundColour());
     g.fillRect (getLocalBounds ());
-    g.setColour(m_avs.getBorderColour());
+
+    auto area = getLocalBounds ();
+    area.removeFromTop(1);
+
     auto thumbnailHeight = (getHeight() - 30) / 2;
+    auto thumbRect = area.removeFromTop(thumbnailHeight);
+    g.setColour(m_avs.getBackgroundColour());
+    g.fillRect(thumbRect);
+    g.setColour(m_avs.getMenuBackgroundColour());
+    thumbRect.reduce(4, 4);
+    g.fillRect(thumbRect);
+    g.setColour(m_avs.getBorderColour());
+    
     g.drawHorizontalLine(thumbnailHeight, 0, getWidth());
     g.drawHorizontalLine(thumbnailHeight + 30, 0, getWidth());
     g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
-
-    const int headWidth = 20;
-    auto area = getLocalBounds();
 }
 
 void SamplePreviewComponent::resized() 
@@ -110,25 +132,28 @@ void SamplePreviewComponent::resized()
 
     auto thumbnailHeight = (getHeight() - 30) / 2;
     auto thumbRect = area.removeFromTop(thumbnailHeight);
+    thumbRect.reduce(4, 4);
     if (m_previewEdit)
         m_thumbnail->setBounds (thumbRect);
 
     auto labelHeight = 30;
-    auto iconwidth = 15;
     auto labelrect = area.removeFromTop(labelHeight);
-    labelrect.removeFromLeft(iconwidth);
     m_fileName.setBounds(labelrect);
 
     auto buttonMenu = area;
 
-    m_volumeSlider->setBounds(buttonMenu.removeFromLeft(buttonMenu.getHeight() ));
+    auto sliderRect = buttonMenu.removeFromLeft(buttonMenu.getHeight());
+    sliderRect.reduce(2, 2);
+    m_volumeSlider->setBounds(sliderRect);
     auto buttonwidth = buttonMenu.getHeight() ;
 
     auto gapX = 1, gapY = 5;
     auto sync = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
+    auto loop = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
     auto stop = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
     auto play = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
     m_syncTempoBtn.setBounds(sync);
+    m_loopBtn.setBounds(loop);
     m_stopBtn.setBounds(stop);
     m_playBtn.setBounds(play);
 
@@ -209,9 +234,7 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
     if (!audioFile.isValid())
         return false;
 
-    float oldVolume = -1;
-    if (m_previewEdit)
-        oldVolume = m_previewEdit->getMasterVolumePlugin ()->volume;
+    auto lenght = audioFile.getLength();
 
     m_file = file;
     m_fileName.setText(m_file.getFileName(), juce::sendNotification);
@@ -222,6 +245,8 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
         m_previewEdit->getMasterSliderPosParameter ()->setParameter(sliderpos , juce::dontSendNotification);
     //is needed because, preview edit don't play the attacs of a sample if started. idky
     te::insertSpaceIntoEdit(*m_previewEdit, {tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(0.05)});
+    m_previewEdit->getTransport().setLoopRange({tracktion::TimePosition::fromSeconds(0.05), tracktion::TimeDuration::fromSeconds(lenght)});
+    updateEngineLooping();
 
     auto colour = *m_isSync ? m_avs.getPrimeColour() : m_avs.getTextColour();
     m_fileName.setColour(juce::Label::textColourId, colour);
@@ -237,12 +262,35 @@ void SamplePreviewComponent::updateButtonColours()
 {
     if (m_previewEdit)
     {
+        auto sync = m_isSync && m_syncTempo;
         auto isPlaying = m_previewEdit->getTransport().isPlaying();
         auto playBtnColour = isPlaying ? juce::Colour(0xff959595) : juce::Colour(0xff474747);
         auto stopBtnColour = isPlaying ? juce::Colour(0xff959515) : juce::Colour(0xff474747);
-        auto syncBtnColour = m_syncTempo ? juce::Colour(0xff959515) : juce::Colour(0xff474747);
+        auto syncBtnColour = sync ? juce::Colour(0xff959515) : juce::Colour(0xff474747);
+        auto loop = m_avs.m_previewLoop ? m_avs.getPrimeColour().withAlpha(.3f) : m_avs.getBackgroundColour();
         // m_stopBtn.setColour(juce::TextButton::buttonColourId,stopBtnColour );
         m_playBtn.setColour(juce::TextButton::buttonColourId, playBtnColour);
         m_syncTempoBtn.setColour(juce::TextButton::buttonColourId, syncBtnColour);
+        m_loopBtn.setColour(juce::TextButton::buttonColourId, loop);
     }
+}
+
+void SamplePreviewComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i) 
+{
+    if (i == IDs::PreviewLoop)
+        markAndUpdate(m_updateLooping);
+}
+
+void SamplePreviewComponent::handleAsyncUpdate () 
+{
+    if (compareAndReset (m_updateLooping))
+    {
+        updateEngineLooping();
+        updateButtonColours();
+    }
+}
+void SamplePreviewComponent::updateEngineLooping()
+{
+    if (m_previewEdit)
+        m_previewEdit->getTransport().looping = static_cast<bool>(m_avs.m_previewLoop);
 }

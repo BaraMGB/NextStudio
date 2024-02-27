@@ -20,21 +20,20 @@
 
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "Utilities.h"
 
 
 class SamplePreviewComponent : public juce::Component
                              , public juce::Slider::Listener
                              , public juce::Timer
+                             , private juce::ValueTree::Listener
+                             , private FlaggedAsyncUpdater
 {
 public:
 
     explicit SamplePreviewComponent(te::Engine & engine, te::Edit& edit, ApplicationViewState& avs);
-        ~SamplePreviewComponent()
-    {
-        delete m_isSync;
-        m_volumeSlider->removeListener(this);
-    }
+        ~SamplePreviewComponent();
     void paint(juce::Graphics &g) override;
     void resized() override;
     void sliderValueChanged(juce::Slider *slider) override;
@@ -46,23 +45,27 @@ public:
 
     bool setFile(const juce::File& file);
 
-
 private:
 
+    void valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i) override;
+    void handleAsyncUpdate () override;
+
     void updateButtonColours();
+    void updateEngineLooping();
 
     te::Engine& m_engine;
     te::Edit& m_edit;
     ApplicationViewState & m_avs;
     std::unique_ptr<te::Edit>     m_previewEdit;
     std::unique_ptr<juce::Slider> m_volumeSlider;
-    juce::DrawableButton m_playBtn, m_stopBtn, m_syncTempoBtn;
+    juce::DrawableButton m_playBtn, m_stopBtn, m_loopBtn, m_syncTempoBtn;
     juce::Label m_fileName;
     std::unique_ptr<SampleView>    m_thumbnail;
     bool m_syncTempo {false};
     bool* m_isSync;
     juce::File m_file;
     float m_volume;
+    bool m_updateLooping{false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplePreviewComponent)
 };
 

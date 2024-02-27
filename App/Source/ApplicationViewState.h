@@ -54,6 +54,7 @@ namespace IDs
     DECLARE_ID (Behavior)
     DECLARE_ID (AutoSaveInterval)           
     DECLARE_ID (PreviewSliderPos)           
+    DECLARE_ID (PreviewLoop)
     #undef DECLARE_ID
 }
 
@@ -171,6 +172,7 @@ public:
                 .getOrCreateChildWithName(IDs::Behavior, nullptr);  
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
         m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 0);
+        m_previewLoop.referTo (behavior, IDs::PreviewLoop, nullptr, false);
 
     }
 
@@ -361,5 +363,6 @@ public:
                                     m_folderTrackIndent,
                                     m_autoSaveInterval;
     juce::CachedValue<float>        m_previewSliderPos;
+    juce::CachedValue<bool>         m_previewLoop;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ApplicationViewState)
 };
