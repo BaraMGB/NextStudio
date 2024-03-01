@@ -46,8 +46,16 @@ void SidebarComponent::paint(juce::Graphics& g)
 {
     g.fillAll(m_appState.getMenuBackgroundColour());
 
-    g.setColour(m_appState.getTextColour());
+    g.setColour(m_headerColour);
     auto headerRect = getLocalBounds().removeFromTop(CONTENT_HEADER_HEIGHT);
+    auto footerRect = getLocalBounds().removeFromBottom(CONTENT_HEADER_HEIGHT);
+    auto colourBulbH = headerRect.removeFromRight(20);
+    auto colourBulbF = footerRect.removeFromRight(20);
+
+    g.fillRect(colourBulbH);
+    g.fillRect(colourBulbF);
+    
+    g.setColour(m_appState.getTextColour());
     headerRect.removeFromLeft(m_menu.getWidth());
     headerRect.reduce(10, 0);
     g.drawText(m_headerName, headerRect, juce::Justification::centredLeft,false );
@@ -71,9 +79,13 @@ void SidebarComponent::paint(juce::Graphics& g)
 }
 void SidebarComponent::paintOverChildren(juce::Graphics& g)
 {
+
+
+
     g.setColour(m_appState.getBorderColour());
     g.drawVerticalLine(m_menu.getWidth() -1, 0, getHeight());
     g.drawHorizontalLine(CONTENT_HEADER_HEIGHT, m_menu.getWidth(), getWidth());
+    g.drawHorizontalLine(getHeight() - CONTENT_HEADER_HEIGHT, m_menu.getWidth(), getWidth());
     GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), m_appState.getBackgroundColour(),m_appState.getBorderColour());
 }
 
@@ -82,6 +94,7 @@ void SidebarComponent::resized()
     auto area = getLocalBounds();
     m_menu.setBounds(area.removeFromLeft(80));
     area.removeFromTop(CONTENT_HEADER_HEIGHT);
+    area.removeFromBottom(CONTENT_HEADER_HEIGHT);
 
     if (m_settingsView.isVisible())
     {
@@ -104,7 +117,7 @@ void SidebarComponent::resized()
     else if (m_fileListBrowser.isVisible())
     {
         auto bounds = area;
-        auto preview = area.removeFromBottom(60);
+        auto preview = area.removeFromBottom(100);
         m_fileListBrowser.setBounds(area);
         m_samplePreview.setBounds(preview);
         m_headerName = "Home Folder";
@@ -113,7 +126,7 @@ void SidebarComponent::resized()
     else if (m_sampleBrowser.isVisible())
     {
         auto bounds = area;
-        auto preview = area.removeFromBottom(60);
+        auto preview = area.removeFromBottom(100);
         m_sampleBrowser.setBounds(area);
         m_samplePreview.setBounds(preview);
         m_headerName = "Samples";

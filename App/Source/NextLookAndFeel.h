@@ -94,25 +94,22 @@ public:
 
     void drawLinearSlider (juce::Graphics&g, int x, int y, int width, int height,
                            float sliderPos, float minSliderPos, float maxSliderPos,
-                           const juce::Slider::SliderStyle, juce::Slider& slider) override
+                           const juce::Slider::SliderStyle style, juce::Slider& slider) override
     {
-        const auto area = juce::Rectangle<float>(x, y, width, height);
-        auto slide = area.toNearestInt();
-        slide.removeFromTop(sliderPos);
+        if (style == juce::Slider::SliderStyle::LinearBarVertical)
+        {
+            const auto area = juce::Rectangle<float>(x, y, width, height);
+            const auto slider = area.withTop(sliderPos);
+            g.setColour(juce::Colour(0xff242424));
+            g.fillRoundedRectangle(area, 3);
+            g.setColour(juce::Colours::black);
+            g.drawRoundedRectangle(area.toFloat(), 3,1);
 
-        g.saveState();
-        g.reduceClipRegion(slide);
-
-        juce::Colour startColour = m_appState.getPrimeColour().withAlpha(0.5f);
-        juce::Colour endColour = startColour.withAlpha(0.0f); 
-        juce::ColourGradient gradient(startColour, x, 0, endColour, x, height, false);
-        g.setGradientFill(gradient);
-        g.fillRect(area);
-
-        g.restoreState();
-
-        g.setColour(m_appState.getPrimeColour());
-        g.fillRect(juce::Rectangle<int>(x,(int) sliderPos - 1, width, 3));
+            g.setColour(m_appState.getPrimeColour());
+            g.fillRoundedRectangle(slider, 3);
+            g.setColour(juce::Colours::black);
+            g.drawRoundedRectangle(slider.toFloat(), 3,1);
+        }
     }
 
     void drawRotarySlider(juce::Graphics& g,
@@ -125,102 +122,95 @@ public:
                           const float rotaryEndAngle,
                           juce::Slider& slider) override
     {
+        auto isAutomationActive = false;
+        auto volumeColour = juce::Colour(0x88e9e949);
+        auto backgroundArcColour = juce::Colour(0xff171717);
+        if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
+        {
+            volumeColour = automatableSlider->getTrackColour();
+            if (automatableSlider->getAutomatableParameter()->isAutomationActive())
+                isAutomationActive = true;
+        }
         auto radius = juce::jmin(width / 2, height / 2) - 10.0f;
         auto centreX = x + width * 0.5f;
         auto centreY = y + height * 0.5f;
         auto rx = centreX - radius;
         auto ry = centreY - radius;
         auto rw = radius * 2.0f;
-        auto angle =
-            rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+        auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        auto thumbColour = juce::Colour(0xff000000);
-        auto thumbMouseColour = juce::Colour(0xff999999);
-        auto volumeColour = juce::Colour(0x88e9e949);
-        auto isAutomationActive = false;
-        if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
-        {
-            volumeColour = automatableSlider->getTrackColour();
-            if (automatableSlider->getAutomatableParameter()->isAutomationActive())
-            {
-                isAutomationActive = true;
-            }
-
-        }
+        auto thumbColour = isAutomationActive ? juce::Colours::red : volumeColour;
         auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10);
-        auto lineW = 5;
+        auto lineW = 7;
         auto arcRadius = radius + 3;
-        auto toAngle =
-            rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
-        // fill
+        auto toAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        g.setGradientFill ({juce::Colour(0xffbbbbbb),
-                            0,
-                            0,
-                            juce::Colour(0xff2b2b2b),
-                            0,
-                            static_cast<float>(height),
-                            false});
-        g.fillEllipse(rx, ry, rw, rw);
-        juce::Rectangle<int> r;
-
-        g.setGradientFill ({juce::Colour(0xff1b1b1b),
-                            static_cast<float>(width/2),
-                            static_cast<float>(height/2),
-                            juce::Colour(0xff3b3b3b),
-                            static_cast<float>(width),
-                            static_cast<float>(height),
-                            true});
-        g.fillEllipse(rx + 3, ry + 3, rw - 6, rw - 6);
+        juce::Path contureArc;
+        contureArc.addCentredArc(bounds.getCentreX(),
+                                    bounds.getCentreY(),
+                                    arcRadius,
+                                    arcRadius,
+                                    0.0f,
+                                    rotaryStartAngle,
+                                    rotaryEndAngle,
+                                    true);
+        g.setColour(backgroundArcColour);
+        g.strokePath(contureArc, juce::PathStrokeType(lineW, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
         juce::Path backgroundArc;
-                backgroundArc.addCentredArc(bounds.getCentreX(),
-                                            bounds.getCentreY(),
-                                            arcRadius,
-                                            arcRadius,
-                                            0.0f,
-                                            rotaryStartAngle,
-                                            rotaryEndAngle,
-                                            true);
+        backgroundArc.addCentredArc(bounds.getCentreX(),
+                                    bounds.getCentreY(),
+                                    arcRadius,
+                                    arcRadius,
+                                    0.0f,
+                                    rotaryStartAngle,
+                                    rotaryEndAngle,
+                                    true);
+        g.setColour(juce::Colour(0xff242424));
+        g.strokePath(backgroundArc, juce::PathStrokeType(lineW-2, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
 
-                g.strokePath(
-                    backgroundArc,
-                    juce::PathStrokeType(lineW, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        if (slider.isEnabled())
+        {
+            juce::Path valueArc;
+            valueArc.addCentredArc(bounds.getCentreX(),
+                                   bounds.getCentreY(),
+                                   arcRadius,
+                                   arcRadius,
+                                   0.0f,
+                                   rotaryStartAngle,
+                                   toAngle,
+                                   true);
 
-                if (slider.isEnabled())
-                {
-                    juce::Path valueArc;
-                    valueArc.addCentredArc(bounds.getCentreX(),
-                                           bounds.getCentreY(),
-                                           arcRadius,
-                                           arcRadius,
-                                           0.0f,
-                                           rotaryStartAngle,
-                                           toAngle,
-                                           true);
+            g.setColour(volumeColour);
+            g.strokePath(valueArc, juce::PathStrokeType(lineW - 2, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        }
 
-                    g.setColour(volumeColour);
-                    g.strokePath(valueArc,
-                                 juce::PathStrokeType(lineW,
-                                                juce::PathStrokeType::curved,
-                                                juce::PathStrokeType::butt));
-                }
+        // pointer
+        juce::Path p;
+        auto pointerLength = radius ;
+        auto pointerThickness = 2.0f;
+        p.addRectangle(-pointerThickness * 0.5f, -radius + 1, pointerThickness, pointerLength * 0.5 );
+        p.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
+        g.setColour (thumbColour);
+        g.fillPath (p);
 
-                juce::Path p;
-                auto pointerLength = radius * 0.33f;
-                auto pointerThickness = 2.0f;
-                p.addRectangle(
-                    -pointerThickness * 0.5f, -radius, pointerThickness, pointerLength);
-                p.applyTransform(
-                    juce::AffineTransform::rotation(angle).translated(centreX, centreY));
-                // pointer
-                g.setColour (thumbColour);
-                g.fillPath (p);
-                if (isAutomationActive)
-                {
-                    g.setColour (juce::Colour(0xffaa3300));
-                    g.fillEllipse ({centreX - 2.0f, centreY - 2.0f, 4.0f, 4.0f});
-                }
+        //start cap
+        juce::Path sc;
+        sc.addRectangle(- .5,- radius - lineW +1,  1, lineW - 1);
+        sc.applyTransform(juce::AffineTransform::rotation(rotaryStartAngle).translated(centreX, centreY));
+        g.setColour (backgroundArcColour);
+        g.fillPath (sc);
 
+        //end cap
+        juce::Path ec;
+        ec.addRectangle(- .5,- radius - lineW, 1, lineW);
+        ec.applyTransform(juce::AffineTransform::rotation(rotaryEndAngle).translated(centreX, centreY));
+        g.setColour (backgroundArcColour);
+        g.fillPath (ec);
+        // if (isAutomationActive)
+        // {
+        //     g.setColour (juce::Colour(0xffaa3300));
+        //     g.fillEllipse ({centreX - 2.0f, centreY - 2.0f, 4.0f, 4.0f});
+        // }
     }
 
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override

@@ -119,7 +119,16 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
     thumbRect.reduce(4, 4);
     g.fillRect(thumbRect);
     g.setColour(m_avs.getBorderColour());
-    
+    g.drawRect(thumbRect);
+
+    auto labelHeight = 30;
+    auto labelrect = area.removeFromTop(labelHeight);
+    g.setColour(m_avs.getMenuBackgroundColour());
+    labelrect.reduce(4, 4);
+    g.fillRect(labelrect);
+    g.setColour(m_avs.getBorderColour());
+    g.drawRect(labelrect);
+
     g.drawHorizontalLine(thumbnailHeight, 0, getWidth());
     g.drawHorizontalLine(thumbnailHeight + 30, 0, getWidth());
     g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
