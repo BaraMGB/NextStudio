@@ -167,7 +167,7 @@ namespace GUIHelpers
     template<typename T>
     void log(T message)
     {
-#if JUCE_DEBUG
+#ifdef DEBUG_OR_RELWITHDEBINFO
         std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
                   << ": " << message << std::endl;
 #endif
@@ -175,7 +175,7 @@ namespace GUIHelpers
     template<typename T>
     void log(const juce::String& d, T message)
     {
-#if JUCE_DEBUG
+#ifdef DEBUG_OR_RELWITHDEBINFO
         std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
                   << ": " << d << " : "
                   << ": " << message << std::endl;
