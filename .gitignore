@@ -12,3 +12,4 @@ cmake-build-release
 compile_commands.json
 .cache
 buildnMake/
+start.sh
