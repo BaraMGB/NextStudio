@@ -1721,18 +1721,18 @@ void EngineHelpers::sortByFormatName(juce::Array<juce::PluginDescription>& list,
     }
 }
 
-juce::PluginDescription *EngineHelpers::getPluginDesc(const juce::String &uniqueId, const juce::String &name, juce::String xmlType_, bool isSynth)
+juce::PluginDescription EngineHelpers::getPluginDesc(const juce::String &uniqueId, const juce::String &name, juce::String xmlType_, bool isSynth)
 {
 
-    auto desc = new juce::PluginDescription;
+    auto desc = juce::PluginDescription();
 
     jassert (xmlType_.isNotEmpty());
-    desc->name = name;
-    desc->fileOrIdentifier = uniqueId;
-    desc->pluginFormatName = (uniqueId.endsWith ("_trkbuiltin") || xmlType_ == te::RackInstance::xmlTypeName)
+    desc.name = name;
+    desc.fileOrIdentifier = uniqueId;
+    desc.pluginFormatName = (uniqueId.endsWith ("_trkbuiltin") || xmlType_ == te::RackInstance::xmlTypeName)
             ? getInternalPluginFormatName() : juce::String();
-    desc->category = xmlType_;
-    desc->isInstrument = isSynth;
+    desc.category = xmlType_;
+    desc.isInstrument = isSynth;
 
     return desc;
 }
@@ -1743,47 +1743,47 @@ juce::Array<juce::PluginDescription> EngineHelpers::getInternalPlugins()
 
     juce::Array<juce::PluginDescription> list;
 
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::VolumeAndPanPlugin::getPluginName()),
                              te::VolumeAndPanPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::EqualiserPlugin::getPluginName()),
                              te::EqualiserPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::ReverbPlugin::getPluginName()),
                              te::ReverbPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::DelayPlugin::getPluginName()),
                              te::DelayPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::ChorusPlugin::getPluginName()),
                              te::ChorusPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::PhaserPlugin::getPluginName()),
                              te::PhaserPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::CompressorPlugin::getPluginName()),
                              te::CompressorPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::PitchShiftPlugin::getPluginName()),
                              te::PitchShiftPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::LowPassPlugin::getPluginName()),
                              te::LowPassPlugin::xmlTypeName, false)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::SamplerPlugin::getPluginName()),
                              te::SamplerPlugin::xmlTypeName, true)
              );
-    list.add(*getPluginDesc( juce::String (num++) + "_trkbuiltin",
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::FourOscPlugin::getPluginName()),
                              te::FourOscPlugin::xmlTypeName, true)
              );

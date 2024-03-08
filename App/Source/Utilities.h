@@ -376,7 +376,7 @@ namespace EngineHelpers
         return clip;
     }
 
-    juce::PluginDescription * getPluginDesc(const juce::String& uniqueId
+    juce::PluginDescription  getPluginDesc(const juce::String& uniqueId
                                             , const juce::String& name,
                                 juce::String  xmlType_, bool isSynth);
 
