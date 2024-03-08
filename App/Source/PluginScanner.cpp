@@ -1,6 +1,5 @@
 #include "PluginScanner.h"
 
-
 PluginScanner::PluginScanner(tracktion::Engine &en, juce::AudioPluginFormat &format, const juce::StringArray &filesOrIdentifiers, juce::PropertiesFile *properties, bool allowPluginsWhichRequireAsynchronousInstantiation, int threads, const juce::String &title, const juce::String &text)
     : m_engine(en),
       m_formatToScan (format),
@@ -17,7 +16,7 @@ PluginScanner::PluginScanner(tracktion::Engine &en, juce::AudioPluginFormat &for
     juce::FileSearchPath path (m_formatToScan.getDefaultLocationsToSearch());
 
     // You need to use at least one thread when scanning plug-ins asynchronously
-    jassert (! allowAsync || (numThreads > 0));
+    jassert (! m_allowAsync || (m_numThreads > 0));
 
     // If the filesOrIdentifiersToScan argument isn't empty, we should only scan these
     // If the path is empty, then paths aren't used for this format.

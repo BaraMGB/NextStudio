@@ -5,9 +5,6 @@
 SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
    : m_appState(appState) 
 {
-    jassert(m_searchFunction != nullptr);
-
-
     m_searchField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
     m_searchField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getMenuBackgroundColour().darker(0.3f));
     m_searchField.setColour(juce::TextEditor::ColourIds::outlineColourId, m_appState.getBorderColour());
