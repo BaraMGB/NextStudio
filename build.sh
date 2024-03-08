@@ -83,7 +83,14 @@ echo "----------------------------------------------------------"
 cat << EOF > start.sh
 #!/bin/bash
 echo "Starting the application..."
-./build/$BUILD_TYPE/App/NextStudio_artefacts/$BUILD_TYPE/NextStudio
+if command -v gdb >/dev/null; then
+    # gdb ist installiert, führe das Programm mit gdb aus
+    gdb -ex=r --args ./build/$BUILD_TYPE/App/NextStudio_artefacts/$BUILD_TYPE/NextStudio
+else
+    # gdb ist nicht installiert, gebe eine Warnung aus und führe das Programm ohne gdb aus
+    echo "Warning: gdb is not installed. Running the program without it."
+    ./build/$BUILD_TYPE/App/NextStudio_artefacts/$BUILD_TYPE/NextStudio
+fi
 EOF
 
 # Make start.sh executable
