@@ -8,22 +8,33 @@ if [ -z "$BASH_VERSION" ]; then
     exit 1
 fi
 
+# Initialize clean cache variable
+CLEAN_CACHE=0
+
+# Check if the clean cache argument is provided
+if [[ " $@ " =~ " -clean " ]]; then
+    CLEAN_CACHE=1
+fi
+
+# Remove -clean from the arguments
+BUILD_ARGS=$(echo "$@" | sed 's/-clean//g')
+
 # Check if the build type argument is provided and valid
-if [[ $# -eq 0 ]] || [[ "$1" != "d" && "$1" != "r" && "$1" != "rd" ]]; then
+if [[ -z "$BUILD_ARGS" ]] || [[ "$BUILD_ARGS" != "d" && "$BUILD_ARGS" != "r" && "$BUILD_ARGS" != "rd" ]]; then
     echo "Error: No build type specified or invalid build type."
-    echo "Usage: $0 [build type]"
+    echo "Usage: $0 [build type] [-clean]"
     echo "Build type:"
     echo "  d  - Debug"
     echo "  r  - Release"
     echo "  rd - RelWithDebInfo"
     exit 1
 else
-    echo "Build type provided: $1"
+    echo "Build type provided: $BUILD_ARGS"
 echo "----------------------------------------------------------"
 fi
 
 # Set the build type based on the argument
-case $1 in
+case $BUILD_ARGS in
     d)
         BUILD_TYPE="Debug"
         ;;
@@ -41,20 +52,24 @@ echo "----------------------------------------------------------"
 # Create and enter the build directory
 echo "Creating and entering the build directory..."
 echo "----------------------------------------------------------"
-            # mkdir -p ./build/
-            # cd build || exit
 BUILD_DIR=./build/$BUILD_TYPE
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
-# Remove previous CMake cache
-echo "Removing previous CMake cache..."
-echo "----------------------------------------------------------"
-rm -f CMakeCache.txt
+
+# Conditionally remove previous CMake cache
+if [ $CLEAN_CACHE -eq 1 ]; then
+    echo "Removing previous CMake cache..."
+    echo "----------------------------------------------------------"
+    rm -f CMakeCache.txt
+else
+    echo "Skipping CMake cache removal."
+    echo "----------------------------------------------------------"
+fi
 
 # Configure CMake and build the project
 echo "Configuring CMake and starting the build..."
 echo "----------------------------------------------------------"
-if cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../.. && make -j6; then
+if cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../.. && make -j$(nproc); then
     echo "Build succeeded."
     echo "----------------------------------------------------------"
 else
@@ -76,6 +91,9 @@ fi
 # Go back to the original directory
 cd ../.. || exit
 
+# Define the executable path based on BUILD_TYPE
+EXECUTABLE_PATH="./build/$BUILD_TYPE/App/NextStudio_artefacts/$BUILD_TYPE/NextStudio"
+
 # Create start.sh script
 echo "Creating start.sh script..."
 echo "----------------------------------------------------------"
@@ -83,14 +101,19 @@ echo "----------------------------------------------------------"
 cat << EOF > start.sh
 #!/bin/bash
 echo "Starting the application..."
-if command -v gdb >/dev/null; then
-    # gdb ist installiert, führe das Programm mit gdb aus
-    gdb -ex=r --args ./build/$BUILD_TYPE/App/NextStudio_artefacts/$BUILD_TYPE/NextStudio
+
+if [[ " \$@ " =~ " -d " ]]; then
+    if command -v gdb >/dev/null; then
+        echo "Running with gdb..."
+        gdb -ex=r --args $EXECUTABLE_PATH
+    else
+        echo "Warning: gdb is not installed. Unable to run the program with gdb."
+    fi
 else
-    # gdb ist nicht installiert, gebe eine Warnung aus und führe das Programm ohne gdb aus
-    echo "Warning: gdb is not installed. Running the program without it."
-    ./build/$BUILD_TYPE/App/NextStudio_artefacts/$BUILD_TYPE/NextStudio
+    echo "Running without gdb..."
+    $EXECUTABLE_PATH
 fi
+
 EOF
 
 # Make start.sh executable
@@ -100,3 +123,4 @@ chmod +x start.sh
 
 echo "Build script completed."
 echo "----------------------------------------------------------"
+
