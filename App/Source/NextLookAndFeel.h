@@ -22,6 +22,7 @@
 #include "TrackHeadComponent.h"
 #include "AutomatableSliderComponent.h"
 #include "ApplicationViewState.h"
+#include "Utilities.h"
 
 class NextLookAndFeel : public juce::LookAndFeel_V4
 {
@@ -140,7 +141,7 @@ public:
         auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
         auto thumbColour = isAutomationActive ? juce::Colours::red : volumeColour;
-        auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10);
+        auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat();//.reduced(10);
         auto lineW = 7;
         auto arcRadius = radius + 3;
         auto toAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
@@ -165,7 +166,12 @@ public:
                                     rotaryStartAngle,
                                     rotaryEndAngle,
                                     true);
-        g.setColour(juce::Colour(0xff242424));
+        g.setColour(volumeColour);
+        juce::Point<float> startPoint(rx, ry); 
+        juce::Point<float> endPoint(rx, ry + rw); 
+
+        juce::ColourGradient gradient(m_appState.getBackgroundColour().darker(.8f), startPoint, m_appState.getBackgroundColour(), endPoint, false);
+        g.setGradientFill(gradient);
         g.strokePath(backgroundArc, juce::PathStrokeType(lineW-2, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
 
         if (slider.isEnabled())
@@ -181,6 +187,11 @@ public:
                                    true);
 
             g.setColour(volumeColour);
+            juce::Point<float> startPoint(rx, ry); 
+            juce::Point<float> endPoint(rx, ry + rw); 
+
+            juce::ColourGradient gradient(volumeColour.withBrightness(1.3f), startPoint, volumeColour.withBrightness(.7f), endPoint, false);
+            g.setGradientFill(gradient);
             g.strokePath(valueArc, juce::PathStrokeType(lineW - 2, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
         }
 
@@ -206,11 +217,6 @@ public:
         ec.applyTransform(juce::AffineTransform::rotation(rotaryEndAngle).translated(centreX, centreY));
         g.setColour (backgroundArcColour);
         g.fillPath (ec);
-        // if (isAutomationActive)
-        // {
-        //     g.setColour (juce::Colour(0xffaa3300));
-        //     g.fillEllipse ({centreX - 2.0f, centreY - 2.0f, 4.0f, 4.0f});
-        // }
     }
 
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
