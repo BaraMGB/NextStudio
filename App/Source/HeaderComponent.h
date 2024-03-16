@@ -22,7 +22,6 @@
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
 #include "Utilities.h"
-#include "AudioMidiSettings.h"
 #include "PositionDisplayComponent.h"
 
 namespace te = tracktion_engine;
@@ -57,10 +56,8 @@ private:
                        , m_loadButton
                        , m_saveButton
                        , m_renderButton
-                       , m_pluginsButton
                        , m_stopButton
                        , m_recordButton
-                       , m_settingsButton
                        , m_playButton
                        , m_loopButton
                        , m_clickButton

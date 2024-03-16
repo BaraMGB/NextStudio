@@ -26,10 +26,8 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     , m_loadButton ("Load", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_saveButton ("Save", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_renderButton ("Render Song", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_pluginsButton ("Plugins", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_stopButton ("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_recordButton ("Record", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_settingsButton ("Settings", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_playButton ("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_loopButton ("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_clickButton ("Metronome", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -42,7 +40,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     Helpers::addAndMakeVisible(*this,
         { &m_newButton, &m_loadButton, &m_saveButton, &m_renderButton, &m_stopButton
         , &m_playButton, &m_recordButton, &m_display, &m_clickButton, &m_loopButton
-        , &m_followPlayheadButton, &m_pluginsButton, &m_settingsButton });
+        , &m_followPlayheadButton});
 
     GUIHelpers::setDrawableOnButton(m_newButton, BinaryData::newbox_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_loadButton, BinaryData::filedownload_svg, m_btn_col);
@@ -51,8 +49,6 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     GUIHelpers::setDrawableOnButton(m_playButton, BinaryData::play_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_stopButton, BinaryData::stop_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_recordButton, BinaryData::record_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_settingsButton, BinaryData::headphonessettings_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_pluginsButton, BinaryData::powerplug_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg,
                                     m_edit.getTransport().looping ? m_btn_col : juce::Colour(0xff666666));
     GUIHelpers::setDrawableOnButton(m_clickButton, BinaryData::metronome_svg,
@@ -66,8 +62,6 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     m_playButton.addListener(this);
     m_stopButton.addListener(this);
     m_recordButton.addListener(this);
-    m_settingsButton.addListener(this);
-    m_pluginsButton.addListener(this);
     m_loopButton.addListener (this);
     m_clickButton.addListener (this);
     m_followPlayheadButton.addListener (this);
@@ -79,8 +73,6 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     m_playButton.setTooltip(GUIHelpers::translate("Play", m_editViewState.m_applicationState));
     m_stopButton.setTooltip(GUIHelpers::translate("Stop", m_editViewState.m_applicationState));
     m_recordButton.setTooltip(GUIHelpers::translate("Recording", m_editViewState.m_applicationState));
-    m_settingsButton.setTooltip(GUIHelpers::translate("Open settings dialog", m_editViewState.m_applicationState));
-    m_pluginsButton.setTooltip(GUIHelpers::translate ("Open plugin settings dialog", m_editViewState.m_applicationState));
     m_loopButton.setTooltip (GUIHelpers::translate("Toggle loop on/off", m_editViewState.m_applicationState));
     m_clickButton.setTooltip (GUIHelpers::translate("Toggle metronome on/off", m_editViewState.m_applicationState));
     m_followPlayheadButton.setTooltip (GUIHelpers::translate ("View follows playhead on/off", m_editViewState.m_applicationState));
@@ -97,8 +89,6 @@ HeaderComponent::~HeaderComponent()
     m_playButton.removeListener(this);
     m_stopButton.removeListener(this);
     m_recordButton.removeListener(this);
-    m_settingsButton.removeListener(this);
-    m_pluginsButton.removeListener(this);
     m_loopButton.removeListener (this);
     m_clickButton.removeListener (this);
     m_followPlayheadButton.removeListener (this);
@@ -121,14 +111,12 @@ void HeaderComponent::resized()
     auto transportBox   = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
     auto positionBox    = createFlexBox(juce::FlexBox::JustifyContent::center);
     auto timelineSetBox = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
-    auto settingsBox    = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
 
     auto container      = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
 
     auto fileButtons      = {&m_newButton, &m_loadButton, &m_saveButton, &m_renderButton};
     auto transportButtons = {&m_playButton, &m_stopButton, &m_recordButton};
     auto timeLineButtons  = {&m_clickButton, &m_loopButton, &m_followPlayheadButton};
-    auto SettingsButtons  = {&m_pluginsButton, &m_settingsButton};
 
 
     auto displayWidth =  (area.getWidth()/5) - (getGapSize() * 4) ;
@@ -137,9 +125,8 @@ void HeaderComponent::resized()
     addButtonsToFlexBox(transportBox, transportButtons);
     addButtonsToFlexBox(positionBox, {&m_display}, displayWidth);
     addButtonsToFlexBox(timelineSetBox, timeLineButtons);
-    addButtonsToFlexBox(settingsBox, SettingsButtons);
 
-    auto containers = {&fileButtonsBox, &transportBox, &positionBox, &timelineSetBox, &settingsBox};
+    auto containers = {&fileButtonsBox, &transportBox, &positionBox, &timelineSetBox};
     addFlexBoxToFlexBox(container, containers);
 
     container.performLayout(area);
@@ -181,37 +168,6 @@ void HeaderComponent::buttonClicked(juce::Button* button)
         {
             te::EditFileOperations (m_edit).save (true, true, false);
         }
-    }
-    if (button == &m_settingsButton)
-    {
-        juce::DialogWindow::LaunchOptions o;
-        o.dialogTitle = TRANS("Audio Settings");
-        o.dialogBackgroundColour = juce::LookAndFeel::getDefaultLookAndFeel()
-                .findColour (juce::ResizableWindow::backgroundColourId);
-        auto audiosettings = new SettingsView(m_edit.engine, m_commandManager);
-        o.content.setOwned (audiosettings);
-        o.content->setSize (400, 600);
-        o.runModal ();
-    }
-    if (button == &m_pluginsButton)
-    {
-        juce::DialogWindow::LaunchOptions o;
-        o.dialogTitle                   = TRANS("Plugins");
-        o.dialogBackgroundColour        = juce::Colours::black;
-        o.escapeKeyTriggersCloseButton  = true;
-        o.useNativeTitleBar             = true;
-        o.resizable                     = true;
-        o.useBottomRightCornerResizer   = true;
-
-        auto v = new juce::PluginListComponent (
-                      m_edit.engine.getPluginManager().pluginFormatManager
-                    , m_edit.engine.getPluginManager().knownPluginList
-                    , m_edit.engine.getTemporaryFileManager()
-                        .getTempFile ("PluginScanDeadMansPedal")
-                    , te::getApplicationSettings());
-        v->setSize (800, 600);
-        o.content.setOwned (v);
-        o.launchAsync();
     }
     if (button == &m_loopButton)
     {
