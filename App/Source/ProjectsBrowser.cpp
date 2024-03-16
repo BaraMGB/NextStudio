@@ -7,8 +7,24 @@
 ProjectsBrowserComponent::ProjectsBrowserComponent(ApplicationViewState &avs)
     : BrowserBaseComponent(avs) 
 {
+    setName("ProjectBrowser");
+    m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
+    m_sortingBox.addItem(GUIHelpers::translate("by Name (z - a)", m_applicationViewState), 2);
+    m_sortingBox.setSelectedId(1, juce::dontSendNotification);
 }
+void ProjectsBrowserComponent::resized() 
+{
+    auto area = getLocalBounds();
+    auto sortcomp = area.removeFromTop(30).reduced(2,2);
+    auto sortlabel = sortcomp.removeFromLeft(50);
+    auto searchfield = area.removeFromBottom(30);
+    auto list = area;
 
+    m_sortLabel.setBounds(sortlabel);
+    m_sortingBox.setBounds(sortcomp);
+    m_searchField.setBounds(searchfield);
+    m_listBox.setBounds (list);
+}
 juce::var ProjectsBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
 {
     return {"ProjectsBrowser"};
@@ -86,8 +102,9 @@ void ProjectsBrowserComponent::selectedRowsChanged(int)
 {
 }
 
-void ProjectsBrowserComponent::sortList(bool forward)
+void ProjectsBrowserComponent::sortList(int selectedID)
 {
+    auto forward = selectedID == 1;
     juce::Array<juce::File> fileList;
 
     for (auto f : m_contentList)
@@ -98,6 +115,8 @@ void ProjectsBrowserComponent::sortList(bool forward)
 
     m_contentList.clear();
     m_contentList.addArray(fileList);
+        
+    getParentComponent()->resized(); 
 }
 void ProjectsBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
 {

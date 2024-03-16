@@ -34,6 +34,7 @@ class ProjectsBrowserComponent : public BrowserBaseComponent
 public:
     ProjectsBrowserComponent(ApplicationViewState& avs);
 
+    void resized() override;
     juce::var getDragSourceDescription (const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
@@ -43,7 +44,7 @@ public:
 
 
 private:
-    void sortList(bool forward=true) override;
+    void sortList(int selectedID) override;
 
     struct CompareNameForward{
         static int compareElements (const juce::File& first, 

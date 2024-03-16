@@ -33,6 +33,7 @@ public:
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xff000000));
         setColour(juce::TextButton::buttonColourId , juce::Colour(0xff474747));
         setColour(juce::DrawableButton::backgroundColourId, juce::Colour(0xff474747));
+        setColour(juce::PopupMenu::backgroundColourId, juce::Colours::black);
     }
     void drawDrawableButton(juce::Graphics& g,
                               juce::DrawableButton& button,
@@ -436,11 +437,15 @@ public:
                 g.fillRect (juce::Rectangle<int> (thumbStartPosition, 0, thumbSize, height));
             }
         }
+    }    
+void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
+{
+        auto rect = juce::Rectangle<float>(0.f, 0.f, w, h);
+        g.setColour(m_appState.getBackgroundColour());
+        g.fillRect(rect);
+        g.setColour(m_appState.getBorderColour());
+        g.drawRect(rect, 1);
     }
-    // void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
-    // {
-    //     g.fillAll (juce::Colours::red);
-    // }
     void drawPopupMenuItem(
             juce::Graphics &g
           , const juce::Rectangle<int> &area
@@ -454,12 +459,53 @@ public:
           , const juce::Drawable *icon
           , const juce::Colour *textColour) override
     {
-        g.setFont(juce::Font( juce::Typeface::createSystemTypefaceFor(
-                                  BinaryData::IBMPlexSansRegular_ttf
-                                , BinaryData::IBMPlexSansRegular_ttfSize)->getName(), 12, juce::Font::FontStyleFlags::plain ));
-        if (textColour != nullptr)
-            g.setColour(*textColour);
-        g.drawFittedText(text, area, juce::Justification::left, 1);
+        g.setFont(juce::Font(12, juce::Font::plain));
+
+        if (isHighlighted)
+        {
+            g.setFont(juce::Font(12, juce::Font::bold));
+            auto r = area.toFloat();
+            r.reduce(2,2);
+            g.setColour(m_appState.getMenuBackgroundColour());    
+            g.fillRoundedRectangle(r, 2);
+        }
+
+        g.setColour(m_appState.getTextColour());    
+        auto rect = area;
+        rect.removeFromLeft(10);
+        g.drawFittedText(text, rect, juce::Justification::left, 1);
+    }
+
+    void drawComboBox (juce::Graphics &g, int width, int height, bool isButtonDown, int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox &box) override
+    {
+        using namespace juce;
+        g.fillAll(m_appState.getBackgroundColour());
+        const auto cornerSize = box.findParentComponentOfClass<ChoicePropertyComponent>() != nullptr ? 0.0f : 1.5f;
+        Rectangle<int> boxBounds (0, 0, width, height);
+        boxBounds.reduce(4,4);
+
+        auto isChoiceCompChild = (box.findParentComponentOfClass<ChoicePropertyComponent>() != nullptr);
+
+        if (isChoiceCompChild)
+        {
+
+            g.setColour (m_appState.getMenuBackgroundColour());
+            g.fillRect (boxBounds);
+
+            auto arrowZone = boxBounds.removeFromRight (boxBounds.getHeight()).reduced (0, 2).toFloat();
+            GUIHelpers::drawFromSvg(g, BinaryData::arrowdown18_svg, m_appState.getTextColour(), arrowZone);
+        }
+        else
+        {
+            g.setColour (m_appState.getMenuBackgroundColour());
+            g.fillRoundedRectangle (boxBounds.toFloat(), cornerSize);
+            g.setColour (m_appState.getBorderColour());
+            g.drawRoundedRectangle (boxBounds.toFloat().reduced (0.5f, 0.5f), cornerSize, 1.0f);
+
+            auto arrowZone = boxBounds.removeFromRight (boxBounds.getHeight()).toFloat();
+            GUIHelpers::drawFromSvg(g, BinaryData::arrowdown18_svg, m_appState.getTextColour(), arrowZone);
+
+        }
     }
 
 private:

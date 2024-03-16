@@ -33,6 +33,7 @@ class SampleBrowserComponent : public  BrowserBaseComponent
 {
 public:
     SampleBrowserComponent(ApplicationViewState& avs, SamplePreviewComponent& spc);
+    void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
 
     juce::var getDragSourceDescription (const juce::SparseSet<int>& /*rowsToDescribe*/) override;
@@ -43,7 +44,7 @@ public:
     void previewSampleFile(const juce::File& file);
 private:
 
-    void sortList(bool forward=true) override;
+    void sortList(int selectedID) override;
 
     struct CompareNameForward{
         static int compareElements (const juce::File& first, 
@@ -61,6 +62,7 @@ private:
         }
     };
     void sortByName(juce::Array<juce::File>& list, bool forward);
+    void shuffleFileArray(juce::Array<juce::File>& fileList);
     SamplePreviewComponent &   m_samplePreviewComponent;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleBrowserComponent)

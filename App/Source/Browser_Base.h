@@ -27,7 +27,34 @@
 #include "Utilities.h"
 #include "PreviewComponent.h"
 
-namespace te = tracktion_engine;
+class PathComponent : public juce::Component
+                    , public juce::ChangeBroadcaster
+{
+public:
+    PathComponent(juce::File dir, ApplicationViewState& appState) ;
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll(m_appState.getBackgroundColour());
+        g.setColour(m_appState.getBorderColour());
+        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
+    }
+
+    void resized() override;
+
+    void setDir(juce::File file);
+    juce::File getCurrentPath();
+
+private:
+
+
+    juce::TextEditor m_currentPathField;
+    juce::TextButton m_button{"^"};
+    juce::File m_currentPath;
+
+    ApplicationViewState& m_appState;
+};
+
 class BrowserBaseComponent;
 class BrowserListBox : public juce::ListBox
 {
@@ -35,10 +62,7 @@ public:
 BrowserListBox(BrowserBaseComponent& sbc, ApplicationViewState& appState)
     : m_browser(sbc)
     , m_appState(appState)
-{}
-
-
-    
+    {}
     void paintOverChildren (juce::Graphics& g) override
     {
         g.setColour(m_appState.getBorderColour());
@@ -57,13 +81,13 @@ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrowserListBox)
 //
 // ----------------------------------------------------------------------------------------------------
 class BrowserBaseComponent : public juce::Component
+        , private juce::ComboBox::Listener
         , public juce::ListBoxModel
         , public juce::ChangeListener
 {
 public:
     BrowserBaseComponent(ApplicationViewState& avs);
-    ~BrowserBaseComponent() { m_searchField.removeChangeListener(this); }
-    void resized() override;
+    ~BrowserBaseComponent() override;
     int getNumRows() override { return m_contentList.size (); }
 
     juce::Array<juce::File> &getContentList() { return m_contentList; }
@@ -74,16 +98,20 @@ public:
     juce::ListBox& getListBox(){ return m_listBox; }
 
 protected:
-    virtual void sortList(bool forward=true) = 0;
+    virtual void sortList(int selectedID) = 0;
     BrowserListBox             m_listBox;
     juce::Array<juce::File>    m_fileList;
     juce::Array<juce::File>    m_contentList;
     SearchFieldComponent       m_searchField;
+    juce::ComboBox              m_sortingBox;
+    juce::Label                 m_sortLabel;
+    PathComponent               m_currentPathField; 
     ApplicationViewState &     m_applicationViewState;
 
     juce::String                m_searchTerm;
 private:
 
+    void comboBoxChanged(juce::ComboBox* box) override;
     void updateContentList();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrowserBaseComponent)

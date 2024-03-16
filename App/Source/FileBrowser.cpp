@@ -5,83 +5,27 @@
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-PathComponent::PathComponent(juce::File dir, ApplicationViewState& appState) 
-    : m_currentPath(dir)
-    , m_appState(appState)
-{
-    addAndMakeVisible(m_currentPathField);
-    m_currentPathField.setText(m_currentPath.getFullPathName());
-    m_currentPathField.onReturnKey = [this] {
-        setDir(juce::File (m_currentPathField.getText()));
-    };
-    addAndMakeVisible(m_button);
-    m_button.onClick = [this] 
-    {
-        GUIHelpers::log("button");
-        setDir(m_currentPath.getParentDirectory()); 
-    };
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getMenuBackgroundColour().darker(0.3f));
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::outlineColourId, m_appState.getBorderColour());
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::textColourId, m_appState.getTextColour());
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::highlightColourId, m_appState.getPrimeColour());
-}
-
-void PathComponent::resized() 
-{
-    auto area = getLocalBounds();
-    auto upButton = area.removeFromRight(getHeight());
-    upButton.reduce(3, 3);
-    area.reduce(3, 3);
-    m_currentPathField.setBounds(area);
-    m_button.setBounds(upButton);
-}
-
-
-
-void PathComponent::setDir(juce::File file)
-{
-    if (!file.exists() || !file.isDirectory())
-        return;
-
-    m_currentPath = file;
-    m_currentPathField.setText(m_currentPath.getFullPathName());
-    sendChangeMessage();
-}
-
-
-juce::File PathComponent::getCurrentPath()
-{
-    return m_currentPath;
-}
-
-// ----------------------------------------------------------------------------------------------------
-//
-//
-// ----------------------------------------------------------------------------------------------------
-
 FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine& engine, SamplePreviewComponent& spc)
     : BrowserBaseComponent(avs)
     , m_samplePreviewComponent(spc)
-    , m_currentPathField(juce::File(avs.m_workDir), avs)
 {
-    setName("SampleBrowser!");
-    addAndMakeVisible(m_currentPathField);
-    m_currentPathField.addChangeListener(this);
-    m_currentPathField.setAlwaysOnTop(true);
+    setName("FileBrowser");
+    m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
+    m_sortingBox.addItem(GUIHelpers::translate("by Name (z - a)", m_applicationViewState), 2);
+    m_sortingBox.setSelectedId(1, juce::dontSendNotification);
 }
 
-FileBrowserComponent::~FileBrowserComponent() 
-{
-    m_currentPathField.removeChangeListener(this);
-}
 void FileBrowserComponent::resized()
 {
     auto area = getLocalBounds();
+    auto sortcomp = area.removeFromTop(30).reduced(2,2);
+    auto sortlabel = sortcomp.removeFromLeft(50);
     auto pathComp = area.removeFromTop(30);
     auto searchfield = area.removeFromBottom(30);
     auto list = area;
 
+    m_sortLabel.setBounds(sortlabel);
+    m_sortingBox.setBounds(sortcomp);
     m_currentPathField.setBounds(pathComp);
     m_searchField.setBounds(searchfield);
     m_listBox.setBounds (list);
@@ -169,8 +113,9 @@ void FileBrowserComponent::setDirecory(const juce::File& dir)
     }
 }
 
-void FileBrowserComponent::sortList(bool forward)
+void FileBrowserComponent::sortList(int selectedID)
 {
+    auto forward = selectedID == 1;
     juce::Array<juce::File> dirList;
     juce::Array<juce::File> fileList;
 
@@ -195,6 +140,8 @@ void FileBrowserComponent::sortList(bool forward)
         m_contentList.addArray(fileList);
         m_contentList.addArray(dirList);
     }
+    m_listBox.updateContent();
+    getParentComponent()->resized(); 
 }
 
 void FileBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e)

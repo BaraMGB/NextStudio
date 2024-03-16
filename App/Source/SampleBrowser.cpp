@@ -8,8 +8,25 @@ SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, Sample
     : BrowserBaseComponent(avs)
     , m_samplePreviewComponent(spc)
 {
+    setName("SampleBrowser");
+    m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
+    m_sortingBox.addItem(GUIHelpers::translate("by Name (z - a)", m_applicationViewState), 2);
+    m_sortingBox.addItem(GUIHelpers::translate("Random", m_applicationViewState), 3);
+    m_sortingBox.setSelectedId(1, juce::dontSendNotification);
 }
+void SampleBrowserComponent::resized() 
+{
+    auto area = getLocalBounds();
+    auto sortcomp = area.removeFromTop(30).reduced(2,2);
+    auto sortlabel = sortcomp.removeFromLeft(50);
+    auto searchfield = area.removeFromBottom(30);
+    auto list = area;
 
+    m_sortLabel.setBounds(sortlabel);
+    m_sortingBox.setBounds(sortcomp);
+    m_searchField.setBounds(searchfield);
+    m_listBox.setBounds (list);
+}
 
 void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
 {
@@ -99,18 +116,26 @@ void SampleBrowserComponent::previewSampleFile(const juce::File &file)
     }
 }
 
-void SampleBrowserComponent::sortList(bool forward)
+void SampleBrowserComponent::sortList(int selectedID)
 {
+    GUIHelpers::log("SELECTED ID: " , selectedID);
     juce::Array<juce::File> fileList;
 
     for (auto f : m_contentList)
         if (!f.isDirectory())
             fileList.add(f);
 
-    sortByName(fileList, forward);
+    if (selectedID == 1)
+        sortByName(fileList, true);
+    else if (selectedID == 2)
+        sortByName(fileList, false);
+    else if (selectedID == 3)
+        shuffleFileArray(fileList);
 
     m_contentList.clear();
     m_contentList.addArray(fileList);
+
+    getParentComponent()->resized(); 
 }
 void SampleBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
 {
@@ -126,5 +151,15 @@ void SampleBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forw
             CompareNameBackwards cb;
             list.sort(cb);
         }
+    }
+}
+void SampleBrowserComponent::shuffleFileArray(juce::Array<juce::File>& fileList)
+{
+    juce::Random r;
+    for (int i = fileList.size(); --i > 0;)
+    {
+        int newPos = r.nextInt(i + 1);
+        if (newPos != i)
+            fileList.swap(i, newPos);
     }
 }

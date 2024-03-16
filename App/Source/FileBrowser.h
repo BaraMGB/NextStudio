@@ -28,39 +28,10 @@
 
 namespace te = tracktion_engine;
 class FileBrowserComponent;
-class PathComponent : public juce::Component
-                    , public juce::ChangeBroadcaster
-{
-public:
-    PathComponent(juce::File dir, ApplicationViewState& appState) ;
-
-    void paint (juce::Graphics& g) override
-    {
-        g.fillAll(m_appState.getBackgroundColour());
-        g.setColour(m_appState.getBorderColour());
-        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
-    }
-
-    void resized() override;
-
-    void setDir(juce::File file);
-    juce::File getCurrentPath();
-
-private:
-
-
-    juce::TextEditor m_currentPathField;
-    juce::TextButton m_button{"^"};
-    juce::File m_currentPath;
-
-    ApplicationViewState& m_appState;
-};
-
 class FileBrowserComponent : public BrowserBaseComponent
 {
 public:
     FileBrowserComponent(ApplicationViewState& avs, te::Engine&, SamplePreviewComponent& spc);
-    ~FileBrowserComponent() override;
     void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
 
@@ -75,7 +46,7 @@ public:
     void previewSampleFile(const juce::File& file);
 
 private:
-    void sortList(bool forward=true) override;
+    void sortList(int selectedID) override;
     struct CompareNameForward{
         static int compareElements (const juce::File& first, 
                                               const juce::File& second)
@@ -92,8 +63,6 @@ private:
         }
     };
     void sortByName(juce::Array<juce::File>& list, bool forward);
-
     SamplePreviewComponent&     m_samplePreviewComponent;
-    PathComponent               m_currentPathField; 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileBrowserComponent)
 };
