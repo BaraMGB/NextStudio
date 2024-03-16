@@ -86,7 +86,7 @@ void SidebarComponent::paintOverChildren(juce::Graphics& g)
     g.drawVerticalLine(m_menu.getWidth() -1, 0, getHeight());
     g.drawHorizontalLine(CONTENT_HEADER_HEIGHT, m_menu.getWidth(), getWidth());
     g.drawHorizontalLine(getHeight() - CONTENT_HEADER_HEIGHT, m_menu.getWidth(), getWidth());
-    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), m_appState.getBackgroundColour(),m_appState.getBorderColour());
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getBackgroundColour(),m_appState.getBorderColour());
 }
 
 void SidebarComponent::resized() 

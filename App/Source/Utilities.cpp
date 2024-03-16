@@ -335,21 +335,21 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     }
 }
 
-void GUIHelpers::drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<int> bounds, juce::Colour colour, juce::Colour outline, int stroke)
+void GUIHelpers::drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke)
 {
     g.setColour(colour);
-
-    juce::Path fakeRoundedCorners;
-
     const float cornerSize = 10.f;
-    fakeRoundedCorners.addRectangle(bounds);
+    auto area = bounds.expanded(1.f);
+    auto size = cornerSize;
+    juce::Path fakeRoundedCorners;
+    fakeRoundedCorners.addRectangle(area);
     fakeRoundedCorners.setUsingNonZeroWinding(false);
     fakeRoundedCorners.addRoundedRectangle(bounds, cornerSize);
 
     g.fillPath(fakeRoundedCorners);
 
     g.setColour(outline);
-    g.drawRoundedRectangle(bounds.toFloat(), 10, stroke);
+    g.drawRoundedRectangle(bounds, 10 +1 , stroke);
 }
 void GUIHelpers::printTextAt(juce::Graphics& graphic,
                              juce::Rectangle<float> textRect,

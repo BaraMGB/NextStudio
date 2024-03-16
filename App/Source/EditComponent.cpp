@@ -181,7 +181,7 @@ void EditComponent::paint (juce::Graphics &g)
 
 void EditComponent::paintOverChildren(juce::Graphics &g)
 {
-    g.setColour(juce::Colours::white);
+    g.setColour(m_editViewState.m_applicationState.getBorderColour());
     g.drawHorizontalLine (getEditorHeaderRect ().getBottom (), 0, getWidth ());
     g.drawHorizontalLine (getTimeLineRect ().getBottom () - 1, 0, getWidth ());
     g.drawHorizontalLine (getSongEditorRect ().getBottom (), 0, getWidth ());
@@ -192,7 +192,7 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
     auto background = m_editViewState.m_applicationState.getBackgroundColour();
 
     auto stroke = m_dragOver ? m_editViewState.m_applicationState.getPrimeColour() : m_editViewState.m_applicationState.getBorderColour();
-    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds(), background, stroke);
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), background, stroke);
 }
 
 

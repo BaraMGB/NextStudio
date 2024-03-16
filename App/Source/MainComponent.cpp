@@ -31,6 +31,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
     , m_nextLookAndFeel(state)
 {
+    juce::Desktop::getInstance().setGlobalScaleFactor(1.1f);
     setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);
     m_nextLookAndFeel.setColour(juce::TooltipWindow::outlineColourId, juce::Colours::white);
@@ -41,7 +42,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
 
     addAndMakeVisible (m_resizerBar);
 
-    m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.15);
+    m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.25);
     m_stretchableManager.setItemLayout (1, 10, 10, 10);
     m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     m_commandManager.registerAllCommandsForTarget(this);
