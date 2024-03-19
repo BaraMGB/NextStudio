@@ -79,9 +79,6 @@ void SidebarComponent::paint(juce::Graphics& g)
 }
 void SidebarComponent::paintOverChildren(juce::Graphics& g)
 {
-
-
-
     g.setColour(m_appState.getBorderColour());
     g.drawVerticalLine(m_menu.getWidth() -1, 0, getHeight());
     g.drawHorizontalLine(CONTENT_HEADER_HEIGHT, m_menu.getWidth(), getWidth());
@@ -92,7 +89,8 @@ void SidebarComponent::paintOverChildren(juce::Graphics& g)
 void SidebarComponent::resized() 
 {
     auto area = getLocalBounds();
-    m_menu.setBounds(area.removeFromLeft(80));
+
+    m_menu.setBounds(area.removeFromLeft(70));
     area.removeFromTop(CONTENT_HEADER_HEIGHT);
     area.removeFromBottom(CONTENT_HEADER_HEIGHT);
 
@@ -117,18 +115,24 @@ void SidebarComponent::resized()
     else if (m_fileListBrowser.isVisible())
     {
         auto bounds = area;
-        auto preview = area.removeFromBottom(100);
+        if (m_samplePreview.isVisible())
+        {
+            auto preview = area.removeFromBottom(100);
+            m_samplePreview.setBounds(preview);
+        }
         m_fileListBrowser.setBounds(area);
-        m_samplePreview.setBounds(preview);
         m_headerName = "Home Folder";
         m_headerColour = m_appState.getHomeColour();
     }
     else if (m_sampleBrowser.isVisible())
     {
         auto bounds = area;
-        auto preview = area.removeFromBottom(100);
+        if (m_samplePreview.isVisible())
+        {
+            auto preview = area.removeFromBottom(100);
+            m_samplePreview.setBounds(preview);
+        }
         m_sampleBrowser.setBounds(area);
-        m_samplePreview.setBounds(preview);
         m_headerName = "Samples";
         m_headerColour = m_appState.getSamplesColour();
     }

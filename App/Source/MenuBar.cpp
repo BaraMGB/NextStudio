@@ -28,6 +28,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "MenuBar.h"
+#include "Utilities.h"
 
 
 void MenuBar::addButton(juce::DrawableButton* button, int toggleGroupId)
@@ -104,16 +105,21 @@ void MenuBar::resized()
 
     if ((!enoughSpace) && (m_wasEnoughSpace == true))
     {
-
        m_wasEnoughSpace = false;
        
        removeAllChildren(); 
       
        juce::DrawableButton* popupButton = new juce::DrawableButton("More...", juce::DrawableButton::ImageOnButtonBackground);
+        GUIHelpers::setDrawableOnButton(*popupButton, BinaryData::menu_svg, juce::Colours::grey);
        addAndMakeVisible(popupButton);
       
-       fb.items.add(juce::FlexItem(buttonSize, buttonSize, *popupButton));
-      
+        juce::FlexItem::Margin margin;
+        int gap = m_defaultGap;
+        margin.top = gap; 
+        margin.bottom = gap;
+        margin.right = gap;
+        margin.left = gap;
+       fb.items.add(juce::FlexItem(buttonSize, buttonSize, *popupButton).withMargin(margin));
        fb.performLayout(getLocalBounds());
       
        juce::PopupMenu popupMenu;
