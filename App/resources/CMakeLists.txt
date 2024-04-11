@@ -52,6 +52,7 @@ juce_add_binary_data(Pictures SOURCES
     la2Icon.svg
     AUIcon.svg
     INTIcon.svg
+    menu.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )
