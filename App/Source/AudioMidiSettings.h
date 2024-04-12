@@ -18,9 +18,11 @@
 
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "PluginBrowser.h"
+#include "NextLookAndFeel.h"
 
 namespace te = tracktion_engine;
 class MidiSettings : public juce::Component
@@ -47,17 +49,19 @@ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiSettings)
 class SettingsView : public juce::TabbedComponent
 {
 public:
-    SettingsView(te::Engine& engine, juce::ApplicationCommandManager& commandManager) : juce::TabbedComponent(juce::TabbedButtonBar::Orientation::TabsAtTop)
+    SettingsView(te::Engine& engine, juce::ApplicationCommandManager& commandManager, ApplicationViewState& appState) : juce::TabbedComponent(juce::TabbedButtonBar::Orientation::TabsAtTop)
         , m_commandManager(commandManager)
         , m_midiSettings(engine)
         , m_audioSettings(engine.getDeviceManager().deviceManager, 0, 512, 1, 512, false, false, false, false) 
         , m_keyMappingEditor(*m_commandManager.getKeyMappings(), true)
-        , m_pluginBrowser(engine)
+        , m_pluginBrowser(engine, appState)
     {
-        addTab("Audio Settings", juce::Colours::darkgrey, &m_audioSettings, true);
-        addTab("MIDI Settings", juce::Colours::darkgrey, &m_midiSettings, true);
-        addTab("Plugin Settings", juce::Colours::darkgrey, &m_pluginBrowser, true);
-        addTab("KeyMapping", juce::Colours::darkgrey, &m_keyMappingEditor, true);
+        setOutline(0);
+        m_keyMappingEditor.setColours(appState.getBackgroundColour(), appState.getTextColour());
+        addTab("Audio Settings", appState.getBackgroundColour(), &m_audioSettings, true);
+        addTab("MIDI Settings", appState.getBackgroundColour(), &m_midiSettings, true);
+        addTab("Plugin Settings",appState.getBackgroundColour(), &m_pluginBrowser, true);
+        addTab("KeyMapping", appState.getBackgroundColour(), &m_keyMappingEditor, true);
     }
 
 private:

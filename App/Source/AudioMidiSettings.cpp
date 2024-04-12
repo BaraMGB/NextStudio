@@ -17,10 +17,10 @@
  */
 
 #include "AudioMidiSettings.h"
+#include "ApplicationViewState.h"
 
 MidiSettings::MidiSettings(tracktion_engine::Engine &engine)
   : m_engine(engine)
-
 {
     addAndMakeVisible (m_midiDefaultChooser);
     addAndMakeVisible (m_midiDefaultLabel);

@@ -19,6 +19,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "NextLookAndFeel.h"
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
@@ -72,7 +73,7 @@ class PluginSettings : public juce::Component
                      , public juce::ChangeListener
 {
 public:
-    PluginSettings(te::Engine& engine);
+    PluginSettings(te::Engine& engine, ApplicationViewState& appState);
     ~PluginSettings() override;
 
     void resized() override;

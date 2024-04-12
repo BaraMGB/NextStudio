@@ -270,3 +270,46 @@ void RackView::itemDropped(
     m_isOver = false;
     repaint();
 }
+void AddButton::itemDropped(const SourceDetails& dragSourceDetails) 
+{
+    if (dragSourceDetails.description == "PluginListEntry")
+    {
+        if (auto listbox = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get ()))
+        {
+            if (auto lbm = dynamic_cast<PluginListbox*> (listbox->getModel ()))
+            {
+                auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
+                if (pluginRackComp)
+                {
+                    EngineHelpers::insertPlugin (m_track,
+                                                 lbm->getSelectedPlugin(m_track->edit),
+                                                 pluginRackComp->getAddButtons ().indexOf (this));
+                }
+            }
+
+        }
+    }
+
+
+    if (dragSourceDetails.description == "PluginComp")
+    {
+        auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
+        if (pluginRackComp)
+        {
+            for (auto & pluginComp : pluginRackComp->getPluginComponents())
+            {
+                if (pluginComp == dragSourceDetails.sourceComponent)
+                {
+                    auto sourceIndex = m_track->getAllPlugins().indexOf(pluginComp->getPlugin());
+                    auto plugToMove = pluginComp->getPlugin();
+                    auto targetIndex = pluginRackComp->getAddButtons().indexOf(this);
+
+                    targetIndex = targetIndex > sourceIndex ? targetIndex - 1 : targetIndex;
+
+                    plugToMove->deleteFromParent();
+                    m_track->pluginList.insertPlugin(plugToMove, targetIndex,nullptr);
+                }
+            }
+        }
+    }
+}

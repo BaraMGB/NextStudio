@@ -1,5 +1,6 @@
 #include "PluginBrowser.h"
-#include "Utilities.h"
+// #include "ApplicationViewState.h"
+// #include "Utilities.h"
 
 PluginListBoxModel::PluginListBoxModel(tracktion::Engine &engine)
     : m_knownPlugins(engine.getPluginManager().knownPluginList)
@@ -44,7 +45,7 @@ void PluginListBoxModel::paintCell(juce::Graphics &g, int row, int col, int widt
         {
             case typeCol:         text = desc.pluginFormatName; break;
             case nameCol:         text = desc.name; break;
-            case categoryCol:     text = type.isInstrument ? "Klavier" : "EFFEKT"; break; //desc.category.isNotEmpty() ? desc.category : "-"; break;
+            case categoryCol:     text = type.isInstrument ? "Synth" : "FX"; break; 
             case manufacturerCol: text = desc.manufacturerName; break;
             case descCol:         text = getPluginDescription (desc); break;
 
@@ -150,7 +151,7 @@ tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit& edit)
 
 // ---------------------------------------------------------------------------------------------
 
-PluginSettings::PluginSettings(te::Engine& engine) 
+PluginSettings::PluginSettings(te::Engine& engine, ApplicationViewState& appState) 
   : m_engine(engine)
   , m_model(engine)
   , m_listbox(engine)

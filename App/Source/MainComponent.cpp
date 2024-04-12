@@ -34,9 +34,6 @@ MainComponent::MainComponent(ApplicationViewState &state)
     juce::Desktop::getInstance().setGlobalScaleFactor(1.1f);
     setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);
-    m_nextLookAndFeel.setColour(juce::TooltipWindow::outlineColourId, juce::Colours::white);
-    m_nextLookAndFeel.setColour(juce::TextButton::buttonColourId , m_applicationState.getBackgroundColour());
-    m_nextLookAndFeel.setColour(juce::DrawableButton::backgroundColourId, m_applicationState.getBackgroundColour());
 
     openValidStartEdit();
 

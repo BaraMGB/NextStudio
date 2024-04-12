@@ -33,8 +33,35 @@ public:
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xff000000));
         setColour(juce::TextButton::buttonColourId , juce::Colour(0xff474747));
         setColour(juce::DrawableButton::backgroundColourId, juce::Colour(0xff474747));
-        setColour(juce::PopupMenu::backgroundColourId, juce::Colours::black);
+        setColour(juce::PopupMenu::backgroundColourId, juce::Colours::red);
+        setColour(juce::TabbedComponent::backgroundColourId, m_appState.getMenuBackgroundColour());
+        setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
+        setColour(juce::ListBox::backgroundColourId, m_appState.getMenuBackgroundColour());
+        setColour(juce::Slider::thumbColourId, m_appState.getTextColour());
+        
+        setColour(juce::TooltipWindow::outlineColourId, m_appState.getBorderColour());
+        setColour(juce::TooltipWindow::backgroundColourId, m_appState.getBackgroundColour());
+        setColour(juce::TooltipWindow::textColourId, m_appState.getTextColour());
     }
+
+    void drawTabButton (juce::TabBarButton& tbb, juce::Graphics& g, bool isMouseOver, bool isMouseDown) override
+    {
+        if (tbb.getToggleState() == false)
+        {
+            g.setColour (m_appState.getBorderColour());
+            g.drawRect(tbb.getLocalBounds());
+            g.setColour (m_appState.getTextColour().withAlpha(0.7f));
+            g.drawFittedText (tbb.getButtonText(), 0, 0, tbb.getWidth(), tbb.getHeight(), juce::Justification::centred, 1);
+        }
+        else
+        {
+            g.setColour(m_appState.getBackgroundColour());
+            g.fillRect(tbb.getLocalBounds());
+            g.setColour (m_appState.getTextColour());
+            g.drawFittedText (tbb.getButtonText(), 0, 0, tbb.getWidth(), tbb.getHeight(), juce::Justification::centred, 1);
+        }
+    }
+
     void drawDrawableButton(juce::Graphics& g,
                               juce::DrawableButton& button,
                               bool isMouseOverButton,
@@ -438,44 +465,44 @@ public:
             }
         }
     }    
-void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
-{
-        auto rect = juce::Rectangle<float>(0.f, 0.f, w, h);
-        g.setColour(m_appState.getBackgroundColour());
-        g.fillRect(rect);
-        g.setColour(m_appState.getBorderColour());
-        g.drawRect(rect, 1);
-    }
-    void drawPopupMenuItem(
-            juce::Graphics &g
-          , const juce::Rectangle<int> &area
-          , bool isSeparator
-          , bool isActive
-          , bool isHighlighted
-          , bool isTicked
-          , bool hasSubMenu
-          , const juce::String &text
-          , const juce::String &shortcutKeyText
-          , const juce::Drawable *icon
-          , const juce::Colour *textColour) override
-    {
-        g.setFont(juce::Font(12, juce::Font::plain));
-
-        if (isHighlighted)
-        {
-            g.setFont(juce::Font(12, juce::Font::bold));
-            auto r = area.toFloat();
-            r.reduce(2,2);
-            g.setColour(m_appState.getMenuBackgroundColour());    
-            g.fillRoundedRectangle(r, 2);
-        }
-
-        g.setColour(m_appState.getTextColour());    
-        auto rect = area;
-        rect.removeFromLeft(10);
-        g.drawFittedText(text, rect, juce::Justification::left, 1);
-    }
-
+    // void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
+    // {
+    //     auto rect = juce::Rectangle<float>(0.f, 0.f, w, h);
+    //     g.setColour(m_appState.getBackgroundColour());
+    //     g.fillRect(rect);
+    //     g.setColour(m_appState.getBorderColour());
+    //     g.drawRect(rect, 1);
+    // }
+    // void drawPopupMenuItem(
+    //     juce::Graphics &g
+    //     , const juce::Rectangle<int> &area
+    //     , bool isSeparator
+    //     , bool isActive
+    //     , bool isHighlighted
+    //     , bool isTicked
+    //     , bool hasSubMenu
+    //     , const juce::String &text
+    //     , const juce::String &shortcutKeyText
+    //     , const juce::Drawable *icon
+    //     , const juce::Colour *textColour) override
+    // {
+    //     g.setFont(juce::Font(12, juce::Font::plain));
+    //
+    //     if (isHighlighted)
+    //     {
+    //         g.setFont(juce::Font(12, juce::Font::bold));
+    //         auto r = area.toFloat();
+    //         r.reduce(2,2);
+    //         g.setColour(m_appState.getMenuBackgroundColour());    
+    //         g.fillRoundedRectangle(r, 2);
+    //     }
+    //
+    //     g.setColour(m_appState.getTextColour());    
+    //     auto rect = area;
+    //     rect.removeFromLeft(10);
+    //     g.drawFittedText(text, rect, juce::Justification::left, 1);
+    // }
+    //
     void drawComboBox (juce::Graphics &g, int width, int height, bool isButtonDown, int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox &box) override
     {
         using namespace juce;

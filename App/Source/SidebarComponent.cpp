@@ -8,7 +8,7 @@ SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine,
     , m_edit(edit)
     , m_commandManager(commandManager)
     , m_menu(as)
-    , m_settingsView(m_engine, m_commandManager)
+    , m_settingsView(m_engine, m_commandManager, m_appState)
     , m_instrumentList(engine, true, as)
     , m_effectList(engine, false, as)
     , m_samplePreview(engine, edit, m_appState)
