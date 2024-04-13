@@ -44,6 +44,11 @@ public:
         setColour(juce::TooltipWindow::outlineColourId, m_appState.getBorderColour());
         setColour(juce::TooltipWindow::backgroundColourId, m_appState.getBackgroundColour());
         setColour(juce::TooltipWindow::textColourId, m_appState.getTextColour());
+
+        setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_appState.getBackgroundColour());
+        setColour(juce::TableHeaderComponent::ColourIds::textColourId, m_appState.getTextColour());
+        setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, m_appState.getBorderColour());
+        setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, m_appState.getPrimeColour());
     }
 
     void drawTabButton (juce::TabBarButton& tbb, juce::Graphics& g, bool isMouseOver, bool isMouseDown) override

@@ -239,10 +239,6 @@ InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool
     m_listbox.setModel(&m_model);
     m_listbox.setRowHeight (20);
     juce::TableHeaderComponent& header = m_listbox.getHeader();
-    header.setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, juce::Colour(0xff171717));
-    header.setColour(juce::TableHeaderComponent::ColourIds::textColourId, juce::Colour(0xffffffff));
-    header.setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, juce::Colour(0xff888888));
-    header.setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, juce::Colour(0xff555555));
 
     header.addColumn (TRANS ("Format"), 1, formatWidth, formatWidth, formatWidth, juce::TableHeaderComponent::notResizable);
     header.addColumn (TRANS ("Name"), 2, juce::jmax(1, getWidth() - formatWidth + 1), 80,30000, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::notResizable);
