@@ -30,15 +30,17 @@ public:
     NextLookAndFeel(ApplicationViewState& appState)
         : m_appState(appState)
     {
-        setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xff000000));
-        setColour(juce::TextButton::buttonColourId , juce::Colour(0xff474747));
-        setColour(juce::DrawableButton::backgroundColourId, juce::Colour(0xff474747));
+        setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xffff00ff));
+        setColour(juce::TextButton::buttonColourId , m_appState.getBackgroundColour());
+        setColour(juce::TextButton::textColourOnId, m_appState.getTextColour());
+        setColour(juce::DrawableButton::backgroundColourId, m_appState.getBackgroundColour());
         setColour(juce::PopupMenu::backgroundColourId, juce::Colours::red);
         setColour(juce::TabbedComponent::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
-        setColour(juce::ListBox::backgroundColourId, m_appState.getMenuBackgroundColour());
+        setColour(juce::ListBox::backgroundColourId, m_appState.getBackgroundColour());
         setColour(juce::Slider::thumbColourId, m_appState.getTextColour());
-        
+        setColour (juce::TableListBox::ColourIds::backgroundColourId, m_appState.getBackgroundColour());
+
         setColour(juce::TooltipWindow::outlineColourId, m_appState.getBorderColour());
         setColour(juce::TooltipWindow::backgroundColourId, m_appState.getBackgroundColour());
         setColour(juce::TooltipWindow::textColourId, m_appState.getTextColour());

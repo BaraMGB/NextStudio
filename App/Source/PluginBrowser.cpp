@@ -1,20 +1,22 @@
 #include "PluginBrowser.h"
+#include "ApplicationViewState.h"
 // #include "ApplicationViewState.h"
 // #include "Utilities.h"
 
-PluginListBoxModel::PluginListBoxModel(tracktion::Engine &engine)
+PluginListBoxModel::PluginListBoxModel(tracktion::Engine &engine, ApplicationViewState& appState)
     : m_knownPlugins(engine.getPluginManager().knownPluginList)
     , m_engine(engine)
+    , m_appState(appState)
 {
 }
 
 void PluginListBoxModel::paintRowBackground(juce::Graphics &g, int row, int width, int height, bool rowIsSelected)
 {
-    if (row < 0|| row >= getNumRows())
+    if (row < 0 || row >= getNumRows())
         return;
-
-    juce::Rectangle<int> bounds (0,0, width, height);
-    g.setColour(juce::Colour(0xff171717));
+    auto bgColour = row % 2 == 0 ? m_appState.getMenuBackgroundColour() : m_appState.getMenuBackgroundColour().brighter(0.05f);
+    juce::Rectangle<int> bounds(0, 0, width, height);
+    g.setColour(bgColour);
     g.fillRect(bounds);
 
     if (rowIsSelected)
@@ -121,10 +123,6 @@ juce::String PluginListBoxModel::getPluginDescription(const juce::PluginDescript
 PluginListbox::PluginListbox(te::Engine& engine)
     : m_engine(engine)
 {
-    
-    setColour (juce::TableListBox::ColourIds::backgroundColourId
-                         , juce::Colour(0xff171717));
-
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -153,7 +151,7 @@ tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit& edit)
 
 PluginSettings::PluginSettings(te::Engine& engine, ApplicationViewState& appState) 
   : m_engine(engine)
-  , m_model(engine)
+  , m_model(engine, appState)
   , m_listbox(engine)
 {
     addAndMakeVisible(m_listbox);

@@ -19,6 +19,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "NextLookAndFeel.h"
 #include "Utilities.h"
 
@@ -37,7 +38,7 @@ public:
         descCol = 5
     };
 
-    PluginListBoxModel(te::Engine& engine);
+    PluginListBoxModel(te::Engine& engine, ApplicationViewState& appState);
 
     void paintRowBackground( juce::Graphics &g, int row,int width, int height, bool rowIsSelected) override;
     void paintCell (juce::Graphics& g, int row, int col, int width, int height, bool rowIsSelected) override;
@@ -49,6 +50,7 @@ public:
 private:
     juce::KnownPluginList& m_knownPlugins;
     te::Engine& m_engine;
+    ApplicationViewState& m_appState;
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListBoxModel)
 };
 //----------------------------------------------------------------------------------------

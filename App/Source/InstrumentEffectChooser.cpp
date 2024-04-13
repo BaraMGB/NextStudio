@@ -196,8 +196,6 @@ InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, Instrume
     , m_model(model)
     , m_appState(appState)
 {
-    setColour (juce::TableListBox::ColourIds::backgroundColourId
-               , m_appState.getBackgroundColour());
 }
 
     juce::var InstrumentEffectTable::getDragSourceDescription(const juce::SparseSet<int> &)
