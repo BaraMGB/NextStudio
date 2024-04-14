@@ -20,6 +20,7 @@
 
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "juce_graphics/juce_graphics.h"
 
 namespace IDs
 {
@@ -332,6 +333,7 @@ public:
     juce::Colour getEffectsColour(){ return juce::Colours::palegreen;}
     juce::Colour getHomeColour(){ return juce::Colours::indianred;}
     juce::Colour getSettingsColour(){ return juce::Colours::mediumpurple;}
+    juce::Colour getRenderColour(){ return juce::Colours::orange;}
 
     juce::File getSamplesDir() { auto file = juce::File {};
                                     file.create();}

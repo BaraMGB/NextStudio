@@ -53,6 +53,7 @@ juce_add_binary_data(Pictures SOURCES
     AUIcon.svg
     INTIcon.svg
     menu.svg
+    renderButton.svg
     IBMPlexSans-Regular.ttf
     JetBrainsMono-ExtraLight.ttf
     )

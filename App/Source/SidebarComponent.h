@@ -30,13 +30,15 @@
 #include "SidebarMenu.h"
 #include "PluginBrowser.h"
 #include "InstrumentEffectChooser.h"
+#include <algorithm>
+#include <memory>
 
 class SidebarComponent : public juce::Component
                        , public juce::Button::Listener
                     
 {
 public:
-    SidebarComponent(ApplicationViewState& as, te::Engine& engine,te::Edit& edit, juce::ApplicationCommandManager& commandManager);
+    SidebarComponent(EditViewState& evs, juce::ApplicationCommandManager& commandManager);
     ~SidebarComponent() override;
 
     void paint(juce::Graphics& g) override;
@@ -48,7 +50,7 @@ public:
 private:
 
     void setAllVisibleOff();
-
+    EditViewState& m_evs;
     ApplicationViewState& m_appState;
     te::Engine& m_engine;
     te::Edit& m_edit;
@@ -57,6 +59,7 @@ private:
     SettingsView m_settingsView;
     InstrumentEffectChooser m_instrumentList;
     InstrumentEffectChooser m_effectList;
+    std::unique_ptr<juce::Component> m_renderComponent;
     
     FileBrowserComponent           m_fileListBrowser;
 

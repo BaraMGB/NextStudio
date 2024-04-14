@@ -1,17 +1,22 @@
 #include "SidebarComponent.h"
+#include "RenderDialog.h"
 #include "BinaryData.h"
+#include "EditViewState.h"
 #include "Utilities.h"
+#include <memory>
 
 
-SidebarComponent::SidebarComponent(ApplicationViewState& as, te::Engine& engine, te::Edit& edit, juce::ApplicationCommandManager& commandManager) : m_appState(as)
-    , m_engine(engine)
-    , m_edit(edit)
+SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandManager& commandManager)
+    : m_evs(evs)
+    , m_appState(evs.m_applicationState)
+    , m_engine(evs.m_edit.engine)
+    , m_edit(evs.m_edit)
     , m_commandManager(commandManager)
-    , m_menu(as)
+    , m_menu(m_appState)
     , m_settingsView(m_engine, m_commandManager, m_appState)
-    , m_instrumentList(engine, true, as)
-    , m_effectList(engine, false, as)
-    , m_samplePreview(engine, edit, m_appState)
+    , m_instrumentList(m_engine, true, m_appState)
+    , m_effectList(m_engine, false, m_appState)
+    , m_samplePreview(m_engine, m_edit, m_appState)
     , m_sampleBrowser(m_appState, m_samplePreview)
     , m_fileListBrowser(m_appState, m_engine, m_samplePreview)
     , m_projectsBrowser(m_appState)
@@ -144,6 +149,14 @@ void SidebarComponent::resized()
         m_headerName = "Projects";
             
     }
+    else if (m_renderComponent != nullptr) 
+    {
+        addAndMakeVisible(*m_renderComponent);
+        auto bounds = area;
+        m_renderComponent->setBounds(bounds);
+        m_headerColour = m_appState.getRenderColour();
+        m_headerName = "Render";
+    }
     repaint();
 }
 void SidebarComponent::buttonClicked (juce::Button* button)
@@ -185,6 +198,12 @@ void SidebarComponent::buttonClicked (juce::Button* button)
         m_effectList.setVisible(true);
         resized();
     }
+    else if (button->getName() == "Render")
+    {
+        setAllVisibleOff();
+        m_renderComponent = std::make_unique<RenderDialog>(m_evs);
+        resized();
+    }
     else if (button->getName() == "Home")
     {
         setAllVisibleOff();
@@ -204,4 +223,9 @@ void SidebarComponent::setAllVisibleOff()
     m_projectsBrowser.setVisible(false);
     m_sampleBrowser.setVisible(false);
     m_samplePreview.setVisible(false);
+    if (m_renderComponent != nullptr)
+    {
+        m_renderComponent.reset();
+    }
+
 }

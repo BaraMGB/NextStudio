@@ -580,7 +580,7 @@ void MainComponent::openValidStartEdit()
 
 void MainComponent::setupSideBrowser()
 {
-    m_sideBarBrowser = std::make_unique<SidebarComponent>(m_applicationState, m_engine, *m_edit, m_commandManager);
+    m_sideBarBrowser = std::make_unique<SidebarComponent>(*m_editViewState, m_commandManager);
     addAndMakeVisible (*m_sideBarBrowser);
 }
 

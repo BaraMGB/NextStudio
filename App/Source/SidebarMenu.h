@@ -27,14 +27,17 @@
 class SidebarMenu : public MenuBar 
 {
 public:
-    const juce::DrawableButton::ButtonStyle bs {juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
+
+    const juce::DrawableButton::ButtonStyle buttonStyle {juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
+
     SidebarMenu(ApplicationViewState& appstate) : MenuBar(Alignment::Left, true)
-    , m_projectsButton("Projects", bs)// ImageOnButtonBackground)
-    , m_instrumentsButton("Instruments", bs)
-    , m_samplesButton("Samples",bs)
-    , m_effectsButton("Effects",bs)
-    , m_homeButton("Home",bs)
-    , m_settingsButton("Settings", bs)
+    , m_projectsButton("Projects", buttonStyle)// ImageOnButtonBackground)
+    , m_instrumentsButton("Instruments", buttonStyle)
+    , m_samplesButton("Samples",buttonStyle)
+    , m_effectsButton("Effects",buttonStyle)
+    , m_homeButton("Home",buttonStyle)
+    , m_settingsButton("Settings", buttonStyle)
+    , m_renderButton("Render", buttonStyle)
     , m_appState(appstate)
     {
         const auto margin = 7;
@@ -48,8 +51,6 @@ public:
         GUIHelpers::setDrawableOnButton(m_instrumentsButton, BinaryData::presetsButton_svg,m_appState.getInstrumentsColour());
         m_instrumentsButton.setTooltip(GUIHelpers::translate("instrument plugins", m_appState));
         m_instrumentsButton.setEdgeIndent(margin);
-        
-
 
         addButton(&m_samplesButton);
         GUIHelpers::setDrawableOnButton(m_samplesButton, BinaryData::samplesButton_svg,m_appState.getSamplesColour());
@@ -71,6 +72,11 @@ public:
         m_settingsButton.setTooltip(GUIHelpers::translate("opens settings", m_appState));
         m_settingsButton.setEdgeIndent(margin);
 
+        addButton(&m_renderButton);
+        GUIHelpers::setDrawableOnButton(m_renderButton, BinaryData::renderButton_svg, m_appState.getRenderColour());
+        m_renderButton.setTooltip(GUIHelpers::translate("render project", m_appState));
+        m_renderButton.setEdgeIndent(margin);
+
         setButtonGap(15);
     }
 
@@ -80,7 +86,8 @@ private:
                        , m_samplesButton
                        , m_effectsButton
                        , m_homeButton
-                       , m_settingsButton;
+                       , m_settingsButton
+                       , m_renderButton;
     ApplicationViewState& m_appState;
 };
 

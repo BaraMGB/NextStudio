@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg id="SVGRoot" width="64px" height="64px" version="1.1" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+ <g transform="matrix(.51207 0 0 .61422 -328.28 -331.51)">
+  <path d="m704 591.81 0.23866-18.593c0-3.7143 1-4.6429 5.0707-4.6429h12.929c4.0573 0.405 5.207-1.492 4.6983-4.7019v-13.87l23.302 32.5c2.5328 3.0094 2.5591-3.19-0.23866 0-9.1006 12.381-14.201 20.119-23.302 32.5v-13.929c1e-3 -4.3895-0.6983-4.6429-4.7613-4.6429h-12.968c-3.9692 0-4.9692-0.92857-4.9692-4.6216z" fill="#ffb955" stroke-width=".96514"/>
+  <g transform="translate(10,5)">
+   <path d="m650 550h30c6 0 8.5714 1.7143 8.5714 8.5714v38.571c0 3.4286 0 8.5714-8.5714 8.5714h-30" fill="none" stroke="#ffb955" stroke-linecap="round" stroke-linejoin="round" stroke-width="6.9446"/>
+   <g fill="#ffb955">
+    <circle cx="656.5" cy="562.5" r="3.5"/>
+    <circle cx="671.5" cy="562.5" r="3.5"/>
+    <rect x="650" y="577.5" width="25" height="5" ry="2.5"/>
+    <rect x="650" y="590" width="25" height="5" ry="2.5"/>
+   </g>
+  </g>
+ </g>
+</svg>
