@@ -30,8 +30,6 @@
 #include "SidebarMenu.h"
 #include "PluginBrowser.h"
 #include "InstrumentEffectChooser.h"
-#include <algorithm>
-#include <memory>
 
 class SidebarComponent : public juce::Component
                        , public juce::Button::Listener
@@ -60,11 +58,11 @@ private:
     InstrumentEffectChooser m_instrumentList;
     InstrumentEffectChooser m_effectList;
     std::unique_ptr<juce::Component> m_renderComponent;
-    
+
     FileBrowserComponent           m_fileListBrowser;
 
     SamplePreviewComponent m_samplePreview;
-    SampleBrowserComponent m_sampleBrowser;                
+    SampleBrowserComponent m_sampleBrowser;
     ProjectsBrowserComponent m_projectsBrowser;
     const int CONTENT_HEADER_HEIGHT {30};
     juce::String m_headerName;

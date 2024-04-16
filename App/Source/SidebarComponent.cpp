@@ -32,11 +32,11 @@ SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandM
     for (auto b : m_menu.getButtons())
         b->addListener(this);
 
+    m_settingsView.setIndent(10);
     m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav" ) );
     m_projectsBrowser.setFileList(juce::File(m_appState.m_projectsDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit" ) );
     m_fileListBrowser.setFileList(juce::File(m_appState.m_workDir).findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories , false ) );
 
-    
     setAllVisibleOff();
     m_projectsBrowser.setVisible(true);
 }
@@ -99,6 +99,8 @@ void SidebarComponent::resized()
     area.removeFromTop(CONTENT_HEADER_HEIGHT);
     area.removeFromBottom(CONTENT_HEADER_HEIGHT);
 
+    area.reduce(2, 2);
+
     if (m_settingsView.isVisible())
     {
         m_settingsView.setBounds(area);
@@ -116,7 +118,7 @@ void SidebarComponent::resized()
         m_effectList.setBounds(area);
         m_headerName = "Effect Plugins";
         m_headerColour = m_appState.getEffectsColour();
-    }                   
+    }
     else if (m_fileListBrowser.isVisible())
     {
         auto bounds = area;
@@ -147,7 +149,6 @@ void SidebarComponent::resized()
         m_projectsBrowser.setBounds(bounds);
         m_headerColour = m_appState.getProjectsColour();
         m_headerName = "Projects";
-            
     }
     else if (m_renderComponent != nullptr) 
     {

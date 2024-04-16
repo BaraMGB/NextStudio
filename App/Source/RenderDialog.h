@@ -17,12 +17,13 @@
  */
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "EditViewState.h"
 #include "Utilities.h"
 
 
 
-class TimeInputComponent : public juce::Component,
+class TimeInputComponent : public juce::GroupComponent,
                            public juce::TextEditor::Listener
 {
 public:
@@ -47,6 +48,8 @@ public:
         m_secondsEditor.addListener(this);
         m_millisecondsEditor.addListener(this);
 
+        m_separator1.setJustificationType(juce::Justification::centred);
+        m_separator2.setJustificationType(juce::Justification::centred);
         m_separator1.setText(":", juce::dontSendNotification);
         m_separator2.setText(".", juce::dontSendNotification);
 
@@ -56,14 +59,21 @@ public:
     void resized() override
     {
         auto area = getLocalBounds();
-        auto fieldWidth = area.getWidth() / 8; // Adjust according to your needs
-        auto separatorWidth = area.getWidth() / 8; // Adjust according to your needs
+        area.removeFromTop(5);
+        auto separatorWidth = area.getWidth() / 12; // Adjust according to your needs
+        
+        auto fieldWidth = (area.reduced(15, 0).getWidth() / 3) - (2 * separatorWidth);
+        int stripHeight = 20; 
+        int centerY = area.getCentreY(); 
 
-        m_minutesEditor.setBounds(area.removeFromLeft(fieldWidth * 2));
-        m_separator1.setBounds(area.removeFromLeft(separatorWidth).withSizeKeepingCentre(separatorWidth, area.getHeight()));
-        m_secondsEditor.setBounds(area.removeFromLeft(fieldWidth * 2));
-        m_separator2.setBounds(area.removeFromLeft(separatorWidth).withSizeKeepingCentre(separatorWidth, area.getHeight()));
-        m_millisecondsEditor.setBounds(area.removeFromLeft(fieldWidth * 3));
+        juce::Rectangle<int> centerStrip = area.withTrimmedTop(centerY - stripHeight / 2).withHeight(stripHeight);
+        centerStrip.reduce(10, 0);
+    
+        m_minutesEditor.setBounds(centerStrip.removeFromLeft(fieldWidth * 2));
+        m_separator1.setBounds(centerStrip.removeFromLeft(separatorWidth).withSizeKeepingCentre(separatorWidth, centerStrip.getHeight()));
+        m_secondsEditor.setBounds(centerStrip.removeFromLeft(fieldWidth * 2));
+        m_separator2.setBounds(centerStrip.removeFromLeft(separatorWidth).withSizeKeepingCentre(separatorWidth, centerStrip.getHeight()));
+        m_millisecondsEditor.setBounds(centerStrip.removeFromLeft(fieldWidth * 2));
     }
 
     void textEditorTextChanged(juce::TextEditor &editor) override
@@ -109,21 +119,15 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeInputComponent)
     };
 
-class RenderDialog : public juce::Component,
-                     private juce::FilenameComponentListener,
-                     private juce::Button::Listener
+class FileGroup : public juce::GroupComponent
 {
 public:
-    RenderDialog(EditViewState& evs)
-        : m_fileChooser ("Render File", juce::File(evs.m_applicationState.m_renderDir), false, true, false, "", {}, "Select folder for saving render to")
-        , m_evs(evs)
-        , m_rangeStart(evs.m_edit.getTransport().getLoopRange().getStart())
-        , m_rangeEnd(evs.m_edit.getTransport().getLoopRange().getEnd())
+    FileGroup(EditViewState& evs) 
+        : m_evs(evs)
+        , m_dirChooser ("Render File", juce::File(evs.m_applicationState.m_renderDir), false, true, false, "", {}, "Select folder for saving render to")
     {
-        setSize (400, 400);
-
-        addAndMakeVisible (m_fileChooser);
-        m_fileChooser.addListener (this);
+        setText("set output file");
+        addAndMakeVisible (m_dirChooser);
         addAndMakeVisible(m_folderLabel);
         m_folderLabel.setText("Folder: ", juce::dontSendNotification);
         
@@ -134,20 +138,60 @@ public:
         m_filenameLabel.setText("Enter filename: ", juce::dontSendNotification);  
         addAndMakeVisible(m_suffixLabel);
         m_suffixLabel.setText(".wav", juce::dontSendNotification);  
+    }
+    void resized() override
+    {
+        auto bounds = getLocalBounds();
+        bounds.reduce(10, 10);
 
+        bounds.removeFromTop(15);
+
+        auto folderRect = bounds.removeFromTop (25);
+        m_folderLabel.setBounds(folderRect.removeFromLeft(getWidth() / 3));
+        m_dirChooser.setBounds (folderRect);
+
+        bounds.removeFromTop(15);
+
+        auto filenameRect = bounds.removeFromTop(25);
+        m_filenameLabel.setBounds(filenameRect.removeFromLeft(getWidth()/3));
+        auto file = te::EditFileOperations(m_evs.m_edit).getEditFile();
+        m_fileInput.setText(file.getFileNameWithoutExtension());
+        m_fileInput.setBounds(filenameRect.removeFromLeft((filenameRect.getWidth() / 3)* 2));
+        m_suffixLabel.setBounds(filenameRect);
+    }
+
+    juce::File getCurrentFile() const
+    {
+        return m_dirChooser.getCurrentFile().getNonexistentChildFile(m_fileInput.getText(), ".wav");
+    }
+
+private:
+    EditViewState& m_evs;
+    juce::FilenameComponent m_dirChooser;
+    juce::Label m_folderLabel, m_filenameLabel, m_suffixLabel;
+    juce::TextEditor m_fileInput;
+};
+
+class RangeGroup : public juce::GroupComponent
+
+                 , private juce::Button::Listener
+{
+public:
+    RangeGroup(EditViewState& evs)
+        : m_evs(evs)
+        , m_rangeStart(evs.m_edit.getTransport().getLoopRange().getStart())
+        , m_rangeEnd(evs.m_edit.getTransport().getLoopRange().getEnd())
+    {
+        setText("range to render");
         addAndMakeVisible(m_setRangeLabel);
         m_setRangeLabel.setJustificationType(juce::Justification::centred);
-        m_setRangeLabel.setText("Enter range to render (min:sec.millisec):", juce::dontSendNotification);
+        m_setRangeLabel.setText("Enter range (min:sec.millisec):", juce::dontSendNotification);
 
-        addAndMakeVisible (m_rangeStartLabel);
-        m_rangeStartLabel.setText ("Start : ", juce::dontSendNotification);
-
-        addAndMakeVisible (m_rangeEndLabel);
-        m_rangeEndLabel.setJustificationType(juce::Justification::right);
-        m_rangeEndLabel.setText ("End: ", juce::dontSendNotification);
         juce::String newString; newString.removeCharacters("0123456789:.");
         addAndMakeVisible (m_rangeStart);
+        m_rangeStart.setText("Start");
         addAndMakeVisible (m_rangeEnd);
+        m_rangeEnd.setText("End");
 
         addAndMakeVisible(m_specialRangeLabel);
         m_specialRangeLabel.setJustificationType(juce::Justification::centred);
@@ -159,78 +203,106 @@ public:
         addAndMakeVisible(m_setEditRangeAsRangeButton);
         m_setEditRangeAsRangeButton.setButtonText ("Edit range");
         m_setEditRangeAsRangeButton.addListener (this);
+    }
+    void resized () override
+    {
+        auto bounds = getLocalBounds();
+        bounds.reduce(10, 10);
+
+        bounds.removeFromTop(15);
+        auto rangeRect = bounds.removeFromTop(120);
+
+        m_rangeStart.setBounds (rangeRect.removeFromTop((rangeRect.getHeight()/2) - 5));
+        rangeRect.removeFromTop(5);
+        m_rangeEnd.setBounds (rangeRect);
+
+
+        m_specialRangeLabel.setBounds(bounds.removeFromTop(25));
+
+        auto buttonRect = bounds.removeFromTop(25);
+        m_setLoopRangeAsRangeButton.setBounds(buttonRect.removeFromLeft(bounds.getWidth()/2).reduced(20, 0));
+        m_setEditRangeAsRangeButton.setBounds(buttonRect.reduced(20,0));
+    }
+
+    TimeInputComponent m_rangeStart, m_rangeEnd;
+private:
+
+    void buttonClicked (juce::Button* button) override
+    {
+        if (button == &m_setLoopRangeAsRangeButton)
+        {
+            m_rangeStart.setTimePos(m_evs.m_edit.getTransport().getLoopRange().getStart());
+            m_rangeEnd.setTimePos(m_evs.m_edit.getTransport().getLoopRange().getEnd());
+        }
+
+        if (button == &m_setEditRangeAsRangeButton)
+        {
+            auto start = tracktion::TimePosition::fromSeconds(0.0);
+            m_rangeStart.setTimePos(start);
+            m_rangeEnd.setTimePos(start + m_evs.m_edit.getLength());
+        }
+    }
+    EditViewState& m_evs;
+
+    juce::Label m_setRangeLabel, m_specialRangeLabel;
+    juce::TextButton m_setLoopRangeAsRangeButton, m_setEditRangeAsRangeButton;
+    
+};
+
+class RenderDialog : public juce::Component,
+                     private juce::Button::Listener
+{
+public:
+    RenderDialog(EditViewState& evs)
+        : m_evs(evs)
+        , m_fileGroup(evs)
+        , m_rangeGroup(evs)
+    {
+        setSize (400, 400);
+        addAndMakeVisible(m_fileGroup);
+        addAndMakeVisible(m_rangeGroup);
+
 
         addAndMakeVisible (m_startButton);
         m_startButton.setButtonText ("Start Render");
         m_startButton.addListener (this);
     }
 
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(m_evs.m_applicationState.getBackgroundColour());
+    }
+
     void resized() override
     {
         auto bounds = getLocalBounds();
+        if (bounds.getWidth() < 190)
+            bounds = bounds.withWidth(190);
+        if (bounds.getWidth() > 350)
+            bounds = bounds.withWidth(350);
+        if (bounds.getHeight() < 435)
+            bounds = bounds.withHeight(435);
+
         bounds.reduce(10, 10);
-                
+        m_fileGroup.setBounds(bounds.removeFromTop(120));
         bounds.removeFromTop(15);
-
-        auto folderRect = bounds.removeFromTop (20);
-        m_folderLabel.setBounds(folderRect.removeFromLeft(getWidth() / 3));
-        m_fileChooser.setBounds (folderRect);
+        m_rangeGroup.setBounds(bounds.removeFromTop(240));
 
         bounds.removeFromTop(15);
-
-        auto filenameRect = bounds.removeFromTop(20);
-        m_filenameLabel.setBounds(filenameRect.removeFromLeft(getWidth()/3));
-        auto file = te::EditFileOperations(m_evs.m_edit).getEditFile();
-        m_fileInput.setText(file.getFileNameWithoutExtension());
-        m_fileInput.setBounds(filenameRect.removeFromLeft((filenameRect.getWidth() / 3)* 2));
-        m_suffixLabel.setBounds(filenameRect);
-
-        bounds.removeFromTop(30);
-
-        m_setRangeLabel.setBounds(bounds.removeFromTop(20));
-        bounds.removeFromTop(15);
-        auto rangeRect = bounds.removeFromTop(20);
-        auto startRect = rangeRect.removeFromLeft(rangeRect.getWidth() / 2);
-
-        m_rangeStartLabel.setBounds (startRect.removeFromLeft(startRect.getWidth() / 3));
-        m_rangeStart.setBounds (startRect);
-
-        m_rangeEndLabel.setBounds (rangeRect.removeFromLeft(rangeRect.getWidth() / 3));
-        m_rangeEnd.setBounds (rangeRect);
-
-        bounds.removeFromTop(15);
-
-        m_specialRangeLabel.setBounds(bounds.removeFromTop(20));
-
-        bounds.removeFromTop(15);
-
-        auto buttonRect = bounds.removeFromTop(20);
-        m_setLoopRangeAsRangeButton.setBounds(buttonRect.removeFromLeft(bounds.getWidth()/2).reduced(20, 0));
-        m_setEditRangeAsRangeButton.setBounds(buttonRect.reduced(20,0));
-
-        bounds.removeFromBottom(30);
-        m_startButton.setBounds (bounds.removeFromBottom (30).reduced(100, 5));
+        m_startButton.setBounds (bounds.removeFromTop(25).reduced(bounds.getWidth()/4, 0));
     }
 
     tracktion::TimeRange getTimeRange() const
     {
-        return { m_rangeStart.getCurrentTimePosition(), m_rangeEnd.getCurrentTimePosition() };
+        return { m_rangeGroup.m_rangeStart.getCurrentTimePosition(), m_rangeGroup.m_rangeEnd.getCurrentTimePosition() };
     }
 
     juce::File getRenderFile() const
     {
-        return m_fileChooser.getCurrentFile().getNonexistentChildFile(m_fileInput.getText(), ".wav");
+        return m_fileGroup.getCurrentFile();
     }
 
 private:
-    void filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged) override
-    {
-        if (fileComponentThatHasChanged == &m_fileChooser)
-        {
-            // Do something when the file selection changes...
-        }
-    }
-
     void buttonClicked (juce::Button* button) override
     {
         if (button == &m_startButton)
@@ -250,25 +322,11 @@ private:
             EngineHelpers::renderEditToFile(m_evs, getRenderFile(), getTimeRange()); 
         }
 
-        if (button == &m_setLoopRangeAsRangeButton)
-        {
-            m_rangeStart.setTimePos(m_evs.m_edit.getTransport().getLoopRange().getStart());
-            m_rangeEnd.setTimePos(m_evs.m_edit.getTransport().getLoopRange().getEnd());
-        }
-
-        if (button == &m_setEditRangeAsRangeButton)
-        {
-            auto start = tracktion::TimePosition::fromSeconds(0.0);
-            m_rangeStart.setTimePos(start);
-            m_rangeEnd.setTimePos(start + m_evs.m_edit.getLength());
-        }
     }
 
     EditViewState& m_evs;
-    juce::FilenameComponent m_fileChooser;
-    TimeInputComponent m_rangeStart, m_rangeEnd;
-    juce::Label m_rangeStartLabel, m_rangeEndLabel, m_folderLabel, m_filenameLabel, m_suffixLabel, m_setRangeLabel, m_specialRangeLabel;
-    juce::TextEditor m_fileInput;
-    juce::TextButton m_startButton, m_setLoopRangeAsRangeButton, m_setEditRangeAsRangeButton;
+    FileGroup m_fileGroup;
+    RangeGroup m_rangeGroup;
+    juce::TextButton m_startButton;
 };
 

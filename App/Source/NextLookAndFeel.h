@@ -40,6 +40,8 @@ public:
         setColour(juce::ListBox::backgroundColourId, m_appState.getBackgroundColour());
         setColour(juce::Slider::thumbColourId, m_appState.getTextColour());
         setColour (juce::TableListBox::ColourIds::backgroundColourId, m_appState.getBackgroundColour());
+        setColour (juce::Label::ColourIds::textColourId, m_appState.getTextColour());
+        setColour (juce::TextEditor::ColourIds::backgroundColourId, m_appState.getBackgroundColour());
 
         setColour(juce::TooltipWindow::outlineColourId, m_appState.getBorderColour());
         setColour(juce::TooltipWindow::backgroundColourId, m_appState.getBackgroundColour());
@@ -49,8 +51,74 @@ public:
         setColour(juce::TableHeaderComponent::ColourIds::textColourId, m_appState.getTextColour());
         setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, m_appState.getBorderColour());
         setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, m_appState.getPrimeColour());
-    }
+        setColour(juce::GroupComponent::ColourIds::outlineColourId, m_appState.getBorderColour());
+        setColour(juce::GroupComponent::ColourIds::textColourId, m_appState.getTextColour());
 
+    }
+    
+    void drawGroupComponentOutline (juce::Graphics& g, int width, int height,
+                                                const juce::String& text, const juce::Justification& position,
+                                                juce::GroupComponent& group) override
+    {
+        const float textH = 15.0f;
+        const float indent = 3.0f;
+        const float textEdgeGap = 4.0f;
+        auto cs = 5.0f;
+
+        juce::Font f (textH);
+
+        juce::Path p;
+        auto x = indent;
+        auto y = f.getAscent() - 3.0f;
+        auto w = juce::jmax (0.0f, (float) width - x * 2.0f);
+        auto h = juce::jmax (0.0f, (float) height - y  - indent);
+        cs = juce::jmin (cs, w * 0.5f, h * 0.5f);
+        auto cs2 = 2.0f * cs;
+
+        auto textW = text.isEmpty() ? 0
+            : juce::jlimit (0.0f,
+                            juce::jmax (0.0f, w - cs2 - textEdgeGap * 2),
+                            (float) f.getStringWidth (text) + textEdgeGap * 2.0f);
+        auto textX = cs + textEdgeGap;
+
+        if (position.testFlags (juce::Justification::horizontallyCentred))
+            textX = cs + (w - cs2 - textW) * 0.5f;
+        else if (position.testFlags (juce::Justification::right))
+            textX = w - cs - textW - textEdgeGap;
+
+        p.startNewSubPath (x + textX + textW, y);
+        p.lineTo (x + w - cs, y);
+
+        p.addArc (x + w - cs2, y, cs2, cs2, 0, juce::MathConstants<float>::halfPi);
+        p.lineTo (x + w, y + h - cs);
+
+        p.addArc (x + w - cs2, y + h - cs2, cs2, cs2, juce::MathConstants<float>::halfPi, juce::MathConstants<float>::pi);
+        p.lineTo (x + cs, y + h);
+
+        p.addArc (x, y + h - cs2, cs2, cs2, juce::MathConstants<float>::pi, juce::MathConstants<float>::pi * 1.5f);
+        p.lineTo (x, y + cs);
+
+        p.addArc (x, y, cs2, cs2, juce::MathConstants<float>::pi * 1.5f, juce::MathConstants<float>::twoPi);
+        p.lineTo (x + textX, y);
+
+        auto alpha = group.isEnabled() ? 1.0f : 0.5f;
+
+        // g.setColour (group.findColour (juce::GroupComponent::outlineColourId)
+        //              .withMultipliedAlpha (alpha));
+        g.setColour(m_appState.getMenuBackgroundColour());
+        g.strokePath (p, juce::PathStrokeType (1.0f));
+
+        // g.fillPath(p);
+
+        g.setColour (group.findColour (juce::GroupComponent::textColourId)
+                     .withMultipliedAlpha (alpha));
+        g.setFont (f);
+        g.drawText (text,
+                    juce::roundToInt (x + textX), 0,
+                    juce::roundToInt (textW),
+                    juce::roundToInt (textH),
+                    juce::Justification::centred, true);
+    }
     void drawTabButton (juce::TabBarButton& tbb, juce::Graphics& g, bool isMouseOver, bool isMouseDown) override
     {
         if (tbb.getToggleState() == false)
@@ -513,7 +581,7 @@ public:
     void drawComboBox (juce::Graphics &g, int width, int height, bool isButtonDown, int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox &box) override
     {
         using namespace juce;
-        g.fillAll(m_appState.getBackgroundColour());
+        // g.fillAll(m_appState.getBackgroundColour());
         const auto cornerSize = box.findParentComponentOfClass<ChoicePropertyComponent>() != nullptr ? 0.0f : 1.5f;
         Rectangle<int> boxBounds (0, 0, width, height);
         boxBounds.reduce(4,4);
