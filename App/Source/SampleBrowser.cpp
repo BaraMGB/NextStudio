@@ -17,7 +17,7 @@ SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, Sample
 void SampleBrowserComponent::resized() 
 {
     auto area = getLocalBounds();
-    auto sortcomp = area.removeFromTop(30).reduced(2,2);
+    auto sortcomp = area.removeFromTop(30);
     auto sortlabel = sortcomp.removeFromLeft(50);
     auto searchfield = area.removeFromBottom(30);
     auto list = area;

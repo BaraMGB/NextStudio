@@ -72,6 +72,7 @@ public:
     void setupEdit (juce::File = {});
     bool handleUnsavedEdit();
 
+
 private:
 
 
@@ -83,7 +84,13 @@ private:
     void openValidStartEdit();
     void setupSideBrowser();
 
-    
+    void clearAudioTracks()
+    {
+        auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
+
+        for (auto & t : atList)
+            m_edit->deleteTrack (t);
+    }
 
 
     ApplicationViewState &                              m_applicationState;

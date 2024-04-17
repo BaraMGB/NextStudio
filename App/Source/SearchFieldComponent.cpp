@@ -31,12 +31,6 @@ SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
     m_label.attachToComponent(&m_searchField, true);
 }
 
-void SearchFieldComponent::paint ( juce::Graphics& g) 
-{
-    g.fillAll(m_appState.getBackgroundColour());
-    g.setColour(m_appState.getBorderColour());
-    g.drawHorizontalLine(getHeight() - 1, 0, getWidth()) ;
-}
 void SearchFieldComponent::resized()
 {
     auto area = getLocalBounds();

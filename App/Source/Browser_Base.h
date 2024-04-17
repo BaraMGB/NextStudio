@@ -54,6 +54,11 @@ private:
 
     ApplicationViewState& m_appState;
 };
+// ----------------------------------------------------------------------------------------------------
+//
+//
+//
+// ----------------------------------------------------------------------------------------------------
 
 class BrowserBaseComponent;
 class BrowserListBox : public juce::ListBox
@@ -63,11 +68,6 @@ BrowserListBox(BrowserBaseComponent& sbc, ApplicationViewState& appState)
     : m_browser(sbc)
     , m_appState(appState)
     {}
-    void paintOverChildren (juce::Graphics& g) override
-    {
-        g.setColour(m_appState.getBorderColour());
-        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
-    }
     juce::File getSelectedFile();
 
 private:
@@ -99,6 +99,7 @@ public:
 
 protected:
     virtual void sortList(int selectedID) = 0;
+    void updateContentList();
     BrowserListBox             m_listBox;
     juce::Array<juce::File>    m_fileList;
     juce::Array<juce::File>    m_contentList;
@@ -112,7 +113,6 @@ protected:
 private:
 
     void comboBoxChanged(juce::ComboBox* box) override;
-    void updateContentList();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrowserBaseComponent)
 };

@@ -25,7 +25,9 @@
 */
 
 #include "MainComponent.h"
+#include "ProjectsBrowser.h"
 #include "SidebarComponent.h"
+#include "Utilities.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
@@ -535,17 +537,18 @@ void MainComponent::handleAsyncUpdate()
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
-    if (source == m_header.get ())
+    if (auto pro = dynamic_cast<ProjectsBrowserComponent*>(source))
     {
-        if (m_header->getSelectedFile ().exists ())
+        if (pro->m_projectToLoad.exists ())
         {
-            auto editfile = m_header->getSelectedFile ();
+            auto editfile = pro->m_projectToLoad;
             setupEdit (editfile);
         }
         else
         {
             m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
-            openValidStartEdit();
+            setupEdit (m_tempDir.getNonexistentChildFile ("untitled", ".nextTemp", false));
+            clearAudioTracks();
         }
     }
 }
@@ -569,19 +572,16 @@ void MainComponent::openValidStartEdit()
             return;
         }
     }
-    setupEdit (m_tempDir.getNonexistentChildFile ("untitled"
-                                                      , ".nextTemp"
-                                                      , false));
-    auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
-    for (auto & t : atList)
-        m_edit->deleteTrack (t);
 
+    setupEdit (m_tempDir.getNonexistentChildFile ("untitled", ".nextTemp", false));
+    clearAudioTracks();
 }
 
 void MainComponent::setupSideBrowser()
 {
     m_sideBarBrowser = std::make_unique<SidebarComponent>(*m_editViewState, m_commandManager);
     addAndMakeVisible (*m_sideBarBrowser);
+    m_sideBarBrowser->updateParentsListener();
 }
 
 void MainComponent::setupEdit(juce::File editFile)

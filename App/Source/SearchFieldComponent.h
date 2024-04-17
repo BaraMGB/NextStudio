@@ -33,7 +33,6 @@ public:
     SearchFieldComponent(ApplicationViewState& appState);
 
     void resized() override;
-    void paint(juce::Graphics& g) override;
     juce::String getText();
 
 private:

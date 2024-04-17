@@ -52,11 +52,7 @@ private:
 
     void addButtonsToFlexBox(juce::FlexBox& box,const juce::Array<juce::Component*>& buttons, int width = 0);
     void addFlexBoxToFlexBox(juce::FlexBox& target, const juce::Array<juce::FlexBox*>& items);
-    juce::DrawableButton m_newButton
-                       , m_loadButton
-                       , m_saveButton
-                       , m_renderButton
-                       , m_stopButton
+    juce::DrawableButton m_stopButton
                        , m_recordButton
                        , m_playButton
                        , m_loopButton

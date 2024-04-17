@@ -23,6 +23,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "ApplicationViewState.h"
+#include "MenuBar.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 #include "PreviewComponent.h"
@@ -30,10 +31,26 @@
 
 namespace te = tracktion_engine;
 class ProjectsBrowserComponent : public BrowserBaseComponent
+                               , public juce::ChangeBroadcaster
 {
 public:
-    ProjectsBrowserComponent(ApplicationViewState& avs);
+    ProjectsBrowserComponent(EditViewState& evs, ApplicationViewState& avs);
 
+    void paintOverChildren(juce::Graphics& g) override
+    {
+        auto area = getLocalBounds();
+        auto prjButtons = area.removeFromTop(m_projectsMenu.getHeight());
+        auto sortbox = area.removeFromTop(m_sortingBox.getHeight());
+        auto searchfield = area.removeFromBottom(m_searchField.getHeight());
+        auto list = area;
+
+        g.setColour(m_avs.getBorderColour());
+        g.drawHorizontalLine(prjButtons.getBottom(), 0, getWidth());
+        g.drawHorizontalLine(sortbox.getBottom(), 0, getWidth());
+        g.drawHorizontalLine(list.getBottom(), 0, getWidth());
+        g.drawHorizontalLine(searchfield.getBottom(), 0, getWidth());
+        
+    }
     void resized() override;
     juce::var getDragSourceDescription (const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
@@ -42,9 +59,16 @@ public:
     void selectedRowsChanged(int /*lastRowSelected*/) override;
 
 
+    juce::File m_projectToLoad{};
 
 private:
+    juce::DrawableButton m_loadProjectButton
+                       , m_saveProjectButton
+                       , m_newProjectButton;
+    MenuBar             m_projectsMenu;
     void sortList(int selectedID) override;
+    EditViewState & m_evs;
+    ApplicationViewState& m_avs;
 
     struct CompareNameForward{
         static int compareElements (const juce::File& first, 

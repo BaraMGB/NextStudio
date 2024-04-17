@@ -47,6 +47,7 @@ juce_add_binary_data(Pictures SOURCES
     homeButton.svg
     samplesButton.svg
     settingsButton.svg
+    newProjectButton.svg
     vst3Icon.svg
     ladspaIcon.svg
     la2Icon.svg

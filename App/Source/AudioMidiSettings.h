@@ -58,10 +58,10 @@ public:
     {
         setOutline(0);
         m_keyMappingEditor.setColours(appState.getBackgroundColour(), appState.getTextColour());
-        addTab("Audio Settings", appState.getBackgroundColour(), &m_audioSettings, true);
-        addTab("MIDI Settings", appState.getBackgroundColour(), &m_midiSettings, true);
-        addTab("Plugin Settings",appState.getBackgroundColour(), &m_pluginBrowser, true);
-        addTab("KeyMapping", appState.getBackgroundColour(), &m_keyMappingEditor, true);
+        addTab("Audio", appState.getBackgroundColour(), &m_audioSettings, true);
+        addTab("MIDI", appState.getBackgroundColour(), &m_midiSettings, true);
+        addTab("Plugins",appState.getBackgroundColour(), &m_pluginBrowser, true);
+        addTab("Keys", appState.getBackgroundColour(), &m_keyMappingEditor, true);
     }
 
 private:

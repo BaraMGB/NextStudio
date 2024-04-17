@@ -80,9 +80,6 @@ BrowserBaseComponent::BrowserBaseComponent(ApplicationViewState &appState)
     m_sortingBox.addListener(this);
     addAndMakeVisible(m_sortLabel);
     m_sortLabel.setText(GUIHelpers::translate("Sort: ", m_applicationViewState), juce::dontSendNotification);
-    m_sortLabel.setColour(juce::Label::ColourIds::backgroundColourId, m_applicationViewState.getBackgroundColour());
-    m_sortLabel.setColour(juce::Label::ColourIds::textColourId, m_applicationViewState.getTextColour());
-    m_sortingBox.setColour(juce::ComboBox::ColourIds::textColourId, m_applicationViewState.getTextColour());
     addAndMakeVisible(m_currentPathField);
     m_currentPathField.addChangeListener(this);
 }

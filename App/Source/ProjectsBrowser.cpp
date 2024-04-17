@@ -1,12 +1,81 @@
 #include "ProjectsBrowser.h"
 #include "Browser_Base.h"
+#include "EditComponent.h"
+#include "MainComponent.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
 
-ProjectsBrowserComponent::ProjectsBrowserComponent(ApplicationViewState &avs)
+const juce::DrawableButton::ButtonStyle buttonStyle {juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
+
+ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState& evs, ApplicationViewState &avs)
     : BrowserBaseComponent(avs) 
+    , m_evs(evs)
+    , m_avs(avs)
+    , m_newProjectButton("New", buttonStyle)
+    , m_loadProjectButton("Load", buttonStyle)
+    , m_saveProjectButton("Save",buttonStyle)
 {
+    const auto margin = 7;
+
+    if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+        addChangeListener(parent);
+
+    addAndMakeVisible(m_projectsMenu);
+    m_projectsMenu.addButton(&m_newProjectButton);
+
+    GUIHelpers::setDrawableOnButton(m_newProjectButton, BinaryData::newProjectButton_svg, avs.getProjectsColour());
+    m_newProjectButton.setTooltip(GUIHelpers::translate("handle projects", avs));
+    m_newProjectButton.setEdgeIndent(margin);
+
+    m_projectsMenu.addButton(&m_loadProjectButton);
+    GUIHelpers::setDrawableOnButton(m_loadProjectButton, BinaryData::filedownload_svg, juce::Colours::lightcyan);
+    m_loadProjectButton.setTooltip(GUIHelpers::translate("handle projects", avs));
+    m_loadProjectButton.setEdgeIndent(margin);
+
+    m_projectsMenu.addButton(&m_saveProjectButton);
+    GUIHelpers::setDrawableOnButton(m_saveProjectButton, BinaryData::contentsaveedit_svg, juce::Colours::seagreen);
+    m_saveProjectButton.setTooltip(GUIHelpers::translate("handle projects", avs));
+    m_saveProjectButton.setEdgeIndent(margin);
+
+
+    m_newProjectButton.onClick = [this] {
+        m_evs.m_edit.engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
+        m_projectToLoad = juce::File();
+        sendChangeMessage();
+    };
+
+    m_loadProjectButton.onClick = [this] {
+
+        juce::WildcardFileFilter wildcardFilter ("*.tracktionedit"
+                                                 , juce::String()
+                                                 , "Next Studio Project File");
+
+        juce::FileBrowserComponent browser (juce::FileBrowserComponent::openMode
+                                            + juce::FileBrowserComponent::canSelectFiles
+                                            , juce::File(m_avs.m_projectsDir)
+                                            , &wildcardFilter
+                                            , nullptr);
+
+        juce::FileChooserDialogBox dialogBox ("Load a project",
+                                              "Please choose some kind of file that you want to load...",
+                                              browser,
+                                              true,
+                                              juce::Colours::red
+                                              );
+
+        if (dialogBox.show())
+        {
+            m_projectToLoad = browser.getSelectedFile (0);
+            sendChangeMessage ();
+        }
+        sendChangeMessage(); 
+    };
+
+    m_saveProjectButton.onClick = [this] {
+        GUIHelpers::saveEdit (m_evs, juce::File::createFileWithoutCheckingPath (m_avs.m_projectsDir));
+    };
+
     setName("ProjectBrowser");
     m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
     m_sortingBox.addItem(GUIHelpers::translate("by Name (z - a)", m_applicationViewState), 2);
@@ -15,11 +84,13 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(ApplicationViewState &avs)
 void ProjectsBrowserComponent::resized() 
 {
     auto area = getLocalBounds();
+    auto prjButtons = area.removeFromTop(70);
     auto sortcomp = area.removeFromTop(30).reduced(2,2);
     auto sortlabel = sortcomp.removeFromLeft(50);
     auto searchfield = area.removeFromBottom(30);
     auto list = area;
 
+    m_projectsMenu.setBounds(prjButtons);
     m_sortLabel.setBounds(sortlabel);
     m_sortingBox.setBounds(sortcomp);
     m_searchField.setBounds(searchfield);
@@ -115,8 +186,9 @@ void ProjectsBrowserComponent::sortList(int selectedID)
 
     m_contentList.clear();
     m_contentList.addArray(fileList);
-        
-    getParentComponent()->resized(); 
+    
+    if (getParentComponent())
+        getParentComponent()->resized(); 
 }
 void ProjectsBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
 {

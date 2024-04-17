@@ -45,6 +45,8 @@ public:
     void resized() override; 
     void buttonClicked (juce::Button* button) override;
 
+    void updateParentsListener();
+
 private:
 
     void setAllVisibleOff();

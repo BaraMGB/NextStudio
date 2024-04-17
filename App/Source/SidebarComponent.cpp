@@ -1,9 +1,9 @@
 #include "SidebarComponent.h"
+#include "MainComponent.h"
 #include "RenderDialog.h"
 #include "BinaryData.h"
 #include "EditViewState.h"
 #include "Utilities.h"
-#include <memory>
 
 
 SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandManager& commandManager)
@@ -19,7 +19,7 @@ SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandM
     , m_samplePreview(m_engine, m_edit, m_appState)
     , m_sampleBrowser(m_appState, m_samplePreview)
     , m_fileListBrowser(m_appState, m_engine, m_samplePreview)
-    , m_projectsBrowser(m_appState)
+    , m_projectsBrowser(m_evs, m_appState)
 {
     addAndMakeVisible(m_menu);
     addChildComponent(m_settingsView);
@@ -43,25 +43,30 @@ SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandM
 
 SidebarComponent::~SidebarComponent()
 {
+
+    if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+        m_projectsBrowser.removeChangeListener(parent);
     for (auto b : m_menu.getButtons())
         b->removeListener(this);
 }
 
 void SidebarComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(m_appState.getMenuBackgroundColour());
+    auto sideMenu = m_menu.getBounds();
+    auto headerRect = getLocalBounds().removeFromTop(CONTENT_HEADER_HEIGHT).withLeft(sideMenu.getWidth());
+    auto footerRect = getLocalBounds().removeFromBottom(CONTENT_HEADER_HEIGHT).withLeft(sideMenu.getWidth());
+    auto colourBulbH = headerRect.removeFromRight(10);
+    auto colourBulbF = footerRect.removeFromRight(10);
 
+    g.setColour(m_appState.getMenuBackgroundColour());
+    g.fillRect(headerRect);
+    g.fillRect(footerRect);
+    g.fillRect(sideMenu);
     g.setColour(m_headerColour);
-    auto headerRect = getLocalBounds().removeFromTop(CONTENT_HEADER_HEIGHT);
-    auto footerRect = getLocalBounds().removeFromBottom(CONTENT_HEADER_HEIGHT);
-    auto colourBulbH = headerRect.removeFromRight(20);
-    auto colourBulbF = footerRect.removeFromRight(20);
-
     g.fillRect(colourBulbH);
     g.fillRect(colourBulbF);
     
     g.setColour(m_appState.getTextColour());
-    headerRect.removeFromLeft(m_menu.getWidth());
     headerRect.reduce(10, 0);
     g.drawText(m_headerName, headerRect, juce::Justification::centredLeft,false );
 
@@ -80,6 +85,8 @@ void SidebarComponent::paint(juce::Graphics& g)
         GUIHelpers::drawFromSvg(g, BinaryData::homeButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_settingsView.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::settingsButton_svg, m_headerColour, iconRect.toFloat());
+    else if (m_renderComponent != nullptr)
+        GUIHelpers::drawFromSvg(g, BinaryData::renderButton_svg, m_headerColour, iconRect.toFloat());
 
 }
 void SidebarComponent::paintOverChildren(juce::Graphics& g)
@@ -213,6 +220,12 @@ void SidebarComponent::buttonClicked (juce::Button* button)
         resized();
     }
 
+}
+
+void SidebarComponent::updateParentsListener()
+{
+    if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+        m_projectsBrowser.addChangeListener(parent);
 }
 
 void SidebarComponent::setAllVisibleOff()

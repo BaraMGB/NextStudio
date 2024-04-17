@@ -22,10 +22,6 @@
 
 HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & applicationState, juce::ApplicationCommandManager& commandManager)
     : m_editViewState(evs)
-    , m_newButton ("New", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_loadButton ("Load", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_saveButton ("Save", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_renderButton ("Render Song", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_stopButton ("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_recordButton ("Record", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_playButton ("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -38,14 +34,10 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     , m_display (m_edit)
 {
     Helpers::addAndMakeVisible(*this,
-        { &m_newButton, &m_loadButton, &m_saveButton, &m_renderButton, &m_stopButton
+        { &m_stopButton
         , &m_playButton, &m_recordButton, &m_display, &m_clickButton, &m_loopButton
         , &m_followPlayheadButton});
 
-    GUIHelpers::setDrawableOnButton(m_newButton, BinaryData::newbox_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_loadButton, BinaryData::filedownload_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_saveButton, BinaryData::contentsaveedit_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_renderButton, BinaryData::render_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_playButton, BinaryData::play_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_stopButton, BinaryData::stop_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_recordButton, BinaryData::record_svg, m_btn_col);
@@ -55,10 +47,6 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
                                     m_edit.clickTrackEnabled ? m_btn_col : juce::Colour(0xff666666));
     GUIHelpers::setDrawableOnButton(m_followPlayheadButton, BinaryData::follow_svg,
                                     m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
-    m_newButton.addListener(this);
-    m_loadButton.addListener(this);
-    m_saveButton.addListener(this);
-    m_renderButton.addListener(this);
     m_playButton.addListener(this);
     m_stopButton.addListener(this);
     m_recordButton.addListener(this);
@@ -66,10 +54,6 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     m_clickButton.addListener (this);
     m_followPlayheadButton.addListener (this);
 
-    m_newButton.setTooltip(GUIHelpers::translate("Create new project", m_editViewState.m_applicationState));
-    m_loadButton.setTooltip(GUIHelpers::translate("Load project from disk", m_editViewState.m_applicationState));
-    m_saveButton.setTooltip(GUIHelpers::translate("Save project to disk", m_editViewState.m_applicationState));
-    m_renderButton.setTooltip(GUIHelpers::translate("Render project to wave file", m_editViewState.m_applicationState));
     m_playButton.setTooltip(GUIHelpers::translate("Play", m_editViewState.m_applicationState));
     m_stopButton.setTooltip(GUIHelpers::translate("Stop", m_editViewState.m_applicationState));
     m_recordButton.setTooltip(GUIHelpers::translate("Recording", m_editViewState.m_applicationState));
@@ -82,10 +66,6 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
 
 HeaderComponent::~HeaderComponent()
 {
-    m_newButton.removeListener(this);
-    m_loadButton.removeListener(this);
-    m_saveButton.removeListener(this);
-    m_renderButton.removeListener(this);
     m_playButton.removeListener(this);
     m_stopButton.removeListener(this);
     m_recordButton.removeListener(this);
@@ -107,26 +87,23 @@ void HeaderComponent::resized()
 {
     auto area = getLocalBounds();
 
-    auto fileButtonsBox = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
     auto transportBox   = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
     auto positionBox    = createFlexBox(juce::FlexBox::JustifyContent::center);
     auto timelineSetBox = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
 
     auto container      = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
 
-    auto fileButtons      = {&m_newButton, &m_loadButton, &m_saveButton, &m_renderButton};
     auto transportButtons = {&m_playButton, &m_stopButton, &m_recordButton};
     auto timeLineButtons  = {&m_clickButton, &m_loopButton, &m_followPlayheadButton};
 
 
     auto displayWidth =  (area.getWidth()/5) - (getGapSize() * 4) ;
 
-    addButtonsToFlexBox(fileButtonsBox, fileButtons);
     addButtonsToFlexBox(transportBox, transportButtons);
     addButtonsToFlexBox(positionBox, {&m_display}, displayWidth);
     addButtonsToFlexBox(timelineSetBox, timeLineButtons);
 
-    auto containers = {&fileButtonsBox, &transportBox, &positionBox, &timelineSetBox};
+    auto containers = {&transportBox, &positionBox, &timelineSetBox};
     addFlexBoxToFlexBox(container, containers);
 
     container.performLayout(area);
@@ -190,54 +167,6 @@ void HeaderComponent::buttonClicked(juce::Button* button)
             m_followPlayheadButton,
             BinaryData::follow_svg,
             m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
-    }
-
-    if (button == &m_saveButton)
-    {
-        GUIHelpers::saveEdit (m_editViewState
-                              , juce::File::createFileWithoutCheckingPath (
-                                  m_applicationState.m_projectsDir));
-    }
-    if (button == &m_loadButton)
-    {
-        juce::WildcardFileFilter wildcardFilter ("*.tracktionedit"
-                                                 , juce::String()
-                                                 , "Next Studio Project File");
-
-        juce::FileBrowserComponent browser (juce::FileBrowserComponent::openMode
-                                            + juce::FileBrowserComponent::canSelectFiles
-                                            , juce::File(m_applicationState.m_projectsDir)
-                                            , &wildcardFilter
-                                            , nullptr);
-
-        juce::FileChooserDialogBox dialogBox ("Load a project",
-                                        "Please choose some kind of file that you want to load...",
-                                        browser,
-                                        true,
-                                        m_btn_col);
-
-        if (dialogBox.show())
-        {
-            m_loadingFile = browser.getSelectedFile (0);
-            sendChangeMessage ();
-        }
-    }
-    if (button == &m_renderButton)
-    {
-        juce::DialogWindow::LaunchOptions options;
-        options.content.setOwned (new RenderDialog(m_editViewState));
-        options.dialogTitle = "Render Options";
-        options.dialogBackgroundColour = m_editViewState.m_applicationState.getMenuBackgroundColour();
-        options.escapeKeyTriggersCloseButton = true;
-        options.useNativeTitleBar = false;
-        options.resizable = false;
-
-        options.launchAsync();
-    }
-    if (button == &m_newButton)
-    {
-        m_loadingFile = juce::File();
-        sendChangeMessage();
     }
 }
 

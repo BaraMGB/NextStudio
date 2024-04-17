@@ -92,11 +92,6 @@ public:
 
 
 
-    void paintOverChildren (juce::Graphics& g) override
-    {
-        g.setColour(m_appState.getBorderColour());
-        g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
-    }
     juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
     te::Plugin::Ptr getSelectedPlugin(te::Edit& edit);
@@ -127,6 +122,11 @@ public:
         m_model.removeChangeListener(this);
     }
 
+    void paintOverChildren (juce::Graphics& g) override
+    {
+        g.setColour(m_appState.getBorderColour());
+        g.drawHorizontalLine(getHeight() - m_searchField.getHeight(), 0, getWidth());
+    }
     void resized() override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 

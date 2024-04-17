@@ -24,7 +24,11 @@
 #include "MenuBar.h"
 #include "Utilities.h"
 #include "PreviewComponent.h"
+
+
+
 class SidebarMenu : public MenuBar 
+                  , public juce::ChangeBroadcaster
 {
 public:
 
