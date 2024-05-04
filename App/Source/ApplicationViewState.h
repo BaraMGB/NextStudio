@@ -153,7 +153,7 @@ public:
         }
 
         auto windowState = m_applicationStateValueTree
-                .getOrCreateChildWithName (IDs::WindowState, nullptr);
+            .getOrCreateChildWithName (IDs::WindowState, nullptr);
 
         m_windowXpos.referTo (windowState, IDs::WindowX, nullptr, 50);
         m_windowYpos.referTo (windowState, IDs::WindowY, nullptr, 50);
@@ -161,20 +161,24 @@ public:
         m_windowHeight.referTo (windowState, IDs::WindowHeight, nullptr, 1000);
 
         auto themeState = m_applicationStateValueTree
-                .getOrCreateChildWithName(IDs::ThemeState, nullptr);
+            .getOrCreateChildWithName(IDs::ThemeState, nullptr);
         m_folderTrackIndent.referTo (themeState, IDs::FolderTrackIndent, nullptr, 10);
 
-		
-		m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
+
+        m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
         m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff9dae9d).toString());
-		m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
-		m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff343f34).toString());
-        auto behavior = m_applicationStateValueTree
-                .getOrCreateChildWithName(IDs::Behavior, nullptr);  
+        m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
+        m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff343f34).toString());
+        auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
         m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 0);
         m_previewLoop.referTo (behavior, IDs::PreviewLoop, nullptr, false);
 
+        themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
+        themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
+        themeState.setProperty(IDs::menuBackgroundColour, juce::var(m_menuBackgroundColour), nullptr);
+        behavior.setProperty(IDs::AutoSaveInterval, juce::var(m_autoSaveInterval), nullptr);
+        behavior.setProperty(IDs::FolderTrackIndent, juce::var(m_folderTrackIndent), nullptr);
     }
 
 	juce::Colour getBorderColour()
@@ -356,7 +360,7 @@ public:
                                     m_projectsDir,
                                     m_menuBackgroundColour,
                                     m_backgroundColour,
-									m_primeColour,
+                                    m_primeColour,
                                     m_borderColour;
     juce::CachedValue<int>          m_windowXpos,
                                     m_windowYpos,
