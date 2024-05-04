@@ -69,7 +69,7 @@ fi
 # Configure CMake and build the project
 echo "Configuring CMake and starting the build..."
 echo "----------------------------------------------------------"
-if cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../.. && make -j$(nproc); then
+if cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../.. && make -j4; then
     echo "Build succeeded."
     echo "----------------------------------------------------------"
 else
@@ -99,20 +99,37 @@ echo "Creating start.sh script..."
 echo "----------------------------------------------------------"
 
 cat << EOF > start.sh
+
 #!/bin/bash
 echo "Starting the application..."
 
 if [[ " \$@ " =~ " -d " ]]; then
-    if command -v gdb >/dev/null; then
-        echo "Running with gdb..."
-        gdb -ex=r --args $EXECUTABLE_PATH
+    if [[ "\$OSTYPE" == "darwin"* ]]; then
+        echo "MacOS.."
+        if command -v lldb >/dev/null; then
+            echo "Running with lldb..."
+            lldb -o run $EXECUTABLE_PATH.app
+        else
+            echo "Warning: lldb is not installed. Unable to run the program with lldb."
+        fi
     else
-        echo "Warning: gdb is not installed. Unable to run the program with gdb."
+        echo "Linux.."
+        if command -v gdb >/dev/null; then
+            echo "Running with gdb..."
+            gdb -ex=r --args $EXECUTABLE_PATH
+        else
+            echo "Warning: gdb is not installed. Unable to run the program with gdb."
+        fi
     fi
 else
     echo "Running without gdb..."
-    $EXECUTABLE_PATH
+    if [[ "\$OSTYPE" == "darwin"* ]]; then
+        open $EXECUTABLE_PATH.app
+    else
+        $EXECUTABLE_PATH
+    fi
 fi
+
 
 EOF
 
