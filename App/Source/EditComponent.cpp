@@ -210,7 +210,6 @@ void EditComponent::resized()
     m_songEditor.setBounds(getSongEditorRect());
     m_songEditor.resized();
     m_scrollbar_v.setBounds (getSongEditorRect().removeFromRight(20));
-    m_scrollbar_v.setRangeLimits (0, getSongHeight() + (m_songEditor.getHeight() / 2));
     m_scrollbar_v.setCurrentRange (-m_editViewState.m_viewY, getSongEditorRect().getHeight());
     m_footerbar.setBounds(getFooterRect());
     m_playhead.setBounds(getPlayHeadRect());
@@ -434,6 +433,7 @@ void EditComponent::handleAsyncUpdate()
     {
         m_songEditor.updateTrackHeights(m_editViewState);
         m_songEditor.repaint();
+        updateVerticalScrollbar();
     }
 }
 

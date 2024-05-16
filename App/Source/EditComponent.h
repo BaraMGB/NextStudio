@@ -147,6 +147,11 @@ private:
     tracktion::core::TimeRange getSelectedClipRange();
 
     void updateHorizontalScrollBar();
+    void updateVerticalScrollbar()
+    {
+        m_scrollbar_v.setRangeLimits(0, getSongHeight());
+        m_scrollbar_v.setCurrentRange(-m_editViewState.m_viewY, getSongEditorRect().getHeight());
+    }
 
     juce::Rectangle<int> getToolBarRect();
     juce::Rectangle<int> getEditorHeaderRect();
