@@ -51,9 +51,9 @@ void SongEditorView::paint(juce::Graphics& g)
     auto &sm = m_editViewState.m_selectionManager;
     auto scroll = timeToX(0) * (-1);
 
-	auto area = getLocalBounds();
-	g.setColour(juce::Colour(0xff303030));
-	g.fillRect(area);
+    auto area = getLocalBounds();
+    g.setColour(juce::Colour(0xff303030));
+    g.fillRect(area);
 
     for (auto t : te::getAllTracks(m_editViewState.m_edit))
     {
@@ -1610,7 +1610,7 @@ void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayed
     double x1beats = m_editViewState.timeToBeat(etr.getStart().inSeconds());
     double x2beats = m_editViewState.timeToBeat(etr.getEnd().inSeconds());
 
-    g.setColour(juce::Colour(0xff252525));
+    g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
     g.fillRect(displayedRect);
 
     auto ba = m_editViewState.xToBeats(displayedRect.getX(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);

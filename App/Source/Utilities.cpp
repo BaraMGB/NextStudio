@@ -240,12 +240,13 @@ void GUIHelpers::saveEdit(
 
 void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<int> boundingRect, bool printDescription)
 {
-    const auto BarColour = juce::Colour(0x90ffffff);
-    const auto beatColour = juce::Colour(0x60ffffff);
-    const auto fracColour = juce::Colour(0x40ffffff);
-    const auto snapLineColour = juce::Colour(0x20ffffff);
-    const auto shadowShade = juce::Colour(0x50000000);
-    const auto textColour = juce::Colour(0xffaaaaaa);
+    auto& avs = evs.m_applicationState;
+    const auto BarColour = avs.getTimeLineStrokeColour();
+    const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.7f);
+    const auto fracColour = avs.getTimeLineStrokeColour().withAlpha(0.4f);
+    const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.2f);
+    const auto shadowShade = avs.getTimeLineShadowShade();
+    const auto textColour = avs.getTimeLineTextColour();
     const auto num = static_cast<int> (
         evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
 

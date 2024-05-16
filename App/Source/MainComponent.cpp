@@ -70,18 +70,13 @@ void MainComponent::resized()
     auto area = getLocalBounds();
     area.reduce(10, 10);
 
-    auto header = area.removeFromTop(60);
-
-
-    m_header->setBounds(header);
-    area.removeFromTop(10);
     auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
                        ? m_editComponent->getEditViewState().m_midiEditorHeight
             : 250);
     Component* comps[] = {
         m_sideBarBrowser.get()
       , &m_resizerBar
-      , m_editComponent.get ()};
+      , m_editorContainer.get()};
     m_stretchableManager.layOutComponents (
                 comps
               , 3
@@ -633,12 +628,10 @@ void MainComponent::setupEdit(juce::File editFile)
     m_edit->state.addListener (this);
 
     m_header = std::make_unique<HeaderComponent>(m_editComponent->getEditViewState (), m_applicationState, m_commandManager);
-    m_header->addChangeListener (this);
+    m_editorContainer = std::make_unique<EditorContainer>(*m_header, *m_editComponent);
 
-
-    addAndMakeVisible (*m_editComponent);
+    addAndMakeVisible (*m_editorContainer);
     addAndMakeVisible(*m_lowerRange);
-    addAndMakeVisible(*m_header);
 
     setupSideBrowser();
 

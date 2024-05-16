@@ -41,7 +41,27 @@
 
 namespace te = tracktion_engine;
 
-
+class EditorContainer : public juce::Component
+{
+public:
+    EditorContainer(HeaderComponent& hc, EditComponent& ec)
+        : m_header(hc)
+        , m_editComp(ec)
+    {
+        addAndMakeVisible(hc);
+        addAndMakeVisible(ec);
+    }
+    void resized() override
+    {
+        auto area = getLocalBounds();
+        m_header.setBounds(area.removeFromTop(60));
+        area.removeFromTop(10);
+        m_editComp.setBounds(area);
+    }
+private:
+    HeaderComponent& m_header;
+    EditComponent& m_editComp;
+};
 
 class MainComponent   : public juce::Component
                       , public juce::ApplicationCommandTarget
@@ -107,6 +127,7 @@ private:
     std::unique_ptr<EditViewState>                      m_editViewState;
     std::unique_ptr<EditComponent>                      m_editComponent;
     std::unique_ptr<HeaderComponent>                    m_header;
+    std::unique_ptr<EditorContainer>                    m_editorContainer;
     std::unique_ptr<LowerRangeComponent>                m_lowerRange;
     std::unique_ptr<SidebarComponent>                   m_sideBarBrowser;
 

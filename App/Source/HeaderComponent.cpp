@@ -77,8 +77,8 @@ HeaderComponent::~HeaderComponent()
 void HeaderComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
-    // g.setColour(m_applicationState.getMenuBackgroundColour());
-    // g.fillRect (area);
+    g.setColour(m_applicationState.getMenuBackgroundColour());
+    g.fillRect (area);
 
     GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_applicationState.getBackgroundColour(), m_applicationState.getBorderColour());  
 }

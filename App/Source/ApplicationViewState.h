@@ -52,6 +52,19 @@ namespace IDs
     DECLARE_ID (BorderColour)
     DECLARE_ID (BackgroundColour)
     DECLARE_ID (menuBackgroundColour)
+
+
+    DECLARE_ID (trackBackgroundColour)
+    DECLARE_ID (trackHeaderBackgroundColour)
+    DECLARE_ID (trackHeaderTextColour)
+    DECLARE_ID (songEditorBackground)
+    DECLARE_ID (trackListBackground)
+
+
+    DECLARE_ID (timeLineStrokeColour)
+    DECLARE_ID (timeLineShadowShade)
+    DECLARE_ID (timeLineTextColour)
+    DECLARE_ID (timeLineBackgroundColour)
     DECLARE_ID (Behavior)
     DECLARE_ID (AutoSaveInterval)           
     DECLARE_ID (PreviewSliderPos)           
@@ -169,6 +182,18 @@ public:
         m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff9dae9d).toString());
         m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
         m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff343f34).toString());
+
+        m_timeLine_strokeColour.referTo(themeState, IDs::timeLineStrokeColour, nullptr,juce::Colour(0xffffffff).toString());
+        m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr,juce::Colour(0x50000000).toString());
+        m_timeLine_textColour.referTo(themeState, IDs::timeLineTextColour, nullptr,juce::Colour(0xffaaaaaa).toString());
+        m_timeLine_background.referTo(themeState, IDs::timeLineBackgroundColour, nullptr,juce::Colour(0xffaaaaaa).toString());
+
+        m_trackBackgroundColour.referTo(themeState, IDs::trackBackgroundColour, nullptr, juce::Colour(0xff334433).toString());
+        m_trackHeaderBackgroundColour.referTo(themeState, IDs::trackHeaderBackgroundColour, nullptr, juce::Colour(0xff334433).toString());
+        m_trackHeaderTextColour.referTo(themeState, IDs::trackHeaderTextColour, nullptr, juce::Colour(0xff334433).toString());
+        m_songEditorBackground.referTo(themeState, IDs::songEditorBackground, nullptr, juce::Colour(0xff334433).toString());
+        m_trackListBackground.referTo(themeState, IDs::trackListBackground, nullptr, juce::Colour(0xff334433).toString());
+
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
         m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 0);
@@ -176,103 +201,128 @@ public:
 
         themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
         themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
+        themeState.setProperty(IDs::BackgroundColour, juce::var(m_backgroundColour), nullptr);
         themeState.setProperty(IDs::menuBackgroundColour, juce::var(m_menuBackgroundColour), nullptr);
+        themeState.setProperty(IDs::timeLineStrokeColour, juce::var(m_timeLine_strokeColour), nullptr);
+        themeState.setProperty(IDs::timeLineShadowShade, juce::var(m_timeLine_shadowShade), nullptr);
+        themeState.setProperty(IDs::timeLineTextColour, juce::var(m_timeLine_textColour), nullptr);
+        themeState.setProperty(IDs::timeLineBackgroundColour, juce::var(m_timeLine_background), nullptr);
+
+        themeState.setProperty(IDs::trackBackgroundColour, juce::var(m_trackBackgroundColour), nullptr);
+
         behavior.setProperty(IDs::AutoSaveInterval, juce::var(m_autoSaveInterval), nullptr);
         behavior.setProperty(IDs::FolderTrackIndent, juce::var(m_folderTrackIndent), nullptr);
     }
 
-	juce::Colour getBorderColour()
-	{
-		return juce::Colour::fromString(juce::String(m_borderColour));
-	}
-	juce::Colour getPrimeColour()
-	{
-		return juce::Colour::fromString(juce::String(m_primeColour));
-	}
-	juce::Colour getMenuBackgroundColour()
-	{
-		return juce::Colour::fromString(juce::String(m_menuBackgroundColour));
-    }
-	juce::Colour getBackgroundColour()
-	{
-		return juce::Colour::fromString(juce::String(m_backgroundColour));
-    }
-    juce::Colour getTextColour()
-    {
-        return juce::Colours::beige;
-    }
-    void addFavoriteType(const juce::Identifier& type)
-    {
-        auto favoriteTypes = m_applicationStateValueTree
-                .getOrCreateChildWithName (IDs::FavoriteTypes, nullptr);
-        favoriteTypes.getOrCreateChildWithName (type, nullptr);
-    }
-    [[nodiscard]] juce::Array<juce::Identifier> getFavoriteTypeList() const
-    {
-        juce::Array<juce::Identifier> result;
-        auto favoriteTypes = m_applicationStateValueTree
-                .getChildWithName (IDs::FavoriteTypes);
-        if (!favoriteTypes.isValid ())
+        juce::Colour getBorderColour()
         {
+            return juce::Colour::fromString(juce::String(m_borderColour));
+        }
+        juce::Colour getPrimeColour()
+        {
+            return juce::Colour::fromString(juce::String(m_primeColour));
+        }
+        juce::Colour getMenuBackgroundColour()
+        {
+            return juce::Colour::fromString(juce::String(m_menuBackgroundColour));
+        }
+        juce::Colour getBackgroundColour()
+        {
+            return juce::Colour::fromString(juce::String(m_backgroundColour));
+        }
+        juce::Colour getTextColour()
+        {
+            return juce::Colours::beige;
+        }
+
+        juce::Colour getTimeLineStrokeColour()
+        {
+            return juce::Colour::fromString(juce::String(m_timeLine_strokeColour));
+        }
+        juce::Colour getTimeLineShadowShade()
+        {
+            return juce::Colour::fromString(juce::String(m_timeLine_shadowShade));
+        }
+        juce::Colour getTimeLineTextColour()
+        {
+            return juce::Colour::fromString(juce::String(m_timeLine_textColour));
+        }
+        juce::Colour getTrackBackgroundColour()
+        {
+            return juce::Colour::fromString(juce::String(m_trackBackgroundColour));
+        }
+        void addFavoriteType(const juce::Identifier& type)
+        {
+            auto favoriteTypes = m_applicationStateValueTree
+                .getOrCreateChildWithName (IDs::FavoriteTypes, nullptr);
+            favoriteTypes.getOrCreateChildWithName (type, nullptr);
+        }
+        [[nodiscard]] juce::Array<juce::Identifier> getFavoriteTypeList() const
+        {
+            juce::Array<juce::Identifier> result;
+            auto favoriteTypes = m_applicationStateValueTree
+                .getChildWithName (IDs::FavoriteTypes);
+            if (!favoriteTypes.isValid ())
+            {
+                return result;
+            }
+            for (auto i = 0; i < favoriteTypes.getNumChildren (); i++)
+            {
+                result.add (favoriteTypes.getChild (i).getType ());
+            }
             return result;
         }
-        for (auto i = 0; i < favoriteTypes.getNumChildren (); i++)
+
+        juce::File getFileToTranslation()
         {
-            result.add (favoriteTypes.getChild (i).getType ());
-        }
-        return result;
-    }
+            juce::String systemLanguage = juce::SystemStats::getUserLanguage();
+            juce::String fileName = "NextStudio/language/translations_" + systemLanguage + ".lang";
 
-    juce::File getFileToTranslation()
-    {
-        juce::String systemLanguage = juce::SystemStats::getUserLanguage();
-        juce::String fileName = "NextStudio/language/translations_" + systemLanguage + ".lang";
+            juce::File languageFile(juce::File::getSpecialLocation (
+                juce::File::userApplicationDataDirectory)
+                                    .getChildFile (fileName));
 
-        juce::File languageFile(juce::File::getSpecialLocation (
-                    juce::File::userApplicationDataDirectory)
-                    .getChildFile (fileName));
+            if (languageFile.existsAsFile())
+                return languageFile;
 
-        if (languageFile.existsAsFile())
-            return languageFile;
-
-        return {};        
-    }
-
-    void setBounds(juce::Rectangle<int> bounds)
-    {
-        m_windowXpos = bounds.getX();
-        m_windowYpos = bounds.getY();
-        m_windowWidth = bounds.getWidth ();
-        m_windowHeight = bounds.getHeight ();
-    }
-
-    void saveState()
-    {
-        auto favoritesState = m_applicationStateValueTree.getOrCreateChildWithName (IDs::Favorites, nullptr);
-        favoritesState.removeAllChildren (nullptr);
-        for (auto favEntry : m_favorites)
-        {
-            favoritesState.addChild (favEntry->m_state, -1, nullptr);
+            return {};        
         }
 
-        auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName (
-                    IDs::FileBrowser, nullptr);
+        void setBounds(juce::Rectangle<int> bounds)
+        {
+            m_windowXpos = bounds.getX();
+            m_windowYpos = bounds.getY();
+            m_windowWidth = bounds.getWidth ();
+            m_windowHeight = bounds.getHeight ();
+        }
+
+        void saveState()
+        {
+            auto favoritesState = m_applicationStateValueTree.getOrCreateChildWithName (IDs::Favorites, nullptr);
+            favoritesState.removeAllChildren (nullptr);
+            for (auto favEntry : m_favorites)
+            {
+                favoritesState.addChild (favEntry->m_state, -1, nullptr);
+            }
+
+            auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName (
+                IDs::FileBrowser, nullptr);
 
 
-        auto settingsFile = juce::File::getSpecialLocation (
-                    juce::File::userApplicationDataDirectory)
-                    .getChildFile ("NextStudio/AppSettings.xml");
-        settingsFile.create ();
-        auto xmlToWrite = m_applicationStateValueTree.createXml ();
-        if (xmlToWrite->writeTo (settingsFile))
+            auto settingsFile = juce::File::getSpecialLocation (
+                juce::File::userApplicationDataDirectory)
+                .getChildFile ("NextStudio/AppSettings.xml");
+            settingsFile.create ();
+            auto xmlToWrite = m_applicationStateValueTree.createXml ();
+            if (xmlToWrite->writeTo (settingsFile))
+            {
+                std::cout << "settings written to: " + settingsFile.getFullPathName () << std::endl;
+            }
+            else
         {
-            std::cout << "settings written to: " + settingsFile.getFullPathName () << std::endl;
+                std::cout << "couldn't write to: " + settingsFile.getFullPathName () << std::endl;
+            }
         }
-        else
-        {
-            std::cout << "couldn't write to: " + settingsFile.getFullPathName () << std::endl;
-        }
-    }
 
 //-------------------------------------------------------
     void addFileToFavorites(const juce::Identifier& tag, const juce::File& file)
@@ -361,7 +411,16 @@ public:
                                     m_menuBackgroundColour,
                                     m_backgroundColour,
                                     m_primeColour,
-                                    m_borderColour;
+                                    m_borderColour,
+                                    m_timeLine_strokeColour,
+                                    m_timeLine_background,
+                                    m_timeLine_shadowShade,
+                                    m_timeLine_textColour,
+                                    m_trackBackgroundColour,
+                                    m_trackHeaderBackgroundColour,
+                                    m_trackHeaderTextColour,
+                                    m_songEditorBackground,
+                                    m_trackListBackground;
     juce::CachedValue<int>          m_windowXpos,
                                     m_windowYpos,
                                     m_windowWidth,
