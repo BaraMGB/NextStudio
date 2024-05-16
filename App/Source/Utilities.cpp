@@ -1625,9 +1625,26 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
 }
 bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
 {
-    return ap.getCurve().getNumPoints() > 0;
+    if (ap.getCurve().getNumPoints() == 0)
+        return false;
+
+    std::function<bool(te::Track*)> isTrackInMinimizedFolder = [&](te::Track* track) -> bool {
+
+        if (track->isPartOfSubmix())
+        {
+            auto folderTrack = track->getParentFolderTrack();
+
+            if (folderTrack->state.getProperty(IDs::isTrackMinimized))
+                return true;
+
+            return isTrackInMinimizedFolder(folderTrack);
+        }
+        return false;
+    };
+
+    return !isTrackInMinimizedFolder(ap.getTrack());
 }
-    
+
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
 {
     auto zoom = evs.m_pianoX2 - evs.m_pianoX1;
