@@ -20,6 +20,7 @@ void SampleBrowserComponent::resized()
     auto sortcomp = area.removeFromTop(30);
     auto sortlabel = sortcomp.removeFromLeft(50);
     auto searchfield = area.removeFromBottom(30);
+    area.removeFromTop(2);
     auto list = area;
 
     m_sortLabel.setBounds(sortlabel);

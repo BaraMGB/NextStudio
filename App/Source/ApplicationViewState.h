@@ -50,7 +50,7 @@ namespace IDs
     DECLARE_ID (ThemeState)
     DECLARE_ID (PrimeColour)
     DECLARE_ID (BorderColour)
-    DECLARE_ID (BackgroundColour)
+    DECLARE_ID (MainFrameColour)
     DECLARE_ID (menuBackgroundColour)
 
 
@@ -181,7 +181,7 @@ public:
         m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
         m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff9dae9d).toString());
         m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
-        m_backgroundColour.referTo (themeState, IDs::BackgroundColour, nullptr, juce::Colour(0xff343f34).toString());
+        m_mainFrameColour.referTo (themeState, IDs::MainFrameColour, nullptr, juce::Colour(0xff343f34).toString());
 
         m_timeLine_strokeColour.referTo(themeState, IDs::timeLineStrokeColour, nullptr,juce::Colour(0xffffffff).toString());
         m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr,juce::Colour(0x50000000).toString());
@@ -201,7 +201,7 @@ public:
 
         themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
         themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
-        themeState.setProperty(IDs::BackgroundColour, juce::var(m_backgroundColour), nullptr);
+        themeState.setProperty(IDs::MainFrameColour, juce::var(m_mainFrameColour), nullptr);
         themeState.setProperty(IDs::menuBackgroundColour, juce::var(m_menuBackgroundColour), nullptr);
         themeState.setProperty(IDs::timeLineStrokeColour, juce::var(m_timeLine_strokeColour), nullptr);
         themeState.setProperty(IDs::timeLineShadowShade, juce::var(m_timeLine_shadowShade), nullptr);
@@ -226,9 +226,9 @@ public:
         {
             return juce::Colour::fromString(juce::String(m_menuBackgroundColour));
         }
-        juce::Colour getBackgroundColour()
+        juce::Colour getMainFrameColour()
         {
-            return juce::Colour::fromString(juce::String(m_backgroundColour));
+            return juce::Colour::fromString(juce::String(m_mainFrameColour));
         }
         juce::Colour getTextColour()
         {
@@ -409,7 +409,7 @@ public:
                                     m_renderDir,
                                     m_projectsDir,
                                     m_menuBackgroundColour,
-                                    m_backgroundColour,
+                                    m_mainFrameColour,
                                     m_primeColour,
                                     m_borderColour,
                                     m_timeLine_strokeColour,

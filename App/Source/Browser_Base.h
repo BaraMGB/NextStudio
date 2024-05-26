@@ -35,7 +35,7 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        g.fillAll(m_appState.getBackgroundColour());
+        g.fillAll(m_appState.getMenuBackgroundColour());
         g.setColour(m_appState.getBorderColour());
         g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
     }
@@ -68,6 +68,7 @@ BrowserListBox(BrowserBaseComponent& sbc, ApplicationViewState& appState)
     : m_browser(sbc)
     , m_appState(appState)
     {}
+
     juce::File getSelectedFile();
 
 private:
@@ -88,6 +89,13 @@ class BrowserBaseComponent : public juce::Component
 public:
     BrowserBaseComponent(ApplicationViewState& avs);
     ~BrowserBaseComponent() override;
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll(m_applicationViewState.getMenuBackgroundColour());
+        g.setColour(m_applicationViewState.getBorderColour());
+        g.drawHorizontalLine(m_sortingBox.getY() + m_sortingBox.getHeight(), 0, getWidth());
+    }
     int getNumRows() override { return m_contentList.size (); }
 
     juce::Array<juce::File> &getContentList() { return m_contentList; }

@@ -105,7 +105,7 @@ SamplePreviewComponent::~SamplePreviewComponent()
 }
 void SamplePreviewComponent::paint(juce::Graphics &g) 
 {
-    g.setColour (m_avs.getBackgroundColour());
+    g.setColour (m_avs.getMenuBackgroundColour());
     g.fillRect (getLocalBounds ());
 
     auto area = getLocalBounds ();
@@ -113,7 +113,7 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
 
     auto thumbnailHeight = (getHeight() - 30) / 2;
     auto thumbRect = area.removeFromTop(thumbnailHeight);
-    g.setColour(m_avs.getBackgroundColour());
+    g.setColour(m_avs.getMenuBackgroundColour());
     g.fillRect(thumbRect);
     g.setColour(m_avs.getMenuBackgroundColour());
     thumbRect.reduce(4, 4);
@@ -276,7 +276,7 @@ void SamplePreviewComponent::updateButtonColours()
         auto playBtnColour = isPlaying ? juce::Colour(0xff959595) : juce::Colour(0xff474747);
         auto stopBtnColour = isPlaying ? juce::Colour(0xff959515) : juce::Colour(0xff474747);
         auto syncBtnColour = sync ? juce::Colour(0xff959515) : juce::Colour(0xff474747);
-        auto loop = m_avs.m_previewLoop ? m_avs.getPrimeColour().withAlpha(.3f) : m_avs.getBackgroundColour();
+        auto loop = m_avs.m_previewLoop ? m_avs.getPrimeColour().withAlpha(.3f) : m_avs.getMainFrameColour();
         // m_stopBtn.setColour(juce::TextButton::buttonColourId,stopBtnColour );
         m_playBtn.setColour(juce::TextButton::buttonColourId, playBtnColour);
         m_syncTempoBtn.setColour(juce::TextButton::buttonColourId, syncBtnColour);

@@ -80,7 +80,7 @@ void HeaderComponent::paint(juce::Graphics &g)
     g.setColour(m_applicationState.getMenuBackgroundColour());
     g.fillRect (area);
 
-    GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_applicationState.getBackgroundColour(), m_applicationState.getBorderColour());  
+    GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_applicationState.getMainFrameColour(), m_applicationState.getBorderColour());  
 }
 
 void HeaderComponent::resized()

@@ -134,7 +134,7 @@ public:
         m_trackHeightMinimized.referTo (m_state, IDs::trackMinimized, um, 30);
         m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
         m_trackDefaultHeight.referTo(m_state, IDs::headerHeight, um, 50);
-        m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 250);
+        m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 290);
         m_folderTrackHeight.referTo(m_state, IDs::folderTrackHeight, um, 30);
         m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
         m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);

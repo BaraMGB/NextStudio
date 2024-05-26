@@ -189,7 +189,7 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
     g.drawVerticalLine (getTrackListRect ().getRight (),
                         getTimeLineRect ().getY (),
                         getTimeLineRect ().getBottom ());
-    auto background = m_editViewState.m_applicationState.getBackgroundColour();
+    auto background = m_editViewState.m_applicationState.getMainFrameColour();
 
     auto stroke = m_dragOver ? m_editViewState.m_applicationState.getPrimeColour() : m_editViewState.m_applicationState.getBorderColour();
     GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), background, stroke);
@@ -203,7 +203,9 @@ void EditComponent::resized()
     m_timeLine.setBounds(getTimeLineRect());
     m_trackListView.setBounds(getTrackListRect());
     m_trackListView.resized();
-    m_trackListToolsMenu.setBounds(getTrackListToolsRect().removeFromRight(getTrackListToolsRect().getWidth()/2));
+    auto rect = getTrackListToolsRect().removeFromRight(getTrackListToolsRect().getWidth()/2);
+    rect.removeFromRight(10);
+    m_trackListToolsMenu.setBounds(rect);
     m_trackListToolsMenu.resized();
     m_trackListControlMenu.setBounds(getTrackListToolsRect().removeFromLeft(getTrackListToolsRect().getWidth()/2));
     m_trackListControlMenu.resized();
@@ -612,7 +614,7 @@ void EditComponent::itemDropped (const SourceDetails& dragSourceDetails)
         f = b->getSelectedFile();
 
     if (f.existsAsFile())
-        if (auto mc = dynamic_cast<MainComponent*>(getParentComponent()))
+        if (auto mc = dynamic_cast<MainComponent*>(getParentComponent()->getParentComponent()))
             mc->setupEdit(f);
 
     repaint();

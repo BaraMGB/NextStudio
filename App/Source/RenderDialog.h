@@ -270,7 +270,7 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(m_evs.m_applicationState.getBackgroundColour());
+        g.fillAll(m_evs.m_applicationState.getMenuBackgroundColour());
     }
 
     void resized() override

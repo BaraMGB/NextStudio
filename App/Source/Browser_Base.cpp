@@ -71,7 +71,6 @@ BrowserBaseComponent::BrowserBaseComponent(ApplicationViewState &appState)
     addAndMakeVisible (m_listBox);
     m_listBox.setModel (this);
     m_listBox.setRowHeight (20);
-    m_listBox.setColour (juce::ListBox::ColourIds::backgroundColourId, m_applicationViewState.getBackgroundColour());
     addAndMakeVisible(m_searchField);
     m_searchField.addChangeListener(this);
 

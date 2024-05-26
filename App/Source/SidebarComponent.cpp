@@ -95,7 +95,7 @@ void SidebarComponent::paintOverChildren(juce::Graphics& g)
     g.drawVerticalLine(m_menu.getWidth() -1, 0, getHeight());
     g.drawHorizontalLine(CONTENT_HEADER_HEIGHT, m_menu.getWidth(), getWidth());
     g.drawHorizontalLine(getHeight() - CONTENT_HEADER_HEIGHT, m_menu.getWidth(), getWidth());
-    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getBackgroundColour(),m_appState.getBorderColour());
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(),m_appState.getBorderColour());
 }
 
 void SidebarComponent::resized() 
@@ -105,8 +105,6 @@ void SidebarComponent::resized()
     m_menu.setBounds(area.removeFromLeft(70));
     area.removeFromTop(CONTENT_HEADER_HEIGHT);
     area.removeFromBottom(CONTENT_HEADER_HEIGHT);
-
-    area.reduce(2, 2);
 
     if (m_settingsView.isVisible())
     {

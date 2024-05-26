@@ -31,23 +31,23 @@ public:
         : m_appState(appState)
     {
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xffff00ff));
-        setColour(juce::TextButton::buttonColourId , m_appState.getBackgroundColour());
+        setColour(juce::TextButton::buttonColourId , m_appState.getMainFrameColour());
         setColour(juce::TextButton::textColourOnId, m_appState.getTextColour());
-        setColour(juce::DrawableButton::backgroundColourId, m_appState.getBackgroundColour());
-        setColour(juce::PopupMenu::backgroundColourId, juce::Colours::red);
+        setColour(juce::DrawableButton::backgroundColourId, m_appState.getMainFrameColour());
+        setColour(juce::PopupMenu::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::TabbedComponent::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
-        setColour(juce::ListBox::backgroundColourId, m_appState.getBackgroundColour());
+        setColour(juce::ListBox::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::Slider::thumbColourId, m_appState.getTextColour());
-        setColour (juce::TableListBox::ColourIds::backgroundColourId, m_appState.getBackgroundColour());
+        setColour (juce::TableListBox::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour (juce::Label::ColourIds::textColourId, m_appState.getTextColour());
-        setColour (juce::TextEditor::ColourIds::backgroundColourId, m_appState.getBackgroundColour());
+        setColour (juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMainFrameColour());
 
         setColour(juce::TooltipWindow::outlineColourId, m_appState.getBorderColour());
-        setColour(juce::TooltipWindow::backgroundColourId, m_appState.getBackgroundColour());
+        setColour(juce::TooltipWindow::backgroundColourId, m_appState.getMainFrameColour());
         setColour(juce::TooltipWindow::textColourId, m_appState.getTextColour());
 
-        setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_appState.getBackgroundColour());
+        setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_appState.getMainFrameColour());
         setColour(juce::TableHeaderComponent::ColourIds::textColourId, m_appState.getTextColour());
         setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, m_appState.getBorderColour());
         setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, m_appState.getPrimeColour());
@@ -103,9 +103,8 @@ public:
 
         auto alpha = group.isEnabled() ? 1.0f : 0.5f;
 
-        // g.setColour (group.findColour (juce::GroupComponent::outlineColourId)
-        //              .withMultipliedAlpha (alpha));
-        g.setColour(m_appState.getMenuBackgroundColour());
+        g.setColour (group.findColour (juce::GroupComponent::outlineColourId)
+                     .withMultipliedAlpha (alpha));
         g.strokePath (p, juce::PathStrokeType (1.0f));
 
         // g.fillPath(p);
@@ -124,14 +123,15 @@ public:
         if (tbb.getToggleState() == false)
         {
             g.setColour (m_appState.getBorderColour());
-            g.drawRect(tbb.getLocalBounds());
-            g.setColour (m_appState.getTextColour().withAlpha(0.7f));
+            g.drawLine(tbb.getLocalBounds().getWidth(), 0, tbb.getLocalBounds().getWidth(), tbb.getLocalBounds().getHeight());
+            g.setColour (m_appState.getTextColour().withAlpha(0.4f));
             g.drawFittedText (tbb.getButtonText(), 0, 0, tbb.getWidth(), tbb.getHeight(), juce::Justification::centred, 1);
         }
         else
         {
-            g.setColour(m_appState.getBackgroundColour());
-            g.fillRect(tbb.getLocalBounds());
+            g.fillAll(m_appState.getMenuBackgroundColour());
+            g.setColour (m_appState.getBorderColour());
+            g.drawLine(tbb.getLocalBounds().getWidth(), 0, tbb.getLocalBounds().getWidth(), tbb.getLocalBounds().getHeight());
             g.setColour (m_appState.getTextColour());
             g.drawFittedText (tbb.getButtonText(), 0, 0, tbb.getWidth(), tbb.getHeight(), juce::Justification::centred, 1);
         }
@@ -273,7 +273,7 @@ public:
         juce::Point<float> startPoint(rx, ry); 
         juce::Point<float> endPoint(rx, ry + rw); 
 
-        juce::ColourGradient gradient(m_appState.getBackgroundColour().darker(.8f), startPoint, m_appState.getBackgroundColour(), endPoint, false);
+        juce::ColourGradient gradient(m_appState.getMainFrameColour().darker(.8f), startPoint, m_appState.getMainFrameColour(), endPoint, false);
         g.setGradientFill(gradient);
         g.strokePath(backgroundArc, juce::PathStrokeType(lineW-2, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
 

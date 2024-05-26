@@ -57,11 +57,11 @@ public:
         , m_pluginBrowser(engine, appState)
     {
         setOutline(0);
-        m_keyMappingEditor.setColours(appState.getBackgroundColour(), appState.getTextColour());
-        addTab("Audio", appState.getBackgroundColour(), &m_audioSettings, true);
-        addTab("MIDI", appState.getBackgroundColour(), &m_midiSettings, true);
-        addTab("Plugins",appState.getBackgroundColour(), &m_pluginBrowser, true);
-        addTab("Keys", appState.getBackgroundColour(), &m_keyMappingEditor, true);
+        m_keyMappingEditor.setColours(appState.getMenuBackgroundColour(), appState.getTextColour());
+        addTab("Audio", appState.getMenuBackgroundColour(), &m_audioSettings, true);
+        addTab("MIDI", appState.getMenuBackgroundColour(), &m_midiSettings, true);
+        addTab("Plugins",appState.getMenuBackgroundColour(), &m_pluginBrowser, true);
+        addTab("Keys", appState.getMenuBackgroundColour(), &m_keyMappingEditor, true);
     }
 
 private:

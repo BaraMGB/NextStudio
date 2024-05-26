@@ -61,9 +61,9 @@ MainComponent::~MainComponent()
 
 void MainComponent::paint (juce::Graphics& g)
 {
-    g.setColour (m_applicationState.getBackgroundColour());
+    g.setColour (m_applicationState.getMainFrameColour());
     g.fillRect (getLocalBounds ());
-    }
+}
 
 void MainComponent::resized()
 {
