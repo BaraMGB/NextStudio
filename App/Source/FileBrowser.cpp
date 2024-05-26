@@ -43,7 +43,7 @@ void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int w
     auto file = m_contentList[rowNum];
     g.setColour (rowNum%2==0 ? m_applicationViewState.getMenuBackgroundColour() : m_applicationViewState.getMenuBackgroundColour().brighter(0.05f));
     g.fillRect(bounds);
-    g.setColour(m_applicationViewState.getBorderColour());
+    g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
 
     if (rowIsSelected)

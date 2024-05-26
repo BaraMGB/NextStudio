@@ -31,10 +31,6 @@ class SearchFieldComponent : public juce::Component
 public:
 
     SearchFieldComponent(ApplicationViewState& appState);
-    void paint(juce::Graphics& g) override
-    {
-        g.fillAll(m_appState.getMenuBackgroundColour());
-    }
 
     void resized() override;
     juce::String getText();

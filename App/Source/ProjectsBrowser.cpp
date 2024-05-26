@@ -81,6 +81,15 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState& evs, Applicati
     m_sortingBox.addItem(GUIHelpers::translate("by Name (z - a)", m_applicationViewState), 2);
     m_sortingBox.setSelectedId(1, juce::dontSendNotification);
 }
+
+void ProjectsBrowserComponent::paint (juce::Graphics& g) 
+{
+    BrowserBaseComponent::paint(g);
+    auto area = getLocalBounds();
+    auto prjButtons = area.removeFromTop(m_projectsMenu.getHeight());
+    g.drawHorizontalLine(prjButtons.getBottom(), 0, getWidth());
+}
+
 void ProjectsBrowserComponent::resized() 
 {
     auto area = getLocalBounds();
@@ -112,7 +121,7 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
     auto textColour = m_applicationViewState.getTextColour();
     g.setColour (rowNum%2==0 ? m_applicationViewState.getMenuBackgroundColour() : m_applicationViewState.getMenuBackgroundColour().brighter(0.05f));
     g.fillRect(bounds);
-    g.setColour(m_applicationViewState.getBorderColour());
+    g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
 
     if (rowIsSelected)

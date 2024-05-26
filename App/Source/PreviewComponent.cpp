@@ -109,7 +109,6 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
     g.fillRect (getLocalBounds ());
 
     auto area = getLocalBounds ();
-    area.removeFromTop(1);
 
     auto thumbnailHeight = (getHeight() - 30) / 2;
     auto thumbRect = area.removeFromTop(thumbnailHeight);
@@ -129,9 +128,9 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
     g.setColour(m_avs.getBorderColour());
     g.drawRect(labelrect);
 
+    g.drawHorizontalLine(0, 0, getWidth());
     g.drawHorizontalLine(thumbnailHeight, 0, getWidth());
     g.drawHorizontalLine(thumbnailHeight + 30, 0, getWidth());
-    g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
 }
 
 void SamplePreviewComponent::resized() 

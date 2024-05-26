@@ -31,9 +31,9 @@ public:
         : m_appState(appState)
     {
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xffff00ff));
-        setColour(juce::TextButton::buttonColourId , m_appState.getMainFrameColour());
+        setColour(juce::TextButton::buttonColourId , m_appState.getButtonBackgroundColour());
         setColour(juce::TextButton::textColourOnId, m_appState.getTextColour());
-        setColour(juce::DrawableButton::backgroundColourId, m_appState.getMainFrameColour());
+        setColour(juce::DrawableButton::backgroundColourId, m_appState.getButtonBackgroundColour());
         setColour(juce::PopupMenu::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::TabbedComponent::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
@@ -47,7 +47,7 @@ public:
         setColour(juce::TooltipWindow::backgroundColourId, m_appState.getMainFrameColour());
         setColour(juce::TooltipWindow::textColourId, m_appState.getTextColour());
 
-        setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_appState.getMainFrameColour());
+        setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::TableHeaderComponent::ColourIds::textColourId, m_appState.getTextColour());
         setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, m_appState.getBorderColour());
         setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, m_appState.getPrimeColour());
@@ -133,6 +133,9 @@ public:
             g.setColour (m_appState.getBorderColour());
             g.drawLine(tbb.getLocalBounds().getWidth(), 0, tbb.getLocalBounds().getWidth(), tbb.getLocalBounds().getHeight());
             g.setColour (m_appState.getTextColour());
+            auto font = g.getCurrentFont();
+            font.setUnderline(true);
+            g.setFont(font);
             g.drawFittedText (tbb.getButtonText(), 0, 0, tbb.getWidth(), tbb.getHeight(), juce::Justification::centred, 1);
         }
     }

@@ -65,6 +65,7 @@ namespace IDs
     DECLARE_ID (timeLineShadowShade)
     DECLARE_ID (timeLineTextColour)
     DECLARE_ID (timeLineBackgroundColour)
+    DECLARE_ID (ButtonBackgroundColour)
     DECLARE_ID (Behavior)
     DECLARE_ID (AutoSaveInterval)           
     DECLARE_ID (PreviewSliderPos)           
@@ -182,6 +183,7 @@ public:
         m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff9dae9d).toString());
         m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
         m_mainFrameColour.referTo (themeState, IDs::MainFrameColour, nullptr, juce::Colour(0xff343f34).toString());
+        m_buttonBackgroundColour.referTo(themeState, IDs::ButtonBackgroundColour, nullptr, juce::Colour(0xff000000).toString());
 
         m_timeLine_strokeColour.referTo(themeState, IDs::timeLineStrokeColour, nullptr,juce::Colour(0xffffffff).toString());
         m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr,juce::Colour(0x50000000).toString());
@@ -207,7 +209,7 @@ public:
         themeState.setProperty(IDs::timeLineShadowShade, juce::var(m_timeLine_shadowShade), nullptr);
         themeState.setProperty(IDs::timeLineTextColour, juce::var(m_timeLine_textColour), nullptr);
         themeState.setProperty(IDs::timeLineBackgroundColour, juce::var(m_timeLine_background), nullptr);
-
+        themeState.setProperty(IDs::ButtonBackgroundColour, juce::var(m_buttonBackgroundColour), nullptr);
         themeState.setProperty(IDs::trackBackgroundColour, juce::var(m_trackBackgroundColour), nullptr);
 
         behavior.setProperty(IDs::AutoSaveInterval, juce::var(m_autoSaveInterval), nullptr);
@@ -234,7 +236,10 @@ public:
         {
             return juce::Colours::beige;
         }
-
+        juce::Colour getButtonBackgroundColour()
+        {
+            return juce::Colour::fromString(juce::String(m_buttonBackgroundColour));
+        }
         juce::Colour getTimeLineStrokeColour()
         {
             return juce::Colour::fromString(juce::String(m_timeLine_strokeColour));
@@ -412,6 +417,7 @@ public:
                                     m_mainFrameColour,
                                     m_primeColour,
                                     m_borderColour,
+                                    m_buttonBackgroundColour,
                                     m_timeLine_strokeColour,
                                     m_timeLine_background,
                                     m_timeLine_shadowShade,

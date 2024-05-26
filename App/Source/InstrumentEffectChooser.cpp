@@ -155,7 +155,7 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
         }
     }
 
-    g.setColour(juce::Colours::lightgrey.withAlpha(0.3f));
+    g.setColour(m_appState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
     g.drawVerticalLine(width - 1, 0, height);
 }

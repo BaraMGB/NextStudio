@@ -21,6 +21,7 @@ void SampleBrowserComponent::resized()
     auto sortlabel = sortcomp.removeFromLeft(50);
     auto searchfield = area.removeFromBottom(30);
     area.removeFromTop(2);
+    area.removeFromBottom(2);
     auto list = area;
 
     m_sortLabel.setBounds(sortlabel);
@@ -40,7 +41,7 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
     auto textColour = m_applicationViewState.getTextColour();
     g.setColour (rowNum%2==0 ? m_applicationViewState.getMenuBackgroundColour() : m_applicationViewState.getMenuBackgroundColour().brighter(0.05f));
     g.fillRect(bounds);
-    g.setColour(m_applicationViewState.getBorderColour());
+    g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
 
     if (rowIsSelected)

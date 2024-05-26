@@ -95,6 +95,7 @@ public:
         g.fillAll(m_applicationViewState.getMenuBackgroundColour());
         g.setColour(m_applicationViewState.getBorderColour());
         g.drawHorizontalLine(m_sortingBox.getY() + m_sortingBox.getHeight(), 0, getWidth());
+        g.drawHorizontalLine(m_searchField.getY(), 0, getWidth());
     }
     int getNumRows() override { return m_contentList.size (); }
 

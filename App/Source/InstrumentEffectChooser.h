@@ -122,11 +122,14 @@ public:
         m_model.removeChangeListener(this);
     }
 
-    void paintOverChildren (juce::Graphics& g) override
+    void paint (juce::Graphics & g) override
     {
+        g.fillAll(m_appState.getMenuBackgroundColour());
         g.setColour(m_appState.getBorderColour());
-        g.drawHorizontalLine(getHeight() - m_searchField.getHeight(), 0, getWidth());
+        g.drawHorizontalLine(m_searchField.getY(), 0, getWidth());
     }
+
+
     void resized() override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 

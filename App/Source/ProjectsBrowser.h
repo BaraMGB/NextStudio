@@ -36,21 +36,7 @@ class ProjectsBrowserComponent : public BrowserBaseComponent
 public:
     ProjectsBrowserComponent(EditViewState& evs, ApplicationViewState& avs);
 
-    void paintOverChildren(juce::Graphics& g) override
-    {
-        auto area = getLocalBounds();
-        auto prjButtons = area.removeFromTop(m_projectsMenu.getHeight());
-        auto sortbox = area.removeFromTop(m_sortingBox.getHeight());
-        auto searchfield = area.removeFromBottom(m_searchField.getHeight());
-        auto list = area;
-
-        g.setColour(m_avs.getBorderColour());
-        g.drawHorizontalLine(prjButtons.getBottom(), 0, getWidth());
-        g.drawHorizontalLine(sortbox.getBottom(), 0, getWidth());
-        g.drawHorizontalLine(list.getBottom(), 0, getWidth());
-        g.drawHorizontalLine(searchfield.getBottom(), 0, getWidth());
-        
-    }
+    void paint (juce::Graphics& g) override;
     void resized() override;
     juce::var getDragSourceDescription (const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
