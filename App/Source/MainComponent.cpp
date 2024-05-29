@@ -532,7 +532,7 @@ void MainComponent::handleAsyncUpdate()
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
-    if (auto pro = dynamic_cast<ProjectsBrowserComponent*>(source))
+    if (auto pro = dynamic_cast<BrowserBaseComponent*>(source))
     {
         if (pro->m_projectToLoad.exists ())
         {

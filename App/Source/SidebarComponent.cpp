@@ -45,7 +45,10 @@ SidebarComponent::~SidebarComponent()
 {
 
     if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+    {
+        m_fileListBrowser.removeChangeListener(parent);
         m_projectsBrowser.removeChangeListener(parent);
+    }
     for (auto b : m_menu.getButtons())
         b->removeListener(this);
 }
@@ -130,7 +133,7 @@ void SidebarComponent::resized()
         auto bounds = area;
         if (m_samplePreview.isVisible())
         {
-            auto preview = area.removeFromBottom(100);
+            auto preview = area.removeFromBottom(180);
             m_samplePreview.setBounds(preview);
         }
         m_fileListBrowser.setBounds(area);
@@ -142,7 +145,7 @@ void SidebarComponent::resized()
         auto bounds = area;
         if (m_samplePreview.isVisible())
         {
-            auto preview = area.removeFromBottom(100);
+            auto preview = area.removeFromBottom(180);
             m_samplePreview.setBounds(preview);
         }
         m_sampleBrowser.setBounds(area);
@@ -224,7 +227,10 @@ void SidebarComponent::buttonClicked (juce::Button* button)
 void SidebarComponent::updateParentsListener()
 {
     if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+    {
+        m_fileListBrowser.addChangeListener(parent);
         m_projectsBrowser.addChangeListener(parent);
+    }
 }
 
 void SidebarComponent::setAllVisibleOff()

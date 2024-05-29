@@ -1536,7 +1536,7 @@ void SampleView::setFile(const tracktion_engine::AudioFile &file)
 void SampleView::paint(juce::Graphics &g)
 {
     auto r = getLocalBounds();
-    const auto colour = findColour (juce::Label::textColourId);
+    const auto colour = m_colour != juce::Colour() ? m_colour :findColour (juce::Label::textColourId);
 
     if (smartThumbnail.isGeneratingProxy())
     {

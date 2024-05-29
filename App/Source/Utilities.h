@@ -466,6 +466,10 @@ struct SampleView : public juce::Component
     explicit SampleView (te::TransportControl& tc);
 
     void setFile (const te::AudioFile& file);
+    void setColour(juce::Colour colour)
+    {
+        m_colour = colour;
+    }
     void paint (juce::Graphics& g) override;
 
     void mouseDown (const juce::MouseEvent& e) override;
@@ -473,6 +477,7 @@ struct SampleView : public juce::Component
     void mouseUp (const juce::MouseEvent&) override;
 
 private:
+    juce::Colour m_colour;
     te::TransportControl& transport;
     te::SmartThumbnail smartThumbnail {
         transport.engine

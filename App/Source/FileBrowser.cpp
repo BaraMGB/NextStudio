@@ -161,6 +161,12 @@ void FileBrowserComponent::listBoxItemDoubleClicked(int row, const juce::MouseEv
     auto clickedFile = m_contentList[row];
     if (e.mods.isLeftButtonDown() && clickedFile.isDirectory())
         m_currentPathField.setDir(clickedFile);
+
+    if (e.mods.isLeftButtonDown() && clickedFile.getFileName().contains(".tracktionedit"))
+    {
+        m_projectToLoad = clickedFile;
+        sendChangeMessage();
+    }
 }
 
 void FileBrowserComponent::selectedRowsChanged(int)

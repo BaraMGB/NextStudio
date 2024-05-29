@@ -176,6 +176,11 @@ void ProjectsBrowserComponent::listBoxItemClicked(int row, const juce::MouseEven
         {
         }
     }
+    else if (e.getNumberOfClicks() > 1)
+    {
+        m_projectToLoad = getContentList()[row];
+        sendChangeMessage ();
+    }
 }
 
 void ProjectsBrowserComponent::selectedRowsChanged(int)

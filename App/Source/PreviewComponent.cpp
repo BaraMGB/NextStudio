@@ -35,13 +35,16 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
     m_volumeSlider = std::make_unique<juce::Slider>();
     m_volumeSlider->setRange(.0f, 1.0f);
     m_volumeSlider->getValueObject().referTo(m_avs.m_previewSliderPos.getPropertyAsValue());
-    m_volumeSlider->setSliderStyle(juce::Slider::LinearBarVertical);
+    m_volumeSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     m_volumeSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
     m_volumeSlider->addListener(this);
+    m_volumeLabel.setText(GUIHelpers::translate("Volume", m_avs), juce::dontSendNotification);
     addAndMakeVisible(m_volumeSlider.get());
 
     addAndMakeVisible(m_fileName);
-    m_fileName.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(m_volumeLabel);
+    addAndMakeVisible(m_lenghtLabel);
+    m_fileName.setJustificationType(juce::Justification::left);
 
     Helpers::addAndMakeVisible(*this, {&m_playBtn, &m_stopBtn,&m_loopBtn, &m_syncTempoBtn});
 
@@ -105,72 +108,75 @@ SamplePreviewComponent::~SamplePreviewComponent()
 }
 void SamplePreviewComponent::paint(juce::Graphics &g) 
 {
+    auto area = getLocalBounds();
+
+    g.setColour (m_avs.getBorderColour());
+    g.fillRect(area.removeFromTop(1));
     g.setColour (m_avs.getMenuBackgroundColour());
-    g.fillRect (getLocalBounds ());
+    g.fillRect (area);
 
-    auto area = getLocalBounds ();
-
-    auto thumbnailHeight = (getHeight() - 30) / 2;
-    auto thumbRect = area.removeFromTop(thumbnailHeight);
-    g.setColour(m_avs.getMenuBackgroundColour());
-    g.fillRect(thumbRect);
-    g.setColour(m_avs.getMenuBackgroundColour());
-    thumbRect.reduce(4, 4);
-    g.fillRect(thumbRect);
     g.setColour(m_avs.getBorderColour());
-    g.drawRect(thumbRect);
-
-    auto labelHeight = 30;
-    auto labelrect = area.removeFromTop(labelHeight);
-    g.setColour(m_avs.getMenuBackgroundColour());
-    labelrect.reduce(4, 4);
-    g.fillRect(labelrect);
-    g.setColour(m_avs.getBorderColour());
-    g.drawRect(labelrect);
-
-    g.drawHorizontalLine(0, 0, getWidth());
-    g.drawHorizontalLine(thumbnailHeight, 0, getWidth());
-    g.drawHorizontalLine(thumbnailHeight + 30, 0, getWidth());
+    g.drawHorizontalLine(m_fileName.getBottom(), 0, getWidth());
+    g.drawHorizontalLine(m_fileName.getBottom() + 90 + 1, 0, getWidth());
+    g.drawHorizontalLine(m_playBtn.getBottom() + 3, 0, getWidth());
+    if (m_previewEdit)
+    {
+        g.setColour(m_avs.getSamplesColour().withAlpha(0.1f));
+        g.fillRect(m_thumbnail->getBounds());
+    }
 }
 
 void SamplePreviewComponent::resized() 
 {
-    auto area = getLocalBounds ();
-    area.removeFromTop(1);
+    auto area = getLocalBounds();
+    area.removeFromTop(2);
 
-    auto thumbnailHeight = (getHeight() - 30) / 2;
+    // Set height for file name label
+    auto labelHeight = 30;
+    auto labelRect = area.removeFromTop(labelHeight);
+    m_fileName.setBounds(labelRect.removeFromLeft(150));
+    m_lenghtLabel.setBounds(labelRect);
+
+    // Set height for thumbnail
+    auto thumbnailHeight = 90;
     auto thumbRect = area.removeFromTop(thumbnailHeight);
     thumbRect.reduce(4, 4);
     if (m_previewEdit)
-        m_thumbnail->setBounds (thumbRect);
+        m_thumbnail->setBounds(thumbRect);
 
-    auto labelHeight = 30;
-    auto labelrect = area.removeFromTop(labelHeight);
-    m_fileName.setBounds(labelrect);
 
-    auto buttonMenu = area;
 
-    auto sliderRect = buttonMenu.removeFromLeft(buttonMenu.getHeight());
-    sliderRect.reduce(2, 2);
-    m_volumeSlider->setBounds(sliderRect);
-    auto buttonwidth = buttonMenu.getHeight() ;
+    // Remaining area for buttons
+    auto buttonMenu = area.removeFromTop(40);
+    auto buttonWidth = 60; // Fixed button height
 
-    auto gapX = 1, gapY = 5;
-    auto sync = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
-    auto loop = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
-    auto stop = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
-    auto play = buttonMenu.removeFromLeft (buttonwidth).reduced(gapX, gapY);
-    m_syncTempoBtn.setBounds(sync);
+    // Define gaps
+    auto gapX = 5, gapY = 5;
+
+    buttonMenu.removeFromBottom(5);
+    // Set bounds for buttons
+    auto play = buttonMenu.removeFromLeft(buttonWidth).reduced(gapX, gapY);
+    auto stop = buttonMenu.removeFromLeft(buttonWidth).reduced(gapX, gapY);
+    auto loop = buttonMenu.removeFromLeft(buttonWidth).reduced(gapX, gapY);
+    // auto sync = buttonMenu.removeFromLeft(buttonHeight).reduced(gapX, gapY);
+
+    // m_syncTempoBtn.setBounds(sync);
     m_loopBtn.setBounds(loop);
     m_stopBtn.setBounds(stop);
     m_playBtn.setBounds(play);
 
+    // Set height for volume slider
+    auto volumeSliderHeight = 30;
+    auto volumeSliderRect = area.removeFromTop(volumeSliderHeight);
+    auto volumeLabelRect = volumeSliderRect.removeFromLeft(60);
+    volumeSliderRect = volumeSliderRect.removeFromLeft(100);
+    volumeSliderRect.reduce(4, 4);
+    m_volumeLabel.setBounds(volumeLabelRect);
+    m_volumeSlider->setBounds(volumeSliderRect);
     updateButtonColours();
-
 
     repaint();
 }
-
 void SamplePreviewComponent::sliderValueChanged(juce::Slider *slider) 
 {
     if (slider == m_volumeSlider.get ())
@@ -243,6 +249,11 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
         return false;
 
     auto lenght = audioFile.getLength();
+    auto lenghtStr = juce::String::formatted("%.2f",lenght);
+
+    m_lenghtLabel.setText( lenghtStr + "s", juce::dontSendNotification);
+    m_lenghtLabel.setFont(10);
+    m_lenghtLabel.setJustificationType(juce::Justification::centredRight);
 
     m_file = file;
     m_fileName.setText(m_file.getFileName(), juce::sendNotification);
@@ -261,6 +272,7 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
     
     m_thumbnail = std::make_unique<SampleView>(m_previewEdit->getTransport ());
     m_thumbnail->setFile (audioFile);
+    m_thumbnail->setColour(m_avs.getSamplesColour());
     addAndMakeVisible (*m_thumbnail);
     resized ();
 

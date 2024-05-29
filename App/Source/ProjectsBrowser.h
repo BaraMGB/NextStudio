@@ -31,7 +31,6 @@
 
 namespace te = tracktion_engine;
 class ProjectsBrowserComponent : public BrowserBaseComponent
-                               , public juce::ChangeBroadcaster
 {
 public:
     ProjectsBrowserComponent(EditViewState& evs, ApplicationViewState& avs);
@@ -45,7 +44,6 @@ public:
     void selectedRowsChanged(int /*lastRowSelected*/) override;
 
 
-    juce::File m_projectToLoad{};
 
 private:
     juce::DrawableButton m_loadProjectButton

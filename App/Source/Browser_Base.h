@@ -82,6 +82,7 @@ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrowserListBox)
 //
 // ----------------------------------------------------------------------------------------------------
 class BrowserBaseComponent : public juce::Component
+                               , public juce::ChangeBroadcaster
         , private juce::ComboBox::Listener
         , public juce::ListBoxModel
         , public juce::ChangeListener
@@ -106,6 +107,7 @@ public:
 
     juce::ListBox& getListBox(){ return m_listBox; }
 
+    juce::File m_projectToLoad{};
 protected:
     virtual void sortList(int selectedID) = 0;
     void updateContentList();

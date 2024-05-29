@@ -39,6 +39,9 @@ public:
         setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
         setColour(juce::ListBox::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour(juce::Slider::thumbColourId, m_appState.getTextColour());
+        setColour(juce::Slider::trackColourId, m_appState.getTextColour());
+        setColour(juce::Slider::backgroundColourId, m_appState.getTextColour().withAlpha(0.3f));
+
         setColour (juce::TableListBox::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
         setColour (juce::Label::ColourIds::textColourId, m_appState.getTextColour());
         setColour (juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMainFrameColour());
@@ -216,6 +219,9 @@ public:
             g.fillRoundedRectangle(slider, 3);
             g.setColour(juce::Colours::black);
             g.drawRoundedRectangle(slider.toFloat(), 3,1);
+        }
+        else {
+            juce::LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
         }
     }
 
