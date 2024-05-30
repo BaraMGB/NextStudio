@@ -33,7 +33,7 @@ SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandM
         b->addListener(this);
 
     m_settingsView.setIndent(10);
-    m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav" ) );
+    m_sampleBrowser.setFileList(findAudioFiles(juce::File(m_appState.m_samplesDir)));
     m_projectsBrowser.setFileList(juce::File(m_appState.m_projectsDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit" ) );
     m_fileListBrowser.setFileList(juce::File(m_appState.m_workDir).findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories , false ) );
 
@@ -271,4 +271,51 @@ void SidebarComponent::setAllVisibleOff()
         m_renderComponent.reset();
     }
 
+}
+
+juce::Array<juce::File> SidebarComponent::findAudioFiles(const juce::File& directory)
+{
+      juce::Array<juce::File> audioFiles;
+
+    // Check if the provided File object is a directory
+    if (!directory.isDirectory())
+    {
+        // If not, return an empty array
+        return audioFiles;
+    }
+
+    // Initialize the AudioFormatManager and register basic formats
+    juce::AudioFormatManager formatManager;
+    formatManager.registerBasicFormats();
+
+    // Define valid audio file extensions
+    std::unordered_set<juce::String> validExtensions = { ".wav", ".WAV", ".mp3", ".MP3", ".aiff", ".AIFF", ".flac", ".FLAC", ".ogg", ".OGG", ".m4a", ".M4A" };
+
+    // Find all files in the directory and its subdirectories
+    juce::Array<juce::File> allFiles = directory.findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*");
+
+    // Use a set to track unique files
+    std::unordered_set<juce::String> uniqueFiles;
+
+    for (const auto& file : allFiles)
+    {
+        // Check if the file has a valid audio extension
+        if (validExtensions.find(file.getFileExtension()) != validExtensions.end())
+        {
+            // Attempt to create a reader for the file
+            std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
+            
+            if (reader != nullptr)
+            {
+                // If reader is valid and file is unique, add to audioFiles
+                if (uniqueFiles.find(file.getFullPathName()) == uniqueFiles.end())
+                {
+                    audioFiles.add(file);
+                    uniqueFiles.insert(file.getFullPathName());
+                }
+            }
+        }
+    }
+
+    return audioFiles;
 }

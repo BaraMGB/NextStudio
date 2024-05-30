@@ -48,7 +48,7 @@ public:
     void updateParentsListener();
 
 private:
-
+    juce::Array<juce::File> findAudioFiles(const juce::File& directory);
     void setAllVisibleOff();
     int m_cachedSidebarWidth {0};
     juce::String m_lastClickedButton;
