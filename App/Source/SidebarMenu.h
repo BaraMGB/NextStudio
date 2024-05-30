@@ -46,37 +46,38 @@ public:
     {
         const auto margin = 7;
 
-        addButton(&m_projectsButton);
+        addButton(&m_projectsButton, 1);
         GUIHelpers::setDrawableOnButton(m_projectsButton, BinaryData::projectsButton_svg, m_appState.getProjectsColour());
         m_projectsButton.setTooltip(GUIHelpers::translate("handle projects", m_appState));
         m_projectsButton.setEdgeIndent(margin);
+        m_projectsButton.setToggleState(true, juce::dontSendNotification);
 
-        addButton(&m_instrumentsButton);
+        addButton(&m_instrumentsButton, 1);
         GUIHelpers::setDrawableOnButton(m_instrumentsButton, BinaryData::presetsButton_svg,m_appState.getInstrumentsColour());
         m_instrumentsButton.setTooltip(GUIHelpers::translate("instrument plugins", m_appState));
         m_instrumentsButton.setEdgeIndent(margin);
 
-        addButton(&m_samplesButton);
+        addButton(&m_samplesButton, 1);
         GUIHelpers::setDrawableOnButton(m_samplesButton, BinaryData::samplesButton_svg,m_appState.getSamplesColour());
         m_samplesButton.setTooltip(GUIHelpers::translate("samples", m_appState));
         m_samplesButton.setEdgeIndent(margin);
 
-        addButton(&m_effectsButton);
+        addButton(&m_effectsButton, 1);
         GUIHelpers::setDrawableOnButton(m_effectsButton, BinaryData::pluginsButton_svg, m_appState.getEffectsColour());
         m_effectsButton.setTooltip(GUIHelpers::translate("effect plugins", m_appState));
         m_effectsButton.setEdgeIndent(margin);
 
-        addButton(&m_homeButton);
+        addButton(&m_homeButton, 1);
         GUIHelpers::setDrawableOnButton(m_homeButton, BinaryData::homeButton_svg, m_appState.getHomeColour());
         m_homeButton.setTooltip(GUIHelpers::translate("home folder file browser", m_appState));
         m_homeButton.setEdgeIndent(margin);
 
-        addButton(&m_settingsButton);
+        addButton(&m_settingsButton, 1);
         GUIHelpers::setDrawableOnButton(m_settingsButton, BinaryData::settingsButton_svg, m_appState.getSettingsColour());
         m_settingsButton.setTooltip(GUIHelpers::translate("opens settings", m_appState));
         m_settingsButton.setEdgeIndent(margin);
 
-        addButton(&m_renderButton);
+        addButton(&m_renderButton, 1);
         GUIHelpers::setDrawableOnButton(m_renderButton, BinaryData::renderButton_svg, m_appState.getRenderColour());
         m_renderButton.setTooltip(GUIHelpers::translate("render project", m_appState));
         m_renderButton.setEdgeIndent(margin);

@@ -171,56 +171,76 @@ void SidebarComponent::resized()
 }
 void SidebarComponent::buttonClicked (juce::Button* button)
 {
-    std::cout << "button clicked: " << button->getName() << std::endl;
-    if (auto db = dynamic_cast<juce::DrawableButton*>(button))
+
+    setAllVisibleOff();
+    auto parent = dynamic_cast<MainComponent*>(getParentComponent());
+    if (parent)
     {
-        db->getNormalImage()->replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
+        if (auto db = dynamic_cast<juce::DrawableButton*>(button))
+        {
+            db->getNormalImage()->replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
+        }
+
+        if (m_lastClickedButton == button->getName())
+        {
+            if (!m_appState.m_sidebarCollapsed)
+                m_cachedSidebarWidth = m_appState.m_sidebarWidth;
+            m_appState.m_sidebarCollapsed = !m_appState.m_sidebarCollapsed;
+        }
+        else {
+            m_appState.m_sidebarCollapsed = false;
+            if (m_cachedSidebarWidth == 0)
+                m_cachedSidebarWidth = m_appState.m_sidebarWidth;
+        }
+
+        if (m_appState.m_sidebarCollapsed)
+        {
+            m_appState.m_sidebarWidth = m_menu.getWidth();
+        }
+        else 
+        {
+            m_appState.m_sidebarWidth = m_cachedSidebarWidth;
+            if (m_appState.m_sidebarWidth < m_appState.m_minSidebarWidth)
+            {
+                m_appState.m_sidebarWidth = m_appState.m_minSidebarWidth;
+            }
+
+            if (button->getName() == "Settings")
+            {
+                m_settingsView.setVisible(true);
+            }
+            else if (button->getName() == "Instruments")
+            {
+                m_instrumentList.setVisible(true);
+            }
+            else if (button->getName() == "Samples")
+            {
+                m_sampleBrowser.setVisible(true);
+                m_samplePreview.setVisible(true);
+            }
+            else if (button->getName() == "Projects")
+            {
+                m_projectsBrowser.setVisible(true);
+            }
+            else if (button->getName() == "Effects")
+            {
+                m_effectList.setVisible(true);
+            }
+            else if (button->getName() == "Render")
+            {
+                m_renderComponent = std::make_unique<RenderDialog>(m_evs);
+            }
+            else if (button->getName() == "Home")
+            {
+                m_fileListBrowser.setVisible(true);
+                m_samplePreview.setVisible(true);
+            }
+        }
+        parent->resized();
     }
 
-    if (button->getName() == "Settings")
-    {
-        setAllVisibleOff();
-        m_settingsView.setVisible(true);
-        resized();
-    }
-    else if (button->getName() == "Instruments")
-    {
-        setAllVisibleOff();
-        m_instrumentList.setVisible(true);
-        resized();
-    }
-    else if (button->getName() == "Samples")
-    {
-        setAllVisibleOff();
-        m_sampleBrowser.setVisible(true);
-        m_samplePreview.setVisible(true);
-        resized();
-    }
-    else if (button->getName() == "Projects")
-    {
-        setAllVisibleOff();
-        m_projectsBrowser.setVisible(true);
-        resized();
-    }
-    else if (button->getName() == "Effects")
-    {
-        setAllVisibleOff();
-        m_effectList.setVisible(true);
-        resized();
-    }
-    else if (button->getName() == "Render")
-    {
-        setAllVisibleOff();
-        m_renderComponent = std::make_unique<RenderDialog>(m_evs);
-        resized();
-    }
-    else if (button->getName() == "Home")
-    {
-        setAllVisibleOff();
-        m_fileListBrowser.setVisible(true);
-        m_samplePreview.setVisible(true);
-        resized();
-    }
+    resized();
+    m_lastClickedButton = button->getName();
 
 }
 

@@ -76,7 +76,6 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
-    // bool keyPressed(const juce::KeyPress &key) override;
 
     bool keyStateChanged(bool isKeyDown) override ;
     ApplicationCommandTarget* getNextCommandTarget() override   { return nullptr; }
@@ -91,7 +90,6 @@ public:
 
     void setupEdit (juce::File = {});
     bool handleUnsavedEdit();
-
 
 private:
 
@@ -130,13 +128,14 @@ private:
     std::unique_ptr<EditorContainer>                    m_editorContainer;
     std::unique_ptr<LowerRangeComponent>                m_lowerRange;
     std::unique_ptr<SidebarComponent>                   m_sideBarBrowser;
+    SplitterComponent                                   m_sidebarSplitter;
 
-    juce::StretchableLayoutManager                      m_stretchableManager;
-    juce::StretchableLayoutResizerBar                   m_resizerBar
-                                {&m_stretchableManager, 1, true};
     [[maybe_unused]] bool                               m_settingsLoaded {false};
     bool                                                m_saveTemp{false}, m_updateView{false}, m_updateSource{false};
     bool m_hasUnsavedTemp {true};
+
+    int m_sidebarWidthAtMousedown; 
+
     juce::File m_tempDir;
     juce::Array<juce::KeyPress> m_pressedKeysForMidiKeyboard;
     juce::TooltipWindow tooltipWindow{this, 500};

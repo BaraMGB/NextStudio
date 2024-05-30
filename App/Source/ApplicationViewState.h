@@ -67,9 +67,11 @@ namespace IDs
     DECLARE_ID (timeLineBackgroundColour)
     DECLARE_ID (ButtonBackgroundColour)
     DECLARE_ID (Behavior)
-    DECLARE_ID (AutoSaveInterval)           
-    DECLARE_ID (PreviewSliderPos)           
+    DECLARE_ID (AutoSaveInterval)
+    DECLARE_ID (SidebarWidth)
+    DECLARE_ID (PreviewSliderPos)
     DECLARE_ID (PreviewLoop)
+    DECLARE_ID (SidebarCollapsed)
     #undef DECLARE_ID
 }
 
@@ -198,8 +200,10 @@ public:
 
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
+        m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, 300);
         m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 0);
         m_previewLoop.referTo (behavior, IDs::PreviewLoop, nullptr, false);
+        m_sidebarCollapsed.referTo(behavior, IDs::SidebarCollapsed, nullptr, false);
 
         themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
         themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
@@ -432,8 +436,11 @@ public:
                                     m_windowWidth,
                                     m_windowHeight,
                                     m_folderTrackIndent,
-                                    m_autoSaveInterval;
+                                    m_autoSaveInterval,
+                                    m_sidebarWidth;
     juce::CachedValue<float>        m_previewSliderPos;
-    juce::CachedValue<bool>         m_previewLoop;
+    juce::CachedValue<bool>         m_previewLoop,
+                                    m_sidebarCollapsed;
+    const int                       m_minSidebarWidth {250};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ApplicationViewState)
 };

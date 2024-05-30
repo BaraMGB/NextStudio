@@ -178,9 +178,9 @@ public:
         const juce::Rectangle<int> area = button.getLocalBounds ().reduced(1);
 
         auto buttonColour = backgroundColour;
-        if (button.isDown ())
+        if (button.isDown () || button.getToggleState())
         {
-            buttonColour = buttonColour.darker (0.4f);
+            buttonColour = buttonColour.darker (0.7f);
         }
 
         auto cornerSize = 7.0f;
@@ -191,14 +191,19 @@ public:
 
         g.setColour(buttonColour);
         g.fillRoundedRectangle (area.toFloat (), cornerSize);
-
-        auto borderColour = juce::Colour(0xff888888);
+        auto stroke = 1.f;
+        auto borderColour = m_appState.getBorderColour();
         if (button.isDown ())
         {
             borderColour = borderColour.darker (0.4f);
         }
+        if (button.getToggleState())
+        {
+            stroke = 2.f;
+            borderColour = borderColour.brighter(0.8f);
+        }
         g.setColour(borderColour);
-        g.drawRoundedRectangle (area.toFloat (), cornerSize, 1.f);
+        g.drawRoundedRectangle (area.toFloat (), cornerSize, stroke);
     }
 
 

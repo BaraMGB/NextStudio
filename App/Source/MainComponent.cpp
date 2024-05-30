@@ -32,18 +32,29 @@
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
     , m_nextLookAndFeel(state)
+    , m_sidebarSplitter(false)
 {
     juce::Desktop::getInstance().setGlobalScaleFactor(1.1f);
     setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);
 
+    addAndMakeVisible(m_sidebarSplitter);
+    m_sidebarSplitter.onMouseDown = [this] ()
+    {
+        m_sidebarWidthAtMousedown = m_applicationState.m_sidebarWidth;
+    };
+
+    m_sidebarSplitter.onDrag = [this] (int dragDistance)
+    {
+        if (m_applicationState.m_sidebarCollapsed == false)
+        {
+            m_applicationState.m_sidebarWidth = juce::jmax(m_applicationState.m_minSidebarWidth , m_sidebarWidthAtMousedown + dragDistance);
+            resized();
+        }
+    };
+
     openValidStartEdit();
 
-    addAndMakeVisible (m_resizerBar);
-
-    m_stretchableManager.setItemLayout (0, -0.05, -0.9, -0.25);
-    m_stretchableManager.setItemLayout (1, 10, 10, 10);
-    m_stretchableManager.setItemLayout (2, -0.1, -0.9, -0.85);
     m_commandManager.registerAllCommandsForTarget(this);
     m_commandManager.registerAllCommandsForTarget(m_editComponent.get());
     m_commandManager.registerAllCommandsForTarget(&m_editComponent->getTrackListView());
@@ -73,18 +84,9 @@ void MainComponent::resized()
     auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
                        ? m_editComponent->getEditViewState().m_midiEditorHeight
             : 250);
-    Component* comps[] = {
-        m_sideBarBrowser.get()
-      , &m_resizerBar
-      , m_editorContainer.get()};
-    m_stretchableManager.layOutComponents (
-                comps
-              , 3
-              , area.getX()
-              , area.getY()
-              , area.getWidth()
-              , area.getHeight()
-              , false, true);
+    m_sideBarBrowser->setBounds(area.removeFromLeft(m_applicationState.m_sidebarWidth));
+    m_sidebarSplitter.setBounds(area.removeFromLeft(10));
+    m_editorContainer->setBounds(area);
     m_lowerRange->setBounds(lowerRange);
 }
 

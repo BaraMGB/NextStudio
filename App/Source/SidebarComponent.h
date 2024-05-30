@@ -50,6 +50,8 @@ public:
 private:
 
     void setAllVisibleOff();
+    int m_cachedSidebarWidth {0};
+    juce::String m_lastClickedButton;
     EditViewState& m_evs;
     ApplicationViewState& m_appState;
     te::Engine& m_engine;

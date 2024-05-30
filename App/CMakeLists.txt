@@ -94,6 +94,7 @@ target_sources(${TargetName} PRIVATE
         Source/FileBrowser.cpp
         Source/ProjectsBrowser.cpp
         Source/Browser_Base.cpp
+        Source/SplitterComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
