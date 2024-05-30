@@ -107,65 +107,69 @@ void SidebarComponent::resized()
     auto area = getLocalBounds();
 
     m_menu.setBounds(area.removeFromLeft(70));
-    area.removeFromTop(CONTENT_HEADER_HEIGHT);
-    area.removeFromBottom(CONTENT_HEADER_HEIGHT);
 
-    if (m_settingsView.isVisible())
+    if (m_appState.m_sidebarCollapsed == false)
     {
-        m_settingsView.setBounds(area);
-        m_headerName = "Settings";
-        m_headerColour = m_appState.getSettingsColour();
-    }
-    else if (m_instrumentList.isVisible())
-    {
-        m_instrumentList.setBounds(area);
-        m_headerName = "Instrument Plugins";
-        m_headerColour = m_appState.getInstrumentsColour();
-    }
-    else if (m_effectList.isVisible())
-    {
-        m_effectList.setBounds(area);
-        m_headerName = "Effect Plugins";
-        m_headerColour = m_appState.getEffectsColour();
-    }
-    else if (m_fileListBrowser.isVisible())
-    {
-        auto bounds = area;
-        if (m_samplePreview.isVisible())
+        area.removeFromTop(CONTENT_HEADER_HEIGHT);
+        area.removeFromBottom(CONTENT_HEADER_HEIGHT);
+
+        if (m_settingsView.isVisible())
         {
-            auto preview = area.removeFromBottom(180);
-            m_samplePreview.setBounds(preview);
+            m_settingsView.setBounds(area);
+            m_headerName = "Settings";
+            m_headerColour = m_appState.getSettingsColour();
         }
-        m_fileListBrowser.setBounds(area);
-        m_headerName = "Home Folder";
-        m_headerColour = m_appState.getHomeColour();
-    }
-    else if (m_sampleBrowser.isVisible())
-    {
-        auto bounds = area;
-        if (m_samplePreview.isVisible())
+        else if (m_instrumentList.isVisible())
         {
-            auto preview = area.removeFromBottom(180);
-            m_samplePreview.setBounds(preview);
+            m_instrumentList.setBounds(area);
+            m_headerName = "Instrument Plugins";
+            m_headerColour = m_appState.getInstrumentsColour();
         }
-        m_sampleBrowser.setBounds(area);
-        m_headerName = "Samples";
-        m_headerColour = m_appState.getSamplesColour();
-    }
-    else if (m_projectsBrowser.isVisible())
-    {
-        auto bounds = area;
-        m_projectsBrowser.setBounds(bounds);
-        m_headerColour = m_appState.getProjectsColour();
-        m_headerName = "Projects";
-    }
-    else if (m_renderComponent != nullptr) 
-    {
-        addAndMakeVisible(*m_renderComponent);
-        auto bounds = area;
-        m_renderComponent->setBounds(bounds);
-        m_headerColour = m_appState.getRenderColour();
-        m_headerName = "Render";
+        else if (m_effectList.isVisible())
+        {
+            m_effectList.setBounds(area);
+            m_headerName = "Effect Plugins";
+            m_headerColour = m_appState.getEffectsColour();
+        }
+        else if (m_fileListBrowser.isVisible())
+        {
+            auto bounds = area;
+            if (m_samplePreview.isVisible())
+            {
+                auto preview = area.removeFromBottom(180);
+                m_samplePreview.setBounds(preview);
+            }
+            m_fileListBrowser.setBounds(area);
+            m_headerName = "Home Folder";
+            m_headerColour = m_appState.getHomeColour();
+        }
+        else if (m_sampleBrowser.isVisible())
+        {
+            auto bounds = area;
+            if (m_samplePreview.isVisible())
+            {
+                auto preview = area.removeFromBottom(180);
+                m_samplePreview.setBounds(preview);
+            }
+            m_sampleBrowser.setBounds(area);
+            m_headerName = "Samples";
+            m_headerColour = m_appState.getSamplesColour();
+        }
+        else if (m_projectsBrowser.isVisible())
+        {
+            auto bounds = area;
+            m_projectsBrowser.setBounds(bounds);
+            m_headerColour = m_appState.getProjectsColour();
+            m_headerName = "Projects";
+        }
+        else if (m_renderComponent != nullptr) 
+        {
+            addAndMakeVisible(*m_renderComponent);
+            auto bounds = area;
+            m_renderComponent->setBounds(bounds);
+            m_headerColour = m_appState.getRenderColour();
+            m_headerName = "Render";
+        }
     }
     repaint();
 }
