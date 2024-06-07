@@ -66,7 +66,7 @@ void SongEditorView::paint(juce::Graphics& g)
                 auto w = getWidth();
                 auto h = getTrackHeight(t, m_editViewState, false);
 
-                drawTrack(g, {x, y, w, h}, ct, m_editViewState.getSongEditorVisibleTimeRange());
+                GUIHelpers::drawTrack(g, *this, m_editViewState, {x, y, w, h}, ct, m_editViewState.getSongEditorVisibleTimeRange());
 
                 if (m_selectedRange.selectedTracks.contains(t) && m_selectedRange.getLength().inSeconds() > 0)
                 {
@@ -131,7 +131,7 @@ void SongEditorView::paint(juce::Graphics& g)
 
             selectedRangeRect = selectedRangeRect.getUnion(rect);
             if (auto ct = dynamic_cast<te::ClipTrack*>(track))
-                drawTrack(g, rect, ct, m_selectedRange.timeRange, true);
+                GUIHelpers::drawTrack(g, *this, m_editViewState, rect, ct, m_selectedRange.timeRange, true);
         }
 
         for (auto automation : m_selectedRange.selectedAutomations)
@@ -203,7 +203,7 @@ void SongEditorView::paint(juce::Graphics& g)
                 if (EngineHelpers::trackWantsClip(selectedClip, targetTrack))
                 {
                     juce::Rectangle<int> trackRect = {0, getYForTrack(targetTrack), getWidth(), getTrackHeight(targetTrack,m_editViewState, false)};
-                    drawClip(g, targetRect, selectedClip, targetTrack->getColour().withAlpha(0.1f), trackRect, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+                    GUIHelpers::drawClip(g, *this, m_editViewState, targetRect, selectedClip, targetTrack->getColour().withAlpha(0.1f), trackRect, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
                 }
                 else
                 {
@@ -219,7 +219,7 @@ void SongEditorView::paint(juce::Graphics& g)
     {
         if (m_dragItemRect.valid)
         {
-            drawClipBody(g, m_dragItemRect.name, m_dragItemRect.drawRect, false, m_dragItemRect.colour, m_dragItemRect.drawRect, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+            GUIHelpers::drawClipBody(g, m_editViewState, m_dragItemRect.name, m_dragItemRect.drawRect, false, m_dragItemRect.colour, m_dragItemRect.drawRect, m_editViewState.m_viewX1, m_editViewState.m_viewX2);
         }
         else
         {
@@ -654,7 +654,7 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
                     if (auto wac = dynamic_cast<te::WaveAudioClip*>(c))
                     {
                         setNewTempoOfClipByNewLength(wac, c->getPosition().getLength().inSeconds() + m_draggedTimeDelta);
-                        removeThumbnail(wac);
+                        m_editViewState.removeThumbnail(wac);
                     }
                 }
             }
@@ -1337,7 +1337,7 @@ void SongEditorView::reverseSelectedClips()
         {
             auto reversed = wac->getIsReversed();
             wac->setIsReversed(!reversed);
-            removeThumbnail(wac);
+            m_editViewState.removeThumbnail(wac);
         }
     }
 }
@@ -1351,7 +1351,7 @@ void SongEditorView::transposeSelectedClips(float pitchChange)
         {
             auto pitch = wac->getPitchChange();
             wac->setPitchChange(pitch + pitchChange);
-            removeThumbnail(wac);
+            m_editViewState.removeThumbnail(wac);
         }
     }
 }
@@ -1556,93 +1556,6 @@ double SongEditorView::xToSnapedBeat (int x)
     return m_editViewState.timeToBeat(time);
 }
 
-std::unique_ptr<te::SmartThumbnail>& SongEditorView::getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
-{
-
-    for (auto tn : m_thumbnails)
-        if (tn->waveAudioClip == wac)
-            return tn->smartThumbnail;
-
-    te::AudioFile af (wac->getAudioFile());
-    std::unique_ptr<te::SmartThumbnail> thumbnail;
-
-    if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
-    {
-        if (af.isValid())
-        {
-            const te::AudioFile proxy(
-                        (wac->hasAnyTakes() && wac->isShowingTakes())
-                        ? wac->getAudioFile()
-                        : wac->getPlaybackFile());
-
-            thumbnail = std::make_unique<te::SmartThumbnail>(
-                        wac->edit.engine
-                      , proxy
-                      , *this
-                      , &wac->edit);
-        }
-    }
-    auto clipThumbnail = std::make_unique<ClipThumbNail> (wac, std::move(thumbnail));
-    m_thumbnails.add(std::move(clipThumbnail));
-
-    return m_thumbnails.getLast()->smartThumbnail;
-}
-void SongEditorView::removeThumbnail(te::WaveAudioClip::Ptr wac)
-{
-    for (int i = m_thumbnails.size(); --i >= 0;)
-    {
-        auto& clipThumbnail = *m_thumbnails.getUnchecked(i);
-
-        if (clipThumbnail.waveAudioClip == wac)
-        {
-            m_thumbnails.remove(i);
-            return;
-        }
-    }
-}
-
-void SongEditorView::drawTrack(juce::Graphics& g, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
-{
-    if (!getLocalBounds().intersects(displayedRect))
-        return;
-
-
-    double x1beats = m_editViewState.timeToBeat(etr.getStart().inSeconds());
-    double x2beats = m_editViewState.timeToBeat(etr.getEnd().inSeconds());
-
-    g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
-    g.fillRect(displayedRect);
-
-    auto ba = m_editViewState.xToBeats(displayedRect.getX(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    auto be = m_editViewState.xToBeats(displayedRect.getRight(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, ba, be, displayedRect);
-
-    for (auto clipIdx = 0; clipIdx < clipTrack->getNumTrackItems(); clipIdx++)
-    {
-        auto clip = clipTrack->getTrackItem(clipIdx);
-
-        if (clip->getPosition().time.intersects(etr))
-        {
-            int x = displayedRect.getX() + m_editViewState.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
-            int y = displayedRect.getY();
-            int w = (displayedRect.getX() + m_editViewState.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
-            int h = displayedRect.getHeight();
-
-            juce::Rectangle<int> clipRect = {x,y,w,h};
-
-            auto color = clip->getTrack()->getColour();
-
-            if (forDragging)
-                color = color.withAlpha(0.7f);
-
-            if (auto c = dynamic_cast<te::Clip*>(clip))
-                drawClip(g,clipRect, c, color, displayedRect, x1beats, x2beats); 
-        }
-    }
-
-    g.setColour(juce::Colour(0x60ffffff));
-    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
-}
 
 juce::Rectangle<int> SongEditorView::getClipRect (te::Clip::Ptr clip)
 {
@@ -1656,253 +1569,8 @@ juce::Rectangle<int> SongEditorView::getClipRect (te::Clip::Ptr clip)
     return clipRect;
 }
 
-void SongEditorView::drawClipBody(juce::Graphics& g, juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
-{
-    auto area = clipRect;
-
-    auto& evs = m_editViewState;
-    auto header = area.withHeight(evs.m_clipHeaderHeight);
-
-    auto clipColor = color;
-    auto innerGlow = clipColor.brighter(0.5f);
-    auto borderColour = clipColor.darker(0.95f);
-    auto backgroundColor = borderColour.withAlpha(0.6f);
-
-    auto labelBackground = juce::Colour(0x00ffffff);
-    auto labelTextColor = clipColor.getPerceivedBrightness() < 0.5f
-                        ? clipColor.withLightness(.75f)
-                        : clipColor.darker(.75f);
-
-    g.saveState();
-    {
-        g.reduceClipRegion(displayedRect);
-
-        g.setColour(backgroundColor);
-        g.fillRect(area.reduced(1, 1));
-
-        g.setColour(innerGlow);
-        g.drawRect(header);
-        g.drawRect(area);
-        g.setColour(clipColor);
-        if (isSelected)
-            g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
-
-        g.fillRect(header.reduced(2,2));
-    }
-    g.restoreState();
-
-    g.saveState();
-    {
-        header = header.reduced(4,0);
-
-        auto startOffset = displayedRect.getX() - header.getX();
-        auto clipedHeader = header.withLeft(header.getX() + juce::jmax(0, startOffset));
-        auto endOffset = clipedHeader.getRight() - displayedRect.getRight();
-        clipedHeader = clipedHeader.withRight(clipedHeader.getRight() - juce::jmax(0, endOffset));
-        g.reduceClipRegion(clipedHeader);
-
-        if (isSelected)
-            labelTextColor = juce::Colours::black;
-        g.setColour(labelTextColor);
-        juce::Font labelFont (14.0f, juce::Font::bold);
-        g.setFont(labelFont);
-
-        auto textArea = header.withWidth(getWidth());
-        textArea.removeFromLeft(4);
-        g.drawText(name, textArea, juce::Justification::centredLeft, false);
-    }
-    g.restoreState();
-}
-void SongEditorView::drawClip(juce::Graphics& g, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
-{
-    auto& evs = m_editViewState;
-    auto isSelected = evs.m_selectionManager.isSelected (clip);
-    drawClipBody(g, clip->getName(), clipRect, isSelected, color, displayedRect, x1Beat, x2beat);
-
-    if ((m_hoveredClip.get() == clip) && (m_toolMode == Tool::knife))
-    {
-        g.setColour(juce::Colours::white);
-        auto snapedTime = getSnapedTime(m_timeAtMouseCursor.inSeconds());
-        auto x = timeToX(snapedTime);
-        auto y = clipRect.getY();
-        auto h = clipRect.getHeight();
-
-        g.drawVerticalLine(x, y, y + h);
-    }
-
-    auto header = clipRect.withHeight(evs.m_clipHeaderHeight);
-    clipRect.removeFromTop(header.getHeight());
-    clipRect.reduce(1,1);
-
-    if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
-    {
-        // m_thumbnails.clear();
-        if (auto& thumb = getOrCreateThumbnail(wac))
-            drawWaveform(g, *wac, *thumb, color, clipRect , displayedRect, x1Beat, x2beat);
-    }
-    else if (auto mc = dynamic_cast<te::MidiClip*>(clip))
-    {
-        drawMidiClip(g, mc, clipRect, displayedRect, color, x1Beat, x2beat);
-    }
-}
-
-void SongEditorView::drawWaveform(juce::Graphics& g,
-                                      te::AudioClipBase& c,
-                                      te::SmartThumbnail& thumb,
-                                      juce::Colour colour,
-                                      juce::Rectangle<int> clipRect,
-                                      juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
-{
-    if (m_editViewState.m_drawWaveforms == false)
-        return;
-
-    auto getTimeRangeForDrawing = [this] (const te::AudioClipBase& clip, const juce::Rectangle<int> clRect, const juce::Rectangle<int> displRect, double x1Beats, double x2Beats)
-        -> tracktion::core::TimeRange
-    {
-        auto t1 = EngineHelpers::getTimePos(0.0);
-        auto t2 = t1 + clip.getPosition().getLength();
-
-        double displStart = m_editViewState.beatToTime(x1Beats);
-        double displEnd = m_editViewState.beatToTime(x2Beats);
-             
-        if (clRect.getX() < displRect.getX())
-            t1 = t1 + tracktion::TimeDuration::fromSeconds(displStart - clip.getPosition().getStart().inSeconds()); 
-
-        if (clRect.getRight() > displRect.getRight())
-            t2 = t2 - tracktion::TimeDuration::fromSeconds(clip.getPosition().getEnd().inSeconds() - displEnd);
-
-        return { t1, t2 };
-    };
-
-    auto area = clipRect;
-    if (clipRect.getX() < displayedRect.getX())
-        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
-    if (clipRect.getRight() > displayedRect.getRight())
-        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
-
-    const auto gain = c.getGain();
-    const auto pan = thumb.getNumChannels() == 1 ? 0.0f : c.getPan();
-
-    const float pv = pan * gain;
-    const float gainL = (gain - pv);
-    const float gainR = (gain + pv);
-
-    const bool usesTimeStretchedProxy = c.usesTimeStretchedProxy();
-
-    const auto clipPos = c.getPosition();
-    auto offset = clipPos.getOffset();
-    auto speedRatio = c.getSpeedRatio();
-
-    g.setColour (colour);
-
-    bool showBothChannels = displayedRect.getHeight() > 100;
-
-    if (usesTimeStretchedProxy)
-    {
-
-        if (!thumb.isOutOfDate())
-        {
-            drawChannels(g
-                       , thumb
-                       ,  area
-                       , false
-                       , getTimeRangeForDrawing(c, clipRect, displayedRect, x1Beat, x2beat)
-                       , c.isLeftChannelActive() && showBothChannels
-                       , c.isRightChannelActive()
-                       , gainL
-                       , gainR);
-        }
-    }
-    else if (c.getLoopLength().inSeconds() == 0)
-    {
-        auto region = getTimeRangeForDrawing (c, clipRect, displayedRect, x1Beat, x2beat);
-
-        auto t1 = EngineHelpers::getTimePos((region.getStart().inSeconds() + offset.inSeconds()) * speedRatio);
-        auto t2 = EngineHelpers::getTimePos((region.getEnd().inSeconds()   + offset.inSeconds()) * speedRatio);
-        bool useHighres = true;
-        drawChannels(g
-                   , thumb
-                   , area
-                   , useHighres
-                   , {t1, t2}
-                   , c.isLeftChannelActive()
-                   , c.isRightChannelActive() && showBothChannels
-                   , gainL
-                   , gainR);
-    }
-}
-
-void SongEditorView::drawChannels(juce::Graphics& g
-                                    , te::SmartThumbnail& thumb
-                                    , juce::Rectangle<int> area
-                                    , bool useHighRes
-                                    , tracktion::core::TimeRange time
-                                    , bool useLeft
-                                    , bool useRight
-                                    , float leftGain
-                                    , float rightGain)
-{
-    if (useLeft && useRight && thumb.getNumChannels() > 1)
-    {
-        thumb.drawChannel(g
-                        , area.removeFromTop(area.getHeight() / 2)
-                        , time
-                        , 0
-                        , leftGain);
-        thumb.drawChannel(g, area,  time, 1, rightGain);
-    }
-    else if (useLeft)
-        thumb.drawChannel (g, area, time, 0, leftGain);
-    else if (useRight)
-        thumb.drawChannel (g, area, time, 1, rightGain);
-}
 
 
-void  SongEditorView::drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color, double x1Beat, double x2beat)
-{
-    auto area = clipRect;
-
-    if (clipRect.getX() < displayedRect.getX())
-        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
-
-    if (clipRect.getRight() > displayedRect.getRight())
-        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
-
-    auto& seq = clip->getSequence();
-    auto range = seq.getNoteNumberRange();
-    auto lines = range.getLength();
-    auto noteHeight = juce::jmax(1,((clipRect.getHeight() ) / 20));
-    auto noteColor = color.withLightness(0.6f);
-
-    for (auto n: seq.getNotes())
-    {
-        double sBeat = n->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats();
-        double eBeat = n->getEndBeat().inBeats() - clip->getOffsetInBeats().inBeats();
-        auto y = clipRect.getCentreY();
-        if (!range.isEmpty())
-            y = juce::jmap(n->getNoteNumber(), range.getStart() + lines, range.getStart(), clipRect.getY() + (noteHeight/2), clipRect.getY() + clipRect.getHeight() - noteHeight - (noteHeight/2));
-
-        auto startX = m_editViewState.beatsToX(sBeat, displayedRect.getWidth(), x1Beat, x2beat);
-        auto endX = m_editViewState.beatsToX(eBeat, displayedRect.getWidth(), x1Beat, x2beat);
-        auto scrollOffset = m_editViewState.beatsToX(0.0, displayedRect.getWidth(), x1Beat, x2beat) * -1;
-
-        int x1 = clipRect.getX() + startX + scrollOffset;
-        int x2 = clipRect.getX() + endX + scrollOffset;
-
-        int gap = 2;
-
-        x1 = juce::jmin(juce::jmax(gap, x1), clipRect.getRight() - gap);
-        x2 = juce::jmin(juce::jmax(gap, x2), clipRect.getRight () - gap);
-
-        x1 = juce::jmax(area.getX(), x1);
-        x2 = juce::jmin(area.getRight(), x2);
-
-        auto w = juce::jmax(0, x2 - x1);
-
-        g.setColour(noteColor);
-        g.fillRect(x1, y, w, noteHeight);
-    }
-}
 //reimplemented from te::AutomatonCurve because we 
 //need to return -1 if there is no point after this position 
 int SongEditorView::nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const
@@ -1980,9 +1648,7 @@ void SongEditorView::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange
     g.setColour(juce::Colour(0xff252525));
     g.fillRect(drawRect);
 
-    auto ba = m_editViewState.xToBeats(drawRect.getX(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    auto be = m_editViewState.xToBeats(drawRect.getRight(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, ba, be, drawRect);
+    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, startBeat, endBeat, drawRect);
 
     juce::Path pointsPath;
     juce::Path selectedPointsPath;

@@ -157,30 +157,10 @@ private:
     void splitClipAt(int x, int y);
 
     void setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLegth);
-
-    std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
-
-    void removeThumbnail(te::WaveAudioClip::Ptr wac);
-    struct ClipThumbNail 
-    {
-        ClipThumbNail (te::WaveAudioClip::Ptr wac, std::unique_ptr<te::SmartThumbnail> sn) : waveAudioClip (wac), smartThumbnail (std::move(sn)) {}
-
-        te::WaveAudioClip::Ptr waveAudioClip;
-        std::unique_ptr<te::SmartThumbnail> smartThumbnail;
-    };
     
     juce::Rectangle<int> getClipRect (te::Clip::Ptr clip);
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
 
-    void drawTrack(juce::Graphics& g, juce::Rectangle<int> rect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging=false);
-
-    void drawClipBody(juce::Graphics& g, juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
-    void drawClip(juce::Graphics& g, juce::Rectangle<int> rect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
-    void drawAudioClip(juce::Graphics& g, juce::Rectangle<int> rect, te::WaveAudioClip::Ptr audioClip, juce::Colour color, double x1Beat, double x2beat);
-    void drawWaveform(juce::Graphics& g, te::AudioClipBase& c, te::SmartThumbnail& thumb, juce::Colour colour, juce::Rectangle<int>, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
-    void drawChannels(juce::Graphics& g, te::SmartThumbnail& thumb, juce::Rectangle<int> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
-    void drawMidiClip (juce::Graphics& g,te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color, double x1Beat, double x2beat);
-    
     void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging=false);
         
     void buildRecordingClips(te::Track::Ptr track);
@@ -210,7 +190,6 @@ private:
     EditViewState&                      m_editViewState;
     MenuBar&                            m_toolBar;
     LassoSelectionTool                  m_lassoComponent;
-    juce::OwnedArray<ClipThumbNail>     m_thumbnails;
 
     //flags
     bool                                m_isDragging {false};

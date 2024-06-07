@@ -46,6 +46,296 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     }
     return {};
 }
+void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewState& evs, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
+{
+    // if (!getLocalBounds().intersects(displayedRect))
+    //     return;
+    //
+
+    double x1beats = evs.timeToBeat(etr.getStart().inSeconds());
+    double x2beats = evs.timeToBeat(etr.getEnd().inSeconds());
+
+    g.setColour(evs.m_applicationState.getTrackBackgroundColour());
+    g.fillRect(displayedRect);
+
+    auto ba = evs.xToBeats(displayedRect.getX(), displayedRect.getWidth(), x1beats, x2beats);
+    auto be = evs.xToBeats(displayedRect.getRight(), displayedRect.getWidth(), x1beats, x2beats);
+    drawBarsAndBeatLines(g, evs, ba, be, displayedRect);
+
+    for (auto clipIdx = 0; clipIdx < clipTrack->getNumTrackItems(); clipIdx++)
+    {
+        auto clip = clipTrack->getTrackItem(clipIdx);
+
+        if (clip->getPosition().time.intersects(etr))
+        {
+            int x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
+            int y = displayedRect.getY();
+            int w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
+            int h = displayedRect.getHeight();
+
+            juce::Rectangle<int> clipRect = {x,y,w,h};
+
+            auto color = clip->getTrack()->getColour();
+
+            if (forDragging)
+                color = color.withAlpha(0.7f);
+
+            if (auto c = dynamic_cast<te::Clip*>(clip))
+                drawClip(g, parent, evs, clipRect, c, color, displayedRect, x1beats, x2beats); 
+        }
+    }
+
+    g.setColour(juce::Colour(0x60ffffff));
+    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
+}
+
+
+void GUIHelpers::drawClip(juce::Graphics& g,juce::Component& parent,EditViewState& evs, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+{
+    auto isSelected = evs.m_selectionManager.isSelected (clip);
+    drawClipBody(g, evs, clip->getName(), clipRect, isSelected, color, displayedRect, x1Beat, x2beat);
+
+    // if ((m_hoveredClip.get() == clip) && (m_toolMode == Tool::knife))
+    // {
+    //     g.setColour(juce::Colours::white);
+    //     auto snapedTime = getSnapedTime(m_timeAtMouseCursor.inSeconds());
+    //     auto x = timeToX(snapedTime);
+    //     auto y = clipRect.getY();
+    //     auto h = clipRect.getHeight();
+    //
+    //     g.drawVerticalLine(x, y, y + h);
+    // }
+
+    auto header = clipRect.withHeight(evs.m_clipHeaderHeight);
+    clipRect.removeFromTop(header.getHeight());
+    clipRect.reduce(1,1);
+
+    if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
+    {
+        if (auto& thumb = evs.getOrCreateThumbnail(wac, parent))
+            GUIHelpers::drawWaveform(g, evs,  *wac, *thumb, color, clipRect , displayedRect, x1Beat, x2beat);
+    }
+    else if (auto mc = dynamic_cast<te::MidiClip*>(clip))
+    {
+        drawMidiClip(g, evs, mc, clipRect, displayedRect, color, x1Beat, x2beat);
+    }
+}
+
+
+void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
+                                      te::AudioClipBase& c,
+                                      te::SmartThumbnail& thumb,
+                                      juce::Colour colour,
+                                      juce::Rectangle<int> clipRect,
+                                      juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+{
+    if (evs.m_drawWaveforms == false)
+        return;
+
+    auto getTimeRangeForDrawing = [] (EditViewState& evs, const te::AudioClipBase& clip, const juce::Rectangle<int> clRect, const juce::Rectangle<int> displRect, double x1Beats, double x2Beats)
+        -> tracktion::core::TimeRange
+    {
+        auto t1 = EngineHelpers::getTimePos(0.0);
+        auto t2 = t1 + clip.getPosition().getLength();
+
+        double displStart = evs.beatToTime(x1Beats);
+        double displEnd = evs.beatToTime(x2Beats);
+             
+        if (clRect.getX() < displRect.getX())
+            t1 = t1 + tracktion::TimeDuration::fromSeconds(displStart - clip.getPosition().getStart().inSeconds()); 
+
+        if (clRect.getRight() > displRect.getRight())
+            t2 = t2 - tracktion::TimeDuration::fromSeconds(clip.getPosition().getEnd().inSeconds() - displEnd);
+
+        return { t1, t2 };
+    };
+
+    auto area = clipRect;
+    if (clipRect.getX() < displayedRect.getX())
+        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
+    if (clipRect.getRight() > displayedRect.getRight())
+        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
+
+    const auto gain = c.getGain();
+    const auto pan = thumb.getNumChannels() == 1 ? 0.0f : c.getPan();
+
+    const float pv = pan * gain;
+    const float gainL = (gain - pv);
+    const float gainR = (gain + pv);
+
+    const bool usesTimeStretchedProxy = c.usesTimeStretchedProxy();
+
+    const auto clipPos = c.getPosition();
+    auto offset = clipPos.getOffset();
+    auto speedRatio = c.getSpeedRatio();
+
+    g.setColour (colour);
+
+    bool showBothChannels = displayedRect.getHeight() > 100;
+
+    if (usesTimeStretchedProxy)
+    {
+
+        if (!thumb.isOutOfDate())
+        {
+            drawChannels(g
+                       , thumb
+                       ,  area
+                       , false
+                       , getTimeRangeForDrawing(evs, c, clipRect, displayedRect, x1Beat, x2beat)
+                       , c.isLeftChannelActive() && showBothChannels
+                       , c.isRightChannelActive()
+                       , gainL
+                       , gainR);
+        }
+    }
+    else if (c.getLoopLength().inSeconds() == 0)
+    {
+        auto region = getTimeRangeForDrawing (evs, c, clipRect, displayedRect, x1Beat, x2beat);
+
+        auto t1 = EngineHelpers::getTimePos((region.getStart().inSeconds() + offset.inSeconds()) * speedRatio);
+        auto t2 = EngineHelpers::getTimePos((region.getEnd().inSeconds()   + offset.inSeconds()) * speedRatio);
+        bool useHighres = true;
+        drawChannels(g
+                   , thumb
+                   , area
+                   , useHighres
+                   , {t1, t2}
+                   , c.isLeftChannelActive()
+                   , c.isRightChannelActive() && showBothChannels
+                   , gainL
+                   , gainR);
+    }
+}
+
+void GUIHelpers::drawChannels(juce::Graphics& g
+                                    , te::SmartThumbnail& thumb
+                                    , juce::Rectangle<int> area
+                                    , bool useHighRes
+                                    , tracktion::core::TimeRange time
+                                    , bool useLeft
+                                    , bool useRight
+                                    , float leftGain
+                                    , float rightGain)
+{
+    if (useLeft && useRight && thumb.getNumChannels() > 1)
+    {
+        thumb.drawChannel(g
+                        , area.removeFromTop(area.getHeight() / 2)
+                        , time
+                        , 0
+                        , leftGain);
+        thumb.drawChannel(g, area,  time, 1, rightGain);
+    }
+    else if (useLeft)
+        thumb.drawChannel (g, area, time, 0, leftGain);
+    else if (useRight)
+        thumb.drawChannel (g, area, time, 1, rightGain);
+}
+void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+{
+    auto area = clipRect;
+
+    auto header = area.withHeight(evs.m_clipHeaderHeight);
+
+    auto clipColor = color;
+    auto innerGlow = clipColor.brighter(0.5f);
+    auto borderColour = clipColor.darker(0.95f);
+    auto backgroundColor = borderColour.withAlpha(0.6f);
+
+    auto labelBackground = juce::Colour(0x00ffffff);
+    auto labelTextColor = clipColor.getPerceivedBrightness() < 0.5f
+                        ? clipColor.withLightness(.75f)
+                        : clipColor.darker(.75f);
+
+    g.saveState();
+    {
+        g.reduceClipRegion(displayedRect);
+
+        g.setColour(backgroundColor);
+        g.fillRect(area.reduced(1, 1));
+
+        g.setColour(innerGlow);
+        g.drawRect(header);
+        g.drawRect(area);
+        g.setColour(clipColor);
+        if (isSelected)
+            g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
+
+        g.fillRect(header.reduced(2,2));
+    }
+    g.restoreState();
+
+    g.saveState();
+    {
+        header = header.reduced(4,0);
+
+        auto startOffset = displayedRect.getX() - header.getX();
+        auto clipedHeader = header.withLeft(header.getX() + juce::jmax(0, startOffset));
+        auto endOffset = clipedHeader.getRight() - displayedRect.getRight();
+        clipedHeader = clipedHeader.withRight(clipedHeader.getRight() - juce::jmax(0, endOffset));
+        g.reduceClipRegion(clipedHeader);
+
+        if (isSelected)
+            labelTextColor = juce::Colours::black;
+        g.setColour(labelTextColor);
+        juce::Font labelFont (14.0f, juce::Font::bold);
+        g.setFont(labelFont);
+
+        auto textArea = header;
+        textArea.removeFromLeft(4);
+        g.drawText(name, textArea, juce::Justification::centredLeft, false);
+    }
+    g.restoreState();
+}
+
+
+void  GUIHelpers::drawMidiClip (juce::Graphics& g, EditViewState& evs, te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color, double x1Beat, double x2beat)
+{
+    auto area = clipRect;
+
+    if (clipRect.getX() < displayedRect.getX())
+        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
+
+    if (clipRect.getRight() > displayedRect.getRight())
+        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
+
+    auto& seq = clip->getSequence();
+    auto range = seq.getNoteNumberRange();
+    auto lines = range.getLength();
+    auto noteHeight = juce::jmax(1,((clipRect.getHeight() ) / 20));
+    auto noteColor = color.withLightness(0.6f);
+
+    for (auto n: seq.getNotes())
+    {
+        double sBeat = n->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats();
+        double eBeat = n->getEndBeat().inBeats() - clip->getOffsetInBeats().inBeats();
+        auto y = clipRect.getCentreY();
+        if (!range.isEmpty())
+            y = juce::jmap(n->getNoteNumber(), range.getStart() + lines, range.getStart(), clipRect.getY() + (noteHeight/2), clipRect.getY() + clipRect.getHeight() - noteHeight - (noteHeight/2));
+
+        auto startX = evs.beatsToX(sBeat, displayedRect.getWidth(), x1Beat, x2beat);
+        auto endX = evs.beatsToX(eBeat, displayedRect.getWidth(), x1Beat, x2beat);
+        auto scrollOffset = evs.beatsToX(0.0, displayedRect.getWidth(), x1Beat, x2beat) * -1;
+
+        int x1 = clipRect.getX() + startX + scrollOffset;
+        int x2 = clipRect.getX() + endX + scrollOffset;
+
+        int gap = 2;
+
+        x1 = juce::jmin(juce::jmax(gap, x1), clipRect.getRight() - gap);
+        x2 = juce::jmin(juce::jmax(gap, x2), clipRect.getRight () - gap);
+
+        x1 = juce::jmax(area.getX(), x1);
+        x2 = juce::jmin(area.getRight(), x2);
+
+        auto w = juce::jmax(0, x2 - x1);
+
+        g.setColour(noteColor);
+        g.fillRect(x1, y, w, noteHeight);
+    }
+}
+
 
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
