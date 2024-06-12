@@ -431,7 +431,7 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
     {
         clearSelectedTimeRange();
 
-        if (e.getNumberOfClicks() > 1 || m_editViewState.m_isPianoRollVisible)
+        if ((e.getNumberOfClicks() > 1 || m_editViewState.m_isPianoRollVisible) && m_hoveredClip->isMidi())
         {
             m_editViewState.m_isPianoRollVisible = true;
 
