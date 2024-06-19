@@ -68,7 +68,6 @@ public:
 
 
     int getYForTrack (te::Track* track);
-    int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
 
     void updateTrackHeights(EditViewState& evs);
 
@@ -164,17 +163,6 @@ private:
     void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging=false);
         
     void buildRecordingClips(te::Track::Ptr track);
-
-
-    struct TrackHeightInfo
-    {
-        tracktion_engine::Track* m_track;
-        int m_height;
-        int m_automationHeight;
-        bool m_isMinimized;
-    };
-
-    juce::Array<TrackHeightInfo> m_trackInfos;
 
     struct DragFileItemInfo
     {

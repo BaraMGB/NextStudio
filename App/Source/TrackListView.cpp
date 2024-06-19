@@ -25,51 +25,6 @@
 #include "InstrumentEffectChooser.h"
 #include "Utilities.h"
 
-int TrackListView::getTrackHeight(TrackHeaderComponent* header) const
-{
-    auto track = header->getTrack();
-    if (track == nullptr)
-        return 0;
-
-    auto& trackState = track->state;
-
-    bool isMinimized = trackState.getProperty(IDs::isTrackMinimized, false);
-    auto trackHeight = isMinimized || track->isFolderTrack()
-        ? m_editViewState.m_trackHeightMinimized
-        : static_cast<int>(trackState.getProperty(tracktion_engine::IDs::height, 50));
-
-    if (!isMinimized)
-    {
-        int automationHeight = 0;
-
-        for (auto apEditItems : track->getAllAutomatableEditItems())
-        {
-            for (auto ap : apEditItems->getAutomatableParameters())
-            {
-                if (GUIHelpers::isAutomationVisible(*ap))
-                {
-                    auto& curveState = ap->getCurve().state;
-                    automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
-                }
-            }
-        }
-
-        trackHeight += automationHeight;
-    }
-
-    auto it = track;
-    while (it->isPartOfSubmix())
-    {
-        it = it->getParentFolderTrack();
-        if (it->state.getProperty(IDs::isTrackMinimized, false))
-        {
-            trackHeight = 0;
-            break;
-        }
-    }
-
-    return trackHeight;
-}
 
 void TrackListView::resized()
 {
@@ -78,7 +33,7 @@ void TrackListView::resized()
     auto folderIndent = static_cast<int>(m_editViewState.m_applicationState.m_folderTrackIndent);
     for (auto header : m_trackHeaders)
     {
-        auto trackHeaderHeight = getTrackHeight(header);
+        auto trackHeaderHeight = GUIHelpers::getTrackHeight(header->getTrack(), m_editViewState);
         auto leftEdge = 0;
         auto w = getWidth();
 
@@ -152,7 +107,6 @@ void TrackListView::itemDropped(
     }
 }
 
-
 void TrackListView::getAllCommands (juce::Array<juce::CommandID>& commands) 
 {
 
@@ -164,7 +118,6 @@ void TrackListView::getAllCommands (juce::Array<juce::CommandID>& commands)
 
     commands.addArray(ids);
 }
-
 
 void TrackListView::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
 {
@@ -225,24 +178,27 @@ bool TrackListView::perform (const juce::ApplicationCommandTarget::InvocationInf
     return true;
 }
 
-void TrackListView::addHeaderViews(std::unique_ptr<TrackHeaderComponent> header)
+void TrackListView::addHeaderView(std::unique_ptr<TrackHeaderComponent> header)
 {
     m_trackHeaders.add(std::move(header));
 }
+
 void TrackListView::updateViews()
 {
     removeAllChildren();
+
     for (auto v : m_trackHeaders)
-    {
         addAndMakeVisible(v);
-    }
+
     resized();
 }
+
 void TrackListView::clear()
 {
     m_trackHeaders.clear(true);
     resized();
 }
+
 te::AudioTrack::Ptr TrackListView::addTrack(bool isMidiTrack, bool isFolderTrack, juce::Colour trackColour)
 {
     if (isFolderTrack)
@@ -252,6 +208,7 @@ te::AudioTrack::Ptr TrackListView::addTrack(bool isMidiTrack, bool isFolderTrack
 
     return nullptr;
 }
+
 const int TrackListView::getPopupResult()
 {
     juce::PopupMenu m;
@@ -264,24 +221,26 @@ const int TrackListView::getPopupResult()
 
     return m.show();
 }
+
 void TrackListView::collapseTracks(bool minimize)
 {
     for (auto th : m_trackHeaders)
         th->collapseTrack(minimize);
 }
+
 void TrackListView::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
     if (source == &m_editViewState.m_selectionManager)
         for(auto th : m_trackHeaders)
             th->repaint();
 }
+
 TrackHeaderComponent *
     TrackListView::getTrackHeaderView(tracktion_engine::Track::Ptr track)
 {
     for (auto thv : m_trackHeaders)
-    {
         if (thv->getTrack() == track)
             return thv;
-    }
+
     return nullptr;
 }

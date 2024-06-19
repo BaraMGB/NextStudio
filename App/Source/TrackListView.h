@@ -17,13 +17,9 @@
  */
 
 
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Browser_Base.h"
 #include "TrackHeadComponent.h"
-#include "Utilities.h"
-#include "FileBrowser.h"
-
 
 class TrackListView  : public juce::Component
                      , public juce::DragAndDropTarget
@@ -68,8 +64,7 @@ public:
     
     bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
 
-    int getTrackHeight(TrackHeaderComponent* header) const;
-    void addHeaderViews(std::unique_ptr<TrackHeaderComponent> header);
+    void addHeaderView(std::unique_ptr<TrackHeaderComponent> header);
     void updateViews();
 
     void clear();

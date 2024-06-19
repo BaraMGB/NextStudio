@@ -433,8 +433,9 @@ void EditComponent::handleAsyncUpdate()
     }
     if (compareAndReset(m_updateSongEditor))
     {
-        m_songEditor.updateTrackHeights(m_editViewState);
+        m_editViewState.updateTrackHeights();
         m_songEditor.repaint();
+        m_trackListView.resized();
         updateVerticalScrollbar();
     }
 }
@@ -457,7 +458,7 @@ void EditComponent::buildTracks()
         if (EngineHelpers::isTrackShowable(t))
         {
             auto th = std::make_unique<TrackHeaderComponent> (m_editViewState, t);
-            m_trackListView.addHeaderViews(std::move(th));
+            m_trackListView.addHeaderView(std::move(th));
         }
     }
 
@@ -678,7 +679,7 @@ int EditComponent::getSongHeight()
     auto h = 0;
         
     for (auto t : m_songEditor.getShowedTracks())
-        h += m_songEditor.getTrackHeight(t, m_editViewState);
+        h += GUIHelpers::getTrackHeight(t, m_editViewState);
         
     return h;
 }

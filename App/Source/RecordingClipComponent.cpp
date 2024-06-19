@@ -192,7 +192,7 @@ void RecordingClipComponent::updatePosition()
             int x2 = m_editViewState.timeToX (t2.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
             
             int y = p->getYForTrack(m_track);
-            int h = p->getTrackHeight(m_track, m_editViewState, false);
+            int h = GUIHelpers::getTrackHeight(m_track, m_editViewState, false);
 
             setBounds (x1, y, x2 - x1, h);
             return;

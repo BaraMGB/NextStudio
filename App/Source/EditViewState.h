@@ -20,6 +20,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
@@ -342,6 +343,62 @@ void removeThumbnail(te::WaveAudioClip::Ptr wac)
         std::unique_ptr<te::SmartThumbnail> smartThumbnail;
     };
 
+    struct TrackHeightInfo {
+        tracktion_engine::Track* track;
+        int height;
+        int automationHeight;
+        bool isMinimized;
+    };
+
+void updateTrackHeights()
+{
+    m_trackInfos.clear();
+
+    for (auto* track : te::getAllTracks(m_edit))
+    {
+        if ((track != nullptr) && (EngineHelpers::isTrackShowable(track)))
+        {
+            TrackHeightInfo info;
+            info.track = track;
+            info.isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
+            info.height = info.isMinimized || track->isFolderTrack()
+                ? m_trackHeightMinimized
+                : static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+
+            int automationHeight = 0;
+            if (!info.isMinimized)
+            {
+                for (auto apEditItems : track->getAllAutomatableEditItems())
+                {
+                    for (auto ap : apEditItems->getAutomatableParameters())
+                    {
+                        if (GUIHelpers::isAutomationVisible(*ap))
+                        {
+                            auto& curveState = ap->getCurve().state;
+                            automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
+                        }
+                    }
+                }
+            }
+
+            auto it = track;
+            while (it->isPartOfSubmix())
+            {
+                it = it->getParentFolderTrack();
+                if (it->state.getProperty(IDs::isTrackMinimized, false))
+                {
+                    info.height = 0;
+                    break;
+                }
+            }
+
+            info.automationHeight = automationHeight;
+            m_trackInfos.add(info);
+        }
+    }
+}
+
+    juce::Array<TrackHeightInfo> m_trackInfos;
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 

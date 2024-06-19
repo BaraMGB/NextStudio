@@ -20,6 +20,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Utilities.h"
+#include "EditViewState.h"
 
 namespace te = tracktion_engine;
 /**

@@ -1914,6 +1914,73 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
 {
     return {p.x - (w/2), p.y - (w/2), w, w};
 }
+
+int GUIHelpers::getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
+{
+    if (track == nullptr)
+        return 0;
+
+    for (const auto& info : evs.m_trackInfos)
+    {
+        if (info.track == track)
+        {
+            if (!info.isMinimized && withAutomation)
+            {
+                return info.height + info.automationHeight;
+            }
+            else
+            {
+                return info.height;
+            }
+        }
+    }
+
+    return 0; 
+}
+// int GUIHelpers::getTrackHeight(te::Track* track, EditViewState& evs) 
+// {
+//     if (track == nullptr)
+//         return 0;
+//
+//     auto& trackState = track->state;
+//
+//     bool isMinimized = trackState.getProperty(IDs::isTrackMinimized, false);
+//     auto trackHeight = isMinimized || track->isFolderTrack()
+//         ? evs.m_trackHeightMinimized
+//         : static_cast<int>(trackState.getProperty(tracktion_engine::IDs::height, 50));
+//
+//     if (!isMinimized)
+//     {
+//         int automationHeight = 0;
+//
+//         for (auto apEditItems : track->getAllAutomatableEditItems())
+//         {
+//             for (auto ap : apEditItems->getAutomatableParameters())
+//             {
+//                 if (GUIHelpers::isAutomationVisible(*ap))
+//                 {
+//                     auto& curveState = ap->getCurve().state;
+//                     automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
+//                 }
+//             }
+//         }
+//
+//         trackHeight += automationHeight;
+//     }
+//
+//     auto it = track;
+//     while (it->isPartOfSubmix())
+//     {
+//         it = it->getParentFolderTrack();
+//         if (it->state.getProperty(IDs::isTrackMinimized, false))
+//         {
+//             trackHeight = 0;
+//             break;
+//         }
+//     }
+//
+//     return trackHeight;
+// }
 bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
 {
     if (ap.getCurve().getNumPoints() == 0)

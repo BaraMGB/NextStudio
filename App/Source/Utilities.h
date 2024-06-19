@@ -20,12 +20,13 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 // #include "AudioMidiSettings.h"
-#include "EditViewState.h"
+// #include "EditViewState.h"
+#include "ApplicationViewState.h"
 #include "PluginMenu.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 
 namespace te = tracktion_engine;
-
+class EditViewState;
 enum class Tool 
 {
     pointer,
@@ -160,6 +161,10 @@ namespace GUIHelpers
     void drawFromSvg(juce::Graphics &g, const char* svgbinary, juce::Colour newColour, juce::Rectangle<float> drawRect);
     void setDrawableOnButton(juce::DrawableButton& button, const char* svgbinary, juce::Colour colour);
     juce::Image drawableToImage(const juce::Drawable& drawable, float targetWidth, float targetHeight);
+
+    
+    int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
+    // int getTrackHeight(te::Track* track, EditViewState& evs);
 
     bool isAutomationVisible(const te::AutomatableParameter& ap);
 
