@@ -1938,6 +1938,15 @@ int GUIHelpers::getTrackHeight(tracktion_engine::Track* track, EditViewState& ev
     return 0; 
 }
 
+te::AutomatableParameter::Ptr GUIHelpers::getAutomatableParamAt(int y, EditViewState& evs)
+{
+   for (const auto& pair : evs.m_automationYMap)
+     if (y >= pair.first.first && y <= pair.first.second)
+        return pair.second;
+
+    return nullptr;
+}
+
 bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
 {
     if (ap.getCurve().getNumPoints() == 0)

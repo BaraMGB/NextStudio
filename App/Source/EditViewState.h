@@ -397,6 +397,38 @@ void updateTrackHeights()
         }
     }
 }
+    std::map<std::pair<int, int>, te::AutomatableParameter::Ptr> m_automationYMap;
+    void updateAutomationYMap()
+    {
+        m_automationYMap.clear();
+
+        int scrollY = m_viewY;
+
+        for (auto t : te::getAllTracks(m_edit))
+        {
+            if (t->isAudioTrack() || t->isFolderTrack())
+            {
+                int trackHeight = GUIHelpers::getTrackHeight(t, *this, false);
+
+                if (!t->state.getProperty(IDs::isTrackMinimized) && trackHeight > 0)
+                {
+                    for (auto ap : t->getAllAutomatableParams())
+                    {
+                        if (ap->getTrack() == t && GUIHelpers::isAutomationVisible(*ap))
+                        {
+                            int h = ap->getCurve().state.getProperty(te::IDs::height, static_cast<int>(m_trackDefaultHeight));
+                            auto range = juce::Range<int>(scrollY + trackHeight, scrollY + trackHeight + h);
+
+                            m_automationYMap[{range.getStart(), range.getEnd()}] = ap;
+                            scrollY += h;
+                        }
+                    }
+                }
+
+                scrollY += trackHeight;
+            }
+        }
+    }
 
     juce::Array<TrackHeightInfo> m_trackInfos;
     te::Edit& m_edit;

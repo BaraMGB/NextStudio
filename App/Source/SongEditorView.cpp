@@ -244,7 +244,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     m_isDragging = false;
 
     auto hoveredTrack = getTrackAt(e.y);
-    auto hoveredAutamatableParam = getAutomatableParamAt(e.y);
+    auto hoveredAutamatableParam = GUIHelpers::getAutomatableParamAt(e.y, m_editViewState);
     te::Clip::Ptr hoveredClip = nullptr;
     int hoveredAutomationPoint = -1;
     int hoveredCurve = -1;
@@ -901,43 +901,6 @@ int SongEditorView::getYForTrack (te::Track* track)
     }
 
     return getHeight();
-}
-// ToDo:  getAutomatableParamAt() is very inefficiet. It needs to be refactored
-// I think it is nessesary to implement automation tracks for detecting an 
-// Automation Lane at a certain y position
-te::AutomatableParameter::Ptr SongEditorView::getAutomatableParamAt(int y)
-{
-    int scrollY = m_editViewState.m_viewY;
-
-    for (auto t : te::getAllTracks(m_editViewState.m_edit))
-    {
-        if (t->isAudioTrack() || t->isFolderTrack())
-        {
-            int trackHeight = GUIHelpers::getTrackHeight(t, m_editViewState, false);
-
-            if (!t->state.getProperty(IDs::isTrackMinimized) && trackHeight > 0)
-            {
-                for (auto ap : t->getAllAutomatableParams())
-                {
-                    if (ap->getTrack() == t && GUIHelpers::isAutomationVisible(*ap))
-                    {
-                        int h = ap->getCurve().state.getProperty(te::IDs::height, static_cast<int>(m_editViewState.m_trackDefaultHeight));
-
-                        if (juce::Range<int>(scrollY + trackHeight, scrollY + trackHeight + h).contains(y))
-                        {
-                            return ap;
-                        }
-
-                        scrollY += h;
-                    }
-                }
-            }
-
-            scrollY += trackHeight;
-        }
-    }
-
-    return nullptr;
 }
 
 int SongEditorView::getYForAutomatableParam(te::AutomatableParameter::Ptr ap)

@@ -113,7 +113,6 @@ private:
     int getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int>& dropPos);
 
     //AutomatableParameter 
-    te::AutomatableParameter::Ptr getAutomatableParamAt(int y);
     juce::Rectangle<int> getAutomationRect (te::AutomatableParameter::Ptr ap);
     int getHeightOfAutomation (te::AutomatableParameter::Ptr ap);
     int getYForAutomatableParam(te::AutomatableParameter::Ptr ap);

@@ -164,7 +164,8 @@ namespace GUIHelpers
 
     
     int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
-
+    te::AutomatableParameter::Ptr getAutomatableParamAt(int y, EditViewState& evs);
+    
     bool isAutomationVisible(const te::AutomatableParameter& ap);
 
     float getZoomScaleFactor(int delta, float unitDistance);

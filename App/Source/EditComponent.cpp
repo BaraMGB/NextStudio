@@ -434,6 +434,7 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset(m_updateSongEditor))
     {
         m_editViewState.updateTrackHeights();
+        m_editViewState.updateAutomationYMap();
         m_songEditor.repaint();
         m_trackListView.resized();
         updateVerticalScrollbar();
