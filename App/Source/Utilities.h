@@ -167,6 +167,8 @@ namespace GUIHelpers
     te::AutomatableParameter::Ptr getAutomatableParamAt(int y, EditViewState& evs);
     
     bool isAutomationVisible(const te::AutomatableParameter& ap);
+    int getHeightOfAutomation(te::AutomatableParameter::Ptr ap, EditViewState& evs);
+    int getYForAutomatableParam(te::AutomatableParameter::Ptr ap, EditViewState& evs);
 
     float getZoomScaleFactor(int delta, float unitDistance);
 

@@ -114,8 +114,6 @@ private:
 
     //AutomatableParameter 
     juce::Rectangle<int> getAutomationRect (te::AutomatableParameter::Ptr ap);
-    int getHeightOfAutomation (te::AutomatableParameter::Ptr ap);
-    int getYForAutomatableParam(te::AutomatableParameter::Ptr ap);
 
     //AutomationPoint info
     int nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const;

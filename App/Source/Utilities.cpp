@@ -1969,6 +1969,39 @@ bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
     return !isTrackInMinimizedFolder(ap.getTrack());
 }
 
+int GUIHelpers::getHeightOfAutomation(te::AutomatableParameter::Ptr ap, EditViewState& evs)
+{
+    // Iterate over the map to find the height of the given automation parameter
+    for (const auto& entry : evs.m_automationYMap)
+    {
+        if (entry.second == ap)
+        {
+            // Calculate the height based on the start and end of the range
+            int height = entry.first.second - entry.first.first;
+            return height;
+        }
+    }
+    
+    // Return a default value (e.g., 0) if the parameter is not found
+    return 0;
+}
+
+int GUIHelpers::getYForAutomatableParam(te::AutomatableParameter::Ptr ap, EditViewState& evs)
+{
+    // Iterate over the map to find the Y position of the given automation parameter
+    for (const auto& entry : evs.m_automationYMap)
+    {
+        if (entry.second == ap)
+        {
+            // Return the start of the range as the Y position
+            return entry.first.first;
+        }
+    }
+    
+    // Return a default value (e.g., -1) if the parameter is not found
+    return -1;
+}
+
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
 {
     auto zoom = evs.m_pianoX2 - evs.m_pianoX1;

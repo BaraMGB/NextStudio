@@ -351,14 +351,14 @@ void EditComponent::valueTreePropertyChanged (
         || i == te::IDs::looping)
         markAndUpdate(m_updateZoom);
 
-    if (i == te::IDs::height || i == IDs::isTrackMinimized )
+    if (i == te::IDs::height || i == IDs::isTrackMinimized || i == IDs::viewY)
     {
         markAndUpdate(m_updateSongEditor);
     }
 
     if (i == te::IDs::lastSignificantChange)
     {
-        markAndUpdate(m_updateSongEditor);
+        // markAndUpdate(m_updateSongEditor);
         m_editViewState.m_needAutoSave = true;
     }
     if (v.hasType (IDs::EDITVIEWSTATE))
@@ -391,6 +391,7 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
     {
         GUIHelpers::log(c.toXmlString());
         markAndUpdate (m_updateTracks);
+        markAndUpdate(m_updateSongEditor);
     }
 }
 
@@ -411,6 +412,12 @@ void EditComponent::valueTreeChildRemoved (
     if (c.hasType(te::IDs::PLUGIN))
     {
         markAndUpdate(m_updateTracks);
+    }
+    if (c.hasType(te::IDs::AUTOMATIONCURVE))
+    {
+        GUIHelpers::log(c.toXmlString());
+        markAndUpdate (m_updateTracks);
+        markAndUpdate(m_updateSongEditor);
     }
 
 }
@@ -441,6 +448,7 @@ void EditComponent::handleAsyncUpdate()
     }
     if (compareAndReset(m_updateSongEditor))
     {
+        GUIHelpers::log("Update Songeditor");
         m_editViewState.updateTrackHeights();
         m_editViewState.updateAutomationYMap();
         m_songEditor.repaint();

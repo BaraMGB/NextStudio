@@ -139,7 +139,7 @@ void SongEditorView::paint(juce::Graphics& g)
             auto x = timeToX(m_selectedRange.getStart().inSeconds()); 
             auto y = getAutomationRect(automation).getY();
             auto w = timeToX(m_selectedRange.getEnd().inSeconds()) - x;
-            auto h = getHeightOfAutomation(automation);
+            auto h = GUIHelpers::getHeightOfAutomation(automation, m_editViewState);
 
             x = x + timeToX(m_draggedTimeDelta) + scroll;
 
@@ -278,7 +278,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
         }
         else if (m_toolMode == Tool::pointer)
         {
-            juce::Point<int> hoveredPointInLane = {e.x, e.y - getYForAutomatableParam(hoveredAutamatableParam)};
+            juce::Point<int> hoveredPointInLane = {e.x, e.y - GUIHelpers::getYForAutomatableParam(hoveredAutamatableParam, m_editViewState)};
             const auto hoveredRectOnLane = GUIHelpers::getSensibleArea(hoveredPointInLane, getAutomationPointWidth(hoveredAutamatableParam) * 2) ;   
             auto curve = hoveredAutamatableParam->getCurve();
 
@@ -300,7 +300,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                 hoveredCurve = curve.nextIndexAfter(mousePosTime);
             
             juce::Point<int> cp = getPointOnAutomationRect(mousePosTime, valueAtMouseTime, hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2).toInt();
-            cp = cp.translated (0, getYForAutomatableParam(hoveredAutamatableParam));
+            cp = cp.translated (0, GUIHelpers::getYForAutomatableParam(hoveredAutamatableParam, m_editViewState));
             hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
         }
         else if (m_toolMode == Tool::knife)
@@ -903,52 +903,16 @@ int SongEditorView::getYForTrack (te::Track* track)
     return getHeight();
 }
 
-int SongEditorView::getYForAutomatableParam(te::AutomatableParameter::Ptr ap)
-{
-    double scrollY = m_editViewState.m_viewY;
-    for (auto t : getShowedTracks())
-    {
-        auto trackHeight = GUIHelpers::getTrackHeight(t, m_editViewState, false); 
-        scrollY += trackHeight;
-
-        bool isMinimized = (bool) t->state.getProperty(IDs::isTrackMinimized);
-        if (!isMinimized && trackHeight > 0)
-        {
-            for (auto p : t->getAllAutomatableParams())
-            {
-                if (p->getCurve().getNumPoints() > 0)
-                {
-                    if (p == ap.get())
-                        return scrollY;
-
-                    scrollY += getHeightOfAutomation(p);
-                }   
-            }
-        }
-    }
-
-    jassert(false); 
-    return -1;
-}
 
 juce::Rectangle<int> SongEditorView::getAutomationRect (te::AutomatableParameter::Ptr ap)
 {
     auto x = getLocalBounds().getX();
-    auto y = getYForAutomatableParam(ap);
+    auto y = GUIHelpers::getYForAutomatableParam(ap, m_editViewState);
     auto w = getWidth();
-    auto h = getHeightOfAutomation(ap);
+    auto h = GUIHelpers::getHeightOfAutomation(ap, m_editViewState);
     return {x, y, w, h};
 }
 
-int SongEditorView::getHeightOfAutomation (te::AutomatableParameter::Ptr ap)
-{
-    if (ap->getTrack() == nullptr)
-        return 0;
-    if (GUIHelpers::getTrackHeight(ap->getTrack(), m_editViewState) == 0 || ap->getTrack()->state.getProperty(IDs::isTrackMinimized))
-        return 0;
-
-    return ap->getCurve().state.getProperty(te::IDs::height, static_cast<int>(m_editViewState.m_trackDefaultHeight));
-}
 
 void SongEditorView::addAutomationPointAt(te::AutomatableParameter::Ptr par, tracktion::TimePosition pos)
 {
@@ -1363,7 +1327,7 @@ void SongEditorView::updateAutomationSelection(bool add)
                 {
                     auto p = ap->getCurve().getPoint(i);
                     auto pointPos = getPointOnAutomationRect(p.time, p.value, ap, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-                    pointPos.addXY(0, getYForAutomatableParam(ap));
+                    pointPos.addXY(0, GUIHelpers::getYForAutomatableParam(ap, m_editViewState));
 
                     if (m_lassoComponent.getLassoRect().m_verticalRange.contains(pointPos.getY()))
                        selectAutomationPoint(ap, i, true);
@@ -1813,7 +1777,7 @@ void SongEditorView::logMousePositionInfo()
         GUIHelpers::log("Track: ", m_hoveredAutamatableParam->getTrack()->getName());
         std::cout << "Automation name: " << m_hoveredAutamatableParam->getParameterName() << std::endl;
 
-        std::cout << "Automation Y: " << getYForAutomatableParam(m_hoveredAutamatableParam) << " Height: " << getHeightOfAutomation(m_hoveredAutamatableParam) << std::endl;
+        std::cout << "Automation Y: " << GUIHelpers::getYForAutomatableParam(m_hoveredAutamatableParam, m_editViewState) << " Height: " << GUIHelpers::getHeightOfAutomation(m_hoveredAutamatableParam, m_editViewState) << std::endl;
         GUIHelpers::log("Point       : ", m_hoveredAutomationPoint) ;
         GUIHelpers::log("Curve       : ", m_hoveredCurve);
 
