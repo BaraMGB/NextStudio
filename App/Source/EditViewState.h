@@ -286,63 +286,63 @@ public:
     [[nodiscard]] bool viewFollowsPos() const {return m_followPlayhead;}
     
     
-std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac, juce::Component& component)
-{
-    for (auto tn : m_thumbnails)
-        if (tn->waveAudioClip == wac)
-            return tn->smartThumbnail;
-
-    te::AudioFile af (wac->getAudioFile());
-    std::unique_ptr<te::SmartThumbnail> thumbnail;
-
-    if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
+    std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac, juce::Component& component)
     {
-        if (af.isValid())
-        {
-            const te::AudioFile proxy(
-                        (wac->hasAnyTakes() && wac->isShowingTakes())
-                        ? wac->getAudioFile()
-                        : wac->getPlaybackFile());
+        for (auto tn : m_thumbnails)
+            if (tn->clipID == wac->itemID)
+                return tn->smartThumbnail;
 
-            thumbnail = std::make_unique<te::SmartThumbnail>(
-                        wac->edit.engine
-                      , proxy
-                      , component 
-                      , &wac->edit);
+        te::AudioFile af (wac->getAudioFile());
+        std::unique_ptr<te::SmartThumbnail> thumbnail;
+
+        if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
+        {
+            if (af.isValid())
+            {
+                const te::AudioFile proxy(
+                            (wac->hasAnyTakes() && wac->isShowingTakes())
+                            ? wac->getAudioFile()
+                            : wac->getPlaybackFile());
+
+                thumbnail = std::make_unique<te::SmartThumbnail>(
+                            wac->edit.engine
+                          , proxy
+                          , component 
+                          , &wac->edit);
+            }
+        }
+        auto clipThumbnail = std::make_unique<ClipThumbNail> (wac->itemID, std::move(thumbnail));
+        m_thumbnails.add(std::move(clipThumbnail));
+
+        return m_thumbnails.getLast()->smartThumbnail;
+    }
+        void clearThumbnails()
+        {
+            m_thumbnails.clear();
+        }
+    void removeThumbnail(te::WaveAudioClip::Ptr wac)
+    {
+        for (int i = m_thumbnails.size(); --i >= 0;)
+        {
+            auto& clipThumbnail = *m_thumbnails.getUnchecked(i);
+
+            if (clipThumbnail.clipID == wac->itemID)
+            {
+                m_thumbnails.remove(i);
+                return;
+            }
         }
     }
-    auto clipThumbnail = std::make_unique<ClipThumbNail> (wac, std::move(thumbnail));
-    m_thumbnails.add(std::move(clipThumbnail));
-
-    return m_thumbnails.getLast()->smartThumbnail;
-}
-    void clearThumbnails()
-    {
-        m_thumbnails.clear();
-    }
-void removeThumbnail(te::WaveAudioClip::Ptr wac)
-{
-    for (int i = m_thumbnails.size(); --i >= 0;)
-    {
-        auto& clipThumbnail = *m_thumbnails.getUnchecked(i);
-
-        if (clipThumbnail.waveAudioClip == wac)
-        {
-            m_thumbnails.remove(i);
-            return;
-        }
-    }
-}
 
 
     struct ClipThumbNail 
     {
-        ClipThumbNail (te::WaveAudioClip::Ptr wac, std::unique_ptr<te::SmartThumbnail> sn) : waveAudioClip (wac), smartThumbnail (std::move(sn)) {}
+        ClipThumbNail(const te::EditItemID& id, std::unique_ptr<te::SmartThumbnail> sn) 
+        : clipID(id), smartThumbnail(std::move(sn)) {}
 
-        te::WaveAudioClip::Ptr waveAudioClip;
+        te::EditItemID clipID;
         std::unique_ptr<te::SmartThumbnail> smartThumbnail;
     };
-
     struct TrackHeightInfo {
         tracktion_engine::Track* track;
         int height;
