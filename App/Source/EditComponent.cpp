@@ -28,7 +28,6 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     , m_trackListView(m_editViewState)
     , m_scrollbar_v (true)
     , m_scrollbar_h (false)
-    , m_autosaveThread(m_editViewState)
     , m_addFolderTrackBtn ("Add folder track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_addAudioTrackBtn("Add audio track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_addMidiTrackBtn ("Add midi track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -150,7 +149,6 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
 
 EditComponent::~EditComponent()
 {
-    m_autosaveThread.stopThread(5000);
     m_timeStretchButton.removeListener(this);
     m_splitClipButton.removeListener(this);
     m_timeRangeSelectButton.removeListener(this);
@@ -331,8 +329,18 @@ void EditComponent::timerCallback()
         return;
     if (m_editViewState.m_needAutoSave)
     {
-        m_autosaveThread.startThread();
-        m_editViewState.m_needAutoSave = false; 
+        juce::MessageManager::callAsync([this]() {
+            auto temp = m_editViewState.m_edit.getTempDirectory(false);
+            auto editFile = Helpers::findRecentEdit(temp);
+            auto currentFile =  te::EditFileOperations(m_editViewState.m_edit).getEditFile();
+
+            EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, editFile);
+            te::EditFileOperations(m_editViewState.m_edit).writeToFile(editFile, true);
+            EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, currentFile);
+            m_editViewState.m_edit.sendSourceFileUpdate();
+            GUIHelpers::log("Temp file saved!");
+        });
+        m_editViewState.m_needAutoSave = false;
     }
 }
 void EditComponent::valueTreePropertyChanged (
