@@ -32,12 +32,12 @@ void SampleBrowserComponent::resized()
 
 void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
 {
-    if (rowNum < 0|| rowNum >= getNumRows())
+    if (rowNum < 0 || rowNum >= getNumRows())
     {
         return;
     }
 
-    juce::Rectangle<int> bounds (0,0, width, height);
+    juce::Rectangle<int> bounds (0, 0, width, height);
     auto textColour = m_applicationViewState.getTextColour();
     g.setColour (rowNum%2==0 ? m_applicationViewState.getMenuBackgroundColour() : m_applicationViewState.getMenuBackgroundColour().brighter(0.05f));
     g.fillRect(bounds);
@@ -49,15 +49,17 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
         g.setColour(juce::Colour(0xff555555));
         g.fillRect(bounds);
     }
-    bounds.reduce(10,0);
+
+    auto textArea = bounds.reduced(10, 0);
+
     if (m_searchTerm.isEmpty())
     {
         g.setColour(rowIsSelected ? juce::Colours::black : textColour);
-        g.drawFittedText(m_contentList[rowNum].getFileName (), bounds, juce::Justification::left, 1);
+        g.drawFittedText(m_contentList[rowNum].getFileName(), textArea, juce::Justification::left, 1);
     }
     else
     {
-        auto text = m_contentList[rowNum].getFileName ();
+        auto text = m_contentList[rowNum].getFileName();
 
         juce::String preTerm, postTerm;
         int termStartIndex = text.indexOfIgnoreCase(m_searchTerm);
@@ -69,23 +71,35 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
             postTerm = text.substring(termStartIndex + m_searchTerm.length());
             auto colour = rowIsSelected ? juce::Colours::black : textColour;
 
+            // Breite der einzelnen Textteile berechnen
+            int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
+            int termWidth = g.getCurrentFont().getStringWidth(searchTerm);
+            int postTermWidth = g.getCurrentFont().getStringWidth(postTerm);
+
             g.setColour(colour);
             g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
-            g.drawFittedText(preTerm, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
+            g.drawFittedText(preTerm, textArea.getX(), textArea.getY(), 
+                             juce::jmin(preTermWidth, textArea.getWidth()), textArea.getHeight(), 
+                             juce::Justification::centredLeft, 1, 0.9f);
 
-            int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
+            if (textArea.getWidth() > preTermWidth)
+            {
+                g.setColour(juce::Colours::coral);
+                g.drawFittedText(searchTerm, textArea.getX() + preTermWidth, textArea.getY(),
+                                 juce::jmin(termWidth, textArea.getWidth() - preTermWidth), textArea.getHeight(), 
+                                 juce::Justification::centredLeft, 1, 0.9f);
+            }
 
-            g.setColour(juce::Colours::coral);
-            g.drawFittedText(searchTerm, 4 + preTermWidth, 0, width - 6 - preTermWidth, height, juce::Justification::centredLeft, 1, 0.9f);
-
-            int termWidth = g.getCurrentFont().getStringWidth(searchTerm);
-
-            g.setColour(colour);
-            g.drawFittedText(postTerm, 4 + preTermWidth + termWidth, 0, width - 6 - preTermWidth - termWidth, height, juce::Justification::centredLeft, 1, 0.9f);
+            if (textArea.getWidth() > preTermWidth + termWidth)
+            {
+                g.setColour(colour);
+                g.drawFittedText(postTerm, textArea.getX() + preTermWidth + termWidth, textArea.getY(),
+                                 juce::jmin(postTermWidth, textArea.getWidth() - preTermWidth - termWidth), textArea.getHeight(), 
+                                 juce::Justification::centredLeft, 1, 0.9f);
+            }
         }
     }
 }
-
 juce::var SampleBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
 {
     return {"SampleBrowser"};
