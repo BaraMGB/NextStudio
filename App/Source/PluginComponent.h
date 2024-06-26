@@ -364,6 +364,7 @@ private:
     std::unique_ptr<ParameterComponent> m_lastChangedParameterComponent;
     juce::Viewport m_viewPort;
     juce::Component m_pluginListComponent;
+    juce::OwnedArray<ParameterComponent> m_parameters;
     te::Plugin::Ptr m_plugin;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VstPluginComponent)
 };

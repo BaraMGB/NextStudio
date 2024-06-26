@@ -281,8 +281,9 @@ VstPluginComponent::VstPluginComponent
             if (param)
             {
                 param->addListener(this);
-                auto parameterComp = new ParameterComponent(*param);
-                m_pluginListComponent.addAndMakeVisible(parameterComp);
+                auto parameterComp = std::make_unique<ParameterComponent>(*param);
+                m_pluginListComponent.addAndMakeVisible(parameterComp.get());
+                m_parameters.add(std::move(parameterComp));
             }
         }
     }
@@ -302,6 +303,7 @@ VstPluginComponent::VstPluginComponent
 
 VstPluginComponent::~VstPluginComponent()
 {
+    m_lastChangedParameterComponent.reset();
     if (m_plugin)
     {
         for (auto & param : m_plugin->getAutomatableParameters())
@@ -342,7 +344,7 @@ void VstPluginComponent::resized()
                                     ,m_pluginListComponent.getChildren().size() * widgetHeight);
 
     auto pcb = m_pluginListComponent.getBounds();
-    for (auto & pc : m_pluginListComponent.getChildren())
+    for (auto & pc : m_parameters)
     {
         pc->setBounds(pcb.removeFromTop(widgetHeight));
     }
