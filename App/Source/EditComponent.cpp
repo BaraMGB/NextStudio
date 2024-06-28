@@ -695,8 +695,11 @@ int EditComponent::getSongHeight()
 {
     auto h = 0;
         
-    for (auto t : m_songEditor.getShowedTracks())
+    for (auto trackID : GUIHelpers::getShowedTracks(m_editViewState))
+    {
+        auto t = GUIHelpers::getTrackFromID(m_editViewState.m_edit, trackID);
         h += GUIHelpers::getTrackHeight(t, m_editViewState);
+    }
         
     return h;
 }

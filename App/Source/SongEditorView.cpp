@@ -805,7 +805,8 @@ void SongEditorView::itemDragMove (const SourceDetails& dragSourceDetails)
         }
         else
         {
-            auto lastTrack = getShowedTracks().getLast(); 
+            auto lastTrackID = GUIHelpers::getShowedTracks(m_editViewState).getLast(); 
+            auto lastTrack = GUIHelpers::getTrackFromID(m_editViewState.m_edit, lastTrackID);
             te::AudioFile audioFile (m_editViewState.m_edit.engine, f);
             auto x = timeToX(dropTime);
             auto y = lastTrack ? getYForTrack(lastTrack) + GUIHelpers::getTrackHeight(lastTrack, m_editViewState) : 0;
@@ -877,8 +878,9 @@ void SongEditorView::addWaveFileToTrack(te::AudioFile audioFile, double dropTime
 
 te::Track::Ptr SongEditorView::getTrackAt(int y)
 {
-    for (auto t : getShowedTracks())
+    for (auto trackID : GUIHelpers::getShowedTracks(m_editViewState))
     {
+        auto t = GUIHelpers::getTrackFromID(m_editViewState.m_edit, trackID);
         auto s = getYForTrack(t);
         auto e = s + GUIHelpers::getTrackHeight(t, m_editViewState);
         auto vRange = juce::Range<int> (s, e);
@@ -892,8 +894,9 @@ te::Track::Ptr SongEditorView::getTrackAt(int y)
 int SongEditorView::getYForTrack (te::Track* track)
 {
     int scrollY = m_editViewState.m_viewY;
-    for (auto t : getShowedTracks())
+    for (auto trackID : GUIHelpers::getShowedTracks(m_editViewState))
     {
+        auto t = GUIHelpers::getTrackFromID(m_editViewState.m_edit, trackID);
         if (t.get() == track)
             return scrollY;
         
@@ -1117,17 +1120,6 @@ void SongEditorView::moveSelectedClips(bool copy,  double delta, int verticalOff
     EngineHelpers::moveSelectedClips(copy, delta, verticalOffset,m_editViewState); 
 }
 
-juce::Array<te::Track::Ptr> SongEditorView::getShowedTracks ()
-{
-    juce::Array<te::Track::Ptr> showedTracks;
-
-    for (auto t : te::getAllTracks(m_editViewState.m_edit))
-        if (EngineHelpers::isTrackShowable(t))
-            if (GUIHelpers::getTrackHeight(t, m_editViewState) > 0)
-                showedTracks.add(t);
-
-    return showedTracks;
-}
 
 int SongEditorView::getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int>& dropPos)
 {
@@ -1135,8 +1127,8 @@ int SongEditorView::getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Po
 
     if (targetTrack)
     {
-        auto showedTracks = getShowedTracks(); 
-        return showedTracks.indexOf(targetTrack) - showedTracks.indexOf(sourceTrack);
+        auto showedTracks = GUIHelpers::getShowedTracks(m_editViewState); 
+        return showedTracks.indexOf(targetTrack->itemID) - showedTracks.indexOf(sourceTrack->itemID);
     }
 
     return 0;
@@ -1191,8 +1183,9 @@ void SongEditorView::updateRangeSelection()
     auto range = m_lassoComponent.getLassoRect().m_timeRange;
     juce::Range<int> lassoRangeY = m_lassoComponent.getLassoRect().m_verticalRange; 
 
-    for (auto t: getShowedTracks())
+    for (auto trackID: GUIHelpers::getShowedTracks(m_editViewState))
     {
+        auto t = GUIHelpers::getTrackFromID(m_editViewState.m_edit, trackID);
         auto trackVRange = getVerticalRangeOfTrack(t, false);
         if (trackVRange.intersects (lassoRangeY))
             m_selectedRange.selectedTracks.add(t);
@@ -1312,8 +1305,9 @@ void SongEditorView::updateAutomationSelection(bool add)
 
     clearSelectedTimeRange();
 
-    for (auto t : getShowedTracks())
+    for (auto trackID : GUIHelpers::getShowedTracks(m_editViewState))
     {
+        auto t = GUIHelpers::getTrackFromID(m_editViewState.m_edit, trackID);
         auto trackHeight = GUIHelpers::getTrackHeight(t, m_editViewState, false);
 
         if (!t->state.getProperty(IDs::isTrackMinimized) && trackHeight > 0)
@@ -1354,8 +1348,9 @@ void SongEditorView::updateClipSelection(bool add)
 {
     m_editViewState.m_selectionManager.deselectAll ();
 
-    for (auto t : getShowedTracks())
+    for (auto trackID : GUIHelpers::getShowedTracks(m_editViewState))
     {
+        auto t = GUIHelpers::getTrackFromID(m_editViewState.m_edit, trackID);
         juce::Range<int> lassoRangeY = 
             {(int) m_lassoComponent.getLassoRect ().m_verticalRange.getStart(),
              (int) m_lassoComponent.getLassoRect ().m_verticalRange.getEnd()};

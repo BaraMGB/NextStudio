@@ -76,7 +76,6 @@ public:
         m_toolMode = tool;
     }
 
-    juce::Array<te::Track::Ptr> getShowedTracks ();
 
     void duplicateSelectedClipsOrTimeRange();
     void deleteSelectedTimeRange();

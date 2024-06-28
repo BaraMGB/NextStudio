@@ -1938,6 +1938,32 @@ int GUIHelpers::getTrackHeight(tracktion_engine::Track* track, EditViewState& ev
     return 0; 
 }
 
+juce::Array<tracktion::EditItemID> GUIHelpers::getShowedTracks(EditViewState& evs)
+{
+    juce::Array<tracktion::EditItemID> showedTracks;
+
+    for (auto t : te::getAllTracks(evs.m_edit))
+        if (EngineHelpers::isTrackShowable(t))
+            if (GUIHelpers::getTrackHeight(t, evs) > 0)
+                showedTracks.add(t->itemID);
+
+    return showedTracks;
+}
+
+tracktion::Track::Ptr GUIHelpers::getTrackFromID(tracktion_engine::Edit& edit, const tracktion_engine::EditItemID& id) {
+    tracktion::Track::Ptr foundTrack;
+    
+    edit.visitAllTracks([&](tracktion_engine::Track& track) {
+        if (track.itemID == id) {
+            foundTrack = track;
+            return false;
+        }
+        return true;
+    }, true);
+
+    return foundTrack;
+}
+
 te::AutomatableParameter::Ptr GUIHelpers::getAutomatableParamAt(int y, EditViewState& evs)
 {
    for (const auto& pair : evs.m_automationYMap)

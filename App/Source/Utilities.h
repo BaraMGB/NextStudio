@@ -164,6 +164,10 @@ namespace GUIHelpers
 
     
     int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
+    juce::Array<tracktion::EditItemID> getShowedTracks(EditViewState& evs);
+
+    tracktion::Track::Ptr getTrackFromID(tracktion_engine::Edit& edit, const tracktion_engine::EditItemID& id);
+
     te::AutomatableParameter::Ptr getAutomatableParamAt(int y, EditViewState& evs);
     
     bool isAutomationVisible(const te::AutomatableParameter& ap);
