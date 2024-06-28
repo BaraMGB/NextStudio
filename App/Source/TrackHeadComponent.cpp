@@ -131,8 +131,7 @@ void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
         if (result == 2000)
         {
             m_automatableParameter.getCurve().clear();
-            te::AutomationCurve::removeAllAutomationCurvesRecursively(
-                        m_automatableParameter.getCurve().parentState);
+            te::AutomationCurve::removeAllAutomationCurvesRecursively(m_automatableParameter.getCurve().parentState);
         }
     }
     else if (event.mods.isLeftButtonDown ())
@@ -141,9 +140,6 @@ void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
         m_heightAtMouseDown = getHeight ();
         getParentComponent ()->mouseDown (event);
     }
-
-
-
 }
 
 void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
@@ -153,20 +149,15 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
         if (m_mouseDownY >m_heightAtMouseDown - 10)
         {
             m_resizing = true;
-            auto newHeight =
-                    static_cast<int> (m_heightAtMouseDown
-                                    + event.getDistanceFromDragStartY ());
-            m_automatableParameter.getCurve().state.setProperty (
-                        te::IDs::height
-                      , juce::jlimit(30 , 250, newHeight)
-                      , nullptr);
+            auto newHeight = static_cast<int> (m_heightAtMouseDown + event.getDistanceFromDragStartY ());
+            m_automatableParameter.getCurve().state.setProperty (te::IDs::height, juce::jlimit(30 , 250, newHeight), nullptr);
         }
     }
 }
 
 void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
 {
-    m_hovering = false;
+    auto old = m_hovering;
     if (event.y > getHeight ()- 10)
     {
         m_hovering = true;
@@ -175,8 +166,14 @@ void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
     else
     {
         setMouseCursor (juce::MouseCursor::NormalCursor);
+        m_hovering = false;
     }
-    repaint ();
+
+    if (m_hovering != old)
+    {
+        auto stripeRect = getLocalBounds();
+        repaint (stripeRect.removeFromBottom(10));
+    }
 }
 
 void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &/*event*/)
@@ -184,7 +181,8 @@ void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent &/*event*/)
     m_resizing = false;
     m_hovering = false;
     setMouseCursor (juce::MouseCursor::NormalCursor);
-    repaint ();
+    auto stripeRect = getLocalBounds();
+    repaint (stripeRect.removeFromBottom(10));
 }
 
 //------------------------------------------------------------------------------
@@ -551,7 +549,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         if (!m_isMinimized)
         {
             int strokeHeight = 1;
-            if (m_isAboutToResizing)
+            if (m_isHover)
             {
                 g.setColour(juce::Colour(0x33ffffff));
                 strokeHeight = 3;
@@ -753,30 +751,43 @@ void TrackHeaderComponent::mouseUp(const juce::MouseEvent& /*e*/)
 {
     m_isResizing = false;
     m_isDragging = false;
-    repaint();
+    // repaint();
 }
 
 void TrackHeaderComponent::mouseMove(const juce::MouseEvent& e)
 {
-    m_isAboutToResizing = false;
-    int height = m_track->state.getProperty (te::IDs::height, getHeight ());
-    if (e.y > height - 10 && !m_isMinimized && !isFolderTrack())
+    if (! m_isResizing)
     {
-        m_isAboutToResizing = true;
-        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        auto old = m_isHover;
+        int height = m_track->state.getProperty (te::IDs::height, getHeight ());
+        if (e.y > height - 10 && !m_isMinimized && !isFolderTrack())
+        {
+            m_isHover = true;
+            setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        }
+        else
+        {
+            m_isHover = false;
+            setMouseCursor (juce::MouseCursor::NormalCursor);
+        }
+
+        if (m_isHover != old)
+        {
+            auto stripeRect = getLocalBounds();
+            stripeRect.removeFromBottom(getHeight() - height);
+            repaint(stripeRect.removeFromBottom(10));
+        }
     }
-    else
-    {
-        setMouseCursor (juce::MouseCursor::NormalCursor);
-    }
-    repaint();
 }
 
 void TrackHeaderComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
-    m_isAboutToResizing = false;
+    m_isHover = false;
     setMouseCursor (juce::MouseCursor::NormalCursor);
-    repaint();
+    int height = m_track->state.getProperty (te::IDs::height, getHeight ());
+    auto stripeRect = getLocalBounds();
+    stripeRect.removeFromBottom(getHeight() - height);
+    repaint(stripeRect.removeFromBottom(10));
 }
 
 juce::Colour TrackHeaderComponent::getTrackColour()

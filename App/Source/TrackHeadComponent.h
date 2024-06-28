@@ -116,7 +116,7 @@ private:
     std::unique_ptr<LevelMeterComponent> levelMeterComp;
     juce::Image m_dragImage;
     bool m_isResizing {false},
-         m_isAboutToResizing {false},
+         m_isHover {false},
          m_contentIsOver {false},
          m_trackIsOver {false},
          m_isDragging {false},
