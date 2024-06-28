@@ -301,6 +301,7 @@ void  GUIHelpers::drawMidiClip (juce::Graphics& g, EditViewState& evs, te::MidiC
         area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
 
     auto& seq = clip->getSequence();
+    
     auto range = seq.getNoteNumberRange();
     auto lines = range.getLength();
     auto noteHeight = juce::jmax(1,((clipRect.getHeight() ) / 20));
@@ -415,10 +416,12 @@ float GUIHelpers::getScale(const juce::Component& c)
 {
     #if JUCE_LINUX
         auto rc = c.localAreaToGlobal ( c.getLocalBounds () );
-		return float (juce::Desktop::getInstance ().getDisplays ().getDisplayForRect ( rc )->scale);
-	#else
-		return 1.0f;
-	#endif
+        auto scale = static_cast<int>(juce::Desktop::getInstance ().getDisplays ().getDisplayForRect ( rc )->scale);
+        return static_cast<float>(scale);
+    #else
+        return 1.0f;
+    #endif
+        return 1.0f;
 }
 
 juce::MouseCursor GUIHelpers::createCustomMouseCursor(CustomMouseCursor cursorType, const juce::Component& c)
@@ -469,16 +472,16 @@ juce::MouseCursor GUIHelpers::getMouseCursorFromSvg(
             , juce::Point<int> hotSpot
             , float scale)
 {
-    // auto drawable = GUIHelpers::getDrawableFromSvg(svgbinary, juce::Colours::white, 24,24);
-    // auto image = GUIHelpers::drawableToImage(*drawable.get(), scale * 32, scale * 32);
-
     auto imageType = juce::Image::ARGB;
     juce::Image image(imageType, 24 * scale, 24 * scale, true);
     juce::Graphics g(image);
-    
+ 
     GUIHelpers::drawFromSvg(g, svgbinary, juce::Colours::white , {24 * scale,24 * scale});
 
-    return juce::MouseCursor(image, static_cast<int>(scale * hotSpot.getX()), static_cast<int> (scale * hotSpot.getY()));
+    auto hotX = juce::jlimit(0, static_cast<int>(24 * scale) - 1, static_cast<int>(scale * hotSpot.getX()));
+    auto hotY = juce::jlimit(0, static_cast<int>(24 * scale) - 1, static_cast<int>(scale * hotSpot.getY()));
+
+    return juce::MouseCursor(image, hotX, hotY);
 }
 
 juce::Image GUIHelpers::drawableToImage(const juce::Drawable& drawable, float targetWidth, float targetHeight)
