@@ -110,8 +110,10 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 
 void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
 {
+    //init
     m_editViewState.followsPlayhead(false);
     m_changeLoopRange = false;
+    m_loopRangeClicked = false;
     m_cachedLoopRange = m_editViewState.m_edit.getTransport().getLoopRange();
         
     auto loopRangeArea = getTimeRangeRect(m_editViewState.getSongEditorVisibleTimeRange());
