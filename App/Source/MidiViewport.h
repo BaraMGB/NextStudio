@@ -24,6 +24,17 @@
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
+
+struct MidiNote 
+{
+    tracktion::BeatPosition startBeat;
+    tracktion::BeatDuration Lenght;
+    int noteNumber;
+    int colourIndex;
+    int velocity;
+    tracktion::EditItemID clip;
+};
+
 class MidiViewport : public juce::Component
                                 , public juce::Timer
 {
@@ -80,7 +91,8 @@ private:
     static double          getNoteEndBeat(const te::MidiClip* midiClip, const te::MidiNote* n) ;
     juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, tracktion_engine::MidiNote* n);
 
-    void                   insertNote(te::MidiNote* note, te::MidiClip* clip);
+    void                   insertNote(MidiNote note);
+    te::MidiClip*          getMidiClipForNote(MidiNote note);
     te::MidiNote*          addNewNote(int noteNumb, const te::MidiClip* clip, double beat, double length=-1);
 
     double                 getKeyForY(int y);
@@ -95,7 +107,7 @@ private:
 
     void                   playGuideNote(const te::MidiClip* clip,const int noteNumb, int vel= 100);
 
-    void                   moveSelectedNotesToMousePos(const juce::MouseEvent& e);
+    void                   updateViewOfMoveSelectedNotes(const juce::MouseEvent& e);
     double                 getDraggedTimeDelta(const juce::MouseEvent& e, double oldTime);
 
     te::MidiClip*          getMidiClipAt(int x);
@@ -131,7 +143,7 @@ private:
 
     bool                   isHovered(te::MidiNote* note);
     void                   setHovered(te::MidiNote* note, bool hovered);
-    void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, juce::Array<std::pair<te::MidiNote*, te::MidiClip*>>& temp, bool copy=false);
+    void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, bool copy=false);
 
     void                   cleanUpFlags();
 
@@ -146,6 +158,7 @@ private:
     std::unique_ptr<te::SelectedMidiEvents>     m_selectedEvents;
     double                                      m_clickedKey{0.0};
     te::MidiClip*                               m_clickedClip{nullptr};
+    juce::OwnedArray<MidiNote>                  m_temp;
     double                                      m_draggedTimeDelta {0.0};
     int                                         m_draggedNoteDelta {0};
 
