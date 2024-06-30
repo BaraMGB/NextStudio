@@ -351,14 +351,16 @@ void EditComponent::valueTreePropertyChanged (
         || i == te::IDs::looping)
         markAndUpdate(m_updateZoom);
 
-    if (i == te::IDs::height || i == IDs::isTrackMinimized || i == IDs::viewY)
+    if (i == te::IDs::height
+     || i == IDs::isTrackMinimized
+     || i == IDs::viewY
+     || i == te::IDs::lastSignificantChange)
     {
         markAndUpdate(m_updateSongEditor);
     }
 
     if (i == te::IDs::lastSignificantChange)
     {
-        // markAndUpdate(m_updateSongEditor);
         m_editViewState.m_needAutoSave = true;
     }
     if (v.hasType (IDs::EDITVIEWSTATE))
@@ -382,6 +384,7 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
     if (te::MidiClip::isClipState (c))
     {
         markAndUpdate (m_updateZoom);
+        markAndUpdate(m_updateSongEditor);
     }
     if (te::TrackList::isTrack (c))
     {
@@ -400,6 +403,7 @@ void EditComponent::valueTreeChildRemoved (
 {
     if (te::MidiClip::isClipState (c))
     {
+
     }
     if (te::TrackList::isTrack (c))
     {
