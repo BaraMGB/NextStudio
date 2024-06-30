@@ -109,9 +109,9 @@ void MenuBar::resized()
        
        removeAllChildren(); 
       
-       juce::DrawableButton* popupButton = new juce::DrawableButton("More...", juce::DrawableButton::ImageOnButtonBackground);
-        GUIHelpers::setDrawableOnButton(*popupButton, BinaryData::menu_svg, juce::Colours::grey);
-       addAndMakeVisible(popupButton);
+       m_popupButton = std::make_unique<juce::DrawableButton>("More...", juce::DrawableButton::ImageOnButtonBackground);
+        GUIHelpers::setDrawableOnButton(*m_popupButton, BinaryData::menu_svg, juce::Colours::grey);
+       addAndMakeVisible(m_popupButton.get());
       
         juce::FlexItem::Margin margin;
         int gap = m_defaultGap;
@@ -119,7 +119,7 @@ void MenuBar::resized()
         margin.bottom = gap;
         margin.right = gap;
         margin.left = gap;
-       fb.items.add(juce::FlexItem(buttonSize, buttonSize, *popupButton).withMargin(margin));
+       fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_popupButton).withMargin(margin));
        fb.performLayout(getLocalBounds());
       
        juce::PopupMenu popupMenu;
@@ -128,7 +128,7 @@ void MenuBar::resized()
            popupMenu.addItem(i + 1, m_buttons[i]->getButtonText());
        }
       
-       popupButton->onClick = [this, popupMenu]() mutable {
+       m_popupButton->onClick = [this, popupMenu]() mutable {
            int result = popupMenu.show();
            if (result > 0 && result <= m_buttons.size())
            {

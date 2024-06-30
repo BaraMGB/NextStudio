@@ -65,6 +65,7 @@ private:
 
     Alignment m_alignment;
     juce::Array<juce::DrawableButton*> m_buttons;
+    std::unique_ptr<juce::DrawableButton> m_popupButton;
     juce::Array<int> m_buttonGaps;
     bool m_wasEnoughSpace   {false};
     bool m_firstTime {true};
