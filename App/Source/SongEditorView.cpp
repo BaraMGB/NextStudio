@@ -1128,7 +1128,8 @@ int SongEditorView::getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Po
     if (targetTrack)
     {
         auto showedTracks = GUIHelpers::getShowedTracks(m_editViewState); 
-        return showedTracks.indexOf(targetTrack->itemID) - showedTracks.indexOf(sourceTrack->itemID);
+        if (showedTracks.contains(sourceTrack->itemID) && showedTracks.contains(targetTrack->itemID))
+            return showedTracks.indexOf(targetTrack->itemID) - showedTracks.indexOf(sourceTrack->itemID);
     }
 
     return 0;
