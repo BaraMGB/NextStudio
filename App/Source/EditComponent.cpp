@@ -145,6 +145,7 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     markAndUpdate(m_updateSongEditor);
     updateHorizontalScrollBar();
     startTimer (static_cast<int>(m_editViewState.m_applicationState.m_autoSaveInterval));
+    trimMidiNotesToClipStart();
 }
 
 EditComponent::~EditComponent()

@@ -132,6 +132,43 @@ private:
         m_scrollbar_v.setCurrentRange(-m_editViewState.m_viewY, getSongEditorRect().getHeight());
     }
 
+
+    void trimMidiNotesToClipStart()
+{
+    auto& edit = m_editViewState.m_edit;
+
+    for (auto track : te::getAllTracks(edit))
+    {
+        if (auto audioTrack = dynamic_cast<te::AudioTrack*>(track))
+        {
+            if (audioTrack->state.getProperty(IDs::isMidiTrack))
+            {
+                for (auto clip : audioTrack->getClips())
+                {
+                    if (auto midiClip = dynamic_cast<te::MidiClip*>(clip))
+                    {
+                        auto& sequence = midiClip->getSequence();
+                        auto clipStartBeat =  - midiClip->getOffsetInBeats().inBeats();
+                        auto& um = edit.getUndoManager();
+
+                        for (auto note : sequence.getNotes())
+                        {
+                            if (note->getStartBeat().inBeats() < clipStartBeat)
+                            {
+                                // Startpunkt der Note auf den Clip-Start setzen
+                                auto newStartBeat = tracktion::BeatPosition::fromBeats(clipStartBeat);
+                                auto newLength = note->getEndBeat() - newStartBeat;
+                                note->setStartAndLength(newStartBeat, newLength, &um);
+                                GUIHelpers::log("Attention: note start corrected!");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
     juce::Rectangle<int> getToolBarRect();
     juce::Rectangle<int> getEditorHeaderRect();
     juce::Rectangle<int> getTimeLineRect();
