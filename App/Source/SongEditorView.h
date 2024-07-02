@@ -34,6 +34,7 @@ struct SelectableAutomationPoint  : public te::Selectable
 
     int index = 0;
     te::AutomationCurve&        m_curve;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SelectableAutomationPoint)
 };
 
 class SongEditorView : public juce::Component
@@ -96,6 +97,7 @@ private:
         double                    value;
         int                       index;
         te::AutomatableParameter& param;
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CurvePoint)
     };
 
     //converting
@@ -126,16 +128,14 @@ private:
     //AutomationPoint handle
     void addAutomationPointAt(te::AutomatableParameter::Ptr par, tracktion::TimePosition pos);
     void selectAutomationPoint(te::AutomatableParameter::Ptr ap,int index, bool add);
-    SelectableAutomationPoint* createSelectablePoint(te::AutomatableParameter::Ptr ap, int index);
     bool isAutomationPointSelected(te::AutomatableParameter::Ptr ap, int index);
     void deselectAutomationPoint(te::AutomatableParameter::Ptr ap, int index);
-    juce::Array<CurvePoint*> getSelectedPoints();
+    juce::OwnedArray<SongEditorView::CurvePoint> getSelectedPoints();
 
     //LassoSelectionTool
     void updateClipSelection(bool add);
     void updateClipCache();
     void updateAutomationSelection(bool add);
-    void updateAutomationCache();
     void updateRangeSelection(); 
     void clearSelectedTimeRange();
     void setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd);
@@ -190,13 +190,16 @@ private:
 
     //caches
     juce::Array<te::Clip*>              m_cachedSelectedClips;
-    juce::Array<SelectableAutomationPoint*>       m_cachedSelectedAutomation;
+    // juce::OwnedArray<SelectableAutomationPoint>
+    //                                     m_cachedSelectedAutomation;
+    juce::OwnedArray<SelectableAutomationPoint>
+                                        m_selectedAutomationPoints;
 
-    GUIHelpers::SelectedTimeRange                   m_selectedRange;
+    GUIHelpers::SelectedTimeRange       m_selectedRange;
     juce::Image                         m_timeRangeImage;
     juce::Rectangle<int>                m_hoveredRectOnAutomation;
 
-    juce::Array<CurvePoint*>
+    juce::OwnedArray<CurvePoint>
                                         m_selPointsAtMousedown;
     double                              m_curveSteepAtMousedown{0.f};
     double                              m_curveAtMousedown{0.f};

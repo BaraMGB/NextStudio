@@ -37,11 +37,13 @@ SongEditorView::SongEditorView(EditViewState& evs, MenuBar& toolBar)
     clearSelectedTimeRange();
 
     m_editViewState.m_edit.getTransport().addChangeListener(this);
+    m_editViewState.m_selectionManager.addChangeListener(this);
 }
 
 SongEditorView::~SongEditorView()
 {
     m_editViewState.m_edit.getTransport().removeChangeListener(this);
+    m_editViewState.m_selectionManager.removeChangeListener(this);
 }
 
 void SongEditorView::paint(juce::Graphics& g)
@@ -726,9 +728,16 @@ void SongEditorView::mouseUp(const juce::MouseEvent& e)
 
 void SongEditorView::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    for (auto t : te::getAudioTracks(m_editViewState.m_edit))
+    if (source == &m_editViewState.m_edit.getTransport())
     {
-        buildRecordingClips(t);
+        for (auto t : te::getAudioTracks(m_editViewState.m_edit))
+            buildRecordingClips(t);
+    }
+    else if (source == &m_editViewState.m_selectionManager)
+    {
+        for (auto p : m_selectedAutomationPoints)
+            if (! m_editViewState.m_selectionManager.isSelected(p))
+                m_selectedAutomationPoints.removeObject(p, true);
     }
 }
 
@@ -931,13 +940,11 @@ void SongEditorView::addAutomationPointAt(te::AutomatableParameter::Ptr par, tra
 void SongEditorView::selectAutomationPoint(te::AutomatableParameter::Ptr ap,int index, bool add)
 {
     if (index >= 0 && index < ap->getCurve().getNumPoints())
-        m_editViewState.m_selectionManager.select(createSelectablePoint (ap, index), add);
-}
-
-SelectableAutomationPoint* SongEditorView::createSelectablePoint(te::AutomatableParameter::Ptr ap, int index)
-{
-    auto apoint = new SelectableAutomationPoint(index, ap->getCurve());
-    return apoint;
+    {
+        auto selectablePoint = std::make_unique<SelectableAutomationPoint>(index, ap->getCurve());
+        m_editViewState.m_selectionManager.select(selectablePoint.get(), add);
+        m_selectedAutomationPoints.add(std::move(selectablePoint));
+    }
 }
 
 bool SongEditorView::isAutomationPointSelected(te::AutomatableParameter::Ptr ap, int index)
@@ -956,19 +963,19 @@ void SongEditorView::deselectAutomationPoint(te::AutomatableParameter::Ptr ap, i
             p->deselect();
 }
 
-juce::Array<SongEditorView::CurvePoint*> SongEditorView::getSelectedPoints()
+juce::OwnedArray<SongEditorView::CurvePoint> SongEditorView::getSelectedPoints()
 {
     auto &sm = m_editViewState.m_selectionManager;
-    juce::Array<CurvePoint*> points;
+    juce::OwnedArray<SongEditorView::CurvePoint> points;
     for (auto p : sm.getItemsOfType<SelectableAutomationPoint>())
     {
-        auto cp = new SongEditorView::CurvePoint(
+        auto cp = std::make_unique<SongEditorView::CurvePoint>(
                                  p->m_curve.getPointTime(p->index),
                                  p->m_curve.getPointValue(p->index),
                                  p->index,
                                 *p->m_curve.getOwnerParameter());
 
-        points.add(cp);
+        points.add(std::move(cp));
     }
 
     return points;
@@ -982,7 +989,6 @@ void SongEditorView::startLasso(const juce::MouseEvent& e, bool fromAutomation, 
     if (selectRange)
     {
         clearSelectedTimeRange();
-        m_cachedSelectedAutomation.clear();
         m_cachedSelectedClips.clear();
 
     }
@@ -990,7 +996,7 @@ void SongEditorView::startLasso(const juce::MouseEvent& e, bool fromAutomation, 
     {
         if (fromAutomation)
         {
-            updateAutomationCache();
+            m_cachedSelectedClips.clear();
         }
         else
         {
@@ -1168,7 +1174,6 @@ tracktion_engine::MidiClip::Ptr SongEditorView::createNewMidiClip(double beatPos
 void SongEditorView::updateClipCache()
 {
     clearSelectedTimeRange();
-    m_cachedSelectedAutomation.clear();
     m_cachedSelectedClips.clear();
 
     for (auto c : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
@@ -1302,8 +1307,9 @@ void SongEditorView::setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, do
 void SongEditorView::updateAutomationSelection(bool add)
 {
     auto& sm = m_editViewState.m_selectionManager;
-    sm.deselectAll();
+    juce::Array<SelectableAutomationPoint*> previouslySelectedPoints = m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>();
 
+    sm.deselectAll();
     clearSelectedTimeRange();
 
     for (auto trackID : GUIHelpers::getShowedTracks(m_editViewState))
@@ -1318,6 +1324,7 @@ void SongEditorView::updateAutomationSelection(bool add)
                 auto range = m_lassoComponent.getLassoRect().m_timeRange;
                 auto firstPoint = ap->getCurve().nextIndexAfter(range.getStart());
                 auto lastPoint = ap->getCurve().indexBefore(range.getEnd());
+
                 for (auto i = firstPoint ; i <= lastPoint; i++)
                 {
                     auto p = ap->getCurve().getPoint(i);
@@ -1330,19 +1337,9 @@ void SongEditorView::updateAutomationSelection(bool add)
             }
         }
     }
-
-   if (add)
-       for (auto p : m_cachedSelectedAutomation)
-           m_editViewState.m_selectionManager.addToSelection(p);
-}
-
-void SongEditorView::updateAutomationCache()
-{
-    m_cachedSelectedAutomation.clear();
-    m_cachedSelectedClips.clear();
-
-    for (auto p : m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>())
-        m_cachedSelectedAutomation.add(p);
+    if (add) 
+        for (auto p : previouslySelectedPoints)
+            m_editViewState.m_selectionManager.addToSelection(p);
 }
 
 void SongEditorView::updateClipSelection(bool add)
