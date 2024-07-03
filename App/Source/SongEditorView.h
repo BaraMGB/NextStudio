@@ -101,10 +101,11 @@ private:
     };
 
     //converting
-    int timeToX (double time);
-    double xtoTime(int x);
+    int timeToX (tracktion::TimePosition time);
+    tracktion::TimePosition xtoTime(int x);
+
     double xToSnapedBeat (int x);
-    double getSnapedTime(double time, bool downwards=false);
+    tracktion::TimePosition getSnapedTime(tracktion::TimePosition time, bool downwards=false);
 
     void updateCursor(juce::ModifierKeys);
 
@@ -206,7 +207,7 @@ private:
     double                              m_clipPosAtMouseDown;
 
     te::Clip::Ptr                       m_draggedClip;
-    double                              m_draggedTimeDelta{0.0};
+    tracktion::TimeDuration             m_draggedTimeDelta;
     int                                 m_draggedVerticalOffset{0};
 
     DragFileItemInfo                    m_dragItemRect;
