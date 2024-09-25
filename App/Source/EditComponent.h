@@ -129,7 +129,7 @@ private:
     void updateVerticalScrollbar()
     {
         m_scrollbar_v.setRangeLimits(0, getSongHeight());
-        m_scrollbar_v.setCurrentRange(-m_editViewState.m_viewY, getSongEditorRect().getHeight());
+        m_scrollbar_v.setCurrentRange(-m_editViewState.m_viewY, getSongEditorRect().getHeight()/2);
     }
 
 
