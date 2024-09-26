@@ -102,6 +102,7 @@ private:
 
     //converting
     int timeToX (tracktion::TimePosition time);
+    int beatToX (tracktion::BeatPosition beat);
     tracktion::TimePosition xtoTime(int x);
 
     double xToSnapedBeat (int x);

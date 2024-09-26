@@ -1466,6 +1466,11 @@ int SongEditorView::timeToX (tracktion::TimePosition time)
     return m_editViewState.timeToX (time.inSeconds(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
 }
 
+int SongEditorView::beatToX (tracktion::BeatPosition beat)
+{
+    return m_editViewState.beatsToX(beat.inBeats(), getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+}
+
 double SongEditorView::xToSnapedBeat (int x)
 {
     auto time = xtoTime(x);
