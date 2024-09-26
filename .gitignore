@@ -1,6 +1,7 @@
 build/
 Builds/
 builds/
+jumake_build/
 .vscode/
 JuceLibraryCode/
 CMakeLists.txt.user
