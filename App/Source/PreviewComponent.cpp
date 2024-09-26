@@ -31,7 +31,7 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
 {
     m_avs.m_applicationStateValueTree.addListener(this);
 
-    m_isSync = new bool{false};
+    m_isSync = std::make_unique<bool>(true);
     m_volumeSlider = std::make_unique<juce::Slider>();
     m_volumeSlider->setRange(.0f, 1.0f);
     m_volumeSlider->getValueObject().referTo(m_avs.m_previewSliderPos.getPropertyAsValue());
@@ -102,7 +102,6 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
 }
 SamplePreviewComponent::~SamplePreviewComponent()
 {
-    delete m_isSync;
     m_volumeSlider->removeListener(this);
     m_avs.m_applicationStateValueTree.removeListener(this);
 }
@@ -257,7 +256,7 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
 
     m_file = file;
     m_fileName.setText(m_file.getFileName(), juce::sendNotification);
-    m_previewEdit = te::Edit::createEditForPreviewingFile (m_engine, file, &m_edit, m_syncTempo, false, m_isSync, juce::ValueTree());
+    m_previewEdit = te::Edit::createEditForPreviewingFile (m_engine, file, &m_edit, m_syncTempo, false, m_isSync.get(), juce::ValueTree());
 
     auto& sliderpos =  m_avs.m_previewSliderPos;
     if (m_previewEdit)
@@ -282,7 +281,7 @@ void SamplePreviewComponent::updateButtonColours()
 {
     if (m_previewEdit)
     {
-        auto sync = m_isSync && m_syncTempo;
+        auto sync = *m_isSync && m_syncTempo;
         auto isPlaying = m_previewEdit->getTransport().isPlaying();
         auto playBtnColour = isPlaying ? juce::Colour(0xff959595) : juce::Colour(0xff474747);
         auto stopBtnColour = isPlaying ? juce::Colour(0xff959515) : juce::Colour(0xff474747);

@@ -62,7 +62,7 @@ private:
     juce::Label m_fileName, m_lenghtLabel, m_volumeLabel;
     std::unique_ptr<SampleView>    m_thumbnail;
     bool m_syncTempo {false};
-    bool* m_isSync;
+    std::unique_ptr<bool> m_isSync;
     juce::File m_file;
     float m_volume;
     bool m_updateLooping{false};
