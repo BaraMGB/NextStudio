@@ -72,7 +72,6 @@ private:
     juce::String m_trackID{""};
 
     juce::OwnedArray<RackItemView> m_rackItems;
-    
     juce::OwnedArray<AddButton> m_addButtons;
 
     bool m_updatePlugins = false;

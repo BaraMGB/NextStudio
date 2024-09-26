@@ -99,12 +99,12 @@ void RackView::resized()
 
     if (m_track != nullptr)
     {
-        auto firstAdder = new AddButton(m_track);
-        m_addButtons.add(firstAdder);
-        addAndMakeVisible(*firstAdder);
+        auto firstAdder = std::make_unique<AddButton>(m_track);
+        addAndMakeVisible(firstAdder.get());
         firstAdder->addListener(this);
         firstAdder->setButtonText("+");
         firstAdder->setBounds(area.removeFromLeft(15).reduced(0,10));
+        m_addButtons.add(std::move(firstAdder));
 
         for (auto p : m_rackItems)
         {
@@ -113,13 +113,13 @@ void RackView::resized()
 
             area.removeFromLeft(5);
 
-            auto adder = new AddButton(m_track);
+            auto adder = std::make_unique<AddButton>(m_track);
             adder->setPlugin(p->getPlugin());
-            m_addButtons.add(adder);
-            addAndMakeVisible(*adder);
+            addAndMakeVisible(adder.get());
             adder->setButtonText("+");
             adder->setBounds(area.removeFromLeft(15).reduced(0, 10));
             adder->addListener(this);
+            m_addButtons.add(std::move(adder));
         }
         area.removeFromLeft (5);
     }
@@ -209,9 +209,9 @@ void RackView::rebuildView()
                 //don't show the default volume and levelmeter plugin
                 if (m_track->pluginList.indexOf(plugin)  < m_track->pluginList.size() - 2 )
                 {
-                    auto p = new RackItemView (m_evs, plugin);
-                    addAndMakeVisible (p);
-                    m_rackItems.add (p);
+                    auto p = std::make_unique<RackItemView> (m_evs, plugin);
+                    addAndMakeVisible (p.get());
+                    m_rackItems.add (std::move(p));
                 }
             }
         }
