@@ -1028,18 +1028,22 @@ void SongEditorView::stopLasso()
 
 void SongEditorView::duplicateSelectedClipsOrTimeRange()
 {
-    if (m_selectedRange.selectedTracks.size() == 0)
+    // This function handles duplication of either selected clips or a time range.
+    // The editor allows selection of either individual clips OR a time range, but not both simultaneously.
+    auto isTimeRangeSelected = m_selectedRange.selectedTracks.size() != 0;
+
+    if (isTimeRangeSelected)
+    {
+        moveSelectedTimeRanges(m_selectedRange.getLength(), true);
+        setSelectedTimeRange({m_selectedRange.getStart() + m_selectedRange.getLength(), m_selectedRange.getLength()},false, false);
+    }
+    else
     {
         auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
         auto range = te::getTimeRangeForSelectedItems(selectedClips);
         auto delta = range.getLength().inSeconds();
 
         moveSelectedClips(true, delta, 0);
-    }
-    else 
-    {
-        moveSelectedTimeRanges(m_selectedRange.getLength(), true);
-        setSelectedTimeRange({m_selectedRange.getStart() + m_selectedRange.getLength(), m_selectedRange.getLength()},false, false);
     }
 }
 
