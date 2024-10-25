@@ -1056,7 +1056,7 @@ bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeR
 void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState& evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
-    auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
+    auto tempPosition = evs.m_edit.getLength().inSeconds() + timeDelta;
 
     if (verticalOffset == 0) EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
 
@@ -1386,20 +1386,20 @@ te::TrackAutomationSection EngineHelpers::getTrackAutomationSection(te::Automata
 void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
-    auto tempPosition = evs.m_edit.getLength().inSeconds() * 100;
+    auto tempPosition = evs.m_edit.getLength().inSeconds() + delta;
 
     if (fromLeftEdge)
-	{
+    {
         for (auto sc : selectedClips)
         {
             auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
                                        sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(delta));
             sc->setStart(newStart, true, false);
 
-			//save clip for damage
+            //save clip for damage
             sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
         }
-	}
+    }
     else
     {
         for (auto sc : selectedClips)
@@ -1407,7 +1407,7 @@ void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditVie
             auto newEnd = sc->getPosition().getEnd() + tracktion::TimeDuration::fromSeconds(delta);
 
             sc->setEnd(newEnd, true);
-			//save clip for damage
+            //save clip for damage
             sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
         }
     }
@@ -1417,7 +1417,7 @@ void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditVie
         if (auto ct = sc->getClipTrack())
         {
             const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition),
-                                               sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
+                sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
             ct->deleteRegion(range, &evs.m_selectionManager);
         }
 
