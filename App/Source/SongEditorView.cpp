@@ -18,8 +18,6 @@
 
 #include "SongEditorView.h"
 #include "Browser_Base.h"
-#include "FileBrowser.h"
-#include "SampleBrowser.h"
 #include "Utilities.h"
 
 
@@ -70,11 +68,11 @@ void SongEditorView::paint(juce::Graphics& g)
 
                 GUIHelpers::drawTrack(g, *this, m_editViewState, {x, y, w, h}, ct, m_editViewState.getSongEditorVisibleTimeRange());
 
+                //draw time range
                 if (m_selectedRange.selectedTracks.contains(t) && m_selectedRange.getLength().inSeconds() > 0)
                 {
                     auto x = timeToX(m_selectedRange.getStart());
                     auto w = timeToX(m_selectedRange.getEnd()) - x;
-
                     g.setColour(juce::Colour(0x50ffffff));
                     g.fillRect(juce::Rectangle<int>{x, y, w, h});
                 }
@@ -89,14 +87,13 @@ void SongEditorView::paint(juce::Graphics& g)
 
             GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, m_editViewState.m_viewX1, m_editViewState.m_viewX2, {x,y,w,h});
         }
-        
 
         for (auto& ap : t->getAllAutomatableParams())
         {
             if (GUIHelpers::isAutomationVisible(*ap))
             {
                 auto rect = getAutomationRect(ap);
-                    
+
                 if (rect.getHeight() > 0)
                 {
                     drawAutomationLane(g, m_editViewState.getSongEditorVisibleTimeRange(), rect, ap);
@@ -126,7 +123,7 @@ void SongEditorView::paint(juce::Graphics& g)
             auto y = getYForTrack(track);
             auto w = timeToX(m_selectedRange.getEnd()) - x;
             auto h = GUIHelpers::getTrackHeight(track, m_editViewState, false);
-                
+
             x = x + timeToX(tracktion::TimePosition() + m_draggedTimeDelta) + scroll;
 
             juce::Rectangle<int> rect = {x, y, w, h};
@@ -151,6 +148,7 @@ void SongEditorView::paint(juce::Graphics& g)
 
             selectedRangeRect = selectedRangeRect.getUnion(rect);
         }
+
         g.setColour(juce::Colours::yellowgreen);
         g.drawRect(selectedRangeRect);
     }
@@ -170,6 +168,7 @@ void SongEditorView::paint(juce::Graphics& g)
         g.setColour(yellowgreen);
         g.drawVerticalLine(x, 0, y);
     }
+
     if (m_draggedClip)
     {
         for (auto selectedClip : sm.getItemsOfType<te::Clip>())
@@ -181,7 +180,7 @@ void SongEditorView::paint(juce::Graphics& g)
                                                        getYForTrack(targetTrack),
                                                        clipRect.getWidth(),
                                                         GUIHelpers::getTrackHeight(targetTrack, m_editViewState, false)};
-               
+
                 if (m_leftBorderHovered)
                 {
                     auto offset = selectedClip->getPosition().getOffset().inSeconds();
@@ -217,6 +216,7 @@ void SongEditorView::paint(juce::Graphics& g)
             }
         }
     }
+
     if (m_dragItemRect.visible)
     {
         if (m_dragItemRect.valid)
@@ -238,7 +238,6 @@ void SongEditorView::resized()
 {
     m_lassoComponent.setBounds(getLocalBounds());
 }
-
 
 void SongEditorView::mouseMove (const juce::MouseEvent &e)
 {
@@ -300,7 +299,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
 
             if (hoveredRectOnLane.contains(curvePointAtMouseTime) && hoveredAutomationPoint == -1)
                 hoveredCurve = curve.nextIndexAfter(mousePosTime);
-            
+
             juce::Point<int> cp = getPointOnAutomationRect(mousePosTime, valueAtMouseTime, hoveredAutamatableParam, getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2).toInt();
             cp = cp.translated (0, GUIHelpers::getYForAutomatableParam(hoveredAutamatableParam, m_editViewState));
             hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
@@ -310,6 +309,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
             needsRepaint = true; 
         }
     }
+
     if (hoveredTrack && hoveredAutamatableParam == nullptr)
     {
         if (m_selectedRange.selectedTracks.contains(hoveredTrack) && m_selectedRange.timeRange.contains(xtoTime(e.x)))
@@ -347,16 +347,9 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                     }
                 }
             }
-
         }
     }
 
-    //
-    // if (e.mods.isCtrlDown() && e.mods.isShiftDown())
-    //     m_toolMode = Tool::knife;
-    // else if (e.mods.isAltDown())
-    //     m_toolMode = Tool::range;
-    
     if (
             (m_hoveredTrack != hoveredTrack)
         ||  (m_hoveredAutamatableParam != hoveredAutamatableParam)
@@ -373,7 +366,6 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     {
         needsRepaint = true;
     }
-
 
     if (needsRepaint)
     {
@@ -394,7 +386,6 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
     m_hoveredTimeRangeRight = hoveredTimeRangeRight;
     updateCursor(e.mods);
 
-    // repaint();
     //logMousePositionInfo();
 }
 

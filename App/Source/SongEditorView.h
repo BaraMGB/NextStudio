@@ -19,7 +19,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "LassoSelectionTool.h"
-#include "LowerRangeComponent.h"
 #include "MenuBar.h"
 #include "RecordingClipComponent.h"
 #include "Utilities.h"
@@ -28,12 +27,12 @@
 struct SelectableAutomationPoint  : public te::Selectable
 {
     SelectableAutomationPoint (int i, te::AutomationCurve& c)  : index (i), m_curve (c) {}
-    ~SelectableAutomationPoint() override {notifyListenersOfDeletion();}
+    ~SelectableAutomationPoint() override { notifyListenersOfDeletion(); }
 
-    juce::String getSelectableDescription() override {return juce::String("AutomationPoint");}
+    juce::String getSelectableDescription() override { return juce::String("AutomationPoint"); }
 
     int index = 0;
-    te::AutomationCurve&        m_curve;
+    te::AutomationCurve& m_curve;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SelectableAutomationPoint)
 };
 
@@ -51,10 +50,9 @@ public:
     void mouseMove (const juce::MouseEvent &) override;
     void mouseDown (const juce::MouseEvent &) override;
     void mouseDrag (const juce::MouseEvent &) override;
-    void mouseUp (const juce::MouseEvent &) override;
+    void mouseUp   (const juce::MouseEvent &) override;
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
-
 
     bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override;
     void itemDragEnter (const SourceDetails& dragSourceDetails) override;
@@ -67,16 +65,11 @@ public:
     void updateLasso(const juce::MouseEvent& e);
     void stopLasso();
 
-
     int getYForTrack (te::Track* track);
 
     void updateTrackHeights(EditViewState& evs);
 
-    void setTool (Tool tool) 
-    {
-        m_toolMode = tool;
-    }
-
+    void setTool (Tool tool) { m_toolMode = tool; }
 
     void duplicateSelectedClipsOrTimeRange();
     void deleteSelectedTimeRange();
@@ -84,6 +77,7 @@ public:
     void transposeSelectedClips(float pitchChange);
     void reverseSelectedClips();
     juce::Array<te::Track*> getTracksWithSelectedTimeRange();
+
 private:
 
     tracktion::TimeRange getSelectedTimeRange();
@@ -109,7 +103,6 @@ private:
     tracktion::TimePosition getSnapedTime(tracktion::TimePosition time, bool downwards=false);
 
     void updateCursor(juce::ModifierKeys);
-
 
     te::Track::Ptr getTrackAt(int y);
 
