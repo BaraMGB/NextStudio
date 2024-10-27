@@ -538,99 +538,148 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
 {
     auto& avs = evs.m_applicationState;
     const auto BarColour = avs.getTimeLineStrokeColour();
-    const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.7f);
+    const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.6f);
     const auto fracColour = avs.getTimeLineStrokeColour().withAlpha(0.4f);
-    const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.2f);
+    const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.1f);
     const auto shadowShade = avs.getTimeLineShadowShade();
     const auto textColour = avs.getTimeLineTextColour();
-    const auto num = static_cast<int> (
+    const auto numBeatsPerBar = static_cast<int>(
         evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
 
+    // Draw shadow
     if (!printDescription)
         drawBarBeatsShadow(g, evs, x1beats, x2beats, boundingRect, shadowShade);
 
-    int snapLevel =
-        evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth()).getLevel();
+    // Get Snap Level
+    int snapLevel = juce::jmax(3, evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth()).getLevel());
 
-    if (snapLevel <= 9)
-        drawSnapLines(g, evs, x1beats, x2beats, boundingRect, snapLineColour);
-
-    for (int bar  = static_cast<int>(x1beats / num);
-             bar <= static_cast<int>(x2beats / num);
-             bar++)
+    // Function to get interval in beats based on snap level
+    auto getIntervalBeats = [numBeatsPerBar](int snapLevel)
     {
-        const auto barStartBeat = bar * num;
-        const auto barStartX = evs.beatsToX (
-            barStartBeat, boundingRect.getWidth(), x1beats, x2beats);
-
-        for (auto b = 0; b < num; b++)
+        switch (snapLevel)
         {
-            const auto beatWidth = evs.beatsToX (
-                x1beats + 1, boundingRect.getWidth (), x1beats, x2beats);
-            const auto beatX = barStartX + beatWidth * b;
-            const auto beatRect = juce::Rectangle<float>(
-                (float) beatX + boundingRect.getX(), boundingRect.getY(), (float) beatWidth,
-                boundingRect.toFloat().getHeight ());
-            const auto barString = juce::String(bar + 1);
-            const auto beatString = "." + juce::String(b + 1);
-
-            if (b == 0 && printDescription && snapLevel > 5)
-                printTextAt(g,
-                            beatRect.withWidth(beatRect.getWidth() * 4),
-                            barString,
-                            textColour);
-
-            if (snapLevel <= 7)
-            {
-
-                if (beatX + boundingRect.getX() > boundingRect.getX()
-                    && beatX + boundingRect.getX() < boundingRect.getRight())
-                {
-                    g.setColour(beatColour);
-                    g.drawVerticalLine(beatX + boundingRect.getX(), boundingRect.getY(), boundingRect.getBottom());
-                }
-            }
-
-            if (snapLevel <= 5 && printDescription)
-                printTextAt(
-                    g, beatRect, barString + beatString, textColour);
-
-            if (snapLevel <= 3)
-            {
-                const int den = evs.m_edit.tempoSequence.getTimeSigAt(
-                        tracktion::TimePosition::fromSeconds(0)).denominator;
-                const float frac = beatRect.getWidth() / (16 / den);
-
-                for (auto i = 1; i <= 16 / den; i++)
-                {
-                    auto fracRect = beatRect.withTrimmedLeft(i * frac);
-                    auto fracString = "." + juce::String(i + 1);
-
-                    if (printDescription)
-                        printTextAt(g,
-                                    fracRect,
-                                    barString + beatString + fracString,
-                                    textColour);
-
-                    if (fracRect.getX() > boundingRect.getX()
-                        && fracRect.getX() < boundingRect.getRight())
-                    {
-                        g.setColour(fracColour);
-                        g.drawVerticalLine(
-                        fracRect.getX(),boundingRect.getY(), boundingRect.getBottom());
-                    }
-                }
-            }
+            case 0: return 1.0 / 960.0; // 1 tick
+            case 1: return 2.0 / 960.0; // 2 ticks
+            case 2: return 5.0 / 960.0; // 5 ticks
+            case 3: return 1.0 / 64.0;  // 1/64 beat
+            case 4: return 1.0 / 32.0;  // 1/32 beat
+            case 5: return 1.0 / 16.0;  // 1/16 beat
+            case 6: return 1.0 / 8.0;   // 1/8 beat
+            case 7: return 1.0 / 4.0;   // 1/4 beat
+            case 8: return 1.0 / 2.0;   // 1/2 beat
+            case 9: return 1.0;         // 1 beat
+            case 10: return numBeatsPerBar * 1.0; // 1 bar
+            case 11: return numBeatsPerBar * 2.0; // 2 bars
+            case 12: return numBeatsPerBar * 4.0; // 4 bars
+            case 13: return numBeatsPerBar * 8.0; // 8 bars
+            case 14: return numBeatsPerBar * 16.0; // 16 bars
+            case 15: return numBeatsPerBar * 64.0; // 64 bars
+            case 16: return numBeatsPerBar * 128.0; // 128 bars
+            case 17: return numBeatsPerBar * 256.0; // 256 bars
+            case 18: return numBeatsPerBar * 1024.0; // 1024 bars
+            default: return 1.0; // Default to 1 beat
         }
+    };
 
-        if (barStartX + boundingRect.getX() > boundingRect.getX())
+    double intervalBeats = getIntervalBeats(snapLevel);
+
+    // Determine start and end beats
+    double startBeat = std::floor(x1beats / intervalBeats) * intervalBeats;
+    double endBeat = std::ceil(x2beats / intervalBeats) * intervalBeats;
+
+    double epsilon = 1e-3;
+    // Determine label detail level based on snap level
+    int labelDetailLevel = 0; // 0: bars, 1: beats, 2: subdivisions, 3: finer subdivisions
+    if (snapLevel >= 7)
+        labelDetailLevel = 0; // Only bar numbers
+    else if (snapLevel >= 5)
+        labelDetailLevel = 1; // Bar.beat
+    else
+        labelDetailLevel = 2; // More detailed
+
+    // Loop over grid lines
+    for (double beat = startBeat; beat <= endBeat; beat += intervalBeats)
+    {
+        // Calculate x position
+        float x = evs.beatsToX(beat, boundingRect.getWidth(), x1beats, x2beats);
+
+        // Skip if x is outside boundingRect
+        if (x < boundingRect.getX() || x > boundingRect.getRight())
+            continue;
+
+        // Decide line color and style
+        juce::Colour lineColour;
+        bool isBarLine = false;
+        bool isBeatLine = false;
+        bool isQuarterBeatLine = false;
+
+        if (std::abs(std::fmod(beat, numBeatsPerBar)) < epsilon)
         {
-            g.setColour (BarColour);
-            g.drawVerticalLine(barStartX + boundingRect.getX(), boundingRect.getY(), boundingRect.getBottom());
+            // Bar line
+            lineColour = BarColour;
+            isBarLine = true;
+        }
+        else if (std::abs(std::fmod(beat, 1.0)) < epsilon)
+        {
+            // Beat line
+            lineColour = beatColour;
+            isBeatLine = true;
+        }
+        else if (std::abs(std::fmod(beat * 4.0, 1.0)) < epsilon)
+        {
+            // Quarter beat line
+            lineColour = fracColour;
+            isQuarterBeatLine = true;
+        }
+        else
+        {
+            // Subdivision line
+            lineColour = fracColour.withAlpha(0.2f);
+        }
+        // Draw line
+        g.setColour(lineColour);
+        g.drawVerticalLine(static_cast<int>(x), boundingRect.getY(), boundingRect.getBottom());
 
+        // Draw labels adaptively
+        if (printDescription)
+        {
+            bool shouldDrawLabel = false;
+            juce::String label;
+
+            int barNumber = static_cast<int>(beat / numBeatsPerBar) + 1;
+            double beatWithinBar = std::fmod(beat, numBeatsPerBar);
+
+            if (labelDetailLevel == 0 && isBarLine)
+            {
+                // Only bar numbers
+                label = juce::String(barNumber);
+                shouldDrawLabel = true;
+            }
+            else if (labelDetailLevel == 1 && (isBarLine || isBeatLine))
+            {
+                // Bar.beat
+                int beatNumber = static_cast<int>(beatWithinBar) + 1;
+                label = juce::String(barNumber) + "." + juce::String(beatNumber);
+                shouldDrawLabel = true;
+            }
+            else if (labelDetailLevel == 2)
+            {
+                int beatNumber = static_cast<int>(beatWithinBar) + 1;
+                double fraction = beatWithinBar - static_cast<int>(beatWithinBar);
+                int quarterNumber = static_cast<int>(fraction * 4) + 1;
+                label = juce::String(barNumber) + "." + juce::String(beatNumber) + "." + juce::String(quarterNumber);
+                shouldDrawLabel = isQuarterBeatLine || isBeatLine || isBarLine;
+            }
+
+            if (shouldDrawLabel)
+            {
+                g.setColour(textColour);
+                g.drawText(label, x + 2, boundingRect.getY(), 50, 12, juce::Justification::left);
+            }
         }
     }
 }
+
 
 void GUIHelpers::drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke)
 {
@@ -718,7 +767,7 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
     int shadowBeatDelta = num * 4;
     if (snapType.getLevel() <= 9)
         shadowBeatDelta = num;
-    if (snapType.getLevel() <= 4)
+    if (snapType.getLevel() <= 6)
         shadowBeatDelta = 1;
 
     auto beatIter = static_cast<int>(x1beats);
