@@ -51,7 +51,7 @@ void SongEditorView::paint(juce::Graphics& g)
     auto &sm = m_editViewState.m_selectionManager;
     auto scroll = timeToX(tracktion::TimePosition::fromSeconds(0)) * (-1);
 
-    auto area = getLocalBounds();
+    const auto area = getLocalBounds();
     g.setColour(juce::Colour(0xff303030));
     g.fillRect(area);
 
@@ -74,7 +74,9 @@ void SongEditorView::paint(juce::Graphics& g)
                     auto x = timeToX(m_selectedRange.getStart());
                     auto w = timeToX(m_selectedRange.getEnd()) - x;
                     g.setColour(juce::Colour(0x50ffffff));
-                    g.fillRect(juce::Rectangle<int>{x, y, w, h});
+                    auto timeRangeRect = juce::Rectangle<int>{x, y, w, h};
+                    timeRangeRect = timeRangeRect.getIntersection(area);
+                    g.fillRect(timeRangeRect);
                 }
             }
         }
@@ -100,13 +102,15 @@ void SongEditorView::paint(juce::Graphics& g)
 
                     if (m_selectedRange.selectedAutomations.contains(ap) && m_selectedRange.getLength().inSeconds() > 0)
                     {
-                        auto x = timeToX(m_selectedRange.getStart());
+                        auto x =  timeToX(m_selectedRange.getStart());
                         auto y = rect.getY();
                         auto w = timeToX(m_selectedRange.getEnd()) - x;
                         auto h = rect.getHeight();
 
                         g.setColour(juce::Colour(0x50ffffff));
-                        g.fillRect(juce::Rectangle<int>{x, y, w, h});
+                        auto automationRangeRect = juce::Rectangle<int>{x, y, w, h};
+                        automationRangeRect = automationRangeRect.getIntersection(area);
+                        g.fillRect(automationRangeRect);
                     }
                 }
             }
@@ -150,6 +154,7 @@ void SongEditorView::paint(juce::Graphics& g)
         }
 
         g.setColour(juce::Colours::yellowgreen);
+        selectedRangeRect = selectedRangeRect.getIntersection(area);
         g.drawRect(selectedRangeRect);
     }
 
