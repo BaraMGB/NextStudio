@@ -29,16 +29,22 @@ PlayheadComponent::PlayheadComponent (te::Edit& e
 
 void PlayheadComponent::paint (juce::Graphics& g)
 {
-	if (m_edit.getTransport().isPlaying())
-	{
-	    g.setColour (m_editViewState.m_applicationState.getPrimeColour());
-		g.drawRect (m_xPosition, 0, 2, getHeight());
-	}
-	else
-	{
-		g.setColour(juce::Colour(0x66ffffff));
-		g.drawRect(m_xPosition,0, 1, getHeight());
-	}
+    auto rect = juce::Rectangle<int>(m_xPosition, 0, 2, getHeight());
+    auto bounds = getLocalBounds();
+    if (!bounds.contains(rect))
+        return;
+
+    if (m_edit.getTransport().isPlaying())
+    {
+        g.setColour (m_editViewState.m_applicationState.getPrimeColour());
+
+        g.drawRect (rect);
+    }
+    else
+    {
+        g.setColour(juce::Colour(0x66ffffff));
+        g.drawRect(rect.removeFromLeft(1));
+    }
 }
 
 bool PlayheadComponent::hitTest (int x, int y)

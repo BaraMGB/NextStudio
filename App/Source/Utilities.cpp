@@ -235,7 +235,6 @@ void GUIHelpers::drawChannels(juce::Graphics& g
 void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
 {
     auto area = clipRect;
-
     auto header = area.withHeight(evs.m_clipHeaderHeight);
 
     auto clipColor = color;
@@ -243,10 +242,18 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String
     auto borderColour = clipColor.darker(0.95f);
     auto backgroundColor = borderColour.withAlpha(0.6f);
 
-    auto labelBackground = juce::Colour(0x00ffffff);
     auto labelTextColor = clipColor.getPerceivedBrightness() < 0.5f
-                        ? clipColor.withLightness(.75f)
-                        : clipColor.darker(.75f);
+                            ? clipColor.withLightness(.75f)
+                            : clipColor.darker(.75f);
+
+    // Calculate clipped areas for only draw, what is on screen
+    float startOffset = displayedRect.getX() - area.getX();
+    float endOffset;
+
+    auto clipedClip = area.withLeft(area.getX() + juce::jmax(0.0f, startOffset));
+    endOffset = clipedClip.getRight() - displayedRect.getRight();
+    clipedClip = clipedClip.withRight(clipedClip.getRight() - juce::jmax(0.0f, endOffset));
+    auto clipedHeader = clipedClip.withHeight(evs.m_clipHeaderHeight);
 
     g.saveState();
     {
@@ -256,35 +263,31 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String
         g.fillRect(area.reduced(1, 1));
 
         g.setColour(innerGlow);
-        g.drawRect(header);
-        g.drawRect(area);
-        g.setColour(clipColor);
-        if (isSelected)
-            g.setColour(clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f));
+        g.drawRect(clipedHeader);
+        g.drawRect(clipedClip);
 
-        g.fillRect(header.reduced(2,2));
+        g.setColour(isSelected ? clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f) : clipColor);
+        g.fillRect(clipedHeader.reduced(2, 2));
     }
     g.restoreState();
 
     g.saveState();
     {
-        header = header.reduced(4,0);
+        header = header.reduced(4, 0);
 
-        auto startOffset = displayedRect.getX() - header.getX();
-        auto clipedHeader = header.withLeft(header.getX() + juce::jmax(0, startOffset));
-        auto endOffset = clipedHeader.getRight() - displayedRect.getRight();
-        clipedHeader = clipedHeader.withRight(clipedHeader.getRight() - juce::jmax(0, endOffset));
-        g.reduceClipRegion(clipedHeader);
+        g.reduceClipRegion(clipedHeader.toNearestInt());
 
         if (isSelected)
             labelTextColor = juce::Colours::black;
         g.setColour(labelTextColor);
-        juce::Font labelFont (14.0f, juce::Font::bold);
-        g.setFont(labelFont);
+        g.setFont(juce::Font(14.0f, juce::Font::bold));
 
-        auto textArea = header;
-        textArea.removeFromLeft(4);
-        g.drawText(name, textArea, juce::Justification::centredLeft, false);
+        if (header.getX() > -1000 && header.getWidth() < displayedRect.getWidth() + 1000)
+        {
+            auto textArea = header;
+            textArea.removeFromLeft(4);
+            g.drawText(name, textArea, juce::Justification::centredLeft, false);
+        }
     }
     g.restoreState();
 }

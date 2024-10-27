@@ -62,9 +62,14 @@ void TimeLineComponent::paint(juce::Graphics& g)
 
     if (m_isMouseDown)
     {
-        auto md = m_editViewState.beatsToX(m_cachedBeat, getWidth (), m_X1, m_X2) ;
+        auto mouseDown = m_editViewState.beatsToX(m_cachedBeat, getWidth (), m_X1, m_X2) ;
         g.setColour(juce::Colours::white);
-        g.fillRect(md, 1, 1, getHeight()-1);
+        auto rect = juce::Rectangle<int>(mouseDown, 1.f, 1.f, float(getHeight()) - 1.f);
+        auto bounds = getLocalBounds();
+        if ( bounds.contains(rect))
+        {
+            g.fillRect(rect);
+        }
     }
 
     if (m_editViewState.m_edit.getTransport().looping)
@@ -204,19 +209,24 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 }
 void TimeLineComponent::updateViewRange(const juce::MouseEvent& e)
 {
+    if (m_cachedX2 <= m_cachedX1)
+    {
+        GUIHelpers::log("Warning: X2 >= X1");
+        return;
+    }
+
+    auto dragDistance = juce::jmax(-1200, e.getDistanceFromDragStartY());
+
     auto scaleFactor = GUIHelpers::getZoomScaleFactor(
-        e.getDistanceFromDragStartY(), m_editViewState.getTimeLineZoomUnit());
+        dragDistance, m_editViewState.getTimeLineZoomUnit());
 
     auto newVisibleLengthBeats = juce::jlimit(
-        0.05, 240.0, (m_cachedX2 - m_cachedX1) * scaleFactor);
+        0.05, 100240.0, (m_cachedX2 - m_cachedX1) * scaleFactor);
 
     auto currentXinBeats = juce::jmap(
         (double) e.x, 0.0,(double) getWidth(), 0.0, newVisibleLengthBeats);
 
-    auto newRangeStartBeats = juce::jlimit(
-        0.0,
-        m_editViewState.getEndScrollBeat() - newVisibleLengthBeats,
-        m_cachedBeat - currentXinBeats);
+    auto newRangeStartBeats = juce::jmax(0.0, m_cachedBeat - currentXinBeats);
 
     m_X1 = newRangeStartBeats;
     m_X2 = newRangeStartBeats + newVisibleLengthBeats;
@@ -239,27 +249,32 @@ int TimeLineComponent::timeToX(double time)
 
 void TimeLineComponent::drawLoopRange(juce::Graphics& g)
 {
+    juce::Rectangle<int> loopRect;
+
     if (m_draggedTime != tracktion::TimeDuration())
     {
-        g.setColour(m_editViewState.m_applicationState.getPrimeColour().withAlpha(0.5f));
-        g.fillRect(getTimeRangeRect(getLoopRangeToBeMovedOrResized()));
+        loopRect = getTimeRangeRect(getLoopRangeToBeMovedOrResized());
     }
     else if (m_changeLoopRange)
     {
-        g.setColour(m_editViewState.m_applicationState.getPrimeColour().withAlpha(0.5f));
-        g.fillRect(getTimeRangeRect(m_newLoopRange));
+        loopRect = getTimeRangeRect(m_newLoopRange);
     }
     else
     {
         auto loopRange = m_editViewState.m_edit.getTransport().getLoopRange();
-        g.fillRect(getTimeRangeRect(loopRange));
-    }        
+        loopRect = getTimeRangeRect(loopRange);
+    }
+
+    loopRect = loopRect.getIntersection(getLocalBounds());
+
+    g.setColour(m_editViewState.m_applicationState.getPrimeColour().withAlpha(0.5f));
+    g.fillRect(loopRect);
 }
 
 juce::Rectangle<int> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange tr)
 {
     auto x = timeToX (tr.getStart().inSeconds());
-    auto w = timeToX (tr.getEnd().inSeconds()) - x;  
+    auto w = timeToX (tr.getEnd().inSeconds()) - x;
     auto h = getHeight() / 5;
 
     return {x, getHeight() - h, w, h};
