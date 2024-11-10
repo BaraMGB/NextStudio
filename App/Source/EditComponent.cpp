@@ -142,7 +142,7 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     m_editViewState.m_selectionManager.selectOnly (
                 te::getAllTracks (m_edit).getLast ());
 
-    markAndUpdate(m_updateSongEditor);
+    markAndUpdate(m_verticalUpdateSongEditor);
     updateHorizontalScrollBar();
     startTimer (static_cast<int>(m_editViewState.m_applicationState.m_autoSaveInterval));
     trimMidiNotesToClipStart();
@@ -354,10 +354,9 @@ void EditComponent::valueTreePropertyChanged (
 
     if (i == te::IDs::height
      || i == IDs::isTrackMinimized
-     || i == IDs::viewY
-     || i == te::IDs::lastSignificantChange)
+     || i == IDs::viewY)
     {
-        markAndUpdate(m_updateSongEditor);
+        markAndUpdate(m_verticalUpdateSongEditor);
     }
 
     if (i == te::IDs::lastSignificantChange)
@@ -385,7 +384,7 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
     if (te::MidiClip::isClipState (c))
     {
         markAndUpdate (m_updateZoom);
-        markAndUpdate(m_updateSongEditor);
+        markAndUpdate(m_verticalUpdateSongEditor);
     }
     if (te::TrackList::isTrack (c))
     {
@@ -395,7 +394,7 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
     {
         GUIHelpers::log(c.toXmlString());
         markAndUpdate (m_updateTracks);
-        markAndUpdate(m_updateSongEditor);
+        markAndUpdate(m_verticalUpdateSongEditor);
     }
 }
 
@@ -422,7 +421,7 @@ void EditComponent::valueTreeChildRemoved (
     {
         GUIHelpers::log(c.toXmlString());
         markAndUpdate (m_updateTracks);
-        markAndUpdate(m_updateSongEditor);
+        markAndUpdate(m_verticalUpdateSongEditor);
     }
 
 }
@@ -451,7 +450,7 @@ void EditComponent::handleAsyncUpdate()
 
         updateHorizontalScrollBar();
     }
-    if (compareAndReset(m_updateSongEditor))
+    if (compareAndReset(m_verticalUpdateSongEditor))
     {
         GUIHelpers::log("Update Songeditor");
         m_editViewState.updateTrackHeights();
