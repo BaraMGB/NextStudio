@@ -55,6 +55,8 @@ public:
     void setTrack(tracktion_engine::Track::Ptr track);
     void clearTrack();
 
+    TimeLineComponent& getTimeLineComponent() { return m_timeLine; }
+
 private:
 
     void valueTreePropertyChanged(
@@ -68,7 +70,7 @@ private:
                                int ) override;
 
     EditViewState& m_editViewState;
-    TimeLineComponent m_timeline;
+    TimeLineComponent m_timeLine;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
     std::unique_ptr<MidiViewport> m_pianoRollViewPort{nullptr};
     std::unique_ptr<VelocityEditor> m_velocityEditor{nullptr};

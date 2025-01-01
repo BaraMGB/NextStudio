@@ -26,7 +26,7 @@ TimelineOverlayComponent::TimelineOverlayComponent(
         EditViewState &evs
       , tracktion_engine::Track::Ptr track
       , TimeLineComponent& tlc)
-    : m_editViewState (evs)
+    : m_evs (evs)
     , m_track(std::move(track))
     , m_timelineComponent(tlc)
 {
@@ -112,8 +112,9 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
     if (e.mouseWasDraggedSinceMouseDown ())
     {
         auto clickOffset = e.getMouseDownX () - timeToX (m_cachedPos.getStart ().inSeconds());
-        auto mouseTime = EngineHelpers::getTimePos(m_editViewState.xToTime(e.x, getWidth(), m_timelineComponent.m_X1, m_timelineComponent.m_X2));
-        mouseTime = e.mods.isShiftDown() ? mouseTime : m_timelineComponent.getBestSnapType().roundTimeDown(mouseTime, m_editViewState.m_edit.tempoSequence);
+        auto br = m_timelineComponent.getCurrentBeatRange();
+        auto mouseTime = EngineHelpers::getTimePos(m_evs.xToTime(e.x, getWidth(), br.getStart().inBeats(), br.getEnd().inBeats()));
+        mouseTime = e.mods.isShiftDown() ? mouseTime : m_timelineComponent.getBestSnapType().roundTimeDown(mouseTime, m_evs.m_edit.tempoSequence);
         m_drawDraggedClip = false; 
         if (m_cachedClip)
         {
@@ -143,9 +144,9 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
             }
             else
             {
-                auto newStart = EngineHelpers::getTimePos(m_editViewState.beatToTime (xToBeats (e.x - clickOffset)));
+                auto newStart = EngineHelpers::getTimePos(m_evs.beatToTime (xToBeats (e.x - clickOffset)));
                 auto snaped = m_timelineComponent.getBestSnapType ().roundTimeDown (
-                            newStart, m_editViewState.m_edit.tempoSequence);
+                            newStart, m_evs.m_edit.tempoSequence);
                 newStart = e.mods.isShiftDown () ? newStart
                                                  : snaped;
                 m_draggedTimeDelta = cs.inSeconds() - newStart.inSeconds();
@@ -154,7 +155,7 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
                 repaint();
             }
 
-            m_editViewState.m_selectionManager.selectOnly(m_cachedClip);
+            m_evs.m_selectionManager.selectOnly(m_cachedClip);
             m_drawDraggedClip = true; 
         }
     }
@@ -163,7 +164,7 @@ void TimelineOverlayComponent::mouseUp(const juce::MouseEvent &e)
 {
     if (m_leftResized || m_rightResized)
     {
-        EngineHelpers::resizeSelectedClips(m_leftResized, -m_draggedTimeDelta, m_editViewState);
+        EngineHelpers::resizeSelectedClips(m_leftResized, -m_draggedTimeDelta, m_evs);
     }
     else if (m_move)
         moveSelectedClips(e.mods.isCtrlDown(), !e.mods.isShiftDown());
@@ -174,7 +175,7 @@ void TimelineOverlayComponent::mouseUp(const juce::MouseEvent &e)
 
 double TimelineOverlayComponent::getSnapedTime(double time)
 {
-    return m_editViewState.getSnapedTime(time, m_timelineComponent.getBestSnapType());
+    return m_evs.getSnapedTime(time, m_timelineComponent.getBestSnapType());
 }
 std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClipsOfTrack()
 {
@@ -206,16 +207,18 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
 }
 void TimelineOverlayComponent::moveSelectedClips(bool copy, bool snap)
 {
-    EngineHelpers::moveSelectedClips(copy, -m_draggedTimeDelta, 0, m_editViewState);
+    EngineHelpers::moveSelectedClips(copy, -m_draggedTimeDelta, 0, m_evs);
 }
 int TimelineOverlayComponent::timeToX(double time)
 {
-    return m_editViewState.timeToX(time, getWidth(), m_timelineComponent.m_X1, m_timelineComponent.m_X2);
+    auto br = m_timelineComponent.getCurrentBeatRange();
+    return m_evs.timeToX(time, getWidth(), br.getStart().inBeats(), br.getEnd().inBeats());
 }
 
 double TimelineOverlayComponent::xToBeats(int x)
 {
-    return m_editViewState.xToBeats(x, getWidth(), m_timelineComponent.m_X1, m_timelineComponent.m_X2);
+    auto br = m_timelineComponent.getCurrentBeatRange();
+    return m_evs.xToBeats(x, getWidth(), br.getStart().inBeats(), br.getEnd().inBeats());
 }
 
 void TimelineOverlayComponent::updateClipRects()

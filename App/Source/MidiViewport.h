@@ -22,6 +22,7 @@
 #include "EditViewState.h"
 #include "LassoSelectionTool.h"
 #include "Utilities.h"
+#include "TimeLineComponent.h"
 
 namespace te = tracktion_engine;
 
@@ -40,7 +41,7 @@ class MidiViewport : public juce::Component
 {
 public:
 
-    MidiViewport (EditViewState&, te::Track::Ptr);
+    MidiViewport (EditViewState&, te::Track::Ptr, TimeLineComponent& timeLine);
     ~MidiViewport() override;
 
     void paint (juce::Graphics& g) override;
@@ -153,6 +154,7 @@ private:
 
     EditViewState&                              m_evs;
     te::Track::Ptr                              m_track;
+    TimeLineComponent&                          m_timeLine;
     LassoSelectionTool                          m_lassoTool;
     te::MidiNote*                               m_clickedNote {nullptr};
     std::unique_ptr<te::SelectedMidiEvents>     m_selectedEvents;

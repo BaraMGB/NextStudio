@@ -21,6 +21,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "TimeLineComponent.h"
 
 
 namespace te = tracktion_engine;
@@ -31,8 +32,7 @@ class PlayheadComponent : public juce::Component
 public:
     PlayheadComponent (te::Edit&
                        , EditViewState&
-                       , juce::CachedValue<double>& x1
-                       , juce::CachedValue<double>& x2);
+                       , TimeLineComponent& tc);
 
     void paint (juce::Graphics& g) override;
     bool hitTest (int x, int y) override;
@@ -47,8 +47,7 @@ private:
 
     te::Edit& m_edit;
     EditViewState& m_editViewState;
-    juce::CachedValue<double> & m_X1;
-    juce::CachedValue<double> & m_X2;
+    TimeLineComponent& m_timeLine;
 
     int m_xPosition = 0;
     bool m_firstTimer = true;

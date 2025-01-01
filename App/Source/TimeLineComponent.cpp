@@ -32,12 +32,11 @@
 #include "tracktion_core/utilities/tracktion_Time.h"
 
 
-TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::CachedValue<double> &x1, juce::CachedValue<double> &x2)
-    : m_editViewState(evs)
-    , m_X1(x1)
-    , m_X2(x2)
+TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::String timeLineID)
+    : m_evs(evs)
     , m_isMouseDown(false)
 {
+    setTimeLineID(timeLineID);
 }
 
 TimeLineComponent::~TimeLineComponent()
@@ -49,12 +48,12 @@ void TimeLineComponent::paint(juce::Graphics& g)
     g.setFont(12);
 
     g.setColour(juce::Colour(0xffffffff));
-    double x1beats = m_X1;
-    double x2beats = m_X2;
+    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
 
     GUIHelpers::drawBarsAndBeatLines (
                 g
-              , m_editViewState
+              , m_evs
               , x1beats
               , x2beats
               , getLocalBounds()
@@ -62,7 +61,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
 
     if (m_isMouseDown)
     {
-        auto mouseDown = m_editViewState.beatsToX(m_cachedBeat, getWidth (), m_X1, m_X2) ;
+        auto mouseDown = m_evs.beatsToX(m_cachedBeat, getWidth (), x1beats, x2beats) ;
         g.setColour(juce::Colours::white);
         auto rect = juce::Rectangle<int>(mouseDown, 1.f, 1.f, float(getHeight()) - 1.f);
         auto bounds = getLocalBounds();
@@ -72,7 +71,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
         }
     }
 
-    if (m_editViewState.m_edit.getTransport().looping)
+    if (m_evs.m_edit.getTransport().looping)
         g.setColour(juce::Colour(0x99FFFFFF));
     else
         g.setColour(juce::Colour(0x44FFFFFF));
@@ -84,7 +83,7 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 {
     setMouseCursor (juce::MouseCursor::NormalCursor);
 
-    auto loopRange = m_editViewState.m_edit.getTransport().getLoopRange();
+    auto loopRange = m_evs.m_edit.getTransport().getLoopRange();
     auto loopRangeRect = getTimeRangeRect(loopRange);
 
     if (loopRangeRect.contains(e.getPosition()))
@@ -116,13 +115,15 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
 {
     //init
-    m_editViewState.followsPlayhead(false);
+    m_evs.followsPlayhead(false);
     m_changeLoopRange = false;
     m_loopRangeClicked = false;
-    m_cachedLoopRange = m_editViewState.m_edit.getTransport().getLoopRange();
-        
-    auto loopRangeArea = getTimeRangeRect(m_editViewState.getSongEditorVisibleTimeRange());
-    auto loopRange = m_editViewState.m_edit.getTransport().getLoopRange();
+    m_cachedLoopRange = m_evs.m_edit.getTransport().getLoopRange();
+    m_oldDragDistanceX = 0;
+    m_oldDragDistanceY = 0;
+
+    auto loopRangeArea = getTimeRangeRect(m_evs.getVisibleTimeRange(m_timeLineID, getWidth()));
+    auto loopRange = m_evs.m_edit.getTransport().getLoopRange();
 
     if (loopRangeArea.contains(e.getPosition()))
         m_changeLoopRange = true;
@@ -134,17 +135,19 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
     }
     else if (!m_changeLoopRange)
     {
+        double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+        double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+
         e.source.enableUnboundedMouseMovement(true, false);
+
         m_isMouseDown = true;
-        m_cachedBeat = m_editViewState.xToBeats(
-            e.getMouseDownPosition().getX(), getWidth (), m_X1, m_X2);
-        m_cachedX1 = m_X1;
-        m_cachedX2 = m_X2;
+        m_cachedBeat = m_evs.xToBeats(e.getMouseDownPosition().getX(), getWidth (), x1beats, x2beats);
+
         if (e.getNumberOfClicks() > 1)
         {
-            auto newTime = m_editViewState.beatToTime(m_cachedBeat);
-            m_editViewState.m_playHeadStartTime = newTime;
-            m_editViewState.m_edit.getTransport().setCurrentPosition(newTime);
+            auto newTime = m_evs.beatToTime(m_cachedBeat);
+            m_evs.m_playHeadStartTime = newTime;
+            m_evs.m_edit.getTransport().setCurrentPosition(newTime);
         }
     }
 }
@@ -163,7 +166,7 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& e)
     }
     else if (m_changeLoopRange)
     {
-        auto& ts = m_editViewState.m_edit.tempoSequence;
+        auto& ts = m_evs.m_edit.tempoSequence;
         auto t1 = xToTimePos(e.getMouseDownX());
         auto t2 = xToTimePos(e.x);
 
@@ -188,13 +191,15 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& e)
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 {
-    m_editViewState.followsPlayhead(true);
-    auto& t = m_editViewState.m_edit.getTransport();
+    m_evs.followsPlayhead(true);
+    auto& t = m_evs.m_edit.getTransport();
     if (m_loopRangeClicked) 
         t.setLoopRange(getLoopRangeToBeMovedOrResized());
     else if (m_changeLoopRange)
         t.setLoopRange(m_newLoopRange);
 
+    m_oldDragDistanceX = 0;
+    m_oldDragDistanceY = 0;
     m_draggedTime = tracktion::TimeDuration();  
     m_leftResized= false;
     m_rightResized= false;
@@ -209,42 +214,50 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 }
 void TimeLineComponent::updateViewRange(const juce::MouseEvent& e)
 {
-    if (m_cachedX2 <= m_cachedX1)
-    {
-        GUIHelpers::log("Warning: X2 >= X1");
-        return;
-    }
+    const auto sensitivity = 0.03f;
 
-    auto dragDistance = juce::jmax(-1200, e.getDistanceFromDragStartY());
+    auto oldViewRange = m_evs.getVisibleBeatRange(m_timeLineID, getWidth());
 
-    auto scaleFactor = GUIHelpers::getZoomScaleFactor(
-        dragDistance, m_editViewState.getTimeLineZoomUnit());
+    //rescale ViewRange at beat on mouse down
+    bool isNotToBig = oldViewRange.getLength().inBeats() < 100240.0;
+    bool isNotToSmall = oldViewRange.getLength().inBeats() > 0.05;
+    auto dragDistanceY = e.getDistanceFromDragStartY();
+    auto anchorTime = tracktion::BeatPosition::fromBeats(m_cachedBeat);
+    float scaleFactor = 1.0f + ((dragDistanceY > m_oldDragDistanceY) && isNotToBig ? sensitivity 
+                             : ((dragDistanceY < m_oldDragDistanceY) && isNotToSmall ? -sensitivity : 0.0f));
+    m_oldDragDistanceY = dragDistanceY;
+    // m_oldDragDistanceY = scaleFactor == 1.0f ? m_oldDragDistanceY : dragDistanceY;
 
-    auto newVisibleLengthBeats = juce::jlimit(
-        0.05, 100240.0, (m_cachedX2 - m_cachedX1) * scaleFactor);
+    auto newViewRange = oldViewRange.rescaled(anchorTime, scaleFactor);
 
-    auto currentXinBeats = juce::jmap(
-        (double) e.x, 0.0,(double) getWidth(), 0.0, newVisibleLengthBeats);
+    //move horizontal if mouse dragged on X-Axis
+    auto newBeatsPerPixel = newViewRange.getLength().inBeats() / getWidth();
+    auto dragDistanceX = m_oldDragDistanceX - e.getDistanceFromDragStartX();
+    m_oldDragDistanceX = e.getDistanceFromDragStartX();
+    auto moveCorrection = tracktion::BeatDuration::fromBeats(dragDistanceX * newBeatsPerPixel);
 
-    auto newRangeStartBeats = juce::jmax(0.0, m_cachedBeat - currentXinBeats);
+    newViewRange = newViewRange.movedToStartAt(newViewRange.getStart() + moveCorrection);
 
-    m_X1 = newRangeStartBeats;
-    m_X2 = newRangeStartBeats + newVisibleLengthBeats;
+    m_evs.setNewBeatRange(m_timeLineID, newViewRange, getWidth());
 }
 
 tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
 {
-    return m_editViewState.getBestSnapType (m_X1, m_X2, getWidth());
+    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    return m_evs.getBestSnapType (x1beats, x2beats, getWidth());
 }
 
 EditViewState &TimeLineComponent::getEditViewState()
 {
-    return m_editViewState;
+    return m_evs;
 }
 
 int TimeLineComponent::timeToX(double time)
 {
-    return m_editViewState.timeToX(time, getWidth(), m_X1, m_X2);
+    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    return m_evs.timeToX(time, getWidth(), x1beats, x2beats);
 }
 
 void TimeLineComponent::drawLoopRange(juce::Graphics& g)
@@ -261,13 +274,13 @@ void TimeLineComponent::drawLoopRange(juce::Graphics& g)
     }
     else
     {
-        auto loopRange = m_editViewState.m_edit.getTransport().getLoopRange();
+        auto loopRange = m_evs.m_edit.getTransport().getLoopRange();
         loopRect = getTimeRangeRect(loopRange);
     }
 
     loopRect = loopRect.getIntersection(getLocalBounds());
 
-    g.setColour(m_editViewState.m_applicationState.getPrimeColour().withAlpha(0.5f));
+    g.setColour(m_evs.m_applicationState.getPrimeColour().withAlpha(0.5f));
     g.fillRect(loopRect);
 }
 
@@ -283,7 +296,7 @@ juce::Rectangle<int> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange tr
 tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
 {
     auto draggedLoopRange = m_cachedLoopRange;
-    auto& t = m_editViewState.m_edit.tempoSequence;
+    auto& t = m_evs.m_edit.tempoSequence;
 
     if (m_leftResized)
     {
@@ -319,20 +332,51 @@ tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
 
 tracktion::TimeDuration TimeLineComponent::xToTimeDuration(int x)
 {
-    return tracktion::TimeDuration::fromSeconds(m_editViewState.xToTime(x, getWidth(), m_X1, m_X2));
+    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    return tracktion::TimeDuration::fromSeconds(m_evs.xToTime(x, getWidth(), x1beats, x2beats));
 }
 
 tracktion::TimePosition TimeLineComponent::beatToTime(tracktion::BeatPosition beats)
 {
-    return tracktion::TimePosition::fromSeconds(m_editViewState.beatToTime(beats.inBeats()));
+    return tracktion::TimePosition::fromSeconds(m_evs.beatToTime(beats.inBeats()));
 }
 
 int TimeLineComponent::beatsToX(double beats)
 {
-    return m_editViewState.beatsToX(beats, getWidth(), m_X1, m_X2);
+    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    return m_evs.beatsToX(beats, getWidth(), x1beats, x2beats);
 }
 
 tracktion::TimePosition TimeLineComponent::xToTimePos(int x)
 {
-    return tracktion::TimePosition::fromSeconds(m_editViewState.xToTime(x, getWidth(), m_X1, m_X2));
+    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    return tracktion::TimePosition::fromSeconds(m_evs.xToTime(x, getWidth(), x1beats, x2beats));
+}
+tracktion::BeatPosition TimeLineComponent::xToBeatPos(int x)
+{
+    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    double beats = m_evs.xToBeats(x, getWidth(), x1beats, x2beats);
+    return tracktion::BeatPosition::fromBeats(beats);
+}
+
+double TimeLineComponent::getBeatsPerPixel()
+{
+    auto visibleBeatRange = m_evs.getVisibleBeatRange(m_timeLineID, getWidth());
+    double beatLength = visibleBeatRange.getLength().inBeats();
+    int componentWidth = getWidth();
+
+    if (componentWidth <= 0)
+        return 0.0;
+
+    return beatLength / componentWidth;
+}
+void TimeLineComponent::setTimeLineID(juce::String timeLineID)
+{
+    m_timeLineID = timeLineID;
+    m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(m_timeLineID, nullptr);  
+    m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
 }

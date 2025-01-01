@@ -47,7 +47,7 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
 void LowerRangeComponent::handleSplitterMouseDown()
 {
     m_pianorollHeightAtMousedown = m_evs.m_midiEditorHeight;
-    m_cachedPianoNoteNum = (double) m_evs.m_pianoStartKey;
+    m_cachedPianoNoteNum = (double) m_evs.getViewYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
 }
 
 void LowerRangeComponent::handleSplitterDrag(int dragDistance)
@@ -55,11 +55,11 @@ void LowerRangeComponent::handleSplitterDrag(int dragDistance)
     if (m_evs.m_isPianoRollVisible)
     {
         auto newHeight = static_cast<int> (m_pianorollHeightAtMousedown - dragDistance);
-        auto noteHeight = (double) m_evs.m_pianoKeyWidth;
+        auto noteHeight = (double) m_evs.getViewYScale(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
         auto noteDist = dragDistance / noteHeight;
 
-        m_evs.m_pianoStartKey =
-            juce::jlimit(0.0, 127.0 - (getHeight() / m_evs.m_pianoKeyWidth), m_cachedPianoNoteNum + noteDist);
+        m_evs.setYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID(),
+                         juce::jlimit(0.0, 127.0 - (getHeight() / noteHeight), m_cachedPianoNoteNum + noteDist));
         m_evs.m_midiEditorHeight = std::max(20, newHeight);
     }
 }
@@ -130,16 +130,10 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
         resized ();
         repaint ();
     }
-    if (v.hasType (IDs::EDITVIEWSTATE))
+    if (v.hasType(m_pianoRollEditor.getTimeLineComponent().getTimeLineID()))
     {
-        if (i == IDs::pianoX1
-            || i == IDs::pianoX2
-            || i == IDs::pianoY1
-            || i == IDs::pianorollNoteWidth)
-        {
-            resized ();
-            repaint ();
-        }
+        resized ();
+        repaint ();
     }
 }
 

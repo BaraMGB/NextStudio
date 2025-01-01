@@ -23,11 +23,11 @@ void KeyboardView::mouseDown(const juce::MouseEvent& e)
 {
     if (m_keyboard.getBounds().contains(e.getPosition()))
     {
-        EngineHelpers::updateMidiInputs(m_editViewState, m_track);
+        // EngineHelpers::updateMidiInputs(m_editViewState, m_track);
         EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit).handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, getKey(e.y), .8f));
     }
 
-    m_keyWidthCached = m_editViewState.m_pianoKeyWidth;
+    m_keyWidthCached = m_editViewState.getViewYScale(m_timeLineID);
     m_clickedKey = getKey(e.y);
 }
 void KeyboardView::mouseDrag(const juce::MouseEvent& e)
@@ -57,8 +57,8 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
         auto maxKeyHeight = (float) getHeight() / (float) (127.f - newStartKey);
         auto newKeyWidth = juce::jmax((float) getHeight() / scaledVisibleKeys, maxKeyHeight);
 
-        m_editViewState.m_pianoStartKey = newStartKey;
-        m_editViewState.m_pianoKeyWidth = newKeyWidth;
+        m_editViewState.setYScroll(m_timeLineID, newStartKey);
+        m_editViewState.setViewYScale(m_timeLineID,  newKeyWidth);
     }
 
 }
@@ -69,21 +69,21 @@ void KeyboardView::mouseUp (const juce::MouseEvent& e)
 
 void KeyboardView::resized() 
 {
-    double firstVisibleNote = m_editViewState.m_pianoStartKey;
-    double pianoRollNoteWidth = m_editViewState.m_pianoKeyWidth;
+    double firstVisibleNote = m_editViewState.getViewYScroll(m_timeLineID);
+    double pianoRollNoteWidth = m_editViewState.getViewYScale(m_timeLineID);
+    double totalHeight = m_keyboard.getTotalKeyboardWidth();
+    auto w = 50;
+    auto x = getWidth() - w;
+    auto y = (getHeight () - totalHeight + (firstVisibleNote * pianoRollNoteWidth)) + 2;
 
-    m_keyboard.setKeyWidth (juce::jmax(0.1f, (float) pianoRollNoteWidth * 12 / 7));
-    m_keyboard.setBounds (getWidth() - 50
-                         , (getHeight () - (int) m_keyboard.getTotalKeyboardWidth ()
-                          + (int) (firstVisibleNote * pianoRollNoteWidth)) + 2
-                         , 50
-                         , (int) m_keyboard.getTotalKeyboardWidth ());
+    m_keyboard.setKeyWidth (juce::jmax(0.1, pianoRollNoteWidth * 12 / 7));
+    m_keyboard.setBounds (x, y, w, totalHeight);
 }
 float KeyboardView::getKey(int y)
 {
-    auto noteHeight = (double) m_editViewState.m_pianoKeyWidth;
+    auto noteHeight = (double) m_editViewState.getViewYScale(m_timeLineID);
     auto noteNumb =
-        static_cast<float>(m_editViewState.m_pianoStartKey
+        static_cast<float>(m_editViewState.getViewYScroll(m_timeLineID)
                            + ((getHeight() - y) / noteHeight));
     return noteNumb;
 }

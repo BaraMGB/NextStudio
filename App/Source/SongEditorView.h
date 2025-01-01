@@ -22,6 +22,7 @@
 #include "MenuBar.h"
 #include "RecordingClipComponent.h"
 #include "Utilities.h"
+#include "TimeLineComponent.h"
 
 
 struct SelectableAutomationPoint  : public te::Selectable
@@ -41,7 +42,7 @@ class SongEditorView : public juce::Component
                      , public juce::DragAndDropTarget
 {
 public:
-    SongEditorView(EditViewState& evs, MenuBar& toolBar);
+    SongEditorView(EditViewState& evs, MenuBar& toolBar, TimeLineComponent& timeLine);
     ~SongEditorView() override;
 
     void paint(juce::Graphics& g) override;
@@ -97,9 +98,13 @@ private:
     //converting
     int timeToX (tracktion::TimePosition time);
     int beatToX (tracktion::BeatPosition beat);
+    tracktion::BeatPosition xToBeatPosition(int x);
     tracktion::TimePosition xtoTime(int x);
+    int timeDurationToPixel(tracktion::TimeDuration duration);
+    tracktion::TimeDuration distanceToTime(int distance);
 
     double xToSnapedBeat (int x);
+    tracktion::BeatPosition getSnapedBeat(tracktion::BeatPosition beat, bool downwards=false);
     tracktion::TimePosition getSnapedTime(tracktion::TimePosition time, bool downwards=false);
 
     void updateCursor(juce::ModifierKeys);
@@ -168,6 +173,7 @@ private:
     //essentials
     EditViewState&                      m_editViewState;
     MenuBar&                            m_toolBar;
+    TimeLineComponent&                  m_timeLine;
     LassoSelectionTool                  m_lassoComponent;
 
     //flags

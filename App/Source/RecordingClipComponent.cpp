@@ -21,8 +21,8 @@
 #include "Utilities.h"
 
 
-RecordingClipComponent::RecordingClipComponent (te::Track::Ptr t, EditViewState& evs)
-    : m_track (std::move(t)), m_editViewState (evs)
+RecordingClipComponent::RecordingClipComponent (te::Track::Ptr t, EditViewState& evs, TimeLineComponent& timeLine)
+    : m_track (std::move(t)), m_editViewState (evs), m_timeLine(timeLine)
 {
     startTimerHz (10);
     initialiseThumbnailAndPunchTime();
@@ -85,14 +85,24 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, tra
     auto editTimeToX = [this] (tracktion::TimePosition& t)
     {
         if (auto p = getParentComponent())
-            return m_editViewState.timeToX (t.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2) - getX();
+        {
+            auto range = m_editViewState.getVisibleTimeRange(m_timeLine.getTimeLineID(), p->getWidth());
+            auto x1 = m_editViewState.timeToBeat(range.getStart().inSeconds());
+            auto x2 = m_editViewState.timeToBeat(range.getEnd().inSeconds());
+            return m_editViewState.timeToX (t.inSeconds(), p->getWidth(), x1, x2) - getX();
+        }
         return 0;
     };
     
     auto xToEditTime = [this] (int x)
     {
         if (auto p = getParentComponent())
-            return tracktion::TimePosition::fromSeconds(m_editViewState.xToTime (x + getX(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
+        {
+            auto range = m_editViewState.getVisibleTimeRange(m_timeLine.getTimeLineID(), p->getWidth());
+            auto x1 = m_editViewState.timeToBeat(range.getStart().inSeconds());
+            auto x2 = m_editViewState.timeToBeat(range.getEnd().inSeconds());
+            return tracktion::TimePosition::fromSeconds(m_editViewState.xToTime (x + getX(), p->getWidth(), x1, x2));
+        }
         return tracktion::TimePosition::fromSeconds(0.0);
     };
     
@@ -116,10 +126,16 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, tra
             t1 = juce::jmin (t1, epc->getLoopTimes().getStart());
             t2 = epc->getPosition();
             
-            auto x1t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX1.get()));
-            auto x2t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX2.get()));
-            t1 = juce::jmax (x1t, t1);
-            t2 = juce::jmin (x2t, t2);
+            if (auto p = getParentComponent())
+            {
+                auto range = m_editViewState.getVisibleTimeRange(m_timeLine.getTimeLineID(), p->getWidth());
+                auto x1 = m_editViewState.timeToBeat(range.getStart().inSeconds());
+                auto x2 = m_editViewState.timeToBeat(range.getEnd().inSeconds());
+                auto x1t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(x1));
+                auto x2t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(x2));
+                t1 = juce::jmax (x1t, t1);
+                t2 = juce::jmin (x2t, t2);
+            }
         }
         else if (edit.recordingPunchInOut)
         {
@@ -180,16 +196,26 @@ void RecordingClipComponent::updatePosition()
             t2 = juce::jlimit (in, out, t2);
         }
         
-        auto x1t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX1.get()));
-        auto x2t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(m_editViewState.m_viewX2.get()));
+            if (auto p = getParentComponent())
+            {
+                auto range = m_editViewState.getVisibleTimeRange(m_timeLine.getTimeLineID(), p->getWidth());
+                auto x1 = m_editViewState.timeToBeat(range.getStart().inSeconds());
+                auto x2 = m_editViewState.timeToBeat(range.getEnd().inSeconds());
+                auto x1t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(x1));
+                auto x2t = edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(x2));
+                t1 = juce::jmax (t1, x1t);
+                t2 = juce::jmin (t2, x2t);
+            }
 
-        t1 = juce::jmax (t1, x1t);
-        t2 = juce::jmin (t2, x2t);
     
         if (auto p = dynamic_cast<SongEditorView*>(getParentComponent()))
         {
-            int x1 = m_editViewState.timeToX (t1.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
-            int x2 = m_editViewState.timeToX (t2.inSeconds(), p->getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2);
+                auto range = m_editViewState.getVisibleTimeRange(m_timeLine.getTimeLineID(), p->getWidth());
+                auto xb1 = m_editViewState.timeToBeat(range.getStart().inSeconds());
+                auto xb2 = m_editViewState.timeToBeat(range.getEnd().inSeconds());
+
+            int x1 = m_editViewState.timeToX (t1.inSeconds(), p->getWidth(), xb1, xb2);
+            int x2 = m_editViewState.timeToX (t2.inSeconds(), p->getWidth(), xb1, xb2);
             
             int y = p->getYForTrack(m_track);
             int h = GUIHelpers::getTrackHeight(m_track, m_editViewState, false);

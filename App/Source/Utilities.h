@@ -194,7 +194,7 @@ namespace GUIHelpers
 #endif
     }
 
-    void centerView(EditViewState& evs);
+    // void centerView(EditViewState& evs);
 
     juce::Rectangle<int> getSensibleArea(juce::Point<int> p, int w);
 
@@ -233,8 +233,8 @@ namespace GUIHelpers
           , juce::Rectangle<int> boundingRect, bool printDescription=false);
     
     void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke=1);
-    void moveView(EditViewState& evs, double newBeatPos);
-    void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c);
+    // void moveView(EditViewState& evs, double newBeatPos);
+    void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c, juce::String timeLineID, int width);
 
     double getSnapBeats(const te::TimecodeSnapType& snapType);
     void drawBarBeatsShadow(juce::Graphics& g,
@@ -325,6 +325,7 @@ namespace EngineHelpers
     te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);
 
     bool trackWantsClip(const te::Clip* clip, const te::Track* track);
+    bool trackWantsClip(const juce::ValueTree state, const te::Track *track);
     te::Track* getTargetTrack(te::Track*, int verticalOffset);
     juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
     void deleteSelectedClips(EditViewState & evs);
@@ -464,6 +465,22 @@ namespace EngineHelpers
 
     void sortByFormatName(juce::Array<juce::PluginDescription>& list, bool forward);
     void sortByName(juce::Array<juce::PluginDescription>& list, bool forward);
+
+
+//INTERN
+    juce::Array<std::pair<tracktion::EditItemID, std::unique_ptr<juce::XmlElement>>>
+        saveSelectedClipStates(const juce::Array<te::Clip*>& selectedClips, bool copy);
+
+    tracktion::TimeRange calculateNewTimeRange(const juce::ValueTree& clipState, double timeDelta);
+    te::TrackItem::Type determineClipType(const juce::ValueTree& clipState);
+    void handleClipInsertion(const juce::ValueTree& clipState,
+                                   tracktion::Track* sourceTrack,
+                                   tracktion::Track* targetTrack,
+                                   EditViewState& evs,
+                                   double timeDelta);
+    void reinsertClipToSourceTrack(tracktion::Track* sourceTrack,
+                                              const juce::ValueTree& clipState,
+                                              EditViewState& evs);
 }
 
 class FlaggedAsyncUpdater : public juce::AsyncUpdater

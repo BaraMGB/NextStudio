@@ -50,12 +50,9 @@ public:
         int m_bottom { 0 };
     };
 
-    explicit LassoSelectionTool(EditViewState& evs
-                                , juce::CachedValue<double>& x1
-                                , juce::CachedValue<double>& x2)
+    explicit LassoSelectionTool(EditViewState& evs, juce::String timeLineID)
         : m_editViewState(evs)
-        , m_X1(x1)
-        , m_X2(x2)
+        , m_timeLineID(timeLineID)
 
     {}
     void paint(juce::Graphics &g) override;
@@ -72,14 +69,13 @@ private:
     bool                           m_isRangeSelecting {false};
     EditViewState&                 m_editViewState;
     LassoRect                      m_lassoRect;
-    juce::CachedValue<double>&     m_X1;
-    juce::CachedValue<double>&     m_X2;
 
     double                         m_clickedTime{};
     int                            m_startYScroll;
     juce::Point<int>               m_startPos{};
 
     void updateClipCache();
+    juce::String m_timeLineID;
     juce::Range<double>
         getVerticalRangeOfTrack(double trackPosY,
                                 tracktion_engine::AudioTrack* track) const;

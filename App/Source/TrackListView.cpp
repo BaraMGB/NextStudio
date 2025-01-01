@@ -28,7 +28,7 @@
 
 void TrackListView::resized()
 {
-    int y = juce::roundToInt (m_editViewState.m_viewY.get());
+    int y = juce::roundToInt (m_editViewState.getViewYScroll(m_timeLineID));
     int allTracksHeight = 0;
     auto folderIndent = static_cast<int>(m_editViewState.m_applicationState.m_folderTrackIndent);
     for (auto header : m_trackHeaders)

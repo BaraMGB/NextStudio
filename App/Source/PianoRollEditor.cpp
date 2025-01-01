@@ -23,8 +23,8 @@
 PianoRollEditor::PianoRollEditor(EditViewState & evs)
     : m_editViewState(evs)
     , m_toolBar(Alignment::Center)
-    , m_timeline (evs, evs.m_pianoX1, evs.m_pianoX2)
-    , m_playhead (evs.m_edit, evs, evs.m_pianoX1, evs.m_pianoX2)
+    , m_timeLine (evs, "PianoRoll")
+    , m_playhead (evs.m_edit, evs, m_timeLine)
     , m_selectionBtn ("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_drawBtn ("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_rangeSelectBtn ("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -34,7 +34,7 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
     setWantsKeyboardFocus(true);
     evs.m_edit.state.addListener (this);
 
-    addAndMakeVisible (m_timeline);
+    addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_playhead);
     m_playhead.setAlwaysOnTop (true);
 
@@ -103,8 +103,8 @@ void PianoRollEditor::paint(juce::Graphics& g)
 void PianoRollEditor::paintOverChildren(juce::Graphics &g)
 {
     g.setColour (juce::Colour(0xffffffff));
-    const auto snapType = m_timeline.getBestSnapType ();
-    const auto snapTypeDesc = m_timeline.getEditViewState ()
+    const auto snapType = m_timeLine.getBestSnapType ();
+    const auto snapTypeDesc = m_timeLine.getEditViewState ()
                                 .getSnapTypeDescription (snapType.level);
     g.drawText (snapTypeDesc
               , getWidth () - 100
@@ -142,7 +142,7 @@ void PianoRollEditor::resized()
 
     if (m_keyboard != nullptr)
         m_keyboard->setBounds (keyboard);
-    m_timeline.setBounds (timeline);
+    m_timeLine.setBounds (timeline);
 
     if (m_timelineOverlay != nullptr)
         m_timelineOverlay->setBounds (getTimeLineRect().getUnion(getMidiEditorRect()));
@@ -341,16 +341,17 @@ void PianoRollEditor::buttonClicked(juce::Button* button)
 
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {
-    m_pianoRollViewPort = std::make_unique<MidiViewport> (m_editViewState, track);
+    m_timeLine.setTimeLineID(track->itemID.toString());
+    m_pianoRollViewPort = std::make_unique<MidiViewport> (m_editViewState, track, m_timeLine);
     addAndMakeVisible (*m_pianoRollViewPort);
 
-    m_timelineOverlay = std::make_unique<TimelineOverlayComponent> (m_editViewState, track, m_timeline);
+    m_timelineOverlay = std::make_unique<TimelineOverlayComponent> (m_editViewState, track, m_timeLine);
     addAndMakeVisible (*m_timelineOverlay);
 
-    m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track);
+    m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track, m_timeLine.getTimeLineID());
     addAndMakeVisible(*m_velocityEditor);
 
-    m_keyboard = std::make_unique<KeyboardView>(m_editViewState, track);
+    m_keyboard = std::make_unique<KeyboardView>(m_editViewState, track, m_timeLine.getTimeLineID());
     addAndMakeVisible (*m_keyboard);
     resized ();
 }
@@ -367,19 +368,15 @@ void PianoRollEditor::valueTreePropertyChanged(
         juce::ValueTree &treeWhosePropertyHasChanged
       , const juce::Identifier &property)
 {
-    if (treeWhosePropertyHasChanged.hasType(te::IDs::NOTE))
+    if (treeWhosePropertyHasChanged.hasType(te::IDs::NOTE) || treeWhosePropertyHasChanged.hasType(m_timeLine.getTimeLineID()))
     {
         markAndUpdate(m_updateNoteEditor);
         markAndUpdate(m_updateVelocity);
     }
 
-    if (treeWhosePropertyHasChanged.hasType (IDs::EDITVIEWSTATE))
+    if (treeWhosePropertyHasChanged.hasType(m_timeLine.getTimeLineID()))
     {
-        if (property == IDs::pianoY1
-        ||  property == IDs::pianorollNoteWidth)
-        {
-            markAndUpdate(m_updateKeyboard);
-        }
+        markAndUpdate(m_updateKeyboard);
     }
 }
 void PianoRollEditor::valueTreeChildAdded(juce::ValueTree&,
@@ -406,7 +403,10 @@ void PianoRollEditor::handleAsyncUpdate()
         m_keyboard->resized();
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateNoteEditor))
+    {
         m_pianoRollViewPort->repaint();
+        m_timeLine.repaint();
+    }
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateVelocity))
         m_velocityEditor->repaint();

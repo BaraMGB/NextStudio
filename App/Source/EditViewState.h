@@ -55,14 +55,11 @@ namespace IDs
     DECLARE_ID (showChordTrack)
     DECLARE_ID (showMidiDevices)
     DECLARE_ID (showWaveDevices)
-    DECLARE_ID (viewX1)
-    DECLARE_ID (viewX2)
+    DECLARE_ID (viewData)
+    DECLARE_ID (viewX)
+    DECLARE_ID (beatsPerPixel)
     DECLARE_ID (viewY)
-    DECLARE_ID (pianoX1)
-    DECLARE_ID (pianoX2)
-    DECLARE_ID (pianoY1)
-    DECLARE_ID (pianoY2)
-    DECLARE_ID (pianorollNoteWidth)
+    DECLARE_ID (viewYScale)
     DECLARE_ID (pianorollHeight)
     DECLARE_ID (snapType)
     DECLARE_ID (drawWaveforms)
@@ -92,21 +89,34 @@ namespace IDs
     DECLARE_ID (lastVelocity)
     DECLARE_ID (pianoRollKeyboardWidth)
     DECLARE_ID (selected)
-	DECLARE_ID (selectedRangeStart)
-	DECLARE_ID (selectedRangeEnd)
-    DECLARE_ID (clipHeaderHeight)                                               
-    DECLARE_ID (tmpTrack)                                               
+    DECLARE_ID (selectedRangeStart)
+    DECLARE_ID (selectedRangeEnd)
+    DECLARE_ID (clipHeaderHeight)
+    DECLARE_ID (tmpTrack)
     DECLARE_ID (syncAutomation)
     DECLARE_ID (needAutoSave)
     DECLARE_ID (snapToGrid)
     DECLARE_ID (showLowerRange)
     DECLARE_ID (editNoteOutsideOfClipRange)
 
-    
     #undef DECLARE_ID
 }
 
 //==============================================================================
+struct ViewData {
+    juce::CachedValue<double> viewX;
+    juce::CachedValue<double> beatsPerPixel;
+    juce::CachedValue<double> viewY;
+    juce::CachedValue<double> viewYScale;
+
+    ViewData(juce::ValueTree& state)
+        : viewX(state, IDs::viewX, nullptr, 0.0)
+        , beatsPerPixel(state, IDs::beatsPerPixel, nullptr, 0.1)
+        , viewY(state, IDs::viewY, nullptr, 0.0)
+        , viewYScale(state, IDs::viewYScale, nullptr, 20.0)
+    {
+    }
+};
 
 class EditViewState
 {
@@ -114,8 +124,8 @@ public:
     EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs)
         : m_edit (e), m_selectionManager (s), m_applicationState(avs)
     {
-        m_state = m_edit.state.getOrCreateChildWithName (
-                    IDs::EDITVIEWSTATE, nullptr);
+        m_state = m_edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
+        m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
 
         auto um = &m_edit.getUndoManager();
 
@@ -137,13 +147,6 @@ public:
         m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 290);
         m_folderTrackHeight.referTo(m_state, IDs::folderTrackHeight, um, 30);
         m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
-        m_viewX1.referTo (m_state, IDs::viewX1, um, 0.0);
-        m_viewX2.referTo (m_state, IDs::viewX2, um, 30.0);
-        m_viewY.referTo (m_state, IDs::viewY, um, 0);
-        m_pianoX1.referTo (m_state, IDs::pianoX1, um, 0);
-        m_pianoX2.referTo (m_state, IDs::pianoX2, um, 4);
-        m_pianoStartKey.referTo (m_state, IDs::pianoY1, um, 24);
-        m_pianoKeyWidth.referTo(m_state, IDs::pianorollNoteWidth, um, 15.0);
         m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
         m_midiEditorHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
         m_lastNoteLength.referTo (m_state, IDs::lastNoteLenght, um, 0);
@@ -161,6 +164,44 @@ public:
         m_syncAutomation.referTo(m_state, IDs::syncAutomation, um, true);
         m_snapToGrid.referTo(m_state, IDs::snapToGrid, um, true);
         m_editNotesOutsideClipRange.referTo(m_state, IDs::editNoteOutsideOfClipRange, um, false);
+    }
+
+    double getViewYScale(juce::String timeLineID)
+    {
+        if (auto* myViewData = componentViewData[timeLineID])
+        {
+            return myViewData->viewYScale;
+        }
+        return -1;
+    }
+
+    double getViewYScroll(juce::String timeLineID)
+    {
+        if (auto* myViewData = componentViewData[timeLineID])
+        {
+            return myViewData->viewY;
+        }
+        return -1;
+    }
+
+    bool setViewYScale(juce::String timeLineID, double newScale)
+    {
+        if (auto* myViewData = componentViewData[timeLineID])
+        {
+            myViewData->viewYScale = newScale;
+            return true;
+        }
+        return false; 
+    }
+
+    bool setYScroll(juce::String timeLineID, double newScroll)
+    {
+        if (auto* myViewData = componentViewData[timeLineID])
+        {
+            myViewData->viewY = newScroll;
+            return true;
+        }
+        return false; 
     }
 
     float getTimeLineZoomUnit ()
@@ -214,13 +255,91 @@ public:
         return ts.toBeats(tp).inBeats();
     }
 
-    tracktion::TimeRange getSongEditorVisibleTimeRange()
+    void setNewStartAndZoom(juce::String timeLineID, double startBeat, double beatsPerPixel=-1)
     {
-        auto s = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX1));
-        auto e = tracktion::TimePosition::fromSeconds(beatToTime(m_viewX2));
+        double pixelAlignedBeat = startBeat;
 
-        return {s,e};
+        if (beatsPerPixel > 0)
+            pixelAlignedBeat = std::round(startBeat / beatsPerPixel) * beatsPerPixel;
+
+        pixelAlignedBeat = juce::jmax(0.0, pixelAlignedBeat);
+
+        if (auto* myViewData = componentViewData[timeLineID])
+        {
+            if (beatsPerPixel != -1)
+                myViewData->beatsPerPixel = beatsPerPixel;
+            myViewData->viewX = pixelAlignedBeat;
+        }
     }
+
+
+    void setNewBeatRange(juce::String timeLineID, tracktion::BeatRange beatRange, float width)
+    {
+        if (auto* myViewData = componentViewData[timeLineID])
+        {
+            auto startBeat = beatRange.getStart().inBeats();
+            auto endBeat = beatRange.getEnd().inBeats();
+            auto beatsPerPixel = (endBeat - startBeat) / width;
+
+            if (startBeat < 0)
+            {
+                startBeat = 0;
+                endBeat = startBeat + (beatsPerPixel * width);
+            }
+
+            myViewData->viewX = startBeat;
+            myViewData->beatsPerPixel = beatsPerPixel;
+        }
+    }
+
+    void setNewTimeRange(juce::String timeLineID, tracktion::TimeRange timeRange, float width)
+    {
+        if (auto* myViewData = componentViewData[timeLineID])
+        {
+            auto startBeat = timeToBeat(timeRange.getStart().inSeconds());
+            auto endBeat = timeToBeat(timeRange.getEnd().inSeconds());
+            auto beatsPerPixel = (endBeat - startBeat) / width;
+
+            if (startBeat < 0)
+            {
+                startBeat = 0;
+                endBeat = startBeat + (beatsPerPixel * width);
+            }
+
+            myViewData->viewX = startBeat;
+            myViewData->beatsPerPixel = beatsPerPixel;
+        }
+    }
+
+    tracktion::BeatRange getVisibleBeatRange(juce::String id, int width)
+    {
+        if (auto* myViewData = componentViewData[id])
+        {
+            auto startBeat = myViewData->viewX.get();
+            auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
+
+            return {tracktion::BeatPosition::fromBeats(startBeat)
+                    , tracktion::BeatPosition::fromBeats(endBeat)};
+        }
+        return tracktion::BeatRange();
+    }
+
+    tracktion::TimeRange getVisibleTimeRange(juce::String id, int width)
+    {
+        if (auto* myViewData = componentViewData[id])
+        {
+            auto startBeat = myViewData->viewX.get();
+            auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
+
+            auto t1 = beatToTime(startBeat);
+            auto t2 = beatToTime(endBeat);
+
+            return {tracktion::TimePosition::fromSeconds(t1)
+                    , tracktion::TimePosition::fromSeconds(t2)};
+        }
+        return tracktion::TimeRange();
+    }
+
     [[nodiscard]] double getSnapedTime (
             double t
           , te::TimecodeSnapType snapType
@@ -232,18 +351,6 @@ public:
         return downwards
                 ? snapType.roundTimeDown (tp, temposequ).inSeconds()
                 : snapType.roundTimeNearest (tp, temposequ).inSeconds();
-    }
-
-    [[nodiscard]] double getQuantizedBeat(double beat, te::TimecodeSnapType snapType, bool downwards = false) const
-    {
-        return timeToBeat (getSnapedTime (beatToTime (beat), snapType, downwards));
-    }
-
-    [[nodiscard]] int snapedX (int x, int width, te::TimecodeSnapType snapType, double x1beats, double x2beats, bool down=false) const
-    {
-        auto insertTime = xToTime (x, width, x1beats, x2beats);
-        auto snapedTime = getSnapedTime (insertTime, snapType, down);
-        return timeToX (snapedTime, width, x1beats, x2beats);
     }
 
     [[nodiscard]] te::TimecodeSnapType getBestSnapType(double beat1, double beat2, int width) const
@@ -284,8 +391,7 @@ public:
         m_followPlayhead = !m_followPlayhead;
     }
     [[nodiscard]] bool viewFollowsPos() const {return m_followPlayhead;}
-    
-    
+
     std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac, juce::Component& component)
     {
         for (auto tn : m_thumbnails)
@@ -350,59 +456,59 @@ public:
         bool isMinimized;
     };
 
-void updateTrackHeights()
-{
-    m_trackInfos.clear();
-
-    for (auto* track : te::getAllTracks(m_edit))
+    void updateTrackHeights()
     {
-        if ((track != nullptr) && (EngineHelpers::isTrackShowable(track)))
-        {
-            TrackHeightInfo info;
-            info.track = track;
-            info.isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
-            info.height = info.isMinimized || track->isFolderTrack()
-                ? m_trackHeightMinimized
-                : static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+        m_trackInfos.clear();
 
-            int automationHeight = 0;
-            if (!info.isMinimized)
+        for (auto* track : te::getAllTracks(m_edit))
+        {
+            if ((track != nullptr) && (EngineHelpers::isTrackShowable(track)))
             {
-                for (auto apEditItems : track->getAllAutomatableEditItems())
+                TrackHeightInfo info;
+                info.track = track;
+                info.isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
+                info.height = info.isMinimized || track->isFolderTrack()
+                    ? m_trackHeightMinimized
+                    : static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+
+                int automationHeight = 0;
+                if (!info.isMinimized)
                 {
-                    for (auto ap : apEditItems->getAutomatableParameters())
+                    for (auto apEditItems : track->getAllAutomatableEditItems())
                     {
-                        if (GUIHelpers::isAutomationVisible(*ap))
+                        for (auto ap : apEditItems->getAutomatableParameters())
                         {
-                            auto& curveState = ap->getCurve().state;
-                            automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
+                            if (GUIHelpers::isAutomationVisible(*ap))
+                            {
+                                auto& curveState = ap->getCurve().state;
+                                automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
+                            }
                         }
                     }
                 }
-            }
 
-            auto it = track;
-            while (it->isPartOfSubmix())
-            {
-                it = it->getParentFolderTrack();
-                if (it->state.getProperty(IDs::isTrackMinimized, false))
+                auto it = track;
+                while (it->isPartOfSubmix())
                 {
-                    info.height = 0;
-                    break;
+                    it = it->getParentFolderTrack();
+                    if (it->state.getProperty(IDs::isTrackMinimized, false))
+                    {
+                        info.height = 0;
+                        break;
+                    }
                 }
-            }
 
-            info.automationHeight = automationHeight;
-            m_trackInfos.add(info);
+                info.automationHeight = automationHeight;
+                m_trackInfos.add(info);
+            }
         }
     }
-}
-    std::map<std::pair<int, int>, te::AutomatableParameter::Ptr> m_automationYMap;
-    void updateAutomationYMap()
+
+    void updateAutomationYMap(juce::String timeLineID)
     {
         m_automationYMap.clear();
 
-        int scrollY = m_viewY;
+        int scrollY = getViewYScroll(timeLineID);
 
         for (auto t : te::getAllTracks(m_edit))
         {
@@ -431,6 +537,7 @@ void updateTrackHeights()
     }
 
     juce::Array<TrackHeightInfo> m_trackInfos;
+    std::map<std::pair<int, int>, te::AutomatableParameter::Ptr> m_automationYMap;
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 
@@ -449,12 +556,7 @@ void updateTrackHeights()
                           , m_automationFollowsClip
                           , m_followPlayhead
                           , m_syncAutomation;
-    juce::CachedValue<double> m_viewX1
-                            , m_viewX2
-                            , m_viewY
-                            , m_pianoStartKey, m_pianoX1
-                            , m_pianoX2
-                            , m_pianoKeyWidth, m_lastNoteLength
+     juce::CachedValue<double>  m_lastNoteLength
                             , m_playHeadStartTime
                             , m_timeLineZoomUnit;
     juce::CachedValue<int> m_midiEditorHeight
@@ -476,6 +578,8 @@ void updateTrackHeights()
                                     , m_zoomMode;
 
     juce::ValueTree m_state;
+    juce::ValueTree m_viewDataTree;
+    std::map<juce::String, struct ViewData*> componentViewData;
     bool m_isSavingLocked {false}, m_needAutoSave {false};
     ApplicationViewState& m_applicationState;
 

@@ -68,9 +68,10 @@ class VirtualKeyboardComponent : public juce::KeyboardComponentBase
 class KeyboardView: public juce::Component
 {
 public:
-    explicit KeyboardView(EditViewState& evs, te::Track::Ptr track) 
+    explicit KeyboardView(EditViewState& evs, te::Track::Ptr track, juce::String timeLineID) 
         : m_editViewState(evs)
         , m_track(track)
+        , m_timeLineID(timeLineID)
     {
         EngineHelpers::updateMidiInputs(evs, track);
         addAndMakeVisible(&m_keyboard);
@@ -93,5 +94,6 @@ private:
 
     float m_clickedKey;
     double m_keyWidthCached;
+    juce::String m_timeLineID;
 };
 

@@ -27,8 +27,9 @@ class TrackListView  : public juce::Component
                      , public juce::ApplicationCommandTarget
 {
 public:
-    TrackListView(EditViewState& evs)
+    TrackListView(EditViewState& evs, juce::String timeLineID)
         : m_editViewState (evs)
+        , m_timeLineID(timeLineID)
     {
         m_editViewState.m_selectionManager.addChangeListener(this);
         setWantsKeyboardFocus(true);
@@ -81,4 +82,5 @@ private:
     juce::OwnedArray<TrackHeaderComponent> m_trackHeaders;
     const int getPopupResult();
     TrackHeaderComponent* getTrackHeaderView(tracktion_engine::Track::Ptr track);
+    juce::String m_timeLineID;
 };

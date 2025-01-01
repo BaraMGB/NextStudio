@@ -85,9 +85,9 @@ void VelocityEditor::mouseWheelMove(const juce::MouseEvent& event,
 void VelocityEditor::drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour)
 {
     g.setColour(colour);
-    double x1 = m_editViewState.m_pianoX1;
-    double x2 = m_editViewState.m_pianoX2;
-    GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, x1, x2, getBounds ());
+    double beatX1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double beatX2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, beatX1, beatX2, getBounds ());
 }
 
 double VelocityEditor::getNoteStartBeat(te::MidiClip* const& midiClip,
@@ -148,14 +148,17 @@ juce::Range<int> VelocityEditor::getXLineRange(te::MidiClip* const& midiClip,
     double sBeat = getNoteStartBeat(midiClip, n);
     double eBeat = getNoteEndBeat(midiClip, n);
 
+    double beatX1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double beatX2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+
     auto x1 = m_editViewState.beatsToX(sBeat + midiClip->getStartBeat().inBeats(),
                                        getWidth(),
-                                       m_editViewState.m_pianoX1,
-                                       m_editViewState.m_pianoX2);
+                                       beatX1,
+                                       beatX2);
     auto x2 = m_editViewState.beatsToX(eBeat + midiClip->getStartBeat().inBeats(),
                                        getWidth(),
-                                       m_editViewState.m_pianoX1,
-                                       m_editViewState.m_pianoX2) + 1;
+                                       beatX1,
+                                       beatX2) + 1;
 
     return {x1, x2};
 
@@ -191,8 +194,10 @@ tracktion_engine::MidiNote* VelocityEditor::getNote(juce::Point<int> p)
 
 int VelocityEditor::beatsToX(double beats)
 {
+    double beatX1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    double beatX2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
     return m_editViewState.beatsToX(
-        beats, getWidth(), m_editViewState.m_pianoX1, m_editViewState.m_pianoX2);
+        beats, getWidth(), beatX1, beatX2);
 }
 void VelocityEditor::clearNotesFlags()
 {

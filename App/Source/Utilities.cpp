@@ -58,30 +58,40 @@ void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewS
     g.setColour(evs.m_applicationState.getTrackBackgroundColour());
     g.fillRect(displayedRect);
 
-    auto ba = evs.xToBeats(displayedRect.getX(), displayedRect.getWidth(), x1beats, x2beats);
-    auto be = evs.xToBeats(displayedRect.getRight(), displayedRect.getWidth(), x1beats, x2beats);
-    drawBarsAndBeatLines(g, evs, ba, be, displayedRect);
+    auto ta = etr.getStart().inSeconds();
+    auto te = etr.getEnd().inSeconds();
 
-    for (auto clipIdx = 0; clipIdx < clipTrack->getNumTrackItems(); clipIdx++)
+    auto ba = evs.timeToBeat(ta);
+    auto be = evs.timeToBeat(te);
+
+    drawBarsAndBeatLines(g, evs, x1beats, x2beats, displayedRect);
+
+    auto firstIdx = clipTrack->getIndexOfNextTrackItemAt(tracktion::TimePosition::fromSeconds(ta));
+    auto lastIdx = clipTrack->getIndexOfNextTrackItemAt(tracktion::TimePosition::fromSeconds(te)) + 1;
+
+    for (auto clipIdx = firstIdx; clipIdx < lastIdx; clipIdx++)
     {
-        auto clip = clipTrack->getTrackItem(clipIdx);
-
-        if (clip->getPosition().time.intersects(etr))
+        if (clipIdx < clipTrack->getNumTrackItems())
         {
-            int x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
-            int y = displayedRect.getY();
-            int w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
-            int h = displayedRect.getHeight();
+            auto clip = clipTrack->getTrackItem(clipIdx);
 
-            juce::Rectangle<int> clipRect = {x,y,w,h};
+            if (clip->getPosition().time.intersects(etr))
+            {
+                int x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
+                int y = displayedRect.getY();
+                int w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
+                int h = displayedRect.getHeight();
 
-            auto color = clip->getTrack()->getColour();
+                juce::Rectangle<int> clipRect = {x,y,w,h};
 
-            if (forDragging)
-                color = color.withAlpha(0.7f);
+                auto color = clip->getTrack()->getColour();
 
-            if (auto c = dynamic_cast<te::Clip*>(clip))
-                drawClip(g, parent, evs, clipRect, c, color, displayedRect, x1beats, x2beats); 
+                if (forDragging)
+                    color = color.withAlpha(0.7f);
+
+                if (auto c = dynamic_cast<te::Clip*>(clip))
+                    drawClip(g, parent, evs, clipRect, c, color, displayedRect, x1beats, x2beats); 
+            }
         }
     }
 
@@ -601,7 +611,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     for (double beat = startBeat; beat <= endBeat; beat += intervalBeats)
     {
         // Calculate x position
-        float x = evs.beatsToX(beat, boundingRect.getWidth(), x1beats, x2beats);
+        float x = boundingRect.getX() + evs.beatsToX(beat, boundingRect.getWidth(), x1beats, x2beats);
 
         // Skip if x is outside boundingRect
         if (x < boundingRect.getX() || x > boundingRect.getRight())
@@ -1060,6 +1070,28 @@ bool EngineHelpers::isTrackShowable(te::Track::Ptr track)
     return true;
 }
     
+bool EngineHelpers::trackWantsClip(const juce::ValueTree state, const te::Track *track)
+{
+    bool isMidi = state.hasType(te::IDs::MIDICLIP);
+    bool isAudio = state.hasType(te::IDs::AUDIOCLIP);
+
+
+    if (!isMidi && !isAudio)
+        return false;
+
+    if (track == nullptr)
+        return false;
+
+    if (track->state.getProperty(IDs::isMidiTrack) && isMidi)
+        return true;
+
+    if (!track->state.getProperty(IDs::isMidiTrack) && isAudio)
+        return true;
+
+    return false;
+}
+
+
 bool EngineHelpers::trackWantsClip(const te::Clip* clip,
                                     const te::Track* track) 
 {
@@ -1105,55 +1137,119 @@ bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeR
 {
     return ti->getEditTimeRange().intersects(tr);
 }
+
 void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState& evs)
 {
+    // Save the state of selected clips
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
-    auto tempPosition = evs.m_edit.getLength().inSeconds() + timeDelta;
+    auto selectedClipStates = saveSelectedClipStates(selectedClips, copy);
 
-    if (verticalOffset == 0) EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
+    // Copy automation if necessary
+    if (verticalOffset == 0)
+        EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
 
-    juce::Array<te::Clip*> copyOfSelectedClips;
+    // Delete the original clips
+    deleteSelectedClips(evs);
 
-    for (auto sc : selectedClips)
+    // Process the saved clip states and insert them into target tracks
+    for (const auto& [trackID, clipStateXML] : selectedClipStates)
     {
-        auto targetTrack = EngineHelpers::getTargetTrack(sc->getTrack(), verticalOffset);
+        auto clipState = juce::ValueTree::fromXml(*clipStateXML);
+        if (!clipState.isValid())
+            continue;
 
-        if (EngineHelpers::trackWantsClip(sc, targetTrack))
-        {
-            auto newClip = te::duplicateClip(*sc);
-            copyOfSelectedClips.add(newClip);
-            newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+        auto sourceTrack = tracktion::findTrackForID(evs.m_edit, trackID);
+        if (!sourceTrack)
+            continue;
 
-            if (!copy)
-                sc->removeFromParent();
-            else
-                evs.m_selectionManager.deselect(sc);
-        }
+        auto targetTrack = EngineHelpers::getTargetTrack(sourceTrack, verticalOffset);
+        if (!targetTrack)
+            continue;
+
+        handleClipInsertion(clipState, sourceTrack, targetTrack, evs, timeDelta);
     }
-
-    for (auto newClip: copyOfSelectedClips)
-    {
-        auto pasteTime = newClip->getPosition().getStart().inSeconds() + timeDelta - tempPosition;
-        auto targetTrack = EngineHelpers::getTargetTrack(newClip->getTrack(), verticalOffset);
-                        
-        if (EngineHelpers::trackWantsClip(newClip, targetTrack))
-        {
-            if (auto tct = dynamic_cast<te::ClipTrack*>(targetTrack))
-            {
-                tct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
-                                  newClip->getPosition().getLength()},
-                                  &evs.m_selectionManager);
-    
-                if (auto owner = dynamic_cast<te::ClipOwner*>(targetTrack))
-                    newClip->moveTo(*owner);
-                newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
-    
-                evs.m_selectionManager.addToSelection(newClip);
-            }
-        }
-    }
-
 }
+
+juce::Array<std::pair<tracktion::EditItemID, std::unique_ptr<juce::XmlElement>>>
+EngineHelpers::saveSelectedClipStates(const juce::Array<te::Clip*>& selectedClips, bool copy)
+{
+    juce::Array<std::pair<tracktion::EditItemID, std::unique_ptr<juce::XmlElement>>> clipStates;
+
+    for (auto& clip : selectedClips)
+    {
+        clipStates.add(std::make_pair(clip->getTrackID(), clip->state.createXml()));
+        if (copy)
+            te::duplicateClip(*clip);
+    }
+
+    return clipStates;
+}
+
+tracktion::TimeRange EngineHelpers::calculateNewTimeRange(const juce::ValueTree& clipState, double timeDelta)
+{
+    double oldStart = clipState.getProperty(tracktion::IDs::start);
+    auto length = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::length));
+    auto newStart = tracktion::TimePosition::fromSeconds(oldStart + timeDelta);
+    return tracktion::TimeRange(newStart, length);
+}
+
+te::TrackItem::Type EngineHelpers::determineClipType(const juce::ValueTree& clipState)
+{
+    // Determine if the clip is MIDI or audio
+    return clipState.hasType(te::IDs::MIDICLIP) ? te::TrackItem::Type::midi : te::TrackItem::Type::wave;
+}
+
+void EngineHelpers::handleClipInsertion(const juce::ValueTree& clipState,
+                                        tracktion::Track* sourceTrack,
+                                        tracktion::Track* targetTrack,
+                                        EditViewState& evs,
+                                        double timeDelta)
+{
+    if (auto clipOwner = dynamic_cast<te::ClipTrack*>(targetTrack))
+    {
+        // Calculate the target position for the clip
+        auto timerange = calculateNewTimeRange(clipState, timeDelta);
+        auto offset = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::offset));
+        auto clipPosition = te::createClipPosition(evs.m_edit.tempoSequence, timerange, offset);
+
+        if (EngineHelpers::trackWantsClip(clipState, targetTrack))
+        {
+            // Insert the clip into the target track
+            auto clipType = determineClipType(clipState);
+            auto newClip = te::insertClipWithState(*clipOwner, clipState, clipState.getProperty(te::IDs::name),
+                                                   clipType, clipPosition, te::DeleteExistingClips::yes, false);
+            evs.m_selectionManager.addToSelection(newClip);
+        }
+        else
+        {
+            // Reinsert the clip back into the source track if the target track is invalid
+            reinsertClipToSourceTrack(sourceTrack, clipState, evs);
+        }
+    }
+}
+
+void EngineHelpers::reinsertClipToSourceTrack(tracktion::Track* sourceTrack,
+                                              const juce::ValueTree& clipState,
+                                              EditViewState& evs)
+{
+    if (auto oldClipOwner = dynamic_cast<te::ClipTrack*>(sourceTrack))
+    {
+        // Calculate the original position for the clip
+        double oldStart = clipState.getProperty(tracktion::IDs::start);
+        auto length = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::length));
+        auto oldTimeRange = tracktion::TimeRange(tracktion::TimePosition::fromSeconds(oldStart), length);
+
+        auto offset = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::offset));
+        auto clipPosition = te::createClipPosition(evs.m_edit.tempoSequence, oldTimeRange, offset);
+
+        // Reinsert the clip back into its original track
+        auto clipType = determineClipType(clipState);
+        auto newClip = te::insertClipWithState(*oldClipOwner, clipState, clipState.getProperty(te::IDs::name),
+                                               clipType, clipPosition, te::DeleteExistingClips::yes, false);
+        evs.m_selectionManager.addToSelection(newClip);
+    }
+}
+
 
 void EngineHelpers::duplicateSelectedClips(EditViewState& evs)
 { 
@@ -1645,7 +1741,6 @@ void EngineHelpers::rewind(EditViewState &evs)
 
     evs.m_playHeadStartTime = 0.0;
     transport.setCurrentPosition(evs.m_playHeadStartTime);
-    GUIHelpers::centerView(evs);
 }
 
 void EngineHelpers::stopPlay(EditViewState &evs)
@@ -1661,7 +1756,6 @@ void EngineHelpers::stopPlay(EditViewState &evs)
         transport.stop(false, false, true, true);
         transport.setCurrentPosition(evs.m_playHeadStartTime);
     }
-    GUIHelpers::centerView(evs);
 }
 
 void EngineHelpers::toggleLoop (tracktion_engine::Edit &edit)
@@ -1939,27 +2033,30 @@ void EngineHelpers::insertPlugin (te::Track::Ptr track, te::Plugin::Ptr plugin, 
     plugins.insertPlugin (plugin->state, index);
 }
 
-void GUIHelpers::centerView(EditViewState &evs)
-{
-    if (evs.viewFollowsPos())
-    {
-        auto posBeats = evs.timeToBeat (
-            evs.m_edit.getTransport ().getCurrentPosition ());
-
-        if (posBeats < evs.m_viewX1 || posBeats > evs.m_viewX2)
-            moveView(evs, posBeats);
-
-        auto zoom = evs.m_viewX2 - evs.m_viewX1;
-        moveView(evs, juce::jmax((double)evs.m_viewX1, posBeats - zoom/2));
-    }
-}
-
-void GUIHelpers::moveView(EditViewState& evs, double newBeatPos)
-{
-    auto zoom = evs.m_viewX2 - evs.m_viewX1;
-    evs.m_viewX1 = newBeatPos;
-    evs.m_viewX2 = newBeatPos + zoom;
-}
+// void GUIHelpers::centerView(EditViewState &evs)
+// {
+//     if (evs.viewFollowsPos())
+//     {
+//         auto posBeats = evs.timeToBeat (
+//             evs.m_edit.getTransport ().getCurrentPosition ());
+//
+//         auto x1 = evs.getSongEditorVisibleTimeRange(getWidth()).getStart().inSeconds();
+//         auto x2 = evs.getVisibleTimeRange(m_timeLineID, getWidth()).getEnd().inSeconds();
+//         
+//         if (posBeats < x1 || posBeats > x2)
+//             moveView(evs, posBeats);
+//
+//         auto zoom = evs.m_viewX2 - evs.m_viewX1;
+//         moveView(evs, juce::jmax((double)evs.m_viewX1, posBeats - zoom/2));
+//     }
+// }
+//
+// void GUIHelpers::moveView(EditViewState& evs, double newBeatPos)
+// {
+//     auto zoom = evs.m_viewX2 - evs.m_viewX1;
+//     evs.m_viewX1 = newBeatPos;
+//     evs.m_viewX2 = newBeatPos + zoom;
+// }
 
 float GUIHelpers::getZoomScaleFactor(int delta, float unitDistance)
 {
@@ -2083,13 +2180,11 @@ int GUIHelpers::getYForAutomatableParam(te::AutomatableParameter::Ptr ap, EditVi
     return -1;
 }
 
-void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c)
+void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c, juce::String timeLineID, int width)
 {
-    auto zoom = evs.m_pianoX2 - evs.m_pianoX1;
-
-    evs.m_pianoX1 =
-        juce::jmax(0.0, c->getStartBeat ().inBeats() - (zoom /2) + (c->getLengthInBeats ().inBeats()/2));
-    evs.m_pianoX2 = evs.m_pianoX1 + zoom;
+    auto zoom = evs.getVisibleBeatRange(timeLineID, width).getLength().inBeats();
+    auto startBeat = juce::jmax(0.0, c->getStartBeat ().inBeats() - (zoom /2) + (c->getLengthInBeats ().inBeats()/2));
+    evs.setNewStartAndZoom(timeLineID, startBeat);
 }
 
 void GUIHelpers::drawPolyObject (juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation,float radiusFac, float heightFac, float scale)

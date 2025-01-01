@@ -104,6 +104,7 @@ public:
     void loopAroundSelection();
     SongEditorView& getSongEditor() {return m_songEditor;}
     TrackListView& getTrackListView() {return m_trackListView;}
+    TimeLineComponent& getTimeLineComponent() {return m_timeLine;}
 
 private:
 
@@ -129,7 +130,7 @@ private:
     void updateVerticalScrollbar()
     {
         m_scrollbar_v.setRangeLimits(0, getSongHeight());
-        m_scrollbar_v.setCurrentRange(-m_editViewState.m_viewY, getSongEditorRect().getHeight()/2.0);
+        m_scrollbar_v.setCurrentRange(-m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()), getSongEditorRect().getHeight()/2.0);
     }
 
 
@@ -181,14 +182,13 @@ private:
 
     te::Edit&                               m_edit;
     EditViewState&                          m_editViewState;
+    TimeLineComponent                       m_timeLine {
+                                                m_editViewState
+                                              , "SongEditor"
+                                              };
     SongEditorView                          m_songEditor;
     juce::ApplicationCommandManager&        m_commandManager;
     TrackListView                           m_trackListView;
-    TimeLineComponent                       m_timeLine {
-                                                m_editViewState
-                                              , m_editViewState.m_viewX1
-                                              , m_editViewState.m_viewX2
-                                              };
     FooterBarComponent                      m_footerbar;
 
     MenuBar                                 m_toolBar;
@@ -214,9 +214,7 @@ private:
     PlayheadComponent                       m_playhead {
                                                 m_edit
                                               , m_editViewState
-                                              , m_editViewState.m_viewX1
-                                              , m_editViewState.m_viewX2 };
-
+                                              , m_timeLine};
 
 
     bool m_updateTracks = false, m_updateZoom = false, m_verticalUpdateSongEditor = false, m_dragOver = false;

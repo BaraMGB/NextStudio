@@ -27,8 +27,7 @@ class TimeLineComponent : public juce::Component
 {
 public:
     TimeLineComponent(EditViewState&
-                    , juce::CachedValue<double> & x1
-                    , juce::CachedValue<double> & x2
+                      , juce::String timeLineID
                     );
     ~TimeLineComponent() override;
 
@@ -42,8 +41,42 @@ public:
     te::TimecodeSnapType    getBestSnapType();
     EditViewState&          getEditViewState();
 
-    juce::CachedValue<double> & m_X1;
-    juce::CachedValue<double> & m_X2;
+
+    void centerView()
+    {
+        if (m_evs.viewFollowsPos())
+        {
+            auto posBeats = m_evs.timeToBeat (
+            m_evs.m_edit.getTransport ().getCurrentPosition ());
+        
+            auto bx1 = getCurrentBeatRange().getStart().inBeats();
+            auto bx2 = getCurrentBeatRange().getEnd().inBeats();
+            if (posBeats < bx1 || posBeats > bx2)
+                m_evs.setNewStartAndZoom(m_timeLineID, posBeats);
+
+            auto zoom = bx2 - bx1;
+            m_evs.setNewStartAndZoom(m_timeLineID, juce::jmax(bx1, posBeats - zoom/2));
+        }
+    }
+    tracktion::BeatRange    getCurrentBeatRange()
+    {
+        auto x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart();
+        auto x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getLength();
+
+        return tracktion::BeatRange(x1beats, x2beats);
+
+    }
+    double getBeatsPerPixel();
+
+    int                     timeToX (double time);
+    int                     beatsToX (double beats);
+    tracktion::TimeDuration xToTimeDuration (int x);
+    tracktion::TimePosition beatToTime(tracktion::BeatPosition beats);
+    tracktion::TimePosition xToTimePos(int x);
+    tracktion::BeatPosition xToBeatPos(int x);
+
+    juce::String getTimeLineID() { return m_timeLineID; }
+    void setTimeLineID(juce::String timeLineID);
 
 private:
 
@@ -53,13 +86,10 @@ private:
 
     juce::Rectangle<int>    getTimeRangeRect(tracktion::TimeRange tr);
 
-    int                     timeToX (double time);
-    int                     beatsToX (double beats);
-    tracktion::TimeDuration xToTimeDuration (int x);
-    tracktion::TimePosition beatToTime(tracktion::BeatPosition beats);
-    tracktion::TimePosition xToTimePos(int x);
+    juce::String            m_timeLineID;
 
-    EditViewState &         m_editViewState;
+    EditViewState &         m_evs;
+    juce::ValueTree m_tree;
     double                  m_cachedBeat{};
     bool                    m_isMouseDown,
                             m_isSnapping {true},
@@ -67,11 +97,11 @@ private:
                             m_rightResized,
                             m_changeLoopRange{false},
                             m_loopRangeClicked;
-    double                  m_cachedX1{}, m_cachedX2{};
 
     tracktion::TimeRange    m_cachedLoopRange; 
     tracktion::TimeRange    m_newLoopRange; 
     tracktion::TimeDuration m_draggedTime;
+    int                     m_oldDragDistanceY, m_oldDragDistanceX;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
 };

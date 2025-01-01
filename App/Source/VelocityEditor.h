@@ -28,9 +28,10 @@
 class VelocityEditor : public juce::Component
 {
 public:
-    VelocityEditor(EditViewState& evs, te::Track::Ptr t)
+    VelocityEditor(EditViewState& evs, te::Track::Ptr t, juce::String timeLineID)
         : m_editViewState(evs)
         , m_track(t)
+        , m_timeLineID(timeLineID)
     {
     }
     ~VelocityEditor() override
@@ -71,5 +72,6 @@ private:
     void clearNotesFlags();
     te::MidiNote* getHoveredNote();
     int m_cachedVelocity;
+    juce::String m_timeLineID;
 };
 

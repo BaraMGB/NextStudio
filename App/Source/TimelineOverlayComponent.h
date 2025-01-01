@@ -49,7 +49,7 @@ private:
     void updateClipRects();
     void moveSelectedClips(bool copy, bool snap);
     juce::Rectangle<int> getClipRect(te::Clip::Ptr);    
-    EditViewState& m_editViewState;
+    EditViewState& m_evs;
     tracktion_engine::Track::Ptr m_track;
     [[maybe_unused]] double m_loop1AtMousedown{}
          , m_loop2AtMousedown{};

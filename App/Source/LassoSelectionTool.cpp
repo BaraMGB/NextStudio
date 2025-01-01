@@ -35,11 +35,10 @@ void LassoSelectionTool::paint(juce::Graphics &g)
 {
     if (m_isLassoSelecting && !m_isRangeSelecting)
     {
+        auto x1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+        auto x2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
         g.setColour (juce::Colour(0x99FFFFFF));
-        auto rect = m_lassoRect.getRect (m_editViewState
-                                        , m_X1
-                                        , m_X2
-                                        , getWidth ());
+        auto rect = m_lassoRect.getRect (m_editViewState, x1, x2, getWidth ());
         g.drawRect (rect);
         g.setColour (juce::Colour(0x22FFFFFF));
         g.fillRect (rect);
@@ -80,7 +79,9 @@ void LassoSelectionTool::updateLasso(const juce::Point<int> mousePos, int yScrol
 
 double LassoSelectionTool::xToTime(const int x)
 {
-    return m_editViewState.xToTime (x, getWidth (), m_X1, m_X2);
+    auto x1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    auto x2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    return m_editViewState.xToTime (x, getWidth (), x1, x2);
 }
 LassoSelectionTool::LassoRect LassoSelectionTool::getLassoRect() const
 {

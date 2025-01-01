@@ -20,6 +20,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "TimeLineComponent.h"
 
 namespace te = tracktion_engine;
 
@@ -28,7 +29,7 @@ class RecordingClipComponent : public juce::Component,
                                private juce::Timer
 {
 public:
-    RecordingClipComponent (te::Track::Ptr t, EditViewState&);
+    RecordingClipComponent (te::Track::Ptr t, EditViewState&, TimeLineComponent& timeLine);
 
     void paint (juce::Graphics& g) override;
     te::Track::Ptr getTrack(){ return m_track; }
@@ -45,6 +46,7 @@ private:
 
     te::Track::Ptr m_track;
     EditViewState& m_editViewState;
+    TimeLineComponent& m_timeLine;
 
     te::RecordingThumbnailManager::Thumbnail::Ptr m_thumbnail;
 

@@ -23,9 +23,9 @@
 EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewState& avs, te::SelectionManager& sm, juce::ApplicationCommandManager& cm)
     : m_edit (e)
     , m_editViewState (evs)
-    , m_songEditor(m_editViewState, m_toolBar)
+    , m_songEditor(m_editViewState, m_toolBar, m_timeLine)
     , m_commandManager(cm)
-    , m_trackListView(m_editViewState)
+    , m_trackListView(m_editViewState, m_timeLine.getTimeLineID())
     , m_scrollbar_v (true)
     , m_scrollbar_h (false)
     , m_addFolderTrackBtn ("Add folder track", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -211,17 +211,18 @@ void EditComponent::resized()
     m_songEditor.setBounds(getSongEditorRect());
     m_songEditor.resized();
     m_scrollbar_v.setBounds (getSongEditorRect().removeFromRight(20));
-    m_scrollbar_v.setCurrentRange (-m_editViewState.m_viewY, getSongEditorRect().getHeight()/2.0);
+    m_scrollbar_v.setCurrentRange (-m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()), getSongEditorRect().getHeight()/2.0);
     m_footerbar.setBounds(getFooterRect());
     m_playhead.setBounds(getPlayHeadRect());
     m_scrollbar_h.setBounds(getSongEditorRect().removeFromBottom(20));
 }
 void EditComponent::updateHorizontalScrollBar()
 {
-    m_scrollbar_h.setRangeLimits (
-                {0.0, m_editViewState.getEndScrollBeat ()});
-    m_scrollbar_h.setCurrentRange ({m_editViewState.m_viewX1
-                                  , m_editViewState.m_viewX2});
+    auto x1 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getStart().inBeats();
+    auto x2 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getEnd().inBeats();
+
+    m_scrollbar_h.setRangeLimits ({0.0, m_editViewState.getEndScrollBeat ()}, juce::dontSendNotification);
+    m_scrollbar_h.setCurrentRange ({x1, x2}, juce::dontSendNotification);
 }
 
 
@@ -231,34 +232,45 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event
 {
     if (event.mods.isShiftDown())
     {
-        auto rangeBegin = m_editViewState.beatsToX(
-                                m_editViewState.m_viewX1
-                              , m_timeLine.getWidth()
-                              , m_editViewState.m_viewX1
-                              , m_editViewState.m_viewX2);
-        auto visibleLength = m_editViewState.m_viewX2
-                              - m_editViewState.m_viewX1;
+        auto startBeat = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getStart().inBeats();
+        auto endBeat = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getEnd().inBeats();
+        auto visibleLength = endBeat - startBeat;
 
-        rangeBegin -=
+        int viewStartX = 0 -
                 #if JUCE_MAC
                 static_cast<int>(wheel.deltaX * 300);
                 #else
                 static_cast<int>(wheel.deltaY * 300);
                 #endif
 
-        m_editViewState.m_viewX1 = juce::jmax (0.0
-                                     , m_editViewState.xToBeats(
-                                         rangeBegin, m_timeLine.getWidth(), m_editViewState.m_viewX1, m_editViewState.m_viewX2));
-        m_editViewState.m_viewX2 = m_editViewState.m_viewX1 + visibleLength;
+        auto newViewStartBeats = m_editViewState.xToBeats(viewStartX, m_timeLine.getWidth(), startBeat, endBeat);
+        m_editViewState.setNewStartAndZoom(m_timeLine.getTimeLineID(), newViewStartBeats);
     }
-    else if (event.mods.isCtrlDown())
+    else if (event.mods.isCommandDown())
     {
+        const float wheelDelta =
+                #if JUCE_MAC
+                wheel.deltaX * -(m_editViewState.getTimeLineZoomUnit());
+                #else
+                wheel.deltaY * -(m_editViewState.getTimeLineZoomUnit());
+                #endif
 
+        const auto startBeat = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getStart().inBeats();
+        const auto endBeat = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getEnd().inBeats();
+        const auto xPos = event.getPosition().getX() - getTrackListRect().getWidth();
+        const auto mouseBeat = m_timeLine.xToBeatPos(xPos).inBeats();
+        const auto scaleFactor = wheelDelta > 0 ? 1.1 : 0.9;
+        const auto newVisibleLengthBeats = juce::jlimit(0.05, 100240.0, (endBeat - startBeat) * scaleFactor);
+        const auto newBeatsPerPixel = newVisibleLengthBeats / m_timeLine.getWidth();
+        const auto viewCorrect =  (xPos * m_timeLine.getBeatsPerPixel()) - (xPos * newBeatsPerPixel);
+        const auto newStartPos = startBeat + viewCorrect;
+
+        m_editViewState.setNewStartAndZoom(m_timeLine.getTimeLineID(), newStartPos, newBeatsPerPixel);
     }
     else
     {
         m_scrollbar_v.setCurrentRangeStart(
-                    m_scrollbar_v.getCurrentRangeStart() - wheel.deltaY * 300);
+                    m_scrollbar_v.getCurrentRangeStart() - wheel.deltaY * 60);
     }
 }
 
@@ -266,13 +278,9 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
                                    , double newRangeStart)
 {
     if (scrollBarThatHasMoved == &m_scrollbar_v)
-    {
-        m_editViewState.m_viewY = -newRangeStart;
-    }
+        m_editViewState.setYScroll(m_timeLine.getTimeLineID(), -newRangeStart);
     else if(scrollBarThatHasMoved == &m_scrollbar_h)
-    {
-        GUIHelpers::moveView(m_editViewState, juce::jmax(0.0, newRangeStart));
-    }
+        m_editViewState.setNewStartAndZoom(m_timeLine.getTimeLineID(), newRangeStart);
 }
 
 void EditComponent::buttonClicked(juce::Button* button) 
@@ -363,11 +371,14 @@ void EditComponent::valueTreePropertyChanged (
     {
         m_editViewState.m_needAutoSave = true;
     }
+    if (v.hasType(m_timeLine.getTimeLineID()))
+    {
+        markAndUpdate (m_updateZoom);
+    }
     if (v.hasType (IDs::EDITVIEWSTATE))
     {
-        if (i == IDs::viewX1
-            || i == IDs::viewX2
-            || i == IDs::isPianoRollVisible
+        if (
+             i == IDs::isPianoRollVisible
             || i == IDs::pianorollHeight
             || i == IDs::showHeaders
             || i == IDs::showFooters)
@@ -452,9 +463,8 @@ void EditComponent::handleAsyncUpdate()
     }
     if (compareAndReset(m_verticalUpdateSongEditor))
     {
-        GUIHelpers::log("Update Songeditor");
         m_editViewState.updateTrackHeights();
-        m_editViewState.updateAutomationYMap();
+        m_editViewState.updateAutomationYMap(m_timeLine.getTimeLineID());
         m_songEditor.repaint();
         m_trackListView.resized();
         updateVerticalScrollbar();
@@ -464,9 +474,11 @@ void EditComponent::handleAsyncUpdate()
 
 void EditComponent::refreshSnapTypeDesc()
 {
+    auto x1 = m_timeLine.getCurrentBeatRange().getStart().inBeats();
+    auto x2 = m_timeLine.getCurrentBeatRange().getEnd().inBeats();
     m_footerbar.m_snapTypeDesc =
-            m_timeLine.getEditViewState ().getSnapTypeDescription (
-                m_timeLine.getBestSnapType ().level);
+            m_editViewState.getSnapTypeDescription (
+                m_editViewState.getBestSnapType (x1, x2, m_timeLine.getWidth()).level);
     m_footerbar.repaint ();
 }
 
