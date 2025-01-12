@@ -23,8 +23,8 @@ void KeyboardView::mouseDown(const juce::MouseEvent& e)
 {
     if (m_keyboard.getBounds().contains(e.getPosition()))
     {
-        // EngineHelpers::updateMidiInputs(m_editViewState, m_track);
-        EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit).handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, getKey(e.y), .8f));
+        if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit))
+            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, getKey(e.y), .8f));
     }
 
     m_keyWidthCached = m_editViewState.getViewYScale(m_timeLineID);
@@ -39,9 +39,12 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
         auto KeyboardX = m_keyboard.getX();
         if (((int) getKey(e.y) != (int) m_clickedKey) && (e.x < KeyboardX + keyLenght))
         {
-            EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit).handleIncomingMidiMessage(juce::MidiMessage::noteOff(0, m_clickedKey));
-            m_clickedKey = getKey(e.y);
-            EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit).handleIncomingMidiMessage(juce::MidiMessage::noteOn(0, m_clickedKey, .8f));
+            if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit))
+            {
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, m_clickedKey));
+                m_clickedKey = getKey(e.y);
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, m_clickedKey, .8f));
+            }
         }
     }
     else
@@ -64,7 +67,8 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
 }
 void KeyboardView::mouseUp (const juce::MouseEvent& e) 
 {
-    EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit).handleIncomingMidiMessage(juce::MidiMessage::noteOff(0, m_clickedKey));
+    if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit))
+        virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, m_clickedKey));
 }
 
 void KeyboardView::resized() 

@@ -1012,7 +1012,7 @@ void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
         }
     }
 }
-te::MidiInputDevice& EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
+te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
 {
     auto& engine = edit.engine;
     auto& dm = engine.getDeviceManager();
@@ -1028,9 +1028,11 @@ te::MidiInputDevice& EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
         {
 
             auto mid = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice());
-            return *mid;
+            return mid;
         }
     }
+
+    return nullptr;
 }
 tracktion::core::TimePosition EngineHelpers::getTimePos(double t)
 {
