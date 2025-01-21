@@ -414,7 +414,7 @@ void EditComponent::valueTreeChildRemoved (
 {
     if (te::MidiClip::isClipState (c))
     {
-
+        markAndUpdate (m_updateZoom);
     }
     if (te::TrackList::isTrack (c))
     {

@@ -574,23 +574,41 @@ void SongEditorView::mouseDrag(const juce::MouseEvent&e)
         m_draggedClip = m_hoveredClip;
         m_draggedVerticalOffset = getVerticalOffset(m_hoveredTrack, {e.x, e.y});
 
-        auto screenStartTime = xtoTime(0);
-        auto draggedTime = xtoTime(e.getDistanceFromDragStartX()) - screenStartTime; 
+        auto draggedTime = xtoTime(e.getDistanceFromDragStartX()) - xtoTime(0);
 
         auto startTime = m_draggedClip->getPosition().getStart();
         if (m_rightBorderHovered)
             startTime = m_draggedClip->getPosition().getEnd();
 
         auto targetTime = startTime + draggedTime;
-
         if (!e.mods.isShiftDown())
             targetTime = getSnapedTime(targetTime);
 
-        auto selectedClips = sm.getItemsOfType<te::Clip>();
-        auto selectedRange = tracktion::getTimeRangeForSelectedItems(selectedClips);
-        double selectionStart = selectedRange.getStart().inSeconds();
-        double dragedTimeDelta = juce::jmax(0.0 - selectionStart, targetTime.inSeconds() - startTime.inSeconds());
-        m_draggedTimeDelta = tracktion::TimeDuration::fromSeconds(dragedTimeDelta);
+        m_draggedTimeDelta = targetTime - startTime;
+
+
+        // sm.addToSelection(m_hoveredClip);
+        //
+        // m_draggedClip = m_hoveredClip;
+        // m_draggedVerticalOffset = getVerticalOffset(m_hoveredTrack, {e.x, e.y});
+        //
+        // auto screenStartTime = xtoTime(0);
+        // auto draggedTime = xtoTime(e.getDistanceFromDragStartX()) - screenStartTime; 
+        //
+        // auto startTime = m_draggedClip->getPosition().getStart();
+        // if (m_rightBorderHovered)
+        //     startTime = m_draggedClip->getPosition().getEnd();
+        //
+        // auto targetTime = startTime + draggedTime;
+        //
+        // if (!e.mods.isShiftDown())
+        //     targetTime = getSnapedTime(targetTime);
+        //
+        // auto selectedClips = sm.getItemsOfType<te::Clip>();
+        // auto selectedRange = tracktion::getTimeRangeForSelectedItems(selectedClips);
+        // double selectionStart = selectedRange.getStart().inSeconds();
+        // double dragedTimeDelta = juce::jmax(0.0 - selectionStart, targetTime.inSeconds() - startTime.inSeconds());
+        // m_draggedTimeDelta = tracktion::TimeDuration::fromSeconds(dragedTimeDelta);
     }
 
     if (isDraggingMultiSelectionToolSpan)

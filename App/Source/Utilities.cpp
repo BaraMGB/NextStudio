@@ -1192,6 +1192,7 @@ tracktion::TimeRange EngineHelpers::calculateNewTimeRange(const juce::ValueTree&
     double oldStart = clipState.getProperty(tracktion::IDs::start);
     auto length = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::length));
     auto newStart = tracktion::TimePosition::fromSeconds(oldStart + timeDelta);
+    newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0), newStart);
     return tracktion::TimeRange(newStart, length);
 }
 
@@ -1544,6 +1545,7 @@ void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditVie
         {
             auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(),
                                        sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(delta));
+            newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0), newStart);
             sc->setStart(newStart, true, false);
 
             //save clip for damage
