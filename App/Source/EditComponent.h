@@ -86,7 +86,7 @@ public:
 
     void buttonClicked(juce::Button* button) override;
 
-    ApplicationCommandTarget* getNextCommandTarget() override   { GUIHelpers::log("findFirstTargetParentComponent"); return findFirstTargetParentComponent(); }
+    ApplicationCommandTarget* getNextCommandTarget() override   { return findFirstTargetParentComponent(); }
     void getAllCommands (juce::Array<juce::CommandID>& commands) override;
 
     void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;

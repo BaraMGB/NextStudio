@@ -47,7 +47,7 @@ SongEditorView::~SongEditorView()
 
 void SongEditorView::paint(juce::Graphics& g)
 {
-    GUIHelpers::log("SongEditor repaint()");
+    GUIHelpers::log("SongEditor::paint() is called");
     using namespace juce::Colours;
     auto &sm = m_editViewState.m_selectionManager;
     auto scroll = timeToX(tracktion::TimePosition::fromSeconds(0)) * (-1);
@@ -384,7 +384,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
 
     if (needsRepaint)
     {
-        GUIHelpers::log("repaint needed");
+        GUIHelpers::log("Songeditor::mouseMove(): repaint needed");
         repaint();
     }
 

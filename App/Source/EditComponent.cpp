@@ -394,8 +394,8 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 {
     if (te::MidiClip::isClipState (c))
     {
-        markAndUpdate (m_updateZoom);
-        markAndUpdate(m_verticalUpdateSongEditor);
+        // markAndUpdate (m_updateZoom);
+        // markAndUpdate(m_verticalUpdateSongEditor);
     }
     if (te::TrackList::isTrack (c))
     {

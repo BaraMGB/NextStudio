@@ -327,7 +327,7 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
 bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
 {
 
-    GUIHelpers::log("MainComponent perform");
+    GUIHelpers::log("MainComponent::perform() (ApplicationCommandTarget)");
     int rootNote = 48;
     switch (info.commandID)
     { 
