@@ -47,7 +47,7 @@ public:
         if (m_evs.viewFollowsPos())
         {
             auto posBeats = m_evs.timeToBeat (
-            m_evs.m_edit.getTransport ().getCurrentPosition ());
+            m_evs.m_edit.getTransport ().getPosition ().inSeconds());
         
             auto bx1 = getCurrentBeatRange().getStart().inBeats();
             auto bx2 = getCurrentBeatRange().getEnd().inBeats();

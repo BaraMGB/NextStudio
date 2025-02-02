@@ -106,7 +106,7 @@ bool MainComponent::keyStateChanged(bool isKeyDown)
                 gap = (int) command - 1;
 
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState->m_edit))
-                EngineHelpers::getVirtuelMidiInputDevice(*m_edit)->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1,rootNote + gap));
+                EngineHelpers::getVirtuelMidiInputDevice(*m_edit)->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1,rootNote + gap),0);
         }
     return true;
 }
@@ -337,128 +337,128 @@ bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
             {
                 GUIHelpers::log("NAME: ", virMidiIn->getName());
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
                 m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             }
             break;
         case KeyPressCommandIDs::midiNoteCsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteD:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteDsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteE:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteF:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteFsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteG:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteGsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteA:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteAsharp:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteB:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperC :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperCsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperD:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperDsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperE:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperF:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperFsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperG:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperGsharp :
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperA:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperAsharp:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteUpperB:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::midiNoteTopC:
             if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(*m_edit))
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f));
+                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f),0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
             break;
         case KeyPressCommandIDs::togglePlay:
@@ -716,14 +716,14 @@ void MainComponent::createTracksAndAssignInputs()
     for (int i = 0; i < dm.getNumWaveInDevices(); i++)
         if (auto wip = dm.getWaveInDevice (i))
         {
-            wip->setEndToEnd (true);
+            wip->setMonitorMode(te::InputDevice::MonitorMode::automatic);
             wip->setEnabled (true);
         }
 
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
         if (auto mip = dm.getMidiInDevice (i))
         {
-            mip->setEndToEndEnabled (true);
+            mip->setMonitorMode (te::InputDevice::MonitorMode::on);
             mip->setEnabled (true);
         }
 

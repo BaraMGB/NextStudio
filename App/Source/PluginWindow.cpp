@@ -31,14 +31,12 @@ PluginWindow::PluginWindow (te::Plugin& plug)
       plugin (plug), windowState (*plug.windowState)
 {
     getConstrainer()->setMinimumOnscreenAmounts (0x10000, 50, 30, 50);
-
-    auto position = plugin.windowState->lastWindowBounds.getPosition();
-    setBounds (getLocalBounds() + position);
-
     setResizeLimits (100, 50, 4000, 4000);
-    setBoundsConstrained (getLocalBounds() + position);
 
     recreateEditor();
+
+    setBoundsConstrained (getLocalBounds() + plugin.windowState->choosePositionForPluginWindow());
+
 
     #if JUCE_LINUX
      setAlwaysOnTop (true);

@@ -16,7 +16,6 @@ void InstrumentEffectListModel::updatePluginLists()
 {
     m_instruments.clear();
     m_effects.clear();
-    
 
     for (auto& desc : m_knownPlugins.getTypes())
     {
@@ -25,7 +24,6 @@ void InstrumentEffectListModel::updatePluginLists()
         else
             m_effects.add(desc);
     }
-
 
     for (auto& desc : EngineHelpers::getInternalPlugins())
     {
@@ -189,6 +187,11 @@ void InstrumentEffectListModel::sortOrderChanged(int newSortColumnId, bool isFor
     }
 }
 
+juce::var InstrumentEffectListModel::getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) 
+{
+    return {"Instrument or Effect"};
+}
+
 // ----------------------------------------------------------------------------------------------
 
 InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, InstrumentEffectListModel& model, ApplicationViewState& appState)
@@ -198,10 +201,6 @@ InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, Instrume
 {
 }
 
-    juce::var InstrumentEffectTable::getDragSourceDescription(const juce::SparseSet<int> &)
-{
-    return {"Instrument or Effect"};
-}
 
 tracktion::Plugin::Ptr InstrumentEffectTable::getSelectedPlugin(tracktion::Edit &edit)
 {

@@ -26,7 +26,6 @@
   ==============================================================================
 */
 
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "MenuBar.h"
 #include "Utilities.h"
 

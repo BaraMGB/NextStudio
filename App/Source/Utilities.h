@@ -289,8 +289,8 @@ namespace PlayHeadHelpers
     struct TimeCodeStrings{
         explicit TimeCodeStrings(te::Edit & edit)
         {
-            auto currenttime = edit.getTransport ().getCurrentPosition ();
-            auto tp = tracktion::core::TimePosition::fromSeconds(currenttime);
+            auto tp = edit.getTransport ().getPosition ();
+            auto currenttime = tp.inSeconds();
             bpm = juce::String(edit.tempoSequence.getTempoAt (tp).bpm, 2);
             auto& timesig = edit.tempoSequence.getTimeSigAt (tp);
             signature = juce::String(juce::String(timesig.numerator) + " / "
@@ -423,9 +423,9 @@ namespace EngineHelpers
     void toggleRecord (te::Edit& edit);
     void armTrack (te::AudioTrack& t, bool arm, int position = 0);
     bool isTrackArmed (te::AudioTrack& t, int position = 0);
-    bool isInputMonitoringEnabled (te::Track& t, int position = 0);
-    void enableInputMonitoring (te::Track& t, bool im, int position = 0);
-    bool trackHasInput (te::Track& t, int position = 0);
+    bool isInputMonitoringEnabled (te::AudioTrack& t, int position = 0);
+    void enableInputMonitoring (te::AudioTrack& t, bool im, int position = 0);
+    bool trackHasInput (te::AudioTrack& t, int position = 0);
 
     std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree (
             te::Engine& engine);

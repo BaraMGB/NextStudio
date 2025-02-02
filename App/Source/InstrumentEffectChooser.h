@@ -41,6 +41,7 @@ public:
     int  getNumRows() override;
     void sortOrderChanged (int newSortColumnId, bool isForwards) override;
 
+    juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
     void updatePluginLists();
     juce::Array<juce::PluginDescription>& getPluginList() 
     {
@@ -89,10 +90,6 @@ class InstrumentEffectTable : public juce::TableListBox
 {
 public:
     InstrumentEffectTable(te::Engine& engine, InstrumentEffectListModel& model, ApplicationViewState& appState);
-
-
-
-    juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 
     te::Plugin::Ptr getSelectedPlugin(te::Edit& edit);
     juce::Array<juce::PluginDescription>& getPluginList()

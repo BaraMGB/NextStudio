@@ -47,6 +47,7 @@ public:
     static juce::String getPluginDescription (const juce::PluginDescription& desc);
     int getNumRows() override {return m_knownPlugins.getTypes().size ();}
 
+    juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
 private:
     juce::KnownPluginList& m_knownPlugins;
     te::Engine& m_engine;
@@ -60,7 +61,6 @@ class PluginListbox : public juce::TableListBox
 public:
     PluginListbox(te::Engine& engine);
 
-    juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
     te::Plugin::Ptr getSelectedPlugin(te::Edit& edit);
 
 private:

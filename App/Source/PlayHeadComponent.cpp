@@ -71,7 +71,7 @@ void PlayheadComponent::mouseDrag (const juce::MouseEvent& e)
     auto x1 = m_timeLine.getCurrentBeatRange().getStart().inBeats() ;
     auto x2 = m_timeLine.getCurrentBeatRange().getEnd().inBeats() ;
     double t = m_editViewState.xToTime (e.x, getWidth (), x1, x2);
-    m_edit.getTransport().setCurrentPosition (t);
+    m_edit.getTransport().setPosition (tracktion::TimePosition::fromSeconds(t));
     timerCallback();
 }
 
@@ -97,7 +97,7 @@ void PlayheadComponent::timerCallback()
     auto x1 = m_timeLine.getCurrentBeatRange().getStart().inBeats();
     auto x2 = m_timeLine.getCurrentBeatRange().getEnd().inBeats();
     int newX = m_editViewState.timeToX (
-        m_edit.getTransport().getCurrentPosition()
+        m_edit.getTransport().getPosition().inSeconds()
         , getWidth (), x1, x2);
 
     if (newX != m_xPosition)

@@ -224,7 +224,7 @@ void SamplePreviewComponent::stop()
 {
     if (m_previewEdit)
     {   
-        m_previewEdit->getTransport().stop(false,false, true, false);
+        m_previewEdit->getTransport().stop(false, true);
         stopTimer();
     }   
 }

@@ -118,6 +118,11 @@ juce::String PluginListBoxModel::getPluginDescription(const juce::PluginDescript
     return items.joinIntoString (" - ");
 }
 
+juce::var PluginListBoxModel::getDragSourceDescription(const juce::SparseSet<int> &)
+{
+    return {"PluginListEntry"};
+}
+
 //------------------------------------------------------------------------------------------------
 
 PluginListbox::PluginListbox(te::Engine& engine)
@@ -126,11 +131,6 @@ PluginListbox::PluginListbox(te::Engine& engine)
 }
 
 // ---------------------------------------------------------------------------------------------
-
-juce::var PluginListbox::getDragSourceDescription(const juce::SparseSet<int> &)
-{
-    return {"PluginListEntry"};
-}
 
 tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit& edit)
 {
@@ -167,8 +167,7 @@ PluginSettings::PluginSettings(te::Engine& engine, ApplicationViewState& appStat
     m_listbox.setModel(&m_model);
     m_listbox.setRowHeight (20);
     engine.getPluginManager().knownPluginList.addChangeListener(this);
-    m_propertiesToUse = te::getApplicationSettings();
-
+    m_propertiesToUse = std::addressof (engine.getPropertyStorage().getPropertiesFile());
     m_setupButton.onClick = [this]
     {
         juce::PopupMenu m;

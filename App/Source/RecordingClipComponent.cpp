@@ -34,12 +34,12 @@ void RecordingClipComponent::initialiseThumbnailAndPunchTime()
     {
         for (auto* idi : at->edit.getEditInputDevices().getDevicesForTargetTrack (*at))
         {
-            m_punchInTime = idi->getPunchInTime();
+            m_punchInTime = idi->getPunchInTime(at->itemID);
 
-            if (idi->getRecordingFile().exists())
+            if (idi->getRecordingFile(at->itemID).exists())
             {
                 m_thumbnail = at->edit.engine.getRecordingThumbnailManager()
-                        .getThumbnailFor (idi->getRecordingFile());
+                        .getThumbnailFor (idi->getRecordingFile(at->itemID));
             }
         }
     }

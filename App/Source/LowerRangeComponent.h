@@ -22,12 +22,8 @@
 
 #include "EditViewState.h"
 #include "Utilities.h"
-#include "PluginComponent.h"
-#include "PluginMenu.h"
 #include "PianoRollEditor.h"
 #include "RackView.h"
-#include "TrackHeadComponent.h"
-#include "TimelineOverlayComponent.h"
 #include "SplitterComponent.h"
 
 namespace te = tracktion_engine;

@@ -60,7 +60,7 @@ namespace te = tracktion_engine;
          sendChangeMessage (false);
      }
      
-     void currentValueChanged (te::AutomatableParameter&, float /*newValue*/) override
+     void currentValueChanged (te::AutomatableParameter&) override
      {
          sendChangeMessage (false);
      }

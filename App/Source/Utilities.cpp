@@ -976,47 +976,45 @@ void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
 {
     if (auto at = dynamic_cast<te::AudioTrack*>(track.get()))
     {
-        if ( at->state.getProperty (IDs::isMidiTrack))
+        if (at->state.getProperty (IDs::isMidiTrack))
         {
             auto &dm = evs.m_edit.engine.getDeviceManager ();
             for (auto instance: evs.m_edit.getAllInputDevices())
             {
                 if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
                 {
-                    evs.m_edit.getEditInputDevices().getInstanceStateForInputDevice(*midiIn);
                     if (midiIn == dm.getDefaultMidiInDevice ())
                     {
-                        instance->setTargetTrack(*at, 0, true, &evs.m_edit.getUndoManager());
+                        [[maybe_unused]] auto res = instance->setTarget(at->itemID, true, &evs.m_edit.getUndoManager());
                         evs.m_edit.restartPlayback();
                     }
                 }
                 if (auto vmi = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice()))
                 {
-                    evs.m_edit.getEditInputDevices().getInstanceStateForInputDevice(*vmi);
-                    instance->setTargetTrack(*at, 1, true, &evs.m_edit.getUndoManager());
+                    [[maybe_unused]] auto res = instance->setTarget(at->itemID, true, &evs.m_edit.getUndoManager());
                     evs.m_edit.restartPlayback();
                 }
             }
 
-            if (evs.m_isAutoArmed)
-            {
-                for (auto&i : evs.m_edit.getTrackList ())
-                {
-                    if (auto audioTrack = dynamic_cast<te::AudioTrack*>(i))
-                    {
-                        EngineHelpers::armTrack (*audioTrack,false);
-                    }
-                }
-                EngineHelpers::armTrack (*at, true);
-            }
+            // if (evs.m_isAutoArmed)
+            // {
+            //     for (auto&i : evs.m_edit.getTrackList ())
+            //     {
+            //         if (auto audioTrack = dynamic_cast<te::AudioTrack*>(i))
+            //         {
+            //             EngineHelpers::armTrack (*audioTrack,false);
+            //         }
+            //     }
+            //     EngineHelpers::armTrack (*at, true);
+            // }
         }
     }
 }
 te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
 {
-    auto& engine = edit.engine;
-    auto& dm = engine.getDeviceManager();
+    auto& dm = edit.engine.getDeviceManager();
     auto name = "virtualMidiIn";
+
     dm.createVirtualMidiDevice(name);
 
     for (const auto instance : edit.getAllInputDevices())
@@ -1026,7 +1024,6 @@ te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
         if (instance->getInputDevice().getDeviceType() == te::InputDevice::virtualMidiDevice
             && instance->getInputDevice().getName() == name)
         {
-
             auto mid = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice());
             return mid;
         }
@@ -1744,7 +1741,7 @@ void EngineHelpers::rewind(EditViewState &evs)
     auto& transport = evs.m_edit.getTransport ();
 
     evs.m_playHeadStartTime = 0.0;
-    transport.setCurrentPosition(evs.m_playHeadStartTime);
+    transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
 }
 
 void EngineHelpers::stopPlay(EditViewState &evs)
@@ -1753,12 +1750,12 @@ void EngineHelpers::stopPlay(EditViewState &evs)
     if (!transport.isPlaying())
     {
         evs.m_playHeadStartTime = 0.0;
-        transport.setCurrentPosition(evs.m_playHeadStartTime);
+        transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
     }
     else
     {
-        transport.stop(false, false, true, true);
-        transport.setCurrentPosition(evs.m_playHeadStartTime);
+        transport.stop(false, true);
+        transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
     }
 }
 
@@ -1843,13 +1840,13 @@ void EngineHelpers::play (EditViewState &evs)
     auto& transport = evs.m_edit.getTransport ();
  
     if (transport.isPlaying ())
-        transport.setCurrentPosition (evs.m_playHeadStartTime);
+        transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
     //hack for prevent not playing the first transient of a sample
     //that starts direct on play position
-    auto currentPos = transport.getCurrentPosition();
-    transport.setCurrentPosition(evs.m_edit.getLength().inSeconds());
+    auto currentPos = transport.getPosition();
+    transport.setPosition(tracktion::TimePosition::fromSeconds(0) + evs.m_edit.getLength());
     transport.play (true);
-    transport.setCurrentPosition(currentPos);
+    transport.setPosition(currentPos);
 }
 
 void EngineHelpers::pause (EditViewState &evs)
@@ -1857,7 +1854,7 @@ void EngineHelpers::pause (EditViewState &evs)
     auto& transport = evs.m_edit.getTransport ();
     if (transport.isPlaying ())
     {
-        transport.stop(false, false, true, false);
+        transport.stop(true, false);
     }
 }
 
@@ -1871,7 +1868,7 @@ void EngineHelpers::togglePlay(EditViewState& evs)
     }
     else
     {
-        evs.m_playHeadStartTime = transport.getCurrentPosition () ;
+        evs.m_playHeadStartTime = transport.getPosition ().inSeconds();
         EngineHelpers::play(evs);
     }
 }
@@ -1886,56 +1883,64 @@ void EngineHelpers::toggleRecord (tracktion_engine::Edit &edit)
         transport.record (false);
 }
 
-void EngineHelpers::armTrack (
-        tracktion_engine::AudioTrack &t
-      , bool arm
-      , int position)
+void EngineHelpers::armTrack (te::AudioTrack& t, bool arm, int position)
 {
     auto& edit = t.edit;
     for (auto instance : edit.getAllInputDevices())
-        if (instance->isOnTargetTrack (t, position))
-            instance->setRecordingEnabled (t, arm);
-}
-
-bool EngineHelpers::isTrackArmed(tracktion_engine::AudioTrack &t, int position)
-{
-    auto& edit = t.edit;
-    for (auto instance : edit.getAllInputDevices())
-        if (instance->isOnTargetTrack (t, position))
-            return instance->isRecordingEnabled (t);
-
-    return false;
-}
-
-bool EngineHelpers::isInputMonitoringEnabled(tracktion_engine::Track &t, int position)
-{
-    auto& edit = t.edit;
-    for (auto instance : edit.getAllInputDevices())
-        if (instance->isOnTargetTrack (t, position))
-            return instance->getInputDevice().isEndToEndEnabled();
-
-    return false;
-}
-
-void EngineHelpers::enableInputMonitoring(
-        tracktion_engine::Track &t
-      , bool im, int position)
-{
-    if (isInputMonitoringEnabled (t, position) != im)
     {
-        auto& edit = t.edit;
-        for (auto instance : edit.getAllInputDevices())
-            if (instance->isOnTargetTrack (t, position))
-                instance->getInputDevice().flipEndToEnd();
+        if (te::isOnTargetTrack (*instance, t, position))
+        {
+            GUIHelpers::log("Utilities.cpp: arm Track");
+            instance->setRecordingEnabled (t.itemID, arm);
+        }
     }
 }
 
-bool EngineHelpers::trackHasInput(tracktion_engine::Track &t, int position)
+bool EngineHelpers::isTrackArmed (te::AudioTrack& t, int position)
 {
-
     auto& edit = t.edit;
     for (auto instance : edit.getAllInputDevices())
-        if (instance->isOnTargetTrack (t, position))
+        if (te::isOnTargetTrack (*instance, t, position))
+            return instance->isRecordingEnabled (t.itemID);
+
+    return false;
+}
+
+bool EngineHelpers::isInputMonitoringEnabled (te::AudioTrack& t, int position)
+{
+    for (auto instance : t.edit.getAllInputDevices())
+        if (te::isOnTargetTrack (*instance, t, position))
+            return instance->isLivePlayEnabled (t);
+
+    return false;
+}
+
+void EngineHelpers::enableInputMonitoring (te::AudioTrack& t, bool im, int position )
+{
+    if (isInputMonitoringEnabled (t, position) != im)
+    {
+        for (auto instance : t.edit.getAllInputDevices())
+        {
+            if (te::isOnTargetTrack (*instance, t, position))
+            {
+                if (auto mode = instance->getInputDevice().getMonitorMode();
+                    mode == te::InputDevice::MonitorMode::on ||  mode == te::InputDevice::MonitorMode::off)
+                {
+                    GUIHelpers::log("Utilities.cpp: setMonitorMode()");
+                    instance->getInputDevice().setMonitorMode (mode == te::InputDevice::MonitorMode::on
+                                                                ? te::InputDevice::MonitorMode::off
+                                                                : te::InputDevice::MonitorMode::on);
+                }
+            }
+        }
+    }
+}
+
+bool EngineHelpers::trackHasInput (te::AudioTrack& t, int position)
+{
+    auto& edit = t.edit;
+    for (auto instance : edit.getAllInputDevices())
+        if (te::isOnTargetTrack (*instance, t, position))
             return true;
 
     return false;
@@ -2021,7 +2026,7 @@ void SampleView::mouseUp(const juce::MouseEvent &)
 void SampleView::updateCursorPosition()
 {
     const double loopLength = transport.getLoopRange().getLength().inSeconds();
-    const double proportion = loopLength == 0.0 ? 0.0 : transport.getCurrentPosition() / loopLength;
+    const double proportion = loopLength == 0.0 ? 0.0 : transport.getPosition().inSeconds() / loopLength;
 
     auto r = getLocalBounds().toFloat();
     const float x = r.getWidth() * float (proportion);

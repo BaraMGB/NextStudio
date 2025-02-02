@@ -1234,12 +1234,12 @@ void SongEditorView::updateRangeSelection()
             m_selectedRange.selectedTracks.add(t);
     }
 
-    for (auto& ap : te::getAllAutomatableParameter(m_editViewState.m_edit))
+    for (auto& ap : m_editViewState.m_edit.getAllAutomatableParams(true))
     {
         if (GUIHelpers::isAutomationVisible(*ap))
         {
             auto rect = getAutomationRect(ap);
-            juce::Range<int> vRange = {rect.getY(), rect.getBottom()};
+            juce::Range<int> vRange = juce::Range<int>(rect.getY(), rect.getBottom());
             if (vRange.intersects(lassoRangeY))
                 m_selectedRange.selectedAutomations.addIfNotAlreadyThere(ap);
         }
@@ -1805,17 +1805,15 @@ void SongEditorView::buildRecordingClips(te::Track::Ptr track)
 
     if (track->edit.getTransport().isRecording())
     {
-        for (auto in: track->edit.getAllInputDevices())
+        for (auto in : track->edit.getAllInputDevices())
         {
-            if (in->isRecordingActive()
-                && track == *(in->getTargetTracks().getFirst()))
+            if (in->isRecordingActive() && track->itemID == in->getTargets().getFirst())
             {
                 needed = true;
                 break;
             }
         }
     }
-
     if (needed)
     {
         for (auto rc : m_recordingClips)

@@ -147,7 +147,7 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
         {
             auto newTime = m_evs.beatToTime(m_cachedBeat);
             m_evs.m_playHeadStartTime = newTime;
-            m_evs.m_edit.getTransport().setCurrentPosition(newTime);
+            m_evs.m_edit.getTransport().setPosition(tracktion::TimePosition::fromSeconds(newTime));
         }
     }
 }

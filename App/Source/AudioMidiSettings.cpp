@@ -27,25 +27,26 @@ MidiSettings::MidiSettings(tracktion_engine::Engine &engine)
     m_midiDefaultChooser.addListener (this);
     m_midiDefaultLabel.attachToComponent(&m_midiDefaultChooser, true);
     m_midiDefaultLabel.setText("default Controller : ", juce::dontSendNotification);
-    auto& dm = engine.getDeviceManager ();
+}
+
+void MidiSettings::resized()
+{
+    auto& dm = m_engine.getDeviceManager ();
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
     {
         if (auto mip = dm.getMidiInDevice (i))
         {
+            GUIHelpers::log("AudioMidiSettings.cpp: MIDI  Input Devices:" + mip->getName());
             if (mip->getDeviceType() == te::InputDevice::physicalMidiDevice)
             {
                 m_midiDefaultChooser.addItem (mip->getName (), i + 1);
-                if (dm.getDefaultMidiInDevice () == mip)
+                if (dm.getDefaultMidiInDevice () == mip.get())
                 {
                     m_midiDefaultChooser.setSelectedId (i + 1);
                 }
             }
         }
     }
-}
-
-void MidiSettings::resized()
-{
     auto area = getLocalBounds ();
     auto defaultController = area.removeFromTop(30);
     defaultController.removeFromRight(getWidth() * 0.05);
@@ -56,5 +57,6 @@ void MidiSettings::resized()
 void MidiSettings::comboBoxChanged(juce::ComboBox *comboBox)
 {
     auto& dm = m_engine.getDeviceManager ();
-    dm.setDefaultMidiInDevice (comboBox->getSelectedId () - 1);
+    if (auto defaultMidiIn = dm.getMidiInDevice(comboBox->getSelectedId () - 1))
+        dm.setDefaultMidiInDevice (defaultMidiIn->getDeviceID());
 }
