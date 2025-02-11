@@ -1137,119 +1137,138 @@ bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeR
     return ti->getEditTimeRange().intersects(tr);
 }
 
-void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState& evs)
+juce::ValueTree exportPluginStates (const tracktion::engine::PluginList& pluginList)
 {
-    // Save the state of selected clips
-    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
-    auto selectedClipStates = saveSelectedClipStates(selectedClips, copy);
+    juce::ValueTree pluginsTree ("Plugins");
 
-    // Copy automation if necessary
-    if (verticalOffset == 0)
-        EngineHelpers::copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
-
-    // Delete the original clips
-    deleteSelectedClips(evs);
-
-    // Process the saved clip states and insert them into target tracks
-    for (const auto& [trackID, clipStateXML] : selectedClipStates)
+    for (auto* plugin : pluginList.getPlugins())
     {
-        auto clipState = juce::ValueTree::fromXml(*clipStateXML);
-        if (!clipState.isValid())
-            continue;
-
-        auto sourceTrack = tracktion::findTrackForID(evs.m_edit, trackID);
-        if (!sourceTrack)
-            continue;
-
-        auto targetTrack = EngineHelpers::getTargetTrack(sourceTrack, verticalOffset);
-        if (!targetTrack)
-            continue;
-
-        handleClipInsertion(clipState, sourceTrack, targetTrack, evs, timeDelta);
-    }
-}
-
-juce::Array<std::pair<tracktion::EditItemID, std::unique_ptr<juce::XmlElement>>>
-EngineHelpers::saveSelectedClipStates(const juce::Array<te::Clip*>& selectedClips, bool copy)
-{
-    juce::Array<std::pair<tracktion::EditItemID, std::unique_ptr<juce::XmlElement>>> clipStates;
-
-    for (auto& clip : selectedClips)
-    {
-        clipStates.add(std::make_pair(clip->getTrackID(), clip->state.createXml()));
-        if (copy)
-            te::duplicateClip(*clip);
-    }
-
-    return clipStates;
-}
-
-tracktion::TimeRange EngineHelpers::calculateNewTimeRange(const juce::ValueTree& clipState, double timeDelta)
-{
-    double oldStart = clipState.getProperty(tracktion::IDs::start);
-    auto length = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::length));
-    auto newStart = tracktion::TimePosition::fromSeconds(oldStart + timeDelta);
-    newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0), newStart);
-    return tracktion::TimeRange(newStart, length);
-}
-
-te::TrackItem::Type EngineHelpers::determineClipType(const juce::ValueTree& clipState)
-{
-    // Determine if the clip is MIDI or audio
-    return clipState.hasType(te::IDs::MIDICLIP) ? te::TrackItem::Type::midi : te::TrackItem::Type::wave;
-}
-
-void EngineHelpers::handleClipInsertion(const juce::ValueTree& clipState,
-                                        tracktion::Track* sourceTrack,
-                                        tracktion::Track* targetTrack,
-                                        EditViewState& evs,
-                                        double timeDelta)
-{
-    if (auto clipOwner = dynamic_cast<te::ClipTrack*>(targetTrack))
-    {
-        // Calculate the target position for the clip
-        auto timerange = calculateNewTimeRange(clipState, timeDelta);
-        auto offset = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::offset));
-        auto clipPosition = te::createClipPosition(evs.m_edit.tempoSequence, timerange, offset);
-
-        if (EngineHelpers::trackWantsClip(clipState, targetTrack))
+        if (plugin != nullptr)
         {
-            // Insert the clip into the target track
-            auto clipType = determineClipType(clipState);
-            auto newClip = te::insertClipWithState(*clipOwner, clipState, clipState.getProperty(te::IDs::name),
-                                                   clipType, clipPosition, te::DeleteExistingClips::yes, false);
-            evs.m_selectionManager.addToSelection(newClip);
+            // Create a copy of the plugin's state and add it to the tree
+            pluginsTree.appendChild (plugin->state.createCopy(), nullptr);
+        }
+    }
+
+    return pluginsTree;
+}
+
+void storePluginStatesAndClear(juce::Array<te::Track*>& involvedTracks, juce::Array<juce::ValueTree>& states, const juce::Array<te::Clip*>& selectedClips, int verticalOffset)
+{
+    for (const auto& selectedClip : selectedClips)
+    {
+        if (auto* sourceTrack = selectedClip->getTrack())
+        {
+            if (auto* targetTrack = EngineHelpers::getTargetTrack(sourceTrack, verticalOffset))
+            {
+                for (auto* track : {sourceTrack, targetTrack})
+                {
+                    if (involvedTracks.addIfNotAlreadyThere(track))
+                    {
+                        juce::ValueTree exportedState = exportPluginStates(track->pluginList);
+                        if (!exportedState.isValid()) {
+                            GUIHelpers::log("Warning: Plugin state export failed for track " + track->getName());
+                        }
+                        states.add(exportedState);
+                        track->pluginList.clear();
+                    }
+                }
+            }
+            else
+            {
+                GUIHelpers::log("Warning: Target track not found for source track " + sourceTrack->getName());
+            }
         }
         else
         {
-            // Reinsert the clip back into the source track if the target track is invalid
-            reinsertClipToSourceTrack(sourceTrack, clipState, evs);
+            GUIHelpers::log("Warning: Selected clip has no valid source track!");
         }
     }
+
+    jassert(involvedTracks.size() == states.size());
+    GUIHelpers::log("Stored states: " + juce::String(states.size()));
+    GUIHelpers::log("Stored tracks: " + juce::String(involvedTracks.size()));
 }
 
-void EngineHelpers::reinsertClipToSourceTrack(tracktion::Track* sourceTrack,
-                                              const juce::ValueTree& clipState,
-                                              EditViewState& evs)
+void restorePluginStates(const juce::Array<te::Track*>& involvedTracks, const juce::Array<juce::ValueTree>& states)
 {
-    if (auto oldClipOwner = dynamic_cast<te::ClipTrack*>(sourceTrack))
+    for (auto i = 0; i < involvedTracks.size(); i++)
     {
-        // Calculate the original position for the clip
-        double oldStart = clipState.getProperty(tracktion::IDs::start);
-        auto length = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::length));
-        auto oldTimeRange = tracktion::TimeRange(tracktion::TimePosition::fromSeconds(oldStart), length);
-
-        auto offset = tracktion::TimeDuration::fromSeconds(clipState.getProperty(tracktion::IDs::offset));
-        auto clipPosition = te::createClipPosition(evs.m_edit.tempoSequence, oldTimeRange, offset);
-
-        // Reinsert the clip back into its original track
-        auto clipType = determineClipType(clipState);
-        auto newClip = te::insertClipWithState(*oldClipOwner, clipState, clipState.getProperty(te::IDs::name),
-                                               clipType, clipPosition, te::DeleteExistingClips::yes, false);
-        evs.m_selectionManager.addToSelection(newClip);
+        involvedTracks[i]->pluginList.addPluginsFrom(states[i], true, false);
     }
+
+    jassert(involvedTracks.size() == states.size());
+    GUIHelpers::log("Restored plugins. Tracks involved: " + juce::String(involvedTracks.size()));
 }
 
+void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState& evs)
+{
+    //---------------------------------------------------
+    //when we insert a clip on a track with a plugin with a lot of parameters
+    //the needed time is much more higher than a track without a plugin.
+    //If you have to duplicate a lot of clips, this could take a lot of time. 
+    //So this approach removes all plugins and save them in a value tree. After
+    //moving or coping the clips, we reinsert the plugins from the state
+    //The time is reduced a lot, but I don't know, if this is the best approach.
+    //---------------------------------------------------
+    bool testOptimisation = false;
+    testOptimisation = true;
+    //---------------------------------------------------
+
+    if (verticalOffset == 0) copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
+
+    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    auto tempPosition = evs.m_edit.getLength().inSeconds() + timeDelta;
+
+    auto involvedTracks = juce::Array<te::Track*>();
+    auto states = juce::Array<juce::ValueTree>();
+    if (testOptimisation == true)
+        storePluginStatesAndClear(involvedTracks, states, selectedClips, verticalOffset);
+
+    juce::Array<te::Clip*> newClips;
+
+    for (auto selectedClip : selectedClips)
+    {
+        auto targetTrack = getTargetTrack(selectedClip->getTrack(), verticalOffset);
+
+        if (trackWantsClip(selectedClip, targetTrack))
+        {
+            auto newClip = te::duplicateClip(*selectedClip);
+            newClips.add(newClip);
+            newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+
+            if (!copy)
+                selectedClip->removeFromParent();
+            else
+                evs.m_selectionManager.deselect(selectedClip);
+        }
+    }
+
+    for (auto newClip: newClips)
+    {
+        auto pasteTime = newClip->getPosition().getStart().inSeconds() + timeDelta - tempPosition;
+        auto targetTrack = EngineHelpers::getTargetTrack(newClip->getTrack(), verticalOffset);
+
+        if (EngineHelpers::trackWantsClip(newClip, targetTrack))
+        {
+            if (auto tct = dynamic_cast<te::ClipTrack*>(targetTrack))
+            {
+                tct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime),
+                    newClip->getPosition().getLength()},
+                                  &evs.m_selectionManager);
+
+                if (auto owner = dynamic_cast<te::ClipOwner*>(targetTrack))
+                    newClip->moveTo(*owner);
+                newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
+
+                evs.m_selectionManager.addToSelection(newClip);
+            }
+        }
+    }
+
+    if (testOptimisation)
+        restorePluginStates(involvedTracks, states);
+}
 
 void EngineHelpers::duplicateSelectedClips(EditViewState& evs)
 { 

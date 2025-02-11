@@ -468,19 +468,7 @@ namespace EngineHelpers
 
 
 //INTERN
-    juce::Array<std::pair<tracktion::EditItemID, std::unique_ptr<juce::XmlElement>>>
-        saveSelectedClipStates(const juce::Array<te::Clip*>& selectedClips, bool copy);
 
-    tracktion::TimeRange calculateNewTimeRange(const juce::ValueTree& clipState, double timeDelta);
-    te::TrackItem::Type determineClipType(const juce::ValueTree& clipState);
-    void handleClipInsertion(const juce::ValueTree& clipState,
-                                   tracktion::Track* sourceTrack,
-                                   tracktion::Track* targetTrack,
-                                   EditViewState& evs,
-                                   double timeDelta);
-    void reinsertClipToSourceTrack(tracktion::Track* sourceTrack,
-                                              const juce::ValueTree& clipState,
-                                              EditViewState& evs);
 }
 
 class FlaggedAsyncUpdater : public juce::AsyncUpdater
