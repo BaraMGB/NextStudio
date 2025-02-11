@@ -157,7 +157,10 @@ void RackItemView::resized()
 void RackItemView::buttonClicked(juce::Button* button)
 {
     if (button == &m_showPluginBtn)
-        plugin->showWindowExplicitly();
+    {
+        if (plugin)
+            plugin->showWindowExplicitly();
+    }
 }
 
 juce::Colour RackItemView::getTrackColour()

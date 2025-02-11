@@ -1,26 +1,9 @@
-
-/*
- * Copyright 2023 Steffen Baranowsky
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
 namespace te = tracktion_engine;
+
 
 inline bool isDPIAware (te::Plugin&)
 {
@@ -30,17 +13,9 @@ inline bool isDPIAware (te::Plugin&)
 }
 
 //==============================================================================
-class PluginEditor : public juce::Component
+struct AudioProcessorEditorContentComp : public te::Plugin::EditorComponent
 {
-public:
-    virtual bool allowWindowResizing() = 0;
-    virtual juce::ComponentBoundsConstrainer* getBoundsConstrainer() = 0;
-};
-
-//==============================================================================
-struct AudioProcessorEditorContentComp : public PluginEditor
-{
-    explicit AudioProcessorEditorContentComp (te::ExternalPlugin& plug) : plugin (plug)
+    AudioProcessorEditorContentComp (te::ExternalPlugin& plug) : plugin (plug)
     {
         JUCE_AUTORELEASEPOOL
         {
@@ -49,11 +24,12 @@ struct AudioProcessorEditorContentComp : public PluginEditor
                 editor.reset (pi->createEditorIfNeeded());
 
                 if (editor == nullptr)
-                    editor = std::make_unique
-                            <juce::GenericAudioProcessorEditor> (*pi);
+                    editor = std::make_unique<juce::GenericAudioProcessorEditor> (*pi);
+
                 addAndMakeVisible (*editor);
             }
         }
+
         resizeToFitEditor (true);
     }
 
@@ -73,7 +49,7 @@ struct AudioProcessorEditorContentComp : public PluginEditor
             editor->setBounds (getLocalBounds());
     }
 
-    void childBoundsChanged (juce::Component* c) override
+    void childBoundsChanged (Component* c) override
     {
         if (c == editor.get())
         {
@@ -85,14 +61,7 @@ struct AudioProcessorEditorContentComp : public PluginEditor
     void resizeToFitEditor (bool force = false)
     {
         if (force || ! allowWindowResizing())
-            setSize (juce::jmax (8
-                           , editor != nullptr
-                                    ? editor->getWidth()
-                                    : 0)
-                   , juce::jmax (8
-                           , editor != nullptr
-                                    ? editor->getHeight()
-                                    : 0));
+            setSize (juce::jmax (8, editor != nullptr ? editor->getWidth() : 0), juce::jmax (8, editor != nullptr ? editor->getHeight() : 0));
     }
 
     te::ExternalPlugin& plugin;
@@ -106,16 +75,16 @@ struct AudioProcessorEditorContentComp : public PluginEditor
 class PluginWindow : public juce::DocumentWindow
 {
 public:
-    explicit PluginWindow (te::Plugin&);
+    PluginWindow (te::Plugin&);
     ~PluginWindow() override;
 
-    static std::unique_ptr<juce::Component> create (te::Plugin&);
+    static std::unique_ptr<Component> create (te::Plugin&);
 
     void show();
 
-    void setEditor (std::unique_ptr<PluginEditor>);
-    [[nodiscard]] PluginEditor* getEditor() const         { return editor.get(); }
-    
+    void setEditor (std::unique_ptr<te::Plugin::EditorComponent>);
+    te::Plugin::EditorComponent* getEditor() const         { return editor.get(); }
+
     void recreateEditor();
     void recreateEditorAsync();
 
@@ -123,13 +92,13 @@ private:
     void moved() override;
     void userTriedToCloseWindow() override          { plugin.windowState->closeWindowExplicitly(); }
     void closeButtonPressed() override              { userTriedToCloseWindow(); }
-    [[nodiscard]] float getDesktopScaleFactor() const override    { return 1.0f; }
+    float getDesktopScaleFactor() const override    { return 1.0f; }
 
-    std::unique_ptr<PluginEditor> createContentComp();
+    std::unique_ptr<te::Plugin::EditorComponent> editor;
 
-    std::unique_ptr<PluginEditor> editor;
-    
     te::Plugin& plugin;
     te::PluginWindowState& windowState;
+    bool updateStoredBounds = false;
 };
 
+//==============================================================================

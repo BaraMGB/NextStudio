@@ -46,7 +46,7 @@ add_subdirectory(resources)
 juce_add_gui_app(${TargetName} PRODUCT_NAME "NextStudio")
 juce_generate_juce_header(${TargetName})
 
-target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
+target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)
  
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
         C_VISIBILITY_PRESET hidden
@@ -58,7 +58,6 @@ target_sources(${TargetName} PRIVATE
         Source/Main.cpp
         Source/MainComponent.cpp
         Source/MenuBar.cpp
-#        Source/SideBarBrowser.cpp
         Source/SidebarComponent.cpp
         Source/SidebarMenu.cpp
         Source/HeaderComponent.cpp

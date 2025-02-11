@@ -48,6 +48,7 @@ SongEditorView::~SongEditorView()
 void SongEditorView::paint(juce::Graphics& g)
 {
     GUIHelpers::log("SongEditor::paint() is called");
+
     using namespace juce::Colours;
     auto &sm = m_editViewState.m_selectionManager;
     auto scroll = timeToX(tracktion::TimePosition::fromSeconds(0)) * (-1);
@@ -1077,7 +1078,9 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
         auto range = te::getTimeRangeForSelectedItems(selectedClips);
         auto delta = range.getLength().inSeconds();
 
+        GUIHelpers::log("moving Clips.");
         moveSelectedClips(true, delta, 0);
+        GUIHelpers::log("Clips moved.");
     }
 }
 
@@ -1161,6 +1164,7 @@ void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
 void SongEditorView::moveSelectedClips(bool copy,  double delta, int verticalOffset)
 {
     EngineHelpers::moveSelectedClips(copy, delta, verticalOffset,m_editViewState); 
+    repaint();
 }
 
 

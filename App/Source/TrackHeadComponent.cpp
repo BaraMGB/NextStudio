@@ -59,6 +59,9 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
 
 void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 {
+    if (m_automatableParameter.getTrack() == nullptr)
+        return;
+
     g.setColour (juce::Colours::white);
     const int minimizedHeight = m_automatableParameter.getTrack ()->state
             .getProperty (IDs::trackMinimized, 30);
@@ -481,8 +484,7 @@ void TrackHeaderComponent::buildAutomationHeader()
         {
             if (ap->getCurve().getNumPoints() > 0)
             {
-                m_automationHeaders.add(new AutomationLaneHeaderComponent(
-                                *ap));
+                m_automationHeaders.add(new AutomationLaneHeaderComponent(*ap));
                 addAndMakeVisible(m_automationHeaders.getLast());
             }
         }

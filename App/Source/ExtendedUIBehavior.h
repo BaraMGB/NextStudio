@@ -28,7 +28,7 @@ class ExtendedUIBehaviour : public te::UIBehaviour
 {
 public:
     ExtendedUIBehaviour() = default;
-    
+
     std::unique_ptr<juce::Component> createPluginWindow (te::PluginWindowState& pws) override
     {
         if (auto ws = dynamic_cast<te::Plugin::WindowState*> (&pws))
