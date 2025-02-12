@@ -336,21 +336,29 @@ void EditComponent::timerCallback()
 
     if (m_edit.getTransport().isPlaying() || m_edit.getTransport().isRecording())
         return;
+
+    auto temp = m_editViewState.m_edit.getTempDirectory(false);
+    auto editFile = Helpers::findRecentEdit(temp);
+    auto currentFile =  te::EditFileOperations(m_editViewState.m_edit).getEditFile();
+    auto xml = m_edit.state.toXmlString();
     if (m_editViewState.m_needAutoSave)
     {
-        juce::MessageManager::callAsync([this]() {
-            auto temp = m_editViewState.m_edit.getTempDirectory(false);
-            auto editFile = Helpers::findRecentEdit(temp);
-            auto currentFile =  te::EditFileOperations(m_editViewState.m_edit).getEditFile();
-
-            EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, editFile);
-            te::EditFileOperations(m_editViewState.m_edit).writeToFile(editFile, true);
-            EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, currentFile);
-            m_editViewState.m_edit.sendSourceFileUpdate();
-            GUIHelpers::log("Temp file saved!");
+        juce::MessageManager::callAsync([this, xml, editFile]() {
+            editFile.replaceWithText(xml);
+            GUIHelpers::log("current edit XML is saved: " + editFile.getFullPathName());
         });
-        m_editViewState.m_needAutoSave = false;
     }
+    else
+    {
+        GUIHelpers::log("Edit is up to date, don't save.");
+    }
+
+    EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, editFile);
+    EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, currentFile);
+    m_editViewState.m_edit.sendSourceFileUpdate();
+
+    m_editViewState.m_needAutoSave = false;
+
 }
 void EditComponent::valueTreePropertyChanged (
         juce::ValueTree& v, const juce::Identifier& i)

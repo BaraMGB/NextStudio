@@ -588,6 +588,7 @@ void MainComponent::openValidStartEdit()
     auto f = Helpers::findRecentEdit(m_tempDir);
     if (f.existsAsFile())
     {
+        GUIHelpers::log("MainComponent: found Temp file:" + f.getFullPathName());
         auto result = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
                                                          "Restore crashed project?",
                                                          "It seems, NextStudio is crashed last time. Do you want to restore the last session?",

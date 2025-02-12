@@ -38,9 +38,11 @@ juce::String Helpers::getStringOrDefault(const juce::String &stringToTest, const
 
 juce::File Helpers::findRecentEdit(const juce::File &dir)
 {
+    GUIHelpers::log("Utilities: search for temp file: " + dir.getFullPathName());
     auto files = dir.findChildFiles (juce::File::findFiles, false, "*.nextTemp");
     if (files.size() > 0)
     {
+        GUIHelpers::log("Utilities: found at least 1 File");
         files.sort();
         return files.getLast();
     }
