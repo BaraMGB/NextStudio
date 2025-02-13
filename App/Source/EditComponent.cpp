@@ -341,9 +341,15 @@ void EditComponent::timerCallback()
     auto editFile = Helpers::findRecentEdit(temp);
     auto currentFile =  te::EditFileOperations(m_editViewState.m_edit).getEditFile();
     auto xml = m_edit.state.toXmlString();
+
+    //make sure that the edit finds the wave files relative to this edit file
+    EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, editFile);
+    m_editViewState.m_edit.sendSourceFileUpdate();
+
     if (m_editViewState.m_needAutoSave)
     {
-        juce::MessageManager::callAsync([this, xml, editFile]() {
+        juce::MessageManager::callAsync([this, xml, editFile]()
+        {
             editFile.replaceWithText(xml);
             GUIHelpers::log("current edit XML is saved: " + editFile.getFullPathName());
         });
@@ -353,7 +359,7 @@ void EditComponent::timerCallback()
         GUIHelpers::log("Edit is up to date, don't save.");
     }
 
-    EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, editFile);
+    //make sure that the edit finds the wave files relative to currentFile again
     EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, currentFile);
     m_editViewState.m_edit.sendSourceFileUpdate();
 
