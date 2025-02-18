@@ -20,6 +20,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "TrackHeightManager.h"
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
@@ -121,8 +122,8 @@ struct ViewData {
 class EditViewState
 {
 public:
-    EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs)
-        : m_edit (e), m_selectionManager (s), m_applicationState(avs)
+    EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs, std::unique_ptr<TrackHeightManager>& thm)
+        : m_trackHeightManager(thm), m_edit (e), m_selectionManager (s), m_applicationState(avs)
     {
         m_state = m_edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
         m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
@@ -538,6 +539,7 @@ public:
 
     juce::Array<TrackHeightInfo> m_trackInfos;
     std::map<std::pair<int, int>, te::AutomatableParameter::Ptr> m_automationYMap;
+    std::unique_ptr<TrackHeightManager>&    m_trackHeightManager;
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 

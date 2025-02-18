@@ -348,11 +348,8 @@ void EditComponent::timerCallback()
 
     if (m_editViewState.m_needAutoSave)
     {
-        juce::MessageManager::callAsync([this, xml, editFile]()
-        {
-            editFile.replaceWithText(xml);
-            GUIHelpers::log("current edit XML is saved: " + editFile.getFullPathName());
-        });
+        editFile.replaceWithText(xml);
+        GUIHelpers::log("current edit XML is saved: " + editFile.getFullPathName());
     }
     else
     {
@@ -477,6 +474,7 @@ void EditComponent::handleAsyncUpdate()
     }
     if (compareAndReset(m_verticalUpdateSongEditor))
     {
+        m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_edit));
         m_editViewState.updateTrackHeights();
         m_editViewState.updateAutomationYMap(m_timeLine.getTimeLineID());
         m_songEditor.repaint();
@@ -500,7 +498,7 @@ void EditComponent::buildTracks()
 {
     m_trackListView.clear();
         
-    for (auto t : getAllTracks (m_edit))
+    for (auto t : tracktion_engine::getAllTracks (m_edit))
     {
         if (EngineHelpers::isTrackShowable(t))
         {

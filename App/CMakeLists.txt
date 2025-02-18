@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+get_filename_component(BUILD_DIR_NAME "${CMAKE_BINARY_DIR}" NAME)
+if(BUILD_DIR_NAME STREQUAL "jumake_build")
+    set(JUCE_BINARY_DIR "${CMAKE_BINARY_DIR}/bin")
+endif()
+
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
   add_definitions(-DDEBUG_OR_RELWITHDEBINFO)
 endif()
@@ -53,6 +58,11 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         ) 
 
+if(BUILD_DIR_NAME STREQUAL "jumake_build")
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${JUCE_BINARY_DIR}"
+        )
+endif()
 target_sources(${TargetName} PRIVATE
         Source/AutomatableSliderComponent.cpp
         Source/Main.cpp
@@ -94,6 +104,7 @@ target_sources(${TargetName} PRIVATE
         Source/ProjectsBrowser.cpp
         Source/Browser_Base.cpp
         Source/SplitterComponent.cpp
+        Source/TrackHeightManager.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

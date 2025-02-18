@@ -32,7 +32,7 @@ namespace te = tracktion_engine;
 class AutomationLaneHeaderComponent : public juce::Component
 {
 public:
-    explicit AutomationLaneHeaderComponent(te::AutomatableParameter& ap);
+    explicit AutomationLaneHeaderComponent(te::AutomatableParameter& ap, EditViewState& evs);
     void paint (juce::Graphics& g) override;
     void resized() override;
 
@@ -40,6 +40,7 @@ private:
     juce::Label m_parameterName;
     juce::Label m_pluginName;
     te::AutomatableParameter& m_automatableParameter;
+    EditViewState& m_evs;
     int m_heightAtMouseDown = 0, m_mouseDownY = 0;
     bool m_resizing = false, m_hovering = false;
     AutomatableSliderComponent m_slider;
@@ -122,8 +123,7 @@ private:
          m_isDragging {false},
          m_isAudioTrack {false},
          m_updateAutomationLanes {false},
-         m_updateTrackHeight {false},
-         m_isMinimized {false};
+         m_updateTrackHeight {false};
     void buildAutomationHeader();
     juce::OwnedArray<AutomationLaneHeaderComponent> m_automationHeaders;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)

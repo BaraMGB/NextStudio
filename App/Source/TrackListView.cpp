@@ -28,12 +28,15 @@
 
 void TrackListView::resized()
 {
-    int y = juce::roundToInt (m_editViewState.getViewYScroll(m_timeLineID));
+    auto& trackHeightManager = m_editViewState.m_trackHeightManager;
+    int yScroll = juce::roundToInt (m_editViewState.getViewYScroll(m_timeLineID));
+    int y = yScroll;
     int allTracksHeight = 0;
     auto folderIndent = static_cast<int>(m_editViewState.m_applicationState.m_folderTrackIndent);
+
     for (auto header : m_trackHeaders)
     {
-        auto trackHeaderHeight = GUIHelpers::getTrackHeight(header->getTrack(), m_editViewState);
+        auto trackHeaderHeight = trackHeightManager->getTrackHeight(header->getTrack(), true);//GUIHelpers::getTrackHeight(header->getTrack(), m_editViewState);
         auto leftEdge = 0;
         auto w = getWidth();
 
@@ -44,7 +47,8 @@ void TrackListView::resized()
                 leftEdge = ftv->getX() + folderIndent;
                 w = ftv->getWidth() - folderIndent;
             }
-            if (ft->state.getProperty(IDs::isTrackMinimized))
+            //if (ft->state.getProperty(IDs::isTrackMinimized))
+            if (trackHeightManager->isTrackMinimized(ft))
                 trackHeaderHeight = 0;
         }
 

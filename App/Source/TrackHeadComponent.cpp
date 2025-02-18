@@ -22,8 +22,9 @@
 #include "PluginBrowser.h"
 #include "Utilities.h"
 #include "InstrumentEffectChooser.h"
-AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap)
+AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter &ap , EditViewState& evs)
 	: m_automatableParameter(ap)
+        , m_evs (evs)
     , m_slider(ap)
 {
     addAndMakeVisible(m_parameterName);
@@ -63,8 +64,7 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
         return;
 
     g.setColour (juce::Colours::white);
-    const int minimizedHeight = m_automatableParameter.getTrack ()->state
-            .getProperty (IDs::trackMinimized, 30);
+    const int minimizedHeight = m_evs.m_trackHeightManager->getTrackMinimizedHeight();
     auto area = getLocalBounds().removeFromTop(minimizedHeight);
     area.removeFromLeft (10);
     GUIHelpers::drawFromSvg (g
@@ -88,27 +88,20 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
         strokeHeight = 3;
     }
 
-    auto r = juce::Rectangle<int>(
-                getLocalBounds ()
-                .removeFromBottom (strokeHeight));
+    auto r = juce::Rectangle<int>(getLocalBounds ().removeFromBottom (strokeHeight));
     r.removeFromLeft (10);
     g.fillRect (r);
-
 }
 
 void AutomationLaneHeaderComponent::resized()
 {
     const int gap = 3;
-    const int minimizedHeigth = m_automatableParameter.getTrack ()->state
-            .getProperty (IDs::trackMinimized, 30);
+    const int minimizedHeigth = m_evs.m_trackHeightManager->getTrackMinimizedHeight();
     auto area = getLocalBounds().removeFromTop(minimizedHeigth);
     auto peakdisplay = area.removeFromRight (15);
     peakdisplay.reduce (gap, gap);
-//    if (levelMeterComp)
-//        levelMeterComp->setBounds (peakdisplay);
     auto volSlider = area.removeFromRight(area.getHeight ());
     m_slider.setBounds (volSlider);
-
 
     area.removeFromLeft (37);
     area.reduce (0, 6);
@@ -116,7 +109,6 @@ void AutomationLaneHeaderComponent::resized()
     m_parameterName.setBounds (area.removeFromRight (area.getWidth ()/2));
     area.removeFromRight (gap);
     m_pluginName.setBounds (area);
-//    m_parameterName.setBounds(getLocalBounds());
 }
 
 te::AutomatableParameter &AutomationLaneHeaderComponent::automatableParameter() const
@@ -149,11 +141,13 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (event.mouseWasDraggedSinceMouseDown ())
     {
-        if (m_mouseDownY >m_heightAtMouseDown - 10)
+        if (m_mouseDownY > m_heightAtMouseDown - 10)
         {
             m_resizing = true;
             auto newHeight = static_cast<int> (m_heightAtMouseDown + event.getDistanceFromDragStartY ());
-            m_automatableParameter.getCurve().state.setProperty (te::IDs::height, juce::jlimit(30 , 250, newHeight), nullptr);
+            newHeight = juce::jlimit(30 , 250, newHeight);
+            m_evs.m_trackHeightManager->setAutomationHeight(&m_automatableParameter, newHeight);
+            getParentComponent()->getParentComponent()->resized();
         }
     }
 }
@@ -165,6 +159,7 @@ void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
     {
         m_hovering = true;
         setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        GUIHelpers::log("AutomationHeader move");
     }
     else
     {
@@ -194,7 +189,6 @@ TrackHeaderComponent::TrackHeaderComponent (
     EditViewState& evs, te::Track::Ptr t)
     : m_editViewState (evs)
     , m_track (t)
-    , m_isMinimized (t->state.getProperty(IDs::isTrackMinimized))
 {
     Helpers::addAndMakeVisible (*this, { &m_trackName,
                                          &m_muteButton,
@@ -310,11 +304,6 @@ TrackHeaderComponent::~TrackHeaderComponent()
 
 void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i)
 {
-    if (i == IDs::isTrackMinimized)
-    {
-        m_isMinimized = m_track->state.getProperty(IDs::isTrackMinimized);
-        markAndUpdate (m_updateTrackHeight);
-    }
     if (te::TrackList::isTrack (v) || v.hasType (te::IDs::AUTOMATIONCURVE))
     {
         if (i == te::IDs::mute)
@@ -324,10 +313,6 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
         else if (i == te::IDs::solo)
         {
             m_soloButton.setToggleState ((bool)v[i], juce::dontSendNotification);
-        }
-        else if (i == te::IDs::height)
-        {
-            getParentComponent()->resized();
         }
     }
     if (v.hasType (te::IDs::INPUTDEVICES)
@@ -476,19 +461,26 @@ void TrackHeaderComponent::deleteTrackFromEdit()
 
 void TrackHeaderComponent::buildAutomationHeader()
 {
-
     m_automationHeaders.clear(true);
-    for (auto apEditItems : m_track->getAllAutomatableEditItems())
+
+    m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_track->edit));
+
+    auto* trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
+    if (trackInfo == nullptr)
+        return;
+
+    for (const auto& [paramID, height] : trackInfo->automationParameterHeights)
     {
-        for (auto ap : apEditItems->getAutomatableParameters())
+        GUIHelpers::log("TrackHeaderComponent: found Parameter: " + paramID);
+        auto* parameter = m_editViewState.m_trackHeightManager->findAutomatableParameterByID(m_track, paramID);
+        if (parameter && parameter->getCurve().getNumPoints() > 0)
         {
-            if (ap->getCurve().getNumPoints() > 0)
-            {
-                m_automationHeaders.add(new AutomationLaneHeaderComponent(*ap));
-                addAndMakeVisible(m_automationHeaders.getLast());
-            }
+            GUIHelpers::log("TrackHeaderComponent: add Parameter: " + paramID);
+            m_automationHeaders.add(new AutomationLaneHeaderComponent(*parameter, m_editViewState));
+            addAndMakeVisible(m_automationHeaders.getLast());
         }
     }
+
     resized();
 }
 
@@ -517,6 +509,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
     }
     else
     {
+        auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
         childrenSetVisible (true);
         auto cornerSize = 5.0f;
         juce::Rectangle<float> area = getLocalBounds().toFloat();
@@ -537,14 +530,14 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                     g, trackColorIndicator.reduced(1, 1), cornerSize, true, false, true, false);
         GUIHelpers::drawFromSvg (
                     g
-                  , (bool) m_track->state.getProperty (IDs::isTrackMinimized)
+                  , isMinimized
                         ? BinaryData::arrowright18_svg
                         : BinaryData::arrowdown18_svg
                   , juce::Colour(0xff000000)
                   , {1, 6, 18, 18});
 
         g.setColour (juce::Colours::black);
-        if (!m_isMinimized)
+        if (isMinimized)
         {
             int strokeHeight = 1;
             if (m_isHover)
@@ -557,14 +550,14 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
                 g.setColour(juce::Colour(0x55ffffff));
                 strokeHeight = 3;
             }
-            int height = m_track->state.getProperty (te::IDs::height);
-			if (isFolderTrack())
-				height = m_editViewState.m_folderTrackHeight;
+            int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+            if (isFolderTrack())
+                height = m_editViewState.m_folderTrackHeight;
             g.fillRect (juce::Rectangle<int>(
-                            headWidth - 1
-                          , height - strokeHeight
-                          , getWidth () - headWidth
-                          , strokeHeight));
+                headWidth - 1
+                , height - strokeHeight
+                , getWidth () - headWidth
+                , strokeHeight));
         }
 
         if (m_trackIsOver)
@@ -593,8 +586,8 @@ void TrackHeaderComponent::resized()
 {
     const int gap = 3;
     const int minimizedHeigth = 30;
-    auto area = getLocalBounds().removeFromTop(minimizedHeigth);//getLocalBounds();
-    auto peakdisplay = area.removeFromRight (15);//getLocalBounds ().removeFromRight (15);
+    auto area = getLocalBounds().removeFromTop(minimizedHeigth);
+    auto peakdisplay = area.removeFromRight (15);
     peakdisplay.reduce (gap, gap);
     if (levelMeterComp)
         levelMeterComp->setBounds (peakdisplay);
@@ -632,35 +625,43 @@ void TrackHeaderComponent::resized()
     area.removeFromTop (6);
     m_trackName.setBounds(area);
 
-    //AutomationLanes
-    int height = m_track->state
-            .getProperty (te::IDs::height, minimizedHeigth);
-	if (isFolderTrack())
-		height = static_cast<int>(m_editViewState.m_folderTrackHeight);
+    // AutomationLanes
+    auto* trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
+    if (trackInfo == nullptr)
+        return;
+
+    int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+
     auto rect = getLocalBounds();
     rect.removeFromLeft(peakdisplay.getWidth());
     rect.removeFromTop(height);
-    for (auto ahs : m_automationHeaders)
+
+
+    for (auto* ahs : m_automationHeaders)
     {
-        int automationHeight = ahs->automatableParameter ().getCurve ().state.getProperty(tracktion_engine::IDs::height,static_cast<int> (m_editViewState.m_trackDefaultHeight));
-        ahs->setBounds(rect.removeFromTop(
-                           automationHeight < minimizedHeigth
-                                            ? minimizedHeigth
-                                            : automationHeight));
+        auto paramID = ahs->automatableParameter().paramID;
+        int automationHeight = trackInfo->automationParameterHeights[paramID];
+        GUIHelpers::log("AUTOMATIONHIGHT: ", automationHeight);
+        automationHeight = automationHeight < minimizedHeigth ? minimizedHeigth : automationHeight;
+        ahs->setBounds(rect.removeFromBottom(automationHeight));
     }
+
 }
 
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
 {
-    m_trackHeightATMouseDown = m_track->state.getProperty
-            (te::IDs::height, (int) m_editViewState.m_trackHeightMinimized);
+    // m_trackHeightATMouseDown = m_track->state.getProperty
+    //         (te::IDs::height, (int) m_editViewState.m_trackHeightMinimized);
+    m_trackHeightATMouseDown = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
 
     m_yPosAtMouseDown = event.y;
     auto area = getLocalBounds ().removeFromLeft (20);
-    if ( area.contains (event.getPosition ()))
+    if (area.contains (event.getPosition ()))
     {
-         m_track->state.setProperty (IDs::isTrackMinimized,
-                 !(m_track->state.getProperty (IDs::isTrackMinimized)), nullptr);
+         // m_track->state.setProperty (IDs::isTrackMinimized,
+         //         !(m_track->state.getProperty (IDs::isTrackMinimized)), nullptr);
+        bool isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
+        m_editViewState.m_trackHeightManager->setMinimized(m_track, !isMinimized);
     }
     if (!event.mouseWasDraggedSinceMouseDown())
         {
@@ -716,18 +717,23 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (event.mouseWasDraggedSinceMouseDown ())
     {
-        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10 && !m_isMinimized && !isFolderTrack())
+        auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
+        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10 && !isMinimized && !isFolderTrack())
         {
             m_isResizing = true;
             auto newHeight = static_cast<int> (m_trackHeightATMouseDown
                                                + event.getDistanceFromDragStartY());
 
-            m_track->state.setProperty(te::IDs::height
-                                       , juce::jlimit(30, 300, newHeight)
-                                       , &(m_editViewState.m_edit.getUndoManager()));
-            m_track->state.setProperty (IDs::isTrackMinimized
-                                      , false
-                                      , &m_editViewState.m_edit.getUndoManager ());
+            auto& trackHeightManager = m_editViewState.m_trackHeightManager;
+            trackHeightManager->setTrackHeight(m_track, newHeight);
+            trackHeightManager->setMinimized(m_track, false);
+            getParentComponent()->resized();
+            // m_track->state.setProperty(te::IDs::height
+            //                            , juce::jlimit(30, 300, newHeight)
+            //                            , &(m_editViewState.m_edit.getUndoManager()));
+            // m_track->state.setProperty (IDs::isTrackMinimized
+            //                           , false
+            //                           , &m_editViewState.m_edit.getUndoManager ());
         }
         else
         {
@@ -756,12 +762,15 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent& e)
 {
     if (! m_isResizing)
     {
+        auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
         auto old = m_isHover;
-        int height = m_track->state.getProperty (te::IDs::height, getHeight ());
-        if (e.y > height - 10 && !m_isMinimized && !isFolderTrack())
+        // int height = m_track->state.getProperty (te::IDs::height, getHeight ());
+        int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+        if (e.y > height - 10 && !isMinimized && !isFolderTrack())
         {
             m_isHover = true;
             setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+            GUIHelpers::log("TrackHeader move");
         }
         else
         {
@@ -782,7 +791,8 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent &/*e*/)
 {
     m_isHover = false;
     setMouseCursor (juce::MouseCursor::NormalCursor);
-    int height = m_track->state.getProperty (te::IDs::height, getHeight ());
+    // int height = m_track->state.getProperty (te::IDs::height, getHeight ());
+    int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
     auto stripeRect = getLocalBounds();
     stripeRect.removeFromBottom(getHeight() - height);
     repaint(stripeRect.removeFromBottom(10));
@@ -895,6 +905,7 @@ void TrackHeaderComponent::handleAsyncUpdate()
 }
 void TrackHeaderComponent::collapseTrack(bool minimize)
 {
-    m_track->state.setProperty(IDs::isTrackMinimized, minimize, &m_editViewState.m_edit.getUndoManager());
+    // m_track->state.setProperty(IDs::isTrackMinimized, minimize, &m_editViewState.m_edit.getUndoManager());
+    m_editViewState.m_trackHeightManager->setMinimized(m_track, minimize);
 }
 

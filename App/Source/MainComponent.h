@@ -119,6 +119,7 @@ private:
                                 , std::make_unique<ExtendedUIBehaviour>()
                                 , nullptr };
     juce::ApplicationCommandManager                     m_commandManager;
+    std::unique_ptr<TrackHeightManager>                 m_trackHeightManager;
 
     tracktion_engine::SelectionManager                  m_selectionManager{ m_engine };
     std::unique_ptr<tracktion_engine::Edit>             m_edit;

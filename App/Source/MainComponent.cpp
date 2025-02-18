@@ -654,7 +654,8 @@ void MainComponent::setupEdit(juce::File editFile)
 
     te::EditFileOperations (*m_edit).writeToFile(editFile, true);
 
-    m_editViewState = std::make_unique<EditViewState> (*m_edit, m_selectionManager, m_applicationState);
+    m_trackHeightManager = std::make_unique<TrackHeightManager>(tracktion::getAllTracks(*m_edit));
+    m_editViewState = std::make_unique<EditViewState> (*m_edit, m_selectionManager, m_applicationState, m_trackHeightManager);
     m_editComponent = std::make_unique<EditComponent> (*m_edit, *m_editViewState, m_applicationState, m_selectionManager, m_commandManager);
     m_lowerRange = std::make_unique<LowerRangeComponent>(*m_editViewState);
 

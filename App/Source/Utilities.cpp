@@ -1672,6 +1672,9 @@ tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(
     ft->setName("Folder " + num);
     ft->setColour(trackColour);
     evs.m_selectionManager.selectOnly(ft);
+
+    evs.m_trackHeightManager->regenerateTrackHeightsFromStates(te::getAllTracks(evs.m_edit));
+
     return ft;
 }
 
@@ -1696,6 +1699,7 @@ tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
          track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
          track->setColour(trackColour);
          evs.m_selectionManager.selectOnly(track);
+         evs.m_trackHeightManager->regenerateTrackHeightsFromStates(te::getAllTracks(evs.m_edit));
          return track;
     }
     return nullptr;
