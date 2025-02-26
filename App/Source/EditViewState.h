@@ -122,9 +122,10 @@ struct ViewData {
 class EditViewState
 {
 public:
-    EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs, std::unique_ptr<TrackHeightManager>& thm)
-        : m_trackHeightManager(thm), m_edit (e), m_selectionManager (s), m_applicationState(avs)
+    EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs)
+        : m_edit (e), m_selectionManager (s), m_applicationState(avs)
     {
+        m_trackHeightManager = std::make_unique<TrackHeightManager>(tracktion::getAllTracks(e));
         m_state = m_edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
         m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
 
@@ -450,96 +451,8 @@ public:
         te::EditItemID clipID;
         std::unique_ptr<te::SmartThumbnail> smartThumbnail;
     };
-    struct TrackHeightInfo {
-        tracktion_engine::Track* track;
-        int height;
-        int automationHeight;
-        bool isMinimized;
-    };
 
-    void updateTrackHeights()
-    {
-        m_trackInfos.clear();
-
-        for (auto* track : te::getAllTracks(m_edit))
-        {
-            if ((track != nullptr) && (EngineHelpers::isTrackShowable(track)))
-            {
-                TrackHeightInfo info;
-                info.track = track;
-                info.isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
-                info.height = info.isMinimized || track->isFolderTrack()
-                    ? m_trackHeightMinimized
-                    : static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
-
-                int automationHeight = 0;
-                if (!info.isMinimized)
-                {
-                    for (auto apEditItems : track->getAllAutomatableEditItems())
-                    {
-                        for (auto ap : apEditItems->getAutomatableParameters())
-                        {
-                            if (GUIHelpers::isAutomationVisible(*ap))
-                            {
-                                auto& curveState = ap->getCurve().state;
-                                automationHeight += static_cast<int>(curveState.getProperty(tracktion_engine::IDs::height, 50));
-                            }
-                        }
-                    }
-                }
-
-                auto it = track;
-                while (it->isPartOfSubmix())
-                {
-                    it = it->getParentFolderTrack();
-                    if (it->state.getProperty(IDs::isTrackMinimized, false))
-                    {
-                        info.height = 0;
-                        break;
-                    }
-                }
-
-                info.automationHeight = automationHeight;
-                m_trackInfos.add(info);
-            }
-        }
-    }
-
-    void updateAutomationYMap(juce::String timeLineID)
-    {
-        m_automationYMap.clear();
-
-        int scrollY = getViewYScroll(timeLineID);
-
-        for (auto t : te::getAllTracks(m_edit))
-        {
-            if (t->isAudioTrack() || t->isFolderTrack())
-            {
-                int trackHeight = GUIHelpers::getTrackHeight(t, *this, false);
-
-                if (!t->state.getProperty(IDs::isTrackMinimized) && trackHeight > 0)
-                {
-                    for (auto ap : t->getAllAutomatableParams())
-                    {
-                        if (ap->getTrack() == t && GUIHelpers::isAutomationVisible(*ap))
-                        {
-                            int h = ap->getCurve().state.getProperty(te::IDs::height, static_cast<int>(m_trackDefaultHeight));
-                            auto range = juce::Range<int>(scrollY + trackHeight, scrollY + trackHeight + h);
-
-                            m_automationYMap[{range.getStart(), range.getEnd()}] = ap;
-                            scrollY += h;
-                        }
-                    }
-                }
-
-                scrollY += trackHeight;
-            }
-        }
-    }
-
-    juce::Array<TrackHeightInfo> m_trackInfos;
-    std::map<std::pair<int, int>, te::AutomatableParameter::Ptr> m_automationYMap;
-    std::unique_ptr<TrackHeightManager>&    m_trackHeightManager;
+    std::unique_ptr<TrackHeightManager>    m_trackHeightManager;
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 

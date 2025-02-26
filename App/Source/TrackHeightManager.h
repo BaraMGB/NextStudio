@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Steffen Baranowsky
+ * Copyright 2025 Steffen Baranowsky
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,17 @@ constexpr int trackMinimizedHeight = 30;
 constexpr int trackMinHeight = 50;
 constexpr int trackMaxHeight = 300;
 
+//-------------------------------------------------------------------------------------------
+//
+//   TrackHeightManager is an handy object, that keeps track of the tracks height.
+//   When a track height is changed it will asychron update the state of the track
+//   in the edit state. For a performant value change we use this object for get the 
+//   tracks height in the Song Editor and in the TracksListComponent. We can very fast
+//   change the height and update the painting in the Song Editor. The edit state is 
+//   only saved when the value is not changing anymore.
+//-------------------------------------------------------------------------------------------
 class TrackHeightManager : public juce::Timer
+                         , public juce::ChangeBroadcaster
 {
 public:
     const int getTrackMinimizedHeight() { return trackMinimizedHeight; }
@@ -40,8 +50,8 @@ public:
         tracktion_engine::Track* track = nullptr;
         TrackType type = TrackType::Audio;
         bool isMinimized = false;
-        int baseHeight = 50;        // Base height without considering parent folders
-        std::map<juce::String, int> automationParameterHeights; // Map of parameter ID to height
+        int baseHeight = 50;        // Base height without considering automation lanes
+        std::map<tracktion::AutomatableParameter::Ptr, int> automationParameterHeights; // Map of parameter ID to height
         int hierarchyDepth = 0;     // Hierarchy level (0 = root)
         tracktion_engine::Track* parentFolder = nullptr;
 
@@ -51,27 +61,32 @@ public:
     };
 
     TrackHeightManager(const juce::Array<tracktion_engine::Track*>& allTracks);
-    ~TrackHeightManager() override;
 
     void flashStateFromTrackInfos();
     void regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track*>& allTracks);
 
     TrackHeightInfo* getTrackInfoForTrack(tracktion_engine::Track* track) const;
-    tracktion_engine::AutomatableParameter* findAutomatableParameterByID(tracktion_engine::Track* track, const juce::String& paramID);
+    tracktion_engine::AutomatableParameter::Ptr findAutomatableParameterByID(tracktion_engine::Track* track, const juce::String& paramID);
 
     int getTrackHeight(tracktion_engine::Track* track, bool withAutomation);
+    void setTrackHeight(tracktion_engine::Track* track, int height);
     tracktion_engine::Track* getTrackForY(int y, int scrollOffsetY);
     int getYForTrack(tracktion_engine::Track* track, int scrollOffsetY);
 
-    tracktion_engine::AutomatableParameter* getAutomatableParameterForY(int y, int scrollOffsetY);
-    int getYForAutomatableParameter(tracktion_engine::Track* track, const juce::String& paramID, int scrollOffsetY);
+    int getAutomationHeight(tracktion_engine::AutomatableParameter* ap);
+    void setAutomationHeight(const tracktion_engine::AutomatableParameter::Ptr ap, int height);
+    tracktion_engine::AutomatableParameter::Ptr  getAutomatableParameterForY(int y, int scrollOffsetY);
+    int getYForAutomatableParameter(tracktion_engine::Track* track, const tracktion::AutomatableParameter::Ptr ap, int scrollOffsetY);
 
+    juce::Array<tracktion::EditItemID> getShowedTracks(tracktion::Edit& edit);
+    bool isTrackShowable(tracktion_engine::Track::Ptr track);
     bool isTrackMinimized(tracktion_engine::Track* track);
     void setMinimized(tracktion_engine::Track* track, bool minimized);
+    bool isTrackInMinimizedFolderRecursive(tracktion_engine::Track* track);
+    tracktion::Track::Ptr getTrackFromID(tracktion_engine::Edit& edit, const tracktion_engine::EditItemID& id);
 
-    void setAutomationHeight(const tracktion_engine::AutomatableParameter* ap, int height);
-    void setTrackHeight(tracktion_engine::Track* track, int height);
 
+    bool isAutomationVisible(const tracktion_engine::AutomatableParameter& ap);
 
     void triggerFlashState();
     void timerCallback() override;

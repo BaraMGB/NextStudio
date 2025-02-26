@@ -31,12 +31,14 @@ public:
         : m_editViewState (evs)
         , m_timeLineID(timeLineID)
     {
+        m_editViewState.m_trackHeightManager->addChangeListener(this);
         m_editViewState.m_selectionManager.addChangeListener(this);
         setWantsKeyboardFocus(true);
     }
     ~TrackListView()
     {
         m_editViewState.m_selectionManager.removeChangeListener(this);
+        m_editViewState.m_trackHeightManager->removeChangeListener(this);
     }
 
     void resized() override;

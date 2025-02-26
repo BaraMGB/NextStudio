@@ -32,14 +32,14 @@ namespace te = tracktion_engine;
 class AutomationLaneHeaderComponent : public juce::Component
 {
 public:
-    explicit AutomationLaneHeaderComponent(te::AutomatableParameter& ap, EditViewState& evs);
+    explicit AutomationLaneHeaderComponent(te::AutomatableParameter::Ptr ap, EditViewState& evs);
     void paint (juce::Graphics& g) override;
     void resized() override;
 
 private:
     juce::Label m_parameterName;
     juce::Label m_pluginName;
-    te::AutomatableParameter& m_automatableParameter;
+    te::AutomatableParameter::Ptr m_automatableParameter;
     EditViewState& m_evs;
     int m_heightAtMouseDown = 0, m_mouseDownY = 0;
     bool m_resizing = false, m_hovering = false;
@@ -51,7 +51,7 @@ public:
     void mouseDrag (const juce::MouseEvent &event) override;
     void mouseMove (const juce::MouseEvent &event) override;
     void mouseExit (const juce::MouseEvent &) override;
-    [[nodiscard]] te::AutomatableParameter &automatableParameter() const;
+    [[nodiscard]] te::AutomatableParameter::Ptr automatableParameter() const;
 };
 
 class TrackHeaderComponent : public juce::Component

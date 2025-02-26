@@ -162,18 +162,6 @@ namespace GUIHelpers
     void setDrawableOnButton(juce::DrawableButton& button, const char* svgbinary, juce::Colour colour);
     juce::Image drawableToImage(const juce::Drawable& drawable, float targetWidth, float targetHeight);
 
-    
-    int getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation=true);
-    juce::Array<tracktion::EditItemID> getShowedTracks(EditViewState& evs);
-
-    tracktion::Track::Ptr getTrackFromID(tracktion_engine::Edit& edit, const tracktion_engine::EditItemID& id);
-
-    te::AutomatableParameter::Ptr getAutomatableParamAt(int y, EditViewState& evs);
-    
-    bool isAutomationVisible(const te::AutomatableParameter& ap);
-    int getHeightOfAutomation(te::AutomatableParameter::Ptr ap, EditViewState& evs);
-    int getYForAutomatableParam(te::AutomatableParameter::Ptr ap, EditViewState& evs);
-
     float getZoomScaleFactor(int delta, float unitDistance);
 
     template<typename T>
@@ -330,7 +318,6 @@ namespace EngineHelpers
     juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
     void deleteSelectedClips(EditViewState & evs);
 
-    bool isTrackShowable(te::Track::Ptr track);
 
     bool isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr);
     void moveSelectedClips(bool copy, double timeDelta, int verticalOffset,EditViewState& evs);

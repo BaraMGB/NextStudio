@@ -475,8 +475,6 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset(m_verticalUpdateSongEditor))
     {
         m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_edit));
-        m_editViewState.updateTrackHeights();
-        m_editViewState.updateAutomationYMap(m_timeLine.getTimeLineID());
         m_songEditor.repaint();
         m_trackListView.resized();
         updateVerticalScrollbar();
@@ -497,10 +495,10 @@ void EditComponent::refreshSnapTypeDesc()
 void EditComponent::buildTracks()
 {
     m_trackListView.clear();
-        
+
     for (auto t : tracktion_engine::getAllTracks (m_edit))
     {
-        if (EngineHelpers::isTrackShowable(t))
+        if (m_editViewState.m_trackHeightManager->isTrackShowable(t))
         {
             auto th = std::make_unique<TrackHeaderComponent> (m_editViewState, t);
             m_trackListView.addHeaderView(std::move(th));
@@ -722,13 +720,13 @@ juce::Rectangle<int> EditComponent::getPlayHeadRect()
 int EditComponent::getSongHeight()
 {
     auto h = 0;
-        
-    for (auto trackID : GUIHelpers::getShowedTracks(m_editViewState))
+
+    for (auto track : m_editViewState.m_trackHeightManager->getShowedTracks(m_edit))
     {
-        auto t = GUIHelpers::getTrackFromID(m_editViewState.m_edit, trackID);
-        h += GUIHelpers::getTrackHeight(t, m_editViewState);
+        auto trackID = m_editViewState.m_trackHeightManager->getTrackFromID(m_editViewState.m_edit, track);
+        h += m_editViewState.m_trackHeightManager->getTrackHeight(trackID, true);
     }
-        
+
     return h;
 }
 void EditComponent::loopAroundSelection()

@@ -50,10 +50,6 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
 }
 void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewState& evs, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
 {
-    // if (!getLocalBounds().intersects(displayedRect))
-    //     return;
-    //
-
     double x1beats = evs.timeToBeat(etr.getStart().inSeconds());
     double x2beats = evs.timeToBeat(etr.getEnd().inSeconds());
 
@@ -1055,22 +1051,6 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
     }
 }
 
-bool EngineHelpers::isTrackShowable(te::Track::Ptr track)
-{
-    if (track->isChordTrack()
-        || track->isTempoTrack()
-        || track->isMarkerTrack()
-        || track->isArrangerTrack()
-        || track->isAutomationTrack()
-        || track->isMasterTrack()
-    )
-    {
-        return false;
-    }
-
-    return true;
-}
-    
 bool EngineHelpers::trackWantsClip(const juce::ValueTree state, const te::Track *track)
 {
     bool isMidi = state.hasType(te::IDs::MIDICLIP);
@@ -2101,118 +2081,6 @@ juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
     return {p.x - (w/2), p.y - (w/2), w, w};
 }
 
-int GUIHelpers::getTrackHeight(tracktion_engine::Track* track, EditViewState& evs, bool withAutomation)
-{
-    if (track == nullptr)
-        return 0;
-
-    for (const auto& info : evs.m_trackInfos)
-    {
-        if (info.track == track)
-        {
-            if (!info.isMinimized && withAutomation)
-            {
-                return info.height + info.automationHeight;
-            }
-            else
-            {
-                return info.height;
-            }
-        }
-    }
-
-    return 0; 
-}
-
-juce::Array<tracktion::EditItemID> GUIHelpers::getShowedTracks(EditViewState& evs)
-{
-    juce::Array<tracktion::EditItemID> showedTracks;
-
-    for (auto t : te::getAllTracks(evs.m_edit))
-        if (EngineHelpers::isTrackShowable(t))
-            if (GUIHelpers::getTrackHeight(t, evs) > 0)
-                showedTracks.add(t->itemID);
-
-    return showedTracks;
-}
-
-tracktion::Track::Ptr GUIHelpers::getTrackFromID(tracktion_engine::Edit& edit, const tracktion_engine::EditItemID& id) {
-    tracktion::Track::Ptr foundTrack;
-    
-    edit.visitAllTracks([&](tracktion_engine::Track& track) {
-        if (track.itemID == id) {
-            foundTrack = track;
-            return false;
-        }
-        return true;
-    }, true);
-
-    return foundTrack;
-}
-
-te::AutomatableParameter::Ptr GUIHelpers::getAutomatableParamAt(int y, EditViewState& evs)
-{
-   for (const auto& pair : evs.m_automationYMap)
-     if (y >= pair.first.first && y <= pair.first.second)
-        return pair.second;
-
-    return nullptr;
-}
-
-bool GUIHelpers::isAutomationVisible(const te::AutomatableParameter& ap)
-{
-    if (ap.getCurve().getNumPoints() == 0)
-        return false;
-
-    std::function<bool(te::Track*)> isTrackInMinimizedFolder = [&](te::Track* track) -> bool {
-
-        if (track->isPartOfSubmix())
-        {
-            auto folderTrack = track->getParentFolderTrack();
-
-            if (folderTrack->state.getProperty(IDs::isTrackMinimized))
-                return true;
-
-            return isTrackInMinimizedFolder(folderTrack);
-        }
-        return false;
-    };
-
-    return !isTrackInMinimizedFolder(ap.getTrack());
-}
-
-int GUIHelpers::getHeightOfAutomation(te::AutomatableParameter::Ptr ap, EditViewState& evs)
-{
-    // Iterate over the map to find the height of the given automation parameter
-    for (const auto& entry : evs.m_automationYMap)
-    {
-        if (entry.second == ap)
-        {
-            // Calculate the height based on the start and end of the range
-            int height = entry.first.second - entry.first.first;
-            return height;
-        }
-    }
-    
-    // Return a default value (e.g., 0) if the parameter is not found
-    return 0;
-}
-
-int GUIHelpers::getYForAutomatableParam(te::AutomatableParameter::Ptr ap, EditViewState& evs)
-{
-    // Iterate over the map to find the Y position of the given automation parameter
-    for (const auto& entry : evs.m_automationYMap)
-    {
-        if (entry.second == ap)
-        {
-            // Return the start of the range as the Y position
-            return entry.first.first;
-        }
-    }
-    
-    // Return a default value (e.g., -1) if the parameter is not found
-    return -1;
-}
 
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c, juce::String timeLineID, int width)
 {
