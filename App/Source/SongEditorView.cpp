@@ -178,7 +178,7 @@ void SongEditorView::paint(juce::Graphics& g)
         float x = timeToX(m_selectedRange.getStart()); 
         float y = static_cast<float>(getYForTrack(m_selectedRange.selectedTracks.getLast())) + height;
         g.setColour(yellowgreen);
-        g.drawLine(x, 0.0f, x, y, 1.0f); // Verwende float für alle Koordinaten
+        g.drawLine(x, 0.0f, x, y, 1.0f);
     }
 
     if (m_hoveredTimeRangeRight)

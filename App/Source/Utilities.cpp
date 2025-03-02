@@ -269,8 +269,12 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
 
     auto clipedClip = area.withLeft(area.getX() + juce::jmax(0.0f, startOffset));
     endOffset = clipedClip.getRight() - displayedRect.getRight();
-    clipedClip = clipedClip.withRight(clipedClip.getRight() - juce::jmax(0.0f, endOffset));
+    clipedClip = clipedClip.withRight(clipedClip.getRight() - juce::jmax(0.0f, endOffset)).reduced(0.0f,1.0f);
     auto clipedHeader = clipedClip.withHeight(static_cast<float>(evs.m_clipHeaderHeight));
+
+    // Determine if clip extends beyond view boundaries
+    float clipExtendsLeft = displayedRect.getX() -  area.getX();
+    float clipExtendsRight = area.getRight() - displayedRect.getRight();
 
     g.saveState();
     {
@@ -280,18 +284,64 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
         g.fillRect(area.reduced(1.0f, 1.0f));
 
         g.setColour(innerGlow);
-        g.drawRect(clipedHeader, 1.0f);
-        g.drawRect(clipedClip, 1.0f);
+        
+        // Draw borders but avoid edges that extend beyond view
+        if (clipExtendsLeft > 0.0) {
+            // Skip left edge
+            g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getY(), 1.0f); // Top
+            g.drawLine(clipedHeader.getRight(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Right
+            g.drawLine(clipedHeader.getX(), clipedHeader.getBottom(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Bottom
+            
+            // Main clip borders
+            g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getY(), 1.0f); // Top
+            g.drawLine(clipedClip.getRight(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getBottom(), 1.0f); // Right
+            g.drawLine(clipedClip.getX(), clipedClip.getBottom(), clipedClip.getRight(), clipedClip.getBottom(), 1.0f); // Bottom
+            g.setColour(isSelected ? clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f) : clipColor);
+            auto chi = clipedHeader.reduced(0.0f, 2.0f);
+            chi.removeFromRight(juce::jmin(clipExtendsLeft, 2.0f));
+            g.fillRect(chi);
+        } 
+        else if (clipExtendsRight > 0.0) {
+            // Skip right edge
+            g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getY(), 1.0f); // Top
+            g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getX(), clipedHeader.getBottom(), 1.0f); // Left
+            g.drawLine(clipedHeader.getX(), clipedHeader.getBottom(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Bottom
+            
+            // Main clip borders
+            g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getY(), 1.0f); // Top
+            g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getX(), clipedClip.getBottom(), 1.0f); // Left
+            g.drawLine(clipedClip.getX(), clipedClip.getBottom(), clipedClip.getRight(), clipedClip.getBottom(), 1.0f); // Bottom
+            g.setColour(isSelected ? clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f) : clipColor);
+            auto chi = clipedHeader.reduced(0.0f, 2.0f);
+            chi.removeFromLeft(juce::jmin(clipExtendsRight, 2.0f));
+            g.fillRect(chi);
+        } 
+        else {
+            // Full rectangles if clip is completely visible
+            g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getY(), 1.0f); // Top
+            g.drawLine(clipedHeader.getRight(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Right
+            g.drawLine(clipedHeader.getX(), clipedHeader.getBottom(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Bottom
+            g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getX(), clipedHeader.getBottom(), 1.0f); // Left
+            
+            // Main clip borders
+            g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getY(), 1.0f); // Top
+            g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getX(), clipedClip.getBottom(), 1.0f); // Left
+            g.drawLine(clipedClip.getRight(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getBottom(), 1.0f); // Right
+            g.drawLine(clipedClip.getX(), clipedClip.getBottom(), clipedClip.getRight(), clipedClip.getBottom(), 1.0f); // Bottom
+            g.setColour(isSelected ? clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f) : clipColor);
+            g.fillRect(clipedHeader.reduced(2.0f, 2.0f));
+        }
 
-        g.setColour(isSelected ? clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f) : clipColor);
-        g.fillRect(clipedHeader.reduced(2.0f, 2.0f));
     }
     g.restoreState();
 
     g.saveState();
     {
-        header = header.reduced(4.0f, 0.0f);
-
+        // For text, use the actual clip header for calculations but clip to visible portion
+        auto textArea = header.reduced(4.0f, 0.0f);
+        textArea.removeFromLeft(4.0f);
+        
+        // Only show text for the visible portion of the header
         g.reduceClipRegion(clipedHeader.toNearestInt());
 
         if (isSelected)
@@ -299,15 +349,12 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
         g.setColour(labelTextColor);
         g.setFont(juce::FontOptions(14.0f, juce::Font::bold));
 
-        if (header.getX() > -1000.0f && header.getWidth() < displayedRect.getWidth() + 1000.0f)
-        {
-            auto textArea = header;
-            textArea.removeFromLeft(4.0f);
-            g.drawText(name, textArea, juce::Justification::centredLeft, false);
-        }
+        // Draw text based on the full clip width but it will be clipped to visible area
+        g.drawText(name, textArea, juce::Justification::centredLeft, false);
     }
     g.restoreState();
 }
+
 void GUIHelpers::drawMidiClip(juce::Graphics& g, EditViewState& evs, te::MidiClip::Ptr clip, 
                          juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, 
                          juce::Colour color, double x1Beat, double x2beat)
@@ -560,10 +607,10 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs,
                                 juce::Rectangle<float> boundingRect, bool printDescription)
 {
     auto& avs = evs.m_applicationState;
-    const auto barColour = avs.getTimeLineStrokeColour();
-    const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.6f);
-    const auto fracColour = avs.getTimeLineStrokeColour().withAlpha(0.4f);
-    const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.1f);
+    const auto barColour = avs.getTimeLineStrokeColour().withAlpha(0.4f);
+    const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.25f);
+    const auto fracColour = avs.getTimeLineStrokeColour().withAlpha(0.1f);
+    const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.05f);
     const auto shadowShade = avs.getTimeLineShadowShade();
     const auto textColour = avs.getTimeLineTextColour();
     const auto numBeatsPerBar = static_cast<int>(
