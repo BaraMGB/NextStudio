@@ -96,11 +96,11 @@ private:
     };
 
     //converting
-    int timeToX (tracktion::TimePosition time);
-    int beatToX (tracktion::BeatPosition beat);
+    float timeToX (tracktion::TimePosition time);
+    float beatToX (tracktion::BeatPosition beat);
     tracktion::BeatPosition xToBeatPosition(int x);
     tracktion::TimePosition xtoTime(int x);
-    int timeDurationToPixel(tracktion::TimeDuration duration);
+    float timeDurationToPixel(tracktion::TimeDuration duration);
     tracktion::TimeDuration distanceToTime(int distance);
 
     double xToSnapedBeat (int x);
@@ -114,11 +114,11 @@ private:
     int getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int>& dropPos);
 
     //AutomatableParameter 
-    juce::Rectangle<int> getAutomationRect (te::AutomatableParameter::Ptr ap);
+    juce::Rectangle<float> getAutomationRect (te::AutomatableParameter::Ptr ap);
 
     //AutomationPoint info
     int nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const;
-    juce::Point<float> getPointOnAutomation(te::AutomatableParameter::Ptr ap, int index, juce::Rectangle<int> drawRect, double startBeat, double endBeat);
+    juce::Point<float> getPointOnAutomation(te::AutomatableParameter::Ptr ap, int index, juce::Rectangle<float> drawRect, double startBeat, double endBeat);
     juce::Point<float> getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap, int w, double x1b, double x2b); 
     juce::Point<float> getCurveControlPoint(juce::Point<float> p1, juce::Point<float> p2, float curve);
     int getAutomationPointWidth (te::AutomatableParameter::Ptr ap);
@@ -153,10 +153,10 @@ private:
 
     void setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLegth);
     
-    juce::Rectangle<int> getClipRect (te::Clip::Ptr clip);
+    juce::Rectangle<float> getClipRect (te::Clip::Ptr clip);
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
 
-    void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging=false);
+    void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging=false);
         
     void buildRecordingClips(te::Track::Ptr track);
 
@@ -164,7 +164,7 @@ private:
     {
         bool visible{false};
         juce::String name;
-        juce::Rectangle<int> drawRect;
+        juce::Rectangle<float> drawRect;
         juce::Colour colour;
         bool valid{false};
     };
@@ -198,7 +198,7 @@ private:
 
     GUIHelpers::SelectedTimeRange       m_selectedRange;
     juce::Image                         m_timeRangeImage;
-    juce::Rectangle<int>                m_hoveredRectOnAutomation;
+    juce::Rectangle<float>                m_hoveredRectOnAutomation;
 
     juce::OwnedArray<CurvePoint>
                                         m_selPointsAtMousedown;

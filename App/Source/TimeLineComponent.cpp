@@ -56,7 +56,7 @@ void TimeLineComponent::paint(juce::Graphics& g)
               , m_evs
               , x1beats
               , x2beats
-              , getLocalBounds()
+              , getLocalBounds().toFloat()
               , true);
 
     if (m_isMouseDown)

@@ -184,22 +184,20 @@ namespace GUIHelpers
 
     // void centerView(EditViewState& evs);
 
-    juce::Rectangle<int> getSensibleArea(juce::Point<int> p, int w);
+    juce::Rectangle<float> getSensibleArea(juce::Point<float> p, float w);
 
 
-    void drawTrack(juce::Graphics& g, juce::Component& parent,EditViewState& evs, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging=false);
-    void drawClip(juce::Graphics& g, juce::Component& parent, EditViewState& evs,juce::Rectangle<int> rect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
+    void drawTrack(juce::Graphics& g, juce::Component& parent,EditViewState& evs, juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging=false);
+    void drawClip(juce::Graphics& g, juce::Component& parent, EditViewState& evs,juce::Rectangle<float> rect, te::Clip * clip, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
 
-    void drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
+    void drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String name, juce::Rectangle<float> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
 
-    void drawMidiClip (juce::Graphics& g, EditViewState& evs,te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color, double x1Beat, double x2beat);
-
-
-    void drawWaveform(juce::Graphics& g, EditViewState& evs, te::AudioClipBase& c, te::SmartThumbnail& thumb, juce::Colour colour, juce::Rectangle<int>, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat);
-    void drawChannels(juce::Graphics& g, te::SmartThumbnail& thumb, juce::Rectangle<int> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
+    void drawMidiClip (juce::Graphics& g, EditViewState& evs,te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat);
 
 
-    void drawAutomationLane (juce::Graphics& g,EditViewState& evs, tracktion::TimeRange drawRange, juce::Rectangle<int> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging=false);
+    void drawWaveform(juce::Graphics& g, EditViewState& evs, te::AudioClipBase& c, te::SmartThumbnail& thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
+    void drawChannels(juce::Graphics& g, te::SmartThumbnail& thumb, juce::Rectangle<float> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain
+                                    , float subpixelX, float subpixelY);
 
     void drawRoundedRectWithSide(
         juce::Graphics &g
@@ -218,7 +216,7 @@ namespace GUIHelpers
           , EditViewState &evs
           , double x1beats
           , double x2beats
-          , juce::Rectangle<int> boundingRect, bool printDescription=false);
+          , juce::Rectangle<float> boundingRect, bool printDescription=false);
     
     void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke=1);
     // void moveView(EditViewState& evs, double newBeatPos);
@@ -229,7 +227,7 @@ namespace GUIHelpers
                              const EditViewState& evs,
                              double x1beats,
                              double x2beats,
-                             const juce::Rectangle<int>& boundingRect,
+                             const juce::Rectangle<float>& boundingRect,
                              const juce::Colour& shade);
     struct SelectedTimeRange 
     {

@@ -48,7 +48,9 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     }
     return {};
 }
-void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewState& evs, juce::Rectangle<int> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
+void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewState& evs, 
+                         juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, 
+                         tracktion::TimeRange etr, bool forDragging)
 {
     double x1beats = evs.timeToBeat(etr.getStart().inSeconds());
     double x2beats = evs.timeToBeat(etr.getEnd().inSeconds());
@@ -75,12 +77,12 @@ void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewS
 
             if (clip->getPosition().time.intersects(etr))
             {
-                int x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
-                int y = displayedRect.getY();
-                int w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
-                int h = displayedRect.getHeight();
+                float x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
+                float y = displayedRect.getY();
+                float w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
+                float h = displayedRect.getHeight();
 
-                juce::Rectangle<int> clipRect = {x,y,w,h};
+                juce::Rectangle<float> clipRect(x, y, w, h);
 
                 auto color = clip->getTrack()->getColour();
 
@@ -94,53 +96,45 @@ void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewS
     }
 
     g.setColour(juce::Colour(0x60ffffff));
-    g.drawLine(displayedRect.getX(),displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom());
+    g.drawLine(displayedRect.getX(), displayedRect.getBottom(), 
+               displayedRect.getRight(), displayedRect.getBottom(), 1.0f);
 }
-
-
-void GUIHelpers::drawClip(juce::Graphics& g,juce::Component& parent,EditViewState& evs, juce::Rectangle<int> clipRect, te::Clip * clip, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+void GUIHelpers::drawClip(juce::Graphics& g, juce::Component& parent, EditViewState& evs, 
+                      juce::Rectangle<float> clipRect, te::Clip* clip, juce::Colour color, 
+                      juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
 {
-    auto isSelected = evs.m_selectionManager.isSelected (clip);
+    auto isSelected = evs.m_selectionManager.isSelected(clip);
     drawClipBody(g, evs, clip->getName(), clipRect, isSelected, color, displayedRect, x1Beat, x2beat);
 
-    // if ((m_hoveredClip.get() == clip) && (m_toolMode == Tool::knife))
-    // {
-    //     g.setColour(juce::Colours::white);
-    //     auto snapedTime = getSnapedTime(m_timeAtMouseCursor.inSeconds());
-    //     auto x = timeToX(snapedTime);
-    //     auto y = clipRect.getY();
-    //     auto h = clipRect.getHeight();
-    //
-    //     g.drawVerticalLine(x, y, y + h);
-    // }
-
-    auto header = clipRect.withHeight(evs.m_clipHeaderHeight);
-    clipRect.removeFromTop(header.getHeight());
-    clipRect.reduce(1,1);
+    auto header = clipRect.withHeight(static_cast<float>(evs.m_clipHeaderHeight));
+    auto contentRect = clipRect.withTrimmedTop(header.getHeight()).reduced(1.0f, 1.0f);
 
     if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
     {
         if (auto& thumb = evs.getOrCreateThumbnail(wac, parent))
-            GUIHelpers::drawWaveform(g, evs,  *wac, *thumb, color, clipRect , displayedRect, x1Beat, x2beat);
+            GUIHelpers::drawWaveform(g, evs, *wac, *thumb, color, contentRect, displayedRect, x1Beat, x2beat);
     }
     else if (auto mc = dynamic_cast<te::MidiClip*>(clip))
     {
-        drawMidiClip(g, evs, mc, clipRect, displayedRect, color, x1Beat, x2beat);
+        drawMidiClip(g, evs, mc, contentRect, displayedRect, color, x1Beat, x2beat);
     }
 }
-
 
 void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
                                       te::AudioClipBase& c,
                                       te::SmartThumbnail& thumb,
                                       juce::Colour colour,
-                                      juce::Rectangle<int> clipRect,
-                                      juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+                                      juce::Rectangle<float> clipRect,
+                                      juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
 {
     if (evs.m_drawWaveforms == false)
         return;
 
-    auto getTimeRangeForDrawing = [] (EditViewState& evs, const te::AudioClipBase& clip, const juce::Rectangle<int> clRect, const juce::Rectangle<int> displRect, double x1Beats, double x2Beats)
+    auto intRect = clipRect.toNearestInt();
+    float subpixelX = clipRect.getX() - (float)intRect.getX();
+    float subpixelY = clipRect.getY() - (float)intRect.getY();
+
+    auto getTimeRangeForDrawing = [] (EditViewState& evs, const te::AudioClipBase& clip, const juce::Rectangle<float> clRect, const juce::Rectangle<float> displRect, double x1Beats, double x2Beats)
         -> tracktion::core::TimeRange
     {
         auto t1 = EngineHelpers::getTimePos(0.0);
@@ -148,7 +142,7 @@ void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
 
         double displStart = evs.beatToTime(x1Beats);
         double displEnd = evs.beatToTime(x2Beats);
-             
+
         if (clRect.getX() < displRect.getX())
             t1 = t1 + tracktion::TimeDuration::fromSeconds(displStart - clip.getPosition().getStart().inSeconds()); 
 
@@ -194,7 +188,8 @@ void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
                        , c.isLeftChannelActive() && showBothChannels
                        , c.isRightChannelActive()
                        , gainL
-                       , gainR);
+                       , gainR
+                       , subpixelX, subpixelY);
         }
     }
     else if (c.getLoopLength().inSeconds() == 0)
@@ -212,20 +207,30 @@ void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
                    , c.isLeftChannelActive()
                    , c.isRightChannelActive() && showBothChannels
                    , gainL
-                   , gainR);
+                   , gainR
+                   , subpixelX, subpixelY);
     }
 }
 
 void GUIHelpers::drawChannels(juce::Graphics& g
                                     , te::SmartThumbnail& thumb
-                                    , juce::Rectangle<int> area
+                                    , juce::Rectangle<float> drawRect
                                     , bool useHighRes
                                     , tracktion::core::TimeRange time
                                     , bool useLeft
                                     , bool useRight
                                     , float leftGain
-                                    , float rightGain)
+                                    , float rightGain
+                                    , float subpixelX, float subpixelY)
 {
+    auto area = drawRect.toNearestInt();
+
+    // Save current transform
+    g.saveState();
+
+    // Apply subpixel transformation
+    g.addTransform(juce::AffineTransform::translation(subpixelX, subpixelY));
+
     if (useLeft && useRight && thumb.getNumChannels() > 1)
     {
         thumb.drawChannel(g
@@ -239,11 +244,16 @@ void GUIHelpers::drawChannels(juce::Graphics& g
         thumb.drawChannel (g, area, time, 0, leftGain);
     else if (useRight)
         thumb.drawChannel (g, area, time, 1, rightGain);
+    // Restore original transform
+    g.restoreState();
 }
-void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String name, juce::Rectangle<int> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<int> displayedRect, double x1Beat, double x2beat)
+
+void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::String name, 
+                           juce::Rectangle<float> clipRect, bool isSelected, juce::Colour color, 
+                           juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
 {
     auto area = clipRect;
-    auto header = area.withHeight(evs.m_clipHeaderHeight);
+    auto header = area.withHeight(static_cast<float>(evs.m_clipHeaderHeight));
 
     auto clipColor = color;
     auto innerGlow = clipColor.brighter(0.5f);
@@ -254,100 +264,103 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String
                             ? clipColor.withLightness(.75f)
                             : clipColor.darker(.75f);
 
-    // Calculate clipped areas for only draw, what is on screen
     float startOffset = displayedRect.getX() - area.getX();
     float endOffset;
 
     auto clipedClip = area.withLeft(area.getX() + juce::jmax(0.0f, startOffset));
     endOffset = clipedClip.getRight() - displayedRect.getRight();
     clipedClip = clipedClip.withRight(clipedClip.getRight() - juce::jmax(0.0f, endOffset));
-    auto clipedHeader = clipedClip.withHeight(evs.m_clipHeaderHeight);
+    auto clipedHeader = clipedClip.withHeight(static_cast<float>(evs.m_clipHeaderHeight));
 
     g.saveState();
     {
-        g.reduceClipRegion(displayedRect);
+        g.reduceClipRegion(displayedRect.toNearestInt());
 
         g.setColour(backgroundColor);
-        g.fillRect(area.reduced(1, 1));
+        g.fillRect(area.reduced(1.0f, 1.0f));
 
         g.setColour(innerGlow);
-        g.drawRect(clipedHeader);
-        g.drawRect(clipedClip);
+        g.drawRect(clipedHeader, 1.0f);
+        g.drawRect(clipedClip, 1.0f);
 
         g.setColour(isSelected ? clipColor.interpolatedWith(juce::Colours::blanchedalmond, 0.5f) : clipColor);
-        g.fillRect(clipedHeader.reduced(2, 2));
+        g.fillRect(clipedHeader.reduced(2.0f, 2.0f));
     }
     g.restoreState();
 
     g.saveState();
     {
-        header = header.reduced(4, 0);
+        header = header.reduced(4.0f, 0.0f);
 
         g.reduceClipRegion(clipedHeader.toNearestInt());
 
         if (isSelected)
             labelTextColor = juce::Colours::black;
         g.setColour(labelTextColor);
-        g.setFont(juce::Font(14.0f, juce::Font::bold));
+        g.setFont(juce::FontOptions(14.0f, juce::Font::bold));
 
-        if (header.getX() > -1000 && header.getWidth() < displayedRect.getWidth() + 1000)
+        if (header.getX() > -1000.0f && header.getWidth() < displayedRect.getWidth() + 1000.0f)
         {
             auto textArea = header;
-            textArea.removeFromLeft(4);
+            textArea.removeFromLeft(4.0f);
             g.drawText(name, textArea, juce::Justification::centredLeft, false);
         }
     }
     g.restoreState();
 }
-
-
-void  GUIHelpers::drawMidiClip (juce::Graphics& g, EditViewState& evs, te::MidiClip::Ptr clip, juce::Rectangle<int> clipRect, juce::Rectangle<int> displayedRect, juce::Colour color, double x1Beat, double x2beat)
+void GUIHelpers::drawMidiClip(juce::Graphics& g, EditViewState& evs, te::MidiClip::Ptr clip, 
+                         juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, 
+                         juce::Colour color, double x1Beat, double x2beat)
 {
     auto area = clipRect;
 
     if (clipRect.getX() < displayedRect.getX())
-        area.removeFromLeft(displayedRect.getX() - clipRect.getX());
+        area = area.withLeft(displayedRect.getX());
 
     if (clipRect.getRight() > displayedRect.getRight())
-        area.removeFromRight(clipRect.getRight() - displayedRect.getRight());
+        area = area.withRight(displayedRect.getRight());
 
     auto& seq = clip->getSequence();
-    
+
     auto range = seq.getNoteNumberRange();
     auto lines = range.getLength();
-    auto noteHeight = juce::jmax(1,((clipRect.getHeight() ) / 20));
+    auto noteHeight = juce::jmax(1.0f, ((clipRect.getHeight()) / 20.0f));
     auto noteColor = color.withLightness(0.6f);
 
     for (auto n: seq.getNotes())
     {
         double sBeat = n->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats();
         double eBeat = n->getEndBeat().inBeats() - clip->getOffsetInBeats().inBeats();
-        auto y = clipRect.getCentreY();
+        float y = clipRect.getCentreY();
+
         if (!range.isEmpty())
-            y = juce::jmap(n->getNoteNumber(), range.getStart() + lines, range.getStart(), clipRect.getY() + (noteHeight/2), clipRect.getY() + clipRect.getHeight() - noteHeight - (noteHeight/2));
+            y = juce::jmap((float)n->getNoteNumber(), 
+                           (float)(range.getStart() + lines), 
+                           (float)range.getStart(), 
+                           clipRect.getY() + (noteHeight/2.0f), 
+                           clipRect.getY() + clipRect.getHeight() - noteHeight - (noteHeight/2.0f));
 
-        auto startX = evs.beatsToX(sBeat, displayedRect.getWidth(), x1Beat, x2beat);
-        auto endX = evs.beatsToX(eBeat, displayedRect.getWidth(), x1Beat, x2beat);
-        auto scrollOffset = evs.beatsToX(0.0, displayedRect.getWidth(), x1Beat, x2beat) * -1;
+        float startX = evs.beatsToX(sBeat, displayedRect.getWidth(), x1Beat, x2beat);
+        float endX = evs.beatsToX(eBeat, displayedRect.getWidth(), x1Beat, x2beat);
+        float scrollOffset = evs.beatsToX(0.0, displayedRect.getWidth(), x1Beat, x2beat) * -1.0f;
 
-        int x1 = clipRect.getX() + startX + scrollOffset;
-        int x2 = clipRect.getX() + endX + scrollOffset;
+        float x1 = clipRect.getX() + startX + scrollOffset;
+        float x2 = clipRect.getX() + endX + scrollOffset;
 
-        int gap = 2;
+        float gap = 2.0f;
 
         x1 = juce::jmin(juce::jmax(gap, x1), clipRect.getRight() - gap);
-        x2 = juce::jmin(juce::jmax(gap, x2), clipRect.getRight () - gap);
+        x2 = juce::jmin(juce::jmax(gap, x2), clipRect.getRight() - gap);
 
         x1 = juce::jmax(area.getX(), x1);
         x2 = juce::jmin(area.getRight(), x2);
 
-        auto w = juce::jmax(0, x2 - x1);
+        float w = juce::jmax(0.0f, x2 - x1);
 
         g.setColour(noteColor);
         g.fillRect(x1, y, w, noteHeight);
     }
 }
-
 
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
@@ -542,80 +555,74 @@ void GUIHelpers::saveEdit(
     }
 }
 
-void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<int> boundingRect, bool printDescription)
+void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, 
+                                double x1beats, double x2beats, 
+                                juce::Rectangle<float> boundingRect, bool printDescription)
 {
     auto& avs = evs.m_applicationState;
-    const auto BarColour = avs.getTimeLineStrokeColour();
+    const auto barColour = avs.getTimeLineStrokeColour();
     const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.6f);
     const auto fracColour = avs.getTimeLineStrokeColour().withAlpha(0.4f);
     const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.1f);
     const auto shadowShade = avs.getTimeLineShadowShade();
     const auto textColour = avs.getTimeLineTextColour();
     const auto numBeatsPerBar = static_cast<int>(
-        evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
+    evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
 
-    // Draw shadow
     if (!printDescription)
         drawBarBeatsShadow(g, evs, x1beats, x2beats, boundingRect, shadowShade);
 
-    // Get Snap Level
     int snapLevel = juce::jmax(3, evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth()).getLevel());
 
-    // Function to get interval in beats based on snap level
-    auto getIntervalBeats = [numBeatsPerBar](int snapLevel)
+    auto getIntervalBeats = [numBeatsPerBar](int snapLevel) -> double
     {
         switch (snapLevel)
         {
-            case 0: return 1.0 / 960.0; // 1 tick
-            case 1: return 2.0 / 960.0; // 2 ticks
-            case 2: return 5.0 / 960.0; // 5 ticks
-            case 3: return 1.0 / 64.0;  // 1/64 beat
-            case 4: return 1.0 / 32.0;  // 1/32 beat
-            case 5: return 1.0 / 16.0;  // 1/16 beat
-            case 6: return 1.0 / 8.0;   // 1/8 beat
-            case 7: return 1.0 / 4.0;   // 1/4 beat
-            case 8: return 1.0 / 2.0;   // 1/2 beat
-            case 9: return 1.0;         // 1 beat
-            case 10: return numBeatsPerBar * 1.0; // 1 bar
-            case 11: return numBeatsPerBar * 2.0; // 2 bars
-            case 12: return numBeatsPerBar * 4.0; // 4 bars
-            case 13: return numBeatsPerBar * 8.0; // 8 bars
-            case 14: return numBeatsPerBar * 16.0; // 16 bars
-            case 15: return numBeatsPerBar * 64.0; // 64 bars
-            case 16: return numBeatsPerBar * 128.0; // 128 bars
-            case 17: return numBeatsPerBar * 256.0; // 256 bars
-            case 18: return numBeatsPerBar * 1024.0; // 1024 bars
-            default: return 1.0; // Default to 1 beat
+            case 0: return 1.0 / 960.0;
+            case 1: return 2.0 / 960.0;
+            case 2: return 5.0 / 960.0;
+            case 3: return 1.0 / 64.0;
+            case 4: return 1.0 / 32.0;
+            case 5: return 1.0 / 16.0;
+            case 6: return 1.0 / 8.0;
+            case 7: return 1.0 / 4.0;
+            case 8: return 1.0 / 2.0;
+            case 9: return 1.0;
+            case 10: return numBeatsPerBar * 1.0;
+            case 11: return numBeatsPerBar * 2.0;
+            case 12: return numBeatsPerBar * 4.0;
+            case 13: return numBeatsPerBar * 8.0;
+            case 14: return numBeatsPerBar * 16.0;
+            case 15: return numBeatsPerBar * 64.0;
+            case 16: return numBeatsPerBar * 128.0;
+            case 17: return numBeatsPerBar * 256.0;
+            case 18: return numBeatsPerBar * 1024.0;
+            default: return 1.0;
         }
     };
 
     double intervalBeats = getIntervalBeats(snapLevel);
 
-    // Determine start and end beats
     double startBeat = std::floor(x1beats / intervalBeats) * intervalBeats;
     double endBeat = std::ceil(x2beats / intervalBeats) * intervalBeats;
 
     double epsilon = 1e-3;
-    // Determine label detail level based on snap level
-    int labelDetailLevel = 0; // 0: bars, 1: beats, 2: subdivisions, 3: finer subdivisions
-    if (snapLevel >= 7)
-        labelDetailLevel = 0; // Only bar numbers
-    else if (snapLevel >= 5)
-        labelDetailLevel = 1; // Bar.beat
-    else
-        labelDetailLevel = 2; // More detailed
 
-    // Loop over grid lines
+    int labelDetailLevel = 0; 
+    if (snapLevel >= 7)
+        labelDetailLevel = 0;
+    else if (snapLevel >= 5)
+        labelDetailLevel = 1;
+    else
+        labelDetailLevel = 2;
+
     for (double beat = startBeat; beat <= endBeat; beat += intervalBeats)
     {
-        // Calculate x position
         float x = boundingRect.getX() + evs.beatsToX(beat, boundingRect.getWidth(), x1beats, x2beats);
 
-        // Skip if x is outside boundingRect
         if (x < boundingRect.getX() || x > boundingRect.getRight())
             continue;
 
-        // Decide line color and style
         juce::Colour lineColour;
         bool isBarLine = false;
         bool isBeatLine = false;
@@ -623,32 +630,27 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
 
         if (std::abs(std::fmod(beat, numBeatsPerBar)) < epsilon)
         {
-            // Bar line
-            lineColour = BarColour;
+            lineColour = barColour;
             isBarLine = true;
         }
         else if (std::abs(std::fmod(beat, 1.0)) < epsilon)
         {
-            // Beat line
             lineColour = beatColour;
             isBeatLine = true;
         }
         else if (std::abs(std::fmod(beat * 4.0, 1.0)) < epsilon)
         {
-            // Quarter beat line
             lineColour = fracColour;
             isQuarterBeatLine = true;
         }
         else
         {
-            // Subdivision line
             lineColour = fracColour.withAlpha(0.2f);
         }
-        // Draw line
-        g.setColour(lineColour);
-        g.drawVerticalLine(static_cast<int>(x), boundingRect.getY(), boundingRect.getBottom());
 
-        // Draw labels adaptively
+        g.setColour(lineColour);
+        g.drawLine(x, boundingRect.getY(), x, boundingRect.getBottom(), 1.0f);
+
         if (printDescription)
         {
             bool shouldDrawLabel = false;
@@ -659,13 +661,11 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
 
             if (labelDetailLevel == 0 && isBarLine)
             {
-                // Only bar numbers
                 label = juce::String(barNumber);
                 shouldDrawLabel = true;
             }
             else if (labelDetailLevel == 1 && (isBarLine || isBeatLine))
             {
-                // Bar.beat
                 int beatNumber = static_cast<int>(beatWithinBar) + 1;
                 label = juce::String(barNumber) + "." + juce::String(beatNumber);
                 shouldDrawLabel = true;
@@ -682,13 +682,12 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
             if (shouldDrawLabel)
             {
                 g.setColour(textColour);
-                g.drawText(label, x + 2, boundingRect.getY(), 50, 12, juce::Justification::left);
+                auto textRect = juce::Rectangle<float>( x + 2.0f, boundingRect.getY(), 50.0f, 12.0f);
+                g.drawText(label, textRect, juce::Justification::left);
             }
         }
     }
 }
-
-
 void GUIHelpers::drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke)
 {
     g.setColour(colour);
@@ -761,18 +760,18 @@ void GUIHelpers::drawSnapLines(juce::Graphics& g,
         it = it + delta;
     }
 }
-
 void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
-                                     const EditViewState& evs,
-                                     double x1beats,
-                                     double x2beats,
-                                     const juce::Rectangle<int>& boundingRect,
-                                     const juce::Colour& shade)
+                             const EditViewState& evs,
+                             double x1beats,
+                             double x2beats,
+                             const juce::Rectangle<float>& boundingRect,
+                             const juce::Colour& shade)
 {
     const te::TimecodeSnapType& snapType =
-        evs.getBestSnapType(x1beats,x2beats, boundingRect.getWidth());
+        evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth());
     int num = evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator;
     int shadowBeatDelta = num * 4;
+    
     if (snapType.getLevel() <= 9)
         shadowBeatDelta = num;
     if (snapType.getLevel() <= 6)
@@ -784,17 +783,17 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
 
     while (beatIter <= x2beats)
     {
-        if ((beatIter/shadowBeatDelta) %2 == 0)
+        if ((beatIter/shadowBeatDelta) % 2 == 0)
         {
-            int x = evs.beatsToX(beatIter, boundingRect.getWidth(), x1beats, x2beats);
-            int w = evs.beatsToX(beatIter + shadowBeatDelta, boundingRect.getWidth(), x1beats, x2beats) - x;
-            juce::Rectangle<int> shadowRect {x + boundingRect.getX(), boundingRect.getY(), w, boundingRect.getHeight()};
+            float x = evs.beatsToX(beatIter, boundingRect.getWidth(), x1beats, x2beats);
+            float w = evs.beatsToX(beatIter + shadowBeatDelta, boundingRect.getWidth(), x1beats, x2beats) - x;
+            juce::Rectangle<float> shadowRect(x + boundingRect.getX(), boundingRect.getY(), w, boundingRect.getHeight());
 
             if (shadowRect.getX() < boundingRect.getX())
-                shadowRect.removeFromLeft(boundingRect.getX() - shadowRect.getX());
+                shadowRect = shadowRect.withLeft(boundingRect.getX());
 
             if (shadowRect.getRight() > boundingRect.getRight())
-                shadowRect.removeFromRight(shadowRect.getRight() - boundingRect.getRight());
+                shadowRect = shadowRect.withRight(boundingRect.getRight());
 
             g.setColour(shade);
             g.fillRect(shadowRect);
@@ -2076,7 +2075,7 @@ float GUIHelpers::getZoomScaleFactor(int delta, float unitDistance)
 {
     return std::pow (2,(float) delta / unitDistance);
 }
-juce::Rectangle<int> GUIHelpers::getSensibleArea(juce::Point<int> p, int w)
+juce::Rectangle<float> GUIHelpers::getSensibleArea(juce::Point<float> p, float w)
 {
     return {p.x - (w/2), p.y - (w/2), w, w};
 }

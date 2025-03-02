@@ -91,7 +91,7 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, tra
             auto x2 = m_editViewState.timeToBeat(range.getEnd().inSeconds());
             return m_editViewState.timeToX (t.inSeconds(), p->getWidth(), x1, x2) - getX();
         }
-        return 0;
+        return 0.f;
     };
     
     auto xToEditTime = [this] (int x)
@@ -146,8 +146,8 @@ bool RecordingClipComponent::getBoundsAndTime (juce::Rectangle<int>& bounds, tra
             t2 = juce::jlimit (in, out, t2);
         }
         
-        bounds = localBounds.withX (juce::jmax (localBounds.getX(), editTimeToX (t1)))
-                 .withRight (juce::jmin (localBounds.getRight(), editTimeToX (t2)));
+        bounds = localBounds.withX (juce::jmax ((float)localBounds.getX(), editTimeToX (t1)))
+                 .withRight (juce::jmin ((float)localBounds.getRight(), editTimeToX (t2)));
         
         auto loopRange = epc->getLoopTimes();
         const tracktion::TimeDuration recordedTime = unloopedPos - epc->getLoopTimes().getStart();

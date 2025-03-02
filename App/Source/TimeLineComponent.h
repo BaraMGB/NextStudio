@@ -58,7 +58,7 @@ public:
             m_evs.setNewStartAndZoom(m_timeLineID, juce::jmax(bx1, posBeats - zoom/2));
         }
     }
-    tracktion::BeatRange    getCurrentBeatRange()
+    tracktion::BeatRange getCurrentBeatRange()
     {
         auto x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart();
         auto x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getLength();

@@ -764,7 +764,7 @@ void MidiViewport::drawBarsAndBeatLines(juce::Graphics& g,
     g.setColour(colour);
     auto x1 = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats();
     auto x2 = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getEnd().inBeats();
-    GUIHelpers::drawBarsAndBeatLines(g, m_evs, x1, x2, getLocalBounds());
+    GUIHelpers::drawBarsAndBeatLines(g, m_evs, x1, x2, getLocalBounds().toFloat());
 }
 int MidiViewport::getNoteNumber(int y)
 {

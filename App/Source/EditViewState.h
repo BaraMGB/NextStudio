@@ -218,29 +218,26 @@ public:
         return m_zoomMode;
     }
 
-    [[nodiscard]] int beatsToX(double beats, int width, double x1beats, double x2beats) const
+    [[nodiscard]] float beatsToX(double beats, int width, double x1beats, double x2beats) const
     {
-        double x = ((beats - x1beats) * width) / (x2beats - x1beats);
-        return juce::roundToIntAccurate(x);
+        return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats));
     }
 
-    [[nodiscard]] double xToBeats(int x, int width, double x1beats, double x2beats) const
+    [[nodiscard]] double xToBeats(float x, int width, double x1beats, double x2beats) const
     {
-        double beats = (double(x) / width) * (x2beats - x1beats) + x1beats;
+        double beats = (static_cast<double>(x) / width) * (x2beats - x1beats) + x1beats;
         return beats;
     }
 
-    [[nodiscard]] int timeToX(double time, int width, double x1beats, double x2beats) const
+    [[nodiscard]] float timeToX(double time, int width, double x1beats, double x2beats) const
     {
         double beats = timeToBeat(time);
-        double x = ((beats - x1beats) * width) / (x2beats - x1beats);
-        return juce::roundToIntAccurate(x);
-    }
-
-    [[nodiscard]] double xToTime(int x, int width, double x1beats, double x2beats) const
+        return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats));
+    } 
+    [[nodiscard]] double xToTime(float x, int width, double x1beats, double x2beats) const
     {
-        double beats = (double(x) / width) * (x2beats - x1beats) + x1beats;
-        return beatToTime(beats);
+    double beats = (static_cast<double>(x) / width) * (x2beats - x1beats) + x1beats;
+    return beatToTime(beats);
     }
 
     [[nodiscard]] double beatToTime (double b) const
@@ -259,18 +256,14 @@ public:
 
     void setNewStartAndZoom(juce::String timeLineID, double startBeat, double beatsPerPixel=-1)
     {
-        double pixelAlignedBeat = startBeat;
 
-        if (beatsPerPixel > 0)
-            pixelAlignedBeat = std::round(startBeat / beatsPerPixel) * beatsPerPixel;
-
-        pixelAlignedBeat = juce::jmax(0.0, pixelAlignedBeat);
+        startBeat = juce::jmax(0.0, startBeat);
 
         if (auto* myViewData = componentViewData[timeLineID])
         {
             if (beatsPerPixel != -1)
                 myViewData->beatsPerPixel = beatsPerPixel;
-            myViewData->viewX = pixelAlignedBeat;
+            myViewData->viewX = startBeat;
         }
     }
 

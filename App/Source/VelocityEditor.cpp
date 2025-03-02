@@ -57,7 +57,7 @@ void VelocityEditor::mouseDrag(const juce::MouseEvent&e)
 void VelocityEditor::mouseMove(const juce::MouseEvent& e)
 {
     clearNotesFlags();
-    if (auto note = getNote(e.position.toInt()))
+    if (auto note = getNote(e.position))
     {
         note->state.setProperty(
             IDs::isHovered, true, &m_editViewState.m_edit.getUndoManager());
@@ -87,7 +87,7 @@ void VelocityEditor::drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour
     g.setColour(colour);
     double beatX1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
     double beatX2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
-    GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, beatX1, beatX2, getBounds ());
+    GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, beatX1, beatX2, getBounds ().toFloat());
 }
 
 double VelocityEditor::getNoteStartBeat(te::MidiClip* const& midiClip,
@@ -142,7 +142,7 @@ void VelocityEditor::drawVelocityRuler(juce::Graphics& g,
     g.drawEllipse(noteRangeX.getStart() - 3, velocityY - 3, 6, 6, 2);
 }
 
-juce::Range<int> VelocityEditor::getXLineRange(te::MidiClip* const& midiClip,
+juce::Range<float> VelocityEditor::getXLineRange(te::MidiClip* const& midiClip,
                                                        const te::MidiNote* n) const
 {
     double sBeat = getNoteStartBeat(midiClip, n);
@@ -174,7 +174,7 @@ int VelocityEditor::getVelocityPixel(const te::MidiNote* n) const
     return (getHeight() - 4) - juce::jmap(n->getVelocity(), 0, 127, 0, getHeight() - 8 );
 }
 
-tracktion_engine::MidiNote* VelocityEditor::getNote(juce::Point<int> p)
+tracktion_engine::MidiNote* VelocityEditor::getNote(juce::Point<float> p)
 {
     for (auto& mc : getMidiClipsOfTrack ())
     {
