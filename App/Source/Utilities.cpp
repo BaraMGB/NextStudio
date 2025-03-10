@@ -1,22 +1,23 @@
 
 /*
- * Copyright 2023 Steffen Baranowsky
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+* Copyright 2025 Steffen Baranowsky
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "Utilities.h"
+
 #include "BinaryData.h"
 #include "EditViewState.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
@@ -111,7 +112,10 @@ void GUIHelpers::drawClip(juce::Graphics& g, juce::Component& parent, EditViewSt
 
     if (auto wac = dynamic_cast<te::WaveAudioClip*>(clip))
     {
-        if (auto& thumb = evs.getOrCreateThumbnail(wac, parent))
+        auto waveformArea = displayedRect.withTrimmedTop(header.getHeight());
+        waveformArea.reduce(1, 2);
+        if (auto thumb = evs.getOrCreateThumbnail(wac))
+            // evs.m_thumbNailManager->drawThumbnail(wac, g, waveformArea, evs.beatToTime(x1Beat), evs.beatToTime(x2beat));
             GUIHelpers::drawWaveform(g, evs, *wac, *thumb, color, contentRect, displayedRect, x1Beat, x2beat);
     }
     else if (auto mc = dynamic_cast<te::MidiClip*>(clip))
@@ -122,17 +126,13 @@ void GUIHelpers::drawClip(juce::Graphics& g, juce::Component& parent, EditViewSt
 
 void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
                                       te::AudioClipBase& c,
-                                      te::SmartThumbnail& thumb,
+                                      SimpleThumbnail& thumb,
                                       juce::Colour colour,
                                       juce::Rectangle<float> clipRect,
                                       juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
 {
     if (evs.m_drawWaveforms == false)
         return;
-
-    auto intRect = clipRect.toNearestInt();
-    float subpixelX = clipRect.getX() - (float)intRect.getX();
-    float subpixelY = clipRect.getY() - (float)intRect.getY();
 
     auto getTimeRangeForDrawing = [] (EditViewState& evs, const te::AudioClipBase& clip, const juce::Rectangle<float> clRect, const juce::Rectangle<float> displRect, double x1Beats, double x2Beats)
         -> tracktion::core::TimeRange
@@ -178,7 +178,7 @@ void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
     if (usesTimeStretchedProxy)
     {
 
-        if (!thumb.isOutOfDate())
+        // if (!thumb.isOutOfDate())
         {
             drawChannels(g
                        , thumb
@@ -188,8 +188,7 @@ void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
                        , c.isLeftChannelActive() && showBothChannels
                        , c.isRightChannelActive()
                        , gainL
-                       , gainR
-                       , subpixelX, subpixelY);
+                       , gainR);
         }
     }
     else if (c.getLoopLength().inSeconds() == 0)
@@ -207,45 +206,38 @@ void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
                    , c.isLeftChannelActive()
                    , c.isRightChannelActive() && showBothChannels
                    , gainL
-                   , gainR
-                   , subpixelX, subpixelY);
+                   , gainR);
     }
 }
 
 void GUIHelpers::drawChannels(juce::Graphics& g
-                                    , te::SmartThumbnail& thumb
+                                    , SimpleThumbnail& thumb
                                     , juce::Rectangle<float> drawRect
                                     , bool useHighRes
                                     , tracktion::core::TimeRange time
                                     , bool useLeft
                                     , bool useRight
                                     , float leftGain
-                                    , float rightGain
-                                    , float subpixelX, float subpixelY)
+                                    , float rightGain)
 {
-    auto area = drawRect.toNearestInt();
+    auto area = drawRect;
 
-    // Save current transform
-    g.saveState();
-
-    // Apply subpixel transformation
-    g.addTransform(juce::AffineTransform::translation(subpixelX, subpixelY));
-
+    thumb.setUseCustomDrawing(true);
     if (useLeft && useRight && thumb.getNumChannels() > 1)
     {
-        thumb.drawChannel(g
-                        , area.removeFromTop(area.getHeight() / 2)
-                        , time
-                        , 0
-                        , leftGain);
-        thumb.drawChannel(g, area,  time, 1, rightGain);
+        int channelHeight = area.getHeight() / thumb.getNumChannels();
+        for (int channel=0; channel < thumb.getNumChannels(); channel++)
+        {
+            thumb.drawChannels(g
+                            , area.removeFromTop(channelHeight)
+                            , time.getStart().inSeconds(), time.getEnd().inSeconds(), channel
+                            , channel == 0 ? leftGain : rightGain);
+        }
     }
     else if (useLeft)
-        thumb.drawChannel (g, area, time, 0, leftGain);
+        thumb.drawChannels (g, area, time.getStart().inSeconds(), time.getEnd().inSeconds(), 0,leftGain);
     else if (useRight)
-        thumb.drawChannel (g, area, time, 1, rightGain);
-    // Restore original transform
-    g.restoreState();
+        thumb.drawChannels (g, area, time.getStart().inSeconds(), time.getEnd().inSeconds(), 1,rightGain);
 }
 
 void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::String name, 
@@ -337,20 +329,26 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
 
     g.saveState();
     {
-        // For text, use the actual clip header for calculations but clip to visible portion
+        if (clipedHeader.getWidth() <= 0.0f || clipedHeader.getWidth() > 10000.0f) {
+            g.restoreState();
+            return;
+        }
+
         auto textArea = header.reduced(4.0f, 0.0f);
         textArea.removeFromLeft(4.0f);
-        
-        // Only show text for the visible portion of the header
+
+        auto safeTextArea = textArea;
+        safeTextArea.setWidth(juce::jmin(safeTextArea.getWidth(), 10000.0f));
+
         g.reduceClipRegion(clipedHeader.toNearestInt());
 
         if (isSelected)
             labelTextColor = juce::Colours::black;
+
         g.setColour(labelTextColor);
         g.setFont(juce::FontOptions(14.0f, juce::Font::bold));
 
-        // Draw text based on the full clip width but it will be clipped to visible area
-        g.drawText(name, textArea, juce::Justification::centredLeft, false);
+        g.drawText(name, safeTextArea, juce::Justification::centredLeft, false);
     }
     g.restoreState();
 }

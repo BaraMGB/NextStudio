@@ -19,23 +19,13 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "LassoSelectionTool.h"
+#include "AutomationLaneComponent.h"
+#include "TrackLaneComponent.h"
 #include "MenuBar.h"
 #include "RecordingClipComponent.h"
 #include "Utilities.h"
 #include "TimeLineComponent.h"
 
-
-struct SelectableAutomationPoint  : public te::Selectable
-{
-    SelectableAutomationPoint (int i, te::AutomationCurve& c)  : index (i), m_curve (c) {}
-    ~SelectableAutomationPoint() override { notifyListenersOfDeletion(); }
-
-    juce::String getSelectableDescription() override { return juce::String("AutomationPoint"); }
-
-    int index = 0;
-    te::AutomationCurve& m_curve;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SelectableAutomationPoint)
-};
 
 class SongEditorView : public juce::Component
                      , public juce::ChangeListener
@@ -45,7 +35,7 @@ public:
     SongEditorView(EditViewState& evs, MenuBar& toolBar, TimeLineComponent& timeLine);
     ~SongEditorView() override;
 
-    void paint(juce::Graphics& g) override;
+    void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
 
     void mouseMove (const juce::MouseEvent &) override;
@@ -79,9 +69,41 @@ public:
     void reverseSelectedClips();
     juce::Array<te::Track*> getTracksWithSelectedTimeRange();
 
+    juce::Rectangle<float> getAutomationRect (te::AutomatableParameter::Ptr ap);
+
+    void addTrackLaneComponent(std::unique_ptr<TrackLaneComponent> tlc)
+    {
+        m_trackLanes.add(std::move(tlc));
+        resized();
+    }
+
+    void updateViews()
+    {
+        removeAllChildren();
+
+        for (auto v : m_trackLanes)
+            addAndMakeVisible(v);
+
+        resized();
+    }
+
+    void clear()
+    {
+        m_trackLanes.clear(true);
+        resized();
+    }
+
 private:
 
     tracktion::TimeRange getSelectedTimeRange();
+    AutomationLaneComponent * getAutomationLane(tracktion::engine::AutomatableParameter::Ptr ap)
+    {
+        for (auto tl : m_trackLanes)
+        if (tl->getTrack().get() == ap->getTrack())
+            return tl->getAutomationLane(ap);
+        //
+        return nullptr;
+    }
 
     struct CurvePoint
     {
@@ -113,17 +135,8 @@ private:
 
     int getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int>& dropPos);
 
-    //AutomatableParameter 
-    juce::Rectangle<float> getAutomationRect (te::AutomatableParameter::Ptr ap);
 
     //AutomationPoint info
-    int nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const;
-    juce::Point<float> getPointOnAutomation(te::AutomatableParameter::Ptr ap, int index, juce::Rectangle<float> drawRect, double startBeat, double endBeat);
-    juce::Point<float> getPointOnAutomationRect (tracktion::TimePosition t, double v, te::AutomatableParameter::Ptr ap, int w, double x1b, double x2b); 
-    juce::Point<float> getCurveControlPoint(juce::Point<float> p1, juce::Point<float> p2, float curve);
-    int getAutomationPointWidth (te::AutomatableParameter::Ptr ap);
-    int getYPos (double value, te::AutomatableParameter::Ptr ap);
-    double getValue (int y, te::AutomatableParameter::Ptr ap);
 
     //AutomationPoint handle
     void addAutomationPointAt(te::AutomatableParameter::Ptr par, tracktion::TimePosition pos);
@@ -155,8 +168,6 @@ private:
     
     juce::Rectangle<float> getClipRect (te::Clip::Ptr clip);
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
-
-    void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect, te::AutomatableParameter::Ptr ap, bool forDragging=false);
         
     void buildRecordingClips(te::Track::Ptr track);
 
@@ -172,6 +183,8 @@ private:
     juce::OwnedArray<RecordingClipComponent>  m_recordingClips;
     //essentials
     EditViewState&                      m_editViewState;
+    juce::OwnedArray<AutomationLaneComponent> m_automationLanes;
+    juce::OwnedArray<TrackLaneComponent> m_trackLanes;
     MenuBar&                            m_toolBar;
     TimeLineComponent&                  m_timeLine;
     LassoSelectionTool                  m_lassoComponent;

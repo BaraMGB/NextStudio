@@ -278,9 +278,15 @@ void EditComponent::scrollBarMoved(juce::ScrollBar* scrollBarThatHasMoved
                                    , double newRangeStart)
 {
     if (scrollBarThatHasMoved == &m_scrollbar_v)
+    {
         m_editViewState.setYScroll(m_timeLine.getTimeLineID(), -newRangeStart);
+        m_songEditor.resized();
+        m_trackListView.resized();
+    }
     else if(scrollBarThatHasMoved == &m_scrollbar_h)
+    {
         m_editViewState.setNewStartAndZoom(m_timeLine.getTimeLineID(), newRangeStart);
+    }
 }
 
 void EditComponent::buttonClicked(juce::Button* button) 
@@ -475,7 +481,7 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset(m_verticalUpdateSongEditor))
     {
         m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_edit));
-        m_songEditor.repaint();
+        m_songEditor.resized();
         m_trackListView.resized();
         updateVerticalScrollbar();
     }
@@ -495,17 +501,21 @@ void EditComponent::refreshSnapTypeDesc()
 void EditComponent::buildTracks()
 {
     m_trackListView.clear();
+    m_songEditor.clear();
 
     for (auto t : tracktion_engine::getAllTracks (m_edit))
     {
         if (m_editViewState.m_trackHeightManager->isTrackShowable(t))
         {
             auto th = std::make_unique<TrackHeaderComponent> (m_editViewState, t);
+            auto tl = std::make_unique<TrackLaneComponent>(m_editViewState, t, m_timeLine.getTimeLineID());
             m_trackListView.addHeaderView(std::move(th));
+            m_songEditor.addTrackLaneComponent(std::move(tl));
         }
     }
 
     m_trackListView.updateViews();
+    m_songEditor.updateViews();
     m_playhead.toFront (false);
     resized();
 }

@@ -19,8 +19,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-// #include "AudioMidiSettings.h"
-// #include "EditViewState.h"
+#include "ThumbNailManager.h"
 #include "ApplicationViewState.h"
 #include "PluginMenu.h"
 #include "juce_gui_basics/juce_gui_basics.h"
@@ -195,9 +194,8 @@ namespace GUIHelpers
     void drawMidiClip (juce::Graphics& g, EditViewState& evs,te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat);
 
 
-    void drawWaveform(juce::Graphics& g, EditViewState& evs, te::AudioClipBase& c, te::SmartThumbnail& thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
-    void drawChannels(juce::Graphics& g, te::SmartThumbnail& thumb, juce::Rectangle<float> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain
-                                    , float subpixelX, float subpixelY);
+    void drawWaveform(juce::Graphics& g, EditViewState& evs, te::AudioClipBase& c, SimpleThumbnail& thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
+    void drawChannels(juce::Graphics& g, SimpleThumbnail& thumb, juce::Rectangle<float> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
 
     void drawRoundedRectWithSide(
         juce::Graphics &g

@@ -55,8 +55,8 @@ public:
         , m_timeLineID(timeLineID)
 
     {}
-    void paint(juce::Graphics &g) override;
 
+    void drawLasso(juce::Graphics &g);
     void startLasso(const juce::Point<int> mousePos, int startYScroll, bool isRangeTool);
     void updateLasso(const juce::Point<int> mousePos, int yScroll);
     void stopLasso();

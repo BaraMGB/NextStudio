@@ -25,6 +25,18 @@
 
 namespace te = tracktion_engine;
 
+struct SelectableAutomationPoint  : public te::Selectable
+{
+    SelectableAutomationPoint (int i, te::AutomationCurve& c)  : index (i), m_curve (c) {}
+    ~SelectableAutomationPoint() override { notifyListenersOfDeletion(); }
+
+    juce::String getSelectableDescription() override { return juce::String("AutomationPoint"); }
+
+    int index = 0;
+    te::AutomationCurve& m_curve;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SelectableAutomationPoint)
+};
+
 // sheetcheat for snapTypes
 //SnapTypeNumber 0 : 1 tick
 //SnapTypeNumber 1 : 2 ticks
@@ -126,6 +138,7 @@ public:
         : m_edit (e), m_selectionManager (s), m_applicationState(avs)
     {
         m_trackHeightManager = std::make_unique<TrackHeightManager>(tracktion::getAllTracks(e));
+        m_thumbNailManager = std::make_unique<ThumbNailManager>(m_edit.engine);
         m_state = m_edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
         m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
 
@@ -387,65 +400,22 @@ public:
     }
     [[nodiscard]] bool viewFollowsPos() const {return m_followPlayhead;}
 
-    std::unique_ptr<te::SmartThumbnail>& getOrCreateThumbnail (te::WaveAudioClip::Ptr wac, juce::Component& component)
+    SimpleThumbnail* getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
     {
-        for (auto tn : m_thumbnails)
-            if (tn->clipID == wac->itemID)
-                return tn->smartThumbnail;
-
-        te::AudioFile af (wac->getAudioFile());
-        std::unique_ptr<te::SmartThumbnail> thumbnail;
-
-        if (af.getFile().existsAsFile() || (! wac->usesSourceFile()))
-        {
-            if (af.isValid())
-            {
-                const te::AudioFile proxy(
-                            (wac->hasAnyTakes() && wac->isShowingTakes())
-                            ? wac->getAudioFile()
-                            : wac->getPlaybackFile());
-
-                thumbnail = std::make_unique<te::SmartThumbnail>(
-                            wac->edit.engine
-                          , proxy
-                          , component 
-                          , &wac->edit);
-            }
-        }
-        auto clipThumbnail = std::make_unique<ClipThumbNail> (wac->itemID, std::move(thumbnail));
-        m_thumbnails.add(std::move(clipThumbnail));
-
-        return m_thumbnails.getLast()->smartThumbnail;
+        return m_thumbNailManager->getOrCreateThumbnail(wac);
     }
-        void clearThumbnails()
-        {
-            m_thumbnails.clear();
-        }
-    void removeThumbnail(te::WaveAudioClip::Ptr wac)
+    void clearThumbnails()
     {
-        for (int i = m_thumbnails.size(); --i >= 0;)
-        {
-            auto& clipThumbnail = *m_thumbnails.getUnchecked(i);
-
-            if (clipThumbnail.clipID == wac->itemID)
-            {
-                m_thumbnails.remove(i);
-                return;
-            }
-        }
+        m_thumbNailManager->clearThumbnails();
+    }
+    void removeThumbnail(te::EditItemID id)
+    {
+        m_thumbNailManager->removeThumbnail(id);
     }
 
-
-    struct ClipThumbNail 
-    {
-        ClipThumbNail(const te::EditItemID& id, std::unique_ptr<te::SmartThumbnail> sn) 
-        : clipID(id), smartThumbnail(std::move(sn)) {}
-
-        te::EditItemID clipID;
-        std::unique_ptr<te::SmartThumbnail> smartThumbnail;
-    };
 
     std::unique_ptr<TrackHeightManager>    m_trackHeightManager;
+    std::unique_ptr<ThumbNailManager>      m_thumbNailManager;
     te::Edit& m_edit;
     te::SelectionManager& m_selectionManager;
 
@@ -492,6 +462,5 @@ public:
     ApplicationViewState& m_applicationState;
 
 private:
-    juce::OwnedArray<ClipThumbNail> m_thumbnails;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };

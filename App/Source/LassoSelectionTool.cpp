@@ -24,14 +24,15 @@ juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState& evs
                                                             , double viewX2
                                                             , int viewWidth) const
 {
-    auto x = evs.timeToX (m_startTime, viewWidth, viewX1, viewX2);
+    int x = evs.timeToX (m_startTime, viewWidth, viewX1, viewX2);
     auto y = (int) m_top;
-    auto w = evs.timeToX (m_endTime, viewWidth, viewX1, viewX2) - x;
+    int w = evs.timeToX (m_endTime, viewWidth, viewX1, viewX2) - x;
     auto h = (int) m_bottom - (int) m_top;
 
     return  {x, y, w, h};
 }
-void LassoSelectionTool::paint(juce::Graphics &g)
+
+void LassoSelectionTool::drawLasso(juce::Graphics &g)
 {
     if (m_isLassoSelecting && !m_isRangeSelecting)
     {

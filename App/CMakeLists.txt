@@ -105,6 +105,9 @@ target_sources(${TargetName} PRIVATE
         Source/Browser_Base.cpp
         Source/SplitterComponent.cpp
         Source/TrackHeightManager.cpp
+        Source/TrackLaneComponent.cpp
+        Source/AutomationLaneComponent.cpp
+        Source/ThumbNailManager.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
