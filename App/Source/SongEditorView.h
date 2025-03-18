@@ -140,6 +140,14 @@ private:
 
     //AutomationPoint handle
     void addAutomationPointAt(te::AutomatableParameter::Ptr par, tracktion::TimePosition pos);
+    void removeAutomationPoint(te::AutomatableParameter::Ptr par, int index)
+    {
+        auto& sm = m_editViewState.m_selectionManager;
+        par->getCurve().removePoint(index);
+        sm.deselectAll();
+        auto al = getAutomationLane(par);
+        al->invalidateCurveCache();
+    }
     void selectAutomationPoint(te::AutomatableParameter::Ptr ap,int index, bool add);
     bool isAutomationPointSelected(te::AutomatableParameter::Ptr ap, int index);
     void deselectAutomationPoint(te::AutomatableParameter::Ptr ap, int index);

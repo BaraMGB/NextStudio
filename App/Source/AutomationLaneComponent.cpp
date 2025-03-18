@@ -250,3 +250,89 @@ bool AutomationLaneComponent::isAutomationPointSelected(int index)
 
     return false;
 }
+
+void AutomationLaneComponent::updateCurveCache(const tracktion::AutomationCurve& curve)
+{
+    m_curvePointCache.clear();
+
+    m_curvePointCache.ensureStorageAllocated(curve.getNumPoints());
+
+    for (int i = 0; i < curve.getNumPoints(); i++)
+    {
+        auto point = curve.getPoint(i);
+
+        CachedCurvePoint cachedPoint;
+        cachedPoint.index = i;
+        cachedPoint.time = point.time.inSeconds();
+        cachedPoint.value = point.value;
+
+        m_curvePointCache.add(cachedPoint);
+    }
+
+    m_cachedCurvePointCount = curve.getNumPoints();
+    m_curveValid = true;
+}
+
+int AutomationLaneComponent::findPointUnderMouse(const juce::Rectangle<float>& area, 
+                                                 double visibleStartBeat, double visibleEndBeat, 
+                                                 int width) const
+{
+    if (!m_curveValid)
+        return -1;
+
+    double visibleStartTime = m_editViewState.beatToTime(visibleStartBeat);
+    double visibleEndTime = m_editViewState.beatToTime(visibleEndBeat);
+
+    for (const auto& point : m_curvePointCache)
+    {
+        if (point.time >= visibleStartTime && point.time <= visibleEndTime)
+        {
+            juce::Point<float> screenPos = point.getScreenPosition(
+                const_cast<AutomationLaneComponent*>(this), width, visibleStartBeat, visibleEndBeat);
+
+            if (area.contains(screenPos))
+            {
+                return point.index;
+            }
+        }
+    }
+
+    return -1;
+}
+
+juce::Array<AutomationLaneComponent::CachedCurvePoint> 
+AutomationLaneComponent::getVisiblePoints(double visibleStartBeat, double visibleEndBeat) const
+{
+    juce::Array<CachedCurvePoint> visiblePoints;
+
+    if (!m_curveValid)
+        return visiblePoints;
+
+    const double buffer = (visibleEndBeat - visibleStartBeat) * 0.05;
+    double extendedStartBeat = visibleStartBeat - buffer;
+    double extendedEndBeat = visibleEndBeat + buffer;
+
+    double extendedStartTime = m_editViewState.beatToTime(extendedStartBeat);
+    double extendedEndTime = m_editViewState.beatToTime(extendedEndBeat);
+
+    for (const auto& point : m_curvePointCache)
+    {
+        if (point.time >= extendedStartTime && point.time <= extendedEndTime)
+        {
+            visiblePoints.add(point);
+        }
+    }
+
+    return visiblePoints;
+}
+
+bool AutomationLaneComponent::isCurveValid(const tracktion::AutomationCurve& curve) const
+{
+    return m_curveValid && m_cachedCurvePointCount == curve.getNumPoints();
+}
+
+void AutomationLaneComponent::invalidateCurveCache()
+{
+    m_curveValid = false;
+}
+

@@ -326,37 +326,36 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
         else if (m_toolMode == Tool::pointer)
         {
             auto yPos = m_editViewState.m_trackHeightManager->getYForAutomatableParameter(hoveredAutamatableParam->getTrack(), hoveredAutamatableParam, scrollY);
-            juce::Point<float> hoveredPointInLane = {static_cast<float>(e.x),static_cast<float>(e.y - yPos)};
+            juce::Point<float> hoveredPointInLane = {static_cast<float>(e.x), static_cast<float>(e.y - yPos)};
             auto automationLane = getAutomationLane(hoveredAutamatableParam);
             const auto hoveredRectOnLane = GUIHelpers::getSensibleArea(hoveredPointInLane, automationLane->getAutomationPointWidth() * 2);
             auto curve = hoveredAutamatableParam->getCurve();
-            auto x1 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats();
-            auto x2 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getEnd().inBeats();
 
-            for (auto i = 0; curve.getNumPoints() > i; i++)
+            auto visibleRange = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth());
+            auto x1 = visibleRange.getStart().inBeats();
+            auto x2 = visibleRange.getEnd().inBeats();
+
+            if (!automationLane->isCurveValid(curve))
             {
-                auto time = curve.getPoint(i).time;
-                auto value = curve.getPoint(i).value;
-
-                auto pointXy = automationLane->getPointOnAutomationRect(time, value, getWidth(), x1, x2);
-
-                if (hoveredRectOnLane.contains(pointXy))
-                    hoveredAutomationPoint = i;
+                automationLane->updateCurveCache(curve);
             }
 
-            auto valueAtMouseTime = hoveredAutamatableParam->getCurve().getValueAt(mousePosTime);
+            hoveredAutomationPoint = automationLane->findPointUnderMouse(hoveredRectOnLane, x1, x2, getWidth());
+
+            auto valueAtMouseTime = curve.getValueAt(mousePosTime);
+
             auto curvePointAtMouseTime = juce::Point<float>(e.x, automationLane->getYPos(valueAtMouseTime));
 
             if (hoveredRectOnLane.contains(curvePointAtMouseTime) && hoveredAutomationPoint == -1)
                 hoveredCurve = curve.nextIndexAfter(mousePosTime);
 
             juce::Point<float> cp = automationLane->getPointOnAutomationRect(mousePosTime, valueAtMouseTime, getWidth(), x1, x2);
-            cp = cp.translated (0, yPos);
+            cp = cp.translated(0, yPos);
             hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
 
             automationLane->setHoveredCurve(hoveredCurve);
             automationLane->setHoveredPoint(hoveredAutomationPoint);
-            automationLane->setHoveredRect(hoveredRectOnLane.reduced(2.f,2.f));
+            automationLane->setHoveredRect(hoveredRectOnLane.reduced(2.f, 2.f));
             automationLane->setIsDragging(m_isDragging);
         }
         else if (m_toolMode == Tool::knife)
@@ -520,8 +519,7 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
 
     if (clickedOnPoint && rightButton)
     {
-        m_hoveredAutamatableParam->getCurve().removePoint(m_hoveredAutomationPoint);  
-        sm.deselectAll();
+        removeAutomationPoint(m_hoveredAutamatableParam, m_hoveredAutomationPoint);
         m_selPointsAtMousedown = getSelectedPoints();
         return;
     }
@@ -1010,6 +1008,7 @@ void SongEditorView::addAutomationPointAt(te::AutomatableParameter::Ptr par, tra
     selectAutomationPoint(par, p, false);
     m_isDragging = true;
     getAutomationLane(par)->setIsDragging(m_isDragging);
+    getAutomationLane(par)->invalidateCurveCache();
 }
 
 void SongEditorView::selectAutomationPoint(te::AutomatableParameter::Ptr ap,int index, bool add)

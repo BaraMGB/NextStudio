@@ -52,10 +52,36 @@ public:
     {
         return m_parameter;
     }
+    struct CachedCurvePoint
+    {
+        int index;
+        double time;
+        float value;
+
+        juce::Point<float> getScreenPosition(AutomationLaneComponent* lane, 
+                                             int width, double visibleStartBeat, 
+                                             double visibleEndBeat) const
+        {
+            return lane->getPointOnAutomationRect(tracktion::TimePosition::fromSeconds(time), value, width, visibleStartBeat, visibleEndBeat);
+        }
+    };
+
+    void updateCurveCache(const tracktion::AutomationCurve& curve);
+    int findPointUnderMouse(const juce::Rectangle<float>& area, double visibleStartBeat, double visibleEndBeat, int width) const;
+    bool isCurveValid(const tracktion::AutomationCurve& curve) const;
+    void invalidateCurveCache();
+
+    juce::Array<CachedCurvePoint> getVisiblePoints(double visibleStartBeat, double visibleEndBeat) const;
 
 
 private:
-  
+
+    juce::Array<CachedCurvePoint> m_curvePointCache;
+
+    int m_cachedCurvePointCount = 0;
+    int m_cachedCurveVersion = 0;
+    bool m_curveValid = false;
+
     bool isAutomationPointSelected(int index);
     int nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const;
     juce::Point<float> getPointOnAutomation(int index, juce::Rectangle<float> drawRect, double startBeat, double endBeat);
