@@ -1305,23 +1305,20 @@ void EngineHelpers::copyAutomationForSelectedClips(double offset
                                                  , te::SelectionManager& sm
                                                  , bool copy)
 {
-    const auto clipSelection = sm
-            .getSelectedObjects ()
-            .getItemsOfType<te::Clip>();
-    if (clipSelection.size () > 0)
-    {
-        //collect automation sections
-        juce::Array<te::TrackAutomationSection> sections;
+    const auto clipSelection = sm.getSelectedObjects().getItemsOfType<te::Clip>();
 
-        for (const auto& selectedClip : clipSelection)
-        {
-            if (selectedClip->getTrack() != nullptr)
-                sections.add (te::TrackAutomationSection(*selectedClip));
-        }
+    if (clipSelection.size () <= 0)
+        return;
 
-		te::moveAutomation (sections, tracktion::TimeDuration::fromSeconds(offset), copy);
-    }
+    juce::Array<te::TrackAutomationSection> sections;
+
+    for (const auto& selectedClip : clipSelection)
+        if (selectedClip->getTrack() != nullptr)
+            sections.add (te::TrackAutomationSection(*selectedClip));
+
+    te::moveAutomation (sections, tracktion::TimeDuration::fromSeconds(offset), copy);
 }
+
 void EngineHelpers::selectAllClips(te::SelectionManager& sm, te::Edit& edit)
 {
     sm.deselectAll();

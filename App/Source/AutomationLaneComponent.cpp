@@ -26,12 +26,14 @@ AutomationLaneComponent::AutomationLaneComponent(EditViewState& evs, te::Automat
 
 void AutomationLaneComponent::paint(juce::Graphics& g)
 {
-    drawAutomationLane(g, m_editViewState.getVisibleTimeRange(m_timeLineID, getWidth()), getLocalBounds().toFloat(), m_parameter);
+    drawAutomationLane(g, m_editViewState.getVisibleTimeRange(m_timeLineID, getWidth()), getLocalBounds().toFloat());
 
     m_needsRepaint = false;
 }
-void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect, te::AutomatableParameter::Ptr ap)
+void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect)
 {
+    if (m_parameter->getTrack() == nullptr)
+        return;
     g.saveState();
     g.reduceClipRegion(drawRect.toNearestIntEdges());
     double startBeat = m_editViewState. timeToBeat(drawRange.getStart().inSeconds());
@@ -52,16 +54,16 @@ void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::
     float startX = drawRect.getX();
     float endX = drawRect.getRight();
 
-    float startValue = ap->getCurve().getValueAt(drawRange.getStart());
-    float endValue = ap->getCurve().getValueAt(drawRange.getEnd());
+    float startValue = m_parameter->getCurve().getValueAt(drawRange.getStart());
+    float endValue = m_parameter->getCurve().getValueAt(drawRange.getEnd());
 
     float startY = getYPos(startValue);
     float endY = getYPos(endValue);
 
-    auto pointBeforeDrawRange = ap->getCurve().indexBefore(drawRange.getStart());
-    auto pointAfterDrawRange = nextIndexAfter(drawRange.getEnd(), ap);
-    auto numPointsInDrawRange = ap->getCurve().countPointsInRegion(drawRange);
-    auto numPoints = ap->getCurve().getNumPoints();
+    auto pointBeforeDrawRange = m_parameter->getCurve().indexBefore(drawRange.getStart());
+    auto pointAfterDrawRange = nextIndexAfter(drawRange.getEnd(), m_parameter);
+    auto numPointsInDrawRange = m_parameter->getCurve().countPointsInRegion(drawRange);
+    auto numPoints = m_parameter->getCurve().getNumPoints();
 
     auto ellipseRect = juce::Rectangle<float>();
     if (numPoints < 2)
@@ -91,13 +93,13 @@ void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::
         }
 
         if (pointAfterDrawRange == -1)
-            pointAfterDrawRange = ap->getCurve().getNumPoints() -1;
+            pointAfterDrawRange = m_parameter->getCurve().getNumPoints() -1;
 
         for (auto i = pointBeforeDrawRange; i <= pointAfterDrawRange; i++)
         {
             auto pointXY = getPointOnAutomation(i, drawRect, startBeat, endBeat);
 
-            auto curve = juce::jlimit(-.5f, .5f, ap->getCurve().getPoint(i - 1).curve);
+            auto curve = juce::jlimit(-.5f, .5f, m_parameter->getCurve().getPoint(i - 1).curve);
             auto curveControlPoint = getCurveControlPoint(curvePath.getCurrentPosition(), pointXY, curve);
 
             if (m_hoveredCurve == i)
@@ -119,14 +121,14 @@ void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::
                 selectedPointsPath.addEllipse(ellipseRect.toFloat());
         }
 
-        if (ap->getCurve().getPoint(pointAfterDrawRange).time < drawRange.getEnd())
+        if (m_parameter->getCurve().getPoint(pointAfterDrawRange).time < drawRange.getEnd())
             curvePath.lineTo({endX, endY});
     }
 
     float currentX = curvePath.getCurrentPosition().getX();
     float currentY = curvePath.getCurrentPosition().getY();
 
-    if (m_hoveredCurve == ap->getCurve().getNumPoints())
+    if (m_hoveredCurve == m_parameter->getCurve().getNumPoints())
     {
         hoveredCurvePath.startNewSubPath (currentX, currentY);
         hoveredCurvePath.lineTo(endX, endY);
@@ -142,7 +144,7 @@ void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::
     if (getHeight () <= 50)
         g.setColour(juce::Colour(0x10ffffff));
     else
-        g.setColour (ap->getTrack ()->getColour ().withAlpha (0.2f));
+        g.setColour (m_parameter->getTrack ()->getColour ().withAlpha (0.2f));
     g.fillPath(fillPath);
 
     g.setColour(juce::Colour(0xff888888));

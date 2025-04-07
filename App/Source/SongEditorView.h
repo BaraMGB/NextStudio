@@ -98,6 +98,8 @@ private:
     tracktion::TimeRange getSelectedTimeRange();
     AutomationLaneComponent * getAutomationLane(tracktion::engine::AutomatableParameter::Ptr ap)
     {
+        if (ap == nullptr)
+            return nullptr;
         for (auto tl : m_trackLanes)
         if (tl->getTrack().get() == ap->getTrack())
             return tl->getAutomationLane(ap);
@@ -135,19 +137,9 @@ private:
 
     int getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int>& dropPos);
 
-
-    //AutomationPoint info
-
     //AutomationPoint handle
     void addAutomationPointAt(te::AutomatableParameter::Ptr par, tracktion::TimePosition pos);
-    void removeAutomationPoint(te::AutomatableParameter::Ptr par, int index)
-    {
-        auto& sm = m_editViewState.m_selectionManager;
-        par->getCurve().removePoint(index);
-        sm.deselectAll();
-        auto al = getAutomationLane(par);
-        al->invalidateCurveCache();
-    }
+    void removeAutomationPoint(te::AutomatableParameter::Ptr par, int index);
     void selectAutomationPoint(te::AutomatableParameter::Ptr ap,int index, bool add);
     bool isAutomationPointSelected(te::AutomatableParameter::Ptr ap, int index);
     void deselectAutomationPoint(te::AutomatableParameter::Ptr ap, int index);
@@ -173,10 +165,10 @@ private:
     void splitClipAt(int x, int y);
 
     void setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLegth);
-    
+
     juce::Rectangle<float> getClipRect (te::Clip::Ptr clip);
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
-        
+
     void buildRecordingClips(te::Track::Ptr track);
 
     struct DragFileItemInfo
@@ -212,8 +204,6 @@ private:
 
     //caches
     juce::Array<te::Clip*>              m_cachedSelectedClips;
-    // juce::OwnedArray<SelectableAutomationPoint>
-    //                                     m_cachedSelectedAutomation;
     juce::OwnedArray<SelectableAutomationPoint>
                                         m_selectedAutomationPoints;
 

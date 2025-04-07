@@ -42,7 +42,7 @@ public:
     void setHoveredRect(juce::Rectangle<float> rect) { m_hoveredRect = rect; m_needsRepaint = true;}
     void setIsDragging(bool dragging)    { m_isDragging = dragging; m_needsRepaint = true;}
 
-    void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect, te::AutomatableParameter::Ptr ap);
+    void drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect);
     juce::Point<float> getPointOnAutomationRect (tracktion::TimePosition t, double v, int w, double x1b, double x2b); 
     int getAutomationPointWidth ();
     int getYPos (double value);
