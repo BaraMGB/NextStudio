@@ -344,6 +344,7 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     at->edit.playInStopEnabled = true;
     juce::PopupMenu m;
+    m.addItem(2001, "rename Track");
     m.addItem(2000, "delete Track");
     m.addSeparator();
 
@@ -385,6 +386,10 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     if (result == 2000)
     {
         deleteTrackFromEdit();
+    }
+    else if (result == 2001)
+    {
+        m_trackName.showEditor();
     }
     else if (result == 1000)
     {
@@ -679,7 +684,7 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 }
                 else if (event.getNumberOfClicks () > 1)
                 {
-                    // m_trackName.showEditor ();
+                    m_trackName.showEditor ();
                 }
                 else
                 {
