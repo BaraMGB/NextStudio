@@ -55,6 +55,10 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
         juce::Slider::mouseDown(e);
 }
 
+void AutomatableSliderComponent::setTrackColour(juce::Colour colour)
+{
+    m_trackColour = colour;
+}
 juce::Colour AutomatableSliderComponent::getTrackColour() const
 {
     return m_trackColour;

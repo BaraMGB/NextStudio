@@ -81,6 +81,7 @@ public:
     void bindSliderToParameter ();
 
     [[nodiscard]] juce::Colour getTrackColour() const;
+    void setTrackColour(juce::Colour colour);
 
 private:
 

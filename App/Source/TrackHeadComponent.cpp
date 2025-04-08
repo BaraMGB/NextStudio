@@ -348,6 +348,7 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     m.addItem(2000, "delete Track");
     m.addSeparator();
 
+
     if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
     {
         if (EngineHelpers::trackHasInput(*aut))
@@ -382,6 +383,14 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             }
         }
     }
+
+    auto colours = m_editViewState.m_applicationState.m_trackColours;
+    auto colourGridComponent = std::make_unique<ColourGridComponent>(m_track, colours, m_track->getColour(), 5, 4);
+
+    m.addCustomItem(3000, std::move(colourGridComponent), nullptr, "Track Colours");
+
+
+
     const int result = m.show();
     if (result == 2000)
     {
@@ -398,6 +407,13 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             GUIHelpers::log("TrackHeadComponent.cpp : enable input");
             EngineHelpers::enableInputMonitoring(*aut, !EngineHelpers::isInputMonitoringEnabled(*aut));
         }
+    }
+    else if (result == 3000)
+    {
+        if (m_volumeKnob)
+            m_volumeKnob->setTrackColour(m_track->getColour());
+
+        repaint();
     }
     else if (result >= 100 && !m_track->isFolderTrack())
     {
