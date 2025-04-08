@@ -276,12 +276,6 @@ TrackHeaderComponent::TrackHeaderComponent (
 
         }
     }
-    else
-    {
-        m_armButton.setVisible (false);
-        m_muteButton.setVisible (false);
-        m_soloButton.setVisible (false);
-    }
 
     m_track->state.addListener (this);
     inputsState = m_track->edit.state.getChildWithName (te::IDs::INPUTDEVICES);
