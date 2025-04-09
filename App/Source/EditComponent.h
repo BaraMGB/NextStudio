@@ -105,6 +105,7 @@ public:
     SongEditorView& getSongEditor() {return m_songEditor;}
     TrackListView& getTrackListView() {return m_trackListView;}
     TimeLineComponent& getTimeLineComponent() {return m_timeLine;}
+    void saveTempFile();
 
 private:
 
@@ -180,6 +181,8 @@ private:
     juce::Rectangle<int> getPlayHeadRect();
     int                  getSongHeight();
 
+    void sendAllNotedOff();
+
     te::Edit&                               m_edit;
     EditViewState&                          m_editViewState;
     TimeLineComponent                       m_timeLine {
@@ -217,7 +220,7 @@ private:
                                               , m_timeLine};
 
 
-    bool m_updateTracks = false, m_updateZoom = false, m_verticalUpdateSongEditor = false, m_dragOver = false;
+    bool m_updateTracks = false, m_updateZoom = false, m_verticalUpdateSongEditor = false, m_dragOver = false, m_noteOffAll=false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditComponent)
 };

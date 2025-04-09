@@ -337,6 +337,11 @@ void EditComponent::buttonClicked(juce::Button* button)
 }
 void EditComponent::timerCallback() 
 {
+    saveTempFile();
+}
+
+void EditComponent::saveTempFile()
+{
     if (m_editViewState.m_isSavingLocked)
         return;
 
@@ -345,12 +350,12 @@ void EditComponent::timerCallback()
 
     auto temp = m_editViewState.m_edit.getTempDirectory(false);
     auto editFile = Helpers::findRecentEdit(temp);
-    auto currentFile =  te::EditFileOperations(m_editViewState.m_edit).getEditFile();
-    auto xml = m_edit.state.toXmlString();
 
     //make sure that the edit finds the wave files relative to this edit file
     EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, editFile);
-    m_editViewState.m_edit.sendSourceFileUpdate();
+
+    auto currentFile = te::EditFileOperations(m_editViewState.m_edit).getEditFile();
+    auto xml = m_edit.state.toXmlString();
 
     if (m_editViewState.m_needAutoSave)
     {
@@ -364,11 +369,11 @@ void EditComponent::timerCallback()
 
     //make sure that the edit finds the wave files relative to currentFile again
     EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, currentFile);
-    m_editViewState.m_edit.sendSourceFileUpdate();
-
+    m_edit.sendSourceFileUpdate();
     m_editViewState.m_needAutoSave = false;
-
+    markAndUpdate(m_noteOffAll);
 }
+
 void EditComponent::valueTreePropertyChanged (
         juce::ValueTree& v, const juce::Identifier& i)
 {
@@ -464,6 +469,10 @@ void EditComponent::valueTreeChildOrderChanged (
 
 void EditComponent::handleAsyncUpdate()
 {
+    if (compareAndReset(m_noteOffAll))
+    {
+        sendAllNotedOff();
+    }
     if (compareAndReset (m_updateTracks))
     {
         buildTracks();
@@ -765,4 +774,12 @@ tracktion::core::TimeRange EditComponent::getSelectedClipRange()
     }
 
     return {EngineHelpers::getTimePos(start), EngineHelpers::getTimePos(end)};
+}
+void EditComponent::sendAllNotedOff()
+{
+    for (auto track : tracktion::getAudioTracks(m_edit))
+        for (int i = 1; i <= 16; ++i)
+            track->injectLiveMidiMessage (juce::MidiMessage::allNotesOff (i), {});
+
+    GUIHelpers::log("EditComponent: ", "All notes off!");
 }

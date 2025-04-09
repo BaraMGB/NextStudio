@@ -172,7 +172,7 @@ void MainComponent::getCommandInfo (juce::CommandID commandID, juce::Application
 {
     switch (commandID)
     { 
-        case KeyPressCommandIDs::midiNoteC :
+case KeyPressCommandIDs::midiNoteC :
             result.setInfo("note C", "set MIDI note C", "virtual Midi keyboard", 0);
             result.addDefaultKeypress(juce::KeyPress::createFromDescription("y").getKeyCode() , 0);
             break;
@@ -598,6 +598,12 @@ void MainComponent::openValidStartEdit()
         {
             setupEdit(f);
             return;
+        }
+        else
+        {
+            m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
+            m_tempDir = m_engine.getTemporaryFileManager().getTempDirectory();
+            m_tempDir.createDirectory();
         }
     }
 

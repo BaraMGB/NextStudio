@@ -98,7 +98,6 @@ private:
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
     void saveSettings();
     void createTracksAndAssignInputs();
-    void saveTempEdit();
     void openValidStartEdit();
     void setupSideBrowser();
 
