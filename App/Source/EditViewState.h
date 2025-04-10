@@ -391,7 +391,7 @@ public:
 
     void followsPlayhead(bool shouldFollow)
     {
-        m_followPlayhead = shouldFollow;        
+        m_followPlayhead = shouldFollow;
     }
 
     void toggleFollowPlayhead()

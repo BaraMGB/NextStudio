@@ -47,15 +47,12 @@ public:
         if (m_evs.viewFollowsPos())
         {
             auto posBeats = m_evs.timeToBeat (
-            m_evs.m_edit.getTransport ().getPosition ().inSeconds());
-        
+                m_evs.m_edit.getTransport ().getPosition ().inSeconds());
             auto bx1 = getCurrentBeatRange().getStart().inBeats();
             auto bx2 = getCurrentBeatRange().getEnd().inBeats();
-            if (posBeats < bx1 || posBeats > bx2)
-                m_evs.setNewStartAndZoom(m_timeLineID, posBeats);
 
             auto zoom = bx2 - bx1;
-            m_evs.setNewStartAndZoom(m_timeLineID, juce::jmax(bx1, posBeats - zoom/2));
+            m_evs.setNewStartAndZoom(m_timeLineID, juce::jmax(0.0 , posBeats - zoom/2));
         }
     }
     tracktion::BeatRange getCurrentBeatRange()
@@ -102,6 +99,7 @@ private:
     tracktion::TimeRange    m_newLoopRange; 
     tracktion::TimeDuration m_draggedTime;
     int                     m_oldDragDistanceY, m_oldDragDistanceX;
+    bool                    m_cachedFollowPlayhead;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimeLineComponent)
 };

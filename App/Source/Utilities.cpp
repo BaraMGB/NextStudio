@@ -1797,6 +1797,7 @@ void EngineHelpers::stopPlay(EditViewState &evs)
     {
         evs.m_playHeadStartTime = 0.0;
         transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
+        evs.setNewStartAndZoom("SongEditor", 0.0);
     }
     else
     {

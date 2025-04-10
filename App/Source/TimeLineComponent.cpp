@@ -115,6 +115,7 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
 void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
 {
     //init
+    m_cachedFollowPlayhead = m_evs.m_followPlayhead;
     m_evs.followsPlayhead(false);
     m_changeLoopRange = false;
     m_loopRangeClicked = false;
@@ -191,7 +192,7 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& e)
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent&)
 {
-    m_evs.followsPlayhead(true);
+    m_evs.followsPlayhead(m_cachedFollowPlayhead);
     auto& t = m_evs.m_edit.getTransport();
     if (m_loopRangeClicked) 
         t.setLoopRange(getLoopRangeToBeMovedOrResized());
