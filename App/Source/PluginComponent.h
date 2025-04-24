@@ -23,6 +23,8 @@
 #include "EditViewState.h"
 #include "AutomatableSliderComponent.h"
 #include "Utilities.h"
+#include "Browser_Base.h"
+#include "PluginViewComponent.h"
 
 namespace te = tracktion_engine;
 
@@ -65,26 +67,6 @@ private:
 };
 
 
-class PluginViewComponent : public juce::Component
-{
-public:
-    PluginViewComponent (EditViewState&, te::Plugin::Ptr);
-
-
-    [[nodiscard]] te::Plugin::Ptr getPlugin() const;
-
-    void setPlugin(const te::Plugin::Ptr &getPlugin);
-    virtual int getNeededWidth() {return 1;}
-
-    juce::Colour getTrackColour() {return m_plugin->getOwnerTrack()->getColour();}
-protected:
-    te::Plugin::Ptr    m_plugin;
-    EditViewState&     m_editViewState;
-private:
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginViewComponent)
-};
-
 //------------------------------------------------------------------------------
 
 class FilterPluginComponent : public PluginViewComponent
@@ -124,8 +106,6 @@ private:
     std::unique_ptr<te::LowPassPlugin>                m_filterPlugin;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FilterPluginComponent)
 };
-
-
 class EqPluginComponent : public PluginViewComponent
                               , private te::ValueTreeAllEventListener
 {
@@ -260,7 +240,7 @@ public:
         m_mix =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("mix proportion"), "Mix");
         addAndMakeVisible(*m_mix);
         
-        m_time = std::make_unique<NonAutomatableParameterComponent>(m_plugin->state.getPropertyAsValue(te::IDs::length, &m_editViewState.m_edit.getUndoManager()),"Time");
+        m_time = std::make_unique<NonAutomatableParameterComponent>(m_plugin->state.getPropertyAsValue(te::IDs::length, &m_editViewState.m_edit.getUndoManager()),"Time", 0,1000);
     addAndMakeVisible(*m_time);
         m_plugin->state.addListener(this);
 

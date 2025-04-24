@@ -24,6 +24,8 @@
 AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::AutomatableParameter::Ptr ap)
     : m_automatableParameter(ap)
 {
+    setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
     bindSliderToParameter();
     if (auto t = m_automatableParameter->getTrack())
         m_trackColour = t->getColour();

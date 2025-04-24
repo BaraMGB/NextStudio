@@ -371,7 +371,6 @@ void EditComponent::saveTempFile()
     EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, currentFile);
     m_edit.sendSourceFileUpdate();
     m_editViewState.m_needAutoSave = false;
-    markAndUpdate(m_noteOffAll);
 }
 
 void EditComponent::valueTreePropertyChanged (

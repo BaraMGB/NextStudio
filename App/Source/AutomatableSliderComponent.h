@@ -100,6 +100,9 @@ public:
         m_knob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         m_knob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
         m_knob->setDoubleClickReturnValue(true, ap->getCurrentValue());
+        m_knob->onValueChange = [this] {
+            updateLabel();
+        };
 
         addAndMakeVisible(*m_knob);
 
@@ -114,14 +117,6 @@ public:
 
         addAndMakeVisible(m_titleLabel);
     }
-    void paint (juce::Graphics&g) override
-    {
-        auto area = getLocalBounds();
-        auto d = (area.getWidth() - area.getHeight()) *.5;
-        area.reduce(d, 5);
-        g.setColour(juce::Colour(0xff444444));
-        g.fillRoundedRectangle(area.toFloat(), 10);
-    }
     void resized() override
     {
         auto area = getLocalBounds();
@@ -130,6 +125,12 @@ public:
         m_titleLabel.setBounds(area.removeFromTop(h));
         m_knob->setBounds(area.removeFromTop(h * 2));
         m_valueLabel.setBounds(area.removeFromTop(h));
+    }
+    
+    void setKnobColour (juce::Colour colour)
+    {
+        m_knob->setTrackColour(colour);
+        repaint();
     }
 
     void updateLabel ()
@@ -147,9 +148,9 @@ private:
 class NonAutomatableParameterComponent : public juce::Component
 {
 public:
-    NonAutomatableParameterComponent(juce::Value v, juce::String name)
+    NonAutomatableParameterComponent(juce::Value v, juce::String name, int rangeStart, int rangeEnd)
     {
-        m_knob.setRange(1, 1000, 1); 
+        m_knob.setRange(rangeStart, rangeEnd, 1); 
         m_knob.getValueObject().referTo(v);
         m_titleLabel.setText(name, juce::dontSendNotification);
         m_knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -165,15 +166,6 @@ public:
   
         Helpers::addAndMakeVisible(*this,{&m_titleLabel, &m_knob, &m_valueLabel});
     }
-    void paint (juce::Graphics&g) override
-    {
-        auto area = getLocalBounds();
-        auto d = (area.getWidth() - area.getHeight()) *.5;
-        area.reduce(d, 5);
-        g.setColour(juce::Colour(0xff444444));
-        g.fillRoundedRectangle(area.toFloat(), 10);
-    }
-   
     void resized() override
     {
         auto area = getLocalBounds();

@@ -18,7 +18,7 @@
 
 #include "PluginComponent.h"
 #include "Utilities.h"
-#include <utility>
+#include "FourOscPluginComponent.h"
 
 //==============================================================================
 RackItemView::RackItemView
@@ -33,6 +33,7 @@ RackItemView::RackItemView
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks (false, true);
+    GUIHelpers::log("PLUGIN TYPE: ",plugin->getPluginType());
     
     if (plugin->getPluginType() == "volume")
     {
@@ -49,6 +50,11 @@ RackItemView::RackItemView
     else if (plugin->getPluginType() == "lowpass")
     {
         m_pluginComponent = std::make_unique<FilterPluginComponent>(evs, p);
+    }
+    else if (plugin->getPluginType() == "4osc")
+    {
+        GUIHelpers::log("4OSC");
+        m_pluginComponent = std::make_unique<SimpleFourOscPluginComponent>(evs, p);
     }
     else
     {
@@ -168,22 +174,6 @@ juce::Colour RackItemView::getTrackColour()
     if (plugin->getOwnerTrack())
         return plugin->getOwnerTrack()->getColour();
     return juce::Colours::grey;
-}
-
-PluginViewComponent::PluginViewComponent
-    (EditViewState& evs, te::Plugin::Ptr p)
-    : m_editViewState (evs), m_plugin (p)
-{
-}
-
-te::Plugin::Ptr PluginViewComponent::getPlugin() const
-{
-    return m_plugin;
-}
-
-void PluginViewComponent::setPlugin(const te::Plugin::Ptr &plugin)
-{
-    m_plugin = plugin;
 }
 
 //------------------------------------------------------------------------------

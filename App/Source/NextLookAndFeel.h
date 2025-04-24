@@ -58,7 +58,6 @@ public:
         setColour(juce::GroupComponent::ColourIds::textColourId, m_appState.getTextColour());
 
     }
-    
     void drawGroupComponentOutline (juce::Graphics& g, int width, int height,
                                                 const juce::String& text, const juce::Justification& position,
                                                 juce::GroupComponent& group) override
@@ -121,28 +120,38 @@ public:
                     juce::roundToInt (textH),
                     juce::Justification::centred, true);
     }
-    void drawTabButton (juce::TabBarButton& tbb, juce::Graphics& g, bool isMouseOver, bool isMouseDown) override
+
+    void drawTabButtonText(juce::TabBarButton& button, juce::Graphics& g, bool isMouseOver, bool isMouseDown) override
     {
-        if (tbb.getToggleState() == false)
+        // Get the bounds of the button
+        juce::Rectangle<int> bounds = button.getBounds();
+        
+        // Set the font and color for the text
+        g.setColour(juce::Colours::black);
+        g.setFont(juce::Font(bounds.getHeight() * 0.6f));
+        
+        // Get the text and orientation
+        const juce::String& text = button.getButtonText();
+        juce::TabbedButtonBar::Orientation orientation = button.getTabbedButtonBar().getOrientation();
+        
+        // Check if the orientation is vertical (TabsAtRight or TabsAtLeft)
+        if (orientation == juce::TabbedButtonBar::TabsAtRight || orientation == juce::TabbedButtonBar::TabsAtLeft)
         {
-            g.setColour (m_appState.getBorderColour());
-            g.drawLine(tbb.getLocalBounds().getWidth(), 0, tbb.getLocalBounds().getWidth(), tbb.getLocalBounds().getHeight());
-            g.setColour (m_appState.getTextColour().withAlpha(0.4f));
-            g.drawFittedText (tbb.getButtonText(), 0, 0, tbb.getWidth(), tbb.getHeight(), juce::Justification::centred, 1);
+            // Calculate the position and size of the text rectangle
+            int textX = (bounds.getWidth() - bounds.getHeight()) / 2;
+            int textY = (bounds.getHeight() - bounds.getWidth()) / 2;
+            int textWidth = bounds.getHeight();
+            int textHeight = bounds.getWidth();
+            
+            // Draw the text horizontally within the calculated rectangle
+            g.drawFittedText(text, textX, textY, textWidth, textHeight, juce::Justification::centred, 1);
         }
         else
         {
-            g.fillAll(m_appState.getMenuBackgroundColour());
-            g.setColour (m_appState.getBorderColour());
-            g.drawLine(tbb.getLocalBounds().getWidth(), 0, tbb.getLocalBounds().getWidth(), tbb.getLocalBounds().getHeight());
-            g.setColour (m_appState.getTextColour());
-            auto font = g.getCurrentFont();
-            font.setUnderline(true);
-            g.setFont(font);
-            g.drawFittedText (tbb.getButtonText(), 0, 0, tbb.getWidth(), tbb.getHeight(), juce::Justification::centred, 1);
+            // Draw the text normally for horizontal tabs
+            g.drawText(text, bounds, juce::Justification::centred, true);
         }
     }
-
     void drawDrawableButton(juce::Graphics& g,
                               juce::DrawableButton& button,
                               bool isMouseOverButton,
