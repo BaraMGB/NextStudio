@@ -469,10 +469,31 @@ public:
         return true;
     }
 };
+class SampleView;
+class SampleDisplay : public juce::Component
+{
+public:
+    SampleDisplay(te::TransportControl& tc);
+
+    void resized() override;
+
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent&) override;
+    void setFile (const te::AudioFile& file);
+    void setColour(juce::Colour colour);
+private:
+    te::TransportControl& transport;
+    juce::DrawableRectangle cursor;
+    te::LambdaTimer cursorUpdater;
+    std::unique_ptr<SampleView> m_sampleView;
+
+    void updateCursorPosition();
+};
 
 struct SampleView : public juce::Component
 {
-    explicit SampleView (te::TransportControl& tc);
+    explicit SampleView (te::Edit& edit);
 
     void setFile (const te::AudioFile& file);
     void setColour(juce::Colour colour)
@@ -481,21 +502,10 @@ struct SampleView : public juce::Component
     }
     void paint (juce::Graphics& g) override;
 
-    void mouseDown (const juce::MouseEvent& e) override;
-    void mouseDrag (const juce::MouseEvent& e) override;
-    void mouseUp (const juce::MouseEvent&) override;
-
 private:
+    te::Edit& m_edit;
     juce::Colour m_colour;
-    te::TransportControl& transport;
-    te::SmartThumbnail smartThumbnail {
-        transport.engine
-        , te::AudioFile (transport.engine)
-        , *this
-        , nullptr
-    };
-    juce::DrawableRectangle cursor;
-    te::LambdaTimer cursorUpdater;
+public:
+    te::SmartThumbnail m_smartThumbnail;
 
-    void updateCursorPosition();
 };

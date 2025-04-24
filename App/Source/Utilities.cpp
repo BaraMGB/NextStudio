@@ -2006,71 +2006,37 @@ std::unique_ptr<juce::KnownPluginList::PluginTree> EngineHelpers::createPluginTr
     }
     return {};
 }
-
-SampleView::SampleView(tracktion_engine::TransportControl &tc)
-    : transport (tc)
+SampleDisplay::SampleDisplay(te::TransportControl&  tc)
+    : transport(tc)
 {
+    m_sampleView = std::make_unique<SampleView>(tc.edit);
+    addAndMakeVisible(*m_sampleView);
     cursorUpdater.setCallback ([this]
     {
         updateCursorPosition();
 
-        if (smartThumbnail.isGeneratingProxy() || smartThumbnail.isOutOfDate())
+        if (m_sampleView->m_smartThumbnail.isGeneratingProxy() || m_sampleView->m_smartThumbnail.isOutOfDate())
             repaint();
     });
     cursor.setFill (findColour (juce::Label::textColourId));
     addAndMakeVisible (cursor);
 }
-
-void SampleView::setFile(const tracktion_engine::AudioFile &file)
+void SampleDisplay::resized()
 {
-    smartThumbnail.setNewFile (file);
+    m_sampleView->setBounds(getLocalBounds());
+}
+void SampleDisplay::setFile(const tracktion_engine::AudioFile &file)
+{
+    m_sampleView->setFile (file);
+
     cursorUpdater.startTimerHz (25);
     repaint();
 }
-
-void SampleView::paint(juce::Graphics &g)
+void SampleDisplay::setColour(juce::Colour colour)
 {
-    auto r = getLocalBounds();
-    const auto colour = m_colour != juce::Colour() ? m_colour :findColour (juce::Label::textColourId);
-
-    if (smartThumbnail.isGeneratingProxy())
-    {
-        g.setColour (colour.withMultipliedBrightness (0.9f));
-        g.drawText ("Creating proxy: "
-                    + juce::String (juce::roundToInt (
-                                        smartThumbnail.getProxyProgress() * 100.0f))
-                    + "%"
-                    , r
-                    , juce::Justification::centred);
-
-    }
-    else
-    {
-        const float brightness = smartThumbnail.isOutOfDate() ? 0.4f : 0.66f;
-        g.setColour (colour.withMultipliedBrightness (brightness));
-        smartThumbnail.drawChannels (g, r, { tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(smartThumbnail.getTotalLength()) }, 1.0f);
-    }
+    m_sampleView->setColour(colour);
 }
-
-void SampleView::mouseDown(const juce::MouseEvent &e)
-{
-    transport.setUserDragging (true);
-    mouseDrag (e);
-}
-
-void SampleView::mouseDrag(const juce::MouseEvent &e)
-{
-    jassert (getWidth() > 0);
-    const float proportion = (float) e.position.x / (float) getWidth();
-    transport.position = tracktion::TimePosition::fromSeconds(transport.getLoopRange().getLength().inSeconds()* proportion);
-}
-
-void SampleView::mouseUp(const juce::MouseEvent &)
-{
-    transport.setUserDragging (false);
-}
-
-void SampleView::updateCursorPosition()
+void SampleDisplay::updateCursorPosition()
 {
     const double loopLength = transport.getLoopRange().getLength().inSeconds();
     const double proportion = loopLength == 0.0 ? 0.0 : transport.getPosition().inSeconds() / loopLength;
@@ -2079,6 +2045,64 @@ void SampleView::updateCursorPosition()
     const float x = r.getWidth() * float (proportion);
     cursor.setRectangle (r.withWidth (2.0f).withX (x));
 }
+void SampleDisplay::mouseDown(const juce::MouseEvent &e)
+{
+    transport.setUserDragging (true);
+    mouseDrag (e);
+}
+
+void SampleDisplay::mouseDrag(const juce::MouseEvent &e)
+{
+    jassert (getWidth() > 0);
+    const float proportion = (float) e.position.x / (float) getWidth();
+    transport.position = tracktion::TimePosition::fromSeconds(transport.getLoopRange().getLength().inSeconds()* proportion);
+}
+
+void SampleDisplay::mouseUp(const juce::MouseEvent &)
+{
+    transport.setUserDragging (false);
+}
+
+SampleView::SampleView(te::Edit& edit)
+    : m_edit(edit)
+    , m_smartThumbnail(
+        m_edit.engine,
+        te::AudioFile(m_edit.engine),
+        *this,
+        nullptr)
+{
+    setInterceptsMouseClicks(false, false);
+}
+
+void SampleView::setFile(const tracktion_engine::AudioFile &file)
+{
+    m_smartThumbnail.setNewFile (file);
+}
+
+void SampleView::paint(juce::Graphics &g)
+{
+    auto r = getLocalBounds();
+    const auto colour = m_colour != juce::Colour() ? m_colour :findColour (juce::Label::textColourId);
+
+    if (m_smartThumbnail.isGeneratingProxy())
+    {
+        g.setColour (colour.withMultipliedBrightness (0.9f));
+        g.drawText ("Creating proxy: "
+                    + juce::String (juce::roundToInt (
+                                        m_smartThumbnail.getProxyProgress() * 100.0f))
+                    + "%"
+                    , r
+                    , juce::Justification::centred);
+
+    }
+    else
+    {
+        const float brightness = m_smartThumbnail.isOutOfDate() ? 0.4f : 0.66f;
+        g.setColour (colour.withMultipliedBrightness (brightness));
+        m_smartThumbnail.drawChannels (g, r, { tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(m_smartThumbnail.getTotalLength()) }, 1.0f);
+    }
+}
+
 
 void EngineHelpers::insertPlugin (te::Track::Ptr track, te::Plugin::Ptr plugin, int index)
 {

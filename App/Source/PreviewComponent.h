@@ -60,7 +60,7 @@ private:
     std::unique_ptr<juce::Slider> m_volumeSlider;
     juce::DrawableButton m_playBtn, m_stopBtn, m_loopBtn, m_syncTempoBtn;
     juce::Label m_fileName, m_lenghtLabel, m_volumeLabel;
-    std::unique_ptr<SampleView>    m_thumbnail;
+    std::unique_ptr<SampleDisplay>    m_thumbnail;
     bool m_syncTempo {false};
     std::unique_ptr<bool> m_isSync;
     juce::File m_file;
