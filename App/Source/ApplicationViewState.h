@@ -26,6 +26,7 @@ namespace IDs
 {
     #define DECLARE_ID(name)  const juce::Identifier name (#name);
     DECLARE_ID (AppSettings)
+    DECLARE_ID (AppScale)
     DECLARE_ID (FileBrowser)
     DECLARE_ID (WindowState)
     DECLARE_ID (WorkDIR)
@@ -201,7 +202,8 @@ public:
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
         m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, 300);
-        m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 0);
+        m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 1.f);
+        m_appScale.referTo(behavior, IDs::AppScale, nullptr, 1.f);
         m_previewLoop.referTo (behavior, IDs::PreviewLoop, nullptr, false);
         m_sidebarCollapsed.referTo(behavior, IDs::SidebarCollapsed, nullptr, false);
 
@@ -438,7 +440,7 @@ public:
                                     m_folderTrackIndent,
                                     m_autoSaveInterval,
                                     m_sidebarWidth;
-    juce::CachedValue<float>        m_previewSliderPos;
+    juce::CachedValue<float>        m_appScale, m_previewSliderPos;
     juce::CachedValue<bool>         m_previewLoop,
                                     m_sidebarCollapsed;
     const int                       m_minSidebarWidth {250};

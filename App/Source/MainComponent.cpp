@@ -34,7 +34,11 @@ MainComponent::MainComponent(ApplicationViewState &state)
     , m_nextLookAndFeel(state)
     , m_sidebarSplitter(false)
 {
-    juce::Desktop::getInstance().setGlobalScaleFactor(1.1f);
+
+    float scale = m_applicationState.m_appScale;
+    scale = juce::jlimit(0.5f, 2.f, scale);
+    juce::Desktop::getInstance().setGlobalScaleFactor(scale);
+
     setWantsKeyboardFocus(true);
     setLookAndFeel(&m_nextLookAndFeel);
 
