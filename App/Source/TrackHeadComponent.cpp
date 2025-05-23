@@ -315,7 +315,7 @@ void TrackHeaderComponent::valueTreePropertyChanged (juce::ValueTree& v, const j
     {
         if (auto at = dynamic_cast<te::AudioTrack*> (m_track.get()))
         {
-            m_armButton.setEnabled (EngineHelpers::trackHasInput (*at));
+            // m_armButton.setEnabled (EngineHelpers::trackHasInput (*at));
             m_armButton.setToggleState (EngineHelpers::isTrackArmed (*at), juce::dontSendNotification);
         }
     }
