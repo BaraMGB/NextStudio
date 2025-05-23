@@ -36,7 +36,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
 {
 
     float scale = m_applicationState.m_appScale;
-    scale = juce::jlimit(0.5f, 2.f, scale);
+    scale = juce::jlimit(0.2f, 3.f, scale);
     juce::Desktop::getInstance().setGlobalScaleFactor(scale);
 
     setWantsKeyboardFocus(true);
