@@ -98,7 +98,7 @@ private:
     {
         float newScale = m_scaleEditor.getText().getFloatValue();
 
-        if (newScale >= 0.5f && newScale <= 2.0f)
+        if (newScale >= 0.2f && newScale <= 3.0f)
         {
             juce::Desktop::getInstance().setGlobalScaleFactor(newScale);
             m_appState.m_appScale = newScale;
