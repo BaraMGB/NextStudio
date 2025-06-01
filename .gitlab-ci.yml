@@ -14,8 +14,11 @@ before_script:
   - apt update
   - apt install -y --no-install-recommends build-essential git openssh-client cmake libasound2-dev libjack-jackd2-dev ladspa-sdk libcurl4-openssl-dev libfreetype6-dev libx11-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev libxcomposite-dev libwebkit2gtk-4.0-dev libfontconfig1-dev mesa-common-dev ca-certificates
   # Git Repository manuell klonen inkl. Submodules
-  - git submodule update --init modules/tracktion_engine
-  - git submodule update --init modules/tracktion_engine/modules/juce
+  - git config --global url."https://github.com/".insteadOf "git@github.com:"
+  - git config --global url."https://".insteadOf "ssh://"
+
+  - git submodule update --init --recursive
+  
 build:
   stage: build
   script:
