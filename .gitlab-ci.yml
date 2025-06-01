@@ -1,0 +1,47 @@
+image: debian:bookworm
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+before_script:
+  # System-Dependencies installieren
+  - apt update
+  - apt install -y --no-install-recommends \
+      build-essential git cmake \
+      libasound2-dev libjack-jackd2-dev ladspa-sdk \
+      libcurl4-openssl-dev libfreetype6-dev libx11-dev \
+      libxcursor-dev libxext-dev libxinerama-dev \
+      libxrandr-dev libxrender-dev libxcomposite-dev \
+      libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev \
+      libfontconfig1-dev mesa-common-dev \
+      apt-transport-https ca-certificates
+  # Submodule initialisieren (zur Sicherheit, falls GitLab nicht automatisch macht)
+  - git submodule update --init --recursive
+
+build:
+  stage: build
+  script:
+    # Annahme: tracktion_engine ist Submodule oder Teil des Repos
+    - mkdir -p build
+    - cd build
+    - cmake ..
+    - cmake --build .
+  artifacts:
+    paths:
+      - build/
+
+test:
+  stage: test
+  script:
+    - echo "Hier könnten Unit-Tests laufen"
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Define your deployment script!"
+  environment: production
