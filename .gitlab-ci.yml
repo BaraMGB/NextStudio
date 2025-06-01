@@ -6,7 +6,7 @@ stages:
   - deploy
 
 variables:
-  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_STRATEGY: none
 
 before_script:
   # System-Dependencies installieren
@@ -20,10 +20,11 @@ before_script:
       libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev \
       libfontconfig1-dev mesa-common-dev \
       apt-transport-https ca-certificates
-  # Submodule initialisieren (zur Sicherheit, falls GitLab nicht automatisch macht)
+  # Git Repository manuell klonen inkl. Submodules
+  - git submodule init
+  # JUCE Submodule-URL überschreiben (SSH → HTTPS)
   - git config submodule.modules/tracktion_engine/modules/juce.url https://github.com/juce-framework/JUCE.git
-  - git submodule update --init --recursive
-
+  - git submodule update --recursive
 build:
   stage: build
   script:
