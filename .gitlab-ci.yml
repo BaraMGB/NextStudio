@@ -10,6 +10,7 @@ variables:
 
 before_script:
   # System-Dependencies installieren
+  - echo 'deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware' > /etc/apt/sources.list
   - apt update
   - apt install -y --no-install-recommends \
       build-essential git openssh-client cmake \
