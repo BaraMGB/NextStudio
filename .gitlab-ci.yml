@@ -12,7 +12,7 @@ before_script:
   # System-Dependencies installieren
   - apt update
   - apt install -y --no-install-recommends \
-      build-essential git cmake \
+      build-essential git openssh-client cmake \
       libasound2-dev libjack-jackd2-dev ladspa-sdk \
       libcurl4-openssl-dev libfreetype6-dev libx11-dev \
       libxcursor-dev libxext-dev libxinerama-dev \
