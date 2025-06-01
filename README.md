@@ -50,13 +50,13 @@ To install NextStudio, follow these steps:
 
   
 
-1. Clone the NextStudio repository from the official GitHub page, including submodules:
+1. Clone the NextStudio repository from the official GitLab page, including submodules:
 
   
 
 ```shell
 
-git clone --recurse-submodules https://gitlab.com/nextstudiogroup/nextstudio.git
+git clone --recurse-submodules https://gitlab.com/BaraMGB/NextStudio
 
 ```
 
@@ -68,7 +68,7 @@ git clone --recurse-submodules https://gitlab.com/nextstudiogroup/nextstudio.git
 
 ```shell
 
-cd nextstudio
+cd NextStudio
 
 ```
 
@@ -98,13 +98,13 @@ cmake ..
 
   
 
-5. Build NextStudio using your Make:
+5. Build NextStudio using your CMake:
 
   
 
 ```shell
 
-make
+cmake --build .
 
 ```
 
@@ -135,7 +135,7 @@ If you encounter any issues or have questions about NextStudio, please refer to 
 
   
 
--  **Support:** For technical support or assistance, please file an issue on github.
+-  **Support:** For technical support or assistance, please file an issue on GitLab.
 
   
 
