@@ -30,10 +30,8 @@ before_script:
       libxrender-dev \
       libxcomposite-dev \
       libwebkit2gtk-4.0-dev \
-      libwebkit2gtk-4.1-dev \
       libfontconfig1-dev \
       mesa-common-dev \
-      apt-transport-https \
       ca-certificates
   # Git Repository manuell klonen inkl. Submodules
   - git submodule init
