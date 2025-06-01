@@ -2,3 +2,8 @@
 	path = modules/tracktion_engine
 	url = https://github.com/Tracktion/tracktion_engine.git
 	branch = develop
+[submodule "modules/tracktion_engine/modules/juce"]
+	path = modules/tracktion_engine/modules/juce
+	url = https://github.com/juce-framework/JUCE.git
+	branch = master
+

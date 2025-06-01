@@ -14,10 +14,7 @@ before_script:
   - apt update
   - apt install -y --no-install-recommends build-essential git openssh-client cmake libasound2-dev libjack-jackd2-dev ladspa-sdk libcurl4-openssl-dev libfreetype6-dev libx11-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev libxcomposite-dev libwebkit2gtk-4.0-dev libfontconfig1-dev mesa-common-dev ca-certificates
   # Git Repository manuell klonen inkl. Submodules
-  - git submodule update --init --recursive
-  - git config submodule.modules/tracktion_engine/modules/juce.url https://github.com/juce-framework/JUCE.git
-  - git submodule update --init --recursive
-
+  - git submodule update --init
 build:
   stage: build
   script:
