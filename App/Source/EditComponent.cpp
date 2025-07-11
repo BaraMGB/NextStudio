@@ -73,17 +73,14 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     addAndMakeVisible (m_toolBar);
     addAndMakeVisible (m_trackListControlMenu);
 
+    updateButtonIcons();
     //TrackListTools 
-    GUIHelpers::setDrawableOnButton(m_addAudioTrackBtn, BinaryData::wavetest5_svg,
-                                  juce::Colour(0xffffffff));
-    m_addAudioTrackBtn.addListener(this);
+        m_addAudioTrackBtn.addListener(this);
     m_addAudioTrackBtn.setTooltip(GUIHelpers::translate("Add audio track",m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_addMidiTrackBtn, BinaryData::piano5_svg, juce::Colour(0xffffffff));
-    m_addMidiTrackBtn.addListener(this);
+       m_addMidiTrackBtn.addListener(this);
     m_addMidiTrackBtn.setTooltip(GUIHelpers::translate("Add MIDI track", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_addFolderTrackBtn, BinaryData::folderopen_svg, juce::Colour(0xffffffff));
     m_addFolderTrackBtn.addListener(this);
     m_addFolderTrackBtn.setTooltip(GUIHelpers::translate("Add folder track", m_editViewState.m_applicationState));
 
@@ -92,45 +89,36 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     m_trackListToolsMenu.addButton(&m_addFolderTrackBtn);
 
     //TrackListControl 
-    GUIHelpers::setDrawableOnButton(m_expandAllBtn, BinaryData::expand_svg, juce::Colour(0xffffffff));
     m_expandAllBtn.addListener(this);
     m_expandAllBtn.setTooltip(GUIHelpers::translate("Expand all tracks", m_editViewState.m_applicationState));
     
     m_trackListControlMenu.addButton(&m_expandAllBtn);
     m_trackListControlMenu.addButton(&m_collapseAllBtn);
     
-    GUIHelpers::setDrawableOnButton(m_collapseAllBtn, BinaryData::collapse_svg, juce::Colour(0xffffffff));
     m_collapseAllBtn.addListener(this);
     m_collapseAllBtn.setTooltip(GUIHelpers::translate("Collapse all tracks", m_editViewState.m_applicationState));
 
     //SongEditorTools 
 
-    GUIHelpers::setDrawableOnButton(m_selectButton, BinaryData::select_icon_svg, juce::Colour(0xffffffff));
     m_selectButton.setName("select");
     m_selectButton.addListener(this);
     m_selectButton.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_lassoSelectButton, BinaryData::rubberband_svg, juce::Colour(0xffffffff));
     m_lassoSelectButton.addListener(this);
     m_lassoSelectButton.setTooltip(GUIHelpers::translate("lasso select clips or automation points", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_timeRangeSelectButton, BinaryData::select_timerange_svg, juce::Colour(0xffffffff));
     m_timeRangeSelectButton.addListener(this);
     m_timeRangeSelectButton.setTooltip(GUIHelpers::translate("select clips or automation points within a time range", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_splitClipButton, BinaryData::split_svg, juce::Colour(0xffffffff));
     m_splitClipButton.addListener(this);
     m_splitClipButton.setTooltip(GUIHelpers::translate("split selected clip at the cursor position", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_timeStretchButton, BinaryData::time_stretch_button_svg, juce::Colour(0xffffffff));
     m_timeStretchButton.addListener(this);
     m_timeStretchButton.setTooltip(GUIHelpers::translate("apply time stretching to the selected clip", m_editViewState.m_applicationState));
 
-    GUIHelpers::setDrawableOnButton(m_reverseClipButton, BinaryData::reverse_clip_svg, juce::Colour(0xffffffff));
     m_reverseClipButton.setCommandToTrigger(&m_commandManager,KeyPressCommandIDs::reverseClip , true);
 
 
-    GUIHelpers::setDrawableOnButton(m_deleteClipButton, BinaryData::delete_icon_svg, juce::Colour(0xffffffff));
     m_deleteClipButton.setCommandToTrigger(&m_commandManager, KeyPressCommandIDs::deleteSelectedClips, true);
 
     m_toolBar.addButton(&m_selectButton, 1);
@@ -172,11 +160,10 @@ EditComponent::~EditComponent()
 
 void EditComponent::paint (juce::Graphics &g)
 {
-    g.setColour(m_editViewState.m_applicationState.getMenuBackgroundColour());
+    g.setColour(m_editViewState.m_applicationState.getBackgroundColour1());
     g.fillRect(getEditorHeaderRect());
     g.fillRect(getFooterRect());
-    g.setColour(juce::Colour(0xff272727));
-
+    g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
     g.fillRect(getTrackListToolsRect());
     g.fillRect(getTrackListRect());
     g.fillRect(getTimeLineRect());
@@ -499,7 +486,21 @@ void EditComponent::handleAsyncUpdate()
         updateVerticalScrollbar();
     }
 }
-
+void EditComponent::updateButtonIcons()
+{
+    GUIHelpers::setDrawableOnButton(m_addAudioTrackBtn, BinaryData::wavetest5_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_addMidiTrackBtn, BinaryData::piano5_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_addFolderTrackBtn, BinaryData::folderopen_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_expandAllBtn, BinaryData::expand_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_collapseAllBtn, BinaryData::collapse_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_selectButton, BinaryData::select_icon_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_lassoSelectButton, BinaryData::rubberband_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_timeRangeSelectButton, BinaryData::select_timerange_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_splitClipButton, BinaryData::split_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_timeStretchButton, BinaryData::time_stretch_button_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_reverseClipButton, BinaryData::reverse_clip_svg, m_editViewState.m_applicationState.getButtonTextColour());
+    GUIHelpers::setDrawableOnButton(m_deleteClipButton, BinaryData::delete_icon_svg, m_editViewState.m_applicationState.getButtonTextColour());
+}
 
 void EditComponent::refreshSnapTypeDesc()
 {

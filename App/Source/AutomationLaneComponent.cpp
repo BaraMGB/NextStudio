@@ -43,7 +43,7 @@ void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::
     g.reduceClipRegion(drawRect.toNearestIntEdges());
     double startBeat = m_editViewState. timeToBeat(drawRange.getStart().inSeconds());
     double endBeat = m_editViewState.timeToBeat(drawRange.getEnd().inSeconds());
-    g.setColour(juce::Colour(0xff252525));
+    g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
     g.fillRect(drawRect);
 
     GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, startBeat, endBeat, drawRect);
@@ -152,28 +152,32 @@ void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::
         g.setColour (m_parameter->getTrack ()->getColour ().withAlpha (0.2f));
     g.fillPath(fillPath);
 
-    g.setColour(juce::Colour(0xff888888));
+    g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour());
     g.strokePath(curvePath, juce::PathStrokeType(2.0f));
 
-    g.setColour(juce::Colours::white);
+    g.setColour(m_editViewState.m_applicationState.getPrimeColour());
     if (m_isDragging)
-        g.setColour(m_editViewState.m_applicationState.getPrimeColour());
+        g.setColour(m_editViewState.m_applicationState.getPrimeColour().withLightness(1.0f));
     g.strokePath(hoveredCurvePath, juce::PathStrokeType(2.0f));
 
+    //the Dot moves with mouse
     g.fillPath (hoveredDotOnCurvePath);
 
-    g.setColour(juce::Colour(0xff2b2b2b));
+    //the inner of a point
+    g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
     g.fillPath(pointsPath);
 
+    //the Point circle
     float lineThickness = 2.0;   
-
-    g.setColour(juce::Colour(0xff888888));
+    g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour());
     g.strokePath(pointsPath, juce::PathStrokeType(lineThickness));
-
-    g.setColour(juce::Colours::white);
+    
+    //the hovered point
+    g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour().withLightness(1.0f));
     g.strokePath(hoveredPointPath, juce::PathStrokeType(lineThickness));
 
-    g.setColour(juce::Colours::red);
+    //selected Points
+    g.setColour(m_editViewState.m_applicationState.getPrimeColour());
     g.strokePath(selectedPointsPath, juce::PathStrokeType(lineThickness));
     
     g.setColour(juce::Colour(0x60ffffff));
@@ -222,8 +226,8 @@ juce::Point<float> AutomationLaneComponent::getCurveControlPoint(juce::Point<flo
 
 int AutomationLaneComponent::getYPos (double value)
 {
-    double pixelRangeStart = getAutomationPointWidth() * .5;
-    double pixelRangeEnd = getHeight() - (getAutomationPointWidth() * .5);
+    double pixelRangeStart = 0;//getAutomationPointWidth() * .5;
+    double pixelRangeEnd = getHeight();// - (getAutomationPointWidth() * .5);
 
     double valueRangeStart = m_parameter->valueRange.start;
     double valueRangeEnd = m_parameter->valueRange.end;

@@ -27,6 +27,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & applicationState, juce::ApplicationCommandManager& commandManager)
     : m_editViewState(evs)
+    , m_btn_col(evs.m_applicationState.getButtonTextColour())
     , m_stopButton ("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_recordButton ("Record", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_playButton ("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
@@ -43,15 +44,8 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
         , &m_playButton, &m_recordButton, &m_display, &m_clickButton, &m_loopButton
         , &m_followPlayheadButton});
 
-    GUIHelpers::setDrawableOnButton(m_playButton, BinaryData::play_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_stopButton, BinaryData::stop_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_recordButton, BinaryData::record_svg, m_btn_col);
-    GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg,
-                                    m_edit.getTransport().looping ? m_btn_col : juce::Colour(0xff666666));
-    GUIHelpers::setDrawableOnButton(m_clickButton, BinaryData::metronome_svg,
-                                    m_edit.clickTrackEnabled ? m_btn_col : juce::Colour(0xff666666));
-    GUIHelpers::setDrawableOnButton(m_followPlayheadButton, BinaryData::follow_svg,
-                                    m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
+    updateIcons();
+
     m_playButton.addListener(this);
     m_stopButton.addListener(this);
     m_recordButton.addListener(this);
@@ -79,10 +73,24 @@ HeaderComponent::~HeaderComponent()
     m_followPlayheadButton.removeListener (this);
 }
 
+void HeaderComponent::updateIcons()
+{
+
+    m_btn_col = m_editViewState.m_applicationState.getButtonTextColour();
+    GUIHelpers::setDrawableOnButton(m_playButton, BinaryData::play_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_stopButton, BinaryData::stop_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_recordButton, BinaryData::record_svg, m_btn_col);
+    GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg,
+                                    m_edit.getTransport().looping ? m_btn_col : juce::Colour(0xff666666));
+    GUIHelpers::setDrawableOnButton(m_clickButton, BinaryData::metronome_svg,
+                                    m_edit.clickTrackEnabled ? m_btn_col : juce::Colour(0xff666666));
+    GUIHelpers::setDrawableOnButton(m_followPlayheadButton, BinaryData::follow_svg,
+                                    m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
+}
 void HeaderComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
-    g.setColour(m_applicationState.getMenuBackgroundColour());
+    g.setColour(m_applicationState.getBackgroundColour1());
     g.fillRect (area);
 
     GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_applicationState.getMainFrameColour(), m_applicationState.getBorderColour());  

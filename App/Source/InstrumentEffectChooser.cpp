@@ -74,14 +74,14 @@ void InstrumentEffectListModel::paintRowBackground(juce::Graphics &g, int row, i
 {
     if (row < 0 || row >= getNumRows())
         return;
-    auto bgColour = row % 2 == 0 ? m_appState.getMenuBackgroundColour() : m_appState.getMenuBackgroundColour().brighter(0.05f);
+    auto bgColour = row % 2 == 0 ? m_appState.getBackgroundColour2() : m_appState.getBackgroundColour2().brighter(0.05f);
     juce::Rectangle<int> bounds(0, 0, width, height);
     g.setColour(bgColour);
     g.fillRect(bounds);
 
     if (rowIsSelected)
     {
-        g.setColour(juce::Colour(0xff555555));
+        g.setColour(m_appState.getPrimeColour());
         g.fillRect(bounds);
     }
 }
@@ -147,7 +147,7 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
             {
                 preTerm = text.substring(0, termStartIndex);
                 postTerm = text.substring(termStartIndex + m_searchTerm.length());
-                auto colour = rowIsSelected ? juce::Colours::black : juce::Colours::darkgrey;
+                auto colour = rowIsSelected ? m_appState.getPrimeColour().contrasting(.7f) : m_appState.getTextColour();
                 
                 g.setColour(colour);
                 g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
@@ -165,7 +165,7 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
             }
             else
             {
-                auto colour = rowIsSelected ? juce::Colours::black : juce::Colours::lightgrey;
+                auto colour = rowIsSelected ? m_appState.getPrimeColour().contrasting(.7f) : m_appState.getTextColour();
 
                 g.setColour(colour);
                 g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));

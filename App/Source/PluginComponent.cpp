@@ -28,35 +28,35 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 //==============================================================================
 RackItemView::RackItemView
     (EditViewState& evs, te::Plugin::Ptr p)
-    : editViewState (evs), plugin (p)
+    : m_evs (evs), m_plugin (p)
     , m_showPluginBtn( "Show Plugin", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     addAndMakeVisible(m_showPluginBtn);
     m_showPluginBtn.addListener(this);
 
-    name.setText(plugin->getName(),juce::NotificationType::dontSendNotification);
+    name.setText(m_plugin->getName(),juce::NotificationType::dontSendNotification);
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks (false, true);
-    GUIHelpers::log("PLUGIN TYPE: ",plugin->getPluginType());
+    GUIHelpers::log("PLUGIN TYPE: ",m_plugin->getPluginType());
     
-    if (plugin->getPluginType() == "volume")
+    if (m_plugin->getPluginType() == "volume")
     {
         m_pluginComponent = std::make_unique<VolumePluginComponent>(evs, p);
     }
-    else if (plugin->getPluginType() == "4bandEq")
+    else if (m_plugin->getPluginType() == "4bandEq")
     {
         m_pluginComponent = std::make_unique<EqPluginComponent>(evs, p);
     }
-    else if (plugin->getPluginType() == "delay")
+    else if (m_plugin->getPluginType() == "delay")
     {
         m_pluginComponent = std::make_unique<DelayPluginComponent>(evs, p);
     }
-    else if (plugin->getPluginType() == "lowpass")
+    else if (m_plugin->getPluginType() == "lowpass")
     {
         m_pluginComponent = std::make_unique<FilterPluginComponent>(evs, p);
     }
-    else if (plugin->getPluginType() == "4osc")
+    else if (m_plugin->getPluginType() == "4osc")
     {
         GUIHelpers::log("4OSC");
         m_pluginComponent = std::make_unique<SimpleFourOscPluginComponent>(evs, p);
@@ -70,18 +70,18 @@ RackItemView::RackItemView
 
 RackItemView::~RackItemView()
 {
-    plugin->hideWindowForShutdown ();
+    m_plugin->hideWindowForShutdown ();
 }
 
 void RackItemView::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
     auto cornerSize = 10.0f;
-    g.setColour(juce::Colour(0xff242424));
+    g.setColour(m_evs.m_applicationState.getBackgroundColour2());
     GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
 
 
-    auto trackCol = plugin->isEnabled () ?
+    auto trackCol = m_plugin->isEnabled () ?
                        getTrackColour() : getTrackColour().darker (0.7f);
 
     auto labelingCol = trackCol.getBrightness() > 0.8f
@@ -110,10 +110,10 @@ void RackItemView::mouseDown (const juce::MouseEvent& e)
         if (e.mods.isRightButtonDown())
         {
             juce::PopupMenu m;
-            m.addItem ("Delete", [this] { plugin->deleteFromParent(); });
-            m.addItem (plugin->isEnabled () ?
+            m.addItem ("Delete", [this] { m_plugin->deleteFromParent(); });
+            m.addItem (m_plugin->isEnabled () ?
                                   "Disable" : "Enable"
-                       , [this] {plugin->setEnabled (!plugin->isEnabled ());});
+                       , [this] {m_plugin->setEnabled (!m_plugin->isEnabled ());});
             m.show();
         }
     }
@@ -169,15 +169,15 @@ void RackItemView::buttonClicked(juce::Button* button)
 {
     if (button == &m_showPluginBtn)
     {
-        if (plugin)
-            plugin->showWindowExplicitly();
+        if (m_plugin)
+            m_plugin->showWindowExplicitly();
     }
 }
 
 juce::Colour RackItemView::getTrackColour()
 {
-    if (plugin->getOwnerTrack())
-        return plugin->getOwnerTrack()->getColour();
+    if (m_plugin->getOwnerTrack())
+        return m_plugin->getOwnerTrack()->getColour();
     return juce::Colours::grey;
 }
 
@@ -279,7 +279,7 @@ VstPluginComponent::VstPluginComponent
             if (param)
             {
                 param->addListener(this);
-                auto parameterComp = std::make_unique<ParameterComponent>(*param);
+                auto parameterComp = std::make_unique<ParameterComponent>(*param, m_editViewState.m_applicationState);
                 m_pluginListComponent.addAndMakeVisible(parameterComp.get());
                 m_parameters.add(std::move(parameterComp));
             }
@@ -292,7 +292,7 @@ VstPluginComponent::VstPluginComponent
     {
         m_lastChangedParameterComponent
                 = std::make_unique<ParameterComponent>(
-                                            *(p->getAutomatableParameter(0)));
+                                            *(p->getAutomatableParameter(0)), m_editViewState.m_applicationState);
         addAndMakeVisible(*m_lastChangedParameterComponent);
     }
     m_viewPort.setViewedComponent(&m_pluginListComponent, true);
@@ -316,7 +316,7 @@ VstPluginComponent::~VstPluginComponent()
 
 void VstPluginComponent::paint (juce::Graphics& g) 
 {
-    g.setColour(juce::Colour::fromString("#ff333333"));
+    g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
     g.fillAll();
     if (m_lastChangedParameterComponent)
     {
@@ -354,7 +354,7 @@ void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, floa
     if (!m_lastChangedParameterComponent->isDragged() && &m_lastChangedParameterComponent->getParameter() != &param)
     {
         removeChildComponent(m_lastChangedParameterComponent.get());
-        m_lastChangedParameterComponent = std::make_unique<ParameterComponent>(param);
+        m_lastChangedParameterComponent = std::make_unique<ParameterComponent>(param, m_editViewState.m_applicationState);
         addAndMakeVisible(m_lastChangedParameterComponent.get());
         resized();
     }
@@ -362,8 +362,9 @@ void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, floa
 
 //------------------------------------------------------------------------------
 
-ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &ap)
+ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &ap, ApplicationViewState& appstate)
     : m_parameter(ap)
+    , m_appState(appstate)
     , m_parameterSlider(ap)
 {
     m_parameterName.setText(ap.getParameterName(),
@@ -380,7 +381,7 @@ ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &a
 void ParameterComponent::paint(juce::Graphics& g) 
 {
 
-    g.setColour(juce::Colour::fromString("#ff171717"));
+    g.setColour(m_appState.getBackgroundColour1());
     auto area = getLocalBounds();
     area.reduce(2, 2);
     area.removeFromRight(10);

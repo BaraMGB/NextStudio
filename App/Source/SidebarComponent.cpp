@@ -82,7 +82,7 @@ void SidebarComponent::paint(juce::Graphics& g)
     auto colourBulbH = headerRect.removeFromRight(10);
     auto colourBulbF = footerRect.removeFromRight(10);
 
-    g.setColour(m_appState.getMenuBackgroundColour());
+    g.setColour(m_appState.getBackgroundColour1());
     g.fillRect(headerRect);
     g.fillRect(footerRect);
     g.fillRect(sideMenu);

@@ -35,34 +35,8 @@ public:
     NextLookAndFeel(ApplicationViewState& appState)
         : m_appState(appState)
     {
-        setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(0xffff00ff));
-        setColour(juce::TextButton::buttonColourId , m_appState.getButtonBackgroundColour());
-        setColour(juce::TextButton::textColourOnId, m_appState.getTextColour());
-        setColour(juce::DrawableButton::backgroundColourId, m_appState.getButtonBackgroundColour());
-        setColour(juce::PopupMenu::backgroundColourId, m_appState.getMenuBackgroundColour());
-        setColour(juce::TabbedComponent::backgroundColourId, m_appState.getMenuBackgroundColour());
-        setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
-        setColour(juce::ListBox::backgroundColourId, m_appState.getMenuBackgroundColour());
-        setColour(juce::Slider::thumbColourId, m_appState.getTextColour());
-        setColour(juce::Slider::trackColourId, m_appState.getTextColour());
-        setColour(juce::Slider::backgroundColourId, m_appState.getTextColour().withAlpha(0.3f));
-
-        setColour (juce::TableListBox::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
-        setColour (juce::Label::ColourIds::textColourId, m_appState.getTextColour());
-        setColour (juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMainFrameColour());
-
-        setColour(juce::TooltipWindow::outlineColourId, m_appState.getBorderColour());
-        setColour(juce::TooltipWindow::backgroundColourId, m_appState.getMainFrameColour());
-        setColour(juce::TooltipWindow::textColourId, m_appState.getTextColour());
-
-        setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
-        setColour(juce::TableHeaderComponent::ColourIds::textColourId, m_appState.getTextColour());
-        setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, m_appState.getBorderColour());
-        setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, m_appState.getPrimeColour());
-        setColour(juce::GroupComponent::ColourIds::outlineColourId, m_appState.getBorderColour());
-        setColour(juce::GroupComponent::ColourIds::textColourId, m_appState.getTextColour());
-
     }
+
     void drawGroupComponentOutline (juce::Graphics& g, int width, int height,
                                                 const juce::String& text, const juce::Justification& position,
                                                 juce::GroupComponent& group) override
@@ -132,7 +106,7 @@ public:
         juce::Rectangle<int> bounds = button.getBounds();
         
         // Set the font and color for the text
-        g.setColour(juce::Colours::black);
+        g.setColour(m_appState.getTextColour());
         g.setFont(juce::Font(bounds.getHeight() * 0.6f));
         
         // Get the text and orientation
@@ -191,7 +165,7 @@ public:
     {
         const juce::Rectangle<int> area = button.getLocalBounds ().reduced(1);
 
-        auto buttonColour = backgroundColour;
+        auto buttonColour = m_appState.getButtonBackgroundColour();
         if (button.isDown () || button.getToggleState())
         {
             buttonColour = buttonColour.darker (0.7f);
@@ -355,21 +329,6 @@ public:
         return {juce::jmin(10.0f, buttonHeight * 0.6f)};
     }
 
-//    void drawImageButton ( 	Graphics & g,
-//                            Image * image,
-//                            int  	imageX,
-//                            int  	imageY,
-//                            int  	imageW,
-//                            int  	imageH,
-//                            const Colour & overlayColour,
-//                            float  	imageOpacity,
-//                            ImageButton & button
-//                            ) override
-//    {
-//        drawButtonBackground (g, button,Colour(),button.m_isOver (), button.isDown ());
-//        //LookAndFeel_V4::drawImageButton ( g, image,imageX, imageY, imageW, imageH,overlayColour, imageOpacity, button);
-//    }
-
     void drawToggleButton(juce::Graphics& g,
                           juce::ToggleButton& button,
                           bool shouldDrawButtonAsHighlighted,
@@ -400,18 +359,16 @@ public:
             }
             else
             {
-                g.setColour(juce::Colours::gold);
+                g.setColour(m_appState.getButtonBackgroundColour().greyLevel(0.7));
             }
         }
         else
         {
-            g.setColour(juce::Colour(0xff343434));
+            g.setColour(m_appState.getButtonBackgroundColour());
         }
         buttonArea.reduce(1, 1);
         g.fillRoundedRectangle(buttonArea.toFloat(), 1);
         g.setColour(textColour);
-        //        auto fontSize = jmin (15.0f, button.getHeight() * 0.75f);
-        //        auto tickWidth = fontSize * 1.1f;
         g.drawFittedText(
             button.getName(), button.getLocalBounds(), juce::Justification::centred, 1);
     }
@@ -461,9 +418,6 @@ public:
                                      rect);
         }
         icon = &iconImage;
-//        juce::LookAndFeel_V4::drawFileBrowserRow (g, width, height, file, filename, icon,
-//                                                                  fileSizeDescription, fileTimeDescription,
-//                                                                  isDirectory, isItemSelected, itemIndex, dcc);
         auto fileListComp = dynamic_cast<juce::Component*> (&dcc);
 
         if (isItemSelected)
@@ -619,7 +573,7 @@ public:
         if (isChoiceCompChild)
         {
 
-            g.setColour (m_appState.getMenuBackgroundColour());
+            g.setColour (m_appState.getBackgroundColour1());
             g.fillRect (boxBounds);
 
             auto arrowZone = boxBounds.removeFromRight (boxBounds.getHeight()).reduced (0, 2).toFloat();
@@ -627,7 +581,7 @@ public:
         }
         else
         {
-            g.setColour (m_appState.getMenuBackgroundColour());
+            g.setColour (m_appState.getBackgroundColour1());
             g.fillRoundedRectangle (boxBounds.toFloat(), cornerSize);
             g.setColour (m_appState.getBorderColour());
             g.drawRoundedRectangle (boxBounds.toFloat().reduced (0.5f, 0.5f), cornerSize, 1.0f);

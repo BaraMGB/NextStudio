@@ -140,20 +140,20 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
 
     juce::Rectangle<int> bounds (0,0, width, height);
     auto textColour = m_applicationViewState.getTextColour();
-    g.setColour (rowNum%2==0 ? m_applicationViewState.getMenuBackgroundColour() : m_applicationViewState.getMenuBackgroundColour().brighter(0.05f));
+    g.setColour (rowNum%2==0 ? m_applicationViewState.getBackgroundColour2() : m_applicationViewState.getBackgroundColour2().brighter(0.05f));
     g.fillRect(bounds);
     g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
 
     if (rowIsSelected)
     {
-        g.setColour(juce::Colour(0xff555555));
+        g.setColour(m_applicationViewState.getPrimeColour());
         g.fillRect(bounds);
     }
     bounds.reduce(4,0);
     if (m_searchTerm.isEmpty())
     {
-        g.setColour(rowIsSelected ? juce::Colours::black : textColour);
+        g.setColour(rowIsSelected ? m_applicationViewState.getPrimeColour().contrasting(.7f) : textColour);
         g.drawFittedText(m_contentList[rowNum].getFileName ().trimCharactersAtEnd(".tracktionedit"), bounds, juce::Justification::left, 1);
     }
     else

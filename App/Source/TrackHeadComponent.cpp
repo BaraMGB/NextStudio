@@ -513,6 +513,7 @@ void TrackHeaderComponent::updateMidiInputs()
 
 void TrackHeaderComponent::paint (juce::Graphics& g)
 {
+    m_trackName.setColour(juce::Label::ColourIds::textColourId, m_editViewState.m_applicationState.getTrackHeaderTextColour());
     const int headWidth = 20;
     if (m_isDragging)
     {
@@ -531,7 +532,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         auto cornerSize = 5.0f;
         juce::Rectangle<float> area = getLocalBounds().toFloat();
         area.reduce(1, 1);
-        auto buttonColour = juce::Colour(0xff4b4b4b);
+        auto buttonColour = m_editViewState.m_applicationState.getTrackHeaderBackgroundColour();
         if (!m_editViewState.m_selectionManager.isSelected (m_track))
         {
             buttonColour = buttonColour.darker (0.4f);
@@ -589,11 +590,11 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         if (m_track->state.getProperty(IDs::isMidiTrack))
             icon = BinaryData::piano5_svg;
 
-        GUIHelpers::drawFromSvg (g, icon, juce::Colour(0xffffffff), {20, 6, 18, 18});
+        GUIHelpers::drawFromSvg (g, icon, m_editViewState.m_applicationState.getTrackHeaderTextColour(), {20, 6, 18, 18});
 
         if (m_contentIsOver)
         {
-            g.setColour(juce::Colours::white);
+            g.setColour(m_editViewState.m_applicationState.getPrimeColour());
             g.drawRect (getLocalBounds ());
         }
     }
@@ -641,8 +642,6 @@ void TrackHeaderComponent::resized()
     area.removeFromLeft(45);
     area.removeFromTop (6);
     m_trackName.setBounds(area);
-
-    // AutomationLanes
     auto* trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
     if (trackInfo == nullptr)
         return;

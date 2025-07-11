@@ -49,10 +49,9 @@ TimeLineComponent::~TimeLineComponent()
 
 void TimeLineComponent::paint(juce::Graphics& g)
 {
-    g.setColour(juce::Colour(0xff555555));
+    g.setColour(m_evs.m_applicationState.getTimeLineBackGroundColour());
+    g.fillAll();
     g.setFont(12);
-
-    g.setColour(juce::Colour(0xffffffff));
     double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
     double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
 

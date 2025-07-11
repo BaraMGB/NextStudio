@@ -48,7 +48,7 @@ public:
 
     juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
     void updatePluginLists();
-    juce::Array<juce::PluginDescription>& getPluginList() 
+    juce::Array<juce::PluginDescription>& getPluginList()
     {
         if (m_isInstrumentList)
             return m_instruments;
@@ -113,7 +113,7 @@ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InstrumentEffectTable)
 //----------------------------------------------------------------------------------------------------
 
 
-class InstrumentEffectChooser : public juce::Component 
+class InstrumentEffectChooser : public juce::Component
                      , public juce::ChangeListener
 {
 public:
@@ -126,7 +126,7 @@ public:
 
     void paint (juce::Graphics & g) override
     {
-        g.fillAll(m_appState.getMenuBackgroundColour());
+        g.fillAll(m_appState.getBackgroundColour2());
         g.setColour(m_appState.getBorderColour());
         g.drawHorizontalLine(m_searchField.getY(), 0, getWidth());
     }

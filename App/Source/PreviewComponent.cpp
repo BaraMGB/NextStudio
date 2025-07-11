@@ -116,7 +116,7 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
 
     g.setColour (m_avs.getBorderColour());
     g.fillRect(area.removeFromTop(1));
-    g.setColour (m_avs.getMenuBackgroundColour());
+    g.setColour (m_avs.getBackgroundColour2());
     g.fillRect (area);
 
     g.setColour(m_avs.getBorderColour());

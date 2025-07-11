@@ -26,8 +26,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
    : m_appState(appState) 
 {
-    m_searchField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
-    m_searchField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getMenuBackgroundColour().darker(0.3f));
+    m_searchField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());
+    m_searchField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getBackgroundColour1().darker(0.3f));
     m_searchField.setColour(juce::TextEditor::ColourIds::outlineColourId, m_appState.getBorderColour());
     m_searchField.setColour(juce::TextEditor::ColourIds::textColourId, m_appState.getTextColour());
     m_searchField.setColour(juce::TextEditor::ColourIds::highlightColourId, m_appState.getPrimeColour());

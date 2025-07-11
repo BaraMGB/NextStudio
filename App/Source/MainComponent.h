@@ -114,6 +114,31 @@ private:
             m_edit->deleteTrack (t);
     }
 
+    void updateTheme()
+    {
+        GUIHelpers::log("update theme");
+        getLookAndFeel().setColour(juce::AlertWindow::backgroundColourId, m_applicationState.getBackgroundColour1());
+        getLookAndFeel().setColour(juce::AlertWindow::textColourId, m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::AlertWindow::outlineColourId, m_applicationState.getBorderColour());
+        getLookAndFeel().setColour(juce::Label::textColourId, m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::ComboBox::ColourIds::textColourId, m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::TabbedButtonBar::ColourIds::tabTextColourId, m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::TabbedButtonBar::ColourIds::frontTextColourId, m_applicationState.getPrimeColour());
+        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::textColourId , m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_applicationState.getBackgroundColour2());
+        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::outlineColourId , m_applicationState.getBorderColour());
+        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::highlightColourId , m_applicationState.getPrimeColour());
+        getLookAndFeel().setColour(juce::TableListBox::textColourId, m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::DrawableButton::textColourId , m_applicationState.getButtonTextColour());
+        getLookAndFeel().setColour(juce::DrawableButton::textColourOnId, m_applicationState.getButtonTextColour());
+
+        if (m_editComponent)
+            m_editComponent->updateButtonIcons();
+        if (m_header)
+            m_header->updateIcons();
+
+        repaint();
+    }
 
     ApplicationViewState &                              m_applicationState;
     NextLookAndFeel                                     m_nextLookAndFeel;
@@ -135,7 +160,8 @@ private:
     SplitterComponent                                   m_sidebarSplitter;
 
     [[maybe_unused]] bool                               m_settingsLoaded {false};
-    bool                                                m_saveTemp{false}, m_updateView{false}, m_updateSource{false};
+    bool                                                m_saveTemp{false}, m_updateView{false},
+                                                        m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp {true};
 
     int m_sidebarWidthAtMousedown; 

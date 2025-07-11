@@ -45,7 +45,8 @@ MainComponent::MainComponent(ApplicationViewState &state)
     juce::Desktop::getInstance().setGlobalScaleFactor(scale);
 
     setWantsKeyboardFocus(true);
-    setLookAndFeel(&m_nextLookAndFeel);
+    juce::LookAndFeel::setDefaultLookAndFeel(&m_nextLookAndFeel);
+    updateTheme();
 
     addAndMakeVisible(m_sidebarSplitter);
     m_sidebarSplitter.onMouseDown = [this] ()
@@ -68,10 +69,13 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_commandManager.registerAllCommandsForTarget(m_editComponent.get());
     m_commandManager.registerAllCommandsForTarget(&m_editComponent->getTrackListView());
     m_commandManager.registerAllCommandsForTarget(&m_lowerRange->getPianoRollEditor());
+
+    m_applicationState.m_applicationStateValueTree.addListener(this);
 }
 
 MainComponent::~MainComponent()
 {
+    m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_edit->state.removeListener (this);
     saveSettings();
     m_header->removeAllChangeListeners ();
@@ -542,7 +546,7 @@ bool MainComponent::perform (const juce::ApplicationCommandTarget::InvocationInf
 }
 
 void MainComponent::valueTreePropertyChanged(
-        juce::ValueTree &/* vt */
+        juce::ValueTree & vt
       , const juce::Identifier &property)
 {
     if (property == te::IDs::looping)
@@ -554,21 +558,23 @@ void MainComponent::valueTreePropertyChanged(
 
     if (property == te::IDs::source || property == te::IDs::state)
         markAndUpdate(m_updateSource);
-   
+
+    if (vt.hasType(IDs::ThemeState))
+        markAndUpdate(m_updateTheme);
+
     if (property == te::IDs::lastSignificantChange)
         markAndUpdate(m_saveTemp);
 }
 void MainComponent::handleAsyncUpdate()
 {
     if (compareAndReset (m_saveTemp)  && !compareAndReset(m_updateSource))
-    {
         m_hasUnsavedTemp = true;
-    }
 
     if (compareAndReset(m_updateView))
-    {
         resized();
-    }
+
+    if (compareAndReset(m_updateTheme))
+        updateTheme();
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)

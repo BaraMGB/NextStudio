@@ -55,6 +55,7 @@ public:
     void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
     bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
 
+    void updateButtonColour();
     void buttonClicked(juce::Button* button) override;
 
     void setTrack(tracktion_engine::Track::Ptr track);
@@ -96,7 +97,8 @@ private:
         , m_updateVelocity {false}
         , m_updateNoteEditor{false}
         , m_updateClips{false}
-        , m_updateTracks{false};
+        , m_updateTracks{false}
+        , m_updateButtonColour {false};
 
     juce::Rectangle<int> getHeaderRect();
     juce::Rectangle<int> getToolBarRect();

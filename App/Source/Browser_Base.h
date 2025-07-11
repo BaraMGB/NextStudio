@@ -35,7 +35,7 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        g.fillAll(m_appState.getMenuBackgroundColour());
+        g.fillAll(m_appState.getBackgroundColour2());
         g.setColour(m_appState.getBorderColour());
         g.drawHorizontalLine(getHeight() - 1, 0, getWidth());
     }
@@ -93,7 +93,7 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        g.fillAll(m_applicationViewState.getMenuBackgroundColour());
+        g.fillAll(m_applicationViewState.getBackgroundColour2());
         g.setColour(m_applicationViewState.getBorderColour());
         g.drawHorizontalLine(m_sortingBox.getY() + m_sortingBox.getHeight(), 0, getWidth());
         g.drawHorizontalLine(m_searchField.getY(), 0, getWidth());

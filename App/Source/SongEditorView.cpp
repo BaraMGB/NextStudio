@@ -354,9 +354,7 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                 if (hoveredRectOnLane.contains(curvePointAtMouseTime) && hoveredAutomationPoint == -1)
                     hoveredCurve = curve.nextIndexAfter(mousePosTime);
 
-                juce::Point<float> cp = automationLane->getPointOnAutomationRect(mousePosTime, valueAtMouseTime, getWidth(), x1, x2);
-                cp = cp.translated(0, yPos);
-                hoveredRectOnAutomation = GUIHelpers::getSensibleArea(cp, 8);
+                hoveredRectOnAutomation = GUIHelpers::getSensibleArea(curvePointAtMouseTime, 8);
 
                 automationLane->setHoveredCurve(hoveredCurve);
                 automationLane->setHoveredPoint(hoveredAutomationPoint);

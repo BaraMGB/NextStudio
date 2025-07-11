@@ -22,7 +22,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 
 #include "AudioMidiSettings.h"
-#include "ApplicationViewState.h"
 
 MidiSettings::MidiSettings(tracktion_engine::Engine &engine)
   : m_engine(engine)

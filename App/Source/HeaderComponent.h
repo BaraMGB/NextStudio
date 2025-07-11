@@ -40,6 +40,7 @@ public:
     HeaderComponent(EditViewState &, ApplicationViewState & applicationState, juce::ApplicationCommandManager& commandManager);
     ~HeaderComponent() override;
 
+    void updateIcons();
     void paint(juce::Graphics &g) override;
     void resized() override;
     void buttonClicked(juce::Button* button) override;
@@ -69,7 +70,7 @@ private:
     juce::ApplicationCommandManager & m_commandManager;
     PositionDisplayComponent m_display;
 
-    juce::Colour m_btn_col {0xffdbdbdb};
+    juce::Colour m_btn_col;
 
     juce::File m_loadingFile {};
 

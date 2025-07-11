@@ -202,12 +202,13 @@ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LFOComponent)
 class EnvelopeComponent : public juce::Component
 {
 public:
-    EnvelopeComponent(const juce::String& name, te::Plugin& plugin,
+    EnvelopeComponent(ApplicationViewState& appState, const juce::String& name, te::Plugin& plugin,
                       te::AutomatableParameter::Ptr attackParam,
                       te::AutomatableParameter::Ptr decayParam,
                       te::AutomatableParameter::Ptr sustainParam,
                       te::AutomatableParameter::Ptr releaseParam)
-        : m_name(name)
+        : m_appstate(appState)
+        , m_name(name)
         , m_plugin(plugin)
     {
         m_attackParamComp = std::make_unique<AutomatableParameterComponent>(attackParam, "A");
@@ -232,7 +233,7 @@ public:
     {
         auto area = getLocalBounds();
         auto cornerSize = 10.0f;
-        g.setColour(juce::Colour(0xff242424));
+        g.setColour(m_appstate.getBackgroundColour1());
         GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
 
         auto trackColour = m_plugin.getOwnerTrack()->getColour();
@@ -273,6 +274,7 @@ public:
     }
 
 private:
+    ApplicationViewState& m_appstate;
     juce::Label m_name;
     te::Plugin&     m_plugin;
 
@@ -288,8 +290,9 @@ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeComponent)
 class FilterComponent : public juce::Component
 {
 public:
-    FilterComponent(te::FourOscPlugin& plugin)
+    FilterComponent(te::FourOscPlugin& plugin, ApplicationViewState& appstate)
     : m_plugin(plugin)
+    , m_appstate(appstate)
     {
 
         m_name.setText("FILTER" ,juce::NotificationType::dontSendNotification);
@@ -337,7 +340,7 @@ public:
     {
         auto area = getLocalBounds().reduced(5);
         auto cornerSize = 10.0f;
-        g.setColour(juce::Colour(0xff242424));
+        g.setColour(m_appstate.getBackgroundColour1());
         GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
 
         auto trackColour = m_plugin.getOwnerTrack()->getColour();
@@ -388,6 +391,7 @@ public:
 
 private:
     te::FourOscPlugin& m_plugin;
+    ApplicationViewState& m_appstate;
 
     std::unique_ptr<juce::ComboBox> m_typeCombo;
     std::unique_ptr<juce::ComboBox> m_slopeCombo;
@@ -492,8 +496,8 @@ public:
         }
 
         // ADSR Sliders for Amp Envelope
-        m_ampEnvComponent = std::make_unique<EnvelopeComponent>("AMP ENV",*m_fourOscPlugin, m_fourOscPlugin->ampAttack, m_fourOscPlugin->ampDecay, m_fourOscPlugin->ampSustain, m_fourOscPlugin->ampRelease );
-        m_filterEnvComp = std::make_unique<EnvelopeComponent>("FILTER ENV", *m_plugin,
+        m_ampEnvComponent = std::make_unique<EnvelopeComponent>(m_editViewState.m_applicationState, "AMP ENV",*m_fourOscPlugin, m_fourOscPlugin->ampAttack, m_fourOscPlugin->ampDecay, m_fourOscPlugin->ampSustain, m_fourOscPlugin->ampRelease );
+        m_filterEnvComp = std::make_unique<EnvelopeComponent>(m_editViewState.m_applicationState, "FILTER ENV", *m_plugin,
                                                               m_fourOscPlugin->filterAttack,  // Assumed parameter name
                                                               m_fourOscPlugin->filterDecay,   // Assumed parameter name
                                                               m_fourOscPlugin->filterSustain, // Assumed parameter name
@@ -501,7 +505,7 @@ public:
         mainPanel->addAndMakeVisible(*m_filterEnvComp);
         mainPanel->addAndMakeVisible(m_ampEnvComponent.get());
         // Filter Sliders
-        m_filterComponent = std::make_unique<FilterComponent>(*m_fourOscPlugin);
+        m_filterComponent = std::make_unique<FilterComponent>(*m_fourOscPlugin, m_editViewState.m_applicationState);
         mainPanel->addAndMakeVisible(m_filterComponent.get());
 
         m_tabComponent->addTab("Main", juce::Colour(0x00ffffff), mainPanel.release(), true);
@@ -614,10 +618,12 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xff333333));
+        auto background1 = m_editViewState.m_applicationState.getBackgroundColour1();
+        auto background2 = m_editViewState.m_applicationState.getBackgroundColour2();
+        g.fillAll(background2);
 
 
-        g.setColour(juce::Colour(0xff4b4b4b));
+        g.setColour(background1);
 
         juce::Colour colour;
 
@@ -631,7 +637,7 @@ public:
         g.setColour(colour);
         GUIHelpers::drawRoundedRectWithSide(g, m_rectsToPaint[0].expanded(1,1).toFloat(), 10, true, true, true, true);
 
-        g.setColour(juce::Colour(0xff4b4b4b));
+        g.setColour(background1);
         for (auto rect : m_rectsToPaint)
         {
             GUIHelpers::drawRoundedRectWithSide(g, rect.toFloat(), 10, true, true, true, true);

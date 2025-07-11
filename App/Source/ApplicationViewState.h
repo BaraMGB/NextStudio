@@ -57,14 +57,14 @@ namespace IDs
     DECLARE_ID (PrimeColour)
     DECLARE_ID (BorderColour)
     DECLARE_ID (MainFrameColour)
-    DECLARE_ID (menuBackgroundColour)
+    DECLARE_ID (BackgroundColour1)
 
 
     DECLARE_ID (trackBackgroundColour)
     DECLARE_ID (trackHeaderBackgroundColour)
     DECLARE_ID (trackHeaderTextColour)
-    DECLARE_ID (songEditorBackground)
-    DECLARE_ID (trackListBackground)
+    DECLARE_ID (BackgroundColour2)
+    DECLARE_ID (BackgroundColour3)
 
 
     DECLARE_ID (timeLineStrokeColour)
@@ -72,6 +72,9 @@ namespace IDs
     DECLARE_ID (timeLineTextColour)
     DECLARE_ID (timeLineBackgroundColour)
     DECLARE_ID (ButtonBackgroundColour)
+    DECLARE_ID (ButtonTextColour)
+    DECLARE_ID (MenuTextColour)
+
     DECLARE_ID (Behavior)
     DECLARE_ID (AutoSaveInterval)
     DECLARE_ID (SidebarWidth)
@@ -187,11 +190,15 @@ public:
         m_folderTrackIndent.referTo (themeState, IDs::FolderTrackIndent, nullptr, 10);
 
 
-        m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffffff00).toString());
-        m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff9dae9d).toString());
-        m_menuBackgroundColour.referTo (themeState, IDs::menuBackgroundColour, nullptr, juce::Colour(0xff183818).toString());
+        m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xff369666).toString());
+        m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff555555).toString());
+        m_guiBackground1.referTo (themeState, IDs::BackgroundColour1, nullptr, juce::Colour(0xff262926).toString());
+        m_guiBackground2.referTo(themeState, IDs::BackgroundColour2, nullptr, juce::Colour(0xff334433).toString());
+        m_guiBackground3.referTo(themeState, IDs::BackgroundColour3, nullptr, juce::Colour(0xff334433).toString());
         m_mainFrameColour.referTo (themeState, IDs::MainFrameColour, nullptr, juce::Colour(0xff343f34).toString());
         m_buttonBackgroundColour.referTo(themeState, IDs::ButtonBackgroundColour, nullptr, juce::Colour(0xff000000).toString());
+        m_buttonTextColour.referTo(themeState, IDs::ButtonTextColour, nullptr, juce::Colour(0xff000000).toString());
+        m_textColour.referTo(themeState, IDs::MenuTextColour, nullptr, juce::Colour(0xff000000).toString());
 
         m_timeLine_strokeColour.referTo(themeState, IDs::timeLineStrokeColour, nullptr,juce::Colour(0xffffffff).toString());
         m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr,juce::Colour(0x50000000).toString());
@@ -201,8 +208,6 @@ public:
         m_trackBackgroundColour.referTo(themeState, IDs::trackBackgroundColour, nullptr, juce::Colour(0xff334433).toString());
         m_trackHeaderBackgroundColour.referTo(themeState, IDs::trackHeaderBackgroundColour, nullptr, juce::Colour(0xff334433).toString());
         m_trackHeaderTextColour.referTo(themeState, IDs::trackHeaderTextColour, nullptr, juce::Colour(0xff334433).toString());
-        m_songEditorBackground.referTo(themeState, IDs::songEditorBackground, nullptr, juce::Colour(0xff334433).toString());
-        m_trackListBackground.referTo(themeState, IDs::trackListBackground, nullptr, juce::Colour(0xff334433).toString());
 
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
@@ -215,13 +220,19 @@ public:
         themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
         themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
         themeState.setProperty(IDs::MainFrameColour, juce::var(m_mainFrameColour), nullptr);
-        themeState.setProperty(IDs::menuBackgroundColour, juce::var(m_menuBackgroundColour), nullptr);
+        themeState.setProperty(IDs::BackgroundColour1, juce::var(m_guiBackground1), nullptr);
+        themeState.setProperty(IDs::BackgroundColour2, juce::var(m_guiBackground2), nullptr);
+        themeState.setProperty(IDs::BackgroundColour3, juce::var(m_guiBackground3), nullptr);
+        themeState.setProperty(IDs::MenuTextColour, juce::var(m_textColour), nullptr);
         themeState.setProperty(IDs::timeLineStrokeColour, juce::var(m_timeLine_strokeColour), nullptr);
         themeState.setProperty(IDs::timeLineShadowShade, juce::var(m_timeLine_shadowShade), nullptr);
         themeState.setProperty(IDs::timeLineTextColour, juce::var(m_timeLine_textColour), nullptr);
         themeState.setProperty(IDs::timeLineBackgroundColour, juce::var(m_timeLine_background), nullptr);
         themeState.setProperty(IDs::ButtonBackgroundColour, juce::var(m_buttonBackgroundColour), nullptr);
+        themeState.setProperty(IDs::ButtonTextColour, juce::var(m_buttonTextColour), nullptr);
         themeState.setProperty(IDs::trackBackgroundColour, juce::var(m_trackBackgroundColour), nullptr);
+        themeState.setProperty(IDs::trackHeaderBackgroundColour, juce::var(m_trackHeaderBackgroundColour), nullptr);
+        themeState.setProperty(IDs::trackHeaderTextColour, juce::var(m_trackHeaderTextColour), nullptr);
 
         behavior.setProperty(IDs::AutoSaveInterval, juce::var(m_autoSaveInterval), nullptr);
         behavior.setProperty(IDs::FolderTrackIndent, juce::var(m_folderTrackIndent), nullptr);
@@ -235,9 +246,17 @@ public:
         {
             return juce::Colour::fromString(juce::String(m_primeColour));
         }
-        juce::Colour getMenuBackgroundColour()
+        juce::Colour getBackgroundColour1()
         {
-            return juce::Colour::fromString(juce::String(m_menuBackgroundColour));
+            return juce::Colour::fromString(juce::String(m_guiBackground1));
+        }
+        juce::Colour getBackgroundColour2()
+        {
+            return juce::Colour::fromString(juce::String(m_guiBackground2));
+        }
+        juce::Colour getBackgroundColour3()
+        {
+            return juce::Colour::fromString(juce::String(m_guiBackground3));
         }
         juce::Colour getMainFrameColour()
         {
@@ -245,11 +264,19 @@ public:
         }
         juce::Colour getTextColour()
         {
-            return juce::Colours::beige;
+            return juce::Colour::fromString(juce::String(m_textColour));
+        }
+        juce::Colour getButtonTextColour()
+        {
+            return juce::Colour::fromString(juce::String(m_buttonTextColour));
         }
         juce::Colour getButtonBackgroundColour()
         {
             return juce::Colour::fromString(juce::String(m_buttonBackgroundColour));
+        }
+        juce::Colour getTimeLineBackGroundColour()
+        {
+            return juce::Colour::fromString(juce::String(m_timeLine_background));
         }
         juce::Colour getTimeLineStrokeColour()
         {
@@ -262,6 +289,14 @@ public:
         juce::Colour getTimeLineTextColour()
         {
             return juce::Colour::fromString(juce::String(m_timeLine_textColour));
+        }
+        juce::Colour getTrackHeaderBackgroundColour()
+        {
+            return juce::Colour::fromString(juce::String(m_trackHeaderBackgroundColour));
+        }
+        juce::Colour getTrackHeaderTextColour()
+        {
+            return juce::Colour::fromString(juce::String(m_trackHeaderTextColour));
         }
         juce::Colour getTrackBackgroundColour()
         {
@@ -424,11 +459,13 @@ public:
                                     m_samplesDir,
                                     m_renderDir,
                                     m_projectsDir,
-                                    m_menuBackgroundColour,
+                                    m_guiBackground1,
                                     m_mainFrameColour,
                                     m_primeColour,
                                     m_borderColour,
                                     m_buttonBackgroundColour,
+                                    m_buttonTextColour,
+                                    m_textColour,
                                     m_timeLine_strokeColour,
                                     m_timeLine_background,
                                     m_timeLine_shadowShade,
@@ -436,8 +473,8 @@ public:
                                     m_trackBackgroundColour,
                                     m_trackHeaderBackgroundColour,
                                     m_trackHeaderTextColour,
-                                    m_songEditorBackground,
-                                    m_trackListBackground;
+                                    m_guiBackground2,
+                                    m_guiBackground3;
     juce::CachedValue<int>          m_windowXpos,
                                     m_windowYpos,
                                     m_windowWidth,

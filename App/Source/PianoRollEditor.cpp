@@ -38,32 +38,28 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
 {
     setWantsKeyboardFocus(true);
     evs.m_edit.state.addListener (this);
+    evs.m_applicationState.m_applicationStateValueTree.addListener(this);
 
     addAndMakeVisible (m_timeLine);
     addAndMakeVisible (m_playhead);
     m_playhead.setAlwaysOnTop (true);
 
-    GUIHelpers::setDrawableOnButton(m_selectionBtn, BinaryData::select_icon_svg, juce::Colour(0xffffffff));
     m_selectionBtn.setName("select");
     m_selectionBtn.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
     m_selectionBtn.addListener(this);
 
-    GUIHelpers::setDrawableOnButton(m_drawBtn, BinaryData::pencil_svg, juce::Colour(0xffffffff));
     m_drawBtn.setName("draw");
     m_drawBtn.setTooltip(GUIHelpers::translate("draw mode", m_editViewState.m_applicationState));
     m_drawBtn.addListener(this);
 
-    GUIHelpers::setDrawableOnButton(m_rangeSelectBtn, BinaryData::select_timerange_svg, juce::Colour(0xffffffff));
     m_rangeSelectBtn.setName("range select");
     m_rangeSelectBtn.setTooltip(GUIHelpers::translate("range select mode", m_editViewState.m_applicationState));
     m_rangeSelectBtn.addListener(this);
 
-    GUIHelpers::setDrawableOnButton(m_erasorBtn, BinaryData::rubber_svg, juce::Colour(0xffffffff));
     m_erasorBtn.setName("erasor");
     m_erasorBtn.setTooltip(GUIHelpers::translate("erasor mode", m_editViewState.m_applicationState));
     m_erasorBtn.addListener(this);
 
-    GUIHelpers::setDrawableOnButton(m_splitBtn, BinaryData::split_svg, juce::Colour(0xffffffff));
     m_splitBtn.setName("split");
     m_splitBtn.setTooltip(GUIHelpers::translate("split clips", m_editViewState.m_applicationState));
     m_splitBtn.addListener(this);
@@ -74,6 +70,9 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
     m_toolBar.addButton(&m_rangeSelectBtn, 1);
     m_toolBar.addButton(&m_erasorBtn, 1);
     m_toolBar.addButton(&m_splitBtn, 1);
+
+
+    updateButtonColour();
 }
 PianoRollEditor::~PianoRollEditor()
 {
@@ -82,6 +81,7 @@ PianoRollEditor::~PianoRollEditor()
     m_rangeSelectBtn.removeListener(this);
     m_drawBtn.removeListener(this);
     m_selectionBtn.removeListener(this);
+    m_editViewState.m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_editViewState.m_edit.state.removeListener (this);
 }
 void PianoRollEditor::paint(juce::Graphics& g)
@@ -89,11 +89,11 @@ void PianoRollEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::pink);
     g.fillAll();
 
-    g.setColour(m_editViewState.m_applicationState.getMenuBackgroundColour());
+    g.setColour(m_editViewState.m_applicationState.getBackgroundColour1());
     g.fillRect(getHeaderRect());
     g.fillRect(getFooterRect());
 
-    g.setColour(juce::Colour(0xff272727));
+    g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
     g.fillRect(getTimeLineRect());
     g.fillRect(getTimelineHelperRect());
     g.fillRect(getKeyboardRect());
@@ -104,6 +104,7 @@ void PianoRollEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::white);
     if (m_pianoRollViewPort == nullptr)
         g.drawText("select a clip for edit midi", getMidiEditorRect(), juce::Justification::centred);
+
 }
 void PianoRollEditor::paintOverChildren(juce::Graphics &g)
 {
@@ -315,6 +316,15 @@ bool PianoRollEditor::perform (const juce::ApplicationCommandTarget::InvocationI
     return true;
 }
 
+void PianoRollEditor::updateButtonColour()
+{
+    auto buttonColour = m_editViewState.m_applicationState.getButtonTextColour();
+    GUIHelpers::setDrawableOnButton(m_selectionBtn, BinaryData::select_icon_svg, buttonColour);
+    GUIHelpers::setDrawableOnButton(m_drawBtn, BinaryData::pencil_svg, buttonColour);
+    GUIHelpers::setDrawableOnButton(m_rangeSelectBtn, BinaryData::select_timerange_svg, buttonColour);
+    GUIHelpers::setDrawableOnButton(m_erasorBtn, BinaryData::rubber_svg, buttonColour);
+    GUIHelpers::setDrawableOnButton(m_splitBtn, BinaryData::split_svg, buttonColour);
+}
 void PianoRollEditor::buttonClicked(juce::Button* button) 
 {
     if (m_pianoRollViewPort == nullptr)
@@ -383,6 +393,12 @@ void PianoRollEditor::valueTreePropertyChanged(
     {
         markAndUpdate(m_updateKeyboard);
     }
+
+    GUIHelpers::log(treeWhosePropertyHasChanged.toXmlString());
+    if (treeWhosePropertyHasChanged.hasType(IDs::ThemeState))
+    {
+        markAndUpdate(m_updateButtonColour);
+    }
 }
 void PianoRollEditor::valueTreeChildAdded(juce::ValueTree&,
                                                    juce::ValueTree& property)
@@ -404,6 +420,10 @@ void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree& ,
 }
 void PianoRollEditor::handleAsyncUpdate()
 {
+    if (compareAndReset(m_updateButtonColour))
+    {
+        updateButtonColour();
+    }
     if (m_keyboard != nullptr && compareAndReset(m_updateKeyboard))
         m_keyboard->resized();
 

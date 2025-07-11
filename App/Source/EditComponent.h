@@ -111,6 +111,7 @@ public:
     TrackListView& getTrackListView() {return m_trackListView;}
     TimeLineComponent& getTimeLineComponent() {return m_timeLine;}
     void saveTempFile();
+    void updateButtonIcons();
 
 private:
 
@@ -141,32 +142,33 @@ private:
 
 
     void trimMidiNotesToClipStart()
-{
+    {
     auto& edit = m_editViewState.m_edit;
 
-    for (auto track : te::getAllTracks(edit))
-    {
-        if (auto audioTrack = dynamic_cast<te::AudioTrack*>(track))
+        for (auto track : te::getAllTracks(edit))
         {
-            if (audioTrack->state.getProperty(IDs::isMidiTrack))
+            if (auto audioTrack = dynamic_cast<te::AudioTrack*>(track))
             {
-                for (auto clip : audioTrack->getClips())
+                if (audioTrack->state.getProperty(IDs::isMidiTrack))
                 {
-                    if (auto midiClip = dynamic_cast<te::MidiClip*>(clip))
+                    for (auto clip : audioTrack->getClips())
                     {
-                        auto& sequence = midiClip->getSequence();
-                        auto clipStartBeat =  - midiClip->getOffsetInBeats().inBeats();
-                        auto& um = edit.getUndoManager();
-
-                        for (auto note : sequence.getNotes())
+                        if (auto midiClip = dynamic_cast<te::MidiClip*>(clip))
                         {
-                            if (note->getStartBeat().inBeats() < clipStartBeat)
+                            auto& sequence = midiClip->getSequence();
+                            auto clipStartBeat =  - midiClip->getOffsetInBeats().inBeats();
+                            auto& um = edit.getUndoManager();
+
+                            for (auto note : sequence.getNotes())
                             {
-                                // Startpunkt der Note auf den Clip-Start setzen
-                                auto newStartBeat = tracktion::BeatPosition::fromBeats(clipStartBeat);
-                                auto newLength = note->getEndBeat() - newStartBeat;
-                                note->setStartAndLength(newStartBeat, newLength, &um);
-                                GUIHelpers::log("Attention: note start corrected!");
+                                if (note->getStartBeat().inBeats() < clipStartBeat)
+                                {
+                                    // Startpunkt der Note auf den Clip-Start setzen
+                                    auto newStartBeat = tracktion::BeatPosition::fromBeats(clipStartBeat);
+                                    auto newLength = note->getEndBeat() - newStartBeat;
+                                    note->setStartAndLength(newStartBeat, newLength, &um);
+                                    GUIHelpers::log("Attention: note start corrected!");
+                                }
                             }
                         }
                     }
@@ -174,7 +176,7 @@ private:
             }
         }
     }
-}
+
 
     juce::Rectangle<int> getToolBarRect();
     juce::Rectangle<int> getEditorHeaderRect();

@@ -42,6 +42,7 @@ MidiViewport::~MidiViewport() = default;
 
 void MidiViewport::paint(juce::Graphics& g)
 {
+    g.fillAll(m_evs.m_applicationState.getTrackBackgroundColour());
     drawKeyLines(g);
 
     drawBarsAndBeatLines(g, juce::Colours::black);
@@ -59,6 +60,18 @@ void MidiViewport::paint(juce::Graphics& g)
     if (areNotesDragged())
         for (auto sn : getSelectedNotes())
             drawDraggedNotes(g, sn, m_selectedEvents->clipForEvent(sn));
+}
+void MidiViewport::drawKeyLines(juce::Graphics& g) const
+{
+    int lastNote = (getHeight() / getKeyWidth()) + getStartKey();
+
+    for (auto i = static_cast<int>(getStartKey()); i <= lastNote; i++)
+    {
+        g.setColour(juce::MidiMessage::isMidiNoteBlack(i)
+                        ? juce::Colour(0x22000000)
+                        : juce::Colour(0x22ffffff));
+        g.fillRect(getNoteRect(i, 0, getWidth()).reduced(0, 1));
+    }
 }
 void MidiViewport::resized()
 {
@@ -232,18 +245,6 @@ void MidiViewport::drawClipRange(
     g.fillRect(clipStartX + 1, 0, clipEndX - clipStartX - 2, getHeight());
     g.setColour(midiClip->getColour().withAlpha(0.1f));
     g.fillRect(clipStartX + 1, 0, clipEndX - clipStartX - 2, getHeight());
-}
-void MidiViewport::drawKeyLines(juce::Graphics& g) const
-{
-    int lastNote = (getHeight() / getKeyWidth()) + getStartKey();
-
-    for (auto i = static_cast<int>(getStartKey()); i <= lastNote; i++)
-    {
-        g.setColour(juce::MidiMessage::isMidiNoteBlack(i)
-                        ? juce::Colour(0x11ffffff)
-                        : juce::Colour(0x22ffffff));
-        g.fillRect(getNoteRect(i, 0, getWidth()).reduced(0, 1));
-    }
 }
 
 void MidiViewport::mouseMove(const juce::MouseEvent& e)
@@ -766,7 +767,6 @@ juce::Array<te::MidiClip*> MidiViewport::getMidiClipsOfTrack()
 void MidiViewport::drawBarsAndBeatLines(juce::Graphics& g,
                                                      juce::Colour colour)
 {
-    g.setColour(colour);
     auto x1 = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats();
     auto x2 = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getEnd().inBeats();
     GUIHelpers::drawBarsAndBeatLines(g, m_evs, x1, x2, getLocalBounds().toFloat());

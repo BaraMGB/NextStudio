@@ -48,7 +48,7 @@ public:
 class ParameterComponent : public juce::Component
 {
 public:
-    explicit ParameterComponent(te::AutomatableParameter& ap);
+    explicit ParameterComponent(te::AutomatableParameter& ap, ApplicationViewState& appstate);
     ~ParameterComponent() override= default;
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -61,6 +61,7 @@ public:
 private:
 
     te::AutomatableParameter& m_parameter;
+    ApplicationViewState& m_appState;
     juce::Label m_parameterName;
     AutomatableSliderComponent m_parameterSlider;
 
@@ -376,7 +377,7 @@ public:
     [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
     te::Plugin::Ptr getPlugin()
     {
-        return plugin;
+        return m_plugin;
     }
 
 private:
@@ -386,8 +387,8 @@ private:
     juce::Label name;
     int m_headerWidth {20};
     [[maybe_unused]] int m_neededWidthFactor {1};
-    EditViewState& editViewState;
-    te::Plugin::Ptr plugin;
+    EditViewState& m_evs;
+    te::Plugin::Ptr m_plugin;
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
     BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};

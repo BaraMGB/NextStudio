@@ -38,8 +38,8 @@ PathComponent::PathComponent(juce::File dir, ApplicationViewState& appState)
         GUIHelpers::log("button");
         setDir(m_currentPath.getParentDirectory()); 
     };
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getMenuBackgroundColour());
-    m_currentPathField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getMenuBackgroundColour().darker(0.3f));
+    m_currentPathField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());
+    m_currentPathField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getBackgroundColour1().darker(0.3f));
     m_currentPathField.setColour(juce::TextEditor::ColourIds::outlineColourId, m_appState.getBorderColour());
     m_currentPathField.setColour(juce::TextEditor::ColourIds::textColourId, m_appState.getTextColour());
     m_currentPathField.setColour(juce::TextEditor::ColourIds::highlightColourId, m_appState.getPrimeColour());

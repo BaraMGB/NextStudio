@@ -51,6 +51,8 @@ void TrackLaneComponent::paint(juce::Graphics& g)
         auto area = getLocalBounds().removeFromTop(trackHeight).toFloat();
         auto x1beats = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
         auto x2beats = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+        g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
+        g.fillRect(area);
         GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, x1beats, x2beats, area);
     }
 }

@@ -127,6 +127,9 @@ void GUIHelpers::drawClip(juce::Graphics& g, juce::Component& parent, EditViewSt
     {
         drawMidiClip(g, evs, mc, contentRect, displayedRect, color, x1Beat, x2beat);
     }
+
+    g.setColour(evs.m_applicationState.getBorderColour());
+    g.drawRect(clipRect.toNearestInt());
 }
 
 void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,

@@ -62,7 +62,7 @@ void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int w
     juce::Rectangle<int> bounds (0,0, width, height);
     auto textColour = m_applicationViewState.getTextColour();
     auto file = m_contentList[rowNum];
-    g.setColour (rowNum%2==0 ? m_applicationViewState.getMenuBackgroundColour() : m_applicationViewState.getMenuBackgroundColour().brighter(0.05f));
+    g.setColour (rowNum%2==0 ? m_applicationViewState.getBackgroundColour1() : m_applicationViewState.getBackgroundColour1().brighter(0.05f));
     g.fillRect(bounds);
     g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
