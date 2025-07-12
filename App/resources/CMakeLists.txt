@@ -55,6 +55,5 @@ juce_add_binary_data(Pictures SOURCES
     INTIcon.svg
     menu.svg
     renderButton.svg
-    IBMPlexSans-Regular.ttf
-    JetBrainsMono-ExtraLight.ttf
+    
     )
