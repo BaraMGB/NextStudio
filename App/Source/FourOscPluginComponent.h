@@ -247,6 +247,9 @@ public:
         auto header = area.removeFromLeft(15);
         g.setColour(trackColour);
         GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
+        
+        g.setColour(m_appstate.getBorderColour());
+        GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().toFloat(), cornerSize, true, false, true, false);
     }
 
     void resized() override
@@ -354,6 +357,9 @@ public:
         auto header = area.removeFromLeft(15);
         g.setColour(trackColour);
         GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
+
+        g.setColour(m_appstate.getBorderColour());
+        GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, false, true, false);
     }
 
     void resized() override

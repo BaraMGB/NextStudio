@@ -31,14 +31,14 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace te = tracktion_engine;
 class EditViewState;
-enum class Tool 
+enum class Tool
 {
     pointer,
     draw,
     range,
     eraser,
     knife,
-    lasso,      
+    lasso,
     timestretch
 };
 enum KeyPressCommandIDs
@@ -79,7 +79,7 @@ enum KeyPressCommandIDs
     selectAllClips,
     selectAllTracks,
     selectAllClipsOnTrack,
-     
+
     loopAroundSelection,
     loopOn,
     loopOff,
@@ -93,7 +93,7 @@ enum KeyPressCommandIDs
     snapToGrid,
     snapToTime,
     snapToOff,
-    
+
     deleteSelectedTracks,
     duplicateSelectedTracks,
 
@@ -107,7 +107,7 @@ enum KeyPressCommandIDs
     nudgeNotesRight,
     nudgeNotesOctaveUp,
     nudgeNotesOctaveDown,
-    
+
     transposeClipDown,
     transposeClipUp,
     reverseClip,
@@ -115,7 +115,7 @@ enum KeyPressCommandIDs
     undo,
     redo,
 
-    debugOutputEdit 
+    debugOutputEdit
 };
 
 namespace Helpers
@@ -202,11 +202,19 @@ namespace GUIHelpers
     void drawWaveform(juce::Graphics& g, EditViewState& evs, te::AudioClipBase& c, SimpleThumbnail& thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
     void drawChannels(juce::Graphics& g, SimpleThumbnail& thumb, juce::Rectangle<float> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
 
+    void strokeRoundedRectWithSide(
+        juce::Graphics &g
+      , juce::Rectangle<float> area
+      , float cornerSize
+      , bool topLeft
+      , bool topRight
+      , bool bottomLeft
+      , bool bottomRight);
     void drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area
       , float cornerSize
-      , bool topLeft 
+      , bool topLeft
       , bool topRight
       , bool bottomLeft
       , bool bottomRight);
@@ -220,7 +228,7 @@ namespace GUIHelpers
           , double x1beats
           , double x2beats
           , juce::Rectangle<float> boundingRect, bool printDescription=false);
-    
+
     void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke=1);
     // void moveView(EditViewState& evs, double newBeatPos);
     void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c, juce::String timeLineID, int width);
@@ -232,7 +240,7 @@ namespace GUIHelpers
                              double x2beats,
                              const juce::Rectangle<float>& boundingRect,
                              const juce::Colour& shade);
-    struct SelectedTimeRange 
+    struct SelectedTimeRange
     {
         juce::Array<te::Track*> selectedTracks;
         juce::Array<te::AutomatableParameter*> selectedAutomations;
@@ -263,7 +271,7 @@ namespace GUIHelpers
                               juce::Rectangle<float> area,
                               const juce::Colour& colour,
                               const juce::Colour& shade);
-    
+
     void drawLogo (juce::Graphics& g, juce::Colour colour, float scale);
 
      juce::String translate (juce::String stringToTranslate, ApplicationViewState& aps);
@@ -308,7 +316,7 @@ namespace EngineHelpers
     bool renderCliptoNewTrack(EditViewState & evs, te::Clip::Ptr clip);
     bool renderToNewTrack(EditViewState& evs, juce::Array<tracktion_engine::Track*> tracksToRender, tracktion::TimeRange range);
 
-    void updateMidiInputs(EditViewState& evs, te::Track::Ptr track);    
+    void updateMidiInputs(EditViewState& evs, te::Track::Ptr track);
     te::MidiInputDevice* getVirtuelMidiInputDevice(te::Edit& edit);
     tracktion::core::TimePosition getTimePos(double t);
     te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);
@@ -334,7 +342,7 @@ namespace EngineHelpers
     void selectAllClipsOnTrack(te::SelectionManager& sm, te::AudioTrack& at);
     void moveAutomationOrCopy(const juce::Array<te::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy);
 	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
-    
+
     te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr);
 
     void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs);
@@ -417,17 +425,17 @@ namespace EngineHelpers
 
     std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree (
             te::Engine& engine);
-    
+
     struct CompareNameForward{
-        static int compareElements (const juce::PluginDescription& first, 
+        static int compareElements (const juce::PluginDescription& first,
                                               const juce::PluginDescription& second)
-        {   
+        {
             return first.name.compareNatural(second.name);
         }
     };
 
     struct CompareNameBackwards{
-        static int compareElements(const juce::PluginDescription& first, 
+        static int compareElements(const juce::PluginDescription& first,
                                                const juce::PluginDescription& second)
         {
             return second.name.compareNatural(first.name);
@@ -439,7 +447,7 @@ namespace EngineHelpers
         static int compareElements(const juce::PluginDescription& first,
                                                          const juce::PluginDescription& second)
         {
-            return first.pluginFormatName.compareNatural(second.pluginFormatName);   
+            return first.pluginFormatName.compareNatural(second.pluginFormatName);
         }
     };
 

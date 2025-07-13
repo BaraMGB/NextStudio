@@ -104,7 +104,7 @@ void RackView::resized()
 
     if (m_track != nullptr)
     {
-        auto firstAdder = std::make_unique<AddButton>(m_track);
+        auto firstAdder = std::make_unique<AddButton>(m_track, m_evs.m_applicationState);
         addAndMakeVisible(firstAdder.get());
         firstAdder->addListener(this);
         firstAdder->setButtonText("+");
@@ -118,7 +118,7 @@ void RackView::resized()
 
             area.removeFromLeft(5);
 
-            auto adder = std::make_unique<AddButton>(m_track);
+            auto adder = std::make_unique<AddButton>(m_track, m_evs.m_applicationState);
             adder->setPlugin(p->getPlugin());
             addAndMakeVisible(adder.get());
             adder->setButtonText("+");

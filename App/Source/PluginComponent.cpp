@@ -76,10 +76,13 @@ RackItemView::~RackItemView()
 void RackItemView::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds();
-    auto cornerSize = 10.0f;
-    g.setColour(m_evs.m_applicationState.getBackgroundColour2());
+    area.reduce(0, 1);
+    auto cornerSize = 7.0f;
+    auto backgroundColour = m_evs.m_applicationState.getBackgroundColour2();
+    g.setColour(backgroundColour);
     GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
 
+    auto borderRect = area;
 
     auto trackCol = m_plugin->isEnabled () ?
                        getTrackColour() : getTrackColour().darker (0.7f);
@@ -100,6 +103,9 @@ void RackItemView::paint (juce::Graphics& g)
         g.setColour (juce::Colour(0xffffffff));
         g.drawRect (getLocalBounds ());
     }
+
+    g.setColour(m_evs.m_applicationState.getBorderColour());
+    GUIHelpers::strokeRoundedRectWithSide(g, borderRect.toFloat(), cornerSize, true, false, true, false);
 }
 
 void RackItemView::mouseDown (const juce::MouseEvent& e)

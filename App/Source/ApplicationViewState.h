@@ -190,24 +190,24 @@ public:
         m_folderTrackIndent.referTo (themeState, IDs::FolderTrackIndent, nullptr, 10);
 
 
-        m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xff369666).toString());
-        m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff555555).toString());
-        m_guiBackground1.referTo (themeState, IDs::BackgroundColour1, nullptr, juce::Colour(0xff262926).toString());
-        m_guiBackground2.referTo(themeState, IDs::BackgroundColour2, nullptr, juce::Colour(0xff334433).toString());
-        m_guiBackground3.referTo(themeState, IDs::BackgroundColour3, nullptr, juce::Colour(0xff334433).toString());
-        m_mainFrameColour.referTo (themeState, IDs::MainFrameColour, nullptr, juce::Colour(0xff343f34).toString());
-        m_buttonBackgroundColour.referTo(themeState, IDs::ButtonBackgroundColour, nullptr, juce::Colour(0xff000000).toString());
-        m_buttonTextColour.referTo(themeState, IDs::ButtonTextColour, nullptr, juce::Colour(0xff000000).toString());
-        m_textColour.referTo(themeState, IDs::MenuTextColour, nullptr, juce::Colour(0xff000000).toString());
+        m_primeColour.referTo (themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffe5cf03).toString());
+        m_borderColour.referTo (themeState, IDs::BorderColour, nullptr, juce::Colour(0xff000000).toString());
+        m_guiBackground1.referTo (themeState, IDs::BackgroundColour1, nullptr, juce::Colour(0xff191e1c).toString());
+        m_guiBackground2.referTo(themeState, IDs::BackgroundColour2, nullptr, juce::Colour(0xff2f3030).toString());
+        m_guiBackground3.referTo(themeState, IDs::BackgroundColour3, nullptr, juce::Colour(0xff162123).toString());
+        m_mainFrameColour.referTo (themeState, IDs::MainFrameColour, nullptr, juce::Colour(0xff2b322d).toString());
+        m_buttonBackgroundColour.referTo(themeState, IDs::ButtonBackgroundColour, nullptr, juce::Colour(0xff394440).toString());
+        m_buttonTextColour.referTo(themeState, IDs::ButtonTextColour, nullptr, juce::Colour(0xffffffff).toString());
+        m_textColour.referTo(themeState, IDs::MenuTextColour, nullptr, juce::Colour(0xffb4b4b4).toString());
 
         m_timeLine_strokeColour.referTo(themeState, IDs::timeLineStrokeColour, nullptr,juce::Colour(0xffffffff).toString());
-        m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr,juce::Colour(0x50000000).toString());
-        m_timeLine_textColour.referTo(themeState, IDs::timeLineTextColour, nullptr,juce::Colour(0xffaaaaaa).toString());
-        m_timeLine_background.referTo(themeState, IDs::timeLineBackgroundColour, nullptr,juce::Colour(0xffaaaaaa).toString());
+        m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr,juce::Colour(0x541f2700).toString());
+        m_timeLine_textColour.referTo(themeState, IDs::timeLineTextColour, nullptr,juce::Colour(0xffffffff).toString());
+        m_timeLine_background.referTo(themeState, IDs::timeLineBackgroundColour, nullptr,juce::Colour(0xff2d3934).toString());
 
-        m_trackBackgroundColour.referTo(themeState, IDs::trackBackgroundColour, nullptr, juce::Colour(0xff334433).toString());
-        m_trackHeaderBackgroundColour.referTo(themeState, IDs::trackHeaderBackgroundColour, nullptr, juce::Colour(0xff334433).toString());
-        m_trackHeaderTextColour.referTo(themeState, IDs::trackHeaderTextColour, nullptr, juce::Colour(0xff334433).toString());
+        m_trackBackgroundColour.referTo(themeState, IDs::trackBackgroundColour, nullptr, juce::Colour(0xff3a3a3a).toString());
+        m_trackHeaderBackgroundColour.referTo(themeState, IDs::trackHeaderBackgroundColour, nullptr, juce::Colour(0xff414b44).toString());
+        m_trackHeaderTextColour.referTo(themeState, IDs::trackHeaderTextColour, nullptr, juce::Colour(0xffffffff).toString());
 
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);

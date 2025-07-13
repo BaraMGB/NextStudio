@@ -126,7 +126,7 @@ void PianoRollEditor::paintOverChildren(juce::Graphics &g)
               , 20
               , juce::Justification::centredLeft);
 
-    g.setColour(juce::Colours::white);
+    g.setColour(m_editViewState.m_applicationState.getBorderColour());
     g.fillRect(getHeaderRect().removeFromBottom(1));
     g.fillRect(getTimeLineRect().removeFromBottom(1));
     g.fillRect(getTimelineHelperRect().removeFromBottom(1));

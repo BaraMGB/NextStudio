@@ -27,6 +27,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PluginBrowser.h"
 #include "Utilities.h"
 #include "InstrumentEffectChooser.h"
+#include "juce_graphics/juce_graphics.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter::Ptr ap , EditViewState& evs)
 	: m_automatableParameter(ap)
         , m_evs (evs)
@@ -74,7 +75,7 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
     area.removeFromLeft (10);
     GUIHelpers::drawFromSvg (g
                              , BinaryData::automation_svg
-                             , juce::Colour(0xffffffff) 
+                             , juce::Colour(0xffffffff)
                              , area.removeFromLeft (20).toFloat ());
     area.removeFromLeft (5);
 
@@ -529,9 +530,9 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
     {
         auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
         childrenSetVisible (true);
-        auto cornerSize = 5.0f;
+        auto cornerSize = 7.0f;
         juce::Rectangle<float> area = getLocalBounds().toFloat();
-        area.reduce(1, 1);
+        area.reduce(2, 1);
         auto buttonColour = m_editViewState.m_applicationState.getTrackHeaderBackgroundColour();
         if (!m_editViewState.m_selectionManager.isSelected (m_track))
         {
@@ -540,12 +541,20 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         g.setColour(buttonColour);
         GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize,true, false, true, false);
 
+        auto borderRect = area;
+
         juce::Rectangle<float> trackColorIndicator
-                = getLocalBounds().removeFromLeft(headWidth).toFloat();
+                = area.removeFromLeft(headWidth).toFloat();
         auto trackColor =  m_track->getColour();
         g.setColour(trackColor);
         GUIHelpers::drawRoundedRectWithSide(
-                    g, trackColorIndicator.reduced(1, 1), cornerSize, true, false, true, false);
+                    g, trackColorIndicator, cornerSize, true, false, true, false);
+
+
+        g.setColour(m_editViewState.m_applicationState.getBorderColour());
+        // g.setColour(buttonColour.brighter(0.2f));
+        GUIHelpers::strokeRoundedRectWithSide(g, borderRect, cornerSize,true, false, true, false);
+
         GUIHelpers::drawFromSvg (
                     g
                   , isMinimized
@@ -557,7 +566,7 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         g.setColour (juce::Colours::black);
         if (!isMinimized)
         {
-            int strokeHeight = 1;
+            int strokeHeight = 0;
             if (m_isHover)
             {
                 g.setColour(juce::Colour(0x33ffffff));
@@ -581,9 +590,9 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         if (m_trackIsOver)
         {
             g.setColour(juce::Colour(0x66ffffff));
-            g.drawRect(getLocalBounds().removeFromTop(1));        
+            g.drawRect(getLocalBounds().removeFromTop(1));
         }
-        
+
         const char* icon = BinaryData::wavetest5_svg;;
         if (m_track->isFolderTrack())
             icon = BinaryData::folderopen_svg;
@@ -715,7 +724,7 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                     {
                         t->state.setProperty(IDs::showLowerRange, false, nullptr);
                         if (t == m_track.get())
-                        { 
+                        {
                             t->state.setProperty(IDs::showLowerRange, true, nullptr);
                         }
                     }
@@ -832,7 +841,7 @@ void TrackHeaderComponent::itemDragExit(
 void TrackHeaderComponent::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& details)
 {
-    
+
     if  (details.description == "PluginListEntry")
     {
         if (auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ()))
@@ -905,4 +914,3 @@ void TrackHeaderComponent::collapseTrack(bool minimize)
 {
     m_editViewState.m_trackHeightManager->setMinimized(m_track, minimize);
 }
-

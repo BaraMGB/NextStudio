@@ -25,6 +25,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "BinaryData.h"
 #include "EditViewState.h"
+#include "juce_graphics/juce_graphics.h"
+#include "juce_graphics/native/juce_EventTracing.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
 #include "tracktion_core/utilities/tracktion_TimeRange.h"
 
@@ -54,8 +56,8 @@ juce::File Helpers::findRecentEdit(const juce::File &dir)
     }
     return {};
 }
-void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewState& evs, 
-                         juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, 
+void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewState& evs,
+                         juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack,
                          tracktion::TimeRange etr, bool forDragging)
 {
     double x1beats = evs.timeToBeat(etr.getStart().inSeconds());
@@ -96,17 +98,17 @@ void GUIHelpers::drawTrack(juce::Graphics& g, juce::Component& parent, EditViewS
                     color = color.withAlpha(0.7f);
 
                 if (auto c = dynamic_cast<te::Clip*>(clip))
-                    drawClip(g, parent, evs, clipRect, c, color, displayedRect, x1beats, x2beats); 
+                    drawClip(g, parent, evs, clipRect, c, color, displayedRect, x1beats, x2beats);
             }
         }
     }
 
     g.setColour(juce::Colour(0x60ffffff));
-    g.drawLine(displayedRect.getX(), displayedRect.getBottom(), 
+    g.drawLine(displayedRect.getX(), displayedRect.getBottom(),
                displayedRect.getRight(), displayedRect.getBottom(), 1.0f);
 }
-void GUIHelpers::drawClip(juce::Graphics& g, juce::Component& parent, EditViewState& evs, 
-                      juce::Rectangle<float> clipRect, te::Clip* clip, juce::Colour color, 
+void GUIHelpers::drawClip(juce::Graphics& g, juce::Component& parent, EditViewState& evs,
+                      juce::Rectangle<float> clipRect, te::Clip* clip, juce::Colour color,
                       juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
 {
     auto isSelected = evs.m_selectionManager.isSelected(clip);
@@ -152,7 +154,7 @@ void GUIHelpers::drawWaveform(juce::Graphics& g, EditViewState& evs,
         double displEnd = evs.beatToTime(x2Beats);
 
         if (clRect.getX() < displRect.getX())
-            t1 = t1 + tracktion::TimeDuration::fromSeconds(displStart - clip.getPosition().getStart().inSeconds()); 
+            t1 = t1 + tracktion::TimeDuration::fromSeconds(displStart - clip.getPosition().getStart().inSeconds());
 
         if (clRect.getRight() > displRect.getRight())
             t2 = t2 - tracktion::TimeDuration::fromSeconds(clip.getPosition().getEnd().inSeconds() - displEnd);
@@ -248,8 +250,8 @@ void GUIHelpers::drawChannels(juce::Graphics& g
         thumb.drawChannels (g, area, time.getStart().inSeconds(), time.getEnd().inSeconds(), 1,rightGain);
 }
 
-void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::String name, 
-                           juce::Rectangle<float> clipRect, bool isSelected, juce::Colour color, 
+void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::String name,
+                           juce::Rectangle<float> clipRect, bool isSelected, juce::Colour color,
                            juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
 {
     auto area = clipRect;
@@ -284,14 +286,14 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
         g.fillRect(area.reduced(1.0f, 1.0f));
 
         g.setColour(innerGlow);
-        
+
         // Draw borders but avoid edges that extend beyond view
         if (clipExtendsLeft > 0.0) {
             // Skip left edge
             g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getY(), 1.0f); // Top
             g.drawLine(clipedHeader.getRight(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Right
             g.drawLine(clipedHeader.getX(), clipedHeader.getBottom(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Bottom
-            
+
             // Main clip borders
             g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getY(), 1.0f); // Top
             g.drawLine(clipedClip.getRight(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getBottom(), 1.0f); // Right
@@ -300,13 +302,13 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
             auto chi = clipedHeader.reduced(0.0f, 2.0f);
             chi.removeFromRight(juce::jmin(clipExtendsLeft, 2.0f));
             g.fillRect(chi);
-        } 
+        }
         else if (clipExtendsRight > 0.0) {
             // Skip right edge
             g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getY(), 1.0f); // Top
             g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getX(), clipedHeader.getBottom(), 1.0f); // Left
             g.drawLine(clipedHeader.getX(), clipedHeader.getBottom(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Bottom
-            
+
             // Main clip borders
             g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getY(), 1.0f); // Top
             g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getX(), clipedClip.getBottom(), 1.0f); // Left
@@ -315,14 +317,14 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
             auto chi = clipedHeader.reduced(0.0f, 2.0f);
             chi.removeFromLeft(juce::jmin(clipExtendsRight, 2.0f));
             g.fillRect(chi);
-        } 
+        }
         else {
             // Full rectangles if clip is completely visible
             g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getY(), 1.0f); // Top
             g.drawLine(clipedHeader.getRight(), clipedHeader.getY(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Right
             g.drawLine(clipedHeader.getX(), clipedHeader.getBottom(), clipedHeader.getRight(), clipedHeader.getBottom(), 1.0f); // Bottom
             g.drawLine(clipedHeader.getX(), clipedHeader.getY(), clipedHeader.getX(), clipedHeader.getBottom(), 1.0f); // Left
-            
+
             // Main clip borders
             g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getRight(), clipedClip.getY(), 1.0f); // Top
             g.drawLine(clipedClip.getX(), clipedClip.getY(), clipedClip.getX(), clipedClip.getBottom(), 1.0f); // Left
@@ -361,8 +363,8 @@ void GUIHelpers::drawClipBody(juce::Graphics& g, EditViewState& evs, juce::Strin
     g.restoreState();
 }
 
-void GUIHelpers::drawMidiClip(juce::Graphics& g, EditViewState& evs, te::MidiClip::Ptr clip, 
-                         juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, 
+void GUIHelpers::drawMidiClip(juce::Graphics& g, EditViewState& evs, te::MidiClip::Ptr clip,
+                         juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect,
                          juce::Colour color, double x1Beat, double x2beat)
 {
     auto area = clipRect;
@@ -387,10 +389,10 @@ void GUIHelpers::drawMidiClip(juce::Graphics& g, EditViewState& evs, te::MidiCli
         float y = clipRect.getCentreY();
 
         if (!range.isEmpty())
-            y = juce::jmap((float)n->getNoteNumber(), 
-                           (float)(range.getStart() + lines), 
-                           (float)range.getStart(), 
-                           clipRect.getY() + (noteHeight/2.0f), 
+            y = juce::jmap((float)n->getNoteNumber(),
+                           (float)(range.getStart() + lines),
+                           (float)range.getStart(),
+                           clipRect.getY() + (noteHeight/2.0f),
                            clipRect.getY() + clipRect.getHeight() - noteHeight - (noteHeight/2.0f));
 
         float startX = evs.beatsToX(sBeat, displayedRect.getWidth(), x1Beat, x2beat);
@@ -415,11 +417,30 @@ void GUIHelpers::drawMidiClip(juce::Graphics& g, EditViewState& evs, te::MidiCli
     }
 }
 
+void GUIHelpers::strokeRoundedRectWithSide(
+        juce::Graphics &g
+      , juce::Rectangle<float> area
+      , float cornerSize
+      , bool topLeft
+      , bool topRight
+      , bool bottomLeft
+      , bool bottomRight)
+{
+        juce::Path p;
+        auto x = area.getX();
+        auto y = area.getY();
+        auto w = area.getWidth();
+        auto h = area.getHeight();
+        p.addRoundedRectangle(x,y,w,h,cornerSize,cornerSize,topLeft, topRight, bottomLeft, bottomRight);
+        auto st = juce::PathStrokeType(1);
+        g.strokePath(p, st);
+
+}
 void GUIHelpers::drawRoundedRectWithSide(
         juce::Graphics &g
       , juce::Rectangle<float> area
       , float cornerSize
-      , bool topLeft 
+      , bool topLeft
       , bool topRight
       , bool bottomLeft
       , bool bottomRight)
@@ -431,7 +452,7 @@ void GUIHelpers::drawRoundedRectWithSide(
         auto h = area.getHeight();
         p.addRoundedRectangle(x,y,w,h,cornerSize,cornerSize,topLeft, topRight, bottomLeft, bottomRight);
         g.fillPath(p);
-   
+
 }
 
 void GUIHelpers::drawFromSvg(
@@ -477,15 +498,15 @@ std::unique_ptr<juce::Drawable> GUIHelpers::getDrawableFromSvg(
             const juce::MessageManagerLock mmLock;
             drawable = juce::Drawable::createFromSVG (*svg);
         }
-        
+
         if (drawable != nullptr)
         {
             drawable->replaceColour(juce::Colour(0xff626262), colour);
         }
-        
+
         return drawable;
     }
-    
+
     return nullptr;
 }
 
@@ -540,7 +561,7 @@ juce::MouseCursor GUIHelpers::getMouseCursorFromPng(const char* png, const int s
     juce::MemoryInputStream pngInputStream(png, static_cast<size_t>(size), false);
     juce::Image image = juce::ImageFileFormat::loadFrom(pngInputStream);
     juce::ScaledImage si(image, 2);
-    
+
     return juce::MouseCursor (si, hotSpot);
 }
 
@@ -552,7 +573,7 @@ juce::MouseCursor GUIHelpers::getMouseCursorFromSvg(
     auto imageType = juce::Image::ARGB;
     juce::Image image(imageType, 24 * scale, 24 * scale, true);
     juce::Graphics g(image);
- 
+
     GUIHelpers::drawFromSvg(g, svgbinary, juce::Colours::white , {24 * scale,24 * scale});
 
     auto hotX = juce::jlimit(0, static_cast<int>(24 * scale) - 1, static_cast<int>(scale * hotSpot.getX()));
@@ -584,7 +605,7 @@ void GUIHelpers::saveEdit(
 
     juce::FileBrowserComponent browser (juce::FileBrowserComponent::saveMode
                                         + juce::FileBrowserComponent::canSelectFiles
-                                        , workDir 
+                                        , workDir
                                         , &wildcardFilter
                                         , nullptr);
 
@@ -604,12 +625,12 @@ void GUIHelpers::saveEdit(
         EngineHelpers::refreshRelativePathsToNewEditFile(evs, selectedFile);
         te::EditFileOperations(evs.m_edit).writeToFile (selectedFile, false);
         EngineHelpers::refreshRelativePathsToNewEditFile(evs, cf);
-        evs.m_edit.sendSourceFileUpdate();    
+        evs.m_edit.sendSourceFileUpdate();
     }
 }
 
-void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, 
-                                double x1beats, double x2beats, 
+void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs,
+                                double x1beats, double x2beats,
                                 juce::Rectangle<float> boundingRect, bool printDescription)
 {
     auto& avs = evs.m_applicationState;
@@ -661,7 +682,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs,
 
     double epsilon = 1e-3;
 
-    int labelDetailLevel = 0; 
+    int labelDetailLevel = 0;
     if (snapLevel >= 7)
         labelDetailLevel = 0;
     else if (snapLevel >= 5)
@@ -824,7 +845,7 @@ void GUIHelpers::drawBarBeatsShadow(juce::Graphics& g,
         evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth());
     int num = evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator;
     int shadowBeatDelta = num * 4;
-    
+
     if (snapType.getLevel() <= 9)
         shadowBeatDelta = num;
     if (snapType.getLevel() <= 6)
@@ -875,7 +896,7 @@ void GUIHelpers::drawLogo (juce::Graphics& g, juce::Colour colour, float scale)
         logoPath.quadraticTo(13,2, 12,2);
         logoPath.closeSubPath();
 
-        // 
+        //
         // // Second path
         logoPath.addRoundedRectangle(juce::Rectangle<float>(15,2,4,12), 1.f);
         logoPath.addRoundedRectangle(juce::Rectangle<float>(20,2,4,12), 1.f);
@@ -957,7 +978,7 @@ bool EngineHelpers::renderToNewTrack(EditViewState & evs, juce::Array<tracktion_
 {
     auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
     auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
-    
+
     juce::BigInteger tracksToDo{ 0 };
 
     auto allTracks = te::getAllTracks(evs.m_edit);
@@ -965,7 +986,7 @@ bool EngineHelpers::renderToNewTrack(EditViewState & evs, juce::Array<tracktion_
     for (auto* trackToRender : tracksToRender)
     {
         int index = allTracks.indexOf(trackToRender);
-        if (index != -1) 
+        if (index != -1)
             tracksToDo.setBit(index);
     }
 
@@ -981,11 +1002,11 @@ bool EngineHelpers::renderCliptoNewTrack(EditViewState & evs, te::Clip::Ptr clip
     auto range = clip->getEditTimeRange();
     auto index = te::getAllTracks(evs.m_edit).indexOf(clip->getTrack());
     auto trackToRender = juce::BigInteger{index};
-    
+
     auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
     auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
 
-    
+
     te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, trackToRender);
 
     EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum, range.getStart().inSeconds());
@@ -1022,7 +1043,7 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, 
     te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 }
 
-void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)    
+void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
 {
     if (auto at = dynamic_cast<te::AudioTrack*>(track.get()))
     {
@@ -1126,7 +1147,7 @@ bool EngineHelpers::trackWantsClip(const juce::ValueTree state, const te::Track 
 
 
 bool EngineHelpers::trackWantsClip(const te::Clip* clip,
-                                    const te::Track* track) 
+                                    const te::Track* track)
 {
     if (track == nullptr)
         return false;
@@ -1160,7 +1181,7 @@ juce::Array<te::Track*> EngineHelpers::getSortedTrackList(te::Edit& edit)
             if (t.isAutomationTrack() || t.isArrangerTrack() || t.isChordTrack() || t.isMarkerTrack() || t.isTempoTrack() || t.isMasterTrack())
                return true;
             tracks.add (&t);
-            return true; 
+            return true;
         }, true);
 
     return tracks;
@@ -1240,7 +1261,7 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
     //---------------------------------------------------
     //when we insert a clip on a track with a plugin with a lot of parameters
     //the needed time is much more higher than a track without a plugin.
-    //If you have to duplicate a lot of clips, this could take a lot of time. 
+    //If you have to duplicate a lot of clips, this could take a lot of time.
     //So this approach removes all plugins and save them in a value tree. After
     //moving or coping the clips, we reinsert the plugins from the state
     //The time is reduced a lot, but I don't know, if this is the best approach.
@@ -1305,7 +1326,7 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
 }
 
 void EngineHelpers::duplicateSelectedClips(EditViewState& evs)
-{ 
+{
     moveSelectedClips(true, getTimeRangeOfSelectedClips(evs).getLength().inSeconds(), 0, evs);
 }
 
@@ -1560,7 +1581,7 @@ void EngineHelpers::moveAutomation(te::Track* src,te::TrackAutomationSection::Ac
 	section.dst = src;
 	section.position = range;
 	section.activeParameters.add(par);
-	
+
 	juce::Array<te::TrackAutomationSection> secs;
 	secs.add (section);
 	auto offset = tracktion::TimePosition::fromSeconds(insertTime) - range.getStart();
@@ -1744,7 +1765,7 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
     if (audioFile.isValid())
     {
         if (auto track = addAudioTrack(false, trackColour, evs))
-        {           
+        {
 			removeAllClips (*track);
             te::ClipPosition pos;
             pos.time = {tracktion::TimePosition::fromSeconds(insertTime),  tracktion::TimeDuration::fromSeconds (audioFile.getLength())};
@@ -1893,7 +1914,7 @@ void EngineHelpers::play (EditViewState &evs)
 {
     GUIHelpers::log("play");
     auto& transport = evs.m_edit.getTransport ();
- 
+
     if (transport.isPlaying ())
         transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
     //hack for prevent not playing the first transient of a sample
@@ -2130,7 +2151,7 @@ void EngineHelpers::insertPlugin (te::Track::Ptr track, te::Plugin::Ptr plugin, 
 //
 //         auto x1 = evs.getSongEditorVisibleTimeRange(getWidth()).getStart().inSeconds();
 //         auto x2 = evs.getVisibleTimeRange(m_timeLineID, getWidth()).getEnd().inSeconds();
-//         
+//
 //         if (posBeats < x1 || posBeats > x2)
 //             moveView(evs, posBeats);
 //
@@ -2221,7 +2242,7 @@ void GUIHelpers::drawLogoQuad (juce::Graphics &g, juce::Rectangle<int> area)
 }
 void EngineHelpers::sortByName(juce::Array<juce::PluginDescription>& list, bool forward)
 {
-    
+
     if (forward)
     {
         CompareNameForward cf;
