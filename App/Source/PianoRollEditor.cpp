@@ -394,7 +394,6 @@ void PianoRollEditor::valueTreePropertyChanged(
         markAndUpdate(m_updateKeyboard);
     }
 
-    GUIHelpers::log(treeWhosePropertyHasChanged.toXmlString());
     if (treeWhosePropertyHasChanged.hasType(IDs::ThemeState))
     {
         markAndUpdate(m_updateButtonColour);
