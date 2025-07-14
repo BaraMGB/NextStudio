@@ -32,7 +32,10 @@ MidiSettings::MidiSettings(tracktion_engine::Engine &engine)
     m_midiDefaultLabel.attachToComponent(&m_midiDefaultChooser, true);
     m_midiDefaultLabel.setText("default Controller : ", juce::dontSendNotification);
 }
-
+MidiSettings::~MidiSettings()
+{
+    m_midiDefaultChooser.removeListener(this);
+}
 void MidiSettings::resized()
 {
     auto& dm = m_engine.getDeviceManager ();

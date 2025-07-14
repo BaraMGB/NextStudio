@@ -33,7 +33,7 @@ class MidiSettings : public juce::Component
 public:
 
     explicit MidiSettings(te::Engine& engine);
-
+    ~MidiSettings() override;
     void resized () override;
     void comboBoxChanged(juce::ComboBox *comboBox) override;
 
@@ -91,11 +91,12 @@ public:
             }
         }
 
-    private:
-        juce::Colour m_currentColour{juce::Colours::grey};
+        private:
+            juce::Colour m_currentColour{juce::Colours::grey};
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ColourButton)
+            JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ColourButton)
     };
+
     struct ColourSetting
     {
         juce::Identifier id;
@@ -150,6 +151,14 @@ public:
             selector->setVisible(false);
             addAndMakeVisible(selector.get());
             m_selectors.add(std::move(selector));
+        }
+    }
+
+    ~ColourSettingsPanel() override
+    {
+        for (auto* selector : m_selectors)
+        {
+            selector->removeChangeListener(this);
         }
     }
 
