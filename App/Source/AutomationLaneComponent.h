@@ -86,6 +86,8 @@ private:
     int m_cachedCurvePointCount = 0;
     int m_cachedCurveVersion = 0;
     bool m_curveValid = false;
+    juce::int64 m_lastPaintTime = 0;
+    static constexpr int kMinPaintIntervalMs = 16; // ~60 FPS
 
     bool isAutomationPointSelected(int index);
     int nextIndexAfter (tracktion::TimePosition t,te::AutomatableParameter::Ptr ap) const;

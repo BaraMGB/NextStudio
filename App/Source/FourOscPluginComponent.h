@@ -23,7 +23,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 // #include "PluginComponent.h"
 
-#include "../JuceLibraryCode/JuceHeader.h"
 
 #include "AutomatableSliderComponent.h"
 #include "Utilities.h"
@@ -247,7 +246,7 @@ public:
         auto header = area.removeFromLeft(15);
         g.setColour(trackColour);
         GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
-        
+
         g.setColour(m_appstate.getBorderColour());
         GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().toFloat(), cornerSize, true, false, true, false);
     }
@@ -782,7 +781,7 @@ private:
     juce::OwnedArray<OscComponent> m_oscComponents;
 
     std::unique_ptr<EnvelopeComponent> m_ampEnvComponent;
-    std::unique_ptr<FilterComponent> m_filterComponent; 
+    std::unique_ptr<FilterComponent> m_filterComponent;
     std::unique_ptr<EnvelopeComponent> m_filterEnvComp;
 
     std::unique_ptr<juce::ToggleButton> m_distortionToggle;
@@ -844,4 +843,3 @@ private:
 
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleFourOscPluginComponent)
 };
-

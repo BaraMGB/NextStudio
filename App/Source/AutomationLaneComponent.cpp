@@ -37,152 +37,207 @@ void AutomationLaneComponent::paint(juce::Graphics& g)
 }
 void AutomationLaneComponent::drawAutomationLane (juce::Graphics& g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect)
 {
-    if (m_parameter->getTrack() == nullptr)
+    if (m_parameter->getTrack() == nullptr || drawRect.getWidth() <= 0 || drawRect.getHeight() <= 0)
         return;
+        
+    // Early exit for very small lanes
+    if (getHeight() < 5)
+        return;
+        
     g.saveState();
     g.reduceClipRegion(drawRect.toNearestIntEdges());
-    double startBeat = m_editViewState. timeToBeat(drawRange.getStart().inSeconds());
+    
+    double startBeat = m_editViewState.timeToBeat(drawRange.getStart().inSeconds());
     double endBeat = m_editViewState.timeToBeat(drawRange.getEnd().inSeconds());
-    g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
-    g.fillRect(drawRect);
+    
+    // Only draw background when visible
+    if (drawRect.getHeight() > 2)
+    {
+        g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
+        g.fillRect(drawRect);
+        GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, startBeat, endBeat, drawRect);
+    }
 
-    GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, startBeat, endBeat, drawRect);
+    const auto& curve = m_parameter->getCurve();
+    const int numPoints = curve.getNumPoints();
+    
+    // Early exit when no points exist
+    if (numPoints == 0)
+    {
+        g.restoreState();
+        return;
+    }
 
+    // Create rectangles and paths only once
+    juce::Path curvePath;
     juce::Path pointsPath;
     juce::Path selectedPointsPath;
     juce::Path hoveredPointPath;
-    juce::Path curvePath;
     juce::Path hoveredCurvePath;
     juce::Path hoveredDotOnCurvePath;
-    juce::Path fillPath;
-
-    float startX = drawRect.getX();
-    float endX = drawRect.getRight();
-
-    float startValue = m_parameter->getCurve().getValueAt(drawRange.getStart());
-    float endValue = m_parameter->getCurve().getValueAt(drawRange.getEnd());
-
-    float startY = getYPos(startValue);
-    float endY = getYPos(endValue);
-
-    auto pointBeforeDrawRange = m_parameter->getCurve().indexBefore(drawRange.getStart());
+    
+    const float startX = drawRect.getX();
+    const float endX = drawRect.getRight();
+    const float pointWidth = getAutomationPointWidth();
+    const float halfPointWidth = pointWidth * 0.5f;
+    
+    // Cache for visible points
+    juce::Array<int> visiblePointIndices;
+    visiblePointIndices.ensureStorageAllocated(juce::jmin(numPoints, 100));
+    
+    auto pointBeforeDrawRange = curve.indexBefore(drawRange.getStart());
     auto pointAfterDrawRange = nextIndexAfter(drawRange.getEnd(), m_parameter);
-    auto numPointsInDrawRange = m_parameter->getCurve().countPointsInRegion(drawRange);
-    auto numPoints = m_parameter->getCurve().getNumPoints();
-
-    auto ellipseRect = juce::Rectangle<float>();
-    if (numPoints < 2)
+    
+    if (pointBeforeDrawRange == -1) pointBeforeDrawRange = 0;
+    if (pointAfterDrawRange == -1) pointAfterDrawRange = numPoints - 1;
+    
+    // Only process visible points
+    const int startIdx = juce::jmax(0, pointBeforeDrawRange - 1);
+    const int endIdx = juce::jmin(numPoints - 1, pointAfterDrawRange + 1);
+    
+    if (numPoints == 1)
     {
-        curvePath.startNewSubPath({startX, startY});
-        if (numPointsInDrawRange > 0)
-        {
-            ellipseRect = GUIHelpers::getSensibleArea(getPointOnAutomation(0,drawRect, startBeat, endBeat), getAutomationPointWidth());
-            pointsPath.addEllipse(ellipseRect.toFloat());
-            if (m_hoveredPoint == 0)
-                hoveredPointPath.addEllipse(ellipseRect.toFloat());
-            if (isAutomationPointSelected(0))
-                selectedPointsPath.addEllipse(ellipseRect.toFloat());
-        }
-        curvePath.lineTo({endX, endY});
+        // Single point
+        const auto& point = curve.getPoint(0);
+        const float x = static_cast<float>(m_editViewState.timeToX(point.time.inSeconds(), drawRect.getWidth(), startBeat, endBeat));
+        const float y = static_cast<float>(getYPos(point.value));
+        
+        curvePath.startNewSubPath(startX, y);
+        curvePath.lineTo(endX, y);
+        
+        const juce::Rectangle<float> ellipseRect(x - halfPointWidth, y - halfPointWidth, pointWidth, pointWidth);
+        pointsPath.addEllipse(ellipseRect);
+        
+        if (m_hoveredPoint == 0) hoveredPointPath.addEllipse(ellipseRect);
+        if (isAutomationPointSelected(0)) selectedPointsPath.addEllipse(ellipseRect);
     }
     else
     {
-        if (pointBeforeDrawRange == -1)
-        {
-            curvePath.startNewSubPath({startX, startY});
-            pointBeforeDrawRange = 0;
-        }
+        // Draw curve
+        const auto& firstPoint = curve.getPoint(startIdx);
+        float lastX = static_cast<float>(m_editViewState.timeToX(firstPoint.time.inSeconds(), drawRect.getWidth(), startBeat, endBeat));
+        float lastY = static_cast<float>(getYPos(firstPoint.value));
+        
+        if (startIdx == 0 || firstPoint.time >= drawRange.getStart())
+            curvePath.startNewSubPath(lastX, lastY);
         else
+            curvePath.startNewSubPath(startX, static_cast<float>(getYPos(curve.getValueAt(drawRange.getStart()))));
+        
+        // Collect points
+        for (int i = startIdx + 1; i <= endIdx; ++i)
         {
-            curvePath.startNewSubPath(getPointOnAutomation(pointBeforeDrawRange, drawRect, startBeat, endBeat));
-        }
-
-        if (pointAfterDrawRange == -1)
-            pointAfterDrawRange = m_parameter->getCurve().getNumPoints() -1;
-
-        for (auto i = pointBeforeDrawRange; i <= pointAfterDrawRange; i++)
-        {
-            auto pointXY = getPointOnAutomation(i, drawRect, startBeat, endBeat);
-
-            auto curve = juce::jlimit(-.5f, .5f, m_parameter->getCurve().getPoint(i - 1).curve);
-            auto curveControlPoint = getCurveControlPoint(curvePath.getCurrentPosition(), pointXY, curve);
-
-            if (m_hoveredCurve == i)
+            const auto& point = curve.getPoint(i);
+            const float x = static_cast<float>(m_editViewState.timeToX(point.time.inSeconds(), drawRect.getWidth(), startBeat, endBeat));
+            const float y = static_cast<float>(getYPos(point.value));
+            
+            if (i > 0)
             {
-                hoveredCurvePath.startNewSubPath (curvePath.getCurrentPosition());
-                hoveredCurvePath.quadraticTo (curveControlPoint , pointXY);
-                if (!m_isDragging) 
-                    hoveredDotOnCurvePath.addEllipse (m_hoveredRect.toFloat());
+                const auto& prevPoint = curve.getPoint(i - 1);
+                const float curveValue = juce::jlimit(-0.5f, 0.5f, prevPoint.curve);
+                
+                const float cpX = lastX + (x - lastX) * (0.5f + curveValue);
+                const float cpY = lastY + (y - lastY) * (0.5f - curveValue);
+                
+                if (m_hoveredCurve == i)
+                {
+                    hoveredCurvePath.startNewSubPath(lastX, lastY);
+                    hoveredCurvePath.quadraticTo(cpX, cpY, x, y);
+                }
+                
+                curvePath.quadraticTo(cpX, cpY, x, y);
             }
-
-            curvePath.quadraticTo(curveControlPoint, pointXY);
-
-            ellipseRect = GUIHelpers::getSensibleArea(getPointOnAutomation(i,drawRect, startBeat, endBeat), getAutomationPointWidth());
-            pointsPath.addEllipse(ellipseRect.toFloat());
-
-            if (m_hoveredPoint == i)
-                hoveredPointPath.addEllipse(ellipseRect.toFloat());
-            if (isAutomationPointSelected(i))
-                selectedPointsPath.addEllipse(ellipseRect.toFloat());
+            else
+            {
+                curvePath.lineTo(x, y);
+            }
+            
+            lastX = x;
+            lastY = y;
+            
+            // Only draw point if visible
+            if (x >= startX - pointWidth && x <= endX + pointWidth)
+            {
+                const juce::Rectangle<float> ellipseRect(x - halfPointWidth, y - halfPointWidth, pointWidth, pointWidth);
+                pointsPath.addEllipse(ellipseRect);
+                
+                if (m_hoveredPoint == i) hoveredPointPath.addEllipse(ellipseRect);
+                if (isAutomationPointSelected(i)) selectedPointsPath.addEllipse(ellipseRect);
+            }
         }
-
-        if (m_parameter->getCurve().getPoint(pointAfterDrawRange).time < drawRange.getEnd())
-            curvePath.lineTo({endX, endY});
+        
+        // Extend to the end
+        if (endIdx >= 0 && curve.getPoint(endIdx).time < drawRange.getEnd())
+            curvePath.lineTo(endX, static_cast<float>(getYPos(curve.getValueAt(drawRange.getEnd()))));
     }
-
-    float currentX = curvePath.getCurrentPosition().getX();
-    float currentY = curvePath.getCurrentPosition().getY();
-
-    if (m_hoveredCurve == m_parameter->getCurve().getNumPoints())
+    
+    // Fill only for larger lanes
+    if (getHeight() > 30)
     {
-        hoveredCurvePath.startNewSubPath (currentX, currentY);
-        hoveredCurvePath.lineTo(endX, endY);
-        if (!m_isDragging) 
-            hoveredDotOnCurvePath.addEllipse (m_hoveredRect.toFloat());
+        juce::Path fillPath = curvePath;
+        fillPath.lineTo(drawRect.getBottomRight());
+        fillPath.lineTo(drawRect.getBottomLeft());
+        fillPath.closeSubPath();
+        
+        g.setColour(m_parameter->getTrack()->getColour().withAlpha(0.2f));
+        g.fillPath(fillPath);
     }
-
-    fillPath = curvePath;
-    fillPath.lineTo(drawRect.getBottomRight().toFloat());
-    fillPath.lineTo(drawRect.getBottomLeft().toFloat());
-    fillPath.closeSubPath();
-
-    if (getHeight () <= 50)
-        g.setColour(juce::Colour(0x10ffffff));
-    else
-        g.setColour (m_parameter->getTrack ()->getColour ().withAlpha (0.2f));
-    g.fillPath(fillPath);
-
+    
+    // Draw curve
     g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour());
     g.strokePath(curvePath, juce::PathStrokeType(2.0f));
-
-    g.setColour(m_editViewState.m_applicationState.getPrimeColour());
-    if (m_isDragging)
+    
+    // Hover curve and dot
+    if (!hoveredCurvePath.isEmpty())
+    {
+        g.setColour(m_editViewState.m_applicationState.getPrimeColour());
+        if (m_isDragging)
+            g.setColour(m_editViewState.m_applicationState.getPrimeColour().withLightness(1.0f));
+        g.strokePath(hoveredCurvePath, juce::PathStrokeType(2.0f));
+    }
+    
+    // Draw hover dot on curve (only when hovering over curve segment)
+    if (m_hoveredCurve != -1 && !m_hoveredRect.isEmpty() && !m_isDragging)
+    {
+        // Calculate dot position on curve at mouse position
+        float mouseX = m_hoveredRect.getCentreX();
+        
+        // Convert mouse X to time using the same transformation as timeToX
+        double visibleRange = endBeat - startBeat;
+        double mouseBeat = startBeat + ((mouseX - drawRect.getX()) / drawRect.getWidth()) * visibleRange;
+        double mouseTime = m_editViewState.beatToTime(mouseBeat);
+        
+        // Get curve value at this time
+        float curveValue = curve.getValueAt(tracktion::TimePosition::fromSeconds(mouseTime));
+        float curveY = static_cast<float>(getYPos(curveValue));
+        
+        // Draw the hover dot
         g.setColour(m_editViewState.m_applicationState.getPrimeColour().withLightness(1.0f));
-    g.strokePath(hoveredCurvePath, juce::PathStrokeType(2.0f));
-
-    //the Dot moves with mouse
-    g.fillPath (hoveredDotOnCurvePath);
-
-    //the inner of a point
-    g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
-    g.fillPath(pointsPath);
-
-    //the Point circle
-    float lineThickness = 2.0;   
-    g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour());
-    g.strokePath(pointsPath, juce::PathStrokeType(lineThickness));
+        g.fillEllipse(mouseX - 3.0f, curveY - 3.0f, 6.0f, 6.0f);
+    }
     
-    //the hovered point
-    g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour().withLightness(1.0f));
-    g.strokePath(hoveredPointPath, juce::PathStrokeType(lineThickness));
-
-    //selected Points
-    g.setColour(m_editViewState.m_applicationState.getPrimeColour());
-    g.strokePath(selectedPointsPath, juce::PathStrokeType(lineThickness));
+    // Draw points
+    const float lineThickness = 2.0f;
     
-    g.setColour(juce::Colour(0x60ffffff));
-    g.drawLine(drawRect.getX(),drawRect.getBottom(), drawRect.getRight(), drawRect.getBottom());
-
+    if (!pointsPath.isEmpty())
+    {
+        g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
+        g.fillPath(pointsPath);
+        g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour());
+        g.strokePath(pointsPath, juce::PathStrokeType(lineThickness));
+    }
+    
+    if (!hoveredPointPath.isEmpty())
+    {
+        g.setColour(m_editViewState.m_applicationState.getTimeLineStrokeColour().withLightness(1.0f));
+        g.strokePath(hoveredPointPath, juce::PathStrokeType(lineThickness));
+    }
+    
+    if (!selectedPointsPath.isEmpty())
+    {
+        g.setColour(m_editViewState.m_applicationState.getPrimeColour());
+        g.strokePath(selectedPointsPath, juce::PathStrokeType(lineThickness));
+    }
+    
     g.restoreState();
 }
 
@@ -264,11 +319,25 @@ bool AutomationLaneComponent::isAutomationPointSelected(int index)
 
 void AutomationLaneComponent::updateCurveCache(const tracktion::AutomationCurve& curve)
 {
+    const int numPoints = curve.getNumPoints();
+    
+    // Check if anything actually changed
+    if (m_curveValid && m_cachedCurvePointCount == numPoints)
+        return;
+    
     m_curvePointCache.clear();
+    
+    if (numPoints == 0)
+    {
+        m_cachedCurvePointCount = 0;
+        // Cache invalidation based on point count instead of version tracking
+        m_curveValid = true;
+        return;
+    }
+    
+    m_curvePointCache.ensureStorageAllocated(numPoints);
 
-    m_curvePointCache.ensureStorageAllocated(curve.getNumPoints());
-
-    for (int i = 0; i < curve.getNumPoints(); i++)
+    for (int i = 0; i < numPoints; i++)
     {
         auto point = curve.getPoint(i);
 
@@ -280,7 +349,8 @@ void AutomationLaneComponent::updateCurveCache(const tracktion::AutomationCurve&
         m_curvePointCache.add(cachedPoint);
     }
 
-    m_cachedCurvePointCount = curve.getNumPoints();
+    m_cachedCurvePointCount = numPoints;
+    // Cache invalidation based on point count instead of version tracking
     m_curveValid = true;
 }
 
@@ -288,26 +358,35 @@ int AutomationLaneComponent::findPointUnderMouse(const juce::Rectangle<float>& a
                                                  double visibleStartBeat, double visibleEndBeat, 
                                                  int width) const
 {
-    if (!m_curveValid)
+    if (!m_curveValid || width <= 0)
         return -1;
 
-    double visibleStartTime = m_editViewState.beatToTime(visibleStartBeat);
-    double visibleEndTime = m_editViewState.beatToTime(visibleEndBeat);
-
+    // Bounding box check for early performance optimization
+    const double visibleStartTime = m_editViewState.beatToTime(visibleStartBeat);
+    const double visibleEndTime = m_editViewState.beatToTime(visibleEndBeat);
+    
+    // Cache screen positions for faster hit-testing
+    // Pre-allocate array to avoid reallocations
+    juce::Array<juce::Point<float>> cachedPositions;
+    cachedPositions.ensureStorageAllocated(64);
+    
     for (const auto& point : m_curvePointCache)
     {
-        if (point.time >= visibleStartTime && point.time <= visibleEndTime)
-        {
-            juce::Point<float> screenPos = point.getScreenPosition(
-                const_cast<AutomationLaneComponent*>(this), width, visibleStartBeat, visibleEndBeat);
-
-            if (area.contains(screenPos))
-            {
-                return point.index;
-            }
-        }
+        if (point.time < visibleStartTime - 0.1 || point.time > visibleEndTime + 0.1)
+            continue;
+            
+        // Quick bounds check before expensive coordinate transformation
+        const float expectedX = static_cast<float>(m_editViewState.timeToX(point.time, width, visibleStartBeat, visibleEndBeat));
+        if (expectedX < area.getX() - 20 || expectedX > area.getRight() + 20)
+            continue;
+            
+        juce::Point<float> screenPos = const_cast<AutomationLaneComponent*>(this)->getPointOnAutomationRect(
+            tracktion::TimePosition::fromSeconds(point.time), point.value, width, visibleStartBeat, visibleEndBeat);
+        
+        if (area.contains(screenPos))
+            return point.index;
     }
-
+    
     return -1;
 }
 
@@ -319,19 +398,17 @@ AutomationLaneComponent::getVisiblePoints(double visibleStartBeat, double visibl
     if (!m_curveValid)
         return visiblePoints;
 
-    const double buffer = (visibleEndBeat - visibleStartBeat) * 0.05;
-    double extendedStartBeat = visibleStartBeat - buffer;
-    double extendedEndBeat = visibleEndBeat + buffer;
+    // Use minimal buffer zone for performance optimization
+    const double buffer = (visibleEndBeat - visibleStartBeat) * 0.02;
+    const double extendedStartTime = m_editViewState.beatToTime(visibleStartBeat - buffer);
+    const double extendedEndTime = m_editViewState.beatToTime(visibleEndBeat + buffer);
 
-    double extendedStartTime = m_editViewState.beatToTime(extendedStartBeat);
-    double extendedEndTime = m_editViewState.beatToTime(extendedEndBeat);
+    visiblePoints.ensureStorageAllocated(juce::jmin(m_curvePointCache.size(), 32));
 
     for (const auto& point : m_curvePointCache)
     {
         if (point.time >= extendedStartTime && point.time <= extendedEndTime)
-        {
             visiblePoints.add(point);
-        }
     }
 
     return visiblePoints;
@@ -339,11 +416,13 @@ AutomationLaneComponent::getVisiblePoints(double visibleStartBeat, double visibl
 
 bool AutomationLaneComponent::isCurveValid(const tracktion::AutomationCurve& curve) const
 {
-    return m_curveValid && m_cachedCurvePointCount == curve.getNumPoints();
+    return m_curveValid && 
+           m_cachedCurvePointCount == curve.getNumPoints();
 }
 
 void AutomationLaneComponent::invalidateCurveCache()
 {
     m_curveValid = false;
+    // Cache invalidation based on point count instead of version tracking
 }
 

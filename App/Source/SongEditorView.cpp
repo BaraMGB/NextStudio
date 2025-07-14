@@ -284,6 +284,14 @@ void SongEditorView::resized()
 
 void SongEditorView::mouseMove (const juce::MouseEvent &e)
 {
+    // Mouse event throttling
+    const auto currentTime = juce::Time::getCurrentTime().toMilliseconds();
+    if (currentTime - m_lastMouseMoveTime < kMouseThrottleIntervalMs && e.getPosition() == m_lastMousePos)
+        return;
+    
+    m_lastMouseMoveTime = currentTime;
+    m_lastMousePos = e.getPosition();
+    
     //init
 
     auto hoveredTrack = getTrackAt(e.y);
@@ -340,9 +348,16 @@ void SongEditorView::mouseMove (const juce::MouseEvent &e)
                 auto x1 = visibleRange.getStart().inBeats();
                 auto x2 = visibleRange.getEnd().inBeats();
 
-                if (!automationLane->isCurveValid(curve))
+                // Cache update nur bei tatsächlichen Änderungen
+                static thread_local int lastNumPoints = -1;
+                static thread_local void* lastParamPtr = nullptr;
+                
+                int currentNumPoints = curve.getNumPoints();
+                if (lastNumPoints != currentNumPoints || lastParamPtr != hoveredAutamatableParam.get() || !automationLane->isCurveValid(curve))
                 {
                     automationLane->updateCurveCache(curve);
+                    lastNumPoints = currentNumPoints;
+                    lastParamPtr = hoveredAutamatableParam.get();
                 }
 
                 hoveredAutomationPoint = automationLane->findPointUnderMouse(hoveredRectOnLane, x1, x2, getWidth());
@@ -1017,7 +1032,9 @@ void SongEditorView::addAutomationPointAt(te::AutomatableParameter::Ptr par, tra
     if (auto al = getAutomationLane(par))
     {
         al->setIsDragging(m_isDragging);
-        al->invalidateCurveCache();
+        // Cache invalidation only when actually dragging, not on every mouse move
+        if (m_isDragging)
+            al->invalidateCurveCache();
     }
 }
 

@@ -441,7 +441,8 @@ public:
     juce::Colour getRenderColour(){ return juce::Colours::orange;}
 
     juce::File getSamplesDir() { auto file = juce::File {};
-                                    file.create();}
+                                    file.create();
+                                    return file;}
 
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;

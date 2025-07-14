@@ -238,6 +238,11 @@ private:
 
     void logMousePositionInfo();
     
+    // Mouse event throttling
+    juce::int64 m_lastMouseMoveTime = 0;
+    juce::Point<int> m_lastMousePos;
+    static constexpr int kMouseThrottleIntervalMs = 16; // ~60 FPS
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SongEditorView)
 };
 
