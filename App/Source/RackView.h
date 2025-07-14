@@ -90,7 +90,10 @@ class AddButton : public juce::TextButton
                 , public juce::DragAndDropTarget
 {
 public:
-    AddButton(te::Track* track) : m_track(track) {}
+    AddButton(te::Track* track, ApplicationViewState& appState) 
+        : m_track(track)
+        , m_appState(appState)
+    {}
     inline bool isInterestedInDragSource (const SourceDetails& /*dragSourceDetails*/) override { return true; }
     void itemDropped(const SourceDetails& dragSourceDetails) override;
     
@@ -113,22 +116,24 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        if (isOver)
-        {
-            g.setColour(juce::Colours::white);
-        }
-        else
-        {
-            g.setColour(juce::Colours::grey);
-        }
         auto cornerSize = 5.f;
         auto area = getLocalBounds().toFloat();
-        GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize, false, true, false, true);
-        area.reduce(1,1);
-        g.setColour(juce::Colour(0xff1b1b1b));
+        area.reduce(0, 1);
+        auto borderRect = area;
 
+        auto backgroundColour = m_appState.getButtonBackgroundColour();
+        if (isOver)
+            backgroundColour = backgroundColour.brighter(0.4f);
+        
+        g.setColour(backgroundColour);
+        GUIHelpers::drawRoundedRectWithSide(g, area, cornerSize, false, true, false, true);
+
+        g.setColour(m_appState.getButtonTextColour());
         g.drawText(getButtonText(),getLocalBounds(),juce::Justification::centred
                    , false);
+        
+        g.setColour(m_appState.getBorderColour());
+        GUIHelpers::strokeRoundedRectWithSide(g, borderRect, cornerSize, false, true, false, true);
     }
 
     void setPlugin(te::Plugin::Ptr pln)
@@ -140,6 +145,7 @@ public:
 private:
     bool isOver {false};
     te::Track* m_track;
+    ApplicationViewState& m_appState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AddButton)
 };
 
