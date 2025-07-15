@@ -1049,35 +1049,29 @@ void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
     {
         if (at->state.getProperty (IDs::isMidiTrack))
         {
-            auto &dm = evs.m_edit.engine.getDeviceManager ();
-            for (auto instance: evs.m_edit.getAllInputDevices())
+            auto& dm = evs.m_edit.engine.getDeviceManager();
+            for (auto instance : evs.m_edit.getAllInputDevices())
             {
-                if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice ()))
+                if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice()))
                 {
-                    if (midiIn == dm.getDefaultMidiInDevice ())
+                    if (midiIn == dm.getDefaultMidiInDevice())
                     {
-                        [[maybe_unused]] auto res = instance->setTarget(at->itemID, true, &evs.m_edit.getUndoManager());
-                        evs.m_edit.restartPlayback();
+                        if (instance->getTargets().isEmpty())
+                        {
+                            instance->setTarget(at->itemID, false, &evs.m_edit.getUndoManager());
+                            evs.m_edit.restartPlayback();
+                        }
                     }
                 }
                 if (auto vmi = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice()))
                 {
-                    [[maybe_unused]] auto res = instance->setTarget(at->itemID, true, &evs.m_edit.getUndoManager());
-                    evs.m_edit.restartPlayback();
+                    if (instance->getTargets().isEmpty())
+                    {
+                        instance->setTarget(at->itemID, false, &evs.m_edit.getUndoManager());
+                        evs.m_edit.restartPlayback();
+                    }
                 }
             }
-
-            // if (evs.m_isAutoArmed)
-            // {
-            //     for (auto&i : evs.m_edit.getTrackList ())
-            //     {
-            //         if (auto audioTrack = dynamic_cast<te::AudioTrack*>(i))
-            //         {
-            //             EngineHelpers::armTrack (*audioTrack,false);
-            //         }
-            //     }
-            //     EngineHelpers::armTrack (*at, true);
-            // }
         }
     }
 }
@@ -1750,9 +1744,34 @@ tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
          track->setColour(trackColour);
          evs.m_selectionManager.selectOnly(track);
          evs.m_trackHeightManager->regenerateTrackHeightsFromStates(te::getAllTracks(evs.m_edit));
+
+        if (isMidiTrack)
+            updateMidiInputs(evs, track);
+        else
+            updateWaveInputs(evs, track);
+
          return track;
     }
     return nullptr;
+}
+
+void EngineHelpers::updateWaveInputs(EditViewState& evs, te::Track::Ptr track)
+{
+    auto& dm = evs.m_edit.engine.getDeviceManager();
+    for (auto instance : evs.m_edit.getAllInputDevices())
+    {
+        if (auto waveIn = dynamic_cast<te::WaveInputDevice*>(&instance->getInputDevice()))
+        {
+            if (waveIn == dm.getDefaultWaveInDevice())
+            {
+                if (instance->getTargets().isEmpty())
+                {
+                    instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager());
+                    evs.m_edit.restartPlayback();
+                }
+            }
+        }
+    }
 }
 
 tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(
@@ -1993,21 +2012,11 @@ bool EngineHelpers::isInputMonitoringEnabled (te::AudioTrack& t, int position)
 
 void EngineHelpers::enableInputMonitoring (te::AudioTrack& t, bool im, int position )
 {
-    if (isInputMonitoringEnabled (t, position) != im)
+    for (auto instance : t.edit.getAllInputDevices())
     {
-        for (auto instance : t.edit.getAllInputDevices())
+        if (te::isOnTargetTrack (*instance, t, position))
         {
-            if (te::isOnTargetTrack (*instance, t, position))
-            {
-                if (auto mode = instance->getInputDevice().getMonitorMode();
-                    mode == te::InputDevice::MonitorMode::on ||  mode == te::InputDevice::MonitorMode::off)
-                {
-                    GUIHelpers::log("Utilities.cpp: setMonitorMode()");
-                    instance->getInputDevice().setMonitorMode (mode == te::InputDevice::MonitorMode::on
-                                                                ? te::InputDevice::MonitorMode::off
-                                                                : te::InputDevice::MonitorMode::on);
-                }
-            }
+            instance->getInputDevice().setMonitorMode(im ? te::InputDevice::MonitorMode::on : te::InputDevice::MonitorMode::off);
         }
     }
 }

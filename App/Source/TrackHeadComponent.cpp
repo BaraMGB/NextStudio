@@ -367,7 +367,8 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             if (instance->getInputDevice().getDeviceType() == te::InputDevice::waveDevice)
             {
                 bool ticked = instance->getTargets().contains(at->itemID);
-                m.addItem (id++, instance->getInputDevice().getName(), true, ticked);
+                bool isEnabled = instance->getTargets().size() == 0 || ticked;
+                m.addItem (id++, instance->getInputDevice().getName(), isEnabled, ticked);
             }
         }
     m.addSeparator();
@@ -379,7 +380,8 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             if (instance->getInputDevice().getDeviceType() == te::InputDevice::physicalMidiDevice)
             {
                 bool ticked = instance->getTargets().contains(at->itemID);
-                m.addItem(id++, instance->getInputDevice().getName(), true, ticked);
+                bool isEnabled = instance->getTargets().size() == 0 || ticked;
+                m.addItem(id++, instance->getInputDevice().getName(), isEnabled, ticked);
             }
         }
     }
@@ -405,7 +407,8 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
         if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
         {
             GUIHelpers::log("TrackHeadComponent.cpp : enable input");
-            EngineHelpers::enableInputMonitoring(*aut, !EngineHelpers::isInputMonitoringEnabled(*aut));
+            bool ticked = EngineHelpers::isInputMonitoringEnabled(*aut);
+            EngineHelpers::enableInputMonitoring(*aut, !ticked);
         }
     }
     else if (result == 3000)
@@ -433,8 +436,11 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
                         }
                         else
                         {
-                            auto num = instance->getTargets().size();
-                            [[ maybe_unused ]] auto result = instance->setTarget (at->itemID, true, &at->edit.getUndoManager(), num);
+                            for (auto currentTargetID : instance->getTargets())
+                            {
+                                instance->removeTarget(currentTargetID, &at->edit.getUndoManager());
+                            }
+                            [[ maybe_unused ]] auto result = instance->setTarget (at->itemID, false, &at->edit.getUndoManager(), 0);
                         }
                     }
                     id++;
@@ -459,15 +465,17 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
                         }
                         else
                         {
-                            auto num = instance->getTargets().size();
-                            [[ maybe_unused ]] auto result = instance->setTarget (at->itemID, true, &at->edit.getUndoManager(), num);
+                            for (auto currentTargetID : instance->getTargets())
+                            {
+                                instance->removeTarget(currentTargetID, &at->edit.getUndoManager());
+                            }
+                            [[ maybe_unused ]] auto result = instance->setTarget (at->itemID, false, &at->edit.getUndoManager(), 0);
                         }
                     }
                     id++;
                 }
             }
         }
-
     }
 }
 

@@ -317,6 +317,7 @@ namespace EngineHelpers
     bool renderToNewTrack(EditViewState& evs, juce::Array<tracktion_engine::Track*> tracksToRender, tracktion::TimeRange range);
 
     void updateMidiInputs(EditViewState& evs, te::Track::Ptr track);
+    void updateWaveInputs(EditViewState& evs, te::Track::Ptr track);
     te::MidiInputDevice* getVirtuelMidiInputDevice(te::Edit& edit);
     tracktion::core::TimePosition getTimePos(double t);
     te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);

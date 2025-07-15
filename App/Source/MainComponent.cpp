@@ -738,8 +738,8 @@ void MainComponent::createTracksAndAssignInputs()
     for (int i = 0; i < dm.getNumWaveInDevices(); i++)
         if (auto wip = dm.getWaveInDevice (i))
         {
-            wip->setMonitorMode(te::InputDevice::MonitorMode::automatic);
-            wip->setEnabled (true);
+            wip->setMonitorMode(te::InputDevice::MonitorMode::off);
+            wip->setEnabled (false);
         }
 
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
