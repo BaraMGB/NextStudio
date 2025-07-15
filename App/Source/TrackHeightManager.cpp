@@ -81,8 +81,21 @@ int TrackHeightManager::getTrackHeight(tracktion_engine::Track* track, bool with
         totalHeight = folderTrackHeight;
 
     if (withAutomation)
-        for (const auto& paramHeight : trackInfo->automationParameterHeights)
-            totalHeight += paramHeight.second;
+    {
+        juce::Array<te::AutomatableParameter*> params;
+        for (const auto& [ap, height] : trackInfo->automationParameterHeights)
+            params.add(ap);
+
+        // Sort the parameters by their ID string to ensure a consistent order
+        std::sort(params.begin(), params.end(),
+                  [](const auto* a, const auto* b)
+                  {
+                      return a->paramID < b->paramID;
+                  });
+
+        for (const auto& ap : params)
+            totalHeight += trackInfo->automationParameterHeights[ap];
+    }
 
     return totalHeight;
 }
@@ -101,8 +114,20 @@ tracktion_engine::Track* TrackHeightManager::getTrackForY(int y, int scrollOffse
         }
 
         int paramY = currentY + trackHeight;
-        for (const auto& [paramID, height] : info->automationParameterHeights)
+
+        juce::Array<te::AutomatableParameter*> params;
+        for (const auto& [param, height] : info->automationParameterHeights)
+            params.add(param);
+
+        std::sort(params.begin(), params.end(),
+                  [](const auto* a, const auto* b)
+                  {
+                      return a->paramID < b->paramID;
+                  });
+
+        for (const auto& param : params)
         {
+            const int height = info->automationParameterHeights[param];
             if (y >= paramY && y < paramY + height)
             {
                 return nullptr;
@@ -155,8 +180,20 @@ tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::getAutomatablePa
         // Track found, check parameters
         int paramY = currentY + info->baseHeight;
 
+        juce::Array<te::AutomatableParameter*> params;
         for (const auto& [ap, height] : info->automationParameterHeights)
+            params.add(ap);
+
+        // Sort the parameters by their ID string to ensure a consistent order
+        std::sort(params.begin(), params.end(),
+                  [](const auto* a, const auto* b)
+                  {
+                      return a->paramID < b->paramID;
+                  });
+
+        for (const auto& ap : params)
         {
+            const int height = info->automationParameterHeights[ap];
             const int paramEndY = paramY + height;
 
             if (y >= paramY && y < paramEndY)
@@ -178,19 +215,27 @@ int TrackHeightManager::getYForAutomatableParameter(tracktion_engine::Track* tra
 
     for (auto* info : trackInfos)
     {
-        int trackHeight = info->baseHeight;
-
         if (info->track == track)
         {
-            int paramY = currentY + trackHeight;
+            int paramY = currentY + info->baseHeight;
 
-            for (const auto& [storedParam, height] : info->automationParameterHeights)
+            juce::Array<te::AutomatableParameter*> params;
+            for (const auto& [param, height] : info->automationParameterHeights)
+                params.add(param);
+
+            std::sort(params.begin(), params.end(),
+                      [](const auto* a, const auto* b)
+                      {
+                          return a->paramID < b->paramID;
+                      });
+
+            for (const auto& storedParam : params)
             {
                 if (storedParam == ap)
                 {
                     return paramY;
                 }
-                paramY += height;
+                paramY += info->automationParameterHeights[storedParam];
             }
         }
 

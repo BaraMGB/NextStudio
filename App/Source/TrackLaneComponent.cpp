@@ -58,7 +58,7 @@ void TrackLaneComponent::paint(juce::Graphics& g)
 }
 
 
-void TrackLaneComponent::resized() 
+void TrackLaneComponent::resized()
 {
     auto* trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
     if (trackInfo == nullptr)
@@ -67,6 +67,8 @@ void TrackLaneComponent::resized()
     const int minimizedHeigth = 30;
 
     auto rect = getLocalBounds();
+    float trackHeight = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+    rect.removeFromTop(trackHeight);
 
     for (auto* al : m_automationLanes)
     {
@@ -74,7 +76,7 @@ void TrackLaneComponent::resized()
         int automationHeight = trackInfo->automationParameterHeights[ap];
         automationHeight = automationHeight < minimizedHeigth ? minimizedHeigth : automationHeight;
         automationHeight = trackInfo->isMinimized ? 0 : automationHeight;
-        al->setBounds(rect.removeFromBottom(automationHeight));
+        al->setBounds(rect.removeFromTop(automationHeight));
     }
 }
 
@@ -88,13 +90,22 @@ void TrackLaneComponent::buildAutomationLanes()
     if (trackInfo == nullptr)
         return;
 
+    juce::Array<te::AutomatableParameter*> params;
     for (const auto& [ap, height] : trackInfo->automationParameterHeights)
-    {
         if (ap && ap->getCurve().getNumPoints() > 0)
-        {
-            m_automationLanes.add(new AutomationLaneComponent(m_editViewState, ap, m_timeLineID));
-            addAndMakeVisible(m_automationLanes.getLast());
-        }
+            params.add(ap);
+
+    // Sort the parameters by their ID string to ensure a consistent order
+    std::sort(params.begin(), params.end(),
+              [](const auto* a, const auto* b)
+              {
+                  return a->paramID < b->paramID;
+              });
+
+    for (auto* ap : params)
+    {
+        m_automationLanes.add(new AutomationLaneComponent(m_editViewState, ap, m_timeLineID));
+        addAndMakeVisible(m_automationLanes.getLast());
     }
 
     resized();

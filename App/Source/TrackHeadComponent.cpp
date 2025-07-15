@@ -490,13 +490,22 @@ void TrackHeaderComponent::buildAutomationHeader()
     if (trackInfo == nullptr)
         return;
 
+    juce::Array<te::AutomatableParameter*> params;
     for (const auto& [ap, height] : trackInfo->automationParameterHeights)
-    {
         if (ap && ap->getCurve().getNumPoints() > 0)
-        {
-            m_automationHeaders.add(new AutomationLaneHeaderComponent(ap, m_editViewState));
-            addAndMakeVisible(m_automationHeaders.getLast());
-        }
+            params.add(ap);
+
+    // Sort the parameters by their ID string to ensure a consistent order
+    std::sort(params.begin(), params.end(),
+              [](const auto* a, const auto* b)
+              {
+                  return a->paramID < b->paramID;
+              });
+
+    for (auto* ap : params)
+    {
+        m_automationHeaders.add(new AutomationLaneHeaderComponent(ap, m_editViewState));
+        addAndMakeVisible(m_automationHeaders.getLast());
     }
 
     resized();
@@ -611,55 +620,72 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
 
 void TrackHeaderComponent::resized()
 {
+    // This method combines the original layout for the main header controls
+    // with the new top-down layout for the automation headers to fix the ordering issue.
+
+    // === Main Header Controls Layout (Original Logic) ===
     const int gap = 3;
     const int minimizedHeigth = 30;
-    auto area = getLocalBounds().removeFromTop(minimizedHeigth);
-    auto peakdisplay = area.removeFromRight (15);
-    peakdisplay.reduce (gap, gap);
+
+    // Use a fixed 30px-high area for the main controls, regardless of the track's actual height.
+    // This keeps the controls at a consistent size.
+    auto controlArea = getLocalBounds().removeFromTop(minimizedHeigth);
+
+    auto peakdisplay = controlArea.removeFromRight(15);
+    peakdisplay.reduce(gap, gap);
     if (levelMeterComp)
-        levelMeterComp->setBounds (peakdisplay);
-    auto volSlider = area.removeFromRight(area.getHeight ());
+        levelMeterComp->setBounds(peakdisplay);
+
+    auto volSlider = controlArea.removeFromRight(controlArea.getHeight());
     if (m_volumeKnob)
         m_volumeKnob->setBounds(volSlider);
 
-    auto gapX = 1, gapY = 7;
+    auto gapX = 1;
+    auto gapY = 7;
     auto buttonwidth = minimizedHeigth - 10;
-    auto solo = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
+
+    auto solo = controlArea.removeFromRight(buttonwidth).reduced(gapX, gapY);
     m_soloButton.setBounds(solo);
-    m_soloButton.setComponentID ("solo");
-    m_soloButton.setTooltip ("solo track");
-    m_soloButton.setName ("S");
-    //m_soloButton.setMouseClickGrabsKeyboardFocus (false);
-    m_soloButton.setWantsKeyboardFocus (false);
+    m_soloButton.setComponentID("solo");
+    m_soloButton.setTooltip("solo track");
+    m_soloButton.setName("S");
+    m_soloButton.setWantsKeyboardFocus(false);
 
-    auto mute = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
+    auto mute = controlArea.removeFromRight(buttonwidth).reduced(gapX, gapY);
     m_muteButton.setBounds(mute);
-    m_muteButton.setComponentID ("mute");
-    m_muteButton.setTooltip ("mute track");
-    m_muteButton.setName ("M");
-    m_muteButton.setWantsKeyboardFocus (false);
-    //m_muteButton.setMouseClickGrabsKeyboardFocus (false);
+    m_muteButton.setComponentID("mute");
+    m_muteButton.setTooltip("mute track");
+    m_muteButton.setName("M");
+    m_muteButton.setWantsKeyboardFocus(false);
 
-    auto arm = area.removeFromRight (buttonwidth).reduced(gapX, gapY);
+    auto arm = controlArea.removeFromRight(buttonwidth).reduced(gapX, gapY);
     m_armButton.setBounds(arm);
-    m_armButton.setTooltip ("arm track");
-    m_armButton.setComponentID ("arm");
-    m_armButton.setName ("A");
-    m_armButton.setWantsKeyboardFocus (false);
-    //m_armButton.setMouseClickGrabsKeyboardFocus (false);
+    m_armButton.setTooltip("arm track");
+    m_armButton.setComponentID("arm");
+    m_armButton.setName("A");
+    m_armButton.setWantsKeyboardFocus(false);
 
-    area.removeFromLeft(45);
-    area.removeFromTop (6);
-    m_trackName.setBounds(area);
+    controlArea.removeFromLeft(45);
+    controlArea.removeFromTop(6);
+    m_trackName.setBounds(controlArea);
+
+    // === Automation Headers Layout (New Top-Down Logic) ===
     auto* trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
     if (trackInfo == nullptr)
         return;
 
-    int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+    // Get the full height of the main track header (which can be > 30px when resized)
+    int mainHeaderHeight = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+    if (isFolderTrack())
+        mainHeaderHeight = m_editViewState.m_folderTrackHeight;
 
-    auto rect = getLocalBounds();
-    rect.removeFromLeft(peakdisplay.getWidth());
-    rect.removeFromTop(height);
+    // The automation headers are drawn in the area below the main header
+    auto automationArea = getLocalBounds();
+    automationArea.removeFromTop(mainHeaderHeight);
+    
+    // Restore the original left indent to align the automation headers correctly.
+    // The old code used `peakdisplay.getWidth()`, which was 15.
+    automationArea.removeFromLeft(15);
 
 
     for (auto* ahs : m_automationHeaders)
@@ -667,9 +693,9 @@ void TrackHeaderComponent::resized()
         auto ap = ahs->automatableParameter();
         int automationHeight = trackInfo->automationParameterHeights[ap];
         automationHeight = automationHeight < minimizedHeigth ? minimizedHeigth : automationHeight;
-        ahs->setBounds(rect.removeFromBottom(automationHeight));
+        // Lay out headers from the top to match the visual order
+        ahs->setBounds(automationArea.removeFromTop(automationHeight));
     }
-
 }
 
 void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
