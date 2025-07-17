@@ -234,8 +234,6 @@ public:
     juce::Colour getTrackColour();
 
     [[nodiscard]] te::Track::Ptr getTrack() const;
-
-    void updateMidiInputs();
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
     void itemDragExit(const SourceDetails& dragSourceDetails) override;

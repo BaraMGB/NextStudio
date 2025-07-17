@@ -1043,38 +1043,6 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, 
     te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 }
 
-void EngineHelpers::updateMidiInputs(EditViewState& evs, te::Track::Ptr track)
-{
-    if (auto at = dynamic_cast<te::AudioTrack*>(track.get()))
-    {
-        if (at->state.getProperty (IDs::isMidiTrack))
-        {
-            auto& dm = evs.m_edit.engine.getDeviceManager();
-            for (auto instance : evs.m_edit.getAllInputDevices())
-            {
-                if (auto midiIn = dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice()))
-                {
-                    if (midiIn == dm.getDefaultMidiInDevice())
-                    {
-                        if (instance->getTargets().isEmpty())
-                        {
-                            instance->setTarget(at->itemID, false, &evs.m_edit.getUndoManager());
-                            evs.m_edit.restartPlayback();
-                        }
-                    }
-                }
-                if (auto vmi = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice()))
-                {
-                    if (instance->getTargets().isEmpty())
-                    {
-                        instance->setTarget(at->itemID, false, &evs.m_edit.getUndoManager());
-                        evs.m_edit.restartPlayback();
-                    }
-                }
-            }
-        }
-    }
-}
 te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
 {
     auto& dm = edit.engine.getDeviceManager();
@@ -1745,33 +1713,9 @@ tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(
          evs.m_selectionManager.selectOnly(track);
          evs.m_trackHeightManager->regenerateTrackHeightsFromStates(te::getAllTracks(evs.m_edit));
 
-        if (isMidiTrack)
-            updateMidiInputs(evs, track);
-        else
-            updateWaveInputs(evs, track);
-
-         return track;
+        return track;
     }
     return nullptr;
-}
-
-void EngineHelpers::updateWaveInputs(EditViewState& evs, te::Track::Ptr track)
-{
-    auto& dm = evs.m_edit.engine.getDeviceManager();
-    for (auto instance : evs.m_edit.getAllInputDevices())
-    {
-        if (auto waveIn = dynamic_cast<te::WaveInputDevice*>(&instance->getInputDevice()))
-        {
-            if (waveIn == dm.getDefaultWaveInDevice())
-            {
-                if (instance->getTargets().isEmpty())
-                {
-                    instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager());
-                    evs.m_edit.restartPlayback();
-                }
-            }
-        }
-    }
 }
 
 tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(

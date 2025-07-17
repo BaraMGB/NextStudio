@@ -78,7 +78,6 @@ public:
         , m_track(track)
         , m_timeLineID(timeLineID)
     {
-        EngineHelpers::updateMidiInputs(evs, track);
         addAndMakeVisible(&m_keyboard);
     }
     ~KeyboardView() = default;

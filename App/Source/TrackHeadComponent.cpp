@@ -362,13 +362,29 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     if (!isMidiTrack)
     {
         int id = 1;
-        for (auto instance : at->edit.getAllInputDevices())
+        auto& dm = at->edit.engine.getDeviceManager();
+        
+        // Show all available wave input devices from DeviceManager
+        for (int i = 0; i < dm.getNumWaveInDevices(); i++)
         {
-            if (instance->getInputDevice().getDeviceType() == te::InputDevice::waveDevice)
+            if (auto waveDevice = dm.getWaveInDevice(i))
             {
-                bool ticked = instance->getTargets().contains(at->itemID);
-                bool isEnabled = instance->getTargets().size() == 0 || ticked;
-                m.addItem (id++, instance->getInputDevice().getName(), isEnabled, ticked);
+                // Check if this device already has an instance targeting this track
+                bool ticked = false;
+                bool isEnabled = true; // Start with enabled
+
+                for (auto instance : at->edit.getAllInputDevices())
+                {
+                    if (&instance->getInputDevice() == waveDevice)
+                    {
+                        ticked = instance->getTargets().contains(at->itemID);
+                        // Audio inputs are exclusive - disabled if they have other targets
+                        isEnabled = instance->getTargets().size() == 0 || ticked;
+                        break;
+                    }
+                }
+                
+                m.addItem(id++, waveDevice->getName(), isEnabled, ticked);
             }
         }
     m.addSeparator();
@@ -380,7 +396,7 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             if (instance->getInputDevice().getDeviceType() == te::InputDevice::physicalMidiDevice)
             {
                 bool ticked = instance->getTargets().contains(at->itemID);
-                bool isEnabled = instance->getTargets().size() == 0 || ticked;
+                bool isEnabled = true; // MIDI inputs can have multiple targets - always enabled
                 m.addItem(id++, instance->getInputDevice().getName(), isEnabled, ticked);
             }
         }
@@ -436,12 +452,13 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
                         }
                         else
                         {
-                            for (auto currentTargetID : instance->getTargets())
-                            {
-                                instance->removeTarget(currentTargetID, &at->edit.getUndoManager());
-                            }
+                            // MIDI inputs can have multiple targets - don't remove existing ones
                             [[ maybe_unused ]] auto result = instance->setTarget (at->itemID, false, &at->edit.getUndoManager(), 0);
                         }
+                        
+                        // Restart playback to apply MIDI input changes
+                        at->edit.getTransport().ensureContextAllocated();
+                        at->edit.restartPlayback();
                     }
                     id++;
                 }
@@ -453,23 +470,61 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
         if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
         {
             int id = 1;
-            for (auto instance : at->edit.getAllInputDevices())
+            auto& dm = at->edit.engine.getDeviceManager();
+            
+            // Handle selection from all available wave input devices
+            for (int i = 0; i < dm.getNumWaveInDevices(); i++)
             {
-                if (instance->getInputDevice().getDeviceType() == te::InputDevice::waveDevice)
+                if (auto waveDevice = dm.getWaveInDevice(i))
                 {
                     if (id == result)
                     {
-                        if (instance->getTargets().contains(at->itemID))
+                        // Find existing instance for this device, if any
+                        te::InputDeviceInstance* targetInstance = nullptr;
+                        for (auto instance : at->edit.getAllInputDevices())
                         {
-                            [[ maybe_unused ]] auto result = instance->removeTarget(at->itemID, &at->edit.getUndoManager());
+                            if (&instance->getInputDevice() == waveDevice)
+                            {
+                                targetInstance = instance;
+                                break;
+                            }
+                        }
+                        
+                        if (targetInstance)
+                        {
+                            // Instance exists, toggle its target
+                            if (targetInstance->getTargets().contains(at->itemID))
+                            {
+                                [[ maybe_unused ]] auto result = targetInstance->removeTarget(at->itemID, &at->edit.getUndoManager());
+                            }
+                            else
+                            {
+                                for (auto currentTargetID : targetInstance->getTargets())
+                                {
+                                    targetInstance->removeTarget(currentTargetID, &at->edit.getUndoManager());
+                                }
+                                [[ maybe_unused ]] auto result = targetInstance->setTarget(at->itemID, false, &at->edit.getUndoManager(), 0);
+                            }
                         }
                         else
                         {
-                            for (auto currentTargetID : instance->getTargets())
+                            // No instance exists, create one by enabling the device and setting target
+                            waveDevice->setEnabled(true);
+                            waveDevice->setMonitorMode(te::InputDevice::MonitorMode::automatic);
+                            
+                            // The engine should create an instance when we restart playback
+                            at->edit.getTransport().ensureContextAllocated();
+                            at->edit.restartPlayback();
+                            
+                            // Now find the newly created instance and set target
+                            for (auto instance : at->edit.getAllInputDevices())
                             {
-                                instance->removeTarget(currentTargetID, &at->edit.getUndoManager());
+                                if (&instance->getInputDevice() == waveDevice)
+                                {
+                                    [[ maybe_unused ]] auto result = instance->setTarget(at->itemID, false, &at->edit.getUndoManager(), 0);
+                                    break;
+                                }
                             }
-                            [[ maybe_unused ]] auto result = instance->setTarget (at->itemID, false, &at->edit.getUndoManager(), 0);
                         }
                     }
                     id++;
@@ -522,11 +577,6 @@ void TrackHeaderComponent::buildAutomationHeader()
 te::Track::Ptr TrackHeaderComponent::getTrack() const
 {
     return m_track;
-}
-
-void TrackHeaderComponent::updateMidiInputs()
-{
-    EngineHelpers::updateMidiInputs(m_editViewState, getTrack());
 }
 
 void TrackHeaderComponent::paint (juce::Graphics& g)
@@ -748,8 +798,6 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                     m_editViewState.m_selectionManager.selectOnly(m_track);
                     m_dragImage = createComponentSnapshot (getLocalBounds ());
                 }
-
-                updateMidiInputs ();
 
                 if (event.getNumberOfClicks () > 1 || !m_editViewState.m_isPianoRollVisible)
                 {
