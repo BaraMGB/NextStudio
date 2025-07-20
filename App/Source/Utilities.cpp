@@ -1043,6 +1043,43 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, 
     te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 }
 
+void EngineHelpers::setExclusiveMidiFocus(EditViewState& evs, te::AudioTrack::Ptr focusTrack)
+{
+    auto& dm = evs.m_edit.engine.getDeviceManager();
+    auto defaultMidi = dm.getDefaultMidiInDevice();
+    auto virtualMidi = getVirtuelMidiInputDevice(evs.m_edit);
+    
+    if (!defaultMidi) return;
+    
+    // 1. Remove Default-MIDI and Virtual-MIDI from ALL tracks
+    for (auto instance : evs.m_edit.getAllInputDevices())
+    {
+        if (&instance->getInputDevice() == defaultMidi || 
+            &instance->getInputDevice() == virtualMidi)
+        {
+            // Remove all targets
+            auto targets = instance->getTargets();
+            for (auto targetID : targets)
+            {
+                instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
+            }
+        }
+    }
+    
+    // 2. Assign Default-MIDI and Virtual-MIDI only to the focus track
+    for (auto instance : evs.m_edit.getAllInputDevices())
+    {
+        if (&instance->getInputDevice() == defaultMidi || 
+            &instance->getInputDevice() == virtualMidi)
+        {
+            instance->setTarget(focusTrack->itemID, false, &evs.m_edit.getUndoManager(), 0);
+        }
+    }
+    
+    // 3. Restart audio system
+    evs.m_edit.getTransport().ensureContextAllocated();
+}
+
 te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
 {
     auto& dm = edit.engine.getDeviceManager();
@@ -1056,10 +1093,7 @@ te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
 
         if (instance->getInputDevice().getDeviceType() == te::InputDevice::virtualMidiDevice
             && instance->getInputDevice().getName() == name)
-        {
-            auto mid = dynamic_cast<te::VirtualMidiInputDevice*>(&instance->getInputDevice());
-            return mid;
-        }
+            return dynamic_cast<te::MidiInputDevice*>(&instance->getInputDevice());
     }
 
     return nullptr;

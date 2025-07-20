@@ -81,6 +81,7 @@ namespace IDs
     DECLARE_ID (PreviewSliderPos)
     DECLARE_ID (PreviewLoop)
     DECLARE_ID (SidebarCollapsed)
+    DECLARE_ID (ExclusiveMidiFocusEnabled)
     #undef DECLARE_ID
 }
 
@@ -216,6 +217,7 @@ public:
         m_appScale.referTo(behavior, IDs::AppScale, nullptr, 1.f);
         m_previewLoop.referTo (behavior, IDs::PreviewLoop, nullptr, false);
         m_sidebarCollapsed.referTo(behavior, IDs::SidebarCollapsed, nullptr, false);
+        m_exclusiveMidiFocusEnabled.referTo(behavior, IDs::ExclusiveMidiFocusEnabled, nullptr, true);
 
         themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
         themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
@@ -485,7 +487,8 @@ public:
                                     m_sidebarWidth;
     juce::CachedValue<float>        m_appScale, m_previewSliderPos;
     juce::CachedValue<bool>         m_previewLoop,
-                                    m_sidebarCollapsed;
+                                    m_sidebarCollapsed,
+                                    m_exclusiveMidiFocusEnabled;
     const int                       m_minSidebarWidth {250};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ApplicationViewState)
 };

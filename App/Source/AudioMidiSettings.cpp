@@ -23,18 +23,27 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "AudioMidiSettings.h"
 
-MidiSettings::MidiSettings(tracktion_engine::Engine &engine)
-  : m_engine(engine)
+MidiSettings::MidiSettings(tracktion_engine::Engine &engine, ApplicationViewState& appState)
+  : m_engine(engine), m_appState(appState)
 {
     addAndMakeVisible (m_midiDefaultChooser);
     addAndMakeVisible (m_midiDefaultLabel);
     m_midiDefaultChooser.addListener (this);
     m_midiDefaultLabel.attachToComponent(&m_midiDefaultChooser, true);
     m_midiDefaultLabel.setText("default Controller : ", juce::dontSendNotification);
+
+    addAndMakeVisible(m_exclusiveMidiFocusButton);
+    m_exclusiveMidiFocusButton.setButtonText("Exclusive MIDI Focus");
+    m_exclusiveMidiFocusButton.addListener(this);
+    m_exclusiveMidiFocusButton.setToggleState(m_appState.m_exclusiveMidiFocusEnabled, juce::dontSendNotification);
+    addAndMakeVisible(m_exclusiveMidiFocusLabel);
+    m_exclusiveMidiFocusLabel.attachToComponent(&m_exclusiveMidiFocusButton, true);
+    m_exclusiveMidiFocusLabel.setText("Focus on selected Track:", juce::dontSendNotification);
 }
 MidiSettings::~MidiSettings()
 {
     m_midiDefaultChooser.removeListener(this);
+    m_exclusiveMidiFocusButton.removeListener(this);
 }
 void MidiSettings::resized()
 {
@@ -58,7 +67,12 @@ void MidiSettings::resized()
     auto defaultController = area.removeFromTop(30);
     defaultController.removeFromRight(getWidth() * 0.05);
     defaultController.removeFromLeft(defaultController.getWidth() / 3);
-    m_midiDefaultChooser.setBounds (defaultController );
+    m_midiDefaultChooser.setBounds (defaultController);
+
+    auto exclusiveFocusRow = area.removeFromTop(30);
+    exclusiveFocusRow.removeFromRight(getWidth() * 0.05);
+    exclusiveFocusRow.removeFromLeft(exclusiveFocusRow.getWidth() / 3);
+    m_exclusiveMidiFocusButton.setBounds(exclusiveFocusRow);
 }
 
 void MidiSettings::comboBoxChanged(juce::ComboBox *comboBox)
@@ -66,4 +80,12 @@ void MidiSettings::comboBoxChanged(juce::ComboBox *comboBox)
     auto& dm = m_engine.getDeviceManager ();
     if (auto defaultMidiIn = dm.getMidiInDevice(comboBox->getSelectedId () - 1))
         dm.setDefaultMidiInDevice (defaultMidiIn->getDeviceID());
+}
+
+void MidiSettings::buttonClicked(juce::Button* button)
+{
+    if (button == &m_exclusiveMidiFocusButton)
+    {
+        m_appState.m_exclusiveMidiFocusEnabled = m_exclusiveMidiFocusButton.getToggleState();
+    }
 }

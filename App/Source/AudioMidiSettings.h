@@ -28,17 +28,20 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace te = tracktion_engine;
 class MidiSettings : public juce::Component
-, public juce::ComboBox::Listener
+, public juce::ComboBox::Listener, public juce::Button::Listener
 {
 public:
 
-    explicit MidiSettings(te::Engine& engine);
+    explicit MidiSettings(te::Engine& engine, ApplicationViewState& appState);
     ~MidiSettings() override;
     void resized () override;
     void comboBoxChanged(juce::ComboBox *comboBox) override;
+    void buttonClicked(juce::Button* button) override;
 
 private:
-
+    ApplicationViewState& m_appState;
+    juce::ToggleButton m_exclusiveMidiFocusButton;
+    juce::Label m_exclusiveMidiFocusLabel;
     juce::ComboBox m_midiDefaultChooser;
     juce::Label m_midiDefaultLabel;
     te::Engine& m_engine;
@@ -343,7 +346,7 @@ public:
     SettingsView(te::Engine& engine, juce::ApplicationCommandManager& commandManager, ApplicationViewState& appState) : juce::TabbedComponent(juce::TabbedButtonBar::Orientation::TabsAtTop)
         , m_appState(appState)
         , m_commandManager(commandManager)
-        , m_midiSettings(engine)
+        , m_midiSettings(engine, appState)
         , m_generalSettings(appState)
         , m_audioSettings(engine.getDeviceManager().deviceManager, 0, 512, 1, 512, false, false, false, false)
         , m_keyMappingEditor(*m_commandManager.getKeyMappings(), true)
