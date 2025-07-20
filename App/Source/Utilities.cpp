@@ -1815,12 +1815,19 @@ void EngineHelpers::refreshRelativePathsToNewEditFile(
     evs.m_edit.editFileRetriever = [newFile] {return newFile;};
 }
 
-void EngineHelpers::rewind(EditViewState &evs)
+void EngineHelpers::play (EditViewState &evs)
 {
+    GUIHelpers::log("play");
     auto& transport = evs.m_edit.getTransport ();
 
-    evs.m_playHeadStartTime = 0.0;
-    transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
+    if (transport.isPlaying ())
+        transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
+    //hack for prevent not playing the first transient of a sample
+    //that starts direct on play position
+    auto currentPos = transport.getPosition();
+    transport.setPosition(tracktion::TimePosition::fromSeconds(0) + evs.m_edit.getLength());
+    transport.play (true);
+    transport.setPosition(currentPos);
 }
 
 void EngineHelpers::stopPlay(EditViewState &evs)
@@ -1831,11 +1838,28 @@ void EngineHelpers::stopPlay(EditViewState &evs)
         evs.m_playHeadStartTime = 0.0;
         transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
         evs.setNewStartAndZoom("SongEditor", 0.0);
+        transport.stop(false, true);
+        GUIHelpers::log("EngineHelpers::stopPlay: stop and Device cleared.");
     }
     else
     {
-        transport.stop(false, true);
+        transport.stop(false, false);
         transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
+        GUIHelpers::log("EngineHelpers::stopPlay: stop.");
+    }
+}
+void EngineHelpers::togglePlay(EditViewState& evs)
+{
+    auto& transport = evs.m_edit.getTransport ();
+
+    if (transport.isPlaying ())
+    {
+        transport.stop (false, false);
+    }
+    else
+    {
+        evs.m_playHeadStartTime = transport.getPosition ().inSeconds();
+        EngineHelpers::play(evs);
     }
 }
 
@@ -1913,44 +1937,6 @@ void EngineHelpers::toggleMetronome (te::Edit& edit)
 {
     GUIHelpers::log("toggle metronome");
     edit.clickTrackEnabled = !edit.clickTrackEnabled;
-}
-void EngineHelpers::play (EditViewState &evs)
-{
-    GUIHelpers::log("play");
-    auto& transport = evs.m_edit.getTransport ();
-
-    if (transport.isPlaying ())
-        transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
-    //hack for prevent not playing the first transient of a sample
-    //that starts direct on play position
-    auto currentPos = transport.getPosition();
-    transport.setPosition(tracktion::TimePosition::fromSeconds(0) + evs.m_edit.getLength());
-    transport.play (true);
-    transport.setPosition(currentPos);
-}
-
-void EngineHelpers::pause (EditViewState &evs)
-{
-    auto& transport = evs.m_edit.getTransport ();
-    if (transport.isPlaying ())
-    {
-        transport.stop(true, false);
-    }
-}
-
-void EngineHelpers::togglePlay(EditViewState& evs)
-{
-    auto& transport = evs.m_edit.getTransport ();
-
-    if (transport.isPlaying ())
-    {
-        transport.stop (false, false);
-    }
-    else
-    {
-        evs.m_playHeadStartTime = transport.getPosition ().inSeconds();
-        EngineHelpers::play(evs);
-    }
 }
 
 void EngineHelpers::toggleRecord (tracktion_engine::Edit &edit)

@@ -403,9 +403,8 @@ namespace EngineHelpers
     tracktion::TimeRange getTimeRangeOfSelectedClips(EditViewState &evs);
 
     void play (EditViewState &evs);
-    void pause (EditViewState &evs);
-    void rewind(EditViewState &evs);
     void stopPlay(EditViewState &evs);
+    void togglePlay (EditViewState &evs);
     void toggleLoop (te::Edit& edit);
     void loopAroundSelection (EditViewState &evs);
     void loopOff (te::Edit& edit);
@@ -415,7 +414,6 @@ namespace EngineHelpers
     void toggleSnap (EditViewState &evs);
     void toggleMetronome (te::Edit& edit);
 
-    void togglePlay (EditViewState &evs);
     void toggleRecord (te::Edit& edit);
     void armTrack (te::AudioTrack& t, bool arm, int position = 0);
     bool isTrackArmed (te::AudioTrack& t, int position = 0);
