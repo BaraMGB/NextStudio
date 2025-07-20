@@ -340,29 +340,71 @@ void EditComponent::saveTempFile()
     if (m_edit.getTransport().isPlaying() || m_edit.getTransport().isRecording())
         return;
 
-    auto temp = m_editViewState.m_edit.getTempDirectory(false);
-    auto editFile = Helpers::findRecentEdit(temp);
-
-    //make sure that the edit finds the wave files relative to this edit file
-    EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, editFile);
-
-    auto currentFile = te::EditFileOperations(m_editViewState.m_edit).getEditFile();
-    auto xml = m_edit.state.toXmlString();
-
-    if (m_editViewState.m_needAutoSave)
+    if (!m_editViewState.m_needAutoSave)
     {
-        editFile.replaceWithText(xml);
-        GUIHelpers::log("current edit XML is saved: " + editFile.getFullPathName());
-    }
-    else
-    {
-        GUIHelpers::log("Edit is up to date, don't save.");
+        GUIHelpers::log("Edit is up to date, no autosave needed.");
+        return;
     }
 
-    //make sure that the edit finds the wave files relative to currentFile again
-    EngineHelpers::refreshRelativePathsToNewEditFile(m_editViewState, currentFile);
-    m_edit.sendSourceFileUpdate();
-    m_editViewState.m_needAutoSave = false;
+    auto tempDir = m_edit.getTempDirectory(false);
+    auto targetTempFile = Helpers::findRecentEdit(tempDir);
+    if (!targetTempFile.existsAsFile())
+        targetTempFile = tempDir.getNonexistentChildFile("autosave_" + juce::String(juce::Time::currentTimeMillis()), ".nextTemp");
+
+    try
+    {
+        auto editStateCopy = m_edit.state.createCopy();
+
+        // adjust relative paths to sve folder
+        for (int i = 0; i < editStateCopy.getNumChildren(); ++i)
+        {
+            auto childNode = editStateCopy.getChild(i);
+
+            if (te::TrackList::isTrack(childNode))
+            {
+                for (int j = 0; j < childNode.getNumChildren(); ++j)
+                {
+                    auto trackItemNode = childNode.getChild(j);
+
+                    if (trackItemNode.hasType(te::IDs::AUDIOCLIP))
+                    {
+                        if (trackItemNode.hasProperty(te::IDs::source))
+                        {
+                            auto oldRelativePath = trackItemNode.getProperty(te::IDs::source).toString();
+                            auto absoluteSourceFile = m_edit.filePathResolver(oldRelativePath);
+
+                            if (absoluteSourceFile.existsAsFile())
+                            {
+                                auto newRelativePath = absoluteSourceFile.getRelativePathFrom(targetTempFile.getParentDirectory());
+                                trackItemNode.setProperty(te::IDs::source, newRelativePath, nullptr);
+                            }
+                            else
+                            {
+                                GUIHelpers::log("WARNING: Source file not found during autosave: " + absoluteSourceFile.getFullPathName());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (auto xml = editStateCopy.createXml())
+        {
+            if (targetTempFile.replaceWithText(xml->toString()))
+            {
+                GUIHelpers::log("Autosave successful: " + targetTempFile.getFullPathName());
+                m_editViewState.m_needAutoSave = false;
+            }
+            else
+            {
+                GUIHelpers::log("ERROR: Autosave failed to write to file: " + targetTempFile.getFullPathName());
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        GUIHelpers::log("ERROR: Exception during autosave process: " + juce::String(e.what()));
+    }
 }
 
 void EditComponent::valueTreePropertyChanged (
