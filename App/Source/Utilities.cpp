@@ -1042,44 +1042,51 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, 
 
     te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 }
-
-void EngineHelpers::setExclusiveMidiFocus(EditViewState& evs, te::AudioTrack::Ptr focusTrack)
+void EngineHelpers::updateMidiInputTargets(EditViewState& evs)
 {
     auto& dm = evs.m_edit.engine.getDeviceManager();
     auto defaultMidi = dm.getDefaultMidiInDevice();
     auto virtualMidi = getVirtuelMidiInputDevice(evs.m_edit);
-    
-    if (!defaultMidi) return;
-    
-    // 1. Remove Default-MIDI and Virtual-MIDI from ALL tracks
+
+    if (!defaultMidi && !virtualMidi) return;
+
+    juce::Array<te::InputDeviceInstance*> midiInputsToModify;
     for (auto instance : evs.m_edit.getAllInputDevices())
     {
-        if (&instance->getInputDevice() == defaultMidi || 
-            &instance->getInputDevice() == virtualMidi)
+        if ((defaultMidi && &instance->getInputDevice() == defaultMidi) ||
+            (virtualMidi && &instance->getInputDevice() == virtualMidi))
         {
-            // Remove all targets
-            auto targets = instance->getTargets();
-            for (auto targetID : targets)
+            midiInputsToModify.add(instance);
+        }
+    }
+
+    // Clear all current targets from these instances
+    for (auto* instance : midiInputsToModify)
+    {
+        auto targets = instance->getTargets();
+        for (auto targetID : targets)
+        {
+            [[maybe_unused]]auto result = instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
+        }
+    }
+
+    // Get selected tracks
+    auto selectedTracks = evs.m_selectionManager.getItemsOfType<te::Track>();
+
+    // Add selected tracks as new targets
+    for (auto* track : selectedTracks)
+    {
+        if (track->isAudioTrack() && track->state.getProperty(IDs::isMidiTrack))
+        {
+            for (auto* instance : midiInputsToModify)
             {
-                instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
+                [[maybe_unused]]auto result = instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager(), 0);
             }
         }
     }
-    
-    // 2. Assign Default-MIDI and Virtual-MIDI only to the focus track
-    for (auto instance : evs.m_edit.getAllInputDevices())
-    {
-        if (&instance->getInputDevice() == defaultMidi || 
-            &instance->getInputDevice() == virtualMidi)
-        {
-            instance->setTarget(focusTrack->itemID, false, &evs.m_edit.getUndoManager(), 0);
-        }
-    }
-    
-    // 3. Restart audio system
+
     evs.m_edit.getTransport().ensureContextAllocated();
 }
-
 te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
 {
     auto& dm = edit.engine.getDeviceManager();

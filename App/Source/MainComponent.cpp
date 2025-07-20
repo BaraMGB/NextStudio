@@ -70,12 +70,14 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_commandManager.registerAllCommandsForTarget(&m_editComponent->getTrackListView());
     m_commandManager.registerAllCommandsForTarget(&m_lowerRange->getPianoRollEditor());
 
+    m_selectionManager.addChangeListener(this);
     m_applicationState.m_applicationStateValueTree.addListener(this);
 }
 
 MainComponent::~MainComponent()
 {
     m_applicationState.m_applicationStateValueTree.removeListener(this);
+    m_selectionManager.removeChangeListener(this);
     m_edit->state.removeListener (this);
     saveSettings();
     m_header->removeAllChangeListeners ();
@@ -592,6 +594,12 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
             setupEdit (m_tempDir.getNonexistentChildFile ("untitled", ".nextTemp", false));
             clearAudioTracks();
         }
+    }
+
+    if (source == &m_selectionManager && m_editViewState)
+    {
+        if (m_editViewState->m_applicationState.m_exclusiveMidiFocusEnabled)
+            EngineHelpers::updateMidiInputTargets(*m_editViewState);
     }
 }
 

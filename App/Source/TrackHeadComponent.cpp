@@ -543,23 +543,6 @@ void TrackHeaderComponent::deleteTrackFromEdit()
     m_track->edit.deleteTrack(m_track);
 }
 
-bool TrackHeaderComponent::hasMidiFocus() const
-{
-    auto& dm = m_editViewState.m_edit.engine.getDeviceManager();
-    auto defaultMidi = dm.getDefaultMidiInDevice();
-    
-    if (!defaultMidi) return false;
-    
-    for (auto instance : m_editViewState.m_edit.getAllInputDevices())
-    {
-        if (&instance->getInputDevice() == defaultMidi)
-        {
-            return instance->getTargets().contains(m_track->itemID);
-        }
-    }
-    return false;
-}
-
 void TrackHeaderComponent::buildAutomationHeader()
 {
     m_automationHeaders.clear(true);
@@ -675,13 +658,6 @@ void TrackHeaderComponent::paint (juce::Graphics& g)
         {
             g.setColour(juce::Colour(0x66ffffff));
             g.drawRect(getLocalBounds().removeFromTop(1));
-        }
-
-        // Visual feedback for MIDI focus
-        if (m_track->state.getProperty(IDs::isMidiTrack) && hasMidiFocus())
-        {
-            g.setColour(juce::Colour(0xff00ff00).withAlpha(0.3f)); // Green glow
-            g.fillRect(getLocalBounds().removeFromLeft(3));
         }
 
         const char* icon = BinaryData::wavetest5_svg;;
@@ -821,16 +797,6 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 {
                     m_editViewState.m_selectionManager.selectOnly(m_track);
                     m_dragImage = createComponentSnapshot (getLocalBounds ());
-                    
-                    // Exclusive MIDI focus for MIDI tracks
-                    if (m_track->state.getProperty(IDs::isMidiTrack) && 
-                        m_editViewState.m_applicationState.m_exclusiveMidiFocusEnabled)
-                    {
-                        if (auto audioTrack = dynamic_cast<te::AudioTrack*>(m_track.get()))
-                        {
-                            EngineHelpers::setExclusiveMidiFocus(m_editViewState, audioTrack);
-                        }
-                    }
                 }
 
                 if (event.getNumberOfClicks () > 1 || !m_editViewState.m_isPianoRollVisible)

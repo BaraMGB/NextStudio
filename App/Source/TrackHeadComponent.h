@@ -259,7 +259,6 @@ private:
 
     void showPopupMenu(te::Track* at);
     void deleteTrackFromEdit();
-    bool hasMidiFocus() const;
 
     EditViewState& m_editViewState;
     te::Track::Ptr m_track;

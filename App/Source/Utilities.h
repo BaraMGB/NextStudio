@@ -315,8 +315,8 @@ namespace EngineHelpers
     void renderEditToFile(EditViewState& evs, juce::File renderFile, tracktion::TimeRange range={});
     bool renderCliptoNewTrack(EditViewState & evs, te::Clip::Ptr clip);
     bool renderToNewTrack(EditViewState& evs, juce::Array<tracktion_engine::Track*> tracksToRender, tracktion::TimeRange range);
-    
-    void setExclusiveMidiFocus(EditViewState& evs, te::AudioTrack::Ptr focusTrack);
+
+    void updateMidiInputTargets(EditViewState& evs);
     te::MidiInputDevice* getVirtuelMidiInputDevice(te::Edit& edit);
     tracktion::core::TimePosition getTimePos(double t);
     te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);
