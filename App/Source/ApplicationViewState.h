@@ -211,7 +211,7 @@ public:
         m_trackHeaderTextColour.referTo(themeState, IDs::trackHeaderTextColour, nullptr, juce::Colour(0xffffffff).toString());
 
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
-        m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 45000);
+        m_autoSaveInterval.referTo (behavior, IDs::AutoSaveInterval, nullptr, 10000);
         m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, 300);
         m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 1.f);
         m_appScale.referTo(behavior, IDs::AppScale, nullptr, 1.f);

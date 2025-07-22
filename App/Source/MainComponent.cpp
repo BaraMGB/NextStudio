@@ -590,8 +590,7 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         }
         else
         {
-            m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
-            setupEdit (m_tempDir.getNonexistentChildFile ("untitled", ".nextTemp", false));
+            setupEdit (juce::File());
             clearAudioTracks();
         }
     }
@@ -624,14 +623,12 @@ void MainComponent::openValidStartEdit()
         }
         else
         {
-            m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
-            m_tempDir = m_engine.getTemporaryFileManager().getTempDirectory();
+            m_tempDir.deleteRecursively();
             m_tempDir.createDirectory();
         }
     }
 
-    setupEdit (m_tempDir.getNonexistentChildFile ("untitled", ".nextTemp", false));
-    clearAudioTracks();
+    setupEdit (juce::File());
 }
 
 void MainComponent::setupSideBrowser()
@@ -643,62 +640,65 @@ void MainComponent::setupSideBrowser()
 
 void MainComponent::setupEdit(juce::File editFile)
 {
-    if(m_edit)
+     if (m_edit)
     {
-        if(!handleUnsavedEdit ())
+        if (!handleUnsavedEdit())
             return;
     }
-    if (editFile == juce::File())
-    {
-        juce::FileChooser fc ("New Edit"
-                              , juce::File::getSpecialLocation (
-                                  juce::File::userDocumentsDirectory)
-                              , "*.tracktionedit");
-        if (fc.browseForFileToSave (true))
-            editFile = fc.getResult();
-        else
-            return;
-    }
+    if (m_tempDir.exists() && (editFile.getParentDirectory() != m_tempDir))
+        m_tempDir.deleteRecursively();
+
+    m_tempDir.createDirectory();
+
+    const bool isNewEdit = (editFile == juce::File());
+
+    if (isNewEdit)
+        editFile = m_tempDir.getNonexistentChildFile("autosave", ".nextTemp", false);
 
     m_lowerRange = nullptr;
     m_selectionManager.deselectAll();
     m_editComponent = nullptr;
 
     if (editFile.existsAsFile())
-        m_edit = te::loadEditFromFile (m_engine, editFile);
+        m_edit = te::loadEditFromFile(m_engine, editFile);
     else
-        m_edit = te::createEmptyEdit (m_engine, editFile);
+        m_edit = te::createEmptyEdit(m_engine, editFile);
+
+    if (isNewEdit)
+        clearAudioTracks();
+
+    m_edit->setTempDirectory(m_tempDir);
 
     if (auto w = dynamic_cast<juce::DocumentWindow*>(getParentComponent()))
     {
         w->setName(editFile.getFileNameWithoutExtension());
     }
-    m_edit->playInStopEnabled = true;
-    
-    m_edit->setTempDirectory(m_tempDir);
 
-    m_edit->getTransport().addChangeListener (this);
+    m_edit->playInStopEnabled = true;
+
+    m_edit->getTransport().addChangeListener(this);
 
     createTracksAndAssignInputs();
 
-    te::EditFileOperations (*m_edit).writeToFile(editFile, true);
+    if (!editFile.existsAsFile())
+        te::EditFileOperations(*m_edit).writeToFile(editFile, true);
 
-    m_editViewState = std::make_unique<EditViewState> (*m_edit, m_selectionManager, m_applicationState);
-    m_editComponent = std::make_unique<EditComponent> (*m_edit, *m_editViewState, m_applicationState, m_selectionManager, m_commandManager);
+    m_editViewState = std::make_unique<EditViewState>(*m_edit, m_selectionManager, m_applicationState);
+    m_editComponent = std::make_unique<EditComponent>(*m_edit, *m_editViewState, m_applicationState, m_selectionManager, m_commandManager);
     m_lowerRange = std::make_unique<LowerRangeComponent>(*m_editViewState);
 
-    m_edit->state.addListener (this);
+    m_edit->state.addListener(this);
 
-    m_header = std::make_unique<HeaderComponent>(m_editComponent->getEditViewState (), m_applicationState, m_commandManager);
+    m_header = std::make_unique<HeaderComponent>(m_editComponent->getEditViewState(), m_applicationState, m_commandManager);
     m_editorContainer = std::make_unique<EditorContainer>(*m_header, *m_editComponent);
 
-    addAndMakeVisible (*m_editorContainer);
+    addAndMakeVisible(*m_editorContainer);
     addAndMakeVisible(*m_lowerRange);
 
     setupSideBrowser();
 
     addKeyListener(m_commandManager.getKeyMappings());
-    resized ();
+    resized();
 }
 
 void MainComponent::saveSettings()

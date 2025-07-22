@@ -139,6 +139,9 @@ EditComponent::EditComponent (te::Edit& e,EditViewState& evs, ApplicationViewSta
     updateHorizontalScrollBar();
     startTimer (static_cast<int>(m_editViewState.m_applicationState.m_autoSaveInterval));
     trimMidiNotesToClipStart();
+
+    m_editViewState.m_needAutoSave = true;
+    saveTempFile();
 }
 
 EditComponent::~EditComponent()
@@ -349,7 +352,7 @@ void EditComponent::saveTempFile()
     auto tempDir = m_edit.getTempDirectory(false);
     auto targetTempFile = Helpers::findRecentEdit(tempDir);
     if (!targetTempFile.existsAsFile())
-        targetTempFile = tempDir.getNonexistentChildFile("autosave_" + juce::String(juce::Time::currentTimeMillis()), ".nextTemp");
+        targetTempFile = tempDir.getNonexistentChildFile("autosave", ".nextTemp", false);
 
     try
     {
