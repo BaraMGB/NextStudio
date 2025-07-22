@@ -1190,6 +1190,30 @@ juce::Array<te::Track*> EngineHelpers::getSortedTrackList(te::Edit& edit)
     return tracks;
 }
 
+juce::Array<te::MidiClip*> EngineHelpers::getMidiClipsOfTrack(te::Track& track)
+{
+    juce::Array<te::MidiClip*> midiClips;
+
+    if (auto at = dynamic_cast<te::AudioTrack*>(&track))
+        for (auto c : at->getClips())
+            if (auto mc = dynamic_cast<te::MidiClip*>(c))
+                midiClips.add(mc);
+
+    return midiClips;
+}
+
+double EngineHelpers::getNoteStartBeat(const te::MidiClip* midiClip, const te::MidiNote* n)
+{
+    auto sBeat = n->getStartBeat() - midiClip->getOffsetInBeats();
+    return sBeat.inBeats();
+}
+
+double EngineHelpers::getNoteEndBeat(const te::MidiClip* midiClip, const te::MidiNote* n)
+{
+    auto eBeat = n->getEndBeat() - midiClip->getOffsetInBeats();
+    return eBeat.inBeats();
+}
+
 bool EngineHelpers::isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr)
 {
     return ti->getEditTimeRange().intersects(tr);

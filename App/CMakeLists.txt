@@ -73,6 +73,7 @@ target_sources(${TargetName} PRIVATE
         Source/HeaderComponent.cpp
         Source/TimeLineComponent.cpp
         Source/EditComponent.cpp
+        Source/EditViewState.cpp
         Source/PluginWindow.cpp
         Source/PluginComponent.cpp
         Source/PluginMenu.cpp

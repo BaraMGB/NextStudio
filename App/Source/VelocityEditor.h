@@ -54,25 +54,18 @@ public:
 
 private:
 
-    std::vector<tracktion_engine::MidiClip*> getMidiClipsOfTrack();
-
-    tracktion_engine::MidiNote * getNote(juce::Point<float> p);
-
-    void drawBarsAndBeatLines(juce::Graphics& g, juce::Colour colour);
-    double getNoteStartBeat(te::MidiClip* const& pClip,
-                            const te::MidiNote* pNote) const;
-    double getNoteEndBeat(te::MidiClip* const& pClip,
-                          const te::MidiNote* pNote) const;
-    juce::Range<float> getXLineRange(te::MidiClip* const& midiClip, const te::MidiNote* n) const;
-
-    int getVelocityPixel(const te::MidiNote* n) const;
-
     EditViewState& m_editViewState;
     te::Track::Ptr m_track;
+
+    tracktion_engine::MidiNote* getNote(juce::Point<float> p);
+
+    void drawBarsAndBeatLines(juce::Graphics& g, juce::Colour colour);
+    juce::Range<float> getXLineRange(te::MidiClip* const& midiClip, const te::MidiNote* n) const;
+    int getVelocityPixel(const te::MidiNote* n) const;
+
     void drawVelocityRuler(juce::Graphics& graphics,
                            tracktion_engine::MidiClip*& midiClip,
                            tracktion_engine::MidiNote* n);
-    int beatsToX (double beats);
     int getVelocity(int y);
     void clearNotesFlags();
     te::MidiNote* getHoveredNote();

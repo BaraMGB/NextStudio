@@ -325,6 +325,9 @@ namespace EngineHelpers
     bool trackWantsClip(const juce::ValueTree state, const te::Track *track);
     te::Track* getTargetTrack(te::Track*, int verticalOffset);
     juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
+    juce::Array<te::MidiClip*> getMidiClipsOfTrack(te::Track& track);
+    double getNoteStartBeat(const te::MidiClip* midiClip, const te::MidiNote* n);
+    double getNoteEndBeat(const te::MidiClip* midiClip, const te::MidiNote* n);
     void deleteSelectedClips(EditViewState & evs);
 
 

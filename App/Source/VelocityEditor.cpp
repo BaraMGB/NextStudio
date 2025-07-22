@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -28,7 +27,7 @@ void VelocityEditor::paint(juce::Graphics& g)
     drawBarsAndBeatLines(g, juce::Colour(0x77ffffff));
     g.setColour(juce::Colour(0x77ffffff));
 
-    for (auto & midiClip : getMidiClipsOfTrack())
+    for (auto & midiClip : EngineHelpers::getMidiClipsOfTrack(*m_track))
     {
         auto& seq = midiClip->getSequence();
         for (auto n : seq.getNotes())
@@ -95,34 +94,6 @@ void VelocityEditor::drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour
     GUIHelpers::drawBarsAndBeatLines (g, m_editViewState, beatX1, beatX2, getBounds ().toFloat());
 }
 
-double VelocityEditor::getNoteStartBeat(te::MidiClip* const& midiClip,
-                                        const te::MidiNote* n) const
-{
-    auto sBeat= n->getStartBeat() - midiClip->getOffsetInBeats();
-    return sBeat.inBeats();
-}
-
-double VelocityEditor::getNoteEndBeat(te::MidiClip* const& midiClip,
-                                      const te::MidiNote* n) const
-{
-    auto eBeat= n->getEndBeat() - midiClip->getOffsetInBeats();
-    return eBeat.inBeats();
-}
-std::vector<tracktion_engine::MidiClip*> VelocityEditor::getMidiClipsOfTrack()
-{
-    std::vector<te::MidiClip*> midiClips;
-    if (auto at = dynamic_cast<te::AudioTrack*>(&(*m_track)))
-    {
-        for (auto c : at->getClips ())
-        {
-            if (auto mc = dynamic_cast<te::MidiClip*>(c))
-            {
-                midiClips.push_back (mc);
-            }
-        }
-    }
-    return midiClips;
-}
 void VelocityEditor::drawVelocityRuler(juce::Graphics& g,
                                        tracktion_engine::MidiClip*& midiClip,
                                        tracktion_engine::MidiNote* n)
@@ -150,20 +121,15 @@ void VelocityEditor::drawVelocityRuler(juce::Graphics& g,
 juce::Range<float> VelocityEditor::getXLineRange(te::MidiClip* const& midiClip,
                                                        const te::MidiNote* n) const
 {
-    double sBeat = getNoteStartBeat(midiClip, n);
-    double eBeat = getNoteEndBeat(midiClip, n);
-
-    double beatX1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
-    double beatX2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    double sBeat = EngineHelpers::getNoteStartBeat(midiClip, n);
+    double eBeat = EngineHelpers::getNoteEndBeat(midiClip, n);
 
     auto x1 = m_editViewState.beatsToX(sBeat + midiClip->getStartBeat().inBeats(),
-                                       getWidth(),
-                                       beatX1,
-                                       beatX2);
+                                       m_timeLineID,
+                                       getWidth());
     auto x2 = m_editViewState.beatsToX(eBeat + midiClip->getStartBeat().inBeats(),
-                                       getWidth(),
-                                       beatX1,
-                                       beatX2) + 1;
+                                       m_timeLineID,
+                                       getWidth()) + 1;
 
     return {x1, x2};
 
@@ -181,12 +147,12 @@ int VelocityEditor::getVelocityPixel(const te::MidiNote* n) const
 
 tracktion_engine::MidiNote* VelocityEditor::getNote(juce::Point<float> p)
 {
-    for (auto& mc : getMidiClipsOfTrack ())
+    for (auto& mc : EngineHelpers::getMidiClipsOfTrack(*m_track))
     {
         for (auto note: mc->getSequence().getNotes())
         {
             auto y = getVelocityPixel(note);
-            auto x = beatsToX(getNoteStartBeat(mc, note) + mc->getStartBeat().inBeats());
+            auto x = m_editViewState.beatsToX(EngineHelpers::getNoteStartBeat(mc, note) + mc->getStartBeat().inBeats(), m_timeLineID, getWidth());
 
             if (GUIHelpers::getSensibleArea(p, 10).contains(x,y))
             {
@@ -197,16 +163,9 @@ tracktion_engine::MidiNote* VelocityEditor::getNote(juce::Point<float> p)
     return nullptr;
 }
 
-int VelocityEditor::beatsToX(double beats)
-{
-    double beatX1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
-    double beatX2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
-    return m_editViewState.beatsToX(
-        beats, getWidth(), beatX1, beatX2);
-}
 void VelocityEditor::clearNotesFlags()
 {
-    for (auto mc : getMidiClipsOfTrack())
+    for (auto mc : EngineHelpers::getMidiClipsOfTrack(*m_track))
     {
         for (auto n : mc->getSequence().getNotes())
         {
@@ -217,7 +176,7 @@ void VelocityEditor::clearNotesFlags()
 }
 te::MidiNote* VelocityEditor::getHoveredNote()
 {
-    for (auto mc : getMidiClipsOfTrack())
+    for (auto mc : EngineHelpers::getMidiClipsOfTrack(*m_track))
     {
         for (auto n : mc->getSequence().getNotes())
         {

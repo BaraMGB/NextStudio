@@ -236,122 +236,25 @@ public:
         return m_zoomMode;
     }
 
-    [[nodiscard]] float beatsToX(double beats, int width, double x1beats, double x2beats) const
-    {
-        return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats));
-    }
+    [[nodiscard]] float beatsToX(double beats, int width, double x1beats, double x2beats) const;
+    [[nodiscard]] double xToBeats(float x, int width, double x1beats, double x2beats) const;
+    [[nodiscard]] float timeToX(double time, int width, double x1beats, double x2beats) const;
+    [[nodiscard]] double xToTime(float x, int width, double x1beats, double x2beats) const;
 
-    [[nodiscard]] double xToBeats(float x, int width, double x1beats, double x2beats) const
-    {
-        double beats = (static_cast<double>(x) / width) * (x2beats - x1beats) + x1beats;
-        return beats;
-    }
+    [[nodiscard]] float beatsToX(double beats, const juce::String& timeLineID, int width);
+    [[nodiscard]] double xToBeats(int x, const juce::String& timeLineID, int width);
+    [[nodiscard]] float timeToX(double time, const juce::String& timeLineID, int width);
+    [[nodiscard]] double xToTime(int x, const juce::String& timeLineID, int width);
 
-    [[nodiscard]] float timeToX(double time, int width, double x1beats, double x2beats) const
-    {
-        double beats = timeToBeat(time);
-        return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats));
-    } 
-    [[nodiscard]] double xToTime(float x, int width, double x1beats, double x2beats) const
-    {
-    double beats = (static_cast<double>(x) / width) * (x2beats - x1beats) + x1beats;
-    return beatToTime(beats);
-    }
+    [[nodiscard]] double beatToTime (double b) const;
+    [[nodiscard]] double timeToBeat (double t) const;
 
-    [[nodiscard]] double beatToTime (double b) const
-    {
-        auto bp = tracktion::core::BeatPosition::fromBeats(b);
-        auto& ts = m_edit.tempoSequence;
-        return ts.toTime(bp).inSeconds();
-    }
+    void setNewStartAndZoom(juce::String timeLineID, double startBeat, double beatsPerPixel=-1);
+    void setNewBeatRange(juce::String timeLineID, tracktion::BeatRange beatRange, float width);
+    void setNewTimeRange(juce::String timeLineID, tracktion::TimeRange timeRange, float width);
 
-    [[nodiscard]] double timeToBeat (double t) const
-    {
-        auto tp = tracktion::core::TimePosition::fromSeconds(t);
-        auto& ts = m_edit.tempoSequence;
-        return ts.toBeats(tp).inBeats();
-    }
-
-    void setNewStartAndZoom(juce::String timeLineID, double startBeat, double beatsPerPixel=-1)
-    {
-
-        startBeat = juce::jmax(0.0, startBeat);
-
-        if (auto* myViewData = componentViewData[timeLineID])
-        {
-            if (beatsPerPixel != -1)
-                myViewData->beatsPerPixel = beatsPerPixel;
-            myViewData->viewX = startBeat;
-        }
-    }
-
-
-    void setNewBeatRange(juce::String timeLineID, tracktion::BeatRange beatRange, float width)
-    {
-        if (auto* myViewData = componentViewData[timeLineID])
-        {
-            auto startBeat = beatRange.getStart().inBeats();
-            auto endBeat = beatRange.getEnd().inBeats();
-            auto beatsPerPixel = (endBeat - startBeat) / width;
-
-            if (startBeat < 0)
-            {
-                startBeat = 0;
-                endBeat = startBeat + (beatsPerPixel * width);
-            }
-
-            myViewData->viewX = startBeat;
-            myViewData->beatsPerPixel = beatsPerPixel;
-        }
-    }
-
-    void setNewTimeRange(juce::String timeLineID, tracktion::TimeRange timeRange, float width)
-    {
-        if (auto* myViewData = componentViewData[timeLineID])
-        {
-            auto startBeat = timeToBeat(timeRange.getStart().inSeconds());
-            auto endBeat = timeToBeat(timeRange.getEnd().inSeconds());
-            auto beatsPerPixel = (endBeat - startBeat) / width;
-
-            if (startBeat < 0)
-            {
-                startBeat = 0;
-                endBeat = startBeat + (beatsPerPixel * width);
-            }
-
-            myViewData->viewX = startBeat;
-            myViewData->beatsPerPixel = beatsPerPixel;
-        }
-    }
-
-    tracktion::BeatRange getVisibleBeatRange(juce::String id, int width)
-    {
-        if (auto* myViewData = componentViewData[id])
-        {
-            auto startBeat = myViewData->viewX.get();
-            auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
-
-            return {tracktion::BeatPosition::fromBeats(startBeat)
-                    , tracktion::BeatPosition::fromBeats(endBeat)};
-        }
-        return tracktion::BeatRange();
-    }
-
-    tracktion::TimeRange getVisibleTimeRange(juce::String id, int width)
-    {
-        if (auto* myViewData = componentViewData[id])
-        {
-            auto startBeat = myViewData->viewX.get();
-            auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
-
-            auto t1 = beatToTime(startBeat);
-            auto t2 = beatToTime(endBeat);
-
-            return {tracktion::TimePosition::fromSeconds(t1)
-                    , tracktion::TimePosition::fromSeconds(t2)};
-        }
-        return tracktion::TimeRange();
-    }
+    tracktion::BeatRange getVisibleBeatRange(juce::String id, int width);
+    tracktion::TimeRange getVisibleTimeRange(juce::String id, int width);
 
     [[nodiscard]] double getSnapedTime (
             double t

@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -62,7 +61,6 @@ public:
     void timerCallback() override;
 
     te::Track::Ptr getTrack();
-    juce::Array<te::MidiClip*> getMidiClipsOfTrack();
 
     int getNoteNumber (int y);
 
@@ -93,8 +91,6 @@ private:
     [[nodiscard]] juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n);
     [[nodiscard]] juce::Rectangle<float> getNoteRect(int noteNum, int x1, int x2) const;
 
-    static double          getNoteStartBeat(const te::MidiClip* midiClip, const te::MidiNote* n) ;
-    static double          getNoteEndBeat(const te::MidiClip* midiClip, const te::MidiNote* n) ;
     juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, tracktion_engine::MidiNote* n);
 
     void                   insertNote(MidiNote note);
@@ -122,12 +118,6 @@ private:
     juce::Rectangle<float> getClipRect(te::Clip* clip);
 
 
-    [[nodiscard]] double   beatsToTime(double beats);
-    [[nodiscard]] int      beatsToX(double beats);
-    [[nodiscard]] double   xToBeats(const int& x) const;
-    [[nodiscard]] double   timeToX(const double& time) const;
-    [[nodiscard]] double   xToTime(const int& x) const;
-    [[nodiscard]] double   timeToBeat(double time);
     [[nodiscard]] double   getQuantisedBeat(double beat, bool down=true) const;
     [[nodiscard]] double   getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down=true) const;
     void                   snapToGrid(te::MidiNote* note, const te::MidiClip* clip) const;
