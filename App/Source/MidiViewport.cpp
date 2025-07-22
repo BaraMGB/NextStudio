@@ -236,53 +236,71 @@ void MidiViewport::drawClipRange(
 
 void MidiViewport::mouseMove(const juce::MouseEvent& e)
 {
-    for (auto c : EngineHelpers::getMidiClipsOfTrack(*m_track))
-        for (auto n : c->getSequence().getNotes())
-             setHovered(n, false);
-
-
-
-    setMouseCursor(getRecommendedMouseCursor()) ;
+    setMouseCursor(getRecommendedMouseCursor());
 
     m_snap = false;
     if (e.mods.isShiftDown())
         m_snap = true;
     m_hoveredTime = m_evs.xToTime(e.x, m_timeLine.getTimeLineID(), getWidth());
 
+    // Find note under mouse cursor
+    te::MidiNote* noteUnderMouse = nullptr;
+    te::MidiClip* clipUnderMouse = nullptr;
+    
     if (auto mc = getMidiClipAt(e.x))
     {
+        clipUnderMouse = mc;
+        noteUnderMouse = getNoteByPos(e.position);
+    }
 
-        if (auto note = getNoteByPos(e.position))
+    // Update hover state only if it changed
+    if (noteUnderMouse != m_hoveredNote)
+    {
+        // Clear previous hover state
+        if (m_hoveredNote != nullptr)
         {
-            setHovered(note, true);
+            setHovered(m_hoveredNote, false);
+        }
+        
+        // Set new hover state
+        m_hoveredNote = noteUnderMouse;
+        if (m_hoveredNote != nullptr)
+        {
+            setHovered(m_hoveredNote, true);
+        }
+    }
 
-            auto startX = m_evs.beatsToX(note->getStartBeat().inBeats()
-                                   + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats(), m_timeLine.getTimeLineID(), getWidth());
-            auto endX = m_evs.beatsToX(note->getEndBeat().inBeats()
-                                 + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats(), m_timeLine.getTimeLineID(), getWidth());
+    if (clipUnderMouse && m_hoveredNote)
+    {
+        auto note = m_hoveredNote;
+        auto mc = clipUnderMouse;
 
-            if (m_toolMode == Tool::pointer)
+        auto startX = m_evs.beatsToX(note->getStartBeat().inBeats()
+                               + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats(), m_timeLine.getTimeLineID(), getWidth());
+        auto endX = m_evs.beatsToX(note->getEndBeat().inBeats()
+                             + mc->getStartBeat().inBeats() - mc->getOffsetInBeats().inBeats(), m_timeLine.getTimeLineID(), getWidth());
+
+        if (m_toolMode == Tool::pointer)
+        {
+            auto borderWidth = getNoteRect(mc, note).getWidth() > 30 ? 10 : getNoteRect(mc, note).getWidth() / 3;
+
+            if (e.x < startX + borderWidth)
             {
-                auto borderWidth = getNoteRect(mc, note).getWidth() > 30 ? 10 : getNoteRect(mc, note).getWidth() / 3;
-
-                if (e.x < startX + borderWidth)
-                {
-                    setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, *this));
-                    m_expandLeft = true;
-                    m_expandRight = false;
-                }
-                else if (e.x > endX - borderWidth)
-                {
-                    setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, *this));
-                    m_expandLeft = false;
-                    m_expandRight = true;
-                }
-                else
-                {
-                    setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand,*this));
-                    m_expandLeft = false;
-                    m_expandRight = false;
-                }
+                setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, *this));
+                m_expandLeft = true;
+                m_expandRight = false;
+            }
+            else if (e.x > endX - borderWidth)
+            {
+                setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, *this));
+                m_expandLeft = false;
+                m_expandRight = true;
+            }
+            else
+            {
+                setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand,*this));
+                m_expandLeft = false;
+                m_expandRight = false;
             }
         }
     }
@@ -410,8 +428,14 @@ void MidiViewport::mouseUp(const juce::MouseEvent& e)
     setMouseCursor(getRecommendedMouseCursor());
     repaint();
 }
-void MidiViewport::mouseExit(const juce::MouseEvent&)
+void MidiViewport::mouseExit(const juce::MouseEvent &)
 {
+    // Clear hover state when mouse leaves the component
+    if (m_hoveredNote != nullptr)
+    {
+        setHovered(m_hoveredNote, false);
+        m_hoveredNote = nullptr;
+    }
     setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
@@ -425,6 +449,13 @@ void MidiViewport::cleanUpFlags()
 
     m_clickedNote = nullptr;
     m_clickedClip = nullptr;
+    
+    // Clear hover state when cleaning up
+    if (m_hoveredNote != nullptr)
+    {
+        setHovered(m_hoveredNote, false);
+        m_hoveredNote = nullptr;
+    }
 
     m_snap = false;
 }

@@ -160,6 +160,7 @@ private:
     int                                         m_draggedNoteDelta {0};
 
     double                                      m_hoveredTime;
+    te::MidiNote*                               m_hoveredNote {nullptr};
 
     double                                      m_leftTimeDelta{0.0};
     double                                      m_rightTimeDelta{0.0};
