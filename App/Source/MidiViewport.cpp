@@ -34,10 +34,24 @@ MidiViewport::MidiViewport(
 {
     addChildComponent(m_lassoTool);
     updateSelectedEvents();
+    
+    // Register as listener for ValueTree changes to invalidate clip cache when needed
+    if (m_track != nullptr)
+        m_track->state.addListener(this);
+    
     // setWantsKeyboardFocus (true);
 }
 
-MidiViewport::~MidiViewport() = default;
+MidiViewport::~MidiViewport()
+{
+    if (m_track != nullptr)
+        m_track->state.removeListener(this);
+}
+
+void MidiViewport::paintOverChildren(juce::Graphics& g)
+{
+    m_lassoTool.drawLasso(g);
+}
 
 void MidiViewport::paint(juce::Graphics& g)
 {
@@ -46,7 +60,7 @@ void MidiViewport::paint(juce::Graphics& g)
 
     drawBarsAndBeatLines(g, juce::Colours::black);
 
-    for (auto& midiClip: EngineHelpers::getMidiClipsOfTrack(*m_track))
+    for (auto& midiClip: getCachedMidiClips())
     {
         drawClipRange(g, midiClip);
 
@@ -82,12 +96,12 @@ void MidiViewport::drawNote(juce::Graphics& g,
                                          tracktion_engine::MidiNote* n
                                          )
 {
-    
+
     auto noteRect = getNoteRect(midiClip, n);
     auto visibleRect = noteRect;
     auto leftInvisible = std::abs(noteRect.getX()) - 2;
     auto rightOffset = noteRect.getRight() - getWidth() - 2;
-    
+
     if (visibleRect.getX() < -2)
         visibleRect.removeFromLeft(leftInvisible);
 
@@ -246,7 +260,7 @@ void MidiViewport::mouseMove(const juce::MouseEvent& e)
     // Find note under mouse cursor
     te::MidiNote* noteUnderMouse = nullptr;
     te::MidiClip* clipUnderMouse = nullptr;
-    
+
     if (auto mc = getMidiClipAt(e.x))
     {
         clipUnderMouse = mc;
@@ -261,7 +275,7 @@ void MidiViewport::mouseMove(const juce::MouseEvent& e)
         {
             setHovered(m_hoveredNote, false);
         }
-        
+
         // Set new hover state
         m_hoveredNote = noteUnderMouse;
         if (m_hoveredNote != nullptr)
@@ -315,8 +329,8 @@ void MidiViewport::mouseDown(const juce::MouseEvent& e)
     m_clickedNote = getNoteByPos(e.position);
     m_clickedKey = getKeyForY(e.y);
     m_clickedClip = getMidiClipAt(e.x);
-    
-    
+
+
     auto isDrawMode = m_clickedClip
                     && e.mods.isLeftButtonDown()
                     && (e.getNumberOfClicks() > 1 || e.mods.isShiftDown() || m_toolMode == Tool::draw);
@@ -384,9 +398,9 @@ void MidiViewport::mouseDrag(const juce::MouseEvent& e)
         if (m_clickedNote && m_clickedClip)
         {
             if (m_expandLeft)
-                m_leftTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditStartTime(*m_clickedClip).inSeconds()); 
+                m_leftTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditStartTime(*m_clickedClip).inSeconds());
             else if (m_expandRight || m_noteAdding)
-                m_rightTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditEndTime(*m_clickedClip).inSeconds()); 
+                m_rightTimeDelta = getDraggedTimeDelta(e, m_clickedNote->getEditEndTime(*m_clickedClip).inSeconds());
             else
                 updateViewOfMoveSelectedNotes(e);
         }
@@ -428,15 +442,24 @@ void MidiViewport::mouseUp(const juce::MouseEvent& e)
     setMouseCursor(getRecommendedMouseCursor());
     repaint();
 }
-void MidiViewport::mouseExit(const juce::MouseEvent &)
+void MidiViewport::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& child)
 {
-    // Clear hover state when mouse leaves the component
-    if (m_hoveredNote != nullptr)
+    // Only invalidate cache if a clip was added
+    if (parent.getType() == te::IDs::TRACK && child.hasType(te::IDs::MIDICLIP))
     {
-        setHovered(m_hoveredNote, false);
-        m_hoveredNote = nullptr;
+        invalidateClipCache();
+        repaint();
     }
-    setMouseCursor(juce::MouseCursor::NormalCursor);
+}
+
+void MidiViewport::valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& child, int)
+{
+    // Only invalidate cache if a clip was removed
+    if (parent.getType() == te::IDs::TRACK && child.hasType(te::IDs::MIDICLIP))
+    {
+        invalidateClipCache();
+        repaint();
+    }
 }
 
 void MidiViewport::cleanUpFlags()
@@ -449,7 +472,7 @@ void MidiViewport::cleanUpFlags()
 
     m_clickedNote = nullptr;
     m_clickedClip = nullptr;
-    
+
     // Clear hover state when cleaning up
     if (m_hoveredNote != nullptr)
     {
@@ -458,6 +481,17 @@ void MidiViewport::cleanUpFlags()
     }
 
     m_snap = false;
+}
+
+void MidiViewport::mouseExit(const juce::MouseEvent &)
+{
+    // Clear hover state when mouse leaves the component
+    if (m_hoveredNote != nullptr)
+    {
+        setHovered(m_hoveredNote, false);
+        m_hoveredNote = nullptr;
+    }
+    setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 double MidiViewport::getDraggedTimeDelta(const juce::MouseEvent& e, double oldTime)
 {
@@ -774,7 +808,7 @@ int MidiViewport::getNoteNumber(int y)
 }
 te::MidiNote* MidiViewport::getNoteByPos(juce::Point<float> pos)
 {
-    for (auto& mc: EngineHelpers::getMidiClipsOfTrack(*m_track))
+    for (auto& mc: getCachedMidiClips())
     {
         for (auto note: mc->getSequence().getNotes())
         {
@@ -794,7 +828,7 @@ te::MidiNote* MidiViewport::getNoteByPos(juce::Point<float> pos)
 }
 tracktion_engine::MidiClip* MidiViewport::getMidiClipAt(int x)
 {
-    for (auto& c: EngineHelpers::getMidiClipsOfTrack(*m_track))
+    for (auto& c: getCachedMidiClips())
         if ((c->getStartBeat().inBeats() < m_evs.xToBeats(x, m_timeLine.getTimeLineID(), getWidth())) && (c->getEndBeat().inBeats() > m_evs.xToBeats(x, m_timeLine.getTimeLineID(), getWidth())))
             return c;
 
@@ -831,7 +865,7 @@ void MidiViewport::updateLassoSelection()
 {
     unselectAll();
 
-    for (auto c : EngineHelpers::getMidiClipsOfTrack(*m_track))
+    for (auto c : getCachedMidiClips())
         for (auto n : c->getSequence().getNotes())
             if (isInLassoRange(c, n))
                 m_selectedEvents->addSelectedEvent(n, true);
@@ -930,9 +964,9 @@ te::MidiClip* MidiViewport::getNearestClipBefore(int x)
     if (getMidiClipAt(x) != nullptr)
         return getMidiClipAt(x);
 
-    auto cPtr = EngineHelpers::getMidiClipsOfTrack(*m_track).getFirst();
+    auto cPtr = getCachedMidiClips().getFirst();
 
-    for (auto c : EngineHelpers::getMidiClipsOfTrack(*m_track))
+    for (auto c : getCachedMidiClips())
         if (c->getEndBeat().inBeats() < m_evs.xToBeats(x, m_timeLine.getTimeLineID(), getWidth()))
             if (c->getEndBeat() > cPtr->getEndBeat())
                 cPtr = c;
@@ -946,7 +980,7 @@ te::MidiClip* MidiViewport::getNearestClipAfter(int x)
 
     te::MidiClip* clip = nullptr;
 
-    for (auto c : EngineHelpers::getMidiClipsOfTrack(*m_track))
+    for (auto c : getCachedMidiClips())
         if (c->getStartBeat().inBeats() > m_evs.xToBeats(x, m_timeLine.getTimeLineID(), getWidth())
             && (clip == nullptr || clip->getStartBeat().inBeats() > c->getStartBeat().inBeats()))
                 clip = c;
@@ -982,11 +1016,40 @@ void MidiViewport::updateSelectedEvents()
     if (m_selectedEvents != nullptr)
         m_selectedEvents->deselect();
 
-    if (EngineHelpers::getMidiClipsOfTrack(*m_track).size() > 0)
+    if (getCachedMidiClips().size() > 0)
         m_selectedEvents
-            = std::make_unique<te::SelectedMidiEvents>(EngineHelpers::getMidiClipsOfTrack(*m_track));
+            = std::make_unique<te::SelectedMidiEvents>(getCachedMidiClips());
     else
         m_selectedEvents.reset(nullptr);
+}
+
+void MidiViewport::refreshClipCache()
+{
+    GUIHelpers::log("MidiViewComponent: Clip Cache refreshed!");
+    m_cachedClips.clear();
+    if (m_track != nullptr)
+    {
+        m_cachedClips = EngineHelpers::getMidiClipsOfTrack(*m_track);
+        m_clipCacheValid = true;
+    }
+    else
+    {
+        m_clipCacheValid = false;
+    }
+}
+
+const juce::Array<te::MidiClip*>& MidiViewport::getCachedMidiClips()
+{
+    if (!m_clipCacheValid || m_track == nullptr)
+    {
+        refreshClipCache();
+    }
+    return m_cachedClips;
+}
+
+void MidiViewport::invalidateClipCache()
+{
+    m_clipCacheValid = false;
 }
 
 bool MidiViewport::areNotesDragged() const

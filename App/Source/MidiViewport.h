@@ -42,6 +42,7 @@ struct MidiNote
 
 class MidiViewport : public juce::Component
                                 , public juce::Timer
+                                , private juce::ValueTree::Listener
 {
 public:
 
@@ -49,6 +50,7 @@ public:
     ~MidiViewport() override;
 
     void paint (juce::Graphics& g) override;
+    void paintOverChildren (juce::Graphics& g) override;
     void resized() override;
 
     void mouseMove (const juce::MouseEvent &) override;
@@ -77,6 +79,9 @@ public:
     Tool getToolMode () { return m_toolMode; }
 
 private:
+
+    void                   valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override;
+    void                   valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override;
 
     void                   drawClipRange(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip);
     void                   drawNote(juce::Graphics& g, tracktion_engine::MidiClip* const& midiClip,te::MidiNote* n);
@@ -142,6 +147,9 @@ private:
     void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, bool copy=false);
 
     void                   cleanUpFlags();
+    void                   refreshClipCache();
+    void                   invalidateClipCache();
+    const juce::Array<te::MidiClip*>& getCachedMidiClips();
 
 
     juce::MouseCursor getRecommendedMouseCursor();
@@ -161,6 +169,10 @@ private:
 
     double                                      m_hoveredTime;
     te::MidiNote*                               m_hoveredNote {nullptr};
+
+    // Cached clips for performance optimization
+    juce::Array<te::MidiClip*>                  m_cachedClips;
+    bool                                        m_clipCacheValid {false};
 
     double                                      m_leftTimeDelta{0.0};
     double                                      m_rightTimeDelta{0.0};
