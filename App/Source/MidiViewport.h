@@ -27,18 +27,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LassoSelectionTool.h"
 #include "Utilities.h"
 #include "TimeLineComponent.h"
+#include "ToolStrategy.h"
 
 namespace te = tracktion_engine;
 
-struct MidiNote 
-{
-    tracktion::BeatPosition startBeat;
-    tracktion::BeatDuration Lenght;
-    int noteNumber;
-    int colourIndex;
-    int velocity;
-    tracktion::EditItemID clip;
-};
+class ToolStrategy;
 
 class MidiViewport : public juce::Component
                                 , public juce::Timer
@@ -75,9 +68,50 @@ public:
 
     [[nodiscard]] te::TimecodeSnapType getBestSnapType() const;
 
-    void setToolMode (Tool mode){ m_toolMode = mode; }
-    Tool getToolMode () { return m_toolMode; }
+    void setTool(Tool tool);
+    void setSnap (bool snap)
+    {
+        m_snap = snap;
+    }
 
+    tracktion::MidiClip* getClipAt(int x)
+    {
+        auto time = m_timeLine.xToTimePos(x);
+        for (auto clip : m_cachedClips)
+            if (clip->getEditTimeRange().contains(time))
+                return dynamic_cast<tracktion::MidiClip*>(clip);
+
+        return nullptr;
+
+    }
+
+    te::MidiNote* getNoteByPos(juce::Point<float> pos);
+    void setClickedNote(te::MidiNote* note) { m_clickedNote = note; }
+    void setClickedClip(te::MidiClip* clip) { m_clickedClip = clip; }
+    te::MidiNote* getClickedNote() const { return m_clickedNote; }
+    te::MidiClip* getClickedClip() const { return m_clickedClip; }
+    const juce::Array<te::MidiClip*>& getCachedMidiClips();
+    juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n);
+    void                   setNoteSelected(te::MidiNote* n, bool addToSelection);
+    bool                   isSelected(tracktion_engine::MidiNote* note);
+    void                   unselectAll();
+    void setLeftEdgeDraggingTime(const juce::MouseEvent& e);
+    void setRightEdgeDraggingTime(const juce::MouseEvent& e);
+    void                   updateViewOfMoveSelectedNotes(const juce::MouseEvent& e);
+    void performNoteMoveOrCopy(bool copy);
+    void                   cleanUpFlags();
+    EditViewState&                              m_evs;
+    
+    // Methods needed by PointerTool and other components
+    te::MidiNote* addNewNoteAt(int x, int y, te::MidiClip* clip);
+    te::MidiNote*          addNewNote(int noteNumb, const te::MidiClip* clip, double beat, double length=-1);
+    void                   playGuideNote(const te::MidiClip* clip,const int noteNumb, int vel= 100);
+    double                 getKeyForY(int y);
+    int                    getYForKey(double key);
+    void                   startLasso(const juce::MouseEvent &e, bool isRangeTool=false);
+    void                   updateLasso(const juce::MouseEvent &e);
+    void                   stopLasso();
+    
 private:
 
     void                   valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override;
@@ -93,29 +127,21 @@ private:
     [[nodiscard]] float    getStartKey() const;
     [[nodiscard]] float    getKeyWidth() const;
 
-    [[nodiscard]] juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip* const& midiClip, const tracktion_engine::MidiNote* n);
+    
     [[nodiscard]] juce::Rectangle<float> getNoteRect(int noteNum, int x1, int x2) const;
 
     juce::Colour           getNoteColour(tracktion_engine::MidiClip* const& midiClip, tracktion_engine::MidiNote* n);
 
-    void                   insertNote(MidiNote note);
-    te::MidiClip*          getMidiClipForNote(MidiNote note);
-    te::MidiNote*          addNewNote(int noteNumb, const te::MidiClip* clip, double beat, double length=-1);
+    
+private:
 
-    double                 getKeyForY(int y);
-    int                    getYForKey(double key);
-    te::MidiNote*          getNoteByPos(juce::Point<float> pos);
     juce::Array<te::MidiNote*>
                            getNotesInRange(juce::Range<double> beatRange, const te::MidiClip* clip);
-    void                   cleanUnderNote(int noteNumb, juce::Range<double> beatRange, const te::MidiClip* clip);
+    void                   cleanUnderNote(int noteNumb, tracktion::BeatRange beatRange, const te::MidiClip* clip);
     void                   removeNote(te::MidiClip* clip, te::MidiNote* note);
     void                   splitNoteAt(te::MidiClip* clip, te::MidiNote* note, double time);
     static float           getVelocity(const tracktion_engine::MidiNote* note);
 
-    void                   playGuideNote(const te::MidiClip* clip,const int noteNumb, int vel= 100);
-
-    void                   updateViewOfMoveSelectedNotes(const juce::MouseEvent& e);
-    double                 getDraggedTimeDelta(const juce::MouseEvent& e, double oldTime);
 
     te::MidiClip*          getMidiClipAt(int x);
     te::MidiClip*          getNearestClipAfter(int x);
@@ -123,39 +149,28 @@ private:
     juce::Rectangle<float> getClipRect(te::Clip* clip);
 
 
-    [[nodiscard]] double   getQuantisedBeat(double beat, bool down=true) const;
+    double getQuantisedBeat(double beat, bool down) const;
     [[nodiscard]] double   getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down=true) const;
     void                   snapToGrid(te::MidiNote* note, const te::MidiClip* clip) const;
     double                 getSnapedTime(double time);
     void                   scrollPianoRoll(float delta);
 
-    void                   startLasso(const juce::MouseEvent &e, bool isRangeTool=false);
-    void                   updateLasso(const juce::MouseEvent &e);
-    void                   stopLasso();
     void                   updateLassoSelection();
     juce::Range<double>    getLassoVerticalKeyRange();
     bool                   isInLassoRange(const te::MidiClip* clip, const tracktion_engine::MidiNote* midiNote);
 
     juce::Array<te::MidiNote*> getSelectedNotes();
-    void                   setNoteSelected(te::MidiNote* n, bool addToSelection);
-    bool                   isSelected(tracktion_engine::MidiNote* note);
-    void                   unselectAll();
     bool                   areNotesDragged() const;
 
     bool                   isHovered(te::MidiNote* note);
     void                   setHovered(te::MidiNote* note, bool hovered);
-    void                   moveSelectedNotesToTemp(const double startDelta, const double lengthDelta, bool copy=false);
 
-    void                   cleanUpFlags();
     void                   refreshClipCache();
     void                   invalidateClipCache();
-    const juce::Array<te::MidiClip*>& getCachedMidiClips();
 
 
-    juce::MouseCursor getRecommendedMouseCursor();
-    Tool                                        m_toolMode {Tool::pointer};
+    std::unique_ptr<ToolStrategy>               m_currentTool;
 
-    EditViewState&                              m_evs;
     te::Track::Ptr                              m_track;
     TimeLineComponent&                          m_timeLine;
     LassoSelectionTool                          m_lassoTool;
@@ -163,7 +178,6 @@ private:
     std::unique_ptr<te::SelectedMidiEvents>     m_selectedEvents;
     double                                      m_clickedKey{0.0};
     te::MidiClip*                               m_clickedClip{nullptr};
-    juce::OwnedArray<MidiNote>                  m_temp;
     double                                      m_draggedTimeDelta {0.0};
     int                                         m_draggedNoteDelta {0};
 
@@ -176,7 +190,13 @@ private:
 
     double                                      m_leftTimeDelta{0.0};
     double                                      m_rightTimeDelta{0.0};
-    bool m_expandLeft {false}, m_expandRight {false}, m_noteAdding {false}, m_snap {false};
+    bool m_expandLeft {false}, m_expandRight {false}, m_noteAdding {false};
+    
+public:
+    // Public member variables needed by PointerTool
+    bool                   m_snap {false};
+    
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiViewport)
 
 };

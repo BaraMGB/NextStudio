@@ -110,6 +110,8 @@ target_sources(${TargetName} PRIVATE
         Source/AutomationLaneComponent.cpp
         Source/ThumbNailManager.cpp
         Source/PluginViewComponent.cpp
+        Source/ToolFactory.cpp
+        Source/tools/PointerTool.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

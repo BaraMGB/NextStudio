@@ -333,23 +333,23 @@ void PianoRollEditor::buttonClicked(juce::Button* button)
     if (button == &m_selectionBtn)
     {
 
-        m_pianoRollViewPort->setToolMode(Tool::pointer);
+        m_pianoRollViewPort->setTool(Tool::pointer);
     }
     if (button == &m_drawBtn)
     {
-        m_pianoRollViewPort->setToolMode(Tool::draw);
+        m_pianoRollViewPort->setTool(Tool::draw);
     }
     if (button == &m_rangeSelectBtn)
     {
-        m_pianoRollViewPort->setToolMode(Tool::range);
+        m_pianoRollViewPort->setTool(Tool::range);
     }
     if (button == &m_erasorBtn)
     {
-        m_pianoRollViewPort->setToolMode(Tool::eraser);
+        m_pianoRollViewPort->setTool(Tool::eraser);
     }
     if (button == &m_splitBtn)
     {
-        m_pianoRollViewPort->setToolMode(Tool::knife);
+        m_pianoRollViewPort->setTool(Tool::knife);
     }
     
 }
