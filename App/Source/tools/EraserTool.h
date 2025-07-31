@@ -23,15 +23,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../ToolStrategy.h"
 #include "../MidiViewport.h"
 
+namespace te = tracktion_engine;
+
 /**
- * Pointer tool for selecting and moving notes.
- * Handles single note selection, multi-note selection, and note dragging.
+ * Eraser tool for deleting MIDI notes.
+ * Deletes notes by clicking on them or dragging over them.
  */
-class PointerTool : public ToolStrategy
+class EraserTool : public ToolStrategy
 {
 public:
-    explicit PointerTool(EditViewState& evs) : ToolStrategy(evs) {}
-    ~PointerTool() override = default;
+    explicit EraserTool(EditViewState& evs) : ToolStrategy(evs) {}
+    ~EraserTool() override = default;
 
     void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
     void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
@@ -41,22 +43,18 @@ public:
 
     juce::MouseCursor getCursor() const override;
 
-private:
-    enum class DragMode
-    {
-        none,
-        moveNotes,
-        resizeLeft,
-        resizeRight,
-        selectNotes
-    };
+    void toolActivated(MidiViewport& viewport) override;
+    void toolDeactivated(MidiViewport& viewport) override;
 
-    DragMode m_currentDragMode = DragMode::none;
-    juce::Point<int> m_dragStartPos;
-    juce::Point<int> m_lastDragPos;
+private:
     bool m_isDragging = false;
+    juce::Array<te::MidiNote*> m_notesToDelete;
+    juce::Array<te::MidiClip*> m_affectedClips;
+    te::MidiNote* m_lastHoveredNote = nullptr;
 
     // Helper methods
-    void updateCursor(const juce::MouseEvent& event, MidiViewport& viewport);
-    void insertNoteAtPosition(const juce::MouseEvent& event, MidiViewport& viewport);
+    void deleteNoteAtPosition(const juce::MouseEvent& event, MidiViewport& viewport);
+    void highlightNoteForDeletion(te::MidiNote* note, MidiViewport& viewport);
+    void clearHighlights(MidiViewport& viewport);
+    void commitDeletions(MidiViewport& viewport);
 };

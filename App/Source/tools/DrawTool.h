@@ -23,15 +23,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../ToolStrategy.h"
 #include "../MidiViewport.h"
 
+namespace te = tracktion_engine;
+
 /**
- * Pointer tool for selecting and moving notes.
- * Handles single note selection, multi-note selection, and note dragging.
+ * Draw tool for creating new MIDI notes.
+ * Creates notes by clicking and dragging to set length.
  */
-class PointerTool : public ToolStrategy
+class DrawTool : public ToolStrategy
 {
 public:
-    explicit PointerTool(EditViewState& evs) : ToolStrategy(evs) {}
-    ~PointerTool() override = default;
+    explicit DrawTool(EditViewState& evs) : ToolStrategy(evs) {}
+    ~DrawTool() override = default;
 
     void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
     void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
@@ -41,22 +43,7 @@ public:
 
     juce::MouseCursor getCursor() const override;
 
-private:
-    enum class DragMode
-    {
-        none,
-        moveNotes,
-        resizeLeft,
-        resizeRight,
-        selectNotes
-    };
+    void toolActivated(MidiViewport& viewport) override;
+    void toolDeactivated(MidiViewport& viewport) override;
 
-    DragMode m_currentDragMode = DragMode::none;
-    juce::Point<int> m_dragStartPos;
-    juce::Point<int> m_lastDragPos;
-    bool m_isDragging = false;
-
-    // Helper methods
-    void updateCursor(const juce::MouseEvent& event, MidiViewport& viewport);
-    void insertNoteAtPosition(const juce::MouseEvent& event, MidiViewport& viewport);
 };

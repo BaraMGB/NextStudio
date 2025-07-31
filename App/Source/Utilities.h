@@ -229,6 +229,8 @@ namespace GUIHelpers
           , double x2beats
           , juce::Rectangle<float> boundingRect, bool printDescription=false);
 
+    double getIntervalBeatsOfSnap(int snapLevel, int numBeatsPerBar);
+
     void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke=1);
     // void moveView(EditViewState& evs, double newBeatPos);
     void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c, juce::String timeLineID, int width);

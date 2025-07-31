@@ -21,27 +21,32 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "ToolStrategy.h"
 #include "tools/PointerTool.h"
-
-std::unique_ptr<ToolStrategy> ToolFactory::createTool(Tool toolType)
+#include "tools/DrawTool.h"
+#include "tools/EraserTool.h"
+std::unique_ptr<ToolStrategy> ToolFactory::createTool(Tool toolType, EditViewState& evs)
 {
     switch (toolType)
     {
         case Tool::pointer:
-            return std::make_unique<PointerTool>();
+            return std::make_unique<PointerTool>(evs);
             
-        // TODO: Implement other tools
-        // case Tool::draw:
-        //     return std::make_unique<DrawTool>();
-        // case Tool::eraser:
-        //     return std::make_unique<EraserTool>();
+        case Tool::draw:
+            return std::make_unique<DrawTool>(evs);
+            
+        case Tool::eraser:
+            return std::make_unique<EraserTool>(evs);
+            
+        // TODO: Implement remaining tools
         // case Tool::knife:
-        //     return std::make_unique<KnifeTool>();
+        //     return std::make_unique<KnifeTool>(evs);
         // case Tool::lasso:
-        //     return std::make_unique<LassoTool>();
+        //     return std::make_unique<LassoTool>(evs);
         // case Tool::range:
-        //     return std::make_unique<RangeTool>();
-            
+        //     return std::make_unique<RangeTool>(evs);
+        // case Tool::timestretch:
+        //     return std::make_unique<TimestretchTool>(evs);
+
         default:
-            return std::make_unique<PointerTool>();
+            return std::make_unique<PointerTool>(evs);
     }
 }

@@ -629,6 +629,33 @@ void GUIHelpers::saveEdit(
     }
 }
 
+double GUIHelpers::getIntervalBeatsOfSnap(int snapLevel, int numBeatsPerBar)
+{
+    switch (snapLevel)
+    {
+        case 0: return 1.0 / 960.0;
+        case 1: return 2.0 / 960.0;
+        case 2: return 5.0 / 960.0;
+        case 3: return 1.0 / 64.0;
+        case 4: return 1.0 / 32.0;
+        case 5: return 1.0 / 16.0;
+        case 6: return 1.0 / 8.0;
+        case 7: return 1.0 / 4.0;
+        case 8: return 1.0 / 2.0;
+        case 9: return 1.0;
+        case 10: return numBeatsPerBar * 1.0;
+        case 11: return numBeatsPerBar * 2.0;
+        case 12: return numBeatsPerBar * 4.0;
+        case 13: return numBeatsPerBar * 8.0;
+        case 14: return numBeatsPerBar * 16.0;
+        case 15: return numBeatsPerBar * 64.0;
+        case 16: return numBeatsPerBar * 128.0;
+        case 17: return numBeatsPerBar * 256.0;
+        case 18: return numBeatsPerBar * 1024.0;
+        default: return 1.0;
+    }
+}
+
 void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs,
                                 double x1beats, double x2beats,
                                 juce::Rectangle<float> boundingRect, bool printDescription)
@@ -641,41 +668,14 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs,
     const auto shadowShade = avs.getTimeLineShadowShade();
     const auto textColour = avs.getTimeLineTextColour();
     const auto numBeatsPerBar = static_cast<int>(
-    evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
+                        evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
 
     if (!printDescription)
         drawBarBeatsShadow(g, evs, x1beats, x2beats, boundingRect, shadowShade);
 
     int snapLevel = juce::jmax(3, evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth()).getLevel());
 
-    auto getIntervalBeats = [numBeatsPerBar](int snapLevel) -> double
-    {
-        switch (snapLevel)
-        {
-            case 0: return 1.0 / 960.0;
-            case 1: return 2.0 / 960.0;
-            case 2: return 5.0 / 960.0;
-            case 3: return 1.0 / 64.0;
-            case 4: return 1.0 / 32.0;
-            case 5: return 1.0 / 16.0;
-            case 6: return 1.0 / 8.0;
-            case 7: return 1.0 / 4.0;
-            case 8: return 1.0 / 2.0;
-            case 9: return 1.0;
-            case 10: return numBeatsPerBar * 1.0;
-            case 11: return numBeatsPerBar * 2.0;
-            case 12: return numBeatsPerBar * 4.0;
-            case 13: return numBeatsPerBar * 8.0;
-            case 14: return numBeatsPerBar * 16.0;
-            case 15: return numBeatsPerBar * 64.0;
-            case 16: return numBeatsPerBar * 128.0;
-            case 17: return numBeatsPerBar * 256.0;
-            case 18: return numBeatsPerBar * 1024.0;
-            default: return 1.0;
-        }
-    };
-
-    double intervalBeats = getIntervalBeats(snapLevel);
+    double intervalBeats = getIntervalBeatsOfSnap(snapLevel, numBeatsPerBar);
 
     double startBeat = std::floor(x1beats / intervalBeats) * intervalBeats;
     double endBeat = std::ceil(x2beats / intervalBeats) * intervalBeats;

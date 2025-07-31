@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Utilities.h"
+#include "EditViewState.h"
 
 class MidiViewport;
 
@@ -33,6 +34,7 @@ class MidiViewport;
 class ToolStrategy
 {
 public:
+    explicit ToolStrategy(EditViewState& evs) : m_evs(evs) {}
     virtual ~ToolStrategy() = default;
     
     /**
@@ -87,9 +89,10 @@ public:
      * @param viewport Reference to the MidiViewport
      */
     virtual void toolDeactivated(MidiViewport& viewport) {}
+    
+protected:
+    EditViewState& m_evs;
 };
-
-
 
 /**
  * Factory class for creating tool instances.
@@ -97,5 +100,5 @@ public:
 class ToolFactory
 {
 public:
-    static std::unique_ptr<ToolStrategy> createTool(Tool toolType);
+    static std::unique_ptr<ToolStrategy> createTool(Tool toolType, EditViewState& evs);
 };

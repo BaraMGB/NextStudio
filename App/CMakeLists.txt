@@ -41,8 +41,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS YES)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Enable Module Source Groups" ON)
 
 #add sub dir (folder - folder for binaries)
-#we use that JUCE version that we've cloned per git --recurse-submodules 
-add_subdirectory(../modules/tracktion_engine/modules/juce ./cmake_build_juce)                                   
+#we use that JUCE version that we've cloned per git --recurse-submodules
+add_subdirectory(../modules/tracktion_engine/modules/juce ./cmake_build_juce)
 add_subdirectory(../modules/tracktion_engine/modules ./cmake_build_tracktion)
 
 
@@ -52,11 +52,11 @@ juce_add_gui_app(${TargetName} PRODUCT_NAME "NextStudio")
 juce_generate_juce_header(${TargetName})
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)
- 
+
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
         C_VISIBILITY_PRESET hidden
         CXX_VISIBILITY_PRESET hidden
-        ) 
+        )
 
 if(BUILD_DIR_NAME STREQUAL "jumake_build")
     set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
@@ -112,6 +112,8 @@ target_sources(${TargetName} PRIVATE
         Source/PluginViewComponent.cpp
         Source/ToolFactory.cpp
         Source/tools/PointerTool.cpp
+        Source/tools/DrawTool.cpp
+        Source/tools/EraserTool.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
@@ -157,7 +159,7 @@ endif()
 
 
 
-# Language 
+# Language
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(APP_DATA_DIR "$ENV{HOME}/.config/${PROJECT_NAME}")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -170,4 +172,3 @@ add_custom_target(CopyLanguageFolder ALL
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${APP_DATA_DIR}/language
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/language ${APP_DATA_DIR}/language
 )
-

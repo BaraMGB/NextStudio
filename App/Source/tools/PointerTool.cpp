@@ -78,7 +78,7 @@ void PointerTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewpor
 {
     if (!m_isDragging && event.getDistanceFromDragStart() > 5)
         m_isDragging = true;
-    
+
     if (m_isDragging)
     {
         viewport.setSnap(true);
@@ -87,7 +87,7 @@ void PointerTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewpor
 
         int deltaX = event.x - m_lastDragPos.x;
         int deltaY = event.y - m_lastDragPos.y;
-        
+
         switch (m_currentDragMode)
         {
             case DragMode::moveNotes:
@@ -97,34 +97,30 @@ void PointerTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewpor
                     viewport.updateViewOfMoveSelectedNotes(event);
                 }
                 break;
-                
+
             case DragMode::resizeLeft:
                 if (viewport.getClickedNote() != nullptr)
                 {
                     viewport.setLeftEdgeDraggingTime(event);
-
                 }
                 break;
 
-                
             case DragMode::resizeRight:
                 if (viewport.getClickedNote() != nullptr)
                 {
                     viewport.setRightEdgeDraggingTime(event);
                 }
-                // Handle note resizing
-                // This would need to be implemented in MidiViewport
                 break;
-                
+
             case DragMode::selectNotes:
                 viewport.updateLasso(event);
                 break;
-                
+
             case DragMode::none:
                 break;
         }
     }
-    
+
     m_lastDragPos = event.getPosition();
 }
 
@@ -161,7 +157,7 @@ void PointerTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
     {
         viewport.performNoteMoveOrCopy(event.mods.isCtrlDown());
     }
-    
+
     m_currentDragMode = DragMode::none;
     m_isDragging = false;
 
@@ -176,7 +172,7 @@ void PointerTool::insertNoteAtPosition(const juce::MouseEvent& event, MidiViewpo
         {
             auto noteNumber = note->getNoteNumber();
             // Play the new note as guide note
-            // viewport.playGuideNote(clip, noteNumber);
+            viewport.playGuideNote(clip, noteNumber);
         }
     }
 }
@@ -201,7 +197,7 @@ void PointerTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewpor
                 return;
             }
         }
-        
+
         // Over a note, but not an edge
         viewport.setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, viewport));
     }
@@ -219,13 +215,13 @@ juce::MouseCursor PointerTool::getCursor() const
         case DragMode::resizeLeft:
         case DragMode::resizeRight:
             return juce::MouseCursor::LeftRightResizeCursor;
-            
+
         case DragMode::moveNotes:
             return juce::MouseCursor::DraggingHandCursor;
-            
+
         case DragMode::selectNotes:
             return juce::MouseCursor::CrosshairCursor;
-            
+
         case DragMode::none:
         default:
             return juce::MouseCursor::NormalCursor;
@@ -238,7 +234,7 @@ void PointerTool::updateCursor(const juce::MouseEvent& event, MidiViewport& view
     {
         auto noteRect = viewport.getNoteRect(viewport.getSelectedEvents().clipForEvent(note), note);
         float edgeTolerance = 3.0f;
-        
+
         if (std::abs(event.x - noteRect.getX()) < edgeTolerance ||
             std::abs(event.x - noteRect.getRight()) < edgeTolerance)
         {
@@ -246,6 +242,4 @@ void PointerTool::updateCursor(const juce::MouseEvent& event, MidiViewport& view
             return;
         }
     }
-    
-    // Default cursor
 }
