@@ -39,7 +39,15 @@ public:
     void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) override;
     void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) override;
 
-    juce::MouseCursor getCursor() const override;
+    juce::MouseCursor getCursor(MidiViewport& viewport) const override;
+
+    Tool getToolId () override { return Tool::pointer; }
+    // Public getters for MidiViewport's paint method
+    bool isDragging() const { return m_isDragging; }
+    double getDraggedTimeDelta() const { return m_draggedTimeDelta; }
+    int getDraggedNoteDelta() const { return m_draggedNoteDelta; }
+    double getLeftTimeDelta() const { return m_leftTimeDelta; }
+    double getRightTimeDelta() const { return m_rightTimeDelta; }
 
 private:
     enum class DragMode
@@ -47,14 +55,19 @@ private:
         none,
         moveNotes,
         resizeLeft,
-        resizeRight,
-        selectNotes
+        resizeRight
     };
 
     DragMode m_currentDragMode = DragMode::none;
     juce::Point<int> m_dragStartPos;
     juce::Point<int> m_lastDragPos;
     bool m_isDragging = false;
+
+    // Drag state
+    double m_draggedTimeDelta {0.0};
+    int m_draggedNoteDelta {0};
+    double m_leftTimeDelta {0.0};
+    double m_rightTimeDelta {0.0};
 
     // Helper methods
     void updateCursor(const juce::MouseEvent& event, MidiViewport& viewport);

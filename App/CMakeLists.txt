@@ -114,6 +114,9 @@ target_sources(${TargetName} PRIVATE
         Source/tools/PointerTool.cpp
         Source/tools/DrawTool.cpp
         Source/tools/EraserTool.cpp
+        Source/tools/KnifeTool.cpp
+        Source/tools/RangeTool.cpp
+        Source/tools/LassoTool.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

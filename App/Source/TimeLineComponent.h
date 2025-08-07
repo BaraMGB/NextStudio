@@ -47,27 +47,9 @@ public:
     EditViewState&          getEditViewState();
 
 
-    void centerView()
-    {
-        if (m_evs.viewFollowsPos())
-        {
-            auto posBeats = m_evs.timeToBeat (
-                m_evs.m_edit.getTransport ().getPosition ().inSeconds());
-            auto bx1 = getCurrentBeatRange().getStart().inBeats();
-            auto bx2 = getCurrentBeatRange().getEnd().inBeats();
-
-            auto zoom = bx2 - bx1;
-            m_evs.setNewStartAndZoom(m_timeLineID, juce::jmax(0.0 , posBeats - zoom/2));
-        }
-    }
-    tracktion::BeatRange getCurrentBeatRange()
-    {
-        auto x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart();
-        auto x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getLength();
-
-        return tracktion::BeatRange(x1beats, x2beats);
-
-    }
+    void centerView();
+    tracktion::BeatRange getCurrentBeatRange();
+    tracktion::TimeRange getCurrentTimeRange();
     double getBeatsPerPixel();
 
     int                     timeToX (double time);
@@ -79,6 +61,13 @@ public:
 
     juce::String getTimeLineID() { return m_timeLineID; }
     void setTimeLineID(juce::String timeLineID);
+
+    //snapes relative to clip start
+    double getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down=true) const;
+    double getQuantisedBeat(double beat, bool down) const;
+    te::TimecodeSnapType getBestSnapType() const;
+    double getSnapedTime(double time);
+
 
 private:
 

@@ -260,17 +260,31 @@ public:
     GeneralSettings(ApplicationViewState& appState)
     : m_appState(appState)
     {
-m_scaleLabel.setText("Scaling Factor:", juce::dontSendNotification);
+        m_scaleLabel.setText("Scaling Factor:", juce::dontSendNotification);
         addAndMakeVisible(m_scaleLabel);
 
         m_scaleEditor.setMultiLine(false);
         m_scaleEditor.setJustification(juce::Justification::centredLeft);
-        m_scaleEditor.setText(juce::String(juce::Desktop::getInstance().getGlobalScaleFactor()),
+        m_scaleEditor.setText(juce::String(m_appState.m_appScale),
                              juce::dontSendNotification);
         addAndMakeVisible(m_scaleEditor);
 
         m_scaleEditor.onFocusLost = [this]() { updateScaling(); };
         m_scaleEditor.onReturnKey = [this]() { updateScaling(); };
+
+
+        m_mouseScaleLabel.setText("Mouse Cursor Scaling:", juce::dontSendNotification);
+        addAndMakeVisible(m_mouseScaleLabel);
+
+        m_mouseScaleEditor.setMultiLine(false);
+        m_mouseScaleEditor.setJustification(juce::Justification::centredLeft);
+        m_mouseScaleEditor.setText(juce::String(m_appState.m_mouseCursorScale),
+                             juce::dontSendNotification);
+        addAndMakeVisible(m_mouseScaleEditor);
+
+        m_mouseScaleEditor.onFocusLost = [this]() { updateScaling(); };
+        m_mouseScaleEditor.onReturnKey = [this]() { updateScaling(); };
+
 
         m_themeLabel.setText("Theme Colors:", juce::dontSendNotification);
         addAndMakeVisible(m_themeLabel);
@@ -291,8 +305,12 @@ m_scaleLabel.setText("Scaling Factor:", juce::dontSendNotification);
         const int scrollbarWidth = m_viewport->getScrollBarThickness();
 
         auto scaleRow = bounds.removeFromTop(rowHeight);
-        m_scaleLabel.setBounds(scaleRow.removeFromLeft(100));
+        m_scaleLabel.setBounds(scaleRow.removeFromLeft(140));
         m_scaleEditor.setBounds(scaleRow.removeFromLeft(100).reduced(2));
+
+        auto mouseScaleRow = bounds.removeFromTop(rowHeight);
+        m_mouseScaleLabel.setBounds(mouseScaleRow.removeFromLeft(140));
+        m_mouseScaleEditor.setBounds(mouseScaleRow.removeFromLeft(100).reduced(2));
 
         bounds.removeFromTop(padding / 2);
         m_themeLabel.setBounds(bounds.removeFromTop(rowHeight));
@@ -314,6 +332,8 @@ private:
     ApplicationViewState& m_appState;
     juce::Label m_scaleLabel;
     juce::TextEditor m_scaleEditor;
+    juce::Label m_mouseScaleLabel;
+    juce::TextEditor m_mouseScaleEditor;
     juce::Label m_themeLabel;
     std::unique_ptr<juce::Viewport> m_viewport;
     std::unique_ptr<ColourSettingsPanel> m_colourSettingsPanel;
@@ -330,6 +350,15 @@ private:
         {
             m_scaleEditor.setText(juce::String(juce::Desktop::getInstance().getGlobalScaleFactor()),
                                  juce::dontSendNotification);
+        }
+
+        float newMouseScale = m_mouseScaleEditor.getText().getFloatValue();
+        if (newMouseScale >= 0.2 && newMouseScale <= 3.0f)
+        {
+            m_appState.m_mouseCursorScale = newMouseScale;
+        }
+        else {
+            m_mouseScaleEditor.setText(juce::String(m_appState.m_mouseCursorScale));
         }
     }
 

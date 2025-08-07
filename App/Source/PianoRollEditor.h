@@ -35,6 +35,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 class PianoRollEditor
     : public juce::Component
+    , public juce::ChangeListener
     , private te::ValueTreeAllEventListener
     , private FlaggedAsyncUpdater
     , public juce::ApplicationCommandTarget
@@ -57,6 +58,25 @@ public:
 
     void updateButtonColour();
     void buttonClicked(juce::Button* button) override;
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override
+    {
+        if (source == m_pianoRollViewPort.get())
+        {
+
+            if (m_pianoRollViewPort->getCurrentToolType() == Tool::pointer)
+                m_selectionBtn.setToggleState(true, juce::NotificationType::dontSendNotification);
+            if (m_pianoRollViewPort->getCurrentToolType() == Tool::draw)
+                m_drawBtn.setToggleState(true, juce::dontSendNotification);
+            if (m_pianoRollViewPort->getCurrentToolType() == Tool::range)
+                m_rangeSelectBtn.setToggleState(true, juce::dontSendNotification);
+            if (m_pianoRollViewPort->getCurrentToolType() == Tool::eraser)
+                m_erasorBtn.setToggleState(true, juce::dontSendNotification);
+            if (m_pianoRollViewPort->getCurrentToolType() == Tool::knife)
+                m_splitBtn.setToggleState(true, juce::dontSendNotification);
+            if (m_pianoRollViewPort->getCurrentToolType() == Tool::lasso)
+                m_lassoBtn.setToggleState(true, juce::dontSendNotification);
+        }
+    }
 
     void setTrack(tracktion_engine::Track::Ptr track);
     void clearTrack();
@@ -88,7 +108,8 @@ private:
                             m_drawBtn,
                             m_rangeSelectBtn,
                             m_erasorBtn,
-                            m_splitBtn;
+                            m_splitBtn,
+                            m_lassoBtn;
 
     juce::String m_NoteDescUnderCursor;
     void handleAsyncUpdate() override;

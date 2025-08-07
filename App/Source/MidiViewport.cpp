@@ -24,6 +24,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 #include "Utilities.h"
 #include "ToolStrategy.h"
+#include "tools/DrawTool.h"
+#include "tools/PointerTool.h"
+#include "tools/KnifeTool.h"
 
 MidiViewport::MidiViewport(
     EditViewState& evs, tracktion_engine::Track::Ptr track, TimeLineComponent& timeLine)
@@ -69,28 +72,62 @@ void MidiViewport::paint(juce::Graphics& g)
             drawNote(g, midiClip, n);
     }
 
-    if (areNotesDragged())
-        for (auto sn : getSelectedNotes())
-            drawDraggedNotes(g, sn, m_selectedEvents->clipForEvent(sn));
-
-    if (m_clickedClip != nullptr && m_isDrawingNote)
+    if (auto* pointerTool = dynamic_cast<PointerTool*>(m_currentTool.get()))
     {
-        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        if (pointerTool->isDragging())
+        {
+            auto selectedNotes = getSelectedNotes();
+            for (auto sn : selectedNotes)
+            {
+                if (m_selectedEvents)
+                    drawDraggedNotes(g, sn, m_selectedEvents->clipForEvent(sn));
+            }
+        }
+    }
 
-        auto clipStartBeat = m_clickedClip->getStartBeat().inBeats();
+    if (auto* drawTool = dynamic_cast<DrawTool*>(m_currentTool.get()))
+    {
+        if (drawTool->isDrawing())
+        {
+            g.setColour(juce::Colours::white.withAlpha(0.5f));
 
-        auto startBeat = m_timeLine.xToBeatPos(m_drawStartPos).inBeats() - clipStartBeat;
-        if (m_snap)
-           startBeat = getQuantisedNoteBeat(startBeat, m_clickedClip);
-        auto startX = m_timeLine.beatsToX(startBeat + clipStartBeat) ;
+            auto* clickedClip = drawTool->getClickedClip();
+            auto clipStartBeat = clickedClip->getStartBeat().inBeats();
 
-        auto endBeat = m_timeLine.xToBeatPos(m_drawCurrentPos).inBeats() - clipStartBeat;
-        if (m_snap)
-            endBeat = getQuantisedNoteBeat(endBeat, m_clickedClip);
-        auto endX = m_timeLine.beatsToX(endBeat + clipStartBeat);
+            auto startBeat = m_timeLine.xToBeatPos(drawTool->getDrawStartPos()).inBeats() - clipStartBeat;
+            if (m_snap)
+               startBeat = m_timeLine.getQuantisedNoteBeat(startBeat, clickedClip);
+            auto startX = m_timeLine.beatsToX(startBeat + clipStartBeat) ;
 
-        auto noteRect = getNoteRect(m_drawNoteNumber, startX, endX);
-        g.drawRect(noteRect, 1.0f);
+            auto endBeat = m_timeLine.xToBeatPos(drawTool->getDrawCurrentPos()).inBeats() - clipStartBeat;
+            if (m_snap)
+                endBeat = m_timeLine.getQuantisedNoteBeat(endBeat, clickedClip);
+            auto endX = m_timeLine.beatsToX(endBeat + clipStartBeat);
+
+            auto noteRect = getNoteRect(drawTool->getDrawNoteNumber(), startX, endX);
+            g.drawRect(noteRect, 1.0f);
+        }
+    }
+
+    if (auto* knifeTool = dynamic_cast<KnifeTool*>(m_currentTool.get()))
+    {
+        if (knifeTool->shouldDrawSplitLine())
+        {
+            // Use the note that was already detected in the KnifeTool
+            if (auto* note = knifeTool->getHoveredNote())
+            {
+                if (auto* clip = m_selectedEvents->clipForEvent(note))
+                {
+                    auto noteRect = getNoteRect(note->getNoteNumber(), 
+                                               m_timeLine.beatsToX(note->getStartBeat().inBeats() + clip->getStartBeat().inBeats()),
+                                               m_timeLine.beatsToX(note->getEndBeat().inBeats() + clip->getStartBeat().inBeats()));
+                    
+                    g.setColour(juce::Colours::white);
+                    auto lineX = knifeTool->getSplitLineX();
+                    g.drawLine(lineX, noteRect.getY(), lineX, noteRect.getBottom(), 1.0f);
+                }
+            }
+        }
     }
 }
 
@@ -165,30 +202,33 @@ void MidiViewport::drawNote(juce::Graphics& g,
 
 void MidiViewport::drawDraggedNotes(juce::Graphics& g, te::MidiNote* n, te::MidiClip* clip)
 {
-    auto borderColour = juce::Colour(0xccffffff);
+    if (auto* pointerTool = dynamic_cast<PointerTool*>(m_currentTool.get()))
+    {
+        auto borderColour = juce::Colour(0xccffffff);
 
-    const double startDelta = m_evs.timeToBeat (m_draggedTimeDelta)  + m_evs.timeToBeat(m_leftTimeDelta);
-    const double lengthDelta = m_evs.timeToBeat (m_leftTimeDelta * (-1)) + m_evs.timeToBeat(m_rightTimeDelta);
+        const double startDelta = m_evs.timeToBeat (pointerTool->getDraggedTimeDelta())  + m_evs.timeToBeat(pointerTool->getLeftTimeDelta());
+        const double lengthDelta = m_evs.timeToBeat (pointerTool->getLeftTimeDelta() * (-1)) + m_evs.timeToBeat(pointerTool->getRightTimeDelta());
 
-    te::MidiNote mn = te::MidiNote(
-        te::MidiNote::createNote(*n,
-                                 tracktion::core::BeatPosition::fromBeats(n->getStartBeat().inBeats() + startDelta),
-                                 tracktion::core::BeatDuration::fromBeats(n->getLengthBeats().inBeats() + lengthDelta)));
-    mn.setNoteNumber(mn.getNoteNumber() + m_draggedNoteDelta, nullptr);
+        te::MidiNote mn = te::MidiNote(
+            te::MidiNote::createNote(*n,
+                                     tracktion::core::BeatPosition::fromBeats(n->getStartBeat().inBeats() + startDelta),
+                                     tracktion::core::BeatDuration::fromBeats(n->getLengthBeats().inBeats() + lengthDelta)));
+        mn.setNoteNumber(mn.getNoteNumber() + pointerTool->getDraggedNoteDelta(), nullptr);
 
-    auto noteRect = getNoteRect(clip, &mn);
+        auto noteRect = getNoteRect(clip, &mn);
 
-    g.setColour(borderColour);
-    g.drawRect(noteRect);
+        g.setColour(borderColour);
+        g.drawRect(noteRect);
 
-    auto innerBorderColour = juce::Colours::black;
-    g.setColour(innerBorderColour);
-    noteRect.reduce(1, 1);
-    g.drawRect(noteRect);
+        auto innerBorderColour = juce::Colours::black;
+        g.setColour(innerBorderColour);
+        noteRect.reduce(1, 1);
+        g.drawRect(noteRect);
 
-    noteRect.reduce(1, 1);
-    g.setColour(borderColour);
-    drawKeyNum(g, &mn, noteRect);
+        noteRect.reduce(1, 1);
+        g.setColour(borderColour);
+        drawKeyNum(g, &mn, noteRect);
+    }
 }
 
 void MidiViewport::drawKeyNum(juce::Graphics& g,
@@ -215,7 +255,6 @@ juce::Colour MidiViewport::getNoteColour(
         return juce::Colours::grey;
     else if (isHovered(n))
     {
-        GUIHelpers::log(juce::MidiMessage::getMidiNoteName(n->getNoteNumber(), true, true, 3));
         return m_track->getColour().brighter(0.6);
     }
 
@@ -320,12 +359,6 @@ void MidiViewport::valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTre
 
 void MidiViewport::cleanUpFlags()
 {
-    m_draggedNoteDelta = 0;
-    m_draggedTimeDelta = 0.0;
-
-    m_leftTimeDelta = 0.0;
-    m_rightTimeDelta = 0.0;
-
     m_clickedNote = nullptr;
     m_clickedClip = nullptr;
 
@@ -348,86 +381,6 @@ void MidiViewport::mouseExit(const juce::MouseEvent &)
         m_hoveredNote = nullptr;
     }
     setMouseCursor(juce::MouseCursor::NormalCursor);
-}
-
-void MidiViewport::setLeftEdgeDraggingTime(const juce::MouseEvent& e)
-{
-    auto oldTime = m_clickedNote->getEditStartTime(*m_clickedClip).inSeconds();
-    auto scroll = m_evs.beatToTime(m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats());
-    auto newTime = oldTime + m_evs.xToTime(e.getDistanceFromDragStartX(), m_timeLine.getTimeLineID(), getWidth()) - scroll;
-    if (m_snap)
-        newTime = getSnapedTime(newTime);
-
-    m_leftTimeDelta = newTime - oldTime;
-    m_draggedTimeDelta = 0;
-}
-
-void MidiViewport::setRightEdgeDraggingTime(const juce::MouseEvent& e)
-{
-    auto oldTime = m_clickedNote->getEditEndTime(*m_clickedClip).inSeconds();
-    auto scroll = m_evs.beatToTime(m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats());
-    auto newTime = oldTime + m_evs.xToTime(e.getDistanceFromDragStartX(), m_timeLine.getTimeLineID(), getWidth()) - scroll;
-    if (m_snap)
-        newTime = getSnapedTime(newTime);
-
-    m_rightTimeDelta = newTime - oldTime;
-    m_draggedTimeDelta = 0;
-}
-
-//set the menbers for preparing an new paint()
-void MidiViewport::updateViewOfMoveSelectedNotes(
-    const juce::MouseEvent& e)
-{
-    auto oldTime = m_clickedNote->getEditStartTime(*m_clickedClip).inSeconds();
-    auto scroll = m_evs.beatToTime(m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats());
-    auto newTime = oldTime + m_evs.xToTime(e.getDistanceFromDragStartX(), m_timeLine.getTimeLineID(), getWidth()) - scroll;
-    if (m_snap)
-        newTime = getSnapedTime(newTime);
-
-    //set member
-    m_draggedTimeDelta = newTime - oldTime;
-    m_draggedNoteDelta = getNoteNumber(e.y) - m_clickedNote->getNoteNumber();
-
-    m_clickedClip->getAudioTrack()->turnOffGuideNotes();
-
-    for (auto n : getSelectedNotes())
-       playGuideNote(m_selectedEvents->clipForEvent(n),
-                      n->getNoteNumber() + m_draggedNoteDelta,
-                      n->getVelocity());
-
-    repaint();
-}
-
-double MidiViewport::getQuantisedBeat(double beat, bool down) const
-{
-    auto snapType = getBestSnapType();
-    auto time = m_evs.beatToTime(beat);
-    auto snapedTime = m_evs.getSnapedTime(time, snapType, down);
-    auto quantisedBeat = m_evs.timeToBeat (snapedTime);
-
-    return quantisedBeat;
-}
-
-//snapes relative to clip start
-double MidiViewport::getQuantisedNoteBeat(
-    double beat,const te::MidiClip* c, bool down) const
-{
-    auto editBeat = c->getStartBeat().inBeats() + beat;
-
-    return getQuantisedBeat(editBeat, down) - c->getStartBeat().inBeats();
-}
-
-te::TimecodeSnapType MidiViewport::getBestSnapType() const
-{
-    auto x1 = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats();
-    auto x2 = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getEnd().inBeats();
-
-    return m_evs.getBestSnapType(x1, x2, getWidth());
-}
-
-double MidiViewport::getSnapedTime(double time)
-{
-    return m_evs.getSnapedTime(time, getBestSnapType(), false);
 }
 
 te::MidiNote* MidiViewport::addNewNoteAt(int x, int y, te::MidiClip* clip)
@@ -469,13 +422,6 @@ void MidiViewport::removeNote(te::MidiClip* clip, te::MidiNote* note)
                                    &m_evs.m_edit.getUndoManager());
 }
 
-
-void MidiViewport::splitNoteAt(te::MidiClip* clip, te::MidiNote* note, double time)
-{
-    auto newNoteLength = m_evs.timeToBeat(note->getEditEndTime(*clip).inSeconds() - time);
-    addNewNote(note->getNoteNumber(), clip,  m_evs.timeToBeat(time) - clip->getStartBeat().inBeats(), newNoteLength);
-}
-
 float MidiViewport::getKeyWidth() const
 {
     return (float) m_evs.getViewYScale(m_timeLine.getTimeLineID());
@@ -497,6 +443,9 @@ void MidiViewport::startLasso(const juce::MouseEvent& e, bool isRangeTool)
 void MidiViewport::setNoteSelected(tracktion_engine::MidiNote* n,
                                                 bool addToSelection)
 {
+    if (!m_selectedEvents)
+        m_selectedEvents = std::make_unique<te::SelectedMidiEvents>(juce::Array<te::MidiClip*>());
+
     m_selectedEvents->addSelectedEvent(n, addToSelection);
     m_evs.m_selectionManager.addToSelection(*m_selectedEvents);
 }
@@ -520,14 +469,14 @@ void MidiViewport::stopLasso()
 
 void MidiViewport::duplicateSelectedNotes()
 {
-    auto range = m_selectedEvents->getSelectedRange ();
-    auto rangeLength = range.getLength ().inSeconds();
-
-    m_draggedTimeDelta = rangeLength;
-
-    performNoteMoveOrCopy(true);
-
-    cleanUpFlags();
+    // auto range = m_selectedEvents->getSelectedRange ();
+    // auto rangeLength = range.getLength ().inSeconds();
+    //
+    // m_draggedTimeDelta = rangeLength;
+    //
+    // performNoteMoveOrCopy(true);
+    //
+    // cleanUpFlags();
 }
 
 void MidiViewport::snapToGrid(te::MidiNote* note,
@@ -537,16 +486,16 @@ void MidiViewport::snapToGrid(te::MidiNote* note,
 
     if (m_expandLeft)
         note->setStartAndLength(
-                                tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getStartBeat().inBeats(), clip)),
-                                note->getEndBeat() - tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getStartBeat().inBeats(), clip)),
+                                tracktion::BeatPosition::fromBeats(m_timeLine.getQuantisedNoteBeat(note->getStartBeat().inBeats(), clip)),
+                                note->getEndBeat() - tracktion::BeatPosition::fromBeats(m_timeLine.getQuantisedNoteBeat(note->getStartBeat().inBeats(), clip)),
                                 &um);
     else if (m_expandRight || m_noteAdding)
         note->setStartAndLength(note->getStartBeat(),
-                                tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getEndBeat().inBeats(), clip)) - note->getStartBeat(),
+                                tracktion::BeatPosition::fromBeats(m_timeLine.getQuantisedNoteBeat(note->getEndBeat().inBeats(), clip)) - note->getStartBeat(),
                                 &um);
     else
         note->setStartAndLength(
-            tracktion::BeatPosition::fromBeats(getQuantisedNoteBeat(note->getStartBeat().inBeats(),clip)),
+            tracktion::BeatPosition::fromBeats(m_timeLine.getQuantisedNoteBeat(note->getStartBeat().inBeats(),clip)),
                                 note->getLengthBeats(),
                                 &um);
 }
@@ -732,80 +681,6 @@ void MidiViewport::timerCallback()
     at->turnOffGuideNotes();
 }
 
-void MidiViewport::performNoteMoveOrCopy(bool copy)
-{
-    // A local helper structure to hold all necessary information for a pending note creation.
-    struct NoteOperationInfo
-    {
-        te::MidiClip* targetClip;
-        tracktion::BeatPosition startBeat;
-        tracktion::BeatDuration length;
-        int noteNumber;
-        int velocity;
-        int colour;
-    };
-
-    if (m_selectedEvents == nullptr || m_selectedEvents->getNumSelected() == 0)
-        return;
-
-    auto& um = m_evs.m_edit.getUndoManager();
-    um.beginNewTransaction(copy ? "Copy MIDI Notes" : "Move MIDI Notes");
-
-    juce::Array<NoteOperationInfo> plannedNotes;
-    auto selectedNotes = getSelectedNotes();
-    auto& tempoSequence = m_evs.m_edit.tempoSequence;
-
-    // --- PHASE 1: Collect Info & Prepare ---
-    for (auto* note : selectedNotes)
-    {
-        auto* clip = m_selectedEvents->clipForEvent(note);
-        if (clip == nullptr) continue;
-
-        auto originalNoteStartTime = tempoSequence.toTime(note->getStartBeat());
-        auto newNoteStartTime = originalNoteStartTime + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta);
-        auto newNoteStartBeat = tempoSequence.toBeats(newNoteStartTime);
-        auto beatDelta = newNoteStartBeat - note->getStartBeat();
-        auto lengthDelta = m_evs.timeToBeat(m_leftTimeDelta * (-1) + (m_rightTimeDelta));
-
-        plannedNotes.add({
-            clip,
-            note->getStartBeat() + beatDelta + tracktion::BeatDuration::fromBeats(m_evs.timeToBeat(m_leftTimeDelta)),
-            note->getLengthBeats() + tracktion::BeatDuration::fromBeats(lengthDelta), 
-            note->getNoteNumber() + m_draggedNoteDelta,
-            note->getVelocity(),
-            note->getColour()
-        });
-
-        if (!copy)
-        {
-            clip->getSequence().removeNote(*note, &um);
-        }
-    }
-
-    unselectAll();
-
-    // --- PHASE 2: Clear Target Area ---
-    for (const auto& noteInfo : plannedNotes)
-    {
-        tracktion::BeatRange targetBeatRange(noteInfo.startBeat, noteInfo.startBeat + noteInfo.length);
-        cleanUnderNote(noteInfo.noteNumber, targetBeatRange, noteInfo.targetClip);
-    }
-
-    // --- PHASE 3: Create New Notes & Update Selection ---
-    for (const auto& noteInfo : plannedNotes)
-    {
-        auto* newNote = noteInfo.targetClip->getSequence().addNote(
-            noteInfo.noteNumber,
-            noteInfo.startBeat,
-            noteInfo.length,
-            noteInfo.velocity,
-            noteInfo.colour,
-            &um
-        );
-        setNoteSelected(newNote, true);
-    }
-}
-
 void MidiViewport::cleanUnderNote(int noteNumb, tracktion::BeatRange beatRange, const te::MidiClip* clip)
 {
     if (clip == nullptr || beatRange.isEmpty())
@@ -889,17 +764,27 @@ juce::Array<te::MidiNote*>
 }
 te::MidiClip* MidiViewport::getNearestClipBefore(int x)
 {
-    if (getMidiClipAt(x) != nullptr)
-        return getMidiClipAt(x);
+    if (auto clipAt = getMidiClipAt(x))
+        return clipAt;
 
-    auto cPtr = getCachedMidiClips().getFirst();
+    const auto& clips = getCachedMidiClips();
+    if (clips.isEmpty())
+        return nullptr;
 
-    for (auto c : getCachedMidiClips())
-        if (c->getEndBeat().inBeats() < m_evs.xToBeats(x, m_timeLine.getTimeLineID(), getWidth()))
-            if (c->getEndBeat() > cPtr->getEndBeat())
-                cPtr = c;
+    te::MidiClip* best = nullptr;
+    double targetBeat = m_evs.xToBeats(x, m_timeLine.getTimeLineID(), getWidth());
 
-    return cPtr;
+    for (auto c : clips)
+    {
+        double endBeat = c->getEndBeat().inBeats();
+        if (endBeat < targetBeat)
+        {
+            if (best == nullptr || endBeat > best->getEndBeat().inBeats())
+                best = c;
+        }
+    }
+
+    return best;
 }
 
 te::MidiClip* MidiViewport::getNearestClipAfter(int x)
@@ -947,15 +832,14 @@ void MidiViewport::updateSelectedEvents()
         m_selectedEvents->deselect();
 
     if (getCachedMidiClips().size() > 0)
-        m_selectedEvents
-            = std::make_unique<te::SelectedMidiEvents>(getCachedMidiClips());
+        m_selectedEvents = std::make_unique<te::SelectedMidiEvents>(getCachedMidiClips());
     else
-        m_selectedEvents.reset(nullptr);
+        m_selectedEvents = std::make_unique<te::SelectedMidiEvents>(juce::Array<te::MidiClip*>());
 }
 
 void MidiViewport::refreshClipCache()
 {
-    GUIHelpers::log("MidiViewComponent: Clip Cache refreshed!");
+    // Clip cache refreshed (removed noisy debug log)
     m_cachedClips.clear();
     if (m_track != nullptr)
     {
@@ -982,14 +866,6 @@ void MidiViewport::invalidateClipCache()
     m_clipCacheValid = false;
 }
 
-bool MidiViewport::areNotesDragged() const
-{
-    return m_draggedTimeDelta != 0.0
-           || m_draggedNoteDelta != 0
-           || m_leftTimeDelta != 0.0
-           || m_rightTimeDelta != 0.0;
-}
-
 bool MidiViewport::isHovered(te::MidiNote* note)
 {
     return static_cast<bool>(note->state.getProperty(IDs::isHovered));
@@ -1000,9 +876,19 @@ void MidiViewport::setHovered(te::MidiNote* note, bool hovered)
     note->state.setProperty(IDs::isHovered, hovered, nullptr);
 }
 
-juce::Array<te::MidiNote*> MidiViewport::getSelectedNotes()
+juce::Array<te::MidiNote*>
+    MidiViewport::getSelectedNotes()
 {
+    if (!m_selectedEvents)
+        return {};
     return m_selectedEvents->getSelectedNotes();
+}
+
+te::SelectedMidiEvents& MidiViewport::getSelectedEvents()
+{
+    if (!m_selectedEvents)
+        m_selectedEvents = std::make_unique<te::SelectedMidiEvents>(juce::Array<te::MidiClip*>());
+    return *m_selectedEvents;
 }
 
 void MidiViewport::setTool(Tool tool)
@@ -1014,79 +900,7 @@ void MidiViewport::setTool(Tool tool)
 
     if (m_currentTool)
         m_currentTool->toolActivated(*this);
-}
-
-void MidiViewport::startNoteDraw(const juce::MouseEvent& event)
-{
-    m_clickedClip = getClipAt(event.x);
-    if (m_clickedClip == nullptr)
-        return;
-
-    const auto numBeatsPerBar = static_cast<int>(
-                        m_evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
-
-    int snapLevel = getBestSnapType().getLevel();
-
-    double intervalBeats = GUIHelpers::getIntervalBeatsOfSnap(snapLevel, numBeatsPerBar);
-    m_intervalX = intervalBeats / m_timeLine.getBeatsPerPixel();
-
-    m_isDrawingNote = true;
-    m_drawStartPos = event.getPosition().x;
-    m_drawCurrentPos = m_drawStartPos + m_intervalX;
-    m_drawNoteNumber = getNoteNumber(event.y);
-
-    repaint();
-}
-
-void MidiViewport::updateNoteDraw(const juce::MouseEvent& event)
-{
-    if (!m_isDrawingNote)
-        return;
-
-    m_drawCurrentPos = juce::jmax(event.getPosition().x, m_drawStartPos + m_intervalX);
-    repaint();
-}
-
-void MidiViewport::endNoteDraw()
-{
-    if (!m_isDrawingNote)
-        return;
-
-    auto startBeat = m_timeLine.xToBeatPos(m_drawStartPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
-    if (m_snap)
-       startBeat = getQuantisedNoteBeat(startBeat, m_clickedClip);
-
-    auto endBeat = m_timeLine.xToBeatPos(m_drawCurrentPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
-    if (m_snap)
-        endBeat = getQuantisedNoteBeat(endBeat, m_clickedClip);
-
-    auto newNote = addNewNote(m_drawNoteNumber, m_clickedClip, startBeat, endBeat - startBeat);
-
-    unselectAll();
-    setNoteSelected(newNote, false);
-
-    // Reset state
-    m_clickedClip = nullptr;
-    m_isDrawingNote = false;
-    m_drawStartPos = 0;
-    m_drawCurrentPos = 0;
-    m_drawNoteNumber = 0;
-    m_intervalX = 0;
-
-    repaint();
-}
-
-void MidiViewport::cancelNoteDraw()
-{
-    if (!m_isDrawingNote)
-        return;
-
-    m_isDrawingNote = false;
-    m_clickedClip = nullptr;
-    m_drawNoteNumber = 0;
-    m_drawCurrentPos = 0;
-    m_drawNoteNumber = 0;
-    m_intervalX = 0;
-
-    repaint();
+    
+    // Notify listeners about the tool change
+    sendChangeMessage();
 }

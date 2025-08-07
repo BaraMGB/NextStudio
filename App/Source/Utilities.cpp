@@ -522,10 +522,9 @@ float GUIHelpers::getScale(const juce::Component& c)
         return 1.0f;
 }
 
-juce::MouseCursor GUIHelpers::createCustomMouseCursor(CustomMouseCursor cursorType, const juce::Component& c)
+juce::MouseCursor GUIHelpers::createCustomMouseCursor(CustomMouseCursor cursorType, float scale)
 {
 
-    auto scale = GUIHelpers::getScale(c);
     switch (cursorType)
     {
         case CustomMouseCursor::ShiftLeft:

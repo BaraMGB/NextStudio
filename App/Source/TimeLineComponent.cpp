@@ -246,6 +246,39 @@ void TimeLineComponent::updateViewRange(const juce::MouseEvent& e)
     m_evs.setNewBeatRange(m_timeLineID, newViewRange, getWidth());
 }
 
+tracktion::BeatRange TimeLineComponent::getCurrentBeatRange()
+{
+    auto start = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart();
+    auto length = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getLength();
+
+    return tracktion::BeatRange(start, length);
+
+}
+
+tracktion::TimeRange TimeLineComponent::getCurrentTimeRange()
+{
+    auto start = m_evs.getVisibleTimeRange(m_timeLineID, getWidth()).getStart();
+    auto length = m_evs.getVisibleTimeRange(m_timeLineID, getWidth()).getLength();
+
+    return tracktion::TimeRange(start, length);
+
+}
+
+
+void TimeLineComponent::centerView()
+{
+    if (m_evs.viewFollowsPos())
+    {
+        auto posBeats = m_evs.timeToBeat (
+            m_evs.m_edit.getTransport ().getPosition ().inSeconds());
+        auto bx1 = getCurrentBeatRange().getStart().inBeats();
+        auto bx2 = getCurrentBeatRange().getEnd().inBeats();
+
+        auto zoom = bx2 - bx1;
+        m_evs.setNewStartAndZoom(m_timeLineID, juce::jmax(0.0 , posBeats - zoom/2));
+    }
+}
+
 tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
 {
     double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
@@ -384,4 +417,34 @@ void TimeLineComponent::setTimeLineID(juce::String timeLineID)
     m_timeLineID = timeLineID;
     m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(m_timeLineID, nullptr);  
     m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
+}
+
+double TimeLineComponent::getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down) const
+{
+    auto editBeat = c->getStartBeat().inBeats() + beat;
+
+    return getQuantisedBeat(editBeat, down) - c->getStartBeat().inBeats();
+}
+
+double TimeLineComponent::getQuantisedBeat(double beat, bool down) const
+{
+    auto snapType = getBestSnapType();
+    auto time = m_evs.beatToTime(beat);
+    auto snapedTime = m_evs.getSnapedTime(time, snapType, down);
+    auto quantisedBeat = m_evs.timeToBeat (snapedTime);
+
+    return quantisedBeat;
+}
+
+te::TimecodeSnapType TimeLineComponent::getBestSnapType() const
+{
+    auto x1 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    auto x2 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+
+    return m_evs.getBestSnapType(x1, x2, getWidth());
+}
+
+double TimeLineComponent::getSnapedTime(double time)
+{
+    return m_evs.getSnapedTime(time, getBestSnapType(), false);
 }

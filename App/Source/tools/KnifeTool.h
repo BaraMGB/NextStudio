@@ -1,4 +1,5 @@
 /*
+
 This file is part of NextStudio.
 Copyright (c) Steffen Baranowsky 2019-2025.
 
@@ -26,14 +27,13 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 namespace te = tracktion_engine;
 
 /**
- * Draw tool for creating new MIDI notes.
- * Creates notes by clicking and dragging to set length.
+ * Knife tool for splitting MIDI notes.
  */
-class DrawTool : public ToolStrategy
+class KnifeTool : public ToolStrategy
 {
 public:
-    explicit DrawTool(EditViewState& evs) : ToolStrategy(evs) {}
-    ~DrawTool() override = default;
+    explicit KnifeTool(EditViewState& evs) : ToolStrategy(evs) {}
+    ~KnifeTool() override = default;
 
     void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
     void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
@@ -45,20 +45,15 @@ public:
 
     void toolActivated(MidiViewport& viewport) override;
     void toolDeactivated(MidiViewport& viewport) override;
-    Tool getToolId () override { return Tool::draw; }
+    Tool getToolId () override { return Tool::knife; }
 
-    // Public getters for MidiViewport's paint method
-    bool isDrawing() const { return m_isDrawingNote; }
-    int getDrawStartPos() const { return m_drawStartPos; }
-    int getDrawCurrentPos() const { return m_drawCurrentPos; }
-    int getDrawNoteNumber() const { return m_drawNoteNumber; }
-    te::MidiClip* getClickedClip() const { return m_clickedClip; }
+    // Public getters for visual feedback
+    bool shouldDrawSplitLine() const { return m_shouldDrawSplitLine; }
+    int getSplitLineX() const { return m_splitLineX; }
+    te::MidiNote* getHoveredNote() const { return m_hoveredNote; }
 
 private:
-    bool m_isDrawingNote {false};
-    int m_drawStartPos {0};
-    int m_drawCurrentPos {0};
-    int m_intervalX {0};
-    int m_drawNoteNumber {0};
-    te::MidiClip* m_clickedClip {nullptr};
+    bool m_shouldDrawSplitLine {false};
+    int m_splitLineX {0};
+    te::MidiNote* m_hoveredNote {nullptr};
 };

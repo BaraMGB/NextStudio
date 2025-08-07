@@ -1163,11 +1163,11 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
 
 void SongEditorView::updateCursor(juce::ModifierKeys modifierKeys)
 {
-    auto timeRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::TimeShiftRight, *this);
-    auto shiftRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, *this);
-    auto shiftLeftcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, *this);
-    auto shiftHandCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, *this);
-    auto curveSteepnesCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::CurveSteepnes, *this);
+    auto timeRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::TimeShiftRight, m_editViewState.m_applicationState.m_mouseCursorScale);
+    auto shiftRightcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight,  m_editViewState.m_applicationState.m_mouseCursorScale);
+    auto shiftLeftcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, m_editViewState.m_applicationState.m_mouseCursorScale);
+    auto shiftHandCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, m_editViewState.m_applicationState.m_mouseCursorScale);
+    auto curveSteepnesCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::CurveSteepnes, m_editViewState.m_applicationState.m_mouseCursorScale);
 
     if (m_hoveredTrack && m_hoveredTrack->isFolderTrack() && !m_hoveredTimeRange)
     {

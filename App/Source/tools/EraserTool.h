@@ -41,10 +41,11 @@ public:
     void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) override;
     void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) override;
 
-    juce::MouseCursor getCursor() const override;
+    juce::MouseCursor getCursor(MidiViewport& viewport) const override;
 
     void toolActivated(MidiViewport& viewport) override;
     void toolDeactivated(MidiViewport& viewport) override;
+    Tool getToolId () override { return Tool::eraser; }
 
 private:
     bool m_isDragging = false;

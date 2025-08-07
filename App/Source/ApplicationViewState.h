@@ -32,6 +32,7 @@ namespace IDs
     #define DECLARE_ID(name)  const juce::Identifier name (#name);
     DECLARE_ID (AppSettings)
     DECLARE_ID (AppScale)
+    DECLARE_ID (MouseCursorScale)
     DECLARE_ID (FileBrowser)
     DECLARE_ID (WindowState)
     DECLARE_ID (WorkDIR)
@@ -215,6 +216,7 @@ public:
         m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, 300);
         m_previewSliderPos.referTo (behavior, IDs::PreviewSliderPos, nullptr, 1.f);
         m_appScale.referTo(behavior, IDs::AppScale, nullptr, 1.f);
+        m_mouseCursorScale.referTo(behavior, IDs::MouseCursorScale, nullptr, 1.f);
         m_previewLoop.referTo (behavior, IDs::PreviewLoop, nullptr, false);
         m_sidebarCollapsed.referTo(behavior, IDs::SidebarCollapsed, nullptr, false);
         m_exclusiveMidiFocusEnabled.referTo(behavior, IDs::ExclusiveMidiFocusEnabled, nullptr, true);
@@ -485,7 +487,7 @@ public:
                                     m_folderTrackIndent,
                                     m_autoSaveInterval,
                                     m_sidebarWidth;
-    juce::CachedValue<float>        m_appScale, m_previewSliderPos;
+    juce::CachedValue<float>        m_appScale, m_mouseCursorScale, m_previewSliderPos;
     juce::CachedValue<bool>         m_previewLoop,
                                     m_sidebarCollapsed,
                                     m_exclusiveMidiFocusEnabled;

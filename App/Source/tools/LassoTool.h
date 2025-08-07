@@ -1,4 +1,5 @@
 /*
+
 This file is part of NextStudio.
 Copyright (c) Steffen Baranowsky 2019-2025.
 
@@ -23,17 +24,14 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../ToolStrategy.h"
 #include "../MidiViewport.h"
 
-namespace te = tracktion_engine;
-
 /**
- * Draw tool for creating new MIDI notes.
- * Creates notes by clicking and dragging to set length.
+ * Lasso tool for selecting notes by drawing a freeform shape.
  */
-class DrawTool : public ToolStrategy
+class LassoTool : public ToolStrategy
 {
 public:
-    explicit DrawTool(EditViewState& evs) : ToolStrategy(evs) {}
-    ~DrawTool() override = default;
+    explicit LassoTool(EditViewState& evs) : ToolStrategy(evs) {}
+    ~LassoTool() override = default;
 
     void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
     void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
@@ -45,20 +43,5 @@ public:
 
     void toolActivated(MidiViewport& viewport) override;
     void toolDeactivated(MidiViewport& viewport) override;
-    Tool getToolId () override { return Tool::draw; }
-
-    // Public getters for MidiViewport's paint method
-    bool isDrawing() const { return m_isDrawingNote; }
-    int getDrawStartPos() const { return m_drawStartPos; }
-    int getDrawCurrentPos() const { return m_drawCurrentPos; }
-    int getDrawNoteNumber() const { return m_drawNoteNumber; }
-    te::MidiClip* getClickedClip() const { return m_clickedClip; }
-
-private:
-    bool m_isDrawingNote {false};
-    int m_drawStartPos {0};
-    int m_drawCurrentPos {0};
-    int m_intervalX {0};
-    int m_drawNoteNumber {0};
-    te::MidiClip* m_clickedClip {nullptr};
+    Tool getToolId () override { return Tool::lasso; }
 };

@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "PointerTool.h"
+#include "LassoTool.h"
 
 
 
@@ -58,18 +59,20 @@ void PointerTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewpor
     }
     else
     {
-        m_currentDragMode = DragMode::selectNotes;
-        if (!event.mods.isShiftDown())
+        // Empty space - switch to LassoTool for selection
+        m_evs.m_selectionManager.deselectAll();
+        viewport.setTool(Tool::lasso);
+        if (auto* lassoTool = dynamic_cast<LassoTool*>(viewport.getCurrentTool()))
         {
-            viewport.unselectAll();
+            // Forward the mouseDown event to the LassoTool
+            lassoTool->mouseDown(event, viewport);
         }
-        viewport.startLasso(event);
+        return; // Don't continue with PointerTool logic
     }
 }
 
 void PointerTool::mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport)
 {
-    GUIHelpers::log("PointerTRool Mouse doublel click");
     viewport.setClickedClip(viewport.getClipAt(event.x));
     insertNoteAtPosition(event, viewport);
 }
@@ -85,40 +88,61 @@ void PointerTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewpor
         if (event.mods.isShiftDown())
             viewport.setSnap(false);
 
-        int deltaX = event.x - m_lastDragPos.x;
-        int deltaY = event.y - m_lastDragPos.y;
-
         switch (m_currentDragMode)
         {
             case DragMode::moveNotes:
-                // Only update view if we have a clicked note
-                if (viewport.getClickedNote() != nullptr)
+                if (auto* clickedNote = viewport.getClickedNote())
                 {
-                    viewport.updateViewOfMoveSelectedNotes(event);
+                    auto oldTime = clickedNote->getEditStartTime(*viewport.getClickedClip()).inSeconds();
+                    auto scroll = viewport.getTimeLine()->getCurrentTimeRange().getStart().inSeconds();
+                    auto newTime = oldTime + viewport.getTimeLine()->xToTimePos(event.getDistanceFromDragStartX()).inSeconds() - scroll;
+                    if (viewport.isSnapping())
+                        newTime = viewport.getTimeLine()->getSnapedTime(newTime);
+
+                    m_draggedTimeDelta = newTime - oldTime;
+                    m_draggedNoteDelta = viewport.getNoteNumber(event.y) - clickedNote->getNoteNumber();
+
+                    viewport.getClickedClip()->getAudioTrack()->turnOffGuideNotes();
+
+                    for (auto n : viewport.getSelectedNotes())
+                       viewport.playGuideNote(viewport.getSelectedEvents().clipForEvent(n),
+                                              n->getNoteNumber() + m_draggedNoteDelta,
+                                              n->getVelocity());
                 }
                 break;
 
             case DragMode::resizeLeft:
-                if (viewport.getClickedNote() != nullptr)
+                if (auto* clickedNote = viewport.getClickedNote())
                 {
-                    viewport.setLeftEdgeDraggingTime(event);
+                    auto oldTime = clickedNote->getEditStartTime(*viewport.getClickedClip()).inSeconds();
+                    auto scroll = viewport.getTimeLine()->getCurrentTimeRange().getStart().inSeconds();
+                    auto newTime = oldTime + viewport.getTimeLine()->xToTimePos(event.getDistanceFromDragStartX()).inSeconds() - scroll;
+                    if (viewport.isSnapping())
+                        newTime = viewport.getTimeLine()->getSnapedTime(newTime);
+
+                    m_leftTimeDelta = newTime - oldTime;
+                    m_draggedTimeDelta = 0;
                 }
                 break;
 
             case DragMode::resizeRight:
-                if (viewport.getClickedNote() != nullptr)
+                if (auto* clickedNote = viewport.getClickedNote())
                 {
-                    viewport.setRightEdgeDraggingTime(event);
-                }
-                break;
+                    auto oldTime = clickedNote->getEditEndTime(*viewport.getClickedClip()).inSeconds();
+                    auto scroll = viewport.getTimeLine()->getCurrentTimeRange().getStart().inSeconds();
+                    auto newTime = oldTime + viewport.getTimeLine()->xToTimePos(event.getDistanceFromDragStartX()).inSeconds() - scroll;
+                    if (viewport.isSnapping())
+                        newTime = viewport.getTimeLine()->getSnapedTime(newTime);
 
-            case DragMode::selectNotes:
-                viewport.updateLasso(event);
+                    m_rightTimeDelta = newTime - oldTime;
+                    m_draggedTimeDelta = 0;
+                }
                 break;
 
             case DragMode::none:
                 break;
         }
+        viewport.repaint();
     }
 
     m_lastDragPos = event.getPosition();
@@ -126,23 +150,7 @@ void PointerTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewpor
 
 void PointerTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
 {
-    if (m_currentDragMode == DragMode::selectNotes)
-    {
-        viewport.stopLasso();
-        if (!m_isDragging)
-        {
-            // Single click - select note under cursor
-            if (auto* note = viewport.getNoteByPos(event.position.toFloat()))
-            {
-                if (!event.mods.isShiftDown())
-                {
-                    viewport.unselectAll();
-                }
-                viewport.setNoteSelected(note, event.mods.isShiftDown());
-            }
-        }
-    }
-    else if (!m_isDragging)
+    if (!m_isDragging)
     {
         // Click without dragging - might be a single click on empty space
         if (viewport.getNoteByPos(event.position.toFloat()) == nullptr)
@@ -155,13 +163,88 @@ void PointerTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
     }
     else
     {
-        viewport.performNoteMoveOrCopy(event.mods.isCtrlDown());
+        // A local helper structure to hold all necessary information for a pending note creation.
+        struct NoteOperationInfo
+        {
+            te::MidiClip* targetClip;
+            tracktion::BeatPosition startBeat;
+            tracktion::BeatDuration length;
+            int noteNumber;
+            int velocity;
+            int colour;
+        };
+
+        if (viewport.getSelectedEvents().getNumSelected() > 0)
+        {
+            auto& um = m_evs.m_edit.getUndoManager();
+            const bool copy = event.mods.isCtrlDown();
+            um.beginNewTransaction(copy ? "Copy MIDI Notes" : "Move MIDI Notes");
+
+            juce::Array<NoteOperationInfo> plannedNotes;
+            auto selectedNotes = viewport.getSelectedNotes();
+            auto& tempoSequence = m_evs.m_edit.tempoSequence;
+
+            // --- PHASE 1: Collect Info & Prepare ---
+            for (auto* note : selectedNotes)
+            {
+                auto* clip = viewport.getSelectedEvents().clipForEvent(note);
+                if (clip == nullptr) continue;
+
+                auto originalNoteStartTime = tempoSequence.toTime(note->getStartBeat());
+                auto newNoteStartTime = originalNoteStartTime + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta);
+                auto newNoteStartBeat = tempoSequence.toBeats(newNoteStartTime);
+                auto beatDelta = newNoteStartBeat - note->getStartBeat();
+                auto lengthDelta = m_evs.timeToBeat(m_leftTimeDelta * (-1) + (m_rightTimeDelta));
+
+                plannedNotes.add({
+                    clip,
+                    note->getStartBeat() + beatDelta + tracktion::BeatDuration::fromBeats(m_evs.timeToBeat(m_leftTimeDelta)),
+                    note->getLengthBeats() + tracktion::BeatDuration::fromBeats(lengthDelta),
+                    note->getNoteNumber() + m_draggedNoteDelta,
+                    note->getVelocity(),
+                    note->getColour()
+                });
+
+                if (!copy)
+                {
+                    clip->getSequence().removeNote(*note, &um);
+                }
+            }
+
+            viewport.unselectAll();
+
+            // --- PHASE 2: Clear Target Area ---
+            for (const auto& noteInfo : plannedNotes)
+            {
+                tracktion::BeatRange targetBeatRange(noteInfo.startBeat, noteInfo.startBeat + noteInfo.length);
+                viewport.cleanUnderNote(noteInfo.noteNumber, targetBeatRange, noteInfo.targetClip);
+            }
+
+            // --- PHASE 3: Create New Notes & Update Selection ---
+            for (const auto& noteInfo : plannedNotes)
+            {
+                auto* newNote = noteInfo.targetClip->getSequence().addNote(
+                    noteInfo.noteNumber,
+                    noteInfo.startBeat,
+                    noteInfo.length,
+                    noteInfo.velocity,
+                    noteInfo.colour,
+                    &um
+                );
+                viewport.setNoteSelected(newNote, true);
+            }
+        }
     }
 
     m_currentDragMode = DragMode::none;
     m_isDragging = false;
+    m_draggedTimeDelta = 0.0;
+    m_draggedNoteDelta = 0;
+    m_leftTimeDelta = 0.0;
+    m_rightTimeDelta = 0.0;
 
     viewport.cleanUpFlags();
+    viewport.repaint();
 }
 
 void PointerTool::insertNoteAtPosition(const juce::MouseEvent& event, MidiViewport& viewport)
@@ -188,18 +271,18 @@ void PointerTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewpor
 
             if (std::abs(event.x - noteRect.getX()) < borderWidth)
             {
-                viewport.setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, viewport));
+                viewport.setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, viewport.getCursorScale()));
                 return;
             }
             else if (std::abs(event.x - noteRect.getRight()) < borderWidth)
             {
-                viewport.setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, viewport));
+                viewport.setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, viewport.getCursorScale()));
                 return;
             }
         }
 
         // Over a note, but not an edge
-        viewport.setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, viewport));
+        viewport.setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, viewport.getCursorScale()));
     }
     else
     {
@@ -208,19 +291,21 @@ void PointerTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewpor
     }
 }
 
-juce::MouseCursor PointerTool::getCursor() const
+juce::MouseCursor PointerTool::getCursor(MidiViewport& viewport) const
 {
     switch (m_currentDragMode)
     {
         case DragMode::resizeLeft:
+            return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, viewport.getCursorScale());
+
         case DragMode::resizeRight:
-            return juce::MouseCursor::LeftRightResizeCursor;
+            return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftRight, viewport.getCursorScale());
 
         case DragMode::moveNotes:
-            return juce::MouseCursor::DraggingHandCursor;
+            return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, viewport.getCursorScale());
 
-        case DragMode::selectNotes:
-            return juce::MouseCursor::CrosshairCursor;
+        // case DragMode::select:
+        //     return juce::MouseCursor::CrosshairCursor;
 
         case DragMode::none:
         default:

@@ -76,7 +76,7 @@ public:
      * Returns the appropriate cursor for this tool.
      * @return The cursor type to display
      */
-    virtual juce::MouseCursor getCursor() const = 0;
+    virtual juce::MouseCursor getCursor(MidiViewport& viewport) const = 0;
     
     /**
      * Called when this tool becomes active.
@@ -89,6 +89,8 @@ public:
      * @param viewport Reference to the MidiViewport
      */
     virtual void toolDeactivated(MidiViewport& viewport) {}
+
+    virtual Tool getToolId () = 0;
     
 protected:
     EditViewState& m_evs;

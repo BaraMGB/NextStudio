@@ -35,6 +35,7 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
     , m_rangeSelectBtn ("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_erasorBtn ("erasor mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
     , m_splitBtn ("split mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+    , m_lassoBtn ("lasso mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     setWantsKeyboardFocus(true);
     evs.m_edit.state.addListener (this);
@@ -64,12 +65,17 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
     m_splitBtn.setTooltip(GUIHelpers::translate("split clips", m_editViewState.m_applicationState));
     m_splitBtn.addListener(this);
 
+    m_lassoBtn.setName("lasso");
+    m_lassoBtn.setTooltip(GUIHelpers::translate("lasso select", m_editViewState.m_applicationState));
+    m_lassoBtn.addListener(this);
+
     addAndMakeVisible(m_toolBar);
     m_toolBar.addButton(&m_selectionBtn, 1);
     m_toolBar.addButton(&m_drawBtn, 1);
     m_toolBar.addButton(&m_rangeSelectBtn, 1);
     m_toolBar.addButton(&m_erasorBtn, 1);
     m_toolBar.addButton(&m_splitBtn, 1);
+    m_toolBar.addButton(&m_lassoBtn, 1);
 
 
     updateButtonColour();
@@ -81,6 +87,7 @@ PianoRollEditor::~PianoRollEditor()
     m_rangeSelectBtn.removeListener(this);
     m_drawBtn.removeListener(this);
     m_selectionBtn.removeListener(this);
+    m_lassoBtn.removeListener(this);
     m_editViewState.m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_editViewState.m_edit.state.removeListener (this);
 }
@@ -272,41 +279,41 @@ bool PianoRollEditor::perform (const juce::ApplicationCommandTarget::InvocationI
         case KeyPressCommandIDs::nudgeNotesUp :
         {   
             if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 0, 1);
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 1);
 
             break;
         }
         case KeyPressCommandIDs::nudgeNotesDown :
         {   
             if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 0, -1);
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -1);
             break;
         }
         case KeyPressCommandIDs::nudgeNotesLeft :
         {   
             if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), -1, 0);
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), -1, 0);
 
             break;
         }
         case KeyPressCommandIDs::nudgeNotesRight :
         {   
             if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 1, 0);
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 1, 0);
 
             break;
         }
         case KeyPressCommandIDs::nudgeNotesOctaveUp :
         {   
             if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(),0, 12);
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(),0, 12);
 
             break;
         }
         case KeyPressCommandIDs::nudgeNotesOctaveDown :
         {   
             if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_pianoRollViewPort->getBestSnapType(), 0, -12);
+                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -12);
 
             break;
         }
@@ -324,6 +331,7 @@ void PianoRollEditor::updateButtonColour()
     GUIHelpers::setDrawableOnButton(m_rangeSelectBtn, BinaryData::select_timerange_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_erasorBtn, BinaryData::rubber_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_splitBtn, BinaryData::split_svg, buttonColour);
+    GUIHelpers::setDrawableOnButton(m_lassoBtn, BinaryData::select_icon_svg, buttonColour);
 }
 void PianoRollEditor::buttonClicked(juce::Button* button) 
 {
@@ -351,6 +359,10 @@ void PianoRollEditor::buttonClicked(juce::Button* button)
     {
         m_pianoRollViewPort->setTool(Tool::knife);
     }
+    if (button == &m_lassoBtn)
+    {
+        m_pianoRollViewPort->setTool(Tool::lasso);
+    }
     
 }
 
@@ -359,6 +371,7 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
     m_timeLine.setTimeLineID(track->itemID.toString());
     m_pianoRollViewPort = std::make_unique<MidiViewport> (m_editViewState, track, m_timeLine);
     addAndMakeVisible (*m_pianoRollViewPort);
+    m_pianoRollViewPort->addChangeListener(this);
 
     m_timelineOverlay = std::make_unique<TimelineOverlayComponent> (m_editViewState, track, m_timeLine);
     addAndMakeVisible (*m_timelineOverlay);
@@ -372,8 +385,8 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 }
 void PianoRollEditor::clearTrack()
 {
-    GUIHelpers::log("track cleared");
     m_timelineOverlay.reset (nullptr);
+    m_pianoRollViewPort->removeChangeListener(this);
     m_pianoRollViewPort.reset (nullptr);
     m_velocityEditor.reset(nullptr);
     m_keyboard.reset(nullptr);

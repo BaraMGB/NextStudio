@@ -157,7 +157,7 @@ namespace GUIHelpers
 
     float getScale(const juce::Component& c);
 
-    juce::MouseCursor createCustomMouseCursor(CustomMouseCursor cursorType, const juce::Component& c);
+    juce::MouseCursor createCustomMouseCursor(CustomMouseCursor cursorType, float scale);
     juce::MouseCursor getMouseCursorFromPng(const char* png, const int size, juce::Point<int> hotPoint);
     juce::MouseCursor getMouseCursorFromSvg(const char* svgbinary, juce::Point<int> hitPoint, float scale=1.f);
 

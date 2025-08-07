@@ -23,6 +23,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "tools/PointerTool.h"
 #include "tools/DrawTool.h"
 #include "tools/EraserTool.h"
+#include "tools/KnifeTool.h"
+#include "tools/RangeTool.h"
+#include "tools/LassoTool.h"
+
 std::unique_ptr<ToolStrategy> ToolFactory::createTool(Tool toolType, EditViewState& evs)
 {
     switch (toolType)
@@ -36,13 +40,16 @@ std::unique_ptr<ToolStrategy> ToolFactory::createTool(Tool toolType, EditViewSta
         case Tool::eraser:
             return std::make_unique<EraserTool>(evs);
             
+        case Tool::knife:
+            return std::make_unique<KnifeTool>(evs);
+            
+        case Tool::lasso:
+            return std::make_unique<LassoTool>(evs);
+            
+        case Tool::range:
+            return std::make_unique<RangeTool>(evs);
+            
         // TODO: Implement remaining tools
-        // case Tool::knife:
-        //     return std::make_unique<KnifeTool>(evs);
-        // case Tool::lasso:
-        //     return std::make_unique<LassoTool>(evs);
-        // case Tool::range:
-        //     return std::make_unique<RangeTool>(evs);
         // case Tool::timestretch:
         //     return std::make_unique<TimestretchTool>(evs);
 

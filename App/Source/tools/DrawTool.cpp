@@ -24,8 +24,24 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 void DrawTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewport)
 {
-    // Delegate to MidiViewport to start the drawing process
-    viewport.startNoteDraw(event);
+    m_clickedClip = viewport.getClipAt(event.x);
+    if (m_clickedClip == nullptr)
+        return;
+
+    const auto numBeatsPerBar = static_cast<int>(
+                        m_evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
+
+    int snapLevel = viewport.getTimeLine()->getBestSnapType().getLevel();
+
+    double intervalBeats = GUIHelpers::getIntervalBeatsOfSnap(snapLevel, numBeatsPerBar);
+    m_intervalX = intervalBeats / viewport.getTimeLine()->getBeatsPerPixel();
+
+    m_isDrawingNote = true;
+    m_drawStartPos = event.getPosition().x;
+    m_drawCurrentPos = m_drawStartPos + m_intervalX;
+    m_drawNoteNumber = viewport.getNoteNumber(event.y);
+    
+    viewport.repaint();
 }
 
 void DrawTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport)
@@ -33,14 +49,41 @@ void DrawTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport)
     viewport.setSnap(true);
     if (event.mods.isShiftDown())
         viewport.setSnap(false);
-    // Delegate to MidiViewport to update the drawing process
-    viewport.updateNoteDraw(event);
+
+    if (!m_isDrawingNote)
+        return;
+
+    m_drawCurrentPos = juce::jmax(event.getPosition().x, m_drawStartPos + m_intervalX);
+    viewport.repaint();
 }
 
 void DrawTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
 {
-    // Delegate to MidiViewport to finalize the note
-    viewport.endNoteDraw();
+    if (!m_isDrawingNote)
+        return;
+
+    auto startBeat = viewport.getTimeLine()->xToBeatPos(m_drawStartPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
+    if (viewport.isSnapping())
+       startBeat = viewport.getTimeLine()->getQuantisedNoteBeat(startBeat, m_clickedClip);
+
+    auto endBeat = viewport.getTimeLine()->xToBeatPos(m_drawCurrentPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
+    if (viewport.isSnapping())
+        endBeat = viewport.getTimeLine()->getQuantisedNoteBeat(endBeat, m_clickedClip);
+
+    auto newNote = viewport.addNewNote(m_drawNoteNumber, m_clickedClip, startBeat, endBeat - startBeat);
+
+    viewport.unselectAll();
+    viewport.setNoteSelected(newNote, false);
+
+    // Reset state
+    m_clickedClip = nullptr;
+    m_isDrawingNote = false;
+    m_drawStartPos = 0;
+    m_drawCurrentPos = 0;
+    m_drawNoteNumber = 0;
+    m_intervalX = 0;
+    
+    viewport.repaint();
 }
 
 void DrawTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
@@ -48,7 +91,7 @@ void DrawTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
     // Update cursor based on context
     if (viewport.getClipAt(event.x))
     {
-        viewport.setMouseCursor(getCursor());
+        viewport.setMouseCursor(getCursor(viewport));
     }
     else
     {
@@ -59,28 +102,30 @@ void DrawTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
 void DrawTool::mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport)
 {
     // A double-click could create a note with a default length.
-    // For now, we can treat it like a single click-and-release.
-    viewport.startNoteDraw(event);
-    viewport.endNoteDraw();
+    mouseDown(event, viewport);
+    mouseUp(event, viewport);
 }
 
-juce::MouseCursor DrawTool::getCursor() const
+juce::MouseCursor DrawTool::getCursor(MidiViewport& viewport) const
 {
-    return juce::MouseCursor::CrosshairCursor;
+    return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, viewport.getCursorScale());
 }
 
 void DrawTool::toolActivated(MidiViewport& viewport)
 {
-    GUIHelpers::log("DrawTool activated");
-    viewport.setMouseCursor(getCursor());
+    viewport.setMouseCursor(getCursor(viewport));
 }
 
 void DrawTool::toolDeactivated(MidiViewport& viewport)
 {
-    GUIHelpers::log("DrawTool deactivated");
-
     // Ensure any pending drawing operation is cancelled
-    viewport.cancelNoteDraw();
+    m_isDrawingNote = false;
+    m_clickedClip = nullptr;
+    m_drawNoteNumber = 0;
+    m_drawCurrentPos = 0;
+    m_drawNoteNumber = 0;
+    m_intervalX = 0;
 
+    viewport.repaint();
     viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
 }
