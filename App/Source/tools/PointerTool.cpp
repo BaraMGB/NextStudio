@@ -59,15 +59,10 @@ void PointerTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewpor
     }
     else
     {
-        // Empty space - switch to LassoTool for selection
+        // Empty space - don't immediately switch to LassoTool. Defer starting lasso until
+        // the user drags the mouse to allow double-clicks to be detected by PointerTool.
         m_evs.m_selectionManager.deselectAll();
-        viewport.setTool(Tool::lasso);
-        if (auto* lassoTool = dynamic_cast<LassoTool*>(viewport.getCurrentTool()))
-        {
-            // Forward the mouseDown event to the LassoTool
-            lassoTool->mouseDown(event, viewport);
-        }
-        return; // Don't continue with PointerTool logic
+        m_pendingLassoStart = true;
     }
 }
 
@@ -84,6 +79,19 @@ void PointerTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewpor
 
     if (m_isDragging)
     {
+        // If we had a pending lasso start (clicked empty space before dragging), start the lasso now.
+        if (m_pendingLassoStart)
+        {
+            m_pendingLassoStart = false;
+            viewport.setTool(Tool::lasso);
+            if (auto* lassoTool = dynamic_cast<LassoTool*>(viewport.getCurrentTool()))
+            {
+                lassoTool->mouseDown(event, viewport);
+                lassoTool->mouseDrag(event, viewport);
+                return; // LassoTool now handles dragging
+            }
+        }
+
         viewport.setSnap(true);
         if (event.mods.isShiftDown())
             viewport.setSnap(false);
@@ -160,6 +168,9 @@ void PointerTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
                 viewport.unselectAll();
             }
         }
+
+        // If we had a pending lasso start but the user didn't drag (i.e. just clicked), clear it.
+        m_pendingLassoStart = false;
     }
     else
     {
@@ -303,9 +314,6 @@ juce::MouseCursor PointerTool::getCursor(MidiViewport& viewport) const
 
         case DragMode::moveNotes:
             return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, viewport.getCursorScale());
-
-        // case DragMode::select:
-        //     return juce::MouseCursor::CrosshairCursor;
 
         case DragMode::none:
         default:
