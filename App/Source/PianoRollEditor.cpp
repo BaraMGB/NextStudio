@@ -331,7 +331,7 @@ void PianoRollEditor::updateButtonColour()
     GUIHelpers::setDrawableOnButton(m_rangeSelectBtn, BinaryData::select_timerange_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_erasorBtn, BinaryData::rubber_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_splitBtn, BinaryData::split_svg, buttonColour);
-    GUIHelpers::setDrawableOnButton(m_lassoBtn, BinaryData::select_icon_svg, buttonColour);
+    GUIHelpers::setDrawableOnButton(m_lassoBtn, BinaryData::rubberband_svg, buttonColour);
 }
 void PianoRollEditor::buttonClicked(juce::Button* button) 
 {
