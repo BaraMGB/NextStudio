@@ -78,9 +78,22 @@ MainComponent::~MainComponent()
 {
     m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_selectionManager.removeChangeListener(this);
-    m_edit->state.removeListener (this);
+    if (m_edit)
+        m_edit->state.removeListener (this);
+
+    if (m_header)
+        m_header->removeAllChangeListeners();
+
+    // Explicitly destroy UI components and then the Edit to ensure correct shutdown order
+    m_editorContainer = nullptr;
+    m_header = nullptr;
+    m_editComponent = nullptr;
+    m_lowerRange = nullptr;
+    m_sideBarBrowser = nullptr;
+    m_editViewState = nullptr;
+    m_edit = nullptr;
+
     saveSettings();
-    m_header->removeAllChangeListeners ();
     m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
 }
