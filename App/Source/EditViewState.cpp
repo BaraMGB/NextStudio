@@ -1,5 +1,19 @@
 #include "EditViewState.h"
 
+EditViewState::~EditViewState()
+{
+    for (auto& pair : componentViewData)
+        delete pair.second;
+
+    componentViewData.clear();
+
+    if (m_state.getParent().isValid())
+        m_state.getParent().removeChild(m_state, nullptr);
+
+    if (m_viewDataTree.getParent().isValid())
+        m_viewDataTree.getParent().removeChild(m_viewDataTree, nullptr);
+}
+
 float EditViewState::beatsToX(double beats, int width, double x1beats, double x2beats) const
 {
     return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats));

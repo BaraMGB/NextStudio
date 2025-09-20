@@ -137,8 +137,8 @@ public:
     };
 
 private:
-    std::unique_ptr<MainWindow> mainWindow;
     ApplicationViewState m_applicationState;
+    std::unique_ptr<MainWindow> mainWindow;
 };
 
 //==============================================================================

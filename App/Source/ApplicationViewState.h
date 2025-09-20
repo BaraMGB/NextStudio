@@ -241,6 +241,10 @@ public:
         behavior.setProperty(IDs::AutoSaveInterval, juce::var(m_autoSaveInterval), nullptr);
         behavior.setProperty(IDs::FolderTrackIndent, juce::var(m_folderTrackIndent), nullptr);
     }
+    ~ApplicationViewState()
+    {
+        saveState();
+    }
 
         juce::Colour getBorderColour()
         {

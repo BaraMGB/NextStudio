@@ -45,7 +45,15 @@ TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::String timeLineI
 }
 
 TimeLineComponent::~TimeLineComponent()
-= default;
+{
+    if (auto* viewData = m_evs.componentViewData[m_timeLineID])
+    {
+        delete viewData;
+        m_evs.componentViewData.erase (m_timeLineID);
+    }
+    if (m_tree.getParent().isValid())
+        m_tree.getParent().removeChild(m_tree, nullptr);
+}
 
 void TimeLineComponent::paint(juce::Graphics& g)
 {
@@ -414,6 +422,17 @@ double TimeLineComponent::getBeatsPerPixel()
 }
 void TimeLineComponent::setTimeLineID(juce::String timeLineID)
 {
+    if (m_timeLineID.isNotEmpty())
+    {
+        if (auto* viewData = m_evs.componentViewData[m_timeLineID])
+        {
+            delete viewData;
+            m_evs.componentViewData.erase (m_timeLineID);
+        }
+        if (m_tree.getParent().isValid())
+            m_tree.getParent().removeChild(m_tree, nullptr);
+    }
+
     m_timeLineID = timeLineID;
     auto sanitizedID = "ID" + timeLineID.removeCharacters ("{}-");
     m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(sanitizedID, nullptr);

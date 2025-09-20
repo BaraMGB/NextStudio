@@ -185,6 +185,7 @@ public:
         m_snapToGrid.referTo(m_state, IDs::snapToGrid, um, true);
         m_editNotesOutsideClipRange.referTo(m_state, IDs::editNoteOutsideOfClipRange, um, false);
     }
+    ~EditViewState();
 
     double getViewYScale(juce::String timeLineID)
     {

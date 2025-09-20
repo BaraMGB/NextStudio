@@ -84,6 +84,9 @@ MainComponent::~MainComponent()
     if (m_header)
         m_header->removeAllChangeListeners();
 
+    if (m_editComponent)
+        m_editComponent->getSongEditor().clear();
+
     // Explicitly destroy UI components and then the Edit to ensure correct shutdown order
     m_editorContainer = nullptr;
     m_header = nullptr;
