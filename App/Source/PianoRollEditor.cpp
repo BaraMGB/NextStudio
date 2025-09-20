@@ -368,7 +368,8 @@ void PianoRollEditor::buttonClicked(juce::Button* button)
 
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {
-    m_timeLine.setTimeLineID(track->itemID.toString());
+    auto sanitizedID = "ID" + track->itemID.toString().removeCharacters ("{}-");
+    m_timeLine.setTimeLineID(sanitizedID);
     m_pianoRollViewPort = std::make_unique<MidiViewport> (m_editViewState, track, m_timeLine);
     addAndMakeVisible (*m_pianoRollViewPort);
     m_pianoRollViewPort->addChangeListener(this);

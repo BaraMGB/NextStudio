@@ -415,7 +415,8 @@ double TimeLineComponent::getBeatsPerPixel()
 void TimeLineComponent::setTimeLineID(juce::String timeLineID)
 {
     m_timeLineID = timeLineID;
-    m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(m_timeLineID, nullptr);  
+    auto sanitizedID = "ID" + timeLineID.removeCharacters ("{}-");
+    m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(sanitizedID, nullptr);
     m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
 }
 
