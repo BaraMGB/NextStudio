@@ -27,22 +27,21 @@ To run NextStudio, ensure that your system meets the following requirements:
 
 1. Clone the NextStudio repository from the official GitLab page:
 
-```shell
-git clone https://gitlab.com/BaraMGB/NextStudio
+    git clone https://gitlab.com/BaraMGB/NextStudio
 
-    Navigate to the cloned repository:
+Navigate to the cloned repository:
 
-cd NextStudio
+    cd NextStudio
 
-    Fetch Tracktion Engine and JUCE submodules:
+Fetch Tracktion Engine and JUCE submodules:
 
-# Linux/macOS:
-chmod +x fetch_submodules.sh
-./fetch_submodules.sh
+    # Linux/macOS:
+    chmod +x fetch_submodules.sh
+    ./fetch_submodules.sh
 
-# Windows:
-fetch_submodules.bat
-```
+    # Windows:
+    fetch_submodules.bat
+
 ## Quick Start (Linux/macOS)
 
 For the fastest and easiest build experience on Linux and macOS, use the provided start script:
