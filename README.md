@@ -2,7 +2,7 @@
 
   
 
-NextStudio is a powerful Digital Audio Workstation (DAW) designed for music production, recording, editing, and mixing. With a comprehensive set of features and a user-friendly interface, NextStudio provides musicians, producers, and audio engineers with the tools they need to create professional-quality music.
+NextStudio is a powerful Digital Audio Workstation (DAW) designed for music production, recording, editing, and mixing. With a comprehensive set of features and a user-friendly interface, NextStudio provides musicians, producers, and audio engineers with the tools they need to create music.
 
   
 
@@ -18,7 +18,7 @@ NextStudio is a powerful Digital Audio Workstation (DAW) designed for music prod
 
   
 
--  **Virtual Instruments:** NextStudio includes a wide range of virtual instruments, such as synthesizers, samplers, and drum machines. Also NextStudio supports Vst3 Plugins.
+-  **Virtual Instruments:** NextStudio includes a wide range of virtual instruments, such as synthesizers, samplers, and drum machines. Also NextStudio supports Vst3, AU, LV2 and LADSPA Plugins.
 
   
 
@@ -50,13 +50,13 @@ To install NextStudio, follow these steps:
 
   
 
-1. Clone the NextStudio repository from the official GitLab page, including submodules:
+1. Clone the NextStudio repository from the official GitLab page:
 
   
 
 ```shell
 
-git clone --recurse-submodules https://gitlab.com/BaraMGB/NextStudio
+git clone https://gitlab.com/BaraMGB/NextStudio
 
 ```
 
@@ -74,7 +74,22 @@ cd NextStudio
 
   
 
-3. Create a build directory and navigate into it:
+3. Fetch Tracktion Engine and JUCE submodules:
+
+  
+
+```shell
+# Linux/macOS:
+chmod +x fetch_submodules.sh
+./fetch_submodules.sh
+
+# Windows:
+fetch_submodules.bat
+
+```
+  
+
+4. Create a build directory and navigate into it:
 
   
 
@@ -86,7 +101,7 @@ mkdir build && cd build
 
   
 
-4. Generate the build files using CMake:
+5. Generate the build files using CMake:
 
   
 
@@ -98,7 +113,7 @@ cmake ..
 
   
 
-5. Build NextStudio using your CMake:
+6. Build NextStudio using your CMake:
 
   
 
@@ -111,15 +126,15 @@ cmake --build .
 
   
 
-6. Once the build process is complete, you can find the NextStudio executable in the build directory.
+7. Once the build process is complete, you can find the NextStudio executable in the build directory.
 
   
 
-7. Configure your audio and MIDI settings in the preferences menu according to your system's hardware setup.
+8. Configure your audio and MIDI settings in the preferences menu according to your system's hardware setup.
 
   
 
-8. You're now ready to start using NextStudio for your music production needs!
+9. You're now ready to start using NextStudio for your music production needs!
 
   
 
