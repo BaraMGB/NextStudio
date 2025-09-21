@@ -25,7 +25,7 @@ To run NextStudio, ensure that your system meets the following requirements:
 
 ### Prerequisites
 
-1. Clone the NextStudio repository from the official GitLab page:
+Clone the NextStudio repository from the official GitLab page:
 
     git clone https://gitlab.com/BaraMGB/NextStudio
 
@@ -42,26 +42,32 @@ Fetch Tracktion Engine and JUCE submodules:
     # Windows:
     fetch_submodules.bat
 
-## Quick Start (Linux/macOS)
+### Quick Start (Linux/macOS)
 
 For the fastest and easiest build experience on Linux and macOS, use the provided start script:
 
-### Make the script executable (first time only)
+Make the script executable (first time only)
+
     chmod +x start.sh
 
-### Build and run debug version
+Build and run debug version
+
     ./start.sh d
 
-### Build and run release version
+Or build and run release version
+
     ./start.sh r
 
-### Clean build and run
+Or clean build and run
+
     ./start.sh d -clean
 
-### Build only (don't run)
+Build only (don't run)
+
     ./start.sh r -build
 
-### Build and run with debugger
+Build and run with debugger
+
     ./start.sh d -debug
 
 ### Start Script Options
@@ -112,19 +118,22 @@ The executable will be located at:
 
 # Development Workflow
 
-For developers working on NextStudio:
 
-### Quick debug build and test
-./start.sh d -clean
+Quick debug build and test
+    
+    ./start.sh d -clean
 
-### Release build for testing performance
-./start.sh r
+Release build for testing performance
+    
+    ./start.sh r
 
-### Debug with debugger attached
-./start.sh d -debug
+Debug with debugger attached
+    
+    ./start.sh d -debug
 
-### Build only for CI/testing
-./start.sh r -build
+Build only for CI/testing
+    
+    ./start.sh r -build
 
 # Getting Started
 
