@@ -519,7 +519,7 @@ void MidiViewport::mouseWheelMove(const juce::MouseEvent& event,
     {
         const float wheelDelta =
                 #if JUCE_MAC
-                wheel.deltaX * -(m_editViewState.getTimeLineZoomUnit());
+                wheel.deltaX * -(m_evs.getTimeLineZoomUnit());
                 #else
                 wheel.deltaY * -(m_evs.getTimeLineZoomUnit());
                 #endif

@@ -22,7 +22,7 @@ endif()
 
 # If we are compiling for macOS we want to target OS versions down to 10.11
 if (APPLE)
-    set (CMAKE_OSX_DEPLOYMENT_TARGET "10.11" CACHE INTERNAL "")
+    set (CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE INTERNAL "")
     set (CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
 

@@ -106,25 +106,25 @@ public:
         juce::String colour;
     };
 
-    ColourSettingsPanel(ApplicationViewState& appState) : m_appState(appState), m_activeSelector(-1)
+    ColourSettingsPanel(ApplicationViewState& appState)
+        : m_appState(appState), m_activeSelector(-1)
     {
-        // Liste der Farben mit ihren Referenzen
-        m_colourSettings.add(new ColourSetting(IDs::PrimeColour, appState.m_primeColour));
-        m_colourSettings.add(new ColourSetting(IDs::BackgroundColour1, appState.m_guiBackground1));
-        m_colourSettings.add(new ColourSetting(IDs::BackgroundColour2, appState.m_guiBackground2));
-        m_colourSettings.add(new ColourSetting(IDs::BackgroundColour3, appState.m_guiBackground3));
-        m_colourSettings.add(new ColourSetting(IDs::MenuTextColour, appState.m_textColour));
-        m_colourSettings.add(new ColourSetting(IDs::MainFrameColour, appState.m_mainFrameColour));
-        m_colourSettings.add(new ColourSetting(IDs::BorderColour, appState.m_borderColour));
-        m_colourSettings.add(new ColourSetting(IDs::ButtonBackgroundColour, appState.m_buttonBackgroundColour));
-        m_colourSettings.add(new ColourSetting(IDs::ButtonTextColour, appState.m_buttonTextColour));
-        m_colourSettings.add(new ColourSetting(IDs::timeLineStrokeColour, appState.m_timeLine_strokeColour));
-        m_colourSettings.add(new ColourSetting(IDs::timeLineShadowShade, appState.m_timeLine_shadowShade));
-        m_colourSettings.add(new ColourSetting(IDs::timeLineTextColour, appState.m_timeLine_textColour));
-        m_colourSettings.add(new ColourSetting(IDs::timeLineBackgroundColour, appState.m_timeLine_background));
-        m_colourSettings.add(new ColourSetting(IDs::trackBackgroundColour, appState.m_trackBackgroundColour));
-        m_colourSettings.add(new ColourSetting(IDs::trackHeaderBackgroundColour, appState.m_trackHeaderBackgroundColour));
-        m_colourSettings.add(new ColourSetting(IDs::trackHeaderTextColour, appState.m_trackHeaderTextColour));
+        m_colourSettings.add(new ColourSetting{ IDs::PrimeColour,                 appState.m_primeColour });
+        m_colourSettings.add(new ColourSetting{ IDs::BackgroundColour1,           appState.m_guiBackground1 });
+        m_colourSettings.add(new ColourSetting{ IDs::BackgroundColour2,           appState.m_guiBackground2 });
+        m_colourSettings.add(new ColourSetting{ IDs::BackgroundColour3,           appState.m_guiBackground3 });
+        m_colourSettings.add(new ColourSetting{ IDs::MenuTextColour,              appState.m_textColour });
+        m_colourSettings.add(new ColourSetting{ IDs::MainFrameColour,             appState.m_mainFrameColour });
+        m_colourSettings.add(new ColourSetting{ IDs::BorderColour,                appState.m_borderColour });
+        m_colourSettings.add(new ColourSetting{ IDs::ButtonBackgroundColour,      appState.m_buttonBackgroundColour });
+        m_colourSettings.add(new ColourSetting{ IDs::ButtonTextColour,            appState.m_buttonTextColour });
+        m_colourSettings.add(new ColourSetting{ IDs::timeLineStrokeColour,        appState.m_timeLine_strokeColour });
+        m_colourSettings.add(new ColourSetting{ IDs::timeLineShadowShade,         appState.m_timeLine_shadowShade });
+        m_colourSettings.add(new ColourSetting{ IDs::timeLineTextColour,          appState.m_timeLine_textColour });
+        m_colourSettings.add(new ColourSetting{ IDs::timeLineBackgroundColour,    appState.m_timeLine_background });
+        m_colourSettings.add(new ColourSetting{ IDs::trackBackgroundColour,       appState.m_trackBackgroundColour });
+        m_colourSettings.add(new ColourSetting{ IDs::trackHeaderBackgroundColour, appState.m_trackHeaderBackgroundColour });
+        m_colourSettings.add(new ColourSetting{ IDs::trackHeaderTextColour,       appState.m_trackHeaderTextColour });
 
         for (int i = 0; i < m_colourSettings.size(); i++)
         {
