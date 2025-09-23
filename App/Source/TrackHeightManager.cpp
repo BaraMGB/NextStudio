@@ -231,7 +231,7 @@ int TrackHeightManager::getYForAutomatableParameter(tracktion_engine::Track* tra
 
             for (const auto& storedParam : params)
             {
-                if (storedParam == ap)
+                if (storedParam == ap.get())
                 {
                     return paramY;
                 }

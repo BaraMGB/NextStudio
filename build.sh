@@ -27,7 +27,8 @@ cd "$BUILD_DIR"
 
 # Build
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE="$BUILD_TYPE" ../..
-make -j4
+cmake --build . 
+
 
 # Move compile commands
 [[ -f compile_commands.json ]] && mv compile_commands.json ../../

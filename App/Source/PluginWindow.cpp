@@ -100,7 +100,7 @@ std::unique_ptr<juce::Component> PluginWindow::create (te::Plugin& plugin)
        #if JUCE_WINDOWS && JUCE_WIN_PER_MONITOR_DPI_AWARE
         if (! isDPIAware (plugin))
         {
-            ScopedDPIAwarenessDisabler disableDPIAwareness;
+            juce::ScopedDPIAwarenessDisabler disableDPIAwareness;
             w = std::make_unique<PluginWindow> (plugin);
         }
         else

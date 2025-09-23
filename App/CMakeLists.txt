@@ -130,8 +130,8 @@ target_compile_definitions(${TargetName} PRIVATE
         )
 
 target_compile_definitions (${TargetName} PUBLIC
-        JUCE_JACK=1
-        JUCE_WASAPI=1
+        # JUCE_JACK=1
+        # JUCE_WASAPI=1
 #        JUCE_USE_WINRT_MIDI=1
         JUCE_PLUGINHOST_VST3=1
         JUCE_PLUGINHOST_LADSPA=1
@@ -143,6 +143,24 @@ target_compile_definitions (${TargetName} PUBLIC
         DONT_SET_USING_JUCE_NAMESPACE=1
      	JUCE_MODAL_LOOPS_PERMITTED=1
         )
+
+if (WIN32)
+    target_compile_definitions(${TargetName} PUBLIC
+        JUCE_WASAPI=1
+        JUCE_ASIO=0         # auf 1 setzen, wenn ASIO-SDK eingebunden ist
+        JUCE_JACK=0
+    )
+elseif(APPLE)
+    target_compile_definitions(${TargetName} PUBLIC
+        JUCE_JACK=0
+    )
+elseif(UNIX) # Linux
+    target_compile_definitions(${TargetName} PUBLIC
+        JUCE_ALSA=1
+        JUCE_JACK=1        # nur wenn JACK installiert/genutzt werden soll
+    )
+endif()
+
 
 target_link_libraries(${TargetName} PRIVATE
         Pictures
