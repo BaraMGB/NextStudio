@@ -499,15 +499,7 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
 
         if ((e.getNumberOfClicks() > 1 || m_editViewState.m_isPianoRollVisible) && m_hoveredClip->isMidi())
         {
-            m_editViewState.m_isPianoRollVisible = true;
-
-            for (auto t : te::getAllTracks(m_editViewState.m_edit)) 
-            {
-                t->state.setProperty(IDs::showLowerRange, false, nullptr);
-
-                if (t == m_hoveredTrack.get())
-                    t->state.setProperty(IDs::showLowerRange, true, nullptr);
-            }
+            setPianoRoll(m_hoveredTrack);
         }
 
         if (!sm.isSelected(m_hoveredClip))
@@ -1283,12 +1275,27 @@ tracktion_engine::MidiClip::Ptr SongEditorView::createNewMidiClip(double beatPos
 
         auto mc = at->insertMIDIClip(newPos, &m_editViewState.m_selectionManager);
         mc->setName(at->getName());
-        GUIHelpers::centerMidiEditorToClip(m_editViewState, mc, m_timeLine.getTimeLineID(), getWidth());
+        auto trackTimeLineID = "ID" + track->itemID.toString().removeCharacters ("{}-");
+        setPianoRoll(track.get());
+        GUIHelpers::centerMidiEditorToClip(m_editViewState, mc, trackTimeLineID, getWidth());
 
         return mc;
     }
     return nullptr;
 
+}
+
+void SongEditorView::setPianoRoll(te::Track * track)
+{
+    m_editViewState.m_isPianoRollVisible = true;
+
+    for (auto t : te::getAllTracks(m_editViewState.m_edit))
+    {
+        t->state.setProperty(IDs::showLowerRange, false, nullptr);
+
+        if (t == track)
+            t->state.setProperty(IDs::showLowerRange, true, nullptr);
+    }
 }
 
 void SongEditorView::updateClipCache()

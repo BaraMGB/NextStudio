@@ -100,6 +100,7 @@ public:
 
 private:
 
+
     tracktion::TimeRange getSelectedTimeRange();
     AutomationLaneComponent * getAutomationLane(tracktion::engine::AutomatableParameter::Ptr ap)
     {
@@ -173,6 +174,8 @@ private:
 
     juce::Rectangle<float> getClipRect (te::Clip::Ptr clip);
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation) ;
+
+    void setPianoRoll(te::Track * track);
 
     void buildRecordingClips(te::Track::Ptr track);
 
