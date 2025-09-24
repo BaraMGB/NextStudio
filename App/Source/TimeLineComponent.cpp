@@ -434,8 +434,7 @@ void TimeLineComponent::setTimeLineID(juce::String timeLineID)
     }
 
     m_timeLineID = timeLineID;
-    auto sanitizedID = "ID" + timeLineID.removeCharacters ("{}-");
-    m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(sanitizedID, nullptr);
+    m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
     m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
 }
 
