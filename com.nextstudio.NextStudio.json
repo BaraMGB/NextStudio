@@ -1,0 +1,36 @@
+{
+    "app-id": "com.nextstudio.NextStudio",
+    "runtime": "org.freedesktop.Platform",
+    "runtime-version": "23.08",
+    "sdk": "org.freedesktop.Sdk",
+    "command": "NextStudio",
+    "finish-args": [
+        "--socket=x11",
+        "--socket=pulseaudio",
+        "--share=ipc",
+        "--device=all",
+        "--filesystem=home"
+    ],
+    "modules": [
+        {
+            "name": "nextstudio",
+            "buildsystem": "simple",
+            "build-commands": [
+                "cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/app",
+                "cmake --build build -j$(nproc)",
+                "cmake --install build --config RelWithDebInfo --prefix /app"
+            ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "."
+                }
+            ],
+            "post-install": [
+                "install -Dm644 App/resources/AUIcon.svg /app/share/icons/hicolor/scalable/apps/com.nextstudio.NextStudio.svg",
+                "install -Dm644 com.nextstudio.NextStudio.desktop /app/share/applications/com.nextstudio.NextStudio.desktop",
+                "desktop-file-edit --set-key=Icon --set-value=com.nextstudio.NextStudio /app/share/applications/com.nextstudio.NextStudio.desktop"
+            ]
+        }
+    ]
+}

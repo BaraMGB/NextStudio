@@ -193,3 +193,24 @@ add_custom_target(CopyLanguageFolder ALL
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${APP_DATA_DIR}/language
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/language ${APP_DATA_DIR}/language
 )
+
+include(GNUInstallDirs)
+
+# 1) Binary installieren -> landet in /app/bin/NextStudio
+install(TARGETS ${TargetName}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# 2) Ressourcen (Beispiel: language) mit ins Image legen
+# passe den Pfad an, falls deine Sprachdateien woanders liegen
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/language
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
+
+# 3) Das folgende Target schreibt in $HOME – nicht beim Flatpak-Build ausführen
+#    Entweder entfernen oder mit Option schützen:
+option(NEXTSTUDIO_COPY_LANGUAGE_AT_BUILD "Copy language to user config at build time" OFF)
+if (NEXTSTUDIO_COPY_LANGUAGE_AT_BUILD)
+    add_custom_target(CopyLanguageFolder ALL
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${APP_DATA_DIR}/language
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/language ${APP_DATA_DIR}/language
+    )
+endif()
