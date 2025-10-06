@@ -1,8 +1,63 @@
-cmake_minimum_required(VERSION 3.12)
-project(NextStudio)
+cmake_minimum_required(VERSION 3.15)
 
+project(NextStudio VERSION 0.1.0)
 option(JUCE_BUILD_EXTRAS "Build JUCE Examples" OFF)
 option(JUCE_BUILD_EXAMPLES "Build JUCE Extras" OFF)
 
+set(TargetName ${PROJECT_NAME})
+
 add_subdirectory(App)
 
+include(GNUInstallDirs)
+
+# define App Paths cross plattform (User Config)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(APP_DATA_DIR "$ENV{HOME}/.config/${PROJECT_NAME}")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(APP_DATA_DIR "$ENV{HOME}/Library/Application Support/${PROJECT_NAME}")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(APP_DATA_DIR "$ENV{LOCALAPPDATA}\\${PROJECT_NAME}")
+endif()
+
+# Install binary and language file
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+
+    install(TARGETS ${TargetName}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            BUNDLE DESTINATION .
+    )
+
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/language
+            DESTINATION ${APP_DATA_DIR}
+            PATTERN ".git" EXCLUDE
+            PATTERN "*.md" EXCLUDE
+    )
+
+endif()
+
+
+# CPACK configuration
+if(WIN32)
+    set(CPACK_GENERATOR "NSIS")
+elseif(APPLE)
+    set(CPACK_GENERATOR "DragNDrop")
+elseif(UNIX)
+    set(CPACK_GENERATOR "DEB;RPM;TGZ")
+else()
+    set(CPACK_GENERATOR "TGZ")
+endif()
+
+# common package informations
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "NextStudio")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Your NextStudio Application")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENCE.md")
+
+if(UNIX AND NOT APPLE)
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Steffen Baranowsky <baramgb@nextstudio-daw.org>")
+    set(CPACK_RPM_PACKAGE_RELEASE 1)
+    set(CPACK_RPM_PACKAGE_LICENSE "AGPL")
+endif()
+
+include(CPack)

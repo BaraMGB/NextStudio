@@ -1,7 +1,3 @@
-project(NextStudio VERSION 0.1.0)
-
-set (TargetName ${PROJECT_NAME})
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -39,11 +35,10 @@ endif()
 # Adds all the module sources so they appear correctly in the IDE
 set_property(GLOBAL PROPERTY USE_FOLDERS YES)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Enable Module Source Groups" ON)
-
-#add sub dir (folder - folder for binaries)
-#we use that JUCE version that we've cloned per git --recurse-submodules
-add_subdirectory(../modules/tracktion_engine/modules/juce ./cmake_build_juce)
-add_subdirectory(../modules/tracktion_engine/modules ./cmake_build_tracktion)
+# Verhindere Installation von Submodulen
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+add_subdirectory(../modules/tracktion_engine/modules/juce ./cmake_build_juce EXCLUDE_FROM_ALL)
+add_subdirectory(../modules/tracktion_engine/modules ./cmake_build_tracktion EXCLUDE_FROM_ALL)
 
 
 add_subdirectory(resources)
@@ -180,37 +175,3 @@ endif()
 
 
 
-# Language
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(APP_DATA_DIR "$ENV{HOME}/.config/${PROJECT_NAME}")
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(APP_DATA_DIR "$ENV{HOME}/Library/${PROJECT_NAME}")
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(APP_DATA_DIR "$ENV{LOCALAPPDATA}\\${PROJECT_NAME}")
-endif()
-
-add_custom_target(CopyLanguageFolder ALL
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${APP_DATA_DIR}/language
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/language ${APP_DATA_DIR}/language
-)
-
-include(GNUInstallDirs)
-
-# 1) Binary installieren -> landet in /app/bin/NextStudio
-install(TARGETS ${TargetName}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-# 2) Ressourcen (Beispiel: language) mit ins Image legen
-# passe den Pfad an, falls deine Sprachdateien woanders liegen
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/language
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
-
-# 3) Das folgende Target schreibt in $HOME – nicht beim Flatpak-Build ausführen
-#    Entweder entfernen oder mit Option schützen:
-option(NEXTSTUDIO_COPY_LANGUAGE_AT_BUILD "Copy language to user config at build time" OFF)
-if (NEXTSTUDIO_COPY_LANGUAGE_AT_BUILD)
-    add_custom_target(CopyLanguageFolder ALL
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${APP_DATA_DIR}/language
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/language ${APP_DATA_DIR}/language
-    )
-endif()
