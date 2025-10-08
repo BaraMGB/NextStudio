@@ -16,7 +16,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(APP_DATA_DIR "$ENV{HOME}/Library/Application Support/${PROJECT_NAME}")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(APP_DATA_DIR "$ENV{LOCALAPPDATA}\\${PROJECT_NAME}")
+    file(TO_CMAKE_PATH "$ENV{LOCALAPPDATA}" LOCALAPPDATA_PATH)
+    set(APP_DATA_DIR "${LOCALAPPDATA_PATH}/${PROJECT_NAME}")
 endif()
 
 # Install binary and language file
@@ -27,11 +28,11 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
             BUNDLE DESTINATION .
     )
 
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/language
-            DESTINATION ${APP_DATA_DIR}
-            PATTERN ".git" EXCLUDE
-            PATTERN "*.md" EXCLUDE
-    )
+    # install(DIRECTORY ${CMAKE_SOURCE_DIR}/language
+    #         DESTINATION ${APP_DATA_DIR}
+    #         PATTERN ".git" EXCLUDE
+    #         PATTERN "*.md" EXCLUDE
+    # )
 
 endif()
 
@@ -58,6 +59,23 @@ if(UNIX AND NOT APPLE)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Steffen Baranowsky <baramgb@nextstudio-daw.org>")
     set(CPACK_RPM_PACKAGE_RELEASE 1)
     set(CPACK_RPM_PACKAGE_LICENSE "AGPL")
+endif()
+
+if(WIN32)
+    # NSIS-spezifische Einstellungen für Windows-Installer
+
+    set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_NAME} ${CPACK_PACKAGE_VERSION}")
+    set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_NAME}")
+    
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\${CPACK_PACKAGE_VENDOR}\\\\${CPACK_PACKAGE_NAME}.lnk' '$INSTDIR\\\\bin\\\\${TargetName}.exe'")
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\${CPACK_PACKAGE_VENDOR}\\\\${CPACK_PACKAGE_NAME}.lnk'")
+
+
+    set(CPACK_NSIS_MODIFY_PATH ON)
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
 endif()
 
 include(CPack)

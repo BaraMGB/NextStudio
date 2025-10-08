@@ -59,6 +59,7 @@ if(BUILD_DIR_NAME STREQUAL "jumake_build")
         )
 endif()
 target_sources(${TargetName} PRIVATE
+        ../resources/icon.rc 
         Source/AutomatableSliderComponent.cpp
         Source/Main.cpp
         Source/MainComponent.cpp
