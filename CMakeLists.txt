@@ -24,8 +24,8 @@ endif()
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
     install(TARGETS ${TargetName}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-            BUNDLE DESTINATION .
+            RUNTIME DESTINATION bin
+	    COMPONENT Applications
     )
 
     # install(DIRECTORY ${CMAKE_SOURCE_DIR}/language
@@ -36,8 +36,16 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
 endif()
 
-
+# =========================================================================
 # CPACK configuration
+# =========================================================================
+
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "NextStudio")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Your NextStudio Application")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENCE.md")
+
 if(WIN32)
     set(CPACK_GENERATOR "NSIS")
 elseif(APPLE)
@@ -46,36 +54,24 @@ elseif(UNIX)
     set(CPACK_GENERATOR "DEB;RPM;TGZ")
 else()
     set(CPACK_GENERATOR "TGZ")
-endif()
 
-# common package informations
-set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
-set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_VENDOR "NextStudio")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Your NextStudio Application")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENCE.md")
-
+# Linux
 if(UNIX AND NOT APPLE)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Steffen Baranowsky <baramgb@nextstudio-daw.org>")
     set(CPACK_RPM_PACKAGE_RELEASE 1)
     set(CPACK_RPM_PACKAGE_LICENSE "AGPL")
 endif()
 
+# Windows NSIS
 if(WIN32)
-    # NSIS-spezifische Einstellungen für Windows-Installer
-
     set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_NAME} ${CPACK_PACKAGE_VERSION}")
     set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_NAME}")
-    
-    set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\${CPACK_PACKAGE_VENDOR}\\\\${CPACK_PACKAGE_NAME}.lnk' '$INSTDIR\\\\bin\\\\${TargetName}.exe'")
-    set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\${CPACK_PACKAGE_VENDOR}\\\\${CPACK_PACKAGE_NAME}.lnk'")
-
-
     set(CPACK_NSIS_MODIFY_PATH ON)
     set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
     set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
-    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
-    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/resources/app_icon.ico")
+    
+    set(CPACK_PACKAGE_EXECUTABLES "${TargetName}" "${PROJECT_NAME}")
+    set(CPACK_CREATE_DESKTOP_LINKS "${TargetName}")
 endif()
 
 include(CPack)
