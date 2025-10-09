@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=NextStudio
+Comment=Your NextStudio Application
+Exec=NextStudio
+Icon=nextstudio
+Terminal=false
+Categories=AudioVideo;Audio;Sequencer;

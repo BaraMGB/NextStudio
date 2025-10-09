@@ -54,12 +54,19 @@ elseif(UNIX)
     set(CPACK_GENERATOR "DEB;RPM;TGZ")
 else()
     set(CPACK_GENERATOR "TGZ")
+endif()
 
 # Linux
 if(UNIX AND NOT APPLE)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Steffen Baranowsky <baramgb@nextstudio-daw.org>")
     set(CPACK_RPM_PACKAGE_RELEASE 1)
     set(CPACK_RPM_PACKAGE_LICENSE "AGPL")
+
+    install(FILES ${CMAKE_SOURCE_DIR}/resources/nextstudio.desktop
+            DESTINATION share/applications)
+
+    install(FILES ${CMAKE_SOURCE_DIR}/resources/nextstudio.png
+            DESTINATION share/icons/hicolor/256x256/apps)
 endif()
 
 # Windows NSIS
