@@ -69,7 +69,11 @@ target_sources(${TargetName} PRIVATE
         Source/HeaderComponent.cpp
         Source/TimeLineComponent.cpp
         Source/EditComponent.cpp
-        Source/EditViewState.cpp
+    Source/EditViewState.cpp
+    Source/FourOscPluginComponent.cpp
+    Source/FileBrowser.cpp
+    Source/HeaderComponent.cpp
+    Source/InstrumentEffectChooser.cpp
         Source/PluginWindow.cpp
         Source/PluginComponent.cpp
         Source/PluginMenu.cpp

@@ -81,6 +81,12 @@ public:
 
     ~OscComponent() override = default;
 
+    void updateUI()
+    {
+        if (m_waveShapeCombo != nullptr)
+            m_waveShapeCombo->setSelectedId(m_params.waveShapeValue.get() + 1, juce::dontSendNotification);
+    }
+
     void paint(juce::Graphics& g) override
     {
         auto area = getLocalBounds();
@@ -401,14 +407,25 @@ private:
     std::unique_ptr<juce::ComboBox> m_typeCombo;
     std::unique_ptr<juce::ComboBox> m_slopeCombo;
 
+    juce::Label m_name;
+
+public:
+    void updateUI()
+    {
+        if (m_typeCombo != nullptr)
+            m_typeCombo->setSelectedId(m_plugin.filterTypeValue.get() + 1, juce::dontSendNotification);
+        
+        if (m_slopeCombo != nullptr)
+            m_slopeCombo->setSelectedId(m_plugin.filterSlopeValue.get() + 1, juce::dontSendNotification);
+    }
+
+private:
     std::unique_ptr<AutomatableParameterComponent> m_freqParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_resParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_amountParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_keyParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_velocityParamComp;
 
-
-    juce::Label m_name;
 
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FilterComponent)
 };
@@ -481,6 +498,14 @@ public:
         m_masterLevelLabel->setJustificationType(juce::Justification::right);
         mainPanel->addAndMakeVisible(*m_masterLevelSlider);
         mainPanel->addAndMakeVisible(*m_masterLevelLabel);
+
+        m_saveButton.reset(new juce::TextButton("Save"));
+        m_saveButton->onClick = [this] { savePreset(); };
+        mainPanel->addAndMakeVisible(*m_saveButton);
+
+        m_loadButton.reset(new juce::TextButton("Load"));
+        m_loadButton->onClick = [this] { loadPreset(); };
+        mainPanel->addAndMakeVisible(*m_loadButton);
 
         // Oscillator Wave Shapes
         for (int i = 0; i < m_fourOscPlugin->oscParams.size(); ++i)
@@ -677,6 +702,10 @@ public:
             m_masterLevelSlider->setBounds(masterArea.removeFromRight(masterArea.getHeight()));
             m_masterLevelLabel->setBounds(masterArea);
 
+            auto buttonArea = masterArea;
+            m_saveButton->setBounds(buttonArea.removeFromRight(50).reduced(2));
+            m_loadButton->setBounds(buttonArea.removeFromRight(50).reduced(2));
+
             auto oscArea = mainArea.removeFromLeft(mainArea.getWidth()/3);
             auto oscRect = oscArea;
             oscRect.translate(tabWidth, 0);
@@ -762,6 +791,10 @@ private:
 
         return -1;
     }
+
+    void savePreset();
+    void loadPreset();
+
     te::FourOscPlugin* m_fourOscPlugin = nullptr;
 
     std::unique_ptr<juce::TabbedComponent> m_tabComponent;
@@ -774,9 +807,8 @@ private:
     std::unique_ptr<AutomatableSliderComponent> m_masterLevelSlider;
     std::unique_ptr<juce::Label> m_masterLevelLabel;
 
-    juce::OwnedArray<juce::ComboBox> m_oscWaveShapeCombos;
-    juce::OwnedArray<AutomatableSliderComponent> m_oscLevelSliders;
-    juce::OwnedArray<juce::Label> m_oscLabels;
+    std::unique_ptr<juce::TextButton> m_saveButton;
+    std::unique_ptr<juce::TextButton> m_loadButton;
 
     juce::OwnedArray<OscComponent> m_oscComponents;
 
@@ -824,11 +856,15 @@ private:
         if (m_chorusToggle != nullptr)
             m_chorusToggle->setToggleState(m_fourOscPlugin->chorusOnValue.get(), juce::dontSendNotification);
 
-        // Update oscillator wave shapes
-        for (int i = 0; i < m_oscWaveShapeCombos.size(); ++i)
+        // Update filter UI
+        if (m_filterComponent != nullptr)
+            m_filterComponent->updateUI();
+
+        // Update oscillator UIs
+        for (int i = 0; i < m_oscComponents.size(); ++i)
         {
-            if (i < m_fourOscPlugin->oscParams.size())
-                m_oscWaveShapeCombos[i]->setSelectedId(m_fourOscPlugin->oscParams[i]->waveShapeValue.get() + 1, juce::dontSendNotification);
+            if (m_oscComponents[i] != nullptr)
+                m_oscComponents[i]->updateUI();
         }
 
     }
