@@ -59,13 +59,19 @@ RackItemView::RackItemView
     else if (m_plugin->getPluginType() == "4osc")
     {
         GUIHelpers::log("4OSC");
-        m_pluginComponent = std::make_unique<SimpleFourOscPluginComponent>(evs, p);
+        m_pluginComponent = std::make_unique<FourOscPluginComponent>(evs, p);
     }
     else
     {
         m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p);
     }
     addAndMakeVisible(*m_pluginComponent);
+
+    if (auto* presetInterface = dynamic_cast<PluginPresetInterface*>(m_pluginComponent.get()))
+    {
+        m_presetManager = std::make_unique<PresetManagerComponent>(presetInterface);
+        addAndMakeVisible(*m_presetManager);
+    }
 }
 
 RackItemView::~RackItemView()
@@ -168,6 +174,12 @@ void RackItemView::resized()
                                                  , nameLabelRect.getY() + 10.0 ));
     area.removeFromLeft(m_headerWidth);
     area.reduce(1,1);
+
+    if (m_presetManager)
+    {
+        m_presetManager->setBounds(area.removeFromLeft(130));
+    }
+
     m_pluginComponent.get()->setBounds(area);
 }
 
@@ -243,6 +255,81 @@ void FilterPluginComponent::updateLabel (juce::UndoManager& um)
     m_modeLabel.setText(mode, juce::NotificationType::dontSendNotification); 
 }
 
+juce::ValueTree FilterPluginComponent::getPluginState()
+{
+    return m_plugin->state;
+}
+
+void FilterPluginComponent::restorePluginState(const juce::ValueTree& state)
+{
+    m_plugin->restorePluginStateFromValueTree(state);
+}
+
+juce::String FilterPluginComponent::getPresetSubfolder()
+{
+    return "Filter";
+}
+
+juce::String FilterPluginComponent::getPluginTypeName()
+{
+    return "lowpass";
+}
+
+ApplicationViewState& FilterPluginComponent::getApplicationViewState()
+{
+    return m_editViewState.m_applicationState;
+}
+
+juce::ValueTree EqPluginComponent::getPluginState()
+{
+    return m_plugin->state;
+}
+
+void EqPluginComponent::restorePluginState(const juce::ValueTree& state)
+{
+    m_plugin->restorePluginStateFromValueTree(state);
+}
+
+juce::String EqPluginComponent::getPresetSubfolder()
+{
+    return "EQ";
+}
+
+juce::String EqPluginComponent::getPluginTypeName()
+{
+    return "4bandEq";
+}
+
+ApplicationViewState& EqPluginComponent::getApplicationViewState()
+{
+    return m_editViewState.m_applicationState;
+}
+
+juce::ValueTree DelayPluginComponent::getPluginState()
+{
+    return m_plugin->state;
+}
+
+void DelayPluginComponent::restorePluginState(const juce::ValueTree& state)
+{
+    m_plugin->restorePluginStateFromValueTree(state);
+}
+
+juce::String DelayPluginComponent::getPresetSubfolder()
+{
+    return "Delay";
+}
+
+juce::String DelayPluginComponent::getPluginTypeName()
+{
+    return "delay";
+}
+
+ApplicationViewState& DelayPluginComponent::getApplicationViewState()
+{
+    return m_editViewState.m_applicationState;
+}
+
 VolumePluginComponent::VolumePluginComponent
     (EditViewState& evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
@@ -253,6 +340,31 @@ VolumePluginComponent::VolumePluginComponent
         addAndMakeVisible(*m_volParComp);
         m_plugin->state.addListener(this);
 
+}
+
+juce::ValueTree VolumePluginComponent::getPluginState()
+{
+    return m_plugin->state;
+}
+
+void VolumePluginComponent::restorePluginState(const juce::ValueTree& state)
+{
+    m_plugin->restorePluginStateFromValueTree(state);
+}
+
+juce::String VolumePluginComponent::getPresetSubfolder()
+{
+    return "Volume";
+}
+
+juce::String VolumePluginComponent::getPluginTypeName()
+{
+    return "volume";
+}
+
+ApplicationViewState& VolumePluginComponent::getApplicationViewState()
+{
+    return m_editViewState.m_applicationState;
 }
 
 void VolumePluginComponent::resized()

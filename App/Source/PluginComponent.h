@@ -30,6 +30,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include "Browser_Base.h"
 #include "PluginViewComponent.h"
+#include "PresetManagerComponent.h"
 
 namespace te = tracktion_engine;
 
@@ -76,6 +77,7 @@ private:
 //------------------------------------------------------------------------------
 
 class FilterPluginComponent : public PluginViewComponent
+                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
@@ -87,6 +89,12 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+
+    juce::ValueTree getPluginState() override;
+    void restorePluginState(const juce::ValueTree& state) override;
+    juce::String getPresetSubfolder() override;
+    juce::String getPluginTypeName() override;
+    ApplicationViewState& getApplicationViewState() override;
 
 private:
     void updateLabel( juce::UndoManager & um);
@@ -113,6 +121,7 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FilterPluginComponent)
 };
 class EqPluginComponent : public PluginViewComponent
+                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
@@ -178,6 +187,13 @@ public:
     }
 
     int getNeededWidth() override {return 4;}
+
+    juce::ValueTree getPluginState() override;
+    void restorePluginState(const juce::ValueTree& state) override;
+    juce::String getPresetSubfolder() override;
+    juce::String getPluginTypeName() override;
+    ApplicationViewState& getApplicationViewState() override;
+
 private:
     void valueTreeChanged () override {}
     void valueTreePropertyChanged (juce::ValueTree& v
@@ -236,6 +252,7 @@ private:
 
 
 class DelayPluginComponent : public PluginViewComponent
+                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
@@ -266,6 +283,12 @@ public:
         m_time->setBounds(bounds.removeFromTop(h*4));
     }
 
+    juce::ValueTree getPluginState() override;
+    void restorePluginState(const juce::ValueTree& state) override;
+    juce::String getPresetSubfolder() override;
+    juce::String getPluginTypeName() override;
+    ApplicationViewState& getApplicationViewState() override;
+
 private:
     void valueTreeChanged () override {}
     void valueTreePropertyChanged (juce::ValueTree& v
@@ -290,6 +313,7 @@ private:
 
 
 class VolumePluginComponent : public PluginViewComponent
+                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
@@ -301,6 +325,12 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+
+    juce::ValueTree getPluginState() override;
+    void restorePluginState(const juce::ValueTree& state) override;
+    juce::String getPresetSubfolder() override;
+    juce::String getPluginTypeName() override;
+    ApplicationViewState& getApplicationViewState() override;
 
 private:
     void valueTreeChanged () override {}
@@ -373,7 +403,12 @@ public:
 
     void buttonClicked(juce::Button* button) override;
 
-    int getNeededWidthFactor() { return m_pluginComponent->getNeededWidth();}
+    int getNeededWidthFactor() { 
+        int width = m_pluginComponent->getNeededWidth();
+        if (m_presetManager)
+            width += 1; // Add a factor for the preset manager
+        return width;
+    }
     [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
     te::Plugin::Ptr getPlugin()
     {
@@ -390,6 +425,7 @@ private:
     EditViewState& m_evs;
     te::Plugin::Ptr m_plugin;
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
+    std::unique_ptr<PresetManagerComponent> m_presetManager;
     BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackItemView)
