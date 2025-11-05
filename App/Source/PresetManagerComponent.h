@@ -47,6 +47,7 @@ private:
     void loadPresetFromCombo();
     void savePreset();
     void loadPreset();
+    void loadOrInitialiseDefaultPreset();
 
     juce::File getPresetDirectory();
     void ensurePresetDirectoryExists();

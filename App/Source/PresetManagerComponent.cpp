@@ -39,6 +39,7 @@ PresetManagerComponent::PresetManagerComponent(PluginPresetInterface* pluginInte
     addAndMakeVisible(*m_loadButton);
 
     refreshPresetList();
+    loadOrInitialiseDefaultPreset();
 }
 
 void PresetManagerComponent::paint(juce::Graphics& g)
@@ -230,5 +231,58 @@ void PresetManagerComponent::ensurePresetDirectoryExists()
     if (!presetDir.exists())
     {
         presetDir.createDirectory();
+    }
+}
+
+void PresetManagerComponent::loadOrInitialiseDefaultPreset()
+{
+    ensurePresetDirectoryExists();
+    auto presetFile = getPresetDirectory().getChildFile("init.nxtpreset");
+
+    if (presetFile.existsAsFile())
+    {
+        if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
+        {
+            juce::ValueTree presetState = juce::ValueTree::fromXml(*xml);
+            if (presetState.hasType(juce::Identifier("PLUGIN")) && presetState.getProperty("type") == m_pluginInterface->getPluginTypeName())
+            {
+                m_pluginInterface->restorePluginState(presetState);
+
+                // Select "init" in the combo box
+                for (int i = 0; i < m_presetCombo->getNumItems(); ++i)
+                {
+                    if (m_presetCombo->getItemText(i).equalsIgnoreCase("init"))
+                    {
+                        m_presetCombo->setSelectedId(m_presetCombo->getItemId(i), juce::dontSendNotification);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    else
+{
+        // 'init.nxtpreset' does not exist, so create it from the current state
+        juce::String presetName = "init";
+        juce::ValueTree pluginState = m_pluginInterface->getPluginState();
+        pluginState.setProperty("name", presetName, nullptr);
+
+        if (auto xml = std::unique_ptr<juce::XmlElement>(pluginState.createXml()))
+        {
+            xml->writeTo(presetFile, {});
+
+            // Refresh preset list to include the new "init" preset
+            refreshPresetList();
+
+            // Select the newly created "init" preset
+            for (int i = 0; i < m_presetCombo->getNumItems(); ++i)
+            {
+                if (m_presetCombo->getItemText(i).equalsIgnoreCase("init"))
+                {
+                    m_presetCombo->setSelectedId(m_presetCombo->getItemId(i), juce::dontSendNotification);
+                    break;
+                }
+            }
+        }
     }
 }
