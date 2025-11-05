@@ -538,7 +538,7 @@ void FourOscPluginComponent::resized()
         m_masterLevelSlider->setBounds(masterArea.removeFromRight(masterArea.getHeight()));
         m_masterLevelLabel->setBounds(masterArea);
 
-        auto oscArea = mainArea.removeFromLeft(mainArea.getWidth()/2);
+        auto oscArea = mainArea.removeFromLeft(mainArea.getWidth()/3);
         auto oscRect = oscArea;
         oscRect.translate(tabWidth, 0);
         oscRect.reduce(5, 5);

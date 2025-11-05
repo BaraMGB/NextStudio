@@ -98,16 +98,11 @@ void PresetManagerComponent::refreshPresetList()
     // Sort alphabetically
     presetFiles.sort();
 
-    m_presetCombo->addItem("None", 1);
-
     for (int i = 0; i < presetFiles.size(); ++i)
     {
         juce::String presetName = presetFiles[i].getFileNameWithoutExtension();
-        m_presetCombo->addItem(presetName, i + 2); // +2 because 1 is "None"
+        m_presetCombo->addItem(presetName, i + 1); // +1 because 0 is not used
     }
-
-    // Set selected item to "None" initially
-    m_presetCombo->setSelectedId(1, juce::dontSendNotification);
 }
 
 void PresetManagerComponent::loadPresetFromCombo()
@@ -117,15 +112,12 @@ void PresetManagerComponent::loadPresetFromCombo()
 
     int selectedId = m_presetCombo->getSelectedId();
 
-    if (selectedId == 1) // "None" selected
-        return;
-
     auto presetDir = getPresetDirectory();
     juce::Array<juce::File> presetFiles;
     presetDir.findChildFiles(presetFiles, juce::File::findFiles, false, "*.nxtpreset");
     presetFiles.sort();
 
-    int presetIndex = selectedId - 2; // -2 because 1 is "None"
+    int presetIndex = selectedId - 1; // -1 because 0 is not used
     if (presetIndex >= 0 && presetIndex < presetFiles.size())
     {
         juce::File presetFile = presetFiles[presetIndex];
