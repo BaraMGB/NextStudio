@@ -408,8 +408,6 @@ public:
 
         int getNeededWidthFactor()
         {
-            if (m_drumSamplerView)
-                return m_drumSamplerView->getNeededWidth();
             if (m_pluginComponent)
                 return m_pluginComponent->getNeededWidth();
             return 0;
@@ -429,7 +427,6 @@ private:
     EditViewState& m_evs;
     te::Plugin::Ptr m_plugin;
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
-    std::unique_ptr<DrumSamplerView> m_drumSamplerView;
     std::unique_ptr<PresetManagerComponent> m_presetManager;
     BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};

@@ -63,16 +63,16 @@ RackItemView::RackItemView
     }
     else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
     {
-        if (auto sampler = dynamic_cast<te::SamplerPlugin*> (p.get()))
-        {
-            m_drumSamplerView = std::make_unique<DrumSamplerView> (*sampler);
-            addAndMakeVisible (*m_drumSamplerView);
-        }
+        GUIHelpers::log(m_plugin->getPluginType());
+        m_pluginComponent = std::make_unique<DrumSamplerView> (evs, p);
     }
     else
     {
         m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p);
     }
+
+    if (m_pluginComponent)
+        addAndMakeVisible(*m_pluginComponent);
 
     if (auto* presetInterface = dynamic_cast<PluginPresetInterface*>(m_pluginComponent.get()))
     {
@@ -186,12 +186,7 @@ void RackItemView::resized()
     {
         m_presetManager->setBounds(area.removeFromLeft(130));
     }
-    if (m_drumSamplerView) // GEÄNDERT: Prüfen auf die neue DrumSamplerView
-    {
-        // Die DrumSamplerView nimmt die gesamte Arbeitsfläche ein
-        m_drumSamplerView->setBounds(area);
-    }
-    else if (m_pluginComponent)
+    if (m_pluginComponent)
     {
         m_pluginComponent->setBounds(area);
     }
