@@ -61,11 +61,18 @@ RackItemView::RackItemView
         GUIHelpers::log("4OSC");
         m_pluginComponent = std::make_unique<FourOscPluginComponent>(evs, p);
     }
+    else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
+    {
+        if (auto sampler = dynamic_cast<te::SamplerPlugin*> (p.get()))
+        {
+            m_drumSamplerView = std::make_unique<DrumSamplerView> (*sampler);
+            addAndMakeVisible (*m_drumSamplerView);
+        }
+    }
     else
     {
         m_pluginComponent = std::make_unique<VstPluginComponent>(evs, p);
     }
-    addAndMakeVisible(*m_pluginComponent);
 
     if (auto* presetInterface = dynamic_cast<PluginPresetInterface*>(m_pluginComponent.get()))
     {
@@ -179,8 +186,15 @@ void RackItemView::resized()
     {
         m_presetManager->setBounds(area.removeFromLeft(130));
     }
-
-    m_pluginComponent.get()->setBounds(area);
+    if (m_drumSamplerView) // GEÄNDERT: Prüfen auf die neue DrumSamplerView
+    {
+        // Die DrumSamplerView nimmt die gesamte Arbeitsfläche ein
+        m_drumSamplerView->setBounds(area);
+    }
+    else if (m_pluginComponent)
+    {
+        m_pluginComponent->setBounds(area);
+    }
 }
 
 void RackItemView::buttonClicked(juce::Button* button)

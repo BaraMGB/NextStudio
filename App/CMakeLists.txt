@@ -69,12 +69,12 @@ target_sources(${TargetName} PRIVATE
         Source/HeaderComponent.cpp
         Source/TimeLineComponent.cpp
         Source/EditComponent.cpp
-    Source/EditViewState.cpp
-    Source/FourOscPluginComponent.cpp
-    Source/PresetManagerComponent.cpp
-    Source/FileBrowser.cpp
-    Source/HeaderComponent.cpp
-    Source/InstrumentEffectChooser.cpp
+        Source/EditViewState.cpp
+        Source/FourOscPluginComponent.cpp
+        Source/PresetManagerComponent.cpp
+        Source/FileBrowser.cpp
+        Source/HeaderComponent.cpp
+        Source/InstrumentEffectChooser.cpp
         Source/PluginWindow.cpp
         Source/PluginComponent.cpp
         Source/PluginMenu.cpp
@@ -118,6 +118,9 @@ target_sources(${TargetName} PRIVATE
         Source/tools/KnifeTool.cpp
         Source/tools/RangeTool.cpp
         Source/tools/LassoTool.cpp
+        Source/DrumPadComponent.cpp
+        Source/SoundEditorPanel.cpp
+        Source/DrumSamplerView.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

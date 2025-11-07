@@ -1045,7 +1045,7 @@ void EngineHelpers::updateMidiInputTargets(EditViewState& evs)
 {
     auto& dm = evs.m_edit.engine.getDeviceManager();
     auto defaultMidi = dm.getDefaultMidiInDevice();
-    auto virtualMidi = getVirtuelMidiInputDevice(evs.m_edit);
+    auto virtualMidi = getVirtualMidiInputDevice(evs.m_edit);
 
     if (!defaultMidi && !virtualMidi) return;
 
@@ -1086,7 +1086,7 @@ void EngineHelpers::updateMidiInputTargets(EditViewState& evs)
 
     evs.m_edit.getTransport().ensureContextAllocated();
 }
-te::MidiInputDevice* EngineHelpers::getVirtuelMidiInputDevice(te::Edit& edit)
+te::MidiInputDevice* EngineHelpers::getVirtualMidiInputDevice(te::Edit& edit)
 {
     auto& dm = edit.engine.getDeviceManager();
     auto name = "virtualMidiIn";

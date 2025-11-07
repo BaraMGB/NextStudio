@@ -31,8 +31,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Browser_Base.h"
 #include "PluginViewComponent.h"
 #include "PresetManagerComponent.h"
+#include "DrumSamplerView.h"
 
 namespace te = tracktion_engine;
+
+class SoundEditorPanel;
 
 
 class BorderlessButton : public juce::DrawableButton
@@ -403,13 +406,14 @@ public:
 
     void buttonClicked(juce::Button* button) override;
 
-    int getNeededWidthFactor() { 
-        int width = m_pluginComponent->getNeededWidth();
-        if (m_presetManager)
-            width += 1; // Add a factor for the preset manager
-        return width;
-    }
-    [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
+        int getNeededWidthFactor()
+        {
+            if (m_drumSamplerView)
+                return m_drumSamplerView->getNeededWidth();
+            if (m_pluginComponent)
+                return m_pluginComponent->getNeededWidth();
+            return 0;
+        }    [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
     te::Plugin::Ptr getPlugin()
     {
         return m_plugin;
@@ -425,6 +429,7 @@ private:
     EditViewState& m_evs;
     te::Plugin::Ptr m_plugin;
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
+    std::unique_ptr<DrumSamplerView> m_drumSamplerView;
     std::unique_ptr<PresetManagerComponent> m_presetManager;
     BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};

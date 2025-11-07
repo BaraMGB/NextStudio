@@ -28,7 +28,7 @@ void KeyboardView::mouseDown(const juce::MouseEvent& e)
 {
     if (m_keyboard.getBounds().contains(e.getPosition()))
     {
-        if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit))
+        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState.m_edit))
             virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, getKey(e.y), .8f), 0);
     }
 
@@ -44,7 +44,7 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
         auto KeyboardX = m_keyboard.getX();
         if (((int) getKey(e.y) != (int) m_clickedKey) && (e.x < KeyboardX + keyLenght))
         {
-            if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit))
+            if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState.m_edit))
             {
                 virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, m_clickedKey),0);
                 m_clickedKey = getKey(e.y);
@@ -72,7 +72,7 @@ void KeyboardView::mouseDrag(const juce::MouseEvent& e)
 }
 void KeyboardView::mouseUp (const juce::MouseEvent& e) 
 {
-    if (auto virMidiIn = EngineHelpers::getVirtuelMidiInputDevice(m_editViewState.m_edit))
+    if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState.m_edit))
         virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, m_clickedKey),0);
 }
 
