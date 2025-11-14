@@ -87,7 +87,6 @@ juce::ValueTree EditViewState::getPresetManagerUIStateForPlugin(const te::Plugin
 {
     // juce::Identifier allows only alphanumeric characters and _
     auto idStr = "p" + plugin.itemID.toString().replaceCharacters("-", "_");
-    idStr = idStr.retainCharacters("a-zA-Z0-9_"); // Keep only valid characters
     juce::Identifier id(idStr);
     return m_pluginPresetManagerUIStates.getOrCreateChildWithName(id, nullptr);
 }
