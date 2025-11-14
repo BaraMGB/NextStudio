@@ -75,9 +75,9 @@ public:
     void resized() override;
 
 private:
-    ApplicationViewState& m_appstate;
-    juce::Label m_name;
-    te::Plugin&     m_plugin;
+    ApplicationViewState&   m_appstate;
+    juce::Label             m_name;
+    te::Plugin&             m_plugin;
 
     std::unique_ptr<AutomatableParameterComponent> m_attackParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_decayParamComp;
@@ -100,8 +100,8 @@ public:
 
     void updateUI();
 private:
-    te::FourOscPlugin& m_plugin;
-    ApplicationViewState& m_appstate;
+    te::FourOscPlugin&              m_plugin;
+    ApplicationViewState&           m_appstate;
 
     std::unique_ptr<juce::ComboBox> m_typeCombo;
     std::unique_ptr<juce::ComboBox> m_slopeCombo;
@@ -119,8 +119,7 @@ JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FilterComponent)
 
 //==============================================================================
 class FourOscPluginComponent : public PluginViewComponent,
-                                     private juce::ValueTree::Listener,
-                                     public PluginPresetInterface
+                               private juce::ValueTree::Listener
 {
 public:
     FourOscPluginComponent(EditViewState& evs, te::Plugin::Ptr p);
@@ -133,9 +132,10 @@ public:
 
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;
+    juce::ValueTree getFactoryDefaultState() override;
     void restorePluginState(const juce::ValueTree& state) override;
-    juce::String getPresetSubfolder() override;
-    juce::String getPluginTypeName() override;
+    juce::String getPresetSubfolder() const override;
+    juce::String getPluginTypeName() const override;
     ApplicationViewState& getApplicationViewState() override;
 
 private:

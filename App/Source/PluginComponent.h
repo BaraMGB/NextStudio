@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -45,7 +44,7 @@ public:
     BorderlessButton(const juce::String& buttonName
                    , juce::DrawableButton::ButtonStyle buttonStyle) 
     : juce::DrawableButton(buttonName, buttonStyle) {   }
-        
+
     void paint (juce::Graphics& g) override {}
 };
 
@@ -72,15 +71,11 @@ private:
     bool m_isDragged {false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
-
-
 };
-
 
 //------------------------------------------------------------------------------
 
 class FilterPluginComponent : public PluginViewComponent
-                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
@@ -92,11 +87,13 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    int getNeededWidth() override {return 2;}
 
     juce::ValueTree getPluginState() override;
+    juce::ValueTree getFactoryDefaultState() override;
     void restorePluginState(const juce::ValueTree& state) override;
-    juce::String getPresetSubfolder() override;
-    juce::String getPluginTypeName() override;
+    juce::String getPresetSubfolder() const override;
+    juce::String getPluginTypeName() const override;
     ApplicationViewState& getApplicationViewState() override;
 
 private:
@@ -106,9 +103,7 @@ private:
                                    , const juce::Identifier& i) override
     {
         if (i == te::IDs::frequency )
-        {
             m_freqPar->updateLabel();
-        }
     }
     void valueTreeChildAdded (juce::ValueTree&
                               , juce::ValueTree&) override {}
@@ -123,8 +118,8 @@ private:
     std::unique_ptr<te::LowPassPlugin>                m_filterPlugin;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FilterPluginComponent)
 };
+
 class EqPluginComponent : public PluginViewComponent
-                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
@@ -192,16 +187,17 @@ public:
     int getNeededWidth() override {return 4;}
 
     juce::ValueTree getPluginState() override;
+    juce::ValueTree getFactoryDefaultState() override;
     void restorePluginState(const juce::ValueTree& state) override;
-    juce::String getPresetSubfolder() override;
-    juce::String getPluginTypeName() override;
+    juce::String getPresetSubfolder() const override;
+    juce::String getPluginTypeName() const override;
     ApplicationViewState& getApplicationViewState() override;
 
 private:
     void valueTreeChanged () override {}
     void valueTreePropertyChanged (juce::ValueTree& v
                                    , const juce::Identifier& i) override
-    {     
+    {
        if (i == te::IDs::loFreq)
            m_lowFreqComp->updateLabel();
        if (i == te::IDs::loGain )
@@ -255,22 +251,20 @@ private:
 
 
 class DelayPluginComponent : public PluginViewComponent
-                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
     DelayPluginComponent (EditViewState& evs, te::Plugin::Ptr p): PluginViewComponent(evs, p)
-{
+    {
         m_fbParCom =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("feedback"), "FB");
         addAndMakeVisible(*m_fbParCom);
         m_mix =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("mix proportion"), "Mix");
         addAndMakeVisible(*m_mix);
-        
-        m_time = std::make_unique<NonAutomatableParameterComponent>(m_plugin->state.getPropertyAsValue(te::IDs::length, &m_editViewState.m_edit.getUndoManager()),"Time", 0,1000);
-    addAndMakeVisible(*m_time);
-        m_plugin->state.addListener(this);
 
-}
+        m_time = std::make_unique<NonAutomatableParameterComponent>(m_plugin->state.getPropertyAsValue(te::IDs::length, &m_editViewState.m_edit.getUndoManager()),"Time", 0,1000);
+        addAndMakeVisible(*m_time);
+        m_plugin->state.addListener(this);
+    }
 
     ~DelayPluginComponent()
     {
@@ -286,13 +280,17 @@ public:
         m_time->setBounds(bounds.removeFromTop(h*4));
     }
 
+    int getNeededWidth() override {return 2;}
+
     juce::ValueTree getPluginState() override;
+    juce::ValueTree getFactoryDefaultState() override;
     void restorePluginState(const juce::ValueTree& state) override;
-    juce::String getPresetSubfolder() override;
-    juce::String getPluginTypeName() override;
+    juce::String getPresetSubfolder() const override;
+    juce::String getPluginTypeName() const override;
     ApplicationViewState& getApplicationViewState() override;
 
 private:
+
     void valueTreeChanged () override {}
     void valueTreePropertyChanged (juce::ValueTree& v
                                    , const juce::Identifier& i) override
@@ -316,7 +314,6 @@ private:
 
 
 class VolumePluginComponent : public PluginViewComponent
-                              , public PluginPresetInterface
                               , private te::ValueTreeAllEventListener
 {
 public:
@@ -328,11 +325,13 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    int getNeededWidth() override {return 2;}
 
     juce::ValueTree getPluginState() override;
+    juce::ValueTree getFactoryDefaultState() override;
     void restorePluginState(const juce::ValueTree& state) override;
-    juce::String getPresetSubfolder() override;
-    juce::String getPluginTypeName() override;
+    juce::String getPresetSubfolder() const override;
+    juce::String getPluginTypeName() const override;
     ApplicationViewState& getApplicationViewState() override;
 
 private:
@@ -345,13 +344,14 @@ private:
        if (i == te::IDs::volume )
            m_volParComp->updateLabel();
     }
+
     void valueTreeChildAdded (juce::ValueTree&
                               , juce::ValueTree&) override {}
     void valueTreeChildRemoved (juce::ValueTree&
                                 , juce::ValueTree&
                                 , int) override {}
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override{}
- 
+
     std::unique_ptr<AutomatableParameterComponent>    m_volParComp, m_panParComp;
    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumePluginComponent)
 };
@@ -365,16 +365,20 @@ public:
     VstPluginComponent (EditViewState&, te::Plugin::Ptr);
     ~VstPluginComponent() override;
 
-
     void paint (juce::Graphics& g) override;
     void resized() override;
 
-    void mouseDown(const juce::MouseEvent& ) override
-    {
-    }
+    void mouseDown(const juce::MouseEvent& ) override {}
 
+    juce::ValueTree getPluginState() override;
+    juce::ValueTree getFactoryDefaultState() override;
+    void restorePluginState(const juce::ValueTree& state) override;
+    juce::String getPresetSubfolder() const override;
+    juce::String getPluginTypeName() const override;
+    ApplicationViewState& getApplicationViewState() override;
 
-    int getNeededWidth() override {return 2;}
+    int getNeededWidth() override {return 3;}
+
 private:
 
     void curveHasChanged(te::AutomatableParameter&) override{} 
@@ -406,12 +410,15 @@ public:
 
     void buttonClicked(juce::Button* button) override;
 
-        int getNeededWidthFactor()
-        {
-            if (m_pluginComponent)
-                return m_pluginComponent->getNeededWidth();
-            return 0;
-        }    [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
+    int getNeededWidthFactor()
+    {
+        if (m_pluginComponent)
+            return m_pluginComponent->getNeededWidth();
+        return 0;
+    }
+
+    [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
+
     te::Plugin::Ptr getPlugin()
     {
         return m_plugin;

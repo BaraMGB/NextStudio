@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "FourOscPluginComponent.h"
-// OscComponent
 
 OscComponent::OscComponent(te::FourOscPlugin::OscParams& params, juce::Colour colorToUse)
     : m_params(params)
@@ -560,7 +559,6 @@ void FourOscPluginComponent::resized()
 
     if (auto* effectsPanel = m_tabComponent->getTabContentComponent(1))
     {
-
         auto effectsArea = effectsPanel->getLocalBounds().reduced(5);
         auto effectHeight = effectsArea.getHeight() / 4;
         const int toggleWidth = 100;
@@ -606,9 +604,7 @@ void FourOscPluginComponent::resized()
 void FourOscPluginComponent::updateOscComponentVisibility()
 {
     for (int i = 0; i < m_oscComponents.size(); ++i)
-    {
         m_oscComponents[i]->setVisible(i == m_currentOscIndex);
-    }
 }
 
 int FourOscPluginComponent::getActiveOscComponent()
@@ -649,13 +645,20 @@ void FourOscPluginComponent::valueTreePropertyChanged(juce::ValueTree&, const ju
         if (m_oscComponents[i] != nullptr)
             m_oscComponents[i]->updateUI();
     }
-
 }
 
 // PluginPresetInterface implementation
 juce::ValueTree FourOscPluginComponent::getPluginState()
 {
-    return m_fourOscPlugin->state;
+    return m_fourOscPlugin->state.createCopy();
+}
+
+juce::ValueTree FourOscPluginComponent::getFactoryDefaultState()
+{
+    juce::ValueTree defaultState ("PLUGIN");
+    defaultState.setProperty ("type", "4osc", nullptr);
+    // TODO: Populate with all default values for a true factory-fresh state
+    return defaultState;
 }
 
 void FourOscPluginComponent::restorePluginState(const juce::ValueTree& state)
@@ -663,12 +666,12 @@ void FourOscPluginComponent::restorePluginState(const juce::ValueTree& state)
     m_fourOscPlugin->restorePluginStateFromValueTree(state);
 }
 
-juce::String FourOscPluginComponent::getPresetSubfolder()
+juce::String FourOscPluginComponent::getPresetSubfolder() const
 {
     return "FourOSC";
 }
 
-juce::String FourOscPluginComponent::getPluginTypeName()
+juce::String FourOscPluginComponent::getPluginTypeName() const
 {
     return "4osc";
 }
@@ -677,3 +680,4 @@ ApplicationViewState& FourOscPluginComponent::getApplicationViewState()
 {
     return m_editViewState.m_applicationState;
 }
+

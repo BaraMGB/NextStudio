@@ -21,15 +21,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-// #include "PluginComponent.h"
-
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "Utilities.h"
+#include "PluginPresetInterface.h"
+#include "EditViewState.h"
 
 namespace te = tracktion_engine;
 
-class PluginViewComponent : public juce::Component
+class PluginViewComponent : public juce::Component, public PluginPresetInterface
 {
 public:
     PluginViewComponent (EditViewState&, te::Plugin::Ptr);
@@ -40,7 +40,19 @@ public:
     void setPlugin(const te::Plugin::Ptr &getPlugin);
     virtual int getNeededWidth() {return 1;}
 
-    juce::Colour getTrackColour() {return m_plugin->getOwnerTrack()->getColour();}
+    juce::Colour getTrackColour()
+    {
+        if (m_plugin && m_plugin->getOwnerTrack())
+            return m_plugin->getOwnerTrack()->getColour();
+        return juce::Colours::black;
+    }
+
+    // PluginPresetInterface implementation
+    bool getInitialPresetLoaded() override;
+    void setInitialPresetLoaded(bool loaded) override;
+    juce::String getLastLoadedPresetName() override;
+    void setLastLoadedPresetName(const juce::String& name) override;
+
 protected:
     te::Plugin::Ptr    m_plugin;
     EditViewState&     m_editViewState;

@@ -48,6 +48,7 @@ private:
     void savePreset();
     void loadPreset();
     void loadOrInitialiseDefaultPreset();
+    void selectPreset(const juce::String& name);
 
     juce::File getPresetDirectory();
     void ensurePresetDirectoryExists();

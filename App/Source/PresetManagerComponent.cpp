@@ -40,6 +40,7 @@ PresetManagerComponent::PresetManagerComponent(PluginPresetInterface* pluginInte
 
     refreshPresetList();
     loadOrInitialiseDefaultPreset();
+    selectPreset(m_pluginInterface->getLastLoadedPresetName());
 }
 
 void PresetManagerComponent::paint(juce::Graphics& g)
@@ -79,6 +80,28 @@ void PresetManagerComponent::resized()
 
     // Load button (full width)
     m_loadButton->setBounds(area.removeFromTop(buttonHeight));
+}
+
+void PresetManagerComponent::selectPreset(const juce::String& name)
+{
+    if (name.isEmpty())
+    {
+        m_presetCombo->setSelectedId(-1, juce::dontSendNotification);
+        return;
+    }
+
+    for (int i = 0; i < m_presetCombo->getNumItems(); ++i)
+    {
+        if (m_presetCombo->getItemText(i).equalsIgnoreCase(name))
+        {
+            m_presetCombo->setSelectedItemIndex(i, juce::dontSendNotification);
+            return;
+        }
+    }
+
+    GUIHelpers::log("PresetManagerComponent: Preset '" + name + "' not found in list");
+
+    m_presetCombo->setSelectedId(-1, juce::dontSendNotification);
 }
 
 void PresetManagerComponent::refreshPresetList()
@@ -123,14 +146,25 @@ void PresetManagerComponent::loadPresetFromCombo()
         juce::File presetFile = presetFiles[presetIndex];
         if (presetFile.existsAsFile())
         {
-            if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
+            // XML validation: Only read and check if it has a valid PLUGIN tag
+            juce::String xmlContent = presetFile.loadFileAsString();
+            if (xmlContent.contains("<PLUGIN") && xmlContent.contains("</PLUGIN>"))
             {
-                juce::ValueTree presetState = juce::ValueTree::fromXml(*xml);
-                if (presetState.hasType(juce::Identifier("PLUGIN")) && presetState.getProperty("type") == m_pluginInterface->getPluginTypeName()) // Check if it's a valid preset for this plugin
+                if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
                 {
-                    // Use plugin's restore method
-                    m_pluginInterface->restorePluginState(presetState);
+                    juce::ValueTree presetState = juce::ValueTree::fromXml(*xml);
+                    // Check if it's a valid preset for this plugin
+                    if (presetState.hasType(juce::Identifier("PLUGIN")) && presetState.getProperty("type") == m_pluginInterface->getPluginTypeName())
+                    {
+                        m_pluginInterface->restorePluginState(presetState);
+                        m_pluginInterface->setLastLoadedPresetName(presetFile.getFileNameWithoutExtension());
+                        m_pluginInterface->setInitialPresetLoaded(true);
+                    }
                 }
+            }
+            else
+            {
+                GUIHelpers::log("PresetManagerComponent: Invalid XML format in " + presetFile.getFullPathName());
             }
         }
     }
@@ -157,9 +191,23 @@ void PresetManagerComponent::savePreset()
 
         juce::String presetName = presetFile.getFileNameWithoutExtension();
 
+        // Validation: Only allow alphanumeric characters, dashes and underscores
+        juce::String safePresetName = presetName.retainCharacters("a-zA-Z0-9_- ");
+        if (safePresetName.isEmpty())
+        {
+            GUIHelpers::log("PresetManagerComponent: Invalid preset name: " + presetName);
+            return;
+        }
+
+        // If the name was changed, rename the file
+        if (safePresetName != presetName)
+        {
+            presetFile = presetFile.getSiblingFile(safePresetName + ".nxtpreset");
+        }
+
         // Get the plugin's current state
         juce::ValueTree pluginState = m_pluginInterface->getPluginState();
-        pluginState.setProperty("name", presetName, nullptr);
+        pluginState.setProperty("name", safePresetName, nullptr);
 
         if (auto xml = std::unique_ptr<juce::XmlElement>(pluginState.createXml()))
         {
@@ -196,16 +244,26 @@ void PresetManagerComponent::loadPreset()
         juce::File presetFile = fc.getResult();
         if (presetFile.existsAsFile())
         {
-            if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
+            // XML validation: Only read and check if it has a valid PLUGIN tag
+            juce::String xmlContent = presetFile.loadFileAsString();
+            if (xmlContent.contains("<PLUGIN") && xmlContent.contains("</PLUGIN>"))
             {
-                juce::ValueTree presetState = juce::ValueTree::fromXml(*xml);
-
-                // Check if it's a valid preset for this plugin
-                if (presetState.hasType(juce::Identifier("PLUGIN")) && presetState.getProperty("type") == m_pluginInterface->getPluginTypeName())
+                if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
                 {
-                    // Use plugin's restore method
-                    m_pluginInterface->restorePluginState(presetState);
+                    juce::ValueTree presetState = juce::ValueTree::fromXml(*xml);
+
+                    // Check if it's a valid preset for this plugin
+                    if (presetState.hasType(juce::Identifier("PLUGIN")) && presetState.getProperty("type") == m_pluginInterface->getPluginTypeName())
+                    {
+                        m_pluginInterface->restorePluginState(presetState);
+                        m_pluginInterface->setLastLoadedPresetName(presetFile.getFileNameWithoutExtension());
+                        m_pluginInterface->setInitialPresetLoaded(true);
+                    }
                 }
+            }
+            else
+            {
+                GUIHelpers::log("PresetManagerComponent: Invalid XML format in " + presetFile.getFullPathName());
             }
         }
     }
@@ -228,6 +286,10 @@ void PresetManagerComponent::ensurePresetDirectoryExists()
 
 void PresetManagerComponent::loadOrInitialiseDefaultPreset()
 {
+    // Only load/initialise if no preset has been loaded yet for this plugin instance
+    if (m_pluginInterface->getInitialPresetLoaded())
+        return;
+
     ensurePresetDirectoryExists();
     auto presetFile = getPresetDirectory().getChildFile("init.nxtpreset");
 
@@ -239,42 +301,24 @@ void PresetManagerComponent::loadOrInitialiseDefaultPreset()
             if (presetState.hasType(juce::Identifier("PLUGIN")) && presetState.getProperty("type") == m_pluginInterface->getPluginTypeName())
             {
                 m_pluginInterface->restorePluginState(presetState);
-
-                // Select "init" in the combo box
-                for (int i = 0; i < m_presetCombo->getNumItems(); ++i)
-                {
-                    if (m_presetCombo->getItemText(i).equalsIgnoreCase("init"))
-                    {
-                        m_presetCombo->setSelectedId(m_presetCombo->getItemId(i), juce::dontSendNotification);
-                        break;
-                    }
-                }
+                m_pluginInterface->setInitialPresetLoaded(true);
+                m_pluginInterface->setLastLoadedPresetName("init"); // Mark "init" as the last loaded
             }
         }
     }
     else
-{
-        // 'init.nxtpreset' does not exist, so create it from the current state
+    {
+        // 'init.nxtpreset' does not exist, so create it from the default state
         juce::String presetName = "init";
-        juce::ValueTree pluginState = m_pluginInterface->getPluginState();
-        pluginState.setProperty("name", presetName, nullptr);
+        juce::ValueTree pluginDefaultState = m_pluginInterface->getFactoryDefaultState();
+        pluginDefaultState.setProperty("name", presetName, nullptr);
 
-        if (auto xml = std::unique_ptr<juce::XmlElement>(pluginState.createXml()))
+        if (auto xml = std::unique_ptr<juce::XmlElement>(pluginDefaultState.createXml()))
         {
             xml->writeTo(presetFile, {});
-
-            // Refresh preset list to include the new "init" preset
-            refreshPresetList();
-
-            // Select the newly created "init" preset
-            for (int i = 0; i < m_presetCombo->getNumItems(); ++i)
-            {
-                if (m_presetCombo->getItemText(i).equalsIgnoreCase("init"))
-                {
-                    m_presetCombo->setSelectedId(m_presetCombo->getItemId(i), juce::dontSendNotification);
-                    break;
-                }
-            }
+            refreshPresetList(); // Refresh to include the new "init" preset
+            m_pluginInterface->setInitialPresetLoaded(true);
+            m_pluginInterface->setLastLoadedPresetName("init"); // Mark "init" as the last loaded
         }
     }
 }

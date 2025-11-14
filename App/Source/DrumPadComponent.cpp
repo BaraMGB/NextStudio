@@ -2,6 +2,11 @@
 #include "Utilities.h"
 #include "Browser_Base.h"
 
+namespace
+{
+    static constexpr int VISUAL_FEEDBACK_DURATION_MS = 100;
+}
+
 void DrumPad::paint(juce::Graphics& g)
 {
     auto area = getLocalBounds().toFloat();
@@ -10,6 +15,7 @@ void DrumPad::paint(juce::Graphics& g)
     g.fillRoundedRectangle(area, 5);
 
     // Draw the note name in the top-left corner
+    area.reduce (2, 2);
     g.setColour(juce::Colours::white.withAlpha(0.5f));
     g.setFont(12.0f);
     g.drawText(owner->getMidiNoteNameForPad(padIndex), area, juce::Justification::topLeft);
@@ -23,13 +29,9 @@ void DrumPad::paint(juce::Graphics& g)
 void DrumPad::mouseDown(const juce::MouseEvent& e)
 {
     if (e.mods.isRightButtonDown())
-    {
         owner->showPadContextMenu(padIndex);
-    }
     else
-    {
         owner->buttonDown(padIndex);
-    }
 }
 
 void DrumPad::mouseUp(const juce::MouseEvent& e)
@@ -48,14 +50,29 @@ void DrumPad::changeColour(juce::Colour colour)
     repaint();
 }
 
+void DrumPad::triggerVisualFeedback(juce::Colour triggerColour, juce::Colour returnColour)
+{
+    changeColour(triggerColour);
+    m_returnColour = returnColour;
+    // Timer runs on the message thread, so this is thread-safe
+    startTimer(VISUAL_FEEDBACK_DURATION_MS);
+}
+
+void DrumPad::timerCallback()
+{
+    stopTimer();
+    changeColour(m_returnColour);
+}
+
 // -----------------------------------------------------------------------
 
 DrumPadComponent::DrumPadComponent(te::SamplerPlugin& plugin)
-    : m_edit(plugin.edit), samplerPlugin(&plugin)
+    : m_edit(plugin.edit)
+    , m_samplerPlugin(plugin)
 {
     GUIHelpers::log("DrumPadComponent: constructor");
 
-    samplerPlugin->state.addListener(this);
+    m_samplerPlugin.state.addListener(this);
 
     for (int i = 0; i < 16; ++i)
     {
@@ -71,8 +88,7 @@ DrumPadComponent::DrumPadComponent(te::SamplerPlugin& plugin)
 DrumPadComponent::~DrumPadComponent()
 {
     GUIHelpers::log("DrumPadComponent: destructor");
-    if (samplerPlugin)
-        samplerPlugin->state.removeListener(this);
+    m_samplerPlugin.state.removeListener(this);
 }
 
 void DrumPadComponent::paint(juce::Graphics& g)
@@ -113,9 +129,9 @@ void DrumPadComponent::buttonDown(int padIndex)
         GUIHelpers::log("DrumPadComponent: Clicked pad " + juce::String(padIndex) + ", soundIndex: " + juce::String(soundIndex));
 
         // Check if this pad has a valid sound
-        if (soundIndex < samplerPlugin->getNumSounds())
+        if (soundIndex < m_samplerPlugin.getNumSounds())
         {
-            auto soundName = samplerPlugin->getSoundName(soundIndex);
+            auto soundName = m_samplerPlugin.getSoundName(soundIndex);
             GUIHelpers::log("DrumPadComponent: Sound at soundIndex " + juce::String(soundIndex) + ": " + soundName);
 
             if (!soundName.isEmpty() && soundName != "Empty")
@@ -137,14 +153,9 @@ void DrumPadComponent::buttonDown(int padIndex)
         }
 
         // Visual feedback
-        m_pads[padIndex]->changeColour(juce::Colours::lightblue);
-        juce::Timer::callAfterDelay(100, [this, padIndex]()
-                                    {
-                                    if (padIndex == m_selectedPadIndex)
-                                    m_pads[padIndex]->changeColour(juce::Colours::blue);
-                                    else
-                                    m_pads[padIndex]->changeColour(juce::Colours::grey);
-                                    });
+        juce::Colour returnColour = (padIndex == m_selectedPadIndex) ? 
+                                     juce::Colours::blue : juce::Colours::grey;
+        m_pads[padIndex]->triggerVisualFeedback(juce::Colours::lightblue, returnColour);
     }
 }
 
@@ -165,7 +176,7 @@ void DrumPadComponent::showPadContextMenu(int padIndex)
                  fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                  [this, soundIndex, chooser = fc](const juce::FileChooser& fc)
                                  {
-                                 if (fc.getResults().isEmpty()) 
+                                 if (fc.getResults().isEmpty())
                                  {
                                  GUIHelpers::log("DrumPadComponent: File selection cancelled");
                                  return;
@@ -185,21 +196,22 @@ void DrumPadComponent::showPadContextMenu(int padIndex)
                                  auto filePath = file.getFullPathName();
                                  auto fileName = file.getFileNameWithoutExtension();
 
-                                 if (soundIndex < samplerPlugin->getNumSounds())
+                                 if (soundIndex < m_samplerPlugin.getNumSounds())
                                  {
                                  GUIHelpers::log("DrumPadComponent: Setting soundMedia for existing slot " + juce::String(soundIndex));
-                                 samplerPlugin->setSoundMedia(soundIndex, filePath);
-                                 samplerPlugin->setSoundName(soundIndex, fileName);
+                                 m_samplerPlugin.setSoundMedia(soundIndex, filePath);
+                                 m_samplerPlugin.setSoundName(soundIndex, fileName);
 
                                  int midiNote = BASE_MIDI_NOTE + soundIndex;
-                                 samplerPlugin->setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+                                 m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+                                 m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
                                  }
 
                                  // Debug checks
-                                 GUIHelpers::log("DrumPadComponent: getSoundMedia=" + samplerPlugin->getSoundMedia(soundIndex));
-                                 auto af = samplerPlugin->getSoundFile(soundIndex);
+                                 GUIHelpers::log("DrumPadComponent: getSoundMedia=" + m_samplerPlugin.getSoundMedia(soundIndex));
+                                 auto af = m_samplerPlugin.getSoundFile(soundIndex);
                                  GUIHelpers::log("DrumPadComponent: AudioFile valid=" + juce::String(af.isValid() ? "true" : "false"));
-                                 GUIHelpers::log("DrumPadComponent: getSoundName=" + samplerPlugin->getSoundName(soundIndex));
+                                 GUIHelpers::log("DrumPadComponent: getSoundName=" + m_samplerPlugin.getSoundName(soundIndex));
 
                                  GUIHelpers::log("DrumPadComponent: Updating pad names");
                                  updatePadNames();
@@ -237,9 +249,7 @@ void DrumPadComponent::mouseDown(const juce::MouseEvent& e)
 void DrumPadComponent::parentHierarchyChanged()
 {
     if (getParentComponent() != nullptr)
-    {
         updatePadNames();
-    }
 }
 
 void DrumPadComponent::valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&)
@@ -249,20 +259,14 @@ void DrumPadComponent::valueTreePropertyChanged (juce::ValueTree&, const juce::I
 
 void DrumPadComponent::updatePadNames()
 {
-    if (!samplerPlugin)
-    {
-        GUIHelpers::log("DrumPadComponent: updatePadNames - SamplerPlugin is null!");
-        return;
-    }
-
-    GUIHelpers::log("DrumPadComponent: updatePadNames - " + juce::String(samplerPlugin->getNumSounds()) + " sounds available");
+    GUIHelpers::log("DrumPadComponent: updatePadNames - " + juce::String(m_samplerPlugin.getNumSounds()) + " sounds available");
 
     for (int i = 0; i < m_pads.size(); ++i)
     {
         int soundIndex = getSoundIndexForPad(i);
-        if (soundIndex < samplerPlugin->getNumSounds())
+        if (soundIndex < m_samplerPlugin.getNumSounds())
         {
-            auto soundName = samplerPlugin->getSoundName(soundIndex);
+            auto soundName = m_samplerPlugin.getSoundName(soundIndex);
             if (soundName.isEmpty() || soundName == "Empty")
                 m_pads[i]->setText("+");
             else
@@ -364,11 +368,12 @@ void DrumPadComponent::itemDropped (const SourceDetails& dragSourceDetails)
                 int soundIndex = getSoundIndexForPad(padIndex);
                 GUIHelpers::log("DrumPadComponent: Dropped file " + f.getFileName() + " on pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
 
-                samplerPlugin->setSoundMedia(soundIndex, f.getFullPathName());
-                samplerPlugin->setSoundName(soundIndex, f.getFileNameWithoutExtension());
+                m_samplerPlugin.setSoundMedia(soundIndex, f.getFullPathName());
+                m_samplerPlugin.setSoundName(soundIndex, f.getFileNameWithoutExtension());
 
                 int midiNote = BASE_MIDI_NOTE + soundIndex;
-                samplerPlugin->setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+                m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+                m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
 
                 updatePadNames();
             }

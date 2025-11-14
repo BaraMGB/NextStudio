@@ -39,7 +39,7 @@ RackItemView::RackItemView
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks (false, true);
     GUIHelpers::log("PLUGIN TYPE: ",m_plugin->getPluginType());
-    
+
     if (m_plugin->getPluginType() == "volume")
     {
         m_pluginComponent = std::make_unique<VolumePluginComponent>(evs, p);
@@ -64,7 +64,14 @@ RackItemView::RackItemView
     else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
     {
         GUIHelpers::log(m_plugin->getPluginType());
-        m_pluginComponent = std::make_unique<DrumSamplerView> (evs, p);
+        if (auto* sampler = dynamic_cast<te::SamplerPlugin*>(p.get()))
+        {
+            m_pluginComponent = std::make_unique<DrumSamplerView> (evs, *sampler);
+        }
+        else
+        {
+            GUIHelpers::log("ERROR: Plugin claims to be sampler but dynamic_cast failed!");
+        }
     }
     else
     {
@@ -183,22 +190,17 @@ void RackItemView::resized()
     area.reduce(1,1);
 
     if (m_presetManager)
-    {
         m_presetManager->setBounds(area.removeFromLeft(130));
-    }
+
     if (m_pluginComponent)
-    {
         m_pluginComponent->setBounds(area);
-    }
 }
 
 void RackItemView::buttonClicked(juce::Button* button)
 {
     if (button == &m_showPluginBtn)
-    {
         if (m_plugin)
             m_plugin->showWindowExplicitly();
-    }
 }
 
 juce::Colour RackItemView::getTrackColour()
@@ -252,6 +254,7 @@ void FilterPluginComponent::resized()
 void FilterPluginComponent::paint(juce::Graphics &g)
 {
 }
+
 void FilterPluginComponent::updateLabel (juce::UndoManager& um)
 {
     auto mode = m_plugin->state.getPropertyAsValue(
@@ -260,13 +263,22 @@ void FilterPluginComponent::updateLabel (juce::UndoManager& um)
         mode = "Highpass";
     else
         mode = "Lowpass";
-    
+
     m_modeLabel.setText(mode, juce::NotificationType::dontSendNotification); 
 }
 
 juce::ValueTree FilterPluginComponent::getPluginState()
 {
-    return m_plugin->state;
+    return m_plugin->state.createCopy();
+}
+
+juce::ValueTree FilterPluginComponent::getFactoryDefaultState()
+{
+    juce::ValueTree defaultState ("PLUGIN");
+    defaultState.setProperty ("type", "lowpass", nullptr);
+    defaultState.setProperty (te::IDs::mode, "lowpass", nullptr);
+    defaultState.setProperty (te::IDs::frequency, 12000.0, nullptr);
+    return defaultState;
 }
 
 void FilterPluginComponent::restorePluginState(const juce::ValueTree& state)
@@ -274,12 +286,12 @@ void FilterPluginComponent::restorePluginState(const juce::ValueTree& state)
     m_plugin->restorePluginStateFromValueTree(state);
 }
 
-juce::String FilterPluginComponent::getPresetSubfolder()
+juce::String FilterPluginComponent::getPresetSubfolder() const
 {
     return "Filter";
 }
 
-juce::String FilterPluginComponent::getPluginTypeName()
+juce::String FilterPluginComponent::getPluginTypeName() const
 {
     return "lowpass";
 }
@@ -289,9 +301,18 @@ ApplicationViewState& FilterPluginComponent::getApplicationViewState()
     return m_editViewState.m_applicationState;
 }
 
+
+
 juce::ValueTree EqPluginComponent::getPluginState()
 {
-    return m_plugin->state;
+    return m_plugin->state.createCopy();
+}
+
+juce::ValueTree EqPluginComponent::getFactoryDefaultState()
+{
+    juce::ValueTree defaultState ("PLUGIN");
+    defaultState.setProperty ("type", "4bandEq", nullptr);
+    return defaultState;
 }
 
 void EqPluginComponent::restorePluginState(const juce::ValueTree& state)
@@ -299,12 +320,12 @@ void EqPluginComponent::restorePluginState(const juce::ValueTree& state)
     m_plugin->restorePluginStateFromValueTree(state);
 }
 
-juce::String EqPluginComponent::getPresetSubfolder()
+juce::String EqPluginComponent::getPresetSubfolder() const
 {
     return "EQ";
 }
 
-juce::String EqPluginComponent::getPluginTypeName()
+juce::String EqPluginComponent::getPluginTypeName() const
 {
     return "4bandEq";
 }
@@ -316,7 +337,14 @@ ApplicationViewState& EqPluginComponent::getApplicationViewState()
 
 juce::ValueTree DelayPluginComponent::getPluginState()
 {
-    return m_plugin->state;
+    return m_plugin->state.createCopy();
+}
+
+juce::ValueTree DelayPluginComponent::getFactoryDefaultState()
+{
+    juce::ValueTree defaultState ("PLUGIN");
+    defaultState.setProperty ("type", "delay", nullptr);
+    return defaultState;
 }
 
 void DelayPluginComponent::restorePluginState(const juce::ValueTree& state)
@@ -324,12 +352,12 @@ void DelayPluginComponent::restorePluginState(const juce::ValueTree& state)
     m_plugin->restorePluginStateFromValueTree(state);
 }
 
-juce::String DelayPluginComponent::getPresetSubfolder()
+juce::String DelayPluginComponent::getPresetSubfolder() const
 {
     return "Delay";
 }
 
-juce::String DelayPluginComponent::getPluginTypeName()
+juce::String DelayPluginComponent::getPluginTypeName() const
 {
     return "delay";
 }
@@ -339,21 +367,26 @@ ApplicationViewState& DelayPluginComponent::getApplicationViewState()
     return m_editViewState.m_applicationState;
 }
 
-VolumePluginComponent::VolumePluginComponent
-    (EditViewState& evs, te::Plugin::Ptr p)
+VolumePluginComponent::VolumePluginComponent(EditViewState& evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
 {
-        m_panParComp =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("pan"), "Pan");
-        addAndMakeVisible(*m_panParComp);
-        m_volParComp =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("volume"), "Vol");
-        addAndMakeVisible(*m_volParComp);
-        m_plugin->state.addListener(this);
-
+    m_volParComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("volume"), "Vol");
+    addAndMakeVisible(*m_volParComp);
+    m_panParComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("pan"), "Pan");
+    addAndMakeVisible(*m_panParComp);
+    m_plugin->state.addListener(this);
 }
 
 juce::ValueTree VolumePluginComponent::getPluginState()
 {
-    return m_plugin->state;
+    return m_plugin->state.createCopy();
+}
+
+juce::ValueTree VolumePluginComponent::getFactoryDefaultState()
+{
+    juce::ValueTree defaultState ("PLUGIN");
+    defaultState.setProperty ("type", "volume", nullptr);
+    return defaultState;
 }
 
 void VolumePluginComponent::restorePluginState(const juce::ValueTree& state)
@@ -361,12 +394,12 @@ void VolumePluginComponent::restorePluginState(const juce::ValueTree& state)
     m_plugin->restorePluginStateFromValueTree(state);
 }
 
-juce::String VolumePluginComponent::getPresetSubfolder()
+juce::String VolumePluginComponent::getPresetSubfolder() const
 {
     return "Volume";
 }
 
-juce::String VolumePluginComponent::getPluginTypeName()
+juce::String VolumePluginComponent::getPluginTypeName() const
 {
     return "volume";
 }
@@ -379,13 +412,14 @@ ApplicationViewState& VolumePluginComponent::getApplicationViewState()
 void VolumePluginComponent::resized()
 {
     auto bounds = getLocalBounds();
+
     auto h = bounds.getHeight()/12;
     bounds.removeFromTop(h);
     m_volParComp->setBounds(bounds.removeFromTop(h*4));
     bounds.removeFromTop(h*2);
     m_panParComp->setBounds(bounds.removeFromTop(h*4));
-}
 
+}
 
 void VolumePluginComponent::paint(juce::Graphics &g)
 {
@@ -476,7 +510,7 @@ void VstPluginComponent::resized()
     m_viewPort.getVerticalScrollBar().setCurrentRangeStart(scrollPos);
 }
 
-void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, float /*newValue*/)  
+void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, float) 
 {
     if (!m_lastChangedParameterComponent->isDragged() && &m_lastChangedParameterComponent->getParameter() != &param)
     {
@@ -485,6 +519,50 @@ void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, floa
         addAndMakeVisible(m_lastChangedParameterComponent.get());
         resized();
     }
+}
+
+ApplicationViewState& VstPluginComponent::getApplicationViewState()
+{
+    return m_editViewState.m_applicationState;
+}
+
+juce::ValueTree VstPluginComponent::getPluginState()
+{
+    return m_plugin->state.createCopy();
+}
+
+juce::ValueTree VstPluginComponent::getFactoryDefaultState()
+{
+    if (auto* ep = dynamic_cast<te::ExternalPlugin*>(m_plugin.get()))
+    {
+        juce::ValueTree state("PLUGIN");
+        state.setProperty("type", ep->desc.pluginFormatName + juce::String::toHexString(ep->desc.deprecatedUid).toUpperCase(), nullptr);
+        return state;
+    }
+
+    return {};
+}
+
+void VstPluginComponent::restorePluginState(const juce::ValueTree& state)
+{
+    m_plugin->restorePluginStateFromValueTree(state);
+}
+
+juce::String VstPluginComponent::getPresetSubfolder() const
+{
+    if (auto* ep = dynamic_cast<te::ExternalPlugin*>(m_plugin.get()))
+        if (ep->desc.manufacturerName.isNotEmpty())
+            return ep->desc.manufacturerName;
+
+    return "External";
+}
+
+juce::String VstPluginComponent::getPluginTypeName() const
+{
+    if (auto* ep = dynamic_cast<te::ExternalPlugin*>(m_plugin.get()))
+        return ep->desc.pluginFormatName + juce::String::toHexString(ep->desc.deprecatedUid).toUpperCase();
+
+    return "unknown";
 }
 
 //------------------------------------------------------------------------------
@@ -507,7 +585,6 @@ ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &a
 
 void ParameterComponent::paint(juce::Graphics& g) 
 {
-
     g.setColour(m_appState.getBackgroundColour1());
     auto area = getLocalBounds();
     area.reduce(2, 2);
@@ -530,6 +607,6 @@ void ParameterComponent::mouseDown(const juce::MouseEvent &e)
 
 void ParameterComponent::mouseUp(const juce::MouseEvent& e) 
 {
-
     m_isDragged = false;
 }
+

@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -116,6 +115,7 @@ namespace IDs
     DECLARE_ID (snapToGrid)
     DECLARE_ID (showLowerRange)
     DECLARE_ID (editNoteOutsideOfClipRange)
+    DECLARE_ID (pluginPresetManagerUIStates)
 
     #undef DECLARE_ID
 }
@@ -139,53 +139,10 @@ struct ViewData {
 class EditViewState
 {
 public:
-    EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs)
-        : m_edit (e), m_selectionManager (s), m_applicationState(avs)
-    {
-        m_trackHeightManager = std::make_unique<TrackHeightManager>(tracktion::getAllTracks(e));
-        m_thumbNailManager = std::make_unique<ThumbNailManager>(m_edit.engine);
-        m_state = m_edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
-        m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
-
-        auto um = &m_edit.getUndoManager();
-
-        m_showGlobalTrack.referTo (m_state, IDs::showGlobalTrack, um, false);
-        m_showMarkerTrack.referTo (m_state, IDs::showMarkerTrack, um, false);
-        m_showChordTrack.referTo (m_state, IDs::showChordTrack, um, false);
-        m_showArrangerTrack.referTo (m_state, IDs::showArranger, um, false);
-        m_showMasterTrack.referTo(m_state, IDs::showMaster, um, false);
-        m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um,/* false);*/true);
-        m_showHeaders.referTo (m_state, IDs::showHeaders, um,false);// true);
-        m_showFooters.referTo (m_state, IDs::showFooters, um, false);
-        m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
-        m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
-        m_automationFollowsClip.referTo (m_state, IDs::automationFollowsClip, um, true);
-
-        m_trackHeightMinimized.referTo (m_state, IDs::trackMinimized, um, 30);
-        m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
-        m_trackDefaultHeight.referTo(m_state, IDs::headerHeight, um, 50);
-        m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 290);
-        m_folderTrackHeight.referTo(m_state, IDs::folderTrackHeight, um, 30);
-        m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
-        m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
-        m_midiEditorHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
-        m_lastNoteLength.referTo (m_state, IDs::lastNoteLenght, um, 0);
-        m_snapType.referTo(m_state, IDs::snapType, um, 9);
-        m_playHeadStartTime.referTo (m_state, IDs::playHeadStartTime, um, 0.0);
-        m_followPlayhead.referTo (m_state, IDs::followsPlayhead, um, true);
-        m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
-        m_editName.referTo(m_state, IDs::name, um, "unknown");
-        m_timeLineZoomUnit.referTo(m_state, IDs::timeLineZoomUnit, um, 50);
-        m_zoomMode.referTo(m_state, IDs::zoomMode, um, "B");
-        m_velocityEditorHeight.referTo(m_state, IDs::velocityEditorHeight, um, 100);
-        m_lastVelocity.referTo(m_state, IDs::lastVelocity, um, 100);
-        m_keyboardWidth.referTo(m_state, IDs::pianoRollKeyboardWidth, um, 120);
-        m_clipHeaderHeight.referTo(m_state, IDs::clipHeaderHeight, um, 20);
-        m_syncAutomation.referTo(m_state, IDs::syncAutomation, um, true);
-        m_snapToGrid.referTo(m_state, IDs::snapToGrid, um, true);
-        m_editNotesOutsideClipRange.referTo(m_state, IDs::editNoteOutsideOfClipRange, um, false);
-    }
+    EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs);
     ~EditViewState();
+
+    juce::ValueTree getPresetManagerUIStateForPlugin(const te::Plugin& plugin);
 
     double getViewYScale(juce::String timeLineID)
     {
@@ -260,67 +217,22 @@ public:
     [[nodiscard]] double getSnapedTime (
             double t
           , te::TimecodeSnapType snapType
-          , bool downwards = false) const
-    {
-        auto & temposequ = m_edit.tempoSequence;
+          , bool downwards = false) const;
 
-        auto tp = tracktion::core::TimePosition::fromSeconds(t);
-        return downwards
-                ? snapType.roundTimeDown (tp, temposequ).inSeconds()
-                : snapType.roundTimeNearest (tp, temposequ).inSeconds();
-    }
+    [[nodiscard]] te::TimecodeSnapType getBestSnapType(double beat1, double beat2, int width) const;
 
-    [[nodiscard]] te::TimecodeSnapType getBestSnapType(double beat1, double beat2, int width) const
-    {
-        double x1time = beatToTime (beat1);
-        double x2time = beatToTime (beat2);
+    [[nodiscard]] juce::String getSnapTypeDescription(int idx) const;
 
-        auto td = tracktion::core::TimeDuration::fromSeconds(x2time - x1time);
+    [[nodiscard]] double getEndScrollBeat() const;
 
-        auto pos = m_edit.getTransport ().getPosition();
-        te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat()
-                .getBestSnapType (
-                    m_edit.tempoSequence.getTempoAt (pos)
-                    , td / width
-                    , false);
-        return snaptype;
-    }
+    void followsPlayhead(bool shouldFollow);
 
-    [[nodiscard]] juce::String getSnapTypeDescription(int idx) const
-    {
-        auto tp = m_edit.getTransport ().getPosition (); 
-        tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (tp);
-        return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo, false);
-    }
+    void toggleFollowPlayhead();
+    [[nodiscard]] bool viewFollowsPos() const;
 
-    [[nodiscard]] double getEndScrollBeat() const
-    {
-        return timeToBeat ( m_edit.getLength ().inSeconds()) + (480);
-    }
-
-    void followsPlayhead(bool shouldFollow)
-    {
-        m_followPlayhead = shouldFollow;
-    }
-
-    void toggleFollowPlayhead()
-    {
-        m_followPlayhead = !m_followPlayhead;
-    }
-    [[nodiscard]] bool viewFollowsPos() const {return m_followPlayhead;}
-
-    SimpleThumbnail* getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
-    {
-        return m_thumbNailManager->getOrCreateThumbnail(wac);
-    }
-    void clearThumbnails()
-    {
-        m_thumbNailManager->clearThumbnails();
-    }
-    void removeThumbnail(te::EditItemID id)
-    {
-        m_thumbNailManager->removeThumbnail(id);
-    }
+    SimpleThumbnail* getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
+    void clearThumbnails();
+    void removeThumbnail(te::EditItemID id);
 
 
     std::unique_ptr<TrackHeightManager>    m_trackHeightManager;
@@ -366,6 +278,7 @@ public:
 
     juce::ValueTree m_state;
     juce::ValueTree m_viewDataTree;
+    juce::ValueTree m_pluginPresetManagerUIStates;
     std::map<juce::String, struct ViewData*> componentViewData;
     bool m_isSavingLocked {false}, m_needAutoSave {false};
     ApplicationViewState& m_applicationState;

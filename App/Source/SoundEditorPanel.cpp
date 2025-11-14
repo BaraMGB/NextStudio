@@ -1,3 +1,23 @@
+/*
+
+This file is part of NextStudio.
+Copyright (c) Steffen Baranowsky 2019-2025.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see https://www.gnu.org/licenses/.
+
+==============================================================================
+*/
 #include "SoundEditorPanel.h"
 
 SoundEditorPanel::SoundEditorPanel(te::Edit& edit)
@@ -24,6 +44,12 @@ SoundEditorPanel::SoundEditorPanel(te::Edit& edit)
 
     m_thumbnail = std::make_unique<SampleDisplay>(m_edit.getTransport());
     addAndMakeVisible(*m_thumbnail);
+
+    addAndMakeVisible(openEndedButton);
+    openEndedButton.addListener(this);
+
+    addAndMakeVisible(openEndedLabel);
+    openEndedLabel.setText("Open Ended", juce::dontSendNotification);
 }
 
 SoundEditorPanel::~SoundEditorPanel()
@@ -33,6 +59,7 @@ SoundEditorPanel::~SoundEditorPanel()
     panSlider.removeListener(this);
     startSlider.removeListener(this);
     endSlider.removeListener(this);
+    openEndedButton.removeListener(this);
 }
 
 void SoundEditorPanel::paint(juce::Graphics& g)
@@ -60,17 +87,21 @@ void SoundEditorPanel::resized()
         startSlider.setBounds(rangeSliderBounds.removeFromLeft(rangeSliderBounds.getWidth() / 2));
         endSlider.setBounds(rangeSliderBounds);
 
+        auto openEndedBounds = bounds.removeFromTop(50);
+        openEndedLabel.setBounds(openEndedBounds.removeFromLeft(openEndedBounds.getWidth() / 2));
+        openEndedButton.setBounds(openEndedBounds);
+
         m_thumbnail->setBounds(bounds);
     }
 }
 
 void SoundEditorPanel::setSound(te::SamplerPlugin* plugin, int index)
 {
-    samplerPlugin = plugin;
-    soundIndex = index;
-
-    if (samplerPlugin && soundIndex != -1)
+    if (plugin != nullptr && index != -1)
     {
+        samplerPlugin = plugin;
+        soundIndex = index;
+
         gainSlider.setValue(samplerPlugin->getSoundGainDb(soundIndex));
         panSlider.setValue(samplerPlugin->getSoundPan(soundIndex));
 
@@ -83,6 +114,8 @@ void SoundEditorPanel::setSound(te::SamplerPlugin* plugin, int index)
             startSlider.setValue(samplerPlugin->getSoundStartTime(soundIndex));
             endSlider.setRange(0.0, fileLength, 0.001);
             endSlider.setValue(samplerPlugin->getSoundStartTime(soundIndex) + samplerPlugin->getSoundLength(soundIndex));
+
+            openEndedButton.setToggleState(samplerPlugin->isSoundOpenEnded(soundIndex), juce::dontSendNotification);
 
             m_thumbnail->setFile(audioFile);
             m_thumbnail->setColour(juce::Colours::blue);
@@ -122,6 +155,17 @@ void SoundEditorPanel::sliderValueChanged(juce::Slider* slider)
             if (end < start)
                 end = start;
             samplerPlugin->setSoundExcerpt(soundIndex, start, end - start);
+        }
+    }
+}
+
+void SoundEditorPanel::buttonClicked(juce::Button* button)
+{
+    if (samplerPlugin && soundIndex != -1)
+    {
+        if (button == &openEndedButton)
+        {
+            samplerPlugin->setSoundOpenEnded(soundIndex, openEndedButton.getToggleState());
         }
     }
 }

@@ -1,32 +1,23 @@
 #include "DrumSamplerView.h"
 
-DrumSamplerView::DrumSamplerView(EditViewState& evs, te::Plugin::Ptr plugin)
-    : PluginViewComponent(evs, plugin),
-    m_edit(plugin->edit), m_plugin(plugin)
+
+DrumSamplerView::DrumSamplerView(EditViewState& evs, te::SamplerPlugin& sampler)
+    : PluginViewComponent(evs, sampler),
+    m_edit(sampler.edit),
+    m_sampler(sampler),
+    m_drumPadComponent(sampler),
+    m_soundEditorPanel(sampler.edit)
 {
     GUIHelpers::log("DrumSamplerView: constructor");
 
-    if (auto sampler = dynamic_cast<te::SamplerPlugin*> (plugin.get()))
+    addAndMakeVisible(m_drumPadComponent);
+    addAndMakeVisible(m_soundEditorPanel);
+
+    m_drumPadComponent.onPadClicked = [this, &sampler](int padIndex)
     {
-        if (sampler->getNumSounds() == 0)
-        {
-            for (int i = 0; i < 16; ++i)
-                sampler->addSound("", "Empty", 0.0, 0.0, 0.0);
-        }
-        m_drumPadComponent = std::make_unique<DrumPadComponent>(*sampler);
-        addAndMakeVisible(*m_drumPadComponent);
-
-        m_soundEditorPanel = std::make_unique<SoundEditorPanel>(m_edit);
-        addAndMakeVisible(*m_soundEditorPanel);
-
-        m_drumPadComponent->onPadClicked = [this, sampler](int padIndex)
-        {
-            int soundIndex = m_drumPadComponent->getSoundIndexForPad(padIndex); 
-            m_soundEditorPanel->setSound(sampler, soundIndex); 
-        };
-
-        m_drumPadComponent->buttonDown(15);
-    }
+        int soundIndex = m_drumPadComponent.getSoundIndexForPad(padIndex);
+        m_soundEditorPanel.setSound(&sampler, soundIndex);
+    };
 }
 
 DrumSamplerView::~DrumSamplerView()
@@ -44,9 +35,8 @@ void DrumSamplerView::resized()
     auto area = getLocalBounds();
 
     int padWidth = (int)(area.getWidth() * 0.40);
-
-    m_drumPadComponent->setBounds(area.removeFromLeft(padWidth));
-    m_soundEditorPanel->setBounds(area);
+    m_drumPadComponent.setBounds(area.removeFromLeft(padWidth));
+    m_soundEditorPanel.setBounds(area);
 }
 
 int DrumSamplerView::getNeededWidth()
@@ -58,25 +48,50 @@ int DrumSamplerView::getNeededWidth()
 // PluginPresetInterface implementation
 juce::ValueTree DrumSamplerView::getPluginState()
 {
-    return m_plugin->state;
+    return m_sampler.state.createCopy();
 }
 
 void DrumSamplerView::restorePluginState(const juce::ValueTree& state)
 {
-    m_plugin->restorePluginStateFromValueTree(state);
+    m_sampler.restorePluginStateFromValueTree(state);
 }
 
-juce::String DrumSamplerView::getPresetSubfolder()
+juce::String DrumSamplerView::getPresetSubfolder() const
 {
     return "DrumSampler";
 }
 
-juce::String DrumSamplerView::getPluginTypeName()
+juce::String DrumSamplerView::getPluginTypeName() const
 {
-    return m_plugin->getPluginType();
+    return m_sampler.getPluginType();
 }
 
 ApplicationViewState& DrumSamplerView::getApplicationViewState()
 {
     return m_editViewState.m_applicationState;
 }
+
+juce::ValueTree DrumSamplerView::getFactoryDefaultState()
+{
+    juce::ValueTree defaultState("PLUGIN");
+    defaultState.setProperty("type", "sampler", nullptr);
+
+    for (int i = 0; i < 16; ++i)
+    {
+        juce::ValueTree sound("SOUND");
+        sound.setProperty("source", "", nullptr);
+        sound.setProperty("name", "Empty", nullptr);
+        sound.setProperty("startTime", 0.0, nullptr);
+        sound.setProperty("length", 0.0, nullptr);
+        sound.setProperty("keyNote", 60 + i, nullptr);
+        sound.setProperty("minNote", 60 + i, nullptr);
+        sound.setProperty("maxNote", 60 + i, nullptr);
+        sound.setProperty("gainDb", 0.0, nullptr);
+        sound.setProperty("pan", 0.0, nullptr);
+        sound.setProperty("openEnded", true, nullptr);
+        defaultState.addChild(sound, -1, nullptr);
+    }
+    return defaultState;
+}
+
+

@@ -1,11 +1,10 @@
 #include <JuceHeader.h>
-#include "tracktion_engine/tracktion_engine.h"
 
 namespace te = tracktion_engine;
 
 class DrumPadComponent;
 
-class DrumPad : public juce::Component
+class DrumPad : public juce::Component, private juce::Timer
 {
 public:
     DrumPad(DrumPadComponent* parent, int index) : owner(parent), padIndex(index) {}
@@ -14,11 +13,16 @@ public:
     void mouseDown(const juce::MouseEvent& e) override;
     void mouseUp(const juce::MouseEvent& e) override;
 
-    void setText(juce::String text) { m_text = text; } 
+    void setText(juce::String text) { m_text = text; }
     void changeColour(juce::Colour colour);
+    void triggerVisualFeedback(juce::Colour triggerColour, juce::Colour returnColour);
+
 private:
+    void timerCallback() override;
+
     juce::Colour m_colour;
     juce::String m_text;
+    juce::Colour m_returnColour { juce::Colours::grey };
     DrumPadComponent* owner;
     int padIndex;
 };
@@ -51,15 +55,14 @@ public:
     void updatePadNames();
     int getNeededWidth();
     tracktion_engine::Edit* getEdit() { return &m_edit; }
-    te::SamplerPlugin* getSamplerPlugin() { return samplerPlugin; }
     int getSoundIndexForPad(int padIndex);
     juce::String getMidiNoteNameForPad(int padIndex);
     std::function<void(int)> onPadClicked;
 
-    static constexpr int BASE_MIDI_NOTE = 48;
+    static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
 private:
     te::Edit& m_edit;
-    te::SamplerPlugin* samplerPlugin;
+    te::SamplerPlugin& m_samplerPlugin;
     juce::OwnedArray<DrumPad> m_pads;
     int m_selectedPadIndex = -1;
     int m_draggedOverPad = -1;
