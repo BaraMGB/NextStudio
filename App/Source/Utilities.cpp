@@ -2052,6 +2052,12 @@ SampleDisplay::SampleDisplay(te::TransportControl&  tc)
     });
     cursor.setFill (findColour (juce::Label::textColourId));
     addAndMakeVisible (cursor);
+
+    // Setup start/end markers
+    startMarker.setFill (juce::Colours::green);
+    endMarker.setFill (juce::Colours::red);
+    addAndMakeVisible (startMarker);
+    addAndMakeVisible (endMarker);
 }
 void SampleDisplay::resized()
 {
@@ -2061,7 +2067,14 @@ void SampleDisplay::setFile(const tracktion_engine::AudioFile &file)
 {
     m_sampleView->setFile (file);
 
+    // Update total length for marker calculations
+    if (file.isValid())
+        m_totalLength = file.getLengthInSamples() / file.getSampleRate();
+    else
+        m_totalLength = 0.0;
+
     cursorUpdater.startTimerHz (25);
+    updateStartEndMarkers();
     repaint();
 }
 void SampleDisplay::setColour(juce::Colour colour)
@@ -2093,6 +2106,58 @@ void SampleDisplay::mouseDrag(const juce::MouseEvent &e)
 void SampleDisplay::mouseUp(const juce::MouseEvent &)
 {
     transport.setUserDragging (false);
+}
+
+// New methods for start/end markers
+void SampleDisplay::setStartEndPositions(double start, double end)
+{
+    m_startPosition = start;
+    m_endPosition = end;
+    updateStartEndMarkers();
+}
+
+void SampleDisplay::clearStartEndMarkers()
+{
+    m_startPosition = -1.0;
+    m_endPosition = -1.0;
+    updateStartEndMarkers();
+}
+
+void SampleDisplay::updateStartEndMarkers()
+{
+    auto r = getLocalBounds().toFloat();
+
+    if (m_totalLength > 0.0)
+    {
+        // Update start marker
+        if (m_startPosition >= 0.0)
+        {
+            float startX = r.getWidth() * (float)(m_startPosition / m_totalLength);
+            startMarker.setRectangle(r.withWidth(2.0f).withX(startX));
+            startMarker.setVisible(true);
+        }
+        else
+        {
+            startMarker.setVisible(false);
+        }
+
+        // Update end marker
+        if (m_endPosition >= 0.0)
+        {
+            float endX = r.getWidth() * (float)(m_endPosition / m_totalLength);
+            endMarker.setRectangle(r.withWidth(2.0f).withX(endX));
+            endMarker.setVisible(true);
+        }
+        else
+        {
+            endMarker.setVisible(false);
+        }
+    }
+    else
+    {
+        startMarker.setVisible(false);
+        endMarker.setVisible(false);
+    }
 }
 
 SampleView::SampleView(te::Edit& edit)
