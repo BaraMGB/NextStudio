@@ -119,10 +119,16 @@ void SoundEditorPanel::setSound(te::SamplerPlugin* plugin, int index)
 
             m_thumbnail->setFile(audioFile);
             m_thumbnail->setColour(juce::Colours::blue);
+
+            // Update start/end markers
+            double startTime = samplerPlugin->getSoundStartTime(soundIndex);
+            double endTime = startTime + samplerPlugin->getSoundLength(soundIndex);
+            m_thumbnail->setStartEndPositions(startTime, endTime);
         }
         else
         {
             m_thumbnail->setFile(te::AudioFile(m_edit.engine, {}));
+            m_thumbnail->clearStartEndMarkers();
         }
     }
     else
@@ -130,6 +136,7 @@ void SoundEditorPanel::setSound(te::SamplerPlugin* plugin, int index)
         samplerPlugin = nullptr;
         soundIndex = -1;
         m_thumbnail->setFile(te::AudioFile(m_edit.engine, {}));
+        m_thumbnail->clearStartEndMarkers();
     }
 
     resized();
@@ -155,6 +162,9 @@ void SoundEditorPanel::sliderValueChanged(juce::Slider* slider)
             if (end < start)
                 end = start;
             samplerPlugin->setSoundExcerpt(soundIndex, start, end - start);
+
+            // Update start/end markers when sliders change
+            m_thumbnail->setStartEndPositions(start, end);
         }
     }
 }

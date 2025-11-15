@@ -498,13 +498,25 @@ public:
     void mouseUp (const juce::MouseEvent&) override;
     void setFile (const te::AudioFile& file);
     void setColour(juce::Colour colour);
+
+    // New methods for start/end markers
+    void setStartEndPositions(double start, double end);
+    void clearStartEndMarkers();
+
 private:
     te::TransportControl& transport;
     juce::DrawableRectangle cursor;
+    juce::DrawableRectangle startMarker;
+    juce::DrawableRectangle endMarker;
     te::LambdaTimer cursorUpdater;
     std::unique_ptr<SampleView> m_sampleView;
 
+    double m_startPosition = -1.0;
+    double m_endPosition = -1.0;
+    double m_totalLength = 0.0;
+
     void updateCursorPosition();
+    void updateStartEndMarkers();
 };
 
 struct SampleView : public juce::Component
