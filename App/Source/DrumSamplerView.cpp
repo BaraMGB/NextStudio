@@ -54,6 +54,7 @@ juce::ValueTree DrumSamplerView::getPluginState()
 void DrumSamplerView::restorePluginState(const juce::ValueTree& state)
 {
     m_sampler.restorePluginStateFromValueTree(state);
+    m_drumPadComponent.updatePadNames();
 }
 
 juce::String DrumSamplerView::getPresetSubfolder() const
