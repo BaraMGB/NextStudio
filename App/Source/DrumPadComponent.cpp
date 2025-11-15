@@ -30,7 +30,7 @@ void DrumPad::paint(juce::Graphics& g)
 
     // Draw the sample name in the center
     g.setColour(juce::Colours::black);
-    g.setFont(15.0f);
+    g.setFont(9.0f);
     g.drawText(m_text, area, juce::Justification::centred);
 }
 
@@ -310,6 +310,33 @@ void DrumPadComponent::showPadContextMenu(int padIndex)
                                  GUIHelpers::log("DrumPadComponent: Unknown exception while loading sound");
                                  }
                                  });
+                 });
+
+    menu.addSeparator();
+
+    menu.addItem("Clear", [this, padIndex]()
+                 {
+                 int soundIndex = getSoundIndexForPad(padIndex);
+                 GUIHelpers::log("DrumPadComponent: Clearing pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
+
+                 if (soundIndex < m_samplerPlugin.getNumSounds())
+                 {
+                     // Clear the sound by setting empty media and name
+                     m_samplerPlugin.setSoundMedia(soundIndex, "");
+                     m_samplerPlugin.setSoundName(soundIndex, "Empty");
+
+                     // Reset MIDI parameters to defaults
+                     int midiNote = BASE_MIDI_NOTE + soundIndex;
+                     m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+                     m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
+
+                     GUIHelpers::log("DrumPadComponent: Cleared sound at index " + juce::String(soundIndex));
+                     updatePadNames();
+
+                     // Repaint the pad to show the updated text immediately
+                     if (padIndex >= 0 && padIndex < m_pads.size())
+                         m_pads[padIndex]->repaint();
+                 }
                  });
 
     menu.show();
