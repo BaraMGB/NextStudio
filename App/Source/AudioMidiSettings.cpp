@@ -39,14 +39,18 @@ MidiSettings::MidiSettings(tracktion_engine::Engine &engine, ApplicationViewStat
     addAndMakeVisible(m_exclusiveMidiFocusLabel);
     m_exclusiveMidiFocusLabel.attachToComponent(&m_exclusiveMidiFocusButton, true);
     m_exclusiveMidiFocusLabel.setText("Focus on selected Track:", juce::dontSendNotification);
+
+    populateMidiDevices();
 }
 MidiSettings::~MidiSettings()
 {
     m_midiDefaultChooser.removeListener(this);
     m_exclusiveMidiFocusButton.removeListener(this);
 }
-void MidiSettings::resized()
+void MidiSettings::populateMidiDevices()
 {
+    m_midiDefaultChooser.clear(juce::dontSendNotification);
+
     auto& dm = m_engine.getDeviceManager ();
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
     {
@@ -63,6 +67,10 @@ void MidiSettings::resized()
             }
         }
     }
+}
+
+void MidiSettings::resized()
+{
     auto area = getLocalBounds ();
     auto defaultController = area.removeFromTop(30);
     defaultController.removeFromRight(getWidth() * 0.05);

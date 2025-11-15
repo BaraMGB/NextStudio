@@ -39,6 +39,8 @@ public:
     void buttonClicked(juce::Button* button) override;
 
 private:
+    void populateMidiDevices();
+
     ApplicationViewState& m_appState;
     juce::ToggleButton m_exclusiveMidiFocusButton;
     juce::Label m_exclusiveMidiFocusLabel;
