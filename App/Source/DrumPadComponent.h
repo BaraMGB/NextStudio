@@ -12,10 +12,15 @@ public:
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent& e) override;
     void mouseUp(const juce::MouseEvent& e) override;
+    void mouseDrag(const juce::MouseEvent& e) override;
+    void mouseEnter(const juce::MouseEvent& e) override;
+    void mouseExit(const juce::MouseEvent& e) override;
 
     void setText(juce::String text) { m_text = text; }
     void changeColour(juce::Colour colour);
     void triggerVisualFeedback(juce::Colour triggerColour, juce::Colour returnColour);
+    void setIsDragTarget(bool isTarget);
+    int getPadIndex() const { return padIndex; }
 
 private:
     void timerCallback() override;
@@ -25,6 +30,9 @@ private:
     juce::Colour m_returnColour { juce::Colours::grey };
     DrumPadComponent* owner;
     int padIndex;
+    bool m_isDragTarget = false;
+    juce::Point<int> m_dragStartPos;
+    bool m_isDragging = false;
 };
 
 class DrumPadComponent : public juce::Component,
@@ -40,6 +48,8 @@ public:
 
     void buttonDown(int padIndex);
     void mouseDown(const juce::MouseEvent& e) override;
+    void mouseDrag(const juce::MouseEvent& e) override;
+    void mouseUp(const juce::MouseEvent& e) override;
 
     void parentHierarchyChanged() override;
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
@@ -50,6 +60,17 @@ public:
     void itemDragEnter (const SourceDetails& dragSourceDetails) override;
     void itemDragMove (const SourceDetails& dragSourceDetails) override;
     void itemDragExit (const SourceDetails& dragSourceDetails) override;
+
+    // Pad-to-Pad Drag & Drop
+    void startPadDrag(int sourcePadIndex, const juce::MouseEvent& event);
+    void continuePadDrag(const juce::MouseEvent& event);
+    void endPadDrag(const juce::MouseEvent& event);
+    void swapPadSounds(int sourcePad, int targetPad);
+
+    // Accessors for DrumPad
+    bool isPadDragging() const { return m_isPadDragging; }
+    int getDragSourcePad() const { return m_dragSourcePad; }
+    int getSoundKeyNote(int soundIndex) const { return m_samplerPlugin.getKeyNote(soundIndex); }
 
     void showPadContextMenu(int padIndex);
     void updatePadNames();
@@ -66,6 +87,13 @@ private:
     juce::OwnedArray<DrumPad> m_pads;
     int m_selectedPadIndex = -1;
     int m_draggedOverPad = -1;
+
+    // Pad-to-Pad Drag State
+    bool m_isPadDragging = false;
+    int m_dragSourcePad = -1;
+    int m_dragSourceSoundIndex = -1;
+    juce::ComponentDragger m_dragger;
+    std::unique_ptr<juce::Component> m_dragImageComponent;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DrumPadComponent)
 };

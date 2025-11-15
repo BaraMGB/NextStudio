@@ -11,6 +11,14 @@ void DrumPad::paint(juce::Graphics& g)
 {
     auto area = getLocalBounds().toFloat();
     area.reduce (5, 5);
+
+    // Highlight if drag target
+    if (m_isDragTarget)
+    {
+        g.setColour(juce::Colours::orange.brighter());
+        g.drawRoundedRectangle(area, 5, 3);
+    }
+
     g.setColour(m_colour);
     g.fillRoundedRectangle(area, 5);
 
@@ -28,19 +36,84 @@ void DrumPad::paint(juce::Graphics& g)
 
 void DrumPad::mouseDown(const juce::MouseEvent& e)
 {
+    m_dragStartPos = e.getMouseDownPosition();
+    m_isDragging = false;
+
     if (e.mods.isRightButtonDown())
         owner->showPadContextMenu(padIndex);
     else
         owner->buttonDown(padIndex);
 }
 
+void DrumPad::mouseDrag(const juce::MouseEvent& e)
+{
+    if (!e.mods.isLeftButtonDown())
+        return;
+
+    auto dragDistance = e.getDistanceFromDragStart();
+    if (!m_isDragging && dragDistance > 10)
+    {
+        m_isDragging = true;
+        owner->startPadDrag(padIndex, e);
+    }
+
+    if (m_isDragging)
+    {
+        owner->continuePadDrag(e);
+    }
+}
+
 void DrumPad::mouseUp(const juce::MouseEvent& e)
 {
-    if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*owner->getEdit()))
+    if (m_isDragging)
     {
-        int soundIndex = owner->getSoundIndexForPad(padIndex);
-        int midiNote = owner->BASE_MIDI_NOTE + soundIndex;
-        virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, midiNote, .8f), 0);
+        owner->endPadDrag(e);
+        m_isDragging = false;
+    }
+    else
+    {
+        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*owner->getEdit()))
+        {
+            int soundIndex = owner->getSoundIndexForPad(padIndex);
+
+            // Get the actual MIDI note assigned to this sound (not calculated from soundIndex)
+            int midiNote = owner->getSoundKeyNote(soundIndex);
+
+            // If keyNote is not set (default -1), fall back to pad-based calculation
+            if (midiNote < 0)
+            {
+                midiNote = owner->BASE_MIDI_NOTE + soundIndex;
+                GUIHelpers::log("DrumPad::mouseUp: Using fallback MIDI note " + juce::String(midiNote) + " for soundIndex " + juce::String(soundIndex));
+            }
+            else
+            {
+                GUIHelpers::log("DrumPad::mouseUp: Using stored MIDI note " + juce::String(midiNote) + " for soundIndex " + juce::String(soundIndex));
+            }
+
+            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, midiNote, .8f), 0);
+        }
+    }
+}
+
+void DrumPad::mouseEnter(const juce::MouseEvent& e)
+{
+    if (owner->isPadDragging() && padIndex != owner->getDragSourcePad())
+    {
+        setIsDragTarget(true);
+    }
+}
+
+void DrumPad::mouseExit(const juce::MouseEvent& e)
+{
+    setIsDragTarget(false);
+}
+
+void DrumPad::setIsDragTarget(bool isTarget)
+{
+    if (m_isDragTarget != isTarget)
+    {
+        m_isDragTarget = isTarget;
+        repaint();
     }
 }
 
@@ -136,7 +209,19 @@ void DrumPadComponent::buttonDown(int padIndex)
 
             if (!soundName.isEmpty() && soundName != "Empty")
             {
-                int midiNote = BASE_MIDI_NOTE + soundIndex;
+                // Get the actual MIDI note assigned to this sound (not calculated from soundIndex)
+                int midiNote = m_samplerPlugin.getKeyNote(soundIndex);
+
+                // If keyNote is not set (default -1), fall back to pad-based calculation
+                if (midiNote < 0)
+                {
+                    midiNote = BASE_MIDI_NOTE + soundIndex;
+                    GUIHelpers::log("DrumPadComponent: Using fallback MIDI note " + juce::String(midiNote) + " for soundIndex " + juce::String(soundIndex));
+                }
+                else
+                {
+                    GUIHelpers::log("DrumPadComponent: Using stored MIDI note " + juce::String(midiNote) + " for soundIndex " + juce::String(soundIndex));
+                }
 
                 if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*getEdit()))
                     virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, midiNote, .8f), 0);
@@ -153,7 +238,7 @@ void DrumPadComponent::buttonDown(int padIndex)
         }
 
         // Visual feedback
-        juce::Colour returnColour = (padIndex == m_selectedPadIndex) ? 
+        juce::Colour returnColour = (padIndex == m_selectedPadIndex) ?
                                      juce::Colours::blue : juce::Colours::grey;
         m_pads[padIndex]->triggerVisualFeedback(juce::Colours::lightblue, returnColour);
     }
@@ -246,6 +331,21 @@ void DrumPadComponent::mouseDown(const juce::MouseEvent& e)
     }
 }
 
+void DrumPadComponent::mouseDrag(const juce::MouseEvent& e)
+{
+    // Handle drag image movement if we're dragging
+    if (m_isPadDragging && m_dragImageComponent)
+    {
+        auto pos = getLocalPoint(nullptr, e.getScreenPosition());
+        m_dragImageComponent->setCentrePosition(pos.x, pos.y);
+    }
+}
+
+void DrumPadComponent::mouseUp(const juce::MouseEvent& e)
+{
+    // This will be handled by the individual pad's mouseUp
+}
+
 void DrumPadComponent::parentHierarchyChanged()
 {
     if (getParentComponent() != nullptr)
@@ -294,9 +394,11 @@ juce::String DrumPadComponent::getMidiNoteNameForPad(int padIndex)
 
 int DrumPadComponent::getSoundIndexForPad(int padIndex)
 {
+    // MPC-style layout: bottom row (pads 0-3) = sounds 0-3, top row (pads 12-15) = sounds 12-15
+    // This matches traditional MPC drum pad layout
     const int row = padIndex / 4;
     const int col = padIndex % 4;
-    const int mpcRow = 3 - row;
+    const int mpcRow = 3 - row;  // MPC Layout: bottom row is 0, top row is 3
     return mpcRow * 4 + col;
 }
 
@@ -383,9 +485,254 @@ void DrumPadComponent::itemDropped (const SourceDetails& dragSourceDetails)
     if (m_draggedOverPad != -1)
     {
         if (m_draggedOverPad == m_selectedPadIndex)
+        {    
             m_pads[m_draggedOverPad]->changeColour(juce::Colours::blue);
+        }
         else
+        {
             m_pads[m_draggedOverPad]->changeColour(juce::Colours::grey);
+        }
         m_draggedOverPad = -1;
     }
+}
+
+//==============================================================================
+// Pad-to-Pad Drag & Drop Implementation
+//==============================================================================
+
+void DrumPadComponent::startPadDrag(int sourcePadIndex, const juce::MouseEvent& event)
+{
+    if (sourcePadIndex < 0 || sourcePadIndex >= m_pads.size())
+        return;
+
+    int soundIndex = getSoundIndexForPad(sourcePadIndex);
+    if (soundIndex >= m_samplerPlugin.getNumSounds())
+        return;
+
+    auto soundName = m_samplerPlugin.getSoundName(soundIndex);
+    if (soundName.isEmpty() || soundName == "Empty")
+        return; // Don't drag empty pads
+
+    GUIHelpers::log("DrumPadComponent: Starting drag from pad " + juce::String(sourcePadIndex) +
+                   " (sound: " + soundName + ")");
+
+    m_isPadDragging = true;
+    m_dragSourcePad = sourcePadIndex;
+    m_dragSourceSoundIndex = soundIndex;
+
+    // Create drag image component with visual representation
+    struct DragImagePainter : public juce::Component
+    {
+        int sourcePadIndex;
+        juce::String soundName;
+
+        DragImagePainter(int pad, const juce::String& name)
+            : sourcePadIndex(pad), soundName(name)
+        {
+            setSize(50, 50);
+            setAlwaysOnTop(true);
+            setOpaque(false);
+        }
+
+        void paint(juce::Graphics& g) override
+        {
+            auto area = getLocalBounds().toFloat();
+            area.reduce (5, 5);
+
+            // Semi-transparent background
+            g.setColour(juce::Colours::black.withAlpha(0.7f));
+            g.fillRoundedRectangle(area, 8);
+
+            // Border
+            g.setColour(juce::Colours::orange);
+            g.drawRoundedRectangle(area, 8, 2);
+
+            // Pad info
+            area.reduce (5, 5);
+            g.setColour(juce::Colours::white);
+            g.setFont(12.0f);
+            g.drawText("Pad " + juce::String(sourcePadIndex), area.removeFromTop(20), juce::Justification::centred);
+
+            g.setFont(14.0f);
+            g.drawText(soundName, area, juce::Justification::centred);
+        }
+    };
+
+    m_dragImageComponent = std::make_unique<DragImagePainter>(sourcePadIndex, soundName);
+
+    // Add to parent component for proper layering
+    if (auto parent = getParentComponent())
+    {
+        parent->addAndMakeVisible(m_dragImageComponent.get());
+    }
+    else
+    {
+        addAndMakeVisible(m_dragImageComponent.get());
+    }
+
+    // Position the drag image
+    auto pos = getLocalPoint(nullptr, event.getScreenPosition());
+    m_dragImageComponent->setCentrePosition(pos.x, pos.y);
+
+    // Set cursor
+    setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+
+    // Visual feedback on source pad
+    m_pads[sourcePadIndex]->changeColour(juce::Colours::orange.withAlpha(0.5f));
+}
+
+void DrumPadComponent::continuePadDrag(const juce::MouseEvent& event)
+{
+    if (!m_isPadDragging || !m_dragImageComponent)
+        return;
+
+    // Update drag image position
+    auto pos = getLocalPoint(nullptr, event.getScreenPosition());
+    m_dragImageComponent->setCentrePosition(pos.x, pos.y);
+
+    // Check which pad we're over - convert to global coordinates first
+    auto globalPos = event.getScreenPosition();
+    auto localPos = getLocalPoint(nullptr, globalPos);
+
+    // Find which pad contains this point
+    int targetPadIndex = -1;
+    for (int i = 0; i < m_pads.size(); ++i)
+    {
+        if (m_pads[i]->getBounds().contains(localPos))
+        {
+            targetPadIndex = i;
+            break;
+        }
+    }
+
+    // Update drag target states
+    for (int i = 0; i < m_pads.size(); ++i)
+    {
+        bool shouldBeTarget = (i == targetPadIndex && i != m_dragSourcePad);
+        m_pads[i]->setIsDragTarget(shouldBeTarget);
+    }
+}
+
+void DrumPadComponent::endPadDrag(const juce::MouseEvent& event)
+{
+    if (!m_isPadDragging)
+        return;
+
+    GUIHelpers::log("DrumPadComponent: Ending drag from pad " + juce::String(m_dragSourcePad));
+
+    // Check which pad we're dropping on - use same logic as continuePadDrag
+    auto globalPos = event.getScreenPosition();
+    auto localPos = getLocalPoint(nullptr, globalPos);
+
+    int targetPadIndex = -1;
+    for (int i = 0; i < m_pads.size(); ++i)
+    {
+        if (m_pads[i]->getBounds().contains(localPos))
+        {
+            targetPadIndex = i;
+            break;
+        }
+    }
+
+    if (targetPadIndex >= 0 && targetPadIndex != m_dragSourcePad)
+    {
+        GUIHelpers::log("DrumPadComponent: Dropping on pad " + juce::String(targetPadIndex));
+        swapPadSounds(m_dragSourcePad, targetPadIndex);
+
+        // Visual feedback on successful drop
+        m_pads[targetPadIndex]->triggerVisualFeedback(juce::Colours::green,
+                                                     targetPadIndex == m_selectedPadIndex ?
+                                                     juce::Colours::blue : juce::Colours::grey);
+        buttonDown(targetPadIndex);
+    }
+
+    // Restore source pad color
+    if (m_dragSourcePad >= 0 && m_dragSourcePad < m_pads.size())
+    {
+        juce::Colour sourceColor = (m_dragSourcePad == m_selectedPadIndex) ?
+                                   juce::Colours::blue : juce::Colours::grey;
+        m_pads[m_dragSourcePad]->changeColour(sourceColor);
+    }
+
+    // Clean up drag state
+    m_isPadDragging = false;
+    m_dragSourcePad = -1;
+    m_dragSourceSoundIndex = -1;
+
+    // Remove drag image with fade effect
+    if (m_dragImageComponent)
+    {
+        // Simple fade out effect - just remove immediately for now
+        if (auto parent = m_dragImageComponent->getParentComponent())
+            parent->removeChildComponent(m_dragImageComponent.get());
+        m_dragImageComponent.reset();
+    }
+
+    // Clear all drag target states
+    for (int i = 0; i < m_pads.size(); ++i)
+    {
+        m_pads[i]->setIsDragTarget(false);
+    }
+
+    // Reset cursor
+    setMouseCursor(juce::MouseCursor::NormalCursor);
+}
+
+void DrumPadComponent::swapPadSounds(int sourcePad, int targetPad)
+{
+    if (sourcePad < 0 || sourcePad >= m_pads.size() || 
+        targetPad < 0 || targetPad >= m_pads.size())
+        return;
+
+    int sourceSoundIndex = getSoundIndexForPad(sourcePad);
+    int targetSoundIndex = getSoundIndexForPad(targetPad);
+
+    if (sourceSoundIndex >= m_samplerPlugin.getNumSounds() || 
+        targetSoundIndex >= m_samplerPlugin.getNumSounds())
+        return;
+
+    GUIHelpers::log("DrumPadComponent: Swapping sounds between pad " + juce::String(sourcePad) +
+                   " (sound " + juce::String(sourceSoundIndex) + ") and pad " + juce::String(targetPad) +
+                   " (sound " + juce::String(targetSoundIndex) + ")");
+
+    auto sourceMedia = m_samplerPlugin.getSoundMedia(sourceSoundIndex);
+    auto sourceName = m_samplerPlugin.getSoundName(sourceSoundIndex);
+    auto sourceGain = m_samplerPlugin.getSoundGainDb(sourceSoundIndex);
+    auto sourcePan = m_samplerPlugin.getSoundPan(sourceSoundIndex);
+    auto sourceKeyNote = m_samplerPlugin.getKeyNote(sourceSoundIndex);
+    auto sourceMinNote = m_samplerPlugin.getMinKey(sourceSoundIndex);
+    auto sourceMaxNote = m_samplerPlugin.getMaxKey(sourceSoundIndex);
+
+    auto targetMedia = m_samplerPlugin.getSoundMedia(targetSoundIndex);
+    auto targetName = m_samplerPlugin.getSoundName(targetSoundIndex);
+    auto targetGain = m_samplerPlugin.getSoundGainDb(targetSoundIndex);
+    auto targetPan = m_samplerPlugin.getSoundPan(targetSoundIndex);
+    auto targetKeyNote = m_samplerPlugin.getKeyNote(targetSoundIndex);
+    auto targetMinNote = m_samplerPlugin.getMinKey(targetSoundIndex);
+    auto targetMaxNote = m_samplerPlugin.getMaxKey(targetSoundIndex);
+
+    // Swap source sound data to target
+    m_samplerPlugin.setSoundMedia(targetSoundIndex, sourceMedia);
+    m_samplerPlugin.setSoundName(targetSoundIndex, sourceName);
+    m_samplerPlugin.setSoundGains(targetSoundIndex, sourceGain, sourcePan);
+
+    // Calculate MIDI notes for the NEW sound indices (not the old ones!)
+    int targetMidiNote = BASE_MIDI_NOTE + targetSoundIndex;
+    int sourceMidiNote = BASE_MIDI_NOTE + sourceSoundIndex;
+
+    // Set MIDI parameters for target sound (now has source's data)
+    m_samplerPlugin.setSoundParams(targetSoundIndex, targetMidiNote, targetMidiNote, targetMidiNote);
+
+    // Swap target sound data to source
+    m_samplerPlugin.setSoundMedia(sourceSoundIndex, targetMedia);
+    m_samplerPlugin.setSoundName(sourceSoundIndex, targetName);
+    m_samplerPlugin.setSoundGains(sourceSoundIndex, targetGain, targetPan);
+
+    // Set MIDI parameters for source sound (now has target's data)
+    m_samplerPlugin.setSoundParams(sourceSoundIndex, sourceMidiNote, sourceMidiNote, sourceMidiNote);
+
+    // Update pad names
+    updatePadNames();
+
+    GUIHelpers::log("DrumPadComponent: Sound swap completed");
 }
