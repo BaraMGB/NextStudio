@@ -21,12 +21,12 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include "Utilities.h"
+#include "SampleDisplay.h"
+#include "AutomatableSliderComponent.h"
 
 namespace te = tracktion_engine;
-class SampleDisplay;
 
-class SoundEditorPanel : public juce::Component, public juce::Slider::Listener, public juce::Button::Listener
+class SoundEditorPanel : public juce::Component, public juce::Button::Listener, public juce::Value::Listener
 {
 public:
     SoundEditorPanel(te::Edit& edit);
@@ -37,18 +37,20 @@ public:
 
     void setSound(te::SamplerPlugin* plugin, int soundIndex);
 
-    void sliderValueChanged(juce::Slider* slider) override;
     void buttonClicked(juce::Button* button) override;
+    void valueChanged(juce::Value& value) override;
+
 
 private:
     te::Edit& m_edit;
     te::SamplerPlugin* samplerPlugin = nullptr;
     int soundIndex = -1;
+    bool m_markersNeedUpdate = false;
 
-    juce::Slider gainSlider;
-    juce::Slider panSlider;
-    juce::Slider startSlider;
-    juce::Slider endSlider;
+    juce::Value gainValue;
+    juce::Value panValue;
+    std::unique_ptr<NonAutomatableParameterComponent> gainSlider;
+    std::unique_ptr<NonAutomatableParameterComponent> panSlider;
     juce::ToggleButton openEndedButton;
     juce::Label openEndedLabel;
 

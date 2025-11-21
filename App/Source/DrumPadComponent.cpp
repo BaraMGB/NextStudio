@@ -249,69 +249,28 @@ void DrumPadComponent::showPadContextMenu(int padIndex)
     GUIHelpers::log("DrumPadComponent: Right click on pad " + juce::String(padIndex));
 
     juce::PopupMenu menu;
-    menu.addItem("Load Sample", [this, padIndex]()
-                 {
-                 int soundIndex = getSoundIndexForPad(padIndex);
-                 GUIHelpers::log("DrumPadComponent: Opening file chooser for pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
+                     menu.addItem("Load Sample", [this, padIndex]()
+                     {
+                     int soundIndex = getSoundIndexForPad(padIndex);
+                     GUIHelpers::log("DrumPadComponent: Opening file chooser for pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
 
-                 auto fc = std::make_shared<juce::FileChooser>("Select a sample to load",
-                                                               juce::File(),
-                                                               "*.wav;*.aif;*.aiff");
+                     auto fc = std::make_shared<juce::FileChooser>("Select a sample to load",
+                                                                   juce::File(),
+                                                                   "*.wav;*.aif;*.aiff");
 
-                 fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-                                 [this, soundIndex, chooser = fc](const juce::FileChooser& fc)
-                                 {
-                                 if (fc.getResults().isEmpty())
-                                 {
-                                 GUIHelpers::log("DrumPadComponent: File selection cancelled");
-                                 return;
-                                 }
+                     fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                     [this, soundIndex, chooser = fc](const juce::FileChooser& fc)
+                                     {
+                                         if (fc.getResults().isEmpty())
+                                         {
+                                             GUIHelpers::log("DrumPadComponent: File selection cancelled");
+                                             return;
+                                         }
 
-                                 auto file = fc.getResult();
-                                 GUIHelpers::log("DrumPadComponent: Selected file: " + file.getFullPathName());
-
-                                 try
-                                 {
-                                 if (!file.existsAsFile())
-                                 {
-                                 GUIHelpers::log("DrumPadComponent: File does not exist: " + file.getFullPathName());
-                                 return;
-                                 }
-
-                                 auto filePath = file.getFullPathName();
-                                 auto fileName = file.getFileNameWithoutExtension();
-
-                                 if (soundIndex < m_samplerPlugin.getNumSounds())
-                                 {
-                                 GUIHelpers::log("DrumPadComponent: Setting soundMedia for existing slot " + juce::String(soundIndex));
-                                 m_samplerPlugin.setSoundMedia(soundIndex, filePath);
-                                 m_samplerPlugin.setSoundName(soundIndex, fileName);
-
-                                 int midiNote = BASE_MIDI_NOTE + soundIndex;
-                                 m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
-                                 m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
-                                 }
-
-                                 // Debug checks
-                                 GUIHelpers::log("DrumPadComponent: getSoundMedia=" + m_samplerPlugin.getSoundMedia(soundIndex));
-                                 auto af = m_samplerPlugin.getSoundFile(soundIndex);
-                                 GUIHelpers::log("DrumPadComponent: AudioFile valid=" + juce::String(af.isValid() ? "true" : "false"));
-                                 GUIHelpers::log("DrumPadComponent: getSoundName=" + m_samplerPlugin.getSoundName(soundIndex));
-
-                                 GUIHelpers::log("DrumPadComponent: Updating pad names");
-                                 updatePadNames();
-                                 }
-                                 catch (const std::exception& e)
-                                 {
-                                 GUIHelpers::log("DrumPadComponent: Exception while loading sound: " + juce::String(e.what()));
-                                 }
-                                 catch (...)
-                                 {
-                                 GUIHelpers::log("DrumPadComponent: Unknown exception while loading sound");
-                                 }
-                                 });
-                 });
-
+                                         auto file = fc.getResult();
+                                         setupNewSample(soundIndex, file);
+                                     });
+                     });
     menu.addSeparator();
 
     menu.addItem("Clear", [this, padIndex]()
@@ -351,9 +310,7 @@ void DrumPadComponent::mouseDown(const juce::MouseEvent& e)
         {
             auto padIndex = m_pads.indexOf(pad);
             if (padIndex != -1)
-            {
                 showPadContextMenu(padIndex);
-            }
         }
     }
 }
@@ -496,15 +453,7 @@ void DrumPadComponent::itemDropped (const SourceDetails& dragSourceDetails)
             {
                 int soundIndex = getSoundIndexForPad(padIndex);
                 GUIHelpers::log("DrumPadComponent: Dropped file " + f.getFileName() + " on pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
-
-                m_samplerPlugin.setSoundMedia(soundIndex, f.getFullPathName());
-                m_samplerPlugin.setSoundName(soundIndex, f.getFileNameWithoutExtension());
-
-                int midiNote = BASE_MIDI_NOTE + soundIndex;
-                m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
-                m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
-
-                updatePadNames();
+                setupNewSample(soundIndex, f);
             }
         }
     }
@@ -692,6 +641,7 @@ void DrumPadComponent::endPadDrag(const juce::MouseEvent& event)
         // Simple fade out effect - just remove immediately for now
         if (auto parent = m_dragImageComponent->getParentComponent())
             parent->removeChildComponent(m_dragImageComponent.get());
+
         m_dragImageComponent.reset();
     }
 
@@ -722,44 +672,93 @@ void DrumPadComponent::swapPadSounds(int sourcePad, int targetPad)
                    " (sound " + juce::String(sourceSoundIndex) + ") and pad " + juce::String(targetPad) +
                    " (sound " + juce::String(targetSoundIndex) + ")");
 
-    auto sourceMedia = m_samplerPlugin.getSoundMedia(sourceSoundIndex);
-    auto sourceName = m_samplerPlugin.getSoundName(sourceSoundIndex);
-    auto sourceGain = m_samplerPlugin.getSoundGainDb(sourceSoundIndex);
-    auto sourcePan = m_samplerPlugin.getSoundPan(sourceSoundIndex);
-    auto sourceKeyNote = m_samplerPlugin.getKeyNote(sourceSoundIndex);
-    auto sourceMinNote = m_samplerPlugin.getMinKey(sourceSoundIndex);
-    auto sourceMaxNote = m_samplerPlugin.getMaxKey(sourceSoundIndex);
+    // Get all data from source and target sounds
+    auto sourceData = getPadSoundData(sourceSoundIndex);
+    auto targetData = getPadSoundData(targetSoundIndex);
 
-    auto targetMedia = m_samplerPlugin.getSoundMedia(targetSoundIndex);
-    auto targetName = m_samplerPlugin.getSoundName(targetSoundIndex);
-    auto targetGain = m_samplerPlugin.getSoundGainDb(targetSoundIndex);
-    auto targetPan = m_samplerPlugin.getSoundPan(targetSoundIndex);
-    auto targetKeyNote = m_samplerPlugin.getKeyNote(targetSoundIndex);
-    auto targetMinNote = m_samplerPlugin.getMinKey(targetSoundIndex);
-    auto targetMaxNote = m_samplerPlugin.getMaxKey(targetSoundIndex);
+    // Apply swapped data
+    applyPadSoundData(targetSoundIndex, sourceData);
+    applyPadSoundData(sourceSoundIndex, targetData);
 
-    // Swap source sound data to target
-    m_samplerPlugin.setSoundMedia(targetSoundIndex, sourceMedia);
-    m_samplerPlugin.setSoundName(targetSoundIndex, sourceName);
-    m_samplerPlugin.setSoundGains(targetSoundIndex, sourceGain, sourcePan);
-
-    // Calculate MIDI notes for the NEW sound indices (not the old ones!)
+    // MIDI parameters are tied to the pad index, not the sound data, so we re-apply them
     int targetMidiNote = BASE_MIDI_NOTE + targetSoundIndex;
-    int sourceMidiNote = BASE_MIDI_NOTE + sourceSoundIndex;
-
-    // Set MIDI parameters for target sound (now has source's data)
     m_samplerPlugin.setSoundParams(targetSoundIndex, targetMidiNote, targetMidiNote, targetMidiNote);
 
-    // Swap target sound data to source
-    m_samplerPlugin.setSoundMedia(sourceSoundIndex, targetMedia);
-    m_samplerPlugin.setSoundName(sourceSoundIndex, targetName);
-    m_samplerPlugin.setSoundGains(sourceSoundIndex, targetGain, targetPan);
-
-    // Set MIDI parameters for source sound (now has target's data)
+    int sourceMidiNote = BASE_MIDI_NOTE + sourceSoundIndex;
     m_samplerPlugin.setSoundParams(sourceSoundIndex, sourceMidiNote, sourceMidiNote, sourceMidiNote);
 
-    // Update pad names
+    // Update UI
     updatePadNames();
 
     GUIHelpers::log("DrumPadComponent: Sound swap completed");
+}
+
+//==============================================================================
+// Private Helper Functions
+//==============================================================================
+
+void DrumPadComponent::setupNewSample(int soundIndex, const juce::File& file)
+{
+    if (soundIndex < 0 || soundIndex >= m_samplerPlugin.getNumSounds())
+    {
+        GUIHelpers::log("DrumPadComponent::setupNewSample: Invalid soundIndex " + juce::String(soundIndex));
+        return;
+    }
+
+    if (!file.existsAsFile())
+    {
+        GUIHelpers::log("DrumPadComponent::setupNewSample: File does not exist: " + file.getFullPathName());
+        return;
+    }
+
+    auto filePath = file.getFullPathName();
+    auto fileName = file.getFileNameWithoutExtension();
+
+    GUIHelpers::log("DrumPadComponent::setupNewSample: Setting up sound " + juce::String(soundIndex) + " with file " + fileName);
+
+    m_samplerPlugin.setSoundMedia(soundIndex, filePath);
+    m_samplerPlugin.setSoundName(soundIndex, fileName);
+
+    // Set marker positions to the full length of the audio file
+    auto audioFile = m_samplerPlugin.getSoundFile(soundIndex);
+    if (audioFile.isValid())
+    {
+        double fileLength = audioFile.getLengthInSamples() / audioFile.getSampleRate();
+        m_samplerPlugin.setSoundExcerpt(soundIndex, 0.0, fileLength);
+    }
+
+    // Set MIDI parameters and make the sound open-ended
+    int midiNote = BASE_MIDI_NOTE + soundIndex;
+    m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+    m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
+
+    updatePadNames();
+}
+
+DrumPadComponent::PadSoundData DrumPadComponent::getPadSoundData(int soundIndex) const
+{
+    PadSoundData data;
+    if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
+    {
+        data.media = m_samplerPlugin.getSoundMedia(soundIndex);
+        data.name = m_samplerPlugin.getSoundName(soundIndex);
+        data.gainDb = m_samplerPlugin.getSoundGainDb(soundIndex);
+        data.pan = m_samplerPlugin.getSoundPan(soundIndex);
+        data.startTime = m_samplerPlugin.getSoundStartTime(soundIndex);
+        data.length = m_samplerPlugin.getSoundLength(soundIndex);
+        data.openEnded = m_samplerPlugin.isSoundOpenEnded(soundIndex);
+    }
+    return data;
+}
+
+void DrumPadComponent::applyPadSoundData(int soundIndex, const PadSoundData& data)
+{
+    if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
+    {
+        m_samplerPlugin.setSoundMedia(soundIndex, data.media);
+        m_samplerPlugin.setSoundName(soundIndex, data.name);
+        m_samplerPlugin.setSoundGains(soundIndex, data.gainDb, data.pan);
+        m_samplerPlugin.setSoundExcerpt(soundIndex, data.startTime, data.length);
+        m_samplerPlugin.setSoundOpenEnded(soundIndex, data.openEnded);
+    }
 }

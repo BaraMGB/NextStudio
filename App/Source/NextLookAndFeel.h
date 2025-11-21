@@ -368,9 +368,30 @@ public:
         }
         buttonArea.reduce(1, 1);
         g.fillRoundedRectangle(buttonArea.toFloat(), 1);
+        // Draw checkmark for normal toggle buttons when toggled on
+        if (button.getToggleState() && button.getComponentID().isEmpty())
+        {
+            auto fullArea = button.getLocalBounds();
+            auto center = fullArea.getCentre().toFloat();
+
+            auto size = (float)fullArea.getHeight() * 0.4f;
+
+            auto p1 = juce::Point<float>(center.x - size * 0.5f,
+                                         center.y + size * 0.1f);
+
+            auto p2 = juce::Point<float>(center.x - size * 0.1f,
+                                         center.y + size * 0.5f);
+
+            auto p3 = juce::Point<float>(center.x + size * 0.5f,
+                                         center.y - size * 0.4f);
+
+            g.setColour(m_appState.getButtonTextColour());
+            g.drawLine(p1.x, p1.y, p2.x, p2.y, 2.f);
+            g.drawLine(p2.x, p2.y, p3.x, p3.y, 2.f);
+        }
+
         g.setColour(textColour);
-        g.drawFittedText(
-            button.getName(), button.getLocalBounds(), juce::Justification::centred, 1);
+        g.drawFittedText(button.getName(), button.getLocalBounds(), juce::Justification::centred, 1);
     }
 
 
