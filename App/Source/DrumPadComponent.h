@@ -81,7 +81,23 @@ public:
     std::function<void(int)> onPadClicked;
 
     static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
+
 private:
+
+    struct PadSoundData
+    {
+        juce::String media;
+        juce::String name;
+        float gainDb;
+        float pan;
+        double startTime;
+        double length;
+        bool openEnded;
+    };
+    void setupNewSample(int soundIndex, const juce::File& file);
+    PadSoundData getPadSoundData(int soundIndex) const;
+    void applyPadSoundData(int soundIndex, const PadSoundData& data);
+
     te::Edit& m_edit;
     te::SamplerPlugin& m_samplerPlugin;
     juce::OwnedArray<DrumPad> m_pads;

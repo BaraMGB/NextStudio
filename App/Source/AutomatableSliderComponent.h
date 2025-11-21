@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -32,44 +31,47 @@ namespace te = tracktion_engine;
      Wraps a te::AutomatableParameter as a juce::ValueSource so it can be used as
      a Value for example in a Slider.
  */
- class ParameterValueSource  : public juce::Value::ValueSource,
-                               private te::AutomatableParameter::Listener
- {
- public:
-     ParameterValueSource (te::AutomatableParameter::Ptr p)
-         : param (p)
-     {
-         param->addListener (this);
-     }
-     
-     ~ParameterValueSource() override
-     {
-         param->removeListener (this);
-     }
-     
-     juce::var getValue() const override
-     {
-         return param->getCurrentValue();
-     }
- 
-     void setValue (const juce::var& newValue) override
-     {
-         param->setParameter (static_cast<float> (newValue), juce::sendNotification);
-     }
- 
- private:
-     te::AutomatableParameter::Ptr param;
-     
-     void curveHasChanged (te::AutomatableParameter&) override
-     {
-         sendChangeMessage (false);
-     }
-     
-     void currentValueChanged (te::AutomatableParameter&) override
-     {
-         sendChangeMessage (false);
-     }
- };
+class ParameterValueSource  : public juce::Value::ValueSource,
+                              private te::AutomatableParameter::Listener
+{
+public:
+
+    ParameterValueSource (te::AutomatableParameter::Ptr p)
+    : param (p)
+    {
+        param->addListener (this);
+    }
+
+    ~ParameterValueSource() override
+    {
+        param->removeListener (this);
+    }
+
+    juce::var getValue() const override
+    {
+        return param->getCurrentValue();
+    }
+
+    void setValue (const juce::var& newValue) override
+    {
+        param->setParameter (static_cast<float> (newValue), juce::sendNotification);
+    }
+
+private:
+
+    te::AutomatableParameter::Ptr param;
+
+    void curveHasChanged (te::AutomatableParameter&) override
+    {
+        sendChangeMessage (false);
+    }
+
+    void currentValueChanged (te::AutomatableParameter&) override
+    {
+        sendChangeMessage (false);
+    }
+
+};
 
 class AutomatableSliderComponent : public juce::Slider
 {
@@ -77,12 +79,10 @@ public:
 
     explicit AutomatableSliderComponent(const te::AutomatableParameter::Ptr ap);
     ~AutomatableSliderComponent() override;
+
     void mouseDown (const juce::MouseEvent& e) override;
 
-
     te::AutomatableParameter::Ptr getAutomatableParameter();
-
-
     void bindSliderToParameter ();
 
     [[nodiscard]] juce::Colour getTrackColour() const;
@@ -99,7 +99,7 @@ class AutomatableParameterComponent : public juce::Component
 {
 public:
     AutomatableParameterComponent(const te::AutomatableParameter::Ptr ap, juce::String name)
-        : m_automatableParameter (ap)
+    : m_automatableParameter (ap)
     {
         m_knob = std::make_unique<AutomatableSliderComponent>(ap);
         m_knob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -112,16 +112,17 @@ public:
         addAndMakeVisible(*m_knob);
 
         m_valueLabel.setJustificationType(juce::Justification::centredTop);
-        m_valueLabel.setFont(juce::Font(11.0f, juce::Font::plain));
+        m_valueLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
         updateLabel();
         addAndMakeVisible(m_valueLabel);
-        
+
         m_titleLabel.setJustificationType(juce::Justification::centredBottom);
-        m_titleLabel.setFont(juce::Font(11.0f, juce::Font::bold));
+        m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
         m_titleLabel.setText(name, juce::dontSendNotification);
 
         addAndMakeVisible(m_titleLabel);
     }
+
     void resized() override
     {
         auto area = getLocalBounds();
@@ -131,7 +132,7 @@ public:
         m_knob->setBounds(area.removeFromTop(h * 2));
         m_valueLabel.setBounds(area.removeFromTop(h));
     }
-    
+
     void setKnobColour (juce::Colour colour)
     {
         m_knob->setTrackColour(colour);
@@ -142,7 +143,9 @@ public:
     {
         m_valueLabel.setText(m_automatableParameter->getCurrentValueAsString(), juce::NotificationType::dontSendNotification);
     }
+
 private:
+
     std::unique_ptr<AutomatableSliderComponent>       m_knob;
     juce::Label                                       m_valueLabel;
     juce::Label                                       m_titleLabel;
@@ -163,14 +166,15 @@ public:
 
         m_knob.onValueChange = [this] { updateLabel(); };
         m_valueLabel.setJustificationType(juce::Justification::centredTop);
-        m_valueLabel.setFont(juce::Font(11.0f, juce::Font::plain));
+        m_valueLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
         updateLabel();
-        
+
         m_titleLabel.setJustificationType(juce::Justification::centredBottom);
-        m_titleLabel.setFont(juce::Font(11.0f, juce::Font::bold));
-  
+        m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
+
         Helpers::addAndMakeVisible(*this,{&m_titleLabel, &m_knob, &m_valueLabel});
     }
+
     void resized() override
     {
         auto area = getLocalBounds();
@@ -180,17 +184,23 @@ public:
         m_knob.setBounds(area.removeFromTop(h * 2));
         m_valueLabel.setBounds(area.removeFromTop(h));
     }
-   void updateLabel ()
+
+    void updateLabel ()
     {
         m_valueLabel.setText(juce::String(m_knob.getValue()), juce::dontSendNotification);
     }
-private:
 
+    void setSliderRange(double start, double end, double interval = 1.0)
+    {
+        m_knob.setRange(start, end, interval);
+    }
+
+private:
 
     juce::Slider       m_knob;
     juce::Label        m_valueLabel;
     juce::Label        m_titleLabel;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NonAutomatableParameterComponent)
+JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NonAutomatableParameterComponent)
 };
 

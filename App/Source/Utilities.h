@@ -465,11 +465,11 @@ namespace EngineHelpers
     void sortByFormatName(juce::Array<juce::PluginDescription>& list, bool forward);
     void sortByName(juce::Array<juce::PluginDescription>& list, bool forward);
 
-
 //INTERN
 
 }
 
+//==============================================================================
 class FlaggedAsyncUpdater : public juce::AsyncUpdater
 {
 public:
@@ -484,56 +484,4 @@ public:
         flag = false;
         return true;
     }
-};
-class SampleView;
-class SampleDisplay : public juce::Component
-{
-public:
-    SampleDisplay(te::TransportControl& tc);
-
-    void resized() override;
-
-    void mouseDown (const juce::MouseEvent& e) override;
-    void mouseDrag (const juce::MouseEvent& e) override;
-    void mouseUp (const juce::MouseEvent&) override;
-    void setFile (const te::AudioFile& file);
-    void setColour(juce::Colour colour);
-
-    // New methods for start/end markers
-    void setStartEndPositions(double start, double end);
-    void clearStartEndMarkers();
-
-private:
-    te::TransportControl& transport;
-    juce::DrawableRectangle cursor;
-    juce::DrawableRectangle startMarker;
-    juce::DrawableRectangle endMarker;
-    te::LambdaTimer cursorUpdater;
-    std::unique_ptr<SampleView> m_sampleView;
-
-    double m_startPosition = -1.0;
-    double m_endPosition = -1.0;
-    double m_totalLength = 0.0;
-
-    void updateCursorPosition();
-    void updateStartEndMarkers();
-};
-
-struct SampleView : public juce::Component
-{
-    explicit SampleView (te::Edit& edit);
-
-    void setFile (const te::AudioFile& file);
-    void setColour(juce::Colour colour)
-    {
-        m_colour = colour;
-    }
-    void paint (juce::Graphics& g) override;
-
-private:
-    te::Edit& m_edit;
-    juce::Colour m_colour;
-public:
-    te::SmartThumbnail m_smartThumbnail;
-
 };

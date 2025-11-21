@@ -26,8 +26,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "SampleDisplay.h"
 #include "Utilities.h"
-
 
 class SamplePreviewComponent : public juce::Component
                              , public juce::Slider::Listener

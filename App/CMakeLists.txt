@@ -121,6 +121,7 @@ target_sources(${TargetName} PRIVATE
         Source/DrumPadComponent.cpp
         Source/SoundEditorPanel.cpp
         Source/DrumSamplerView.cpp
+        Source/SampleDisplay.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
