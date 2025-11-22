@@ -37,7 +37,8 @@ private:
 
 class DrumPadComponent : public juce::Component,
                          public juce::ValueTree::Listener,
-                         public juce::DragAndDropTarget
+                         public juce::DragAndDropTarget,
+                         private te::PhysicalMidiInputDevice::Listener
 {
 public:
     DrumPadComponent(te::SamplerPlugin&);
@@ -71,6 +72,20 @@ public:
     bool isPadDragging() const { return m_isPadDragging; }
     int getDragSourcePad() const { return m_dragSourcePad; }
     int getSoundKeyNote(int soundIndex) const { return m_samplerPlugin.getKeyNote(soundIndex); }
+
+    // MIDI Input handling
+    void handleIncomingMidiMessage(const juce::MidiMessage& message) override;
+
+    // MIDI Device Management
+    void setupMidiInputDevices();
+    void cleanupMidiInputDevices();
+
+    // MIDI Processing
+    void processMidiForPadLighting(const juce::MidiMessage& message);
+    void illuminatePadForNote(int midiNote, float velocity);
+    void turnOffPadForNote(int midiNote);
+    int getPadIndexForMidiNote(int midiNote);
+    int getPadIndexForSound(int soundIndex);
 
     void showPadContextMenu(int padIndex);
     void updatePadNames();
@@ -110,6 +125,9 @@ private:
     int m_dragSourceSoundIndex = -1;
     juce::ComponentDragger m_dragger;
     std::unique_ptr<juce::Component> m_dragImageComponent;
+
+    // MIDI Input Devices
+    juce::Array<te::PhysicalMidiInputDevice*> m_connectedMidiDevices;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DrumPadComponent)
 };
