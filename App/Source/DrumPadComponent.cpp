@@ -79,11 +79,11 @@ void DrumPad::mouseUp(const juce::MouseEvent& e)
             // Get the actual MIDI note assigned to this sound (not calculated from soundIndex)
             int midiNote = owner->getSoundKeyNote(soundIndex);
 
-            // If keyNote is not set (default -1), fall back to pad-based calculation
+            // If keyNote is not set (default -1), fall back to the pad's default note
             if (midiNote < 0)
             {
-                midiNote = owner->BASE_MIDI_NOTE + soundIndex;
-                GUIHelpers::log("DrumPad::mouseUp: Using fallback MIDI note " + juce::String(midiNote) + " for soundIndex " + juce::String(soundIndex));
+                midiNote = owner->BASE_MIDI_NOTE + padIndex;
+                GUIHelpers::log("DrumPad::mouseUp: Using fallback MIDI note " + juce::String(midiNote) + " for padIndex " + juce::String(padIndex));
             }
             else
             {
@@ -155,12 +155,19 @@ DrumPadComponent::DrumPadComponent(te::SamplerPlugin& plugin)
         addAndMakeVisible(pad.release());
     }
 
+    // Initialize MIDI Input Devices
+    setupMidiInputDevices();
+
     updatePadNames();
 }
 
 DrumPadComponent::~DrumPadComponent()
 {
     GUIHelpers::log("DrumPadComponent: destructor");
+
+    // Cleanup MIDI Input Devices
+    cleanupMidiInputDevices();
+
     m_samplerPlugin.state.removeListener(this);
 }
 
@@ -178,7 +185,7 @@ void DrumPadComponent::resized()
     for (int i = 0; i < m_pads.size(); ++i)
     {
         auto x = (i % 4) * padWidth;
-        auto y = (i / 4) * padHeight;
+        auto y = (3 - (i / 4)) * padHeight; // Invert y-axis for bottom-up layout
         m_pads[i]->setBounds(x, y, padWidth, padHeight);
     }
 }
@@ -212,11 +219,11 @@ void DrumPadComponent::buttonDown(int padIndex)
                 // Get the actual MIDI note assigned to this sound (not calculated from soundIndex)
                 int midiNote = m_samplerPlugin.getKeyNote(soundIndex);
 
-                // If keyNote is not set (default -1), fall back to pad-based calculation
+                // If keyNote is not set (default -1), fall back to the pad's default note
                 if (midiNote < 0)
                 {
-                    midiNote = BASE_MIDI_NOTE + soundIndex;
-                    GUIHelpers::log("DrumPadComponent: Using fallback MIDI note " + juce::String(midiNote) + " for soundIndex " + juce::String(soundIndex));
+                    midiNote = BASE_MIDI_NOTE + padIndex;
+                    GUIHelpers::log("DrumPadComponent: Using fallback MIDI note " + juce::String(midiNote) + " for padIndex " + juce::String(padIndex));
                 }
                 else
                 {
@@ -371,19 +378,15 @@ int DrumPadComponent::getNeededWidth()
 
 juce::String DrumPadComponent::getMidiNoteNameForPad(int padIndex)
 {
-    int soundIndex = getSoundIndexForPad(padIndex);
-    int midiNote = BASE_MIDI_NOTE + soundIndex;
+    const int midiNote = BASE_MIDI_NOTE + padIndex;
     return juce::MidiMessage::getMidiNoteName(midiNote, true, true, 3);
 }
 
 int DrumPadComponent::getSoundIndexForPad(int padIndex)
 {
-    // MPC-style layout: bottom row (pads 0-3) = sounds 0-3, top row (pads 12-15) = sounds 12-15
-    // This matches traditional MPC drum pad layout
-    const int row = padIndex / 4;
-    const int col = padIndex % 4;
-    const int mpcRow = 3 - row;  // MPC Layout: bottom row is 0, top row is 3
-    return mpcRow * 4 + col;
+    // With the new resized logic, padIndex and soundIndex are now the same.
+    // Pad 0 (bottom-left) corresponds to sound 0.
+    return padIndex;
 }
 
 //==============================================================================
@@ -681,16 +684,281 @@ void DrumPadComponent::swapPadSounds(int sourcePad, int targetPad)
     applyPadSoundData(sourceSoundIndex, targetData);
 
     // MIDI parameters are tied to the pad index, not the sound data, so we re-apply them
-    int targetMidiNote = BASE_MIDI_NOTE + targetSoundIndex;
+    const int targetMidiNote = BASE_MIDI_NOTE + targetSoundIndex;
     m_samplerPlugin.setSoundParams(targetSoundIndex, targetMidiNote, targetMidiNote, targetMidiNote);
 
-    int sourceMidiNote = BASE_MIDI_NOTE + sourceSoundIndex;
+    const int sourceMidiNote = BASE_MIDI_NOTE + sourceSoundIndex;
     m_samplerPlugin.setSoundParams(sourceSoundIndex, sourceMidiNote, sourceMidiNote, sourceMidiNote);
+
+    GUIHelpers::log("DrumPadComponent: Sound swap - sourceSound: " + juce::String(sourceSoundIndex) +
+                   " -> new midiNote: " + juce::String(sourceMidiNote) +
+                   ", targetSound: " + juce::String(targetSoundIndex) +
+                   " -> new midiNote: " + juce::String(targetMidiNote));
 
     // Update UI
     updatePadNames();
 
     GUIHelpers::log("DrumPadComponent: Sound swap completed");
+}
+
+//==============================================================================
+// MIDI Input Device Management
+//==============================================================================
+
+void DrumPadComponent::setupMidiInputDevices()
+{
+    GUIHelpers::log("DrumPadComponent: Setting up MIDI input devices");
+
+    auto& deviceManager = m_edit.engine.getDeviceManager();
+
+    // Rescan for MIDI devices to ensure we have the latest list
+    deviceManager.rescanMidiDeviceList();
+
+    auto midiDevices = deviceManager.getMidiInDevices();
+    GUIHelpers::log("DrumPadComponent: Found " + juce::String(midiDevices.size()) + " MIDI input devices");
+
+    for (int i = 0; i < midiDevices.size(); ++i)
+    {
+        auto& device = midiDevices[i];
+        GUIHelpers::log("DrumPadComponent: Device " + juce::String(i) + ": " + device->getName() +
+                       " (Type: " + juce::String(device->getDeviceType()) + ")");
+
+        if (auto physicalDevice = dynamic_cast<te::PhysicalMidiInputDevice*>(device.get()))
+        {
+            GUIHelpers::log("DrumPadComponent: Found physical MIDI device: " + physicalDevice->getName());
+
+            // Enable the device and add as listener
+            physicalDevice->setEnabled(true);
+            physicalDevice->addListener(this);
+            m_connectedMidiDevices.add(physicalDevice);
+
+            // Try to open the device
+            auto error = physicalDevice->openDevice();
+            if (!error.isEmpty())
+            {
+                GUIHelpers::log("DrumPadComponent: Error opening MIDI device " +
+                               physicalDevice->getName() + ": " + error);
+            }
+            else
+            {
+                GUIHelpers::log("DrumPadComponent: Successfully connected to MIDI device: " +
+                               physicalDevice->getName());
+            }
+        }
+        else
+        {
+            GUIHelpers::log("DrumPadComponent: Device " + device->getName() + " is not a physical MIDI device");
+        }
+    }
+
+    if (m_connectedMidiDevices.isEmpty())
+    {
+        GUIHelpers::log("DrumPadComponent: No physical MIDI devices found - pad lighting will only work with virtual MIDI");
+    }
+    else
+    {
+        GUIHelpers::log("DrumPadComponent: Connected to " + juce::String(m_connectedMidiDevices.size()) + " MIDI devices");
+    }
+}
+
+void DrumPadComponent::cleanupMidiInputDevices()
+{
+    GUIHelpers::log("DrumPadComponent: Cleaning up MIDI input devices");
+
+    for (auto* device : m_connectedMidiDevices)
+    {
+        if (device != nullptr)
+        {
+            device->removeListener(this);
+            GUIHelpers::log("DrumPadComponent: Disconnected from MIDI device: " + device->getName());
+        }
+    }
+
+    m_connectedMidiDevices.clear();
+}
+
+//==============================================================================
+// MIDI Input Callback Implementation
+//==============================================================================
+
+void DrumPadComponent::handleIncomingMidiMessage(const juce::MidiMessage& message)
+{
+    // This callback is called from the Tracktion Engine MIDI thread
+    // We need to safely forward this to the UI thread
+
+    if (message.isNoteOn())
+    {
+        GUIHelpers::log("DrumPadComponent: MIDI Note ON received - Note: " +
+                       juce::String(message.getNoteNumber()) +
+                       ", Velocity: " + juce::String(message.getFloatVelocity()) +
+                       ", Channel: " + juce::String(message.getChannel()));
+    }
+    else if (message.isNoteOff())
+    {
+        GUIHelpers::log("DrumPadComponent: MIDI Note OFF received - Note: " +
+                       juce::String(message.getNoteNumber()) +
+                       ", Channel: " + juce::String(message.getChannel()));
+    }
+    else
+    {
+        GUIHelpers::log("DrumPadComponent: Other MIDI message received: " + message.getDescription());
+    }
+
+    juce::MessageManager::callAsync([this, message]() {
+        processMidiForPadLighting(message);
+    });
+}
+
+void DrumPadComponent::processMidiForPadLighting(const juce::MidiMessage& message)
+{
+    if (message.isNoteOn())
+    {
+        int noteNumber = message.getNoteNumber();
+        float velocity = message.getFloatVelocity();
+
+        GUIHelpers::log("DrumPadComponent: Processing Note ON - Note: " + juce::String(noteNumber) +
+                       ", Velocity: " + juce::String(velocity));
+
+        int padIndex = getPadIndexForMidiNote(noteNumber);
+        GUIHelpers::log("DrumPadComponent: Note " + juce::String(noteNumber) +
+                       " maps to pad index " + juce::String(padIndex));
+
+        if (padIndex >= 0 && padIndex < m_pads.size())
+        {
+            GUIHelpers::log("DrumPadComponent: Illuminating pad " + juce::String(padIndex));
+            illuminatePadForNote(noteNumber, velocity);
+        }
+        else
+        {
+            GUIHelpers::log("DrumPadComponent: No valid pad for note " + juce::String(noteNumber));
+        }
+    }
+    else if (message.isNoteOff())
+    {
+        int noteNumber = message.getNoteNumber();
+
+        GUIHelpers::log("DrumPadComponent: Processing Note OFF - Note: " + juce::String(noteNumber));
+
+        int padIndex = getPadIndexForMidiNote(noteNumber);
+        GUIHelpers::log("DrumPadComponent: Note " + juce::String(noteNumber) +
+                       " maps to pad index " + juce::String(padIndex));
+
+        if (padIndex >= 0 && padIndex < m_pads.size())
+        {
+            GUIHelpers::log("DrumPadComponent: Turning off pad " + juce::String(padIndex));
+            turnOffPadForNote(noteNumber);
+        }
+        else
+        {
+            GUIHelpers::log("DrumPadComponent: No valid pad for note " + juce::String(noteNumber));
+        }
+    }
+}
+
+void DrumPadComponent::illuminatePadForNote(int midiNote, float velocity)
+{
+    int padIndex = getPadIndexForMidiNote(midiNote);
+
+    if (padIndex >= 0 && padIndex < m_pads.size())
+    {
+        // Calculate color based on velocity (darker for softer, brighter for louder)
+        juce::Colour baseColor = juce::Colours::orange;
+        float brightness = juce::jlimit(0.3f, 1.0f, 0.3f + velocity * 0.7f);
+        juce::Colour velocityColor = baseColor.withBrightness(brightness);
+
+        // Get the return color (selected pad stays blue, others grey)
+        juce::Colour returnColor = (padIndex == m_selectedPadIndex) ?
+                                   juce::Colours::blue : juce::Colours::grey;
+
+        // Trigger visual feedback with velocity-based color
+        m_pads[padIndex]->triggerVisualFeedback(velocityColor, returnColor);
+
+        GUIHelpers::log("DrumPadComponent: Illuminated pad " + juce::String(padIndex) +
+                       " for MIDI note " + juce::String(midiNote) +
+                       " with velocity " + juce::String(velocity));
+    }
+    else
+    {
+        GUIHelpers::log("DrumPadComponent: No pad found for MIDI note " + juce::String(midiNote));
+    }
+}
+
+void DrumPadComponent::turnOffPadForNote(int midiNote)
+{
+    int padIndex = getPadIndexForMidiNote(midiNote);
+
+    if (padIndex >= 0 && padIndex < m_pads.size())
+    {
+        // Return to normal color
+        juce::Colour returnColor = (padIndex == m_selectedPadIndex) ?
+                                   juce::Colours::blue : juce::Colours::grey;
+        m_pads[padIndex]->changeColour(returnColor);
+
+        GUIHelpers::log("DrumPadComponent: Turned off pad " + juce::String(padIndex) +
+                       " for MIDI note " + juce::String(midiNote));
+    }
+}
+
+int DrumPadComponent::getPadIndexForMidiNote(int midiNote)
+{
+    // Only check for exact keyNote matches - this is the correct behavior for drum pads
+    for (int soundIndex = 0; soundIndex < m_samplerPlugin.getNumSounds(); ++soundIndex)
+    {
+        int keyNote = m_samplerPlugin.getKeyNote(soundIndex);
+
+        // Check if this sound has a valid keyNote assigned (not default -1)
+        if (keyNote >= 0 && keyNote == midiNote)
+        {
+            GUIHelpers::log("DrumPadComponent: Found exact match - MIDI note " + juce::String(midiNote) +
+                           " -> sound index " + juce::String(soundIndex));
+            return getPadIndexForSound(soundIndex);
+        }
+    }
+
+    // For drum pads, we should NOT use range-based matching or wide fallbacks
+    // Only use the standard mapping if no custom keyNotes are set at all
+    bool hasCustomKeyNotes = false;
+    for (int soundIndex = 0; soundIndex < m_samplerPlugin.getNumSounds(); ++soundIndex)
+    {
+        if (m_samplerPlugin.getKeyNote(soundIndex) >= 0)
+        {
+            hasCustomKeyNotes = true;
+            break;
+        }
+    }
+
+    // Always use default mapping for pads without custom keyNotes
+    // This ensures pads light up even when no sound is loaded
+    if (midiNote >= BASE_MIDI_NOTE && midiNote < BASE_MIDI_NOTE + 16)
+    {
+        int soundIndex = midiNote - BASE_MIDI_NOTE;
+
+        // Check if this pad has a custom keyNote - if so, don't use default mapping
+        if (soundIndex < m_samplerPlugin.getNumSounds())
+        {
+            int customKeyNote = m_samplerPlugin.getKeyNote(soundIndex);
+            if (customKeyNote >= 0)
+            {
+                GUIHelpers::log("DrumPadComponent: Pad " + juce::String(soundIndex) +
+                               " has custom keyNote " + juce::String(customKeyNote) +
+                               " - skipping default mapping for MIDI note " + juce::String(midiNote));
+                return -1; // Don't use default mapping for pads with custom keyNotes
+            }
+        }
+
+        GUIHelpers::log("DrumPadComponent: Using default mapping - MIDI note " + juce::String(midiNote) +
+                       " -> sound index " + juce::String(soundIndex));
+        return getPadIndexForSound(soundIndex);
+    }
+
+    GUIHelpers::log("DrumPadComponent: No pad found for MIDI note " + juce::String(midiNote));
+    return -1; // No pad found for this note
+}
+
+int DrumPadComponent::getPadIndexForSound(int soundIndex)
+{
+    // With the corrected resized() logic, padIndex and soundIndex are now the same.
+    return soundIndex;
 }
 
 //==============================================================================
@@ -727,9 +995,13 @@ void DrumPadComponent::setupNewSample(int soundIndex, const juce::File& file)
         m_samplerPlugin.setSoundExcerpt(soundIndex, 0.0, fileLength);
     }
 
-    // Set MIDI parameters and make the sound open-ended
-    int midiNote = BASE_MIDI_NOTE + soundIndex;
-    m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+    // Set MIDI parameters - for drum pads, each sound should only respond to its exact note
+    const int midiNote = BASE_MIDI_NOTE + soundIndex;
+
+    GUIHelpers::log("DrumPadComponent: setupNewSample - soundIndex: " + juce::String(soundIndex) +
+                   ", midiNote: " + juce::String(midiNote));
+
+    m_samplerPlugin.setSoundParams(soundIndex, midiNote, midiNote, midiNote);  // keyNote=minNote=maxNote
     m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
 
     updatePadNames();
