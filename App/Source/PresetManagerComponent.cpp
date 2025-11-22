@@ -191,37 +191,46 @@ void PresetManagerComponent::savePreset()
 
         juce::String presetName = presetFile.getFileNameWithoutExtension();
 
-        // Validation: Only allow alphanumeric characters, dashes and underscores
-        juce::String safePresetName = presetName.retainCharacters("a-zA-Z0-9_- ");
+        // Sanitize the preset name to create a legal filename
+        juce::String safePresetName = juce::File::createLegalFileName(presetName);
+
         if (safePresetName.isEmpty())
         {
-            GUIHelpers::log("PresetManagerComponent: Invalid preset name: " + presetName);
+            GUIHelpers::log("Preset name is invalid after sanitization: " + presetName);
+            // Optionally, show an alert to the user
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                                   "Invalid Preset Name",
+                                                   "The chosen preset name is invalid or contains only illegal characters.");
             return;
         }
 
-        // If the name was changed, rename the file
+        // If sanitization changed the name, update the file object to use the new name
         if (safePresetName != presetName)
         {
+            GUIHelpers::log("Preset name '" + presetName + "' was sanitized to '" + safePresetName + "'");
             presetFile = presetFile.getSiblingFile(safePresetName + ".nxtpreset");
         }
 
-        // Get the plugin's current state
+        // Get the plugin's current state and use the sanitized name
         juce::ValueTree pluginState = m_pluginInterface->getPluginState();
         pluginState.setProperty("name", safePresetName, nullptr);
 
         if (auto xml = std::unique_ptr<juce::XmlElement>(pluginState.createXml()))
         {
+            // DEBUG: Log the state before saving
+            GUIHelpers::log("Saving Preset XML:\n" + xml->toString());
+
             xml->writeTo(presetFile, {});
 
             // Refresh preset list after saving
             refreshPresetList();
 
             // Select the newly saved preset
-            for (int i = 1; i < m_presetCombo->getNumItems(); ++i)
+            for (int i = 0; i < m_presetCombo->getNumItems(); ++i)
             {
-                if (m_presetCombo->getItemText(i) == presetName)
+                if (m_presetCombo->getItemText(i) == safePresetName)
                 {
-                    m_presetCombo->setSelectedId(m_presetCombo->getItemId(i), juce::dontSendNotification);
+                    m_presetCombo->setSelectedItemIndex(i, juce::dontSendNotification);
                     break;
                 }
             }
