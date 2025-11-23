@@ -136,8 +136,6 @@ DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin& plugin)
 
     m_samplerPlugin.state.addListener(this);
 
-    initializeDrumPads();
-
     for (int i = 0; i < 16; ++i)
     {
         auto pad = std::make_unique<PadComponent>(this, i);
@@ -245,9 +243,14 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
                                                                    juce::File(),
                                                                    "*.wav;*.aif;*.aiff");
 
+                     juce::Component::SafePointer<DrumPadGridComponent> safeThis(this);
+
                      fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-                                     [this, soundIndex, chooser = fc](const juce::FileChooser& fc)
+                                     [safeThis, soundIndex, chooser = fc](const juce::FileChooser& fc)
                                      {
+                                         if (safeThis == nullptr)
+                                             return;
+
                                          if (fc.getResults().isEmpty())
                                          {
                                              GUIHelpers::log("DrumPadComponent: File selection cancelled");
@@ -255,7 +258,8 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
                                          }
 
                                          auto file = fc.getResult();
-                                         setupNewSample(soundIndex, file);
+
+                                         safeThis->setupNewSample(soundIndex, file);
                                      });
                      });
     menu.addSeparator();
@@ -278,9 +282,6 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
 
                      GUIHelpers::log("DrumPadComponent: Cleared sound at index " + juce::String(soundIndex) +
                                     " (pad midiNote: " + juce::String(padMidiNote) + ")");
-
-                     // Update our new data structure
-                     getPadData(soundIndex).currentSound.reset();
 
                      updatePadNames();
 
@@ -649,67 +650,37 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent& event)
 
 void DrumPadGridComponent::swapPadSounds(int sourcePad, int targetPad)
 {
-    if (sourcePad < 0 || sourcePad >= m_pads.size() ||
-        targetPad < 0 || targetPad >= m_pads.size())
-        return;
+    // Validation
+    if (sourcePad < 0 || sourcePad >= 16 || targetPad < 0 || targetPad >= 16) return;
 
-    int sourceSoundIndex = getSoundIndexForPad(sourcePad);
-    int targetSoundIndex = getSoundIndexForPad(targetPad);
+    int sourceSoundIdx = getSoundIndexForPad(sourcePad);
+    int targetSoundIdx = getSoundIndexForPad(targetPad);
 
-    if (sourceSoundIndex >= m_samplerPlugin.getNumSounds() ||
-        targetSoundIndex >= m_samplerPlugin.getNumSounds())
-        return;
+    GUIHelpers::log("DrumPadComponent: Swapping sounds " + juce::String(sourceSoundIdx) + " <-> " + juce::String(targetSoundIdx));
 
-    GUIHelpers::log("DrumPadComponent: Swapping sounds between pad " + juce::String(sourcePad) +
-                   " (sound " + juce::String(sourceSoundIndex) + ") and pad " + juce::String(targetPad) +
-                   " (sound " + juce::String(targetSoundIndex) + ")");
+    // 1. Read status directly from the plugin (Single Source of Truth)
+    auto stateA = getSoundStateFromPlugin(sourceSoundIdx);
+    auto stateB = getSoundStateFromPlugin(targetSoundIdx);
 
-    // Get all data from source and target sounds
-    auto sourceData = getPadSoundData(sourceSoundIndex);
-    auto targetData = getPadSoundData(targetSoundIndex);
+    // 2. Apply crosswise
+    applySoundStateToPlugin(sourceSoundIdx, stateB);
+    applySoundStateToPlugin(targetSoundIdx, stateA);
 
-    // Apply swapped data
-    applyPadSoundData(targetSoundIndex, sourceData);
-    applyPadSoundData(sourceSoundIndex, targetData);
+    // 3. Repair MIDI Notes (Fixed Note Logic)
+    // No matter what we swapped, Pad X must always remain Note Y
 
-    // MIDI parameters are ALWAYS tied to the pad index, not the sound data
-    // No more custom keyNote logic - each pad has its fixed midiNote
-    const int targetMidiNote = getMidiNoteForPad(targetPad);
-    m_samplerPlugin.setSoundParams(targetSoundIndex, targetMidiNote, targetMidiNote, targetMidiNote);
+    int noteA = getMidiNoteForPad(sourcePad);
+    m_samplerPlugin.setSoundParams(sourceSoundIdx, noteA, noteA, noteA);
 
-    const int sourceMidiNote = getMidiNoteForPad(sourcePad);
-    m_samplerPlugin.setSoundParams(sourceSoundIndex, sourceMidiNote, sourceMidiNote, sourceMidiNote);
+    int noteB = getMidiNoteForPad(targetPad);
+    m_samplerPlugin.setSoundParams(targetSoundIdx, noteB, noteB, noteB);
 
-    GUIHelpers::log("DrumPadComponent: Sound swap - sourceSound: " + juce::String(sourceSoundIndex) +
-                   " -> fixed midiNote: " + juce::String(sourceMidiNote) +
-                   ", targetSound: " + juce::String(targetSoundIndex) +
-                   " -> fixed midiNote: " + juce::String(targetMidiNote));
-
-    // Update our new data structure - swap the sound pointers
-    auto& sourcePadData = getPadData(sourcePad);
-    auto& targetPadData = getPadData(targetPad);
-
-    std::swap(sourcePadData.currentSound, targetPadData.currentSound);
-
-    // Update the MIDI parameters in the sound data to match the new pads
-    if (sourcePadData.currentSound)
-    {
-        sourcePadData.currentSound->keyNote = sourceMidiNote;
-        sourcePadData.currentSound->minNote = sourceMidiNote;
-        sourcePadData.currentSound->maxNote = sourceMidiNote;
-    }
-
-    if (targetPadData.currentSound)
-    {
-        targetPadData.currentSound->keyNote = targetMidiNote;
-        targetPadData.currentSound->minNote = targetMidiNote;
-        targetPadData.currentSound->maxNote = targetMidiNote;
-    }
-
-    // Update UI
+    // 4. UI Update
     updatePadNames();
 
-    GUIHelpers::log("DrumPadComponent: Sound swap completed");
+    // Repaint specific pads for immediate feedback
+    if (sourcePad < m_pads.size()) m_pads[sourcePad]->repaint();
+    if (targetPad < m_pads.size()) m_pads[targetPad]->repaint();
 }
 
 //==============================================================================
@@ -794,28 +765,12 @@ void DrumPadGridComponent::cleanupMidiInputDevices()
 
 void DrumPadGridComponent::handleIncomingMidiMessage(const juce::MidiMessage& message)
 {
-    // This callback is called from the Tracktion Engine MIDI thread
-    // We need to safely forward this to the UI thread
-
-
-    juce::MessageManager::callAsync([this, message]() {
-
+    // on message thread we can log and light up the pad
+    juce::MessageManager::callAsync([this, message]()
+    {
         if (message.isNoteOn())
         {
-            GUIHelpers::log("DrumPadComponent: MIDI Note ON received - Note: " +
-                           juce::String(message.getNoteNumber()) +
-                           ", Velocity: " + juce::String(message.getFloatVelocity()) +
-                           ", Channel: " + juce::String(message.getChannel()));
-        }
-        else if (message.isNoteOff())
-        {
-            GUIHelpers::log("DrumPadComponent: MIDI Note OFF received - Note: " +
-                           juce::String(message.getNoteNumber()) +
-                           ", Channel: " + juce::String(message.getChannel()));
-        }
-        else
-        {
-            GUIHelpers::log("DrumPadComponent: Other MIDI message received: " + message.getDescription());
+            GUIHelpers::log("MIDI Note ON: " + juce::String(message.getNoteNumber()));
         }
 
         processMidiForPadLighting(message);
@@ -885,9 +840,9 @@ int DrumPadGridComponent::getPadIndexForMidiNote(int midiNote)
 {
     // Direct calculation: Pad 0 = MIDI 48, Pad 1 = MIDI 49, etc.
     // No more complex mapping table needed!
-    if (midiNote >= DrumPadData::BASE_MIDI_NOTE && midiNote < DrumPadData::BASE_MIDI_NOTE + 16)
+    if (midiNote >= BASE_MIDI_NOTE && midiNote < BASE_MIDI_NOTE + 16)
     {
-        int padIndex = midiNote - DrumPadData::BASE_MIDI_NOTE;
+        int padIndex = midiNote - BASE_MIDI_NOTE;
         GUIHelpers::log("DrumPadComponent: Direct mapping - MIDI note " + juce::String(midiNote) +
                        " -> pad index " + juce::String(padIndex));
         return padIndex;
@@ -903,27 +858,16 @@ int DrumPadGridComponent::getPadIndexForMidiNote(int midiNote)
 
 void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File& file)
 {
-    if (soundIndex < 0 || soundIndex >= m_samplerPlugin.getNumSounds())
-    {
-        GUIHelpers::log("DrumPadComponent::setupNewSample: Invalid soundIndex " + juce::String(soundIndex));
-        return;
-    }
-
-    if (!file.existsAsFile())
-    {
-        GUIHelpers::log("DrumPadComponent::setupNewSample: File does not exist: " + file.getFullPathName());
-        return;
-    }
+    if (soundIndex < 0 || soundIndex >= m_samplerPlugin.getNumSounds()) return;
+    if (!file.existsAsFile()) return;
 
     auto filePath = file.getFullPathName();
     auto fileName = file.getFileNameWithoutExtension();
 
-    GUIHelpers::log("DrumPadComponent::setupNewSample: Setting up sound " + juce::String(soundIndex) + " with file " + fileName);
-
     m_samplerPlugin.setSoundMedia(soundIndex, filePath);
     m_samplerPlugin.setSoundName(soundIndex, fileName);
 
-    // Set marker positions to the full length of the audio file
+    // Length logic
     auto audioFile = m_samplerPlugin.getSoundFile(soundIndex);
     if (audioFile.isValid())
     {
@@ -931,77 +875,45 @@ void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File& file
         m_samplerPlugin.setSoundExcerpt(soundIndex, 0.0, fileLength);
     }
 
-    // Set MIDI parameters - always use the pad's fixed midiNote
-    int padMidiNote = getMidiNoteForPad(soundIndex);
-
-    GUIHelpers::log("DrumPadComponent: setupNewSample - soundIndex: " + juce::String(soundIndex) +
-                   ", padMidiNote: " + juce::String(padMidiNote));
-
-    m_samplerPlugin.setSoundParams(soundIndex, padMidiNote, padMidiNote, padMidiNote);  // keyNote=minNote=maxNote=padMidiNote
+    int padMidiNote = getMidiNoteForPad(soundIndex); // soundIndex == padIndex
+    m_samplerPlugin.setSoundParams(soundIndex, padMidiNote, padMidiNote, padMidiNote);
     m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
-
-    // Update our new data structure
-    auto& padData = getPadData(soundIndex);
-    padData.currentSound = std::make_unique<SoundData>(filePath, fileName, 0.0f, 0.0f, 0.0, 0.0);
-    padData.currentSound->keyNote = padMidiNote;
-    padData.currentSound->minNote = padMidiNote;
-    padData.currentSound->maxNote = padMidiNote;
-
-    updatePadNames();
 }
 
-SoundData DrumPadGridComponent::getPadSoundData(int soundIndex) const
-{
-    SoundData data;
-    if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
-    {
-        data.filePath = m_samplerPlugin.getSoundMedia(soundIndex);
-        data.name = m_samplerPlugin.getSoundName(soundIndex);
-        data.gainDb = m_samplerPlugin.getSoundGainDb(soundIndex);
-        data.pan = m_samplerPlugin.getSoundPan(soundIndex);
-        data.startpos = m_samplerPlugin.getSoundStartTime(soundIndex);
-        data.length = m_samplerPlugin.getSoundLength(soundIndex);
-        data.openEnded = m_samplerPlugin.isSoundOpenEnded(soundIndex);
-    }
-    return data;
-}
-
-void DrumPadGridComponent::applyPadSoundData(int soundIndex, const SoundData& data)
-{
-    if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
-    {
-        m_samplerPlugin.setSoundMedia(soundIndex, data.filePath);
-        m_samplerPlugin.setSoundName(soundIndex, data.name);
-        m_samplerPlugin.setSoundGains(soundIndex, data.gainDb, data.pan);
-        m_samplerPlugin.setSoundExcerpt(soundIndex, data.startpos, data.length);
-        m_samplerPlugin.setSoundOpenEnded(soundIndex, data.openEnded);
-    }
-}
-
-void DrumPadGridComponent::initializeDrumPads()
-{
-    GUIHelpers::log("DrumPadComponent: Initializing drum pads with fixed MIDI notes");
-
-    for (int i = 0; i < 16; ++i)
-    {
-        m_drumPads[i] = std::make_unique<DrumPadData>(i);
-        GUIHelpers::log("DrumPadComponent: Pad " + juce::String(i) +
-                       " assigned MIDI note " + juce::String(m_drumPads[i]->midiNote));
-    }
-}
 
 int DrumPadGridComponent::getMidiNoteForPad(int padIndex) const
 {
     if (padIndex >= 0 && padIndex < 16)
     {
-        return m_drumPads[padIndex]->midiNote;
+        return BASE_MIDI_NOTE + padIndex;
     }
     return -1;
 }
-// Implementierung des Helpers
-DrumPadGridComponent::DrumPadData& DrumPadGridComponent::getPadData(int padIndex)
+
+DrumPadGridComponent::TempSoundState DrumPadGridComponent::getSoundStateFromPlugin(int soundIndex) const
 {
-    // Sicherstellen, dass der Index valide ist
-    jassert(juce::isPositiveAndBelow(padIndex, (int)m_drumPads.size()));
-    return *m_drumPads[padIndex];
+    TempSoundState s;
+    if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
+    {
+        s.filePath  = m_samplerPlugin.getSoundMedia(soundIndex);
+        s.name      = m_samplerPlugin.getSoundName(soundIndex);
+        s.gainDb    = m_samplerPlugin.getSoundGainDb(soundIndex);
+        s.pan       = m_samplerPlugin.getSoundPan(soundIndex);
+        s.start     = m_samplerPlugin.getSoundStartTime(soundIndex);
+        s.length    = m_samplerPlugin.getSoundLength(soundIndex);
+        s.openEnded = m_samplerPlugin.isSoundOpenEnded(soundIndex);
+    }
+    return s;
+}
+
+void DrumPadGridComponent::applySoundStateToPlugin(int soundIndex, const TempSoundState& state)
+{
+    if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
+    {
+        m_samplerPlugin.setSoundMedia(soundIndex, state.filePath);
+        m_samplerPlugin.setSoundName(soundIndex, state.name);
+        m_samplerPlugin.setSoundGains(soundIndex, state.gainDb, state.pan);
+        m_samplerPlugin.setSoundExcerpt(soundIndex, state.start, state.length);
+        m_samplerPlugin.setSoundOpenEnded(soundIndex, state.openEnded);
+    }
 }
