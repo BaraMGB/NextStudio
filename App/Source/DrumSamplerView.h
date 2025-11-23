@@ -33,7 +33,7 @@ private:
     te::Edit& m_edit;
     te::SamplerPlugin& m_sampler;
 
-    DrumPadComponent m_drumPadComponent;
+    DrumPadGridComponent m_drumPadComponent;
     SoundEditorPanel m_soundEditorPanel;
 
     // Drag & Drop state

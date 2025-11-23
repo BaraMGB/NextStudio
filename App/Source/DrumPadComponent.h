@@ -2,12 +2,37 @@
 
 namespace te = tracktion_engine;
 
-class DrumPadComponent;
+class DrumPadGridComponent;
 
-class DrumPad : public juce::Component, private juce::Timer
+// New simplified data structure for sound data
+struct SoundData
 {
 public:
-    DrumPad(DrumPadComponent* parent, int index) : owner(parent), padIndex(index) {}
+    SoundData() = default;
+    SoundData(const juce::String& filePath, const juce::String& name,
+              float gainDb, float pan, double startpos, double length)
+        : filePath(filePath), name(name), gainDb(gainDb), pan(pan),
+          startpos(startpos), length(length) {}
+
+    juce::String filePath;
+    juce::String name;
+    float gainDb = 0.0f;
+    float pan = 0.0f;
+    double startpos = 0.0;
+    double length = 0.0;
+    bool openEnded = true;
+
+    // MIDI parameters are always tied to the pad's midiNote
+    int keyNote = -1;        // Will be set to pad.midiNote
+    int minNote = -1;        // Will be set to pad.midiNote
+    int maxNote = -1;        // Will be set to pad.midiNote
+};
+
+// a visual representation of a Pad
+class PadComponent : public juce::Component, private juce::Timer
+{
+public:
+    PadComponent(DrumPadGridComponent* parent, int index) : owner(parent), padIndex(index) {}
 
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent& e) override;
@@ -28,21 +53,21 @@ private:
     juce::Colour m_colour;
     juce::String m_text;
     juce::Colour m_returnColour { juce::Colours::grey };
-    DrumPadComponent* owner;
+    DrumPadGridComponent* owner;
     int padIndex;
     bool m_isDragTarget = false;
     juce::Point<int> m_dragStartPos;
     bool m_isDragging = false;
 };
 
-class DrumPadComponent : public juce::Component,
+class DrumPadGridComponent : public juce::Component,
                          public juce::ValueTree::Listener,
                          public juce::DragAndDropTarget,
                          private te::PhysicalMidiInputDevice::Listener
 {
 public:
-    DrumPadComponent(te::SamplerPlugin&);
-    ~DrumPadComponent() override;
+    DrumPadGridComponent(te::SamplerPlugin&);
+    ~DrumPadGridComponent() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -71,7 +96,6 @@ public:
     // Accessors for DrumPad
     bool isPadDragging() const { return m_isPadDragging; }
     int getDragSourcePad() const { return m_dragSourcePad; }
-    int getSoundKeyNote(int soundIndex) const { return m_samplerPlugin.getKeyNote(soundIndex); }
 
     // MIDI Input handling
     void handleIncomingMidiMessage(const juce::MidiMessage& message) override;
@@ -85,7 +109,9 @@ public:
     void illuminatePadForNote(int midiNote, float velocity);
     void turnOffPadForNote(int midiNote);
     int getPadIndexForMidiNote(int midiNote);
-    int getPadIndexForSound(int soundIndex);
+
+    int getMidiNoteForPad(int padIndex) const;
+    void initializeDrumPads();
 
     void showPadContextMenu(int padIndex);
     void updatePadNames();
@@ -98,24 +124,33 @@ public:
     static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
 
 private:
-
-    struct PadSoundData
+    // New simplified DrumPadData class with fixed MIDI note
+    struct DrumPadData
     {
-        juce::String media;
-        juce::String name;
-        float gainDb;
-        float pan;
-        double startTime;
-        double length;
-        bool openEnded;
+    public:
+        DrumPadData(int index) : padIndex(index), midiNote(BASE_MIDI_NOTE + index) {}
+
+        int padIndex;           // 0-15
+        int midiNote;           // 48-63
+        std::unique_ptr<SoundData> currentSound; //  pointer to SoundData
+
+        static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
     };
+
+
     void setupNewSample(int soundIndex, const juce::File& file);
-    PadSoundData getPadSoundData(int soundIndex) const;
-    void applyPadSoundData(int soundIndex, const PadSoundData& data);
+    SoundData getPadSoundData(int soundIndex) const;
+    void applyPadSoundData(int soundIndex, const SoundData& data);
 
     te::Edit& m_edit;
     te::SamplerPlugin& m_samplerPlugin;
-    juce::OwnedArray<DrumPad> m_pads;
+    juce::OwnedArray<PadComponent> m_pads;
+
+    // New simplified data structure
+    DrumPadData& getPadData(int padIndex); 
+    const DrumPadData& getPadData(int padIndex) const;
+    std::array<std::unique_ptr<DrumPadData>, 16> m_drumPads;
+
     int m_selectedPadIndex = -1;
     int m_draggedOverPad = -1;
 
@@ -129,5 +164,5 @@ private:
     // MIDI Input Devices
     juce::Array<te::PhysicalMidiInputDevice*> m_connectedMidiDevices;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DrumPadComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DrumPadGridComponent)
 };
