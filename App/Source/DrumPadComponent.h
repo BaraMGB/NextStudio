@@ -4,30 +4,6 @@ namespace te = tracktion_engine;
 
 class DrumPadGridComponent;
 
-// New simplified data structure for sound data
-struct SoundData
-{
-public:
-    SoundData() = default;
-    SoundData(const juce::String& filePath, const juce::String& name,
-              float gainDb, float pan, double startpos, double length)
-        : filePath(filePath), name(name), gainDb(gainDb), pan(pan),
-          startpos(startpos), length(length) {}
-
-    juce::String filePath;
-    juce::String name;
-    float gainDb = 0.0f;
-    float pan = 0.0f;
-    double startpos = 0.0;
-    double length = 0.0;
-    bool openEnded = true;
-
-    // MIDI parameters are always tied to the pad's midiNote
-    int keyNote = -1;        // Will be set to pad.midiNote
-    int minNote = -1;        // Will be set to pad.midiNote
-    int maxNote = -1;        // Will be set to pad.midiNote
-};
-
 // a visual representation of a Pad
 class PadComponent : public juce::Component, private juce::Timer
 {
@@ -111,7 +87,6 @@ public:
     int getPadIndexForMidiNote(int midiNote);
 
     int getMidiNoteForPad(int padIndex) const;
-    void initializeDrumPads();
 
     void showPadContextMenu(int padIndex);
     void updatePadNames();
@@ -124,32 +99,26 @@ public:
     static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
 
 private:
-    // New simplified DrumPadData class with fixed MIDI note
-    struct DrumPadData
+    void setupNewSample(int soundIndex, const juce::File& file);
+
+    // Helper struct only for swapping tasks, don't persists.
+    struct TempSoundState
     {
-    public:
-        DrumPadData(int index) : padIndex(index), midiNote(BASE_MIDI_NOTE + index) {}
-
-        int padIndex;           // 0-15
-        int midiNote;           // 48-63
-        std::unique_ptr<SoundData> currentSound; //  pointer to SoundData
-
-        static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
+        juce::String filePath;
+        juce::String name;
+        float gainDb = 0.0f;
+        float pan = 0.0f;
+        double start = 0.0;
+        double length = 0.0;
+        bool openEnded = true;
     };
 
-
-    void setupNewSample(int soundIndex, const juce::File& file);
-    SoundData getPadSoundData(int soundIndex) const;
-    void applyPadSoundData(int soundIndex, const SoundData& data);
+    TempSoundState getSoundStateFromPlugin(int soundIndex) const;
+    void applySoundStateToPlugin(int soundIndex, const TempSoundState& state);
 
     te::Edit& m_edit;
     te::SamplerPlugin& m_samplerPlugin;
     juce::OwnedArray<PadComponent> m_pads;
-
-    // New simplified data structure
-    DrumPadData& getPadData(int padIndex); 
-    const DrumPadData& getPadData(int padIndex) const;
-    std::array<std::unique_ptr<DrumPadData>, 16> m_drumPads;
 
     int m_selectedPadIndex = -1;
     int m_draggedOverPad = -1;
