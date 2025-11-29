@@ -25,25 +25,28 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "AutomatableSliderComponent.h"
 
 namespace te = tracktion_engine;
+class ApplicationViewState;
 
 class SoundEditorPanel : public juce::Component, public juce::Button::Listener, public juce::Value::Listener
 {
 public:
-    SoundEditorPanel(te::Edit& edit);
+    SoundEditorPanel(tracktion::SamplerPlugin& plugin, te::Edit& edit, ApplicationViewState& appViewState);
     ~SoundEditorPanel() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    void setSound(te::SamplerPlugin* plugin, int soundIndex);
+    void setSound(int soundIndex);
 
     void buttonClicked(juce::Button* button) override;
     void valueChanged(juce::Value& value) override;
 
 
 private:
+
     te::Edit& m_edit;
-    te::SamplerPlugin* samplerPlugin = nullptr;
+    ApplicationViewState& m_appViewState;
+    te::SamplerPlugin& m_samplerPlugin;
     int soundIndex = -1;
     bool m_markersNeedUpdate = false;
 
@@ -54,5 +57,6 @@ private:
     juce::ToggleButton openEndedButton;
     juce::Label openEndedLabel;
 
+    std::unique_ptr<te::AudioFile> m_audioFile;
     std::unique_ptr<SampleDisplay> m_thumbnail;
 };

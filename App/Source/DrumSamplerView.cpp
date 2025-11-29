@@ -5,8 +5,8 @@ DrumSamplerView::DrumSamplerView(EditViewState& evs, te::SamplerPlugin& sampler)
     : PluginViewComponent(evs, sampler),
     m_edit(sampler.edit),
     m_sampler(sampler),
-    m_drumPadComponent(sampler),
-    m_soundEditorPanel(sampler.edit)
+    m_drumPadComponent(sampler, evs.m_applicationState),
+    m_soundEditorPanel(sampler, sampler.edit, evs.m_applicationState)
 {
     GUIHelpers::log("DrumSamplerView: constructor");
 
@@ -16,7 +16,7 @@ DrumSamplerView::DrumSamplerView(EditViewState& evs, te::SamplerPlugin& sampler)
     m_drumPadComponent.onPadClicked = [this, &sampler](int padIndex)
     {
         int soundIndex = m_drumPadComponent.getSoundIndexForPad(padIndex);
-        m_soundEditorPanel.setSound(&sampler, soundIndex);
+        m_soundEditorPanel.setSound(soundIndex);
     };
 }
 
@@ -27,7 +27,7 @@ DrumSamplerView::~DrumSamplerView()
 
 void DrumSamplerView::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey.darker());
+    g.fillAll(m_editViewState.m_applicationState.getBackgroundColour1().darker());
 }
 
 void DrumSamplerView::resized()

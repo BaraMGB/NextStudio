@@ -229,7 +229,7 @@ public:
                           juce::Slider& slider) override
     {
         auto isAutomationActive = false;
-        auto volumeColour = juce::Colour(0x88e9e949);
+        auto volumeColour = m_appState.getPrimeColour();
         auto backgroundArcColour = juce::Colour(0xff171717);
         if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
         {

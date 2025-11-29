@@ -274,7 +274,7 @@ bool SamplePreviewComponent::setFile(const juce::File& file)
     auto colour = *m_isSync ? m_avs.getPrimeColour() : m_avs.getTextColour();
     m_fileName.setColour(juce::Label::textColourId, colour);
     
-    m_thumbnail = std::make_unique<SampleDisplay>(m_previewEdit->getTransport ());
+    m_thumbnail = std::make_unique<SampleDisplay>(m_previewEdit->getTransport (), m_avs);
     m_thumbnail->setFile (audioFile);
     m_thumbnail->setColour(m_avs.getSamplesColour());
     addAndMakeVisible (*m_thumbnail);

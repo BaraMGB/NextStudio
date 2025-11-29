@@ -20,6 +20,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SampleDisplay.h"
+#include "ApplicationViewState.h"
+#include "Utilities.h"
 
 //==============================================================================
 // MarkerComponent Implementation
@@ -73,9 +75,10 @@ void MarkerComponent::updateFromTime(double time, double totalLength, float comp
     float compWidth = MARKER_WIDTH;
 
     if (m_type == End)
-        componentX = x - compWidth + LINE_WIDTH; // Shift left so handle is visible
+        componentX = x - compWidth; // Shift left so handle is visible
 
-    setBounds(componentX, 0, compWidth, getParentHeight());
+    auto gap = 2;
+    setBounds(componentX, gap, compWidth, getParentHeight() - gap * 2);
 
     auto r = getLocalBounds().toFloat();
 
@@ -165,8 +168,12 @@ double MarkerComponent::timeFromPosition(const juce::Point<float>& position) con
 // SampleDisplay Implementation
 //==============================================================================
 
-SampleDisplay::SampleDisplay(te::TransportControl&  tc)
-    : transport(tc), m_sampleView(tc.edit), m_startMarker(MarkerComponent::Start, juce::Colours::green), m_endMarker(MarkerComponent::End, juce::Colours::red)
+SampleDisplay::SampleDisplay(te::TransportControl&  tc, ApplicationViewState& appViewState)
+    : transport(tc),
+      m_appViewState(appViewState),
+      m_sampleView(tc.edit),
+      m_startMarker(MarkerComponent::Start, appViewState.getPrimeColour()),
+      m_endMarker(MarkerComponent::End, appViewState.getPrimeColour())
 {
     addAndMakeVisible(m_sampleView);
     cursorUpdater.setCallback ([this]{
@@ -352,29 +359,27 @@ double SampleDisplay::positionToTime(const juce::Point<float>& position) const
 }
 
 SampleView::SampleView(te::Edit& edit)
-    : m_edit(edit)
-    , m_smartThumbnail(
-        m_edit.engine,
-        te::AudioFile(m_edit.engine),
-        *this,
-        nullptr)
+    : m_edit(edit),
+      m_audioFile(edit.engine, {}),
+      m_smartThumbnail(m_edit.engine, te::AudioFile(m_edit.engine), *this, nullptr)
 {
     setInterceptsMouseClicks(false, false);
 }
 
 void SampleView::setFile(const tracktion_engine::AudioFile &file)
 {
+    m_audioFile = file;
     m_smartThumbnail.setNewFile (file);
 }
 
 void SampleView::paint(juce::Graphics &g)
 {
     auto r = getLocalBounds();
-    const auto colour = m_colour != juce::Colour() ? m_colour :findColour (juce::Label::textColourId);
+    const auto colour = m_colour != juce::Colour() ? m_colour : findColour(juce::Label::textColourId);
 
     if (m_smartThumbnail.isGeneratingProxy())
     {
-        g.setColour (colour.withMultipliedBrightness (0.9f));
+        g.setColour(colour);
         g.drawText ("Creating proxy: "
                     + juce::String (juce::roundToInt (
                                         m_smartThumbnail.getProxyProgress() * 100.0f))

@@ -378,7 +378,6 @@ public:
     ApplicationViewState& getApplicationViewState() override;
 
     int getNeededWidth() override {return 3;}
-
 private:
 
     void curveHasChanged(te::AutomatableParameter&) override{} 

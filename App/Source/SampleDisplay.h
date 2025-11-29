@@ -39,6 +39,7 @@ struct SampleView : public juce::Component
     te::SmartThumbnail & getSmartThumbnail () { return m_smartThumbnail; }
 private:
     te::Edit& m_edit;
+    te::AudioFile m_audioFile;
     juce::Colour m_colour;
     te::SmartThumbnail m_smartThumbnail;
 };
@@ -82,12 +83,14 @@ private:
     double timeFromPosition(const juce::Point<float>& position) const;
 };
 
+class ApplicationViewState;
+
 class SampleDisplay : public juce::Component
 {
 public:
     static constexpr int CURSOR_UPDATE_FPS = 15;
 
-    SampleDisplay(te::TransportControl& tc);
+    SampleDisplay(te::TransportControl& tc, ApplicationViewState& appViewState);
 
     void resized() override;
 
@@ -107,6 +110,7 @@ public:
 
 private:
     te::TransportControl& transport;
+    ApplicationViewState& m_appViewState;
     juce::DrawableRectangle cursor;
     MarkerComponent m_startMarker;
     MarkerComponent m_endMarker;

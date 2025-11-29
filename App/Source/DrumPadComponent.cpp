@@ -1,4 +1,5 @@
 #include "DrumPadComponent.h"
+#include "ApplicationViewState.h"
 #include "Utilities.h"
 #include "Browser_Base.h"
 
@@ -15,22 +16,26 @@ void PadComponent::paint(juce::Graphics& g)
     // Highlight if drag target
     if (m_isDragTarget)
     {
-        g.setColour(juce::Colours::orange.brighter());
+        g.setColour(owner->m_appViewState.getPrimeColour());
         g.drawRoundedRectangle(area, 5, 3);
     }
 
+    g.setColour(owner->m_appViewState.getBorderColour());
+    g.fillRoundedRectangle(area, 5);
+    area.reduce(1, 1);
     g.setColour(m_colour);
     g.fillRoundedRectangle(area, 5);
 
     // Draw the note name in the top-left corner
     area.reduce (2, 2);
-    g.setColour(juce::Colours::white.withAlpha(0.5f));
+    g.setColour(m_colour.getBrightness() > 0.5f 
+        ? juce::Colours::black 
+        : owner->m_appViewState.getButtonTextColour());
     g.setFont(12.0f);
     g.drawText(owner->getMidiNoteNameForPad(padIndex), area, juce::Justification::topLeft);
 
     // Draw the sample name in the center
-    g.setColour(juce::Colours::black);
-    g.setFont(9.0f);
+    g.setFont(7.0f);
     g.drawText(m_text, area, juce::Justification::centred);
 }
 
@@ -128,9 +133,10 @@ void PadComponent::timerCallback()
 
 // -----------------------------------------------------------------------
 
-DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin& plugin)
+DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin& plugin, ApplicationViewState& appViewState)
     : m_edit(plugin.edit)
     , m_samplerPlugin(plugin)
+    , m_appViewState(appViewState)
 {
     GUIHelpers::log("DrumPadComponent: constructor");
 
@@ -140,7 +146,7 @@ DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin& plugin)
     {
         auto pad = std::make_unique<PadComponent>(this, i);
         m_pads.add(pad.get());
-        pad->changeColour(juce::Colours::grey);
+        pad->changeColour(m_appViewState.getButtonBackgroundColour());
         addAndMakeVisible(pad.release());
     }
 
@@ -160,20 +166,45 @@ DrumPadGridComponent::~DrumPadGridComponent()
 
 void DrumPadGridComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey);
+    g.fillAll(m_appViewState.getBackgroundColour2());
+    auto bounds = getLocalBounds();
+    bounds.reduce(2, 2);
+    g.fillRoundedRectangle(bounds.toFloat(), 10);
+    bounds.reduce(1, 1);
+    g.setColour(m_appViewState.getBackgroundColour1());
+    g.fillRoundedRectangle(bounds.toFloat(), 10);
 }
 
 void DrumPadGridComponent::resized()
 {
     auto bounds = getLocalBounds();
-    auto padWidth = bounds.getWidth() / 4;
-    auto padHeight = bounds.getHeight() / 4;
+    bounds.reduce(3, 3); // Outer margin
+
+    // 1. Determine the maximum possible size for a pad
+    // by taking the smaller dimension of the available space.
+    // This keeps the pads square.
+    // (If you want rectangular pads, use getWidth()/4 and getHeight()/4 separately)
+    auto minDimension = juce::jmin(bounds.getWidth(), bounds.getHeight());
+    auto padSize = minDimension / 4;
+
+    // 2. Calculate the total size of the 4x4 grid
+    auto totalGridSize = padSize * 4;
+
+    // 3. Calculate the start offset to center the grid:
+    // (Available Space - Used Space) / 2
+    auto xOffset = bounds.getX() + (bounds.getWidth() - totalGridSize) / 2;
+    auto yOffset = bounds.getY() + (bounds.getHeight() - totalGridSize) / 2;
 
     for (int i = 0; i < m_pads.size(); ++i)
     {
-        auto x = (i % 4) * padWidth;
-        auto y = (3 - (i / 4)) * padHeight; // Invert y-axis for bottom-up layout
-        m_pads[i]->setBounds(x, y, padWidth, padHeight);
+        auto col = i % 4;
+        auto row = 3 - (i / 4); // Invert y-axis for bottom-up layout
+
+        // 4. Calculate coordinates: Start Offset + (Column/Row * Size)
+        auto x = xOffset + (col * padSize);
+        auto y = yOffset + (row * padSize);
+
+        m_pads[i]->setBounds(x, y, padSize, padSize);
     }
 }
 
@@ -186,11 +217,11 @@ void DrumPadGridComponent::buttonDown(int padIndex)
     {
         // Update selection
         if (m_selectedPadIndex != -1 && m_selectedPadIndex < m_pads.size())
-            m_pads[m_selectedPadIndex]->changeColour(juce::Colours::grey);
+            m_pads[m_selectedPadIndex]->changeColour(m_appViewState.getButtonBackgroundColour());
 
         m_selectedPadIndex = padIndex;
         int soundIndex = getSoundIndexForPad(padIndex);
-        m_pads[m_selectedPadIndex]->changeColour(juce::Colours::blue);
+        m_pads[m_selectedPadIndex]->changeColour(m_appViewState.getPrimeColour());
 
         // Always play sound when clicked, regardless of whether it has media
         GUIHelpers::log("DrumPadComponent: Clicked pad " + juce::String(padIndex) + ", soundIndex: " + juce::String(soundIndex));
@@ -223,9 +254,8 @@ void DrumPadGridComponent::buttonDown(int padIndex)
         }
 
         // Visual feedback
-        juce::Colour returnColour = (padIndex == m_selectedPadIndex) ?
-                                     juce::Colours::blue : juce::Colours::grey;
-        m_pads[padIndex]->triggerVisualFeedback(juce::Colours::lightblue, returnColour);
+        auto noteNum = getMidiNoteForPad(padIndex);
+        illuminatePadForNote(noteNum, 100);
     }
 }
 
@@ -394,7 +424,7 @@ void DrumPadGridComponent::itemDragEnter (const SourceDetails& dragSourceDetails
     if (auto* pad = dynamic_cast<PadComponent*>(getComponentAt(dragSourceDetails.localPosition)))
     {
         m_draggedOverPad = m_pads.indexOf(pad);
-        pad->changeColour(juce::Colours::orange);
+        pad->changeColour(m_appViewState.getPrimeColour());
     }
 }
 
@@ -408,15 +438,15 @@ void DrumPadGridComponent::itemDragMove (const SourceDetails& dragSourceDetails)
         if (m_draggedOverPad != -1)
         {
             if (m_draggedOverPad == m_selectedPadIndex)
-                m_pads[m_draggedOverPad]->changeColour(juce::Colours::blue);
+                m_pads[m_draggedOverPad]->changeColour(m_appViewState.getPrimeColour());
             else
-                m_pads[m_draggedOverPad]->changeColour(juce::Colours::grey);
+                m_pads[m_draggedOverPad]->changeColour(m_appViewState.getButtonBackgroundColour());
         }
 
         m_draggedOverPad = padIndex;
 
         if (m_draggedOverPad != -1)
-            m_pads[m_draggedOverPad]->changeColour(juce::Colours::orange);
+            m_pads[m_draggedOverPad]->changeColour(m_appViewState.getRenderColour());
     }
 }
 
@@ -425,9 +455,9 @@ void DrumPadGridComponent::itemDragExit (const SourceDetails&)
     if (m_draggedOverPad != -1)
     {
         if (m_draggedOverPad == m_selectedPadIndex)
-            m_pads[m_draggedOverPad]->changeColour(juce::Colours::blue);
+            m_pads[m_draggedOverPad]->changeColour(m_appViewState.getPrimeColour());
         else
-            m_pads[m_draggedOverPad]->changeColour(juce::Colours::grey);
+            m_pads[m_draggedOverPad]->changeColour(m_appViewState.getButtonBackgroundColour());
         m_draggedOverPad = -1;
     }
 }
@@ -455,9 +485,9 @@ void DrumPadGridComponent::itemDropped (const SourceDetails& dragSourceDetails)
     if (m_draggedOverPad != -1)
     {
         if (m_draggedOverPad == m_selectedPadIndex)
-            m_pads[m_draggedOverPad]->changeColour(juce::Colours::blue);
+            m_pads[m_draggedOverPad]->changeColour(m_appViewState.getPrimeColour());
         else
-            m_pads[m_draggedOverPad]->changeColour(juce::Colours::grey);
+            m_pads[m_draggedOverPad]->changeColour(m_appViewState.getButtonBackgroundColour());
 
         m_draggedOverPad = -1;
     }
@@ -494,9 +524,10 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
     {
         int sourcePadIndex;
         juce::String soundName;
+        ApplicationViewState& m_appViewState;
 
-        DragImagePainter(int pad, const juce::String& name)
-            : sourcePadIndex(pad), soundName(name)
+        DragImagePainter(int pad, const juce::String& name, ApplicationViewState& appViewState)
+            : sourcePadIndex(pad), soundName(name), m_appViewState(appViewState)
         {
             setSize(50, 50);
             setAlwaysOnTop(true);
@@ -509,16 +540,16 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
             area.reduce (5, 5);
 
             // Semi-transparent background
-            g.setColour(juce::Colours::black.withAlpha(0.7f));
+            g.setColour(m_appViewState.getButtonBackgroundColour().withAlpha(0.7f));
             g.fillRoundedRectangle(area, 8);
 
             // Border
-            g.setColour(juce::Colours::orange);
+            g.setColour(m_appViewState.getPrimeColour());
             g.drawRoundedRectangle(area, 8, 2);
 
             // Pad info
             area.reduce (5, 5);
-            g.setColour(juce::Colours::white);
+            g.setColour(m_appViewState.getTextColour());
             g.setFont(12.0f);
             g.drawText("Pad " + juce::String(sourcePadIndex), area.removeFromTop(20), juce::Justification::centred);
 
@@ -527,7 +558,7 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
         }
     };
 
-    m_dragImageComponent = std::make_unique<DragImagePainter>(sourcePadIndex, soundName);
+    m_dragImageComponent = std::make_unique<DragImagePainter>(sourcePadIndex, soundName, m_appViewState);
 
     // Add to parent component for proper layering
     if (auto parent = getParentComponent())
@@ -547,7 +578,7 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
     setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 
     // Visual feedback on source pad
-    m_pads[sourcePadIndex]->changeColour(juce::Colours::orange.withAlpha(0.5f));
+    m_pads[sourcePadIndex]->changeColour(m_appViewState.getPrimeColour().withAlpha(0.5f));
 }
 
 void DrumPadGridComponent::continuePadDrag(const juce::MouseEvent& event)
@@ -609,9 +640,9 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent& event)
         swapPadSounds(m_dragSourcePad, targetPadIndex);
 
         // Visual feedback on successful drop
-        m_pads[targetPadIndex]->triggerVisualFeedback(juce::Colours::green,
+        m_pads[targetPadIndex]->triggerVisualFeedback(m_appViewState.getButtonTextColour(),
                                                      targetPadIndex == m_selectedPadIndex ?
-                                                     juce::Colours::blue : juce::Colours::grey);
+                                                     m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour());
         buttonDown(targetPadIndex);
     }
 
@@ -619,7 +650,7 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent& event)
     if (m_dragSourcePad >= 0 && m_dragSourcePad < m_pads.size())
     {
         juce::Colour sourceColor = (m_dragSourcePad == m_selectedPadIndex) ?
-                                   juce::Colours::blue : juce::Colours::grey;
+                                   m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
         m_pads[m_dragSourcePad]->changeColour(sourceColor);
     }
 
@@ -810,13 +841,13 @@ void DrumPadGridComponent::illuminatePadForNote(int midiNote, float velocity)
     if (padIndex >= 0 && padIndex < m_pads.size())
     {
         // Calculate color based on velocity (darker for softer, brighter for louder)
-        juce::Colour baseColor = juce::Colours::orange;
+        juce::Colour baseColor = m_appViewState.getPrimeColour().brighter(0.8f);
         float brightness = juce::jlimit(0.3f, 1.0f, 0.3f + velocity * 0.7f);
         juce::Colour velocityColor = baseColor.withBrightness(brightness);
 
         // Get the return color (selected pad stays blue, others grey)
         juce::Colour returnColor = (padIndex == m_selectedPadIndex) ?
-                                   juce::Colours::blue : juce::Colours::grey;
+                                   m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
 
         // Trigger visual feedback with velocity-based color
         m_pads[padIndex]->triggerVisualFeedback(velocityColor, returnColor);
@@ -831,7 +862,7 @@ void DrumPadGridComponent::turnOffPadForNote(int midiNote)
     {
         // Return to normal color
         juce::Colour returnColor = (padIndex == m_selectedPadIndex) ?
-                                   juce::Colours::blue : juce::Colours::grey;
+                                   m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
         m_pads[padIndex]->changeColour(returnColor);
     }
 }
