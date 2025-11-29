@@ -2,6 +2,7 @@
 
 namespace te = tracktion_engine;
 
+class ApplicationViewState;
 class DrumPadGridComponent;
 
 // a visual representation of a Pad
@@ -42,7 +43,7 @@ class DrumPadGridComponent : public juce::Component,
                          private te::PhysicalMidiInputDevice::Listener
 {
 public:
-    DrumPadGridComponent(te::SamplerPlugin&);
+    DrumPadGridComponent(te::SamplerPlugin&, ApplicationViewState&);
     ~DrumPadGridComponent() override;
 
     void paint(juce::Graphics&) override;
@@ -96,6 +97,7 @@ public:
     juce::String getMidiNoteNameForPad(int padIndex);
     std::function<void(int)> onPadClicked;
 
+    ApplicationViewState& m_appViewState;
     static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
 
 private:

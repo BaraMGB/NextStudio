@@ -320,6 +320,13 @@ void PresetManagerComponent::loadOrInitialiseDefaultPreset()
         // 'init.nxtpreset' does not exist, so create it from the default state
         juce::String presetName = "init";
         juce::ValueTree pluginDefaultState = m_pluginInterface->getFactoryDefaultState();
+
+        if (!pluginDefaultState.isValid())
+        {
+            GUIHelpers::log("PresetManagerComponent: Plugin type '" + m_pluginInterface->getPluginTypeName() + "' returned an invalid factory default state.");
+            return;
+        }
+
         pluginDefaultState.setProperty("name", presetName, nullptr);
 
         if (auto xml = std::unique_ptr<juce::XmlElement>(pluginDefaultState.createXml()))

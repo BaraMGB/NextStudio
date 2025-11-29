@@ -93,12 +93,13 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
             auto colour = rowIsSelected ? juce::Colours::black : textColour;
 
             // Breite der einzelnen Textteile berechnen
-            int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
-            int termWidth = g.getCurrentFont().getStringWidth(searchTerm);
-            int postTermWidth = g.getCurrentFont().getStringWidth(postTerm);
+            const auto& font = g.getCurrentFont();
+            int preTermWidth = juce::GlyphArrangement::getStringWidthInt(font, preTerm);
+            int termWidth = juce::GlyphArrangement::getStringWidthInt(font, searchTerm);
+            int postTermWidth = juce::GlyphArrangement::getStringWidthInt(font, postTerm);
 
             g.setColour(colour);
-            g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+            g.setFont(g.getCurrentFont().withHeight((float)height * 0.7f).withStyle(juce::Font::bold));
             g.drawFittedText(preTerm, textArea.getX(), textArea.getY(), 
                              juce::jmin(preTermWidth, textArea.getWidth()), textArea.getHeight(), 
                              juce::Justification::centredLeft, 1, 0.9f);
