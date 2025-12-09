@@ -112,9 +112,18 @@ void MainComponent::resized()
     auto area = getLocalBounds();
     area.reduce(10, 10);
 
-    auto lowerRange = area.removeFromBottom( m_editComponent->getEditViewState().m_isPianoRollVisible
-                       ? m_editComponent->getEditViewState().m_midiEditorHeight
-            : 250);
+    auto& evs = m_editComponent->getEditViewState();
+    auto lowerRangeHeight = 0;
+    if (evs.getLowerRangeView() == LowerRangeView::midiEditor)
+        lowerRangeHeight = evs.m_midiEditorHeight;
+    else if (evs.getLowerRangeView() == LowerRangeView::pluginRack)
+        lowerRangeHeight = 250;
+    else if (evs.getLowerRangeView() == LowerRangeView::mixer)
+        lowerRangeHeight = 250;
+
+
+
+    auto lowerRange = area.removeFromBottom(lowerRangeHeight);
     m_sideBarBrowser->setBounds(area.removeFromLeft(m_applicationState.m_sidebarWidth));
     m_sidebarSplitter.setBounds(area.removeFromLeft(10));
     m_editorContainer->setBounds(area);
@@ -571,7 +580,7 @@ void MainComponent::valueTreePropertyChanged(
         m_header->loopButtonClicked();
 
     if (property == IDs::pianorollHeight
-        || property == IDs::isPianoRollVisible)
+        || property == IDs::lowerRangeView)
             markAndUpdate(m_updateView);
 
     if (property == te::IDs::source || property == te::IDs::state)
@@ -702,6 +711,7 @@ void MainComponent::setupEdit(juce::File editFile)
     m_editViewState = std::make_unique<EditViewState>(*m_edit, m_selectionManager, m_applicationState);
     m_editComponent = std::make_unique<EditComponent>(*m_edit, *m_editViewState, m_applicationState, m_selectionManager, m_commandManager);
     m_lowerRange = std::make_unique<LowerRangeComponent>(*m_editViewState);
+    m_editViewState->setLowerRangeView(LowerRangeView::mixer);
 
     m_edit->state.addListener(this);
 

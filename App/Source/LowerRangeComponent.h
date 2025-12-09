@@ -30,8 +30,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PianoRollEditor.h"
 #include "RackView.h"
 #include "SplitterComponent.h"
+#include "LowerRangeTabBar.h"
+#include "MixerComponent.h"
 
 namespace te = tracktion_engine;
+
 
 class LowerRangeComponent : public juce::Component
                           , public te::ValueTreeAllEventListener
@@ -47,6 +50,7 @@ public:
     PianoRollEditor& getPianoRollEditor() {return m_pianoRollEditor;}
 
 private:
+    void updateView();
 
     void valueTreeChanged() override {}
     void valueTreePropertyChanged (juce::ValueTree&
@@ -65,6 +69,8 @@ private:
 
     RackView m_rackView;
     PianoRollEditor m_pianoRollEditor;
+    MixerComponent m_mixer;
+    LowerRangeTabBar m_tabBar;
     SplitterComponent m_splitter;
     const float m_splitterHeight {10.f};
 

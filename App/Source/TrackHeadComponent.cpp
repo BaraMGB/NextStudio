@@ -797,11 +797,8 @@ void TrackHeaderComponent::mouseDown (const juce::MouseEvent& event)
                 {
                     m_editViewState.m_selectionManager.selectOnly(m_track);
                     m_dragImage = createComponentSnapshot (getLocalBounds ());
-                }
-
-                if (event.getNumberOfClicks () > 1 || !m_editViewState.m_isPianoRollVisible)
-                {
-                    m_editViewState.m_isPianoRollVisible = false;
+                    
+                    m_editViewState.setLowerRangeView(LowerRangeView::pluginRack);
                     for (auto t : te::getAllTracks(m_editViewState.m_edit))
                     {
                         t->state.setProperty(IDs::showLowerRange, false, nullptr);
