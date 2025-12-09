@@ -436,7 +436,7 @@ void EditComponent::valueTreePropertyChanged (
     if (v.hasType (IDs::EDITVIEWSTATE))
     {
         if (
-             i == IDs::isPianoRollVisible
+             i == IDs::lowerRangeView
             || i == IDs::pianorollHeight
             || i == IDs::showHeaders
             || i == IDs::showFooters)
@@ -720,15 +720,22 @@ void EditComponent::itemDragExit (const SourceDetails& dragSourceDetails)
 
 }
 
-void EditComponent::itemDropped (const SourceDetails& dragSourceDetails) 
+void EditComponent::itemDropped (const SourceDetails& dragSourceDetails)
 {
+    m_dragOver = false;
+
     auto f = juce::File();
     if (auto b = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
         f = b->getSelectedFile();
 
     if (f.existsAsFile())
+    {
         if (auto mc = dynamic_cast<MainComponent*>(getParentComponent()->getParentComponent()))
+        {
             mc->setupEdit(f);
+            return;
+        }
+    }
 
     repaint();
 }

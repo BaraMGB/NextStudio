@@ -89,7 +89,7 @@ namespace IDs
     DECLARE_ID (headerWidth)
     DECLARE_ID (isMidiTrack)
     DECLARE_ID (isAutoArmed)
-    DECLARE_ID (isPianoRollVisible)
+    DECLARE_ID (lowerRangeView)
     DECLARE_ID (timeLineHeight)
     DECLARE_ID (lastNoteLenght)
     DECLARE_ID (name)
@@ -136,11 +136,23 @@ struct ViewData {
     }
 };
 
+enum class LowerRangeView { none, midiEditor, pluginRack, mixer };
+
 class EditViewState
 {
 public:
     EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs);
     ~EditViewState();
+
+    void setLowerRangeView (LowerRangeView newView)
+    {
+        m_lowerRangeView = static_cast<int>(newView);
+    }
+
+    LowerRangeView getLowerRangeView()
+    {
+        return static_cast<LowerRangeView>((int)m_lowerRangeView);
+    }
 
     juce::ValueTree getPresetManagerUIStateForPlugin(const te::Plugin& plugin);
 
@@ -250,11 +262,11 @@ public:
                           , m_showFooters
                           , m_showMidiDevices
                           , m_showWaveDevices
-                          , m_isPianoRollVisible
                           , m_isAutoArmed
                           , m_automationFollowsClip
                           , m_followPlayhead
                           , m_syncAutomation;
+    juce::CachedValue<int> m_lowerRangeView;
      juce::CachedValue<double>  m_lastNoteLength
                             , m_playHeadStartTime
                             , m_timeLineZoomUnit;

@@ -497,7 +497,7 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
     {
         clearSelectedTimeRange();
 
-        if ((e.getNumberOfClicks() > 1 || m_editViewState.m_isPianoRollVisible) && m_hoveredClip->isMidi())
+        if ((e.getNumberOfClicks() > 1 || m_editViewState.getLowerRangeView() == LowerRangeView::midiEditor) && m_hoveredClip->isMidi())
         {
             setPianoRoll(m_hoveredTrack);
         }
@@ -1287,7 +1287,7 @@ tracktion_engine::MidiClip::Ptr SongEditorView::createNewMidiClip(double beatPos
 
 void SongEditorView::setPianoRoll(te::Track * track)
 {
-    m_editViewState.m_isPianoRollVisible = true;
+    m_editViewState.setLowerRangeView(LowerRangeView::midiEditor);
 
     for (auto t : te::getAllTracks(m_editViewState.m_edit))
     {

@@ -122,6 +122,9 @@ target_sources(${TargetName} PRIVATE
         Source/SoundEditorPanel.cpp
         Source/DrumSamplerView.cpp
         Source/SampleDisplay.cpp
+        Source/MixerComponent.cpp
+        Source/LowerRangeTabBar.cpp
+        Source/MixerChannelStripComponent.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE

@@ -50,7 +50,7 @@ EditViewState::EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationV
     m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 290);
     m_folderTrackHeight.referTo(m_state, IDs::folderTrackHeight, um, 30);
     m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
-    m_isPianoRollVisible.referTo (m_state, IDs::isPianoRollVisible, um, false);
+    m_lowerRangeView.referTo (m_state, IDs::lowerRangeView, um, 0);
     m_midiEditorHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
     m_lastNoteLength.referTo (m_state, IDs::lastNoteLenght, um, 0);
     m_snapType.referTo(m_state, IDs::snapType, um, 9);
