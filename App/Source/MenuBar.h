@@ -40,7 +40,8 @@ enum class Alignment
 {
     Left,
     Center,
-    Right
+    Right,
+    Bottom
 };
 
 class MenuBar : public juce::Component

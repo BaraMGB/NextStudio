@@ -89,25 +89,25 @@ void LowerRangeComponent::paint(juce::Graphics &g)
 {
     auto rect = getLocalBounds();
     g.setColour(juce::Colour(0xff181818));
-    g.fillRect(rect.removeFromBottom(getHeight() - 30 - (int)m_splitterHeight).toFloat());
+    g.fillRect(rect.removeFromBottom(getHeight() - (int)m_splitterHeight).toFloat());
 }
 
 void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
 {
     auto area = getLocalBounds ();
-    area.removeFromTop(30 + (int)m_splitterHeight);
+    area.removeFromTop((int)m_splitterHeight);
     GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_evs.m_applicationState.getMainFrameColour(), m_evs.m_applicationState.getBorderColour());
 }
 
 void LowerRangeComponent::resized()
 {
     auto area = getLocalBounds();
-    m_tabBar.setBounds(area.removeFromTop(30));
     auto splitter = area.removeFromTop ((int) m_splitterHeight);
     splitter.reduce(10, 1); 
 
     m_splitter.setBounds (splitter);
 
+    m_tabBar.setBounds(area.removeFromLeft(70));
     m_rackView.setBounds(area);
     m_mixer.setBounds(area);
 
