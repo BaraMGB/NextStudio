@@ -20,17 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
-/*
-  ==============================================================================
-
-    MenuBar.cpp
-    Created: 23 Feb 2020 5:36:47pm
-    Author:  Zehn
-
-  ==============================================================================
-*/
-
 #include "MenuBar.h"
 #include "Utilities.h"
 
@@ -41,18 +30,22 @@ void MenuBar::addButton(juce::DrawableButton* button, int toggleGroupId)
     m_buttonGaps.set(m_buttons.indexOf(button), m_defaultGap);
     addAndMakeVisible(button);
 
-      if (toggleGroupId > 0)
+    if (toggleGroupId > 0)
     {
         button->setClickingTogglesState(true);
         button->setRadioGroupId(toggleGroupId);
     }
 }
+
 void MenuBar::setButtonGap(int bg)
 {
     for (auto gap = 0; gap < m_buttonGaps.size();gap++)
-        if (m_buttonGaps.getReference(gap) == m_defaultGap) {setButtonGap(gap, bg);}
+        if (m_buttonGaps.getReference(gap) == m_defaultGap)
+            setButtonGap(gap, bg);
+
     m_defaultGap = bg;
 }
+
 void MenuBar::setButtonGap(int index, int gap)
 {
     if (index >= 0 && index < m_buttons.size())
@@ -77,6 +70,7 @@ void MenuBar::resized()
             flexAlign = juce::FlexBox::JustifyContent::center;
             break;
         case Alignment::Right:
+        case Alignment::Bottom:
             flexAlign = juce::FlexBox::JustifyContent::flexEnd;
             break;
     }
@@ -96,9 +90,7 @@ void MenuBar::resized()
     int totalButtonSize = 0;
 
     for (int i = 0; i < m_buttons.size(); ++i)
-    {
         totalButtonSize += buttonSize + m_buttonGaps[i];
-    }
 
     bool enoughSpace = totalButtonSize <= availableSpace;
     if (m_firstTime)
@@ -110,34 +102,23 @@ void MenuBar::resized()
     if ((!enoughSpace) && (m_wasEnoughSpace == true))
     {
        m_wasEnoughSpace = false;
-       
+
        removeAllChildren(); 
-      
+
        m_popupButton = std::make_unique<juce::DrawableButton>("More...", juce::DrawableButton::ImageOnButtonBackground);
         GUIHelpers::setDrawableOnButton(*m_popupButton, BinaryData::menu_svg, juce::Colours::grey);
        addAndMakeVisible(m_popupButton.get());
-      
-        juce::FlexItem::Margin margin;
-        int gap = m_defaultGap;
-        margin.top = gap; 
-        margin.bottom = gap;
-        margin.right = gap;
-        margin.left = gap;
-       fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_popupButton).withMargin(margin));
-       fb.performLayout(getLocalBounds());
-      
+
        juce::PopupMenu popupMenu;
        for (int i = 0; i < m_buttons.size(); ++i)
        {
            popupMenu.addItem(i + 1, m_buttons[i]->getButtonText());
        }
-      
+
        m_popupButton->onClick = [this, popupMenu]() mutable {
            int result = popupMenu.show();
            if (result > 0 && result <= m_buttons.size())
-           {
                m_buttons[result - 1]->triggerClick();
-           }
        };
     }
     else if ((enoughSpace) && m_wasEnoughSpace == false) 
@@ -146,8 +127,13 @@ void MenuBar::resized()
         removeAllChildren();
 
         for (int i = 0; i < m_buttons.size(); ++i)
-        {
             addAndMakeVisible(*m_buttons[i]);
+    }
+
+    if (m_wasEnoughSpace)
+    {
+        for (int i = 0; i < m_buttons.size(); ++i)
+        {
             juce::FlexItem::Margin margin;
             if (i < m_buttons.size() - 1) {
                 int gap = m_buttonGaps[i];
@@ -159,6 +145,18 @@ void MenuBar::resized()
         }
 
         fb.performLayout(getLocalBounds().reduced(m_vertical ? getWidth() / 5.0f : getHeight() / 5.0f).toFloat());
+    }
+    else
+    {
+        juce::FlexItem::Margin margin;
+        int gap = m_defaultGap;
+        margin.top = gap; 
+        margin.bottom = gap;
+        margin.right = gap;
+        margin.left = gap;
+        if (m_popupButton)
+            fb.items.add(juce::FlexItem(buttonSize, buttonSize, *m_popupButton).withMargin(margin));
+        fb.performLayout(getLocalBounds());
     }
 }
 
