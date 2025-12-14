@@ -33,20 +33,20 @@ class NextLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     NextLookAndFeel(ApplicationViewState& appState)
-        : m_appState(appState)
+    : m_appState(appState)
     {
     }
 
     void drawGroupComponentOutline (juce::Graphics& g, int width, int height,
-                                                const juce::String& text, const juce::Justification& position,
-                                                juce::GroupComponent& group) override
+                                    const juce::String& text, const juce::Justification& position,
+                                    juce::GroupComponent& group) override
     {
         const float textH = 15.0f;
         const float indent = 3.0f;
         const float textEdgeGap = 4.0f;
         auto cs = 5.0f;
 
-        juce::Font f (textH);
+        juce::Font f { juce::FontOptions(textH) };
 
         juce::Path p;
         auto x = indent;
@@ -104,15 +104,15 @@ public:
     {
         // Get the bounds of the button
         juce::Rectangle<int> bounds = button.getBounds();
-        
+
         // Set the font and color for the text
         g.setColour(m_appState.getTextColour());
-        g.setFont(juce::Font(bounds.getHeight() * 0.6f));
-        
+        g.setFont(juce::FontOptions(bounds.getHeight() * 0.6f));
+
         // Get the text and orientation
         const juce::String& text = button.getButtonText();
         juce::TabbedButtonBar::Orientation orientation = button.getTabbedButtonBar().getOrientation();
-        
+
         // Check if the orientation is vertical (TabsAtRight or TabsAtLeft)
         if (orientation == juce::TabbedButtonBar::TabsAtRight || orientation == juce::TabbedButtonBar::TabsAtLeft)
         {
@@ -121,7 +121,7 @@ public:
             int textY = (bounds.getHeight() - bounds.getWidth()) / 2;
             int textWidth = bounds.getHeight();
             int textHeight = bounds.getWidth();
-            
+
             // Draw the text horizontally within the calculated rectangle
             g.drawFittedText(text, textX, textY, textWidth, textHeight, juce::Justification::centred, 1);
         }
@@ -132,23 +132,23 @@ public:
         }
     }
     void drawDrawableButton(juce::Graphics& g,
-                              juce::DrawableButton& button,
-                              bool isMouseOverButton,
-                              bool isButtonDown) override
+                            juce::DrawableButton& button,
+                            bool isMouseOverButton,
+                            bool isButtonDown) override
     {
         drawButtonBackground(g, button, button.findColour(juce::DrawableButton::backgroundColourId) , isMouseOverButton,  isButtonDown);
 
         const int textH = (button.getStyle() == juce::DrawableButton::ImageAboveTextLabel)
-                        ? juce::jmin (16, button.proportionOfHeight (0.20f))
-                        : 0;
+            ? juce::jmin (16, button.proportionOfHeight (0.20f))
+            : 0;
 
         if (textH > 0)
         {
             g.setFont ((float) textH);
 
             g.setColour (button.findColour (button.getToggleState() ? juce::DrawableButton::textColourOnId
-                                                        : juce::DrawableButton::textColourId)
-                            .withMultipliedAlpha (button.isEnabled() ? 1.0f : 0.4f));
+                                            : juce::DrawableButton::textColourId)
+                         .withMultipliedAlpha (button.isEnabled() ? 1.0f : 0.4f));
 
             g.drawFittedText (button.getButtonText(),
                               4, button.getHeight() - textH - 4,
@@ -157,6 +157,7 @@ public:
         }
 
     }
+
     void drawButtonBackground(juce::Graphics& g,
                               juce::Button& button,
                               const juce::Colour& backgroundColour,
@@ -195,6 +196,11 @@ public:
     }
 
 
+    int getSliderThumbRadius (juce::Slider& slider) override
+    {
+        return 13;
+    }
+
     void drawLinearSlider (juce::Graphics&g, int x, int y, int width, int height,
                            float sliderPos, float minSliderPos, float maxSliderPos,
                            const juce::Slider::SliderStyle style, juce::Slider& slider) override
@@ -213,7 +219,91 @@ public:
             g.setColour(juce::Colours::black);
             g.drawRoundedRectangle(slider.toFloat(), 3,1);
         }
-        else {
+        else if (style == juce::Slider::SliderStyle::LinearVertical)
+        {
+            auto trackWidth = 6.0f;
+            // Use minSliderPos and maxSliderPos to define the track's vertical extent
+            // Note: maxSliderPos is the pixel position for the maximum value (Top), minSliderPos is for Minimum (Bottom)
+            float trackTop = (float)maxSliderPos;
+            float trackBottom = (float)minSliderPos;
+            float trackHeight = trackBottom - trackTop;
+
+            juce::Rectangle<float> trackBounds ((float) x + ((float) width - trackWidth) * 0.5f, trackTop, trackWidth, trackHeight);
+
+            g.setColour (juce::Colours::black.withAlpha (0.5f));
+            g.fillRoundedRectangle (trackBounds, 3.0f);
+
+            juce::Rectangle<float> fillRect;
+            fillRect.setX (trackBounds.getX());
+            fillRect.setWidth (trackBounds.getWidth());
+            fillRect.setBottom (trackBounds.getBottom());
+            fillRect.setTop (sliderPos);
+
+            g.setColour (m_appState.getPrimeColour());
+            g.fillRoundedRectangle (fillRect, 3.0f);
+
+            auto thumbWidth = juce::jmin ((float) width * 0.7f, 18.0f);
+            auto thumbHeight = 26.0f; // Fixed height matching 2*radius
+
+            auto thumbX = (float) x + ((float) width - thumbWidth) * 0.5f;
+            auto thumbY = sliderPos - (thumbHeight * 0.5f);
+
+            juce::Rectangle<float> thumbBounds (thumbX, thumbY, thumbWidth, thumbHeight);
+
+            juce::Colour baseColour (0xff222222);
+            juce::ColourGradient grad (baseColour.brighter (0.3f), thumbBounds.getTopLeft(),
+                                       baseColour.darker (0.3f), thumbBounds.getBottomLeft(), false);
+
+            g.setGradientFill (grad);
+            g.fillRoundedRectangle (thumbBounds, 2.0f);
+
+            g.setColour (juce::Colours::black);
+            g.drawRoundedRectangle (thumbBounds, 2.0f, 1.0f);
+
+            g.setColour (juce::Colours::white.withAlpha (0.8f));
+            g.fillRect (thumbBounds.getX() + 3.0f, thumbBounds.getCentreY() - 1.0f, thumbBounds.getWidth() - 6.0f, 2.0f);
+        }
+        else if (style == juce::Slider::SliderStyle::LinearHorizontal)
+        {
+            auto trackHeight = 4.0f;
+            auto cy = (float) y + (float) height * 0.5f;
+
+            g.setColour (juce::Colours::black.withAlpha (0.5f));
+            g.fillRoundedRectangle ((float) x, cy - trackHeight * 0.5f, (float) width, trackHeight, 2.0f);
+
+            auto centerPos = (minSliderPos + maxSliderPos) * 0.5f;
+
+            juce::Rectangle<float> bar;
+            if (sliderPos > centerPos)
+                bar.setBounds (centerPos, cy - trackHeight * 0.5f, sliderPos - centerPos, trackHeight);
+            else
+                bar.setBounds (sliderPos, cy - trackHeight * 0.5f, centerPos - sliderPos, trackHeight);
+
+            if (! bar.isEmpty())
+            {
+                g.setColour (m_appState.getPrimeColour());
+                g.fillRoundedRectangle (bar, 2.0f);
+            }
+
+            auto thumbWidth = 10.0f;
+            auto thumbHeight = 16.0f;
+            thumbHeight = juce::jmin (thumbHeight, (float) height);
+
+            juce::Rectangle<float> thumb (sliderPos - thumbWidth * 0.5f, cy - thumbHeight * 0.5f, thumbWidth, thumbHeight);
+
+            juce::Colour baseColour (0xff222222);
+            g.setGradientFill (juce::ColourGradient (baseColour.brighter (0.3f), thumb.getTopLeft(),
+                                                     baseColour.darker (0.3f), thumb.getBottomLeft(), false));
+            g.fillRoundedRectangle (thumb, 2.0f);
+
+            g.setColour (juce::Colours::black);
+            g.drawRoundedRectangle (thumb, 2.0f, 1.0f);
+
+            g.setColour (juce::Colours::white.withAlpha (0.8f));
+            g.fillRect (thumb.getX() + (thumb.getWidth() - 2.0f) * 0.5f, thumb.getY() + 3.0f, 2.0f, thumb.getHeight() - 6.0f);
+        }
+        else
+        {
             juce::LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
         }
     }
@@ -253,13 +343,13 @@ public:
 
         juce::Path contureArc;
         contureArc.addCentredArc(bounds.getCentreX(),
-                                    bounds.getCentreY(),
-                                    arcRadius,
-                                    arcRadius,
-                                    0.0f,
-                                    rotaryStartAngle,
-                                    rotaryEndAngle,
-                                    true);
+                                 bounds.getCentreY(),
+                                 arcRadius,
+                                 arcRadius,
+                                 0.0f,
+                                 rotaryStartAngle,
+                                 rotaryEndAngle,
+                                 true);
         g.setColour(backgroundArcColour);
         g.strokePath(contureArc, juce::PathStrokeType(lineW, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
         juce::Path backgroundArc;
@@ -326,7 +416,7 @@ public:
 
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
     {
-        return {juce::jmin(10.0f, buttonHeight * 0.6f)};
+        return juce::Font(juce::FontOptions(juce::jmin(10.0f, buttonHeight * 0.6f)));
     }
 
     void drawToggleButton(juce::Graphics& g,
@@ -358,7 +448,7 @@ public:
                 g.setColour(juce::Colours::firebrick);
             }
             else
-            {
+        {
                 g.setColour(m_appState.getButtonBackgroundColour().greyLevel(0.7));
             }
         }
@@ -418,10 +508,10 @@ public:
         if (isDirectory)
         {
 
-           GUIHelpers::drawFromSvg (graph,
-                                    BinaryData::folder_svg,
-                                    juce::Colour(0xffbbbbbb),
-                                    rect);
+            GUIHelpers::drawFromSvg (graph,
+                                     BinaryData::folder_svg,
+                                     juce::Colour(0xffbbbbbb),
+                                     rect);
         }
         else if (filename.endsWith (".wav"))
         {
@@ -443,7 +533,7 @@ public:
 
         if (isItemSelected)
             g.fillAll (fileListComp != nullptr ? fileListComp->findColour (juce::DirectoryContentsDisplayComponent::highlightColourId)
-                                               : findColour (juce::DirectoryContentsDisplayComponent::highlightColourId));
+                       : findColour (juce::DirectoryContentsDisplayComponent::highlightColourId));
 
         const int x = 32;
         g.setColour (juce::Colours::black);
@@ -457,17 +547,17 @@ public:
         else
         {
             if (auto* d = isDirectory ? getDefaultFolderImage()
-                                      : getDefaultDocumentFileImage())
+                : getDefaultDocumentFileImage())
                 d->drawWithin (g, juce::Rectangle<float> (2.0f, 2.0f, x - 4.0f, height - 4.0f),
                                juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize, 1.0f);
         }
 
-            if (isItemSelected)
+        if (isItemSelected)
             g.setColour (fileListComp != nullptr ? fileListComp->findColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId)
-                                                 : findColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId));
+                         : findColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId));
         else
             g.setColour (fileListComp != nullptr ? fileListComp->findColour (juce::DirectoryContentsDisplayComponent::textColourId)
-                                                 : findColour (juce::DirectoryContentsDisplayComponent::textColourId));
+                         : findColour (juce::DirectoryContentsDisplayComponent::textColourId));
 
         g.setFont (height * 0.7f);
 
@@ -507,14 +597,14 @@ public:
 
 
     void drawScrollbar (juce::Graphics &g,
-                       juce::ScrollBar &,
-                       int x, int y,
-                       int width, int height,
-                       bool isScrollbarVertical,
-                       int thumbStartPosition,
-                       int thumbSize,
-                       bool isMouseOver,
-                       bool isMouseDown) override
+                        juce::ScrollBar &,
+                        int x, int y,
+                        int width, int height,
+                        bool isScrollbarVertical,
+                        int thumbStartPosition,
+                        int thumbSize,
+                        bool isMouseOver,
+                        bool isMouseDown) override
     {
         if (isScrollbarVertical)
         {
