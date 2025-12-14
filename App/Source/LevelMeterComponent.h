@@ -31,7 +31,9 @@ class LevelMeterComponent : public juce::Component
                           , public juce::Timer
 {
 public:
-        explicit LevelMeterComponent(te::LevelMeasurer& lm);
+        enum class ChannelType { Stereo, Left, Right };
+
+        explicit LevelMeterComponent(te::LevelMeasurer& lm, ChannelType channelType = ChannelType::Stereo);
         ~LevelMeterComponent() override;
 
         void paint(juce::Graphics& g) override;
@@ -47,6 +49,7 @@ private:
         double m_currentLeveldBRight{ 0.0 };
         double m_prevLeveldBRight{ 0.0 };
 
+        ChannelType m_channelType;
         te::LevelMeasurer& m_levelMeasurer;
         te::LevelMeasurer::Client m_levelClient;
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LevelMeterComponent)

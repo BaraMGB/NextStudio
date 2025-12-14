@@ -24,8 +24,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LevelMeterComponent.h"
 
 
-LevelMeterComponent::LevelMeterComponent (te::LevelMeasurer &lm)
-    : m_levelMeasurer (lm)
+LevelMeterComponent::LevelMeterComponent (te::LevelMeasurer &lm, ChannelType channelType)
+    : m_channelType(channelType)
+    , m_levelMeasurer (lm)
 {
     setOpaque (true);
     m_levelMeasurer.addClient(m_levelClient);
@@ -44,18 +45,32 @@ void LevelMeterComponent::paint(juce::Graphics &g)
     g.fillRect (getLocalBounds ());
     const double meterHeight{ double(getHeight()) };
     const double meterWidth{ double(getWidth()) };
-    const double offSet{ fabs(RANGEMINdB) };
-    const double scaleFactor{ meterHeight / (RANGEMAXdB + offSet) };
 
-    // draw meter Gain bar
-    auto lineAtNullDb = float(meterHeight - (offSet * scaleFactor));
-    auto displayBarHeightLeft
-            = ((m_currentLeveldBLeft + offSet) * scaleFactor);
-    auto displayBarHeightRight
-            = ((m_currentLeveldBRight + offSet) * scaleFactor);
+    // Use Tracktion Fader Curve to match the Fader scale
+    // 0dB corresponds to te::decibelsToVolumeFaderPosition(0.0f)
+    const float zeroDbRatio = te::decibelsToVolumeFaderPosition(0.0f);
+    const double lineAtNullDbHeight = meterHeight * zeroDbRatio; // Height from bottom to 0dB line
 
-    if (float(meterHeight - displayBarHeightLeft) <= lineAtNullDb
-            || float(meterHeight - displayBarHeightRight) <= lineAtNullDb)
+    auto displayBarHeightLeft = meterHeight * te::decibelsToVolumeFaderPosition((float)m_currentLeveldBLeft);
+    auto displayBarHeightRight = meterHeight * te::decibelsToVolumeFaderPosition((float)m_currentLeveldBRight);
+
+    // Color logic: If bar goes above 0dB line (height > zeroDbHeight), it is clipping/hot
+    bool isClipping = (displayBarHeightLeft > lineAtNullDbHeight) || (displayBarHeightRight > lineAtNullDbHeight);
+
+    if (m_channelType == ChannelType::Left)
+    {
+        isClipping = (displayBarHeightLeft > lineAtNullDbHeight);
+    }
+    else if (m_channelType == ChannelType::Right)
+    {
+        isClipping = (displayBarHeightRight > lineAtNullDbHeight);
+    }
+    else // Stereo
+    {
+        isClipping = (displayBarHeightLeft > lineAtNullDbHeight) || (displayBarHeightRight > lineAtNullDbHeight);
+    }
+
+    if (isClipping)
     {
         g.setColour (juce::Colours::red);
     }
@@ -64,16 +79,42 @@ void LevelMeterComponent::paint(juce::Graphics &g)
         g.setColour(juce::Colour(0xff74bb00));
     }
 
-    if (displayBarHeightLeft > 0 || displayBarHeightRight > 0)
+    if (m_channelType == ChannelType::Stereo)
     {
-        g.fillRect(0.0f
+        if (displayBarHeightLeft > 0)
+        {
+             g.fillRect(0.0f
                    , float(meterHeight - displayBarHeightLeft)
                    , float(meterWidth * 0.45)
                    , juce::jmax(0.0f, float(displayBarHeightLeft)));
-        g.fillRect(float(meterWidth * 0.55)
+        }
+        if (displayBarHeightRight > 0)
+        {
+            g.fillRect(float(meterWidth * 0.55)
                    , float(meterHeight - displayBarHeightRight)
                    , float(meterWidth)
                    , juce::jmax(0.0f, float(displayBarHeightRight)));
+        }
+    }
+    else if (m_channelType == ChannelType::Left)
+    {
+        if (displayBarHeightLeft > 0)
+        {
+             g.fillRect(0.0f
+                   , float(meterHeight - displayBarHeightLeft)
+                   , float(meterWidth)
+                   , juce::jmax(0.0f, float(displayBarHeightLeft)));
+        }
+    }
+    else if (m_channelType == ChannelType::Right)
+    {
+        if (displayBarHeightRight > 0)
+        {
+            g.fillRect(0.0f
+                   , float(meterHeight - displayBarHeightRight)
+                   , float(meterWidth)
+                   , juce::jmax(0.0f, float(displayBarHeightRight)));
+        }
     }
 }
 

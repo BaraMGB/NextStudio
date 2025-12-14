@@ -44,7 +44,8 @@ private:
     juce::Label m_trackName;
     AutomatableSliderComponent m_volumeSlider;
     AutomatableSliderComponent m_panSlider;
-    LevelMeterComponent m_levelMeter;
+    LevelMeterComponent m_levelMeterLeft;
+    LevelMeterComponent m_levelMeterRight;
     juce::TextButton m_muteButton, m_soloButton, m_armButton;
 
 
