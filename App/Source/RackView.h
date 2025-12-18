@@ -56,6 +56,12 @@ public:
     juce::OwnedArray<AddButton> & getAddButtons();
     juce::OwnedArray<RackItemView> & getPluginComponents();
 
+    void ensureRackOrderConsistency();
+    juce::StringArray getRackOrder() const;
+    void saveRackOrder(const juce::StringArray& order);
+    void moveItem(RackItemView* item, int targetIndex);
+    int getPluginIndexForVisualIndex(int visualIndex) const;
+
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
     void itemDragMove(const SourceDetails& dragSourceDetails) override;
     void itemDragExit (const SourceDetails& /*dragSourceDetails*/) override;
@@ -90,7 +96,7 @@ class AddButton : public juce::TextButton
                 , public juce::DragAndDropTarget
 {
 public:
-    AddButton(te::Track* track, ApplicationViewState& appState) 
+    AddButton(te::Track::Ptr track, ApplicationViewState& appState) 
         : m_track(track)
         , m_appState(appState)
     {}
@@ -144,7 +150,7 @@ public:
     te::Plugin::Ptr plugin {nullptr};
 private:
     bool isOver {false};
-    te::Track* m_track;
+    te::Track::Ptr m_track;
     ApplicationViewState& m_appState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AddButton)
 };

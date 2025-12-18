@@ -116,6 +116,7 @@ namespace IDs
     DECLARE_ID (showLowerRange)
     DECLARE_ID (editNoteOutsideOfClipRange)
     DECLARE_ID (pluginPresetManagerUIStates)
+    DECLARE_ID (trackRackViewState)
 
     #undef DECLARE_ID
 }
@@ -155,6 +156,7 @@ public:
     }
 
     juce::ValueTree getPresetManagerUIStateForPlugin(const te::Plugin& plugin);
+    juce::ValueTree getTrackRackViewState(te::EditItemID trackID);
 
     double getViewYScale(juce::String timeLineID)
     {
@@ -291,6 +293,7 @@ public:
     juce::ValueTree m_state;
     juce::ValueTree m_viewDataTree;
     juce::ValueTree m_pluginPresetManagerUIStates;
+    juce::ValueTree m_trackRackViewState;
     std::map<juce::String, struct ViewData*> componentViewData;
     bool m_isSavingLocked {false}, m_needAutoSave {false};
     ApplicationViewState& m_applicationState;

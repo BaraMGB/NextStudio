@@ -74,6 +74,7 @@ private:
 };
 
 class AutomatableSliderComponent : public juce::Slider
+                                 , public te::AutomationDragDropTarget
 {
 public:
 
@@ -87,6 +88,11 @@ public:
 
     [[nodiscard]] juce::Colour getTrackColour() const;
     void setTrackColour(juce::Colour colour);
+
+    // AutomationDragDropTarget overrides
+    bool hasAnAutomatableParameter() override;
+    void chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam,
+                                     std::function<void()> startLearnMode) override;
 
 private:
 

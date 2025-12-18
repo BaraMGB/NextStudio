@@ -393,28 +393,50 @@ private:
 
 //-------------------------------------------------------------------------------------
 
-class RackItemView : public juce::Component
-                          , public juce::Button::Listener
+class ModifierViewComponent : public juce::Component
 {
 public:
-    RackItemView (EditViewState&, te::Plugin::Ptr);
+    ModifierViewComponent (EditViewState&, te::Modifier::Ptr);
+    ~ModifierViewComponent() override;
+
+    void paint (juce::Graphics& g) override;
+    void resized() override;
+    int getNeededWidth() { return 2; }
+
+private:
+    EditViewState& m_editViewState;
+    te::Modifier::Ptr m_modifier;
+    juce::Viewport m_viewPort;
+    juce::Component m_paramListComponent;
+    juce::OwnedArray<ParameterComponent> m_parameters;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ModifierViewComponent)
+};
+
+//-------------------------------------------------------------------------------------
+
+class RackItemView : public juce::Component
+                          , public juce::Button::Listener
+                          , public te::ParameterisableDragDropSource
+{
+public:
+    RackItemView (EditViewState&, te::Track::Ptr, te::Plugin::Ptr);
+    RackItemView (EditViewState&, te::Track::Ptr, te::Modifier::Ptr);
     ~RackItemView() override;
 
     void paint (juce::Graphics&) override;
-    void mouseDown (const juce::MouseEvent&) override;
-    void mouseDrag (const juce::MouseEvent&) override;
-    void mouseUp (const juce::MouseEvent&) override;
-
     void resized() override;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseDrag(const juce::MouseEvent&) override;
+    void mouseUp(const juce::MouseEvent&) override;
 
     void buttonClicked(juce::Button* button) override;
 
-    int getNeededWidthFactor()
-    {
-        if (m_pluginComponent)
-            return m_pluginComponent->getNeededWidth();
-        return 0;
-    }
+    // ParameterisableDragDropSource implementation
+    void draggedOntoAutomatableParameterTargetBeforeParamSelection() override {}
+    void draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param) override;
+
+    int getNeededWidthFactor();
 
     [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
 
@@ -423,18 +445,31 @@ public:
         return m_plugin;
     }
 
+    te::Modifier::Ptr getModifier()
+    {
+        return m_modifier;
+    }
+
 private:
 
     juce::Colour getTrackColour();
 
     juce::Label name;
-    int m_headerWidth {20};
+
     [[maybe_unused]] int m_neededWidthFactor {1};
     EditViewState& m_evs;
+    te::Track::Ptr m_track;
     te::Plugin::Ptr m_plugin;
+    te::Modifier::Ptr m_modifier;
+
     std::unique_ptr<PluginViewComponent> m_pluginComponent;
+    std::unique_ptr<ModifierViewComponent> m_modifierComponent;
+
     std::unique_ptr<PresetManagerComponent> m_presetManager;
     BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};
+    int m_headerWidth {20};
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackItemView)
 };
+

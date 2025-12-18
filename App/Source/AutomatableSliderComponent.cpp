@@ -89,3 +89,15 @@ void AutomatableSliderComponent::bindSliderToParameter ()
     getValueObject().referTo (juce::Value (new ParameterValueSource (m_automatableParameter)));
 }
 
+bool AutomatableSliderComponent::hasAnAutomatableParameter()
+{
+    return m_automatableParameter != nullptr;
+}
+
+void AutomatableSliderComponent::chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam,
+                                                             std::function<void()> /*startLearnMode*/)
+{
+    if (handleChosenParam && m_automatableParameter)
+        handleChosenParam(m_automatableParameter);
+}
+
