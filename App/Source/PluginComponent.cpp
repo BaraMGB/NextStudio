@@ -26,9 +26,61 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "FourOscPluginComponent.h"
 
 //==============================================================================
+ModifierViewComponent::ModifierViewComponent(EditViewState& evs, te::Modifier::Ptr m)
+    : m_editViewState(evs), m_modifier(m)
+{
+    if (m)
+    {
+        for (auto& param : m->getAutomatableParameters())
+        {
+            if (param)
+            {
+                auto parameterComp = std::make_unique<ParameterComponent>(*param, m_editViewState.m_applicationState);
+                m_paramListComponent.addAndMakeVisible(parameterComp.get());
+                m_parameters.add(std::move(parameterComp));
+            }
+        }
+    }
+
+    addAndMakeVisible(m_viewPort);
+    m_viewPort.setViewedComponent(&m_paramListComponent, true);
+    m_viewPort.setScrollBarsShown(true, false, true, false);
+}
+
+ModifierViewComponent::~ModifierViewComponent()
+{
+}
+
+void ModifierViewComponent::paint(juce::Graphics& g)
+{
+    g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
+    g.fillAll();
+}
+
+void ModifierViewComponent::resized()
+{
+    int scrollPos = m_viewPort.getVerticalScrollBar().getCurrentRangeStart();
+    auto area = getLocalBounds();
+    const auto widgetHeight = 30;
+
+    m_viewPort.setBounds(area);
+    m_paramListComponent.setBounds(area.getX()
+                                    , area.getY()
+                                    , area.getWidth()
+                                    ,m_paramListComponent.getChildren().size() * widgetHeight);
+
+    auto pcb = m_paramListComponent.getBounds();
+    for (auto & pc : m_parameters)
+    {
+        pc->setBounds(pcb.removeFromTop(widgetHeight));
+    }
+    m_viewPort.getVerticalScrollBar().setCurrentRangeStart(scrollPos);
+}
+
+//==============================================================================
 RackItemView::RackItemView
-    (EditViewState& evs, te::Plugin::Ptr p)
-    : m_evs (evs), m_plugin (p)
+    (EditViewState& evs, te::Track::Ptr t, te::Plugin::Ptr p)
+    : m_evs (evs), m_track(t), m_plugin (p)
     , m_showPluginBtn( "Show Plugin", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     addAndMakeVisible(m_showPluginBtn);
@@ -88,9 +140,28 @@ RackItemView::RackItemView
     }
 }
 
+RackItemView::RackItemView
+    (EditViewState& evs, te::Track::Ptr t, te::Modifier::Ptr m)
+    : m_evs (evs), m_track(t), m_modifier (m)
+    , m_showPluginBtn( "Show Modifier", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+{
+    addAndMakeVisible(m_showPluginBtn);
+    m_showPluginBtn.addListener(this);
+
+    // Modifiers don't have user-defined names usually, so we use the class name or type
+    name.setText(m->getName(), juce::NotificationType::dontSendNotification); 
+    name.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(name);
+    name.setInterceptsMouseClicks (false, true);
+
+    m_modifierComponent = std::make_unique<ModifierViewComponent>(evs, m);
+    addAndMakeVisible(*m_modifierComponent);
+}
+
 RackItemView::~RackItemView()
 {
-    m_plugin->hideWindowForShutdown ();
+    if (m_plugin)
+        m_plugin->hideWindowForShutdown ();
 }
 
 void RackItemView::paint (juce::Graphics& g)
@@ -104,8 +175,11 @@ void RackItemView::paint (juce::Graphics& g)
 
     auto borderRect = area;
 
-    auto trackCol = m_plugin->isEnabled () ?
-                       getTrackColour() : getTrackColour().darker (0.7f);
+    juce::Colour trackCol;
+    if (m_plugin)
+        trackCol = m_plugin->isEnabled () ? getTrackColour() : getTrackColour().darker (0.7f);
+    else
+        trackCol = getTrackColour(); // Modifiers are always enabled effectively or handle it internally
 
     auto labelingCol = trackCol.getBrightness() > 0.8f
              ? juce::Colour(0xff000000)
@@ -136,11 +210,22 @@ void RackItemView::mouseDown (const juce::MouseEvent& e)
         if (e.mods.isRightButtonDown())
         {
             juce::PopupMenu m;
-            m.addItem ("Delete", [this] { m_plugin->deleteFromParent(); });
-            m.addItem (m_plugin->isEnabled () ?
-                                  "Disable" : "Enable"
-                       , [this] {m_plugin->setEnabled (!m_plugin->isEnabled ());});
+            if (m_plugin)
+            {
+                m.addItem ("Delete", [this] { m_plugin->deleteFromParent(); });
+                m.addItem (m_plugin->isEnabled () ? "Disable" : "Enable"
+                           , [this] {m_plugin->setEnabled (!m_plugin->isEnabled ());});
+            }
+            else if (m_modifier)
+            {
+                m.addItem ("Delete", [this] { m_modifier->remove(); });
+            }
+
+            juce::Component::SafePointer<RackItemView> safeThis (this);
             m.show();
+
+            if (safeThis == nullptr)
+                return;
         }
     }
     else
@@ -158,12 +243,31 @@ void RackItemView::mouseDrag(const juce::MouseEvent &e)
                 = juce::DragAndDropContainer::findParentDragContainerFor(this);
         if (!dragC->isDragAndDropActive())
         {
-            dragC->startDragging(
+            if (m_modifier)
+            {
+                dragC->startDragging(
+                        te::AutomationDragDropTarget::automatableDragString // Use the automation drag string
+                        , this
+                        , juce::Image(juce::Image::ARGB,1,1,true)
+                        , false);
+            }
+            else
+            {
+                dragC->startDragging(
                         "PluginComp"
                         , this
                         , juce::Image(juce::Image::ARGB,1,1,true)
                         , false);
+            }
         }
+    }
+}
+
+void RackItemView::draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param)
+{
+    if (m_modifier)
+    {
+        param->addModifier(*m_modifier, 0.5f, 0.0f, 0.5f);
     }
 }
 
@@ -194,6 +298,8 @@ void RackItemView::resized()
 
     if (m_pluginComponent)
         m_pluginComponent->setBounds(area);
+    else if (m_modifierComponent)
+        m_modifierComponent->setBounds(area);
 }
 
 void RackItemView::buttonClicked(juce::Button* button)
@@ -205,9 +311,18 @@ void RackItemView::buttonClicked(juce::Button* button)
 
 juce::Colour RackItemView::getTrackColour()
 {
-    if (m_plugin->getOwnerTrack())
-        return m_plugin->getOwnerTrack()->getColour();
+    if (m_track)
+        return m_track->getColour();
     return juce::Colours::grey;
+}
+
+int RackItemView::getNeededWidthFactor()
+{
+    if (m_pluginComponent)
+        return m_pluginComponent->getNeededWidth();
+    if (m_modifierComponent)
+        return m_modifierComponent->getNeededWidth();
+    return 1;
 }
 
 //------------------------------------------------------------------------------

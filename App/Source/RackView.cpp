@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -32,7 +31,6 @@ RackView::RackView (EditViewState& evs)
 {
     addAndMakeVisible(m_nameLabel);
     m_nameLabel.setJustificationType(juce::Justification::centred);
-    rebuildView();
 }
 
 RackView::~RackView()
@@ -51,18 +49,18 @@ void RackView::paint (juce::Graphics& g)
     g.setColour (m_evs.m_applicationState.getBackgroundColour1());
     g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
     g.setColour(juce::Colours::white);
-        
+
     auto area = getLocalBounds();
 
     if (m_isOver)
         g.drawRect(area, 2);
-    
+
     if (m_track == nullptr)
     {
         g.drawText("select a track for showing rack", getLocalBounds(), juce::Justification::centred);
     }
     else
-    {  
+    {
         auto trackCol = m_track->getColour();
         auto cornerSize = 10.0f;
         auto labelingCol = trackCol.getBrightness() > 0.8f
@@ -119,7 +117,10 @@ void RackView::resized()
             area.removeFromLeft(5);
 
             auto adder = std::make_unique<AddButton>(m_track, m_evs.m_applicationState);
-            adder->setPlugin(p->getPlugin());
+
+            if (p->getPlugin())
+                adder->setPlugin(p->getPlugin());
+
             addAndMakeVisible(adder.get());
             adder->setButtonText("+");
             adder->setBounds(area.removeFromLeft(15).reduced(0, 10));
@@ -130,14 +131,197 @@ void RackView::resized()
     }
 }
 
+juce::StringArray RackView::getRackOrder() const
+{
+    auto state = m_evs.getTrackRackViewState(m_track->itemID);
+    juce::String orderString = state.getProperty("rackItemOrder").toString();
+    juce::StringArray order;
+    order.addTokens(orderString, ",", "");
+    return order;
+}
+
+void RackView::saveRackOrder(const juce::StringArray& order)
+{
+    auto state = m_evs.getTrackRackViewState(m_track->itemID);
+    state.setProperty("rackItemOrder", order.joinIntoString(","), nullptr);
+}
+
+static te::Plugin::Ptr getPluginFromList(te::PluginList& list, te::EditItemID id)
+{
+    for (auto p : list)
+        if (p->itemID == id)
+            return p;
+    return {};
+}
+
+static bool isPluginHidden(te::Track& t, te::Plugin* p)
+{
+    int index = t.pluginList.indexOf(p);
+    // Exclude internal hidden plugins (usually at the end: Vol+Pan and LevelMeter)
+    return (t.pluginList.size() >= 2 && index >= t.pluginList.size() - 2);
+}
+
+int RackView::getPluginIndexForVisualIndex(int visualIndex) const
+{
+    auto order = getRackOrder();
+    int targetPluginIndex = 0;
+    for(int i=0; i<visualIndex && i<order.size(); ++i)
+    {
+        if (getPluginFromList(m_track->pluginList, te::EditItemID::fromVar(order[i])))
+            targetPluginIndex++;
+    }
+    return targetPluginIndex;
+}
+
+void RackView::ensureRackOrderConsistency()
+{
+    auto currentOrder = getRackOrder();
+    juce::StringArray newOrder;
+
+    // 1. Keep existing items if they still exist and are not hidden
+    for (auto idStr : currentOrder)
+    {
+        auto id = te::EditItemID::fromVar(idStr);
+        if (auto p = getPluginFromList(m_track->pluginList, id))
+        {
+            if (!isPluginHidden(*m_track, p.get()))
+                newOrder.add(idStr);
+        }
+        else if (auto* ml = m_track->getModifierList())
+        {
+             if (te::findModifierForID(*ml, id) != nullptr)
+             {
+                 newOrder.add(idStr);
+             }
+        }
+    }
+
+    // 2. Add any new items not in the list
+    for (auto* p : m_track->getAllPlugins())
+    {
+        if (isPluginHidden(*m_track, p))
+            continue;
+
+        if (!newOrder.contains(p->itemID.toString()))
+            newOrder.add(p->itemID.toString());
+    }
+
+    if (auto* ml = m_track->getModifierList())
+    {
+        for (auto m : ml->getModifiers())
+        {
+            if (!newOrder.contains(m->itemID.toString()))
+                newOrder.add(m->itemID.toString());
+        }
+    }
+
+    if (newOrder != currentOrder)
+        saveRackOrder(newOrder);
+}
+
+void RackView::moveItem(RackItemView* item, int targetIndex)
+{
+    te::EditItemID id;
+    if (item->getPlugin()) id = item->getPlugin()->itemID;
+    else if (item->getModifier()) id = item->getModifier()->itemID;
+
+    if (id.isValid())
+    {
+        auto order = getRackOrder();
+        order.removeString(id.toString());
+
+        if (targetIndex >= order.size())
+            order.add(id.toString());
+        else
+            order.insert(targetIndex, id.toString());
+
+        saveRackOrder(order);
+
+        // Sync PluginList order
+        if (item->getPlugin())
+        {
+             int targetPluginIndex = getPluginIndexForVisualIndex(targetIndex);
+
+             m_track->pluginList.insertPlugin(item->getPlugin(), targetPluginIndex, nullptr);
+        }
+
+        rebuildView();
+    }
+}
+
 void RackView::buttonClicked(juce::Button* button)
 {
     for (auto &b : m_addButtons)
     {
         if (b == button)
         {
-            if (auto plugin = showMenuAndCreatePlugin (m_track->edit))
-                EngineHelpers::insertPlugin (m_track, plugin, m_addButtons.indexOf (b));
+            int visualIndex = m_addButtons.indexOf(b);
+
+            juce::PopupMenu m;
+            m.addItem(1, "Plugins...");
+
+            juce::PopupMenu modMenu;
+            modMenu.addItem(100, "LFO");
+            modMenu.addItem(101, "Envelope Follower");
+            modMenu.addItem(102, "Step");
+            modMenu.addItem(103, "Random");
+
+            m.addSubMenu("Modifiers", modMenu);
+
+            int result = m.showAt(button);
+
+            if (result == 1)
+            {
+                if (auto plugin = showMenuAndCreatePlugin (m_track->edit))
+                {
+                    // Calculate target Plugin List Index based on Rack Order
+                    ensureRackOrderConsistency();
+
+                    auto order = getRackOrder();
+                    int targetPluginIndex = 0;
+
+                    for(int i=0; i<visualIndex && i<order.size(); ++i)
+                    {
+                        if (getPluginFromList(m_track->pluginList, te::EditItemID::fromVar(order[i])))
+                            targetPluginIndex++;
+                    }
+
+                    EngineHelpers::insertPlugin (m_track, plugin, targetPluginIndex);
+
+                    // Update Rack Order
+                    order.insert(visualIndex, plugin->itemID.toString());
+                    saveRackOrder(order);
+                }
+            }
+            else if (result >= 100)
+            {
+                 if (auto* ml = m_track->getModifierList())
+                 {
+                     juce::Identifier id = te::IDs::LFO;
+                     if (result == 101) id = te::IDs::ENVELOPEFOLLOWER;
+                     if (result == 102) id = te::IDs::STEP;
+                     if (result == 103) id = te::IDs::RANDOM;
+
+                     auto mod = ml->insertModifier(juce::ValueTree(id), -1, nullptr);
+
+                     if (mod)
+                     {
+                         // ensureRackOrderConsistency(); // Don't call here to avoid race/duplication, or handle removal
+                         // Better to just manipulate order directly
+                         auto order = getRackOrder();
+
+                         // Remove if it was accidentally added by a sync listener (unlikely this fast, but safe)
+                         order.removeString(mod->itemID.toString());
+
+                         if (visualIndex >= order.size())
+                             order.add(mod->itemID.toString());
+                         else
+                             order.insert(visualIndex, mod->itemID.toString());
+
+                         saveRackOrder(order);
+                     }
+                 }
+            }
 
             m_evs.m_selectionManager.selectOnly (m_track);
         }
@@ -179,19 +363,19 @@ juce::OwnedArray<RackItemView> & RackView::getPluginComponents()
     
 void RackView::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
 {
-    if (c.hasType (te::IDs::PLUGIN))
+    if (c.hasType (te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
         markAndUpdate (m_updatePlugins);
 }
 
 void RackView::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree& c, int)
 {
-    if (c.hasType (te::IDs::PLUGIN))
+    if (c.hasType (te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
         markAndUpdate (m_updatePlugins);
 }
 
 void RackView::valueTreeChildOrderChanged (juce::ValueTree& c, int, int)
 {
-    if (c.hasType (te::IDs::PLUGIN))
+    if (c.hasType (te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
         markAndUpdate (m_updatePlugins);
 }
 
@@ -207,20 +391,31 @@ void RackView::rebuildView()
 
     if (m_track != nullptr)
     {
-        if (m_track->pluginList.begin() != nullptr)
+        ensureRackOrderConsistency();
+        auto order = getRackOrder();
+
+        for (auto idStr : order)
         {
-            for (auto plugin : m_track->pluginList)
+            auto id = te::EditItemID::fromVar(idStr);
+
+            if (auto p = getPluginFromList(m_track->pluginList, id))
             {
-                //don't show the default volume and levelmeter plugin
-                if (m_track->pluginList.indexOf(plugin)  < m_track->pluginList.size() - 2 )
+                 auto view = std::make_unique<RackItemView> (m_evs, m_track, p);
+                 addAndMakeVisible (view.get());
+                 m_rackItems.add (std::move(view));
+            }
+            else if (auto* ml = m_track->getModifierList())
+            {
+                if (auto m = te::findModifierForID(*ml, id))
                 {
-                    auto p = std::make_unique<RackItemView> (m_evs, plugin);
-                    addAndMakeVisible (p.get());
-                    m_rackItems.add (std::move(p));
+                     auto view = std::make_unique<RackItemView> (m_evs, m_track, m);
+                     addAndMakeVisible (view.get());
+                     m_rackItems.add (std::move(view));
                 }
             }
         }
     }
+
     resized();
 }
 
@@ -237,9 +432,13 @@ bool RackView::isInterestedInDragSource(
 
 void RackView::itemDragMove(const SourceDetails& dragSourceDetails) 
 {
+    // Check if the dragged item is a Plugin component, a list entry, a browser item,
+    // or an automatable modifier (which uses automatableDragString).
+    // This ensures we accept drops from both standard plugins and Modifiers.
     if (dragSourceDetails.description == "PluginComp"
         || dragSourceDetails.description == "PluginListEntry"
-        || dragSourceDetails.description == "Instrument or Effect")
+        || dragSourceDetails.description == "Instrument or Effect"
+        || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
 
     {
         m_isOver = true;
@@ -283,9 +482,25 @@ void AddButton::itemDropped(const SourceDetails& dragSourceDetails)
                 auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
                 if (pluginRackComp)
                 {
-                    EngineHelpers::insertPlugin (m_track,
-                                                 lbm->getSelectedPlugin(m_track->edit),
-                                                 pluginRackComp->getAddButtons ().indexOf (this));
+                    // Calculate the visual index where the user dropped the item
+                    int visualIndex = pluginRackComp->getAddButtons().indexOf(this);
+
+                    // Ensure the internal rack order state matches the current reality before modifying it
+                    pluginRackComp->ensureRackOrderConsistency();
+                    auto order = pluginRackComp->getRackOrder();
+
+                    int targetPluginIndex = pluginRackComp->getPluginIndexForVisualIndex(visualIndex);
+
+                    auto plugin = lbm->getSelectedPlugin(m_track->edit);
+                    if (plugin)
+                    {
+                        // Insert the plugin into the engine at the calculated index
+                        EngineHelpers::insertPlugin (m_track, plugin, targetPluginIndex);
+
+                        // Update the custom rack order to include the new plugin's ID at the correct visual position
+                        order.insert(visualIndex, plugin->itemID.toString());
+                        pluginRackComp->saveRackOrder(order);
+                    }
                 }
             }
 
@@ -293,24 +508,17 @@ void AddButton::itemDropped(const SourceDetails& dragSourceDetails)
     }
 
 
-    if (dragSourceDetails.description == "PluginComp")
+    if (dragSourceDetails.description == "PluginComp" 
+        || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
     {
         auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
         if (pluginRackComp)
         {
-            for (auto & pluginComp : pluginRackComp->getPluginComponents())
+            auto* view = dynamic_cast<RackItemView*>(dragSourceDetails.sourceComponent.get());
+            if (view)
             {
-                if (pluginComp == dragSourceDetails.sourceComponent)
-                {
-                    auto sourceIndex = m_track->getAllPlugins().indexOf(pluginComp->getPlugin());
-                    auto plugToMove = pluginComp->getPlugin();
-                    auto targetIndex = pluginRackComp->getAddButtons().indexOf(this);
-
-                    targetIndex = targetIndex > sourceIndex ? targetIndex - 1 : targetIndex;
-
-                    plugToMove->deleteFromParent();
-                    m_track->pluginList.insertPlugin(plugToMove, targetIndex,nullptr);
-                }
+                int targetIndex = pluginRackComp->getAddButtons().indexOf(this);
+                pluginRackComp->moveItem(view, targetIndex);
             }
         }
     }

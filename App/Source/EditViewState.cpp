@@ -29,6 +29,7 @@ EditViewState::EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationV
     m_state = m_edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
     m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
     m_pluginPresetManagerUIStates = m_state.getOrCreateChildWithName(IDs::pluginPresetManagerUIStates, nullptr);
+    m_trackRackViewState = m_state.getOrCreateChildWithName(IDs::trackRackViewState, nullptr);
 
     auto um = &m_edit.getUndoManager();
 
@@ -89,6 +90,13 @@ juce::ValueTree EditViewState::getPresetManagerUIStateForPlugin(const te::Plugin
     auto idStr = "p" + plugin.itemID.toString().replaceCharacters("-", "_");
     juce::Identifier id(idStr);
     return m_pluginPresetManagerUIStates.getOrCreateChildWithName(id, nullptr);
+}
+
+juce::ValueTree EditViewState::getTrackRackViewState(te::EditItemID trackID)
+{
+    auto idStr = "t" + trackID.toString().replaceCharacters("-", "_");
+    juce::Identifier id(idStr);
+    return m_trackRackViewState.getOrCreateChildWithName(id, nullptr);
 }
 
 float EditViewState::beatsToX(double beats, int width, double x1beats, double x2beats) const
