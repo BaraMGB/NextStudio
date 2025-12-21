@@ -401,9 +401,9 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
-    int getNeededWidth() { return 2; }
+    virtual int getNeededWidth() { return 2; }
 
-private:
+protected:
     EditViewState& m_editViewState;
     te::Modifier::Ptr m_modifier;
     juce::Viewport m_viewPort;
@@ -411,6 +411,23 @@ private:
     juce::OwnedArray<ParameterComponent> m_parameters;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ModifierViewComponent)
+};
+
+class LFOModifierComponent : public ModifierViewComponent
+{
+public:
+    LFOModifierComponent(EditViewState& evs, te::Modifier::Ptr m);
+    ~LFOModifierComponent() override = default;
+
+    void resized() override;
+    int getNeededWidth() override { return 3; }
+    void paint (juce::Graphics& g) override;
+
+private:
+    AutomatableChoiceComponent m_wave, m_sync, m_rateType, m_bipolar;
+    AutomatableParameterComponent m_rate, m_depth, m_phase, m_offset;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LFOModifierComponent)
 };
 
 //-------------------------------------------------------------------------------------
