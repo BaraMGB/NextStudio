@@ -43,7 +43,7 @@ ModifierViewComponent::ModifierViewComponent(EditViewState& evs, te::Modifier::P
     }
 
     addAndMakeVisible(m_viewPort);
-    m_viewPort.setViewedComponent(&m_paramListComponent, true);
+    m_viewPort.setViewedComponent(&m_paramListComponent, false);
     m_viewPort.setScrollBarsShown(true, false, true, false);
 }
 
@@ -64,17 +64,75 @@ void ModifierViewComponent::resized()
     const auto widgetHeight = 30;
 
     m_viewPort.setBounds(area);
-    m_paramListComponent.setBounds(area.getX()
-                                    , area.getY()
-                                    , area.getWidth()
-                                    ,m_paramListComponent.getChildren().size() * widgetHeight);
-
-    auto pcb = m_paramListComponent.getBounds();
-    for (auto & pc : m_parameters)
-    {
-        pc->setBounds(pcb.removeFromTop(widgetHeight));
-    }
     m_viewPort.getVerticalScrollBar().setCurrentRangeStart(scrollPos);
+}
+
+//==============================================================================
+LFOModifierComponent::LFOModifierComponent(EditViewState& evs, te::Modifier::Ptr m)
+    : ModifierViewComponent(evs, m)
+    , m_wave (m->getAutomatableParameterByID ("wave"), "Wave")
+    , m_sync (m->getAutomatableParameterByID ("syncType"), "Sync")
+    , m_rateType (m->getAutomatableParameterByID ("rateType"), "Rate Type")
+    , m_bipolar (m->getAutomatableParameterByID ("biopolar"), "Bipolar")
+    , m_rate (m->getAutomatableParameterByID ("rate"), "Rate")
+    , m_depth (m->getAutomatableParameterByID ("depth"), "Depth")
+    , m_phase (m->getAutomatableParameterByID ("phase"), "Phase")
+    , m_offset (m->getAutomatableParameterByID ("offset"), "Offset")
+{
+    // Clear generic UI
+    m_parameters.clear();
+    m_paramListComponent.removeAllChildren();
+    removeChildComponent(&m_viewPort);
+    m_viewPort.setViewedComponent(nullptr, false);
+
+    addAndMakeVisible (m_wave);
+    addAndMakeVisible (m_sync);
+    addAndMakeVisible (m_rate);
+    addAndMakeVisible (m_rateType);
+    addAndMakeVisible (m_depth);
+    addAndMakeVisible (m_bipolar);
+    addAndMakeVisible (m_phase);
+    addAndMakeVisible (m_offset);
+}
+
+void LFOModifierComponent::paint(juce::Graphics& g)
+{
+    ModifierViewComponent::paint(g);
+    auto borderCol = m_editViewState.m_applicationState.getBorderColour();
+    auto background2 = m_editViewState.m_applicationState.getBackgroundColour1();
+
+    auto area = getLocalBounds();
+
+    auto comboRect = area.removeFromLeft(area.getWidth() / 2);
+    comboRect.reduce(3, 5);
+
+    g.setColour(background2);
+    GUIHelpers::drawRoundedRectWithSide(g, comboRect.toFloat(), 10, true, true, true, true);
+    g.setColour(borderCol);
+    GUIHelpers::strokeRoundedRectWithSide(g, comboRect.toFloat(), 10, true, true, true, true);
+}
+
+void LFOModifierComponent::resized()
+{
+    auto area = getLocalBounds();
+
+    auto comboRect = area.removeFromLeft(area.getWidth() / 2);
+    comboRect.reduce(0, 5);
+
+    auto comboHeight = comboRect.getHeight() / 4;
+    m_wave.setBounds(comboRect.removeFromTop(comboHeight));
+    m_sync.setBounds(comboRect.removeFromTop(comboHeight));
+    m_rateType.setBounds(comboRect.removeFromTop(comboHeight));
+    m_bipolar.setBounds(comboRect);
+
+
+    auto upperKnobs = area.removeFromTop(area.getHeight() / 2);
+    auto bottomKnobs = area;
+    m_rate.setBounds(upperKnobs.removeFromLeft(upperKnobs.getWidth() / 2));
+    m_depth.setBounds(upperKnobs);
+
+    m_phase.setBounds(bottomKnobs.removeFromLeft(bottomKnobs.getWidth() / 2));
+    m_offset.setBounds(bottomKnobs);
 }
 
 //==============================================================================
@@ -154,7 +212,11 @@ RackItemView::RackItemView
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks (false, true);
 
-    m_modifierComponent = std::make_unique<ModifierViewComponent>(evs, m);
+    if (dynamic_cast<te::LFOModifier*>(m.get()))
+        m_modifierComponent = std::make_unique<LFOModifierComponent>(evs, m);
+    else
+        m_modifierComponent = std::make_unique<ModifierViewComponent>(evs, m);
+
     addAndMakeVisible(*m_modifierComponent);
 }
 

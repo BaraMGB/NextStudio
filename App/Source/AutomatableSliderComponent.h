@@ -74,7 +74,7 @@ private:
 };
 
 class AutomatableSliderComponent : public juce::Slider
-                                 , public te::AutomationDragDropTarget
+, public te::AutomationDragDropTarget
 {
 public:
 
@@ -207,6 +207,108 @@ private:
     juce::Label        m_valueLabel;
     juce::Label        m_titleLabel;
 
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NonAutomatableParameterComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NonAutomatableParameterComponent)
+};
+
+class AutomatableComboBoxComponent : public juce::ComboBox
+    , public te::AutomatableParameter::Listener
+    , public te::AutomationDragDropTarget
+{
+public:
+    explicit AutomatableComboBoxComponent(te::AutomatableParameter::Ptr ap)
+    : m_automatableParameter(ap)
+    {
+        ap->addListener(this);
+        auto range = ap->valueRange;
+        int index = 1;
+        float step = range.interval > 0.0f ? range.interval : 1.0f;
+        for (float v = range.start; v <= range.end + 0.001f; v += step)
+        {
+            juce::String text;
+            if (ap->hasLabels())
+                text = ap->getLabelForValue(v);
+
+            if (text.isEmpty())
+                text = ap->valueToString(v);
+
+            addItem(text, index++);
+        }
+
+        // Initial update
+        currentValueChanged(*ap);
+
+        onChange = [this]
+            {
+                int index = getSelectedId();
+                if (index > 0)
+                {
+                    auto range = m_automatableParameter->valueRange;
+                    float step = range.interval > 0.0f ? range.interval : 1.0f;
+                    float newVal = range.start + ((float)(index - 1) * step);
+
+                    if (m_automatableParameter->getCurrentValue() != newVal)
+                        m_automatableParameter->setParameter(newVal, juce::sendNotification);
+                }
+            };
+    }
+
+    ~AutomatableComboBoxComponent() override
+    {
+        m_automatableParameter->removeListener(this);
+    }
+
+    // AutomatableParameter::Listener overrides
+    void curveHasChanged(te::AutomatableParameter&) override {}
+    void currentValueChanged(te::AutomatableParameter& p) override
+    {
+        auto range = p.valueRange;
+        float step = range.interval > 0.0f ? range.interval : 1.0f;
+        int id = (int)std::round((p.getCurrentValue() - range.start) / step) + 1;
+
+        if (getSelectedId() != id)
+            setSelectedId(id, juce::dontSendNotification);
+    }
+
+    // AutomationDragDropTarget overrides
+    bool hasAnAutomatableParameter() override { return true; }
+    void chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam,
+                                     std::function<void()> /*startLearnMode*/) override
+    {
+        handleChosenParam(m_automatableParameter);
+    }
+
+private:
+    te::AutomatableParameter::Ptr m_automatableParameter;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableComboBoxComponent)
+};
+
+class AutomatableChoiceComponent : public juce::Component
+{
+public:
+    AutomatableChoiceComponent(te::AutomatableParameter::Ptr ap, juce::String name)
+    {
+        m_combo = std::make_unique<AutomatableComboBoxComponent>(ap);
+        addAndMakeVisible(*m_combo);
+
+        m_titleLabel.setJustificationType(juce::Justification::centred);
+        m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
+        m_titleLabel.setText(name, juce::dontSendNotification);
+        addAndMakeVisible(m_titleLabel);
+    }
+
+    void resized() override
+    {
+        auto area = getLocalBounds();
+        area.reduce(area.getWidth() / 5, 0);
+        auto labelHeight = 15;
+        auto h = 30;
+        m_titleLabel.setBounds(area.removeFromTop(labelHeight));
+        m_combo->setBounds(area.removeFromTop(h));
+    }
+
+private:
+    std::unique_ptr<AutomatableComboBoxComponent> m_combo;
+    juce::Label m_titleLabel;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableChoiceComponent)
 };
 
