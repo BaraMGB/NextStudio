@@ -75,6 +75,63 @@ void RackView::paint (juce::Graphics& g)
     };
 }
 
+void RackView::paintOverChildren (juce::Graphics& g)
+{
+    auto* dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
+    if (!dragC || !dragC->isDragAndDropActive())
+    {
+        m_dragSource = nullptr;
+        return;
+    }
+    if (m_dragSource == nullptr)
+        return;
+
+    auto modifier = dynamic_cast<ModifierViewComponent*>(m_dragSource->getParentComponent());
+    if (modifier == nullptr)
+        return;
+
+
+    if (m_dragSource != nullptr)
+    {
+        auto mousePos = getMouseXYRelative().toFloat();
+        auto sourceBounds = getLocalPoint(m_dragSource, m_dragSource->getLocalBounds().getCentre()).toFloat();
+
+
+        auto* compUnderMouse = getComponentAt(getMouseXYRelative());
+        if (compUnderMouse == this)
+            compUnderMouse = nullptr;
+
+        if (compUnderMouse != nullptr)
+        {
+            auto* slider = dynamic_cast<AutomatableSliderComponent*>(compUnderMouse);
+            if (slider == nullptr)
+                slider = compUnderMouse->findParentComponentOfClass<AutomatableSliderComponent>();
+
+            if (slider != nullptr )
+            {
+                if (modifier->getModifier()->itemID == slider->getAutomatableParameter()->getOwnerID())
+                {
+                    g.setColour(juce::Colours::black);
+                    auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
+                    auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
+                    g.drawRect(rect, 2);
+                    g.drawLine(rect.getX(), rect.getY(), rect.getBottomRight().getX(), rect.getBottomRight().getY(), 2.f);
+                    g.drawLine(rect.getTopRight().getX(), rect.getTopRight().getY(), rect.getBottomLeft().getX(), rect.getBottomLeft().getY(), 2.f);
+                }
+                else
+                {
+                    g.setColour(m_evs.m_applicationState.getPrimeColour());
+                    auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
+                    auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
+                    g.drawRect(rect, 2);
+                }
+            }
+
+                g.drawLine(sourceBounds.getX(), sourceBounds.getY(), mousePos.getX(), mousePos.getY(), 2.0f);
+        }
+    }
+}
+
 void RackView::mouseDown (const juce::MouseEvent&)
 {
     //editViewState.selectionManager.selectOnly (track.get());
@@ -423,7 +480,8 @@ bool RackView::isInterestedInDragSource(
     const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginListEntry"
-     || dragSourceDetails.description == "Instrument or Effect")
+     || dragSourceDetails.description == "Instrument or Effect"
+     || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
     {
         return true;
     }
@@ -443,18 +501,29 @@ void RackView::itemDragMove(const SourceDetails& dragSourceDetails)
     {
         m_isOver = true;
     }
+
+    if (dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
+    {
+        m_dragSource = dragSourceDetails.sourceComponent.get();
+    }
     repaint();
 }
 
-void RackView::itemDragExit (const SourceDetails& /*dragSourceDetails*/) 
+void RackView::itemDragExit (const SourceDetails& details) 
 {
     m_isOver = false;
+
+    if (details.description != te::AutomationDragDropTarget::automatableDragString)
+        m_dragSource = nullptr;
+
     repaint();
 }
 
 void RackView::itemDropped(
     const juce::DragAndDropTarget::SourceDetails& details)
 {
+    m_dragSource = nullptr;
+
     te::Track::Ptr track;
     if (m_track != nullptr)
         track = m_track;
