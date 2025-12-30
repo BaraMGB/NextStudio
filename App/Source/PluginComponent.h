@@ -402,13 +402,57 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     virtual int getNeededWidth() { return 2; }
+    te::Modifier::Ptr getModifier() { return m_modifier; }
+
+    void removeConnection(int rowIndex);
 
 protected:
+    class DragHandle : public juce::Component
+                     , public te::ParameterisableDragDropSource
+    {
+    public:
+        DragHandle();
+
+        void setModifier(te::Modifier::Ptr m) { m_modifier = m; }
+
+        void paint(juce::Graphics& g) override;
+        void mouseDown(const juce::MouseEvent& e) override;
+        void mouseDrag(const juce::MouseEvent& e) override;
+        void mouseUp(const juce::MouseEvent& e) override;
+
+        // ParameterisableDragDropSource implementation
+        void draggedOntoAutomatableParameterTargetBeforeParamSelection() override {}
+        void draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param) override;
+
+    private:
+        te::Modifier::Ptr m_modifier;
+    };
+
     EditViewState& m_editViewState;
     te::Modifier::Ptr m_modifier;
     juce::Viewport m_viewPort;
     juce::Component m_paramListComponent;
     juce::OwnedArray<ParameterComponent> m_parameters;
+    DragHandle m_dragHandle;
+
+    struct ConnectedParametersModel : public juce::TableListBoxModel
+    {
+        ConnectedParametersModel(te::Modifier::Ptr m, te::Edit& e, ModifierViewComponent& parent)
+            : modifier(m), edit(e), m_parent(parent) { update(); }
+        int getNumRows() override;
+        void paintRowBackground (juce::Graphics&, int rowNumber, int width, int height, bool rowIsSelected) override;
+        void paintCell (juce::Graphics&, int rowNumber, int columnId, int width, int height, bool rowIsSelected) override;
+        void cellClicked(int rowNumber, int columnId, const juce::MouseEvent& e) override;
+        void update();
+
+        te::Modifier::Ptr modifier;
+        te::Edit& edit;
+        ModifierViewComponent& m_parent;
+        juce::ReferenceCountedArray<te::AutomatableParameter> cachedParams;
+    };
+
+    ConnectedParametersModel m_model;
+    juce::TableListBox m_table;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ModifierViewComponent)
 };
@@ -420,7 +464,7 @@ public:
     ~LFOModifierComponent() override = default;
 
     void resized() override;
-    int getNeededWidth() override { return 3; }
+    int getNeededWidth() override { return 4; }
     void paint (juce::Graphics& g) override;
 
 private:

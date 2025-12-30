@@ -25,7 +25,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 
 
-
 AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::AutomatableParameter::Ptr ap)
     : m_automatableParameter(ap)
 {
@@ -45,17 +44,56 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
     if (e.mods.isRightButtonDown())
     {
         juce::PopupMenu m;
+
+        auto assignments = m_automatableParameter->getAssignments();
+        if (!assignments.isEmpty())
+        {
+            juce::PopupMenu modifierMenu;
+            int itemId = 1;
+
+            auto* track = m_automatableParameter->getTrack();
+            if (auto* modifierList = track != nullptr ? track->getModifierList() : nullptr)
+            {
+                for (auto* modifier : modifierList->getModifiers())
+                {
+                    for (auto& assignment : assignments)
+                    {
+                        if (assignment->isForModifierSource(*modifier))
+                        {
+                            juce::String modifierName = modifier->getName();
+                            if (modifierName.isEmpty())
+                                modifierName = "Modifier";
+
+                            modifierMenu.addItem(itemId++, modifierName);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            m.addSubMenu("Remove Modifier", modifierMenu);
+        }
+
         if (m_automatableParameter->getCurve().getNumPoints() == 0)
         {
             m.addItem(2000, "Add automation lane");
         }
+
         const int result = m.show();
+
         if (result == 2000)
         {
             auto start = tracktion::core::TimePosition::fromSeconds(0.0);
             m_automatableParameter->getCurve().addPoint(start, (float) getValue(), 0.0);
             m_automatableParameter->getTrack()->state.setProperty(IDs::isTrackMinimized, false, nullptr);
-
+        }
+        else if (result >= 1)
+        {
+            int index = result - 1;
+            if (index >= 0 && index < assignments.size())
+            {
+                m_automatableParameter->removeModifier(*assignments[index]);
+            }
         }
     }
     else
@@ -84,7 +122,7 @@ void AutomatableSliderComponent::bindSliderToParameter ()
                                                   static_cast<double> (v.interval),
                                                   static_cast<double> (v.skew),
                                                   v.symmetricSkew);
- 
+
     setNormalisableRange (range);
     getValueObject().referTo (juce::Value (new ParameterValueSource (m_automatableParameter)));
 }

@@ -45,6 +45,7 @@ public:
     ~RackView() override;
 
     void paint (juce::Graphics& g) override;
+    void paintOverChildren (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
     void resized() override;
     void buttonClicked(juce::Button* button) override;
@@ -67,6 +68,8 @@ public:
     void itemDragExit (const SourceDetails& /*dragSourceDetails*/) override;
     void itemDropped(const SourceDetails& dragSourceDetails) override;
 
+    void clearDragSource() { m_dragSource = nullptr; repaint(); }
+
 private:
     void valueTreeChanged() override {}
     void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
@@ -87,6 +90,8 @@ private:
 
     bool m_updatePlugins = false;
     bool m_isOver = false;
+    juce::Component::SafePointer<juce::Component> m_dragSource;
+
     te::EditItemID m_id;
     const int HEADERWIDTH = 20;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackView)
