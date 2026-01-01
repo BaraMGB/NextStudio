@@ -129,9 +129,10 @@ private:
         getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::outlineColourId , m_applicationState.getBorderColour());
         getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::highlightColourId , m_applicationState.getPrimeColour());
         getLookAndFeel().setColour(juce::TableListBox::textColourId, m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::TableListBox::backgroundColourId, m_applicationState.getBackgroundColour2());
         getLookAndFeel().setColour(juce::DrawableButton::textColourId , m_applicationState.getButtonTextColour());
         getLookAndFeel().setColour(juce::DrawableButton::textColourOnId, m_applicationState.getButtonTextColour());
-
+        getLookAndFeel().setColour(juce::ResizableWindow::backgroundColourId, m_applicationState.getBackgroundColour2());
         if (m_editComponent)
             m_editComponent->updateButtonIcons();
         if (m_header)

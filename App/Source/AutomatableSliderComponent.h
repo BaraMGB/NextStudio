@@ -75,6 +75,7 @@ private:
 
 class AutomatableSliderComponent : public juce::Slider
 , public te::AutomationDragDropTarget
+, public te::AutomatableParameter::Listener
 {
 public:
 
@@ -94,6 +95,9 @@ public:
     void chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam,
                                      std::function<void()> startLearnMode) override;
 
+    void curveHasChanged(te::AutomatableParameter&) override;
+    void currentValueChanged(te::AutomatableParameter&) override;
+
 private:
 
     te::AutomatableParameter::Ptr m_automatableParameter;
@@ -102,53 +106,20 @@ private:
 };
 
 class AutomatableParameterComponent : public juce::Component
+, private te::AutomatableParameter::Listener
 {
 public:
-    AutomatableParameterComponent(const te::AutomatableParameter::Ptr ap, juce::String name)
-    : m_automatableParameter (ap)
-    {
-        m_knob = std::make_unique<AutomatableSliderComponent>(ap);
-        m_knob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        m_knob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-        m_knob->setDoubleClickReturnValue(true, ap->getCurrentValue());
-        m_knob->onValueChange = [this] {
-            updateLabel();
-        };
+    AutomatableParameterComponent(const te::AutomatableParameter::Ptr ap, juce::String name);
 
-        addAndMakeVisible(*m_knob);
+    ~AutomatableParameterComponent() override;
 
-        m_valueLabel.setJustificationType(juce::Justification::centredTop);
-        m_valueLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
-        updateLabel();
-        addAndMakeVisible(m_valueLabel);
+    void resized() override;
 
-        m_titleLabel.setJustificationType(juce::Justification::centredBottom);
-        m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
-        m_titleLabel.setText(name, juce::dontSendNotification);
+    void setKnobColour (juce::Colour colour);
+    void updateLabel ();
 
-        addAndMakeVisible(m_titleLabel);
-    }
-
-    void resized() override
-    {
-        auto area = getLocalBounds();
-        auto h = area.getHeight() / 4;
-
-        m_titleLabel.setBounds(area.removeFromTop(h));
-        m_knob->setBounds(area.removeFromTop(h * 2));
-        m_valueLabel.setBounds(area.removeFromTop(h));
-    }
-
-    void setKnobColour (juce::Colour colour)
-    {
-        m_knob->setTrackColour(colour);
-        repaint();
-    }
-
-    void updateLabel ()
-    {
-        m_valueLabel.setText(m_automatableParameter->getCurrentValueAsString(), juce::NotificationType::dontSendNotification);
-    }
+    void curveHasChanged(te::AutomatableParameter&) override {}
+    void currentValueChanged(te::AutomatableParameter&) override { updateLabel(); }
 
 private:
 
@@ -162,44 +133,11 @@ private:
 class NonAutomatableParameterComponent : public juce::Component
 {
 public:
-    NonAutomatableParameterComponent(juce::Value v, juce::String name, int rangeStart, int rangeEnd)
-    {
-        m_knob.setRange(rangeStart, rangeEnd, 1); 
-        m_knob.getValueObject().referTo(v);
-        m_titleLabel.setText(name, juce::dontSendNotification);
-        m_knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        m_knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    NonAutomatableParameterComponent(juce::Value v, juce::String name, int rangeStart, int rangeEnd);
+    void resized() override;
 
-        m_knob.onValueChange = [this] { updateLabel(); };
-        m_valueLabel.setJustificationType(juce::Justification::centredTop);
-        m_valueLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
-        updateLabel();
-
-        m_titleLabel.setJustificationType(juce::Justification::centredBottom);
-        m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
-
-        Helpers::addAndMakeVisible(*this,{&m_titleLabel, &m_knob, &m_valueLabel});
-    }
-
-    void resized() override
-    {
-        auto area = getLocalBounds();
-        auto h = area.getHeight() / 4;
-
-        m_titleLabel.setBounds(area.removeFromTop(h));
-        m_knob.setBounds(area.removeFromTop(h * 2));
-        m_valueLabel.setBounds(area.removeFromTop(h));
-    }
-
-    void updateLabel ()
-    {
-        m_valueLabel.setText(juce::String(m_knob.getValue()), juce::dontSendNotification);
-    }
-
-    void setSliderRange(double start, double end, double interval = 1.0)
-    {
-        m_knob.setRange(start, end, interval);
-    }
+    void updateLabel ();
+    void setSliderRange(double start, double end, double interval = 1.0);
 
 private:
 
@@ -215,67 +153,17 @@ class AutomatableComboBoxComponent : public juce::ComboBox
     , public te::AutomationDragDropTarget
 {
 public:
-    explicit AutomatableComboBoxComponent(te::AutomatableParameter::Ptr ap)
-    : m_automatableParameter(ap)
-    {
-        ap->addListener(this);
-        auto range = ap->valueRange;
-        int index = 1;
-        float step = range.interval > 0.0f ? range.interval : 1.0f;
-        for (float v = range.start; v <= range.end + 0.001f; v += step)
-        {
-            juce::String text;
-            if (ap->hasLabels())
-                text = ap->getLabelForValue(v);
+    explicit AutomatableComboBoxComponent(te::AutomatableParameter::Ptr ap);
 
-            if (text.isEmpty())
-                text = ap->valueToString(v);
-
-            addItem(text, index++);
-        }
-
-        // Initial update
-        currentValueChanged(*ap);
-
-        onChange = [this]
-            {
-                int index = getSelectedId();
-                if (index > 0)
-                {
-                    auto range = m_automatableParameter->valueRange;
-                    float step = range.interval > 0.0f ? range.interval : 1.0f;
-                    float newVal = range.start + ((float)(index - 1) * step);
-
-                    if (m_automatableParameter->getCurrentValue() != newVal)
-                        m_automatableParameter->setParameter(newVal, juce::sendNotification);
-                }
-            };
-    }
-
-    ~AutomatableComboBoxComponent() override
-    {
-        m_automatableParameter->removeListener(this);
-    }
+    ~AutomatableComboBoxComponent() override;
 
     // AutomatableParameter::Listener overrides
     void curveHasChanged(te::AutomatableParameter&) override {}
-    void currentValueChanged(te::AutomatableParameter& p) override
-    {
-        auto range = p.valueRange;
-        float step = range.interval > 0.0f ? range.interval : 1.0f;
-        int id = (int)std::round((p.getCurrentValue() - range.start) / step) + 1;
-
-        if (getSelectedId() != id)
-            setSelectedId(id, juce::dontSendNotification);
-    }
+    void currentValueChanged(te::AutomatableParameter& p) override;
 
     // AutomationDragDropTarget overrides
     bool hasAnAutomatableParameter() override { return true; }
-    void chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam,
-                                     std::function<void()> /*startLearnMode*/) override
-    {
-        handleChosenParam(m_automatableParameter);
-    }
+    void chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam, std::function<void()> /*startLearnMode*/) override;
 
 private:
     te::AutomatableParameter::Ptr m_automatableParameter;
@@ -285,26 +173,9 @@ private:
 class AutomatableChoiceComponent : public juce::Component
 {
 public:
-    AutomatableChoiceComponent(te::AutomatableParameter::Ptr ap, juce::String name)
-    {
-        m_combo = std::make_unique<AutomatableComboBoxComponent>(ap);
-        addAndMakeVisible(*m_combo);
+    AutomatableChoiceComponent(te::AutomatableParameter::Ptr ap, juce::String name);
 
-        m_titleLabel.setJustificationType(juce::Justification::centred);
-        m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
-        m_titleLabel.setText(name, juce::dontSendNotification);
-        addAndMakeVisible(m_titleLabel);
-    }
-
-    void resized() override
-    {
-        auto area = getLocalBounds();
-        area.reduce(area.getWidth() / 5, 0);
-        auto labelHeight = 15;
-        auto h = 30;
-        m_titleLabel.setBounds(area.removeFromTop(labelHeight));
-        m_combo->setBounds(area.removeFromTop(h));
-    }
+    void resized() override;
 
 private:
     std::unique_ptr<AutomatableComboBoxComponent> m_combo;
