@@ -435,9 +435,9 @@ protected:
     juce::OwnedArray<ParameterComponent> m_parameters;
     DragHandle m_dragHandle;
 
-    struct ConnectedParametersModel : public juce::TableListBoxModel
+    struct ConnectedParametersListBoxModel : public juce::TableListBoxModel
     {
-        ConnectedParametersModel(te::Modifier::Ptr m, te::Edit& e, ModifierViewComponent& parent)
+        ConnectedParametersListBoxModel(te::Modifier::Ptr m, te::Edit& e, ModifierViewComponent& parent)
             : modifier(m), edit(e), m_parent(parent) { update(); }
         int getNumRows() override;
         void paintRowBackground (juce::Graphics&, int rowNumber, int width, int height, bool rowIsSelected) override;
@@ -451,7 +451,7 @@ protected:
         juce::ReferenceCountedArray<te::AutomatableParameter> cachedParams;
     };
 
-    ConnectedParametersModel m_model;
+    ConnectedParametersListBoxModel m_listBoxModel;
     juce::TableListBox m_table;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ModifierViewComponent)

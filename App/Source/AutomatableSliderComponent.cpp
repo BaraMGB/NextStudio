@@ -126,7 +126,6 @@ void AutomatableSliderComponent::bindSliderToParameter ()
                                                   v.symmetricSkew);
 
     setNormalisableRange (range);
-    getValueObject().referTo (juce::Value (new ParameterValueSource (m_automatableParameter)));
 }
 
 bool AutomatableSliderComponent::hasAnAutomatableParameter()
@@ -147,7 +146,34 @@ void AutomatableSliderComponent::curveHasChanged(te::AutomatableParameter&)
 
 void AutomatableSliderComponent::currentValueChanged(te::AutomatableParameter&)
 {
-    setValue(m_automatableParameter->getCurrentValue(), juce::dontSendNotification);
+    if (m_automatableParameter && !isMouseButtonDown())
+    {
+         double newVal = m_automatableParameter->getCurrentValue();
+
+         if (std::abs(getValue() - newVal) > 0.0001)
+             setValue(newVal, juce::dontSendNotification);
+    }
+}
+
+void AutomatableSliderComponent::startedDragging()
+{
+    if (m_automatableParameter)
+        m_automatableParameter->beginParameterChangeGesture();
+}
+
+void AutomatableSliderComponent::stoppedDragging()
+{
+    if (m_automatableParameter)
+        m_automatableParameter->endParameterChangeGesture();
+}
+
+void AutomatableSliderComponent::valueChanged()
+{
+    if (m_automatableParameter)
+    {
+        float val = static_cast<float>(getValue());
+        m_automatableParameter->setParameter(val, juce::sendNotification);
+    }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -85,51 +85,72 @@ void ModifierViewComponent::DragHandle::mouseUp(const juce::MouseEvent& e)
         });
     }
 }
+
 void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param)
 {
-     if (m_modifier)
-     {
-         if (param->getOwnerID() == m_modifier->itemID)
+    if (m_modifier)
+    {
+        if (param->getOwnerID() == m_modifier->itemID)
         {
-            GUIHelpers::log("its own");
+            GUIHelpers::log("Can not connect modifier to its own parameters");
             getParentComponent()->repaint();
 
             if (auto* rackView = findParentComponentOfClass<RackView>())
             {
-                 juce::Component::SafePointer<RackView> safeRackView (rackView);
-                 juce::MessageManager::callAsync ([safeRackView]
-                 {
-                     if (safeRackView != nullptr)
-                         safeRackView->clearDragSource();
-                 });
+                juce::Component::SafePointer<RackView> safeRackView (rackView);
+                juce::MessageManager::callAsync ([safeRackView]
+                                                 {
+                                                 if (safeRackView != nullptr)
+                                                 safeRackView->clearDragSource();
+                                                 });
             }
             return;
         }
-         param->addModifier(*m_modifier, 0.5f, 0.0f, 0.5f);
-         if (auto* p = findParentComponentOfClass<ModifierViewComponent>())
-         {
-             p->m_model.update();
-             p->m_table.updateContent();
-         }
 
-         if (auto* rackView = findParentComponentOfClass<RackView>())
-         {
-             juce::Component::SafePointer<RackView> safeRackView (rackView);
-             juce::MessageManager::callAsync ([safeRackView]
-             {
-                 if (safeRackView != nullptr)
-                     safeRackView->clearDragSource();
-             });
-         }
-     }
+        // if the droped modifier not belogs to the track, don't insert.
+        if (param->getTrack() != te::getTrackContainingModifier (m_modifier->edit, m_modifier))
+        {
+            if (auto* rackView = findParentComponentOfClass<RackView>())
+            {
+                juce::Component::SafePointer<RackView> safeRackView (rackView);
+                juce::MessageManager::callAsync ([safeRackView]
+                                                 {
+                                                 if (safeRackView != nullptr)
+                                                 safeRackView->clearDragSource();
+                                                 });
+            }
+            return;
+        }
+
+        // Add the modifier to the parameter
+        param->addModifier(*m_modifier, 0.5f, 0.0f, 0.5f);
+
+        // update table
+        if (auto* parentComponent = findParentComponentOfClass<ModifierViewComponent>())
+        {
+            parentComponent->m_listBoxModel.update();
+            parentComponent->m_table.updateContent();
+        }
+
+        // update RackView painting for removing connection line
+        if (auto* rackView = findParentComponentOfClass<RackView>())
+        {
+            juce::Component::SafePointer<RackView> safeRackView (rackView);
+            juce::MessageManager::callAsync ([safeRackView]
+                                             {
+                                             if (safeRackView != nullptr)
+                                             safeRackView->clearDragSource();
+                                             });
+        }
+    }
 }
 
-int ModifierViewComponent::ConnectedParametersModel::getNumRows()
+int ModifierViewComponent::ConnectedParametersListBoxModel::getNumRows()
 {
     return cachedParams.size();
 }
 
-void ModifierViewComponent::ConnectedParametersModel::paintRowBackground (juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected)
+void ModifierViewComponent::ConnectedParametersListBoxModel::paintRowBackground (juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected)
 {
     if (rowIsSelected)
         g.fillAll (juce::Colours::lightblue);
@@ -137,7 +158,7 @@ void ModifierViewComponent::ConnectedParametersModel::paintRowBackground (juce::
         g.fillAll (juce::Colours::darkgrey.withAlpha (0.5f));
 }
 
-void ModifierViewComponent::ConnectedParametersModel::paintCell (juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected)
+void ModifierViewComponent::ConnectedParametersListBoxModel::paintCell (juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected)
 {
     g.setColour (rowIsSelected ? juce::Colours::black : juce::Colours::white);
 
@@ -148,7 +169,7 @@ void ModifierViewComponent::ConnectedParametersModel::paintCell (juce::Graphics&
     }
 }
 
-void ModifierViewComponent::ConnectedParametersModel::cellClicked(int rowNumber, int columnId, const juce::MouseEvent& e)
+void ModifierViewComponent::ConnectedParametersListBoxModel::cellClicked(int rowNumber, int columnId, const juce::MouseEvent& e)
 {
     if (e.mods.isRightButtonDown())
     {
@@ -173,7 +194,7 @@ void ModifierViewComponent::ConnectedParametersModel::cellClicked(int rowNumber,
     }
 }
 
-void ModifierViewComponent::ConnectedParametersModel::update()
+void ModifierViewComponent::ConnectedParametersListBoxModel::update()
 {
     if (modifier)
         cachedParams = te::getAllParametersBeingModifiedBy(edit, *modifier);
@@ -181,12 +202,12 @@ void ModifierViewComponent::ConnectedParametersModel::update()
 
 //==============================================================================
 ModifierViewComponent::ModifierViewComponent(EditViewState& evs, te::Modifier::Ptr m)
-    : m_editViewState(evs), m_modifier(m), m_model(m, evs.m_edit, *this)
+    : m_editViewState(evs), m_modifier(m), m_listBoxModel(m, evs.m_edit, *this)
 {
     m_dragHandle.setModifier(m);
     addAndMakeVisible(m_dragHandle);
 
-    m_table.setModel(&m_model);
+    m_table.setModel(&m_listBoxModel);
     m_table.getHeader().addColumn("Connected Parameters", 1, 200);
     m_table.setRowHeight(20);
     addAndMakeVisible(m_table);
@@ -214,7 +235,7 @@ ModifierViewComponent::~ModifierViewComponent()
 
 void ModifierViewComponent::removeConnection(int rowIndex)
 {
-    if (auto param = m_model.cachedParams[rowIndex])
+    if (auto param = m_listBoxModel.cachedParams[rowIndex])
     {
         auto assignments = param->getAssignments();
         for (auto& assignment : assignments)
@@ -225,7 +246,7 @@ void ModifierViewComponent::removeConnection(int rowIndex)
                 break;
             }
         }
-        m_model.update();
+        m_listBoxModel.update();
         m_table.updateContent();
     }
 }
@@ -506,6 +527,9 @@ void RackItemView::draggedOntoAutomatableParameterTarget (const te::AutomatableP
 {
     if (m_modifier)
     {
+        if (param->getTrack() != m_track.get())
+            return;
+
         param->addModifier(*m_modifier, 0.5f, 0.0f, 0.5f);
     }
 }
