@@ -27,55 +27,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 
 namespace te = tracktion_engine;
-/**
-     Wraps a te::AutomatableParameter as a juce::ValueSource so it can be used as
-     a Value for example in a Slider.
- */
-class ParameterValueSource  : public juce::Value::ValueSource,
-                              private te::AutomatableParameter::Listener
-{
-public:
-
-    ParameterValueSource (te::AutomatableParameter::Ptr p)
-    : param (p)
-    {
-        param->addListener (this);
-    }
-
-    ~ParameterValueSource() override
-    {
-        param->removeListener (this);
-    }
-
-    juce::var getValue() const override
-    {
-        return param->getCurrentValue();
-    }
-
-    void setValue (const juce::var& newValue) override
-    {
-        param->setParameter (static_cast<float> (newValue), juce::sendNotification);
-    }
-
-private:
-
-    te::AutomatableParameter::Ptr param;
-
-    void curveHasChanged (te::AutomatableParameter&) override
-    {
-        sendChangeMessage (false);
-    }
-
-    void currentValueChanged (te::AutomatableParameter&) override
-    {
-        sendChangeMessage (false);
-    }
-
-};
 
 class AutomatableSliderComponent : public juce::Slider
-, public te::AutomationDragDropTarget
-, public te::AutomatableParameter::Listener
+                                 , public te::AutomationDragDropTarget
+                                 , public te::AutomatableParameter::Listener
 {
 public:
 
@@ -97,6 +52,10 @@ public:
 
     void curveHasChanged(te::AutomatableParameter&) override;
     void currentValueChanged(te::AutomatableParameter&) override;
+
+    void startedDragging() override;
+    void stoppedDragging() override;
+    void valueChanged() override;
 
 private:
 
