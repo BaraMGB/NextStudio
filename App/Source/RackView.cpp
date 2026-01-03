@@ -90,46 +90,50 @@ void RackView::paintOverChildren (juce::Graphics& g)
     if (modifier == nullptr)
         return;
 
+    auto mousePos = getMouseXYRelative().toFloat();
+    auto sourceBounds = getLocalPoint(m_dragSource, m_dragSource->getLocalBounds().getCentre()).toFloat();
 
-    if (m_dragSource != nullptr)
+    auto* compUnderMouse = getComponentAt(getMouseXYRelative());
+    if (compUnderMouse == this)
+        compUnderMouse = nullptr;
+
+    juce::Colour lineColour = m_evs.m_applicationState.getTextColour();
+
+    if (compUnderMouse != nullptr)
     {
-        auto mousePos = getMouseXYRelative().toFloat();
-        auto sourceBounds = getLocalPoint(m_dragSource, m_dragSource->getLocalBounds().getCentre()).toFloat();
+        auto* slider = dynamic_cast<AutomatableSliderComponent*>(compUnderMouse);
+        if (slider == nullptr)
+            slider = compUnderMouse->findParentComponentOfClass<AutomatableSliderComponent>();
 
-
-        auto* compUnderMouse = getComponentAt(getMouseXYRelative());
-        if (compUnderMouse == this)
-            compUnderMouse = nullptr;
-
-        if (compUnderMouse != nullptr)
+        if (slider != nullptr)
         {
-            auto* slider = dynamic_cast<AutomatableSliderComponent*>(compUnderMouse);
-            if (slider == nullptr)
-                slider = compUnderMouse->findParentComponentOfClass<AutomatableSliderComponent>();
+            auto param = slider->getAutomatableParameter();
+            auto mod = modifier->getModifier();
 
-            if (slider != nullptr )
+            if (mod->itemID == param->getOwnerID() || param->getTrack() != te::getTrackContainingModifier (mod->edit, mod))
             {
-                if (modifier->getModifier()->itemID == slider->getAutomatableParameter()->getOwnerID())
-                {
-                    g.setColour(juce::Colours::black);
-                    auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
-                    auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
-                    g.drawRect(rect, 2);
-                    g.drawLine(rect.getX(), rect.getY(), rect.getBottomRight().getX(), rect.getBottomRight().getY(), 2.f);
-                    g.drawLine(rect.getTopRight().getX(), rect.getTopRight().getY(), rect.getBottomLeft().getX(), rect.getBottomLeft().getY(), 2.f);
-                }
-                else
-                {
-                    g.setColour(m_evs.m_applicationState.getPrimeColour());
-                    auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
-                    auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
-                    g.drawRect(rect, 2);
-                }
+                lineColour = juce::Colours::grey;
+                g.setColour(juce::Colours::grey.withAlpha(0.4f));
+                auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
+                auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
+                g.fillRect(rect);
+                g.setColour(juce::Colours::black);
+                g.drawLine(rect.getX(), rect.getY(), rect.getBottomRight().getX(), rect.getBottomRight().getY(), 2.f);
+                g.drawLine(rect.getTopRight().getX(), rect.getTopRight().getY(), rect.getBottomLeft().getX(), rect.getBottomLeft().getY(), 2.f);
             }
-
-                g.drawLine(sourceBounds.getX(), sourceBounds.getY(), mousePos.getX(), mousePos.getY(), 2.0f);
+            else
+            {
+                lineColour = m_evs.m_applicationState.getPrimeColour();
+                g.setColour(lineColour);
+                auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
+                auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
+                g.drawRect(rect, 2);
+            }
         }
     }
+
+    g.setColour(lineColour);
+    g.drawLine(sourceBounds.getX(), sourceBounds.getY(), mousePos.getX(), mousePos.getY(), 2.0f);
 }
 
 void RackView::mouseDown (const juce::MouseEvent&)
