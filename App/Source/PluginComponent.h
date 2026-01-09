@@ -261,7 +261,11 @@ public:
         m_mix =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("mix proportion"), "Mix");
         addAndMakeVisible(*m_mix);
 
-        m_time = std::make_unique<NonAutomatableParameterComponent>(m_plugin->state.getPropertyAsValue(te::IDs::length, &m_editViewState.m_edit.getUndoManager()),"Time", 0,1000);
+        auto timeVal = m_plugin->state.getPropertyAsValue(te::IDs::length, &m_editViewState.m_edit.getUndoManager());
+        if (static_cast<double> (timeVal.getValue()) < 1.0)
+            timeVal = 1.0;
+
+        m_time = std::make_unique<NonAutomatableParameterComponent>(timeVal,"Time", 1,1000);
         addAndMakeVisible(*m_time);
         m_plugin->state.addListener(this);
     }
