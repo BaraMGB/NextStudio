@@ -57,8 +57,14 @@ public:
     void stoppedDragging() override;
     void valueChanged() override;
 
-private:
+    void mouseEnter (const juce::MouseEvent& e) override;
+    void mouseExit (const juce::MouseEvent& e) override;
+    void resized() override;
 
+private:
+    void updateModDepthVisibility();
+
+    juce::Slider m_modDepthSlider;
     te::AutomatableParameter::Ptr m_automatableParameter;
     juce::Colour m_trackColour;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableSliderComponent)
