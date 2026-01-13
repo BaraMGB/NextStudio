@@ -22,6 +22,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 
 #include "AutomatableSliderComponent.h"
+#include "NextLookAndFeel.h"
 
 
 
@@ -34,11 +35,92 @@ AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::A
     m_automatableParameter->addListener(this);
     if (auto t = m_automatableParameter->getTrack())
         m_trackColour = t->getColour();
+
+    m_modDepthSlider.setSliderStyle(juce::Slider::LinearBar);
+    m_modDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+    m_modDepthSlider.setRange(-1.0, 1.0);
+    m_modDepthSlider.setValue(1.0, juce::dontSendNotification);
+    m_modDepthSlider.setVisible(false);
+
+    // Theme colors
+    auto thumbColour = juce::Colours::orange;
+    auto trackColour = juce::Colours::darkgrey;
+    auto bgColour = juce::Colours::black.withAlpha(0.5f);
+
+    if (auto* lnf = dynamic_cast<NextLookAndFeel*>(&getLookAndFeel()))
+    {
+        thumbColour = lnf->getPrimeColour();
+        trackColour = lnf->getBackgroundColour2();
+        bgColour = lnf->getBackgroundColour1().withAlpha(0.5f);
+    }
+
+    m_modDepthSlider.setColour(juce::Slider::thumbColourId, thumbColour);
+    m_modDepthSlider.setColour(juce::Slider::trackColourId, trackColour);
+    m_modDepthSlider.setColour(juce::Slider::backgroundColourId, bgColour);
+
+    m_modDepthSlider.setAlpha(0.7f);
+    addChildComponent(m_modDepthSlider);
+    m_modDepthSlider.addMouseListener(this, false);
+
+    m_modDepthSlider.onValueChange = [this]
+    {
+        auto assignments = m_automatableParameter->getAssignments();
+        if (!assignments.isEmpty())
+        {
+             auto& ass = *assignments[0];
+             ass.value = (float)m_modDepthSlider.getValue();
+             repaint();
+        }
+    };
+
+    updateModDepthVisibility();
 }
 
 AutomatableSliderComponent::~AutomatableSliderComponent()
 {
+    m_modDepthSlider.removeMouseListener(this);
     m_automatableParameter->removeListener(this);
+}
+
+void AutomatableSliderComponent::mouseEnter (const juce::MouseEvent&)
+{
+    updateModDepthVisibility();
+}
+
+void AutomatableSliderComponent::mouseExit (const juce::MouseEvent&)
+{
+    updateModDepthVisibility();
+}
+
+void AutomatableSliderComponent::resized()
+{
+    juce::Slider::resized();
+    m_modDepthSlider.setBounds(getLocalBounds().removeFromBottom(10));
+}
+
+void AutomatableSliderComponent::updateModDepthVisibility()
+{
+    auto assignments = m_automatableParameter->getAssignments();
+
+    // Check if mouse is over this component or the depth slider itself
+    bool mouseIsOver = isMouseOver(true) || m_modDepthSlider.isMouseOverOrDragging();
+    bool shouldBeVisible = !assignments.isEmpty() && mouseIsOver;
+
+    if (shouldBeVisible)
+    {
+        auto& ass = *assignments[0];
+        if (!m_modDepthSlider.isMouseButtonDown())
+             m_modDepthSlider.setValue(ass.value.get(), juce::dontSendNotification);
+
+        m_modDepthSlider.setVisible(true);
+        m_modDepthSlider.toFront(false);
+    }
+    else
+    {
+        // Don't hide if we are currently dragging the depth slider
+        if (!m_modDepthSlider.isMouseButtonDown())
+            m_modDepthSlider.setVisible(false);
+    }
 }
 
 void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
@@ -126,6 +208,7 @@ void AutomatableSliderComponent::bindSliderToParameter ()
                                                   v.symmetricSkew);
 
     setNormalisableRange (range);
+    setValue(m_automatableParameter->getCurrentBaseValue(), juce::dontSendNotification);
 }
 
 bool AutomatableSliderComponent::hasAnAutomatableParameter()
@@ -146,12 +229,14 @@ void AutomatableSliderComponent::curveHasChanged(te::AutomatableParameter&)
 
 void AutomatableSliderComponent::currentValueChanged(te::AutomatableParameter&)
 {
-    if (m_automatableParameter && !isMouseButtonDown())
+    if (m_automatableParameter)
     {
-         double newVal = m_automatableParameter->getCurrentValue();
+         double newVal = m_automatableParameter->getCurrentBaseValue();
 
-         if (std::abs(getValue() - newVal) > 0.0001)
+         if (!isMouseButtonDown() && std::abs(getValue() - newVal) > 0.0001)
              setValue(newVal, juce::dontSendNotification);
+
+         repaint();
     }
 }
 

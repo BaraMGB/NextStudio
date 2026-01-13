@@ -37,6 +37,19 @@ public:
     {
     }
 
+    juce::Colour getPrimeColour() const { return m_appState.getPrimeColour(); }
+    juce::Colour getBackgroundColour1() const { return m_appState.getBackgroundColour1(); }
+    juce::Colour getBackgroundColour2() const { return m_appState.getBackgroundColour2(); }
+    juce::Colour getBackgroundColour3() const { return m_appState.getBackgroundColour3(); }
+    juce::Colour getBorderColour() const { return m_appState.getBorderColour(); }
+    juce::Colour getMainFrameColour() const { return m_appState.getMainFrameColour(); }
+    juce::Colour getTextColour() const { return m_appState.getTextColour(); }
+    juce::Colour getButtonTextColour() const { return m_appState.getButtonTextColour(); }
+    juce::Colour getButtonBackgroundColour() const { return m_appState.getButtonBackgroundColour(); }
+    juce::Colour getTrackHeaderBackgroundColour() const { return m_appState.getTrackHeaderBackgroundColour(); }
+    juce::Colour getTrackHeaderTextColour() const { return m_appState.getTrackHeaderTextColour(); }
+    juce::Colour getTrackBackgroundColour() const { return m_appState.getTrackBackgroundColour(); }
+
     void drawGroupComponentOutline (juce::Graphics& g, int width, int height,
                                     const juce::String& text, const juce::Justification& position,
                                     juce::GroupComponent& group) override
@@ -219,6 +232,47 @@ public:
             g.setColour(juce::Colours::black);
             g.drawRoundedRectangle(slider.toFloat(), 3,1);
         }
+        else if (style == juce::Slider::SliderStyle::LinearBar)
+        {
+            const auto area = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
+            g.setColour(m_appState.getBackgroundColour1());
+            g.fillRect(area);
+
+            // Draw center line if range is bipolar
+            if (slider.getMinimum() < 0 && slider.getMaximum() > 0)
+            {
+                auto midX = (minSliderPos + maxSliderPos) * 0.5f;
+
+                juce::Rectangle<float> fillRect;
+                if (sliderPos > midX)
+                    fillRect.setBounds(midX, area.getY(), sliderPos - midX, area.getHeight());
+                else
+                    fillRect.setBounds(sliderPos, area.getY(), midX - sliderPos, area.getHeight());
+
+                juce::Colour baseColour = m_appState.getPrimeColour();
+                juce::ColourGradient gradient(baseColour.withBrightness(1.3f), fillRect.getTopLeft(),
+                                              baseColour.withBrightness(0.7f), fillRect.getBottomLeft(), false);
+                g.setGradientFill(gradient);
+                g.fillRect(fillRect);
+
+                // Draw a thin line at center
+                g.setColour(m_appState.getTextColour().withAlpha(0.5f));
+                g.drawVerticalLine(juce::roundToInt(midX), area.getY(), area.getBottom());
+            }
+            else
+            {
+                auto fillRect = area.withRight(sliderPos);
+
+                juce::Colour baseColour = m_appState.getPrimeColour();
+                juce::ColourGradient gradient(baseColour.withBrightness(1.3f), fillRect.getTopLeft(),
+                                              baseColour.withBrightness(0.7f), fillRect.getBottomLeft(), false);
+                g.setGradientFill(gradient);
+                g.fillRect(fillRect);
+            }
+
+            g.setColour(m_appState.getBorderColour());
+            g.drawRect(area, 1.0f);
+        }
         else if (style == juce::Slider::SliderStyle::LinearVertical)
         {
             auto trackWidth = 6.0f;
@@ -319,96 +373,100 @@ public:
                           juce::Slider& slider) override
     {
         auto isAutomationActive = false;
+        auto isModulationActive = false;
         auto volumeColour = m_appState.getPrimeColour();
+        auto primeColour = m_appState.getPrimeColour();
         auto backgroundArcColour = juce::Colour(0xff171717);
+        float currentModValueNormalized = sliderPos;
+
         if (auto automatableSlider = dynamic_cast<AutomatableSliderComponent*>(&slider))
         {
-            volumeColour = automatableSlider->getTrackColour();
-            if (automatableSlider->getAutomatableParameter()->isAutomationActive())
-                isAutomationActive = true;
+            if (auto param = automatableSlider->getAutomatableParameter())
+            {
+                volumeColour = automatableSlider->getTrackColour();
+                isAutomationActive = param->isAutomationActive();
+                isModulationActive = !param->getAssignments().isEmpty();
+
+                auto currentVal = param->getCurrentValue();
+                currentModValueNormalized = (float) slider.valueToProportionOfLength(currentVal);
+            }
         }
-        auto radius = juce::jmin(width / 2, height / 2) - 10.0f;
-        auto centreX = x + width * 0.5f;
-        auto centreY = y + height * 0.5f;
+
+        currentModValueNormalized = juce::jlimit(0.0f, 1.0f, currentModValueNormalized);
+
+        auto radius = (float) juce::jmin(width / 2, height / 2) - 10.0f;
+        auto centreX = (float) x + width * 0.5f;
+        auto centreY = (float) y + height * 0.5f;
         auto rx = centreX - radius;
         auto ry = centreY - radius;
         auto rw = radius * 2.0f;
-        auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        auto thumbColour = isAutomationActive ? juce::Colours::red : volumeColour;
-        auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat();//.reduced(10);
-        auto lineW = 7;
-        auto arcRadius = radius + 3;
+        auto lineW = 7.0f;
+        auto arcRadius = radius + 3.0f;
         auto toAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-        juce::Path contureArc;
-        contureArc.addCentredArc(bounds.getCentreX(),
-                                 bounds.getCentreY(),
-                                 arcRadius,
-                                 arcRadius,
-                                 0.0f,
-                                 rotaryStartAngle,
-                                 rotaryEndAngle,
-                                 true);
-        g.setColour(backgroundArcColour);
-        g.strokePath(contureArc, juce::PathStrokeType(lineW, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        // --- Background Arc ---
         juce::Path backgroundArc;
-        backgroundArc.addCentredArc(bounds.getCentreX(),
-                                    bounds.getCentreY(),
-                                    arcRadius,
-                                    arcRadius,
-                                    0.0f,
-                                    rotaryStartAngle,
-                                    rotaryEndAngle,
-                                    true);
-        g.setColour(volumeColour);
+        backgroundArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
+
         juce::Point<float> startPoint(rx, ry); 
         juce::Point<float> endPoint(rx, ry + rw); 
+        juce::ColourGradient bgGrad(m_appState.getMainFrameColour().darker(.8f), startPoint, m_appState.getMainFrameColour(), endPoint, false);
 
-        juce::ColourGradient gradient(m_appState.getMainFrameColour().darker(.8f), startPoint, m_appState.getMainFrameColour(), endPoint, false);
-        g.setGradientFill(gradient);
-        g.strokePath(backgroundArc, juce::PathStrokeType(lineW-2, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        g.setGradientFill(bgGrad);
+        g.strokePath(backgroundArc, juce::PathStrokeType(lineW, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
 
+        // --- Value Arc ---
         if (slider.isEnabled())
         {
             juce::Path valueArc;
-            valueArc.addCentredArc(bounds.getCentreX(),
-                                   bounds.getCentreY(),
-                                   arcRadius,
-                                   arcRadius,
-                                   0.0f,
-                                   rotaryStartAngle,
-                                   toAngle,
-                                   true);
+            valueArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f, rotaryStartAngle, toAngle, true);
 
-            g.setColour(volumeColour);
-            juce::Point<float> startPoint(rx, ry); 
-            juce::Point<float> endPoint(rx, ry + rw); 
-
-            juce::ColourGradient gradient(volumeColour.withBrightness(1.3f), startPoint, volumeColour.withBrightness(.7f), endPoint, false);
-            g.setGradientFill(gradient);
-            g.strokePath(valueArc, juce::PathStrokeType(lineW - 2, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+            juce::ColourGradient valGrad(volumeColour.withBrightness(1.3f), startPoint, volumeColour.withBrightness(.7f), endPoint, false);
+            g.setGradientFill(valGrad);
+            g.strokePath(valueArc, juce::PathStrokeType(lineW - 2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
         }
 
-        // pointer
-        juce::Path p;
-        auto pointerLength = radius ;
+        // --- Modulation Arc (Outer Ring) ---
+        if (isModulationActive)
+        {
+            auto outerRadius = arcRadius + lineW/2.0f + 1.0f;
+            auto angleBase = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+            auto angleMod = rotaryStartAngle + currentModValueNormalized * (rotaryEndAngle - rotaryStartAngle);
+
+            if (std::abs(angleMod - angleBase) > 0.001f)
+            {
+                juce::Path outerModPath;
+                outerModPath.addCentredArc(centreX, centreY, outerRadius, outerRadius, 0.0f, angleBase, angleMod, true);
+
+                juce::ColourGradient modGrad(primeColour.withBrightness(1.3f), startPoint, primeColour.withBrightness(0.7f), endPoint, false);
+                g.setGradientFill(modGrad);
+                g.strokePath(outerModPath, juce::PathStrokeType(1.5f, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+            }
+        }
+
+        // --- Thumb (Pointer) ---
+        auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+        auto pointerLength = radius;
         auto pointerThickness = 2.0f;
-        p.addRectangle(-pointerThickness * 0.5f, -radius + 1, pointerThickness, pointerLength * 0.5 );
+        juce::Path p;
+        p.addRectangle(-pointerThickness * 0.5f, -radius + 1.0f, pointerThickness, pointerLength * 0.5f);
         p.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
-        g.setColour (thumbColour);
+
+        juce::Colour thumbCol = (isAutomationActive || isModulationActive) ? juce::Colours::red : volumeColour;
+        g.setColour (thumbCol);
         g.fillPath (p);
 
         //start cap
         juce::Path sc;
-        sc.addRectangle(- .5,- radius - lineW +1,  1, lineW - 1);
+        sc.addRectangle(- 0.5f,- radius - lineW + 1.0f,  1.0f, lineW - 1.0f);
         sc.applyTransform(juce::AffineTransform::rotation(rotaryStartAngle).translated(centreX, centreY));
         g.setColour (backgroundArcColour);
         g.fillPath (sc);
 
         //end cap
         juce::Path ec;
-        ec.addRectangle(- .5,- radius - lineW, 1, lineW);
+        ec.addRectangle(- 0.5f,- radius - lineW, 1.0f, lineW);
         ec.applyTransform(juce::AffineTransform::rotation(rotaryEndAngle).translated(centreX, centreY));
         g.setColour (backgroundArcColour);
         g.fillPath (ec);

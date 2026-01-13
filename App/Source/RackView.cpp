@@ -116,6 +116,10 @@ void RackView::paintOverChildren (juce::Graphics& g)
                 g.setColour(juce::Colours::grey.withAlpha(0.4f));
                 auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
                 auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
+                
+                int size = std::min(rect.getWidth(), rect.getHeight());
+                rect = rect.withSizeKeepingCentre(size, size);
+                
                 g.fillRect(rect);
                 g.setColour(juce::Colours::black);
                 g.drawLine(rect.getX(), rect.getY(), rect.getBottomRight().getX(), rect.getBottomRight().getY(), 2.f);
@@ -127,6 +131,10 @@ void RackView::paintOverChildren (juce::Graphics& g)
                 g.setColour(lineColour);
                 auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
                 auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
+                
+                int size = std::min(rect.getWidth(), rect.getHeight());
+                rect = rect.withSizeKeepingCentre(size, size);
+                
                 g.drawRect(rect, 2);
             }
         }

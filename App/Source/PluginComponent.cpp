@@ -945,13 +945,10 @@ juce::String VstPluginComponent::getPluginTypeName() const
 
 //------------------------------------------------------------------------------
 
-ParameterComponent::ParameterComponent(tracktion_engine::AutomatableParameter &ap, ApplicationViewState& appstate)
-    : m_parameter(ap)
-    , m_appState(appstate)
-    , m_parameterSlider(ap)
+ParameterComponent::ParameterComponent(te::AutomatableParameter& ap, ApplicationViewState& appstate)
+    : m_parameter(ap), m_appState(appstate), m_parameterSlider(&ap)
 {
-    m_parameterName.setText(ap.getParameterName(),
-                            juce::NotificationType::dontSendNotification);
+    m_parameterName.setText(m_parameter.getParameterName(), juce::dontSendNotification);
     m_parameterName.setInterceptsMouseClicks(false, false);
 
     m_parameterSlider.setOpaque(false);
