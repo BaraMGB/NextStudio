@@ -8,16 +8,26 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     levelValue.referTo(state, "level", um, 0.0f);
     tuneValue.referTo(state, "tune", um, 0.0f);
     waveValue.referTo(state, "wave", um, 0.0f);
+    attackValue.referTo(state, "attack", um, 0.1f);
+    decayValue.referTo(state, "decay", um, 0.1f);
+    sustainValue.referTo(state, "sustain", um, 0.8f);
+    releaseValue.referTo(state, "release", um, 0.2f);
 
     levelParam = addParam("level", "Level", {-100.0f, 0.0f});
     tuneParam = addParam("tune", "Tune", {-24.0f, 24.0f});
-    
-    // Waveform parameter: 0=Sine, 1=Triangle, 2=Saw, 3=Square, 4=Noise
     waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f}); 
+    attackParam = addParam("attack", "Attack", {0.001f, 5.0f});
+    decayParam = addParam("decay", "Decay", {0.001f, 5.0f});
+    sustainParam = addParam("sustain", "Sustain", {0.0f, 1.0f});
+    releaseParam = addParam("release", "Release", {0.001f, 5.0f});
     
     levelParam->attachToCurrentValue(levelValue);
     tuneParam->attachToCurrentValue(tuneValue);
     waveParam->attachToCurrentValue(waveValue);
+    attackParam->attachToCurrentValue(attackValue);
+    decayParam->attachToCurrentValue(decayValue);
+    sustainParam->attachToCurrentValue(sustainValue);
+    releaseParam->attachToCurrentValue(releaseValue);
 }
 
 SimpleSynthPlugin::~SimpleSynthPlugin()
@@ -27,6 +37,10 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     levelParam->detachFromCurrentValue();
     tuneParam->detachFromCurrentValue();
     waveParam->detachFromCurrentValue();
+    attackParam->detachFromCurrentValue();
+    decayParam->detachFromCurrentValue();
+    sustainParam->detachFromCurrentValue();
+    releaseParam->detachFromCurrentValue();
 }
 
 void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
@@ -34,6 +48,7 @@ void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
     for (auto& v : voices)
     {
         v.sampleRate = (float)info.sampleRate;
+        v.adsr.setSampleRate(info.sampleRate);
         v.random.setSeedRandomly();
     }
         
@@ -51,6 +66,13 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 
     fc.destBuffer->clear();
 
+    // ADSR parameters
+    juce::ADSR::Parameters adsrParams;
+    adsrParams.attack = attackParam->getCurrentValue();
+    adsrParams.decay = decayParam->getCurrentValue();
+    adsrParams.sustain = sustainParam->getCurrentValue();
+    adsrParams.release = releaseParam->getCurrentValue();
+
     // Handle MIDI
     if (fc.bufferForMidiMessages != nullptr)
     {
@@ -62,7 +84,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                 {
                     if (!v.active)
                     {
-                        v.start(m.getNoteNumber(), m.getFloatVelocity(), (float)sampleRate);
+                        v.start(m.getNoteNumber(), m.getFloatVelocity(), (float)sampleRate, adsrParams);
                         break;
                     }
                 }
@@ -71,7 +93,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
             {
                 for (auto& v : voices)
                 {
-                    if (v.active && v.currentNote == m.getNoteNumber())
+                    if (v.active && v.currentNote == m.getNoteNumber() && v.isKeyDown)
                     {
                         v.stop();
                         break; // Stop one voice per note off
@@ -147,14 +169,11 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                 if (v.phase >= juce::MathConstants<float>::twoPi)
                     v.phase -= juce::MathConstants<float>::twoPi;
 
-                // Simple release envelope
-                float currentGain = v.currentLevel;
-                if (v.currentNote == -1) // Release phase
-                {
-                    v.currentLevel *= 0.99f; // Simple exponential decay
-                    if (v.currentLevel < 0.001f)
-                        v.active = false;
-                }
+                float adsrGain = v.adsr.getNextSample();
+                if (!v.adsr.isActive())
+                    v.active = false;
+                
+                float currentGain = adsrGain * v.currentVelocity;
                 
                 l += sample * currentGain * 0.5f; // Split to stereo
                 r += sample * currentGain * 0.5f;
@@ -174,21 +193,34 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
         tuneValue = v.getProperty("tune");
     if (v.hasProperty("wave"))
         waveValue = v.getProperty("wave");
+    if (v.hasProperty("attack"))
+        attackValue = v.getProperty("attack");
+    if (v.hasProperty("decay"))
+        decayValue = v.getProperty("decay");
+    if (v.hasProperty("sustain"))
+        sustainValue = v.getProperty("sustain");
+    if (v.hasProperty("release"))
+        releaseValue = v.getProperty("release");
 }
 
-void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr)
+void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& params)
 {
     active = true;
+    isKeyDown = true;
     currentNote = note;
     currentVelocity = velocity;
     sampleRate = sr;
-    currentLevel = velocity;
     phase = 0.0f;
     targetFrequency = 440.0f * std::pow(2.0f, (note - 69) / 12.0f);
     phaseDelta = targetFrequency * juce::MathConstants<float>::twoPi / sampleRate;
+    
+    adsr.setSampleRate(sampleRate);
+    adsr.setParameters(params);
+    adsr.noteOn();
 }
 
 void SimpleSynthPlugin::Voice::stop()
 {
-    currentNote = -1; // Signal release
+    isKeyDown = false;
+    adsr.noteOff();
 }

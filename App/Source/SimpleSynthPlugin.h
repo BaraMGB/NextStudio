@@ -44,25 +44,35 @@ public:
     te::AutomatableParameter::Ptr levelParam;
     te::AutomatableParameter::Ptr tuneParam;
     te::AutomatableParameter::Ptr waveParam;
+    te::AutomatableParameter::Ptr attackParam;
+    te::AutomatableParameter::Ptr decayParam;
+    te::AutomatableParameter::Ptr sustainParam;
+    te::AutomatableParameter::Ptr releaseParam;
 
     juce::CachedValue<float> levelValue;
     juce::CachedValue<float> tuneValue;
     juce::CachedValue<float> waveValue;
+    juce::CachedValue<float> attackValue;
+    juce::CachedValue<float> decayValue;
+    juce::CachedValue<float> sustainValue;
+    juce::CachedValue<float> releaseValue;
 
 private:
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate);
+        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& params);
         void stop();
         
         bool active = false;
+        bool isKeyDown = false;
         int currentNote = -1;
         float currentVelocity = 0.0f;
         float phase = 0.0f;
         float phaseDelta = 0.0f;
-        float currentLevel = 0.0f;
         float targetFrequency = 0.0f;
         float sampleRate = 44100.0f;
+        
+        juce::ADSR adsr;
         
         // For Noise
         juce::Random random;
