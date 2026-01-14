@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "BinaryData.h"
 #include "EditViewState.h"
+#include "SimpleSynthPlugin.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_graphics/native/juce_EventTracing.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
@@ -2241,6 +2242,10 @@ juce::Array<juce::PluginDescription> EngineHelpers::getInternalPlugins()
     list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
                              TRANS (te::FourOscPlugin::getPluginName()),
                              te::FourOscPlugin::xmlTypeName, true)
+             );
+    list.add(getPluginDesc( juce::String (num++) + "_trkbuiltin",
+                             TRANS (SimpleSynthPlugin::getPluginName()),
+                             SimpleSynthPlugin::xmlTypeName, true)
              );
     return list;
 }

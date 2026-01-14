@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include <utility>
 #include "Utilities.h"
+#include "SimpleSynthPlugin.h"
 
 //==============================================================================
 PluginTreeItem::PluginTreeItem (juce::PluginDescription  d)
@@ -131,6 +132,7 @@ void PluginTreeGroup::createBuiltInItems (int& num, te::Plugin::Type types)
     {
         addInternalPlugin<te::SamplerPlugin> (*this, num, true);
         addInternalPlugin<te::FourOscPlugin> (*this, num, true);
+        addInternalPlugin<SimpleSynthPlugin> (*this, num, true);
     }
 
 //    addInternalPlugin<te::InsertPlugin> (*this, num);

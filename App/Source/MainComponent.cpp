@@ -33,6 +33,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ProjectsBrowser.h"
 #include "SidebarComponent.h"
 #include "Utilities.h"
+#include "SimpleSynthPlugin.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
@@ -62,6 +63,8 @@ MainComponent::MainComponent(ApplicationViewState &state)
             resized();
         }
     };
+
+    m_engine.getPluginManager().createBuiltInType<SimpleSynthPlugin>();
 
     openValidStartEdit();
 
