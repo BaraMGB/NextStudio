@@ -180,8 +180,22 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
             }
         }
     }
-    else
+    else if (e.originalComponent != &m_modDepthSlider)
+    {
         juce::Slider::mouseDown(e);
+    }
+}
+
+void AutomatableSliderComponent::mouseDrag(const juce::MouseEvent& e)
+{
+    if (e.originalComponent != &m_modDepthSlider)
+        juce::Slider::mouseDrag(e);
+}
+
+void AutomatableSliderComponent::mouseUp(const juce::MouseEvent& e)
+{
+    if (e.originalComponent != &m_modDepthSlider)
+        juce::Slider::mouseUp(e);
 }
 
 void AutomatableSliderComponent::setTrackColour(juce::Colour colour)

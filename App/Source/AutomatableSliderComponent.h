@@ -38,6 +38,8 @@ public:
     ~AutomatableSliderComponent() override;
 
     void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
 
     te::AutomatableParameter::Ptr getAutomatableParameter();
     void bindSliderToParameter ();
