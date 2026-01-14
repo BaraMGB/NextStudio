@@ -37,6 +37,10 @@ The plugin exposes the following automatable parameters:
 | **Decay** | `decay` | 0.001s to 5.0s | ADSR Decay time. |
 | **Sustain** | `sustain` | 0.0 to 1.0 | ADSR Sustain level. |
 | **Release** | `release` | 0.001s to 5.0s | ADSR Release time. |
+| **Unison Voices** | `unisonOrder` | 1 to 5 | Number of stacked voices per note. |
+| **Unison Detune** | `unisonDetune` | 0.0 to 100.0 cents | Pitch spread for unison voices. |
+| **Unison Spread** | `unisonSpread` | 0.0 to 100.0 % | Stereo spread for unison voices. |
+| **Retrigger** | `retrigger` | Off (0) / On (1) | Determines oscillator phase start behavior. |
 
 ## Signal Flow
 
@@ -45,23 +49,29 @@ The `applyToBuffer` method is the core DSP loop, processed in blocks:
 1.  **Parameter Update:**
     *   The Master Level target is updated for the `LinearSmoothedValue`.
     *   ADSR parameters are captured from the `AutomatableParameter`s.
+    *   Unison settings (Order, Detune, Spread, Retrigger) are read.
 
 2.  **MIDI Processing:**
     *   The input MIDI buffer is iterated.
-    *   **Note On:** Finds the first inactive voice and triggers it (`start()`), passing the current ADSR parameters.
-    *   **Note Off:** Finds the active voice matching the note number. If `isKeyDown` is true, it triggers release (`stop()`).
+    *   **Note On:** Triggers `unisonOrder` number of voices.
+        *   Each voice is assigned a `unisonBias` value (ranging from -1.0 to +1.0) which determines its relative position in the stereo and pitch field.
+        *   **Phase Initialization:** If `Retrigger` is On, phase starts at 0.0. If Off, phase starts randomly (prevents phasing).
+        *   Finds inactive voices in the pool and calls `start()`.
+    *   **Note Off:** Finds *all* active voices matching the note number. If `isKeyDown` is true, it triggers release (`stop()`).
     *   **All Notes Off:** Stops all voices immediately.
 
 3.  **Audio Generation:**
     *   The loop iterates through each sample in the block.
+    *   **Parameter Update (Control Rate):** Before the sample loop, `pan` and `detuneMultiplier` are recalculated for every active voice based on its `unisonBias` and the *current* global `unisonSpread` and `unisonDetune` parameters. This allows for real-time modulation of unison width and thickness.
     *   **Level Smoothing:** The master gain is interpolated for each sample using `masterLevelSmoother`.
     *   **Voice Rendering:**
         *   Active voices calculate their waveform sample.
         *   **PolyBLEP:** Sawtooth and Square waves use PolyBLEP smoothing at discontinuities to reduce aliasing.
-        *   **Phase:** Incremented by `phaseDelta`, wrapping around `2 * pi`.
+        *   **Phase:** Incremented by `phaseDelta`, wrapping around `2 * pi`. `phaseDelta` includes the unison detuning.
         *   **Envelope:** `juce::ADSR` is used to calculate the gain for each sample.
         *   The oscillator output is multiplied by the `adsrGain` and `velocity`.
-        *   Voices are summed into the left and right output channels.
+        *   **Panning:** The voice output is distributed to Left/Right channels based on its calculated `currentPan` value.
+        *   **Gain Compensation:** If Unison is active, the total gain is reduced by $1/\sqrt{N}$ to maintain consistent volume.
     *   **Voice Deactivation:** If the ADSR becomes inactive, `v.active` is set to `false`, freeing the voice.
 
 ## DSP Details

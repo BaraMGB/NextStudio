@@ -48,6 +48,10 @@ public:
     te::AutomatableParameter::Ptr decayParam;
     te::AutomatableParameter::Ptr sustainParam;
     te::AutomatableParameter::Ptr releaseParam;
+    te::AutomatableParameter::Ptr unisonOrderParam;
+    te::AutomatableParameter::Ptr unisonDetuneParam;
+    te::AutomatableParameter::Ptr unisonSpreadParam;
+    te::AutomatableParameter::Ptr retriggerParam;
 
     juce::CachedValue<float> levelValue;
     juce::CachedValue<float> tuneValue;
@@ -56,11 +60,15 @@ public:
     juce::CachedValue<float> decayValue;
     juce::CachedValue<float> sustainValue;
     juce::CachedValue<float> releaseValue;
+    juce::CachedValue<float> unisonOrderValue;
+    juce::CachedValue<float> unisonDetuneValue;
+    juce::CachedValue<float> unisonSpreadValue;
+    juce::CachedValue<float> retriggerValue;
 
 private:
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& params);
+        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& params, float unisonBias, bool retrigger);
         void stop();
         
         bool active = false;
@@ -72,13 +80,18 @@ private:
         float targetFrequency = 0.0f;
         float sampleRate = 44100.0f;
         
+        // Unison Handling
+        float unisonBias = 0.0f; // -1.0 (Left/Flat) to +1.0 (Right/Sharp)
+        float currentPan = 0.5f;
+        float currentDetuneMultiplier = 1.0f;
+        
         juce::ADSR adsr;
         
         // For Noise
         juce::Random random;
     };
 
-    static constexpr int numVoices = 8;
+    static constexpr int numVoices = 16;
     Voice voices[numVoices];
     
     juce::LinearSmoothedValue<float> masterLevelSmoother;
