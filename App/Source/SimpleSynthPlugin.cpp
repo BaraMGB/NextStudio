@@ -38,6 +38,10 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     decayValue.referTo(state, "decay", um, 0.1f);
     sustainValue.referTo(state, "sustain", um, 0.8f);
     releaseValue.referTo(state, "release", um, 0.2f);
+    unisonOrderValue.referTo(state, "unisonOrder", um, 1.0f);
+    unisonDetuneValue.referTo(state, "unisonDetune", um, 0.0f);
+    unisonSpreadValue.referTo(state, "unisonSpread", um, 0.0f);
+    retriggerValue.referTo(state, "retrigger", um, 0.0f);
 
     // Create and expose automatable parameters
     levelParam = addParam("level", "Level", {-100.0f, 0.0f});
@@ -47,6 +51,10 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     decayParam = addParam("decay", "Decay", {0.001f, 5.0f});
     sustainParam = addParam("sustain", "Sustain", {0.0f, 1.0f});
     releaseParam = addParam("release", "Release", {0.001f, 5.0f});
+    unisonOrderParam = addParam("unisonOrder", "Unison Voices", {1.0f, 5.0f, 1.0f});
+    unisonDetuneParam = addParam("unisonDetune", "Unison Detune", {0.0f, 100.0f}); // Cents
+    unisonSpreadParam = addParam("unisonSpread", "Unison Spread", {0.0f, 100.0f}); // Percent
+    retriggerParam = addParam("retrigger", "Retrigger", {0.0f, 1.0f, 1.0f}); // Default Off (0.0) -> Random Phase
     
     // Attach parameters to cached values for automatic bi-directional updates
     levelParam->attachToCurrentValue(levelValue);
@@ -56,6 +64,10 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     decayParam->attachToCurrentValue(decayValue);
     sustainParam->attachToCurrentValue(sustainValue);
     releaseParam->attachToCurrentValue(releaseValue);
+    unisonOrderParam->attachToCurrentValue(unisonOrderValue);
+    unisonDetuneParam->attachToCurrentValue(unisonDetuneValue);
+    unisonSpreadParam->attachToCurrentValue(unisonSpreadValue);
+    retriggerParam->attachToCurrentValue(retriggerValue);
 }
 
 SimpleSynthPlugin::~SimpleSynthPlugin()
@@ -69,6 +81,10 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     decayParam->detachFromCurrentValue();
     sustainParam->detachFromCurrentValue();
     releaseParam->detachFromCurrentValue();
+    unisonOrderParam->detachFromCurrentValue();
+    unisonDetuneParam->detachFromCurrentValue();
+    unisonSpreadParam->detachFromCurrentValue();
+    retriggerParam->detachFromCurrentValue();
 }
 
 void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
@@ -102,6 +118,13 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     adsrParams.sustain = sustainParam->getCurrentValue();
     adsrParams.release = releaseParam->getCurrentValue();
 
+    int unisonOrder = (int)unisonOrderParam->getCurrentValue();
+    // Fetch live unison parameters
+    float unisonDetuneCents = unisonDetuneParam->getCurrentValue();
+    float unisonSpread = unisonSpreadParam->getCurrentValue() / 100.0f;
+    
+    bool retrigger = retriggerParam->getCurrentValue() > 0.5f;
+
     // Process MIDI events
     if (fc.bufferForMidiMessages != nullptr)
     {
@@ -109,13 +132,26 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
         {
             if (m.isNoteOn())
             {
-                // Find a free voice to play the note
-                for (auto& v : voices)
+                // Unison Logic: Trigger multiple voices
+                for (int u = 0; u < unisonOrder; ++u)
                 {
-                    if (!v.active)
+                    // Find a free voice to play the note
+                    for (auto& v : voices)
                     {
-                        v.start(m.getNoteNumber(), m.getFloatVelocity(), (float)sampleRate, adsrParams);
-                        break;
+                        if (!v.active)
+                        {
+                            float bias = 0.0f;
+                            if (unisonOrder > 1)
+                            {
+                                // Map u (0 to order-1) to -1.0 to +1.0
+                                // e.g. Order=3: u=0 -> -1, u=1 -> 0, u=2 -> +1
+                                float spreadAmount = (float)u / (float)(unisonOrder - 1); 
+                                bias = (spreadAmount - 0.5f) * 2.0f;
+                            }
+                            
+                            v.start(m.getNoteNumber(), m.getFloatVelocity(), (float)sampleRate, adsrParams, bias, retrigger);
+                            break;
+                        }
                     }
                 }
             }
@@ -125,12 +161,10 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                 for (auto& v : voices)
                 {
                     // Check isKeyDown to ensure we only release voices currently held by a key.
-                    // This prevents cutting off a voice that is already in its release phase
-                    // if the same note was pressed again quickly (voice stealing overlap).
                     if (v.active && v.currentNote == m.getNoteNumber() && v.isKeyDown)
                     {
                         v.stop();
-                        break; // Stop only one voice per NoteOff event
+                        // Do NOT break here because in unison mode multiple voices have the same note number!
                     }
                 }
             }
@@ -154,13 +188,28 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     float tuneSemitones = tuneParam->getCurrentValue();
     int waveShape = (int)waveParam->getCurrentValue();
 
-    // Update voice frequencies based on current tuning
+    // UPDATE VOICE PARAMETERS (Control Rate)
+    // Recalculate Pan and Detune based on current global parameters and the voice's unison bias
     for (auto& v : voices)
     {
         if (v.active)
         {
+            // Calculate real-time Pan
+            // bias -1..1 -> pan 0..1 based on spread width
+            // center = 0.5. width = unisonSpread.
+            // pan = 0.5 + (bias * 0.5 * spread)
+            float spreadWidth = unisonSpread;
+            v.currentPan = 0.5f + (v.unisonBias * 0.5f * spreadWidth);
+            v.currentPan = juce::jlimit(0.0f, 1.0f, v.currentPan);
+
+            // Calculate real-time Detune
+            float detuneAmount = v.unisonBias; // -1 to 1
+            float cents = detuneAmount * unisonDetuneCents;
+            v.currentDetuneMultiplier = std::pow(2.0f, cents / 1200.0f);
+
+            // Update Frequency
             float baseFreq = 440.0f * std::pow(2.0f, (v.currentNote - 69 + tuneSemitones) / 12.0f);
-            v.targetFrequency = baseFreq;
+            v.targetFrequency = baseFreq * v.currentDetuneMultiplier;
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
         }
     }
@@ -171,6 +220,10 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
         float l = 0.0f;
         float r = 0.0f;
         float gain = masterLevelSmoother.getNextValue();
+
+        // Reduce gain slightly when using many unison voices to prevent clipping
+        if (unisonOrder > 1)
+            gain /= std::sqrt((float)unisonOrder);
 
         for (auto& v : voices)
         {
@@ -189,9 +242,6 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                     case triangle:
                         {
                             // Standard naive triangle wave.
-                            // Triangle waves have naturally low harmonic content (harmonics drop off at 1/n^2),
-                            // so aliasing is much less audible than with Saw/Square. 
-                            // PolyBLEP is omitted here to save CPU.
                             sample = 2.0f * std::abs(2.0f * t - 1.0f) - 1.0f; 
                         }
                         break;
@@ -233,9 +283,9 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                 
                 float currentGain = adsrGain * v.currentVelocity;
                 
-                // Mix into stereo buffer
-                l += sample * currentGain * 0.5f; 
-                r += sample * currentGain * 0.5f;
+                // Mix into stereo buffer using calculated currentPan
+                l += sample * currentGain * (1.0f - v.currentPan); 
+                r += sample * currentGain * v.currentPan;
             }
         }
 
@@ -255,18 +305,30 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     if (v.hasProperty("decay")) decayValue = v.getProperty("decay");
     if (v.hasProperty("sustain")) sustainValue = v.getProperty("sustain");
     if (v.hasProperty("release")) releaseValue = v.getProperty("release");
+    if (v.hasProperty("unisonOrder")) unisonOrderValue = v.getProperty("unisonOrder");
+    if (v.hasProperty("unisonDetune")) unisonDetuneValue = v.getProperty("unisonDetune");
+    if (v.hasProperty("unisonSpread")) unisonSpreadValue = v.getProperty("unisonSpread");
+    if (v.hasProperty("retrigger")) retriggerValue = v.getProperty("retrigger");
 }
 
-void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& params)
+void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& params, float bias, bool retrigger)
 {
     active = true;
     isKeyDown = true;
     currentNote = note;
     currentVelocity = velocity;
     sampleRate = sr;
-    phase = 0.0f; // Reset phase for consistent attack
-    targetFrequency = 440.0f * std::pow(2.0f, (note - 69) / 12.0f);
-    phaseDelta = targetFrequency * juce::MathConstants<float>::twoPi / sampleRate;
+    
+    // If Retrigger is On: Reset phase to 0 for punchy attack
+    // If Retrigger is Off: Randomize phase for analog feel / less phasing in unison
+    if (retrigger)
+        phase = 0.0f;
+    else
+        phase = random.nextFloat() * juce::MathConstants<float>::twoPi;
+        
+    unisonBias = bias;
+    
+    // Note: Frequency and Pan are calculated in the audio block based on unisonBias and current parameters
     
     // Configure and trigger the envelope
     adsr.setSampleRate(sampleRate);
