@@ -117,9 +117,9 @@ void MainComponent::resized()
     if (evs.getLowerRangeView() == LowerRangeView::midiEditor)
         lowerRangeHeight = evs.m_midiEditorHeight;
     else if (evs.getLowerRangeView() == LowerRangeView::pluginRack)
-        lowerRangeHeight = 250;
+        lowerRangeHeight = 350;
     else if (evs.getLowerRangeView() == LowerRangeView::mixer)
-        lowerRangeHeight = 250;
+        lowerRangeHeight = 350;
 
 
 
