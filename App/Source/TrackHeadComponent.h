@@ -30,7 +30,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LevelMeterComponent.h"
 #include "LowerRangeComponent.h"
 #include "RackView.h"
-#include "AutomatableSliderComponent.h"
+#include "Components/AutomatableSlider.h"
+#include "Components/AutomatableParameter.h"
 
 namespace te = tracktion_engine;
 

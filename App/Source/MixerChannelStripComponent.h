@@ -23,7 +23,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
-#include "AutomatableSliderComponent.h"
+#include "Components/AutomatableSlider.h"
+#include "Components/AutomatableParameter.h"
 #include "LevelMeterComponent.h"
 
 namespace te = tracktion_engine;
