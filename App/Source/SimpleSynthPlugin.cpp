@@ -42,6 +42,8 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     unisonDetuneValue.referTo(state, "unisonDetune", um, 0.0f);
     unisonSpreadValue.referTo(state, "unisonSpread", um, 0.0f);
     retriggerValue.referTo(state, "retrigger", um, 0.0f);
+    filterCutoffValue.referTo(state, "cutoff", um, 20000.0f);
+    filterResValue.referTo(state, "resonance", um, 0.0f);
 
     // Create and expose automatable parameters
     levelParam = addParam("level", "Level", {-100.0f, 0.0f});
@@ -56,6 +58,12 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     unisonSpreadParam = addParam("unisonSpread", "Unison Spread", {0.0f, 100.0f}); // Percent
     retriggerParam = addParam("retrigger", "Retrigger", {0.0f, 1.0f, 1.0f}); // Default Off (0.0) -> Random Phase
     
+    // Filter Parameters
+    // Use a skewed range for Frequency to make the knob feel natural (logarithmic)
+    // Removed 4th argument (default value override) to match function signature
+    filterCutoffParam = addParam("cutoff", "Cutoff", {20.0f, 20000.0f, 0.0f, 0.3f});
+    filterResParam = addParam("resonance", "Resonance", {0.0f, 1.0f});
+
     // Attach parameters to cached values for automatic bi-directional updates
     levelParam->attachToCurrentValue(levelValue);
     tuneParam->attachToCurrentValue(tuneValue);
@@ -68,6 +76,8 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     unisonDetuneParam->attachToCurrentValue(unisonDetuneValue);
     unisonSpreadParam->attachToCurrentValue(unisonSpreadValue);
     retriggerParam->attachToCurrentValue(retriggerValue);
+    filterCutoffParam->attachToCurrentValue(filterCutoffValue);
+    filterResParam->attachToCurrentValue(filterResValue);
 }
 
 SimpleSynthPlugin::~SimpleSynthPlugin()
@@ -85,19 +95,28 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     unisonDetuneParam->detachFromCurrentValue();
     unisonSpreadParam->detachFromCurrentValue();
     retriggerParam->detachFromCurrentValue();
+    filterCutoffParam->detachFromCurrentValue();
+    filterResParam->detachFromCurrentValue();
 }
 
 void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
 {
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = info.sampleRate > 0.0 ? info.sampleRate : 44100.0;
+    spec.maximumBlockSize = 4096; // Use a safe large block size as actual size isn't guaranteed here
+    spec.numChannels = 1; // Mono processing per voice
+
     // Initialize voices with the correct sample rate
     for (auto& v : voices)
     {
-        v.sampleRate = (float)info.sampleRate;
-        v.adsr.setSampleRate(info.sampleRate);
+        v.sampleRate = (float)spec.sampleRate;
+        v.adsr.setSampleRate(spec.sampleRate);
+        v.filter.prepare(spec);
+        v.filter.setMode(juce::dsp::LadderFilterMode::LPF24); // 24dB Low Pass
         v.random.setSeedRandomly();
     }
         
-    masterLevelSmoother.reset(info.sampleRate, 0.02); // 20ms smoothing to prevent clicks on volume changes
+    masterLevelSmoother.reset(spec.sampleRate, 0.02); // 20ms smoothing to prevent clicks on volume changes
 }
 
 void SimpleSynthPlugin::deinitialise()
@@ -111,6 +130,10 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 
     fc.destBuffer->clear();
 
+    // Ensure valid sample rate from Engine
+    if (sampleRate <= 0.0)
+        return;
+
     // Fetch current ADSR settings for all voices
     juce::ADSR::Parameters adsrParams;
     adsrParams.attack = attackParam->getCurrentValue();
@@ -122,8 +145,12 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     // Fetch live unison parameters
     float unisonDetuneCents = unisonDetuneParam->getCurrentValue();
     float unisonSpread = unisonSpreadParam->getCurrentValue() / 100.0f;
-    
     bool retrigger = retriggerParam->getCurrentValue() > 0.5f;
+
+    // Filter Parameters
+    // CLAMP Cutoff to safe range to prevent filter instability (blowups/silence)
+    float cutoff = juce::jmax(20.0f, filterCutoffParam->getCurrentValue());
+    float resonance = filterResParam->getCurrentValue();
 
     // Process MIDI events
     if (fc.bufferForMidiMessages != nullptr)
@@ -190,14 +217,12 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 
     // UPDATE VOICE PARAMETERS (Control Rate)
     // Recalculate Pan and Detune based on current global parameters and the voice's unison bias
+    // Also update filter parameters per voice
     for (auto& v : voices)
     {
         if (v.active)
         {
             // Calculate real-time Pan
-            // bias -1..1 -> pan 0..1 based on spread width
-            // center = 0.5. width = unisonSpread.
-            // pan = 0.5 + (bias * 0.5 * spread)
             float spreadWidth = unisonSpread;
             v.currentPan = 0.5f + (v.unisonBias * 0.5f * spreadWidth);
             v.currentPan = juce::jlimit(0.0f, 1.0f, v.currentPan);
@@ -211,6 +236,10 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
             float baseFreq = 440.0f * std::pow(2.0f, (v.currentNote - 69 + tuneSemitones) / 12.0f);
             v.targetFrequency = baseFreq * v.currentDetuneMultiplier;
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
+
+            // Update Filter
+            v.filter.setCutoffFrequencyHz(cutoff);
+            v.filter.setResonance(resonance);
         }
     }
 
@@ -274,6 +303,16 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                 if (v.phase >= juce::MathConstants<float>::twoPi)
                     v.phase -= juce::MathConstants<float>::twoPi;
 
+                // Process Filter
+                // Use standard DSP module processing pattern
+                float* channels[] = { &sample };
+                juce::dsp::AudioBlock<float> block (channels, 1, 1);
+                juce::dsp::ProcessContextReplacing<float> context (block);
+                v.filter.process(context);
+                
+                // Prevent denormals which can cause CPU spikes or silence in IIR filters
+                JUCE_SNAP_TO_ZERO(sample);
+
                 // Apply ADSR envelope
                 float adsrGain = v.adsr.getNextSample();
                 
@@ -284,6 +323,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                 float currentGain = adsrGain * v.currentVelocity;
                 
                 // Mix into stereo buffer using calculated currentPan
+                // Linear Panning
                 l += sample * currentGain * (1.0f - v.currentPan); 
                 r += sample * currentGain * v.currentPan;
             }
@@ -309,6 +349,8 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     if (v.hasProperty("unisonDetune")) unisonDetuneValue = v.getProperty("unisonDetune");
     if (v.hasProperty("unisonSpread")) unisonSpreadValue = v.getProperty("unisonSpread");
     if (v.hasProperty("retrigger")) retriggerValue = v.getProperty("retrigger");
+    if (v.hasProperty("cutoff")) filterCutoffValue = v.getProperty("cutoff");
+    if (v.hasProperty("resonance")) filterResValue = v.getProperty("resonance");
 }
 
 void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& params, float bias, bool retrigger)
@@ -317,7 +359,22 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const j
     isKeyDown = true;
     currentNote = note;
     currentVelocity = velocity;
-    sampleRate = sr;
+    
+    // Check if sample rate has changed significantly or was uninitialized
+    // Re-prepare DSP objects if necessary
+    if (sampleRate <= 0.0f || std::abs(sampleRate - sr) > 1.0f)
+    {
+        sampleRate = sr;
+        
+        juce::dsp::ProcessSpec spec;
+        spec.sampleRate = sampleRate;
+        spec.maximumBlockSize = 4096;
+        spec.numChannels = 1;
+        
+        filter.prepare(spec);
+        filter.setMode(juce::dsp::LadderFilterMode::LPF24);
+        adsr.setSampleRate(sampleRate);
+    }
     
     // If Retrigger is On: Reset phase to 0 for punchy attack
     // If Retrigger is Off: Randomize phase for analog feel / less phasing in unison
@@ -328,10 +385,11 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const j
         
     unisonBias = bias;
     
-    // Note: Frequency and Pan are calculated in the audio block based on unisonBias and current parameters
+    // Reset Filter State
+    filter.reset();
     
     // Configure and trigger the envelope
-    adsr.setSampleRate(sampleRate);
+    // Note: setSampleRate is already handled above if needed, or in initialise
     adsr.setParameters(params);
     adsr.noteOn();
 }
