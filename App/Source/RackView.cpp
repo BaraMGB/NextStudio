@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PluginMenu.h"
 #include "InstrumentEffectChooser.h"
 #include "Utilities.h"
+#include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 
 
 RackView::RackView (EditViewState& evs)

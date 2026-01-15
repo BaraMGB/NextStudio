@@ -1,0 +1,135 @@
+/*
+  ==============================================================================
+
+    SimpleSynthPluginComponent.h
+    Created: 15 Jan 2026
+    Author:  NextStudio
+
+  ==============================================================================
+*/
+
+#pragma once
+
+#include "../../PluginViewComponent.h"
+#include "../../Components/AutomatableSlider.h"
+#include "../../Components/AutomatableParameter.h"
+#include "../../Components/AutomatableToggle.h"
+#include "../../Components/AutomatableComboBox.h"
+#include "../../Utilities.h"
+#include "SimpleSynthPlugin.h"
+
+//==============================================================================
+class SimpleSynthOscSection : public juce::Component
+{
+public:
+    SimpleSynthOscSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState);
+    ~SimpleSynthOscSection() override = default;
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    void updateUI();
+
+private:
+    SimpleSynthPlugin& m_plugin;
+    ApplicationViewState& m_appState;
+    
+    juce::ComboBox m_waveCombo;
+    AutomatableParameterComponent m_coarseTuneComp;
+    AutomatableParameterComponent m_fineTuneComp;
+    AutomatableParameterComponent m_unisonOrderComp;
+    AutomatableParameterComponent m_unisonDetuneComp;
+    AutomatableParameterComponent m_unisonSpreadComp;
+    AutomatableToggleComponent m_retriggerComp;
+    
+    juce::Label m_nameLabel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthOscSection)
+};
+
+//==============================================================================
+class SimpleSynthFilterSection : public juce::Component
+{
+public:
+    SimpleSynthFilterSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState);
+    ~SimpleSynthFilterSection() override = default;
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+
+private:
+    SimpleSynthPlugin& m_plugin;
+    ApplicationViewState& m_appState;
+
+    AutomatableParameterComponent m_cutoffComp;
+    AutomatableParameterComponent m_resComp;
+    
+    juce::Label m_nameLabel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthFilterSection)
+};
+
+//==============================================================================
+class SimpleSynthEnvSection : public juce::Component
+{
+public:
+    SimpleSynthEnvSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState, const juce::String& name);
+    ~SimpleSynthEnvSection() override = default;
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+
+private:
+    SimpleSynthPlugin& m_plugin;
+    ApplicationViewState& m_appState;
+
+    AutomatableParameterComponent m_attackComp;
+    AutomatableParameterComponent m_decayComp;
+    AutomatableParameterComponent m_sustainComp;
+    AutomatableParameterComponent m_releaseComp;
+    
+    juce::Label m_nameLabel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthEnvSection)
+};
+
+//==============================================================================
+class SimpleSynthPluginComponent : public PluginViewComponent,
+                                   private juce::ValueTree::Listener
+{
+public:
+    SimpleSynthPluginComponent(EditViewState& evs, te::Plugin::Ptr p);
+    ~SimpleSynthPluginComponent() override;
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    
+    int getNeededWidth() override { return 6; } // Similar width to 4Osc
+
+    // PluginPresetInterface implementation
+    juce::ValueTree getPluginState() override;
+    juce::ValueTree getFactoryDefaultState() override;
+    void restorePluginState(const juce::ValueTree& state) override;
+    juce::String getPresetSubfolder() const override;
+    juce::String getPluginTypeName() const override;
+    ApplicationViewState& getApplicationViewState() override;
+
+private:
+    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override;
+    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
+    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
+    void valueTreeParentChanged(juce::ValueTree&) override {}
+
+    SimpleSynthPlugin* m_synth = nullptr;
+
+    // Sections
+    SimpleSynthOscSection m_oscSection;
+    SimpleSynthFilterSection m_filterSection;
+    SimpleSynthEnvSection m_ampEnvSection;
+    
+    // Master
+    AutomatableSliderComponent m_levelSlider;
+    juce::Label m_levelLabel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthPluginComponent)
+};
