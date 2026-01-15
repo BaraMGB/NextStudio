@@ -394,12 +394,12 @@ public:
 
         currentModValueNormalized = juce::jlimit(0.0f, 1.0f, currentModValueNormalized);
 
-        auto radius = (float) juce::jmin(width / 2, height / 2) - 10.0f;
-        auto centreX = (float) x + width * 0.5f;
-        auto centreY = (float) y + height * 0.5f;
-        auto rx = centreX - radius;
-        auto ry = centreY - radius;
-        auto rw = radius * 2.0f;
+        const auto radius = (float) juce::jmin(width / 2, height / 2) - 10.0f;
+        const auto centreX = (float) x + width * 0.5f;
+        const auto centreY = (float) y + height * 0.5f;
+        const auto rx = centreX - radius;
+        const auto ry = centreY - radius;
+        const auto rw = radius * 2.0f;
 
         auto lineW = 7.0f;
         auto arcRadius = radius + 3.0f;
@@ -445,17 +445,24 @@ public:
             }
         }
 
+        juce::Point<float> knobstartPoint(rx, ry); 
+        juce::Point<float> konbendPoint(rx + rw, ry + rw); 
+        juce::ColourGradient knobbgGrad(m_appState.getButtonBackgroundColour().brighter(.3), startPoint, m_appState.getButtonBackgroundColour().darker(.3), endPoint, false);
+        g.setGradientFill(knobbgGrad);
+        g.fillEllipse(rx, ry, rw, rw);
         // --- Thumb (Pointer) ---
         auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
         auto pointerLength = radius;
-        auto pointerThickness = 2.0f;
+        auto pointerThickness = 4.0f;
         juce::Path p;
-        p.addRectangle(-pointerThickness * 0.5f, -radius + 1.0f, pointerThickness, pointerLength * 0.5f);
+        p.addEllipse(-pointerThickness * 0.5f, -radius + 1.0f, pointerThickness, pointerThickness);
         p.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
 
         juce::Colour thumbCol = (isAutomationActive || isModulationActive) ? juce::Colours::red : volumeColour;
         g.setColour (thumbCol);
         g.fillPath (p);
+        g.setColour(juce::Colours::darkgrey);
+        g.strokePath(p, juce::PathStrokeType (1.0f));
 
         //start cap
         juce::Path sc;
