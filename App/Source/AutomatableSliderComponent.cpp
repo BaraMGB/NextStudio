@@ -62,6 +62,9 @@ AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::A
     addChildComponent(m_modDepthSlider);
     m_modDepthSlider.addMouseListener(this, false);
 
+    if (auto def = m_automatableParameter->getDefaultValue())
+        setDoubleClickReturnValue(true, *def);
+
     m_modDepthSlider.onValueChange = [this]
     {
         auto assignments = m_automatableParameter->getAssignments();
@@ -283,7 +286,6 @@ AutomatableParameterComponent::AutomatableParameterComponent(const te::Automatab
     m_knob = std::make_unique<AutomatableSliderComponent>(ap);
     m_knob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     m_knob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    m_knob->setDoubleClickReturnValue(true, ap->getCurrentValue());
     m_knob->onValueChange = [this] {
         updateLabel();
     };
