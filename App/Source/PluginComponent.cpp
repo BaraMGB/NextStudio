@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include "FourOscPluginComponent.h"
 #include "RackView.h"
+#include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 
 //==============================================================================
 ModifierViewComponent::DragHandle::DragHandle()
@@ -379,6 +380,10 @@ RackItemView::RackItemView
     {
         GUIHelpers::log("4OSC");
         m_pluginComponent = std::make_unique<FourOscPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == SimpleSynthPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<SimpleSynthPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
     {
