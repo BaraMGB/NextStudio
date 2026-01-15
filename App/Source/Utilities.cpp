@@ -25,7 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "BinaryData.h"
 #include "EditViewState.h"
-#include "SimpleSynthPlugin.h"
+#include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_graphics/native/juce_EventTracing.h"
 #include "tracktion_core/utilities/tracktion_Time.h"

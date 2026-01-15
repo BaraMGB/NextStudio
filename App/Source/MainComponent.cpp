@@ -33,7 +33,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ProjectsBrowser.h"
 #include "SidebarComponent.h"
 #include "Utilities.h"
-#include "SimpleSynthPlugin.h"
+#include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
