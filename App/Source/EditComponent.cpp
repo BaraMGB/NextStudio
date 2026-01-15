@@ -459,6 +459,11 @@ void EditComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
     {
         markAndUpdate (m_updateTracks);
     }
+    if (c.hasType(te::IDs::POINT))
+    {
+        markAndUpdate(m_updateTracks);
+        markAndUpdate(m_verticalUpdateSongEditor);
+    }
     if (c.hasType(te::IDs::AUTOMATIONCURVE))
     {
         GUIHelpers::log(c.toXmlString());
