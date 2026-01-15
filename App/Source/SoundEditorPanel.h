@@ -22,7 +22,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "SampleDisplay.h"
-#include "AutomatableSliderComponent.h"
+#include "Components/AutomatableSlider.h"
+#include "Components/NonAutomatableParameter.h"
+#include "Components/AutomatableParameter.h"
 
 namespace te = tracktion_engine;
 class ApplicationViewState;
