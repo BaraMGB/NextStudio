@@ -71,7 +71,7 @@ target_sources(${TargetName} PRIVATE
         Source/EditComponent.cpp
         Source/EditViewState.cpp
         Source/FourOscPluginComponent.cpp
-        Source/SimpleSynthPlugin.cpp
+        Source/Plugins/SimpleSynth/SimpleSynthPlugin.cpp
         Source/PresetManagerComponent.cpp
         Source/FileBrowser.cpp
         Source/HeaderComponent.cpp

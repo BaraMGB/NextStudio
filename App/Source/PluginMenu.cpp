@@ -25,7 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include <utility>
 #include "Utilities.h"
-#include "SimpleSynthPlugin.h"
+#include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 
 //==============================================================================
 PluginTreeItem::PluginTreeItem (juce::PluginDescription  d)
