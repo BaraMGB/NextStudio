@@ -45,16 +45,21 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     retriggerValue.referTo(state, "retrigger", um, 0.0f);
     filterCutoffValue.referTo(state, "cutoff", um, 20000.0f);
     filterResValue.referTo(state, "resonance", um, 0.0f);
+    filterEnvAmountValue.referTo(state, "filterEnvAmount", um, 0.0f);
+    filterAttackValue.referTo(state, "filterAttack", um, 0.001f);
+    filterDecayValue.referTo(state, "filterDecay", um, 0.001f);
+    filterSustainValue.referTo(state, "filterSustain", um, 1.0f);
+    filterReleaseValue.referTo(state, "filterRelease", um, 0.001f);
 
     // Create and expose automatable parameters
     levelParam = addParam("level", "Level", {-100.0f, 0.0f});
     coarseTuneParam = addParam("coarseTune", "Coarse Tune", {-24.0f, 24.0f, 1.0f});
     fineTuneParam = addParam("fineTune", "Fine Tune", {-100.0f, 100.0f}); // Cents
     waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f}); 
-    attackParam = addParam("attack", "Attack", {0.001f, 5.0f});
-    decayParam = addParam("decay", "Decay", {0.001f, 5.0f});
+    attackParam = addParam("attack", "Attack", {0.0f, 5.0f});
+    decayParam = addParam("decay", "Decay", {0.0f, 5.0f});
     sustainParam = addParam("sustain", "Sustain", {0.0f, 1.0f});
-    releaseParam = addParam("release", "Release", {0.001f, 5.0f});
+    releaseParam = addParam("release", "Release", {0.0f, 5.0f});
     unisonOrderParam = addParam("unisonOrder", "Unison Voices", {1.0f, 5.0f, 1.0f});
     unisonDetuneParam = addParam("unisonDetune", "Unison Detune", {0.0f, 100.0f}); // Cents
     unisonSpreadParam = addParam("unisonSpread", "Unison Spread", {0.0f, 100.0f}); // Percent
@@ -65,6 +70,11 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     // Removed 4th argument (default value override) to match function signature
     filterCutoffParam = addParam("cutoff", "Cutoff", {20.0f, 20000.0f, 0.0f, 0.3f});
     filterResParam = addParam("resonance", "Resonance", {0.0f, 1.0f});
+    filterEnvAmountParam = addParam("filterEnvAmount", "Env Amount", {-100.0f, 100.0f});
+    filterAttackParam = addParam("filterAttack", "Filter Attack", {0.0f, 5.0f});
+    filterDecayParam = addParam("filterDecay", "Filter Decay", {0.0f, 5.0f});
+    filterSustainParam = addParam("filterSustain", "Filter Sustain", {0.0f, 1.0f});
+    filterReleaseParam = addParam("filterRelease", "Filter Release", {0.0f, 5.0f});
 
     // Attach parameters to cached values for automatic bi-directional updates
     levelParam->attachToCurrentValue(levelValue);
@@ -81,6 +91,11 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     retriggerParam->attachToCurrentValue(retriggerValue);
     filterCutoffParam->attachToCurrentValue(filterCutoffValue);
     filterResParam->attachToCurrentValue(filterResValue);
+    filterEnvAmountParam->attachToCurrentValue(filterEnvAmountValue);
+    filterAttackParam->attachToCurrentValue(filterAttackValue);
+    filterDecayParam->attachToCurrentValue(filterDecayValue);
+    filterSustainParam->attachToCurrentValue(filterSustainValue);
+    filterReleaseParam->attachToCurrentValue(filterReleaseValue);
 }
 
 SimpleSynthPlugin::~SimpleSynthPlugin()
@@ -101,6 +116,11 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     retriggerParam->detachFromCurrentValue();
     filterCutoffParam->detachFromCurrentValue();
     filterResParam->detachFromCurrentValue();
+    filterEnvAmountParam->detachFromCurrentValue();
+    filterAttackParam->detachFromCurrentValue();
+    filterDecayParam->detachFromCurrentValue();
+    filterSustainParam->detachFromCurrentValue();
+    filterReleaseParam->detachFromCurrentValue();
 }
 
 void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
@@ -115,6 +135,7 @@ void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
     {
         v.sampleRate = (float)spec.sampleRate;
         v.adsr.setSampleRate(spec.sampleRate);
+        v.filterAdsr.setSampleRate(spec.sampleRate);
         v.filter.prepare(spec);
         v.filter.setMode(juce::dsp::LadderFilterMode::LPF24); // 24dB Low Pass
         v.random.setSeedRandomly();
@@ -145,6 +166,12 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     adsrParams.sustain = sustainParam->getCurrentValue();
     adsrParams.release = releaseParam->getCurrentValue();
 
+    juce::ADSR::Parameters filterAdsrParams;
+    filterAdsrParams.attack = filterAttackParam->getCurrentValue();
+    filterAdsrParams.decay = filterDecayParam->getCurrentValue();
+    filterAdsrParams.sustain = filterSustainParam->getCurrentValue();
+    filterAdsrParams.release = filterReleaseParam->getCurrentValue();
+
     int unisonOrder = (int)unisonOrderParam->getCurrentValue();
     // Fetch live unison parameters
     float unisonDetuneCents = unisonDetuneParam->getCurrentValue();
@@ -153,8 +180,9 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 
     // Filter Parameters
     // CLAMP Cutoff to safe range to prevent filter instability (blowups/silence)
-    float cutoff = juce::jmax(20.0f, filterCutoffParam->getCurrentValue());
+    float baseCutoff = juce::jmax(20.0f, filterCutoffParam->getCurrentValue());
     float resonance = filterResParam->getCurrentValue();
+    float filterEnvAmount = filterEnvAmountParam->getCurrentValue() / 100.0f; // -1.0 to 1.0
 
     // Process MIDI events
     if (fc.bufferForMidiMessages != nullptr)
@@ -180,7 +208,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
                                 bias = (spreadAmount - 0.5f) * 2.0f;
                             }
                             
-                            v.start(m.getNoteNumber(), m.getFloatVelocity(), (float)sampleRate, adsrParams, bias, retrigger);
+                            v.start(m.getNoteNumber(), m.getFloatVelocity(), (float)sampleRate, adsrParams, filterAdsrParams, bias, retrigger);
                             break;
                         }
                     }
@@ -243,8 +271,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
             v.targetFrequency = baseFreq * v.currentDetuneMultiplier;
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
 
-            // Update Filter
-            v.filter.setCutoffFrequencyHz(cutoff);
+            // Update Filter - Base parameters only, modulation happens per sample
             v.filter.setResonance(resonance);
         }
     }
@@ -264,6 +291,18 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
         {
             if (v.active)
             {
+                // Calculate Filter Envelope
+                float filterEnv = v.filterAdsr.getNextSample();
+                
+                // Modulate Cutoff
+                // Use a snappy linear-in-frequency addition.
+                // At 100% Env Amount, the envelope can sweep up to 18kHz above/below the base cutoff.
+                float maxEnvSweepHz = 18000.0f;
+                float modulatedCutoff = baseCutoff + (filterEnv * filterEnvAmount * maxEnvSweepHz);
+                modulatedCutoff = juce::jlimit(20.0f, 20000.0f, modulatedCutoff);
+                
+                v.filter.setCutoffFrequencyHz(modulatedCutoff);
+
                 float sample = 0.0f;
                 // Normalize phase and increment to 0..1 range for PolyBLEP calculations
                 float t = v.phase / juce::MathConstants<float>::twoPi; 
@@ -358,9 +397,14 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     if (v.hasProperty("retrigger")) retriggerValue = v.getProperty("retrigger");
     if (v.hasProperty("cutoff")) filterCutoffValue = v.getProperty("cutoff");
     if (v.hasProperty("resonance")) filterResValue = v.getProperty("resonance");
+    if (v.hasProperty("filterEnvAmount")) filterEnvAmountValue = v.getProperty("filterEnvAmount");
+    if (v.hasProperty("filterAttack")) filterAttackValue = v.getProperty("filterAttack");
+    if (v.hasProperty("filterDecay")) filterDecayValue = v.getProperty("filterDecay");
+    if (v.hasProperty("filterSustain")) filterSustainValue = v.getProperty("filterSustain");
+    if (v.hasProperty("filterRelease")) filterReleaseValue = v.getProperty("filterRelease");
 }
 
-void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& params, float bias, bool retrigger)
+void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger)
 {
     active = true;
     isKeyDown = true;
@@ -381,6 +425,7 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const j
         filter.prepare(spec);
         filter.setMode(juce::dsp::LadderFilterMode::LPF24);
         adsr.setSampleRate(sampleRate);
+        filterAdsr.setSampleRate(sampleRate);
     }
     
     // If Retrigger is On: Reset phase to 0 for punchy attack
@@ -397,8 +442,11 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const j
     
     // Configure and trigger the envelope
     // Note: setSampleRate is already handled above if needed, or in initialise
-    adsr.setParameters(params);
+    adsr.setParameters(ampParams);
     adsr.noteOn();
+    
+    filterAdsr.setParameters(filterParams);
+    filterAdsr.noteOn();
 }
 
 void SimpleSynthPlugin::Voice::stop()
@@ -406,4 +454,5 @@ void SimpleSynthPlugin::Voice::stop()
     isKeyDown = false;
     // Trigger the release phase of the envelope
     adsr.noteOff();
+    filterAdsr.noteOff();
 }

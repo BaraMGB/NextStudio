@@ -55,6 +55,11 @@ public:
     te::AutomatableParameter::Ptr retriggerParam;
     te::AutomatableParameter::Ptr filterCutoffParam;
     te::AutomatableParameter::Ptr filterResParam;
+    te::AutomatableParameter::Ptr filterEnvAmountParam;
+    te::AutomatableParameter::Ptr filterAttackParam;
+    te::AutomatableParameter::Ptr filterDecayParam;
+    te::AutomatableParameter::Ptr filterSustainParam;
+    te::AutomatableParameter::Ptr filterReleaseParam;
 
     juce::CachedValue<float> levelValue;
     juce::CachedValue<float> coarseTuneValue;
@@ -70,11 +75,16 @@ public:
     juce::CachedValue<float> retriggerValue;
     juce::CachedValue<float> filterCutoffValue;
     juce::CachedValue<float> filterResValue;
+    juce::CachedValue<float> filterEnvAmountValue;
+    juce::CachedValue<float> filterAttackValue;
+    juce::CachedValue<float> filterDecayValue;
+    juce::CachedValue<float> filterSustainValue;
+    juce::CachedValue<float> filterReleaseValue;
 
 private:
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& params, float unisonBias, bool retrigger);
+        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger);
         void stop();
         
         bool active = false;
@@ -92,6 +102,7 @@ private:
         float currentDetuneMultiplier = 1.0f;
         
         juce::ADSR adsr;
+        juce::ADSR filterAdsr;
         juce::dsp::LadderFilter<float> filter;
         
         // For Noise
