@@ -42,7 +42,8 @@ public:
 
     // Parameters
     te::AutomatableParameter::Ptr levelParam;
-    te::AutomatableParameter::Ptr tuneParam;
+    te::AutomatableParameter::Ptr coarseTuneParam;
+    te::AutomatableParameter::Ptr fineTuneParam;
     te::AutomatableParameter::Ptr waveParam;
     te::AutomatableParameter::Ptr attackParam;
     te::AutomatableParameter::Ptr decayParam;
@@ -56,7 +57,8 @@ public:
     te::AutomatableParameter::Ptr filterResParam;
 
     juce::CachedValue<float> levelValue;
-    juce::CachedValue<float> tuneValue;
+    juce::CachedValue<float> coarseTuneValue;
+    juce::CachedValue<float> fineTuneValue;
     juce::CachedValue<float> waveValue;
     juce::CachedValue<float> attackValue;
     juce::CachedValue<float> decayValue;

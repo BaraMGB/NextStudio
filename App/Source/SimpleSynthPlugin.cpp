@@ -32,12 +32,13 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
 
     // Link cached values to the ValueTree state
     levelValue.referTo(state, "level", um, 0.0f);
-    tuneValue.referTo(state, "tune", um, 0.0f);
-    waveValue.referTo(state, "wave", um, 0.0f);
-    attackValue.referTo(state, "attack", um, 0.1f);
-    decayValue.referTo(state, "decay", um, 0.1f);
-    sustainValue.referTo(state, "sustain", um, 0.8f);
-    releaseValue.referTo(state, "release", um, 0.2f);
+    coarseTuneValue.referTo(state, "coarseTune", um, 0.0f);
+    fineTuneValue.referTo(state, "fineTune", um, 0.0f);
+    waveValue.referTo(state, "wave", um, 2.0f);
+    attackValue.referTo(state, "attack", um, 0.001f);
+    decayValue.referTo(state, "decay", um, 0.001f);
+    sustainValue.referTo(state, "sustain", um, 1.0f);
+    releaseValue.referTo(state, "release", um, 0.001f);
     unisonOrderValue.referTo(state, "unisonOrder", um, 1.0f);
     unisonDetuneValue.referTo(state, "unisonDetune", um, 0.0f);
     unisonSpreadValue.referTo(state, "unisonSpread", um, 0.0f);
@@ -47,7 +48,8 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
 
     // Create and expose automatable parameters
     levelParam = addParam("level", "Level", {-100.0f, 0.0f});
-    tuneParam = addParam("tune", "Tune", {-24.0f, 24.0f});
+    coarseTuneParam = addParam("coarseTune", "Coarse Tune", {-24.0f, 24.0f, 1.0f});
+    fineTuneParam = addParam("fineTune", "Fine Tune", {-100.0f, 100.0f}); // Cents
     waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f}); 
     attackParam = addParam("attack", "Attack", {0.001f, 5.0f});
     decayParam = addParam("decay", "Decay", {0.001f, 5.0f});
@@ -66,7 +68,8 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
 
     // Attach parameters to cached values for automatic bi-directional updates
     levelParam->attachToCurrentValue(levelValue);
-    tuneParam->attachToCurrentValue(tuneValue);
+    coarseTuneParam->attachToCurrentValue(coarseTuneValue);
+    fineTuneParam->attachToCurrentValue(fineTuneValue);
     waveParam->attachToCurrentValue(waveValue);
     attackParam->attachToCurrentValue(attackValue);
     decayParam->attachToCurrentValue(decayValue);
@@ -85,7 +88,8 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     notifyListenersOfDeletion();
     
     levelParam->detachFromCurrentValue();
-    tuneParam->detachFromCurrentValue();
+    coarseTuneParam->detachFromCurrentValue();
+    fineTuneParam->detachFromCurrentValue();
     waveParam->detachFromCurrentValue();
     attackParam->detachFromCurrentValue();
     decayParam->detachFromCurrentValue();
@@ -212,7 +216,9 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     masterLevelSmoother.setTargetValue(juce::Decibels::decibelsToGain(levelParam->getCurrentValue()));
 
     // Cache parameter values for this block
-    float tuneSemitones = tuneParam->getCurrentValue();
+    float coarseTune = coarseTuneParam->getCurrentValue();
+    float fineTuneCents = fineTuneParam->getCurrentValue();
+    float totalTuneSemitones = coarseTune + (fineTuneCents / 100.0f);
     int waveShape = (int)waveParam->getCurrentValue();
 
     // UPDATE VOICE PARAMETERS (Control Rate)
@@ -233,7 +239,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
             v.currentDetuneMultiplier = std::pow(2.0f, cents / 1200.0f);
 
             // Update Frequency
-            float baseFreq = 440.0f * std::pow(2.0f, (v.currentNote - 69 + tuneSemitones) / 12.0f);
+            float baseFreq = 440.0f * std::pow(2.0f, (v.currentNote - 69 + totalTuneSemitones) / 12.0f);
             v.targetFrequency = baseFreq * v.currentDetuneMultiplier;
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
 
@@ -339,7 +345,8 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     // Restore state from XML/ValueTree. 
     // CachedValues will automatically update their attached parameters.
     if (v.hasProperty("level")) levelValue = v.getProperty("level");
-    if (v.hasProperty("tune")) tuneValue = v.getProperty("tune");
+    if (v.hasProperty("coarseTune")) coarseTuneValue = v.getProperty("coarseTune");
+    if (v.hasProperty("fineTune")) fineTuneValue = v.getProperty("fineTune");
     if (v.hasProperty("wave")) waveValue = v.getProperty("wave");
     if (v.hasProperty("attack")) attackValue = v.getProperty("attack");
     if (v.hasProperty("decay")) decayValue = v.getProperty("decay");
