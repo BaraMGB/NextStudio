@@ -52,6 +52,8 @@ public:
     te::AutomatableParameter::Ptr unisonDetuneParam;
     te::AutomatableParameter::Ptr unisonSpreadParam;
     te::AutomatableParameter::Ptr retriggerParam;
+    te::AutomatableParameter::Ptr filterCutoffParam;
+    te::AutomatableParameter::Ptr filterResParam;
 
     juce::CachedValue<float> levelValue;
     juce::CachedValue<float> tuneValue;
@@ -64,6 +66,8 @@ public:
     juce::CachedValue<float> unisonDetuneValue;
     juce::CachedValue<float> unisonSpreadValue;
     juce::CachedValue<float> retriggerValue;
+    juce::CachedValue<float> filterCutoffValue;
+    juce::CachedValue<float> filterResValue;
 
 private:
     struct Voice
@@ -86,6 +90,7 @@ private:
         float currentDetuneMultiplier = 1.0f;
         
         juce::ADSR adsr;
+        juce::dsp::LadderFilter<float> filter;
         
         // For Noise
         juce::Random random;
