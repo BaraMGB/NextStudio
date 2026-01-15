@@ -62,6 +62,7 @@ private:
 
     AutomatableParameterComponent m_cutoffComp;
     AutomatableParameterComponent m_resComp;
+    AutomatableParameterComponent m_envAmountComp;
     
     juce::Label m_nameLabel;
 
@@ -72,7 +73,7 @@ private:
 class SimpleSynthEnvSection : public juce::Component
 {
 public:
-    SimpleSynthEnvSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState, const juce::String& name);
+    SimpleSynthEnvSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState, const juce::String& name, bool isFilterEnv=false);
     ~SimpleSynthEnvSection() override = default;
 
     void paint(juce::Graphics& g) override;
@@ -103,7 +104,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
     
-    int getNeededWidth() override { return 6; } // Similar width to 4Osc
+    int getNeededWidth() override { return 7; } // Increased width
 
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;
@@ -126,6 +127,7 @@ private:
     SimpleSynthOscSection m_oscSection;
     SimpleSynthFilterSection m_filterSection;
     SimpleSynthEnvSection m_ampEnvSection;
+    SimpleSynthEnvSection m_filterEnvSection;
     
     // Master
     AutomatableSliderComponent m_levelSlider;
