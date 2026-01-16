@@ -205,6 +205,12 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     if (fc.destBuffer == nullptr || fc.bufferNumSamples == 0)
         return;
 
+    if (!isEnabled())
+    {
+        fc.destBuffer->clear();
+        return;
+    }
+
     // 2. Sample Rate Validation
     if (sampleRate <= 0.0)
         return;
@@ -407,8 +413,13 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
             if (v.active)
             {
                 float filterEnv = v.filterAdsr.getNextSample();
-                float maxEnvSweepHz = 18000.0f;
-                float modulatedCutoff = juce::jlimit(20.0f, 20000.0f, baseCutoff + (filterEnv * filterEnvAmount * maxEnvSweepHz));
+                
+                // Logarithmic Modulation (Pitch-based)
+                // Modulate up to +/- 60 semitones (5 octaves)
+                float modSemitones = filterEnv * filterEnvAmount * 60.0f;
+                float freqMultiplier = std::pow(2.0f, modSemitones / 12.0f);
+                
+                float modulatedCutoff = juce::jlimit(20.0f, 20000.0f, baseCutoff * freqMultiplier);
                 
                 v.filter.setCutoffFrequencyHz(modulatedCutoff);
 
