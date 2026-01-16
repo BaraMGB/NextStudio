@@ -83,31 +83,15 @@ public:
     juce::CachedValue<float> filterReleaseValue;
 
 private:
-    void processMidiMessages(const te::PluginRenderContext&, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
-    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents);
-    void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder);
-
-    // Thread-safe parameters for the Audio Thread
-    struct AudioParams
-    {
-        std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
-        std::atomic<float> attack { 0.001f }, decay { 0.001f }, sustain { 1.0f }, release { 0.001f };
-        std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };
-        std::atomic<float> filterCutoff { 20000.0f }, filterRes { 0.0f }, filterEnvAmount { 0.0f };
-        std::atomic<float> filterAttack { 0.001f }, filterDecay { 0.001f }, filterSustain { 1.0f }, filterRelease { 0.001f };
-    } audioParams;
-
-    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
-    void updateAtomics();
-
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger);
+        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
         void stop();
         
         bool active = false;
         bool isKeyDown = false;
         int currentNote = -1;
+        uint32_t noteOnTime = 0; // For LRU Voice Stealing
         float currentVelocity = 0.0f;
         float phase = 0.0f;
         float phaseDelta = 0.0f;
@@ -126,6 +110,26 @@ private:
         // For Noise
         juce::Random random;
     };
+
+    void processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
+    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents);
+    void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder);
+    
+    Voice* findVoiceToSteal();
+    uint32_t noteCounter = 0;
+
+    // Thread-safe parameters for the Audio Thread
+    struct AudioParams
+    {
+        std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
+        std::atomic<float> attack { 0.001f }, decay { 0.001f }, sustain { 1.0f }, release { 0.001f };
+        std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };
+        std::atomic<float> filterCutoff { 20000.0f }, filterRes { 0.0f }, filterEnvAmount { 0.0f };
+        std::atomic<float> filterAttack { 0.001f }, filterDecay { 0.001f }, filterSustain { 1.0f }, filterRelease { 0.001f };
+    } audioParams;
+
+    void updateAtomics();
+    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
 
     static constexpr int numVoices = 16;
     Voice voices[numVoices];

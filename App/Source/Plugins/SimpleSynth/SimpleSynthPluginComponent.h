@@ -104,7 +104,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
     
-    int getNeededWidth() override { return 7; } // Increased width
+    int getNeededWidth() override { return 5; } // Increased width
 
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;

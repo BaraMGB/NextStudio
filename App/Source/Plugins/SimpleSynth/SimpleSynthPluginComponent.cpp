@@ -285,7 +285,7 @@ void SimpleSynthPluginComponent::resized()
     
     // Split remaining width
     auto oscWidth = area.getWidth() * 0.4f; // 40% for OSC
-    auto filterWidth = area.getWidth() * 0.25f; // 25% for Filter
+    auto filterWidth = area.getWidth() * 0.15f; // 25% for Filter
     
     m_oscSection.setBounds(area.removeFromLeft(oscWidth));
     m_filterSection.setBounds(area.removeFromLeft(filterWidth));
