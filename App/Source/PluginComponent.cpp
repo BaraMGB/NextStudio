@@ -346,6 +346,154 @@ void LFOModifierComponent::resized()
 }
 
 //==============================================================================
+StepModifierComponent::StepDisplay::StepDisplay(te::StepModifier& m)
+    : m_modifier(m)
+{
+    updateSteps();
+    startTimerHz(30);
+}
+
+void StepModifierComponent::StepDisplay::paint(juce::Graphics& g)
+{
+    if (m_currentStep >= 0 && m_currentStep < m_sliders.size())
+    {
+        if (auto* s = m_sliders[m_currentStep])
+        {
+            g.setColour(juce::Colours::white.withAlpha(0.2f));
+            g.fillRect(s->getBounds());
+        }
+    }
+}
+
+void StepModifierComponent::StepDisplay::resized()
+{
+    auto area = getLocalBounds();
+    int num = m_sliders.size();
+    if (num > 0)
+    {
+        int w = area.getWidth() / num;
+        for (int i = 0; i < num; ++i)
+        {
+            if (auto* s = m_sliders[i])
+                s->setBounds(area.removeFromLeft(w).reduced(1, 0));
+        }
+    }
+}
+
+void StepModifierComponent::StepDisplay::sliderValueChanged(juce::Slider* slider)
+{
+    int index = m_sliders.indexOf(slider);
+    if (index >= 0)
+        m_modifier.setStep(index, (float)slider->getValue());
+}
+
+void StepModifierComponent::StepDisplay::timerCallback()
+{
+    int newStep = m_modifier.getCurrentStep();
+    if (newStep != m_currentStep)
+    {
+        m_currentStep = newStep;
+        repaint();
+    }
+
+    // Also check if numSteps has changed to update slider count
+    int num = (int)m_modifier.numStepsParam->getCurrentValue();
+    if (num != m_sliders.size())
+        updateSteps();
+}
+
+void StepModifierComponent::StepDisplay::updateSteps()
+{
+    int num = (int)m_modifier.numStepsParam->getCurrentValue();
+    m_sliders.clear();
+    for (int i = 0; i < num; ++i)
+    {
+        auto s = new juce::Slider();
+        s->setSliderStyle(juce::Slider::LinearBarVertical);
+        s->setRange(-1.0, 1.0);
+        s->setValue(m_modifier.getStep(i), juce::dontSendNotification);
+        s->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+        s->addListener(this);
+        addAndMakeVisible(s);
+        m_sliders.add(s);
+    }
+    resized();
+}
+
+//==============================================================================
+StepModifierComponent::StepModifierComponent(EditViewState& evs, te::Modifier::Ptr m)
+    : ModifierViewComponent(evs, m)
+    , m_sync (m->getAutomatableParameterByID ("syncType"), "Sync")
+    , m_rateType (m->getAutomatableParameterByID ("rateType"), "Rate Type")
+    , m_numSteps (m->getAutomatableParameterByID ("numSteps"), "Steps")
+    , m_rate (m->getAutomatableParameterByID ("rate"), "Rate")
+    , m_depth (m->getAutomatableParameterByID ("depth"), "Depth")
+    , m_stepDisplay (*dynamic_cast<te::StepModifier*>(m.get()))
+{
+    // Clear generic UI
+    m_parameters.clear();
+    m_paramListComponent.removeAllChildren();
+    removeChildComponent(&m_viewPort);
+    m_viewPort.setViewedComponent(nullptr, false);
+
+    addAndMakeVisible (m_sync);
+    addAndMakeVisible (m_rateType);
+    addAndMakeVisible (m_numSteps);
+    addAndMakeVisible (m_rate);
+    addAndMakeVisible (m_depth);
+    addAndMakeVisible (m_stepDisplay);
+}
+
+void StepModifierComponent::paint(juce::Graphics& g)
+{
+    ModifierViewComponent::paint(g);
+    auto borderCol = m_editViewState.m_applicationState.getBorderColour();
+    auto background2 = m_editViewState.m_applicationState.getBackgroundColour1();
+
+    auto area = getLocalBounds();
+    area.removeFromLeft(area.getWidth() / 3);
+    auto topPart = area.removeFromTop(area.getHeight() / 2);
+
+    auto comboRect = topPart.removeFromLeft(topPart.getWidth() / 3);
+    comboRect.reduce(3, 5);
+
+    g.setColour(background2);
+    GUIHelpers::drawRoundedRectWithSide(g, comboRect.toFloat(), 10, true, true, true, true);
+    g.setColour(borderCol);
+    GUIHelpers::strokeRoundedRectWithSide(g, comboRect.toFloat(), 10, true, true, true, true);
+
+    auto displayRect = area.reduced(3, 5);
+    g.setColour(background2);
+    GUIHelpers::drawRoundedRectWithSide(g, displayRect.toFloat(), 10, true, true, true, true);
+    g.setColour(borderCol);
+    GUIHelpers::strokeRoundedRectWithSide(g, displayRect.toFloat(), 10, true, true, true, true);
+}
+
+void StepModifierComponent::resized()
+{
+    auto area = getLocalBounds();
+
+    m_dragHandle.setBounds(area.removeFromTop(20).removeFromRight(20));
+    m_dragHandle.toFront(false);
+
+    m_table.setBounds(area.removeFromLeft(area.getWidth() / 3));
+
+    auto controls = area.removeFromTop(area.getHeight() / 2);
+    auto comboRect = controls.removeFromLeft(controls.getWidth() / 3);
+    comboRect.reduce(0, 5);
+    auto comboHeight = comboRect.getHeight() / 2;
+    m_sync.setBounds(comboRect.removeFromTop(comboHeight));
+    m_rateType.setBounds(comboRect);
+
+    int kw = controls.getWidth() / 3;
+    m_numSteps.setBounds(controls.removeFromLeft(kw));
+    m_rate.setBounds(controls.removeFromLeft(kw));
+    m_depth.setBounds(controls);
+
+    m_stepDisplay.setBounds(area.reduced(5));
+}
+
+//==============================================================================
 RackItemView::RackItemView
     (EditViewState& evs, te::Track::Ptr t, te::Plugin::Ptr p)
     : m_evs (evs), m_track(t), m_plugin (p)
@@ -428,6 +576,8 @@ RackItemView::RackItemView
 
     if (dynamic_cast<te::LFOModifier*>(m.get()))
         m_modifierComponent = std::make_unique<LFOModifierComponent>(evs, m);
+    else if (dynamic_cast<te::StepModifier*>(m.get()))
+        m_modifierComponent = std::make_unique<StepModifierComponent>(evs, m);
     else
         m_modifierComponent = std::make_unique<ModifierViewComponent>(evs, m);
 

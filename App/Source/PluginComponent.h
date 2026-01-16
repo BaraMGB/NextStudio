@@ -482,6 +482,42 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LFOModifierComponent)
 };
 
+class StepModifierComponent : public ModifierViewComponent
+{
+public:
+    StepModifierComponent(EditViewState& evs, te::Modifier::Ptr m);
+    ~StepModifierComponent() override = default;
+
+    void resized() override;
+    int getNeededWidth() override { return 6; }
+    void paint (juce::Graphics& g) override;
+
+private:
+    class StepDisplay : public juce::Component
+                      , public juce::Slider::Listener
+                      , private juce::Timer
+    {
+    public:
+        StepDisplay(te::StepModifier& m);
+        void paint(juce::Graphics& g) override;
+        void resized() override;
+        void sliderValueChanged(juce::Slider* slider) override;
+        void timerCallback() override;
+        void updateSteps();
+
+    private:
+        te::StepModifier& m_modifier;
+        juce::OwnedArray<juce::Slider> m_sliders;
+        int m_currentStep { -1 };
+    };
+
+    AutomatableChoiceComponent m_sync, m_rateType;
+    AutomatableParameterComponent m_numSteps, m_rate, m_depth;
+    StepDisplay m_stepDisplay;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StepModifierComponent)
+};
+
 //-------------------------------------------------------------------------------------
 
 class RackItemView : public juce::Component
