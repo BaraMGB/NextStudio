@@ -83,7 +83,7 @@ AutomatableChoiceComponent::AutomatableChoiceComponent(te::AutomatableParameter:
 void AutomatableChoiceComponent::resized()
 {
     auto area = getLocalBounds();
-    area.reduce(area.getWidth() / 5, 0);
+    area.reduce(area.getWidth() / 8, 0);
     auto labelHeight = 15;
     auto h = 30;
     m_titleLabel.setBounds(area.removeFromTop(labelHeight));

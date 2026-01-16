@@ -30,6 +30,20 @@ public:
     //==============================================================================
     void restorePluginStateFromValueTree(const juce::ValueTree& v) override;
 
+    // Constants
+    static constexpr float defaultSampleRate = 44100.0f;
+    static constexpr float maxFilterSweepSemitones = 60.0f;
+    static constexpr float svfBaseQ = 0.7071f;
+    static constexpr float levelSmoothingTime = 0.02f;
+    static constexpr float cutoffSmoothingTime = 0.05f;
+
+    enum FilterType
+    {
+        ladder = 0,
+        svf,
+        numFilterTypes
+    };
+
     enum Waveform
     {
         sine = 0,
@@ -53,6 +67,7 @@ public:
     te::AutomatableParameter::Ptr unisonDetuneParam;
     te::AutomatableParameter::Ptr unisonSpreadParam;
     te::AutomatableParameter::Ptr retriggerParam;
+    te::AutomatableParameter::Ptr filterTypeParam;
     te::AutomatableParameter::Ptr filterCutoffParam;
     te::AutomatableParameter::Ptr filterResParam;
     te::AutomatableParameter::Ptr filterEnvAmountParam;
@@ -74,6 +89,7 @@ public:
     juce::CachedValue<float> unisonDetuneValue;
     juce::CachedValue<float> unisonSpreadValue;
     juce::CachedValue<float> retriggerValue;
+    juce::CachedValue<float> filterTypeValue;
     juce::CachedValue<float> filterCutoffValue;
     juce::CachedValue<float> filterResValue;
     juce::CachedValue<float> filterEnvAmountValue;
@@ -106,6 +122,7 @@ private:
         juce::ADSR adsr;
         juce::ADSR filterAdsr;
         juce::dsp::LadderFilter<float> filter;
+        juce::dsp::StateVariableTPTFilter<float> svfFilter;
         
         // For Noise
         juce::Random random;
@@ -124,7 +141,7 @@ private:
         std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
         std::atomic<float> attack { 0.001f }, decay { 0.001f }, sustain { 1.0f }, release { 0.001f };
         std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };
-        std::atomic<float> filterCutoff { 20000.0f }, filterRes { 0.0f }, filterEnvAmount { 0.0f };
+        std::atomic<float> filterType { 0.0f }, filterCutoff { 20000.0f }, filterRes { 0.0f }, filterEnvAmount { 0.0f };
         std::atomic<float> filterAttack { 0.001f }, filterDecay { 0.001f }, filterSustain { 1.0f }, filterRelease { 0.001f };
     } audioParams;
 
@@ -135,6 +152,10 @@ private:
     Voice voices[numVoices];
     
     juce::LinearSmoothedValue<float> masterLevelSmoother;
+    juce::LinearSmoothedValue<float> cutoffSmoother;
+    
+    juce::dsp::LookupTable<float> sineTable;
+    float sineTableScaler = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthPlugin)
 };
