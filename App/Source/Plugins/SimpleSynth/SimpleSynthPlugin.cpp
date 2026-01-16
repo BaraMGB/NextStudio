@@ -1,4 +1,5 @@
 #include "SimpleSynthPlugin.h"
+#include <map>
 
 // Helper function for PolyBLEP (Polynomial Band-Limited Step)
 // This technique reduces aliasing by smoothing the waveform discontinuities
@@ -353,40 +354,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
             noteCounter++;
 
             // Unison Logic: Trigger multiple voices
-            for (int u = 0; u < unisonOrder; ++u)
-            {
-                Voice* voiceToUse = nullptr;
-
-                // 1. Try to find a free voice
-                for (auto& v : voices)
-                {
-                    if (!v.active)
-                    {
-                        voiceToUse = &v;
-                        break;
-                    }
-                }
-                
-                // 2. If no free voice, steal one!
-                if (voiceToUse == nullptr)
-                {
-                    voiceToUse = findVoiceToSteal();
-                    // Ideally fade out here, but for now we hard steal
-                    if (voiceToUse) voiceToUse->stop();
-                }
-
-                if (voiceToUse != nullptr)
-                {
-                    float bias = 0.0f;
-                    if (unisonOrder > 1)
-                    {
-                        float spreadAmount = (float)u / (float)(unisonOrder - 1); 
-                        bias = (spreadAmount - 0.5f) * 2.0f;
-                    }
-                    
-                    voiceToUse->start(note, velocity, (float)sampleRate, adsrParams, filterAdsrParams, bias, retrigger, noteCounter);
-                }
-            }
+            triggerNote(note, velocity, unisonOrder, retrigger, adsrParams, filterAdsrParams);
         }
         else if (m.isNoteOff())
         {
@@ -408,6 +376,31 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
 
 void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr)
 {
+    // Check for Unison Order change
+    if (unisonOrder != lastUnisonOrder)
+    {
+        std::map<int, float> notesToRetrigger;
+        
+        for (auto& v : voices)
+        {
+            if (v.active && v.isKeyDown)
+            {
+                notesToRetrigger[v.currentNote] = v.currentVelocity;
+            }
+            // Stop all voices to allow clean re-allocation with new unison count
+            if (v.active)
+                v.stop();
+        }
+        
+        bool retrigger = audioParams.retrigger.load() > 0.5f;
+        for (auto const& [note, vel] : notesToRetrigger)
+        {
+             triggerNote(note, vel, unisonOrder, retrigger, ampAdsr, filterAdsr);
+        }
+        
+        lastUnisonOrder = unisonOrder;
+    }
+
     float totalTuneSemitones = coarseTune + (fineTuneCents / 100.0f);
 
     for (auto& v : voices)
@@ -576,6 +569,45 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     restore(filterReleaseValue, "filterRelease");
 
     updateAtomics();
+}
+
+void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, bool retrigger, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams)
+{
+    // Unison Logic: Trigger multiple voices
+    for (int u = 0; u < unisonOrder; ++u)
+    {
+        Voice* voiceToUse = nullptr;
+
+        // 1. Try to find a free voice
+        for (auto& v : voices)
+        {
+            if (!v.active)
+            {
+                voiceToUse = &v;
+                break;
+            }
+        }
+        
+        // 2. If no free voice, steal one!
+        if (voiceToUse == nullptr)
+        {
+            voiceToUse = findVoiceToSteal();
+            // Ideally fade out here, but for now we hard steal
+            if (voiceToUse) voiceToUse->stop();
+        }
+
+        if (voiceToUse != nullptr)
+        {
+            float bias = 0.0f;
+            if (unisonOrder > 1)
+            {
+                float spreadAmount = (float)u / (float)(unisonOrder - 1); 
+                bias = (spreadAmount - 0.5f) * 2.0f;
+            }
+            
+            voiceToUse->start(note, velocity, (float)sampleRate, ampParams, filterParams, bias, retrigger, noteCounter);
+        }
+    }
 }
 
 void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger, uint32_t timestamp)
