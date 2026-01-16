@@ -55,3 +55,8 @@ The plugin exposes the following automatable parameters:
 10. **Real-time Envelope Updates**
     *   Updated `updateVoiceParameters` to refresh ADSR parameters (Attack, Decay, Sustain, Release) during active voice playback. This allows audible changes when adjusting Sustain or Release on held notes.
 
+11. **Dynamic Unison Updates**
+    *   Implemented intelligent re-triggering of held notes when the Unison Voice count is changed.
+    *   Previously, changing unison voices required re-striking keys to hear the effect. Now, active voices are stopped and immediately re-triggered with the new unison count, providing instant audible feedback.
+
+

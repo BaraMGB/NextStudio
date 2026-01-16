@@ -129,11 +129,13 @@ private:
     };
 
     void processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
+    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
     void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
     void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder);
     
     Voice* findVoiceToSteal();
     uint32_t noteCounter = 0;
+    int lastUnisonOrder = 1;
 
     // Thread-safe parameters for the Audio Thread
     struct AudioParams
