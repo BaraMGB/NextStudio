@@ -245,7 +245,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
         waveShape = Waveform::saw;
 
     // 1. MIDI Processing
-    processMidiMessages(fc, adsrParams, filterAdsrParams);
+    processMidiMessages(fc.bufferForMidiMessages, adsrParams, filterAdsrParams);
 
     // 2. Update Voice Parameters (Control Rate)
     updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, coarseTune, fineTuneCents);
@@ -254,15 +254,50 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     renderAudio(fc, baseCutoff, filterEnvAmount, waveShape, unisonOrder);
 }
 
-void SimpleSynthPlugin::processMidiMessages(const te::PluginRenderContext& fc, const juce::ADSR::Parameters& adsrParams, const juce::ADSR::Parameters& filterAdsrParams)
+SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
 {
-    if (fc.bufferForMidiMessages == nullptr)
+    Voice* oldestReleaseVoice = nullptr;
+    uint32_t oldestReleaseTime = std::numeric_limits<uint32_t>::max();
+    
+    Voice* oldestVoice = nullptr;
+    uint32_t oldestTime = std::numeric_limits<uint32_t>::max();
+
+    for (auto& v : voices)
+    {
+        // Candidate 1: Voice in Release phase (key up)
+        if (!v.isKeyDown)
+        {
+            if (v.noteOnTime < oldestReleaseTime)
+            {
+                oldestReleaseTime = v.noteOnTime;
+                oldestReleaseVoice = &v;
+            }
+        }
+        
+        // Candidate 2: Any voice (LRU fallback)
+        if (v.noteOnTime < oldestTime)
+        {
+            oldestTime = v.noteOnTime;
+            oldestVoice = &v;
+        }
+    }
+
+    // Prefer stealing a releasing voice over a held voice
+    if (oldestReleaseVoice != nullptr)
+        return oldestReleaseVoice;
+        
+    return oldestVoice;
+}
+
+void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& adsrParams, const juce::ADSR::Parameters& filterAdsrParams)
+{
+    if (midiMessages == nullptr)
         return;
 
     int unisonOrder = juce::jlimit(1, 5, (int)audioParams.unisonOrder.load());
     bool retrigger = audioParams.retrigger.load() > 0.5f;
 
-    for (auto m : *fc.bufferForMidiMessages)
+    for (auto m : *midiMessages)
     {
         // Sanitize MIDI data
         if (m.isNoteOn())
@@ -270,24 +305,43 @@ void SimpleSynthPlugin::processMidiMessages(const te::PluginRenderContext& fc, c
             int note = juce::jlimit(0, 127, m.getNoteNumber());
             float velocity = juce::jlimit(0.0f, 1.0f, m.getFloatVelocity());
             
+            // Increment global note counter for LRU tracking
+            // Wraparound is fine, uint32_t is large enough for years of playing
+            noteCounter++;
+
             // Unison Logic: Trigger multiple voices
             for (int u = 0; u < unisonOrder; ++u)
             {
-                // Find a free voice to play the note
+                Voice* voiceToUse = nullptr;
+
+                // 1. Try to find a free voice
                 for (auto& v : voices)
                 {
                     if (!v.active)
                     {
-                        float bias = 0.0f;
-                        if (unisonOrder > 1)
-                        {
-                            float spreadAmount = (float)u / (float)(unisonOrder - 1); 
-                            bias = (spreadAmount - 0.5f) * 2.0f;
-                        }
-                        
-                        v.start(note, velocity, (float)sampleRate, adsrParams, filterAdsrParams, bias, retrigger);
+                        voiceToUse = &v;
                         break;
                     }
+                }
+                
+                // 2. If no free voice, steal one!
+                if (voiceToUse == nullptr)
+                {
+                    voiceToUse = findVoiceToSteal();
+                    // Ideally fade out here, but for now we hard steal
+                    if (voiceToUse) voiceToUse->stop();
+                }
+
+                if (voiceToUse != nullptr)
+                {
+                    float bias = 0.0f;
+                    if (unisonOrder > 1)
+                    {
+                        float spreadAmount = (float)u / (float)(unisonOrder - 1); 
+                        bias = (spreadAmount - 0.5f) * 2.0f;
+                    }
+                    
+                    voiceToUse->start(note, velocity, (float)sampleRate, adsrParams, filterAdsrParams, bias, retrigger, noteCounter);
                 }
             }
         }
@@ -452,12 +506,13 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     updateAtomics();
 }
 
-void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger)
+void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger, uint32_t timestamp)
 {
     active = true;
     isKeyDown = true;
     currentNote = note;
     currentVelocity = velocity;
+    noteOnTime = timestamp;
     
     // Check if sample rate has changed significantly or was uninitialized
     // Re-prepare DSP objects if necessary
