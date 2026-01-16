@@ -56,5 +56,10 @@ juce_add_binary_data(Pictures SOURCES
     INTIcon.svg
     menu.svg
     renderButton.svg
+    sine.svg
+    saw.svg
+    rnd.svg
+    tri.svg
+    square.svg
     
     )
