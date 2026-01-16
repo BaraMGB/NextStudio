@@ -220,17 +220,38 @@ public:
     {
         if (style == juce::Slider::SliderStyle::LinearBarVertical)
         {
-            const auto area = juce::Rectangle<float>(x, y, width, height);
-            const auto slider = area.withTop(sliderPos);
+            const auto area = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
             g.setColour(juce::Colour(0xff242424));
             g.fillRoundedRectangle(area, 3);
             g.setColour(juce::Colours::black);
             g.drawRoundedRectangle(area.toFloat(), 3,1);
 
             g.setColour(m_appState.getPrimeColour());
-            g.fillRoundedRectangle(slider, 3);
+
+            if (slider.getMinimum() < 0 && slider.getMaximum() > 0)
+            {
+                auto midY = (minSliderPos + maxSliderPos) * 0.5f;
+
+                juce::Rectangle<float> fillRect;
+                if (sliderPos < midY)
+                    fillRect.setBounds(area.getX(), sliderPos, area.getWidth(), midY - sliderPos);
+                else
+                    fillRect.setBounds(area.getX(), midY, area.getWidth(), sliderPos - midY);
+
+                g.fillRoundedRectangle(fillRect, 3);
+
+                // Draw a thin line at center
+                g.setColour(m_appState.getTextColour().withAlpha(0.5f));
+                g.drawHorizontalLine(juce::roundToInt(midY), area.getX(), area.getRight());
+            }
+            else
+            {
+                const auto bar = area.withTop(sliderPos);
+                g.fillRoundedRectangle(bar, 3);
+            }
+
             g.setColour(juce::Colours::black);
-            g.drawRoundedRectangle(slider.toFloat(), 3,1);
+            g.drawRoundedRectangle(area.toFloat(), 3, 1);
         }
         else if (style == juce::Slider::SliderStyle::LinearBar)
         {
@@ -394,9 +415,9 @@ public:
 
         currentModValueNormalized = juce::jlimit(0.0f, 1.0f, currentModValueNormalized);
 
-        const auto radius = (float) juce::jmin(width / 2, height / 2) - 10.0f;
+        const auto radius = (float) juce::jmin(width / 2, height / 2) - 7.0f;
         const auto centreX = (float) x + width * 0.5f;
-        const auto centreY = (float) y + height * 0.5f;
+        const auto centreY = (float) y + height * 0.5f + 3.f;
         const auto rx = centreX - radius;
         const auto ry = centreY - radius;
         const auto rw = radius * 2.0f;
@@ -453,17 +474,18 @@ public:
         // --- Thumb (Pointer) ---
         auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
         auto pointerLength = radius;
-        auto pointerThickness = 4.0f;
+        auto pointerThickness = radius < 10 ? 2.f : 4.f;
         juce::Path p;
-        p.addEllipse(-pointerThickness * 0.5f, -radius + 1.0f, pointerThickness, pointerThickness);
+        p.addEllipse(-pointerThickness * 0.5f, -radius + (radius / 4.0f), pointerThickness, pointerThickness);
         p.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
 
-        juce::Colour thumbCol = (isAutomationActive || isModulationActive) ? juce::Colours::red : volumeColour;
+        juce::Colour thumbCol = (isAutomationActive || isModulationActive) ? juce::Colours::red : volumeColour.withLightness(.5);
         g.setColour (thumbCol);
         g.fillPath (p);
-        g.setColour(juce::Colours::darkgrey);
-        g.strokePath(p, juce::PathStrokeType (1.0f));
 
+        g.setColour(thumbCol.withAlpha(.4f));
+        // g.setColour(thumbCol.darker(0.7));
+        g.strokePath(p, juce::PathStrokeType (1.0f));
         //start cap
         juce::Path sc;
         sc.addRectangle(- 0.5f,- radius - lineW + 1.0f,  1.0f, lineW - 1.0f);

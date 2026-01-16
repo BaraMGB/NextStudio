@@ -61,6 +61,7 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     unisonDetuneValue.referTo(state, "unisonDetune", um, 0.0f);
     unisonSpreadValue.referTo(state, "unisonSpread", um, 0.0f);
     retriggerValue.referTo(state, "retrigger", um, 0.0f);
+    filterTypeValue.referTo(state, "filterType", um, 0.0f);
     filterCutoffValue.referTo(state, "cutoff", um, 20000.0f);
     filterResValue.referTo(state, "resonance", um, 0.0f);
     filterEnvAmountValue.referTo(state, "filterEnvAmount", um, 0.0f);
@@ -73,7 +74,24 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     levelParam = addParam("level", "Level", {-100.0f, 0.0f});
     coarseTuneParam = addParam("coarseTune", "Coarse Tune", {-24.0f, 24.0f, 1.0f});
     fineTuneParam = addParam("fineTune", "Fine Tune", {-100.0f, 100.0f}); // Cents
-    waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f}); 
+    waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f},
+                         [](float v) {
+                             int type = juce::roundToInt(v);
+                             if (type == Waveform::sine) return "Sine";
+                             if (type == Waveform::triangle) return "Triangle";
+                             if (type == Waveform::saw) return "Saw";
+                             if (type == Waveform::square) return "Square";
+                             if (type == Waveform::noise) return "Noise";
+                             return "Unknown";
+                         },
+                         [](const juce::String& s) {
+                             if (s == "Sine") return (float)Waveform::sine;
+                             if (s == "Triangle") return (float)Waveform::triangle;
+                             if (s == "Saw") return (float)Waveform::saw;
+                             if (s == "Square") return (float)Waveform::square;
+                             if (s == "Noise") return (float)Waveform::noise;
+                             return 0.0f;
+                         });
     attackParam = addParam("attack", "Attack", {0.0f, 5.0f});
     decayParam = addParam("decay", "Decay", {0.0f, 5.0f});
     sustainParam = addParam("sustain", "Sustain", {0.0f, 1.0f});
@@ -82,6 +100,9 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     unisonDetuneParam = addParam("unisonDetune", "Unison Detune", {0.0f, 100.0f}); // Cents
     unisonSpreadParam = addParam("unisonSpread", "Unison Spread", {0.0f, 100.0f}); // Percent
     retriggerParam = addParam("retrigger", "Retrigger", {0.0f, 1.0f, 1.0f}); // Default Off (0.0) -> Random Phase
+    filterTypeParam = addParam("filterType", "Filter Type", {0.0f, 1.0f, 1.0f},
+                               [](float v) { return v > 0.5f ? "SVF (12dB)" : "Ladder (24dB)"; },
+                               [](const juce::String& s) { return s.contains("SVF") ? 1.0f : 0.0f; });
     
     // Filter Parameters
     // Use a skewed range for Frequency to make the knob feel natural (logarithmic)
@@ -107,6 +128,7 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     unisonDetuneParam->attachToCurrentValue(unisonDetuneValue);
     unisonSpreadParam->attachToCurrentValue(unisonSpreadValue);
     retriggerParam->attachToCurrentValue(retriggerValue);
+    filterTypeParam->attachToCurrentValue(filterTypeValue);
     filterCutoffParam->attachToCurrentValue(filterCutoffValue);
     filterResParam->attachToCurrentValue(filterResValue);
     filterEnvAmountParam->attachToCurrentValue(filterEnvAmountValue);
@@ -136,6 +158,7 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     unisonDetuneParam->detachFromCurrentValue();
     unisonSpreadParam->detachFromCurrentValue();
     retriggerParam->detachFromCurrentValue();
+    filterTypeParam->detachFromCurrentValue();
     filterCutoffParam->detachFromCurrentValue();
     filterResParam->detachFromCurrentValue();
     filterEnvAmountParam->detachFromCurrentValue();
@@ -165,6 +188,7 @@ void SimpleSynthPlugin::updateAtomics()
     audioParams.unisonDetune = unisonDetuneValue.get();
     audioParams.unisonSpread = unisonSpreadValue.get();
     audioParams.retrigger = retriggerValue.get();
+    audioParams.filterType = filterTypeValue.get();
     audioParams.filterCutoff = filterCutoffValue.get();
     audioParams.filterRes = filterResValue.get();
     audioParams.filterEnvAmount = filterEnvAmountValue.get();
@@ -177,7 +201,7 @@ void SimpleSynthPlugin::updateAtomics()
 void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
 {
     juce::dsp::ProcessSpec spec;
-    spec.sampleRate = info.sampleRate > 0.0 ? info.sampleRate : 44100.0;
+    spec.sampleRate = info.sampleRate > 0.0 ? info.sampleRate : (double)defaultSampleRate;
     spec.maximumBlockSize = 4096; // Use a safe large block size as actual size isn't guaranteed here
     spec.numChannels = 1; // Mono processing per voice
 
@@ -187,12 +211,24 @@ void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
         v.sampleRate = (float)spec.sampleRate;
         v.adsr.setSampleRate(spec.sampleRate);
         v.filterAdsr.setSampleRate(spec.sampleRate);
+        
         v.filter.prepare(spec);
         v.filter.setMode(juce::dsp::LadderFilterMode::LPF24); // 24dB Low Pass
+
+        v.svfFilter.prepare(spec);
+        v.svfFilter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
+        
         v.random.setSeedRandomly();
     }
         
-    masterLevelSmoother.reset(spec.sampleRate, 0.02); // 20ms smoothing to prevent clicks on volume changes
+    masterLevelSmoother.reset(spec.sampleRate, (double)levelSmoothingTime);
+    cutoffSmoother.reset(spec.sampleRate, (double)cutoffSmoothingTime);
+
+    // Prepare sine lookup table (2048 points is plenty for audio)
+    sineTable.initialise([](size_t i) { 
+                             return std::sin((float)i / 2048.0f * juce::MathConstants<float>::twoPi); 
+                         }, 2048);
+    sineTableScaler = 2048.0f / juce::MathConstants<float>::twoPi;
 }
 
 void SimpleSynthPlugin::deinitialise()
@@ -238,6 +274,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     float unisonSpread = juce::jlimit(0.0f, 1.0f, audioParams.unisonSpread.load() / 100.0f);
     
     // Safety clamping for filter to ensure stability
+    int filterType = juce::jlimit(0, (int)FilterType::numFilterTypes - 1, (int)audioParams.filterType.load());
     float baseCutoff = juce::jlimit(20.0f, 20000.0f, audioParams.filterCutoff.load());
     float resonance = juce::jlimit(0.0f, 1.0f, audioParams.filterRes.load());
     float filterEnvAmount = juce::jlimit(-1.0f, 1.0f, audioParams.filterEnvAmount.load() / 100.0f);
@@ -380,13 +417,18 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
             v.currentPan = juce::jlimit(0.0f, 1.0f, 0.5f + (v.unisonBias * 0.5f * unisonSpread));
             
             float cents = v.unisonBias * unisonDetuneCents;
-            v.currentDetuneMultiplier = std::pow(2.0f, cents / 1200.0f);
+            v.currentDetuneMultiplier = std::exp2f(cents / 1200.0f);
 
-            float baseFreq = 440.0f * std::pow(2.0f, (v.currentNote - 69 + totalTuneSemitones) / 12.0f);
+            float baseFreq = 440.0f * std::exp2f((v.currentNote - 69 + totalTuneSemitones) / 12.0f);
             v.targetFrequency = baseFreq * v.currentDetuneMultiplier;
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
 
             v.filter.setResonance(resonance);
+            
+            // Map 0.0-1.0 to 0.707-10.0 for SVF Q
+            // SVF expects a Q factor where 0.707 is flat (Butterworth)
+            float svfQ = svfBaseQ + (resonance * 9.0f);
+            v.svfFilter.setResonance(svfQ);
         }
     }
 }
@@ -395,15 +437,18 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
 {
     float* left = fc.destBuffer->getWritePointer(0);
     float* right = fc.destBuffer->getWritePointer(1);
-    int numSamples = fc.bufferNumSamples;
+    const int numSamples = fc.bufferNumSamples;
 
     masterLevelSmoother.setTargetValue(juce::Decibels::decibelsToGain(audioParams.level.load()));
+    cutoffSmoother.setTargetValue(baseCutoff);
+    const int filterType = (int)audioParams.filterType.load();
 
     for (int i = 0; i < numSamples; ++i)
     {
         float l = 0.0f;
         float r = 0.0f;
         float gain = masterLevelSmoother.getNextValue();
+        float smoothedCutoff = cutoffSmoother.getNextValue();
 
         if (unisonOrder > 1)
             gain /= std::sqrt((float)unisonOrder);
@@ -412,25 +457,23 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
         {
             if (v.active)
             {
-                float filterEnv = v.filterAdsr.getNextSample();
+                const float filterEnv = v.filterAdsr.getNextSample();
                 
                 // Logarithmic Modulation (Pitch-based)
-                // Modulate up to +/- 60 semitones (5 octaves)
-                float modSemitones = filterEnv * filterEnvAmount * 60.0f;
-                float freqMultiplier = std::pow(2.0f, modSemitones / 12.0f);
+                // exp2f is much faster than std::pow(2.0, x)
+                const float modSemitones = filterEnv * filterEnvAmount * maxFilterSweepSemitones;
+                const float freqMultiplier = std::exp2f(modSemitones / 12.0f);
                 
-                float modulatedCutoff = juce::jlimit(20.0f, 20000.0f, baseCutoff * freqMultiplier);
+                const float modulatedCutoff = juce::jlimit(20.0f, 20000.0f, smoothedCutoff * freqMultiplier);
                 
-                v.filter.setCutoffFrequencyHz(modulatedCutoff);
-
                 float sample = 0.0f;
-                float t = v.phase / juce::MathConstants<float>::twoPi; 
-                float dt = v.phaseDelta / juce::MathConstants<float>::twoPi;
+                const float t = v.phase / juce::MathConstants<float>::twoPi; 
+                const float dt = v.phaseDelta / juce::MathConstants<float>::twoPi;
 
                 switch (waveShape)
                 {
                     case Waveform::sine:
-                        sample = std::sin(v.phase);
+                        sample = sineTable.getUnchecked(v.phase * sineTableScaler);
                         break;
                     case Waveform::triangle:
                         {
@@ -438,7 +481,6 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                             sample = 2.0f * std::abs(2.0f * t - 1.0f) - 1.0f; 
                             
                             // Apply PolyBLAMP to smooth the slope changes at t=0.0 and t=0.5
-                            // This significantly reduces aliasing for the triangle waveform
                             sample += poly_blamp(t, dt) * 4.0f;
                             
                             float t2 = t + 0.5f;
@@ -471,7 +513,17 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 float* channels[] = { &sample };
                 juce::dsp::AudioBlock<float> block (channels, 1, 1);
                 juce::dsp::ProcessContextReplacing<float> context (block);
-                v.filter.process(context);
+
+                if (filterType == FilterType::ladder)
+                {
+                    v.filter.setCutoffFrequencyHz(modulatedCutoff);
+                    v.filter.process(context);
+                }
+                else
+                {
+                    v.svfFilter.setCutoffFrequency(modulatedCutoff);
+                    v.svfFilter.process(context);
+                }
                 
                 JUCE_SNAP_TO_ZERO(sample);
 
@@ -492,27 +544,33 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
 
 void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v)
 {
-    // Restore state from XML/ValueTree. 
-    // CachedValues will automatically update their attached parameters.
-    if (v.hasProperty("level")) levelValue = v.getProperty("level");
-    if (v.hasProperty("coarseTune")) coarseTuneValue = v.getProperty("coarseTune");
-    if (v.hasProperty("fineTune")) fineTuneValue = v.getProperty("fineTune");
-    if (v.hasProperty("wave")) waveValue = v.getProperty("wave");
-    if (v.hasProperty("attack")) attackValue = v.getProperty("attack");
-    if (v.hasProperty("decay")) decayValue = v.getProperty("decay");
-    if (v.hasProperty("sustain")) sustainValue = v.getProperty("sustain");
-    if (v.hasProperty("release")) releaseValue = v.getProperty("release");
-    if (v.hasProperty("unisonOrder")) unisonOrderValue = v.getProperty("unisonOrder");
-    if (v.hasProperty("unisonDetune")) unisonDetuneValue = v.getProperty("unisonDetune");
-    if (v.hasProperty("unisonSpread")) unisonSpreadValue = v.getProperty("unisonSpread");
-    if (v.hasProperty("retrigger")) retriggerValue = v.getProperty("retrigger");
-    if (v.hasProperty("cutoff")) filterCutoffValue = v.getProperty("cutoff");
-    if (v.hasProperty("resonance")) filterResValue = v.getProperty("resonance");
-    if (v.hasProperty("filterEnvAmount")) filterEnvAmountValue = v.getProperty("filterEnvAmount");
-    if (v.hasProperty("filterAttack")) filterAttackValue = v.getProperty("filterAttack");
-    if (v.hasProperty("filterDecay")) filterDecayValue = v.getProperty("filterDecay");
-    if (v.hasProperty("filterSustain")) filterSustainValue = v.getProperty("filterSustain");
-    if (v.hasProperty("filterRelease")) filterReleaseValue = v.getProperty("filterRelease");
+    // Helper to restore properties from ValueTree to CachedValues
+    auto restore = [&](juce::CachedValue<float>& cv, const char* name)
+    {
+        if (v.hasProperty(name))
+            cv = v.getProperty(name);
+    };
+
+    restore(levelValue, "level");
+    restore(coarseTuneValue, "coarseTune");
+    restore(fineTuneValue, "fineTune");
+    restore(waveValue, "wave");
+    restore(attackValue, "attack");
+    restore(decayValue, "decay");
+    restore(sustainValue, "sustain");
+    restore(releaseValue, "release");
+    restore(unisonOrderValue, "unisonOrder");
+    restore(unisonDetuneValue, "unisonDetune");
+    restore(unisonSpreadValue, "unisonSpread");
+    restore(retriggerValue, "retrigger");
+    restore(filterTypeValue, "filterType");
+    restore(filterCutoffValue, "cutoff");
+    restore(filterResValue, "resonance");
+    restore(filterEnvAmountValue, "filterEnvAmount");
+    restore(filterAttackValue, "filterAttack");
+    restore(filterDecayValue, "filterDecay");
+    restore(filterSustainValue, "filterSustain");
+    restore(filterReleaseValue, "filterRelease");
 
     updateAtomics();
 }
@@ -538,6 +596,10 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const j
         
         filter.prepare(spec);
         filter.setMode(juce::dsp::LadderFilterMode::LPF24);
+        
+        svfFilter.prepare(spec);
+        svfFilter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
+
         adsr.setSampleRate(sampleRate);
         filterAdsr.setSampleRate(sampleRate);
     }
@@ -553,6 +615,7 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const j
     
     // Reset Filter State
     filter.reset();
+    svfFilter.reset();
     
     // Configure and trigger the envelope
     // Note: setSampleRate is already handled above if needed, or in initialise
