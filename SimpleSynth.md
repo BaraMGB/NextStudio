@@ -75,7 +75,153 @@ The plugin state is fully persistent within the Tracktion Edit:
 
 Like all internal instruments, `SimpleSynthPlugin` is fully compatible with NextStudio's **Modifier** system. Users can modulate parameters such as *Filter Cutoff* or *Pitch* using external LFOs, Envelope Followers, or Step Sequencers via the plugin rack.
 
+## Code Review & Quality Assessment
+
+### Overall Assessment: B+
+
+The SimpleSynth plugin demonstrates solid audio engineering fundamentals with good architecture, but has several areas needing improvement for production readiness.
+
+### Critical Issues
+
+#### 1. Thread Safety Deficiencies
+- **SimpleSynthPlugin.cpp:164-173**: Parameters accessed without atomic operations in audio thread
+- **SimpleSynthPlugin.h:90-92**: Voice state flags accessed from both MIDI and audio threads without synchronization
+- **Risk**: Race conditions, audio glitches, crashes
+
+#### 2. No Error Handling
+- Complete absence of validation and error checking
+- **SimpleSynthPlugin.cpp:159**: Only basic sample rate check
+- **Risk**: Undefined behavior, crashes with invalid parameters
+
+#### 3. Performance Issues
+- **SimpleSynthPlugin.cpp:304**: Filter cutoff updated every sample (should be control-rate)
+- **SimpleSynthPlugin.cpp:198-214**: Linear voice search instead of free voice queue
+- **SimpleSynthPlugin.cpp:270-272**: Unnecessary frequency recalculations
+
+### Code Quality Issues
+
+#### 1. Method Length Violations
+- **SimpleSynthPlugin.cpp:151-380**: `applyToBuffer` is 229 lines - violates single responsibility
+- Should be broken into: `processMidiMessages()`, `updateVoiceParameters()`, `renderAudioBlock()`
+
+#### 2. Repetitive Code
+- **SimpleSynthPlugin.cpp:105-123**: 19 identical parameter detach calls
+- **SimpleSynthPlugin.h:44-82**: Repetitive parameter declarations suggest need for parameter registry pattern
+
+#### 3. Magic Numbers
+- **SimpleSynthPlugin.cpp:130**: `4096` block size should be configurable
+- **SimpleSynthPlugin.cpp:288**: `std::sqrt((float)unisonOrder)` gain compensation needs documentation
+
+### Audio Quality Concerns
+
+#### 1. Inconsistent Anti-Aliasing
+- **SimpleSynthPlugin.cpp:316-320**: Triangle wave has no anti-aliasing (unlike saw/square)
+- **SimpleSynthPlugin.cpp:311-344**: Good PolyBLEP implementation for other waveforms
+
+#### 2. Filter Envelope Scaling
+- **SimpleSynthPlugin.cpp:300-301**: Linear frequency sweep (`18000.0f` limit) is less musical than logarithmic scaling
+
+### Architecture Issues
+
+#### 1. Fixed Voice Allocation
+- **SimpleSynthPlugin.h:112-113**: Static 16-voice array without voice stealing
+- **SimpleSynthPlugin.cpp:195**: No bounds checking for unison voice requests
+
+#### 2. Missing Plugin Standards
+- No bypass logic implementation
+- No latency reporting
+- No MIDI channel filtering
+
+### UI/UX Issues
+
+#### 1. Hardcoded Layout
+- **SimpleSynthPluginComponent.cpp:275-297**: Magic numbers for layout calculations
+- No responsive design considerations
+
+#### 2. Missing Visual Feedback
+- No parameter automation indication
+- No modulation visualization
+
+### Positive Aspects
+
+#### 1. Clean Architecture
+- Good separation between DSP, parameters, and UI
+- Proper use of JUCE patterns (ValueTree, automatable parameters)
+- Modular UI component design
+
+#### 2. Audio Engineering Excellence
+- PolyBLEP anti-aliasing implementation (SimpleSynthPlugin.cpp:8-26)
+- Proper denormal handling (SimpleSynthPlugin.cpp:359)
+- Filter stability protection (SimpleSynthPlugin.cpp:183)
+
+#### 3. Memory Management
+- RAII compliance
+- No dynamic allocations in audio thread
+- Proper cleanup in destructor
+
+### Priority Recommendations
+
+#### High Priority
+1. **Add thread-safe parameter access** using `std::atomic<float>`
+2. **Implement comprehensive error handling** and validation
+3. **Break down `applyToBuffer`** into smaller, focused methods
+4. **Add triangle wave anti-aliasing**
+
+#### Medium Priority
+1. **Implement voice stealing algorithm** for better voice management
+2. **Optimize to control-rate processing** for filter parameters
+3. **Add free voice queue** for efficient voice allocation
+4. **Implement plugin bypass** and latency reporting
+
+#### Low Priority
+1. **Refactor parameter management** to reduce code duplication
+2. **Add comprehensive unit tests**
+3. **Improve UI responsiveness** with layout metrics
+4. **Add preset management validation**
+
 ## Future Improvements / Known Limitations
 
 *   **Secondary Oscillator:** Mixing two oscillators for more complex timbres.
 *   **Voice Stealing:** Implementing a more advanced stealing algorithm for better high-polyphony performance.
+*   **Thread Safety:** Add atomic operations for parameter access and voice state management.
+*   **Error Handling:** Implement comprehensive validation and error checking throughout the codebase.
+*   **Performance Optimization:** Control-rate filter processing and efficient voice allocation algorithms.
+
+## Refactoring Log - Jan 2026
+
+### Completed Improvements
+
+1.  **Thread Safety Implemented**
+    *   Introduced `std::atomic<float>` mirrors for all automatable parameters within a dedicated `AudioParams` struct.
+    *   Added `juce::ValueTree::Listener` implementation to synchronize atomic values from the Message Thread.
+    *   Refactored audio processing to read exclusively from these atomic variables, eliminating race conditions between UI and Audio threads.
+
+2.  **Audio Quality Enhancements**
+    *   Implemented **PolyBLAMP** (Polynomial Band-Limited Ramp) anti-aliasing for the Triangle waveform.
+    *   This eliminates the high-frequency aliasing artifacts previously present at slope discontinuities (peaks) of the triangle wave.
+
+3.  **Code Restructuring**
+    *   Refactored the monolithic `applyToBuffer` method into three specialized, single-responsibility methods:
+        *   `processMidiMessages()`: Handles note on/off and voice allocation.
+        *   `updateVoiceParameters()`: Handles control-rate updates (pan, detune, resonance) once per block.
+        *   `renderAudio()`: Handles the sample-accurate DSP loop (oscillators, filters, envelopes).
+    *   Snapshotting of parameters at the start of each block ensures consistent processing state.
+
+4.  **Error Handling & Validation**
+    *   Implemented robust input validation in `applyToBuffer` (checking buffer/sampleRate).
+    *   Added explicit clamping of all DSP parameters (unisonOrder, MIDI range, filter coeffs) to safe ranges.
+    *   Secured loops against corrupted `unisonOrder` values to prevent potential hangs.
+
+### Pending Action Items
+
+The following issues from the code review remain open:
+
+*   **Voice Management:**
+    *   No **Voice Stealing** algorithm implementation yet. If more than 16 notes are played, new notes are dropped.
+    *   Linear search for free voices is still used (O(N)), though less critical with only 16 voices.
+*   **Standard Features:**
+    *   Plugin bypass logic is missing.
+    *   Latency reporting is not implemented.
+*   **Refactoring:**
+    *   Parameter management code is still repetitive (boilerplate).
+    *   UI Layout relies on hardcoded magic numbers.
