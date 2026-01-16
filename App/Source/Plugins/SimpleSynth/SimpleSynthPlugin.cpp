@@ -291,7 +291,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     processMidiMessages(fc.bufferForMidiMessages, adsrParams, filterAdsrParams);
 
     // 2. Update Voice Parameters (Control Rate)
-    updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, coarseTune, fineTuneCents);
+    updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, coarseTune, fineTuneCents, adsrParams, filterAdsrParams);
 
     // 3. Audio Generation & Mixing
     renderAudio(fc, baseCutoff, filterEnvAmount, waveShape, unisonOrder);
@@ -406,7 +406,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
     }
 }
 
-void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents)
+void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr)
 {
     float totalTuneSemitones = coarseTune + (fineTuneCents / 100.0f);
 
@@ -414,6 +414,9 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
     {
         if (v.active)
         {
+            v.adsr.setParameters(ampAdsr);
+            v.filterAdsr.setParameters(filterAdsr);
+
             v.currentPan = juce::jlimit(0.0f, 1.0f, 0.5f + (v.unisonBias * 0.5f * unisonSpread));
             
             float cents = v.unisonBias * unisonDetuneCents;
@@ -443,15 +446,16 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
     cutoffSmoother.setTargetValue(baseCutoff);
     const int filterType = (int)audioParams.filterType.load();
 
+    float unisonGainCorrection = 1.0f;
+    if (unisonOrder > 1)
+        unisonGainCorrection = 1.0f / std::sqrt((float)unisonOrder);
+
     for (int i = 0; i < numSamples; ++i)
     {
         float l = 0.0f;
         float r = 0.0f;
-        float gain = masterLevelSmoother.getNextValue();
+        float gain = masterLevelSmoother.getNextValue() * unisonGainCorrection;
         float smoothedCutoff = cutoffSmoother.getNextValue();
-
-        if (unisonOrder > 1)
-            gain /= std::sqrt((float)unisonOrder);
 
         for (auto& v : voices)
         {
@@ -510,19 +514,18 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 if (v.phase >= juce::MathConstants<float>::twoPi)
                     v.phase -= juce::MathConstants<float>::twoPi;
 
-                float* channels[] = { &sample };
-                juce::dsp::AudioBlock<float> block (channels, 1, 1);
-                juce::dsp::ProcessContextReplacing<float> context (block);
-
                 if (filterType == FilterType::ladder)
                 {
+                    float* channels[] = { &sample };
+                    juce::dsp::AudioBlock<float> block (channels, 1, 1);
+                    juce::dsp::ProcessContextReplacing<float> context (block);
                     v.filter.setCutoffFrequencyHz(modulatedCutoff);
                     v.filter.process(context);
                 }
                 else
                 {
                     v.svfFilter.setCutoffFrequency(modulatedCutoff);
-                    v.svfFilter.process(context);
+                    sample = v.svfFilter.processSample(0, sample);
                 }
                 
                 JUCE_SNAP_TO_ZERO(sample);

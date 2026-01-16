@@ -47,3 +47,11 @@ The plugin exposes the following automatable parameters:
     *   Integrated `juce::dsp::StateVariableTPTFilter` (SVF) as an alternative to the Ladder filter.
     *   Added `filterType` parameter and `AutomatableComboBox` UI control.
     *   SVF allows for instantaneous parameter updates, enabling extremely snappy envelopes (0ms attack) which were previously blurred by the Ladder filter's internal smoothing.
+
+9.  **DSP Performance Optimization**
+    *   Moved constant `sqrt(unisonOrder)` calculation out of the per-sample loop.
+    *   Switched SVF filter processing to use `processSample` instead of constructing `AudioBlock` and `ProcessContext` for every sample, significantly reducing function call overhead.
+
+10. **Real-time Envelope Updates**
+    *   Updated `updateVoiceParameters` to refresh ADSR parameters (Attack, Decay, Sustain, Release) during active voice playback. This allows audible changes when adjusting Sustain or Release on held notes.
+
