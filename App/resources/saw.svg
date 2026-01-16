@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" style="-ms-transform:rotate(360deg);-webkit-transform:rotate(360deg);transform:rotate(360deg)" version="1.1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none">
+  <rect width="24" height="24"/>
+  <g stroke="#626262" stroke-width="2">
+   <path d="m2 12c4 5.3333 6 5.3333 10 0 4-5.3333 6-5.3333 10 0" display="none"/>
+   <path d="m1.624 16 19.376-7v8" style="-ms-transform:rotate(360deg);-webkit-transform:rotate(360deg)"/>
+   <path d="m2 16 10-8 10 8" display="none" style="-ms-transform:rotate(360deg);-webkit-transform:rotate(360deg)"/>
+   <path d="m2 16h10v-8h9v9" display="none" style="-ms-transform:rotate(360deg);-webkit-transform:rotate(360deg)"/>
+  </g>
+ </g>
+</svg>
