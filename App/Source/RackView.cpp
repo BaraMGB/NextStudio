@@ -332,7 +332,6 @@ void RackView::buttonClicked(juce::Button* button)
 
             juce::PopupMenu modMenu;
             modMenu.addItem(100, "LFO");
-            modMenu.addItem(101, "Envelope Follower");
             modMenu.addItem(102, "Step");
             modMenu.addItem(103, "Random");
 
@@ -368,7 +367,6 @@ void RackView::buttonClicked(juce::Button* button)
                  if (auto* ml = m_track->getModifierList())
                  {
                      juce::Identifier id = te::IDs::LFO;
-                     if (result == 101) id = te::IDs::ENVELOPEFOLLOWER;
                      if (result == 102) id = te::IDs::STEP;
                      if (result == 103) id = te::IDs::RANDOM;
 
