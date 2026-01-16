@@ -17,6 +17,7 @@
 SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState)
     : m_plugin(plugin)
     , m_appState(appState)
+    , m_waveComp(plugin.waveParam, "Wave")
     , m_coarseTuneComp(plugin.coarseTuneParam, "Tune")
     , m_fineTuneComp(plugin.fineTuneParam, "Fine")
     , m_unisonOrderComp(plugin.unisonOrderParam, "Voices")
@@ -29,19 +30,7 @@ SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin& plugin, Applicat
     m_nameLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(m_nameLabel);
 
-    m_waveCombo.addItem("Sine", 1);
-    m_waveCombo.addItem("Triangle", 2);
-    m_waveCombo.addItem("Saw", 3);
-    m_waveCombo.addItem("Square", 4);
-    m_waveCombo.addItem("Noise", 5);
-    
-    // Map internal 0-based enum to 1-based ID
-    m_waveCombo.setSelectedId((int)plugin.waveParam->getCurrentValue() + 1, juce::dontSendNotification);
-    m_waveCombo.onChange = [this] {
-        m_plugin.waveParam->setParameter((float)(m_waveCombo.getSelectedId() - 1), juce::sendNotification);
-    };
-    addAndMakeVisible(m_waveCombo);
-
+    addAndMakeVisible(m_waveComp);
     addAndMakeVisible(m_coarseTuneComp);
     addAndMakeVisible(m_fineTuneComp);
     addAndMakeVisible(m_unisonOrderComp);
@@ -52,7 +41,6 @@ SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin& plugin, Applicat
 
 void SimpleSynthOscSection::updateUI()
 {
-    m_waveCombo.setSelectedId((int)m_plugin.waveParam->getCurrentValue() + 1, juce::dontSendNotification);
 }
 
 void SimpleSynthOscSection::paint(juce::Graphics& g)
@@ -94,8 +82,8 @@ void SimpleSynthOscSection::resized()
     area.removeFromLeft(headerWidth);
 
     // Content Layout
-    auto topRow = area.removeFromTop(24);
-    m_waveCombo.setBounds(topRow.reduced(5, 0));
+    auto topRow = area.removeFromTop(50);
+    m_waveComp.setBounds(topRow.reduced(2));
 
     auto row1 = area.removeFromTop(area.getHeight() / 2);
     auto paramWidth = row1.getWidth() / 3;
@@ -118,6 +106,7 @@ void SimpleSynthOscSection::resized()
 SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState)
     : m_plugin(plugin)
     , m_appState(appState)
+    , m_filterTypeComp(plugin.filterTypeParam, "Type")
     , m_cutoffComp(plugin.filterCutoffParam, "Cutoff")
     , m_resComp(plugin.filterResParam, "Res")
     , m_envAmountComp(plugin.filterEnvAmountParam, "Env Amt")
@@ -127,6 +116,7 @@ SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin& plugin, Ap
     m_nameLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(m_nameLabel);
 
+    addAndMakeVisible(m_filterTypeComp);
     addAndMakeVisible(m_cutoffComp);
     addAndMakeVisible(m_resComp);
     addAndMakeVisible(m_envAmountComp);
@@ -162,6 +152,9 @@ void SimpleSynthFilterSection::resized()
                                                              header.getX() + 10.0f, 
                                                              header.getY() + 10.0f));
     area.removeFromLeft(headerWidth);
+
+    auto typeArea = area.removeFromTop(50);
+    m_filterTypeComp.setBounds(typeArea.reduced(2));
 
     auto paramHeight = area.getHeight() / 3;
     m_cutoffComp.setBounds(area.removeFromTop(paramHeight).reduced(2));
@@ -284,8 +277,8 @@ void SimpleSynthPluginComponent::resized()
     area.removeFromRight(5); // Spacing
     
     // Split remaining width
-    auto oscWidth = area.getWidth() * 0.4f; // 40% for OSC
-    auto filterWidth = area.getWidth() * 0.15f; // 25% for Filter
+    auto oscWidth = area.getWidth() * 0.3f; // 40% for OSC
+    auto filterWidth = area.getWidth() * 0.25f; // 25% for Filter
     
     m_oscSection.setBounds(area.removeFromLeft(oscWidth));
     m_filterSection.setBounds(area.removeFromLeft(filterWidth));

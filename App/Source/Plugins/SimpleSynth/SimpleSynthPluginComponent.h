@@ -33,7 +33,7 @@ private:
     SimpleSynthPlugin& m_plugin;
     ApplicationViewState& m_appState;
     
-    juce::ComboBox m_waveCombo;
+    AutomatableChoiceComponent m_waveComp;
     AutomatableParameterComponent m_coarseTuneComp;
     AutomatableParameterComponent m_fineTuneComp;
     AutomatableParameterComponent m_unisonOrderComp;
@@ -60,6 +60,7 @@ private:
     SimpleSynthPlugin& m_plugin;
     ApplicationViewState& m_appState;
 
+    AutomatableChoiceComponent m_filterTypeComp;
     AutomatableParameterComponent m_cutoffComp;
     AutomatableParameterComponent m_resComp;
     AutomatableParameterComponent m_envAmountComp;
@@ -104,7 +105,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
     
-    int getNeededWidth() override { return 5; } // Increased width
+    int getNeededWidth() override { return 6; } 
 
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;
