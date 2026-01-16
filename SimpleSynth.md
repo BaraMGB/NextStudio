@@ -94,12 +94,10 @@ The SimpleSynth plugin demonstrates solid audio engineering fundamentals with go
 The following issues from the code review remain open:
 
 *   **Standard Features:**
-    *   Plugin bypass logic is missing.
     *   Latency reporting is not implemented.
 *   **Refactoring:**
     *   Parameter management code is still repetitive (boilerplate).
     *   UI Layout relies on hardcoded magic numbers.
-    *   Improve filter modulation to use logarithmic scaling (semitones) instead of linear Hz.
 
 ## Refactoring Log - Jan 2026
 
@@ -127,3 +125,10 @@ The following issues from the code review remain open:
     *   The system now tracks the "age" of each note via a global `noteCounter`.
     *   When the 16-voice limit is reached, the system prioritizes stealing voices in the release phase (key up) or, if necessary, the oldest active voice.
     *   Verified functionality with a reduced-voice (3) test build.
+
+6.  **Plugin Bypass Logic**
+    *   Added check for `isEnabled()` in `applyToBuffer` to clear buffers when bypassed.
+
+7.  **Logarithmic Filter Modulation**
+    *   Changed filter envelope modulation from linear Hz mapping to logarithmic semitone mapping (+/- 60 semitones).
+    *   This provides a much more musical response to envelope depth adjustments.
