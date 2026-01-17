@@ -361,8 +361,8 @@ void SimpleSynthPluginComponent::resized()
     // Let's divide based on content.
     
     auto totalWidth = area.getWidth();
-    int osc1W = totalWidth * 0.28f;
-    int osc2W = totalWidth * 0.28f; // Now larger to hold mix controls
+    int osc1W = totalWidth * 0.22f;
+    int osc2W = totalWidth * 0.22f; // Now larger to hold mix controls
     // Mix Section removed
     int filterW = totalWidth * 0.22f;
     // Remainder for Envs (~22%)
