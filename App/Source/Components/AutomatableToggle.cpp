@@ -124,7 +124,7 @@ AutomatableToggleComponent::AutomatableToggleComponent(te::AutomatableParameter:
     m_button->setButtonText(""); // We use the label for the name
     addAndMakeVisible(*m_button);
 
-    m_titleLabel.setJustificationType(juce::Justification::centredBottom);
+    m_titleLabel.setJustificationType(juce::Justification::centred);
     m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
     m_titleLabel.setText(name, juce::dontSendNotification);
     addAndMakeVisible(m_titleLabel);
@@ -133,10 +133,11 @@ AutomatableToggleComponent::AutomatableToggleComponent(te::AutomatableParameter:
 void AutomatableToggleComponent::resized()
 {
     auto area = getLocalBounds();
-    auto h = area.getHeight() / 4;
-    m_titleLabel.setBounds(area.removeFromTop(h));
+    m_titleLabel.setBounds(area.removeFromTop(20));
+    area.removeFromTop(8); // Intermediate padding
     
-    // Center the toggle button in the remaining space
+    // Position Button
+    auto buttonArea = area.removeFromTop(30);
     auto buttonSize = 20;
-    m_button->setBounds(area.withSizeKeepingCentre(buttonSize, buttonSize));
+    m_button->setBounds(buttonArea.withSizeKeepingCentre(buttonSize, buttonSize));
 }

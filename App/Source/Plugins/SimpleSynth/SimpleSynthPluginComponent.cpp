@@ -48,11 +48,26 @@ SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin& plugin, Applicat
     {
         m_levelComp = std::make_unique<AutomatableParameterComponent>(plugin.osc2LevelParam, "Level");
         addAndMakeVisible(*m_levelComp);
+
+        m_enabledComp = std::make_unique<AutomatableToggleComponent>(plugin.osc2EnabledParam, "On");
+        addAndMakeVisible(*m_enabledComp);
+
+        m_mixModeComp = std::make_unique<AutomatableChoiceComponent>(plugin.mixModeParam, "Mix Mode");
+        addAndMakeVisible(*m_mixModeComp);
+
+        m_crossModComp = std::make_unique<AutomatableParameterComponent>(plugin.crossModAmountParam, "Cross Mod");
+        addAndMakeVisible(*m_crossModComp);
     }
 }
 
 void SimpleSynthOscSection::updateUI()
 {
+    if (m_crossModComp && m_mixModeComp)
+    {
+        int mode = (int)m_plugin.mixModeParam->getCurrentValue();
+        bool crossModActive = (mode == SimpleSynthPlugin::MixMode::ringMod || mode == SimpleSynthPlugin::MixMode::fm);
+        m_crossModComp->setEnabled(crossModActive);
+    }
 }
 
 void SimpleSynthOscSection::paint(juce::Graphics& g)
@@ -62,13 +77,14 @@ void SimpleSynthOscSection::paint(juce::Graphics& g)
     
     // Background
     g.setColour(m_appState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
 
     // Header Background
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
-    auto header = area.removeFromLeft(15);
+    auto header = area.removeFromTop(20);
     g.setColour(trackColour);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
+    // Draw top corners rounded, bottom corners square
+    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
 
     // Label Colour
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
@@ -76,31 +92,42 @@ void SimpleSynthOscSection::paint(juce::Graphics& g)
 
     // Border
     g.setColour(m_appState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, true, true, true);
 }
 
 void SimpleSynthOscSection::resized()
 {
-    auto area = getLocalBounds().reduced(5);
+    auto area = getLocalBounds().reduced(5); // Remove extra vertical padding as header takes top space now
 
-    // Header (Vertical Label)
-    auto headerWidth = 15;
-    auto header = juce::Rectangle<int>(area.getX(), area.getHeight() - headerWidth, area.getHeight(), headerWidth);
+    // Header (Horizontal Label)
+    auto headerHeight = 20;
+    auto header = area.removeFromTop(headerHeight);
     m_nameLabel.setBounds(header);
-    m_nameLabel.setFont(juce::FontOptions(10));
-    m_nameLabel.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), 
-                                                             header.getX() + 10.0f, 
-                                                             header.getY() + 10.0f));
-    area.removeFromLeft(headerWidth);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+    m_nameLabel.setTransform(juce::AffineTransform()); // Reset transform just in case
+    
+    area.reduce(0, 5); // Some padding below header
+
+    // Calculate row height based on remaining area
+    auto rowHeight = area.getHeight() / 3;
 
     // Content Layout
-    auto topRow = area.removeFromTop(50);
-    m_waveComp.setBounds(topRow.reduced(2));
+    auto topRow = area.removeFromTop(rowHeight);
+    if (m_oscIndex == 0)
+    {
+        m_waveComp.setBounds(topRow.reduced(2));
+    }
+    else
+    {
+        auto waveArea = topRow;
+        if (m_enabledComp) m_enabledComp->setBounds(waveArea.removeFromLeft(60).reduced(2));
+        m_waveComp.setBounds(waveArea.reduced(2));
+    }
 
     if (m_oscIndex == 0)
     {
         // OSC 1 Layout (Complex)
-        auto row1 = area.removeFromTop(area.getHeight() / 2);
+        auto row1 = area.removeFromTop(rowHeight);
         auto paramWidth = row1.getWidth() / 3;
 
         m_coarseTuneComp.setBounds(row1.removeFromLeft(paramWidth).reduced(2));
@@ -115,80 +142,22 @@ void SimpleSynthOscSection::resized()
     }
     else
     {
-        // OSC 2 Layout (Simple)
-        auto row1 = area.removeFromTop(area.getHeight() / 2);
-        auto paramWidth = row1.getWidth() / 2;
+        // OSC 2 Layout
+        // Middle Row: Level | Tune | Fine
+        auto rowMid = area.removeFromTop(rowHeight);
+        auto midWidth = rowMid.getWidth() / 3;
         
-        m_coarseTuneComp.setBounds(row1.removeFromLeft(paramWidth).reduced(2));
-        m_fineTuneComp.setBounds(row1.reduced(2));
+        if (m_levelComp) m_levelComp->setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
+        m_coarseTuneComp.setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
+        m_fineTuneComp.setBounds(rowMid.reduced(2));
         
-        // Level takes full width of bottom row for prominence
-        if (m_levelComp) m_levelComp->setBounds(area.reduced(2));
+        // Bottom Row: Mix Mode | Cross Mod
+        auto rowBottom = area;
+        auto botWidth = rowBottom.getWidth() / 2;
+        
+        if (m_mixModeComp) m_mixModeComp->setBounds(rowBottom.removeFromLeft(botWidth).reduced(2));
+        if (m_crossModComp) m_crossModComp->setBounds(rowBottom.reduced(2));
     }
-}
-
-//==============================================================================
-// SimpleSynthMixSection
-//==============================================================================
-
-SimpleSynthMixSection::SimpleSynthMixSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState)
-    : m_plugin(plugin)
-    , m_appState(appState)
-    , m_mixModeComp(plugin.mixModeParam, "Mix Mode")
-    , m_crossModComp(plugin.crossModAmountParam, "Cross Mod")
-{
-    m_nameLabel.setText("MIX", juce::dontSendNotification);
-    m_nameLabel.setJustificationType(juce::Justification::centred);
-    m_nameLabel.setInterceptsMouseClicks(false, false);
-    addAndMakeVisible(m_nameLabel);
-
-    addAndMakeVisible(m_mixModeComp);
-    addAndMakeVisible(m_crossModComp);
-    
-    updateUI();
-}
-
-void SimpleSynthMixSection::paint(juce::Graphics& g)
-{
-    auto area = getLocalBounds().reduced(5);
-    auto cornerSize = 10.0f;
-    g.setColour(m_appState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
-
-    auto trackColour = m_plugin.getOwnerTrack()->getColour();
-    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
-    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
-
-    auto header = area.removeFromLeft(15);
-    g.setColour(trackColour);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
-
-    g.setColour(m_appState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, false, true, false);
-}
-
-void SimpleSynthMixSection::resized()
-{
-    auto area = getLocalBounds().reduced(5);
-    auto headerWidth = 15;
-    auto header = juce::Rectangle<int>(area.getX(), area.getHeight() - headerWidth, area.getHeight(), headerWidth);
-    m_nameLabel.setBounds(header);
-    m_nameLabel.setFont(juce::FontOptions(10));
-    m_nameLabel.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), 
-                                                             header.getX() + 10.0f, 
-                                                             header.getY() + 10.0f));
-    area.removeFromLeft(headerWidth);
-
-    auto topHalf = area.removeFromTop(area.getHeight() / 2);
-    m_mixModeComp.setBounds(topHalf.reduced(2));
-    m_crossModComp.setBounds(area.reduced(2));
-}
-
-void SimpleSynthMixSection::updateUI()
-{
-    int mode = (int)m_plugin.mixModeParam->getCurrentValue();
-    bool crossModActive = (mode == SimpleSynthPlugin::MixMode::ringMod || mode == SimpleSynthPlugin::MixMode::fm);
-    m_crossModComp.setEnabled(crossModActive);
 }
 
 //==============================================================================
@@ -223,31 +192,30 @@ void SimpleSynthFilterSection::paint(juce::Graphics& g)
     auto area = getLocalBounds().reduced(5);
     auto cornerSize = 10.0f;
     g.setColour(m_appState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
 
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
     m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
-    auto header = area.removeFromLeft(15);
+    auto header = area.removeFromTop(20);
     g.setColour(trackColour);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
 
     g.setColour(m_appState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, true, true, true);
 }
 
 void SimpleSynthFilterSection::resized()
 {
     auto area = getLocalBounds().reduced(5);
-    auto headerWidth = 15;
-    auto header = juce::Rectangle<int>(area.getX(), area.getHeight() - headerWidth, area.getHeight(), headerWidth);
+    auto headerHeight = 20;
+    auto header = area.removeFromTop(headerHeight);
     m_nameLabel.setBounds(header);
-    m_nameLabel.setFont(juce::FontOptions(10));
-    m_nameLabel.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), 
-                                                             header.getX() + 10.0f, 
-                                                             header.getY() + 10.0f));
-    area.removeFromLeft(headerWidth);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+    m_nameLabel.setTransform(juce::AffineTransform());
+    
+    area.reduce(0, 5);
 
     auto rowHeight = area.getHeight() / 3;
     
@@ -300,31 +268,30 @@ void SimpleSynthEnvSection::paint(juce::Graphics& g)
     auto area = getLocalBounds().reduced(5);
     auto cornerSize = 10.0f;
     g.setColour(m_appState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
 
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
     m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
-    auto header = area.removeFromLeft(15);
+    auto header = area.removeFromTop(20);
     g.setColour(trackColour);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
 
     g.setColour(m_appState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, false, true, false);
+    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, true, true, true);
 }
 
 void SimpleSynthEnvSection::resized()
 {
     auto area = getLocalBounds().reduced(5);
-    auto headerWidth = 15;
-    auto header = juce::Rectangle<int>(area.getX(), area.getHeight() - headerWidth, area.getHeight(), headerWidth);
+    auto headerHeight = 20;
+    auto header = area.removeFromTop(headerHeight);
     m_nameLabel.setBounds(header);
-    m_nameLabel.setFont(juce::FontOptions(10));
-    m_nameLabel.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), 
-                                                             header.getX() + 10.0f, 
-                                                             header.getY() + 10.0f));
-    area.removeFromLeft(headerWidth);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+    m_nameLabel.setTransform(juce::AffineTransform());
+    
+    area.reduce(0, 5);
 
     auto paramWidth = area.getWidth() / 4;
     m_attackComp.setBounds(area.removeFromLeft(paramWidth).reduced(2));
@@ -342,7 +309,6 @@ SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState& evs, te::P
     , m_synth(dynamic_cast<SimpleSynthPlugin*>(p.get()))
     , m_osc1Section(*m_synth, evs.m_applicationState, 0)
     , m_osc2Section(*m_synth, evs.m_applicationState, 1)
-    , m_mixSection(*m_synth, evs.m_applicationState)
     , m_filterSection(*m_synth, evs.m_applicationState)
     , m_ampEnvSection(*m_synth, evs.m_applicationState, "AMP ENV", false)
     , m_filterEnvSection(*m_synth, evs.m_applicationState, "FILTER ENV", true)
@@ -352,7 +318,6 @@ SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState& evs, te::P
     
     addAndMakeVisible(m_osc1Section);
     addAndMakeVisible(m_osc2Section);
-    addAndMakeVisible(m_mixSection);
     addAndMakeVisible(m_filterSection);
     addAndMakeVisible(m_ampEnvSection);
     addAndMakeVisible(m_filterEnvSection);
@@ -397,14 +362,13 @@ void SimpleSynthPluginComponent::resized()
     
     auto totalWidth = area.getWidth();
     int osc1W = totalWidth * 0.28f;
-    int osc2W = totalWidth * 0.22f; // Slightly smaller (less knobs)
-    int mixW = totalWidth * 0.12f;
+    int osc2W = totalWidth * 0.28f; // Now larger to hold mix controls
+    // Mix Section removed
     int filterW = totalWidth * 0.22f;
-    // Remainder for Envs (~16%)
+    // Remainder for Envs (~22%)
     
     m_osc1Section.setBounds(area.removeFromLeft(osc1W));
     m_osc2Section.setBounds(area.removeFromLeft(osc2W));
-    m_mixSection.setBounds(area.removeFromLeft(mixW));
     m_filterSection.setBounds(area.removeFromLeft(filterW));
     
     auto envArea = area;
@@ -417,7 +381,6 @@ void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree&, cons
 {
     m_osc1Section.updateUI();
     m_osc2Section.updateUI();
-    m_mixSection.updateUI();
     m_filterSection.updateUI();
 }
 

@@ -87,6 +87,7 @@ public:
     te::AutomatableParameter::Ptr filterReleaseParam;
 
     te::AutomatableParameter::Ptr osc2WaveParam;
+    te::AutomatableParameter::Ptr osc2EnabledParam;
     te::AutomatableParameter::Ptr osc2CoarseParam;
     te::AutomatableParameter::Ptr osc2FineParam;
     te::AutomatableParameter::Ptr osc2LevelParam;
@@ -116,6 +117,7 @@ public:
     juce::CachedValue<float> filterSustainValue;
     juce::CachedValue<float> filterReleaseValue;
 
+    juce::CachedValue<float> osc2EnabledValue;
     juce::CachedValue<float> osc2WaveValue;
     juce::CachedValue<float> osc2CoarseValue;
     juce::CachedValue<float> osc2FineValue;
@@ -171,7 +173,7 @@ private:
     struct AudioParams
     {
         std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
-        std::atomic<float> osc2Wave { 0.0f }, osc2Coarse { 0.0f }, osc2Fine { 0.0f }, osc2Level { 0.0f };
+        std::atomic<float> osc2Enabled { 0.0f }, osc2Wave { 0.0f }, osc2Coarse { 0.0f }, osc2Fine { 0.0f }, osc2Level { 0.0f };
         std::atomic<float> mixMode { 0.0f }, crossModAmount { 0.0f };
         std::atomic<float> attack { 0.001f }, decay { 0.001f }, sustain { 1.0f }, release { 0.001f };
         std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };

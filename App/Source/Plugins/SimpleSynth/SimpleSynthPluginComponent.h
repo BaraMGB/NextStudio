@@ -46,33 +46,13 @@ private:
 
     // Osc 2 Specific
     std::unique_ptr<AutomatableParameterComponent> m_levelComp;
+    std::unique_ptr<AutomatableToggleComponent> m_enabledComp;
+    std::unique_ptr<AutomatableChoiceComponent> m_mixModeComp;
+    std::unique_ptr<AutomatableParameterComponent> m_crossModComp;
     
     juce::Label m_nameLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthOscSection)
-};
-
-//==============================================================================
-class SimpleSynthMixSection : public juce::Component
-{
-public:
-    SimpleSynthMixSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState);
-    ~SimpleSynthMixSection() override = default;
-
-    void paint(juce::Graphics& g) override;
-    void resized() override;
-    void updateUI();
-
-private:
-    SimpleSynthPlugin& m_plugin;
-    ApplicationViewState& m_appState;
-
-    AutomatableChoiceComponent m_mixModeComp;
-    AutomatableParameterComponent m_crossModComp;
-    
-    juce::Label m_nameLabel;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthMixSection)
 };
 
 //==============================================================================
@@ -136,7 +116,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
     
-    int getNeededWidth() override { return 6; } 
+    int getNeededWidth() override { return 7; } 
 
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;
@@ -158,7 +138,6 @@ private:
     // Sections
     SimpleSynthOscSection m_osc1Section;
     SimpleSynthOscSection m_osc2Section;
-    SimpleSynthMixSection m_mixSection;
     SimpleSynthFilterSection m_filterSection;
     SimpleSynthEnvSection m_ampEnvSection;
     SimpleSynthEnvSection m_filterEnvSection;

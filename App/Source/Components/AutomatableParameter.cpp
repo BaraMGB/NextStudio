@@ -22,12 +22,12 @@ AutomatableParameterComponent::AutomatableParameterComponent(const te::Automatab
 
     addAndMakeVisible(*m_knob);
 
-    m_valueLabel.setJustificationType(juce::Justification::centredTop);
+    m_valueLabel.setJustificationType(juce::Justification::centred);
     m_valueLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
     updateLabel();
     addAndMakeVisible(m_valueLabel);
 
-    m_titleLabel.setJustificationType(juce::Justification::centredBottom);
+    m_titleLabel.setJustificationType(juce::Justification::centred);
     m_titleLabel.setFont(juce::Font(juce::FontOptions{11.0f}));
     m_titleLabel.setText(name, juce::dontSendNotification);
 
@@ -43,11 +43,15 @@ AutomatableParameterComponent::~AutomatableParameterComponent()
 void AutomatableParameterComponent::resized() 
 {
     auto area = getLocalBounds();
-    auto h = area.getHeight() / 4;
-
-    m_titleLabel.setBounds(area.removeFromTop(h));
-    m_knob->setBounds(area.removeFromTop(h * 2));
-    m_valueLabel.setBounds(area.removeFromTop(h));
+    
+    // Top: Title (Name)
+    m_titleLabel.setBounds(area.removeFromTop(20));
+    
+    // Bottom: Value
+    m_valueLabel.setBounds(area.removeFromBottom(15));
+    
+    // Rest: Knob
+    m_knob->setBounds(area);
 }
 
 void AutomatableParameterComponent::setKnobColour (juce::Colour colour)
