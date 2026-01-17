@@ -480,6 +480,50 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
     }
 }
 
+inline float SimpleSynthPlugin::generateWaveSample(int waveShape, float phase, float phaseDelta, juce::Random& random)
+{
+    float sample = 0.0f;
+    const float t = phase / juce::MathConstants<float>::twoPi; 
+    const float dt = phaseDelta / juce::MathConstants<float>::twoPi;
+
+    switch (waveShape)
+    {
+        case Waveform::sine:
+            sample = sineTable.getUnchecked(phase * sineTableScaler);
+            break;
+        case Waveform::triangle:
+            {
+                // Naive triangle wave
+                sample = 2.0f * std::abs(2.0f * t - 1.0f) - 1.0f; 
+                
+                // Apply PolyBLAMP to smooth the slope changes at t=0.0 and t=0.5
+                sample += poly_blamp(t, dt) * 4.0f;
+                
+                float t2 = t + 0.5f;
+                if (t2 >= 1.0f) t2 -= 1.0f;
+                sample -= poly_blamp(t2, dt) * 4.0f;
+            }
+            break;
+        case Waveform::saw:
+            sample = (2.0f * t) - 1.0f;
+            sample -= poly_blep(t, dt);
+            break;
+        case Waveform::square:
+            sample = (phase < juce::MathConstants<float>::pi) ? 1.0f : -1.0f;
+            sample += poly_blep(t, dt);
+            {
+                float t_shifted = t + 0.5f; 
+                if (t_shifted >= 1.0f) t_shifted -= 1.0f;
+                sample -= poly_blep(t_shifted, dt);
+            }
+            break;
+        case Waveform::noise:
+            sample = random.nextFloat() * 2.0f - 1.0f;
+            break;
+    }
+    return sample;
+}
+
 void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive)
 {
     float* left = fc.destBuffer->getWritePointer(0);
@@ -489,6 +533,14 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
     masterLevelSmoother.setTargetValue(juce::Decibels::decibelsToGain(audioParams.level.load()));
     cutoffSmoother.setTargetValue(baseCutoff);
     const int filterType = (int)audioParams.filterType.load();
+
+    // New Params
+    int osc2WaveShape = (int)audioParams.osc2Wave.load();
+    if (osc2WaveShape < 0 || osc2WaveShape >= Waveform::numWaveforms) osc2WaveShape = Waveform::saw;
+    
+    float osc2Level = audioParams.osc2Level.load();
+    int mixMode = (int)audioParams.mixMode.load();
+    float crossMod = audioParams.crossModAmount.load();
 
     float unisonGainCorrection = 1.0f;
     if (unisonOrder > 1)
@@ -508,55 +560,76 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 const float filterEnv = v.filterAdsr.getNextSample();
                 
                 // Logarithmic Modulation (Pitch-based)
-                // exp2f is much faster than std::pow(2.0, x)
                 const float modSemitones = filterEnv * filterEnvAmount * maxFilterSweepSemitones;
                 const float freqMultiplier = std::exp2f(modSemitones / 12.0f);
                 
                 const float modulatedCutoff = juce::jlimit(20.0f, 20000.0f, smoothedCutoff * freqMultiplier);
                 
-                float sample = 0.0f;
-                const float t = v.phase / juce::MathConstants<float>::twoPi; 
-                const float dt = v.phaseDelta / juce::MathConstants<float>::twoPi;
-
-                switch (waveShape)
+                // --- OSC 2 Generation (Modulator / Second Voice) ---
+                float s2 = generateWaveSample(osc2WaveShape, v.phase2, v.phaseDelta2, v.random);
+                
+                // --- Phase Modifications (Sync / FM) ---
+                float effectivePhase1 = v.phase;
+                
+                // Hard Sync: Reset Phase 1 if Phase 2 wraps in this step
+                // (Naive implementation: reset to 0 if we passed the wrap point)
+                if (mixMode == MixMode::hardSync) 
                 {
-                    case Waveform::sine:
-                        sample = sineTable.getUnchecked(v.phase * sineTableScaler);
-                        break;
-                    case Waveform::triangle:
+                    if (v.phase2 + v.phaseDelta2 >= juce::MathConstants<float>::twoPi) 
+                    {
+                         v.phase = 0.0f;
+                         effectivePhase1 = 0.0f;
+                    }
+                }
+                // FM: Modulate Phase 1 with Osc 2 Output
+                else if (mixMode == MixMode::fm) 
+                {
+                    // Map crossMod to a reasonable modulation index range (0.0 to 4.0 radians approx)
+                    effectivePhase1 += (s2 * crossMod * 4.0f); 
+                    
+                    // Wrap effective phase for lookup correctness
+                    while (effectivePhase1 >= juce::MathConstants<float>::twoPi) effectivePhase1 -= juce::MathConstants<float>::twoPi;
+                    while (effectivePhase1 < 0.0f) effectivePhase1 += juce::MathConstants<float>::twoPi;
+                }
+
+                // --- OSC 1 Generation ---
+                float s1 = generateWaveSample(waveShape, effectivePhase1, v.phaseDelta, v.random);
+
+                // --- Mixing ---
+                float mixedSample = 0.0f;
+
+                switch (mixMode) 
+                {
+                    case MixMode::ringMod:
+                        // Blend between Clean Mix and RingMod (S1 * S2)
+                        // Base: S1 + S2*Lev
+                        // Ring: S1 * S2
                         {
-                            // Naive triangle wave
-                            sample = 2.0f * std::abs(2.0f * t - 1.0f) - 1.0f; 
-                            
-                            // Apply PolyBLAMP to smooth the slope changes at t=0.0 and t=0.5
-                            sample += poly_blamp(t, dt) * 4.0f;
-                            
-                            float t2 = t + 0.5f;
-                            if (t2 >= 1.0f) t2 -= 1.0f;
-                            sample -= poly_blamp(t2, dt) * 4.0f;
+                            float clean = s1 + (s2 * osc2Level);
+                            float ring = s1 * s2; // Pure Ring Mod
+                            mixedSample = clean * (1.0f - crossMod) + ring * crossMod;
                         }
                         break;
-                    case Waveform::saw:
-                        sample = (2.0f * t) - 1.0f;
-                        sample -= poly_blep(t, dt);
-                        break;
-                    case Waveform::square:
-                        sample = (v.phase < juce::MathConstants<float>::pi) ? 1.0f : -1.0f;
-                        sample += poly_blep(t, dt);
-                        {
-                            float t_shifted = t + 0.5f; 
-                            if (t_shifted >= 1.0f) t_shifted -= 1.0f;
-                            sample -= poly_blep(t_shifted, dt);
-                        }
-                        break;
-                    case Waveform::noise:
-                        sample = v.random.nextFloat() * 2.0f - 1.0f;
+                    
+                    case MixMode::mix:
+                    case MixMode::fm: // For FM, we usually just hear the Carrier (Osc 1), but let's allow mixing Osc 2
+                    case MixMode::hardSync:
+                    default:
+                        mixedSample = s1 + (s2 * osc2Level);
                         break;
                 }
 
+                // --- Advance Phases ---
                 v.phase += v.phaseDelta;
                 if (v.phase >= juce::MathConstants<float>::twoPi)
                     v.phase -= juce::MathConstants<float>::twoPi;
+                    
+                v.phase2 += v.phaseDelta2;
+                if (v.phase2 >= juce::MathConstants<float>::twoPi)
+                    v.phase2 -= juce::MathConstants<float>::twoPi;
+
+                // --- Filtering ---
+                float sample = mixedSample; // Input to filter
 
                 if (filterType == FilterType::ladder)
                 {
@@ -566,8 +639,6 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                     v.filter.setCutoffFrequencyHz(modulatedCutoff);
                     v.filter.process(context);
                     
-                    // Auto Make-Up Gain: Compensate for JUCE's aggressive drive attenuation
-                    // and ladder filter energy loss. sqrt(drive) feels musical.
                     block.multiplyBy(std::sqrt(drive));
                 }
                 else
