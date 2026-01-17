@@ -90,6 +90,11 @@ The plugin exposes the following automatable parameters:
         *   **Layout Overhaul:** Switched to horizontal headers for all panels (Osc, Filter, Env). Added consistent vertical padding (10px). Optimized component alignment (Label top, Control centered below).
         *   **Look & Feel:** Implemented centered text rendering for ComboBoxes in `NextLookAndFeel`.
 
+15. **Bugfix: Init Preset Generation**
+    *   **Issue:** The "Init" preset was not correctly resetting parameters because `getFactoryDefaultState` returned an empty ValueTree, failing to overwrite existing parameter values.
+    *   **Fix:** Updated `getFactoryDefaultState` to explicitly populate the returned ValueTree with the default values from all `CachedValue` instances in the plugin.
+    *   **Robustness:** Improved XML parsing in `PresetManagerComponent` to use `juce::XmlDocument::parse` instead of brittle string checks, ensuring reliable preset loading even with formatting variations.
+
 
 
 
