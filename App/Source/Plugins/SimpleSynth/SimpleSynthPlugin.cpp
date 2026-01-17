@@ -340,6 +340,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
 
     int unisonOrder = juce::jlimit(1, 5, (int)audioParams.unisonOrder.load());
     bool retrigger = audioParams.retrigger.load() > 0.5f;
+    float startCutoff = audioParams.filterCutoff.load();
 
     for (auto m : *midiMessages)
     {
@@ -354,7 +355,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
             noteCounter++;
 
             // Unison Logic: Trigger multiple voices
-            triggerNote(note, velocity, unisonOrder, retrigger, adsrParams, filterAdsrParams);
+            triggerNote(note, velocity, unisonOrder, retrigger, startCutoff, adsrParams, filterAdsrParams);
         }
         else if (m.isNoteOff())
         {
@@ -392,10 +393,11 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
                 v.stop();
         }
         
+        float startCutoff = audioParams.filterCutoff.load();
         bool retrigger = audioParams.retrigger.load() > 0.5f;
         for (auto const& [note, vel] : notesToRetrigger)
         {
-             triggerNote(note, vel, unisonOrder, retrigger, ampAdsr, filterAdsr);
+             triggerNote(note, vel, unisonOrder, retrigger, startCutoff, ampAdsr, filterAdsr);
         }
         
         lastUnisonOrder = unisonOrder;
@@ -571,7 +573,7 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     updateAtomics();
 }
 
-void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, bool retrigger, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams)
+void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams)
 {
     // Unison Logic: Trigger multiple voices
     for (int u = 0; u < unisonOrder; ++u)
@@ -605,12 +607,12 @@ void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, b
                 bias = (spreadAmount - 0.5f) * 2.0f;
             }
             
-            voiceToUse->start(note, velocity, (float)sampleRate, ampParams, filterParams, bias, retrigger, noteCounter);
+            voiceToUse->start(note, velocity, (float)sampleRate, startCutoff, ampParams, filterParams, bias, retrigger, noteCounter);
         }
     }
 }
 
-void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger, uint32_t timestamp)
+void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger, uint32_t timestamp)
 {
     active = true;
     isKeyDown = true;
@@ -629,14 +631,25 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, const j
         spec.maximumBlockSize = 4096;
         spec.numChannels = 1;
         
-        filter.prepare(spec);
-        filter.setMode(juce::dsp::LadderFilterMode::LPF24);
-        
         svfFilter.prepare(spec);
         svfFilter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
 
         adsr.setSampleRate(sampleRate);
         filterAdsr.setSampleRate(sampleRate);
+    }
+    
+    // Fix for Ladder Filter Snapping:
+    // Always re-prepare the Ladder Filter to reset its internal parameter smoothers.
+    // Otherwise, it interpolates from the last used cutoff of this voice.
+    {
+        juce::dsp::ProcessSpec spec;
+        spec.sampleRate = sampleRate;
+        spec.maximumBlockSize = 4096;
+        spec.numChannels = 1;
+        filter.prepare(spec);
+        filter.setCutoffFrequencyHz(juce::jlimit(20.0f, 20000.0f, startCutoff));
+        filter.reset(); // Force smoothers to snap to startCutoff
+        filter.setMode(juce::dsp::LadderFilterMode::LPF24);
     }
     
     // If Retrigger is On: Reset phase to 0 for punchy attack
