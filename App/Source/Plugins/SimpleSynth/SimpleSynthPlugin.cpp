@@ -49,32 +49,22 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
 {
     auto um = getUndoManager();
 
-    // Link cached values to the ValueTree state
-    levelValue.referTo(state, "level", um, 0.0f);
-    coarseTuneValue.referTo(state, "coarseTune", um, 0.0f);
-    fineTuneValue.referTo(state, "fineTune", um, 0.0f);
-    waveValue.referTo(state, "wave", um, 2.0f);
-    attackValue.referTo(state, "attack", um, 0.001f);
-    decayValue.referTo(state, "decay", um, 0.001f);
-    sustainValue.referTo(state, "sustain", um, 1.0f);
-    releaseValue.referTo(state, "release", um, 0.001f);
-    unisonOrderValue.referTo(state, "unisonOrder", um, 1.0f);
-    unisonDetuneValue.referTo(state, "unisonDetune", um, 0.0f);
-    unisonSpreadValue.referTo(state, "unisonSpread", um, 0.0f);
-    retriggerValue.referTo(state, "retrigger", um, 0.0f);
-    filterTypeValue.referTo(state, "filterType", um, 0.0f);
-    filterCutoffValue.referTo(state, "cutoff", um, 20000.0f);
-    filterResValue.referTo(state, "resonance", um, 0.0f);
-    filterEnvAmountValue.referTo(state, "filterEnvAmount", um, 0.0f);
-    filterAttackValue.referTo(state, "filterAttack", um, 0.001f);
-    filterDecayValue.referTo(state, "filterDecay", um, 0.001f);
-    filterSustainValue.referTo(state, "filterSustain", um, 1.0f);
-    filterReleaseValue.referTo(state, "filterRelease", um, 0.001f);
+    // Helper lambda to reduce boilerplate for standard parameters
+    auto setupParam = [&](te::AutomatableParameter::Ptr& param, juce::CachedValue<float>& cv, 
+                          const juce::String& id, const juce::String& name, 
+                          juce::NormalisableRange<float> range, float defaultVal)
+    {
+        cv.referTo(state, id, um, defaultVal);
+        param = addParam(id, name, range);
+        param->attachToCurrentValue(cv);
+    };
 
-    // Create and expose automatable parameters
-    levelParam = addParam("level", "Level", {-100.0f, 0.0f});
-    coarseTuneParam = addParam("coarseTune", "Coarse Tune", {-24.0f, 24.0f, 1.0f});
-    fineTuneParam = addParam("fineTune", "Fine Tune", {-100.0f, 100.0f}); // Cents
+    setupParam(levelParam, levelValue, "level", "Level", {-100.0f, 0.0f}, 0.0f);
+    setupParam(coarseTuneParam, coarseTuneValue, "coarseTune", "Coarse Tune", {-24.0f, 24.0f, 1.0f}, 0.0f);
+    setupParam(fineTuneParam, fineTuneValue, "fineTune", "Fine Tune", {-100.0f, 100.0f}, 0.0f);
+    
+    // Wave Param (Custom String Conversion)
+    waveValue.referTo(state, "wave", um, 2.0f);
     waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f},
                          [](float v) {
                              int type = juce::roundToInt(v);
@@ -93,50 +83,32 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
                              if (s == "Noise") return (float)Waveform::noise;
                              return 0.0f;
                          });
-    attackParam = addParam("attack", "Attack", {0.0f, 5.0f});
-    decayParam = addParam("decay", "Decay", {0.0f, 5.0f});
-    sustainParam = addParam("sustain", "Sustain", {0.0f, 1.0f});
-    releaseParam = addParam("release", "Release", {0.0f, 5.0f});
-    unisonOrderParam = addParam("unisonOrder", "Unison Voices", {1.0f, 5.0f, 1.0f});
-    unisonDetuneParam = addParam("unisonDetune", "Unison Detune", {0.0f, 100.0f}); // Cents
-    unisonSpreadParam = addParam("unisonSpread", "Unison Spread", {0.0f, 100.0f}); // Percent
-    retriggerParam = addParam("retrigger", "Retrigger", {0.0f, 1.0f, 1.0f}); // Default Off (0.0) -> Random Phase
+    waveParam->attachToCurrentValue(waveValue);
+
+    setupParam(attackParam, attackValue, "attack", "Attack", {0.0f, 5.0f}, 0.001f);
+    setupParam(decayParam, decayValue, "decay", "Decay", {0.0f, 5.0f}, 0.001f);
+    setupParam(sustainParam, sustainValue, "sustain", "Sustain", {0.0f, 1.0f}, 1.0f);
+    setupParam(releaseParam, releaseValue, "release", "Release", {0.0f, 5.0f}, 0.001f);
+    setupParam(unisonOrderParam, unisonOrderValue, "unisonOrder", "Unison Voices", {1.0f, 5.0f, 1.0f}, 1.0f);
+    setupParam(unisonDetuneParam, unisonDetuneValue, "unisonDetune", "Unison Detune", {0.0f, 100.0f}, 0.0f);
+    setupParam(unisonSpreadParam, unisonSpreadValue, "unisonSpread", "Unison Spread", {0.0f, 100.0f}, 0.0f);
+    setupParam(retriggerParam, retriggerValue, "retrigger", "Retrigger", {0.0f, 1.0f, 1.0f}, 0.0f);
+
+    // Filter Type Param (Custom String Conversion)
+    filterTypeValue.referTo(state, "filterType", um, 0.0f);
     filterTypeParam = addParam("filterType", "Filter Type", {0.0f, 1.0f, 1.0f},
                                [](float v) { return v > 0.5f ? "SVF (12dB)" : "Ladder (24dB)"; },
                                [](const juce::String& s) { return s.contains("SVF") ? 1.0f : 0.0f; });
-    
-    // Filter Parameters
-    // Use a skewed range for Frequency to make the knob feel natural (logarithmic)
-    // Removed 4th argument (default value override) to match function signature
-    filterCutoffParam = addParam("cutoff", "Cutoff", {20.0f, 20000.0f, 0.0f, 0.3f});
-    filterResParam = addParam("resonance", "Resonance", {0.0f, 1.0f});
-    filterEnvAmountParam = addParam("filterEnvAmount", "Env Amount", {-100.0f, 100.0f});
-    filterAttackParam = addParam("filterAttack", "Filter Attack", {0.0f, 5.0f});
-    filterDecayParam = addParam("filterDecay", "Filter Decay", {0.0f, 5.0f});
-    filterSustainParam = addParam("filterSustain", "Filter Sustain", {0.0f, 1.0f});
-    filterReleaseParam = addParam("filterRelease", "Filter Release", {0.0f, 5.0f});
-
-    // Attach parameters to cached values for automatic bi-directional updates
-    levelParam->attachToCurrentValue(levelValue);
-    coarseTuneParam->attachToCurrentValue(coarseTuneValue);
-    fineTuneParam->attachToCurrentValue(fineTuneValue);
-    waveParam->attachToCurrentValue(waveValue);
-    attackParam->attachToCurrentValue(attackValue);
-    decayParam->attachToCurrentValue(decayValue);
-    sustainParam->attachToCurrentValue(sustainValue);
-    releaseParam->attachToCurrentValue(releaseValue);
-    unisonOrderParam->attachToCurrentValue(unisonOrderValue);
-    unisonDetuneParam->attachToCurrentValue(unisonDetuneValue);
-    unisonSpreadParam->attachToCurrentValue(unisonSpreadValue);
-    retriggerParam->attachToCurrentValue(retriggerValue);
     filterTypeParam->attachToCurrentValue(filterTypeValue);
-    filterCutoffParam->attachToCurrentValue(filterCutoffValue);
-    filterResParam->attachToCurrentValue(filterResValue);
-    filterEnvAmountParam->attachToCurrentValue(filterEnvAmountValue);
-    filterAttackParam->attachToCurrentValue(filterAttackValue);
-    filterDecayParam->attachToCurrentValue(filterDecayValue);
-    filterSustainParam->attachToCurrentValue(filterSustainValue);
-    filterReleaseParam->attachToCurrentValue(filterReleaseValue);
+    
+    // Filter Params
+    setupParam(filterCutoffParam, filterCutoffValue, "cutoff", "Cutoff", {20.0f, 20000.0f, 0.0f, 0.3f}, 20000.0f);
+    setupParam(filterResParam, filterResValue, "resonance", "Resonance", {0.0f, 1.0f}, 0.0f);
+    setupParam(filterEnvAmountParam, filterEnvAmountValue, "filterEnvAmount", "Env Amount", {-100.0f, 100.0f}, 0.0f);
+    setupParam(filterAttackParam, filterAttackValue, "filterAttack", "Filter Attack", {0.0f, 5.0f}, 0.001f);
+    setupParam(filterDecayParam, filterDecayValue, "filterDecay", "Filter Decay", {0.0f, 5.0f}, 0.001f);
+    setupParam(filterSustainParam, filterSustainValue, "filterSustain", "Filter Sustain", {0.0f, 1.0f}, 1.0f);
+    setupParam(filterReleaseParam, filterReleaseValue, "filterRelease", "Filter Release", {0.0f, 5.0f}, 0.001f);
 
     state.addListener(this);
     updateAtomics();

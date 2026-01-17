@@ -59,4 +59,9 @@ The plugin exposes the following automatable parameters:
     *   Implemented intelligent re-triggering of held notes when the Unison Voice count is changed.
     *   Previously, changing unison voices required re-striking keys to hear the effect. Now, active voices are stopped and immediately re-triggered with the new unison count, providing instant audible feedback.
 
+12. **Code Quality: Parameter Initialization Refactoring**
+    *   Refactored the Plugin Constructor to use a helper lambda for parameter setup.
+    *   Reduced boilerplate code by approximately 40 lines and improved readability by centralizing the `referTo`, `addParam`, and `attachToCurrentValue` logic.
+
+
 
