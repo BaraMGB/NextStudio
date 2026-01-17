@@ -101,7 +101,7 @@ public:
 private:
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
+        void start(int note, float velocity, float sampleRate, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
         void stop();
         
         bool active = false;
@@ -129,7 +129,7 @@ private:
     };
 
     void processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
-    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
+    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
     void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
     void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder);
     
