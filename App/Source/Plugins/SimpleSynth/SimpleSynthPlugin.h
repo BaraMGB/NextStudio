@@ -161,6 +161,8 @@ private:
     void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
     void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
     
+    inline float generateWaveSample(int waveShape, float phase, float phaseDelta, juce::Random& random);
+    
     Voice* findVoiceToSteal();
     uint32_t noteCounter = 0;
     int lastUnisonOrder = 1;
