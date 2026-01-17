@@ -146,11 +146,10 @@ void PresetManagerComponent::loadPresetFromCombo()
         juce::File presetFile = presetFiles[presetIndex];
         if (presetFile.existsAsFile())
         {
-            // XML validation: Only read and check if it has a valid PLUGIN tag
-            juce::String xmlContent = presetFile.loadFileAsString();
-            if (xmlContent.contains("<PLUGIN") && xmlContent.contains("</PLUGIN>"))
+            // Use XmlDocument::parse for robust XML parsing
+            if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
             {
-                if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
+                if (xml->hasTagName("PLUGIN"))
                 {
                     juce::ValueTree presetState = juce::ValueTree::fromXml(*xml);
                     // Check if it's a valid preset for this plugin
@@ -160,11 +159,19 @@ void PresetManagerComponent::loadPresetFromCombo()
                         m_pluginInterface->setLastLoadedPresetName(presetFile.getFileNameWithoutExtension());
                         m_pluginInterface->setInitialPresetLoaded(true);
                     }
+                    else
+                    {
+                         GUIHelpers::log("PresetManagerComponent: Preset type mismatch or invalid format in " + presetFile.getFileName());
+                    }
+                }
+                else
+                {
+                    GUIHelpers::log("PresetManagerComponent: Root element is not <PLUGIN> in " + presetFile.getFileName());
                 }
             }
             else
             {
-                GUIHelpers::log("PresetManagerComponent: Invalid XML format in " + presetFile.getFullPathName());
+                GUIHelpers::log("PresetManagerComponent: Failed to parse XML in " + presetFile.getFullPathName());
             }
         }
     }
@@ -217,9 +224,6 @@ void PresetManagerComponent::savePreset()
 
         if (auto xml = std::unique_ptr<juce::XmlElement>(pluginState.createXml()))
         {
-            // DEBUG: Log the state before saving
-            GUIHelpers::log("Saving Preset XML:\n" + xml->toString());
-
             xml->writeTo(presetFile, {});
 
             // Refresh preset list after saving
@@ -253,11 +257,10 @@ void PresetManagerComponent::loadPreset()
         juce::File presetFile = fc.getResult();
         if (presetFile.existsAsFile())
         {
-            // XML validation: Only read and check if it has a valid PLUGIN tag
-            juce::String xmlContent = presetFile.loadFileAsString();
-            if (xmlContent.contains("<PLUGIN") && xmlContent.contains("</PLUGIN>"))
+            // Use XmlDocument::parse for robust XML parsing
+            if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
             {
-                if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(presetFile)))
+                if (xml->hasTagName("PLUGIN"))
                 {
                     juce::ValueTree presetState = juce::ValueTree::fromXml(*xml);
 
@@ -268,11 +271,19 @@ void PresetManagerComponent::loadPreset()
                         m_pluginInterface->setLastLoadedPresetName(presetFile.getFileNameWithoutExtension());
                         m_pluginInterface->setInitialPresetLoaded(true);
                     }
+                     else
+                    {
+                         GUIHelpers::log("PresetManagerComponent: Preset type mismatch or invalid format in " + presetFile.getFileName());
+                    }
+                }
+                else
+                {
+                     GUIHelpers::log("PresetManagerComponent: Root element is not <PLUGIN> in " + presetFile.getFileName());
                 }
             }
             else
             {
-                GUIHelpers::log("PresetManagerComponent: Invalid XML format in " + presetFile.getFullPathName());
+                GUIHelpers::log("PresetManagerComponent: Failed to parse XML in " + presetFile.getFullPathName());
             }
         }
     }

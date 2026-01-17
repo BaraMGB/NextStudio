@@ -394,7 +394,45 @@ juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
 {
     juce::ValueTree defaultState("PLUGIN");
     defaultState.setProperty("type", SimpleSynthPlugin::xmlTypeName, nullptr);
-    // Add default values if needed, though they are usually handled by the plugin itself
+    
+    // Helper to set property from CachedValue default
+    auto add = [&](const juce::String& id, const auto& cachedValue) {
+        defaultState.setProperty(id, cachedValue.getDefault(), nullptr);
+    };
+
+    add("level", m_synth->levelValue);
+    add("coarseTune", m_synth->coarseTuneValue);
+    add("fineTune", m_synth->fineTuneValue);
+    
+    add("osc2Enabled", m_synth->osc2EnabledValue);
+    add("osc2Wave", m_synth->osc2WaveValue);
+    add("osc2Coarse", m_synth->osc2CoarseValue);
+    add("osc2Fine", m_synth->osc2FineValue);
+    add("osc2Level", m_synth->osc2LevelValue);
+    add("mixMode", m_synth->mixModeValue);
+    add("crossModAmount", m_synth->crossModAmountValue);
+    
+    add("wave", m_synth->waveValue);
+    add("attack", m_synth->attackValue);
+    add("decay", m_synth->decayValue);
+    add("sustain", m_synth->sustainValue);
+    add("release", m_synth->releaseValue);
+    
+    add("unisonOrder", m_synth->unisonOrderValue);
+    add("unisonDetune", m_synth->unisonDetuneValue);
+    add("unisonSpread", m_synth->unisonSpreadValue);
+    add("retrigger", m_synth->retriggerValue);
+    
+    add("filterType", m_synth->filterTypeValue);
+    add("cutoff", m_synth->filterCutoffValue);
+    add("resonance", m_synth->filterResValue);
+    add("drive", m_synth->filterDriveValue);
+    add("filterEnvAmount", m_synth->filterEnvAmountValue);
+    add("filterAttack", m_synth->filterAttackValue);
+    add("filterDecay", m_synth->filterDecayValue);
+    add("filterSustain", m_synth->filterSustainValue);
+    add("filterRelease", m_synth->filterReleaseValue);
+
     return defaultState;
 }
 
