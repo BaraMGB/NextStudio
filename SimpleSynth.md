@@ -6,6 +6,8 @@ This document describes the technical implementation of the `SimpleSynthPlugin`,
 
 `SimpleSynthPlugin` is a lightweight, polyphonic subtractive synthesizer implemented as a `tracktion_engine::Plugin`. It is located in `App/Source/Plugins/SimpleSynth/` and features a dedicated custom GUI for improved usability.
 
+*   **Dual Oscillators:** Two independent oscillators with Sine, Triangle, Saw, Square, and Noise waveforms.
+*   **Synthesis Modes:** Mix, Ring Modulation, Frequency Modulation (FM), and Hard Sync.
 *   **Unison:** Stack up to 5 voices per note with adjustable detune and stereo spread.
 *   **Filter:** Selectable filter types for different sonic characters:
     *   **Ladder:** 24dB Low Pass Ladder Filter for a classic analog sound (internally smoothed).
@@ -23,6 +25,12 @@ The plugin exposes the following automatable parameters:
 | **Coarse Tune** | `coarseTune` | -24.0 st to +24.0 st | Coarse pitch offset in semitones. |
 | **Fine Tune** | `fineTune` | -100.0 c to +100.0 c | Fine pitch offset in cents. |
 | **Wave** | `wave` | 0 to 4 | Waveform (Sine, Tri, Saw, Square, Noise). |
+| **Osc 2 Wave** | `osc2Wave` | 0 to 4 | Waveform for Oscillator 2. |
+| **Osc 2 Coarse** | `osc2Coarse` | -24.0 st to +24.0 st | Coarse pitch offset for Osc 2 (Relative to Note). |
+| **Osc 2 Fine** | `osc2Fine` | -100.0 c to +100.0 c | Fine pitch offset for Osc 2. |
+| **Osc 2 Level** | `osc2Level` | 0.0 to 1.0 | Volume of Oscillator 2. |
+| **Mix Mode** | `mixMode` | Mix/Ring/FM/Sync | Algorithm for combining Osc 1 and Osc 2. |
+| **Cross Mod** | `crossModAmount` | 0.0 to 1.0 | Depth of RingMod blending or FM phase modulation. |
 | **Attack** | `attack` | 0.001s to 5.0s | ADSR Attack time (Default: 0.001s). |
 | **Decay** | `decay` | 0.001s to 5.0s | ADSR Decay time (Default: 0.001s). |
 | **Sustain** | `sustain` | 0.0 to 1.0 | ADSR Sustain level (Default: 1.0). |
@@ -69,50 +77,17 @@ The plugin exposes the following automatable parameters:
     *   Allows compensating for the inherent volume drop of the Ladder architecture and driving the filter into saturation.
     *   Added UI logic to disable (grey out) the Drive slider when SVF mode is selected.
 
-## Future Work: Dual Oscillator & Cross-Modulation
+14. **Dual Oscillator & Cross-Modulation System**
+    *   **Architecture:** Extended `Voice` struct and parameter set to support two independent oscillators.
+    *   **DSP Implementation:**
+        *   Extracted `generateWaveSample` for efficient reuse.
+        *   Implemented 4 mixing algorithms: **Mix** (Blend), **RingMod** (Multiplication), **FM** (Phase Modulation), and **Hard Sync** (Phase Reset).
+        *   Decoupled Oscillator tuning logic. Osc 1 and Osc 2 are now tuned relative to the MIDI note independently, allowing for proper Hard Sync sweeps where the "Slave" (Osc 1) frequency changes while the "Master" (Osc 2) holds the pitch.
+    *   **GUI:**
+        *   Refactored `SimpleSynthOscSection` to be reusable for both oscillators.
+        *   Added `SimpleSynthMixSection` to control Mix Mode and Cross Modulation amount.
+        *   Redesigned layout to fit the expanded feature set (Osc 1 | Osc 2 | Mix | Filter | Envs).
 
-Planned extension to transform SimpleSynth from a basic subtractive synth into a versatile FM/Sync/RingMod synthesizer.
-
-### Phase 1: Data Structure & Parameters (Backend)
-
-Extend `SimpleSynthPlugin` to manage a second oscillator.
-
-1.  **New Parameters:**
-    *   `osc2_wave`: Waveform (Sine, Saw, Tri, Square, Noise).
-    *   `osc2_coarse`, `osc2_fine`: Tuning relative to OSC1.
-    *   `osc2_level`: Volume of OSC 2.
-    *   `osc_mix_mode`: Algorithm for combining OSC1 and OSC2.
-        *   **Mix:** Simple addition (OSC1 + OSC2).
-        *   **RingMod:** Multiplication (OSC1 * OSC2).
-        *   **FM (Phase Mod):** OSC2 modulates the phase of OSC1.
-        *   **Hard Sync:** OSC2 resets the phase of OSC1.
-    *   `cross_mod_amount`: Depth of FM or RingMod coloration.
-
-2.  **Voice Struct Update:**
-    *   `Voice` needs `phase2`, `phaseDelta2`, and `targetFrequency2`.
-    *   `Voice::start` must calculate frequency for OSC2 as well.
-
-### Phase 2: DSP Logic & Refactoring
-
-Refactor to avoid code duplication in the `renderAudio` loop.
-
-1.  **Extract Method `generateWaveSample`:**
-    *   `inline` method returning a sample based on phase and wave type (incl. PolyBLEP).
-    *   Allows clean loop structure: `s1 = generate(...)`, `s2 = generate(...)`.
-
-2.  **Implement Mix Modes (in `renderAudio`):**
-    *   **Mix:** `out = s1 * level1 + s2 * level2`
-    *   **Ring:** `out = s1 * s2 * amount` (or blend)
-    *   **FM:** Modify `v.phase1` *before* sample generation: `float fmPhase = v.phase1 + (s2 * fmAmount)`.
-    *   **Sync:** If `v.phase2` wraps, reset `v.phase1` to 0.
-
-### Phase 3: GUI Extension
-
-1.  **Layout:**
-    *   Refactor `SimpleSynthOscSection` to accept parameter pointers in constructor (Dependency Injection).
-    *   Instantiate two sections: `osc1Section` and `osc2Section`.
-2.  **Mix Section:**
-    *   New section for `Mix Mode` and `Cross Mod Amount`.
 
 
 
