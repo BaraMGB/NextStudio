@@ -22,7 +22,7 @@
 class SimpleSynthOscSection : public juce::Component
 {
 public:
-    SimpleSynthOscSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState);
+    SimpleSynthOscSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState, int oscIndex);
     ~SimpleSynthOscSection() override = default;
 
     void paint(juce::Graphics& g) override;
@@ -32,18 +32,47 @@ public:
 private:
     SimpleSynthPlugin& m_plugin;
     ApplicationViewState& m_appState;
+    int m_oscIndex;
     
     AutomatableChoiceComponent m_waveComp;
     AutomatableParameterComponent m_coarseTuneComp;
     AutomatableParameterComponent m_fineTuneComp;
-    AutomatableParameterComponent m_unisonOrderComp;
-    AutomatableParameterComponent m_unisonDetuneComp;
-    AutomatableParameterComponent m_unisonSpreadComp;
-    AutomatableToggleComponent m_retriggerComp;
+    
+    // Osc 1 Specific
+    std::unique_ptr<AutomatableParameterComponent> m_unisonOrderComp;
+    std::unique_ptr<AutomatableParameterComponent> m_unisonDetuneComp;
+    std::unique_ptr<AutomatableParameterComponent> m_unisonSpreadComp;
+    std::unique_ptr<AutomatableToggleComponent> m_retriggerComp;
+
+    // Osc 2 Specific
+    std::unique_ptr<AutomatableParameterComponent> m_levelComp;
     
     juce::Label m_nameLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthOscSection)
+};
+
+//==============================================================================
+class SimpleSynthMixSection : public juce::Component
+{
+public:
+    SimpleSynthMixSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState);
+    ~SimpleSynthMixSection() override = default;
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    void updateUI();
+
+private:
+    SimpleSynthPlugin& m_plugin;
+    ApplicationViewState& m_appState;
+
+    AutomatableChoiceComponent m_mixModeComp;
+    AutomatableParameterComponent m_crossModComp;
+    
+    juce::Label m_nameLabel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthMixSection)
 };
 
 //==============================================================================
@@ -127,7 +156,9 @@ private:
     SimpleSynthPlugin* m_synth = nullptr;
 
     // Sections
-    SimpleSynthOscSection m_oscSection;
+    SimpleSynthOscSection m_osc1Section;
+    SimpleSynthOscSection m_osc2Section;
+    SimpleSynthMixSection m_mixSection;
     SimpleSynthFilterSection m_filterSection;
     SimpleSynthEnvSection m_ampEnvSection;
     SimpleSynthEnvSection m_filterEnvSection;

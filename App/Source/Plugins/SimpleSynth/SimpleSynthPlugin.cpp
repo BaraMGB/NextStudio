@@ -443,8 +443,10 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
         lastUnisonOrder = unisonOrder;
     }
 
-    float totalTuneSemitones = coarseTune + (fineTuneCents / 100.0f);
-    float totalTuneSemitones2 = totalTuneSemitones + osc2Coarse + (osc2FineCents / 100.0f);
+    float tuneSemitones1 = coarseTune + (fineTuneCents / 100.0f);
+    // Decoupled tuning: Osc 2 is relative to Note, not Osc 1. 
+    // This allows sweeping Osc 1 independently for Hard Sync effects.
+    float tuneSemitones2 = osc2Coarse + (osc2FineCents / 100.0f);
 
     for (auto& v : voices)
     {
@@ -459,13 +461,12 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
             v.currentDetuneMultiplier = std::exp2f(cents / 1200.0f);
 
             // OSC 1 Frequency
-            float baseFreq = 440.0f * std::exp2f((v.currentNote - 69 + totalTuneSemitones) / 12.0f);
+            float baseFreq = 440.0f * std::exp2f((v.currentNote - 69 + tuneSemitones1) / 12.0f);
             v.targetFrequency = baseFreq * v.currentDetuneMultiplier;
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
 
             // OSC 2 Frequency
-            // Note: We apply unison detune to Osc 2 as well, assuming they are linked in unison stack
-            float baseFreq2 = 440.0f * std::exp2f((v.currentNote - 69 + totalTuneSemitones2) / 12.0f);
+            float baseFreq2 = 440.0f * std::exp2f((v.currentNote - 69 + tuneSemitones2) / 12.0f);
             v.targetFrequency2 = baseFreq2 * v.currentDetuneMultiplier;
             v.phaseDelta2 = v.targetFrequency2 * juce::MathConstants<float>::twoPi / v.sampleRate;
 
