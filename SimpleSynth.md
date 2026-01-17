@@ -69,6 +69,52 @@ The plugin exposes the following automatable parameters:
     *   Allows compensating for the inherent volume drop of the Ladder architecture and driving the filter into saturation.
     *   Added UI logic to disable (grey out) the Drive slider when SVF mode is selected.
 
+## Future Work: Dual Oscillator & Cross-Modulation
+
+Planned extension to transform SimpleSynth from a basic subtractive synth into a versatile FM/Sync/RingMod synthesizer.
+
+### Phase 1: Data Structure & Parameters (Backend)
+
+Extend `SimpleSynthPlugin` to manage a second oscillator.
+
+1.  **New Parameters:**
+    *   `osc2_wave`: Waveform (Sine, Saw, Tri, Square, Noise).
+    *   `osc2_coarse`, `osc2_fine`: Tuning relative to OSC1.
+    *   `osc2_level`: Volume of OSC 2.
+    *   `osc_mix_mode`: Algorithm for combining OSC1 and OSC2.
+        *   **Mix:** Simple addition (OSC1 + OSC2).
+        *   **RingMod:** Multiplication (OSC1 * OSC2).
+        *   **FM (Phase Mod):** OSC2 modulates the phase of OSC1.
+        *   **Hard Sync:** OSC2 resets the phase of OSC1.
+    *   `cross_mod_amount`: Depth of FM or RingMod coloration.
+
+2.  **Voice Struct Update:**
+    *   `Voice` needs `phase2`, `phaseDelta2`, and `targetFrequency2`.
+    *   `Voice::start` must calculate frequency for OSC2 as well.
+
+### Phase 2: DSP Logic & Refactoring
+
+Refactor to avoid code duplication in the `renderAudio` loop.
+
+1.  **Extract Method `generateWaveSample`:**
+    *   `inline` method returning a sample based on phase and wave type (incl. PolyBLEP).
+    *   Allows clean loop structure: `s1 = generate(...)`, `s2 = generate(...)`.
+
+2.  **Implement Mix Modes (in `renderAudio`):**
+    *   **Mix:** `out = s1 * level1 + s2 * level2`
+    *   **Ring:** `out = s1 * s2 * amount` (or blend)
+    *   **FM:** Modify `v.phase1` *before* sample generation: `float fmPhase = v.phase1 + (s2 * fmAmount)`.
+    *   **Sync:** If `v.phase2` wraps, reset `v.phase1` to 0.
+
+### Phase 3: GUI Extension
+
+1.  **Layout:**
+    *   Refactor `SimpleSynthOscSection` to accept parameter pointers in constructor (Dependency Injection).
+    *   Instantiate two sections: `osc1Section` and `osc2Section`.
+2.  **Mix Section:**
+    *   New section for `Mix Mode` and `Cross Mod Amount`.
+
+
 
 
 
