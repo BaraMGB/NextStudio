@@ -70,6 +70,7 @@ public:
     te::AutomatableParameter::Ptr filterTypeParam;
     te::AutomatableParameter::Ptr filterCutoffParam;
     te::AutomatableParameter::Ptr filterResParam;
+    te::AutomatableParameter::Ptr filterDriveParam;
     te::AutomatableParameter::Ptr filterEnvAmountParam;
     te::AutomatableParameter::Ptr filterAttackParam;
     te::AutomatableParameter::Ptr filterDecayParam;
@@ -92,6 +93,7 @@ public:
     juce::CachedValue<float> filterTypeValue;
     juce::CachedValue<float> filterCutoffValue;
     juce::CachedValue<float> filterResValue;
+    juce::CachedValue<float> filterDriveValue;
     juce::CachedValue<float> filterEnvAmountValue;
     juce::CachedValue<float> filterAttackValue;
     juce::CachedValue<float> filterDecayValue;
@@ -101,7 +103,7 @@ public:
 private:
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
+        void start(int note, float velocity, float sampleRate, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
         void stop();
         
         bool active = false;
@@ -129,9 +131,9 @@ private:
     };
 
     void processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
-    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
-    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
-    void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder);
+    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
+    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
+    void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
     
     Voice* findVoiceToSteal();
     uint32_t noteCounter = 0;
@@ -143,7 +145,7 @@ private:
         std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
         std::atomic<float> attack { 0.001f }, decay { 0.001f }, sustain { 1.0f }, release { 0.001f };
         std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };
-        std::atomic<float> filterType { 0.0f }, filterCutoff { 20000.0f }, filterRes { 0.0f }, filterEnvAmount { 0.0f };
+        std::atomic<float> filterType { 0.0f }, filterCutoff { 20000.0f }, filterRes { 0.0f }, filterDrive { 1.0f }, filterEnvAmount { 0.0f };
         std::atomic<float> filterAttack { 0.001f }, filterDecay { 0.001f }, filterSustain { 1.0f }, filterRelease { 0.001f };
     } audioParams;
 

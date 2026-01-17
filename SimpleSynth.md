@@ -34,6 +34,7 @@ The plugin exposes the following automatable parameters:
 | **Filter Type** | `filterType` | Ladder / SVF | Selects the filter algorithm. |
 | **Filter Cutoff** | `cutoff` | 20 Hz to 20 kHz | Low Pass Filter Cutoff Frequency. |
 | **Filter Res** | `resonance` | 0.0 to 1.0 | Filter Resonance. |
+| **Filter Drive** | `drive` | 1.0 to 10.0 | Ladder Filter Input Drive / Saturation. (Ladder Only) |
 ...
 ## Refactoring Log - Jan 2026
 
@@ -62,6 +63,12 @@ The plugin exposes the following automatable parameters:
 12. **Code Quality: Parameter Initialization Refactoring**
     *   Refactored the Plugin Constructor to use a helper lambda for parameter setup.
     *   Reduced boilerplate code by approximately 40 lines and improved readability by centralizing the `referTo`, `addParam`, and `attachToCurrentValue` logic.
+
+13. **New Feature: Ladder Filter Drive**
+    *   Added a `drive` parameter (1.0 - 10.0) exclusively for the Ladder Filter mode.
+    *   Allows compensating for the inherent volume drop of the Ladder architecture and driving the filter into saturation.
+    *   Added UI logic to disable (grey out) the Drive slider when SVF mode is selected.
+
 
 
 

@@ -80,6 +80,11 @@ void AutomatableSliderComponent::mouseExit (const juce::MouseEvent&)
     updateModDepthVisibility();
 }
 
+void AutomatableSliderComponent::enablementChanged()
+{
+    setAlpha(isEnabled() ? 1.0f : 0.5f);
+}
+
 void AutomatableSliderComponent::resized()
 {
     juce::Slider::resized();
