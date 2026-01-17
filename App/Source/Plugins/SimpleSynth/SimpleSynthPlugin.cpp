@@ -689,44 +689,47 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
 
 void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v)
 {
-    // Helper to restore properties from ValueTree to CachedValues
-    auto restore = [&](juce::CachedValue<float>& cv, const char* name)
+    // Helper to restore properties from ValueTree to AutomatableParameters
+    // We use setParameter to ensure that listeners (GUI) are notified of the change.
+    // Setting CachedValues directly does not always trigger the parameter listeners.
+    auto restore = [&](te::AutomatableParameter::Ptr& param, const char* name)
     {
         if (v.hasProperty(name))
-            cv = v.getProperty(name);
+            param->setParameter((float)v.getProperty(name), juce::sendNotification);
     };
 
-    restore(levelValue, "level");
-    restore(coarseTuneValue, "coarseTune");
-    restore(fineTuneValue, "fineTune");
+    restore(levelParam, "level");
+    restore(coarseTuneParam, "coarseTune");
+    restore(fineTuneParam, "fineTune");
 
-    restore(osc2EnabledValue, "osc2Enabled");
-    restore(osc2WaveValue, "osc2Wave");
-    restore(osc2CoarseValue, "osc2Coarse");
-    restore(osc2FineValue, "osc2Fine");
-    restore(osc2LevelValue, "osc2Level");
-    restore(mixModeValue, "mixMode");
-    restore(crossModAmountValue, "crossModAmount");
+    restore(osc2EnabledParam, "osc2Enabled");
+    restore(osc2WaveParam, "osc2Wave");
+    restore(osc2CoarseParam, "osc2Coarse");
+    restore(osc2FineParam, "osc2Fine");
+    restore(osc2LevelParam, "osc2Level");
+    restore(mixModeParam, "mixMode");
+    restore(crossModAmountParam, "crossModAmount");
 
-    restore(waveValue, "wave");
-    restore(attackValue, "attack");
-    restore(decayValue, "decay");
-    restore(sustainValue, "sustain");
-    restore(releaseValue, "release");
-    restore(unisonOrderValue, "unisonOrder");
-    restore(unisonDetuneValue, "unisonDetune");
-    restore(unisonSpreadValue, "unisonSpread");
-    restore(retriggerValue, "retrigger");
-    restore(filterTypeValue, "filterType");
-    restore(filterCutoffValue, "cutoff");
-    restore(filterResValue, "resonance");
-    restore(filterDriveValue, "drive");
-    restore(filterEnvAmountValue, "filterEnvAmount");
-    restore(filterAttackValue, "filterAttack");
-    restore(filterDecayValue, "filterDecay");
-    restore(filterSustainValue, "filterSustain");
-    restore(filterReleaseValue, "filterRelease");
+    restore(waveParam, "wave");
+    restore(attackParam, "attack");
+    restore(decayParam, "decay");
+    restore(sustainParam, "sustain");
+    restore(releaseParam, "release");
+    restore(unisonOrderParam, "unisonOrder");
+    restore(unisonDetuneParam, "unisonDetune");
+    restore(unisonSpreadParam, "unisonSpread");
+    restore(retriggerParam, "retrigger");
+    restore(filterTypeParam, "filterType");
+    restore(filterCutoffParam, "cutoff");
+    restore(filterResParam, "resonance");
+    restore(filterDriveParam, "drive");
+    restore(filterEnvAmountParam, "filterEnvAmount");
+    restore(filterAttackParam, "filterAttack");
+    restore(filterDecayParam, "filterDecay");
+    restore(filterSustainParam, "filterSustain");
+    restore(filterReleaseParam, "filterRelease");
 
+    // updateAtomics will be called via valueTreePropertyChanged when parameters update the state
     updateAtomics();
 }
 
