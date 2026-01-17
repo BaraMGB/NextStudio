@@ -83,9 +83,10 @@ AutomatableChoiceComponent::AutomatableChoiceComponent(te::AutomatableParameter:
 void AutomatableChoiceComponent::resized()
 {
     auto area = getLocalBounds();
-    area.reduce(area.getWidth() / 8, 0);
-    auto labelHeight = 15;
-    auto h = 30;
-    m_titleLabel.setBounds(area.removeFromTop(labelHeight));
-    m_combo->setBounds(area.removeFromTop(h));
+    m_titleLabel.setBounds(area.removeFromTop(20));
+    area.removeFromTop(8); // Intermediate padding
+    
+    // Position ComboBox
+    auto comboArea = area.removeFromTop(30); 
+    m_combo->setBounds(comboArea.withSizeKeepingCentre(area.getWidth() - 10, 30));
 }

@@ -790,6 +790,13 @@ public:
         }
     }
 
+    juce::Label* createComboBoxTextBox (juce::ComboBox&) override
+    {
+        auto* l = new juce::Label ("txt", juce::String());
+        l->setJustificationType (juce::Justification::centred);
+        return l;
+    }
+
 private:
     ApplicationViewState& m_appState;
 

@@ -64,6 +64,8 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     setupParam(fineTuneParam, fineTuneValue, "fineTune", "Fine Tune", {-100.0f, 100.0f}, 0.0f);
 
     // Osc 2 Params
+    setupParam(osc2EnabledParam, osc2EnabledValue, "osc2Enabled", "Osc 2 On", {0.0f, 1.0f}, 0.0f);
+
     osc2WaveValue.referTo(state, "osc2Wave", um, 2.0f);
     osc2WaveParam = addParam("osc2Wave", "Osc 2 Wave", {0.0f, 4.0f, 1.0f},
                          [](float v) {
@@ -171,6 +173,7 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     levelParam->detachFromCurrentValue();
     coarseTuneParam->detachFromCurrentValue();
     fineTuneParam->detachFromCurrentValue();
+    osc2EnabledParam->detachFromCurrentValue();
     osc2WaveParam->detachFromCurrentValue();
     osc2CoarseParam->detachFromCurrentValue();
     osc2FineParam->detachFromCurrentValue();
@@ -208,6 +211,7 @@ void SimpleSynthPlugin::updateAtomics()
     audioParams.coarseTune = coarseTuneValue.get();
     audioParams.fineTune = fineTuneValue.get();
 
+    audioParams.osc2Enabled = osc2EnabledValue.get();
     audioParams.osc2Wave = osc2WaveValue.get();
     audioParams.osc2Coarse = osc2CoarseValue.get();
     audioParams.osc2Fine = osc2FineValue.get();
@@ -536,6 +540,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
     const int filterType = (int)audioParams.filterType.load();
 
     // New Params
+    bool osc2On = audioParams.osc2Enabled.load() > 0.5f;
     int osc2WaveShape = (int)audioParams.osc2Wave.load();
     if (osc2WaveShape < 0 || osc2WaveShape >= Waveform::numWaveforms) osc2WaveShape = Waveform::saw;
     
@@ -567,30 +572,36 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 const float modulatedCutoff = juce::jlimit(20.0f, 20000.0f, smoothedCutoff * freqMultiplier);
                 
                 // --- OSC 2 Generation (Modulator / Second Voice) ---
-                float s2 = generateWaveSample(osc2WaveShape, v.phase2, v.phaseDelta2, v.random);
+                float s2 = 0.0f;
+                if (osc2On)
+                {
+                    s2 = generateWaveSample(osc2WaveShape, v.phase2, v.phaseDelta2, v.random);
+                }
                 
                 // --- Phase Modifications (Sync / FM) ---
                 float effectivePhase1 = v.phase;
                 
-                // Hard Sync: Reset Phase 1 if Phase 2 wraps in this step
-                // (Naive implementation: reset to 0 if we passed the wrap point)
-                if (mixMode == MixMode::hardSync) 
+                if (osc2On)
                 {
-                    if (v.phase2 + v.phaseDelta2 >= juce::MathConstants<float>::twoPi) 
+                    // Hard Sync: Reset Phase 1 if Phase 2 wraps in this step
+                    if (mixMode == MixMode::hardSync) 
                     {
-                         v.phase = 0.0f;
-                         effectivePhase1 = 0.0f;
+                        if (v.phase2 + v.phaseDelta2 >= juce::MathConstants<float>::twoPi) 
+                        {
+                             v.phase = 0.0f;
+                             effectivePhase1 = 0.0f;
+                        }
                     }
-                }
-                // FM: Modulate Phase 1 with Osc 2 Output
-                else if (mixMode == MixMode::fm) 
-                {
-                    // Map crossMod to a reasonable modulation index range (0.0 to 4.0 radians approx)
-                    effectivePhase1 += (s2 * crossMod * 4.0f); 
-                    
-                    // Wrap effective phase for lookup correctness
-                    while (effectivePhase1 >= juce::MathConstants<float>::twoPi) effectivePhase1 -= juce::MathConstants<float>::twoPi;
-                    while (effectivePhase1 < 0.0f) effectivePhase1 += juce::MathConstants<float>::twoPi;
+                    // FM: Modulate Phase 1 with Osc 2 Output
+                    else if (mixMode == MixMode::fm) 
+                    {
+                        // Map crossMod to a reasonable modulation index range (0.0 to 4.0 radians approx)
+                        effectivePhase1 += (s2 * crossMod * 4.0f); 
+                        
+                        // Wrap effective phase for lookup correctness
+                        while (effectivePhase1 >= juce::MathConstants<float>::twoPi) effectivePhase1 -= juce::MathConstants<float>::twoPi;
+                        while (effectivePhase1 < 0.0f) effectivePhase1 += juce::MathConstants<float>::twoPi;
+                    }
                 }
 
                 // --- OSC 1 Generation ---
@@ -598,26 +609,34 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
 
                 // --- Mixing ---
                 float mixedSample = 0.0f;
-
-                switch (mixMode) 
+                
+                // If Osc 2 is Off, we bypass complex mixing logic and just output s1
+                if (!osc2On)
                 {
-                    case MixMode::ringMod:
-                        // Blend between Clean Mix and RingMod (S1 * S2)
-                        // Base: S1 + S2*Lev
-                        // Ring: S1 * S2
-                        {
-                            float clean = s1 + (s2 * osc2Level);
-                            float ring = s1 * s2; // Pure Ring Mod
-                            mixedSample = clean * (1.0f - crossMod) + ring * crossMod;
-                        }
-                        break;
-                    
-                    case MixMode::mix:
-                    case MixMode::fm: // For FM, we usually just hear the Carrier (Osc 1), but let's allow mixing Osc 2
-                    case MixMode::hardSync:
-                    default:
-                        mixedSample = s1 + (s2 * osc2Level);
-                        break;
+                     mixedSample = s1;
+                }
+                else
+                {
+                    switch (mixMode) 
+                    {
+                        case MixMode::ringMod:
+                            // Blend between Clean Mix and RingMod (S1 * S2)
+                            // Base: S1 + S2*Lev
+                            // Ring: S1 * S2
+                            {
+                                float clean = s1 + (s2 * osc2Level);
+                                float ring = s1 * s2; // Pure Ring Mod
+                                mixedSample = clean * (1.0f - crossMod) + ring * crossMod;
+                            }
+                            break;
+                        
+                        case MixMode::mix:
+                        case MixMode::fm: // For FM, we usually just hear the Carrier (Osc 1), but let's allow mixing Osc 2
+                        case MixMode::hardSync:
+                        default:
+                            mixedSample = s1 + (s2 * osc2Level);
+                            break;
+                    }
                 }
 
                 // --- Advance Phases ---
@@ -625,9 +644,12 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 if (v.phase >= juce::MathConstants<float>::twoPi)
                     v.phase -= juce::MathConstants<float>::twoPi;
                     
-                v.phase2 += v.phaseDelta2;
-                if (v.phase2 >= juce::MathConstants<float>::twoPi)
-                    v.phase2 -= juce::MathConstants<float>::twoPi;
+                if (osc2On)
+                {
+                    v.phase2 += v.phaseDelta2;
+                    if (v.phase2 >= juce::MathConstants<float>::twoPi)
+                        v.phase2 -= juce::MathConstants<float>::twoPi;
+                }
 
                 // --- Filtering ---
                 float sample = mixedSample; // Input to filter
@@ -678,6 +700,7 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     restore(coarseTuneValue, "coarseTune");
     restore(fineTuneValue, "fineTune");
 
+    restore(osc2EnabledValue, "osc2Enabled");
     restore(osc2WaveValue, "osc2Wave");
     restore(osc2CoarseValue, "osc2Coarse");
     restore(osc2FineValue, "osc2Fine");
