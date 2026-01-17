@@ -62,6 +62,54 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     setupParam(levelParam, levelValue, "level", "Level", {-100.0f, 0.0f}, 0.0f);
     setupParam(coarseTuneParam, coarseTuneValue, "coarseTune", "Coarse Tune", {-24.0f, 24.0f, 1.0f}, 0.0f);
     setupParam(fineTuneParam, fineTuneValue, "fineTune", "Fine Tune", {-100.0f, 100.0f}, 0.0f);
+
+    // Osc 2 Params
+    osc2WaveValue.referTo(state, "osc2Wave", um, 2.0f);
+    osc2WaveParam = addParam("osc2Wave", "Osc 2 Wave", {0.0f, 4.0f, 1.0f},
+                         [](float v) {
+                             int type = juce::roundToInt(v);
+                             if (type == Waveform::sine) return "Sine";
+                             if (type == Waveform::triangle) return "Triangle";
+                             if (type == Waveform::saw) return "Saw";
+                             if (type == Waveform::square) return "Square";
+                             if (type == Waveform::noise) return "Noise";
+                             return "Unknown";
+                         },
+                         [](const juce::String& s) {
+                             if (s == "Sine") return (float)Waveform::sine;
+                             if (s == "Triangle") return (float)Waveform::triangle;
+                             if (s == "Saw") return (float)Waveform::saw;
+                             if (s == "Square") return (float)Waveform::square;
+                             if (s == "Noise") return (float)Waveform::noise;
+                             return 0.0f;
+                         });
+    osc2WaveParam->attachToCurrentValue(osc2WaveValue);
+
+    setupParam(osc2CoarseParam, osc2CoarseValue, "osc2Coarse", "Osc 2 Coarse", {-24.0f, 24.0f, 1.0f}, 0.0f);
+    setupParam(osc2FineParam, osc2FineValue, "osc2Fine", "Osc 2 Fine", {-100.0f, 100.0f}, 0.0f);
+    setupParam(osc2LevelParam, osc2LevelValue, "osc2Level", "Osc 2 Level", {0.0f, 1.0f}, 0.5f);
+
+    // Mix Mode Params
+    mixModeValue.referTo(state, "mixMode", um, 0.0f);
+    mixModeParam = addParam("mixMode", "Mix Mode", {0.0f, 3.0f, 1.0f},
+                            [](float v) {
+                                int mode = juce::roundToInt(v);
+                                if (mode == MixMode::mix) return "Mix";
+                                if (mode == MixMode::ringMod) return "RingMod";
+                                if (mode == MixMode::fm) return "FM";
+                                if (mode == MixMode::hardSync) return "HardSync";
+                                return "Unknown";
+                            },
+                            [](const juce::String& s) {
+                                if (s == "Mix") return (float)MixMode::mix;
+                                if (s == "RingMod") return (float)MixMode::ringMod;
+                                if (s == "FM") return (float)MixMode::fm;
+                                if (s == "HardSync") return (float)MixMode::hardSync;
+                                return 0.0f;
+                            });
+    mixModeParam->attachToCurrentValue(mixModeValue);
+
+    setupParam(crossModAmountParam, crossModAmountValue, "crossModAmount", "Cross Mod", {0.0f, 1.0f}, 0.0f);
     
     // Wave Param (Custom String Conversion)
     waveValue.referTo(state, "wave", um, 2.0f);
@@ -123,6 +171,12 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     levelParam->detachFromCurrentValue();
     coarseTuneParam->detachFromCurrentValue();
     fineTuneParam->detachFromCurrentValue();
+    osc2WaveParam->detachFromCurrentValue();
+    osc2CoarseParam->detachFromCurrentValue();
+    osc2FineParam->detachFromCurrentValue();
+    osc2LevelParam->detachFromCurrentValue();
+    mixModeParam->detachFromCurrentValue();
+    crossModAmountParam->detachFromCurrentValue();
     waveParam->detachFromCurrentValue();
     attackParam->detachFromCurrentValue();
     decayParam->detachFromCurrentValue();
@@ -153,6 +207,14 @@ void SimpleSynthPlugin::updateAtomics()
     audioParams.level = levelValue.get();
     audioParams.coarseTune = coarseTuneValue.get();
     audioParams.fineTune = fineTuneValue.get();
+
+    audioParams.osc2Wave = osc2WaveValue.get();
+    audioParams.osc2Coarse = osc2CoarseValue.get();
+    audioParams.osc2Fine = osc2FineValue.get();
+    audioParams.osc2Level = osc2LevelValue.get();
+    audioParams.mixMode = mixModeValue.get();
+    audioParams.crossModAmount = crossModAmountValue.get();
+
     audioParams.wave = waveValue.get();
     audioParams.attack = attackValue.get();
     audioParams.decay = decayValue.get();
@@ -257,6 +319,8 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 
     float coarseTune = audioParams.coarseTune.load();
     float fineTuneCents = audioParams.fineTune.load();
+    float osc2Coarse = audioParams.osc2Coarse.load();
+    float osc2FineCents = audioParams.osc2Fine.load();
     int waveShape = (int)audioParams.wave.load();
     
     // Ensure waveShape is within valid enum range
@@ -267,7 +331,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     processMidiMessages(fc.bufferForMidiMessages, adsrParams, filterAdsrParams);
 
     // 2. Update Voice Parameters (Control Rate)
-    updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, drive, coarseTune, fineTuneCents, adsrParams, filterAdsrParams);
+    updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, drive, coarseTune, fineTuneCents, osc2Coarse, osc2FineCents, adsrParams, filterAdsrParams);
 
     // 3. Audio Generation & Mixing
     renderAudio(fc, baseCutoff, filterEnvAmount, waveShape, unisonOrder, drive);
@@ -351,7 +415,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
     }
 }
 
-void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr)
+void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr)
 {
     // Check for Unison Order change
     if (unisonOrder != lastUnisonOrder)
@@ -380,6 +444,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
     }
 
     float totalTuneSemitones = coarseTune + (fineTuneCents / 100.0f);
+    float totalTuneSemitones2 = totalTuneSemitones + osc2Coarse + (osc2FineCents / 100.0f);
 
     for (auto& v : voices)
     {
@@ -393,9 +458,16 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
             float cents = v.unisonBias * unisonDetuneCents;
             v.currentDetuneMultiplier = std::exp2f(cents / 1200.0f);
 
+            // OSC 1 Frequency
             float baseFreq = 440.0f * std::exp2f((v.currentNote - 69 + totalTuneSemitones) / 12.0f);
             v.targetFrequency = baseFreq * v.currentDetuneMultiplier;
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
+
+            // OSC 2 Frequency
+            // Note: We apply unison detune to Osc 2 as well, assuming they are linked in unison stack
+            float baseFreq2 = 440.0f * std::exp2f((v.currentNote - 69 + totalTuneSemitones2) / 12.0f);
+            v.targetFrequency2 = baseFreq2 * v.currentDetuneMultiplier;
+            v.phaseDelta2 = v.targetFrequency2 * juce::MathConstants<float>::twoPi / v.sampleRate;
 
             v.filter.setResonance(resonance);
             v.filter.setDrive(drive);
@@ -533,6 +605,14 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     restore(levelValue, "level");
     restore(coarseTuneValue, "coarseTune");
     restore(fineTuneValue, "fineTune");
+
+    restore(osc2WaveValue, "osc2Wave");
+    restore(osc2CoarseValue, "osc2Coarse");
+    restore(osc2FineValue, "osc2Fine");
+    restore(osc2LevelValue, "osc2Level");
+    restore(mixModeValue, "mixMode");
+    restore(crossModAmountValue, "crossModAmount");
+
     restore(waveValue, "wave");
     restore(attackValue, "attack");
     restore(decayValue, "decay");
@@ -638,9 +718,15 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float s
     // If Retrigger is On: Reset phase to 0 for punchy attack
     // If Retrigger is Off: Randomize phase for analog feel / less phasing in unison
     if (retrigger)
+    {
         phase = 0.0f;
+        phase2 = 0.0f;
+    }
     else
+    {
         phase = random.nextFloat() * juce::MathConstants<float>::twoPi;
+        phase2 = random.nextFloat() * juce::MathConstants<float>::twoPi;
+    }
         
     unisonBias = bias;
     
