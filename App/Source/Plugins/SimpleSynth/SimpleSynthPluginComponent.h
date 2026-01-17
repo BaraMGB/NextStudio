@@ -55,6 +55,7 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    void updateUI();
 
 private:
     SimpleSynthPlugin& m_plugin;
@@ -63,6 +64,7 @@ private:
     AutomatableChoiceComponent m_filterTypeComp;
     AutomatableParameterComponent m_cutoffComp;
     AutomatableParameterComponent m_resComp;
+    AutomatableParameterComponent m_driveComp;
     AutomatableParameterComponent m_envAmountComp;
     
     juce::Label m_nameLabel;

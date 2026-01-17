@@ -48,6 +48,7 @@ public:
 
     void mouseEnter (const juce::MouseEvent& e) override;
     void mouseExit (const juce::MouseEvent& e) override;
+    void enablementChanged() override;
     void resized() override;
 
 private:

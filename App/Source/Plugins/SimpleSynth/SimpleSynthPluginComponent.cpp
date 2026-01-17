@@ -109,6 +109,7 @@ SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin& plugin, Ap
     , m_filterTypeComp(plugin.filterTypeParam, "Type")
     , m_cutoffComp(plugin.filterCutoffParam, "Cutoff")
     , m_resComp(plugin.filterResParam, "Res")
+    , m_driveComp(plugin.filterDriveParam, "Drive")
     , m_envAmountComp(plugin.filterEnvAmountParam, "Env Amt")
 {
     m_nameLabel.setText("FILTER", juce::dontSendNotification);
@@ -119,7 +120,10 @@ SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin& plugin, Ap
     addAndMakeVisible(m_filterTypeComp);
     addAndMakeVisible(m_cutoffComp);
     addAndMakeVisible(m_resComp);
+    addAndMakeVisible(m_driveComp);
     addAndMakeVisible(m_envAmountComp);
+    
+    updateUI();
 }
 
 void SimpleSynthFilterSection::paint(juce::Graphics& g)
@@ -153,13 +157,27 @@ void SimpleSynthFilterSection::resized()
                                                              header.getY() + 10.0f));
     area.removeFromLeft(headerWidth);
 
-    auto typeArea = area.removeFromTop(50);
-    m_filterTypeComp.setBounds(typeArea.reduced(2));
+    auto rowHeight = area.getHeight() / 3;
+    
+    // Row 1: Type
+    m_filterTypeComp.setBounds(area.removeFromTop(rowHeight).reduced(2));
+    
+    // Row 2: Cutoff, Res
+    auto row2 = area.removeFromTop(rowHeight);
+    auto halfWidth = row2.getWidth() / 2;
+    m_cutoffComp.setBounds(row2.removeFromLeft(halfWidth).reduced(2));
+    m_resComp.setBounds(row2.reduced(2));
+    
+    // Row 3: Drive, EnvAmt
+    auto row3 = area;
+    m_driveComp.setBounds(row3.removeFromLeft(halfWidth).reduced(2));
+    m_envAmountComp.setBounds(row3.reduced(2));
+}
 
-    auto paramHeight = area.getHeight() / 3;
-    m_cutoffComp.setBounds(area.removeFromTop(paramHeight).reduced(2));
-    m_resComp.setBounds(area.removeFromTop(paramHeight).reduced(2));
-    m_envAmountComp.setBounds(area.reduced(2));
+void SimpleSynthFilterSection::updateUI()
+{
+    bool isLadder = m_plugin.filterTypeParam->getCurrentValue() < 0.5f;
+    m_driveComp.setEnabled(isLadder);
 }
 
 //==============================================================================
@@ -292,6 +310,7 @@ void SimpleSynthPluginComponent::resized()
 void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&)
 {
     m_oscSection.updateUI();
+    m_filterSection.updateUI();
 }
 
 // PluginPresetInterface implementation

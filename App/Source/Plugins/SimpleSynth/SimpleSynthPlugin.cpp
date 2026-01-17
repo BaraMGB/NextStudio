@@ -104,6 +104,7 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     // Filter Params
     setupParam(filterCutoffParam, filterCutoffValue, "cutoff", "Cutoff", {20.0f, 20000.0f, 0.0f, 0.3f}, 20000.0f);
     setupParam(filterResParam, filterResValue, "resonance", "Resonance", {0.0f, 1.0f}, 0.0f);
+    setupParam(filterDriveParam, filterDriveValue, "drive", "Drive", {1.0f, 10.0f}, 1.0f);
     setupParam(filterEnvAmountParam, filterEnvAmountValue, "filterEnvAmount", "Env Amount", {-100.0f, 100.0f}, 0.0f);
     setupParam(filterAttackParam, filterAttackValue, "filterAttack", "Filter Attack", {0.0f, 5.0f}, 0.001f);
     setupParam(filterDecayParam, filterDecayValue, "filterDecay", "Filter Decay", {0.0f, 5.0f}, 0.001f);
@@ -164,6 +165,7 @@ void SimpleSynthPlugin::updateAtomics()
     audioParams.filterType = filterTypeValue.get();
     audioParams.filterCutoff = filterCutoffValue.get();
     audioParams.filterRes = filterResValue.get();
+    audioParams.filterDrive = filterDriveValue.get();
     audioParams.filterEnvAmount = filterEnvAmountValue.get();
     audioParams.filterAttack = filterAttackValue.get();
     audioParams.filterDecay = filterDecayValue.get();
@@ -250,6 +252,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     int filterType = juce::jlimit(0, (int)FilterType::numFilterTypes - 1, (int)audioParams.filterType.load());
     float baseCutoff = juce::jlimit(20.0f, 20000.0f, audioParams.filterCutoff.load());
     float resonance = juce::jlimit(0.0f, 1.0f, audioParams.filterRes.load());
+    float drive = juce::jlimit(1.0f, 10.0f, audioParams.filterDrive.load());
     float filterEnvAmount = juce::jlimit(-1.0f, 1.0f, audioParams.filterEnvAmount.load() / 100.0f);
 
     float coarseTune = audioParams.coarseTune.load();
@@ -264,10 +267,10 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     processMidiMessages(fc.bufferForMidiMessages, adsrParams, filterAdsrParams);
 
     // 2. Update Voice Parameters (Control Rate)
-    updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, coarseTune, fineTuneCents, adsrParams, filterAdsrParams);
+    updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, drive, coarseTune, fineTuneCents, adsrParams, filterAdsrParams);
 
     // 3. Audio Generation & Mixing
-    renderAudio(fc, baseCutoff, filterEnvAmount, waveShape, unisonOrder);
+    renderAudio(fc, baseCutoff, filterEnvAmount, waveShape, unisonOrder, drive);
 }
 
 SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
@@ -313,6 +316,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
     int unisonOrder = juce::jlimit(1, 5, (int)audioParams.unisonOrder.load());
     bool retrigger = audioParams.retrigger.load() > 0.5f;
     float startCutoff = audioParams.filterCutoff.load();
+    float drive = juce::jlimit(1.0f, 10.0f, audioParams.filterDrive.load());
 
     for (auto m : *midiMessages)
     {
@@ -327,7 +331,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
             noteCounter++;
 
             // Unison Logic: Trigger multiple voices
-            triggerNote(note, velocity, unisonOrder, retrigger, startCutoff, adsrParams, filterAdsrParams);
+            triggerNote(note, velocity, unisonOrder, retrigger, startCutoff, drive, adsrParams, filterAdsrParams);
         }
         else if (m.isNoteOff())
         {
@@ -347,7 +351,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
     }
 }
 
-void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr)
+void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr)
 {
     // Check for Unison Order change
     if (unisonOrder != lastUnisonOrder)
@@ -369,7 +373,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
         bool retrigger = audioParams.retrigger.load() > 0.5f;
         for (auto const& [note, vel] : notesToRetrigger)
         {
-             triggerNote(note, vel, unisonOrder, retrigger, startCutoff, ampAdsr, filterAdsr);
+             triggerNote(note, vel, unisonOrder, retrigger, startCutoff, drive, ampAdsr, filterAdsr);
         }
         
         lastUnisonOrder = unisonOrder;
@@ -394,6 +398,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
             v.phaseDelta = v.targetFrequency * juce::MathConstants<float>::twoPi / v.sampleRate;
 
             v.filter.setResonance(resonance);
+            v.filter.setDrive(drive);
             
             // Map 0.0-1.0 to 0.707-10.0 for SVF Q
             // SVF expects a Q factor where 0.707 is flat (Butterworth)
@@ -403,7 +408,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
     }
 }
 
-void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder)
+void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive)
 {
     float* left = fc.destBuffer->getWritePointer(0);
     float* right = fc.destBuffer->getWritePointer(1);
@@ -488,6 +493,10 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                     juce::dsp::ProcessContextReplacing<float> context (block);
                     v.filter.setCutoffFrequencyHz(modulatedCutoff);
                     v.filter.process(context);
+                    
+                    // Auto Make-Up Gain: Compensate for JUCE's aggressive drive attenuation
+                    // and ladder filter energy loss. sqrt(drive) feels musical.
+                    block.multiplyBy(std::sqrt(drive));
                 }
                 else
                 {
@@ -536,6 +545,7 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     restore(filterTypeValue, "filterType");
     restore(filterCutoffValue, "cutoff");
     restore(filterResValue, "resonance");
+    restore(filterDriveValue, "drive");
     restore(filterEnvAmountValue, "filterEnvAmount");
     restore(filterAttackValue, "filterAttack");
     restore(filterDecayValue, "filterDecay");
@@ -545,7 +555,7 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     updateAtomics();
 }
 
-void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams)
+void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams)
 {
     // Unison Logic: Trigger multiple voices
     for (int u = 0; u < unisonOrder; ++u)
@@ -579,12 +589,12 @@ void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, b
                 bias = (spreadAmount - 0.5f) * 2.0f;
             }
             
-            voiceToUse->start(note, velocity, (float)sampleRate, startCutoff, ampParams, filterParams, bias, retrigger, noteCounter);
+            voiceToUse->start(note, velocity, (float)sampleRate, startCutoff, drive, ampParams, filterParams, bias, retrigger, noteCounter);
         }
     }
 }
 
-void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float startCutoff, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger, uint32_t timestamp)
+void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger, uint32_t timestamp)
 {
     active = true;
     isKeyDown = true;
@@ -620,6 +630,7 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float s
         spec.numChannels = 1;
         filter.prepare(spec);
         filter.setCutoffFrequencyHz(juce::jlimit(20.0f, 20000.0f, startCutoff));
+        filter.setDrive(drive);
         filter.reset(); // Force smoothers to snap to startCutoff
         filter.setMode(juce::dsp::LadderFilterMode::LPF24);
     }
