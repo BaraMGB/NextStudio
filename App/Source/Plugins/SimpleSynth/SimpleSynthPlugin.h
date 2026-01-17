@@ -54,6 +54,15 @@ public:
         numWaveforms
     };
 
+    enum MixMode
+    {
+        mix = 0,
+        ringMod,
+        fm,
+        hardSync,
+        numMixModes
+    };
+
     // Parameters (Automatable)
     te::AutomatableParameter::Ptr levelParam;
     te::AutomatableParameter::Ptr coarseTuneParam;
@@ -76,6 +85,13 @@ public:
     te::AutomatableParameter::Ptr filterDecayParam;
     te::AutomatableParameter::Ptr filterSustainParam;
     te::AutomatableParameter::Ptr filterReleaseParam;
+
+    te::AutomatableParameter::Ptr osc2WaveParam;
+    te::AutomatableParameter::Ptr osc2CoarseParam;
+    te::AutomatableParameter::Ptr osc2FineParam;
+    te::AutomatableParameter::Ptr osc2LevelParam;
+    te::AutomatableParameter::Ptr mixModeParam;
+    te::AutomatableParameter::Ptr crossModAmountParam;
 
     // State Persistence (Message Thread only)
     juce::CachedValue<float> levelValue;
@@ -100,6 +116,13 @@ public:
     juce::CachedValue<float> filterSustainValue;
     juce::CachedValue<float> filterReleaseValue;
 
+    juce::CachedValue<float> osc2WaveValue;
+    juce::CachedValue<float> osc2CoarseValue;
+    juce::CachedValue<float> osc2FineValue;
+    juce::CachedValue<float> osc2LevelValue;
+    juce::CachedValue<float> mixModeValue;
+    juce::CachedValue<float> crossModAmountValue;
+
 private:
     struct Voice
     {
@@ -114,6 +137,9 @@ private:
         float phase = 0.0f;
         float phaseDelta = 0.0f;
         float targetFrequency = 0.0f;
+        float phase2 = 0.0f;
+        float phaseDelta2 = 0.0f;
+        float targetFrequency2 = 0.0f;
         float sampleRate = 44100.0f;
         
         // Unison Handling
@@ -132,7 +158,7 @@ private:
 
     void processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
     void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
-    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
+    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
     void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
     
     Voice* findVoiceToSteal();
@@ -143,6 +169,8 @@ private:
     struct AudioParams
     {
         std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
+        std::atomic<float> osc2Wave { 0.0f }, osc2Coarse { 0.0f }, osc2Fine { 0.0f }, osc2Level { 0.0f };
+        std::atomic<float> mixMode { 0.0f }, crossModAmount { 0.0f };
         std::atomic<float> attack { 0.001f }, decay { 0.001f }, sustain { 1.0f }, release { 0.001f };
         std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };
         std::atomic<float> filterType { 0.0f }, filterCutoff { 20000.0f }, filterRes { 0.0f }, filterDrive { 1.0f }, filterEnvAmount { 0.0f };
