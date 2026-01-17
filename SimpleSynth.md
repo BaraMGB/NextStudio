@@ -25,6 +25,7 @@ The plugin exposes the following automatable parameters:
 | **Coarse Tune** | `coarseTune` | -24.0 st to +24.0 st | Coarse pitch offset in semitones. |
 | **Fine Tune** | `fineTune` | -100.0 c to +100.0 c | Fine pitch offset in cents. |
 | **Wave** | `wave` | 0 to 4 | Waveform (Sine, Tri, Saw, Square, Noise). |
+| **Osc 2 On** | `osc2Enabled` | 0 / 1 | Enable/Disable Oscillator 2 to save CPU. |
 | **Osc 2 Wave** | `osc2Wave` | 0 to 4 | Waveform for Oscillator 2. |
 | **Osc 2 Coarse** | `osc2Coarse` | -24.0 st to +24.0 st | Coarse pitch offset for Osc 2 (Relative to Note). |
 | **Osc 2 Fine** | `osc2Fine` | -100.0 c to +100.0 c | Fine pitch offset for Osc 2. |
@@ -85,8 +86,9 @@ The plugin exposes the following automatable parameters:
         *   Decoupled Oscillator tuning logic. Osc 1 and Osc 2 are now tuned relative to the MIDI note independently, allowing for proper Hard Sync sweeps where the "Slave" (Osc 1) frequency changes while the "Master" (Osc 2) holds the pitch.
     *   **GUI:**
         *   Refactored `SimpleSynthOscSection` to be reusable for both oscillators.
-        *   Added `SimpleSynthMixSection` to control Mix Mode and Cross Modulation amount.
-        *   Redesigned layout to fit the expanded feature set (Osc 1 | Osc 2 | Mix | Filter | Envs).
+        *   **Osc 2 Panel:** Integrated Mix Mode and Cross Modulation controls directly into the Osc 2 panel for better workflow. Added an On/Off toggle switch.
+        *   **Layout Overhaul:** Switched to horizontal headers for all panels (Osc, Filter, Env). Added consistent vertical padding (10px). Optimized component alignment (Label top, Control centered below).
+        *   **Look & Feel:** Implemented centered text rendering for ComboBoxes in `NextLookAndFeel`.
 
 
 
