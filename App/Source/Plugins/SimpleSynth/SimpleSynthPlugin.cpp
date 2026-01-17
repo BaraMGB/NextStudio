@@ -695,7 +695,11 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     auto restore = [&](te::AutomatableParameter::Ptr& param, const char* name)
     {
         if (v.hasProperty(name))
-            param->setParameter((float)v.getProperty(name), juce::sendNotification);
+        {
+            float val = (float)v.getProperty(name);
+            // juce::Logger::writeToLog("Restoring " + juce::String(name) + " to " + juce::String(val));
+            param->setParameter(val, juce::sendNotification);
+        }
     };
 
     restore(levelParam, "level");
