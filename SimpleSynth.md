@@ -95,6 +95,14 @@ The plugin exposes the following automatable parameters:
     *   **Fix:** Updated `getFactoryDefaultState` to explicitly populate the returned ValueTree with the default values from all `CachedValue` instances in the plugin.
     *   **Robustness:** Improved XML parsing in `PresetManagerComponent` to use `juce::XmlDocument::parse` instead of brittle string checks, ensuring reliable preset loading even with formatting variations.
 
+16. **Bugfix: Stuck Notes on Transport Stop**
+    *   **Issue:** Voices continued to play indefinitely or stacked up when stopping playback or rewinding, as the plugin did not correctly handle transport state changes or "All Sound Off" messages.
+    *   **Fix:**
+        *   Implemented `midiPanic()` and `reset()` to immediately kill all active voices.
+        *   Added a thread-safe atomic flag `panicTriggered` to synchronize voice termination from the Message Thread to the Audio Thread.
+        *   Updated `applyToBuffer` to actively silence voices if the transport is not playing (`!fc.isPlaying`) and not rendering.
+        *   Enhanced `processMidiMessages` to treat Note-On events with Velocity 0 as Note-Offs and to handle `AllSoundOff` (CC 120) messages correctly.
+
 
 
 
