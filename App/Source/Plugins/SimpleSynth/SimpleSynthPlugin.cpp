@@ -276,6 +276,11 @@ void SimpleSynthPlugin::deinitialise()
 {
 }
 
+void SimpleSynthPlugin::reset()
+{
+    midiPanic();
+}
+
 void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 {
     // 1. Basic Buffer Validation
@@ -308,6 +313,17 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     filterAdsrParams.sustain = juce::jlimit(0.0f, 1.0f, audioParams.filterSustain.load());
     filterAdsrParams.release = juce::jmax(0.0f, audioParams.filterRelease.load());
 
+    // If the transport is not playing and we are not rendering,
+    // ensure any ringing notes are silenced.
+    if (!fc.isPlaying && !fc.isRendering)
+    {
+        for (auto& v : voices)
+        {
+            if (v.active && v.isKeyDown)
+                v.stop();
+        }
+    }
+
     // CRITICAL: Clamp unisonOrder to safe range [1, 5] to prevent loop overflows
     int unisonOrder = juce::jlimit(1, 5, (int)audioParams.unisonOrder.load());
     
@@ -334,11 +350,22 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     // 1. MIDI Processing
     processMidiMessages(fc.bufferForMidiMessages, adsrParams, filterAdsrParams);
 
+    if (panicTriggered.exchange(false))
+    {
+        for (auto& v : voices)
+            v.kill();
+    }
+
     // 2. Update Voice Parameters (Control Rate)
     updateVoiceParameters(unisonOrder, unisonDetuneCents, unisonSpread, resonance, drive, coarseTune, fineTuneCents, osc2Coarse, osc2FineCents, adsrParams, filterAdsrParams);
 
     // 3. Audio Generation & Mixing
     renderAudio(fc, baseCutoff, filterEnvAmount, waveShape, unisonOrder, drive);
+}
+
+void SimpleSynthPlugin::midiPanic()
+{
+    panicTriggered = true;
 }
 
 SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
@@ -389,19 +416,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
     for (auto m : *midiMessages)
     {
         // Sanitize MIDI data
-        if (m.isNoteOn())
-        {
-            int note = juce::jlimit(0, 127, m.getNoteNumber());
-            float velocity = juce::jlimit(0.0f, 1.0f, m.getFloatVelocity());
-            
-            // Increment global note counter for LRU tracking
-            // Wraparound is fine, uint32_t is large enough for years of playing
-            noteCounter++;
-
-            // Unison Logic: Trigger multiple voices
-            triggerNote(note, velocity, unisonOrder, retrigger, startCutoff, drive, adsrParams, filterAdsrParams);
-        }
-        else if (m.isNoteOff())
+        if (m.isNoteOff())
         {
             int note = m.getNoteNumber(); // No limit needed for comparison, but good practice
             
@@ -411,10 +426,39 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
                     v.stop();
             }
         }
+        else if (m.isNoteOn())
+        {
+            int note = juce::jlimit(0, 127, m.getNoteNumber());
+            float velocity = juce::jlimit(0.0f, 1.0f, m.getFloatVelocity());
+            
+            if (velocity > 0.0f)
+            {
+                // Increment global note counter for LRU tracking
+                // Wraparound is fine, uint32_t is large enough for years of playing
+                noteCounter++;
+
+                // Unison Logic: Trigger multiple voices
+                triggerNote(note, velocity, unisonOrder, retrigger, startCutoff, drive, adsrParams, filterAdsrParams);
+            }
+            else
+            {
+                // NoteOn with velocity 0 is treated as NoteOff
+                for (auto& v : voices)
+                {
+                    if (v.active && v.currentNote == note && v.isKeyDown)
+                        v.stop();
+                }
+            }
+        }
         else if (m.isAllNotesOff())
         {
             for (auto& v : voices)
                 v.stop();
+        }
+        else if (m.isAllSoundOff())
+        {
+            for (auto& v : voices)
+                v.kill();
         }
     }
 }
@@ -697,7 +741,6 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
         if (v.hasProperty(name))
         {
             float val = (float)v.getProperty(name);
-            // juce::Logger::writeToLog("Restoring " + juce::String(name) + " to " + juce::String(val));
             param->setParameter(val, juce::sendNotification);
         }
     };
@@ -851,4 +894,12 @@ void SimpleSynthPlugin::Voice::stop()
     // Trigger the release phase of the envelope
     adsr.noteOff();
     filterAdsr.noteOff();
+}
+
+void SimpleSynthPlugin::Voice::kill()
+{
+    active = false;
+    isKeyDown = false;
+    adsr.reset();
+    filterAdsr.reset();
 }

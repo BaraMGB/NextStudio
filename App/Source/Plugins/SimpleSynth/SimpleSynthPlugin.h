@@ -25,7 +25,9 @@ public:
 
     void initialise(const te::PluginInitialisationInfo&) override;
     void deinitialise() override;
+    void reset() override;
     void applyToBuffer(const te::PluginRenderContext&) override;
+    void midiPanic() override;
 
     //==============================================================================
     void restorePluginStateFromValueTree(const juce::ValueTree& v) override;
@@ -130,6 +132,7 @@ private:
     {
         void start(int note, float velocity, float sampleRate, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
         void stop();
+        void kill();
         
         bool active = false;
         bool isKeyDown = false;
@@ -189,6 +192,7 @@ private:
     
     juce::LinearSmoothedValue<float> masterLevelSmoother;
     juce::LinearSmoothedValue<float> cutoffSmoother;
+    std::atomic<bool> panicTriggered { false };
     
     juce::dsp::LookupTable<float> sineTable;
     float sineTableScaler = 0.0f;
