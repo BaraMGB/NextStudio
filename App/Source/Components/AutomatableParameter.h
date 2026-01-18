@@ -32,10 +32,16 @@ public:
     void curveHasChanged(te::AutomatableParameter&) override {}
     void currentValueChanged(te::AutomatableParameter&) override { updateLabel(); }
 
-private:
+protected:
+    // Allow derived classes to access these members
     std::unique_ptr<AutomatableSliderComponent>       m_knob;
     juce::Label                                       m_valueLabel;
     juce::Label                                       m_titleLabel;
     te::AutomatableParameter::Ptr                     m_automatableParameter;
+    
+    // Virtual method for custom display formatting
+    virtual juce::String getCustomDisplayString() const { return {}; }
+
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableParameterComponent)
 };

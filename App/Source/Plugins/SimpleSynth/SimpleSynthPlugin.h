@@ -34,6 +34,8 @@ public:
 
     // Constants
     static constexpr float defaultSampleRate = 44100.0f;
+    static constexpr float referenceFrequency = 440.0f;  // A4 reference frequency
+    static constexpr float midiNoteA4 = 69.0f;      // MIDI note number for A4
     static constexpr float maxFilterSweepSemitones = 60.0f;
     static constexpr float svfBaseQ = 0.7071f;
     static constexpr float levelSmoothingTime = 0.02f;
@@ -178,10 +180,10 @@ private:
         std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
         std::atomic<float> osc2Enabled { 0.0f }, osc2Wave { 0.0f }, osc2Coarse { 0.0f }, osc2Fine { 0.0f }, osc2Level { 0.0f };
         std::atomic<float> mixMode { 0.0f }, crossModAmount { 0.0f };
-        std::atomic<float> attack { 0.001f }, decay { 0.001f }, sustain { 1.0f }, release { 0.001f };
+        std::atomic<float> attack { 0.005f }, decay { 0.005f }, sustain { 1.0f }, release { 0.005f };
         std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };
         std::atomic<float> filterType { 0.0f }, filterCutoff { 20000.0f }, filterRes { 0.0f }, filterDrive { 1.0f }, filterEnvAmount { 0.0f };
-        std::atomic<float> filterAttack { 0.001f }, filterDecay { 0.001f }, filterSustain { 1.0f }, filterRelease { 0.001f };
+        std::atomic<float> filterAttack { 0.005f }, filterDecay { 0.005f }, filterSustain { 1.0f }, filterRelease { 0.005f };
     } audioParams;
 
     void updateAtomics();

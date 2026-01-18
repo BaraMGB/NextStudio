@@ -13,6 +13,7 @@
 #include "../../PluginViewComponent.h"
 #include "../../Components/AutomatableSlider.h"
 #include "../../Components/AutomatableParameter.h"
+#include "../../Components/AutomatableEnvelopeParameter.h"
 #include "../../Components/AutomatableToggle.h"
 #include "../../Components/AutomatableComboBox.h"
 #include "../../Utilities.h"
@@ -95,10 +96,10 @@ private:
     SimpleSynthPlugin& m_plugin;
     ApplicationViewState& m_appState;
 
-    AutomatableParameterComponent m_attackComp;
-    AutomatableParameterComponent m_decayComp;
-    AutomatableParameterComponent m_sustainComp;
-    AutomatableParameterComponent m_releaseComp;
+    AutomatableEnvelopeParameter m_attackComp;
+    AutomatableEnvelopeParameter m_decayComp;
+    AutomatableEnvelopeParameter m_sustainComp;
+    AutomatableEnvelopeParameter m_releaseComp;
     
     juce::Label m_nameLabel;
 
