@@ -62,5 +62,9 @@ void AutomatableParameterComponent::setKnobColour (juce::Colour colour)
 
 void AutomatableParameterComponent::updateLabel()
 {
-    m_valueLabel.setText(m_automatableParameter->getCurrentValueAsString(), juce::NotificationType::dontSendNotification);
+    auto customDisplay = getCustomDisplayString();
+    if (customDisplay.isNotEmpty())
+        m_valueLabel.setText(customDisplay, juce::NotificationType::dontSendNotification);
+    else
+        m_valueLabel.setText(m_automatableParameter->getCurrentValueAsString(), juce::NotificationType::dontSendNotification);
 }

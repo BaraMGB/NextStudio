@@ -62,6 +62,7 @@ target_sources(${TargetName} PRIVATE
         ../resources/icon.rc 
         Source/Components/AutomatableSlider.cpp
         Source/Components/AutomatableParameter.cpp
+        Source/Components/AutomatableEnvelopeParameter.cpp
         Source/Components/NonAutomatableParameter.cpp
         Source/Components/AutomatableToggle.cpp
         Source/Components/AutomatableComboBox.cpp

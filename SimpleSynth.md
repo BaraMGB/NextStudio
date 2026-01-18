@@ -32,10 +32,10 @@ The plugin exposes the following automatable parameters:
 | **Osc 2 Level** | `osc2Level` | 0.0 to 1.0 | Volume of Oscillator 2. |
 | **Mix Mode** | `mixMode` | Mix/Ring/FM/Sync | Algorithm for combining Osc 1 and Osc 2. |
 | **Cross Mod** | `crossModAmount` | 0.0 to 1.0 | Depth of RingMod blending or FM phase modulation. |
-| **Attack** | `attack` | 0.001s to 5.0s | ADSR Attack time (Default: 0.001s). |
-| **Decay** | `decay` | 0.001s to 5.0s | ADSR Decay time (Default: 0.001s). |
-| **Sustain** | `sustain` | 0.0 to 1.0 | ADSR Sustain level (Default: 1.0). |
-| **Release** | `release` | 0.001s to 5.0s | ADSR Release time (Default: 0.001s). |
+| **Attack** | `attack` | 0.005s to 5.0s | ADSR Attack time (Default: 0.005s). |
+| **Decay** | `decay` | 0.005s to 5.0s | ADSR Decay time (Default: 0.005s). |
+| **Sustain** | `sustain` | 0.001 to 1.0 | ADSR Sustain level 0.1%-100% (Default: 1.0). |
+| **Release** | `release` | 0.005s to 5.0s | ADSR Release time (Default: 0.005s). |
 | **Unison Voices** | `unisonOrder` | 1 to 5 | Number of stacked voices per note. |
 | **Unison Detune** | `unisonDetune` | 0.0 to 100.0 cents | Pitch spread for unison voices. |
 | **Unison Spread** | 0.0 to 100.0 % | Stereo spread for unison voices. |
@@ -106,6 +106,33 @@ The plugin exposes the following automatable parameters:
 17. **Bugfix: Incorrect Voice Silencing Logic**
     *   **Issue:** When the transport was not playing, notes were immediately silenced even while keys were still held down, causing a "choke" effect that prevented live playing when the DAW was stopped.
     *   **Fix:** Corrected the logic condition in `applyToBuffer` from `v.active && v.isKeyDown` to `v.active && !v.isKeyDown`. This ensures only voices that are active but no longer have keys pressed (hanging notes) are silenced, while still allowing live playing when transport is stopped.
+
+18. **Enhancement: ADSR Parameter Ranges & Validation**
+    *   **Issue:** ADSR parameters allowed 0.0 minimum values, causing unintuitive envelope behavior (e.g., Sustain 0.0 created "dead" envelopes, extremely short times caused perceptual issues).
+    *   **Fix:** Implemented minimum value enforcement and enhanced UI display:
+        *   Attack/Decay/Release: minimum 5ms (0.005s) instead of 0.001s
+        *   Sustain: minimum 0.1% (0.001) instead of 0.0%
+        *   UI now shows intuitive time formats (5ms, 100ms, 2.5s) and percentages (0.1%, 50%, 100%)
+        *   Audio thread validates and enforces minimum values with `jmax(MIN_TIME, value)` and `jlimit(MIN_SUSTAIN, 1.0f, value)`
+
+19. **Enhancement: Improved Envelope UI Display**
+    *   **Issue:** Parameter values were shown as raw numbers (0.005, 0.5, etc.) making envelope settings unintuitive.
+    *   **Fix:** Created `AutomatableEnvelopeParameter` component with custom display formatting:
+        *   Time parameters (Attack/Decay/Release): auto-formatted as ms/s based on magnitude
+        *   Sustain parameter: displayed as percentage (0.1% - 100%)
+        *   Extended `AutomatableParameterComponent` base class with virtual `getCustomDisplayString()` method
+
+20. **Bugfix: ADSR Release Timing Inconsistency**
+    *   **Issue:** Release times varied dramatically (up to 5 seconds vs 120ms) depending on when the key was released during the envelope cycle. This occurred because `setParameters()` was called even for voices in release phase, causing JUCE ADSR to recalculate release timing incorrectly.
+    *   **Fix:** Added `isKeyDown` check in `updateVoiceParameters()`:
+        ```cpp
+        if (v.isKeyDown)
+        {
+            v.adsr.setParameters(ampAdsr);
+            v.filterAdsr.setParameters(filterAdsr);
+        }
+        ```
+    *   **Result:** Release timing is now consistent regardless of when the key is released (during Attack, Decay, Sustain, or Release phases).
 
 ---
 
