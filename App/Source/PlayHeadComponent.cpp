@@ -28,7 +28,7 @@ PlayheadComponent::PlayheadComponent (te::Edit& e
                                       , TimeLineComponent& tc)
     : m_edit (e), m_editViewState (evs), m_timeLine(tc) 
 {
-    startTimerHz (20);
+    startTimerHz (60);
 }
 
 void PlayheadComponent::paint (juce::Graphics& g)
@@ -89,7 +89,7 @@ void PlayheadComponent::timerCallback()
 {
     if (isPlaying())
     {
-        m_timeLine.centerView();
+        m_editViewState.updatePositionFollower(m_timeLine.getTimeLineID(), getWidth());
     }
 
     if (m_firstTimer)

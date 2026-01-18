@@ -47,7 +47,6 @@ public:
     EditViewState&          getEditViewState();
 
 
-    void centerView();
     tracktion::BeatRange getCurrentBeatRange();
     tracktion::TimeRange getCurrentTimeRange();
     double getBeatsPerPixel();

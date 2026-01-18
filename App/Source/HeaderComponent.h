@@ -44,6 +44,7 @@ public:
     void paint(juce::Graphics &g) override;
     void resized() override;
     void buttonClicked(juce::Button* button) override;
+    void mouseDown(const juce::MouseEvent& e) override;
     void timerCallback() override;
 
     juce::File getSelectedFile() const;
@@ -51,6 +52,7 @@ public:
     void loopButtonClicked();
 
 private:
+    void showFollowMenu();
     EditViewState& m_editViewState;
        static juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify) ;
     int getButtonSize();

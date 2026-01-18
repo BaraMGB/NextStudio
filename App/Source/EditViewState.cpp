@@ -57,6 +57,7 @@ EditViewState::EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationV
     m_snapType.referTo(m_state, IDs::snapType, um, 9);
     m_playHeadStartTime.referTo (m_state, IDs::playHeadStartTime, um, 0.0);
     m_followPlayhead.referTo (m_state, IDs::followsPlayhead, um, true);
+    m_followModeVal.referTo (m_state, IDs::followMode, um, 1); // Default to Page (1)
     m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
     m_editName.referTo(m_state, IDs::name, um, "unknown");
     m_timeLineZoomUnit.referTo(m_state, IDs::timeLineZoomUnit, um, 50);
@@ -289,6 +290,104 @@ tracktion::TimeRange EditViewState::getVisibleTimeRange(juce::String id, int wid
         m_followPlayhead = !m_followPlayhead;
     }
     [[nodiscard]] bool EditViewState::viewFollowsPos() const {return m_followPlayhead;}
+
+    void EditViewState::setFollowMode(FollowMode mode)
+    {
+        if (mode == FollowMode::Off)
+        {
+            m_followPlayhead = false;
+        }
+        else
+        {
+            m_followPlayhead = true;
+            m_followModeVal = static_cast<int>(mode);
+        }
+    }
+
+    EditViewState::FollowMode EditViewState::getFollowMode() const
+    {
+        if (!m_followPlayhead)
+            return FollowMode::Off;
+        
+        return static_cast<FollowMode>(m_followModeVal.get());
+    }
+
+    void EditViewState::updatePositionFollower(juce::String timeLineID, int width)
+    {
+        auto mode = getFollowMode();
+        if (mode == FollowMode::Off || !m_edit.getTransport().isPlaying())
+        {
+            m_isScrolling = false;
+            return;
+        }
+
+        auto currentPos = m_edit.getTransport().getPosition().inSeconds();
+        auto currentBeats = timeToBeat(currentPos);
+        auto visibleRange = getVisibleBeatRange(timeLineID, width);
+        auto startBeat = visibleRange.getStart().inBeats();
+        auto endBeat = visibleRange.getEnd().inBeats();
+        auto viewLength = endBeat - startBeat;
+        
+        // Safety check for invalid view
+        if (viewLength <= 0) return;
+
+        if (mode == FollowMode::Continuous)
+        {
+            // Center the playhead
+            // Smoothness comes from calling this at 60fps
+            setNewStartAndZoom(timeLineID, juce::jmax(0.0, currentBeats - viewLength / 2.0));
+        }
+        else if (mode == FollowMode::Page)
+        {
+            // Page Mode with Smooth Transition
+            
+            // Check if we need to scroll (Playhead moved out of view)
+            if (!m_isScrolling)
+            {
+                 // Margin of 10% of view width
+                double margin = viewLength * 0.10;
+
+                if (currentBeats >= endBeat - margin)
+                {
+                    m_targetViewX = endBeat - margin; 
+                    m_scrollStartViewX = startBeat;
+                    m_scrollProgress = 0.0;
+                    m_isScrolling = true;
+                }
+                else if (currentBeats < startBeat)
+                {
+                     // Jumped back (loop or user click)
+                    m_targetViewX = juce::jmax(0.0, currentBeats - margin); 
+                    m_scrollStartViewX = startBeat;
+                    m_scrollProgress = 0.0;
+                    m_isScrolling = true;
+                }
+            }
+
+            if (m_isScrolling)
+            {
+                 // Fixed duration scroll with Ease-In / Ease-Out
+                 // Increment progress (0.025 gives approx 40 frames = 0.66 seconds at 60Hz)
+                 m_scrollProgress += 0.025;
+                 
+                 if (m_scrollProgress >= 1.0)
+                 {
+                     setNewStartAndZoom(timeLineID, m_targetViewX);
+                     m_isScrolling = false;
+                 }
+                 else
+                 {
+                     // SmootherStep (Perlin): t^3 * (t * (t * 6 - 15) + 10)
+                     // Provides zero 1st and 2nd derivative at t=0 and t=1 for softer start/stop.
+                     double t = m_scrollProgress;
+                     double ease = t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+                     
+                     double newStart = m_scrollStartViewX + (m_targetViewX - m_scrollStartViewX) * ease;
+                     setNewStartAndZoom(timeLineID, newStart);
+                 }
+            }
+        }
+    }
 
     SimpleThumbnail* EditViewState::getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
     {
