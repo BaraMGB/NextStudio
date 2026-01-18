@@ -314,12 +314,12 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     filterAdsrParams.release = juce::jmax(0.0f, audioParams.filterRelease.load());
 
     // If the transport is not playing and we are not rendering,
-    // ensure any ringing notes are silenced.
+    // ensure any ringing notes are silenced (notes that are active but no longer have keys pressed).
     if (!fc.isPlaying && !fc.isRendering)
     {
         for (auto& v : voices)
         {
-            if (v.active && v.isKeyDown)
+            if (v.active && !v.isKeyDown)
                 v.stop();
         }
     }
