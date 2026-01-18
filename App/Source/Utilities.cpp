@@ -2088,9 +2088,34 @@ juce::Rectangle<float> GUIHelpers::getSensibleArea(juce::Point<float> p, float w
 
 void GUIHelpers::centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c, juce::String timeLineID, int width)
 {
-    auto zoom = evs.getVisibleBeatRange(timeLineID, width).getLength().inBeats();
-    auto startBeat = juce::jmax(0.0, c->getStartBeat ().inBeats() - (zoom /2) + (c->getLengthInBeats ().inBeats()/2));
-    evs.setNewStartAndZoom(timeLineID, startBeat);
+    // Horizontal Zoom & Position
+    auto clipLen = c->getLengthInBeats().inBeats();
+    auto effectiveWidth = (double)juce::jmax(100, width); 
+    
+    // Fit clip in 80% of width
+    double newBeatsPerPixel = clipLen / (effectiveWidth * 0.8);
+    
+    // Center the clip
+    auto clipStart = c->getStartBeat().inBeats();
+    auto viewWidthInBeats = newBeatsPerPixel * effectiveWidth;
+    auto startBeat = clipStart - (viewWidthInBeats - clipLen) / 2.0;
+    startBeat = juce::jmax(0.0, startBeat);
+
+    evs.setNewStartAndZoom(timeLineID, startBeat, newBeatsPerPixel);
+    
+    // Vertical Position (C3 / 60)
+    double keyWidth = evs.getViewYScale(timeLineID);
+    if (keyWidth <= 1) 
+    {
+         keyWidth = 20.0;
+         evs.setViewYScale(timeLineID, keyWidth);
+    }
+    
+    double height = (double)evs.m_midiEditorHeight;
+    double startKey = 61.0 - (height / (2.0 * keyWidth));
+    startKey = juce::jmax(0.0, startKey);
+    
+    evs.setYScroll(timeLineID, startKey);
 }
 
 void GUIHelpers::drawPolyObject (juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation,float radiusFac, float heightFac, float scale)

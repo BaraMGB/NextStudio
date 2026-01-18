@@ -46,13 +46,6 @@ TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::String timeLineI
 
 TimeLineComponent::~TimeLineComponent()
 {
-    if (auto* viewData = m_evs.componentViewData[m_timeLineID])
-    {
-        delete viewData;
-        m_evs.componentViewData.erase (m_timeLineID);
-    }
-    if (m_tree.getParent().isValid())
-        m_tree.getParent().removeChild(m_tree, nullptr);
 }
 
 void TimeLineComponent::paint(juce::Graphics& g)
@@ -422,20 +415,11 @@ double TimeLineComponent::getBeatsPerPixel()
 }
 void TimeLineComponent::setTimeLineID(juce::String timeLineID)
 {
-    if (m_timeLineID.isNotEmpty())
-    {
-        if (auto* viewData = m_evs.componentViewData[m_timeLineID])
-        {
-            delete viewData;
-            m_evs.componentViewData.erase (m_timeLineID);
-        }
-        if (m_tree.getParent().isValid())
-            m_tree.getParent().removeChild(m_tree, nullptr);
-    }
-
     m_timeLineID = timeLineID;
     m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
-    m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
+
+    if (m_evs.componentViewData.find(m_timeLineID) == m_evs.componentViewData.end())
+        m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
 }
 
 double TimeLineComponent::getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down) const
