@@ -52,6 +52,7 @@ HeaderComponent::HeaderComponent(EditViewState& evs, ApplicationViewState & appl
     m_loopButton.addListener (this);
     m_clickButton.addListener (this);
     m_followPlayheadButton.addListener (this);
+    m_followPlayheadButton.addMouseListener (this, false);
 
     m_playButton.setTooltip(GUIHelpers::translate("Play", m_editViewState.m_applicationState));
     m_stopButton.setTooltip(GUIHelpers::translate("Stop", m_editViewState.m_applicationState));
@@ -176,11 +177,46 @@ void HeaderComponent::buttonClicked(juce::Button* button)
     if (button == &m_followPlayheadButton)
     {
         m_editViewState.toggleFollowPlayhead();
-        GUIHelpers::setDrawableOnButton(
-            m_followPlayheadButton,
-            BinaryData::follow_svg,
-            m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
+        updateIcons();
     }
+}
+
+void HeaderComponent::mouseDown(const juce::MouseEvent& e)
+{
+    if (e.eventComponent == &m_followPlayheadButton && e.mods.isRightButtonDown())
+    {
+        showFollowMenu();
+    }
+}
+
+void HeaderComponent::showFollowMenu()
+{
+    juce::PopupMenu m;
+    auto currentMode = m_editViewState.getFollowMode();
+    auto isFollowOn = m_editViewState.viewFollowsPos();
+
+    m.addItem(1, "Follow Playhead", true, isFollowOn);
+    m.addSeparator();
+    m.addItem(2, "Page Scroll (Smooth)", true, currentMode == EditViewState::FollowMode::Page);
+    m.addItem(3, "Continuous Scroll (Center)", true, currentMode == EditViewState::FollowMode::Continuous);
+
+    m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&m_followPlayheadButton),
+        [this](int result)
+        {
+            if (result == 1)
+            {
+                m_editViewState.toggleFollowPlayhead();
+            }
+            else if (result == 2)
+            {
+                m_editViewState.setFollowMode(EditViewState::FollowMode::Page);
+            }
+            else if (result == 3)
+            {
+                m_editViewState.setFollowMode(EditViewState::FollowMode::Continuous);
+            }
+            updateIcons();
+        });
 }
 
 void HeaderComponent::loopButtonClicked()

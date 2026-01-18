@@ -265,21 +265,6 @@ tracktion::TimeRange TimeLineComponent::getCurrentTimeRange()
 
 }
 
-
-void TimeLineComponent::centerView()
-{
-    if (m_evs.viewFollowsPos())
-    {
-        auto posBeats = m_evs.timeToBeat (
-            m_evs.m_edit.getTransport ().getPosition ().inSeconds());
-        auto bx1 = getCurrentBeatRange().getStart().inBeats();
-        auto bx2 = getCurrentBeatRange().getEnd().inBeats();
-
-        auto zoom = bx2 - bx1;
-        m_evs.setNewStartAndZoom(m_timeLineID, juce::jmax(0.0 , posBeats - zoom/2));
-    }
-}
-
 tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
 {
     double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();

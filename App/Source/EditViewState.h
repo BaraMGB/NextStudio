@@ -99,6 +99,7 @@ namespace IDs
     DECLARE_ID (automationFollowsClip)
     DECLARE_ID (playHeadStartTime)
     DECLARE_ID (followsPlayhead)
+    DECLARE_ID (followMode)
     DECLARE_ID (timeLineZoomUnit)
     DECLARE_ID (zoomMode)
     DECLARE_ID (velocityEditorHeight)
@@ -237,12 +238,18 @@ public:
 
     [[nodiscard]] juce::String getSnapTypeDescription(int idx) const;
 
+    enum class FollowMode { Off, Page, Continuous };
+
     [[nodiscard]] double getEndScrollBeat() const;
 
     void followsPlayhead(bool shouldFollow);
 
     void toggleFollowPlayhead();
     [[nodiscard]] bool viewFollowsPos() const;
+    
+    void setFollowMode(FollowMode mode);
+    FollowMode getFollowMode() const;
+    void updatePositionFollower(juce::String timeLineID, int width);
 
     SimpleThumbnail* getOrCreateThumbnail (te::WaveAudioClip::Ptr wac);
     void clearThumbnails();
@@ -268,7 +275,8 @@ public:
                           , m_automationFollowsClip
                           , m_followPlayhead
                           , m_syncAutomation;
-    juce::CachedValue<int> m_lowerRangeView;
+    juce::CachedValue<int> m_lowerRangeView
+                         , m_followModeVal; 
      juce::CachedValue<double>  m_lastNoteLength
                             , m_playHeadStartTime
                             , m_timeLineZoomUnit;
@@ -299,5 +307,10 @@ public:
     ApplicationViewState& m_applicationState;
 
 private:
+    double m_targetViewX = -1.0;
+    double m_scrollStartViewX = 0.0;
+    double m_scrollProgress = 0.0;
+    bool m_isScrolling = false;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EditViewState)
 };
