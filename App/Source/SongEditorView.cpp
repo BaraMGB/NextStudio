@@ -499,7 +499,19 @@ void SongEditorView::mouseDown(const juce::MouseEvent&e)
 
         if ((e.getNumberOfClicks() > 1 || m_editViewState.getLowerRangeView() == LowerRangeView::midiEditor) && m_hoveredClip->isMidi())
         {
+            bool trackWasAlreadyActive = (bool)m_hoveredTrack->state.getProperty(IDs::showLowerRange);
+            bool prWasOpen = m_editViewState.getLowerRangeView() == LowerRangeView::midiEditor;
+
             setPianoRoll(m_hoveredTrack);
+
+            if (!trackWasAlreadyActive || !prWasOpen || e.getNumberOfClicks() > 1)
+            {
+                if (m_hoveredTrack->itemID.isValid())
+                {
+                    auto trackTimeLineID = "ID" + m_hoveredTrack->itemID.toString().removeCharacters ("{}-");
+                    GUIHelpers::centerMidiEditorToClip(m_editViewState, m_hoveredClip, trackTimeLineID, getWidth());
+                }
+            }
         }
 
         if (!sm.isSelected(m_hoveredClip))
