@@ -17,7 +17,7 @@ public:
     juce::String getName() const override { return getPluginName(); }
     juce::String getPluginType() override { return xmlTypeName; }
     juce::String getSelectableDescription() override { return getPluginName(); }
-    
+
     bool isSynth() override { return true; }
     bool takesMidiInput() override { return true; }
     bool takesAudioInput() override { return false; }
@@ -135,7 +135,7 @@ private:
         void start(int note, float velocity, float sampleRate, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
         void stop();
         void kill();
-        
+
         bool active = false;
         bool isKeyDown = false;
         int currentNote = -1;
@@ -148,17 +148,17 @@ private:
         float phaseDelta2 = 0.0f;
         float targetFrequency2 = 0.0f;
         float sampleRate = 44100.0f;
-        
+
         // Unison Handling
         float unisonBias = 0.0f; // -1.0 (Left/Flat) to +1.0 (Right/Sharp)
         float currentPan = 0.5f;
         float currentDetuneMultiplier = 1.0f;
-        
+
         juce::ADSR adsr;
         juce::ADSR filterAdsr;
         juce::dsp::LadderFilter<float> filter;
         juce::dsp::StateVariableTPTFilter<float> svfFilter;
-        
+
         // For Noise
         juce::Random random;
     };
@@ -167,9 +167,9 @@ private:
     void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
     void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
     void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
-    
+
     inline float generateWaveSample(int waveShape, float phase, float phaseDelta, juce::Random& random);
-    
+
     Voice* findVoiceToSteal();
     uint32_t noteCounter = 0;
     int lastUnisonOrder = 1;
@@ -191,11 +191,11 @@ private:
 
     static constexpr int numVoices = 16;
     Voice voices[numVoices];
-    
+
     juce::LinearSmoothedValue<float> masterLevelSmoother;
     juce::LinearSmoothedValue<float> cutoffSmoother;
     std::atomic<bool> panicTriggered { false };
-    
+
     juce::dsp::LookupTable<float> sineTable;
     float sineTableScaler = 0.0f;
 
