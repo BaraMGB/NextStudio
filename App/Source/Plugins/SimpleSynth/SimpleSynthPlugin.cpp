@@ -238,22 +238,6 @@ void SimpleSynthPlugin::updateAtomics()
     audioParams.filterRelease = filterReleaseValue.get();
 }
 
-void SimpleSynthPlugin::getChannelNames (juce::StringArray* ins, juce::StringArray* outs)
-{
-    if (ins) ins->clear();
-    if (outs)
-    {
-        outs->clear();
-        outs->add ("Left");
-        outs->add ("Right");
-    }
-}
-
-int SimpleSynthPlugin::getNumOutputChannelsGivenInputs (int)
-{
-    return 2;
-}
-
 void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
 {
     juce::dsp::ProcessSpec spec;
