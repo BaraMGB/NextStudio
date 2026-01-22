@@ -312,17 +312,6 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     filterAdsrParams.sustain = juce::jlimit(0.0f, 1.0f, audioParams.filterSustain.load());
     filterAdsrParams.release = juce::jmax(0.0f, audioParams.filterRelease.load());
 
-    // If the transport is not playing and we are not rendering,
-    // ensure any ringing notes are silenced (notes that are active but no longer have keys pressed).
-    if (!fc.isPlaying && !fc.isRendering)
-    {
-        for (auto& v : voices)
-        {
-            if (v.active && !v.isKeyDown)
-                v.stop();
-        }
-    }
-
     // Safety clamping unisonOrder to safe range [1, 5] to prevent loop overflows
     int unisonOrder = juce::jlimit(1, 5, (int)audioParams.unisonOrder.load());
 
@@ -346,8 +335,32 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     if (waveShape < 0 || waveShape >= Waveform::numWaveforms)
         waveShape = Waveform::saw;
 
+    bool isPlaying = fc.isPlaying || fc.isRendering;
+
+    // 0. Transport Start: Clean Slate
+    // If we just started playing, kill all old voices to prevent stacking/ghost notes.
+    if (isPlaying && !lastWasPlaying)
+    {
+        for (auto& v : voices)
+            v.kill();
+    }
+
     // 1. MIDI Processing
     processMidiMessages(fc.bufferForMidiMessages, adsrParams, filterAdsrParams);
+
+    // 2. Transport Stop: Silence Tails continuously
+    // If the transport is NOT playing, we want to kill any release tails immediately.
+    // Live playing (holding keys) is still allowed because we check !v.isKeyDown.
+    if (!isPlaying)
+    {
+        for (auto& v : voices)
+        {
+            if (v.active && !v.isKeyDown)
+                v.kill();
+        }
+    }
+
+    lastWasPlaying = isPlaying;
 
     if (panicTriggered.exchange(false))
     {
@@ -406,6 +419,13 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
 {
     if (midiMessages == nullptr)
         return;
+
+    // Check Global Flag from Host
+    if (midiMessages->isAllNotesOff)
+    {
+        for (auto& v : voices)
+            v.kill();
+    }
 
     int unisonOrder = juce::jlimit(1, 5, (int)audioParams.unisonOrder.load());
     bool retrigger = audioParams.retrigger.load() > 0.5f;

@@ -195,6 +195,7 @@ private:
     juce::LinearSmoothedValue<float> masterLevelSmoother;
     juce::LinearSmoothedValue<float> cutoffSmoother;
     std::atomic<bool> panicTriggered { false };
+    bool lastWasPlaying = false;
 
     juce::dsp::LookupTable<float> sineTable;
     float sineTableScaler = 0.0f;
