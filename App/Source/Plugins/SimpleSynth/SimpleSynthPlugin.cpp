@@ -1,5 +1,4 @@
 #include "SimpleSynthPlugin.h"
-#include <map>
 
 // Helper function for PolyBLEP (Polynomial Band-Limited Step)
 // This technique reduces aliasing by smoothing the waveform discontinuities
@@ -40,7 +39,7 @@ static float poly_blamp(float t, float dt)
         t = (t - 1.0f) / dt + 1.0f;
         return 1.0f / 15.0f * (t * t * t * t * t);
     }
-    
+
     return 0.0f;
 }
 
@@ -112,7 +111,7 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     mixModeParam->attachToCurrentValue(mixModeValue);
 
     setupParam(crossModAmountParam, crossModAmountValue, "crossModAmount", "Cross Mod", {0.0f, 1.0f}, 0.0f);
-    
+
     // Wave Param (Custom String Conversion)
     waveValue.referTo(state, "wave", um, 2.0f);
     waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f},
@@ -150,7 +149,7 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
                                [](float v) { return v > 0.5f ? "SVF (12dB)" : "Ladder (24dB)"; },
                                [](const juce::String& s) { return s.contains("SVF") ? 1.0f : 0.0f; });
     filterTypeParam->attachToCurrentValue(filterTypeValue);
-    
+
     // Filter Params
     setupParam(filterCutoffParam, filterCutoffValue, "cutoff", "Cutoff", {20.0f, 20000.0f, 0.0f, 0.3f}, 20000.0f);
     setupParam(filterResParam, filterResValue, "resonance", "Resonance", {0.0f, 1.0f}, 0.0f);
@@ -169,7 +168,7 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
 {
     state.removeListener(this);
     notifyListenersOfDeletion();
-    
+
     levelParam->detachFromCurrentValue();
     coarseTuneParam->detachFromCurrentValue();
     fineTuneParam->detachFromCurrentValue();
@@ -252,16 +251,16 @@ void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
         v.sampleRate = (float)spec.sampleRate;
         v.adsr.setSampleRate(spec.sampleRate);
         v.filterAdsr.setSampleRate(spec.sampleRate);
-        
+
         v.filter.prepare(spec);
         v.filter.setMode(juce::dsp::LadderFilterMode::LPF24); // 24dB Low Pass
 
         v.svfFilter.prepare(spec);
         v.svfFilter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
-        
+
         v.random.setSeedRandomly();
     }
-        
+
     masterLevelSmoother.reset(spec.sampleRate, (double)levelSmoothingTime);
     cutoffSmoother.reset(spec.sampleRate, (double)cutoffSmoothingTime);
 
@@ -324,12 +323,12 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
         }
     }
 
-    // CRITICAL: Clamp unisonOrder to safe range [1, 5] to prevent loop overflows
+    // Safety clamping unisonOrder to safe range [1, 5] to prevent loop overflows
     int unisonOrder = juce::jlimit(1, 5, (int)audioParams.unisonOrder.load());
-    
+
     float unisonDetuneCents = audioParams.unisonDetune.load();
     float unisonSpread = juce::jlimit(0.0f, 1.0f, audioParams.unisonSpread.load() / 100.0f);
-    
+
     // Safety clamping for filter to ensure stability
     int filterType = juce::jlimit(0, (int)FilterType::numFilterTypes - 1, (int)audioParams.filterType.load());
     float baseCutoff = juce::jlimit(20.0f, 20000.0f, audioParams.filterCutoff.load());
@@ -342,7 +341,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     float osc2Coarse = audioParams.osc2Coarse.load();
     float osc2FineCents = audioParams.osc2Fine.load();
     int waveShape = (int)audioParams.wave.load();
-    
+
     // Ensure waveShape is within valid enum range
     if (waveShape < 0 || waveShape >= Waveform::numWaveforms)
         waveShape = Waveform::saw;
@@ -372,7 +371,7 @@ SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
 {
     Voice* oldestReleaseVoice = nullptr;
     uint32_t oldestReleaseTime = std::numeric_limits<uint32_t>::max();
-    
+
     Voice* oldestVoice = nullptr;
     uint32_t oldestTime = std::numeric_limits<uint32_t>::max();
 
@@ -387,7 +386,7 @@ SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
                 oldestReleaseVoice = &v;
             }
         }
-        
+
         // Candidate 2: Any voice (LRU fallback)
         if (v.noteOnTime < oldestTime)
         {
@@ -399,7 +398,7 @@ SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
     // Prefer stealing a releasing voice over a held voice
     if (oldestReleaseVoice != nullptr)
         return oldestReleaseVoice;
-        
+
     return oldestVoice;
 }
 
@@ -418,8 +417,8 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
         // Sanitize MIDI data
         if (m.isNoteOff())
         {
-            int note = m.getNoteNumber(); // No limit needed for comparison, but good practice
-            
+            int note = m.getNoteNumber();
+
             for (auto& v : voices)
             {
                 if (v.active && v.currentNote == note && v.isKeyDown)
@@ -430,7 +429,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
         {
             int note = juce::jlimit(0, 127, m.getNoteNumber());
             float velocity = juce::jlimit(0.0f, 1.0f, m.getFloatVelocity());
-            
+
             if (velocity > 0.0f)
             {
                 // Increment global note counter for LRU tracking
@@ -469,7 +468,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
     if (unisonOrder != lastUnisonOrder)
     {
         std::map<int, float> notesToRetrigger;
-        
+
         for (auto& v : voices)
         {
             if (v.active && v.isKeyDown)
@@ -480,19 +479,19 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
             if (v.active)
                 v.stop();
         }
-        
+
         float startCutoff = audioParams.filterCutoff.load();
         bool retrigger = audioParams.retrigger.load() > 0.5f;
         for (auto const& [note, vel] : notesToRetrigger)
         {
              triggerNote(note, vel, unisonOrder, retrigger, startCutoff, drive, ampAdsr, filterAdsr);
         }
-        
+
         lastUnisonOrder = unisonOrder;
     }
 
     float tuneSemitones1 = coarseTune + (fineTuneCents / 100.0f);
-    // Decoupled tuning: Osc 2 is relative to Note, not Osc 1. 
+    // Decoupled tuning: Osc 2 is relative to Note, not Osc 1.
     // This allows sweeping Osc 1 independently for Hard Sync effects.
     float tuneSemitones2 = osc2Coarse + (osc2FineCents / 100.0f);
 
@@ -509,7 +508,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
             }
 
             v.currentPan = juce::jlimit(0.0f, 1.0f, 0.5f + (v.unisonBias * 0.5f * unisonSpread));
-            
+
             float cents = v.unisonBias * unisonDetuneCents;
             v.currentDetuneMultiplier = std::exp2f(cents / 1200.0f);
 
@@ -525,7 +524,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
 
             v.filter.setResonance(resonance);
             v.filter.setDrive(drive);
-            
+
             // Map 0.0-1.0 to 0.707-10.0 for SVF Q
             // SVF expects a Q factor where 0.707 is flat (Butterworth)
             float svfQ = svfBaseQ + (resonance * 9.0f);
@@ -549,10 +548,10 @@ inline float SimpleSynthPlugin::generateWaveSample(int waveShape, float phase, f
             {
                 // Naive triangle wave
                 sample = 2.0f * std::abs(2.0f * t - 1.0f) - 1.0f; 
-                
+
                 // Apply PolyBLAMP to smooth the slope changes at t=0.0 and t=0.5
                 sample += poly_blamp(t, dt) * 4.0f;
-                
+
                 float t2 = t + 0.5f;
                 if (t2 >= 1.0f) t2 -= 1.0f;
                 sample -= poly_blamp(t2, dt) * 4.0f;
@@ -592,7 +591,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
     bool osc2On = audioParams.osc2Enabled.load() > 0.5f;
     int osc2WaveShape = (int)audioParams.osc2Wave.load();
     if (osc2WaveShape < 0 || osc2WaveShape >= Waveform::numWaveforms) osc2WaveShape = Waveform::saw;
-    
+
     float osc2Level = audioParams.osc2Level.load();
     int mixMode = (int)audioParams.mixMode.load();
     float crossMod = audioParams.crossModAmount.load();
@@ -613,23 +612,23 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
             if (v.active)
             {
                 const float filterEnv = v.filterAdsr.getNextSample();
-                
+
                 // Logarithmic Modulation (Pitch-based)
                 const float modSemitones = filterEnv * filterEnvAmount * maxFilterSweepSemitones;
                 const float freqMultiplier = std::exp2f(modSemitones / 12.0f);
-                
+
                 const float modulatedCutoff = juce::jlimit(20.0f, 20000.0f, smoothedCutoff * freqMultiplier);
-                
+
                 // --- OSC 2 Generation (Modulator / Second Voice) ---
                 float s2 = 0.0f;
                 if (osc2On)
                 {
                     s2 = generateWaveSample(osc2WaveShape, v.phase2, v.phaseDelta2, v.random);
                 }
-                
+
                 // --- Phase Modifications (Sync / FM) ---
                 float effectivePhase1 = v.phase;
-                
+
                 if (osc2On)
                 {
                     // Hard Sync: Reset Phase 1 if Phase 2 wraps in this step
@@ -646,7 +645,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                     {
                         // Map crossMod to a reasonable modulation index range (0.0 to 4.0 radians approx)
                         effectivePhase1 += (s2 * crossMod * 4.0f); 
-                        
+
                         // Wrap effective phase for lookup correctness
                         while (effectivePhase1 >= juce::MathConstants<float>::twoPi) effectivePhase1 -= juce::MathConstants<float>::twoPi;
                         while (effectivePhase1 < 0.0f) effectivePhase1 += juce::MathConstants<float>::twoPi;
@@ -658,7 +657,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
 
                 // --- Mixing ---
                 float mixedSample = 0.0f;
-                
+
                 // If Osc 2 is Off, we bypass complex mixing logic and just output s1
                 if (!osc2On)
                 {
@@ -678,7 +677,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                                 mixedSample = clean * (1.0f - crossMod) + ring * crossMod;
                             }
                             break;
-                        
+
                         case MixMode::mix:
                         case MixMode::fm: // For FM, we usually just hear the Carrier (Osc 1), but let's allow mixing Osc 2
                         case MixMode::hardSync:
@@ -692,7 +691,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 v.phase += v.phaseDelta;
                 if (v.phase >= juce::MathConstants<float>::twoPi)
                     v.phase -= juce::MathConstants<float>::twoPi;
-                    
+
                 if (osc2On)
                 {
                     v.phase2 += v.phaseDelta2;
@@ -710,7 +709,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                     juce::dsp::ProcessContextReplacing<float> context (block);
                     v.filter.setCutoffFrequencyHz(modulatedCutoff);
                     v.filter.process(context);
-                    
+
                     block.multiplyBy(std::sqrt(drive));
                 }
                 else
@@ -718,13 +717,13 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                     v.svfFilter.setCutoffFrequency(modulatedCutoff);
                     sample = v.svfFilter.processSample(0, sample);
                 }
-                
+
                 JUCE_SNAP_TO_ZERO(sample);
 
                 float adsrGain = v.adsr.getNextSample();
                 if (!v.adsr.isActive())
                     v.active = false;
-                
+
                 float currentGain = adsrGain * v.currentVelocity;
                 l += sample * currentGain * (1.0f - v.currentPan); 
                 r += sample * currentGain * v.currentPan;
@@ -801,7 +800,7 @@ void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, b
                 break;
             }
         }
-        
+
         // 2. If no free voice, steal one!
         if (voiceToUse == nullptr)
         {
@@ -818,7 +817,7 @@ void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, b
                 float spreadAmount = (float)u / (float)(unisonOrder - 1); 
                 bias = (spreadAmount - 0.5f) * 2.0f;
             }
-            
+
             voiceToUse->start(note, velocity, (float)sampleRate, startCutoff, drive, ampParams, filterParams, bias, retrigger, noteCounter);
         }
     }
@@ -831,25 +830,25 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float s
     currentNote = note;
     currentVelocity = velocity;
     noteOnTime = timestamp;
-    
+
     // Check if sample rate has changed significantly or was uninitialized
     // Re-prepare DSP objects if necessary
     if (sampleRate <= 0.0f || std::abs(sampleRate - sr) > 1.0f)
     {
         sampleRate = sr;
-        
+
         juce::dsp::ProcessSpec spec;
         spec.sampleRate = sampleRate;
         spec.maximumBlockSize = 4096;
         spec.numChannels = 1;
-        
+
         svfFilter.prepare(spec);
         svfFilter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
 
         adsr.setSampleRate(sampleRate);
         filterAdsr.setSampleRate(sampleRate);
     }
-    
+
     // Fix for Ladder Filter Snapping:
     // Always re-prepare the Ladder Filter to reset its internal parameter smoothers.
     // Otherwise, it interpolates from the last used cutoff of this voice.
@@ -864,7 +863,7 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float s
         filter.reset(); // Force smoothers to snap to startCutoff
         filter.setMode(juce::dsp::LadderFilterMode::LPF24);
     }
-    
+
     // If Retrigger is On: Reset phase to 0 for punchy attack
     // If Retrigger is Off: Randomize phase for analog feel / less phasing in unison
     if (retrigger)
@@ -877,18 +876,18 @@ void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float s
         phase = random.nextFloat() * juce::MathConstants<float>::twoPi;
         phase2 = random.nextFloat() * juce::MathConstants<float>::twoPi;
     }
-        
+
     unisonBias = bias;
-    
+
     // Reset Filter State
     filter.reset();
     svfFilter.reset();
-    
+
     // Configure and trigger the envelope
     // Note: setSampleRate is already handled above if needed, or in initialise
     adsr.setParameters(ampParams);
     adsr.noteOn();
-    
+
     filterAdsr.setParameters(filterParams);
     filterAdsr.noteOn();
 }
