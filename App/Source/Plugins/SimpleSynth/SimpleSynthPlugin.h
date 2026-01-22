@@ -23,9 +23,6 @@ public:
     bool takesAudioInput() override { return false; }
     bool producesAudioWhenNoAudioInput() override { return true; }
 
-    void getChannelNames (juce::StringArray* ins, juce::StringArray* outs) override;
-    int getNumOutputChannelsGivenInputs (int numInputChannels) override;
-
     void initialise(const te::PluginInitialisationInfo&) override;
     void deinitialise() override;
     void reset() override;
