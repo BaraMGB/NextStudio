@@ -20,16 +20,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "MixerChannelStripComponent.h"
+#include "PresetManagerComponent.h"
 #include "Utilities.h"
+#include <juce_gui_basics/juce_gui_basics.h>
 
 MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::AudioTrack::Ptr at)
     : m_evs(evs)
     , m_track(at)
     , m_volumeSlider(at->getVolumePlugin()->getAutomatableParameterByID("volume"))
     , m_panSlider(at->getVolumePlugin()->getAutomatableParameterByID("pan"))
-    , m_levelMeterLeft(at->getLevelMeterPlugin()->measurer, LevelMeterComponent::ChannelType::Left)
-    , m_levelMeterRight(at->getLevelMeterPlugin()->measurer, LevelMeterComponent::ChannelType::Right)
 {
+    m_presetAdapter = std::make_unique<TrackPresetAdapter>(*m_track, m_evs.m_applicationState);
+    m_presetAdapter->onPresetLoaded = [this] { updateComponentsFromTrack(); };
+
     m_trackName.setText(m_track->getName(), juce::dontSendNotification);
 
     auto trackCol = m_track->getColour();
@@ -48,9 +51,9 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::A
     m_panSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     m_panSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(m_panSlider);
-
-    addAndMakeVisible(m_levelMeterLeft);
-    addAndMakeVisible(m_levelMeterRight);
+    
+    // Initialize meters
+    updateComponentsFromTrack();
 
     m_muteButton.setButtonText("M");
     m_muteButton.onClick = [this] { m_track->setMute(!m_track->isMuted(false)); };
@@ -67,10 +70,46 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::A
         m_armButton.setToggleState (EngineHelpers::isTrackArmed (*m_track), juce::dontSendNotification);
     };
     addAndMakeVisible(m_armButton);
+    
+    m_presetButton.setButtonText("...");
+    m_presetButton.onClick = [this]
+    {
+        auto* presetManager = new PresetManagerComponent(m_presetAdapter.get());
+        presetManager->setSize(300, 100);
+        
+        m_activeCallOutBox = &juce::CallOutBox::launchAsynchronously(std::unique_ptr<juce::Component>(presetManager),
+                                             m_presetButton.getScreenBounds(),
+                                             nullptr);
+    };
+    addAndMakeVisible(m_presetButton);
 }
 
 MixerChannelStripComponent::~MixerChannelStripComponent()
 {
+    if (m_activeCallOutBox != nullptr)
+        m_activeCallOutBox->dismiss();
+}
+
+void MixerChannelStripComponent::updateComponentsFromTrack()
+{
+    // Re-bind sliders
+    if (auto volPlugin = m_track->getVolumePlugin())
+    {
+        m_volumeSlider.setParameter(volPlugin->getAutomatableParameterByID("volume"));
+        m_panSlider.setParameter(volPlugin->getAutomatableParameterByID("pan"));
+    }
+    
+    // Re-create meters (pointers must be updated as underlying Measurer might have changed)
+    if (auto levelPlugin = m_track->getLevelMeterPlugin())
+    {
+        m_levelMeterLeft = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Left);
+        m_levelMeterRight = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Right);
+        
+        addAndMakeVisible(*m_levelMeterLeft);
+        addAndMakeVisible(*m_levelMeterRight);
+    }
+    
+    resized();
 }
 
 void MixerChannelStripComponent::paint (juce::Graphics& g)
@@ -128,7 +167,11 @@ void MixerChannelStripComponent::resized()
     auto area = getLocalBounds();
     area.reduce(3, 3);
 
-    m_trackName.setBounds(area.removeFromTop(20));
+    auto headerArea = area.removeFromTop(20);
+    
+    // Preset button small in the corner
+    m_presetButton.setBounds(headerArea.removeFromRight(20));
+    m_trackName.setBounds(headerArea);
 
     auto buttonArea = area.removeFromTop(20);
     m_muteButton.setBounds(buttonArea.removeFromLeft(buttonArea.getWidth() / 3));
@@ -140,6 +183,9 @@ void MixerChannelStripComponent::resized()
     auto meterWidth = 6;
     m_volumeSlider.setBounds(area);
     area.reduce(area.getWidth()/3, 0);
-    m_levelMeterLeft.setBounds(area.removeFromLeft(meterWidth).reduced(0, 13));
-    m_levelMeterRight.setBounds(area.removeFromRight(meterWidth).reduced(0, 13));
+    
+    if (m_levelMeterLeft)
+        m_levelMeterLeft->setBounds(area.removeFromLeft(meterWidth).reduced(0, 13));
+    if (m_levelMeterRight)
+        m_levelMeterRight->setBounds(area.removeFromRight(meterWidth).reduced(0, 13));
 }

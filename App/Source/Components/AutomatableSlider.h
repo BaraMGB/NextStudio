@@ -29,6 +29,7 @@ public:
     void mouseUp (const juce::MouseEvent& e) override;
 
     te::AutomatableParameter::Ptr getAutomatableParameter();
+    void setParameter(te::AutomatableParameter::Ptr newParam);
     void bindSliderToParameter ();
 
     [[nodiscard]] juce::Colour getTrackColour() const;

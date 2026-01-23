@@ -26,6 +26,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Components/AutomatableSlider.h"
 #include "Components/AutomatableParameter.h"
 #include "LevelMeterComponent.h"
+#include "TrackPresetAdapter.h"
+#include <juce_gui_basics/juce_gui_basics.h>
 
 namespace te = tracktion_engine;
 
@@ -37,6 +39,8 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    
+    void updateComponentsFromTrack();
 
 private:
     EditViewState& m_evs;
@@ -45,10 +49,13 @@ private:
     juce::Label m_trackName;
     AutomatableSliderComponent m_volumeSlider;
     AutomatableSliderComponent m_panSlider;
-    LevelMeterComponent m_levelMeterLeft;
-    LevelMeterComponent m_levelMeterRight;
+    std::unique_ptr<LevelMeterComponent> m_levelMeterLeft;
+    std::unique_ptr<LevelMeterComponent> m_levelMeterRight;
     juce::TextButton m_muteButton, m_soloButton, m_armButton;
-
+    
+    juce::TextButton m_presetButton;
+    std::unique_ptr<TrackPresetAdapter> m_presetAdapter;
+    juce::Component::SafePointer<juce::CallOutBox> m_activeCallOutBox;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MixerChannelStripComponent)
 };
