@@ -626,7 +626,10 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
     if (source == &m_selectionManager && m_editViewState)
     {
         if (m_editViewState->m_applicationState.m_exclusiveMidiFocusEnabled)
-            EngineHelpers::updateMidiInputTargets(*m_editViewState);
+        {
+            GUIHelpers::log("MainComponent: selectionManager changed, calling setMidiInputFocusToSelection.");
+            EngineHelpers::setMidiInputFocusToSelection(*m_editViewState);
+        }
     }
 }
 
@@ -782,7 +785,7 @@ void MainComponent::createTracksAndAssignInputs()
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
         if (auto mip = dm.getMidiInDevice (i))
         {
-            mip->setMonitorMode (te::InputDevice::MonitorMode::on);
+            mip->setMonitorMode (te::InputDevice::MonitorMode::automatic);
             mip->setEnabled (true);
         }
 

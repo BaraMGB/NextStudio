@@ -344,10 +344,19 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     bool isMidiTrack = m_track->state.getProperty (IDs::isMidiTrack);
     at->edit.playInStopEnabled = true;
     juce::PopupMenu m;
-    m.addItem(2001, "rename Track");
-    m.addItem(2000, "delete Track");
-    m.addSeparator();
 
+    auto pencilIcon = std::unique_ptr<juce::Drawable>(juce::Drawable::createFromImageData(BinaryData::pencil_svg, BinaryData::pencil_svgSize));
+    auto deleteIcon = std::unique_ptr<juce::Drawable>(juce::Drawable::createFromImageData(BinaryData::delete_icon_svg, BinaryData::delete_icon_svgSize));
+
+    auto textColour = m_editViewState.m_applicationState.getTextColour();
+    auto iconSourceColour = juce::Colour(0xff626262);
+
+    if (pencilIcon) pencilIcon->replaceColour(iconSourceColour, textColour);
+    if (deleteIcon) deleteIcon->replaceColour(iconSourceColour, textColour);
+
+    m.addItem(2001, "Rename Track", true, false, std::move(pencilIcon));
+    m.addItem(2000, "Delete Track", true, false, std::move(deleteIcon));
+    m.addSeparator();
 
     if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
     {
@@ -358,12 +367,15 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             m.addSeparator();
         }
     }
+
+    juce::PopupMenu inputMenu;
     int id = 0;
+
     if (!isMidiTrack)
     {
         int id = 1;
         auto& dm = at->edit.engine.getDeviceManager();
-        
+
         // Show all available wave input devices from DeviceManager
         for (int i = 0; i < dm.getNumWaveInDevices(); i++)
         {
@@ -383,12 +395,14 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
                         break;
                     }
                 }
-                
-                m.addItem(id++, waveDevice->getName(), isEnabled, ticked);
+
+                inputMenu.addItem(id++, waveDevice->getName(), isEnabled, ticked);
             }
         }
-    m.addSeparator();
-    }else
+        m.addSubMenu("Audio Input", inputMenu);
+        m.addSeparator();
+    }
+    else
     {
         id = 100;
         for (auto instance: at->edit.getAllInputDevices())
@@ -397,8 +411,35 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             {
                 bool ticked = instance->getTargets().contains(at->itemID);
                 bool isEnabled = true; // MIDI inputs can have multiple targets - always enabled
-                m.addItem(id++, instance->getInputDevice().getName(), isEnabled, ticked);
+                inputMenu.addItem(id++, instance->getInputDevice().getName(), isEnabled, ticked);
             }
+        }
+        m.addSubMenu("MIDI Input", inputMenu);
+
+        // MIDI Output Selection
+        if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
+        {
+            juce::PopupMenu outputMenu;
+
+            int outputId = 500;
+            auto& dm = at->edit.engine.getDeviceManager();
+            auto currentOutputID = aut->getOutput().getOutputDeviceID();
+
+            bool isDefault = aut->getOutput().usesDefaultMIDIOut();
+            outputMenu.addItem(outputId++, "Default MIDI Output", true, isDefault);
+
+            for (int i = 0; i < dm.getNumMidiOutDevices(); i++)
+            {
+                if (auto midiDevice = dm.getMidiOutDevice(i))
+                {
+                    if (midiDevice->isEnabled())
+                    {
+                         bool ticked = !isDefault && (midiDevice->getDeviceID() == currentOutputID);
+                         outputMenu.addItem(outputId++, midiDevice->getName(), true, ticked);
+                    }
+                }
+            }
+            m.addSubMenu("MIDI Output", outputMenu);
         }
     }
 
@@ -433,6 +474,37 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
             m_volumeKnob->setTrackColour(m_track->getColour());
 
         repaint();
+    }
+    else if (result >= 500 && !m_track->isFolderTrack())
+    {
+        if (auto aut = dynamic_cast<te::AudioTrack*>(m_track.get()))
+        {
+            auto at = m_track.get();
+            int outputId = 500;
+            if (result == outputId++)
+            {
+                aut->getOutput().setOutputToDefaultDevice(true);
+            }
+            else
+            {
+                auto& dm = at->edit.engine.getDeviceManager();
+                for (int i = 0; i < dm.getNumMidiOutDevices(); i++)
+                {
+                    if (auto midiDevice = dm.getMidiOutDevice(i))
+                    {
+                        if (midiDevice->isEnabled())
+                        {
+                            if (result == outputId)
+                            {
+                                aut->getOutput().setOutputToDeviceID(midiDevice->getDeviceID());
+                                break;
+                            }
+                            outputId++;
+                        }
+                    }
+                }
+            }
+        }
     }
     else if (result >= 100 && !m_track->isFolderTrack())
     {

@@ -1042,7 +1042,7 @@ void EngineHelpers::renderEditToFile(EditViewState& evs, juce::File renderFile, 
 
     te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 }
-void EngineHelpers::updateMidiInputTargets(EditViewState& evs)
+void EngineHelpers::setMidiInputFocusToSelection(EditViewState& evs)
 {
     auto& dm = evs.m_edit.engine.getDeviceManager();
     auto defaultMidi = dm.getDefaultMidiInDevice();
@@ -1060,32 +1060,66 @@ void EngineHelpers::updateMidiInputTargets(EditViewState& evs)
         }
     }
 
-    // Clear all current targets from these instances
-    for (auto* instance : midiInputsToModify)
+    // Identify target tracks from selection
+    juce::Array<te::Track*> targetMidiTracks;
+    for (auto* track : evs.m_selectionManager.getItemsOfType<te::Track>())
     {
-        auto targets = instance->getTargets();
-        for (auto targetID : targets)
+        if (track->isAudioTrack() && track->state.getProperty(IDs::isMidiTrack))
+            targetMidiTracks.add(track);
+    }
+
+    // If no tracks selected, check for clips
+    if (targetMidiTracks.isEmpty())
+    {
+        for (auto* clip : evs.m_selectionManager.getItemsOfType<te::Clip>())
         {
-            [[maybe_unused]]auto result = instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
+            if (auto* track = clip->getTrack())
+                if (track->isAudioTrack() && track->state.getProperty(IDs::isMidiTrack))
+                    targetMidiTracks.addIfNotAlreadyThere(track);
         }
     }
 
-    // Get selected tracks
-    auto selectedTracks = evs.m_selectionManager.getItemsOfType<te::Track>();
+    // CRITICAL: If no new targets identified, we keep the OLD ones to avoid dropouts
+    if (targetMidiTracks.isEmpty())
+        return;
 
-    // Add selected tracks as new targets
-    for (auto* track : selectedTracks)
+    bool contextReallocNeeded = false;
+
+    // Apply changes smartly
+    for (auto* instance : midiInputsToModify)
     {
-        if (track->isAudioTrack() && track->state.getProperty(IDs::isMidiTrack))
+        auto currentTargets = instance->getTargets();
+
+        // Remove targets that are NOT in our new target list
+        for (auto targetID : currentTargets)
         {
-            for (auto* instance : midiInputsToModify)
+            bool isTarget = false;
+            for (auto* track : targetMidiTracks)
+                if (track->itemID == targetID) { isTarget = true; break; }
+
+            if (!isTarget)
+            {
+                [[maybe_unused]]auto result = instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
+                // Removing a target doesn't strictly need reallocation for MIDI stability
+            }
+        }
+
+        // Add targets that ARE in our list but not yet assigned
+        for (auto* track : targetMidiTracks)
+        {
+            if (!currentTargets.contains(track->itemID))
             {
                 [[maybe_unused]]auto result = instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager(), 0);
+                contextReallocNeeded = true; 
             }
         }
     }
 
-    evs.m_edit.getTransport().ensureContextAllocated();
+    if (contextReallocNeeded)
+    {
+        GUIHelpers::log("Utilities: setMidiInputFocusToSelection - New targets added, reallocating context.");
+        evs.m_edit.getTransport().ensureContextAllocated();
+    }
 }
 te::MidiInputDevice* EngineHelpers::getVirtualMidiInputDevice(te::Edit& edit)
 {
