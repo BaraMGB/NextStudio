@@ -226,9 +226,14 @@ static te::Plugin::Ptr getPluginFromList(te::PluginList& list, te::EditItemID id
 
 static bool isPluginHidden(te::Track& t, te::Plugin* p)
 {
-    int index = t.pluginList.indexOf(p);
-    // Exclude internal hidden plugins (usually at the end: Vol+Pan and LevelMeter)
-    return (t.pluginList.size() >= 2 && index >= t.pluginList.size() - 2);
+    if (auto at = dynamic_cast<te::AudioTrack*>(&t))
+    {
+        if (p == at->getVolumePlugin()) return true;
+        if (p == at->getLevelMeterPlugin()) return true;
+        // Also hide Equaliser if it's considered internal/default
+        if (p == at->getEqualiserPlugin()) return true;
+    }
+    return false;
 }
 
 int RackView::getPluginIndexForVisualIndex(int visualIndex) const

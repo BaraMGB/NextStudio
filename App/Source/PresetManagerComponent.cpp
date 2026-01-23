@@ -181,6 +181,11 @@ void PresetManagerComponent::savePreset()
 {
     if (m_pluginInterface == nullptr)
         return;
+        
+    // Capture state immediately before opening any modal dialogs
+    juce::ValueTree pluginState = m_pluginInterface->getPluginState();
+    
+    juce::Component::SafePointer<PresetManagerComponent> safeThis(this);
 
     auto presetDir = getPresetDirectory();
     ensurePresetDirectoryExists();
@@ -190,6 +195,7 @@ void PresetManagerComponent::savePreset()
     if (fc.browseForFileToSave (true))
     {
         juce::File presetFile = fc.getResult();
+
         // Ensure file has the correct extension
         if (!presetFile.hasFileExtension(".nxtpreset"))
         {
@@ -203,7 +209,6 @@ void PresetManagerComponent::savePreset()
 
         if (safePresetName.isEmpty())
         {
-            GUIHelpers::log("Preset name is invalid after sanitization: " + presetName);
             // Optionally, show an alert to the user
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                                                    "Invalid Preset Name",
@@ -214,17 +219,18 @@ void PresetManagerComponent::savePreset()
         // If sanitization changed the name, update the file object to use the new name
         if (safePresetName != presetName)
         {
-            GUIHelpers::log("Preset name '" + presetName + "' was sanitized to '" + safePresetName + "'");
             presetFile = presetFile.getSiblingFile(safePresetName + ".nxtpreset");
         }
 
-        // Get the plugin's current state and use the sanitized name
-        juce::ValueTree pluginState = m_pluginInterface->getPluginState();
+        // Update the name property in the captured state
         pluginState.setProperty("name", safePresetName, nullptr);
 
         if (auto xml = std::unique_ptr<juce::XmlElement>(pluginState.createXml()))
         {
             xml->writeTo(presetFile, {});
+
+            if (safeThis == nullptr)
+                return;
 
             // Refresh preset list after saving
             refreshPresetList();
@@ -249,11 +255,16 @@ void PresetManagerComponent::loadPreset()
 
     auto presetDir = getPresetDirectory();
     ensurePresetDirectoryExists();
+    
+    juce::Component::SafePointer<PresetManagerComponent> safeThis(this);
 
     juce::FileChooser fc ("Load Preset", presetDir, "*.nxtpreset");
 
     if (fc.browseForFileToOpen())
     {
+        if (safeThis == nullptr)
+            return;
+
         juce::File presetFile = fc.getResult();
         if (presetFile.existsAsFile())
         {

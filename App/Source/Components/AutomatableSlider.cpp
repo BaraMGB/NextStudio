@@ -214,6 +214,40 @@ te::AutomatableParameter::Ptr AutomatableSliderComponent::getAutomatableParamete
     return m_automatableParameter;
 }
 
+void AutomatableSliderComponent::setParameter(te::AutomatableParameter::Ptr newParam)
+{
+    if (m_automatableParameter == newParam)
+        return;
+
+    if (m_automatableParameter)
+        m_automatableParameter->removeListener(this);
+
+    m_automatableParameter = newParam;
+
+    if (m_automatableParameter)
+    {
+        m_automatableParameter->addListener(this);
+        bindSliderToParameter();
+        
+        if (auto t = m_automatableParameter->getTrack())
+            m_trackColour = t->getColour();
+            
+        // Reset double click value if available
+        if (auto def = m_automatableParameter->getDefaultValue())
+            setDoubleClickReturnValue(true, *def);
+        else
+            setDoubleClickReturnValue(false, 0.0);
+            
+        updateModDepthVisibility();
+    }
+    else
+    {
+        setEnabled(false);
+    }
+    
+    repaint();
+}
+
 void AutomatableSliderComponent::bindSliderToParameter ()
 {
     const auto v = m_automatableParameter->valueRange;
