@@ -79,6 +79,7 @@ target_sources(${TargetName} PRIVATE
         Source/Plugins/SimpleSynth/SimpleSynthPlugin.cpp
         Source/Plugins/SimpleSynth/SimpleSynthPluginComponent.cpp
         Source/PresetManagerComponent.cpp
+        Source/PresetHelpers.cpp
         Source/FileBrowser.cpp
         Source/HeaderComponent.cpp
         Source/InstrumentEffectChooser.cpp

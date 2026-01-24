@@ -30,14 +30,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 class PresetManagerComponent : public juce::Component
 {
 public:
-    PresetManagerComponent(PluginPresetInterface* pluginInterface);
+    // Constructor requires a valid interface reference. No nullptr possible.
+    explicit PresetManagerComponent(PluginPresetInterface& pluginInterface);
     ~PresetManagerComponent() override = default;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
 
 private:
-    PluginPresetInterface* m_pluginInterface;
+    PluginPresetInterface& m_pluginInterface; // Reference instead of pointer
 
     std::unique_ptr<juce::ComboBox> m_presetCombo;
     std::unique_ptr<juce::TextButton> m_saveButton;
@@ -47,7 +48,6 @@ private:
     void loadPresetFromCombo();
     void savePreset();
     void loadPreset();
-    void loadOrInitialiseDefaultPreset();
     void selectPreset(const juce::String& name);
 
     juce::File getPresetDirectory();

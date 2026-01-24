@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -26,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "FourOscPluginComponent.h"
 #include "RackView.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
+#include "PresetHelpers.h"
 
 //==============================================================================
 ModifierViewComponent::DragHandle::DragHandle()
@@ -555,7 +555,7 @@ RackItemView::RackItemView
 
     if (auto* presetInterface = dynamic_cast<PluginPresetInterface*>(m_pluginComponent.get()))
     {
-        m_presetManager = std::make_unique<PresetManagerComponent>(presetInterface);
+        m_presetManager = std::make_unique<PresetManagerComponent>(*presetInterface);
         addAndMakeVisible(*m_presetManager);
     }
 }
@@ -821,7 +821,7 @@ void FilterPluginComponent::restorePluginState(const juce::ValueTree& state)
 
 juce::String FilterPluginComponent::getPresetSubfolder() const
 {
-    return "Filter";
+    return PresetHelpers::getPluginPresetFolder(*m_plugin);
 }
 
 juce::String FilterPluginComponent::getPluginTypeName() const
@@ -855,7 +855,7 @@ void EqPluginComponent::restorePluginState(const juce::ValueTree& state)
 
 juce::String EqPluginComponent::getPresetSubfolder() const
 {
-    return "EQ";
+    return PresetHelpers::getPluginPresetFolder(*m_plugin);
 }
 
 juce::String EqPluginComponent::getPluginTypeName() const
@@ -887,7 +887,7 @@ void DelayPluginComponent::restorePluginState(const juce::ValueTree& state)
 
 juce::String DelayPluginComponent::getPresetSubfolder() const
 {
-    return "Delay";
+    return PresetHelpers::getPluginPresetFolder(*m_plugin);
 }
 
 juce::String DelayPluginComponent::getPluginTypeName() const
@@ -929,7 +929,7 @@ void VolumePluginComponent::restorePluginState(const juce::ValueTree& state)
 
 juce::String VolumePluginComponent::getPresetSubfolder() const
 {
-    return "Volume";
+    return PresetHelpers::getPluginPresetFolder(*m_plugin);
 }
 
 juce::String VolumePluginComponent::getPluginTypeName() const
@@ -1083,11 +1083,7 @@ void VstPluginComponent::restorePluginState(const juce::ValueTree& state)
 
 juce::String VstPluginComponent::getPresetSubfolder() const
 {
-    if (auto* ep = dynamic_cast<te::ExternalPlugin*>(m_plugin.get()))
-        if (ep->desc.manufacturerName.isNotEmpty())
-            return ep->desc.manufacturerName;
-
-    return "External";
+    return PresetHelpers::getPluginPresetFolder(*m_plugin);
 }
 
 juce::String VstPluginComponent::getPluginTypeName() const
@@ -1139,4 +1135,3 @@ void ParameterComponent::mouseUp(const juce::MouseEvent& e)
 {
     m_isDragged = false;
 }
-

@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "MixerChannelStripComponent.h"
-#include "PresetManagerComponent.h"
 #include "Utilities.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -30,9 +29,6 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::A
     , m_volumeSlider(at->getVolumePlugin()->getAutomatableParameterByID("volume"))
     , m_panSlider(at->getVolumePlugin()->getAutomatableParameterByID("pan"))
 {
-    m_presetAdapter = std::make_unique<TrackPresetAdapter>(*m_track, m_evs.m_applicationState);
-    m_presetAdapter->onPresetLoaded = [this] { updateComponentsFromTrack(); };
-
     m_trackName.setText(m_track->getName(), juce::dontSendNotification);
 
     auto trackCol = m_track->getColour();
@@ -51,7 +47,7 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::A
     m_panSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     m_panSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(m_panSlider);
-    
+
     // Initialize meters
     updateComponentsFromTrack();
 
@@ -70,24 +66,28 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::A
         m_armButton.setToggleState (EngineHelpers::isTrackArmed (*m_track), juce::dontSendNotification);
     };
     addAndMakeVisible(m_armButton);
-    
-    m_presetButton.setButtonText("...");
-    m_presetButton.onClick = [this]
-    {
-        auto* presetManager = new PresetManagerComponent(m_presetAdapter.get());
-        presetManager->setSize(300, 100);
-        
-        m_activeCallOutBox = &juce::CallOutBox::launchAsynchronously(std::unique_ptr<juce::Component>(presetManager),
-                                             m_presetButton.getScreenBounds(),
-                                             nullptr);
-    };
-    addAndMakeVisible(m_presetButton);
+
+    m_track->state.addListener(this);
 }
 
 MixerChannelStripComponent::~MixerChannelStripComponent()
 {
-    if (m_activeCallOutBox != nullptr)
-        m_activeCallOutBox->dismiss();
+    m_track->state.removeListener(this);
+}
+
+void MixerChannelStripComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&)
+{
+    updateComponentsFromTrack();
+}
+
+void MixerChannelStripComponent::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int)
+{
+    updateComponentsFromTrack();
+}
+
+void MixerChannelStripComponent::valueTreeChildOrderChanged (juce::ValueTree&, int, int)
+{
+    updateComponentsFromTrack();
 }
 
 void MixerChannelStripComponent::updateComponentsFromTrack()
@@ -98,17 +98,17 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
         m_volumeSlider.setParameter(volPlugin->getAutomatableParameterByID("volume"));
         m_panSlider.setParameter(volPlugin->getAutomatableParameterByID("pan"));
     }
-    
+
     // Re-create meters (pointers must be updated as underlying Measurer might have changed)
     if (auto levelPlugin = m_track->getLevelMeterPlugin())
     {
         m_levelMeterLeft = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Left);
         m_levelMeterRight = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Right);
-        
+
         addAndMakeVisible(*m_levelMeterLeft);
         addAndMakeVisible(*m_levelMeterRight);
     }
-    
+
     resized();
 }
 
@@ -168,9 +168,8 @@ void MixerChannelStripComponent::resized()
     area.reduce(3, 3);
 
     auto headerArea = area.removeFromTop(20);
-    
-    // Preset button small in the corner
-    m_presetButton.setBounds(headerArea.removeFromRight(20));
+
+    // Track Name takes full width now
     m_trackName.setBounds(headerArea);
 
     auto buttonArea = area.removeFromTop(20);
@@ -183,7 +182,7 @@ void MixerChannelStripComponent::resized()
     auto meterWidth = 6;
     m_volumeSlider.setBounds(area);
     area.reduce(area.getWidth()/3, 0);
-    
+
     if (m_levelMeterLeft)
         m_levelMeterLeft->setBounds(area.removeFromLeft(meterWidth).reduced(0, 13));
     if (m_levelMeterRight)

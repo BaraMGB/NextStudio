@@ -997,7 +997,7 @@ void TrackHeaderComponent::itemDropped(
     {
         if (auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ()))
         {
-            EngineHelpers::insertPlugin (getTrack(), listbox->getSelectedPlugin(m_editViewState.m_edit));
+            EngineHelpers::insertPluginWithPreset (m_editViewState, getTrack(), listbox->getSelectedPlugin(m_editViewState.m_edit));
         }
     }
 
@@ -1005,7 +1005,7 @@ void TrackHeaderComponent::itemDropped(
     {
         if (auto lb = dynamic_cast<InstrumentEffectTable*>(details.sourceComponent.get()))
         {
-            EngineHelpers::insertPlugin (getTrack(), lb->getSelectedPlugin(m_editViewState.m_edit));
+            EngineHelpers::insertPluginWithPreset (m_editViewState, getTrack(), lb->getSelectedPlugin(m_editViewState.m_edit));
         }
     }
 

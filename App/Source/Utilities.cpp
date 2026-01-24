@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "BinaryData.h"
 #include "EditViewState.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
+#include "PresetHelpers.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_graphics/native/juce_EventTracing.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
@@ -2083,6 +2084,66 @@ void EngineHelpers::insertPlugin (te::Track::Ptr track, te::Plugin::Ptr plugin, 
         index = plugins.size() - 2;
     plugin->state.setProperty (te::IDs::remapOnTempoChange, true, nullptr);
     plugins.insertPlugin (plugin->state, index);
+}
+
+// Helper class to bridge te::Plugin to PluginPresetInterface specifically for loading init presets
+class InitPresetLoaderAdapter : public PluginPresetInterface
+{
+public:
+    InitPresetLoaderAdapter(te::Plugin::Ptr p, ApplicationViewState& appState)
+        : m_plugin(p), m_appState(appState) {}
+
+    juce::ValueTree getPluginState() override { return m_plugin->state.createCopy(); }
+    void restorePluginState(const juce::ValueTree& state) override
+    {
+        m_plugin->restorePluginStateFromValueTree(state);
+    }
+    juce::ValueTree getFactoryDefaultState() override { return {}; }
+
+    juce::String getPresetSubfolder() const override
+    {
+        return PresetHelpers::getPluginPresetFolder(*m_plugin);
+    }
+
+    juce::String getPluginTypeName() const override
+    {
+         if (auto* ep = dynamic_cast<te::ExternalPlugin*>(m_plugin.get()))
+            return ep->desc.pluginFormatName + juce::String::toHexString(ep->desc.deprecatedUid).toUpperCase();
+         return m_plugin->getPluginType();
+    }
+
+    ApplicationViewState& getApplicationViewState() override { return m_appState; }
+
+    // Dummies - Not needed for one-shot init loading
+    bool getInitialPresetLoaded() override { return false; }
+    void setInitialPresetLoaded(bool) override {}
+    juce::String getLastLoadedPresetName() override { return {}; }
+    void setLastLoadedPresetName(const juce::String&) override {}
+
+private:
+    te::Plugin::Ptr m_plugin;
+    ApplicationViewState& m_appState;
+};
+
+void EngineHelpers::insertPluginWithPreset(EditViewState& evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index)
+{
+    if (track == nullptr || plugin == nullptr)
+        return;
+
+    auto& plugins = track->pluginList;
+    if (index == -1)
+        index = plugins.size() - 2; // Mimic insertPlugin behavior (before level meter and volume)
+
+    plugin->state.setProperty (te::IDs::remapOnTempoChange, true, nullptr);
+
+    // Insert and capture the new plugin instance
+    auto newPlugin = plugins.insertPlugin (plugin->state, index);
+
+    if (newPlugin)
+    {
+        InitPresetLoaderAdapter adapter(newPlugin, evs.m_applicationState);
+        PresetHelpers::tryLoadInitPreset(adapter);
+    }
 }
 
 // void GUIHelpers::centerView(EditViewState &evs)

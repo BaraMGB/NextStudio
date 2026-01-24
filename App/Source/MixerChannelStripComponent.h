@@ -26,12 +26,12 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Components/AutomatableSlider.h"
 #include "Components/AutomatableParameter.h"
 #include "LevelMeterComponent.h"
-#include "TrackPresetAdapter.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace te = tracktion_engine;
 
 class MixerChannelStripComponent  : public juce::Component
+                                  , public juce::ValueTree::Listener
 {
 public:
     MixerChannelStripComponent(EditViewState& evs, te::AudioTrack::Ptr at);
@@ -41,6 +41,13 @@ public:
     void resized() override;
     
     void updateComponentsFromTrack();
+    
+    // ValueTree::Listener overrides
+    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override {}
+    void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
+    void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
+    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
+    void valueTreeParentChanged (juce::ValueTree&) override {}
 
 private:
     EditViewState& m_evs;
@@ -52,10 +59,6 @@ private:
     std::unique_ptr<LevelMeterComponent> m_levelMeterLeft;
     std::unique_ptr<LevelMeterComponent> m_levelMeterRight;
     juce::TextButton m_muteButton, m_soloButton, m_armButton;
-    
-    juce::TextButton m_presetButton;
-    std::unique_ptr<TrackPresetAdapter> m_presetAdapter;
-    juce::Component::SafePointer<juce::CallOutBox> m_activeCallOutBox;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MixerChannelStripComponent)
 };
