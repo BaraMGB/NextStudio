@@ -1,4 +1,5 @@
 #include "SimpleSynthPlugin.h"
+#include "../../Utilities.h"
 
 // Helper function for PolyBLEP (Polynomial Band-Limited Step)
 // This technique reduces aliasing by smoothing the waveform discontinuities
@@ -363,18 +364,6 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 
     // 1. MIDI Processing
     processMidiMessages(fc.bufferForMidiMessages, adsrParams, filterAdsrParams);
-
-    // 2. Transport Stop: Silence Tails continuously
-    // If the transport is NOT playing, we want to kill any release tails immediately.
-    // Live playing (holding keys) is still allowed because we check !v.isKeyDown.
-    if (!isPlaying)
-    {
-        for (auto& v : voices)
-        {
-            if (v.active && !v.isKeyDown)
-                v.kill();
-        }
-    }
 
     lastWasPlaying = isPlaying;
 
