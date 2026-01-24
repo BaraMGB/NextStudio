@@ -34,11 +34,11 @@ private:
     SimpleSynthPlugin& m_plugin;
     ApplicationViewState& m_appState;
     int m_oscIndex;
-    
+
     AutomatableChoiceComponent m_waveComp;
     AutomatableParameterComponent m_coarseTuneComp;
     AutomatableParameterComponent m_fineTuneComp;
-    
+
     // Osc 1 Specific
     std::unique_ptr<AutomatableParameterComponent> m_unisonOrderComp;
     std::unique_ptr<AutomatableParameterComponent> m_unisonDetuneComp;
@@ -50,7 +50,7 @@ private:
     std::unique_ptr<AutomatableToggleComponent> m_enabledComp;
     std::unique_ptr<AutomatableChoiceComponent> m_mixModeComp;
     std::unique_ptr<AutomatableParameterComponent> m_crossModComp;
-    
+
     juce::Label m_nameLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthOscSection)
@@ -76,10 +76,31 @@ private:
     AutomatableParameterComponent m_resComp;
     AutomatableParameterComponent m_driveComp;
     AutomatableParameterComponent m_envAmountComp;
-    
+
     juce::Label m_nameLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthFilterSection)
+};
+
+//==============================================================================
+class SimpleSynthEnvelopeDisplay : public juce::Component
+{
+public:
+    SimpleSynthEnvelopeDisplay(te::AutomatableParameter::Ptr attack,
+                               te::AutomatableParameter::Ptr decay,
+                               te::AutomatableParameter::Ptr sustain,
+                               te::AutomatableParameter::Ptr release);
+    ~SimpleSynthEnvelopeDisplay() override = default;
+
+    void paint(juce::Graphics& g) override;
+
+    void setColour(juce::Colour c) { m_colour = c; repaint(); }
+
+private:
+    te::AutomatableParameter::Ptr m_attack, m_decay, m_sustain, m_release;
+    juce::Colour m_colour = juce::Colours::white;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthEnvelopeDisplay)
 };
 
 //==============================================================================
@@ -91,16 +112,19 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    void updateUI();
 
 private:
     SimpleSynthPlugin& m_plugin;
     ApplicationViewState& m_appState;
 
+    SimpleSynthEnvelopeDisplay m_display;
+
     AutomatableEnvelopeParameter m_attackComp;
     AutomatableEnvelopeParameter m_decayComp;
     AutomatableEnvelopeParameter m_sustainComp;
     AutomatableEnvelopeParameter m_releaseComp;
-    
+
     juce::Label m_nameLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthEnvSection)
@@ -116,7 +140,7 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
-    
+
     int getNeededWidth() override { return 7; } 
 
     // PluginPresetInterface implementation
@@ -142,7 +166,7 @@ private:
     SimpleSynthFilterSection m_filterSection;
     SimpleSynthEnvSection m_ampEnvSection;
     SimpleSynthEnvSection m_filterEnvSection;
-    
+
     // Master
     AutomatableSliderComponent m_levelSlider;
     juce::Label m_levelLabel;
