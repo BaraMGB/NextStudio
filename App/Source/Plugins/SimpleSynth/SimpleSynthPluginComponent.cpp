@@ -11,6 +11,81 @@
 #include "SimpleSynthPluginComponent.h"
 
 //==============================================================================
+// SimpleSynthEnvelopeDisplay
+//==============================================================================
+
+SimpleSynthEnvelopeDisplay::SimpleSynthEnvelopeDisplay(te::AutomatableParameter::Ptr attack,
+                                                       te::AutomatableParameter::Ptr decay,
+                                                       te::AutomatableParameter::Ptr sustain,
+                                                       te::AutomatableParameter::Ptr release)
+    : m_attack(attack), m_decay(decay), m_sustain(sustain), m_release(release)
+{
+}
+
+void SimpleSynthEnvelopeDisplay::paint(juce::Graphics& g)
+{
+    g.fillAll(juce::Colours::black.withAlpha(0.2f));
+
+    auto area = getLocalBounds().toFloat();
+    auto w = area.getWidth();
+    auto h = area.getHeight();
+
+    // Get normalized values (0.0 - 1.0)
+    float a = m_attack->getCurrentNormalisedValue();
+    float d = m_decay->getCurrentNormalisedValue();
+    float s = m_sustain->getCurrentNormalisedValue();
+    float r = m_release->getCurrentNormalisedValue();
+
+    // Define relative widths for visualization
+    // We add a base width so 0 values are still slightly visible or at least logic holds
+    // But let's just use the values directly + a constant for Sustain
+
+    // A, D, R width based on parameter. Sustain is fixed width.
+    float sWidth = 0.2f; 
+
+    // Normalize widths to total available width
+    float totalUnits = a + d + sWidth + r;
+    if (totalUnits < 0.1f) totalUnits = 0.1f; // Prevent div by zero
+
+    float scaleX = w / totalUnits;
+
+    float xA = a * scaleX;
+    float xD = d * scaleX;
+    float xS = sWidth * scaleX;
+    float xR = r * scaleX;
+
+    juce::Path p;
+    p.startNewSubPath(area.getX(), h); // Start at bottom-left
+
+    // Attack phase: up to peak (0)
+    p.lineTo(xA, area.getY());
+
+    // Decay phase: down to sustain level
+    // Y is inverted (0 is top, h is bottom)
+    // Sustain level s=1 means top (0), s=0 means bottom (h)
+    float susY = h * (1.0f - s);
+    p.lineTo(xA + xD, susY);
+
+    // Sustain phase: hold level
+    p.lineTo(xA + xD + xS, susY);
+
+    // Release phase: down to zero
+    p.lineTo(xA + xD + xS + xR, h);
+
+    // Close path for filling
+    p.lineTo(area.getX(), h);
+    p.closeSubPath();
+
+    // Draw Fill
+    g.setColour(m_colour.withAlpha(0.3f));
+    g.fillPath(p);
+
+    // Draw Outline
+    g.setColour(m_colour);
+    g.strokePath(p, juce::PathStrokeType(2.0f));
+}
+
+//==============================================================================
 // SimpleSynthOscSection
 //==============================================================================
 
@@ -74,7 +149,7 @@ void SimpleSynthOscSection::paint(juce::Graphics& g)
 {
     auto area = getLocalBounds().reduced(5);
     auto cornerSize = 10.0f;
-    
+
     // Background
     g.setColour(m_appState.getBackgroundColour1());
     GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
@@ -105,7 +180,7 @@ void SimpleSynthOscSection::resized()
     m_nameLabel.setBounds(header);
     m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
     m_nameLabel.setTransform(juce::AffineTransform()); // Reset transform just in case
-    
+
     area.reduce(0, 5); // Some padding below header
 
     // Calculate row height based on remaining area
@@ -146,15 +221,15 @@ void SimpleSynthOscSection::resized()
         // Middle Row: Level | Tune | Fine
         auto rowMid = area.removeFromTop(rowHeight);
         auto midWidth = rowMid.getWidth() / 3;
-        
+
         if (m_levelComp) m_levelComp->setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
         m_coarseTuneComp.setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
         m_fineTuneComp.setBounds(rowMid.reduced(2));
-        
+
         // Bottom Row: Mix Mode | Cross Mod
         auto rowBottom = area;
         auto botWidth = rowBottom.getWidth() / 2;
-        
+
         if (m_mixModeComp) m_mixModeComp->setBounds(rowBottom.removeFromLeft(botWidth).reduced(2));
         if (m_crossModComp) m_crossModComp->setBounds(rowBottom.reduced(2));
     }
@@ -183,7 +258,7 @@ SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin& plugin, Ap
     addAndMakeVisible(m_resComp);
     addAndMakeVisible(m_driveComp);
     addAndMakeVisible(m_envAmountComp);
-    
+
     updateUI();
 }
 
@@ -214,20 +289,20 @@ void SimpleSynthFilterSection::resized()
     m_nameLabel.setBounds(header);
     m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
     m_nameLabel.setTransform(juce::AffineTransform());
-    
+
     area.reduce(0, 5);
 
     auto rowHeight = area.getHeight() / 3;
-    
+
     // Row 1: Type
     m_filterTypeComp.setBounds(area.removeFromTop(rowHeight).reduced(2));
-    
+
     // Row 2: Cutoff, Res
     auto row2 = area.removeFromTop(rowHeight);
     auto halfWidth = row2.getWidth() / 2;
     m_cutoffComp.setBounds(row2.removeFromLeft(halfWidth).reduced(2));
     m_resComp.setBounds(row2.reduced(2));
-    
+
     // Row 3: Drive, EnvAmt
     auto row3 = area;
     m_driveComp.setBounds(row3.removeFromLeft(halfWidth).reduced(2));
@@ -247,6 +322,10 @@ void SimpleSynthFilterSection::updateUI()
 SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState, const juce::String& name, bool isFilterEnv)
     : m_plugin(plugin)
     , m_appState(appState)
+    , m_display(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam,
+                isFilterEnv ? plugin.filterDecayParam : plugin.decayParam,
+                isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam,
+                isFilterEnv ? plugin.filterReleaseParam : plugin.releaseParam)
     , m_attackComp(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam, "A")
     , m_decayComp(isFilterEnv ? plugin.filterDecayParam : plugin.decayParam, "D")
     , m_sustainComp(isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam, "S")
@@ -256,6 +335,8 @@ SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin& plugin, Applicat
     m_nameLabel.setJustificationType(juce::Justification::centred);
     m_nameLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(m_nameLabel);
+
+    addAndMakeVisible(m_display);
 
     addAndMakeVisible(m_attackComp);
     addAndMakeVisible(m_decayComp);
@@ -274,6 +355,9 @@ void SimpleSynthEnvSection::paint(juce::Graphics& g)
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
     m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
+    // Update display colour to match track
+    m_display.setColour(trackColour);
+
     auto header = area.removeFromTop(20);
     g.setColour(trackColour);
     GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
@@ -290,14 +374,23 @@ void SimpleSynthEnvSection::resized()
     m_nameLabel.setBounds(header);
     m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
     m_nameLabel.setTransform(juce::AffineTransform());
-    
+
     area.reduce(0, 5);
+
+    // Reserve top half for display
+    auto displayHeight = area.getHeight() * 0.4f;
+    m_display.setBounds(area.removeFromTop(displayHeight).reduced(4));
 
     auto paramWidth = area.getWidth() / 4;
     m_attackComp.setBounds(area.removeFromLeft(paramWidth).reduced(2));
     m_decayComp.setBounds(area.removeFromLeft(paramWidth).reduced(2));
     m_sustainComp.setBounds(area.removeFromLeft(paramWidth).reduced(2));
     m_releaseComp.setBounds(area.reduced(2));
+}
+
+void SimpleSynthEnvSection::updateUI()
+{
+    m_display.repaint();
 }
 
 //==============================================================================
@@ -315,20 +408,20 @@ SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState& evs, te::P
     , m_levelSlider(*m_synth->levelParam)
 {
     jassert(m_synth != nullptr);
-    
+
     addAndMakeVisible(m_osc1Section);
     addAndMakeVisible(m_osc2Section);
     addAndMakeVisible(m_filterSection);
     addAndMakeVisible(m_ampEnvSection);
     addAndMakeVisible(m_filterEnvSection);
-    
+
     m_levelSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(m_levelSlider);
-    
+
     m_levelLabel.setText("Master", juce::dontSendNotification);
     m_levelLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(m_levelLabel);
-    
+
     p->state.addListener(this);
 }
 
@@ -347,30 +440,30 @@ void SimpleSynthPluginComponent::paint(juce::Graphics& g)
 void SimpleSynthPluginComponent::resized()
 {
     auto area = getLocalBounds().reduced(5);
-    
+
     // Master Section (Right Side)
     auto masterArea = area.removeFromRight(60);
     m_levelLabel.setBounds(masterArea.removeFromBottom(20));
     m_levelSlider.setBounds(masterArea);
-    
+
     area.removeFromRight(5); // Spacing
-    
+
     // New Layout: Osc 1 (25%) | Osc 2 (20%) | Mix (10%) | Filter (25%) | Envs (20%)
-    
+
     // We have roughly 900-1000px usually.
     // Let's divide based on content.
-    
+
     auto totalWidth = area.getWidth();
     int osc1W = totalWidth * 0.22f;
     int osc2W = totalWidth * 0.22f; // Now larger to hold mix controls
     // Mix Section removed
     int filterW = totalWidth * 0.22f;
     // Remainder for Envs (~22%)
-    
+
     m_osc1Section.setBounds(area.removeFromLeft(osc1W));
     m_osc2Section.setBounds(area.removeFromLeft(osc2W));
     m_filterSection.setBounds(area.removeFromLeft(filterW));
-    
+
     auto envArea = area;
     auto envHeight = envArea.getHeight() / 2;
     m_ampEnvSection.setBounds(envArea.removeFromTop(envHeight).reduced(0, 2));
@@ -382,6 +475,8 @@ void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree&, cons
     m_osc1Section.updateUI();
     m_osc2Section.updateUI();
     m_filterSection.updateUI();
+    m_ampEnvSection.updateUI();
+    m_filterEnvSection.updateUI();
 }
 
 // PluginPresetInterface implementation
@@ -394,7 +489,7 @@ juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
 {
     juce::ValueTree defaultState("PLUGIN");
     defaultState.setProperty("type", SimpleSynthPlugin::xmlTypeName, nullptr);
-    
+
     // Helper to set property from CachedValue default
     auto add = [&](const juce::String& id, const auto& cachedValue) {
         defaultState.setProperty(id, cachedValue.getDefault(), nullptr);
@@ -403,7 +498,7 @@ juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
     add("level", m_synth->levelValue);
     add("coarseTune", m_synth->coarseTuneValue);
     add("fineTune", m_synth->fineTuneValue);
-    
+
     add("osc2Enabled", m_synth->osc2EnabledValue);
     add("osc2Wave", m_synth->osc2WaveValue);
     add("osc2Coarse", m_synth->osc2CoarseValue);
@@ -411,18 +506,18 @@ juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
     add("osc2Level", m_synth->osc2LevelValue);
     add("mixMode", m_synth->mixModeValue);
     add("crossModAmount", m_synth->crossModAmountValue);
-    
+
     add("wave", m_synth->waveValue);
     add("attack", m_synth->attackValue);
     add("decay", m_synth->decayValue);
     add("sustain", m_synth->sustainValue);
     add("release", m_synth->releaseValue);
-    
+
     add("unisonOrder", m_synth->unisonOrderValue);
     add("unisonDetune", m_synth->unisonDetuneValue);
     add("unisonSpread", m_synth->unisonSpreadValue);
     add("retrigger", m_synth->retriggerValue);
-    
+
     add("filterType", m_synth->filterTypeValue);
     add("cutoff", m_synth->filterCutoffValue);
     add("resonance", m_synth->filterResValue);
