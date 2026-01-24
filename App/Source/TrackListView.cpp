@@ -97,7 +97,7 @@ void TrackListView::itemDropped(
         if (auto listbox = dynamic_cast<PluginListbox*>(dragSourceDetails.sourceComponent.get ()))
         {
             auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
-            EngineHelpers::insertPlugin (track, listbox->getSelectedPlugin(m_editViewState.m_edit));
+            EngineHelpers::insertPluginWithPreset (m_editViewState, track, listbox->getSelectedPlugin(m_editViewState.m_edit));
         }
     }
 
@@ -106,7 +106,7 @@ void TrackListView::itemDropped(
         if (auto lb = dynamic_cast<InstrumentEffectTable*>(dragSourceDetails.sourceComponent.get()))
         {
             auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
-            EngineHelpers::insertPlugin (track, lb->getSelectedPlugin(m_editViewState.m_edit));
+            EngineHelpers::insertPluginWithPreset (m_editViewState, track, lb->getSelectedPlugin(m_editViewState.m_edit));
         }
     }
 }

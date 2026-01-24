@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -107,7 +106,14 @@ void LowerRangeComponent::resized()
 
     m_splitter.setBounds (splitter);
 
-    m_tabBar.setBounds(area.removeFromLeft(70));
+    auto leftArea = area.removeFromLeft(70);
+    auto presetArea = leftArea.removeFromTop(100);
+    if (m_presetManager)
+    {
+        m_presetManager->setBounds(presetArea);
+    }
+    m_tabBar.setBounds(leftArea);
+
     m_rackView.setBounds(area);
     m_mixer.setBounds(area);
 
@@ -115,6 +121,41 @@ void LowerRangeComponent::resized()
     {
         m_pianoRollEditor.setBounds (area);
     }
+}
+
+void LowerRangeComponent::updatePresetManager(te::Track* track)
+{
+    if (auto audioTrack = dynamic_cast<te::AudioTrack*>(track))
+    {
+        // Safety check: If we already have an adapter for THIS track, don't recreate it.
+        if (m_presetAdapter != nullptr && &m_presetAdapter->getTrack() == audioTrack)
+            return;
+
+        // Strict Ownership Protocol (Lifecycle Management):
+        // The PresetManagerComponent holds a reference to the TrackPresetAdapter.
+        // Therefore, the Manager MUST be destroyed BEFORE the Adapter to avoid dangling references.
+        if (m_presetManager)
+        {
+            removeChildComponent(m_presetManager.get());
+            m_presetManager.reset();
+        }
+        m_presetAdapter.reset();
+
+        m_presetAdapter = std::make_unique<TrackPresetAdapter>(*audioTrack, m_evs.m_applicationState);
+
+        m_presetManager = std::make_unique<PresetManagerComponent>(*m_presetAdapter);
+        addAndMakeVisible(*m_presetManager);
+    }
+    else
+    {
+        if (m_presetManager)
+        {
+            removeChildComponent(m_presetManager.get());
+            m_presetManager.reset();
+        }
+        m_presetAdapter.reset();
+    }
+    resized();
 }
 
 void LowerRangeComponent::updateView()
@@ -147,6 +188,8 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
                 GUIHelpers::log("LowerRangeComponent valueTreePropertyChanged ", track->getName());
                 if ((bool)v.getProperty(IDs::showLowerRange) == true)
                 {
+                    updatePresetManager(track);
+
                     if (m_evs.getLowerRangeView() == LowerRangeView::midiEditor)
                     {
                         m_pianoRollEditor.setTrack(track);
@@ -181,6 +224,7 @@ void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &v, juce::ValueTre
         {
             m_rackView.setTrack(track);
             m_rackView.setVisible(true);
+            updatePresetManager(track);
         }
     }
     resized ();
@@ -190,7 +234,16 @@ void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &v, juce::ValueTre
 void LowerRangeComponent::valueTreeChildRemoved(juce::ValueTree &v, juce::ValueTree &i, int)
 {
     if (i.getProperty(te::IDs::id).toString() == m_rackView.getCurrentTrackID())
+    {
         m_rackView.clearTrack();
+
+        if (m_presetManager)
+        {
+            removeChildComponent(m_presetManager.get());
+            m_presetManager.reset();
+        }
+        m_presetAdapter.reset();
+    }
 
     resized ();
     repaint ();
@@ -201,4 +254,3 @@ void LowerRangeComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int
     resized ();
     repaint ();
 }
-

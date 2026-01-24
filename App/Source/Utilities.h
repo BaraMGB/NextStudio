@@ -387,6 +387,10 @@ namespace EngineHelpers
 
     void insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
 
+    // Inserts a plugin and tries to load its 'init' preset if available.
+    // Use this for UI interactions where user adds a new plugin.
+    void insertPluginWithPreset(EditViewState& evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
+
     template<typename ClipType>
     typename ClipType::Ptr loopAroundClip (ClipType& clip)
     {

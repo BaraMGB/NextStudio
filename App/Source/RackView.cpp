@@ -360,7 +360,7 @@ void RackView::buttonClicked(juce::Button* button)
                             targetPluginIndex++;
                     }
 
-                    EngineHelpers::insertPlugin (m_track, plugin, targetPluginIndex);
+                    EngineHelpers::insertPluginWithPreset (m_evs, m_track, plugin, targetPluginIndex);
 
                     // Update Rack Order
                     order.insert(visualIndex, plugin->itemID.toString());
@@ -548,10 +548,10 @@ void RackView::itemDropped(
 
     if  (details.description == "PluginListEntry")
         if (auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ()))
-            EngineHelpers::insertPlugin (track, listbox->getSelectedPlugin(m_evs.m_edit));
+            EngineHelpers::insertPluginWithPreset (m_evs, track, listbox->getSelectedPlugin(m_evs.m_edit));
     if (details.description == "Instrument or Effect")
         if (auto lb = dynamic_cast<InstrumentEffectTable*>(details.sourceComponent.get()))
-            EngineHelpers::insertPlugin (track, lb->getSelectedPlugin(m_evs.m_edit));
+            EngineHelpers::insertPluginWithPreset (m_evs, track, lb->getSelectedPlugin(m_evs.m_edit));
 
     m_isOver = false;
     repaint();
@@ -580,7 +580,7 @@ void AddButton::itemDropped(const SourceDetails& dragSourceDetails)
                     if (plugin)
                     {
                         // Insert the plugin into the engine at the calculated index
-                        EngineHelpers::insertPlugin (m_track, plugin, targetPluginIndex);
+                        EngineHelpers::insertPluginWithPreset (pluginRackComp->getEditViewState(), m_track, plugin, targetPluginIndex);
 
                         // Update the custom rack order to include the new plugin's ID at the correct visual position
                         order.insert(visualIndex, plugin->itemID.toString());

@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "FourOscPluginComponent.h"
+#include "PresetHelpers.h"
 
 OscComponent::OscComponent(te::FourOscPlugin::OscParams& params, juce::Colour colorToUse)
     : m_params(params)
@@ -668,7 +669,7 @@ void FourOscPluginComponent::restorePluginState(const juce::ValueTree& state)
 
 juce::String FourOscPluginComponent::getPresetSubfolder() const
 {
-    return "FourOSC";
+    return PresetHelpers::getPluginPresetFolder(*m_fourOscPlugin);
 }
 
 juce::String FourOscPluginComponent::getPluginTypeName() const

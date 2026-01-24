@@ -70,6 +70,8 @@ public:
 
     void clearDragSource() { m_dragSource = nullptr; repaint(); }
 
+    EditViewState& getEditViewState() { return m_evs; }
+
 private:
     void valueTreeChanged() override {}
     void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;

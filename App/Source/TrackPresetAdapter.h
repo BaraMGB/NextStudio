@@ -12,6 +12,7 @@
 
 #include "PluginPresetInterface.h"
 #include <tracktion_engine/tracktion_engine.h>
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
@@ -24,7 +25,46 @@ public:
         m_initialPresetLoaded = true; // Prevent loading "init" preset automatically, preserving current track state
     }
 
-    std::function<void()> onPresetLoaded;
+    /**
+     * Recursively traverses the ValueTree and removes automation data (curves).
+     * This is used to ensure that presets don't accidentally contain song-specific automation.
+     * Uses an iterative approach (stack-based) to prevent stack overflow on deep trees.
+     */
+    static void sanitiseState(juce::ValueTree v, juce::UndoManager* um = nullptr)
+    {
+        // Iterative approach to avoid stack overflow with deep trees
+        std::vector<juce::ValueTree> nodesToProcess;
+        nodesToProcess.reserve(64);
+        nodesToProcess.push_back(v);
+
+        int safeguard = 0;
+        const int maxNodes = 20000; // Emergency brake for extremely deep/large trees
+
+        while (!nodesToProcess.empty())
+        {
+            if (++safeguard > maxNodes)
+            {
+                // In a real scenario, we might want to log this
+                break;
+            }
+
+            auto current = nodesToProcess.back();
+            nodesToProcess.pop_back();
+
+            for (int i = current.getNumChildren(); --i >= 0;)
+            {
+                auto child = current.getChild(i);
+                if (child.hasType(te::IDs::AUTOMATIONCURVE))
+                {
+                    current.removeChild(i, um);
+                }
+                else
+                {
+                    nodesToProcess.push_back(child);
+                }
+            }
+        }
+    }
 
     juce::ValueTree getPluginState() override
     {
@@ -45,7 +85,9 @@ public:
                 plugin == m_track.getEqualiserPlugin())
                 continue;
              
-             pluginsTree.addChild(plugin->state.createCopy(), -1, nullptr);
+             auto pState = plugin->state.createCopy();
+             sanitiseState(pState);
+             pluginsTree.addChild(pState, -1, nullptr);
         }
         state.addChild(pluginsTree, -1, nullptr);
 
@@ -53,7 +95,11 @@ public:
         {
              juce::ValueTree modsTree("MODIFIERS");
              for (auto mod : ml->getModifiers())
-                 modsTree.addChild(mod->state.createCopy(), -1, nullptr);
+             {
+                 auto mState = mod->state.createCopy();
+                 sanitiseState(mState);
+                 modsTree.addChild(mState, -1, nullptr);
+             }
              
              state.addChild(modsTree, -1, nullptr);
         }
@@ -65,6 +111,9 @@ public:
     {
         if (state.getProperty("type").toString() != getPluginTypeName())
             return;
+
+        // Clear existing automation to prevent conflicts with the new preset state
+        sanitiseState(m_track.state, &m_track.edit.getUndoManager());
 
         if (auto volPlugin = m_track.getVolumePlugin())
         {
@@ -84,8 +133,16 @@ public:
              auto modsTree = state.getChildWithName("MODIFIERS");
              if (modsTree.isValid())
              {
+                 int insertIndex = 0;
                  for (const auto& mState : modsTree)
-                     ml->insertModifier(mState, -1, nullptr);
+                 {
+                     if (te::ModifierList::isModifier(mState.getType()))
+                     {
+                         auto mStateCopy = mState.createCopy();
+                         sanitiseState(mStateCopy);
+                         ml->insertModifier(mStateCopy, insertIndex++, nullptr);
+                     }
+                 }
              }
         }
 
@@ -105,11 +162,12 @@ public:
         {
             int insertIndex = 0;
             for (const auto& pState : pluginsTree)
-                m_track.pluginList.insertPlugin(pState, insertIndex++);
+            {
+                auto pStateCopy = pState.createCopy();
+                sanitiseState(pStateCopy);
+                m_track.pluginList.insertPlugin(pStateCopy, insertIndex++);
+            }
         }
-        
-        if (onPresetLoaded)
-            onPresetLoaded();
     }
 
     juce::ValueTree getFactoryDefaultState() override
@@ -133,6 +191,8 @@ public:
     juce::String getPresetSubfolder() const override { return "TrackPresets"; }
     juce::String getPluginTypeName() const override { return "AudioTrack"; }
     ApplicationViewState& getApplicationViewState() override { return m_appState; }
+
+    te::AudioTrack& getTrack() const { return m_track; }
 
 private:
     te::AudioTrack& m_track;
