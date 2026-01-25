@@ -104,7 +104,7 @@ RackView::RackView (EditViewState& evs)
 
     m_contentComp = std::make_unique<RackContentComponent>(*this);
     m_viewport.setViewedComponent(m_contentComp.get(), false);
-    m_viewport.setScrollBarsShown(false, true);
+    m_viewport.setScrollBarsShown(false, true, false, true);
     addAndMakeVisible(m_viewport);
 }
 
@@ -262,21 +262,12 @@ void RackView::resized()
 
     m_viewport.setBounds(area);
     
-    // 1. Try with full height
-    m_contentComp->setSize(m_contentComp->getWidth(), m_viewport.getHeight());
-    m_contentComp->refreshButtonsAndLayout();
+    // Always account for the horizontal scrollbar thickness since it's permanently shown
+    int scrollH = m_viewport.getScrollBarThickness();
+    int contentHeight = juce::jmax(0, m_viewport.getHeight() - scrollH);
 
-    // 2. If content is wider than viewport, we need a scrollbar. 
-    // Reduce height by scrollbar thickness and relayout.
-    if (m_contentComp->getWidth() > m_viewport.getWidth())
-    {
-        int scrollH = m_viewport.getScrollBarThickness();
-        if (m_viewport.getHeight() > scrollH)
-        {
-             m_contentComp->setSize(m_contentComp->getWidth(), m_viewport.getHeight() - scrollH);
-             m_contentComp->refreshButtonsAndLayout();
-        }
-    }
+    m_contentComp->setSize(m_contentComp->getWidth(), contentHeight);
+    m_contentComp->refreshButtonsAndLayout();
 }
 
 juce::StringArray RackView::getRackOrder() const
