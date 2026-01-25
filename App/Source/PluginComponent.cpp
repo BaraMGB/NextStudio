@@ -847,7 +847,9 @@ void FilterPluginComponent::updateLabel (juce::UndoManager& um)
 
 juce::ValueTree FilterPluginComponent::getPluginState()
 {
-    return m_plugin->state.createCopy();
+    auto state = m_plugin->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
 }
 
 juce::ValueTree FilterPluginComponent::getFactoryDefaultState()
@@ -883,7 +885,9 @@ ApplicationViewState& FilterPluginComponent::getApplicationViewState()
 
 juce::ValueTree EqPluginComponent::getPluginState()
 {
-    return m_plugin->state.createCopy();
+    auto state = m_plugin->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
 }
 
 juce::ValueTree EqPluginComponent::getFactoryDefaultState()
@@ -915,7 +919,9 @@ ApplicationViewState& EqPluginComponent::getApplicationViewState()
 
 juce::ValueTree DelayPluginComponent::getPluginState()
 {
-    return m_plugin->state.createCopy();
+    auto state = m_plugin->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
 }
 
 juce::ValueTree DelayPluginComponent::getFactoryDefaultState()
@@ -957,7 +963,9 @@ VolumePluginComponent::VolumePluginComponent(EditViewState& evs, te::Plugin::Ptr
 
 juce::ValueTree VolumePluginComponent::getPluginState()
 {
-    return m_plugin->state.createCopy();
+    auto state = m_plugin->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
 }
 
 juce::ValueTree VolumePluginComponent::getFactoryDefaultState()
@@ -1106,7 +1114,9 @@ ApplicationViewState& VstPluginComponent::getApplicationViewState()
 
 juce::ValueTree VstPluginComponent::getPluginState()
 {
-    return m_plugin->state.createCopy();
+    auto state = m_plugin->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
 }
 
 juce::ValueTree VstPluginComponent::getFactoryDefaultState()

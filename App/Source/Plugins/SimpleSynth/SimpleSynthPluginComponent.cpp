@@ -482,7 +482,9 @@ void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree&, cons
 // PluginPresetInterface implementation
 juce::ValueTree SimpleSynthPluginComponent::getPluginState()
 {
-    return m_synth->state.createCopy();
+    auto state = m_synth->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
 }
 
 juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
