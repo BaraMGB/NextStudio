@@ -534,6 +534,7 @@ public:
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent&) override;
     void mouseUp(const juce::MouseEvent&) override;
+    void mouseDoubleClick(const juce::MouseEvent&) override;
 
     void buttonClicked(juce::Button* button) override;
 
@@ -544,6 +545,9 @@ public:
     int getNeededWidthFactor();
 
     [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
+
+    bool isCollapsed() const { return m_collapsed; }
+    int getHeaderWidth() const { return m_headerWidth; }
 
     te::Plugin::Ptr getPlugin()
     {
@@ -573,6 +577,7 @@ private:
     std::unique_ptr<PresetManagerComponent> m_presetManager;
     BorderlessButton   m_showPluginBtn;    
     bool m_clickOnHeader {false};
+    bool m_collapsed {false};
     int m_headerWidth {20};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackItemView)

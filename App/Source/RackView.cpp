@@ -61,7 +61,12 @@ public:
             {
                 x += 5; // padding
 
-                int itemWidth = (height * p->getNeededWidthFactor()) / 2;
+                int itemWidth = 0;
+                if (p->isCollapsed())
+                    itemWidth = p->getHeaderWidth();
+                else
+                    itemWidth = (height * p->getNeededWidthFactor()) / 2;
+
                 p->setBounds(x, 0, itemWidth, height);
                 x += itemWidth;
 

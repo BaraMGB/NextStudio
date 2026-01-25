@@ -494,11 +494,24 @@ void StepModifierComponent::resized()
 }
 
 //==============================================================================
+static juce::Identifier getCollapsedStateID(te::EditItemID id)
+{
+    // Ensure the ID is safe for juce::Identifier
+    return "c_" + id.toString().retainCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_");
+}
+
 RackItemView::RackItemView
     (EditViewState& evs, te::Track::Ptr t, te::Plugin::Ptr p)
     : m_evs (evs), m_track(t), m_plugin (p)
     , m_showPluginBtn( "Show Plugin", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
+    // Load collapsed state
+    if (m_track)
+    {
+        auto state = m_evs.getTrackRackViewState(m_track->itemID);
+        m_collapsed = state.getProperty(getCollapsedStateID(m_plugin->itemID), false);
+    }
+
     addAndMakeVisible(m_showPluginBtn);
     m_showPluginBtn.addListener(this);
 
@@ -565,6 +578,13 @@ RackItemView::RackItemView
     : m_evs (evs), m_track(t), m_modifier (m)
     , m_showPluginBtn( "Show Modifier", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
+    // Load collapsed state
+    if (m_track)
+    {
+        auto state = m_evs.getTrackRackViewState(m_track->itemID);
+        m_collapsed = state.getProperty(getCollapsedStateID(m_modifier->itemID), false);
+    }
+
     addAndMakeVisible(m_showPluginBtn);
     m_showPluginBtn.addListener(this);
 
@@ -693,6 +713,31 @@ void RackItemView::mouseUp(const juce::MouseEvent &event)
 {
     m_clickOnHeader = false;
     repaint ();
+}
+
+void RackItemView::mouseDoubleClick(const juce::MouseEvent& e)
+{
+    if (e.getMouseDownX() < m_headerWidth)
+    {
+        m_collapsed = !m_collapsed;
+
+        // Save collapsed state
+        if (m_track)
+        {
+            te::EditItemID id;
+            if (m_plugin) id = m_plugin->itemID;
+            else if (m_modifier) id = m_modifier->itemID;
+
+            if (id.isValid())
+            {
+                auto state = m_evs.getTrackRackViewState(m_track->itemID);
+                state.setProperty(getCollapsedStateID(id), m_collapsed, &m_evs.m_edit.getUndoManager());
+            }
+        }
+
+        if (auto* rackView = findParentComponentOfClass<RackView>())
+            rackView->resized();
+    }
 }
 
 void RackItemView::resized()
