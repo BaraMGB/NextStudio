@@ -651,7 +651,9 @@ void FourOscPluginComponent::valueTreePropertyChanged(juce::ValueTree&, const ju
 // PluginPresetInterface implementation
 juce::ValueTree FourOscPluginComponent::getPluginState()
 {
-    return m_fourOscPlugin->state.createCopy();
+    auto state = m_fourOscPlugin->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
 }
 
 juce::ValueTree FourOscPluginComponent::getFactoryDefaultState()
