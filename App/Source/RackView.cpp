@@ -26,23 +26,94 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 
+//==============================================================================
+class RackView::RackContentComponent : public juce::Component
+{
+public:
+    RackContentComponent(RackView& v) : m_owner(v) {}
 
+    void paint(juce::Graphics&) override {}
+
+    void refreshButtonsAndLayout()
+    {
+        m_addButtons.clear();
+
+        int height = getHeight();
+        if (height <= 0) return;
+
+        int x = 0;
+
+        if (m_owner.m_track != nullptr)
+        {
+            // --- First Add Button ---
+            auto firstAdder = std::make_unique<AddButton>(m_owner.m_track, m_owner.m_evs.m_applicationState);
+            addAndMakeVisible(firstAdder.get());
+            firstAdder->addListener(&m_owner);
+            firstAdder->setButtonText("+");
+
+            firstAdder->setBounds(juce::Rectangle<int>(x, 0, 15, height).reduced(0, 10));
+            x += 15;
+
+            m_addButtons.add(std::move(firstAdder));
+
+            // --- Rack Items and Interleaved Buttons ---
+            for (auto p : m_rackItems)
+            {
+                x += 5; // padding
+
+                int itemWidth = (height * p->getNeededWidthFactor()) / 2;
+                p->setBounds(x, 0, itemWidth, height);
+                x += itemWidth;
+
+                x += 5; // padding
+
+                auto adder = std::make_unique<AddButton>(m_owner.m_track, m_owner.m_evs.m_applicationState);
+                if (p->getPlugin())
+                    adder->setPlugin(p->getPlugin());
+
+                addAndMakeVisible(adder.get());
+                adder->setButtonText("+");
+                adder->setBounds(juce::Rectangle<int>(x, 0, 15, height).reduced(0, 10));
+                adder->addListener(&m_owner);
+                m_addButtons.add(std::move(adder));
+
+                x += 15;
+            }
+            x += 5; // final padding
+        }
+
+        setSize(x, height);
+    }
+
+    juce::OwnedArray<RackItemView> m_rackItems;
+    juce::OwnedArray<AddButton> m_addButtons;
+    RackView& m_owner;
+};
+
+//==============================================================================
 RackView::RackView (EditViewState& evs)
     : m_evs (evs)
 {
     addAndMakeVisible(m_nameLabel);
     m_nameLabel.setJustificationType(juce::Justification::centred);
+
+    m_contentComp = std::make_unique<RackContentComponent>(*this);
+    m_viewport.setViewedComponent(m_contentComp.get(), false);
+    m_viewport.setScrollBarsShown(false, true);
+    addAndMakeVisible(m_viewport);
 }
 
 RackView::~RackView()
 {
-    for (auto &b : m_addButtons)
+    for (auto &b : m_contentComp->m_addButtons)
     {
         b->removeListener(this);
     }
 
     if (m_track)
         m_track->state.removeListener(this);
+
+    m_viewport.setViewedComponent(nullptr, false);
 }
 
 void RackView::paint (juce::Graphics& g)
@@ -69,7 +140,7 @@ void RackView::paint (juce::Graphics& g)
                  : juce::Colour(0xffffffff);
 
         m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
-        // GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,"#" + labelingCol.toString().substring(2));
+        
         auto header = area.removeFromLeft(HEADERWIDTH);
         g.setColour(trackCol);
         GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
@@ -95,16 +166,33 @@ void RackView::paintOverChildren (juce::Graphics& g)
     auto sourceBounds = getLocalPoint(m_dragSource, m_dragSource->getLocalBounds().getCentre()).toFloat();
 
     auto* compUnderMouse = getComponentAt(getMouseXYRelative());
-    if (compUnderMouse == this)
-        compUnderMouse = nullptr;
+
+    // Helper to find target inside the viewport
+    juce::Component* target = compUnderMouse;
+    if (target == &m_viewport)
+    {
+        // Transform point to content component
+        auto pt = m_viewport.getLocalPoint(this, getMouseXYRelative());
+        target = m_contentComp->getComponentAt(pt);
+
+        if (target) 
+        {
+             auto pt2 = target->getLocalPoint(m_contentComp.get(), pt);
+             auto deeper = target->getComponentAt(pt2);
+             if (deeper) target = deeper;
+        }
+    }
+    
+    if (target == this || target == &m_viewport || target == m_contentComp.get())
+        target = nullptr;
 
     juce::Colour lineColour = m_evs.m_applicationState.getTextColour();
 
-    if (compUnderMouse != nullptr)
+    if (target != nullptr)
     {
-        auto* slider = dynamic_cast<AutomatableSliderComponent*>(compUnderMouse);
+        auto* slider = dynamic_cast<AutomatableSliderComponent*>(target);
         if (slider == nullptr)
-            slider = compUnderMouse->findParentComponentOfClass<AutomatableSliderComponent>();
+            slider = target->findParentComponentOfClass<AutomatableSliderComponent>();
 
         if (slider != nullptr)
         {
@@ -115,6 +203,8 @@ void RackView::paintOverChildren (juce::Graphics& g)
             {
                 lineColour = juce::Colours::grey;
                 g.setColour(juce::Colours::grey.withAlpha(0.4f));
+                
+                // Need bounds relative to THIS (RackView)
                 auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
                 auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
 
@@ -130,6 +220,7 @@ void RackView::paintOverChildren (juce::Graphics& g)
             {
                 lineColour = m_evs.m_applicationState.getPrimeColour();
                 g.setColour(lineColour);
+                
                 auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
                 auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
 
@@ -164,40 +255,22 @@ void RackView::resized()
     area.removeFromLeft(HEADERWIDTH);
     area = area.reduced (5);
 
-    for (auto &b : m_addButtons)
-    {
-        b->removeListener(this);
-    }
-    m_addButtons.clear();
+    m_viewport.setBounds(area);
+    
+    // 1. Try with full height
+    m_contentComp->setSize(m_contentComp->getWidth(), m_viewport.getHeight());
+    m_contentComp->refreshButtonsAndLayout();
 
-    if (m_track != nullptr)
+    // 2. If content is wider than viewport, we need a scrollbar. 
+    // Reduce height by scrollbar thickness and relayout.
+    if (m_contentComp->getWidth() > m_viewport.getWidth())
     {
-        auto firstAdder = std::make_unique<AddButton>(m_track, m_evs.m_applicationState);
-        addAndMakeVisible(firstAdder.get());
-        firstAdder->addListener(this);
-        firstAdder->setButtonText("+");
-        firstAdder->setBounds(area.removeFromLeft(15).reduced(0,10));
-        m_addButtons.add(std::move(firstAdder));
-
-        for (auto p : m_rackItems)
+        int scrollH = m_viewport.getScrollBarThickness();
+        if (m_viewport.getHeight() > scrollH)
         {
-            area.removeFromLeft (5);
-            p->setBounds (area.removeFromLeft((area.getHeight() * p->getNeededWidthFactor()) / 2 ));
-
-            area.removeFromLeft(5);
-
-            auto adder = std::make_unique<AddButton>(m_track, m_evs.m_applicationState);
-
-            if (p->getPlugin())
-                adder->setPlugin(p->getPlugin());
-
-            addAndMakeVisible(adder.get());
-            adder->setButtonText("+");
-            adder->setBounds(area.removeFromLeft(15).reduced(0, 10));
-            adder->addListener(this);
-            m_addButtons.add(std::move(adder));
+             m_contentComp->setSize(m_contentComp->getWidth(), m_viewport.getHeight() - scrollH);
+             m_contentComp->refreshButtonsAndLayout();
         }
-        area.removeFromLeft (5);
     }
 }
 
@@ -326,11 +399,11 @@ void RackView::moveItem(RackItemView* item, int targetIndex)
 
 void RackView::buttonClicked(juce::Button* button)
 {
-    for (auto &b : m_addButtons)
+    for (auto &b : m_contentComp->m_addButtons)
     {
         if (b == button)
         {
-            int visualIndex = m_addButtons.indexOf(b);
+            int visualIndex = m_contentComp->m_addButtons.indexOf(b);
 
             juce::PopupMenu m;
             m.addItem(1, "Plugins...");
@@ -379,8 +452,6 @@ void RackView::buttonClicked(juce::Button* button)
 
                      if (mod)
                      {
-                         // ensureRackOrderConsistency(); // Don't call here to avoid race/duplication, or handle removal
-                         // Better to just manipulate order directly
                          auto order = getRackOrder();
 
                          // Remove if it was accidentally added by a sync listener (unlikely this fast, but safe)
@@ -426,12 +497,12 @@ juce::String RackView::getCurrentTrackID()
 
 juce::OwnedArray<AddButton> & RackView::getAddButtons()
 {
-    return m_addButtons;
+    return m_contentComp->m_addButtons;
 }
 
 juce::OwnedArray<RackItemView> & RackView::getPluginComponents()
 {
-    return m_rackItems;
+    return m_contentComp->m_rackItems;
 }
     
 void RackView::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
@@ -460,7 +531,7 @@ void RackView::handleAsyncUpdate()
 
 void RackView::rebuildView()
 {
-    m_rackItems.clear();
+    m_contentComp->m_rackItems.clear();
 
     if (m_track != nullptr)
     {
@@ -474,16 +545,16 @@ void RackView::rebuildView()
             if (auto p = getPluginFromList(m_track->pluginList, id))
             {
                  auto view = std::make_unique<RackItemView> (m_evs, m_track, p);
-                 addAndMakeVisible (view.get());
-                 m_rackItems.add (std::move(view));
+                 m_contentComp->addAndMakeVisible (view.get());
+                 m_contentComp->m_rackItems.add (std::move(view));
             }
             else if (auto* ml = m_track->getModifierList())
             {
                 if (auto m = te::findModifierForID(*ml, id))
                 {
                      auto view = std::make_unique<RackItemView> (m_evs, m_track, m);
-                     addAndMakeVisible (view.get());
-                     m_rackItems.add (std::move(view));
+                     m_contentComp->addAndMakeVisible (view.get());
+                     m_contentComp->m_rackItems.add (std::move(view));
                 }
             }
         }
@@ -506,9 +577,6 @@ bool RackView::isInterestedInDragSource(
 
 void RackView::itemDragMove(const SourceDetails& dragSourceDetails) 
 {
-    // Check if the dragged item is a Plugin component, a list entry, a browser item,
-    // or an automatable modifier (which uses automatableDragString).
-    // This ensures we accept drops from both standard plugins and Modifiers.
     if (dragSourceDetails.description == "PluginComp"
         || dragSourceDetails.description == "PluginListEntry"
         || dragSourceDetails.description == "Instrument or Effect"
@@ -556,6 +624,7 @@ void RackView::itemDropped(
     m_isOver = false;
     repaint();
 }
+
 void AddButton::itemDropped(const SourceDetails& dragSourceDetails) 
 {
     if (dragSourceDetails.description == "PluginListEntry")
@@ -564,7 +633,8 @@ void AddButton::itemDropped(const SourceDetails& dragSourceDetails)
         {
             if (auto lbm = dynamic_cast<PluginListbox*> (listbox->getModel ()))
             {
-                auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
+                // Find RackView via hierarchy search because AddButton is now inside RackContentComponent
+                auto pluginRackComp = findParentComponentOfClass<RackView>();
                 if (pluginRackComp)
                 {
                     // Calculate the visual index where the user dropped the item
@@ -596,7 +666,7 @@ void AddButton::itemDropped(const SourceDetails& dragSourceDetails)
     if (dragSourceDetails.description == "PluginComp" 
         || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
     {
-        auto pluginRackComp = dynamic_cast<RackView*>(getParentComponent());
+        auto pluginRackComp = findParentComponentOfClass<RackView>();
         if (pluginRackComp)
         {
             auto* view = dynamic_cast<RackItemView*>(dragSourceDetails.sourceComponent.get());

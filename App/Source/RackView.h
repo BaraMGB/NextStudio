@@ -87,8 +87,9 @@ private:
     juce::Label m_nameLabel;
     juce::String m_trackID{""};
 
-    juce::OwnedArray<RackItemView> m_rackItems;
-    juce::OwnedArray<AddButton> m_addButtons;
+    class RackContentComponent;
+    std::unique_ptr<RackContentComponent> m_contentComp;
+    juce::Viewport m_viewport;
 
     bool m_updatePlugins = false;
     bool m_isOver = false;
