@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PluginMenu.h"
 
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Utilities.h"
 #include <utility>
 
@@ -113,6 +114,7 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
     addInternalPlugin<te::PhaserPlugin>(*this, num);
     addInternalPlugin<te::CompressorPlugin>(*this, num);
     addInternalPlugin<te::PitchShiftPlugin>(*this, num);
+    addInternalPlugin<ArpeggiatorPlugin>(*this, num, false);
     //    addInternalPlugin<te::LowPassPlugin> (*this, num);
     //    addInternalPlugin<te::MidiModifierPlugin> (*this, num);
     //    addInternalPlugin<te::MidiPatchBayPlugin> (*this, num);

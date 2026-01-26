@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "FourOscPluginComponent.h"
 #include "RackView.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
 #include "PresetHelpers.h"
 
 //==============================================================================
@@ -545,6 +546,10 @@ RackItemView::RackItemView
     else if (m_plugin->getPluginType() == SimpleSynthPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<SimpleSynthPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == ArpeggiatorPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<ArpeggiatorPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
     {
