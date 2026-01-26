@@ -24,10 +24,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 // #include "ApplicationViewState.h"
 // #include "Utilities.h"
 
-PluginListBoxModel::PluginListBoxModel(tracktion::Engine &engine, ApplicationViewState& appState)
-    : m_knownPlugins(engine.getPluginManager().knownPluginList)
-    , m_engine(engine)
-    , m_appState(appState)
+PluginListBoxModel::PluginListBoxModel(tracktion::Engine &engine, ApplicationViewState &appState)
+    : m_knownPlugins(engine.getPluginManager().knownPluginList), m_engine(engine), m_appState(appState)
 {
 }
 
@@ -35,13 +33,13 @@ void PluginListBoxModel::paintRowBackground(juce::Graphics &g, int row, int widt
 {
     if (row < 0 || row >= getNumRows())
         return;
-    auto bgColour = row % 2 == 0 ? m_appState.getBackgroundColour2() : m_appState.getBackgroundColour2().brighter(0.05f);
+    auto bgColour =
+        row % 2 == 0 ? m_appState.getBackgroundColour2() : m_appState.getBackgroundColour2().brighter(0.05f);
     juce::Rectangle<int> bounds(0, 0, width, height);
     g.setColour(bgColour);
     g.fillRect(bounds);
 
-    if (rowIsSelected)
-    {
+    if (rowIsSelected) {
         g.setColour(m_appState.getPrimeColour());
         g.fillRect(bounds);
     }
@@ -52,36 +50,43 @@ void PluginListBoxModel::paintCell(juce::Graphics &g, int row, int col, int widt
     juce::String text;
     bool isBlacklisted = row >= m_knownPlugins.getNumTypes();
 
-    if (isBlacklisted)
-    {
+    if (isBlacklisted) {
         if (col == nameCol)
-            text = m_knownPlugins.getBlacklistedFiles() [row - m_knownPlugins.getNumTypes()];
+            text = m_knownPlugins.getBlacklistedFiles()[row - m_knownPlugins.getNumTypes()];
         else if (col == descCol)
-            text = TRANS ("Deactivated after failing to initialise correctly");
+            text = TRANS("Deactivated after failing to initialise correctly");
     }
-    else
-    {
+    else {
         auto desc = m_knownPlugins.getTypes()[row];
         auto type = m_knownPlugins.getTypes()[row];
 
-        switch (col)
-        {
-            case typeCol:         text = desc.pluginFormatName; break;
-            case nameCol:         text = desc.name; break;
-            case categoryCol:     text = type.isInstrument ? "Synth" : "FX"; break; 
-            case manufacturerCol: text = desc.manufacturerName; break;
-            case descCol:         text = getPluginDescription (desc); break;
+        switch (col) {
+        case typeCol:
+            text = desc.pluginFormatName;
+            break;
+        case nameCol:
+            text = desc.name;
+            break;
+        case categoryCol:
+            text = type.isInstrument ? "Synth" : "FX";
+            break;
+        case manufacturerCol:
+            text = desc.manufacturerName;
+            break;
+        case descCol:
+            text = getPluginDescription(desc);
+            break;
 
-            default: jassertfalse; break;
+        default:
+            jassertfalse;
+            break;
         }
     }
-    
-    if (text.isNotEmpty())
-    {
+
+    if (text.isNotEmpty()) {
         auto desc = m_knownPlugins.getTypes()[row];
-        if (col == typeCol)
-        {
-            juce::Drawable* icon = nullptr;
+        if (col == typeCol) {
+            juce::Drawable *icon = nullptr;
             if (desc.pluginFormatName == "VST3")
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::vst3Icon_svg, juce::Colours::yellowgreen).release();
             else if (desc.pluginFormatName == "LADSPA")
@@ -91,39 +96,49 @@ void PluginListBoxModel::paintCell(juce::Graphics &g, int row, int col, int widt
             else if (desc.pluginFormatName == "AudioUnit")
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::AUIcon_svg, juce::Colours::wheat).release();
 
-            if (icon != nullptr)
-            {
-                icon->setTransformToFit({static_cast<float>(width)/4, 0.f, static_cast<float>(width)/2.f, static_cast<float>(height)}, juce::RectanglePlacement::centred);
+            if (icon != nullptr) {
+                icon->setTransformToFit(
+                    {static_cast<float>(width) / 4, 0.f, static_cast<float>(width) / 2.f, static_cast<float>(height)},
+                    juce::RectanglePlacement::centred);
                 icon->draw(g, 1.0f);
                 delete icon;
             }
         }
-        else 
-        {
+        else {
             const auto defaultTextColour = juce::Colours::lightgrey;
-            g.setColour (isBlacklisted ? juce::Colours::red
-                                       : col == nameCol ? defaultTextColour
-                                                        : defaultTextColour.interpolatedWith (juce::Colours::transparentBlack, 0.3f));
-            g.setFont (juce::Font ((float) height * 0.7f, juce::Font::bold));
-            g.drawFittedText (text, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
+            g.setColour(isBlacklisted    ? juce::Colours::red
+                        : col == nameCol ? defaultTextColour
+                                         : defaultTextColour.interpolatedWith(juce::Colours::transparentBlack, 0.3f));
+            g.setFont(juce::Font((float)height * 0.7f, juce::Font::bold));
+            g.drawFittedText(text, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
         }
     }
     g.setColour(juce::Colours::lightgrey.withAlpha(0.3f));
-    g.drawHorizontalLine(height-1, 0, width);
-    g.drawVerticalLine(width-1, 0, height);
+    g.drawHorizontalLine(height - 1, 0, width);
+    g.drawVerticalLine(width - 1, 0, height);
 }
 
-void PluginListBoxModel::sortOrderChanged (int newSortColumnId, bool isForwards) 
+void PluginListBoxModel::sortOrderChanged(int newSortColumnId, bool isForwards)
 {
-    switch (newSortColumnId)
-    {
-        case typeCol:         m_knownPlugins.sort (juce::KnownPluginList::sortByFormat, isForwards); break;
-        case nameCol:         m_knownPlugins.sort (juce::KnownPluginList::sortAlphabetically, isForwards); break;
-        case categoryCol:     m_knownPlugins.sort (juce::KnownPluginList::sortByCategory, isForwards); break;
-        case manufacturerCol: m_knownPlugins.sort (juce::KnownPluginList::sortByManufacturer, isForwards); break;
-        case descCol:         break;
+    switch (newSortColumnId) {
+    case typeCol:
+        m_knownPlugins.sort(juce::KnownPluginList::sortByFormat, isForwards);
+        break;
+    case nameCol:
+        m_knownPlugins.sort(juce::KnownPluginList::sortAlphabetically, isForwards);
+        break;
+    case categoryCol:
+        m_knownPlugins.sort(juce::KnownPluginList::sortByCategory, isForwards);
+        break;
+    case manufacturerCol:
+        m_knownPlugins.sort(juce::KnownPluginList::sortByManufacturer, isForwards);
+        break;
+    case descCol:
+        break;
 
-        default: jassertfalse; break;
+    default:
+        jassertfalse;
+        break;
     }
 }
 juce::String PluginListBoxModel::getPluginDescription(const juce::PluginDescription &desc)
@@ -131,12 +146,12 @@ juce::String PluginListBoxModel::getPluginDescription(const juce::PluginDescript
     juce::StringArray items;
 
     if (desc.descriptiveName != desc.name)
-        items.add (desc.descriptiveName);
+        items.add(desc.descriptiveName);
 
-    items.add (desc.version);
+    items.add(desc.version);
 
     items.removeEmptyStrings();
-    return items.joinIntoString (" - ");
+    return items.joinIntoString(" - ");
 }
 
 juce::var PluginListBoxModel::getDragSourceDescription(const juce::SparseSet<int> &)
@@ -146,14 +161,11 @@ juce::var PluginListBoxModel::getDragSourceDescription(const juce::SparseSet<int
 
 //------------------------------------------------------------------------------------------------
 
-PluginListbox::PluginListbox(te::Engine& engine)
-    : m_engine(engine)
-{
-}
+PluginListbox::PluginListbox(te::Engine &engine) : m_engine(engine) {}
 
 // ---------------------------------------------------------------------------------------------
 
-tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit& edit)
+tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit &edit)
 {
     auto selectedRow = getLastRowSelected();
 
@@ -168,29 +180,42 @@ tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit& edit)
     return nullptr;
 }
 
+std::unique_ptr<juce::PluginDescription> PluginListbox::getSelectedPluginDescription()
+{
+    auto selectedRow = getLastRowSelected();
+
+    if (selectedRow < 0)
+        return nullptr;
+
+    auto types = m_engine.getPluginManager().knownPluginList.getTypes();
+
+    if (selectedRow < types.size())
+        return std::make_unique<juce::PluginDescription>(types[selectedRow]);
+
+    return nullptr;
+}
+
 // ---------------------------------------------------------------------------------------------
 
-PluginSettings::PluginSettings(te::Engine& engine, ApplicationViewState& appState) 
-  : m_engine(engine)
-  , m_model(engine, appState)
-  , m_listbox(engine)
+PluginSettings::PluginSettings(te::Engine &engine, ApplicationViewState &appState)
+    : m_engine(engine), m_model(engine, appState), m_listbox(engine)
 {
     addAndMakeVisible(m_listbox);
     addAndMakeVisible(m_setupButton);
-    juce::TableHeaderComponent& header = m_listbox.getHeader();
+    juce::TableHeaderComponent &header = m_listbox.getHeader();
 
-    header.addColumn (TRANS ("Format"), 1, 40, 40, 40, juce::TableHeaderComponent::notResizable);
-    header.addColumn (TRANS ("Name"), 2, 200, 100, 700, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards);
-    header.addColumn (TRANS ("Category"), 3, 100, 100, 200);
-    header.addColumn (TRANS ("Manufacturer"),4 , 200, 100, 300);
-    header.addColumn (TRANS ("Description"), 5, 300, 100, 500, juce::TableHeaderComponent::notSortable);
+    header.addColumn(TRANS("Format"), 1, 40, 40, 40, juce::TableHeaderComponent::notResizable);
+    header.addColumn(TRANS("Name"), 2, 200, 100, 700,
+                     juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards);
+    header.addColumn(TRANS("Category"), 3, 100, 100, 200);
+    header.addColumn(TRANS("Manufacturer"), 4, 200, 100, 300);
+    header.addColumn(TRANS("Description"), 5, 300, 100, 500, juce::TableHeaderComponent::notSortable);
 
     m_listbox.setModel(&m_model);
-    m_listbox.setRowHeight (20);
+    m_listbox.setRowHeight(20);
     engine.getPluginManager().knownPluginList.addChangeListener(this);
-    m_propertiesToUse = std::addressof (engine.getPropertyStorage().getPropertiesFile());
-    m_setupButton.onClick = [this]
-    {
+    m_propertiesToUse = std::addressof(engine.getPropertyStorage().getPropertiesFile());
+    m_setupButton.onClick = [this] {
         juce::PopupMenu m;
         m = createOptionsMenu();
         auto opt = juce::PopupMenu::Options().withTargetComponent(m_setupButton);
@@ -213,122 +238,114 @@ void PluginSettings::resized()
 
 void PluginSettings::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto scanner = dynamic_cast<PluginScanner*>(source))
-    {
+    if (auto scanner = dynamic_cast<PluginScanner *>(source)) {
         const auto blacklisted = m_engine.getPluginManager().knownPluginList.getBlacklistedFiles();
-        std::set<juce::String> allBlacklistedFiles (blacklisted.begin(), blacklisted.end());
+        std::set<juce::String> allBlacklistedFiles(blacklisted.begin(), blacklisted.end());
 
         std::vector<juce::String> newBlacklistedFiles;
         auto initiallyBlacklistedFiles = scanner->m_initiallyBlacklistedFiles;
-        std::set_difference (allBlacklistedFiles.begin(), allBlacklistedFiles.end(),
-                             initiallyBlacklistedFiles.begin(), initiallyBlacklistedFiles.end(),
-                             std::back_inserter (newBlacklistedFiles));
-        scanFinished (scanner->m_dirScanner != nullptr ? scanner->m_dirScanner->getFailedFiles() : juce::StringArray(),
-                             newBlacklistedFiles);
+        std::set_difference(allBlacklistedFiles.begin(), allBlacklistedFiles.end(), initiallyBlacklistedFiles.begin(),
+                            initiallyBlacklistedFiles.end(), std::back_inserter(newBlacklistedFiles));
+        scanFinished(scanner->m_dirScanner != nullptr ? scanner->m_dirScanner->getFailedFiles() : juce::StringArray(),
+                     newBlacklistedFiles);
     }
-    else if (dynamic_cast<juce::KnownPluginList*>(source))
-    {
+    else if (dynamic_cast<juce::KnownPluginList *>(source)) {
         GUIHelpers::log("Liste changed");
         m_listbox.updateContent();
         getParentComponent()->resized();
     }
 }
 
-static bool canShowFolderForPlugin (juce::KnownPluginList& list, int index)
+static bool canShowFolderForPlugin(juce::KnownPluginList &list, int index)
 {
-    return juce::File::createFileWithoutCheckingPath (list.getTypes()[index].fileOrIdentifier).exists();
+    return juce::File::createFileWithoutCheckingPath(list.getTypes()[index].fileOrIdentifier).exists();
 }
 
-static void showFolderForPlugin (juce::KnownPluginList& list, int index)
+static void showFolderForPlugin(juce::KnownPluginList &list, int index)
 {
-    if (canShowFolderForPlugin (list, index))
-        juce::File (list.getTypes()[index].fileOrIdentifier).revealToUser();
+    if (canShowFolderForPlugin(list, index))
+        juce::File(list.getTypes()[index].fileOrIdentifier).revealToUser();
 }
 juce::PopupMenu PluginSettings::createOptionsMenu()
 {
     juce::PopupMenu menu;
-    auto& list = m_engine.getPluginManager().knownPluginList;
-    auto& formatManager = m_engine.getPluginManager().pluginFormatManager;
-    auto& table = m_listbox;
+    auto &list = m_engine.getPluginManager().knownPluginList;
+    auto &formatManager = m_engine.getPluginManager().pluginFormatManager;
+    auto &table = m_listbox;
 
-    menu.addItem (juce::PopupMenu::Item (TRANS ("Clear list"))
-                    .setAction ([this]
-                    { 
-                      auto& list = m_engine.getPluginManager().knownPluginList;
-                      list.clear(); 
-                    }));
+    menu.addItem(juce::PopupMenu::Item(TRANS("Clear list")).setAction([this] {
+        auto &list = m_engine.getPluginManager().knownPluginList;
+        list.clear();
+    }));
 
     menu.addSeparator();
 
     for (auto format : formatManager.getFormats())
         if (format->canScanForPlugins())
-            menu.addItem (juce::PopupMenu::Item ("Remove all " + format->getName() + " plug-ins")
-                            .setEnabled (! list.getTypesForFormat (*format).isEmpty())
-                            .setAction ([this, format]
-                                        {
-                                            auto& list = m_engine.getPluginManager().knownPluginList;
-                                            for (auto& pd : list.getTypesForFormat (*format))
-                                                list.removeType (pd);
-                                        }));
+            menu.addItem(juce::PopupMenu::Item("Remove all " + format->getName() + " plug-ins")
+                             .setEnabled(!list.getTypesForFormat(*format).isEmpty())
+                             .setAction([this, format] {
+                                 auto &list = m_engine.getPluginManager().knownPluginList;
+                                 for (auto &pd : list.getTypesForFormat(*format))
+                                     list.removeType(pd);
+                             }));
 
     menu.addSeparator();
 
-    menu.addItem (juce::PopupMenu::Item (TRANS ("Remove selected plug-in from list"))
-                    .setEnabled (table.getNumSelectedRows() > 0)
-                    .setAction ([this] { removeSelectedPlugins(); }));
+    menu.addItem(juce::PopupMenu::Item(TRANS("Remove selected plug-in from list"))
+                     .setEnabled(table.getNumSelectedRows() > 0)
+                     .setAction([this] { removeSelectedPlugins(); }));
 
-    menu.addItem (juce::PopupMenu::Item (TRANS ("Remove any plug-ins whose files no longer exist"))
-                    .setAction ([this] { removeMissingPlugins(); }));
+    menu.addItem(juce::PopupMenu::Item(TRANS("Remove any plug-ins whose files no longer exist")).setAction([this] {
+        removeMissingPlugins();
+    }));
 
     menu.addSeparator();
 
     auto selectedRow = table.getSelectedRow();
 
-    menu.addItem (juce::PopupMenu::Item (TRANS ("Show folder containing selected plug-in"))
-                    .setEnabled (canShowFolderForPlugin (list, selectedRow))
-                    .setAction ([this, selectedRow] 
-                                {
-                                    auto& list = m_engine.getPluginManager().knownPluginList;
-                                    showFolderForPlugin (list, selectedRow); 
-                                }));
+    menu.addItem(juce::PopupMenu::Item(TRANS("Show folder containing selected plug-in"))
+                     .setEnabled(canShowFolderForPlugin(list, selectedRow))
+                     .setAction([this, selectedRow] {
+                         auto &list = m_engine.getPluginManager().knownPluginList;
+                         showFolderForPlugin(list, selectedRow);
+                     }));
 
     menu.addSeparator();
 
     for (auto format : formatManager.getFormats())
         if (format->canScanForPlugins())
-            menu.addItem (juce::PopupMenu::Item ("Scan for new or updated " + format->getName() + " plug-ins")
-                            .setAction ([this, format]  { scanFor (*format); }));
+            menu.addItem(juce::PopupMenu::Item("Scan for new or updated " + format->getName() + " plug-ins")
+                             .setAction([this, format] { scanFor(*format); }));
 
     return menu;
 }
-void PluginSettings::scanFinished (const juce::StringArray& failedFiles, const std::vector<juce::String>& newBlacklistedFiles)
+void PluginSettings::scanFinished(const juce::StringArray &failedFiles,
+                                  const std::vector<juce::String> &newBlacklistedFiles)
 {
     juce::StringArray warnings;
 
-    const auto addWarningText = [&warnings] (const auto& range, const auto& prefix)
-    {
+    const auto addWarningText = [&warnings](const auto &range, const auto &prefix) {
         if (range.size() == 0)
             return;
 
         juce::StringArray names;
 
-        for (auto& f : range)
-            names.add (juce::File::createFileWithoutCheckingPath (f).getFileName());
+        for (auto &f : range)
+            names.add(juce::File::createFileWithoutCheckingPath(f).getFileName());
 
-        warnings.add (prefix + ":\n\n" + names.joinIntoString (", "));
+        warnings.add(prefix + ":\n\n" + names.joinIntoString(", "));
     };
 
-    addWarningText (newBlacklistedFiles,  TRANS ("The following files encountered fatal errors during validation"));
-    addWarningText (failedFiles,          TRANS ("The following files appeared to be plugin files, but failed to load correctly"));
+    addWarningText(newBlacklistedFiles, TRANS("The following files encountered fatal errors during validation"));
+    addWarningText(failedFiles, TRANS("The following files appeared to be plugin files, but failed to load correctly"));
 
     currentScanner.reset(); // mustn't delete this before using the failed files array
 
-    if (! warnings.isEmpty())
-    {
-        auto options = juce::MessageBoxOptions::makeOptionsOk (juce::MessageBoxIconType::InfoIcon,
-                                                         TRANS ("Scan complete"),
-                                                         warnings.joinIntoString ("\n\n"));
-        m_messageBox = juce::AlertWindow::showScopedAsync (options, nullptr);
+    if (!warnings.isEmpty()) {
+        auto options = juce::MessageBoxOptions::makeOptionsOk(juce::MessageBoxIconType::InfoIcon,
+                                                              TRANS("Scan complete"), warnings.joinIntoString("\n\n"));
+        m_messageBox = juce::AlertWindow::showScopedAsync(options, nullptr);
     }
 }
 void PluginSettings::removeSelectedPlugins()
@@ -336,44 +353,43 @@ void PluginSettings::removeSelectedPlugins()
     auto selected = m_listbox.getSelectedRows();
 
     for (int i = m_listbox.getNumRows(); --i >= 0;)
-        if (selected.contains (i))
-            removePluginItem (i);
+        if (selected.contains(i))
+            removePluginItem(i);
 }
 
-void PluginSettings::removePluginItem (int index)
+void PluginSettings::removePluginItem(int index)
 {
-    auto& list = m_engine.getPluginManager().knownPluginList;
+    auto &list = m_engine.getPluginManager().knownPluginList;
     if (index < list.getNumTypes())
-        list.removeType (list.getTypes()[index]);
+        list.removeType(list.getTypes()[index]);
     else
-        list.removeFromBlacklist (list.getBlacklistedFiles() [index - list.getNumTypes()]);
+        list.removeFromBlacklist(list.getBlacklistedFiles()[index - list.getNumTypes()]);
 }
 void PluginSettings::removeMissingPlugins()
 {
-    auto& list = m_engine.getPluginManager().knownPluginList;
+    auto &list = m_engine.getPluginManager().knownPluginList;
     auto types = list.getTypes();
-    auto& formatManager = m_engine.getPluginManager().pluginFormatManager;
+    auto &formatManager = m_engine.getPluginManager().pluginFormatManager;
 
-    for (int i = types.size(); --i >= 0;)
-    {
-        auto type = types.getUnchecked (i);
+    for (int i = types.size(); --i >= 0;) {
+        auto type = types.getUnchecked(i);
 
-        if (! formatManager.doesPluginStillExist (type))
-            list.removeType (type);
+        if (!formatManager.doesPluginStillExist(type))
+            list.removeType(type);
     }
 }
-void PluginSettings::scanFor (juce::AudioPluginFormat& format)
+void PluginSettings::scanFor(juce::AudioPluginFormat &format)
 {
-    scanFor (format, juce::StringArray());
+    scanFor(format, juce::StringArray());
 }
 
-void PluginSettings::scanFor (juce::AudioPluginFormat& format, const juce::StringArray& filesOrIdentifiersToScan)
+void PluginSettings::scanFor(juce::AudioPluginFormat &format, const juce::StringArray &filesOrIdentifiersToScan)
 {
     if (currentScanner != nullptr)
         currentScanner->removeAllChangeListeners();
-    currentScanner.reset (new PluginScanner (m_engine, format, filesOrIdentifiersToScan, m_propertiesToUse, m_allowAsync, m_numThreads,
-                                       m_dialogTitle.isNotEmpty() ? m_dialogTitle : TRANS ("Scanning for plug-ins..."),
-                                       m_dialogText.isNotEmpty()  ? m_dialogText  : TRANS ("Searching for all possible plug-in files...")));
+    currentScanner.reset(new PluginScanner(
+        m_engine, format, filesOrIdentifiersToScan, m_propertiesToUse, m_allowAsync, m_numThreads,
+        m_dialogTitle.isNotEmpty() ? m_dialogTitle : TRANS("Scanning for plug-ins..."),
+        m_dialogText.isNotEmpty() ? m_dialogText : TRANS("Searching for all possible plug-in files...")));
     currentScanner->addChangeListener(this);
 }
-
