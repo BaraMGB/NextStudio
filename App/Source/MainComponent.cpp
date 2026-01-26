@@ -34,6 +34,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SidebarComponent.h"
 #include "Utilities.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state)
@@ -65,6 +66,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     };
 
     m_engine.getPluginManager().createBuiltInType<SimpleSynthPlugin>();
+    m_engine.getPluginManager().createBuiltInType<ArpeggiatorPlugin>();
 
     openValidStartEdit();
 

@@ -78,6 +78,8 @@ target_sources(${TargetName} PRIVATE
         Source/FourOscPluginComponent.cpp
         Source/Plugins/SimpleSynth/SimpleSynthPlugin.cpp
         Source/Plugins/SimpleSynth/SimpleSynthPluginComponent.cpp
+        Source/Plugins/Arpeggiator/ArpeggiatorPlugin.cpp
+        Source/Plugins/Arpeggiator/ArpeggiatorPluginComponent.cpp
         Source/PresetManagerComponent.cpp
         Source/PresetHelpers.cpp
         Source/FileBrowser.cpp
