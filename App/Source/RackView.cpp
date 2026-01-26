@@ -19,32 +19,31 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "RackView.h"
-#include "PluginMenu.h"
 #include "InstrumentEffectChooser.h"
-#include "Utilities.h"
+#include "PluginMenu.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
+#include "Utilities.h"
 
 //==============================================================================
 class RackView::RackContentComponent : public juce::Component
 {
-public:
-    RackContentComponent(RackView& v) : m_owner(v) {}
+  public:
+    RackContentComponent(RackView &v) : m_owner(v) {}
 
-    void paint(juce::Graphics&) override {}
+    void paint(juce::Graphics &) override {}
 
     void refreshButtonsAndLayout()
     {
         m_addButtons.clear();
 
         int height = getHeight();
-        if (height <= 0) return;
+        if (height <= 0)
+            return;
 
         int x = 0;
 
-        if (m_owner.m_track != nullptr)
-        {
+        if (m_owner.m_track != nullptr) {
             // --- First Add Button ---
             auto firstAdder = std::make_unique<AddButton>(m_owner.m_track, m_owner.m_evs.m_applicationState);
             addAndMakeVisible(firstAdder.get());
@@ -57,8 +56,7 @@ public:
             m_addButtons.add(std::move(firstAdder));
 
             // --- Rack Items and Interleaved Buttons ---
-            for (auto p : m_rackItems)
-            {
+            for (auto p : m_rackItems) {
                 x += 5; // padding
 
                 int itemWidth = 0;
@@ -92,12 +90,11 @@ public:
 
     juce::OwnedArray<RackItemView> m_rackItems;
     juce::OwnedArray<AddButton> m_addButtons;
-    RackView& m_owner;
+    RackView &m_owner;
 };
 
 //==============================================================================
-RackView::RackView (EditViewState& evs)
-    : m_evs (evs)
+RackView::RackView(EditViewState &evs) : m_evs(evs)
 {
     addAndMakeVisible(m_nameLabel);
     m_nameLabel.setJustificationType(juce::Justification::centred);
@@ -110,8 +107,7 @@ RackView::RackView (EditViewState& evs)
 
 RackView::~RackView()
 {
-    for (auto &b : m_contentComp->m_addButtons)
-    {
+    for (auto &b : m_contentComp->m_addButtons) {
         b->removeListener(this);
     }
 
@@ -121,10 +117,10 @@ RackView::~RackView()
     m_viewport.setViewedComponent(nullptr, false);
 }
 
-void RackView::paint (juce::Graphics& g)
+void RackView::paint(juce::Graphics &g)
 {
-    g.setColour (m_evs.m_applicationState.getBackgroundColour1());
-    g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft (2).toFloat(), 10);
+    g.setColour(m_evs.m_applicationState.getBackgroundColour1());
+    g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft(2).toFloat(), 10);
     g.setColour(juce::Colours::white);
 
     auto area = getLocalBounds();
@@ -132,85 +128,77 @@ void RackView::paint (juce::Graphics& g)
     if (m_isOver)
         g.drawRect(area, 2);
 
-    if (m_track == nullptr)
-    {
+    if (m_track == nullptr) {
         g.drawText("select a track for showing rack", getLocalBounds(), juce::Justification::centred);
     }
-    else
-    {
+    else {
         auto trackCol = m_track->getColour();
         auto cornerSize = 10.0f;
-        auto labelingCol = trackCol.getBrightness() > 0.8f
-                 ? juce::Colour(0xff000000)
-                 : juce::Colour(0xffffffff);
+        auto labelingCol = trackCol.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
         m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
-        
+
         auto header = area.removeFromLeft(HEADERWIDTH);
         g.setColour(trackCol);
         GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
     };
 }
 
-void RackView::paintOverChildren (juce::Graphics& g)
+void RackView::paintOverChildren(juce::Graphics &g)
 {
-    auto* dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
-    if (!dragC || !dragC->isDragAndDropActive())
-    {
+    auto *dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
+    if (!dragC || !dragC->isDragAndDropActive()) {
         m_dragSource = nullptr;
         return;
     }
     if (m_dragSource == nullptr)
         return;
 
-    auto modifier = dynamic_cast<ModifierViewComponent*>(m_dragSource->getParentComponent());
+    auto modifier = dynamic_cast<ModifierViewComponent *>(m_dragSource->getParentComponent());
     if (modifier == nullptr)
         return;
 
     auto mousePos = getMouseXYRelative().toFloat();
     auto sourceBounds = getLocalPoint(m_dragSource, m_dragSource->getLocalBounds().getCentre()).toFloat();
 
-    auto* compUnderMouse = getComponentAt(getMouseXYRelative());
+    auto *compUnderMouse = getComponentAt(getMouseXYRelative());
 
     // Helper to find target inside the viewport
-    juce::Component* target = compUnderMouse;
-    if (target == &m_viewport)
-    {
+    juce::Component *target = compUnderMouse;
+    if (target == &m_viewport) {
         // Transform point to content component
         auto pt = m_viewport.getLocalPoint(this, getMouseXYRelative());
         target = m_contentComp->getComponentAt(pt);
 
-        if (target) 
-        {
-             auto pt2 = target->getLocalPoint(m_contentComp.get(), pt);
-             auto deeper = target->getComponentAt(pt2);
-             if (deeper) target = deeper;
+        if (target) {
+            auto pt2 = target->getLocalPoint(m_contentComp.get(), pt);
+            auto deeper = target->getComponentAt(pt2);
+            if (deeper)
+                target = deeper;
         }
     }
-    
+
     if (target == this || target == &m_viewport || target == m_contentComp.get())
         target = nullptr;
 
     juce::Colour lineColour = m_evs.m_applicationState.getTextColour();
 
-    if (target != nullptr)
-    {
-        auto* slider = dynamic_cast<AutomatableSliderComponent*>(target);
+    if (target != nullptr) {
+        auto *slider = dynamic_cast<AutomatableSliderComponent *>(target);
         if (slider == nullptr)
             slider = target->findParentComponentOfClass<AutomatableSliderComponent>();
 
-        if (slider != nullptr)
-        {
+        if (slider != nullptr) {
             auto param = slider->getAutomatableParameter();
             auto mod = modifier->getModifier();
 
-            if (mod->itemID == param->getOwnerID() || param->getTrack() != te::getTrackContainingModifier (mod->edit, mod))
-            {
+            if (mod->itemID == param->getOwnerID() ||
+                param->getTrack() != te::getTrackContainingModifier(mod->edit, mod)) {
                 lineColour = juce::Colours::grey;
                 g.setColour(juce::Colours::grey.withAlpha(0.4f));
-                
+
                 // Need bounds relative to THIS (RackView)
-                auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
+                auto bounds = getLocalPoint(slider, juce::Point<int>(0, 0));
                 auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
 
                 int size = std::min(rect.getWidth(), rect.getHeight());
@@ -219,14 +207,14 @@ void RackView::paintOverChildren (juce::Graphics& g)
                 g.fillRect(rect);
                 g.setColour(juce::Colours::black);
                 g.drawLine(rect.getX(), rect.getY(), rect.getBottomRight().getX(), rect.getBottomRight().getY(), 2.f);
-                g.drawLine(rect.getTopRight().getX(), rect.getTopRight().getY(), rect.getBottomLeft().getX(), rect.getBottomLeft().getY(), 2.f);
+                g.drawLine(rect.getTopRight().getX(), rect.getTopRight().getY(), rect.getBottomLeft().getX(),
+                           rect.getBottomLeft().getY(), 2.f);
             }
-            else
-            {
+            else {
                 lineColour = m_evs.m_applicationState.getPrimeColour();
                 g.setColour(lineColour);
-                
-                auto bounds = getLocalPoint(slider, juce::Point<int>(0,0));
+
+                auto bounds = getLocalPoint(slider, juce::Point<int>(0, 0));
                 auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
 
                 int size = std::min(rect.getWidth(), rect.getHeight());
@@ -241,27 +229,24 @@ void RackView::paintOverChildren (juce::Graphics& g)
     g.drawLine(sourceBounds.getX(), sourceBounds.getY(), mousePos.getX(), mousePos.getY(), 2.0f);
 }
 
-void RackView::mouseDown (const juce::MouseEvent&)
+void RackView::mouseDown(const juce::MouseEvent &)
 {
-    //editViewState.selectionManager.selectOnly (track.get());
+    // editViewState.selectionManager.selectOnly (track.get());
 }
 
 void RackView::resized()
 {
     auto area = getLocalBounds();
-    auto nameLabelRect = juce::Rectangle<int>(area.getX()
-                                              , area.getHeight() - HEADERWIDTH 
-                                              , area.getHeight()
-                                              , HEADERWIDTH);
+    auto nameLabelRect =
+        juce::Rectangle<int>(area.getX(), area.getHeight() - HEADERWIDTH, area.getHeight(), HEADERWIDTH);
     m_nameLabel.setBounds(nameLabelRect);
-    m_nameLabel.setTransform(juce::AffineTransform::rotation ( - (juce::MathConstants<float>::halfPi)
-                                                 , nameLabelRect.getX() + 10.0
-                                                 , nameLabelRect.getY() + 10.0 ));
+    m_nameLabel.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi),
+                                                             nameLabelRect.getX() + 10.0, nameLabelRect.getY() + 10.0));
     area.removeFromLeft(HEADERWIDTH);
-    area = area.reduced (5);
+    area = area.reduced(5);
 
     m_viewport.setBounds(area);
-    
+
     // Always account for the horizontal scrollbar thickness since it's permanently shown
     int scrollH = m_viewport.getScrollBarThickness();
     int contentHeight = juce::jmax(0, m_viewport.getHeight() - scrollH);
@@ -279,13 +264,13 @@ juce::StringArray RackView::getRackOrder() const
     return order;
 }
 
-void RackView::saveRackOrder(const juce::StringArray& order)
+void RackView::saveRackOrder(const juce::StringArray &order)
 {
     auto state = m_evs.getTrackRackViewState(m_track->itemID);
     state.setProperty("rackItemOrder", order.joinIntoString(","), nullptr);
 }
 
-static te::Plugin::Ptr getPluginFromList(te::PluginList& list, te::EditItemID id)
+static te::Plugin::Ptr getPluginFromList(te::PluginList &list, te::EditItemID id)
 {
     for (auto p : list)
         if (p->itemID == id)
@@ -293,14 +278,16 @@ static te::Plugin::Ptr getPluginFromList(te::PluginList& list, te::EditItemID id
     return {};
 }
 
-static bool isPluginHidden(te::Track& t, te::Plugin* p)
+static bool isPluginHidden(te::Track &t, te::Plugin *p)
 {
-    if (auto at = dynamic_cast<te::AudioTrack*>(&t))
-    {
-        if (p == at->getVolumePlugin()) return true;
-        if (p == at->getLevelMeterPlugin()) return true;
+    if (auto at = dynamic_cast<te::AudioTrack *>(&t)) {
+        if (p == at->getVolumePlugin())
+            return true;
+        if (p == at->getLevelMeterPlugin())
+            return true;
         // Also hide Equaliser if it's considered internal/default
-        if (p == at->getEqualiserPlugin()) return true;
+        if (p == at->getEqualiserPlugin())
+            return true;
     }
     return false;
 }
@@ -309,8 +296,7 @@ int RackView::getPluginIndexForVisualIndex(int visualIndex) const
 {
     auto order = getRackOrder();
     int targetPluginIndex = 0;
-    for(int i=0; i<visualIndex && i<order.size(); ++i)
-    {
+    for (int i = 0; i < visualIndex && i < order.size(); ++i) {
         if (getPluginFromList(m_track->pluginList, te::EditItemID::fromVar(order[i])))
             targetPluginIndex++;
     }
@@ -323,26 +309,21 @@ void RackView::ensureRackOrderConsistency()
     juce::StringArray newOrder;
 
     // 1. Keep existing items if they still exist and are not hidden
-    for (auto idStr : currentOrder)
-    {
+    for (auto idStr : currentOrder) {
         auto id = te::EditItemID::fromVar(idStr);
-        if (auto p = getPluginFromList(m_track->pluginList, id))
-        {
+        if (auto p = getPluginFromList(m_track->pluginList, id)) {
             if (!isPluginHidden(*m_track, p.get()))
                 newOrder.add(idStr);
         }
-        else if (auto* ml = m_track->getModifierList())
-        {
-             if (te::findModifierForID(*ml, id) != nullptr)
-             {
-                 newOrder.add(idStr);
-             }
+        else if (auto *ml = m_track->getModifierList()) {
+            if (te::findModifierForID(*ml, id) != nullptr) {
+                newOrder.add(idStr);
+            }
         }
     }
 
     // 2. Add any new items not in the list
-    for (auto* p : m_track->getAllPlugins())
-    {
+    for (auto *p : m_track->getAllPlugins()) {
         if (isPluginHidden(*m_track, p))
             continue;
 
@@ -350,10 +331,8 @@ void RackView::ensureRackOrderConsistency()
             newOrder.add(p->itemID.toString());
     }
 
-    if (auto* ml = m_track->getModifierList())
-    {
-        for (auto m : ml->getModifiers())
-        {
+    if (auto *ml = m_track->getModifierList()) {
+        for (auto m : ml->getModifiers()) {
             if (!newOrder.contains(m->itemID.toString()))
                 newOrder.add(m->itemID.toString());
         }
@@ -363,14 +342,15 @@ void RackView::ensureRackOrderConsistency()
         saveRackOrder(newOrder);
 }
 
-void RackView::moveItem(RackItemView* item, int targetIndex)
+void RackView::moveItem(RackItemView *item, int targetIndex)
 {
     te::EditItemID id;
-    if (item->getPlugin()) id = item->getPlugin()->itemID;
-    else if (item->getModifier()) id = item->getModifier()->itemID;
+    if (item->getPlugin())
+        id = item->getPlugin()->itemID;
+    else if (item->getModifier())
+        id = item->getModifier()->itemID;
 
-    if (id.isValid())
-    {
+    if (id.isValid()) {
         auto order = getRackOrder();
         order.removeString(id.toString());
 
@@ -382,23 +362,20 @@ void RackView::moveItem(RackItemView* item, int targetIndex)
         saveRackOrder(order);
 
         // Sync PluginList order
-        if (item->getPlugin())
-        {
-             int targetPluginIndex = getPluginIndexForVisualIndex(targetIndex);
+        if (item->getPlugin()) {
+            int targetPluginIndex = getPluginIndexForVisualIndex(targetIndex);
 
-             m_track->pluginList.insertPlugin(item->getPlugin(), targetPluginIndex, nullptr);
+            m_track->pluginList.insertPlugin(item->getPlugin(), targetPluginIndex, nullptr);
         }
 
         rebuildView();
     }
 }
 
-void RackView::buttonClicked(juce::Button* button)
+void RackView::buttonClicked(juce::Button *button)
 {
-    for (auto &b : m_contentComp->m_addButtons)
-    {
-        if (b == button)
-        {
+    for (auto &b : m_contentComp->m_addButtons) {
+        if (b == button) {
             int visualIndex = m_contentComp->m_addButtons.indexOf(b);
 
             juce::PopupMenu m;
@@ -413,57 +390,57 @@ void RackView::buttonClicked(juce::Button* button)
 
             int result = m.showAt(button);
 
-            if (result == 1)
-            {
-                if (auto plugin = showMenuAndCreatePlugin (m_track->edit))
-                {
+            if (result == 1) {
+                auto types = te::Plugin::Type::allPlugins;
+                if (m_track->isMasterTrack())
+                    types = te::Plugin::Type::effectPlugins;
+
+                if (auto plugin = showMenuAndCreatePlugin(m_track->edit, types)) {
                     // Calculate target Plugin List Index based on Rack Order
                     ensureRackOrderConsistency();
 
                     auto order = getRackOrder();
                     int targetPluginIndex = 0;
 
-                    for(int i=0; i<visualIndex && i<order.size(); ++i)
-                    {
+                    for (int i = 0; i < visualIndex && i < order.size(); ++i) {
                         if (getPluginFromList(m_track->pluginList, te::EditItemID::fromVar(order[i])))
                             targetPluginIndex++;
                     }
 
-                    EngineHelpers::insertPluginWithPreset (m_evs, m_track, plugin, targetPluginIndex);
+                    EngineHelpers::insertPluginWithPreset(m_evs, m_track, plugin, targetPluginIndex);
 
                     // Update Rack Order
                     order.insert(visualIndex, plugin->itemID.toString());
                     saveRackOrder(order);
                 }
             }
-            else if (result >= 100)
-            {
-                 if (auto* ml = m_track->getModifierList())
-                 {
-                     juce::Identifier id = te::IDs::LFO;
-                     if (result == 102) id = te::IDs::STEP;
-                     if (result == 103) id = te::IDs::RANDOM;
+            else if (result >= 100) {
+                if (auto *ml = m_track->getModifierList()) {
+                    juce::Identifier id = te::IDs::LFO;
+                    if (result == 102)
+                        id = te::IDs::STEP;
+                    if (result == 103)
+                        id = te::IDs::RANDOM;
 
-                     auto mod = ml->insertModifier(juce::ValueTree(id), -1, nullptr);
+                    auto mod = ml->insertModifier(juce::ValueTree(id), -1, nullptr);
 
-                     if (mod)
-                     {
-                         auto order = getRackOrder();
+                    if (mod) {
+                        auto order = getRackOrder();
 
-                         // Remove if it was accidentally added by a sync listener (unlikely this fast, but safe)
-                         order.removeString(mod->itemID.toString());
+                        // Remove if it was accidentally added by a sync listener (unlikely this fast, but safe)
+                        order.removeString(mod->itemID.toString());
 
-                         if (visualIndex >= order.size())
-                             order.add(mod->itemID.toString());
-                         else
-                             order.insert(visualIndex, mod->itemID.toString());
+                        if (visualIndex >= order.size())
+                            order.add(mod->itemID.toString());
+                        else
+                            order.insert(visualIndex, mod->itemID.toString());
 
-                         saveRackOrder(order);
-                     }
-                 }
+                        saveRackOrder(order);
+                    }
+                }
             }
 
-            m_evs.m_selectionManager.selectOnly (m_track);
+            m_evs.m_selectionManager.selectOnly(m_track);
         }
     }
 }
@@ -472,6 +449,10 @@ void RackView::setTrack(te::Track::Ptr track)
 {
     m_track = track;
     m_track->state.addListener(this);
+    if (m_track->isMasterTrack()) {
+        m_masterPluginListState = m_track->edit.getMasterPluginList().state;
+        m_masterPluginListState.addListener(this);
+    }
     m_trackID = m_track->itemID.toString();
     m_nameLabel.setText(m_track->getName(), juce::dontSendNotification);
     rebuildView();
@@ -479,8 +460,13 @@ void RackView::setTrack(te::Track::Ptr track)
 
 void RackView::clearTrack()
 {
-    if (m_track != nullptr)
+    if (m_track != nullptr) {
         m_track->state.removeListener(this);
+        if (m_masterPluginListState.isValid()) {
+            m_masterPluginListState.removeListener(this);
+            m_masterPluginListState = {};
+        }
+    }
     m_track = nullptr;
     m_trackID = "";
     rebuildView();
@@ -491,37 +477,37 @@ juce::String RackView::getCurrentTrackID()
     return m_trackID;
 }
 
-juce::OwnedArray<AddButton> & RackView::getAddButtons()
+juce::OwnedArray<AddButton> &RackView::getAddButtons()
 {
     return m_contentComp->m_addButtons;
 }
 
-juce::OwnedArray<RackItemView> & RackView::getPluginComponents()
+juce::OwnedArray<RackItemView> &RackView::getPluginComponents()
 {
     return m_contentComp->m_rackItems;
 }
-    
-void RackView::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree& c)
+
+void RackView::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
 {
-    if (c.hasType (te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
-        markAndUpdate (m_updatePlugins);
+    if (c.hasType(te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
+        markAndUpdate(m_updatePlugins);
 }
 
-void RackView::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree& c, int)
+void RackView::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c, int)
 {
-    if (c.hasType (te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
-        markAndUpdate (m_updatePlugins);
+    if (c.hasType(te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
+        markAndUpdate(m_updatePlugins);
 }
 
-void RackView::valueTreeChildOrderChanged (juce::ValueTree& c, int, int)
+void RackView::valueTreeChildOrderChanged(juce::ValueTree &c, int, int)
 {
-    if (c.hasType (te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
-        markAndUpdate (m_updatePlugins);
+    if (c.hasType(te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
+        markAndUpdate(m_updatePlugins);
 }
 
 void RackView::handleAsyncUpdate()
 {
-    if (compareAndReset (m_updatePlugins))
+    if (compareAndReset(m_updatePlugins))
         rebuildView();
 }
 
@@ -529,28 +515,23 @@ void RackView::rebuildView()
 {
     m_contentComp->m_rackItems.clear();
 
-    if (m_track != nullptr)
-    {
+    if (m_track != nullptr) {
         ensureRackOrderConsistency();
         auto order = getRackOrder();
 
-        for (auto idStr : order)
-        {
+        for (auto idStr : order) {
             auto id = te::EditItemID::fromVar(idStr);
 
-            if (auto p = getPluginFromList(m_track->pluginList, id))
-            {
-                 auto view = std::make_unique<RackItemView> (m_evs, m_track, p);
-                 m_contentComp->addAndMakeVisible (view.get());
-                 m_contentComp->m_rackItems.add (std::move(view));
+            if (auto p = getPluginFromList(m_track->pluginList, id)) {
+                auto view = std::make_unique<RackItemView>(m_evs, m_track, p);
+                m_contentComp->addAndMakeVisible(view.get());
+                m_contentComp->m_rackItems.add(std::move(view));
             }
-            else if (auto* ml = m_track->getModifierList())
-            {
-                if (auto m = te::findModifierForID(*ml, id))
-                {
-                     auto view = std::make_unique<RackItemView> (m_evs, m_track, m);
-                     m_contentComp->addAndMakeVisible (view.get());
-                     m_contentComp->m_rackItems.add (std::move(view));
+            else if (auto *ml = m_track->getModifierList()) {
+                if (auto m = te::findModifierForID(*ml, id)) {
+                    auto view = std::make_unique<RackItemView>(m_evs, m_track, m);
+                    m_contentComp->addAndMakeVisible(view.get());
+                    m_contentComp->m_rackItems.add(std::move(view));
                 }
             }
         }
@@ -559,37 +540,32 @@ void RackView::rebuildView()
     resized();
 }
 
-bool RackView::isInterestedInDragSource(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+bool RackView::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    if (dragSourceDetails.description == "PluginListEntry"
-     || dragSourceDetails.description == "Instrument or Effect"
-     || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
-    {
+    if (dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Instrument or Effect" ||
+        dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString) {
         return true;
     }
     return false;
 }
 
-void RackView::itemDragMove(const SourceDetails& dragSourceDetails) 
+void RackView::itemDragMove(const SourceDetails &dragSourceDetails)
 {
-    if (dragSourceDetails.description == "PluginComp"
-        || dragSourceDetails.description == "PluginListEntry"
-        || dragSourceDetails.description == "Instrument or Effect"
-        || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
+    if (dragSourceDetails.description == "PluginComp" || dragSourceDetails.description == "PluginListEntry" ||
+        dragSourceDetails.description == "Instrument or Effect" ||
+        dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
 
     {
         m_isOver = true;
     }
 
-    if (dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
-    {
+    if (dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString) {
         m_dragSource = dragSourceDetails.sourceComponent.get();
     }
     repaint();
 }
 
-void RackView::itemDragExit (const SourceDetails& details) 
+void RackView::itemDragExit(const SourceDetails &details)
 {
     m_isOver = false;
 
@@ -599,40 +575,35 @@ void RackView::itemDragExit (const SourceDetails& details)
     repaint();
 }
 
-void RackView::itemDropped(
-    const juce::DragAndDropTarget::SourceDetails& details)
+void RackView::itemDropped(const juce::DragAndDropTarget::SourceDetails &details)
 {
     m_dragSource = nullptr;
 
     te::Track::Ptr track;
     if (m_track != nullptr)
         track = m_track;
-    else 
+    else
         track = EngineHelpers::addAudioTrack(true, m_evs.m_applicationState.getRandomTrackColour(), m_evs);
 
-    if  (details.description == "PluginListEntry")
-        if (auto listbox = dynamic_cast<PluginListbox*>(details.sourceComponent.get ()))
-            EngineHelpers::insertPluginWithPreset (m_evs, track, listbox->getSelectedPlugin(m_evs.m_edit));
+    if (details.description == "PluginListEntry")
+        if (auto listbox = dynamic_cast<PluginListbox *>(details.sourceComponent.get()))
+            EngineHelpers::insertPluginWithPreset(m_evs, track, listbox->getSelectedPlugin(m_evs.m_edit));
     if (details.description == "Instrument or Effect")
-        if (auto lb = dynamic_cast<InstrumentEffectTable*>(details.sourceComponent.get()))
-            EngineHelpers::insertPluginWithPreset (m_evs, track, lb->getSelectedPlugin(m_evs.m_edit));
+        if (auto lb = dynamic_cast<InstrumentEffectTable *>(details.sourceComponent.get()))
+            EngineHelpers::insertPluginWithPreset(m_evs, track, lb->getSelectedPlugin(m_evs.m_edit));
 
     m_isOver = false;
     repaint();
 }
 
-void AddButton::itemDropped(const SourceDetails& dragSourceDetails) 
+void AddButton::itemDropped(const SourceDetails &dragSourceDetails)
 {
-    if (dragSourceDetails.description == "PluginListEntry")
-    {
-        if (auto listbox = dynamic_cast<juce::ListBox*>(dragSourceDetails.sourceComponent.get ()))
-        {
-            if (auto lbm = dynamic_cast<PluginListbox*> (listbox->getModel ()))
-            {
+    if (dragSourceDetails.description == "PluginListEntry") {
+        if (auto listbox = dynamic_cast<juce::ListBox *>(dragSourceDetails.sourceComponent.get())) {
+            if (auto lbm = dynamic_cast<PluginListbox *>(listbox->getModel())) {
                 // Find RackView via hierarchy search because AddButton is now inside RackContentComponent
                 auto pluginRackComp = findParentComponentOfClass<RackView>();
-                if (pluginRackComp)
-                {
+                if (pluginRackComp) {
                     // Calculate the visual index where the user dropped the item
                     int visualIndex = pluginRackComp->getAddButtons().indexOf(this);
 
@@ -642,11 +613,17 @@ void AddButton::itemDropped(const SourceDetails& dragSourceDetails)
 
                     int targetPluginIndex = pluginRackComp->getPluginIndexForVisualIndex(visualIndex);
 
+                    if (m_track->isMasterTrack()) {
+                        if (auto desc = lbm->getSelectedPluginDescription())
+                            if (desc->isInstrument)
+                                return;
+                    }
+
                     auto plugin = lbm->getSelectedPlugin(m_track->edit);
-                    if (plugin)
-                    {
+                    if (plugin) {
                         // Insert the plugin into the engine at the calculated index
-                        EngineHelpers::insertPluginWithPreset (pluginRackComp->getEditViewState(), m_track, plugin, targetPluginIndex);
+                        EngineHelpers::insertPluginWithPreset(pluginRackComp->getEditViewState(), m_track, plugin,
+                                                              targetPluginIndex);
 
                         // Update the custom rack order to include the new plugin's ID at the correct visual position
                         order.insert(visualIndex, plugin->itemID.toString());
@@ -654,20 +631,15 @@ void AddButton::itemDropped(const SourceDetails& dragSourceDetails)
                     }
                 }
             }
-
         }
     }
 
-
-    if (dragSourceDetails.description == "PluginComp" 
-        || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
-    {
+    if (dragSourceDetails.description == "PluginComp" ||
+        dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString) {
         auto pluginRackComp = findParentComponentOfClass<RackView>();
-        if (pluginRackComp)
-        {
-            auto* view = dynamic_cast<RackItemView*>(dragSourceDetails.sourceComponent.get());
-            if (view)
-            {
+        if (pluginRackComp) {
+            auto *view = dynamic_cast<RackItemView *>(dragSourceDetails.sourceComponent.get());
+            if (view) {
                 int targetIndex = pluginRackComp->getAddButtons().indexOf(this);
                 pluginRackComp->moveItem(view, targetIndex);
             }
