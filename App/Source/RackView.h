@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -27,6 +26,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 #include "PluginComponent.h"
 #include "Utilities.h"
+#include "ModifierSidebar.h"
+#include "ModifierDetailPanel.h"
 // #include "PluginBrowser.h"
 
 namespace te = tracktion_engine;
@@ -93,6 +94,9 @@ class RackView : public juce::Component,
     class RackContentComponent;
     std::unique_ptr<RackContentComponent> m_contentComp;
     juce::Viewport m_viewport;
+    
+    ModifierSidebar m_modifierSidebar;
+    ModifierDetailPanel m_modifierDetailPanel;
 
     bool m_updatePlugins = false;
     bool m_isOver = false;

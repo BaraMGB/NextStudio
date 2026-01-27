@@ -121,6 +121,8 @@ target_sources(${TargetName} PRIVATE
         Source/AutomationLaneComponent.cpp
         Source/ThumbNailManager.cpp
         Source/PluginViewComponent.cpp
+        Source/ModifierSidebar.cpp
+        Source/ModifierDetailPanel.cpp
         Source/ToolFactory.cpp
         Source/tools/PointerTool.cpp
         Source/tools/DrawTool.cpp
