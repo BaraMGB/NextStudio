@@ -118,6 +118,7 @@ namespace IDs
     DECLARE_ID (editNoteOutsideOfClipRange)
     DECLARE_ID (pluginPresetManagerUIStates)
     DECLARE_ID (trackRackViewState)
+    DECLARE_ID (selectedModifier)
 
     #undef DECLARE_ID
 }
@@ -158,6 +159,9 @@ public:
 
     juce::ValueTree getPresetManagerUIStateForPlugin(const te::Plugin& plugin);
     juce::ValueTree getTrackRackViewState(te::EditItemID trackID);
+
+    void setTrackSelectedModifier(te::EditItemID trackID, te::EditItemID modifierID);
+    te::EditItemID getTrackSelectedModifier(te::EditItemID trackID);
 
     double getViewYScale(juce::String timeLineID)
     {

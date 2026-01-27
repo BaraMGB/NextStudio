@@ -94,7 +94,10 @@ class RackView::RackContentComponent : public juce::Component
 };
 
 //==============================================================================
-RackView::RackView(EditViewState &evs) : m_evs(evs)
+RackView::RackView(EditViewState &evs)
+    : m_evs(evs), 
+      m_modifierSidebar(evs), 
+      m_modifierDetailPanel(evs)
 {
     addAndMakeVisible(m_nameLabel);
     m_nameLabel.setJustificationType(juce::Justification::centred);
@@ -103,6 +106,14 @@ RackView::RackView(EditViewState &evs) : m_evs(evs)
     m_viewport.setViewedComponent(m_contentComp.get(), false);
     m_viewport.setScrollBarsShown(false, true, false, true);
     addAndMakeVisible(m_viewport);
+
+    addAndMakeVisible(m_modifierSidebar);
+    addChildComponent(m_modifierDetailPanel); // Start hidden
+
+    m_modifierSidebar.onModifierSelected = [this](te::Modifier::Ptr m) {
+        m_modifierDetailPanel.setModifier(m);
+        resized();
+    };
 }
 
 RackView::~RackView()
@@ -245,6 +256,20 @@ void RackView::resized()
     area.removeFromLeft(HEADERWIDTH);
     area = area.reduced(5);
 
+    // Layout Sidebar and Detail Panel
+    m_modifierSidebar.setBounds(area.removeFromRight(160));
+    
+    if (m_modifierSidebar.getSelectedModifier())
+    {
+        m_modifierDetailPanel.setVisible(true);
+        m_modifierDetailPanel.setBounds(area.removeFromRight(300));
+    }
+    else
+    {
+        m_modifierDetailPanel.setVisible(false);
+    }
+    
+    // Remaining area for Plugins
     m_viewport.setBounds(area);
 
     // Always account for the horizontal scrollbar thickness since it's permanently shown
@@ -381,13 +406,6 @@ void RackView::buttonClicked(juce::Button *button)
             juce::PopupMenu m;
             m.addItem(1, "Plugins...");
 
-            juce::PopupMenu modMenu;
-            modMenu.addItem(100, "LFO");
-            modMenu.addItem(102, "Step");
-            modMenu.addItem(103, "Random");
-
-            m.addSubMenu("Modifiers", modMenu);
-
             int result = m.showAt(button);
 
             if (result == 1) {
@@ -414,31 +432,6 @@ void RackView::buttonClicked(juce::Button *button)
                     saveRackOrder(order);
                 }
             }
-            else if (result >= 100) {
-                if (auto *ml = m_track->getModifierList()) {
-                    juce::Identifier id = te::IDs::LFO;
-                    if (result == 102)
-                        id = te::IDs::STEP;
-                    if (result == 103)
-                        id = te::IDs::RANDOM;
-
-                    auto mod = ml->insertModifier(juce::ValueTree(id), -1, nullptr);
-
-                    if (mod) {
-                        auto order = getRackOrder();
-
-                        // Remove if it was accidentally added by a sync listener (unlikely this fast, but safe)
-                        order.removeString(mod->itemID.toString());
-
-                        if (visualIndex >= order.size())
-                            order.add(mod->itemID.toString());
-                        else
-                            order.insert(visualIndex, mod->itemID.toString());
-
-                        saveRackOrder(order);
-                    }
-                }
-            }
 
             m_evs.m_selectionManager.selectOnly(m_track);
         }
@@ -455,6 +448,10 @@ void RackView::setTrack(te::Track::Ptr track)
     }
     m_trackID = m_track->itemID.toString();
     m_nameLabel.setText(m_track->getName(), juce::dontSendNotification);
+    
+    m_modifierSidebar.setTrack(m_track);
+    m_modifierDetailPanel.setModifier(nullptr);
+
     rebuildView();
 }
 
@@ -469,6 +466,10 @@ void RackView::clearTrack()
     }
     m_track = nullptr;
     m_trackID = "";
+    
+    m_modifierSidebar.setTrack(nullptr);
+    m_modifierDetailPanel.setModifier(nullptr);
+    
     rebuildView();
 }
 
@@ -489,19 +490,19 @@ juce::OwnedArray<RackItemView> &RackView::getPluginComponents()
 
 void RackView::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
 {
-    if (c.hasType(te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
+    if (c.hasType(te::IDs::PLUGIN))
         markAndUpdate(m_updatePlugins);
 }
 
 void RackView::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c, int)
 {
-    if (c.hasType(te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
+    if (c.hasType(te::IDs::PLUGIN))
         markAndUpdate(m_updatePlugins);
 }
 
 void RackView::valueTreeChildOrderChanged(juce::ValueTree &c, int, int)
 {
-    if (c.hasType(te::IDs::PLUGIN) || te::ModifierList::isModifier(c.getType()))
+    if (c.hasType(te::IDs::PLUGIN))
         markAndUpdate(m_updatePlugins);
 }
 
@@ -526,13 +527,6 @@ void RackView::rebuildView()
                 auto view = std::make_unique<RackItemView>(m_evs, m_track, p);
                 m_contentComp->addAndMakeVisible(view.get());
                 m_contentComp->m_rackItems.add(std::move(view));
-            }
-            else if (auto *ml = m_track->getModifierList()) {
-                if (auto m = te::findModifierForID(*ml, id)) {
-                    auto view = std::make_unique<RackItemView>(m_evs, m_track, m);
-                    m_contentComp->addAndMakeVisible(view.get());
-                    m_contentComp->m_rackItems.add(std::move(view));
-                }
             }
         }
     }

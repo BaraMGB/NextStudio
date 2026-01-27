@@ -100,6 +100,18 @@ juce::ValueTree EditViewState::getTrackRackViewState(te::EditItemID trackID)
     return m_trackRackViewState.getOrCreateChildWithName(id, nullptr);
 }
 
+void EditViewState::setTrackSelectedModifier(te::EditItemID trackID, te::EditItemID modifierID)
+{
+    auto state = getTrackRackViewState(trackID);
+    state.setProperty(IDs::selectedModifier, modifierID.toString(), &m_edit.getUndoManager());
+}
+
+te::EditItemID EditViewState::getTrackSelectedModifier(te::EditItemID trackID)
+{
+    auto state = getTrackRackViewState(trackID);
+    return te::EditItemID::fromVar(state.getProperty(IDs::selectedModifier));
+}
+
 float EditViewState::beatsToX(double beats, int width, double x1beats, double x2beats) const
 {
     return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats));
