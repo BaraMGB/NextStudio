@@ -21,43 +21,43 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "EditViewState.h"
 
-EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationViewState &avs)
-    : m_edit(e), m_selectionManager(s), m_applicationState(avs)
+EditViewState::EditViewState (te::Edit& e, te::SelectionManager& s, ApplicationViewState& avs)
+    : m_edit (e), m_selectionManager (s), m_applicationState(avs)
 {
     m_trackHeightManager = std::make_unique<TrackHeightManager>(tracktion::getAllTracks(e));
     m_thumbNailManager = std::make_unique<ThumbNailManager>(m_edit.engine);
-    m_state = m_edit.state.getOrCreateChildWithName(IDs::EDITVIEWSTATE, nullptr);
+    m_state = m_edit.state.getOrCreateChildWithName (IDs::EDITVIEWSTATE, nullptr);
     m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
     m_pluginPresetManagerUIStates = m_state.getOrCreateChildWithName(IDs::pluginPresetManagerUIStates, nullptr);
     m_trackRackViewState = m_state.getOrCreateChildWithName(IDs::trackRackViewState, nullptr);
 
     auto um = &m_edit.getUndoManager();
 
-    m_showGlobalTrack.referTo(m_state, IDs::showGlobalTrack, um, false);
-    m_showMarkerTrack.referTo(m_state, IDs::showMarkerTrack, um, false);
-    m_showChordTrack.referTo(m_state, IDs::showChordTrack, um, false);
-    m_showArrangerTrack.referTo(m_state, IDs::showArranger, um, false);
-    m_showMasterTrack.referTo(m_state, IDs::showMaster, um, true);
-    m_drawWaveforms.referTo(m_state, IDs::drawWaveforms, um, /* false);*/ true);
-    m_showHeaders.referTo(m_state, IDs::showHeaders, um, false); // true);
-    m_showFooters.referTo(m_state, IDs::showFooters, um, false);
-    m_showMidiDevices.referTo(m_state, IDs::showMidiDevices, um, false);
-    m_showWaveDevices.referTo(m_state, IDs::showWaveDevices, um, true);
-    m_automationFollowsClip.referTo(m_state, IDs::automationFollowsClip, um, true);
+    m_showGlobalTrack.referTo (m_state, IDs::showGlobalTrack, um, false);
+    m_showMarkerTrack.referTo (m_state, IDs::showMarkerTrack, um, false);
+    m_showChordTrack.referTo (m_state, IDs::showChordTrack, um, false);
+    m_showArrangerTrack.referTo (m_state, IDs::showArranger, um, false);
+    m_showMasterTrack.referTo(m_state, IDs::showMaster, um, false);
+    m_drawWaveforms.referTo (m_state, IDs::drawWaveforms, um,/* false);*/true);
+    m_showHeaders.referTo (m_state, IDs::showHeaders, um,false);// true);
+    m_showFooters.referTo (m_state, IDs::showFooters, um, false);
+    m_showMidiDevices.referTo (m_state, IDs::showMidiDevices, um, false);
+    m_showWaveDevices.referTo (m_state, IDs::showWaveDevices, um, true);
+    m_automationFollowsClip.referTo (m_state, IDs::automationFollowsClip, um, true);
 
-    m_trackHeightMinimized.referTo(m_state, IDs::trackMinimized, um, 30);
-    m_isAutoArmed.referTo(m_state, IDs::isAutoArmed, um, true);
+    m_trackHeightMinimized.referTo (m_state, IDs::trackMinimized, um, 30);
+    m_isAutoArmed.referTo (m_state, IDs::isAutoArmed, um, true);
     m_trackDefaultHeight.referTo(m_state, IDs::headerHeight, um, 50);
     m_trackHeaderWidth.referTo(m_state, IDs::headerWidth, um, 290);
     m_folderTrackHeight.referTo(m_state, IDs::folderTrackHeight, um, 30);
-    m_footerBarHeight.referTo(m_state, IDs::footerBarHeight, um, 20);
-    m_lowerRangeView.referTo(m_state, IDs::lowerRangeView, um, 0);
-    m_midiEditorHeight.referTo(m_state, IDs::pianorollHeight, um, 400);
-    m_lastNoteLength.referTo(m_state, IDs::lastNoteLenght, um, 0);
+    m_footerBarHeight.referTo (m_state, IDs::footerBarHeight, um, 20);
+    m_lowerRangeView.referTo (m_state, IDs::lowerRangeView, um, 0);
+    m_midiEditorHeight.referTo (m_state, IDs::pianorollHeight, um, 400);
+    m_lastNoteLength.referTo (m_state, IDs::lastNoteLenght, um, 0);
     m_snapType.referTo(m_state, IDs::snapType, um, 9);
-    m_playHeadStartTime.referTo(m_state, IDs::playHeadStartTime, um, 0.0);
-    m_followPlayhead.referTo(m_state, IDs::followsPlayhead, um, true);
-    m_followModeVal.referTo(m_state, IDs::followMode, um, 1); // Default to Page (1)
+    m_playHeadStartTime.referTo (m_state, IDs::playHeadStartTime, um, 0.0);
+    m_followPlayhead.referTo (m_state, IDs::followsPlayhead, um, true);
+    m_followModeVal.referTo (m_state, IDs::followMode, um, 1); // Default to Page (1)
     m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
     m_editName.referTo(m_state, IDs::name, um, "unknown");
     m_timeLineZoomUnit.referTo(m_state, IDs::timeLineZoomUnit, um, 50);
@@ -73,7 +73,7 @@ EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationVi
 
 EditViewState::~EditViewState()
 {
-    for (auto &pair : componentViewData)
+    for (auto& pair : componentViewData)
         delete pair.second;
 
     componentViewData.clear();
@@ -85,7 +85,7 @@ EditViewState::~EditViewState()
         m_viewDataTree.getParent().removeChild(m_viewDataTree, nullptr);
 }
 
-juce::ValueTree EditViewState::getPresetManagerUIStateForPlugin(const te::Plugin &plugin)
+juce::ValueTree EditViewState::getPresetManagerUIStateForPlugin(const te::Plugin& plugin)
 {
     // juce::Identifier allows only alphanumeric characters and _
     auto idStr = "p" + plugin.itemID.toString().replaceCharacters("-", "_");
@@ -135,41 +135,41 @@ double EditViewState::xToTime(float x, int width, double x1beats, double x2beats
     return beatToTime(beats);
 }
 
-float EditViewState::beatsToX(double beats, const juce::String &timeLineID, int width)
+float EditViewState::beatsToX(double beats, const juce::String& timeLineID, int width)
 {
     auto visibleBeats = getVisibleBeatRange(timeLineID, width);
     return beatsToX(beats, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
 }
 
-double EditViewState::xToBeats(int x, const juce::String &timeLineID, int width)
+double EditViewState::xToBeats(int x, const juce::String& timeLineID, int width)
 {
     auto visibleBeats = getVisibleBeatRange(timeLineID, width);
     return xToBeats(x, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
 }
 
-float EditViewState::timeToX(double time, const juce::String &timeLineID, int width)
+float EditViewState::timeToX(double time, const juce::String& timeLineID, int width)
 {
     auto visibleBeats = getVisibleBeatRange(timeLineID, width);
     return timeToX(time, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
 }
 
-double EditViewState::xToTime(int x, const juce::String &timeLineID, int width)
+double EditViewState::xToTime(int x, const juce::String& timeLineID, int width)
 {
     auto visibleBeats = getVisibleBeatRange(timeLineID, width);
     return xToTime(x, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
 }
 
-double EditViewState::beatToTime(double b) const
+double EditViewState::beatToTime (double b) const
 {
     auto bp = tracktion::core::BeatPosition::fromBeats(b);
-    auto &ts = m_edit.tempoSequence;
+    auto& ts = m_edit.tempoSequence;
     return ts.toTime(bp).inSeconds();
 }
 
-double EditViewState::timeToBeat(double t) const
+double EditViewState::timeToBeat (double t) const
 {
     auto tp = tracktion::core::TimePosition::fromSeconds(t);
-    auto &ts = m_edit.tempoSequence;
+    auto& ts = m_edit.tempoSequence;
     return ts.toBeats(tp).inBeats();
 }
 
@@ -177,7 +177,8 @@ void EditViewState::setNewStartAndZoom(juce::String timeLineID, double startBeat
 {
     startBeat = juce::jmax(0.0, startBeat);
 
-    if (auto *myViewData = componentViewData[timeLineID]) {
+    if (auto* myViewData = componentViewData[timeLineID])
+    {
         if (beatsPerPixel != -1)
             myViewData->beatsPerPixel = beatsPerPixel;
         myViewData->viewX = startBeat;
@@ -186,12 +187,14 @@ void EditViewState::setNewStartAndZoom(juce::String timeLineID, double startBeat
 
 void EditViewState::setNewBeatRange(juce::String timeLineID, tracktion::BeatRange beatRange, float width)
 {
-    if (auto *myViewData = componentViewData[timeLineID]) {
+    if (auto* myViewData = componentViewData[timeLineID])
+    {
         auto startBeat = beatRange.getStart().inBeats();
         auto endBeat = beatRange.getEnd().inBeats();
         auto beatsPerPixel = (endBeat - startBeat) / width;
 
-        if (startBeat < 0) {
+        if (startBeat < 0)
+        {
             startBeat = 0;
             endBeat = startBeat + (beatsPerPixel * width);
         }
@@ -203,12 +206,14 @@ void EditViewState::setNewBeatRange(juce::String timeLineID, tracktion::BeatRang
 
 void EditViewState::setNewTimeRange(juce::String timeLineID, tracktion::TimeRange timeRange, float width)
 {
-    if (auto *myViewData = componentViewData[timeLineID]) {
+    if (auto* myViewData = componentViewData[timeLineID])
+    {
         auto startBeat = timeToBeat(timeRange.getStart().inSeconds());
         auto endBeat = timeToBeat(timeRange.getEnd().inSeconds());
         auto beatsPerPixel = (endBeat - startBeat) / width;
 
-        if (startBeat < 0) {
+        if (startBeat < 0)
+        {
             startBeat = 0;
             endBeat = startBeat + (beatsPerPixel * width);
         }
@@ -220,173 +225,192 @@ void EditViewState::setNewTimeRange(juce::String timeLineID, tracktion::TimeRang
 
 tracktion::BeatRange EditViewState::getVisibleBeatRange(juce::String id, int width)
 {
-    if (auto *myViewData = componentViewData[id]) {
+    if (auto* myViewData = componentViewData[id])
+    {
         auto startBeat = myViewData->viewX.get();
         auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
 
-        return {tracktion::BeatPosition::fromBeats(startBeat), tracktion::BeatPosition::fromBeats(endBeat)};
+        return {tracktion::BeatPosition::fromBeats(startBeat)
+                , tracktion::BeatPosition::fromBeats(endBeat)};
     }
     return tracktion::BeatRange();
 }
 
 tracktion::TimeRange EditViewState::getVisibleTimeRange(juce::String id, int width)
 {
-    if (auto *myViewData = componentViewData[id]) {
+    if (auto* myViewData = componentViewData[id])
+    {
         auto startBeat = myViewData->viewX.get();
         auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
 
         auto t1 = beatToTime(startBeat);
         auto t2 = beatToTime(endBeat);
 
-        return {tracktion::TimePosition::fromSeconds(t1), tracktion::TimePosition::fromSeconds(t2)};
+        return {tracktion::TimePosition::fromSeconds(t1)
+                , tracktion::TimePosition::fromSeconds(t2)};
     }
     return tracktion::TimeRange();
 }
-[[nodiscard]] double EditViewState::getSnapedTime(double t, te::TimecodeSnapType snapType, bool downwards) const
-{
-    auto &temposequ = m_edit.tempoSequence;
+     [[nodiscard]] double EditViewState::getSnapedTime (
+             double t
+           , te::TimecodeSnapType snapType
+          , bool downwards) const
+    {
+        auto & temposequ = m_edit.tempoSequence;
 
-    auto tp = tracktion::core::TimePosition::fromSeconds(t);
-    return downwards ? snapType.roundTimeDown(tp, temposequ).inSeconds()
-                     : snapType.roundTimeNearest(tp, temposequ).inSeconds();
-}
-
-[[nodiscard]] te::TimecodeSnapType EditViewState::getBestSnapType(double beat1, double beat2, int width) const
-{
-    double x1time = beatToTime(beat1);
-    double x2time = beatToTime(beat2);
-
-    auto td = tracktion::core::TimeDuration::fromSeconds(x2time - x1time);
-
-    auto pos = m_edit.getTransport().getPosition();
-    te::TimecodeSnapType snaptype =
-        m_edit.getTimecodeFormat().getBestSnapType(m_edit.tempoSequence.getTempoAt(pos), td / width, false);
-    return snaptype;
-}
-
-[[nodiscard]] juce::String EditViewState::getSnapTypeDescription(int idx) const
-{
-    auto tp = m_edit.getTransport().getPosition();
-    tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt(tp);
-    return m_edit.getTimecodeFormat().getSnapType(idx).getDescription(tempo, false);
-}
-
-[[nodiscard]] double EditViewState::getEndScrollBeat() const
-{
-    return timeToBeat(m_edit.getLength().inSeconds()) + (480);
-}
-
-void EditViewState::followsPlayhead(bool shouldFollow)
-{
-    m_followPlayhead = shouldFollow;
-}
-
-void EditViewState::toggleFollowPlayhead()
-{
-    m_followPlayhead = !m_followPlayhead;
-}
-[[nodiscard]] bool EditViewState::viewFollowsPos() const
-{
-    return m_followPlayhead;
-}
-
-void EditViewState::setFollowMode(FollowMode mode)
-{
-    if (mode == FollowMode::Off) {
-        m_followPlayhead = false;
-    }
-    else {
-        m_followPlayhead = true;
-        m_followModeVal = static_cast<int>(mode);
-    }
-}
-
-EditViewState::FollowMode EditViewState::getFollowMode() const
-{
-    if (!m_followPlayhead)
-        return FollowMode::Off;
-
-    return static_cast<FollowMode>(m_followModeVal.get());
-}
-
-void EditViewState::updatePositionFollower(juce::String timeLineID, int width)
-{
-    auto mode = getFollowMode();
-    if (mode == FollowMode::Off || !m_edit.getTransport().isPlaying()) {
-        m_isScrolling = false;
-        return;
+        auto tp = tracktion::core::TimePosition::fromSeconds(t);
+        return downwards
+                ? snapType.roundTimeDown (tp, temposequ).inSeconds()
+                : snapType.roundTimeNearest (tp, temposequ).inSeconds();
     }
 
-    auto currentPos = m_edit.getTransport().getPosition().inSeconds();
-    auto currentBeats = timeToBeat(currentPos);
-    auto visibleRange = getVisibleBeatRange(timeLineID, width);
-    auto startBeat = visibleRange.getStart().inBeats();
-    auto endBeat = visibleRange.getEnd().inBeats();
-    auto viewLength = endBeat - startBeat;
+    [[nodiscard]] te::TimecodeSnapType EditViewState::getBestSnapType(double beat1, double beat2, int width) const
+    {
+        double x1time = beatToTime (beat1);
+        double x2time = beatToTime (beat2);
 
-    // Safety check for invalid view
-    if (viewLength <= 0)
-        return;
+        auto td = tracktion::core::TimeDuration::fromSeconds(x2time - x1time);
 
-    if (mode == FollowMode::Continuous) {
-        // Center the playhead
-        // Smoothness comes from calling this at 60fps
-        setNewStartAndZoom(timeLineID, juce::jmax(0.0, currentBeats - viewLength / 2.0));
+        auto pos = m_edit.getTransport ().getPosition();
+        te::TimecodeSnapType snaptype = m_edit.getTimecodeFormat()
+                .getBestSnapType (
+                    m_edit.tempoSequence.getTempoAt (pos)
+                    , td / width
+                    , false);
+        return snaptype;
     }
-    else if (mode == FollowMode::Page) {
-        // Page Mode with Smooth Transition
 
-        // Check if we need to scroll (Playhead moved out of view)
-        if (!m_isScrolling) {
-            // Margin of 10% of view width
-            double margin = viewLength * 0.10;
+    [[nodiscard]] juce::String EditViewState::getSnapTypeDescription(int idx) const
+    {
+        auto tp = m_edit.getTransport ().getPosition (); 
+        tracktion_engine::TempoSetting &tempo = m_edit.tempoSequence.getTempoAt (tp);
+        return m_edit.getTimecodeFormat ().getSnapType (idx).getDescription (tempo, false);
+    }
 
-            if (currentBeats >= endBeat - margin) {
-                m_targetViewX = endBeat - margin;
-                m_scrollStartViewX = startBeat;
-                m_scrollProgress = 0.0;
-                m_isScrolling = true;
-            }
-            else if (currentBeats < startBeat) {
-                // Jumped back (loop or user click)
-                m_targetViewX = juce::jmax(0.0, currentBeats - margin);
-                m_scrollStartViewX = startBeat;
-                m_scrollProgress = 0.0;
-                m_isScrolling = true;
-            }
+    [[nodiscard]] double EditViewState::getEndScrollBeat() const
+    {
+        return timeToBeat ( m_edit.getLength ().inSeconds()) + (480);
+    }
+
+    void EditViewState::followsPlayhead(bool shouldFollow)
+    {
+        m_followPlayhead = shouldFollow;
+    }
+
+    void EditViewState::toggleFollowPlayhead()
+    {
+        m_followPlayhead = !m_followPlayhead;
+    }
+    [[nodiscard]] bool EditViewState::viewFollowsPos() const {return m_followPlayhead;}
+
+    void EditViewState::setFollowMode(FollowMode mode)
+    {
+        if (mode == FollowMode::Off)
+        {
+            m_followPlayhead = false;
         }
-
-        if (m_isScrolling) {
-            // Fixed duration scroll with Ease-In / Ease-Out
-            // Increment progress (0.025 gives approx 40 frames = 0.66 seconds at 60Hz)
-            m_scrollProgress += 0.025;
-
-            if (m_scrollProgress >= 1.0) {
-                setNewStartAndZoom(timeLineID, m_targetViewX);
-                m_isScrolling = false;
-            }
-            else {
-                // SmootherStep (Perlin): t^3 * (t * (t * 6 - 15) + 10)
-                // Provides zero 1st and 2nd derivative at t=0 and t=1 for softer start/stop.
-                double t = m_scrollProgress;
-                double ease = t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
-
-                double newStart = m_scrollStartViewX + (m_targetViewX - m_scrollStartViewX) * ease;
-                setNewStartAndZoom(timeLineID, newStart);
-            }
+        else
+        {
+            m_followPlayhead = true;
+            m_followModeVal = static_cast<int>(mode);
         }
     }
-}
 
-SimpleThumbnail *EditViewState::getOrCreateThumbnail(te::WaveAudioClip::Ptr wac)
-{
-    return m_thumbNailManager->getOrCreateThumbnail(wac);
-}
-void EditViewState::clearThumbnails()
-{
-    m_thumbNailManager->clearThumbnails();
-}
-void EditViewState::removeThumbnail(te::EditItemID id)
-{
-    m_thumbNailManager->removeThumbnail(id);
-}
+    EditViewState::FollowMode EditViewState::getFollowMode() const
+    {
+        if (!m_followPlayhead)
+            return FollowMode::Off;
+        
+        return static_cast<FollowMode>(m_followModeVal.get());
+    }
+
+    void EditViewState::updatePositionFollower(juce::String timeLineID, int width)
+    {
+        auto mode = getFollowMode();
+        if (mode == FollowMode::Off || !m_edit.getTransport().isPlaying())
+        {
+            m_isScrolling = false;
+            return;
+        }
+
+        auto currentPos = m_edit.getTransport().getPosition().inSeconds();
+        auto currentBeats = timeToBeat(currentPos);
+        auto visibleRange = getVisibleBeatRange(timeLineID, width);
+        auto startBeat = visibleRange.getStart().inBeats();
+        auto endBeat = visibleRange.getEnd().inBeats();
+        auto viewLength = endBeat - startBeat;
+        
+        // Safety check for invalid view
+        if (viewLength <= 0) return;
+
+        if (mode == FollowMode::Continuous)
+        {
+            // Center the playhead
+            // Smoothness comes from calling this at 60fps
+            setNewStartAndZoom(timeLineID, juce::jmax(0.0, currentBeats - viewLength / 2.0));
+        }
+        else if (mode == FollowMode::Page)
+        {
+            // Page Mode with Smooth Transition
+            
+            // Check if we need to scroll (Playhead moved out of view)
+            if (!m_isScrolling)
+            {
+                 // Margin of 10% of view width
+                double margin = viewLength * 0.10;
+
+                if (currentBeats >= endBeat - margin)
+                {
+                    m_targetViewX = endBeat - margin; 
+                    m_scrollStartViewX = startBeat;
+                    m_scrollProgress = 0.0;
+                    m_isScrolling = true;
+                }
+                else if (currentBeats < startBeat)
+                {
+                     // Jumped back (loop or user click)
+                    m_targetViewX = juce::jmax(0.0, currentBeats - margin); 
+                    m_scrollStartViewX = startBeat;
+                    m_scrollProgress = 0.0;
+                    m_isScrolling = true;
+                }
+            }
+
+            if (m_isScrolling)
+            {
+                 // Fixed duration scroll with Ease-In / Ease-Out
+                 // Increment progress (0.025 gives approx 40 frames = 0.66 seconds at 60Hz)
+                 m_scrollProgress += 0.025;
+                 
+                 if (m_scrollProgress >= 1.0)
+                 {
+                     setNewStartAndZoom(timeLineID, m_targetViewX);
+                     m_isScrolling = false;
+                 }
+                 else
+                 {
+                     // SmootherStep (Perlin): t^3 * (t * (t * 6 - 15) + 10)
+                     // Provides zero 1st and 2nd derivative at t=0 and t=1 for softer start/stop.
+                     double t = m_scrollProgress;
+                     double ease = t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+                     
+                     double newStart = m_scrollStartViewX + (m_targetViewX - m_scrollStartViewX) * ease;
+                     setNewStartAndZoom(timeLineID, newStart);
+                 }
+            }
+        }
+    }
+
+    SimpleThumbnail* EditViewState::getOrCreateThumbnail (te::WaveAudioClip::Ptr wac)
+    {
+        return m_thumbNailManager->getOrCreateThumbnail(wac);
+    }
+    void EditViewState::clearThumbnails()
+    {
+        m_thumbNailManager->clearThumbnails();
+    }
+    void EditViewState::removeThumbnail(te::EditItemID id)
+    {
+        m_thumbNailManager->removeThumbnail(id);
+    }
+

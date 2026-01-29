@@ -20,45 +20,46 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
+
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
 namespace te = tracktion_engine;
 
-static inline const char *getInternalPluginFormatName()
-{
-    return "TracktionInternal";
-}
+static inline const char* getInternalPluginFormatName()     { return "TracktionInternal"; }
 
 //==============================================================================
 class PluginTreeBase
 {
-  public:
+public:
     virtual ~PluginTreeBase() = default;
     [[nodiscard]] virtual juce::String getUniqueName() const = 0;
 
-    void addSubItem(PluginTreeBase *itm) { subitems.add(itm); }
-    int getNumSubItems() { return subitems.size(); }
-    PluginTreeBase *getSubItem(int idx) { return subitems[idx]; }
+    void addSubItem (PluginTreeBase* itm)   { subitems.add (itm);       }
+    int getNumSubItems()                    { return subitems.size();   }
+    PluginTreeBase* getSubItem (int idx)    { return subitems[idx];     }
 
-  private:
+private:
     juce::OwnedArray<PluginTreeBase> subitems;
 };
 
 //==============================================================================
 class PluginTreeItem : public PluginTreeBase
 {
-  public:
-    explicit PluginTreeItem(juce::PluginDescription);
-    PluginTreeItem(const juce::String &uniqueId, const juce::String &name, juce::String xmlType, bool isSynth,
-                   bool isPlugin);
+public:
+    explicit PluginTreeItem (juce::PluginDescription );
+    PluginTreeItem (const juce::String& uniqueId
+                    , const juce::String& name
+                    , juce::String  xmlType
+                    , bool isSynth
+                    , bool isPlugin);
 
-    te::Plugin::Ptr create(te::Edit &) const;
+    te::Plugin::Ptr create (te::Edit&) const;
 
     [[nodiscard]] juce::String getUniqueName() const override
     {
-        if (desc.fileOrIdentifier.startsWith(te::RackType::getRackPresetPrefix()))
+        if (desc.fileOrIdentifier.startsWith (te::RackType::getRackPresetPrefix()))
             return desc.fileOrIdentifier;
 
         return desc.createIdentifierString();
@@ -68,75 +69,84 @@ class PluginTreeItem : public PluginTreeBase
     juce::String xmlType;
     bool isPlugin = true;
 
-    JUCE_LEAK_DETECTOR(PluginTreeItem)
+    JUCE_LEAK_DETECTOR (PluginTreeItem)
 };
 
 //==============================================================================
 class PluginTreeGroup : public PluginTreeBase
 {
-  public:
-    PluginTreeGroup(te::Edit &, juce::KnownPluginList::PluginTree &, te::Plugin::Type);
-    explicit PluginTreeGroup(juce::String);
+public:
+    PluginTreeGroup (te::Edit&, juce::KnownPluginList::PluginTree&, te::Plugin::Type);
+    explicit PluginTreeGroup (juce::String );
 
-    [[nodiscard]] juce::String getUniqueName() const override { return name; }
+    [[nodiscard]] juce::String getUniqueName() const override           { return name; }
 
     juce::String name;
 
-  private:
-    void populateFrom(juce::KnownPluginList::PluginTree &);
-    void createBuiltInItems(int &num, te::Plugin::Type);
+private:
+    void populateFrom (juce::KnownPluginList::PluginTree&);
+    void createBuiltInItems (int& num, te::Plugin::Type);
 
-    JUCE_LEAK_DETECTOR(PluginTreeGroup)
+    JUCE_LEAK_DETECTOR (PluginTreeGroup)
 };
 
-template <class FilterClass> void addInternalPlugin(PluginTreeBase &item, int &num, bool synth = false)
+
+template<class FilterClass>
+void addInternalPlugin (PluginTreeBase& item, int& num, bool synth = false)
 {
-    item.addSubItem(new PluginTreeItem(juce::String(num++) + "_trkbuiltin", TRANS(FilterClass::getPluginName()),
-                                       FilterClass::xmlTypeName, synth, false));
+    item.addSubItem (new PluginTreeItem (juce::String (num++) + "_trkbuiltin",
+                                         TRANS (FilterClass::getPluginName()),
+                                         FilterClass::xmlTypeName, synth, false));
 }
+
+
+
 
 //==============================================================================
 class PluginMenu : public juce::PopupMenu
 {
-  public:
+public:
     PluginMenu() = default;
 
-    explicit PluginMenu(PluginTreeGroup &node)
+    explicit PluginMenu (PluginTreeGroup& node)
     {
         for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto subNode = dynamic_cast<PluginTreeGroup *>(node.getSubItem(i)))
-                addSubMenu(subNode->name, PluginMenu(*subNode), true);
+            if (auto subNode = dynamic_cast<PluginTreeGroup*> (node.getSubItem (i)))
+                addSubMenu (subNode->name, PluginMenu (*subNode), true);
 
         for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto subType = dynamic_cast<PluginTreeItem *>(node.getSubItem(i)))
-                addItem(subType->getUniqueName().hashCode(), subType->desc.name, true, false);
+            if (auto subType = dynamic_cast<PluginTreeItem*> (node.getSubItem (i)))
+                addItem (subType->getUniqueName().hashCode(), subType->desc.name, true, false);
     }
 
-    static PluginTreeItem *findType(PluginTreeGroup &node, int hash)
+    static PluginTreeItem* findType (PluginTreeGroup& node, int hash)
     {
         for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto subNode = dynamic_cast<PluginTreeGroup *>(node.getSubItem(i)))
-                if (auto *t = findType(*subNode, hash))
+            if (auto subNode = dynamic_cast<PluginTreeGroup*> (node.getSubItem (i)))
+                if (auto* t = findType (*subNode, hash))
                     return t;
 
         for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto t = dynamic_cast<PluginTreeItem *>(node.getSubItem(i)))
+            if (auto t = dynamic_cast<PluginTreeItem*> (node.getSubItem (i)))
                 if (t->getUniqueName().hashCode() == hash)
                     return t;
 
         return nullptr;
     }
 
-    PluginTreeItem *runMenu(PluginTreeGroup &node)
+    PluginTreeItem* runMenu (PluginTreeGroup& node)
     {
         int res = show();
 
         if (res == 0)
             return nullptr;
 
-        return findType(node, res);
+        return findType (node, res);
     }
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginMenu)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginMenu)
 };
 
-te::Plugin::Ptr showMenuAndCreatePlugin(te::Edit &, te::Plugin::Type types = te::Plugin::Type::allPlugins);
+te::Plugin::Ptr showMenuAndCreatePlugin (te::Edit&);
+
+
+

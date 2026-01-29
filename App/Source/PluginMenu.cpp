@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -20,6 +19,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
+
 #include "PluginMenu.h"
 
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
@@ -28,82 +28,83 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include <utility>
 
 //==============================================================================
-PluginTreeItem::PluginTreeItem(juce::PluginDescription d)
-    : desc(std::move(d)), xmlType(te::ExternalPlugin::xmlTypeName), isPlugin(true)
+PluginTreeItem::PluginTreeItem (juce::PluginDescription  d)
+    : desc (std::move(d)), xmlType (te::ExternalPlugin::xmlTypeName), isPlugin (true)
 {
-    jassert(xmlType.isNotEmpty());
+    jassert (xmlType.isNotEmpty());
 }
 
-PluginTreeItem::PluginTreeItem(const juce::String &uniqueId, const juce::String &name, juce::String xmlType_,
-                               bool isSynth, bool isPlugin_)
-    : xmlType(std::move(xmlType_)), isPlugin(isPlugin_)
+PluginTreeItem::PluginTreeItem (const juce::String& uniqueId, const juce::String& name,
+                                juce::String  xmlType_, bool isSynth, bool isPlugin_)
+    : xmlType (std::move(xmlType_)), isPlugin (isPlugin_)
 {
-    jassert(xmlType.isNotEmpty());
+    jassert (xmlType.isNotEmpty());
     desc.name = name;
     desc.fileOrIdentifier = uniqueId;
-    desc.pluginFormatName = (uniqueId.endsWith("_trkbuiltin") || xmlType == te::RackInstance::xmlTypeName)
-                                ? getInternalPluginFormatName()
-                                : juce::String();
+    desc.pluginFormatName = (uniqueId.endsWith ("_trkbuiltin") || xmlType == te::RackInstance::xmlTypeName)
+                                ? getInternalPluginFormatName() : juce::String();
     desc.category = xmlType;
     desc.isInstrument = isSynth;
 }
 
-te::Plugin::Ptr PluginTreeItem::create(te::Edit &ed) const
+te::Plugin::Ptr PluginTreeItem::create (te::Edit& ed) const
 {
-    return ed.getPluginCache().createNewPlugin(xmlType, desc);
+    return ed.getPluginCache().createNewPlugin (xmlType, desc);
 }
 
 //==============================================================================
-PluginTreeGroup::PluginTreeGroup(te::Edit &edit, juce::KnownPluginList::PluginTree &tree, te::Plugin::Type types)
-    : name("Plugins")
+PluginTreeGroup::PluginTreeGroup (te::Edit& edit, juce::KnownPluginList::PluginTree& tree, te::Plugin::Type types)
+    : name ("Plugins")
 {
     {
         int num = 1;
 
-        auto builtinFolder = new PluginTreeGroup(TRANS("Builtin Plugins"));
-        addSubItem(builtinFolder);
-        builtinFolder->createBuiltInItems(num, types);
+        auto builtinFolder = new PluginTreeGroup (TRANS("Builtin Plugins"));
+        addSubItem (builtinFolder);
+        builtinFolder->createBuiltInItems (num, types);
     }
 
     {
-        /*        auto racksFolder = new PluginTreeGroup (TRANS("Plugin Racks"));
-                addSubItem (racksFolder);
+/*        auto racksFolder = new PluginTreeGroup (TRANS("Plugin Racks"));
+        addSubItem (racksFolder);
 
-                racksFolder->addSubItem (new PluginTreeItem (juce::String (te::RackType::getRackPresetPrefix()) + "-1",
-                                                             TRANS("Create New Empty Rack"),
-                                                             te::RackInstance::xmlTypeName, false, false));
+        racksFolder->addSubItem (new PluginTreeItem (juce::String (te::RackType::getRackPresetPrefix()) + "-1",
+                                                     TRANS("Create New Empty Rack"),
+                                                     te::RackInstance::xmlTypeName, false, false));
 
-                int i = 0;
-                for (auto rf : edit.getRackList().getTypes())
-                    racksFolder->addSubItem (new PluginTreeItem ("RACK__" + juce::String (i++), rf->rackName,
-                                                                 te::RackInstance::xmlTypeName, false, false));
-        */
+        int i = 0;
+        for (auto rf : edit.getRackList().getTypes())
+            racksFolder->addSubItem (new PluginTreeItem ("RACK__" + juce::String (i++), rf->rackName,
+                                                         te::RackInstance::xmlTypeName, false, false));
+*/
     }
 
-    populateFrom(tree);
+    populateFrom (tree);
 }
 
-PluginTreeGroup::PluginTreeGroup(juce::String s) : name(std::move(s))
+PluginTreeGroup::PluginTreeGroup (juce::String  s)  : name (std::move(s))
 {
-    jassert(name.isNotEmpty());
+    jassert (name.isNotEmpty());
 }
 
-void PluginTreeGroup::populateFrom(juce::KnownPluginList::PluginTree &tree)
+void PluginTreeGroup::populateFrom (juce::KnownPluginList::PluginTree& tree)
 {
-    for (auto subTree : tree.subFolders) {
-        if (subTree->plugins.size() > 0 || subTree->subFolders.size() > 0) {
-            auto fs = new PluginTreeGroup(subTree->folder);
-            addSubItem(fs);
+    for (auto subTree : tree.subFolders)
+    {
+        if (subTree->plugins.size() > 0 || subTree->subFolders.size() > 0)
+        {
+            auto fs = new PluginTreeGroup (subTree->folder);
+            addSubItem (fs);
 
-            fs->populateFrom(*subTree);
+            fs->populateFrom (*subTree);
         }
     }
 
-    for (const auto &pd : tree.plugins)
-        addSubItem(new PluginTreeItem(pd));
+    for (const auto& pd : tree.plugins)
+        addSubItem (new PluginTreeItem (pd));
 }
 
-void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
+void PluginTreeGroup::createBuiltInItems (int& num, te::Plugin::Type types)
 {
     addInternalPlugin<te::VolumeAndPanPlugin>(*this, num);
     //    addInternalPlugin<te::LevelMeterPlugin> (*this, num);
@@ -115,7 +116,7 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
     addInternalPlugin<te::CompressorPlugin>(*this, num);
     addInternalPlugin<te::PitchShiftPlugin>(*this, num);
     addInternalPlugin<ArpeggiatorPlugin>(*this, num, false);
-    //    addInternalPlugin<te::LowPassPlugin> (*this, num);
+    addInternalPlugin<te::LowPassPlugin> (*this, num);
     //    addInternalPlugin<te::MidiModifierPlugin> (*this, num);
     //    addInternalPlugin<te::MidiPatchBayPlugin> (*this, num);
     //    addInternalPlugin<te::PatchBayPlugin> (*this, num);
@@ -124,33 +125,35 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
     //    addInternalPlugin<te::TextPlugin> (*this, num);
     //    addInternalPlugin<te::FreezePointPlugin> (*this, num);
 
-#if TRACKTION_ENABLE_REWIRE
-    addInternalPlugin<te::ReWirePlugin>(*this, num, true);
-#endif
+   #if TRACKTION_ENABLE_REWIRE
+    addInternalPlugin<te::ReWirePlugin> (*this, num, true);
+   #endif
 
-    if (types == te::Plugin::Type::allPlugins) {
-        addInternalPlugin<te::SamplerPlugin>(*this, num, true);
-        addInternalPlugin<te::FourOscPlugin>(*this, num, true);
-        addInternalPlugin<SimpleSynthPlugin>(*this, num, true);
+    if (types == te::Plugin::Type::allPlugins)
+    {
+        addInternalPlugin<te::SamplerPlugin> (*this, num, true);
+        addInternalPlugin<te::FourOscPlugin> (*this, num, true);
+        addInternalPlugin<SimpleSynthPlugin> (*this, num, true);
     }
 
-    //    addInternalPlugin<te::InsertPlugin> (*this, num);
+//    addInternalPlugin<te::InsertPlugin> (*this, num);
 
-#if ENABLE_INTERNAL_PLUGINS
-    for (auto &d : PluginTypeBase::getAllPluginDescriptions())
-        if (isPluginAuthorised(d))
-            addSubItem(new PluginTreeItem(d));
-#endif
+   #if ENABLE_INTERNAL_PLUGINS
+    for (auto& d : PluginTypeBase::getAllPluginDescriptions())
+        if (isPluginAuthorised (d))
+            addSubItem (new PluginTreeItem (d));
+   #endif
 }
 
-te::Plugin::Ptr showMenuAndCreatePlugin(te::Edit &edit, te::Plugin::Type types)
+te::Plugin::Ptr showMenuAndCreatePlugin (te::Edit& edit)
 {
-    if (auto tree = EngineHelpers::createPluginTree(edit.engine)) {
-        PluginTreeGroup root(edit, *tree, types);
-        PluginMenu m(root);
+    if (auto tree = EngineHelpers::createPluginTree (edit.engine))
+    {
+        PluginTreeGroup root (edit, *tree, te::Plugin::Type::allPlugins);
+        PluginMenu m (root);
 
-        if (auto type = m.runMenu(root))
-            return type->create(edit);
+        if (auto type = m.runMenu (root))
+            return type->create (edit);
     }
 
     return {};
