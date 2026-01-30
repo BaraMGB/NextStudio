@@ -37,6 +37,24 @@ class SongEditorView
     , public juce::DragAndDropTarget
 {
 public:
+    /** Overlay component to handle TimeRange interaction exclusively */
+    class TimeRangeOverlayComponent : public juce::Component
+    {
+    public:
+        TimeRangeOverlayComponent(SongEditorView& owner);
+        void paint(juce::Graphics& g) override;
+        bool hitTest(int x, int y) override;
+        void mouseMove(const juce::MouseEvent& e) override;
+        void mouseDown(const juce::MouseEvent& e) override;
+        void mouseDrag(const juce::MouseEvent& e) override;
+        void mouseUp(const juce::MouseEvent& e) override;
+
+    private:
+        SongEditorView& m_owner;
+        bool m_hoveredHandleLeft{ false };
+        bool m_hoveredHandleRight{ false };
+    };
+
     SongEditorView(EditViewState &evs, MenuBar &toolBar, TimeLineComponent &timeLine);
     ~SongEditorView() override;
 
@@ -105,6 +123,11 @@ public:
 
         for (auto v : m_trackLanes)
             addAndMakeVisible(v);
+
+        addChildComponent(m_lassoComponent);
+        addAndMakeVisible(m_timeRangeOverlay);
+        m_lassoComponent.setAlwaysOnTop(true);
+        m_timeRangeOverlay.setAlwaysOnTop(true);
 
         resized();
     }
@@ -225,23 +248,7 @@ public:
     void updateDrag(tracktion::TimePosition time, juce::Point<int> pos);
     void endDrag();
 
-    /** Overlay component to handle TimeRange interaction exclusively */
-    class TimeRangeOverlayComponent : public juce::Component
-    {
-    public:
-        TimeRangeOverlayComponent(SongEditorView& owner);
-        void paint(juce::Graphics& g) override;
-        bool hitTest(int x, int y) override;
-        void mouseMove(const juce::MouseEvent& e) override;
-        void mouseDown(const juce::MouseEvent& e) override;
-        void mouseDrag(const juce::MouseEvent& e) override;
-        void mouseUp(const juce::MouseEvent& e) override;
 
-    private:
-        SongEditorView& m_owner;
-        bool m_hoveredHandleLeft{ false };
-        bool m_hoveredHandleRight{ false };
-    };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SongEditorView)
 };
