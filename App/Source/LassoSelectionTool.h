@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -30,36 +29,39 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace te = tracktion_engine;
 
-
 class LassoSelectionTool : public juce::Component
 {
 public:
     struct LassoRect
     {
-        LassoRect ()= default;
-        [[maybe_unused]] LassoRect (tracktion::core::TimeRange timeRange, double top, double bottom)
-            : m_timeRange(timeRange)
-            , m_verticalRange(top, bottom)
-            , m_startTime(timeRange.getStart ().inSeconds())
-            , m_endTime (timeRange.getEnd ().inSeconds())
-            , m_top (top)
-            , m_bottom (bottom){}
+        LassoRect() = default;
+        [[maybe_unused]] LassoRect(tracktion::core::TimeRange timeRange, double top, double bottom)
+            : m_timeRange(timeRange),
+              m_verticalRange(top, bottom),
+              m_startTime(timeRange.getStart().inSeconds()),
+              m_endTime(timeRange.getEnd().inSeconds()),
+              m_top(top),
+              m_bottom(bottom)
+        {
+        }
 
-        juce::Rectangle<int> getRect (EditViewState& evs, double viewX1, double viewX2, int viewWidth) const;
+        juce::Rectangle<int> getRect(EditViewState &evs, double viewX1, double viewX2, int viewWidth) const;
         tracktion::core::TimeRange m_timeRange;
-        juce::Range<int> m_verticalRange { 0,0 };
+        juce::Range<int> m_verticalRange{0, 0};
+        juce::Rectangle<int> m_rect;
 
-        double m_startTime { 0 };
-        double m_endTime { 0 };
-        int m_top { 0 };
-        int m_bottom { 0 };
+        double m_startTime{0};
+        double m_endTime{0};
+        int m_top{0};
+        int m_bottom{0};
     };
 
-    explicit LassoSelectionTool(EditViewState& evs, juce::String timeLineID)
-        : m_editViewState(evs)
-        , m_timeLineID(timeLineID)
+    explicit LassoSelectionTool(EditViewState &evs, juce::String timeLineID)
+        : m_editViewState(evs),
+          m_timeLineID(timeLineID)
 
-    {}
+    {
+    }
 
     void drawLasso(juce::Graphics &g);
     void startLasso(const juce::Point<int> mousePos, int startYScroll, bool isRangeTool);
@@ -68,22 +70,17 @@ public:
     LassoSelectionTool::LassoRect getLassoRect() const;
 
 private:
-
     double xToTime(const int x);
-    bool                           m_isLassoSelecting {false};
-    bool                           m_isRangeSelecting {false};
-    EditViewState&                 m_editViewState;
-    LassoRect                      m_lassoRect;
+    bool m_isLassoSelecting{false};
+    bool m_isRangeSelecting{false};
+    EditViewState &m_editViewState;
+    LassoRect m_lassoRect;
 
-    double                         m_clickedTime{};
-    int                            m_startYScroll;
-    juce::Point<int>               m_startPos{};
+    double m_clickedTime{};
+    int m_startYScroll;
+    juce::Point<int> m_startPos{};
 
     void updateClipCache();
     juce::String m_timeLineID;
-    juce::Range<double>
-        getVerticalRangeOfTrack(double trackPosY,
-                                tracktion_engine::AudioTrack* track) const;
-
-
+    juce::Range<double> getVerticalRangeOfTrack(double trackPosY, tracktion_engine::AudioTrack *track) const;
 };

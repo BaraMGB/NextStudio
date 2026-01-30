@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 /*
   ==============================================================================
 
@@ -31,24 +30,21 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
   ==============================================================================
 */
 
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "TimeLineComponent.h"
+#include "../JuceLibraryCode/JuceHeader.h"
 #include "Utilities.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
 
-
-TimeLineComponent::TimeLineComponent(EditViewState & evs, juce::String timeLineID)
-    : m_evs(evs)
-    , m_isMouseDown(false)
+TimeLineComponent::TimeLineComponent(EditViewState &evs, juce::String timeLineID)
+    : m_evs(evs),
+      m_isMouseDown(false)
 {
     setTimeLineID(timeLineID);
 }
 
-TimeLineComponent::~TimeLineComponent()
-{
-}
+TimeLineComponent::~TimeLineComponent() {}
 
-void TimeLineComponent::paint(juce::Graphics& g)
+void TimeLineComponent::paint(juce::Graphics &g)
 {
     g.setColour(m_evs.m_applicationState.getTimeLineBackGroundColour());
     g.fillAll();
@@ -56,21 +52,15 @@ void TimeLineComponent::paint(juce::Graphics& g)
     double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
     double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
 
-    GUIHelpers::drawBarsAndBeatLines (
-                g
-              , m_evs
-              , x1beats
-              , x2beats
-              , getLocalBounds().toFloat()
-              , true);
+    GUIHelpers::drawBarsAndBeatLines(g, m_evs, x1beats, x2beats, getLocalBounds().toFloat(), true);
 
     if (m_isMouseDown)
     {
-        auto mouseDown = m_evs.beatsToX(m_cachedBeat, getWidth (), x1beats, x2beats) ;
+        auto mouseDown = m_evs.beatsToX(m_cachedBeat, getWidth(), x1beats, x2beats);
         g.setColour(juce::Colours::white);
         auto rect = juce::Rectangle<int>(mouseDown, 1.f, 1.f, float(getHeight()) - 1.f);
         auto bounds = getLocalBounds();
-        if ( bounds.contains(rect))
+        if (bounds.contains(rect))
         {
             g.fillRect(rect);
         }
@@ -84,9 +74,9 @@ void TimeLineComponent::paint(juce::Graphics& g)
     drawLoopRange(g);
 }
 
-void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
+void TimeLineComponent::mouseMove(const juce::MouseEvent &e)
 {
-    setMouseCursor (juce::MouseCursor::NormalCursor);
+    setMouseCursor(juce::MouseCursor::NormalCursor);
 
     auto loopRange = m_evs.m_edit.getTransport().getLoopRange();
     auto loopRangeRect = getTimeRangeRect(loopRange);
@@ -94,32 +84,30 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent& e)
     if (loopRangeRect.contains(e.getPosition()))
     {
         m_changeLoopRange = false;
-        if (e.x > loopRangeRect.getHorizontalRange().getStart()
-            && e.x < loopRangeRect.getHorizontalRange().getStart() + 10)
+        if (e.x > loopRangeRect.getHorizontalRange().getStart() && e.x < loopRangeRect.getHorizontalRange().getStart() + 10)
         {
-            setMouseCursor (juce::MouseCursor::LeftEdgeResizeCursor);
+            setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
             m_leftResized = true;
             m_rightResized = false;
         }
-        else if (e.x > loopRangeRect.getHorizontalRange ().getEnd () - 10
-                 && e.x < loopRangeRect.getHorizontalRange ().getEnd ())
+        else if (e.x > loopRangeRect.getHorizontalRange().getEnd() - 10 && e.x < loopRangeRect.getHorizontalRange().getEnd())
         {
-            setMouseCursor (juce::MouseCursor::RightEdgeResizeCursor);
+            setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
             m_rightResized = true;
             m_leftResized = false;
         }
         else
         {
-            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+            setMouseCursor(juce::MouseCursor::DraggingHandCursor);
             m_leftResized = false;
             m_rightResized = false;
         }
     }
 }
 
-void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
+void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
 {
-    //init
+    // init
     m_cachedFollowPlayhead = m_evs.m_followPlayhead;
     m_evs.followsPlayhead(false);
     m_changeLoopRange = false;
@@ -147,7 +135,7 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
         e.source.enableUnboundedMouseMovement(true, false);
 
         m_isMouseDown = true;
-        m_cachedBeat = m_evs.xToBeats(e.getMouseDownPosition().getX(), getWidth (), x1beats, x2beats);
+        m_cachedBeat = m_evs.xToBeats(e.getMouseDownPosition().getX(), getWidth(), x1beats, x2beats);
 
         if (e.getNumberOfClicks() > 1)
         {
@@ -158,28 +146,28 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent& e)
     }
 }
 
-void TimeLineComponent::mouseDrag(const juce::MouseEvent& e)
+void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
 {
     m_draggedTime = tracktion::TimeDuration();
     m_isSnapping = !e.mods.isShiftDown();
 
     if (m_loopRangeClicked)
     {
-        auto scroll = beatsToX(0) *-1;
+        auto scroll = beatsToX(0) * -1;
 
-        m_draggedTime = xToTimeDuration(e.getDistanceFromDragStartX() - scroll) ;
+        m_draggedTime = xToTimeDuration(e.getDistanceFromDragStartX() - scroll);
         repaint();
     }
     else if (m_changeLoopRange)
     {
-        auto& ts = m_evs.m_edit.tempoSequence;
+        auto &ts = m_evs.m_edit.tempoSequence;
         auto t1 = xToTimePos(e.getMouseDownX());
         auto t2 = xToTimePos(e.x);
 
         if (m_isSnapping)
         {
-            t1 = getBestSnapType().roundTimeDown(t1,ts);
-            t2 = getBestSnapType().roundTimeDown(t2,ts);
+            t1 = getBestSnapType().roundTimeDown(t1, ts);
+            t2 = getBestSnapType().roundTimeDown(t2, ts);
         }
 
         if (t1 < t2)
@@ -195,48 +183,47 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent& e)
     }
 }
 
-void TimeLineComponent::mouseUp(const juce::MouseEvent&)
+void TimeLineComponent::mouseUp(const juce::MouseEvent &)
 {
     m_evs.followsPlayhead(m_cachedFollowPlayhead);
-    auto& t = m_evs.m_edit.getTransport();
-    if (m_loopRangeClicked) 
+    auto &t = m_evs.m_edit.getTransport();
+    if (m_loopRangeClicked)
         t.setLoopRange(getLoopRangeToBeMovedOrResized());
     else if (m_changeLoopRange)
         t.setLoopRange(m_newLoopRange);
 
     m_oldDragDistanceX = 0;
     m_oldDragDistanceY = 0;
-    m_draggedTime = tracktion::TimeDuration();  
-    m_leftResized= false;
-    m_rightResized= false;
-    m_loopRangeClicked= false;
+    m_draggedTime = tracktion::TimeDuration();
+    m_leftResized = false;
+    m_rightResized = false;
+    m_loopRangeClicked = false;
     m_isMouseDown = false;
     m_changeLoopRange = false;
     m_newLoopRange = {};
     m_isSnapping = true;
 
-    setMouseCursor (juce::MouseCursor::NormalCursor);
+    setMouseCursor(juce::MouseCursor::NormalCursor);
     repaint();
 }
-void TimeLineComponent::updateViewRange(const juce::MouseEvent& e)
+void TimeLineComponent::updateViewRange(const juce::MouseEvent &e)
 {
     const auto sensitivity = 0.03f;
 
     auto oldViewRange = m_evs.getVisibleBeatRange(m_timeLineID, getWidth());
 
-    //rescale ViewRange at beat on mouse down
+    // rescale ViewRange at beat on mouse down
     bool isNotToBig = oldViewRange.getLength().inBeats() < 100240.0;
     bool isNotToSmall = oldViewRange.getLength().inBeats() > 0.05;
     auto dragDistanceY = e.getDistanceFromDragStartY();
     auto anchorTime = tracktion::BeatPosition::fromBeats(m_cachedBeat);
-    float scaleFactor = 1.0f + ((dragDistanceY > m_oldDragDistanceY) && isNotToBig ? sensitivity 
-                             : ((dragDistanceY < m_oldDragDistanceY) && isNotToSmall ? -sensitivity : 0.0f));
+    float scaleFactor = 1.0f + ((dragDistanceY > m_oldDragDistanceY) && isNotToBig ? sensitivity : ((dragDistanceY < m_oldDragDistanceY) && isNotToSmall ? -sensitivity : 0.0f));
     m_oldDragDistanceY = dragDistanceY;
     // m_oldDragDistanceY = scaleFactor == 1.0f ? m_oldDragDistanceY : dragDistanceY;
 
     auto newViewRange = oldViewRange.rescaled(anchorTime, scaleFactor);
 
-    //move horizontal if mouse dragged on X-Axis
+    // move horizontal if mouse dragged on X-Axis
     auto newBeatsPerPixel = newViewRange.getLength().inBeats() / getWidth();
     auto dragDistanceX = m_oldDragDistanceX - e.getDistanceFromDragStartX();
     m_oldDragDistanceX = e.getDistanceFromDragStartX();
@@ -253,7 +240,6 @@ tracktion::BeatRange TimeLineComponent::getCurrentBeatRange()
     auto length = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getLength();
 
     return tracktion::BeatRange(start, length);
-
 }
 
 tracktion::TimeRange TimeLineComponent::getCurrentTimeRange()
@@ -262,20 +248,16 @@ tracktion::TimeRange TimeLineComponent::getCurrentTimeRange()
     auto length = m_evs.getVisibleTimeRange(m_timeLineID, getWidth()).getLength();
 
     return tracktion::TimeRange(start, length);
-
 }
 
 tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
 {
     double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
     double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
-    return m_evs.getBestSnapType (x1beats, x2beats, getWidth());
+    return m_evs.getBestSnapType(x1beats, x2beats, getWidth());
 }
 
-EditViewState &TimeLineComponent::getEditViewState()
-{
-    return m_evs;
-}
+EditViewState &TimeLineComponent::getEditViewState() { return m_evs; }
 
 int TimeLineComponent::timeToX(double time)
 {
@@ -284,7 +266,7 @@ int TimeLineComponent::timeToX(double time)
     return m_evs.timeToX(time, getWidth(), x1beats, x2beats);
 }
 
-void TimeLineComponent::drawLoopRange(juce::Graphics& g)
+void TimeLineComponent::drawLoopRange(juce::Graphics &g)
 {
     juce::Rectangle<int> loopRect;
 
@@ -310,8 +292,8 @@ void TimeLineComponent::drawLoopRange(juce::Graphics& g)
 
 juce::Rectangle<int> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange tr)
 {
-    auto x = timeToX (tr.getStart().inSeconds());
-    auto w = timeToX (tr.getEnd().inSeconds()) - x;
+    auto x = timeToX(tr.getStart().inSeconds());
+    auto w = timeToX(tr.getEnd().inSeconds()) - x;
     auto h = getHeight() / 5;
 
     return {x, getHeight() - h, w, h};
@@ -320,12 +302,11 @@ juce::Rectangle<int> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange tr
 tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
 {
     auto draggedLoopRange = m_cachedLoopRange;
-    auto& t = m_evs.m_edit.tempoSequence;
+    auto &t = m_evs.m_edit.tempoSequence;
 
     if (m_leftResized)
     {
-        auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) 
-                                     : draggedLoopRange.getStart() + m_draggedTime;
+        auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) : draggedLoopRange.getStart() + m_draggedTime;
 
         if (newStart > draggedLoopRange.getEnd())
             draggedLoopRange = {draggedLoopRange.getEnd(), newStart};
@@ -334,8 +315,7 @@ tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
     }
     else if (m_rightResized)
     {
-        auto newEnd = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getEnd() + m_draggedTime, t) 
-                                     : draggedLoopRange.getEnd() + m_draggedTime;
+        auto newEnd = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getEnd() + m_draggedTime, t) : draggedLoopRange.getEnd() + m_draggedTime;
 
         if (newEnd < draggedLoopRange.getStart())
             draggedLoopRange = {newEnd, draggedLoopRange.getStart()};
@@ -344,8 +324,7 @@ tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
     }
     else
     {
-        auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) 
-                                     : draggedLoopRange.getStart() + m_draggedTime;
+        auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) : draggedLoopRange.getStart() + m_draggedTime;
         newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0.0), newStart);
 
         draggedLoopRange = draggedLoopRange.movedToStartAt(newStart);
@@ -361,10 +340,7 @@ tracktion::TimeDuration TimeLineComponent::xToTimeDuration(int x)
     return tracktion::TimeDuration::fromSeconds(m_evs.xToTime(x, getWidth(), x1beats, x2beats));
 }
 
-tracktion::TimePosition TimeLineComponent::beatToTime(tracktion::BeatPosition beats)
-{
-    return tracktion::TimePosition::fromSeconds(m_evs.beatToTime(beats.inBeats()));
-}
+tracktion::TimePosition TimeLineComponent::beatToTime(tracktion::BeatPosition beats) { return tracktion::TimePosition::fromSeconds(m_evs.beatToTime(beats.inBeats())); }
 
 int TimeLineComponent::beatsToX(double beats)
 {
@@ -407,7 +383,7 @@ void TimeLineComponent::setTimeLineID(juce::String timeLineID)
         m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
 }
 
-double TimeLineComponent::getQuantisedNoteBeat(double beat,const te::MidiClip* c, bool down) const
+double TimeLineComponent::getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down) const
 {
     auto editBeat = c->getStartBeat().inBeats() + beat;
 
@@ -418,8 +394,8 @@ double TimeLineComponent::getQuantisedBeat(double beat, bool down) const
 {
     auto snapType = getBestSnapType();
     auto time = m_evs.beatToTime(beat);
-    auto snapedTime = m_evs.getSnapedTime(time, snapType, down);
-    auto quantisedBeat = m_evs.timeToBeat (snapedTime);
+    auto snapedTime = m_evs.getSnappedTime(time, snapType, down);
+    auto quantisedBeat = m_evs.timeToBeat(snapedTime);
 
     return quantisedBeat;
 }
@@ -432,7 +408,4 @@ te::TimecodeSnapType TimeLineComponent::getBestSnapType() const
     return m_evs.getBestSnapType(x1, x2, getWidth());
 }
 
-double TimeLineComponent::getSnapedTime(double time)
-{
-    return m_evs.getSnapedTime(time, getBestSnapType(), false);
-}
+double TimeLineComponent::getSnappedTime(double time) { return m_evs.getSnappedTime(time, getBestSnapType(), false); }
