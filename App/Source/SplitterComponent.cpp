@@ -21,7 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "SplitterComponent.h"
 SplitterComponent::SplitterComponent(bool horizontal)
-    :  m_isHorizontal(horizontal)
+    : m_isHorizontal(horizontal)
 {
 }
 
@@ -32,9 +32,7 @@ void SplitterComponent::mouseMove(const juce::MouseEvent &)
     repaint();
 }
 
-void SplitterComponent::mouseEnter(const juce::MouseEvent &)
-{
-}
+void SplitterComponent::mouseEnter(const juce::MouseEvent &) {}
 
 void SplitterComponent::mouseExit(const juce::MouseEvent &)
 {
@@ -66,9 +64,7 @@ void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
     }
 }
 
-void SplitterComponent::mouseUp(const juce::MouseEvent &)
-{
-}
+void SplitterComponent::mouseUp(const juce::MouseEvent &) {}
 
 void SplitterComponent::paint(juce::Graphics &g)
 {
@@ -78,4 +74,3 @@ void SplitterComponent::paint(juce::Graphics &g)
         g.fillRect(getLocalBounds());
     }
 }
-

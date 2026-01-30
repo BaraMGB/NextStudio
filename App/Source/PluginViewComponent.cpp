@@ -22,21 +22,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PluginViewComponent.h"
 #include "EditViewState.h"
 
-PluginViewComponent::PluginViewComponent
-    (EditViewState& evs, te::Plugin::Ptr p)
-    : m_editViewState (evs), m_plugin (p)
+PluginViewComponent::PluginViewComponent(EditViewState &evs, te::Plugin::Ptr p)
+    : m_editViewState(evs),
+      m_plugin(p)
 {
 }
 
-te::Plugin::Ptr PluginViewComponent::getPlugin() const
-{
-    return m_plugin;
-}
+te::Plugin::Ptr PluginViewComponent::getPlugin() const { return m_plugin; }
 
-void PluginViewComponent::setPlugin(const te::Plugin::Ptr &plugin)
-{
-    m_plugin = plugin;
-}
+void PluginViewComponent::setPlugin(const te::Plugin::Ptr &plugin) { m_plugin = plugin; }
 
 bool PluginViewComponent::getInitialPresetLoaded()
 {
@@ -56,9 +50,8 @@ juce::String PluginViewComponent::getLastLoadedPresetName()
     return state.getProperty("lastLoadedPreset", juce::String());
 }
 
-void PluginViewComponent::setLastLoadedPresetName(const juce::String& name)
+void PluginViewComponent::setLastLoadedPresetName(const juce::String &name)
 {
     auto state = m_editViewState.getPresetManagerUIStateForPlugin(*m_plugin);
     state.setProperty("lastLoadedPreset", name, nullptr);
 }
-

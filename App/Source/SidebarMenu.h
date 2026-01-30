@@ -19,35 +19,33 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
-
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "EditViewState.h"
 #include "ApplicationViewState.h"
+#include "EditViewState.h"
 #include "MenuBar.h"
-#include "Utilities.h"
 #include "PreviewComponent.h"
+#include "Utilities.h"
 
-
-
-class SidebarMenu : public MenuBar 
-                  , public juce::ChangeBroadcaster
+class SidebarMenu
+    : public MenuBar
+    , public juce::ChangeBroadcaster
 {
 public:
+    const juce::DrawableButton::ButtonStyle buttonStyle{juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
 
-    const juce::DrawableButton::ButtonStyle buttonStyle {juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
-
-    SidebarMenu(ApplicationViewState& appstate) : MenuBar(Alignment::Left, true)
-    , m_projectsButton("Projects", buttonStyle)// ImageOnButtonBackground)
-    , m_instrumentsButton("Instruments", buttonStyle)
-    , m_samplesButton("Samples",buttonStyle)
-    , m_effectsButton("Effects",buttonStyle)
-    , m_homeButton("Home",buttonStyle)
-    , m_settingsButton("Settings", buttonStyle)
-    , m_renderButton("Render", buttonStyle)
-    , m_appState(appstate)
+    SidebarMenu(ApplicationViewState &appstate)
+        : MenuBar(Alignment::Left, true),
+          m_projectsButton("Projects", buttonStyle) // ImageOnButtonBackground)
+          ,
+          m_instrumentsButton("Instruments", buttonStyle),
+          m_samplesButton("Samples", buttonStyle),
+          m_effectsButton("Effects", buttonStyle),
+          m_homeButton("Home", buttonStyle),
+          m_settingsButton("Settings", buttonStyle),
+          m_renderButton("Render", buttonStyle),
+          m_appState(appstate)
     {
         const auto margin = 7;
 
@@ -58,12 +56,12 @@ public:
         m_projectsButton.setToggleState(true, juce::dontSendNotification);
 
         addButton(&m_instrumentsButton, 1);
-        GUIHelpers::setDrawableOnButton(m_instrumentsButton, BinaryData::presetsButton_svg,m_appState.getInstrumentsColour());
+        GUIHelpers::setDrawableOnButton(m_instrumentsButton, BinaryData::presetsButton_svg, m_appState.getInstrumentsColour());
         m_instrumentsButton.setTooltip(GUIHelpers::translate("instrument plugins", m_appState));
         m_instrumentsButton.setEdgeIndent(margin);
 
         addButton(&m_samplesButton, 1);
-        GUIHelpers::setDrawableOnButton(m_samplesButton, BinaryData::samplesButton_svg,m_appState.getSamplesColour());
+        GUIHelpers::setDrawableOnButton(m_samplesButton, BinaryData::samplesButton_svg, m_appState.getSamplesColour());
         m_samplesButton.setTooltip(GUIHelpers::translate("samples", m_appState));
         m_samplesButton.setEdgeIndent(margin);
 
@@ -91,13 +89,6 @@ public:
     }
 
 private:
-    juce::DrawableButton m_projectsButton
-                       , m_instrumentsButton
-                       , m_samplesButton
-                       , m_effectsButton
-                       , m_homeButton
-                       , m_settingsButton
-                       , m_renderButton;
-    ApplicationViewState& m_appState;
+    juce::DrawableButton m_projectsButton, m_instrumentsButton, m_samplesButton, m_effectsButton, m_homeButton, m_settingsButton, m_renderButton;
+    ApplicationViewState &m_appState;
 };
-

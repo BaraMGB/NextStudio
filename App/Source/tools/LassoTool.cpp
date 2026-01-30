@@ -21,45 +21,27 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "LassoTool.h"
 
-void LassoTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewport)
-{
-    viewport.startLasso(event, false);
-}
+void LassoTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.startLasso(event, false); }
 
-void LassoTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport)
-{
-    viewport.updateLasso(event);
-}
+void LassoTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.updateLasso(event); }
 
-void LassoTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
+void LassoTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     viewport.stopLasso();
-    
+
     // Switch back to PointerTool after lasso selection is complete
     viewport.setTool(Tool::pointer);
 }
 
-void LassoTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
-{
-    viewport.setMouseCursor(getCursor(viewport));
-}
+void LassoTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void LassoTool::mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport)
+void LassoTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // No double click action
 }
 
-juce::MouseCursor LassoTool::getCursor(MidiViewport& viewport) const
-{
-    return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Lasso, viewport.getCursorScale());
-}
+juce::MouseCursor LassoTool::getCursor(MidiViewport &viewport) const { return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Lasso, viewport.getCursorScale()); }
 
-void LassoTool::toolActivated(MidiViewport& viewport)
-{
-    viewport.setMouseCursor(getCursor(viewport));
-}
+void LassoTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void LassoTool::toolDeactivated(MidiViewport& viewport)
-{
-    viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
-}
+void LassoTool::toolDeactivated(MidiViewport &viewport) { viewport.setMouseCursor(juce::MouseCursor::NormalCursor); }

@@ -20,21 +20,20 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
-
-#include "EditViewState.h"
 #include "Browser_Base.h"
+#include "EditViewState.h"
 #include "TrackHeadComponent.h"
 
-class TrackListView  : public juce::Component
-                     , public juce::DragAndDropTarget
-                     , private juce::ChangeListener
-                     , public juce::ApplicationCommandTarget
+class TrackListView
+    : public juce::Component
+    , public juce::DragAndDropTarget
+    , private juce::ChangeListener
+    , public juce::ApplicationCommandTarget
 {
 public:
-    TrackListView(EditViewState& evs, juce::String timeLineID)
-        : m_editViewState (evs)
-        , m_timeLineID(timeLineID)
+    TrackListView(EditViewState &evs, juce::String timeLineID)
+        : m_editViewState(evs),
+          m_timeLineID(timeLineID)
     {
         m_editViewState.m_trackHeightManager->addChangeListener(this);
         m_editViewState.m_selectionManager.addChangeListener(this);
@@ -48,29 +47,28 @@ public:
 
     void resized() override;
 
-    void mouseDown (const juce::MouseEvent &) override;
+    void mouseDown(const juce::MouseEvent &) override;
 
-    inline bool isInterestedInDragSource (const SourceDetails& dragSourceDetails) override
+    inline bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override
     {
 
-        if (auto b = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
+        if (auto b = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
         {
             if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
                 return false;
         }
         return true;
     }
-    void itemDragMove (const SourceDetails& dragSourceDetails) override{}
-    void itemDragExit (const SourceDetails&) override{}
-    void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override;
+    void itemDragMove(const SourceDetails &dragSourceDetails) override {}
+    void itemDragExit(const SourceDetails &) override {}
+    void itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override;
 
-    
-    ApplicationCommandTarget* getNextCommandTarget() override   { return findFirstTargetParentComponent(); }
-    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
+    ApplicationCommandTarget *getNextCommandTarget() override { return findFirstTargetParentComponent(); }
+    void getAllCommands(juce::Array<juce::CommandID> &commands) override;
 
-    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
-    
-    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
+    void getCommandInfo(juce::CommandID commandID, juce::ApplicationCommandInfo &result) override;
+
+    bool perform(const juce::ApplicationCommandTarget::InvocationInfo &info) override;
 
     void addHeaderView(std::unique_ptr<TrackHeaderComponent> header);
     void updateViews();
@@ -80,14 +78,13 @@ public:
     void collapseTracks(bool minimize);
 
 private:
-
-    void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    void changeListenerCallback(juce::ChangeBroadcaster *) override;
 
     te::AudioTrack::Ptr addTrack(bool isMidiTrack, bool isFolderTrack, juce::Colour trackColour);
 
-    EditViewState& m_editViewState;
+    EditViewState &m_editViewState;
     juce::OwnedArray<TrackHeaderComponent> m_trackHeaders;
     const int getPopupResult();
-    TrackHeaderComponent* getTrackHeaderView(tracktion_engine::Track::Ptr track);
+    TrackHeaderComponent *getTrackHeaderView(tracktion_engine::Track::Ptr track);
     juce::String m_timeLineID;
 };

@@ -15,7 +15,8 @@
 
 namespace te = tracktion_engine;
 
-class AutomatableComboBoxComponent : public juce::ComboBox
+class AutomatableComboBoxComponent
+    : public juce::ComboBox
     , public te::AutomatableParameter::Listener
     , public te::AutomationDragDropTarget
 {
@@ -25,16 +26,16 @@ public:
     ~AutomatableComboBoxComponent() override;
 
     // AutomatableParameter::Listener overrides
-    void curveHasChanged(te::AutomatableParameter&) override {}
-    void currentValueChanged(te::AutomatableParameter& p) override;
+    void curveHasChanged(te::AutomatableParameter &) override {}
+    void currentValueChanged(te::AutomatableParameter &p) override;
 
     // AutomationDragDropTarget overrides
     bool hasAnAutomatableParameter() override { return true; }
-    void chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam, std::function<void()> /*startLearnMode*/) override;
+    void chooseAutomatableParameter(std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam, std::function<void()> /*startLearnMode*/) override;
 
 private:
     te::AutomatableParameter::Ptr m_automatableParameter;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableComboBoxComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AutomatableComboBoxComponent)
 };
 
 class AutomatableChoiceComponent : public juce::Component
@@ -47,5 +48,5 @@ public:
 private:
     std::unique_ptr<AutomatableComboBoxComponent> m_combo;
     juce::Label m_titleLabel;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableChoiceComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AutomatableChoiceComponent)
 };

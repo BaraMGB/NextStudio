@@ -44,15 +44,13 @@ static float poly_blamp(float t, float dt)
     return 0.0f;
 }
 
-SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info) 
+SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     : te::Plugin(info)
 {
     auto um = getUndoManager();
 
     // Helper lambda to reduce boilerplate for standard parameters
-    auto setupParam = [&](te::AutomatableParameter::Ptr& param, juce::CachedValue<float>& cv, 
-                          const juce::String& id, const juce::String& name, 
-                          juce::NormalisableRange<float> range, float defaultVal)
+    auto setupParam = [&](te::AutomatableParameter::Ptr &param, juce::CachedValue<float> &cv, const juce::String &id, const juce::String &name, juce::NormalisableRange<float> range, float defaultVal)
     {
         cv.referTo(state, id, um, defaultVal);
         param = addParam(id, name, range);
@@ -67,24 +65,37 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
     setupParam(osc2EnabledParam, osc2EnabledValue, "osc2Enabled", "Osc 2 On", {0.0f, 1.0f}, 0.0f);
 
     osc2WaveValue.referTo(state, "osc2Wave", um, 2.0f);
-    osc2WaveParam = addParam("osc2Wave", "Osc 2 Wave", {0.0f, 4.0f, 1.0f},
-                         [](float v) {
-                             int type = juce::roundToInt(v);
-                             if (type == Waveform::sine) return "Sine";
-                             if (type == Waveform::triangle) return "Triangle";
-                             if (type == Waveform::saw) return "Saw";
-                             if (type == Waveform::square) return "Square";
-                             if (type == Waveform::noise) return "Noise";
-                             return "Unknown";
-                         },
-                         [](const juce::String& s) {
-                             if (s == "Sine") return (float)Waveform::sine;
-                             if (s == "Triangle") return (float)Waveform::triangle;
-                             if (s == "Saw") return (float)Waveform::saw;
-                             if (s == "Square") return (float)Waveform::square;
-                             if (s == "Noise") return (float)Waveform::noise;
-                             return 0.0f;
-                         });
+    osc2WaveParam = addParam(
+        "osc2Wave", "Osc 2 Wave", {0.0f, 4.0f, 1.0f},
+        [](float v)
+        {
+            int type = juce::roundToInt(v);
+            if (type == Waveform::sine)
+                return "Sine";
+            if (type == Waveform::triangle)
+                return "Triangle";
+            if (type == Waveform::saw)
+                return "Saw";
+            if (type == Waveform::square)
+                return "Square";
+            if (type == Waveform::noise)
+                return "Noise";
+            return "Unknown";
+        },
+        [](const juce::String &s)
+        {
+            if (s == "Sine")
+                return (float)Waveform::sine;
+            if (s == "Triangle")
+                return (float)Waveform::triangle;
+            if (s == "Saw")
+                return (float)Waveform::saw;
+            if (s == "Square")
+                return (float)Waveform::square;
+            if (s == "Noise")
+                return (float)Waveform::noise;
+            return 0.0f;
+        });
     osc2WaveParam->attachToCurrentValue(osc2WaveValue);
 
     setupParam(osc2CoarseParam, osc2CoarseValue, "osc2Coarse", "Osc 2 Coarse", {-24.0f, 24.0f, 1.0f}, 0.0f);
@@ -93,46 +104,70 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
 
     // Mix Mode Params
     mixModeValue.referTo(state, "mixMode", um, 0.0f);
-    mixModeParam = addParam("mixMode", "Mix Mode", {0.0f, 3.0f, 1.0f},
-                            [](float v) {
-                                int mode = juce::roundToInt(v);
-                                if (mode == MixMode::mix) return "Mix";
-                                if (mode == MixMode::ringMod) return "RingMod";
-                                if (mode == MixMode::fm) return "FM";
-                                if (mode == MixMode::hardSync) return "HardSync";
-                                return "Unknown";
-                            },
-                            [](const juce::String& s) {
-                                if (s == "Mix") return (float)MixMode::mix;
-                                if (s == "RingMod") return (float)MixMode::ringMod;
-                                if (s == "FM") return (float)MixMode::fm;
-                                if (s == "HardSync") return (float)MixMode::hardSync;
-                                return 0.0f;
-                            });
+    mixModeParam = addParam(
+        "mixMode", "Mix Mode", {0.0f, 3.0f, 1.0f},
+        [](float v)
+        {
+            int mode = juce::roundToInt(v);
+            if (mode == MixMode::mix)
+                return "Mix";
+            if (mode == MixMode::ringMod)
+                return "RingMod";
+            if (mode == MixMode::fm)
+                return "FM";
+            if (mode == MixMode::hardSync)
+                return "HardSync";
+            return "Unknown";
+        },
+        [](const juce::String &s)
+        {
+            if (s == "Mix")
+                return (float)MixMode::mix;
+            if (s == "RingMod")
+                return (float)MixMode::ringMod;
+            if (s == "FM")
+                return (float)MixMode::fm;
+            if (s == "HardSync")
+                return (float)MixMode::hardSync;
+            return 0.0f;
+        });
     mixModeParam->attachToCurrentValue(mixModeValue);
 
     setupParam(crossModAmountParam, crossModAmountValue, "crossModAmount", "Cross Mod", {0.0f, 1.0f}, 0.0f);
 
     // Wave Param (Custom String Conversion)
     waveValue.referTo(state, "wave", um, 2.0f);
-    waveParam = addParam("wave", "Wave", {0.0f, 4.0f, 1.0f},
-                         [](float v) {
-                             int type = juce::roundToInt(v);
-                             if (type == Waveform::sine) return "Sine";
-                             if (type == Waveform::triangle) return "Triangle";
-                             if (type == Waveform::saw) return "Saw";
-                             if (type == Waveform::square) return "Square";
-                             if (type == Waveform::noise) return "Noise";
-                             return "Unknown";
-                         },
-                         [](const juce::String& s) {
-                             if (s == "Sine") return (float)Waveform::sine;
-                             if (s == "Triangle") return (float)Waveform::triangle;
-                             if (s == "Saw") return (float)Waveform::saw;
-                             if (s == "Square") return (float)Waveform::square;
-                             if (s == "Noise") return (float)Waveform::noise;
-                             return 0.0f;
-                         });
+    waveParam = addParam(
+        "wave", "Wave", {0.0f, 4.0f, 1.0f},
+        [](float v)
+        {
+            int type = juce::roundToInt(v);
+            if (type == Waveform::sine)
+                return "Sine";
+            if (type == Waveform::triangle)
+                return "Triangle";
+            if (type == Waveform::saw)
+                return "Saw";
+            if (type == Waveform::square)
+                return "Square";
+            if (type == Waveform::noise)
+                return "Noise";
+            return "Unknown";
+        },
+        [](const juce::String &s)
+        {
+            if (s == "Sine")
+                return (float)Waveform::sine;
+            if (s == "Triangle")
+                return (float)Waveform::triangle;
+            if (s == "Saw")
+                return (float)Waveform::saw;
+            if (s == "Square")
+                return (float)Waveform::square;
+            if (s == "Noise")
+                return (float)Waveform::noise;
+            return 0.0f;
+        });
     waveParam->attachToCurrentValue(waveValue);
 
     setupParam(attackParam, attackValue, "attack", "Attack", {0.0f, 5.0f}, 0.001f);
@@ -146,9 +181,7 @@ SimpleSynthPlugin::SimpleSynthPlugin(te::PluginCreationInfo info)
 
     // Filter Type Param (Custom String Conversion)
     filterTypeValue.referTo(state, "filterType", um, 0.0f);
-    filterTypeParam = addParam("filterType", "Filter Type", {0.0f, 1.0f, 1.0f},
-                               [](float v) { return v > 0.5f ? "SVF (12dB)" : "Ladder (24dB)"; },
-                               [](const juce::String& s) { return s.contains("SVF") ? 1.0f : 0.0f; });
+    filterTypeParam = addParam("filterType", "Filter Type", {0.0f, 1.0f, 1.0f}, [](float v) { return v > 0.5f ? "SVF (12dB)" : "Ladder (24dB)"; }, [](const juce::String &s) { return s.contains("SVF") ? 1.0f : 0.0f; });
     filterTypeParam->attachToCurrentValue(filterTypeValue);
 
     // Filter Params
@@ -199,7 +232,7 @@ SimpleSynthPlugin::~SimpleSynthPlugin()
     filterReleaseParam->detachFromCurrentValue();
 }
 
-void SimpleSynthPlugin::valueTreePropertyChanged(juce::ValueTree& v, const juce::Identifier&)
+void SimpleSynthPlugin::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &)
 {
     if (v == state)
         updateAtomics();
@@ -239,31 +272,29 @@ void SimpleSynthPlugin::updateAtomics()
     audioParams.filterRelease = filterReleaseValue.get();
 }
 
-void SimpleSynthPlugin::getChannelNames (juce::StringArray* ins, juce::StringArray* outs)
+void SimpleSynthPlugin::getChannelNames(juce::StringArray *ins, juce::StringArray *outs)
 {
-    if (ins) ins->clear();
+    if (ins)
+        ins->clear();
     if (outs)
     {
         outs->clear();
-        outs->add ("Left");
-        outs->add ("Right");
+        outs->add("Left");
+        outs->add("Right");
     }
 }
 
-int SimpleSynthPlugin::getNumOutputChannelsGivenInputs (int)
-{
-    return 2;
-}
+int SimpleSynthPlugin::getNumOutputChannelsGivenInputs(int) { return 2; }
 
-void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
+void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo &info)
 {
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = info.sampleRate > 0.0 ? info.sampleRate : (double)defaultSampleRate;
     spec.maximumBlockSize = 4096; // Use a safe large block size as actual size isn't guaranteed here
-    spec.numChannels = 1; // Mono processing per voice
+    spec.numChannels = 1;         // Mono processing per voice
 
     // Initialize voices with the correct sample rate
-    for (auto& v : voices)
+    for (auto &v : voices)
     {
         v.sampleRate = (float)spec.sampleRate;
         v.adsr.setSampleRate(spec.sampleRate);
@@ -282,22 +313,15 @@ void SimpleSynthPlugin::initialise(const te::PluginInitialisationInfo& info)
     cutoffSmoother.reset(spec.sampleRate, (double)cutoffSmoothingTime);
 
     // Prepare sine lookup table (2048 points is plenty for audio)
-    sineTable.initialise([](size_t i) { 
-                             return std::sin((float)i / 2048.0f * juce::MathConstants<float>::twoPi); 
-                         }, 2048);
+    sineTable.initialise([](size_t i) { return std::sin((float)i / 2048.0f * juce::MathConstants<float>::twoPi); }, 2048);
     sineTableScaler = 2048.0f / juce::MathConstants<float>::twoPi;
 }
 
-void SimpleSynthPlugin::deinitialise()
-{
-}
+void SimpleSynthPlugin::deinitialise() {}
 
-void SimpleSynthPlugin::reset()
-{
-    midiPanic();
-}
+void SimpleSynthPlugin::reset() { midiPanic(); }
 
-void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
+void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext &fc)
 {
     // 1. Basic Buffer Validation
     if (fc.destBuffer == nullptr || fc.bufferNumSamples == 0)
@@ -358,7 +382,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     // If we just started playing, kill all old voices to prevent stacking/ghost notes.
     if (isPlaying && !lastWasPlaying)
     {
-        for (auto& v : voices)
+        for (auto &v : voices)
             v.kill();
     }
 
@@ -369,7 +393,7 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
 
     if (panicTriggered.exchange(false))
     {
-        for (auto& v : voices)
+        for (auto &v : voices)
             v.kill();
     }
 
@@ -380,20 +404,17 @@ void SimpleSynthPlugin::applyToBuffer(const te::PluginRenderContext& fc)
     renderAudio(fc, baseCutoff, filterEnvAmount, waveShape, unisonOrder, drive);
 }
 
-void SimpleSynthPlugin::midiPanic()
-{
-    panicTriggered = true;
-}
+void SimpleSynthPlugin::midiPanic() { panicTriggered = true; }
 
-SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
+SimpleSynthPlugin::Voice *SimpleSynthPlugin::findVoiceToSteal()
 {
-    Voice* oldestReleaseVoice = nullptr;
+    Voice *oldestReleaseVoice = nullptr;
     uint32_t oldestReleaseTime = std::numeric_limits<uint32_t>::max();
 
-    Voice* oldestVoice = nullptr;
+    Voice *oldestVoice = nullptr;
     uint32_t oldestTime = std::numeric_limits<uint32_t>::max();
 
-    for (auto& v : voices)
+    for (auto &v : voices)
     {
         // Candidate 1: Voice in Release phase (key up)
         if (!v.isKeyDown)
@@ -420,7 +441,7 @@ SimpleSynthPlugin::Voice* SimpleSynthPlugin::findVoiceToSteal()
     return oldestVoice;
 }
 
-void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& adsrParams, const juce::ADSR::Parameters& filterAdsrParams)
+void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray *midiMessages, const juce::ADSR::Parameters &adsrParams, const juce::ADSR::Parameters &filterAdsrParams)
 {
     if (midiMessages == nullptr)
         return;
@@ -428,7 +449,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
     // Check Global Flag from Host
     if (midiMessages->isAllNotesOff)
     {
-        for (auto& v : voices)
+        for (auto &v : voices)
             v.kill();
     }
 
@@ -444,7 +465,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
         {
             int note = m.getNoteNumber();
 
-            for (auto& v : voices)
+            for (auto &v : voices)
             {
                 if (v.active && v.currentNote == note && v.isKeyDown)
                     v.stop();
@@ -467,7 +488,7 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
             else
             {
                 // NoteOn with velocity 0 is treated as NoteOff
-                for (auto& v : voices)
+                for (auto &v : voices)
                 {
                     if (v.active && v.currentNote == note && v.isKeyDown)
                         v.stop();
@@ -476,25 +497,25 @@ void SimpleSynthPlugin::processMidiMessages(te::MidiMessageArray* midiMessages, 
         }
         else if (m.isAllNotesOff())
         {
-            for (auto& v : voices)
+            for (auto &v : voices)
                 v.stop();
         }
         else if (m.isAllSoundOff())
         {
-            for (auto& v : voices)
+            for (auto &v : voices)
                 v.kill();
         }
     }
 }
 
-void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr)
+void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters &ampAdsr, const juce::ADSR::Parameters &filterAdsr)
 {
     // Check for Unison Order change
     if (unisonOrder != lastUnisonOrder)
     {
         std::map<int, float> notesToRetrigger;
 
-        for (auto& v : voices)
+        for (auto &v : voices)
         {
             if (v.active && v.isKeyDown)
             {
@@ -507,9 +528,9 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
 
         float startCutoff = audioParams.filterCutoff.load();
         bool retrigger = audioParams.retrigger.load() > 0.5f;
-        for (auto const& [note, vel] : notesToRetrigger)
+        for (auto const &[note, vel] : notesToRetrigger)
         {
-             triggerNote(note, vel, unisonOrder, retrigger, startCutoff, drive, ampAdsr, filterAdsr);
+            triggerNote(note, vel, unisonOrder, retrigger, startCutoff, drive, ampAdsr, filterAdsr);
         }
 
         lastUnisonOrder = unisonOrder;
@@ -520,7 +541,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
     // This allows sweeping Osc 1 independently for Hard Sync effects.
     float tuneSemitones2 = osc2Coarse + (osc2FineCents / 100.0f);
 
-    for (auto& v : voices)
+    for (auto &v : voices)
     {
         if (v.active)
         {
@@ -558,54 +579,56 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
     }
 }
 
-inline float SimpleSynthPlugin::generateWaveSample(int waveShape, float phase, float phaseDelta, juce::Random& random)
+inline float SimpleSynthPlugin::generateWaveSample(int waveShape, float phase, float phaseDelta, juce::Random &random)
 {
     float sample = 0.0f;
-    const float t = phase / juce::MathConstants<float>::twoPi; 
+    const float t = phase / juce::MathConstants<float>::twoPi;
     const float dt = phaseDelta / juce::MathConstants<float>::twoPi;
 
     switch (waveShape)
     {
-        case Waveform::sine:
-            sample = sineTable.getUnchecked(phase * sineTableScaler);
-            break;
-        case Waveform::triangle:
-            {
-                // Naive triangle wave
-                sample = 2.0f * std::abs(2.0f * t - 1.0f) - 1.0f; 
+    case Waveform::sine:
+        sample = sineTable.getUnchecked(phase * sineTableScaler);
+        break;
+    case Waveform::triangle:
+    {
+        // Naive triangle wave
+        sample = 2.0f * std::abs(2.0f * t - 1.0f) - 1.0f;
 
-                // Apply PolyBLAMP to smooth the slope changes at t=0.0 and t=0.5
-                sample += poly_blamp(t, dt) * 4.0f;
+        // Apply PolyBLAMP to smooth the slope changes at t=0.0 and t=0.5
+        sample += poly_blamp(t, dt) * 4.0f;
 
-                float t2 = t + 0.5f;
-                if (t2 >= 1.0f) t2 -= 1.0f;
-                sample -= poly_blamp(t2, dt) * 4.0f;
-            }
-            break;
-        case Waveform::saw:
-            sample = (2.0f * t) - 1.0f;
-            sample -= poly_blep(t, dt);
-            break;
-        case Waveform::square:
-            sample = (phase < juce::MathConstants<float>::pi) ? 1.0f : -1.0f;
-            sample += poly_blep(t, dt);
-            {
-                float t_shifted = t + 0.5f; 
-                if (t_shifted >= 1.0f) t_shifted -= 1.0f;
-                sample -= poly_blep(t_shifted, dt);
-            }
-            break;
-        case Waveform::noise:
-            sample = random.nextFloat() * 2.0f - 1.0f;
-            break;
+        float t2 = t + 0.5f;
+        if (t2 >= 1.0f)
+            t2 -= 1.0f;
+        sample -= poly_blamp(t2, dt) * 4.0f;
+    }
+    break;
+    case Waveform::saw:
+        sample = (2.0f * t) - 1.0f;
+        sample -= poly_blep(t, dt);
+        break;
+    case Waveform::square:
+        sample = (phase < juce::MathConstants<float>::pi) ? 1.0f : -1.0f;
+        sample += poly_blep(t, dt);
+        {
+            float t_shifted = t + 0.5f;
+            if (t_shifted >= 1.0f)
+                t_shifted -= 1.0f;
+            sample -= poly_blep(t_shifted, dt);
+        }
+        break;
+    case Waveform::noise:
+        sample = random.nextFloat() * 2.0f - 1.0f;
+        break;
     }
     return sample;
 }
 
-void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive)
+void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive)
 {
-    float* left = fc.destBuffer->getWritePointer(0);
-    float* right = fc.destBuffer->getWritePointer(1);
+    float *left = fc.destBuffer->getWritePointer(0);
+    float *right = fc.destBuffer->getWritePointer(1);
     const int numSamples = fc.bufferNumSamples;
 
     masterLevelSmoother.setTargetValue(juce::Decibels::decibelsToGain(audioParams.level.load()));
@@ -615,7 +638,8 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
     // New Params
     bool osc2On = audioParams.osc2Enabled.load() > 0.5f;
     int osc2WaveShape = (int)audioParams.osc2Wave.load();
-    if (osc2WaveShape < 0 || osc2WaveShape >= Waveform::numWaveforms) osc2WaveShape = Waveform::saw;
+    if (osc2WaveShape < 0 || osc2WaveShape >= Waveform::numWaveforms)
+        osc2WaveShape = Waveform::saw;
 
     float osc2Level = audioParams.osc2Level.load();
     int mixMode = (int)audioParams.mixMode.load();
@@ -632,7 +656,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
         float gain = masterLevelSmoother.getNextValue() * unisonGainCorrection;
         float smoothedCutoff = cutoffSmoother.getNextValue();
 
-        for (auto& v : voices)
+        for (auto &v : voices)
         {
             if (v.active)
             {
@@ -657,23 +681,25 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 if (osc2On)
                 {
                     // Hard Sync: Reset Phase 1 if Phase 2 wraps in this step
-                    if (mixMode == MixMode::hardSync) 
+                    if (mixMode == MixMode::hardSync)
                     {
-                        if (v.phase2 + v.phaseDelta2 >= juce::MathConstants<float>::twoPi) 
+                        if (v.phase2 + v.phaseDelta2 >= juce::MathConstants<float>::twoPi)
                         {
-                             v.phase = 0.0f;
-                             effectivePhase1 = 0.0f;
+                            v.phase = 0.0f;
+                            effectivePhase1 = 0.0f;
                         }
                     }
                     // FM: Modulate Phase 1 with Osc 2 Output
-                    else if (mixMode == MixMode::fm) 
+                    else if (mixMode == MixMode::fm)
                     {
                         // Map crossMod to a reasonable modulation index range (0.0 to 4.0 radians approx)
-                        effectivePhase1 += (s2 * crossMod * 4.0f); 
+                        effectivePhase1 += (s2 * crossMod * 4.0f);
 
                         // Wrap effective phase for lookup correctness
-                        while (effectivePhase1 >= juce::MathConstants<float>::twoPi) effectivePhase1 -= juce::MathConstants<float>::twoPi;
-                        while (effectivePhase1 < 0.0f) effectivePhase1 += juce::MathConstants<float>::twoPi;
+                        while (effectivePhase1 >= juce::MathConstants<float>::twoPi)
+                            effectivePhase1 -= juce::MathConstants<float>::twoPi;
+                        while (effectivePhase1 < 0.0f)
+                            effectivePhase1 += juce::MathConstants<float>::twoPi;
                     }
                 }
 
@@ -686,29 +712,29 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                 // If Osc 2 is Off, we bypass complex mixing logic and just output s1
                 if (!osc2On)
                 {
-                     mixedSample = s1;
+                    mixedSample = s1;
                 }
                 else
                 {
-                    switch (mixMode) 
+                    switch (mixMode)
                     {
-                        case MixMode::ringMod:
-                            // Blend between Clean Mix and RingMod (S1 * S2)
-                            // Base: S1 + S2*Lev
-                            // Ring: S1 * S2
-                            {
-                                float clean = s1 + (s2 * osc2Level);
-                                float ring = s1 * s2; // Pure Ring Mod
-                                mixedSample = clean * (1.0f - crossMod) + ring * crossMod;
-                            }
-                            break;
+                    case MixMode::ringMod:
+                        // Blend between Clean Mix and RingMod (S1 * S2)
+                        // Base: S1 + S2*Lev
+                        // Ring: S1 * S2
+                        {
+                            float clean = s1 + (s2 * osc2Level);
+                            float ring = s1 * s2; // Pure Ring Mod
+                            mixedSample = clean * (1.0f - crossMod) + ring * crossMod;
+                        }
+                        break;
 
-                        case MixMode::mix:
-                        case MixMode::fm: // For FM, we usually just hear the Carrier (Osc 1), but let's allow mixing Osc 2
-                        case MixMode::hardSync:
-                        default:
-                            mixedSample = s1 + (s2 * osc2Level);
-                            break;
+                    case MixMode::mix:
+                    case MixMode::fm: // For FM, we usually just hear the Carrier (Osc 1), but let's allow mixing Osc 2
+                    case MixMode::hardSync:
+                    default:
+                        mixedSample = s1 + (s2 * osc2Level);
+                        break;
                     }
                 }
 
@@ -729,9 +755,9 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
 
                 if (filterType == FilterType::ladder)
                 {
-                    float* channels[] = { &sample };
-                    juce::dsp::AudioBlock<float> block (channels, 1, 1);
-                    juce::dsp::ProcessContextReplacing<float> context (block);
+                    float *channels[] = {&sample};
+                    juce::dsp::AudioBlock<float> block(channels, 1, 1);
+                    juce::dsp::ProcessContextReplacing<float> context(block);
                     v.filter.setCutoffFrequencyHz(modulatedCutoff);
                     v.filter.process(context);
 
@@ -750,7 +776,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
                     v.active = false;
 
                 float currentGain = adsrGain * v.currentVelocity;
-                l += sample * currentGain * (1.0f - v.currentPan); 
+                l += sample * currentGain * (1.0f - v.currentPan);
                 r += sample * currentGain * v.currentPan;
             }
         }
@@ -760,12 +786,12 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext& fc, float bas
     }
 }
 
-void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v)
+void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree &v)
 {
     // Helper to restore properties from ValueTree to AutomatableParameters
     // We use setParameter to ensure that listeners (GUI) are notified of the change.
     // Setting CachedValues directly does not always trigger the parameter listeners.
-    auto restore = [&](te::AutomatableParameter::Ptr& param, const char* name)
+    auto restore = [&](te::AutomatableParameter::Ptr &param, const char *name)
     {
         if (v.hasProperty(name))
         {
@@ -809,15 +835,15 @@ void SimpleSynthPlugin::restorePluginStateFromValueTree(const juce::ValueTree& v
     updateAtomics();
 }
 
-void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams)
+void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams)
 {
     // Unison Logic: Trigger multiple voices
     for (int u = 0; u < unisonOrder; ++u)
     {
-        Voice* voiceToUse = nullptr;
+        Voice *voiceToUse = nullptr;
 
         // 1. Try to find a free voice
-        for (auto& v : voices)
+        for (auto &v : voices)
         {
             if (!v.active)
             {
@@ -831,7 +857,8 @@ void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, b
         {
             voiceToUse = findVoiceToSteal();
             // Ideally fade out here, but for now we hard steal
-            if (voiceToUse) voiceToUse->stop();
+            if (voiceToUse)
+                voiceToUse->stop();
         }
 
         if (voiceToUse != nullptr)
@@ -839,7 +866,7 @@ void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, b
             float bias = 0.0f;
             if (unisonOrder > 1)
             {
-                float spreadAmount = (float)u / (float)(unisonOrder - 1); 
+                float spreadAmount = (float)u / (float)(unisonOrder - 1);
                 bias = (spreadAmount - 0.5f) * 2.0f;
             }
 
@@ -848,7 +875,7 @@ void SimpleSynthPlugin::triggerNote(int note, float velocity, int unisonOrder, b
     }
 }
 
-void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float bias, bool retrigger, uint32_t timestamp)
+void SimpleSynthPlugin::Voice::start(int note, float velocity, float sr, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams, float bias, bool retrigger, uint32_t timestamp)
 {
     active = true;
     isKeyDown = true;

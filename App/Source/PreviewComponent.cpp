@@ -20,19 +20,18 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "PreviewComponent.h"
 #include "BinaryData.h"
 #include "Utilities.h"
 
-SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& edit, ApplicationViewState& avs)
-    : m_engine(engine)
-    , m_edit(edit)
-    , m_avs(avs)
-    , m_playBtn ("Play/Pause",  juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
-    , m_stopBtn ("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
-    , m_syncTempoBtn ("Sync Tempo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
-    , m_loopBtn("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
+SamplePreviewComponent::SamplePreviewComponent(te::Engine &engine, te::Edit &edit, ApplicationViewState &avs)
+    : m_engine(engine),
+      m_edit(edit),
+      m_avs(avs),
+      m_playBtn("Play/Pause", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground),
+      m_stopBtn("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground),
+      m_syncTempoBtn("Sync Tempo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground),
+      m_loopBtn("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
 {
     m_avs.m_applicationStateValueTree.addListener(this);
 
@@ -51,17 +50,17 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
     addAndMakeVisible(m_lenghtLabel);
     m_fileName.setJustificationType(juce::Justification::left);
 
-    Helpers::addAndMakeVisible(*this, {&m_playBtn, &m_stopBtn,&m_loopBtn, &m_syncTempoBtn});
+    Helpers::addAndMakeVisible(*this, {&m_playBtn, &m_stopBtn, &m_loopBtn, &m_syncTempoBtn});
 
     GUIHelpers::setDrawableOnButton(m_playBtn, BinaryData::play_svg, juce::Colour(0xffffffff));
     GUIHelpers::setDrawableOnButton(m_stopBtn, BinaryData::stop_svg, juce::Colour(0xffffffff));
-    GUIHelpers::setDrawableOnButton(m_syncTempoBtn, BinaryData::timeShiftCursor_svg , juce::Colour(0xffffffff));
+    GUIHelpers::setDrawableOnButton(m_syncTempoBtn, BinaryData::timeShiftCursor_svg, juce::Colour(0xffffffff));
     GUIHelpers::setDrawableOnButton(m_loopBtn, BinaryData::cached_svg, juce::Colour(0xffffffff));
     m_stopBtn.setTooltip(GUIHelpers::translate("Stop playing", m_avs));
     m_playBtn.setTooltip(GUIHelpers::translate("Play sample", m_avs));
     m_loopBtn.setTooltip(GUIHelpers::translate("Loop", m_avs));
     m_syncTempoBtn.setTooltip(GUIHelpers::translate("Sync to song tempo", m_avs));
-    m_stopBtn.onClick = [this] 
+    m_stopBtn.onClick = [this]
     {
         if (!m_previewEdit)
             return;
@@ -74,7 +73,6 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
 
         rewind();
         resized();
-
     };
     m_playBtn.onClick = [this]
     {
@@ -97,27 +95,24 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine & engine, te::Edit& ed
     m_syncTempoBtn.onClick = [this]
     {
         m_syncTempo = !m_syncTempo;
-        setFile(m_file); 
+        setFile(m_file);
         resized();
     };
-    m_loopBtn.onClick = [this]
-    {
-        m_avs.m_previewLoop = !m_avs.m_previewLoop;
-    };
+    m_loopBtn.onClick = [this] { m_avs.m_previewLoop = !m_avs.m_previewLoop; };
 }
 SamplePreviewComponent::~SamplePreviewComponent()
 {
     m_volumeSlider->removeListener(this);
     m_avs.m_applicationStateValueTree.removeListener(this);
 }
-void SamplePreviewComponent::paint(juce::Graphics &g) 
+void SamplePreviewComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
 
-    g.setColour (m_avs.getBorderColour());
+    g.setColour(m_avs.getBorderColour());
     g.fillRect(area.removeFromTop(1));
-    g.setColour (m_avs.getBackgroundColour2());
-    g.fillRect (area);
+    g.setColour(m_avs.getBackgroundColour2());
+    g.fillRect(area);
 
     g.setColour(m_avs.getBorderColour());
     g.drawHorizontalLine(m_fileName.getBottom(), 0, getWidth());
@@ -130,7 +125,7 @@ void SamplePreviewComponent::paint(juce::Graphics &g)
     }
 }
 
-void SamplePreviewComponent::resized() 
+void SamplePreviewComponent::resized()
 {
     auto area = getLocalBounds();
     area.removeFromTop(2);
@@ -147,8 +142,6 @@ void SamplePreviewComponent::resized()
     thumbRect.reduce(4, 4);
     if (m_previewEdit)
         m_thumbnail->setBounds(thumbRect);
-
-
 
     // Remaining area for buttons
     auto buttonMenu = area.removeFromTop(40);
@@ -181,29 +174,29 @@ void SamplePreviewComponent::resized()
 
     repaint();
 }
-void SamplePreviewComponent::sliderValueChanged(juce::Slider *slider) 
+void SamplePreviewComponent::sliderValueChanged(juce::Slider *slider)
 {
-    if (slider == m_volumeSlider.get ())
+    if (slider == m_volumeSlider.get())
     {
-        auto& sliderpos =  m_avs.m_previewSliderPos;
+        auto &sliderpos = m_avs.m_previewSliderPos;
         if (m_previewEdit)
-            m_previewEdit->getMasterSliderPosParameter ()->setParameter(sliderpos , juce::dontSendNotification);
+            m_previewEdit->getMasterSliderPosParameter()->setParameter(sliderpos, juce::dontSendNotification);
     }
 }
 
-void SamplePreviewComponent::timerCallback() 
+void SamplePreviewComponent::timerCallback()
 {
     if (m_previewEdit)
     {
-        auto& t = m_previewEdit->getTransport();
+        auto &t = m_previewEdit->getTransport();
         if (t.getPosition().inSeconds() > m_previewEdit->getLength().inSeconds())
         {
-            t.stop(false, true); 
+            t.stop(false, true);
             rewind();
             resized();
             stopTimer();
         }
-        else 
+        else
         {
             startTimer(200);
         }
@@ -214,8 +207,8 @@ void SamplePreviewComponent::play()
 {
     if (m_previewEdit)
     {
-        auto& ptp = m_previewEdit->getTransport();
-        m_previewEdit->dispatchPendingUpdatesSynchronously ();
+        auto &ptp = m_previewEdit->getTransport();
+        m_previewEdit->dispatchPendingUpdatesSynchronously();
         ptp.ensureContextAllocated();
 
         auto sampleLenght = m_previewEdit->getLength().inSeconds() + 0.5;
@@ -228,57 +221,57 @@ void SamplePreviewComponent::play()
 void SamplePreviewComponent::stop()
 {
     if (m_previewEdit)
-    {   
+    {
         m_previewEdit->getTransport().stop(false, true);
         stopTimer();
-    }   
+    }
 }
 
 void SamplePreviewComponent::rewind()
 {
-    if (m_previewEdit) 
+    if (m_previewEdit)
     {
-        auto& ptp = m_previewEdit->getTransport();
+        auto &ptp = m_previewEdit->getTransport();
         ptp.setPosition(tracktion::TimePosition::fromSeconds(0.0));
     }
 }
- 
-bool SamplePreviewComponent::setFile(const juce::File& file)
+
+bool SamplePreviewComponent::setFile(const juce::File &file)
 {
-    if (file.isDirectory ())
+    if (file.isDirectory())
         return false;
 
-    te::AudioFile audioFile (m_engine, file);
+    te::AudioFile audioFile(m_engine, file);
     if (!audioFile.isValid())
         return false;
 
     auto lenght = audioFile.getLength();
-    auto lenghtStr = juce::String::formatted("%.2f",lenght);
+    auto lenghtStr = juce::String::formatted("%.2f", lenght);
 
-    m_lenghtLabel.setText( lenghtStr + "s", juce::dontSendNotification);
+    m_lenghtLabel.setText(lenghtStr + "s", juce::dontSendNotification);
     m_lenghtLabel.setFont(10);
     m_lenghtLabel.setJustificationType(juce::Justification::centredRight);
 
     m_file = file;
     m_fileName.setText(m_file.getFileName(), juce::sendNotification);
-    m_previewEdit = te::Edit::createEditForPreviewingFile (m_engine, file, &m_edit, m_syncTempo, false, m_isSync.get(), juce::ValueTree());
+    m_previewEdit = te::Edit::createEditForPreviewingFile(m_engine, file, &m_edit, m_syncTempo, false, m_isSync.get(), juce::ValueTree());
 
-    auto& sliderpos =  m_avs.m_previewSliderPos;
+    auto &sliderpos = m_avs.m_previewSliderPos;
     if (m_previewEdit)
-        m_previewEdit->getMasterSliderPosParameter ()->setParameter(sliderpos , juce::dontSendNotification);
-    //is needed because, preview edit don't play the attacs of a sample if started. idky
+        m_previewEdit->getMasterSliderPosParameter()->setParameter(sliderpos, juce::dontSendNotification);
+    // is needed because, preview edit don't play the attacs of a sample if started. idky
     te::insertSpaceIntoEdit(*m_previewEdit, {tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(0.05)});
     m_previewEdit->getTransport().setLoopRange({tracktion::TimePosition::fromSeconds(0.05), tracktion::TimeDuration::fromSeconds(lenght)});
     updateEngineLooping();
 
     auto colour = *m_isSync ? m_avs.getPrimeColour() : m_avs.getTextColour();
     m_fileName.setColour(juce::Label::textColourId, colour);
-    
-    m_thumbnail = std::make_unique<SampleDisplay>(m_previewEdit->getTransport (), m_avs);
-    m_thumbnail->setFile (audioFile);
+
+    m_thumbnail = std::make_unique<SampleDisplay>(m_previewEdit->getTransport(), m_avs);
+    m_thumbnail->setFile(audioFile);
     m_thumbnail->setColour(m_avs.getSamplesColour());
-    addAndMakeVisible (*m_thumbnail);
-    resized ();
+    addAndMakeVisible(*m_thumbnail);
+    resized();
 
     return true;
 }
@@ -299,15 +292,15 @@ void SamplePreviewComponent::updateButtonColours()
     }
 }
 
-void SamplePreviewComponent::valueTreePropertyChanged (juce::ValueTree& v, const juce::Identifier& i) 
+void SamplePreviewComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
     if (i == IDs::PreviewLoop)
         markAndUpdate(m_updateLooping);
 }
 
-void SamplePreviewComponent::handleAsyncUpdate () 
+void SamplePreviewComponent::handleAsyncUpdate()
 {
-    if (compareAndReset (m_updateLooping))
+    if (compareAndReset(m_updateLooping))
     {
         updateEngineLooping();
         updateButtonColours();

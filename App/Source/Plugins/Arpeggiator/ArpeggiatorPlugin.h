@@ -16,7 +16,7 @@ namespace te = tracktion_engine;
 
 class ArpeggiatorPlugin : public te::Plugin
 {
-  public:
+public:
     ArpeggiatorPlugin(te::PluginCreationInfo info);
     ~ArpeggiatorPlugin() override;
 
@@ -43,7 +43,8 @@ class ArpeggiatorPlugin : public te::Plugin
     void restorePluginStateFromValueTree(const juce::ValueTree &v) override;
     void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
 
-    enum Mode {
+    enum Mode
+    {
         up = 0,
         down,
         upDown,
@@ -63,7 +64,7 @@ class ArpeggiatorPlugin : public te::Plugin
     juce::CachedValue<float> octaveValue;
     juce::CachedValue<float> gateValue;
 
-  private:
+private:
     void updateAtomics();
 
     // Audio Thread Params

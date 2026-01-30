@@ -21,21 +21,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-
-#include "Components/AutomatableSlider.h"
 #include "Components/AutomatableParameter.h"
+#include "Components/AutomatableSlider.h"
 #include "Components/NonAutomatableParameter.h"
-#include "Utilities.h"
 #include "PluginViewComponent.h"
 #include "PresetManagerComponent.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
 class OscComponent : public juce::Component
 {
 public:
-
-    OscComponent(te::FourOscPlugin::OscParams& params, juce::Colour colorToUse);
+    OscComponent(te::FourOscPlugin::OscParams &params, juce::Colour colorToUse);
     ~OscComponent() override = default;
 
     void updateUI();
@@ -43,7 +41,7 @@ public:
     void resized() override;
 
 private:
-    te::FourOscPlugin::OscParams& m_params;
+    te::FourOscPlugin::OscParams &m_params;
     juce::Colour m_colour;
     std::unique_ptr<juce::ComboBox> m_waveShapeCombo;
 
@@ -56,54 +54,48 @@ private:
     std::unique_ptr<AutomatableParameterComponent> m_panParamComp;
     std::unique_ptr<NonAutomatableParameterComponent> m_voicesParamComp;
 
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OscComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OscComponent)
 };
 
 //==============================================================================
 
-
 class EnvelopeComponent : public juce::Component
 {
 public:
-
-    EnvelopeComponent(ApplicationViewState& appState, const juce::String& name, te::Plugin& plugin,
-                      te::AutomatableParameter::Ptr attackParam,
-                      te::AutomatableParameter::Ptr decayParam,
-                      te::AutomatableParameter::Ptr sustainParam,
-                      te::AutomatableParameter::Ptr releaseParam);
+    EnvelopeComponent(ApplicationViewState &appState, const juce::String &name, te::Plugin &plugin, te::AutomatableParameter::Ptr attackParam, te::AutomatableParameter::Ptr decayParam, te::AutomatableParameter::Ptr sustainParam, te::AutomatableParameter::Ptr releaseParam);
     ~EnvelopeComponent() override = default;
 
-    void paint(juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
 private:
-    ApplicationViewState&   m_appstate;
-    juce::Label             m_name;
-    te::Plugin&             m_plugin;
+    ApplicationViewState &m_appstate;
+    juce::Label m_name;
+    te::Plugin &m_plugin;
 
     std::unique_ptr<AutomatableParameterComponent> m_attackParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_decayParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_sustainParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_releaseParamComp;
 
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeComponent)
 };
 
 //==============================================================================
 class FilterComponent : public juce::Component
 {
 public:
-
-    FilterComponent(te::FourOscPlugin& plugin, ApplicationViewState& appstate);
+    FilterComponent(te::FourOscPlugin &plugin, ApplicationViewState &appstate);
     ~FilterComponent() override = default;
 
-    void paint(juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
     void updateUI();
+
 private:
-    te::FourOscPlugin&              m_plugin;
-    ApplicationViewState&           m_appstate;
+    te::FourOscPlugin &m_plugin;
+    ApplicationViewState &m_appstate;
 
     std::unique_ptr<juce::ComboBox> m_typeCombo;
     std::unique_ptr<juce::ComboBox> m_slopeCombo;
@@ -116,18 +108,19 @@ private:
     std::unique_ptr<AutomatableParameterComponent> m_keyParamComp;
     std::unique_ptr<AutomatableParameterComponent> m_velocityParamComp;
 
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FilterComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FilterComponent)
 };
 
 //==============================================================================
-class FourOscPluginComponent : public PluginViewComponent,
-                               private juce::ValueTree::Listener
+class FourOscPluginComponent
+    : public PluginViewComponent
+    , private juce::ValueTree::Listener
 {
 public:
-    FourOscPluginComponent(EditViewState& evs, te::Plugin::Ptr p);
+    FourOscPluginComponent(EditViewState &evs, te::Plugin::Ptr p);
     ~FourOscPluginComponent() override;
 
-    void paint(juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
     int getNeededWidth() override { return 6; }
@@ -135,18 +128,16 @@ public:
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
-    void restorePluginState(const juce::ValueTree& state) override;
+    void restorePluginState(const juce::ValueTree &state) override;
     juce::String getPresetSubfolder() const override;
     juce::String getPluginTypeName() const override;
-    ApplicationViewState& getApplicationViewState() override;
+    ApplicationViewState &getApplicationViewState() override;
 
 private:
-
     void updateOscComponentVisibility();
     int getActiveOscComponent();
 
-
-    te::FourOscPlugin* m_fourOscPlugin = nullptr;
+    te::FourOscPlugin *m_fourOscPlugin = nullptr;
 
     std::unique_ptr<juce::TabbedComponent> m_tabComponent;
 
@@ -185,13 +176,13 @@ private:
     std::unique_ptr<juce::Label> m_chorusDepthLabel;
     std::unique_ptr<juce::Label> m_chorusMixLabel;
 
-    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override;
-    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
-    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
-    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
-    void valueTreeParentChanged(juce::ValueTree&) override {}
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override {}
+    void valueTreeParentChanged(juce::ValueTree &) override {}
 
-    juce::Array<juce::Rectangle<int>>   m_rectsToPaint;
+    juce::Array<juce::Rectangle<int>> m_rectsToPaint;
 
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FourOscPluginComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FourOscPluginComponent)
 };

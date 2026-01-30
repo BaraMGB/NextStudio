@@ -14,15 +14,15 @@
 // SimpleSynthEnvelopeDisplay
 //==============================================================================
 
-SimpleSynthEnvelopeDisplay::SimpleSynthEnvelopeDisplay(te::AutomatableParameter::Ptr attack,
-                                                       te::AutomatableParameter::Ptr decay,
-                                                       te::AutomatableParameter::Ptr sustain,
-                                                       te::AutomatableParameter::Ptr release)
-    : m_attack(attack), m_decay(decay), m_sustain(sustain), m_release(release)
+SimpleSynthEnvelopeDisplay::SimpleSynthEnvelopeDisplay(te::AutomatableParameter::Ptr attack, te::AutomatableParameter::Ptr decay, te::AutomatableParameter::Ptr sustain, te::AutomatableParameter::Ptr release)
+    : m_attack(attack),
+      m_decay(decay),
+      m_sustain(sustain),
+      m_release(release)
 {
 }
 
-void SimpleSynthEnvelopeDisplay::paint(juce::Graphics& g)
+void SimpleSynthEnvelopeDisplay::paint(juce::Graphics &g)
 {
     g.fillAll(juce::Colours::black.withAlpha(0.2f));
 
@@ -41,11 +41,12 @@ void SimpleSynthEnvelopeDisplay::paint(juce::Graphics& g)
     // But let's just use the values directly + a constant for Sustain
 
     // A, D, R width based on parameter. Sustain is fixed width.
-    float sWidth = 0.2f; 
+    float sWidth = 0.2f;
 
     // Normalize widths to total available width
     float totalUnits = a + d + sWidth + r;
-    if (totalUnits < 0.1f) totalUnits = 0.1f; // Prevent div by zero
+    if (totalUnits < 0.1f)
+        totalUnits = 0.1f; // Prevent div by zero
 
     float scaleX = w / totalUnits;
 
@@ -89,13 +90,13 @@ void SimpleSynthEnvelopeDisplay::paint(juce::Graphics& g)
 // SimpleSynthOscSection
 //==============================================================================
 
-SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState, int oscIndex)
-    : m_plugin(plugin)
-    , m_appState(appState)
-    , m_oscIndex(oscIndex)
-    , m_waveComp(oscIndex == 0 ? plugin.waveParam : plugin.osc2WaveParam, "Wave")
-    , m_coarseTuneComp(oscIndex == 0 ? plugin.coarseTuneParam : plugin.osc2CoarseParam, "Tune")
-    , m_fineTuneComp(oscIndex == 0 ? plugin.fineTuneParam : plugin.osc2FineParam, "Fine")
+SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState, int oscIndex)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_oscIndex(oscIndex),
+      m_waveComp(oscIndex == 0 ? plugin.waveParam : plugin.osc2WaveParam, "Wave"),
+      m_coarseTuneComp(oscIndex == 0 ? plugin.coarseTuneParam : plugin.osc2CoarseParam, "Tune"),
+      m_fineTuneComp(oscIndex == 0 ? plugin.fineTuneParam : plugin.osc2FineParam, "Fine")
 {
     juce::String title = (oscIndex == 0) ? "OSC 1" : "OSC 2";
     m_nameLabel.setText(title, juce::dontSendNotification);
@@ -145,7 +146,7 @@ void SimpleSynthOscSection::updateUI()
     }
 }
 
-void SimpleSynthOscSection::paint(juce::Graphics& g)
+void SimpleSynthOscSection::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(5);
     auto cornerSize = 10.0f;
@@ -195,7 +196,8 @@ void SimpleSynthOscSection::resized()
     else
     {
         auto waveArea = topRow;
-        if (m_enabledComp) m_enabledComp->setBounds(waveArea.removeFromLeft(60).reduced(2));
+        if (m_enabledComp)
+            m_enabledComp->setBounds(waveArea.removeFromLeft(60).reduced(2));
         m_waveComp.setBounds(waveArea.reduced(2));
     }
 
@@ -207,13 +209,17 @@ void SimpleSynthOscSection::resized()
 
         m_coarseTuneComp.setBounds(row1.removeFromLeft(paramWidth).reduced(2));
         m_fineTuneComp.setBounds(row1.removeFromLeft(paramWidth).reduced(2));
-        if (m_unisonOrderComp) m_unisonOrderComp->setBounds(row1.removeFromLeft(paramWidth).reduced(2));
+        if (m_unisonOrderComp)
+            m_unisonOrderComp->setBounds(row1.removeFromLeft(paramWidth).reduced(2));
 
         auto row2 = area;
         paramWidth = row2.getWidth() / 3;
-        if (m_unisonDetuneComp) m_unisonDetuneComp->setBounds(row2.removeFromLeft(paramWidth).reduced(2));
-        if (m_unisonSpreadComp) m_unisonSpreadComp->setBounds(row2.removeFromLeft(paramWidth).reduced(2));
-        if (m_retriggerComp) m_retriggerComp->setBounds(row2.reduced(2));
+        if (m_unisonDetuneComp)
+            m_unisonDetuneComp->setBounds(row2.removeFromLeft(paramWidth).reduced(2));
+        if (m_unisonSpreadComp)
+            m_unisonSpreadComp->setBounds(row2.removeFromLeft(paramWidth).reduced(2));
+        if (m_retriggerComp)
+            m_retriggerComp->setBounds(row2.reduced(2));
     }
     else
     {
@@ -222,7 +228,8 @@ void SimpleSynthOscSection::resized()
         auto rowMid = area.removeFromTop(rowHeight);
         auto midWidth = rowMid.getWidth() / 3;
 
-        if (m_levelComp) m_levelComp->setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
+        if (m_levelComp)
+            m_levelComp->setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
         m_coarseTuneComp.setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
         m_fineTuneComp.setBounds(rowMid.reduced(2));
 
@@ -230,8 +237,10 @@ void SimpleSynthOscSection::resized()
         auto rowBottom = area;
         auto botWidth = rowBottom.getWidth() / 2;
 
-        if (m_mixModeComp) m_mixModeComp->setBounds(rowBottom.removeFromLeft(botWidth).reduced(2));
-        if (m_crossModComp) m_crossModComp->setBounds(rowBottom.reduced(2));
+        if (m_mixModeComp)
+            m_mixModeComp->setBounds(rowBottom.removeFromLeft(botWidth).reduced(2));
+        if (m_crossModComp)
+            m_crossModComp->setBounds(rowBottom.reduced(2));
     }
 }
 
@@ -239,14 +248,14 @@ void SimpleSynthOscSection::resized()
 // SimpleSynthFilterSection
 //==============================================================================
 
-SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState)
-    : m_plugin(plugin)
-    , m_appState(appState)
-    , m_filterTypeComp(plugin.filterTypeParam, "Type")
-    , m_cutoffComp(plugin.filterCutoffParam, "Cutoff")
-    , m_resComp(plugin.filterResParam, "Res")
-    , m_driveComp(plugin.filterDriveParam, "Drive")
-    , m_envAmountComp(plugin.filterEnvAmountParam, "Env Amt")
+SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_filterTypeComp(plugin.filterTypeParam, "Type"),
+      m_cutoffComp(plugin.filterCutoffParam, "Cutoff"),
+      m_resComp(plugin.filterResParam, "Res"),
+      m_driveComp(plugin.filterDriveParam, "Drive"),
+      m_envAmountComp(plugin.filterEnvAmountParam, "Env Amt")
 {
     m_nameLabel.setText("FILTER", juce::dontSendNotification);
     m_nameLabel.setJustificationType(juce::Justification::centred);
@@ -262,7 +271,7 @@ SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin& plugin, Ap
     updateUI();
 }
 
-void SimpleSynthFilterSection::paint(juce::Graphics& g)
+void SimpleSynthFilterSection::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(5);
     auto cornerSize = 10.0f;
@@ -319,17 +328,14 @@ void SimpleSynthFilterSection::updateUI()
 // SimpleSynthEnvSection
 //==============================================================================
 
-SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin& plugin, ApplicationViewState& appState, const juce::String& name, bool isFilterEnv)
-    : m_plugin(plugin)
-    , m_appState(appState)
-    , m_display(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam,
-                isFilterEnv ? plugin.filterDecayParam : plugin.decayParam,
-                isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam,
-                isFilterEnv ? plugin.filterReleaseParam : plugin.releaseParam)
-    , m_attackComp(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam, "A")
-    , m_decayComp(isFilterEnv ? plugin.filterDecayParam : plugin.decayParam, "D")
-    , m_sustainComp(isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam, "S")
-    , m_releaseComp(isFilterEnv ? plugin.filterReleaseParam : plugin.releaseParam, "R")
+SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState, const juce::String &name, bool isFilterEnv)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_display(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam, isFilterEnv ? plugin.filterDecayParam : plugin.decayParam, isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam, isFilterEnv ? plugin.filterReleaseParam : plugin.releaseParam),
+      m_attackComp(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam, "A"),
+      m_decayComp(isFilterEnv ? plugin.filterDecayParam : plugin.decayParam, "D"),
+      m_sustainComp(isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam, "S"),
+      m_releaseComp(isFilterEnv ? plugin.filterReleaseParam : plugin.releaseParam, "R")
 {
     m_nameLabel.setText(name, juce::dontSendNotification);
     m_nameLabel.setJustificationType(juce::Justification::centred);
@@ -344,7 +350,7 @@ SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin& plugin, Applicat
     addAndMakeVisible(m_releaseComp);
 }
 
-void SimpleSynthEnvSection::paint(juce::Graphics& g)
+void SimpleSynthEnvSection::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(5);
     auto cornerSize = 10.0f;
@@ -388,24 +394,21 @@ void SimpleSynthEnvSection::resized()
     m_releaseComp.setBounds(area.reduced(2));
 }
 
-void SimpleSynthEnvSection::updateUI()
-{
-    m_display.repaint();
-}
+void SimpleSynthEnvSection::updateUI() { m_display.repaint(); }
 
 //==============================================================================
 // SimpleSynthPluginComponent
 //==============================================================================
 
-SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState& evs, te::Plugin::Ptr p)
-    : PluginViewComponent(evs, p)
-    , m_synth(dynamic_cast<SimpleSynthPlugin*>(p.get()))
-    , m_osc1Section(*m_synth, evs.m_applicationState, 0)
-    , m_osc2Section(*m_synth, evs.m_applicationState, 1)
-    , m_filterSection(*m_synth, evs.m_applicationState)
-    , m_ampEnvSection(*m_synth, evs.m_applicationState, "AMP ENV", false)
-    , m_filterEnvSection(*m_synth, evs.m_applicationState, "FILTER ENV", true)
-    , m_levelSlider(*m_synth->levelParam)
+SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
+    : PluginViewComponent(evs, p),
+      m_synth(dynamic_cast<SimpleSynthPlugin *>(p.get())),
+      m_osc1Section(*m_synth, evs.m_applicationState, 0),
+      m_osc2Section(*m_synth, evs.m_applicationState, 1),
+      m_filterSection(*m_synth, evs.m_applicationState),
+      m_ampEnvSection(*m_synth, evs.m_applicationState, "AMP ENV", false),
+      m_filterEnvSection(*m_synth, evs.m_applicationState, "FILTER ENV", true),
+      m_levelSlider(*m_synth->levelParam)
 {
     jassert(m_synth != nullptr);
 
@@ -431,7 +434,7 @@ SimpleSynthPluginComponent::~SimpleSynthPluginComponent()
         m_synth->state.removeListener(this);
 }
 
-void SimpleSynthPluginComponent::paint(juce::Graphics& g)
+void SimpleSynthPluginComponent::paint(juce::Graphics &g)
 {
     g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
     g.fillAll();
@@ -470,7 +473,7 @@ void SimpleSynthPluginComponent::resized()
     m_filterEnvSection.setBounds(envArea.reduced(0, 2));
 }
 
-void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&)
+void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &)
 {
     m_osc1Section.updateUI();
     m_osc2Section.updateUI();
@@ -493,9 +496,7 @@ juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
     defaultState.setProperty("type", SimpleSynthPlugin::xmlTypeName, nullptr);
 
     // Helper to set property from CachedValue default
-    auto add = [&](const juce::String& id, const auto& cachedValue) {
-        defaultState.setProperty(id, cachedValue.getDefault(), nullptr);
-    };
+    auto add = [&](const juce::String &id, const auto &cachedValue) { defaultState.setProperty(id, cachedValue.getDefault(), nullptr); };
 
     add("level", m_synth->levelValue);
     add("coarseTune", m_synth->coarseTuneValue);
@@ -533,22 +534,10 @@ juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
     return defaultState;
 }
 
-void SimpleSynthPluginComponent::restorePluginState(const juce::ValueTree& state)
-{
-    m_synth->restorePluginStateFromValueTree(state);
-}
+void SimpleSynthPluginComponent::restorePluginState(const juce::ValueTree &state) { m_synth->restorePluginStateFromValueTree(state); }
 
-juce::String SimpleSynthPluginComponent::getPresetSubfolder() const
-{
-    return "SimpleSynth";
-}
+juce::String SimpleSynthPluginComponent::getPresetSubfolder() const { return "SimpleSynth"; }
 
-juce::String SimpleSynthPluginComponent::getPluginTypeName() const
-{
-    return SimpleSynthPlugin::xmlTypeName;
-}
+juce::String SimpleSynthPluginComponent::getPluginTypeName() const { return SimpleSynthPlugin::xmlTypeName; }
 
-ApplicationViewState& SimpleSynthPluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
+ApplicationViewState &SimpleSynthPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }

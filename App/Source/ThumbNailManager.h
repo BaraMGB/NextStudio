@@ -20,21 +20,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
 namespace te = tracktion_engine;
 class SimpleThumbnail
 {
 public:
-    SimpleThumbnail(te::Engine& engine, te::AudioFile& audioFile);
+    SimpleThumbnail(te::Engine &engine, te::AudioFile &audioFile);
 
     bool isValid() const { return m_wasSourceLoaded; }
 
-    void drawChannels(juce::Graphics& g, const juce::Rectangle<float>& area, 
-                      double startTimeSeconds, double endTimeSeconds,int channelNumber, float verticalZoomFactor = 1.0f)
+    void drawChannels(juce::Graphics &g, const juce::Rectangle<float> &area, double startTimeSeconds, double endTimeSeconds, int channelNumber, float verticalZoomFactor = 1.0f)
     {
-        if (!m_wasSourceLoaded || area.isEmpty()) 
+        if (!m_wasSourceLoaded || area.isEmpty())
             return;
 
         if (m_useCustomDrawing)
@@ -43,8 +41,7 @@ public:
         }
         else
         {
-            juce::Rectangle<int> intArea((int)area.getX(), (int)area.getY(), 
-                                         (int)area.getWidth(), (int)area.getHeight());
+            juce::Rectangle<int> intArea((int)area.getX(), (int)area.getY(), (int)area.getWidth(), (int)area.getHeight());
             m_audioThumbnail.drawChannel(g, intArea, startTimeSeconds, endTimeSeconds, channelNumber, verticalZoomFactor);
         }
     }
@@ -54,10 +51,7 @@ public:
     void setUseCustomDrawing(bool useCustom) { m_useCustomDrawing = useCustom; }
 
 private:
-    void drawChannelsCustom(juce::Graphics& g, const juce::Rectangle<float>& area, 
-                        double startTimeSeconds, double endTimeSeconds, 
-                        int channelNumber, float verticalZoomFactor);
-
+    void drawChannelsCustom(juce::Graphics &g, const juce::Rectangle<float> &area, double startTimeSeconds, double endTimeSeconds, int channelNumber, float verticalZoomFactor);
 
     juce::AudioThumbnail m_audioThumbnail;
     bool m_wasSourceLoaded = false;
@@ -68,14 +62,14 @@ private:
 class ThumbNailManager
 {
 public:
-    ThumbNailManager(te::Engine& engine)
-    : m_audioEngine(engine)
+    ThumbNailManager(te::Engine &engine)
+        : m_audioEngine(engine)
     {
     }
 
     ~ThumbNailManager() = default;
 
-    SimpleThumbnail* getOrCreateThumbnail(te::WaveAudioClip::Ptr wac)
+    SimpleThumbnail *getOrCreateThumbnail(te::WaveAudioClip::Ptr wac)
     {
         auto it = m_thumbnailMap.find(wac->itemID);
         if (it != m_thumbnailMap.end())
@@ -92,26 +86,19 @@ public:
         if (!thumbnail->isValid())
             return nullptr;
 
-        auto* result = thumbnail.get();
+        auto *result = thumbnail.get();
         m_thumbnailMap.emplace(wac->itemID, std::move(thumbnail));
         return result;
     }
 
-    void removeThumbnail(const te::EditItemID& clipID)
-    {
-        m_thumbnailMap.erase(clipID);
-    }
+    void removeThumbnail(const te::EditItemID &clipID) { m_thumbnailMap.erase(clipID); }
 
-    void clearThumbnails()
-    {
-        m_thumbnailMap.clear();
-    }
-
+    void clearThumbnails() { m_thumbnailMap.clear(); }
 
 private:
     std::map<te::EditItemID, std::unique_ptr<SimpleThumbnail>> m_thumbnailMap;
-    te::Engine& m_audioEngine;
+    te::Engine &m_audioEngine;
 
-    ThumbNailManager(const ThumbNailManager&) = delete;
-    ThumbNailManager& operator=(const ThumbNailManager&) = delete;
+    ThumbNailManager(const ThumbNailManager &) = delete;
+    ThumbNailManager &operator=(const ThumbNailManager &) = delete;
 };

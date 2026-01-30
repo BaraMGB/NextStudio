@@ -22,7 +22,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRangeTabBar.h"
 #include "NextLookAndFeel.h"
 
-LowerRangeTabBar::LowerRangeTabBar(EditViewState& evs)
+LowerRangeTabBar::LowerRangeTabBar(EditViewState &evs)
     : MenuBar(Alignment::Bottom, true),
       m_evs(evs),
       m_mixerButton("Mixer", juce::DrawableButton::ButtonStyle::ImageAboveTextLabel),
@@ -69,12 +69,9 @@ LowerRangeTabBar::LowerRangeTabBar(EditViewState& evs)
     updateTabButtons();
 }
 
-LowerRangeTabBar::~LowerRangeTabBar()
-{
-    m_evs.m_state.removeListener(this);
-}
+LowerRangeTabBar::~LowerRangeTabBar() { m_evs.m_state.removeListener(this); }
 
-void LowerRangeTabBar::valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier& i)
+void LowerRangeTabBar::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &i)
 {
     if (i == IDs::lowerRangeView)
         updateTabButtons();
@@ -89,7 +86,7 @@ void LowerRangeTabBar::updateTabButtons()
 
     // The MIDI editor should only be enabled if a MIDI clip is selected
     bool midiEditorEnabled = false;
-    if (auto clip = dynamic_cast<te::Clip*>(m_evs.m_selectionManager.getSelectedObject(0)))
+    if (auto clip = dynamic_cast<te::Clip *>(m_evs.m_selectionManager.getSelectedObject(0)))
         if (clip->isMidi())
             midiEditorEnabled = true;
 

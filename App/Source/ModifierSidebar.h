@@ -16,11 +16,12 @@
 
 namespace te = tracktion_engine;
 
-class ModifierSidebar : public juce::Component,
-                        private te::ValueTreeAllEventListener,
-                        private FlaggedAsyncUpdater
+class ModifierSidebar
+    : public juce::Component
+    , private te::ValueTreeAllEventListener
+    , private FlaggedAsyncUpdater
 {
-  public:
+public:
     ModifierSidebar(EditViewState &evs);
     ~ModifierSidebar() override;
 
@@ -41,7 +42,7 @@ class ModifierSidebar : public juce::Component,
 
     std::function<void(te::Modifier::Ptr)> onModifierSelected;
 
-  private:
+private:
     void handleAsyncUpdate() override;
     void updateList();
 
@@ -64,7 +65,7 @@ class ModifierSidebar : public juce::Component,
 
     class ItemComponent : public juce::Component
     {
-      public:
+    public:
         ItemComponent(ModifierSidebar &owner, te::Modifier::Ptr mod);
         ~ItemComponent() override;
 

@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 /*
   ==============================================================================
 
@@ -34,7 +33,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-
 
 enum class Alignment
 {
@@ -53,29 +51,24 @@ public:
         m_vertical = vert;
     }
 
-    ~MenuBar() override
-    {
-        m_buttons.clear();
-    }
+    ~MenuBar() override { m_buttons.clear(); }
 
-
-    void addButton(juce::DrawableButton* button, int toggleGroupId=0);
+    void addButton(juce::DrawableButton *button, int toggleGroupId = 0);
     void setButtonGap(int bg);
     void setButtonGap(int index, int gap);
 
     void resized() override;
 
-    juce::Array<juce::DrawableButton*> getButtons();
+    juce::Array<juce::DrawableButton *> getButtons();
 
 private:
-
     Alignment m_alignment;
-    juce::Array<juce::DrawableButton*> m_buttons;
+    juce::Array<juce::DrawableButton *> m_buttons;
     std::unique_ptr<juce::DrawableButton> m_popupButton;
     juce::Array<int> m_buttonGaps;
-    bool m_wasEnoughSpace   {false};
-    bool m_firstTime {true};
-    bool m_vertical {false};
-    int m_defaultGap {5};
+    bool m_wasEnoughSpace{false};
+    bool m_firstTime{true};
+    bool m_vertical{false};
+    int m_defaultGap{5};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MenuBar)
 };

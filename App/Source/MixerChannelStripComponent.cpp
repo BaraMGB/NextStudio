@@ -23,18 +23,16 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
-MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::AudioTrack::Ptr at)
-    : m_evs(evs)
-    , m_track(at)
-    , m_volumeSlider(at->getVolumePlugin()->getAutomatableParameterByID("volume"))
-    , m_panSlider(at->getVolumePlugin()->getAutomatableParameterByID("pan"))
+MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::AudioTrack::Ptr at)
+    : m_evs(evs),
+      m_track(at),
+      m_volumeSlider(at->getVolumePlugin()->getAutomatableParameterByID("volume")),
+      m_panSlider(at->getVolumePlugin()->getAutomatableParameterByID("pan"))
 {
     m_trackName.setText(m_track->getName(), juce::dontSendNotification);
 
     auto trackCol = m_track->getColour();
-    auto labelingCol = trackCol.getBrightness() > 0.8f
-             ? juce::Colour(0xff000000)
-             : juce::Colour(0xffffffff);
+    auto labelingCol = trackCol.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
     m_trackName.setColour(juce::Label::ColourIds::textColourId, labelingCol);
     m_trackName.setJustificationType(juce::Justification::centred);
@@ -62,33 +60,21 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState& evs, te::A
     m_armButton.setButtonText("R");
     m_armButton.onClick = [this]
     {
-        EngineHelpers::armTrack (*m_track, !EngineHelpers::isTrackArmed (*m_track));
-        m_armButton.setToggleState (EngineHelpers::isTrackArmed (*m_track), juce::dontSendNotification);
+        EngineHelpers::armTrack(*m_track, !EngineHelpers::isTrackArmed(*m_track));
+        m_armButton.setToggleState(EngineHelpers::isTrackArmed(*m_track), juce::dontSendNotification);
     };
     addAndMakeVisible(m_armButton);
 
     m_track->state.addListener(this);
 }
 
-MixerChannelStripComponent::~MixerChannelStripComponent()
-{
-    m_track->state.removeListener(this);
-}
+MixerChannelStripComponent::~MixerChannelStripComponent() { m_track->state.removeListener(this); }
 
-void MixerChannelStripComponent::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&)
-{
-    updateComponentsFromTrack();
-}
+void MixerChannelStripComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) { updateComponentsFromTrack(); }
 
-void MixerChannelStripComponent::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int)
-{
-    updateComponentsFromTrack();
-}
+void MixerChannelStripComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) { updateComponentsFromTrack(); }
 
-void MixerChannelStripComponent::valueTreeChildOrderChanged (juce::ValueTree&, int, int)
-{
-    updateComponentsFromTrack();
-}
+void MixerChannelStripComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int) { updateComponentsFromTrack(); }
 
 void MixerChannelStripComponent::updateComponentsFromTrack()
 {
@@ -112,7 +98,7 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
     resized();
 }
 
-void MixerChannelStripComponent::paint (juce::Graphics& g)
+void MixerChannelStripComponent::paint(juce::Graphics &g)
 {
     g.fillAll(m_evs.m_applicationState.getBackgroundColour2());
     auto bounds = getLocalBounds();
@@ -139,7 +125,7 @@ void MixerChannelStripComponent::paint (juce::Graphics& g)
         g.setColour(juce::Colours::grey);
         g.setFont(juce::FontOptions(10.0f));
 
-        static const float dbValues[] = { 6.0f, 3.0f, 0.0f, -6.0f, -12.0f, -24.0f, -36.0f, -60.0f };
+        static const float dbValues[] = {6.0f, 3.0f, 0.0f, -6.0f, -12.0f, -24.0f, -36.0f, -60.0f};
 
         for (auto db : dbValues)
         {
@@ -153,7 +139,7 @@ void MixerChannelStripComponent::paint (juce::Graphics& g)
             g.fillRect(tickX, yPos, tickWidth, 1.0f);
 
             // and on the right side of slider component, too
-            float tickXRight = sliderBounds.getRight() -tickWidth;
+            float tickXRight = sliderBounds.getRight() - tickWidth;
             g.fillRect(tickXRight, yPos, tickWidth, 1.0f);
             // Draw Label to the left of the tick
             // We draw it over the left meter or to its left
@@ -181,7 +167,7 @@ void MixerChannelStripComponent::resized()
 
     auto meterWidth = 6;
     m_volumeSlider.setBounds(area);
-    area.reduce(area.getWidth()/3, 0);
+    area.reduce(area.getWidth() / 3, 0);
 
     if (m_levelMeterLeft)
         m_levelMeterLeft->setBounds(area.removeFromLeft(meterWidth).reduced(0, 13));

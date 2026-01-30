@@ -20,40 +20,40 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "ToolStrategy.h"
-#include "tools/PointerTool.h"
 #include "tools/DrawTool.h"
 #include "tools/EraserTool.h"
 #include "tools/KnifeTool.h"
-#include "tools/RangeTool.h"
 #include "tools/LassoTool.h"
+#include "tools/PointerTool.h"
+#include "tools/RangeTool.h"
 
-std::unique_ptr<ToolStrategy> ToolFactory::createTool(Tool toolType, EditViewState& evs)
+std::unique_ptr<ToolStrategy> ToolFactory::createTool(Tool toolType, EditViewState &evs)
 {
     switch (toolType)
     {
-        case Tool::pointer:
-            return std::make_unique<PointerTool>(evs);
-            
-        case Tool::draw:
-            return std::make_unique<DrawTool>(evs);
-            
-        case Tool::eraser:
-            return std::make_unique<EraserTool>(evs);
-            
-        case Tool::knife:
-            return std::make_unique<KnifeTool>(evs);
-            
-        case Tool::lasso:
-            return std::make_unique<LassoTool>(evs);
-            
-        case Tool::range:
-            return std::make_unique<RangeTool>(evs);
-            
+    case Tool::pointer:
+        return std::make_unique<PointerTool>(evs);
+
+    case Tool::draw:
+        return std::make_unique<DrawTool>(evs);
+
+    case Tool::eraser:
+        return std::make_unique<EraserTool>(evs);
+
+    case Tool::knife:
+        return std::make_unique<KnifeTool>(evs);
+
+    case Tool::lasso:
+        return std::make_unique<LassoTool>(evs);
+
+    case Tool::range:
+        return std::make_unique<RangeTool>(evs);
+
         // TODO: Implement remaining tools
         // case Tool::timestretch:
         //     return std::make_unique<TimestretchTool>(evs);
 
-        default:
-            return std::make_unique<PointerTool>(evs);
+    default:
+        return std::make_unique<PointerTool>(evs);
     }
 }

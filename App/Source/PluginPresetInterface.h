@@ -21,8 +21,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include <juce_gui_basics/juce_gui_basics.h>
 #include "ApplicationViewState.h"
+#include <juce_gui_basics/juce_gui_basics.h>
 
 /**
  * Abstract interface for plugin preset management
@@ -48,8 +48,8 @@ public:
     virtual bool getInitialPresetLoaded() = 0;
     virtual void setInitialPresetLoaded(bool loaded) = 0;
     virtual juce::String getLastLoadedPresetName() = 0;
-    virtual void setLastLoadedPresetName(const juce::String& name) = 0;
-    virtual void restorePluginState(const juce::ValueTree& state) = 0;
+    virtual void setLastLoadedPresetName(const juce::String &name) = 0;
+    virtual void restorePluginState(const juce::ValueTree &state) = 0;
 
     /**
      * Get the subfolder name for this plugin's presets
@@ -66,5 +66,5 @@ public:
     /**
      * Get access to the application view state for preset directory access
      */
-    virtual ApplicationViewState& getApplicationViewState() = 0;
+    virtual ApplicationViewState &getApplicationViewState() = 0;
 };

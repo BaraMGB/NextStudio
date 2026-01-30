@@ -22,14 +22,13 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "DrawTool.h"
 #include "../Utilities.h"
 
-void DrawTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewport)
+void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     m_clickedClip = viewport.getClipAt(event.x);
     if (m_clickedClip == nullptr)
         return;
 
-    const auto numBeatsPerBar = static_cast<int>(
-                        m_evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
+    const auto numBeatsPerBar = static_cast<int>(m_evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
 
     int snapLevel = viewport.getTimeLine()->getBestSnapType().getLevel();
 
@@ -40,11 +39,11 @@ void DrawTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewport)
     m_drawStartPos = event.getPosition().x;
     m_drawCurrentPos = m_drawStartPos + m_intervalX;
     m_drawNoteNumber = viewport.getNoteNumber(event.y);
-    
+
     viewport.repaint();
 }
 
-void DrawTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport)
+void DrawTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     viewport.setSnap(true);
     if (event.mods.isShiftDown())
@@ -57,14 +56,14 @@ void DrawTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport)
     viewport.repaint();
 }
 
-void DrawTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
+void DrawTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     if (!m_isDrawingNote)
         return;
 
     auto startBeat = viewport.getTimeLine()->xToBeatPos(m_drawStartPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
     if (viewport.isSnapping())
-       startBeat = viewport.getTimeLine()->getQuantisedNoteBeat(startBeat, m_clickedClip);
+        startBeat = viewport.getTimeLine()->getQuantisedNoteBeat(startBeat, m_clickedClip);
 
     auto endBeat = viewport.getTimeLine()->xToBeatPos(m_drawCurrentPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
     if (viewport.isSnapping())
@@ -82,11 +81,11 @@ void DrawTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
     m_drawCurrentPos = 0;
     m_drawNoteNumber = 0;
     m_intervalX = 0;
-    
+
     viewport.repaint();
 }
 
-void DrawTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
+void DrawTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // Update cursor based on context
     if (viewport.getClipAt(event.x))
@@ -99,24 +98,18 @@ void DrawTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
     }
 }
 
-void DrawTool::mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport)
+void DrawTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // A double-click could create a note with a default length.
     mouseDown(event, viewport);
     mouseUp(event, viewport);
 }
 
-juce::MouseCursor DrawTool::getCursor(MidiViewport& viewport) const
-{
-    return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, viewport.getCursorScale());
-}
+juce::MouseCursor DrawTool::getCursor(MidiViewport &viewport) const { return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, viewport.getCursorScale()); }
 
-void DrawTool::toolActivated(MidiViewport& viewport)
-{
-    viewport.setMouseCursor(getCursor(viewport));
-}
+void DrawTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void DrawTool::toolDeactivated(MidiViewport& viewport)
+void DrawTool::toolDeactivated(MidiViewport &viewport)
 {
     // Ensure any pending drawing operation is cancelled
     m_isDrawingNote = false;

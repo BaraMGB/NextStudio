@@ -11,14 +11,12 @@
 #include "AutomatableParameter.h"
 
 AutomatableParameterComponent::AutomatableParameterComponent(const te::AutomatableParameter::Ptr ap, juce::String name)
-    : m_automatableParameter (ap)
+    : m_automatableParameter(ap)
 {
     m_knob = std::make_unique<AutomatableSliderComponent>(ap);
     m_knob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     m_knob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    m_knob->onValueChange = [this] {
-        updateLabel();
-    };
+    m_knob->onValueChange = [this] { updateLabel(); };
 
     addAndMakeVisible(*m_knob);
 
@@ -36,25 +34,22 @@ AutomatableParameterComponent::AutomatableParameterComponent(const te::Automatab
     m_automatableParameter->addListener(this);
 }
 
-AutomatableParameterComponent::~AutomatableParameterComponent()
-{
-    m_automatableParameter->removeListener(this);
-}
-void AutomatableParameterComponent::resized() 
+AutomatableParameterComponent::~AutomatableParameterComponent() { m_automatableParameter->removeListener(this); }
+void AutomatableParameterComponent::resized()
 {
     auto area = getLocalBounds();
-    
+
     // Top: Title (Name)
     m_titleLabel.setBounds(area.removeFromTop(20));
-    
+
     // Bottom: Value
     m_valueLabel.setBounds(area.removeFromBottom(15));
-    
+
     // Rest: Knob
     m_knob->setBounds(area);
 }
 
-void AutomatableParameterComponent::setKnobColour (juce::Colour colour)
+void AutomatableParameterComponent::setKnobColour(juce::Colour colour)
 {
     m_knob->setTrackColour(colour);
     repaint();

@@ -1055,7 +1055,7 @@ void SongEditorView::endDrag()
 // TimeRangeOverlayComponent Implementation
 //==============================================================================
 
-SongEditorView::TimeRangeOverlayComponent::TimeRangeOverlayComponent(SongEditorView& owner)
+SongEditorView::TimeRangeOverlayComponent::TimeRangeOverlayComponent(SongEditorView &owner)
     : m_owner(owner)
 {
     setInterceptsMouseClicks(true, false); // Handle mouse, but don't block child mouse Move unless hitTest passes
@@ -1080,7 +1080,7 @@ bool SongEditorView::TimeRangeOverlayComponent::hitTest(int x, int y)
         auto track = m_owner.getTrackAt(y);
         if (track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
             return true;
-        
+
         // Check automations
         for (auto ap : m_owner.m_selectedRange.selectedAutomations)
         {
@@ -1092,7 +1092,7 @@ bool SongEditorView::TimeRangeOverlayComponent::hitTest(int x, int y)
     return false;
 }
 
-void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics& g)
+void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics &g)
 {
     using namespace juce::Colours;
     const auto area = getLocalBounds().toFloat();
@@ -1117,7 +1117,7 @@ void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics& g)
             g.fillRect(timeRangeRect);
         }
 
-        for (auto& ap : track->getAllAutomatableParams())
+        for (auto &ap : track->getAllAutomatableParams())
         {
             if (m_owner.m_editViewState.m_trackHeightManager->isAutomationVisible(*ap) == false)
                 continue;
@@ -1163,7 +1163,7 @@ void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics& g)
             juce::Rectangle<float> rect(x, y, w, h);
 
             selectedRangeRect = selectedRangeRect.getUnion(rect);
-            if (auto ct = dynamic_cast<te::ClipTrack*>(track))
+            if (auto ct = dynamic_cast<te::ClipTrack *>(track))
             {
                 GUIHelpers::drawTrack(g, m_owner, m_owner.m_editViewState, rect, ct, m_owner.m_selectedRange.timeRange, true);
             }
@@ -1229,7 +1229,7 @@ void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics& g)
     }
 }
 
-void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent& e)
+void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent &e)
 {
     bool left = false, right = false;
     if (m_owner.m_selectedRange.selectedTracks.size() > 0)
@@ -1252,12 +1252,12 @@ void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent
         setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, m_owner.m_editViewState.m_applicationState.m_mouseCursorScale));
 }
 
-void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent& e)
+void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
     if (e.mods.isLeftButtonDown())
     {
         bool left = false, right = false;
-        te::Track* track = nullptr;
+        te::Track *track = nullptr;
         if (m_owner.m_selectedRange.selectedTracks.size() > 0)
             track = m_owner.m_selectedRange.selectedTracks.getFirst();
 
@@ -1272,9 +1272,9 @@ void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent
     }
 }
 
-void SongEditorView::TimeRangeOverlayComponent::mouseDrag(const juce::MouseEvent& e)
+void SongEditorView::TimeRangeOverlayComponent::mouseDrag(const juce::MouseEvent &e)
 {
-    auto& dragState = m_owner.getDragState();
+    auto &dragState = m_owner.getDragState();
     if (dragState.isTimeRangeDrag())
     {
         auto currentTime = m_owner.xtoTime(e.x);
@@ -1297,7 +1297,7 @@ void SongEditorView::TimeRangeOverlayComponent::mouseDrag(const juce::MouseEvent
     }
 }
 
-void SongEditorView::TimeRangeOverlayComponent::mouseUp(const juce::MouseEvent& e)
+void SongEditorView::TimeRangeOverlayComponent::mouseUp(const juce::MouseEvent &e)
 {
     if (m_owner.getDragState().isTimeRangeDrag())
     {
@@ -1311,4 +1311,3 @@ void SongEditorView::TimeRangeOverlayComponent::mouseUp(const juce::MouseEvent& 
         m_owner.endDrag();
     }
 }
-

@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 /*
   ==============================================================================
 
@@ -36,91 +35,68 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MainComponent.h"
 
 //==============================================================================
-class NextStudioApplication  : public juce::JUCEApplication
+class NextStudioApplication : public juce::JUCEApplication
 {
 public:
     //==============================================================================
-    NextStudioApplication(){}
+    NextStudioApplication() {}
 
-    const juce::String getApplicationName() override       { return ProjectInfo::projectName; }
-    const juce::String getApplicationVersion() override    { return ProjectInfo::versionString; }
-    bool moreThanOneInstanceAllowed() override       { return false; }
+    const juce::String getApplicationName() override { return ProjectInfo::projectName; }
+    const juce::String getApplicationVersion() override { return ProjectInfo::versionString; }
+    bool moreThanOneInstanceAllowed() override { return false; }
 
     //==============================================================================
-    void initialise (const juce::String& /*commandLine*/) override
+    void initialise(const juce::String & /*commandLine*/) override
     {
-        auto workingDir =  juce::File().createFileWithoutCheckingPath (
-                    m_applicationState.m_workDir);
-        auto presetDir = juce::File().createFileWithoutCheckingPath (
-                    m_applicationState.m_presetDir);
-        auto clipsDir = juce::File().createFileWithoutCheckingPath (
-                    m_applicationState.m_clipsDir);
-        auto rendersDir = juce::File().createFileWithoutCheckingPath (
-                    m_applicationState.m_renderDir);
-        auto samplesDir = juce::File().createFileWithoutCheckingPath (
-                    m_applicationState.m_samplesDir);
-        auto projectsDir = juce::File().createFileWithoutCheckingPath (
-                    m_applicationState.m_projectsDir);
-        workingDir.createDirectory ();
-        presetDir.createDirectory ();
-        clipsDir.createDirectory ();
+        auto workingDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_workDir);
+        auto presetDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_presetDir);
+        auto clipsDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_clipsDir);
+        auto rendersDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_renderDir);
+        auto samplesDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_samplesDir);
+        auto projectsDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_projectsDir);
+        workingDir.createDirectory();
+        presetDir.createDirectory();
+        clipsDir.createDirectory();
         rendersDir.createDirectory();
-        samplesDir.createDirectory ();
-        projectsDir.createDirectory ();
+        samplesDir.createDirectory();
+        projectsDir.createDirectory();
 
-        mainWindow.reset (new MainWindow (getApplicationName(), m_applicationState));
+        mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState));
     }
 
-    void shutdown() override
-    {
-        mainWindow = nullptr;
-    }
+    void shutdown() override { mainWindow = nullptr; }
 
-    void systemRequestedQuit() override
-    {
-        quit();
-    }
+    void systemRequestedQuit() override { quit(); }
 
-    void anotherInstanceStarted (const juce::String& /*commandLine*/) override
-    {
-    }
+    void anotherInstanceStarted(const juce::String & /*commandLine*/) override {}
 
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        MainWindow (juce::String name, ApplicationViewState& applicationSettings) : DocumentWindow (
-                                          name
-                                        , juce::Desktop::getInstance()
-                                          .getDefaultLookAndFeel()
-                                          .findColour (
-                                              ResizableWindow::backgroundColourId)
-                                        , DocumentWindow::allButtons)
-                                        , m_applicationState(applicationSettings)
+        MainWindow(juce::String name, ApplicationViewState &applicationSettings)
+            : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons),
+              m_applicationState(applicationSettings)
         {
-            setUsingNativeTitleBar (true);
+            setUsingNativeTitleBar(true);
 
-           #if JUCE_IOS || JUCE_ANDROID
-            setFullScreen (true);
-           #else
+#if JUCE_IOS || JUCE_ANDROID
+            setFullScreen(true);
+#else
 
-            setBounds (m_applicationState.m_windowXpos
-                       , m_applicationState.m_windowYpos
-                       , m_applicationState.m_windowWidth
-                       , m_applicationState.m_windowHeight);
-            setResizable (true, true);
-           #endif
+            setBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
+            setResizable(true, true);
+#endif
             auto mc = new MainComponent(m_applicationState);
-                       mc->setSize (m_applicationState.m_windowWidth
-                                    , m_applicationState.m_windowHeight);
-            setContentOwned (mc, true);
-            setVisible (true);
+            mc->setSize(m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
+            setContentOwned(mc, true);
+            setVisible(true);
         }
 
         void closeButtonPressed() override
         {
-            if (auto mc = dynamic_cast<MainComponent*>(getContentComponent ()))
+            if (auto mc = dynamic_cast<MainComponent *>(getContentComponent()))
             {
-                if (mc->handleUnsavedEdit ())
+                if (mc->handleUnsavedEdit())
                 {
                     JUCEApplication::getInstance()->systemRequestedQuit();
                 }
@@ -132,8 +108,8 @@ public:
         }
 
     private:
-        ApplicationViewState& m_applicationState;
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
+        ApplicationViewState &m_applicationState;
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
     };
 
 private:
@@ -143,4 +119,4 @@ private:
 
 //==============================================================================
 // This macro generates the main() routine that launches the app.
-START_JUCE_APPLICATION (NextStudioApplication)
+START_JUCE_APPLICATION(NextStudioApplication)

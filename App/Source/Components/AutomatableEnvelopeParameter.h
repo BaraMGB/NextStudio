@@ -26,6 +26,6 @@ public:
 
 protected:
     juce::String getCustomDisplayString() const override;
-    
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableEnvelopeParameter)
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AutomatableEnvelopeParameter)
 };

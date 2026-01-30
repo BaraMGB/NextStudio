@@ -21,17 +21,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "ThumbNailManager.h"
 
-SimpleThumbnail::SimpleThumbnail(te::Engine& engine, te::AudioFile& audioFile)
-: m_audioThumbnail(128, engine.getAudioFileFormatManager().readFormatManager, engine.getAudioFileManager().getAudioThumbnailCache())
+SimpleThumbnail::SimpleThumbnail(te::Engine &engine, te::AudioFile &audioFile)
+    : m_audioThumbnail(128, engine.getAudioFileFormatManager().readFormatManager, engine.getAudioFileManager().getAudioThumbnailCache())
 {
-    auto* inputSource = new juce::FileInputSource(audioFile.getFile());
+    auto *inputSource = new juce::FileInputSource(audioFile.getFile());
     m_wasSourceLoaded = m_audioThumbnail.setSource(inputSource);
     m_lengthInSeconds = audioFile.getLength();
 }
 
-void SimpleThumbnail::drawChannelsCustom(juce::Graphics& g, const juce::Rectangle<float>& area, 
-                                         double startTimeSeconds, double endTimeSeconds, 
-                                         int channelNumber, float verticalZoomFactor)
+void SimpleThumbnail::drawChannelsCustom(juce::Graphics &g, const juce::Rectangle<float> &area, double startTimeSeconds, double endTimeSeconds, int channelNumber, float verticalZoomFactor)
 {
     if (!m_wasSourceLoaded || area.isEmpty() || channelNumber < 0 || channelNumber >= m_audioThumbnail.getNumChannels())
         return;
@@ -64,7 +62,7 @@ void SimpleThumbnail::drawChannelsCustom(juce::Graphics& g, const juce::Rectangl
             pathStarted = true;
         }
         else
-    {
+        {
             waveformPath.lineTo(x, topY);
         }
     }

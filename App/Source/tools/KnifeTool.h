@@ -21,8 +21,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include "../ToolStrategy.h"
 #include "../MidiViewport.h"
+#include "../ToolStrategy.h"
 
 namespace te = tracktion_engine;
 
@@ -32,28 +32,31 @@ namespace te = tracktion_engine;
 class KnifeTool : public ToolStrategy
 {
 public:
-    explicit KnifeTool(EditViewState& evs) : ToolStrategy(evs) {}
+    explicit KnifeTool(EditViewState &evs)
+        : ToolStrategy(evs)
+    {
+    }
     ~KnifeTool() override = default;
 
-    void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseUp(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) override;
+    void mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport) override;
 
-    juce::MouseCursor getCursor(MidiViewport& viewport) const override;
+    juce::MouseCursor getCursor(MidiViewport &viewport) const override;
 
-    void toolActivated(MidiViewport& viewport) override;
-    void toolDeactivated(MidiViewport& viewport) override;
-    Tool getToolId () override { return Tool::knife; }
+    void toolActivated(MidiViewport &viewport) override;
+    void toolDeactivated(MidiViewport &viewport) override;
+    Tool getToolId() override { return Tool::knife; }
 
     // Public getters for visual feedback
     bool shouldDrawSplitLine() const { return m_shouldDrawSplitLine; }
     int getSplitLineX() const { return m_splitLineX; }
-    te::MidiNote* getHoveredNote() const { return m_hoveredNote; }
+    te::MidiNote *getHoveredNote() const { return m_hoveredNote; }
 
 private:
-    bool m_shouldDrawSplitLine {false};
-    int m_splitLineX {0};
-    te::MidiNote* m_hoveredNote {nullptr};
+    bool m_shouldDrawSplitLine{false};
+    int m_splitLineX{0};
+    te::MidiNote *m_hoveredNote{nullptr};
 };

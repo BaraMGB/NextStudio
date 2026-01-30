@@ -20,26 +20,18 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
-
 #include "TrackHeightManager.h"
 #include "EditViewState.h"
 
+TrackHeightManager::TrackHeightManager(const juce::Array<tracktion_engine::Track *> &allTracks) { regenerateTrackHeightsFromStates(allTracks); }
 
-
-
-TrackHeightManager::TrackHeightManager(const juce::Array<tracktion_engine::Track*>& allTracks)
-{
-    regenerateTrackHeightsFromStates(allTracks);
-}
-
-juce::Array<tracktion::EditItemID> TrackHeightManager::getShowedTracks(tracktion::Edit& edit)
+juce::Array<tracktion::EditItemID> TrackHeightManager::getShowedTracks(tracktion::Edit &edit)
 {
     juce::Array<tracktion::EditItemID> showedTracks;
 
     for (auto t : tracktion_engine::getAllTracks(edit))
         if (isTrackShowable(t))
-            if (getTrackHeight(t,true) > 0)
+            if (getTrackHeight(t, true) > 0)
                 showedTracks.add(t->itemID);
 
     return showedTracks;
@@ -47,25 +39,19 @@ juce::Array<tracktion::EditItemID> TrackHeightManager::getShowedTracks(tracktion
 
 bool TrackHeightManager::isTrackShowable(tracktion_engine::Track::Ptr track)
 {
-    if (track->isChordTrack()
-        || track->isTempoTrack()
-        || track->isMarkerTrack()
-        || track->isArrangerTrack()
-        || track->isAutomationTrack()
-        || track->isMasterTrack()
-    )
+    if (track->isChordTrack() || track->isTempoTrack() || track->isMarkerTrack() || track->isArrangerTrack() || track->isAutomationTrack() || track->isMasterTrack())
     {
         return false;
     }
 
     return true;
 }
-int TrackHeightManager::getTrackHeight(tracktion_engine::Track* track, bool withAutomation)
+int TrackHeightManager::getTrackHeight(tracktion_engine::Track *track, bool withAutomation)
 {
     if (track == nullptr)
         return 0;
 
-    TrackHeightInfo* trackInfo = getTrackInfoForTrack(track);
+    TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
     if (trackInfo == nullptr)
         return 0;
 
@@ -82,29 +68,25 @@ int TrackHeightManager::getTrackHeight(tracktion_engine::Track* track, bool with
 
     if (withAutomation)
     {
-        juce::Array<te::AutomatableParameter*> params;
-        for (const auto& [ap, height] : trackInfo->automationParameterHeights)
+        juce::Array<te::AutomatableParameter *> params;
+        for (const auto &[ap, height] : trackInfo->automationParameterHeights)
             params.add(ap);
 
         // Sort the parameters by their ID string to ensure a consistent order
-        std::sort(params.begin(), params.end(),
-                  [](const auto* a, const auto* b)
-                  {
-                      return a->paramID < b->paramID;
-                  });
+        std::sort(params.begin(), params.end(), [](const auto *a, const auto *b) { return a->paramID < b->paramID; });
 
-        for (const auto& ap : params)
+        for (const auto &ap : params)
             totalHeight += trackInfo->automationParameterHeights[ap];
     }
 
     return totalHeight;
 }
 
-tracktion_engine::Track* TrackHeightManager::getTrackForY(int y, int scrollOffsetY)
+tracktion_engine::Track *TrackHeightManager::getTrackForY(int y, int scrollOffsetY)
 {
     int currentY = -scrollOffsetY;
 
-    for (auto* info : trackInfos)
+    for (auto *info : trackInfos)
     {
         int trackHeight = info->baseHeight;
 
@@ -115,17 +97,13 @@ tracktion_engine::Track* TrackHeightManager::getTrackForY(int y, int scrollOffse
 
         int paramY = currentY + trackHeight;
 
-        juce::Array<te::AutomatableParameter*> params;
-        for (const auto& [param, height] : info->automationParameterHeights)
+        juce::Array<te::AutomatableParameter *> params;
+        for (const auto &[param, height] : info->automationParameterHeights)
             params.add(param);
 
-        std::sort(params.begin(), params.end(),
-                  [](const auto* a, const auto* b)
-                  {
-                      return a->paramID < b->paramID;
-                  });
+        std::sort(params.begin(), params.end(), [](const auto *a, const auto *b) { return a->paramID < b->paramID; });
 
-        for (const auto& param : params)
+        for (const auto &param : params)
         {
             const int height = info->automationParameterHeights[param];
             if (y >= paramY && y < paramY + height)
@@ -141,16 +119,16 @@ tracktion_engine::Track* TrackHeightManager::getTrackForY(int y, int scrollOffse
     return nullptr;
 }
 
-int TrackHeightManager::getAutomationHeight(tracktion_engine::AutomatableParameter* ap)
+int TrackHeightManager::getAutomationHeight(tracktion_engine::AutomatableParameter *ap)
 {
     if (ap == nullptr)
         return 0;
 
-    tracktion_engine::Track* track = ap->getTrack();
+    tracktion_engine::Track *track = ap->getTrack();
     if (track == nullptr)
         return 0;
 
-    const TrackHeightInfo* trackInfo = getTrackInfoForTrack(track);
+    const TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
     if (trackInfo == nullptr)
         return 0;
 
@@ -165,7 +143,7 @@ tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::getAutomatablePa
 {
     int currentY = -scrollOffsetY;
 
-    for (auto* info : trackInfos)
+    for (auto *info : trackInfos)
     {
         const int trackHeightWithAutomation = getTrackHeight(info->track, true);
         const int trackEndY = currentY + trackHeightWithAutomation;
@@ -180,18 +158,14 @@ tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::getAutomatablePa
         // Track found, check parameters
         int paramY = currentY + info->baseHeight;
 
-        juce::Array<te::AutomatableParameter*> params;
-        for (const auto& [ap, height] : info->automationParameterHeights)
+        juce::Array<te::AutomatableParameter *> params;
+        for (const auto &[ap, height] : info->automationParameterHeights)
             params.add(ap);
 
         // Sort the parameters by their ID string to ensure a consistent order
-        std::sort(params.begin(), params.end(),
-                  [](const auto* a, const auto* b)
-                  {
-                      return a->paramID < b->paramID;
-                  });
+        std::sort(params.begin(), params.end(), [](const auto *a, const auto *b) { return a->paramID < b->paramID; });
 
-        for (const auto& ap : params)
+        for (const auto &ap : params)
         {
             const int height = info->automationParameterHeights[ap];
             const int paramEndY = paramY + height;
@@ -209,27 +183,23 @@ tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::getAutomatablePa
     return nullptr;
 }
 
-int TrackHeightManager::getYForAutomatableParameter(tracktion_engine::Track* track, const tracktion::AutomatableParameter::Ptr ap, int scrollOffsetY)
+int TrackHeightManager::getYForAutomatableParameter(tracktion_engine::Track *track, const tracktion::AutomatableParameter::Ptr ap, int scrollOffsetY)
 {
     int currentY = -scrollOffsetY;
 
-    for (auto* info : trackInfos)
+    for (auto *info : trackInfos)
     {
         if (info->track == track)
         {
             int paramY = currentY + info->baseHeight;
 
-            juce::Array<te::AutomatableParameter*> params;
-            for (const auto& [param, height] : info->automationParameterHeights)
+            juce::Array<te::AutomatableParameter *> params;
+            for (const auto &[param, height] : info->automationParameterHeights)
                 params.add(param);
 
-            std::sort(params.begin(), params.end(),
-                      [](const auto* a, const auto* b)
-                      {
-                          return a->paramID < b->paramID;
-                      });
+            std::sort(params.begin(), params.end(), [](const auto *a, const auto *b) { return a->paramID < b->paramID; });
 
-            for (const auto& storedParam : params)
+            for (const auto &storedParam : params)
             {
                 if (storedParam == ap.get())
                 {
@@ -244,11 +214,11 @@ int TrackHeightManager::getYForAutomatableParameter(tracktion_engine::Track* tra
 
     return -1;
 }
-int TrackHeightManager::getYForTrack(tracktion_engine::Track* track, int scrollOffsetY)
+int TrackHeightManager::getYForTrack(tracktion_engine::Track *track, int scrollOffsetY)
 {
     int currentY = -scrollOffsetY;
 
-    for (auto* info : trackInfos)
+    for (auto *info : trackInfos)
     {
         if (info->track == track)
         {
@@ -260,18 +230,18 @@ int TrackHeightManager::getYForTrack(tracktion_engine::Track* track, int scrollO
     return -1; // Track nicht gefunden
 }
 
-bool TrackHeightManager::isTrackMinimized(tracktion_engine::Track* track)
+bool TrackHeightManager::isTrackMinimized(tracktion_engine::Track *track)
 {
-    TrackHeightInfo* trackInfo = getTrackInfoForTrack(track);
+    TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
     if (trackInfo == nullptr)
         return false;
 
     return trackInfo->isMinimized;
 }
 
-void TrackHeightManager::setMinimized(tracktion_engine::Track* track, bool minimized)
+void TrackHeightManager::setMinimized(tracktion_engine::Track *track, bool minimized)
 {
-    TrackHeightInfo* trackInfo = getTrackInfoForTrack(track);
+    TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
     if (trackInfo == nullptr)
         return;
 
@@ -280,10 +250,9 @@ void TrackHeightManager::setMinimized(tracktion_engine::Track* track, bool minim
     triggerFlashState();
 }
 
-
-bool TrackHeightManager::isTrackInMinimizedFolderRecursive(tracktion_engine::Track* track)
+bool TrackHeightManager::isTrackInMinimizedFolderRecursive(tracktion_engine::Track *track)
 {
-    auto* parentFolder = track->getParentFolderTrack();
+    auto *parentFolder = track->getParentFolderTrack();
     while (parentFolder != nullptr)
     {
         if (isTrackMinimized(parentFolder))
@@ -300,11 +269,11 @@ void TrackHeightManager::setAutomationHeight(const tracktion_engine::Automatable
     if (ap == nullptr)
         return;
 
-    tracktion_engine::Track* track = ap->getTrack();
+    tracktion_engine::Track *track = ap->getTrack();
     if (track == nullptr)
         return;
 
-    TrackHeightInfo* trackInfo = getTrackInfoForTrack(track);
+    TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
     if (trackInfo == nullptr)
         return;
 
@@ -313,11 +282,12 @@ void TrackHeightManager::setAutomationHeight(const tracktion_engine::Automatable
     GUIHelpers::log("ParameterHeight set to: ", height);
     triggerFlashState();
 }
-tracktion::Track::Ptr TrackHeightManager::getTrackFromID(tracktion_engine::Edit& edit, const tracktion_engine::EditItemID& id)
+tracktion::Track::Ptr TrackHeightManager::getTrackFromID(tracktion_engine::Edit &edit, const tracktion_engine::EditItemID &id)
 {
     tracktion::Track::Ptr foundTrack;
 
-    edit.visitAllTracks([&](tracktion_engine::Track& track)
+    edit.visitAllTracks(
+        [&](tracktion_engine::Track &track)
         {
             if (track.itemID == id)
             {
@@ -326,19 +296,16 @@ tracktion::Track::Ptr TrackHeightManager::getTrackFromID(tracktion_engine::Edit&
             }
 
             return true;
-        }, true);
+        },
+        true);
 
     return foundTrack;
 }
-void TrackHeightManager::addTrackInfo(TrackHeightInfo* info)
+void TrackHeightManager::addTrackInfo(TrackHeightInfo *info) { trackInfos.add(info); }
 
+TrackHeightManager::TrackHeightInfo *TrackHeightManager::getTrackInfoForTrack(tracktion_engine::Track *track) const
 {
-    trackInfos.add(info);
-}
-
-TrackHeightManager::TrackHeightInfo* TrackHeightManager:: getTrackInfoForTrack(tracktion_engine::Track* track) const
-{
-    for (auto* info : trackInfos)
+    for (auto *info : trackInfos)
     {
         if (info->track == track)
             return info;
@@ -346,12 +313,12 @@ TrackHeightManager::TrackHeightInfo* TrackHeightManager:: getTrackInfoForTrack(t
     return nullptr;
 }
 
-tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::findAutomatableParameterByID(tracktion_engine::Track* track, const juce::String& paramID) 
+tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::findAutomatableParameterByID(tracktion_engine::Track *track, const juce::String &paramID)
 {
-    for (auto* parameter : track->getAllAutomatableParams()) 
+    for (auto *parameter : track->getAllAutomatableParams())
     {
         parameter->getPlugin()->getIdentifierString();
-        if (parameter->paramID == paramID) 
+        if (parameter->paramID == paramID)
         {
             return tracktion::AutomatableParameter::Ptr(parameter);
         }
@@ -360,7 +327,7 @@ tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::findAutomatableP
     return nullptr;
 }
 
-void TrackHeightManager::flashStateFromTrackInfos() 
+void TrackHeightManager::flashStateFromTrackInfos()
 {
     GUIHelpers::log("Update State from TrackInfos");
     // Sort TrackInfos by hierarchy depth so parent folders are processed first
@@ -368,9 +335,9 @@ void TrackHeightManager::flashStateFromTrackInfos()
     trackInfos.sort(comparator);
 
     // First pass: Set individual track states
-    for (const auto* info : trackInfos)
+    for (const auto *info : trackInfos)
     {
-        auto* track = info->track;
+        auto *track = info->track;
         if (!track)
             continue;
 
@@ -388,7 +355,7 @@ void TrackHeightManager::flashStateFromTrackInfos()
         }
 
         // Update individual automation parameter heights
-        for (const auto& [ap, height] : info->automationParameterHeights)
+        for (const auto &[ap, height] : info->automationParameterHeights)
         {
             if (ap)
             {
@@ -398,12 +365,12 @@ void TrackHeightManager::flashStateFromTrackInfos()
         }
     }
 }
-void TrackHeightManager::setTrackHeight(tracktion_engine::Track* track, int height)
+void TrackHeightManager::setTrackHeight(tracktion_engine::Track *track, int height)
 {
     if (track == nullptr)
         return;
 
-    TrackHeightInfo* trackInfo = getTrackInfoForTrack(track);
+    TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
     if (trackInfo == nullptr)
         return;
 
@@ -432,7 +399,7 @@ void TrackHeightManager::timerCallback()
     }
 }
 
-int TrackHeightManager::calculateHierarchyDepth(tracktion_engine::Track* track)
+int TrackHeightManager::calculateHierarchyDepth(tracktion_engine::Track *track)
 {
     int depth = -1;
     while (track)
@@ -443,19 +410,19 @@ int TrackHeightManager::calculateHierarchyDepth(tracktion_engine::Track* track)
     return depth;
 }
 
-void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track*>& allTracks)
+void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track *> &allTracks)
 {
     GUIHelpers::log("Update TrackInfo from State");
     trackInfos.clear();
 
-    for (auto* track : allTracks)
+    for (auto *track : allTracks)
     {
         if (track == nullptr)
             continue;
         if (!(track->isAudioTrack() || track->isFolderTrack()))
             continue;
 
-        auto* info = new TrackHeightManager::TrackHeightInfo();
+        auto *info = new TrackHeightManager::TrackHeightInfo();
         info->track = track;
         info->type = track->isFolderTrack() ? TrackType::Folder : TrackType::Audio;
         info->isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
@@ -463,7 +430,7 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
         info->hierarchyDepth = calculateHierarchyDepth(track);
         info->parentFolder = track->getParentFolderTrack();
 
-        for (auto* ap : track->getAllAutomatableParams())
+        for (auto *ap : track->getAllAutomatableParams())
         {
             if (ap->getCurve().getNumPoints() == 0)
                 continue;
@@ -475,7 +442,7 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
         addTrackInfo(info);
     }
 }
-bool TrackHeightManager::isAutomationVisible(const tracktion_engine::AutomatableParameter& ap)
+bool TrackHeightManager::isAutomationVisible(const tracktion_engine::AutomatableParameter &ap)
 {
     if (ap.getCurve().getNumPoints() == 0)
         return false;
@@ -483,8 +450,8 @@ bool TrackHeightManager::isAutomationVisible(const tracktion_engine::Automatable
     if (isTrackMinimized(ap.getTrack()))
         return false;
 
-    std::function<bool(tracktion_engine::Track*)> isTrackInMinimizedFolder = [&](tracktion_engine::Track* track) -> bool {
-
+    std::function<bool(tracktion_engine::Track *)> isTrackInMinimizedFolder = [&](tracktion_engine::Track *track) -> bool
+    {
         if (track->isPartOfSubmix())
         {
             auto folderTrack = track->getParentFolderTrack();

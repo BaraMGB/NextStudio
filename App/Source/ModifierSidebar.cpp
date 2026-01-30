@@ -12,11 +12,13 @@
 
 //==============================================================================
 ModifierSidebar::ItemComponent::ItemComponent(ModifierSidebar &o, te::Modifier::Ptr m)
-    : owner(o), modifier(m)
+    : owner(o),
+      modifier(m)
 {
     addAndMakeVisible(removeButton);
     removeButton.setButtonText("x");
-    removeButton.onClick = [this] {
+    removeButton.onClick = [this]
+    {
         if (modifier)
             modifier->remove();
     };
@@ -44,7 +46,8 @@ void ModifierSidebar::ItemComponent::paint(juce::Graphics &g)
     g.setFont(14.0f);
 
     juce::String name = modifier->getName();
-    if (name.isEmpty()) {
+    if (name.isEmpty())
+    {
         // Fallback names based on type
         if (modifier->state.hasType(te::IDs::LFO))
             name = "LFO";
@@ -62,15 +65,9 @@ void ModifierSidebar::ItemComponent::paint(juce::Graphics &g)
     g.drawRect(getLocalBounds(), 1);
 }
 
-void ModifierSidebar::ItemComponent::resized()
-{
-    removeButton.setBounds(getWidth() - 25, 0, 25, getHeight());
-}
+void ModifierSidebar::ItemComponent::resized() { removeButton.setBounds(getWidth() - 25, 0, 25, getHeight()); }
 
-void ModifierSidebar::ItemComponent::mouseDown(const juce::MouseEvent &)
-{
-    owner.setSelectedModifier(modifier);
-}
+void ModifierSidebar::ItemComponent::mouseDown(const juce::MouseEvent &) { owner.setSelectedModifier(modifier); }
 
 //==============================================================================
 ModifierSidebar::ModifierSidebar(EditViewState &evs)
@@ -82,7 +79,8 @@ ModifierSidebar::ModifierSidebar(EditViewState &evs)
 
     addAndMakeVisible(m_addButton);
     m_addButton.setButtonText("+");
-    m_addButton.onClick = [this] {
+    m_addButton.onClick = [this]
+    {
         if (!m_track)
             return;
 
@@ -91,20 +89,23 @@ ModifierSidebar::ModifierSidebar(EditViewState &evs)
         m.addItem(2, "Step Sequencer");
         m.addItem(3, "Random");
 
-        m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&m_addButton), [this](int result) {
-            if (result == 0)
-                return;
+        m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&m_addButton),
+                        [this](int result)
+                        {
+                            if (result == 0)
+                                return;
 
-            if (auto *ml = m_track->getModifierList()) {
-                juce::Identifier id = te::IDs::LFO;
-                if (result == 2)
-                    id = te::IDs::STEP;
-                else if (result == 3)
-                    id = te::IDs::RANDOM;
+                            if (auto *ml = m_track->getModifierList())
+                            {
+                                juce::Identifier id = te::IDs::LFO;
+                                if (result == 2)
+                                    id = te::IDs::STEP;
+                                else if (result == 3)
+                                    id = te::IDs::RANDOM;
 
-                ml->insertModifier(juce::ValueTree(id), -1, nullptr);
-            }
-        });
+                                ml->insertModifier(juce::ValueTree(id), -1, nullptr);
+                            }
+                        });
     };
 }
 
@@ -134,7 +135,8 @@ void ModifierSidebar::setTrack(te::Track::Ptr track)
     // Setup new state
     juce::ValueTree newRackState;
 
-    if (m_track) {
+    if (m_track)
+    {
         m_track->state.addListener(this);
         newRackState = m_evs.getTrackRackViewState(m_track->itemID);
     }
@@ -151,33 +153,39 @@ void ModifierSidebar::setSelectedModifier(te::Modifier::Ptr mod)
 
     auto currentID = m_evs.getTrackSelectedModifier(m_track->itemID);
 
-    if (mod) {
+    if (mod)
+    {
         if (currentID == mod->itemID)
             m_evs.setTrackSelectedModifier(m_track->itemID, {}); // Deselect/Toggle
         else
             m_evs.setTrackSelectedModifier(m_track->itemID, mod->itemID);
     }
-    else {
+    else
+    {
         m_evs.setTrackSelectedModifier(m_track->itemID, {});
     }
 }
 
 void ModifierSidebar::handleAsyncUpdate()
 {
-    if (compareAndReset(m_structureChanged)) {
+    if (compareAndReset(m_structureChanged))
+    {
         updateList();
         // updateList also handles selection state init
     }
-    else if (compareAndReset(m_selectionChanged)) {
+    else if (compareAndReset(m_selectionChanged))
+    {
         updateSelectionState();
     }
 
     // Notify listener (RackView) about selection change if any update happened
-    if (onModifierSelected) {
+    if (onModifierSelected)
+    {
         auto selectedID = getSelectedModifier() ? getSelectedModifier()->itemID : te::EditItemID();
         // We need to resolve the ID to a Ptr
         te::Modifier::Ptr selectedMod;
-        if (m_track && selectedID.isValid()) {
+        if (m_track && selectedID.isValid())
+        {
             if (auto *ml = m_track->getModifierList())
                 selectedMod = te::findModifierForID(*ml, selectedID);
         }
@@ -193,9 +201,12 @@ void ModifierSidebar::updateList()
     if (m_track)
         selectedID = m_evs.getTrackSelectedModifier(m_track->itemID);
 
-    if (m_track) {
-        if (auto *ml = m_track->getModifierList()) {
-            for (auto m : ml->getModifiers()) {
+    if (m_track)
+    {
+        if (auto *ml = m_track->getModifierList())
+        {
+            for (auto m : ml->getModifiers())
+            {
                 auto *item = new ItemComponent(*this, m);
                 if (m->itemID == selectedID)
                     item->setSelected(true);
@@ -216,7 +227,8 @@ void ModifierSidebar::updateSelectionState()
     if (m_track)
         selectedID = m_evs.getTrackSelectedModifier(m_track->itemID);
 
-    for (auto *item : m_items) {
+    for (auto *item : m_items)
+    {
         bool shouldBeSelected = (item->modifier && item->modifier->itemID == selectedID);
         if (item->m_isSelected != shouldBeSelected)
             item->setSelected(shouldBeSelected);
@@ -244,7 +256,8 @@ void ModifierSidebar::resized()
 
     m_listContainer.setSize(m_viewport.getWidth(), std::max(m_viewport.getHeight(), totalHeight));
 
-    for (int i = 0; i < m_items.size(); ++i) {
+    for (int i = 0; i < m_items.size(); ++i)
+    {
         m_items[i]->setBounds(0, i * itemHeight, m_listContainer.getWidth(), itemHeight);
     }
 }

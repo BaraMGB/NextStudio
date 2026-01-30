@@ -17,58 +17,58 @@ struct Thumbnail::MinMaxValue
         values[1] = 0;
     }
 
-    inline void set (int8_t newMin, int8_t newMax) noexcept
+    inline void set(int8_t newMin, int8_t newMax) noexcept
     {
         values[0] = newMin;
         values[1] = newMax;
     }
 
-    inline int8_t getMinValue() const noexcept        { return values[0]; }
-    inline int8_t getMaxValue() const noexcept        { return values[1]; }
+    inline int8_t getMinValue() const noexcept { return values[0]; }
+    inline int8_t getMaxValue() const noexcept { return values[1]; }
 
-    inline void setFloat (float newMin, float newMax) noexcept
+    inline void setFloat(float newMin, float newMax) noexcept
     {
-        values[0] = (int8_t) juce::jlimit (-128, 127, juce::roundToInt (newMin * 127.0f));
-        values[1] = (int8_t) juce::jlimit (-128, 127, juce::roundToInt (newMax * 127.0f));
+        values[0] = (int8_t)juce::jlimit(-128, 127, juce::roundToInt(newMin * 127.0f));
+        values[1] = (int8_t)juce::jlimit(-128, 127, juce::roundToInt(newMax * 127.0f));
     }
 
-    inline int getPeak() const noexcept
-    {
-        return std::max (std::abs ((int) values[0]),
-                         std::abs ((int) values[1]));
-    }
+    inline int getPeak() const noexcept { return std::max(std::abs((int)values[0]), std::abs((int)values[1])); }
 
-    inline void read (juce::InputStream& input)      { input.read (values, 2); }
-    inline void write (juce::OutputStream& output)   { output.write (values, 2); }
+    inline void read(juce::InputStream &input) { input.read(values, 2); }
+    inline void write(juce::OutputStream &output) { output.write(values, 2); }
 
 private:
     int8_t values[2];
 };
 
 //==============================================================================
-class Thumbnail::LevelDataSource   : public juce::TimeSliceClient
+class Thumbnail::LevelDataSource : public juce::TimeSliceClient
 {
 public:
-    LevelDataSource (Thumbnail& thumb, juce::AudioFormatReader* newReader, tracktion::HashCode hash)
-        : hashCode (hash), owner (thumb), reader (newReader)
+    LevelDataSource(Thumbnail &thumb, juce::AudioFormatReader *newReader, tracktion::HashCode hash)
+        : hashCode(hash),
+          owner(thumb),
+          reader(newReader)
     {
     }
 
-    LevelDataSource (Thumbnail& thumb, juce::InputSource* src)
-        : hashCode (src->hashCode()), owner (thumb), source (src)
+    LevelDataSource(Thumbnail &thumb, juce::InputSource *src)
+        : hashCode(src->hashCode()),
+          owner(thumb),
+          source(src)
     {
     }
 
-    ~LevelDataSource() override
-    {
-        owner.cache.getTimeSliceThread().removeTimeSliceClient (this);
-    }
+    ~LevelDataSource() override { owner.cache.getTimeSliceThread().removeTimeSliceClient(this); }
 
-    enum { timeBeforeDeletingReader = 3000 };
-
-    void initialise (tracktion::SampleCount samplesFinished)
+    enum
     {
-        const juce::ScopedLock sl (readerLock);
+        timeBeforeDeletingReader = 3000
+    };
+
+    void initialise(tracktion::SampleCount samplesFinished)
+    {
+        const juce::ScopedLock sl(readerLock);
 
         numSamplesFinished = samplesFinished;
 
@@ -83,13 +83,13 @@ public:
             if (lengthInSamples <= 0 || isFullyLoaded())
                 reader = nullptr;
             else
-                owner.cache.getTimeSliceThread().addTimeSliceClient (this);
+                owner.cache.getTimeSliceThread().addTimeSliceClient(this);
         }
     }
 
-    void getLevels (tracktion::SampleCount startSample, int numSamples, juce::Array<float>& levels)
+    void getLevels(tracktion::SampleCount startSample, int numSamples, juce::Array<float> &levels)
     {
-        const juce::ScopedLock sl (readerLock);
+        const juce::ScopedLock sl(readerLock);
 
         if (reader == nullptr)
         {
@@ -98,17 +98,17 @@ public:
             if (reader != nullptr)
             {
                 lastReaderUseTime = juce::Time::getMillisecondCounter();
-                owner.cache.getTimeSliceThread().addTimeSliceClient (this);
+                owner.cache.getTimeSliceThread().addTimeSliceClient(this);
             }
         }
 
         if (reader != nullptr)
         {
-            float l[4] = { 0 };
-            reader->readMaxLevels (startSample, numSamples, l[0], l[1], l[2], l[3]);
+            float l[4] = {0};
+            reader->readMaxLevels(startSample, numSamples, l[0], l[1], l[2], l[3]);
 
             levels.clearQuick();
-            levels.addArray ((const float*) l, 4);
+            levels.addArray((const float *)l, 4);
 
             lastReaderUseTime = juce::Time::getMillisecondCounter();
         }
@@ -116,7 +116,7 @@ public:
 
     void releaseResources()
     {
-        const juce::ScopedLock sl (readerLock);
+        const juce::ScopedLock sl(readerLock);
         reader = nullptr;
     }
 
@@ -138,13 +138,13 @@ public:
         bool justFinished = false;
 
         {
-            const juce::ScopedLock sl (readerLock);
+            const juce::ScopedLock sl(readerLock);
 
             createReader();
 
             if (reader != nullptr)
             {
-                if (! readNextBlock())
+                if (!readNextBlock())
                     return 0;
 
                 justFinished = true;
@@ -152,20 +152,14 @@ public:
         }
 
         if (justFinished)
-            owner.cache.storeThumb (owner, hashCode);
+            owner.cache.storeThumb(owner, hashCode);
 
         return 200;
     }
 
-    bool isFullyLoaded() const noexcept
-    {
-        return numSamplesFinished >= lengthInSamples;
-    }
+    bool isFullyLoaded() const noexcept { return numSamplesFinished >= lengthInSamples; }
 
-    inline int sampleToThumbSample (tracktion::SampleCount originalSample) const noexcept
-    {
-        return (int) (originalSample / owner.samplesPerThumbSample);
-    }
+    inline int sampleToThumbSample(tracktion::SampleCount originalSample) const noexcept { return (int)(originalSample / owner.samplesPerThumbSample); }
 
     tracktion::SampleCount lengthInSamples = 0, numSamplesFinished = 0;
     double sampleRate = 0;
@@ -173,7 +167,7 @@ public:
     tracktion::HashCode hashCode = 0;
 
 private:
-    Thumbnail& owner;
+    Thumbnail &owner;
     std::unique_ptr<juce::InputSource> source;
     std::unique_ptr<juce::AudioFormatReader> reader;
     juce::CriticalSection readerLock;
@@ -183,43 +177,41 @@ private:
     {
         if (reader == nullptr && source != nullptr)
             if (auto audioFileStream = source->createInputStream())
-                reader.reset (owner.formatManagerToUse.createReaderFor (std::unique_ptr<juce::InputStream> (audioFileStream)));
+                reader.reset(owner.formatManagerToUse.createReaderFor(std::unique_ptr<juce::InputStream>(audioFileStream)));
     }
 
     bool readNextBlock()
     {
-        jassert (reader != nullptr);
+        jassert(reader != nullptr);
 
-        if (! isFullyLoaded())
+        if (!isFullyLoaded())
         {
-            auto numToDo = (int) std::min (256 * (tracktion::SampleCount) owner.samplesPerThumbSample,
-                                           lengthInSamples - numSamplesFinished);
+            auto numToDo = (int)std::min(256 * (tracktion::SampleCount)owner.samplesPerThumbSample, lengthInSamples - numSamplesFinished);
 
             if (numToDo > 0)
             {
                 auto startSample = numSamplesFinished;
 
-                auto firstThumbIndex = sampleToThumbSample (startSample);
-                auto lastThumbIndex  = sampleToThumbSample (startSample + numToDo);
+                auto firstThumbIndex = sampleToThumbSample(startSample);
+                auto lastThumbIndex = sampleToThumbSample(startSample + numToDo);
                 auto numThumbSamps = lastThumbIndex - firstThumbIndex;
 
-                juce::HeapBlock<MinMaxValue> levelData ((size_t) numThumbSamps * 2);
-                MinMaxValue* levels[2] = { levelData, levelData + numThumbSamps };
+                juce::HeapBlock<MinMaxValue> levelData((size_t)numThumbSamps * 2);
+                MinMaxValue *levels[2] = {levelData, levelData + numThumbSamps};
 
                 for (int i = 0; i < numThumbSamps; ++i)
                 {
                     float lowestLeft, highestLeft, lowestRight, highestRight;
 
-                    reader->readMaxLevels ((firstThumbIndex + i) * owner.samplesPerThumbSample, owner.samplesPerThumbSample,
-                                           lowestLeft, highestLeft, lowestRight, highestRight);
+                    reader->readMaxLevels((firstThumbIndex + i) * owner.samplesPerThumbSample, owner.samplesPerThumbSample, lowestLeft, highestLeft, lowestRight, highestRight);
 
-                    levels[0][i].setFloat (lowestLeft, highestLeft);
-                    levels[1][i].setFloat (lowestRight, highestRight);
+                    levels[0][i].setFloat(lowestLeft, highestLeft);
+                    levels[1][i].setFloat(lowestRight, highestRight);
                 }
 
                 {
-                    const juce::ScopedUnlock su (readerLock);
-                    owner.setLevels (levels, firstThumbIndex, 2, numThumbSamps);
+                    const juce::ScopedUnlock su(readerLock);
+                    owner.setLevels(levels, firstThumbIndex, 2, numThumbSamps);
                 }
 
                 numSamplesFinished += numToDo;
@@ -235,67 +227,60 @@ private:
 class Thumbnail::ThumbData
 {
 public:
-    ThumbData (int numThumbSamples)
-    {
-        ensureSize (numThumbSamples);
-    }
+    ThumbData(int numThumbSamples) { ensureSize(numThumbSamples); }
 
-    inline MinMaxValue* getData (int thumbSampleIndex) noexcept
+    inline MinMaxValue *getData(int thumbSampleIndex) noexcept
     {
-        jassert (thumbSampleIndex < data.size());
+        jassert(thumbSampleIndex < data.size());
         return data.getRawDataPointer() + thumbSampleIndex;
     }
 
-    int getSize() const noexcept
-    {
-        return data.size();
-    }
+    int getSize() const noexcept { return data.size(); }
 
-    void getMinMax (int startSample, int endSample, MinMaxValue& result) const noexcept
+    void getMinMax(int startSample, int endSample, MinMaxValue &result) const noexcept
     {
         if (startSample >= 0)
         {
-            endSample = std::min (endSample, data.size() - 1);
+            endSample = std::min(endSample, data.size() - 1);
 
             int8_t mx = -128, mn = 127;
 
             while (startSample <= endSample)
             {
-                const MinMaxValue& v = data.getReference (startSample);
+                const MinMaxValue &v = data.getReference(startSample);
 
-                if (v.getMinValue() < mn)  mn = v.getMinValue();
-                    if (v.getMaxValue() > mx)  mx = v.getMaxValue();
+                if (v.getMinValue() < mn)
+                    mn = v.getMinValue();
+                if (v.getMaxValue() > mx)
+                    mx = v.getMaxValue();
 
-                        ++startSample;
+                ++startSample;
             }
 
             if (mn <= mx)
             {
-                result.set (mn, mx);
+                result.set(mn, mx);
                 return;
             }
         }
 
-        result.set (1, 0);
+        result.set(1, 0);
     }
 
-    void write (const MinMaxValue* values, int startIndex, int numValues)
+    void write(const MinMaxValue *values, int startIndex, int numValues)
     {
         resetPeak();
 
         if (startIndex + numValues > data.size())
-            ensureSize (startIndex + numValues);
+            ensureSize(startIndex + numValues);
 
-        MinMaxValue* const dest = getData (startIndex);
+        MinMaxValue *const dest = getData(startIndex);
 
         for (int i = 0; i < numValues; ++i)
             dest[i] = values[i];
     }
 
-    void resetPeak() noexcept
-    {
-        peakLevel = -1;
-    }
+    void resetPeak() noexcept { peakLevel = -1; }
 
     int getPeak() noexcept
     {
@@ -317,12 +302,12 @@ private:
     juce::Array<MinMaxValue> data;
     int peakLevel = -1;
 
-    void ensureSize (int thumbSamples)
+    void ensureSize(int thumbSamples)
     {
         const int extraNeeded = thumbSamples - data.size();
 
         if (extraNeeded > 0)
-            data.insertMultiple (-1, MinMaxValue(), extraNeeded);
+            data.insertMultiple(-1, MinMaxValue(), extraNeeded);
     }
 };
 
@@ -332,50 +317,41 @@ class Thumbnail::CachedWindow
 public:
     CachedWindow() {}
 
-    void invalidate()
-    {
-        cacheNeedsRefilling = true;
-    }
+    void invalidate() { cacheNeedsRefilling = true; }
 
-    void drawChannel (juce::Graphics& g, juce::Rectangle<int> area, bool useHighRes,
-                      juce::Range<double> time, int channelNum, float verticalZoomFactor,
-                      double rate, int numChans, int sampsPerThumbSample,
-                      LevelDataSource* levelData, const juce::OwnedArray<ThumbData>& chans)
+    void drawChannel(juce::Graphics &g, juce::Rectangle<int> area, bool useHighRes, juce::Range<double> time, int channelNum, float verticalZoomFactor, double rate, int numChans, int sampsPerThumbSample, LevelDataSource *levelData, const juce::OwnedArray<ThumbData> &chans)
     {
-        if (refillCache (area.getWidth(), time, rate,
-                         numChans, sampsPerThumbSample, levelData, chans)
-            && juce::isPositiveAndBelow (channelNum, numChannelsCached))
+        if (refillCache(area.getWidth(), time, rate, numChans, sampsPerThumbSample, levelData, chans) && juce::isPositiveAndBelow(channelNum, numChannelsCached))
         {
-            auto clip = g.getClipBounds().withTrimmedRight (useHighRes ? -1 : 0)
-                                         .getIntersection (area.withWidth (std::min (numSamplesCached, area.getWidth())));
+            auto clip = g.getClipBounds().withTrimmedRight(useHighRes ? -1 : 0).getIntersection(area.withWidth(std::min(numSamplesCached, area.getWidth())));
 
-            if (! clip.isEmpty())
+            if (!clip.isEmpty())
             {
-                auto topY = (float) area.getY();
-                auto bottomY = (float) area.getBottom();
+                auto topY = (float)area.getY();
+                auto bottomY = (float)area.getBottom();
                 auto midY = (topY + bottomY) * 0.5f;
                 auto vscale = verticalZoomFactor * (bottomY - topY) / 256.0f;
 
-                auto* cacheData = getData (channelNum, clip.getX() - area.getX());
+                auto *cacheData = getData(channelNum, clip.getX() - area.getX());
 
-                auto x = (float) clip.getX();
+                auto x = (float)clip.getX();
 
                 if (useHighRes)
                 {
-                    float lastY = std::max (midY - cacheData->getMaxValue() * vscale - 0.3f, topY);
+                    float lastY = std::max(midY - cacheData->getMaxValue() * vscale - 0.3f, topY);
 
                     juce::Path p;
-                    p.preallocateSpace (clip.getWidth() * 2 * 2 + 3);
-                    p.startNewSubPath (x, lastY);
+                    p.preallocateSpace(clip.getWidth() * 2 * 2 + 3);
+                    p.startNewSubPath(x, lastY);
                     x += 1.0f;
                     ++cacheData;
 
                     for (int w = clip.getWidth() - 1; --w >= 0;)
                     {
-                        auto top = juce::jlimit (topY, bottomY, midY - cacheData->getMaxValue() * vscale - 0.3f);
+                        auto top = juce::jlimit(topY, bottomY, midY - cacheData->getMaxValue() * vscale - 0.3f);
 
-                        p.lineTo (x - 1.0f, lastY);
-                        p.lineTo (x, top);
+                        p.lineTo(x - 1.0f, lastY);
+                        p.lineTo(x, top);
 
                         lastY = top;
 
@@ -388,34 +364,34 @@ public:
                         x -= 1.0f;
                         --cacheData;
 
-                        auto bottom = juce::jlimit (topY, bottomY, midY - cacheData->getMinValue() * vscale + 0.3f);
+                        auto bottom = juce::jlimit(topY, bottomY, midY - cacheData->getMinValue() * vscale + 0.3f);
 
-                        p.lineTo (x + 1, lastY);
-                        p.lineTo (x, bottom);
+                        p.lineTo(x + 1, lastY);
+                        p.lineTo(x, bottom);
 
                         lastY = bottom;
                     }
 
                     p.closeSubPath();
-                    g.fillPath (p);
+                    g.fillPath(p);
                 }
                 else
                 {
                     juce::RectangleList<float> waveform;
-                    waveform.ensureStorageAllocated (clip.getWidth());
+                    waveform.ensureStorageAllocated(clip.getWidth());
 
                     for (int w = clip.getWidth(); --w >= 0;)
                     {
-                        auto top    = std::max (midY - cacheData->getMaxValue() * vscale - 0.3f, topY);
-                        auto bottom = std::min (midY - cacheData->getMinValue() * vscale + 0.3f, bottomY);
+                        auto top = std::max(midY - cacheData->getMaxValue() * vscale - 0.3f, topY);
+                        auto bottom = std::min(midY - cacheData->getMinValue() * vscale + 0.3f, bottomY);
 
-                        waveform.addWithoutMerging ({ x, top, 1.0f, bottom - top });
+                        waveform.addWithoutMerging({x, top, 1.0f, bottom - top});
 
                         x += 1.0f;
                         ++cacheData;
                     }
 
-                    g.fillRectList (waveform);
+                    g.fillRectList(waveform);
                 }
             }
         }
@@ -427,9 +403,7 @@ private:
     int numChannelsCached = 0, numSamplesCached = 0;
     bool cacheNeedsRefilling = true;
 
-    bool refillCache (int numSamples, juce::Range<double> time,
-                      double rate, int numChans, int sampsPerThumbSample,
-                      LevelDataSource* levelData, const juce::OwnedArray<ThumbData>& chans)
+    bool refillCache(int numSamples, juce::Range<double> time, double rate, int numChans, int sampsPerThumbSample, LevelDataSource *levelData, const juce::OwnedArray<ThumbData> &chans)
     {
         auto timePerPixel = time.getLength() / numSamples;
 
@@ -439,13 +413,9 @@ private:
             return false;
         }
 
-        if (numSamples == numSamplesCached
-             && numChannelsCached == numChans
-             && time.getStart() == cachedStart
-             && timePerPixel == cachedTimePerPixel
-             && ! cacheNeedsRefilling)
+        if (numSamples == numSamplesCached && numChannelsCached == numChans && time.getStart() == cachedStart && timePerPixel == cachedTimePerPixel && !cacheNeedsRefilling)
         {
-            return ! cacheNeedsRefilling;
+            return !cacheNeedsRefilling;
         }
 
         auto startTime = time.getStart();
@@ -456,44 +426,43 @@ private:
         cachedTimePerPixel = timePerPixel;
         cacheNeedsRefilling = false;
 
-        ensureSize (numSamples);
+        ensureSize(numSamples);
 
         if (timePerPixel * rate <= sampsPerThumbSample && levelData != nullptr)
         {
-            auto sample = juce::roundToInt (startTime * rate);
+            auto sample = juce::roundToInt(startTime * rate);
             juce::Array<float> levels, lastLevels;
-            lastLevels.insertMultiple (0, 0.0f, numChannelsCached * 2);
+            lastLevels.insertMultiple(0, 0.0f, numChannelsCached * 2);
             int i;
 
             for (i = 0; i < numSamples; ++i)
             {
-                auto nextSample = juce::roundToInt ((startTime + timePerPixel) * rate);
+                auto nextSample = juce::roundToInt((startTime + timePerPixel) * rate);
 
                 if (sample >= 0)
                 {
                     if (sample >= levelData->lengthInSamples)
                     {
                         for (int chan = 0; chan < numChannelsCached; ++chan)
-                            *getData (chan, i) = MinMaxValue();
+                            *getData(chan, i) = MinMaxValue();
                     }
                     else
                     {
-                        levelData->getLevels (sample, std::max (1, nextSample - sample), levels);
+                        levelData->getLevels(sample, std::max(1, nextSample - sample), levels);
 
-                        auto totalChans = std::min (levels.size() / 2, numChannelsCached);
+                        auto totalChans = std::min(levels.size() / 2, numChannelsCached);
 
                         for (int chan = 0; chan < totalChans; ++chan)
                         {
                             int c1 = chan * 2;
                             int c2 = chan * 2 + 1;
-                            float chan1 = levels.getUnchecked (c1);
-                            float chan2 = levels.getUnchecked (c2);
+                            float chan1 = levels.getUnchecked(c1);
+                            float chan2 = levels.getUnchecked(c2);
 
-                            getData (chan, i)->setFloat (std::min (chan1, lastLevels[c2]),
-                                                         std::max (chan2, lastLevels[c1]));
+                            getData(chan, i)->setFloat(std::min(chan1, lastLevels[c2]), std::max(chan2, lastLevels[c1]));
 
-                            lastLevels.getReference (c1) = chan1;
-                            lastLevels.getReference (c2) = chan2;
+                            lastLevels.getReference(c1) = chan1;
+                            lastLevels.getReference(c2) = chan2;
                         }
                     }
                 }
@@ -506,23 +475,23 @@ private:
         }
         else
         {
-            jassert (chans.size() == numChannelsCached);
+            jassert(chans.size() == numChannelsCached);
 
             for (int channelNum = 0; channelNum < numChannelsCached; ++channelNum)
             {
-                ThumbData* channelData = chans.getUnchecked (channelNum);
-                MinMaxValue* cacheData = getData (channelNum, 0);
+                ThumbData *channelData = chans.getUnchecked(channelNum);
+                MinMaxValue *cacheData = getData(channelNum, 0);
 
-                auto timeToThumbSampleFactor = rate / (double) sampsPerThumbSample;
+                auto timeToThumbSampleFactor = rate / (double)sampsPerThumbSample;
 
                 startTime = cachedStart;
-                auto sample = juce::roundToInt (startTime * timeToThumbSampleFactor);
+                auto sample = juce::roundToInt(startTime * timeToThumbSampleFactor);
 
                 for (int i = numSamples; --i >= 0;)
                 {
-                    auto nextSample = juce::roundToInt ((startTime + timePerPixel) * timeToThumbSampleFactor);
+                    auto nextSample = juce::roundToInt((startTime + timePerPixel) * timeToThumbSampleFactor);
 
-                    channelData->getMinMax (sample, nextSample, *cacheData);
+                    channelData->getMinMax(sample, nextSample, *cacheData);
 
                     ++cacheData;
                     startTime += timePerPixel;
@@ -534,43 +503,37 @@ private:
         return true;
     }
 
-    MinMaxValue* getData (int channelNum, int cacheIndex) noexcept
+    MinMaxValue *getData(int channelNum, int cacheIndex) noexcept
     {
-        jassert (juce::isPositiveAndBelow (channelNum, numChannelsCached)
-                  && juce::isPositiveAndBelow (cacheIndex, data.size()));
+        jassert(juce::isPositiveAndBelow(channelNum, numChannelsCached) && juce::isPositiveAndBelow(cacheIndex, data.size()));
 
         return data.getRawDataPointer() + channelNum * numSamplesCached + cacheIndex;
     }
 
-    void ensureSize (int numSamples)
+    void ensureSize(int numSamples)
     {
         auto itemsRequired = numSamples * numChannelsCached;
 
         if (data.size() < itemsRequired)
-            data.insertMultiple (-1, MinMaxValue(), itemsRequired - data.size());
+            data.insertMultiple(-1, MinMaxValue(), itemsRequired - data.size());
     }
 };
 
 //==============================================================================
-Thumbnail::Thumbnail (int originalSamplesPerThumbnailSample,
-                                        juce::AudioFormatManager& formatManager,
-                                        juce::AudioThumbnailCache& cacheToUse)
-    : formatManagerToUse (formatManager),
-      cache (cacheToUse),
-      window (new CachedWindow()),
-      samplesPerThumbSample (originalSamplesPerThumbnailSample)
+Thumbnail::Thumbnail(int originalSamplesPerThumbnailSample, juce::AudioFormatManager &formatManager, juce::AudioThumbnailCache &cacheToUse)
+    : formatManagerToUse(formatManager),
+      cache(cacheToUse),
+      window(new CachedWindow()),
+      samplesPerThumbSample(originalSamplesPerThumbnailSample)
 {
 }
 
-Thumbnail::~Thumbnail()
-{
-    clear();
-}
+Thumbnail::~Thumbnail() { clear(); }
 
 void Thumbnail::clear()
 {
     {
-        const juce::ScopedLock sl2 (sourceLock);
+        const juce::ScopedLock sl2(sourceLock);
         source.reset();
     }
 
@@ -579,7 +542,7 @@ void Thumbnail::clear()
 
 void Thumbnail::clearChannelData()
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     window->invalidate();
     channels.clear();
     totalSamples = numSamplesFinished = 0;
@@ -589,127 +552,126 @@ void Thumbnail::clearChannelData()
     sendChangeMessage();
 }
 
-void Thumbnail::reset (int newNumChannels, double newSampleRate,
-                                juce::int64 totalSamplesInSource)
+void Thumbnail::reset(int newNumChannels, double newSampleRate, juce::int64 totalSamplesInSource)
 {
     clear();
 
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     numChannels = newNumChannels;
     sampleRate = newSampleRate;
     totalSamples = totalSamplesInSource;
 
-    createChannels (1 + (int) (totalSamplesInSource / samplesPerThumbSample));
+    createChannels(1 + (int)(totalSamplesInSource / samplesPerThumbSample));
 }
 
-void Thumbnail::createChannels (int length)
+void Thumbnail::createChannels(int length)
 {
     while (channels.size() < numChannels)
-        channels.add (new ThumbData (length));
+        channels.add(new ThumbData(length));
 }
 
 //==============================================================================
-bool Thumbnail::loadFrom (juce::InputStream& rawInput)
+bool Thumbnail::loadFrom(juce::InputStream &rawInput)
 {
-    juce::BufferedInputStream input (rawInput, 4096);
+    juce::BufferedInputStream input(rawInput, 4096);
 
     if (input.readByte() != 'j' || input.readByte() != 'a' || input.readByte() != 't' || input.readByte() != 'm')
         return false;
 
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     clearChannelData();
 
     samplesPerThumbSample = input.readInt();
-    totalSamples = input.readInt64();             // Total number of source samples.
-    numSamplesFinished = input.readInt64();       // Number of valid source samples that have been read into the thumbnail.
-    auto numThumbnailSamples = input.readInt();   // Number of samples in the thumbnail data.
-    numChannels = input.readInt();                // Number of audio channels.
-    sampleRate = input.readInt();                 // Source sample rate.
-    input.skipNextBytes (16);                     // (reserved)
+    totalSamples = input.readInt64();           // Total number of source samples.
+    numSamplesFinished = input.readInt64();     // Number of valid source samples that have been read into the thumbnail.
+    auto numThumbnailSamples = input.readInt(); // Number of samples in the thumbnail data.
+    numChannels = input.readInt();              // Number of audio channels.
+    sampleRate = input.readInt();               // Source sample rate.
+    input.skipNextBytes(16);                    // (reserved)
 
-    createChannels (numThumbnailSamples);
+    createChannels(numThumbnailSamples);
 
     for (int i = 0; i < numThumbnailSamples; ++i)
         for (int chan = 0; chan < numChannels; ++chan)
-            channels.getUnchecked(chan)->getData(i)->read (input);
+            channels.getUnchecked(chan)->getData(i)->read(input);
 
     return true;
 }
 
-void Thumbnail::saveTo (juce::OutputStream& output) const
+void Thumbnail::saveTo(juce::OutputStream &output) const
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
 
     const int numThumbnailSamples = channels.isEmpty() ? 0 : channels.getUnchecked(0)->getSize();
 
-    output.write ("jatm", 4);
-    output.writeInt (samplesPerThumbSample);
-    output.writeInt64 (totalSamples);
-    output.writeInt64 (numSamplesFinished);
-    output.writeInt (numThumbnailSamples);
-    output.writeInt (numChannels);
-    output.writeInt ((int) sampleRate);
-    output.writeInt64 (0);
-    output.writeInt64 (0);
+    output.write("jatm", 4);
+    output.writeInt(samplesPerThumbSample);
+    output.writeInt64(totalSamples);
+    output.writeInt64(numSamplesFinished);
+    output.writeInt(numThumbnailSamples);
+    output.writeInt(numChannels);
+    output.writeInt((int)sampleRate);
+    output.writeInt64(0);
+    output.writeInt64(0);
 
     for (int i = 0; i < numThumbnailSamples; ++i)
         for (int chan = 0; chan < numChannels; ++chan)
-            channels.getUnchecked(chan)->getData(i)->write (output);
+            channels.getUnchecked(chan)->getData(i)->write(output);
 }
 
 //==============================================================================
-bool Thumbnail::setDataSource (LevelDataSource* newSource)
+bool Thumbnail::setDataSource(LevelDataSource *newSource)
 {
-    jassert (juce::MessageManager::getInstance()->currentThreadHasLockedMessageManager());
+    jassert(juce::MessageManager::getInstance()->currentThreadHasLockedMessageManager());
 
     numSamplesFinished = 0;
 
-    if (cache.loadThumb (*this, newSource->hashCode) && isFullyLoaded())
+    if (cache.loadThumb(*this, newSource->hashCode) && isFullyLoaded())
     {
-        const juce::ScopedLock sl (sourceLock);
-        source.reset (newSource); // (make sure this isn't done before loadThumb is called)
+        const juce::ScopedLock sl(sourceLock);
+        source.reset(newSource); // (make sure this isn't done before loadThumb is called)
 
         source->lengthInSamples = totalSamples;
         source->sampleRate = sampleRate;
-        source->numChannels = (unsigned int) numChannels;
+        source->numChannels = (unsigned int)numChannels;
         source->numSamplesFinished = numSamplesFinished;
     }
     else
     {
-        const juce::ScopedLock sl (sourceLock);
-        source.reset (newSource); // (make sure this isn't done before loadThumb is called)
+        const juce::ScopedLock sl(sourceLock);
+        source.reset(newSource); // (make sure this isn't done before loadThumb is called)
 
-        const juce::ScopedLock sl2 (lock);
-        source->initialise (numSamplesFinished);
+        const juce::ScopedLock sl2(lock);
+        source->initialise(numSamplesFinished);
 
         totalSamples = source->lengthInSamples;
         sampleRate = source->sampleRate;
-        numChannels = (int) source->numChannels;
+        numChannels = (int)source->numChannels;
 
-        createChannels (1 + (int) (totalSamples / samplesPerThumbSample));
+        createChannels(1 + (int)(totalSamples / samplesPerThumbSample));
     }
 
     return sampleRate > 0 && totalSamples > 0;
 }
 
-bool Thumbnail::setSource (juce::InputSource* newSource)
+bool Thumbnail::setSource(juce::InputSource *newSource)
 {
     clear();
 
-    return newSource != nullptr && setDataSource (new LevelDataSource (*this, newSource));
+    return newSource != nullptr && setDataSource(new LevelDataSource(*this, newSource));
 }
 
-void Thumbnail::setReader (juce::AudioFormatReader* newReader, juce::int64 hash)
+void Thumbnail::setReader(juce::AudioFormatReader *newReader, juce::int64 hash)
 {
     clear();
 
     if (newReader != nullptr)
-        setDataSource (new LevelDataSource (*this, newReader, hash));
+        setDataSource(new LevelDataSource(*this, newReader, hash));
 }
 
 void Thumbnail::releaseResources()
 {
-    const juce::ScopedLock sl (sourceLock);
+    const juce::ScopedLock sl(sourceLock);
 
     if (source != nullptr)
         source->releaseResources();
@@ -717,58 +679,57 @@ void Thumbnail::releaseResources()
 
 juce::int64 Thumbnail::getHashCode() const
 {
-    const juce::ScopedLock sl (sourceLock);
+    const juce::ScopedLock sl(sourceLock);
     return source == nullptr ? 0 : source->hashCode;
 }
 
-void Thumbnail::addBlock (juce::int64 startSample, const juce::AudioBuffer<float>& incoming,
-                                   int startOffsetInBuffer, int numSamples)
+void Thumbnail::addBlock(juce::int64 startSample, const juce::AudioBuffer<float> &incoming, int startOffsetInBuffer, int numSamples)
 {
-    jassert (startSample >= 0);
+    jassert(startSample >= 0);
 
-    auto firstThumbIndex = (int) (startSample / samplesPerThumbSample);
-    auto lastThumbIndex  = (int) ((startSample + numSamples + (samplesPerThumbSample - 1)) / samplesPerThumbSample);
+    auto firstThumbIndex = (int)(startSample / samplesPerThumbSample);
+    auto lastThumbIndex = (int)((startSample + numSamples + (samplesPerThumbSample - 1)) / samplesPerThumbSample);
     auto numToDo = lastThumbIndex - firstThumbIndex;
 
     if (numToDo > 0)
     {
-        auto numChans = std::min (channels.size(), incoming.getNumChannels());
+        auto numChans = std::min(channels.size(), incoming.getNumChannels());
 
-        const juce::HeapBlock<MinMaxValue> thumbData ((size_t) (numToDo * numChans));
-        const juce::HeapBlock<MinMaxValue*> thumbChannels ((size_t) numChans);
+        const juce::HeapBlock<MinMaxValue> thumbData((size_t)(numToDo * numChans));
+        const juce::HeapBlock<MinMaxValue *> thumbChannels((size_t)numChans);
 
         for (int chan = 0; chan < numChans; ++chan)
         {
-            const float* const sourceData = incoming.getReadPointer (chan, startOffsetInBuffer);
-            auto* dest = thumbData + numToDo * chan;
+            const float *const sourceData = incoming.getReadPointer(chan, startOffsetInBuffer);
+            auto *dest = thumbData + numToDo * chan;
             thumbChannels[chan] = dest;
 
             for (int i = 0; i < numToDo; ++i)
             {
                 const int start = i * samplesPerThumbSample;
-                auto range = juce::FloatVectorOperations::findMinAndMax (sourceData + start, std::min (samplesPerThumbSample, numSamples - start));
-                dest[i].setFloat (range.getStart(), range.getEnd());
+                auto range = juce::FloatVectorOperations::findMinAndMax(sourceData + start, std::min(samplesPerThumbSample, numSamples - start));
+                dest[i].setFloat(range.getStart(), range.getEnd());
             }
         }
 
-        setLevels (thumbChannels, firstThumbIndex, numChans, numToDo);
+        setLevels(thumbChannels, firstThumbIndex, numChans, numToDo);
     }
 }
 
-void Thumbnail::setLevels (const MinMaxValue* const* values, int thumbIndex, int numChans, int numValues)
+void Thumbnail::setLevels(const MinMaxValue *const *values, int thumbIndex, int numChans, int numValues)
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
 
-    for (int i = std::min (numChans, channels.size()); --i >= 0;)
-        channels.getUnchecked(i)->write (values[i], thumbIndex, numValues);
+    for (int i = std::min(numChans, channels.size()); --i >= 0;)
+        channels.getUnchecked(i)->write(values[i], thumbIndex, numValues);
 
-    auto start = thumbIndex * static_cast<tracktion::SampleCount> (samplesPerThumbSample);
-    auto end = (thumbIndex + numValues) * static_cast<tracktion::SampleCount> (samplesPerThumbSample);
+    auto start = thumbIndex * static_cast<tracktion::SampleCount>(samplesPerThumbSample);
+    auto end = (thumbIndex + numValues) * static_cast<tracktion::SampleCount>(samplesPerThumbSample);
 
     if (numSamplesFinished >= start && end > numSamplesFinished)
         numSamplesFinished = end;
 
-    totalSamples = std::max (numSamplesFinished, totalSamples);
+    totalSamples = std::max(numSamplesFinished, totalSamples);
     window->invalidate();
     sendChangeMessage();
 }
@@ -776,100 +737,82 @@ void Thumbnail::setLevels (const MinMaxValue* const* values, int thumbIndex, int
 //==============================================================================
 int Thumbnail::getNumChannels() const noexcept
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     return numChannels;
 }
 
 double Thumbnail::getTotalLength() const noexcept
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     return sampleRate > 0 ? (totalSamples / sampleRate) : 0;
 }
 
 bool Thumbnail::isFullyLoaded() const noexcept
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     return numSamplesFinished >= totalSamples - samplesPerThumbSample;
 }
 
 double Thumbnail::getProportionComplete() const noexcept
 {
-    const juce::ScopedLock sl (lock);
-    return juce::jlimit (0.0, 1.0, numSamplesFinished / (double) std::max ((tracktion::SampleCount) 1, totalSamples));
+    const juce::ScopedLock sl(lock);
+    return juce::jlimit(0.0, 1.0, numSamplesFinished / (double)std::max((tracktion::SampleCount)1, totalSamples));
 }
 
 juce::int64 Thumbnail::getNumSamplesFinished() const noexcept
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     return numSamplesFinished;
 }
 
 float Thumbnail::getApproximatePeak() const
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     int peak = 0;
 
     for (int i = channels.size(); --i >= 0;)
-        peak = std::max (peak, channels.getUnchecked(i)->getPeak());
+        peak = std::max(peak, channels.getUnchecked(i)->getPeak());
 
-    return juce::jlimit (0, 127, peak) / 127.0f;
+    return juce::jlimit(0, 127, peak) / 127.0f;
 }
 
-void Thumbnail::getApproximateMinMax (double startTime, double endTime, int channelIndex,
-                                               float& minValue, float& maxValue) const noexcept
+void Thumbnail::getApproximateMinMax(double startTime, double endTime, int channelIndex, float &minValue, float &maxValue) const noexcept
 {
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl(lock);
     MinMaxValue result;
-    auto* data = channels[channelIndex];
+    auto *data = channels[channelIndex];
 
     if (data != nullptr && sampleRate > 0)
     {
-        auto firstThumbIndex = (int) ((startTime * sampleRate) / samplesPerThumbSample);
-        auto lastThumbIndex  = (int) (((endTime * sampleRate) + samplesPerThumbSample - 1) / samplesPerThumbSample);
+        auto firstThumbIndex = (int)((startTime * sampleRate) / samplesPerThumbSample);
+        auto lastThumbIndex = (int)(((endTime * sampleRate) + samplesPerThumbSample - 1) / samplesPerThumbSample);
 
-        data->getMinMax (std::max (0, firstThumbIndex), lastThumbIndex, result);
+        data->getMinMax(std::max(0, firstThumbIndex), lastThumbIndex, result);
     }
 
     minValue = result.getMinValue() / 128.0f;
     maxValue = result.getMaxValue() / 128.0f;
 }
 
-void Thumbnail::drawChannel (juce::Graphics& g, const juce::Rectangle<int>& area, double start, double end, int channel, float zoom)
+void Thumbnail::drawChannel(juce::Graphics &g, const juce::Rectangle<int> &area, double start, double end, int channel, float zoom) { drawChannel(g, area, true, {tracktion::TimePosition::fromSeconds(start), tracktion::TimePosition::fromSeconds(end)}, channel, zoom); }
+
+void Thumbnail::drawChannels(juce::Graphics &g, const juce::Rectangle<int> &area, double start, double end, float zoom) { drawChannels(g, area, true, {tracktion::TimePosition::fromSeconds(start), tracktion::TimePosition::fromSeconds(end)}, zoom); }
+
+void Thumbnail::drawChannel(juce::Graphics &g, juce::Rectangle<int> area, bool useHighRes, tracktion::TimeRange time, int channelNum, float verticalZoomFactor)
 {
-    drawChannel (g, area, true,
-                 { tracktion::TimePosition::fromSeconds (start), tracktion::TimePosition::fromSeconds (end) },
-                 channel, zoom);
+    const juce::ScopedLock sl2(sourceLock);
+    const juce::ScopedLock sl(lock);
+
+    window->drawChannel(g, area, useHighRes, {time.getStart().inSeconds(), time.getEnd().inSeconds()}, channelNum, verticalZoomFactor, sampleRate, numChannels, samplesPerThumbSample, source.get(), channels);
 }
 
-void Thumbnail::drawChannels (juce::Graphics& g, const juce::Rectangle<int>& area, double start, double end, float zoom)
-{
-    drawChannels (g, area, true,
-                  { tracktion::TimePosition::fromSeconds (start), tracktion::TimePosition::fromSeconds (end) },
-                  zoom);
-}
-
-void Thumbnail::drawChannel (juce::Graphics& g, juce::Rectangle<int> area, bool useHighRes,
-                                      tracktion::TimeRange time, int channelNum, float verticalZoomFactor)
-{
-    const juce::ScopedLock sl2 (sourceLock);
-    const juce::ScopedLock sl (lock);
-
-    window->drawChannel (g, area, useHighRes,
-                         { time.getStart().inSeconds(), time.getEnd().inSeconds() },
-                         channelNum, verticalZoomFactor,
-                         sampleRate, numChannels, samplesPerThumbSample, source.get(), channels);
-}
-
-void Thumbnail::drawChannels (juce::Graphics& g, juce::Rectangle<int> area, bool useHighRes,
-                                       tracktion::TimeRange time, float verticalZoomFactor)
+void Thumbnail::drawChannels(juce::Graphics &g, juce::Rectangle<int> area, bool useHighRes, tracktion::TimeRange time, float verticalZoomFactor)
 {
     for (int i = 0; i < numChannels; ++i)
     {
-        auto y1 = juce::roundToInt ((i * area.getHeight()) / numChannels);
-        auto y2 = juce::roundToInt (((i + 1) * area.getHeight()) / numChannels);
+        auto y1 = juce::roundToInt((i * area.getHeight()) / numChannels);
+        auto y2 = juce::roundToInt(((i + 1) * area.getHeight()) / numChannels);
 
-        drawChannel (g, { area.getX(), area.getY() + y1, area.getWidth(), y2 - y1 }, useHighRes,
-                     time, i, verticalZoomFactor);
+        drawChannel(g, {area.getX(), area.getY() + y1, area.getWidth(), y2 - y1}, useHighRes, time, i, verticalZoomFactor);
     }
 }
-

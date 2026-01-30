@@ -23,8 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MenuBar.h"
 #include "Utilities.h"
 
-
-void MenuBar::addButton(juce::DrawableButton* button, int toggleGroupId)
+void MenuBar::addButton(juce::DrawableButton *button, int toggleGroupId)
 {
     m_buttons.add(button);
     m_buttonGaps.set(m_buttons.indexOf(button), m_defaultGap);
@@ -39,7 +38,7 @@ void MenuBar::addButton(juce::DrawableButton* button, int toggleGroupId)
 
 void MenuBar::setButtonGap(int bg)
 {
-    for (auto gap = 0; gap < m_buttonGaps.size();gap++)
+    for (auto gap = 0; gap < m_buttonGaps.size(); gap++)
         if (m_buttonGaps.getReference(gap) == m_defaultGap)
             setButtonGap(gap, bg);
 
@@ -57,22 +56,23 @@ void MenuBar::resized()
     auto flexAlign = juce::FlexBox::JustifyContent::flexStart;
     auto flexDirection = juce::FlexBox::Direction::row;
 
-    if (m_vertical) {
+    if (m_vertical)
+    {
         flexDirection = juce::FlexBox::Direction::column;
     }
 
     switch (m_alignment)
     {
-        case Alignment::Left:
-            flexAlign = juce::FlexBox::JustifyContent::flexStart;
-            break;
-        case Alignment::Center:
-            flexAlign = juce::FlexBox::JustifyContent::center;
-            break;
-        case Alignment::Right:
-        case Alignment::Bottom:
-            flexAlign = juce::FlexBox::JustifyContent::flexEnd;
-            break;
+    case Alignment::Left:
+        flexAlign = juce::FlexBox::JustifyContent::flexStart;
+        break;
+    case Alignment::Center:
+        flexAlign = juce::FlexBox::JustifyContent::center;
+        break;
+    case Alignment::Right:
+    case Alignment::Bottom:
+        flexAlign = juce::FlexBox::JustifyContent::flexEnd;
+        break;
     }
 
     juce::FlexBox fb;
@@ -84,7 +84,7 @@ void MenuBar::resized()
     const auto margin = 7.f;
     const float buttonSize = m_vertical ? getWidth() - (2.0f * getWidth() / margin) : getHeight() - (2.0f * getHeight() / margin);
 
-    const int maxButtons = m_buttons.size() + 1; 
+    const int maxButtons = m_buttons.size() + 1;
 
     int availableSpace = m_vertical ? getHeight() : getWidth();
     int totalButtonSize = 0;
@@ -101,27 +101,28 @@ void MenuBar::resized()
 
     if ((!enoughSpace) && (m_wasEnoughSpace == true))
     {
-       m_wasEnoughSpace = false;
+        m_wasEnoughSpace = false;
 
-       removeAllChildren(); 
+        removeAllChildren();
 
-       m_popupButton = std::make_unique<juce::DrawableButton>("More...", juce::DrawableButton::ImageOnButtonBackground);
+        m_popupButton = std::make_unique<juce::DrawableButton>("More...", juce::DrawableButton::ImageOnButtonBackground);
         GUIHelpers::setDrawableOnButton(*m_popupButton, BinaryData::menu_svg, juce::Colours::grey);
-       addAndMakeVisible(m_popupButton.get());
+        addAndMakeVisible(m_popupButton.get());
 
-       juce::PopupMenu popupMenu;
-       for (int i = 0; i < m_buttons.size(); ++i)
-       {
-           popupMenu.addItem(i + 1, m_buttons[i]->getButtonText());
-       }
+        juce::PopupMenu popupMenu;
+        for (int i = 0; i < m_buttons.size(); ++i)
+        {
+            popupMenu.addItem(i + 1, m_buttons[i]->getButtonText());
+        }
 
-       m_popupButton->onClick = [this, popupMenu]() mutable {
-           int result = popupMenu.show();
-           if (result > 0 && result <= m_buttons.size())
-               m_buttons[result - 1]->triggerClick();
-       };
+        m_popupButton->onClick = [this, popupMenu]() mutable
+        {
+            int result = popupMenu.show();
+            if (result > 0 && result <= m_buttons.size())
+                m_buttons[result - 1]->triggerClick();
+        };
     }
-    else if ((enoughSpace) && m_wasEnoughSpace == false) 
+    else if ((enoughSpace) && m_wasEnoughSpace == false)
     {
         m_wasEnoughSpace = true;
         removeAllChildren();
@@ -135,7 +136,8 @@ void MenuBar::resized()
         for (int i = 0; i < m_buttons.size(); ++i)
         {
             juce::FlexItem::Margin margin;
-            if (i < m_buttons.size() - 1) {
+            if (i < m_buttons.size() - 1)
+            {
                 int gap = m_buttonGaps[i];
                 margin.bottom = m_vertical ? gap : 0.0;
                 margin.right = m_vertical ? 0.0 : gap;
@@ -150,7 +152,7 @@ void MenuBar::resized()
     {
         juce::FlexItem::Margin margin;
         int gap = m_defaultGap;
-        margin.top = gap; 
+        margin.top = gap;
         margin.bottom = gap;
         margin.right = gap;
         margin.left = gap;
@@ -160,7 +162,4 @@ void MenuBar::resized()
     }
 }
 
-juce::Array<juce::DrawableButton*> MenuBar::getButtons()
-{
-    return m_buttons;
-}
+juce::Array<juce::DrawableButton *> MenuBar::getButtons() { return m_buttons; }

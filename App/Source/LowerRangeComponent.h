@@ -20,55 +20,50 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "EditViewState.h"
-#include "Utilities.h"
-#include "PianoRollEditor.h"
-#include "RackView.h"
-#include "SplitterComponent.h"
 #include "LowerRangeTabBar.h"
 #include "MixerComponent.h"
-#include "TrackPresetAdapter.h"
+#include "PianoRollEditor.h"
 #include "PresetManagerComponent.h"
+#include "RackView.h"
+#include "SplitterComponent.h"
+#include "TrackPresetAdapter.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
-
-class LowerRangeComponent : public juce::Component
-                          , public te::ValueTreeAllEventListener
+class LowerRangeComponent
+    : public juce::Component
+    , public te::ValueTreeAllEventListener
 {
 public:
-    explicit LowerRangeComponent (EditViewState& evs);
-     ~LowerRangeComponent() override;
+    explicit LowerRangeComponent(EditViewState &evs);
+    ~LowerRangeComponent() override;
 
-    void paint (juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void paintOverChildren(juce::Graphics &g) override;
-    void resized () override;
+    void resized() override;
 
-    PianoRollEditor& getPianoRollEditor() {return m_pianoRollEditor;}
+    PianoRollEditor &getPianoRollEditor() { return m_pianoRollEditor; }
 
 private:
     void updateView();
-    void updatePresetManager(te::Track* track);
+    void updatePresetManager(te::Track *track);
 
     void valueTreeChanged() override {}
-    void valueTreePropertyChanged (juce::ValueTree&
-                                   , const juce::Identifier&) override;
-    void valueTreeChildAdded (juce::ValueTree&
-                              , juce::ValueTree&) override;
-    void valueTreeChildRemoved (juce::ValueTree&
-                                , juce::ValueTree&
-                                , int) override;
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override;
 
     void handleSplitterMouseDown();
     void handleSplitterDrag(int dragDistance);
 
-    EditViewState& m_evs;
+    EditViewState &m_evs;
 
     RackView m_rackView;
     PianoRollEditor m_pianoRollEditor;
@@ -79,10 +74,10 @@ private:
     std::unique_ptr<TrackPresetAdapter> m_presetAdapter;
     std::unique_ptr<PresetManagerComponent> m_presetManager;
 
-    const float m_splitterHeight {10.f};
+    const float m_splitterHeight{10.f};
 
     int m_pianorollHeightAtMousedown{};
     double m_cachedPianoNoteNum{};
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LowerRangeComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LowerRangeComponent)
 };

@@ -23,7 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PresetHelpers.h"
 #include "Utilities.h"
 
-PresetManagerComponent::PresetManagerComponent(PluginPresetInterface& pluginInterface)
+PresetManagerComponent::PresetManagerComponent(PluginPresetInterface &pluginInterface)
     : m_pluginInterface(pluginInterface)
 {
     m_presetCombo = std::make_unique<juce::ComboBox>("Presets");
@@ -43,7 +43,7 @@ PresetManagerComponent::PresetManagerComponent(PluginPresetInterface& pluginInte
     selectPreset(m_pluginInterface.getLastLoadedPresetName());
 }
 
-void PresetManagerComponent::paint(juce::Graphics& g)
+void PresetManagerComponent::paint(juce::Graphics &g)
 {
     auto background1 = m_pluginInterface.getApplicationViewState().getBackgroundColour1();
     auto background2 = m_pluginInterface.getApplicationViewState().getBackgroundColour2();
@@ -85,7 +85,7 @@ void PresetManagerComponent::resized()
         m_loadButton->setBounds(area.removeFromTop(buttonHeight));
 }
 
-void PresetManagerComponent::selectPreset(const juce::String& name)
+void PresetManagerComponent::selectPreset(const juce::String &name)
 {
     if (name.isEmpty())
     {
@@ -164,7 +164,7 @@ void PresetManagerComponent::loadPresetFromCombo()
                     }
                     else
                     {
-                         GUIHelpers::log("PresetManagerComponent: Preset type mismatch or invalid format in " + presetFile.getFileName());
+                        GUIHelpers::log("PresetManagerComponent: Preset type mismatch or invalid format in " + presetFile.getFileName());
                     }
                 }
                 else
@@ -184,15 +184,15 @@ void PresetManagerComponent::savePreset()
 {
     // Capture state immediately before opening any modal dialogs
     juce::ValueTree pluginState = m_pluginInterface.getPluginState();
-    
+
     juce::Component::SafePointer<PresetManagerComponent> safeThis(this);
 
     auto presetDir = getPresetDirectory();
     ensurePresetDirectoryExists();
 
-    juce::FileChooser fc ("Save Preset", presetDir, "*.nxtpreset");
+    juce::FileChooser fc("Save Preset", presetDir, "*.nxtpreset");
 
-    if (fc.browseForFileToSave (true))
+    if (fc.browseForFileToSave(true))
     {
         juce::File presetFile = fc.getResult();
 
@@ -210,9 +210,7 @@ void PresetManagerComponent::savePreset()
         if (safePresetName.isEmpty())
         {
             // Optionally, show an alert to the user
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                                                   "Invalid Preset Name",
-                                                   "The chosen preset name is invalid or contains only illegal characters.");
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Invalid Preset Name", "The chosen preset name is invalid or contains only illegal characters.");
             return;
         }
 
@@ -252,10 +250,10 @@ void PresetManagerComponent::loadPreset()
 {
     auto presetDir = getPresetDirectory();
     ensurePresetDirectoryExists();
-    
+
     juce::Component::SafePointer<PresetManagerComponent> safeThis(this);
 
-    juce::FileChooser fc ("Load Preset", presetDir, "*.nxtpreset");
+    juce::FileChooser fc("Load Preset", presetDir, "*.nxtpreset");
 
     if (fc.browseForFileToOpen())
     {
@@ -279,14 +277,14 @@ void PresetManagerComponent::loadPreset()
                         m_pluginInterface.setLastLoadedPresetName(presetFile.getFileNameWithoutExtension());
                         m_pluginInterface.setInitialPresetLoaded(true);
                     }
-                     else
+                    else
                     {
-                         GUIHelpers::log("PresetManagerComponent: Preset type mismatch or invalid format in " + presetFile.getFileName());
+                        GUIHelpers::log("PresetManagerComponent: Preset type mismatch or invalid format in " + presetFile.getFileName());
                     }
                 }
                 else
                 {
-                     GUIHelpers::log("PresetManagerComponent: Root element is not <PLUGIN> in " + presetFile.getFileName());
+                    GUIHelpers::log("PresetManagerComponent: Root element is not <PLUGIN> in " + presetFile.getFileName());
                 }
             }
             else
@@ -297,10 +295,7 @@ void PresetManagerComponent::loadPreset()
     }
 }
 
-juce::File PresetManagerComponent::getPresetDirectory()
-{
-    return PresetHelpers::getPresetDirectory(m_pluginInterface);
-}
+juce::File PresetManagerComponent::getPresetDirectory() { return PresetHelpers::getPresetDirectory(m_pluginInterface); }
 
 void PresetManagerComponent::ensurePresetDirectoryExists()
 {

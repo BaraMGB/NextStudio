@@ -26,9 +26,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine& engine, SamplePreviewComponent& spc)
-    : BrowserBaseComponent(avs)
-    , m_samplePreviewComponent(spc)
+FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine &engine, SamplePreviewComponent &spc)
+    : BrowserBaseComponent(avs),
+      m_samplePreviewComponent(spc)
 {
     setName("FileBrowser");
     m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
@@ -39,7 +39,7 @@ FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine
 void FileBrowserComponent::resized()
 {
     auto area = getLocalBounds();
-    auto sortcomp = area.removeFromTop(30).reduced(2,2);
+    auto sortcomp = area.removeFromTop(30).reduced(2, 2);
     auto sortlabel = sortcomp.removeFromLeft(50);
     auto pathComp = area.removeFromTop(30);
     auto searchfield = area.removeFromBottom(30);
@@ -49,20 +49,20 @@ void FileBrowserComponent::resized()
     m_sortingBox.setBounds(sortcomp);
     m_currentPathField.setBounds(pathComp);
     m_searchField.setBounds(searchfield);
-    m_listBox.setBounds (list);
+    m_listBox.setBounds(list);
 }
 
 void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
 {
-    if (rowNum < 0|| rowNum >= getNumRows())
+    if (rowNum < 0 || rowNum >= getNumRows())
     {
         return;
     }
 
-    juce::Rectangle<int> bounds (0,0, width, height);
+    juce::Rectangle<int> bounds(0, 0, width, height);
     auto textColour = m_applicationViewState.getTextColour();
     auto file = m_contentList[rowNum];
-    g.setColour (rowNum%2==0 ? m_applicationViewState.getBackgroundColour1() : m_applicationViewState.getBackgroundColour1().brighter(0.05f));
+    g.setColour(rowNum % 2 == 0 ? m_applicationViewState.getBackgroundColour1() : m_applicationViewState.getBackgroundColour1().brighter(0.05f));
     g.fillRect(bounds);
     g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
@@ -73,10 +73,10 @@ void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int w
         g.fillRect(bounds);
     }
 
-    bounds.reduce(10,0);
+    bounds.reduce(10, 0);
     auto icon = bounds.removeFromLeft(height).toFloat();
-    bounds.reduce(10,0);
-    icon.reduce(2,2);
+    bounds.reduce(10, 0);
+    icon.reduce(2, 2);
     if (file.isDirectory())
         GUIHelpers::drawFromSvg(g, BinaryData::folder_svg, m_applicationViewState.getPrimeColour(), icon);
     else
@@ -87,11 +87,11 @@ void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int w
     if (m_searchTerm.isEmpty())
     {
         g.setColour(rowIsSelected ? juce::Colours::black : textColour);
-        g.drawFittedText(file.getFileName (), bounds, juce::Justification::left, 1);
+        g.drawFittedText(file.getFileName(), bounds, juce::Justification::left, 1);
     }
     else
     {
-        auto text = file.getFileName ();
+        auto text = file.getFileName();
 
         juce::String preTerm, postTerm;
         int termStartIndex = text.indexOfIgnoreCase(m_searchTerm);
@@ -104,7 +104,7 @@ void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int w
             auto colour = rowIsSelected ? juce::Colours::black : textColour;
 
             g.setColour(colour);
-            g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+            g.setFont(juce::Font((float)height * 0.7f, juce::Font::bold));
             g.drawFittedText(preTerm, bounds.getX(), bounds.getY(), bounds.getWidth() - 6, bounds.getHeight(), juce::Justification::centredLeft, 1, 0.9f);
 
             int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
@@ -120,17 +120,14 @@ void FileBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int w
     }
 }
 
-juce::var FileBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
-{
-    return {"FileBrowser"};
-}
+juce::var FileBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &) { return {"FileBrowser"}; }
 
-void FileBrowserComponent::setDirecory(const juce::File& dir)
+void FileBrowserComponent::setDirecory(const juce::File &dir)
 {
     if (dir.exists() && dir.isDirectory())
     {
         GUIHelpers::log("FileBrowserComponent::setDirecory(): ");
-        setFileList(dir.findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories , false ) );
+        setFileList(dir.findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories, false));
     }
 }
 
@@ -162,17 +159,17 @@ void FileBrowserComponent::sortList(int selectedID)
         m_contentList.addArray(dirList);
     }
     m_listBox.updateContent();
-    getParentComponent()->resized(); 
+    getParentComponent()->resized();
 }
 
 void FileBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e)
 {
-    if (e.mods.isRightButtonDown ())
+    if (e.mods.isRightButtonDown())
     {
         juce::PopupMenu p;
-        p.addItem (1, "Info");
+        p.addItem(1, "Info");
         const int result = p.show();
-        if(result == 1)
+        if (result == 1)
         {
         }
     }
@@ -190,14 +187,11 @@ void FileBrowserComponent::listBoxItemDoubleClicked(int row, const juce::MouseEv
     }
 }
 
-void FileBrowserComponent::selectedRowsChanged(int)
-{
-    previewSampleFile (m_contentList[m_listBox.getSelectedRow ()]);
-}
+void FileBrowserComponent::selectedRowsChanged(int) { previewSampleFile(m_contentList[m_listBox.getSelectedRow()]); }
 
 void FileBrowserComponent::previewSampleFile(const juce::File &file)
 {
-    if (m_samplePreviewComponent.setFile (file))
+    if (m_samplePreviewComponent.setFile(file))
     {
         m_samplePreviewComponent.rewind();
         m_samplePreviewComponent.play();
@@ -213,7 +207,7 @@ void FileBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *sourc
         setDirecory(m_currentPathField.getCurrentPath());
     }
 }
-void FileBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
+void FileBrowserComponent::sortByName(juce::Array<juce::File> &list, bool forward)
 {
     if (list.size() > 1)
     {

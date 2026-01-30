@@ -22,22 +22,22 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ApplicationViewState.h"
 #include "Utilities.h"
 
-SoundEditorPanel::SoundEditorPanel(te::SamplerPlugin& plugin, te::Edit& edit, ApplicationViewState& appViewState)
-    : m_edit(edit), m_appViewState(appViewState), m_samplerPlugin(plugin)
+SoundEditorPanel::SoundEditorPanel(te::SamplerPlugin &plugin, te::Edit &edit, ApplicationViewState &appViewState)
+    : m_edit(edit),
+      m_appViewState(appViewState),
+      m_samplerPlugin(plugin)
 {
     GUIHelpers::log("SoundEditorPanel: constructor");
 
     // Create gain slider with range -48.0 to 48.0
     gainValue.setValue(-48.0);
-    gainSlider = std::make_unique<NonAutomatableParameterComponent>(
-        gainValue, "Gain", -480, 480);
+    gainSlider = std::make_unique<NonAutomatableParameterComponent>(gainValue, "Gain", -480, 480);
     gainSlider->setSliderRange(-48.0, 48.0, 0.1);
     addAndMakeVisible(*gainSlider);
 
     // Create pan slider with range -1.0 to 1.0
     panValue.setValue(0.0);
-    panSlider = std::make_unique<NonAutomatableParameterComponent>(
-        panValue, "Pan", -100, 100);
+    panSlider = std::make_unique<NonAutomatableParameterComponent>(panValue, "Pan", -100, 100);
     panSlider->setSliderRange(-1.0, 1.0, 0.01);
     addAndMakeVisible(*panSlider);
 
@@ -63,7 +63,6 @@ SoundEditorPanel::SoundEditorPanel(te::SamplerPlugin& plugin, te::Edit& edit, Ap
     openEndedButton.setColour(juce::ToggleButton::textColourId, m_appViewState.getTextColour());
     openEndedButton.setColour(juce::ToggleButton::tickColourId, m_appViewState.getPrimeColour());
 
-
     addAndMakeVisible(openEndedLabel);
     openEndedLabel.setText("Open Ended", juce::dontSendNotification);
     openEndedLabel.setColour(juce::Label::textColourId, m_appViewState.getTextColour());
@@ -77,7 +76,7 @@ SoundEditorPanel::~SoundEditorPanel()
     openEndedButton.removeListener(this);
 }
 
-void SoundEditorPanel::paint(juce::Graphics& g)
+void SoundEditorPanel::paint(juce::Graphics &g)
 {
     g.fillAll(m_appViewState.getBackgroundColour2());
     auto bounds = getLocalBounds();
@@ -90,8 +89,7 @@ void SoundEditorPanel::paint(juce::Graphics& g)
     auto controlsArea = bounds;
     controlsArea.removeFromTop(5);
 
-
-    GUIHelpers::drawRoundedRectWithSide(g, headerArea.getUnion(waveformArea).toFloat() , 10, true, true, false, false);
+    GUIHelpers::drawRoundedRectWithSide(g, headerArea.getUnion(waveformArea).toFloat(), 10, true, true, false, false);
     GUIHelpers::drawRoundedRectWithSide(g, controlsArea.toFloat(), 10, true, true, true, true);
 
     headerArea.reduce(1, 1);
@@ -104,27 +102,19 @@ void SoundEditorPanel::paint(juce::Graphics& g)
     g.setColour(colour);
     GUIHelpers::drawRoundedRectWithSide(g, headerArea.toFloat(), 6.0f, true, true, false, false);
 
-    auto headerTextColour = colour.getBrightness() > 0.8f
-             ? juce::Colour(0xff000000)
-             : juce::Colour(0xffffffff);
+    auto headerTextColour = colour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
     g.setColour(headerTextColour);
     g.setFont(14.0f);
     if (m_audioFile != nullptr && m_audioFile->isValid())
     {
 
-        g.drawText(m_audioFile->getFile().getFileName(),
-                   headerArea.withTrimmedLeft(10),
-                   juce::Justification::centredLeft);
+        g.drawText(m_audioFile->getFile().getFileName(), headerArea.withTrimmedLeft(10), juce::Justification::centredLeft);
 
-        g.drawText(juce::String(m_audioFile->getLength(), 2) + " s",
-                   headerArea.withTrimmedRight(10),
-                   juce::Justification::centredRight);
+        g.drawText(juce::String(m_audioFile->getLength(), 2) + " s", headerArea.withTrimmedRight(10), juce::Justification::centredRight);
     }
     // Draw waveform background
     g.setColour(m_appViewState.getBackgroundColour1());
     g.fillRect(waveformArea);
-
-
 
     g.setColour(m_appViewState.getBackgroundColour1());
     GUIHelpers::drawRoundedRectWithSide(g, controlsArea.toFloat(), 10.0f, true, true, true, true);
@@ -193,7 +183,6 @@ void SoundEditorPanel::setSound(int index)
                 m_thumbnail->setFile(audioFile);
                 m_thumbnail->setColour(m_appViewState.getTextColour());
 
-
                 // Update start/end markers via callback
                 double startTime = m_samplerPlugin.getSoundStartTime(soundIndex);
                 double endTime = startTime + m_samplerPlugin.getSoundLength(soundIndex);
@@ -217,8 +206,7 @@ void SoundEditorPanel::setSound(int index)
     repaint();
 }
 
-
-void SoundEditorPanel::valueChanged(juce::Value& value)
+void SoundEditorPanel::valueChanged(juce::Value &value)
 {
     if (soundIndex != -1)
     {
@@ -233,7 +221,7 @@ void SoundEditorPanel::valueChanged(juce::Value& value)
     }
 }
 
-void SoundEditorPanel::buttonClicked(juce::Button* button)
+void SoundEditorPanel::buttonClicked(juce::Button *button)
 {
     if (soundIndex != -1)
     {

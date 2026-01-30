@@ -26,20 +26,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
+const juce::DrawableButton::ButtonStyle buttonStyle{juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
 
-const juce::DrawableButton::ButtonStyle buttonStyle {juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
-
-ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState& evs, ApplicationViewState &avs)
-    : BrowserBaseComponent(avs) 
-    , m_evs(evs)
-    , m_avs(avs)
-    , m_newProjectButton("New", buttonStyle)
-    , m_loadProjectButton("Load", buttonStyle)
-    , m_saveProjectButton("Save",buttonStyle)
+ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, ApplicationViewState &avs)
+    : BrowserBaseComponent(avs),
+      m_evs(evs),
+      m_avs(avs),
+      m_newProjectButton("New", buttonStyle),
+      m_loadProjectButton("Load", buttonStyle),
+      m_saveProjectButton("Save", buttonStyle)
 {
     const auto margin = 7;
 
-    if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+    if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
         addChangeListener(parent);
 
     addAndMakeVisible(m_projectsMenu);
@@ -59,43 +58,30 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState& evs, Applicati
     m_saveProjectButton.setTooltip(GUIHelpers::translate("handle projects", avs));
     m_saveProjectButton.setEdgeIndent(margin);
 
-
-    m_newProjectButton.onClick = [this] {
+    m_newProjectButton.onClick = [this]
+    {
         m_evs.m_edit.engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
         m_projectToLoad = juce::File();
         sendChangeMessage();
     };
 
-    m_loadProjectButton.onClick = [this] {
+    m_loadProjectButton.onClick = [this]
+    {
+        juce::WildcardFileFilter wildcardFilter("*.tracktionedit", juce::String(), "Next Studio Project File");
 
-        juce::WildcardFileFilter wildcardFilter ("*.tracktionedit"
-                                                 , juce::String()
-                                                 , "Next Studio Project File");
+        juce::FileBrowserComponent browser(juce::FileBrowserComponent::openMode + juce::FileBrowserComponent::canSelectFiles, juce::File(m_avs.m_projectsDir), &wildcardFilter, nullptr);
 
-        juce::FileBrowserComponent browser (juce::FileBrowserComponent::openMode
-                                            + juce::FileBrowserComponent::canSelectFiles
-                                            , juce::File(m_avs.m_projectsDir)
-                                            , &wildcardFilter
-                                            , nullptr);
-
-        juce::FileChooserDialogBox dialogBox ("Load a project",
-                                              "Please choose some kind of file that you want to load...",
-                                              browser,
-                                              true,
-                                              juce::Colours::red
-                                              );
+        juce::FileChooserDialogBox dialogBox("Load a project", "Please choose some kind of file that you want to load...", browser, true, juce::Colours::red);
 
         if (dialogBox.show())
         {
-            m_projectToLoad = browser.getSelectedFile (0);
-            sendChangeMessage ();
+            m_projectToLoad = browser.getSelectedFile(0);
+            sendChangeMessage();
         }
-        sendChangeMessage(); 
+        sendChangeMessage();
     };
 
-    m_saveProjectButton.onClick = [this] {
-        GUIHelpers::saveEdit (m_evs, juce::File::createFileWithoutCheckingPath (m_avs.m_projectsDir));
-    };
+    m_saveProjectButton.onClick = [this] { GUIHelpers::saveEdit(m_evs, juce::File::createFileWithoutCheckingPath(m_avs.m_projectsDir)); };
 
     setName("ProjectBrowser");
     m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
@@ -103,7 +89,7 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState& evs, Applicati
     m_sortingBox.setSelectedId(1, juce::dontSendNotification);
 }
 
-void ProjectsBrowserComponent::paint (juce::Graphics& g) 
+void ProjectsBrowserComponent::paint(juce::Graphics &g)
 {
     BrowserBaseComponent::paint(g);
     auto area = getLocalBounds();
@@ -111,11 +97,11 @@ void ProjectsBrowserComponent::paint (juce::Graphics& g)
     g.drawHorizontalLine(prjButtons.getBottom(), 0, getWidth());
 }
 
-void ProjectsBrowserComponent::resized() 
+void ProjectsBrowserComponent::resized()
 {
     auto area = getLocalBounds();
     auto prjButtons = area.removeFromTop(70);
-    auto sortcomp = area.removeFromTop(30).reduced(2,2);
+    auto sortcomp = area.removeFromTop(30).reduced(2, 2);
     auto sortlabel = sortcomp.removeFromLeft(50);
     auto searchfield = area.removeFromBottom(30);
     auto list = area;
@@ -124,23 +110,20 @@ void ProjectsBrowserComponent::resized()
     m_sortLabel.setBounds(sortlabel);
     m_sortingBox.setBounds(sortcomp);
     m_searchField.setBounds(searchfield);
-    m_listBox.setBounds (list);
+    m_listBox.setBounds(list);
 }
-juce::var ProjectsBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
-{
-    return {"ProjectsBrowser"};
-}
+juce::var ProjectsBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &) { return {"ProjectsBrowser"}; }
 
 void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
 {
-    if (rowNum < 0|| rowNum >= getNumRows())
+    if (rowNum < 0 || rowNum >= getNumRows())
     {
         return;
     }
 
-    juce::Rectangle<int> bounds (0,0, width, height);
+    juce::Rectangle<int> bounds(0, 0, width, height);
     auto textColour = m_applicationViewState.getTextColour();
-    g.setColour (rowNum%2==0 ? m_applicationViewState.getBackgroundColour2() : m_applicationViewState.getBackgroundColour2().brighter(0.05f));
+    g.setColour(rowNum % 2 == 0 ? m_applicationViewState.getBackgroundColour2() : m_applicationViewState.getBackgroundColour2().brighter(0.05f));
     g.fillRect(bounds);
     g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
@@ -150,15 +133,15 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
         g.setColour(m_applicationViewState.getPrimeColour());
         g.fillRect(bounds);
     }
-    bounds.reduce(4,0);
+    bounds.reduce(4, 0);
     if (m_searchTerm.isEmpty())
     {
         g.setColour(rowIsSelected ? m_applicationViewState.getPrimeColour().contrasting(.7f) : textColour);
-        g.drawFittedText(m_contentList[rowNum].getFileName ().trimCharactersAtEnd(".tracktionedit"), bounds, juce::Justification::left, 1);
+        g.drawFittedText(m_contentList[rowNum].getFileName().trimCharactersAtEnd(".tracktionedit"), bounds, juce::Justification::left, 1);
     }
     else
     {
-        auto text = m_contentList[rowNum].getFileName ();
+        auto text = m_contentList[rowNum].getFileName();
 
         juce::String preTerm, postTerm;
         int termStartIndex = text.indexOfIgnoreCase(m_searchTerm);
@@ -171,7 +154,7 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
             auto colour = rowIsSelected ? juce::Colours::black : textColour;
 
             g.setColour(colour);
-            g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+            g.setFont(juce::Font((float)height * 0.7f, juce::Font::bold));
             g.drawFittedText(preTerm, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
 
             int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
@@ -188,25 +171,23 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
 }
 void ProjectsBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e)
 {
-    if (e.mods.isRightButtonDown ())
+    if (e.mods.isRightButtonDown())
     {
         juce::PopupMenu p;
-        p.addItem (1, "Info");
+        p.addItem(1, "Info");
         const int result = p.show();
-        if(result == 1)
+        if (result == 1)
         {
         }
     }
     else if (e.getNumberOfClicks() > 1)
     {
         m_projectToLoad = getContentList()[row];
-        sendChangeMessage ();
+        sendChangeMessage();
     }
 }
 
-void ProjectsBrowserComponent::selectedRowsChanged(int)
-{
-}
+void ProjectsBrowserComponent::selectedRowsChanged(int) {}
 
 void ProjectsBrowserComponent::sortList(int selectedID)
 {
@@ -221,11 +202,11 @@ void ProjectsBrowserComponent::sortList(int selectedID)
 
     m_contentList.clear();
     m_contentList.addArray(fileList);
-    
+
     if (getParentComponent())
-        getParentComponent()->resized(); 
+        getParentComponent()->resized();
 }
-void ProjectsBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
+void ProjectsBrowserComponent::sortByName(juce::Array<juce::File> &list, bool forward)
 {
     if (list.size() > 1)
     {

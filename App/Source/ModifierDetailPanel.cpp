@@ -26,7 +26,8 @@ void ModifierDetailPanel::setModifier(te::Modifier::Ptr m)
 {
     m_view.reset();
 
-    if (m) {
+    if (m)
+    {
         if (dynamic_cast<te::LFOModifier *>(m.get()))
             m_view = std::make_unique<LFOModifierComponent>(m_evs, m);
         else if (dynamic_cast<te::StepModifier *>(m.get()))
@@ -37,17 +38,15 @@ void ModifierDetailPanel::setModifier(te::Modifier::Ptr m)
         addAndMakeVisible(m_view.get());
         m_placeholderLabel.setVisible(false);
     }
-    else {
+    else
+    {
         m_placeholderLabel.setVisible(true);
     }
 
     resized();
 }
 
-void ModifierDetailPanel::paint(juce::Graphics &g)
-{
-    g.fillAll(m_evs.m_applicationState.getBackgroundColour2());
-}
+void ModifierDetailPanel::paint(juce::Graphics &g) { g.fillAll(m_evs.m_applicationState.getBackgroundColour2()); }
 
 void ModifierDetailPanel::resized()
 {

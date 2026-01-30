@@ -27,18 +27,16 @@ namespace te = tracktion_engine;
 
 struct SampleView : public juce::Component
 {
-    explicit SampleView (te::Edit& edit);
+    explicit SampleView(te::Edit &edit);
 
-    void setFile (const te::AudioFile& file);
-    void setColour(juce::Colour colour)
-    {
-        m_colour = colour;
-    }
-    void paint (juce::Graphics& g) override;
+    void setFile(const te::AudioFile &file);
+    void setColour(juce::Colour colour) { m_colour = colour; }
+    void paint(juce::Graphics &g) override;
 
-    te::SmartThumbnail & getSmartThumbnail () { return m_smartThumbnail; }
+    te::SmartThumbnail &getSmartThumbnail() { return m_smartThumbnail; }
+
 private:
-    te::Edit& m_edit;
+    te::Edit &m_edit;
     te::AudioFile m_audioFile;
     juce::Colour m_colour;
     te::SmartThumbnail m_smartThumbnail;
@@ -47,7 +45,11 @@ private:
 class MarkerComponent : public juce::Component
 {
 public:
-    enum MarkerType { Start, End };
+    enum MarkerType
+    {
+        Start,
+        End
+    };
 
     static constexpr float MARKER_WIDTH = 20.0f;
     static constexpr float HANDLE_SIZE = 8.0f;
@@ -58,7 +60,7 @@ public:
     void setPosition(double time, double totalLength, float componentWidth);
     void setPosition(double time, double totalLength, float componentWidth, double minTime = 0.0, double maxTime = -1.0);
     void updateFromTime(double time, double totalLength, float componentWidth);
-    bool isOverPosition(const juce::Point<float>& position) const;
+    bool isOverPosition(const juce::Point<float> &position) const;
     double getTime() const { return m_time; }
 
     std::function<void(double newTime)> onPositionChanged;
@@ -71,16 +73,16 @@ private:
     juce::DrawableRectangle m_handle;
 
     void resized() override;
-    void mouseDown(const juce::MouseEvent& e) override;
-    void mouseDrag(const juce::MouseEvent& e) override;
-    void mouseUp(const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent &e) override;
+    void mouseDrag(const juce::MouseEvent &e) override;
+    void mouseUp(const juce::MouseEvent &e) override;
 
     bool m_isDragging = false;
     double m_totalLength = 0.0;
     float m_componentWidth = 0.0;
     double m_minTime = 0.0;
     double m_maxTime = -1.0;
-    double timeFromPosition(const juce::Point<float>& position) const;
+    double timeFromPosition(const juce::Point<float> &position) const;
 };
 
 class ApplicationViewState;
@@ -90,14 +92,14 @@ class SampleDisplay : public juce::Component
 public:
     static constexpr int CURSOR_UPDATE_FPS = 15;
 
-    SampleDisplay(te::TransportControl& tc, ApplicationViewState& appViewState);
+    SampleDisplay(te::TransportControl &tc, ApplicationViewState &appViewState);
 
     void resized() override;
 
-    void mouseDown (const juce::MouseEvent& e) override;
-    void mouseDrag (const juce::MouseEvent& e) override;
-    void mouseUp (const juce::MouseEvent&) override;
-    void setFile (const te::AudioFile& file);
+    void mouseDown(const juce::MouseEvent &e) override;
+    void mouseDrag(const juce::MouseEvent &e) override;
+    void mouseUp(const juce::MouseEvent &) override;
+    void setFile(const te::AudioFile &file);
     void setColour(juce::Colour colour);
 
     // New methods for start/end markers
@@ -109,8 +111,8 @@ public:
     std::function<void(double start, double end)> onMarkerPositionChanged;
 
 private:
-    te::TransportControl& transport;
-    ApplicationViewState& m_appViewState;
+    te::TransportControl &transport;
+    ApplicationViewState &m_appViewState;
     juce::DrawableRectangle cursor;
     MarkerComponent m_startMarker;
     MarkerComponent m_endMarker;
@@ -123,5 +125,5 @@ private:
 
     void updateCursorPosition();
     void updateStartEndMarkers();
-    double positionToTime(const juce::Point<float>& position) const;
+    double positionToTime(const juce::Point<float> &position) const;
 };

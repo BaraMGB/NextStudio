@@ -25,10 +25,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-InstrumentEffectListModel::InstrumentEffectListModel(tracktion::Engine &engine, bool isInstrumentList, ApplicationViewState& appState) 
-    : m_engine(engine), m_knownPlugins(engine.getPluginManager().knownPluginList)
-    , m_isInstrumentList(isInstrumentList)
-    , m_appState(appState)
+InstrumentEffectListModel::InstrumentEffectListModel(tracktion::Engine &engine, bool isInstrumentList, ApplicationViewState &appState)
+    : m_engine(engine),
+      m_knownPlugins(engine.getPluginManager().knownPluginList),
+      m_isInstrumentList(isInstrumentList),
+      m_appState(appState)
 {
     updatePluginLists();
 }
@@ -38,7 +39,7 @@ void InstrumentEffectListModel::updatePluginLists()
     m_instruments.clear();
     m_effects.clear();
 
-    for (auto& desc : m_knownPlugins.getTypes())
+    for (auto &desc : m_knownPlugins.getTypes())
     {
         if (desc.isInstrument)
             m_instruments.add(desc);
@@ -46,7 +47,7 @@ void InstrumentEffectListModel::updatePluginLists()
             m_effects.add(desc);
     }
 
-    for (auto& desc : EngineHelpers::getInternalPlugins())
+    for (auto &desc : EngineHelpers::getInternalPlugins())
     {
         if (desc.isInstrument)
             m_instruments.add(desc);
@@ -106,9 +107,15 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
     {
         switch (col)
         {
-        case typeCol:         text = desc.pluginFormatName; break;
-        case nameCol:         text = desc.name; break;
-        default: jassertfalse; break;
+        case typeCol:
+            text = desc.pluginFormatName;
+            break;
+        case nameCol:
+            text = desc.name;
+            break;
+        default:
+            jassertfalse;
+            break;
         }
     }
 
@@ -116,7 +123,7 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
     {
         if (col == typeCol)
         {
-            juce::Drawable* icon = nullptr;
+            juce::Drawable *icon = nullptr;
             if (desc.pluginFormatName == "VST3")
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::vst3Icon_svg, juce::Colours::yellowgreen).release();
             else if (desc.pluginFormatName == "LADSPA")
@@ -126,16 +133,15 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
             else if (desc.pluginFormatName == "AudioUnit")
                 icon = GUIHelpers::getDrawableFromSvg(BinaryData::AUIcon_svg, juce::Colours::wheat).release();
             else if (desc.pluginFormatName == getInternalPluginFormatName())
-                icon = GUIHelpers::getDrawableFromSvg(BinaryData::INTIcon_svg, juce::Colours::gold ).release();
+                icon = GUIHelpers::getDrawableFromSvg(BinaryData::INTIcon_svg, juce::Colours::gold).release();
 
             if (icon != nullptr)
             {
                 auto padding = 5.f;
-                icon->setTransformToFit({static_cast<float>(width)/4 - padding, padding, (static_cast<float>(width)/2.f) + padding, static_cast<float>(height - (padding*2))}, juce::RectanglePlacement::centred);
+                icon->setTransformToFit({static_cast<float>(width) / 4 - padding, padding, (static_cast<float>(width) / 2.f) + padding, static_cast<float>(height - (padding * 2))}, juce::RectanglePlacement::centred);
                 icon->draw(g, 1.0f);
                 delete icon;
             }
-
         }
         else
         {
@@ -148,9 +154,9 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
                 preTerm = text.substring(0, termStartIndex);
                 postTerm = text.substring(termStartIndex + m_searchTerm.length());
                 auto colour = rowIsSelected ? m_appState.getPrimeColour().contrasting(.7f) : m_appState.getTextColour();
-                
+
                 g.setColour(colour);
-                g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+                g.setFont(juce::Font((float)height * 0.7f, juce::Font::bold));
                 g.drawFittedText(preTerm, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
 
                 int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
@@ -168,7 +174,7 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
                 auto colour = rowIsSelected ? m_appState.getPrimeColour().contrasting(.7f) : m_appState.getTextColour();
 
                 g.setColour(colour);
-                g.setFont(juce::Font((float) height * 0.7f, juce::Font::bold));
+                g.setFont(juce::Font((float)height * 0.7f, juce::Font::bold));
                 g.drawFittedText(text, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
             }
         }
@@ -179,49 +185,41 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
     g.drawVerticalLine(width - 1, 0, height);
 }
 
-int InstrumentEffectListModel::getNumRows()
-{
-    return m_isInstrumentList ? m_instruments.size() : m_effects.size();
-     
-}
+int InstrumentEffectListModel::getNumRows() { return m_isInstrumentList ? m_instruments.size() : m_effects.size(); }
 
 void InstrumentEffectListModel::sortOrderChanged(int newSortColumnId, bool isForwards)
 {
-    auto& desc = m_isInstrumentList ? m_instruments : m_effects;
+    auto &desc = m_isInstrumentList ? m_instruments : m_effects;
     switch (newSortColumnId)
     {
     case typeCol:
-            EngineHelpers::sortByFormatName(desc, isForwards);
-            m_order = {typeCol, isForwards};
-            sendChangeMessage()
-            ;break;
+        EngineHelpers::sortByFormatName(desc, isForwards);
+        m_order = {typeCol, isForwards};
+        sendChangeMessage();
+        break;
 
     case nameCol:
-            EngineHelpers::sortByName(desc, isForwards)
-            ; m_order = {nameCol, isForwards};
-            sendChangeMessage();
-            break;
+        EngineHelpers::sortByName(desc, isForwards);
+        m_order = {nameCol, isForwards};
+        sendChangeMessage();
+        break;
 
     default:
-            jassertfalse;
-            break;
+        jassertfalse;
+        break;
     }
 }
 
-juce::var InstrumentEffectListModel::getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) 
-{
-    return {"Instrument or Effect"};
-}
+juce::var InstrumentEffectListModel::getDragSourceDescription(const juce::SparseSet<int> & /*rowsToDescribe*/) { return {"Instrument or Effect"}; }
 
 // ----------------------------------------------------------------------------------------------
 
-InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, InstrumentEffectListModel& model, ApplicationViewState& appState)
-    : m_engine(engine)
-    , m_model(model)
-    , m_appState(appState)
+InstrumentEffectTable::InstrumentEffectTable(tracktion::Engine &engine, InstrumentEffectListModel &model, ApplicationViewState &appState)
+    : m_engine(engine),
+      m_model(model),
+      m_appState(appState)
 {
 }
-
 
 tracktion::Plugin::Ptr InstrumentEffectTable::getSelectedPlugin(tracktion::Edit &edit)
 {
@@ -230,7 +228,7 @@ tracktion::Plugin::Ptr InstrumentEffectTable::getSelectedPlugin(tracktion::Edit 
     if (selectedRow < 0)
         return nullptr;
 
-    auto & list = m_model.getPluginList();
+    auto &list = m_model.getPluginList();
 
     if (selectedRow < list.size())
     {
@@ -246,22 +244,22 @@ tracktion::Plugin::Ptr InstrumentEffectTable::getSelectedPlugin(tracktion::Edit 
 //----------------------------------------------------------------------------------------------------
 
 const auto formatWidth = 60;
-InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool isInstrumentList, ApplicationViewState& appState)
-    : m_engine(engine)
-    , m_isInstrumentList(isInstrumentList)
-    , m_model(engine, isInstrumentList,appState)
-    , m_listbox(engine, m_model,appState)
-    , m_searchField(appState)
-    , m_appState(appState)
+InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool isInstrumentList, ApplicationViewState &appState)
+    : m_engine(engine),
+      m_isInstrumentList(isInstrumentList),
+      m_model(engine, isInstrumentList, appState),
+      m_listbox(engine, m_model, appState),
+      m_searchField(appState),
+      m_appState(appState)
 {
     addAndMakeVisible(m_listbox);
     m_model.addChangeListener(this);
     m_listbox.setModel(&m_model);
-    m_listbox.setRowHeight (20);
-    juce::TableHeaderComponent& header = m_listbox.getHeader();
+    m_listbox.setRowHeight(20);
+    juce::TableHeaderComponent &header = m_listbox.getHeader();
 
-    header.addColumn (TRANS ("Format"), 1, formatWidth, formatWidth, formatWidth, juce::TableHeaderComponent::notResizable);
-    header.addColumn (TRANS ("Name"), 2, juce::jmax(1, getWidth() - formatWidth + 1), 80,30000, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::notResizable);
+    header.addColumn(TRANS("Format"), 1, formatWidth, formatWidth, formatWidth, juce::TableHeaderComponent::notResizable);
+    header.addColumn(TRANS("Name"), 2, juce::jmax(1, getWidth() - formatWidth + 1), 80, 30000, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::notResizable);
 
     addAndMakeVisible(m_searchField);
     m_searchField.addChangeListener(this);
@@ -275,19 +273,18 @@ void InstrumentEffectChooser::resized()
     m_listbox.setBounds(area);
     m_searchField.setBounds(searchField);
 
-    juce::TableHeaderComponent& header = m_listbox.getHeader();
+    juce::TableHeaderComponent &header = m_listbox.getHeader();
     header.setColumnWidth(InstrumentEffectListModel::nameCol, getWidth() - formatWidth + 1);
 }
 
 void InstrumentEffectChooser::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto searchbox = dynamic_cast<SearchFieldComponent*>(source))
+    if (auto searchbox = dynamic_cast<SearchFieldComponent *>(source))
     {
-        m_model.changeSearchTerm(searchbox->getText()) ;
+        m_model.changeSearchTerm(searchbox->getText());
         repaint();
     }
 
-       
     m_listbox.updateContent();
     getParentComponent()->resized();
 }

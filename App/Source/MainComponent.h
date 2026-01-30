@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 /*
   ==============================================================================
 
@@ -33,25 +32,25 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
+#include "ApplicationViewState.h"
+#include "EditComponent.h"
+#include "EditViewState.h"
+#include "ExtendedUIBehavior.h"
 #include "HeaderComponent.h"
 #include "LowerRangeComponent.h"
 #include "NextLookAndFeel.h"
-#include "SidebarComponent.h"
-#include "EditViewState.h"
-#include "ApplicationViewState.h"
-#include "EditComponent.h"
-#include "Utilities.h"
-#include "ExtendedUIBehavior.h"
 #include "PluginWindow.h"
+#include "SidebarComponent.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
 class EditorContainer : public juce::Component
 {
 public:
-    EditorContainer(HeaderComponent& hc, EditComponent& ec)
-        : m_header(hc)
-        , m_editComp(ec)
+    EditorContainer(HeaderComponent &hc, EditComponent &ec)
+        : m_header(hc),
+          m_editComp(ec)
     {
         addAndMakeVisible(hc);
         addAndMakeVisible(ec);
@@ -63,44 +62,44 @@ public:
         area.removeFromTop(10);
         m_editComp.setBounds(area);
     }
+
 private:
-    HeaderComponent& m_header;
-    EditComponent& m_editComp;
+    HeaderComponent &m_header;
+    EditComponent &m_editComp;
 };
 
-class MainComponent   : public juce::Component
-                      , public juce::ApplicationCommandTarget
-                      , public juce::DragAndDropContainer
-                      , public juce::ChangeListener
-                      , public te::ValueTreeAllEventListener
-                      , private FlaggedAsyncUpdater
+class MainComponent
+    : public juce::Component
+    , public juce::ApplicationCommandTarget
+    , public juce::DragAndDropContainer
+    , public juce::ChangeListener
+    , public te::ValueTreeAllEventListener
+    , private FlaggedAsyncUpdater
 {
 public:
-    explicit MainComponent(ApplicationViewState& state);
+    explicit MainComponent(ApplicationViewState &state);
     ~MainComponent() override;
 
-    void paint (juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
-    bool keyStateChanged(bool isKeyDown) override ;
-    ApplicationCommandTarget* getNextCommandTarget() override   { return nullptr; }
-    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
+    bool keyStateChanged(bool isKeyDown) override;
+    ApplicationCommandTarget *getNextCommandTarget() override { return nullptr; }
+    void getAllCommands(juce::Array<juce::CommandID> &commands) override;
 
-    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
-    
-    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
+    void getCommandInfo(juce::CommandID commandID, juce::ApplicationCommandInfo &result) override;
+
+    bool perform(const juce::ApplicationCommandTarget::InvocationInfo &info) override;
 
     void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
     void valueTreeChanged() override {}
 
-    void setupEdit (juce::File = {});
+    void setupEdit(juce::File = {});
     bool handleUnsavedEdit();
 
 private:
-
-
-    void handleAsyncUpdate () override;
-    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+    void handleAsyncUpdate() override;
+    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
     void saveSettings();
     void createTracksAndAssignInputs();
     void openValidStartEdit();
@@ -110,8 +109,8 @@ private:
     {
         auto atList = te::getTracksOfType<te::AudioTrack>(*m_edit, true);
 
-        for (auto & t : atList)
-            m_edit->deleteTrack (t);
+        for (auto &t : atList)
+            m_edit->deleteTrack(t);
     }
 
     void updateTheme()
@@ -124,13 +123,13 @@ private:
         getLookAndFeel().setColour(juce::ComboBox::ColourIds::textColourId, m_applicationState.getTextColour());
         getLookAndFeel().setColour(juce::TabbedButtonBar::ColourIds::tabTextColourId, m_applicationState.getTextColour());
         getLookAndFeel().setColour(juce::TabbedButtonBar::ColourIds::frontTextColourId, m_applicationState.getPrimeColour());
-        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::textColourId , m_applicationState.getTextColour());
+        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::textColourId, m_applicationState.getTextColour());
         getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_applicationState.getBackgroundColour2());
-        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::outlineColourId , m_applicationState.getBorderColour());
-        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::highlightColourId , m_applicationState.getPrimeColour());
+        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, m_applicationState.getBorderColour());
+        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, m_applicationState.getPrimeColour());
         getLookAndFeel().setColour(juce::TableListBox::textColourId, m_applicationState.getTextColour());
         getLookAndFeel().setColour(juce::TableListBox::backgroundColourId, m_applicationState.getBackgroundColour2());
-        getLookAndFeel().setColour(juce::DrawableButton::textColourId , m_applicationState.getButtonTextColour());
+        getLookAndFeel().setColour(juce::DrawableButton::textColourId, m_applicationState.getButtonTextColour());
         getLookAndFeel().setColour(juce::DrawableButton::textColourOnId, m_applicationState.getButtonTextColour());
         getLookAndFeel().setColour(juce::ResizableWindow::backgroundColourId, m_applicationState.getBackgroundColour2());
         if (m_editComponent)
@@ -141,34 +140,30 @@ private:
         repaint();
     }
 
-    ApplicationViewState &                              m_applicationState;
-    NextLookAndFeel                                     m_nextLookAndFeel;
+    ApplicationViewState &m_applicationState;
+    NextLookAndFeel m_nextLookAndFeel;
 
-    tracktion_engine::Engine                            m_engine
-                                { ProjectInfo::projectName
-                                , std::make_unique<ExtendedUIBehaviour>()
-                                , nullptr };
-    juce::ApplicationCommandManager                     m_commandManager;
+    tracktion_engine::Engine m_engine{ProjectInfo::projectName, std::make_unique<ExtendedUIBehaviour>(), nullptr};
+    juce::ApplicationCommandManager m_commandManager;
 
-    tracktion_engine::SelectionManager                  m_selectionManager{ m_engine };
-    std::unique_ptr<tracktion_engine::Edit>             m_edit;
-    std::unique_ptr<EditViewState>                      m_editViewState;
-    std::unique_ptr<EditComponent>                      m_editComponent;
-    std::unique_ptr<HeaderComponent>                    m_header;
-    std::unique_ptr<EditorContainer>                    m_editorContainer;
-    std::unique_ptr<LowerRangeComponent>                m_lowerRange;
-    std::unique_ptr<SidebarComponent>                   m_sideBarBrowser;
-    SplitterComponent                                   m_sidebarSplitter;
+    tracktion_engine::SelectionManager m_selectionManager{m_engine};
+    std::unique_ptr<tracktion_engine::Edit> m_edit;
+    std::unique_ptr<EditViewState> m_editViewState;
+    std::unique_ptr<EditComponent> m_editComponent;
+    std::unique_ptr<HeaderComponent> m_header;
+    std::unique_ptr<EditorContainer> m_editorContainer;
+    std::unique_ptr<LowerRangeComponent> m_lowerRange;
+    std::unique_ptr<SidebarComponent> m_sideBarBrowser;
+    SplitterComponent m_sidebarSplitter;
 
-    [[maybe_unused]] bool                               m_settingsLoaded {false};
-    bool                                                m_saveTemp{false}, m_updateView{false},
-                                                        m_updateSource{false}, m_updateTheme{false};
-    bool m_hasUnsavedTemp {true};
+    [[maybe_unused]] bool m_settingsLoaded{false};
+    bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
+    bool m_hasUnsavedTemp{true};
 
-    int m_sidebarWidthAtMousedown; 
+    int m_sidebarWidthAtMousedown;
 
     juce::File m_tempDir;
     juce::Array<juce::KeyPress> m_pressedKeysForMidiKeyboard;
     juce::TooltipWindow tooltipWindow{this, 500};
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

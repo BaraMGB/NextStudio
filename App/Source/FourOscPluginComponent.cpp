@@ -22,9 +22,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "FourOscPluginComponent.h"
 #include "PresetHelpers.h"
 
-OscComponent::OscComponent(te::FourOscPlugin::OscParams& params, juce::Colour colorToUse)
-    : m_params(params)
-    , m_colour(colorToUse)
+OscComponent::OscComponent(te::FourOscPlugin::OscParams &params, juce::Colour colorToUse)
+    : m_params(params),
+      m_colour(colorToUse)
 {
     m_waveShapeCombo.reset(new juce::ComboBox("Wave"));
     m_waveShapeCombo->addItem("None", 1);
@@ -34,7 +34,8 @@ OscComponent::OscComponent(te::FourOscPlugin::OscParams& params, juce::Colour co
     m_waveShapeCombo->addItem("Square", 3);
     m_waveShapeCombo->addItem("Random", 6);
     m_waveShapeCombo->setSelectedId(m_params.waveShapeValue.get() + 1, juce::dontSendNotification);
-    m_waveShapeCombo->onChange = [this] {
+    m_waveShapeCombo->onChange = [this]
+    {
         if (m_waveShapeCombo->getSelectedId() > 0)
             m_params.waveShapeValue = m_waveShapeCombo->getSelectedId() - 1;
     };
@@ -71,7 +72,7 @@ void OscComponent::updateUI()
         m_waveShapeCombo->setSelectedId(m_params.waveShapeValue.get() + 1, juce::dontSendNotification);
 }
 
-void OscComponent::resized() 
+void OscComponent::resized()
 {
     auto area = getLocalBounds().reduced(5);
 
@@ -95,33 +96,27 @@ void OscComponent::resized()
     m_panParamComp->setBounds(row2.removeFromLeft(paramWidth).reduced(2));
 }
 
-
-EnvelopeComponent::EnvelopeComponent(ApplicationViewState& appState, const juce::String& name, te::Plugin& plugin,
-                      te::AutomatableParameter::Ptr attackParam,
-                      te::AutomatableParameter::Ptr decayParam,
-                      te::AutomatableParameter::Ptr sustainParam,
-                      te::AutomatableParameter::Ptr releaseParam)
-    : m_appstate(appState)
-    , m_name(name)
-    , m_plugin(plugin)
+EnvelopeComponent::EnvelopeComponent(ApplicationViewState &appState, const juce::String &name, te::Plugin &plugin, te::AutomatableParameter::Ptr attackParam, te::AutomatableParameter::Ptr decayParam, te::AutomatableParameter::Ptr sustainParam, te::AutomatableParameter::Ptr releaseParam)
+    : m_appstate(appState),
+      m_name(name),
+      m_plugin(plugin)
 {
     m_attackParamComp = std::make_unique<AutomatableParameterComponent>(attackParam, "A");
     m_decayParamComp = std::make_unique<AutomatableParameterComponent>(decayParam, "D");
     m_sustainParamComp = std::make_unique<AutomatableParameterComponent>(sustainParam, "S");
     m_releaseParamComp = std::make_unique<AutomatableParameterComponent>(releaseParam, "R");
 
-
-    m_name.setText(name ,juce::NotificationType::dontSendNotification);
+    m_name.setText(name, juce::NotificationType::dontSendNotification);
     m_name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(m_name);
-    m_name.setInterceptsMouseClicks (false, true);
+    m_name.setInterceptsMouseClicks(false, true);
     addAndMakeVisible(*m_attackParamComp);
     addAndMakeVisible(*m_decayParamComp);
     addAndMakeVisible(*m_sustainParamComp);
     addAndMakeVisible(*m_releaseParamComp);
 }
 
-void EnvelopeComponent::paint(juce::Graphics& g) 
+void EnvelopeComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
     auto cornerSize = 10.0f;
@@ -130,9 +125,7 @@ void EnvelopeComponent::paint(juce::Graphics& g)
 
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
 
-    auto labelingCol = trackColour.getBrightness() > 0.8f
-        ? juce::Colour(0xff000000)
-        : juce::Colour(0xffffffff);
+    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
     m_name.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
@@ -144,22 +137,17 @@ void EnvelopeComponent::paint(juce::Graphics& g)
     GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().toFloat(), cornerSize, true, false, true, false);
 }
 
-void EnvelopeComponent::resized() 
+void EnvelopeComponent::resized()
 {
     auto area = getLocalBounds();
 
     auto headerWidth = 15;
-    auto header = juce::Rectangle<int>(area.getX()
-                                       , area.getHeight() - headerWidth
-                                       , area.getHeight()
-                                       , headerWidth);
+    auto header = juce::Rectangle<int>(area.getX(), area.getHeight() - headerWidth, area.getHeight(), headerWidth);
     m_name.setBounds(header);
 
     m_name.setFont(juce::FontOptions(10));
 
-    m_name.setTransform(juce::AffineTransform::rotation ( - (juce::MathConstants<float>::halfPi)
-                                                         , header.getX() + 10.0
-                                                         , header.getY() + 10.0 ));
+    m_name.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), header.getX() + 10.0, header.getY() + 10.0));
     area.removeFromLeft(headerWidth);
     auto paramWidth = area.getWidth() / 4;
     m_attackParamComp->setBounds(area.removeFromLeft(paramWidth).reduced(2));
@@ -168,23 +156,23 @@ void EnvelopeComponent::resized()
     m_releaseParamComp->setBounds(area.reduced(2));
 }
 
-
-FilterComponent::FilterComponent(te::FourOscPlugin& plugin, ApplicationViewState& appstate)
-    : m_plugin(plugin)
-    , m_appstate(appstate)
+FilterComponent::FilterComponent(te::FourOscPlugin &plugin, ApplicationViewState &appstate)
+    : m_plugin(plugin),
+      m_appstate(appstate)
 {
 
-    m_name.setText("FILTER" ,juce::NotificationType::dontSendNotification);
+    m_name.setText("FILTER", juce::NotificationType::dontSendNotification);
     m_name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(m_name);
-    m_name.setInterceptsMouseClicks (false, true);
+    m_name.setInterceptsMouseClicks(false, true);
     m_typeCombo.reset(new juce::ComboBox("Type"));
     m_typeCombo->addItem("None", 1);
     m_typeCombo->addItem("Low Pass", 2);
     m_typeCombo->addItem("High Pass", 3);
     // Add 1 to map plugin value (0, 1, 2) to ComboBox ID (1, 2, 3)
     m_typeCombo->setSelectedId(m_plugin.filterTypeValue.get() + 1, juce::dontSendNotification);
-    m_typeCombo->onChange = [this] {
+    m_typeCombo->onChange = [this]
+    {
         // Subtract 1 to map ComboBox ID (1, 2, 3) back to plugin value (0, 1, 2)
         m_plugin.filterTypeValue = m_typeCombo->getSelectedId() - 1;
     };
@@ -194,7 +182,8 @@ FilterComponent::FilterComponent(te::FourOscPlugin& plugin, ApplicationViewState
     m_slopeCombo->addItem("12 dB", 1);
     m_slopeCombo->addItem("24 dB", 2);
     m_slopeCombo->setSelectedId(1, juce::dontSendNotification);
-    m_slopeCombo->onChange = [this] {
+    m_slopeCombo->onChange = [this]
+    {
         // Subtract 1 to map ComboBox ID (1, 2) back to plugin value (0, 1)
         m_plugin.filterSlopeValue = m_slopeCombo->getSelectedId() - 1;
     };
@@ -212,7 +201,7 @@ FilterComponent::FilterComponent(te::FourOscPlugin& plugin, ApplicationViewState
     addAndMakeVisible(*m_keyParamComp);
     addAndMakeVisible(*m_velocityParamComp);
 }
-void FilterComponent::paint(juce::Graphics& g) 
+void FilterComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(5);
     auto cornerSize = 10.0f;
@@ -221,9 +210,7 @@ void FilterComponent::paint(juce::Graphics& g)
 
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
 
-    auto labelingCol = trackColour.getBrightness() > 0.8f
-        ? juce::Colour(0xff000000)
-        : juce::Colour(0xffffffff);
+    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
     m_name.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
@@ -235,30 +222,25 @@ void FilterComponent::paint(juce::Graphics& g)
     GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, false, true, false);
 }
 
-void FilterComponent::resized() 
+void FilterComponent::resized()
 {
     auto area = getLocalBounds().reduced(5);
 
     auto headerWidth = 15;
-    auto header = juce::Rectangle<int>(area.getX()
-                                       , area.getHeight() - headerWidth
-                                       , area.getHeight()
-                                       , headerWidth);
+    auto header = juce::Rectangle<int>(area.getX(), area.getHeight() - headerWidth, area.getHeight(), headerWidth);
     m_name.setBounds(header);
 
     m_name.setFont(juce::FontOptions(10));
 
-    m_name.setTransform(juce::AffineTransform::rotation ( - (juce::MathConstants<float>::halfPi)
-                                                         , header.getX() + 10.0
-                                                         , header.getY() + 10.0 ));
+    m_name.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), header.getX() + 10.0, header.getY() + 10.0));
     area.removeFromLeft(headerWidth);
     auto topRow = area.removeFromTop(24);
 
     m_typeCombo->setBounds(topRow.removeFromLeft(topRow.getWidth() / 2).reduced(5, 0));
     m_slopeCombo->setBounds(topRow.reduced(5, 0));
 
-    auto freqResRect = area.removeFromTop(area.getHeight()/2);
-    auto paramWidth = freqResRect.getWidth()/3;
+    auto freqResRect = area.removeFromTop(area.getHeight() / 2);
+    auto paramWidth = freqResRect.getWidth() / 3;
 
     m_freqParamComp->setBounds(freqResRect.removeFromLeft(paramWidth).reduced(2));
     m_resParamComp->setBounds(freqResRect.removeFromLeft(paramWidth).reduced(2));
@@ -276,12 +258,10 @@ void FilterComponent::updateUI()
         m_slopeCombo->setSelectedId(m_plugin.filterSlopeValue.get() + 1, juce::dontSendNotification);
 }
 
-
-
-FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::Ptr p)
+FourOscPluginComponent::FourOscPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
 {
-    m_fourOscPlugin = dynamic_cast<te::FourOscPlugin*>(p.get());
+    m_fourOscPlugin = dynamic_cast<te::FourOscPlugin *>(p.get());
     jassert(m_fourOscPlugin != nullptr);
 
     // Create TabComponent
@@ -298,9 +278,7 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
     m_voiceModeCombo->addItem("Legato", 2);
     m_voiceModeCombo->addItem("Poly", 3);
     m_voiceModeCombo->setSelectedId(m_fourOscPlugin->voiceModeValue.get() + 1, juce::dontSendNotification);
-    m_voiceModeCombo->onChange = [this] {
-        m_fourOscPlugin->voiceModeValue = m_voiceModeCombo->getSelectedId() - 1;
-    };
+    m_voiceModeCombo->onChange = [this] { m_fourOscPlugin->voiceModeValue = m_voiceModeCombo->getSelectedId() - 1; };
     mainPanel->addAndMakeVisible(*m_voiceModeCombo);
 
     // Create oscillator selection buttons
@@ -310,10 +288,18 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
 
         switch (i)
         {
-            case 0: colour = juce::Colour(0xffddcc00); break;
-            case 1: colour = juce::Colours::green; break;
-            case 2: colour = juce::Colours::blue; break;
-            case 3: colour = juce::Colours::red; break;
+        case 0:
+            colour = juce::Colour(0xffddcc00);
+            break;
+        case 1:
+            colour = juce::Colours::green;
+            break;
+        case 2:
+            colour = juce::Colours::blue;
+            break;
+        case 3:
+            colour = juce::Colours::red;
+            break;
         }
         auto oscButton = std::make_unique<juce::TextButton>("OSC " + juce::String(i + 1));
         oscButton->setColour(juce::TextButton::ColourIds::buttonColourId, colour.withBrightness(0.8f));
@@ -327,7 +313,8 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
 
         // Add a lambda to handle button click
         auto oscIndex = i;
-        oscButton->onClick = [this, oscIndex] {
+        oscButton->onClick = [this, oscIndex]
+        {
             m_currentOscIndex = oscIndex;
             updateOscComponentVisibility();
             this->repaint();
@@ -350,10 +337,18 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
 
         switch (i)
         {
-            case 0: colour = juce::Colours::yellow; break;
-            case 1: colour = juce::Colours::green; break;
-            case 2: colour = juce::Colours::blue; break;
-            case 3: colour = juce::Colours::red; break;
+        case 0:
+            colour = juce::Colours::yellow;
+            break;
+        case 1:
+            colour = juce::Colours::green;
+            break;
+        case 2:
+            colour = juce::Colours::blue;
+            break;
+        case 3:
+            colour = juce::Colours::red;
+            break;
         }
         auto oscComponent = std::make_unique<OscComponent>(*m_fourOscPlugin->oscParams[i], colour);
 
@@ -362,12 +357,12 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
     }
 
     // ADSR Sliders for Amp Envelope
-    m_ampEnvComponent = std::make_unique<EnvelopeComponent>(m_editViewState.m_applicationState, "AMP ENV",*m_fourOscPlugin, m_fourOscPlugin->ampAttack, m_fourOscPlugin->ampDecay, m_fourOscPlugin->ampSustain, m_fourOscPlugin->ampRelease );
+    m_ampEnvComponent = std::make_unique<EnvelopeComponent>(m_editViewState.m_applicationState, "AMP ENV", *m_fourOscPlugin, m_fourOscPlugin->ampAttack, m_fourOscPlugin->ampDecay, m_fourOscPlugin->ampSustain, m_fourOscPlugin->ampRelease);
     m_filterEnvComp = std::make_unique<EnvelopeComponent>(m_editViewState.m_applicationState, "FILTER ENV", *m_plugin,
-                                                          m_fourOscPlugin->filterAttack,  // Assumed parameter name
-                                                          m_fourOscPlugin->filterDecay,   // Assumed parameter name
-                                                          m_fourOscPlugin->filterSustain, // Assumed parameter name
-                                                          m_fourOscPlugin->filterRelease);// Assumed parameter name
+                                                          m_fourOscPlugin->filterAttack,   // Assumed parameter name
+                                                          m_fourOscPlugin->filterDecay,    // Assumed parameter name
+                                                          m_fourOscPlugin->filterSustain,  // Assumed parameter name
+                                                          m_fourOscPlugin->filterRelease); // Assumed parameter name
     mainPanel->addAndMakeVisible(*m_filterEnvComp);
     mainPanel->addAndMakeVisible(m_ampEnvComponent.get());
     // Filter Sliders
@@ -387,9 +382,7 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
 
     m_distortionToggle.reset(new juce::ToggleButton("Distortion"));
     m_distortionToggle->setToggleState(m_fourOscPlugin->distortionOnValue.get(), juce::dontSendNotification);
-    m_distortionToggle->onClick = [this] {
-        m_fourOscPlugin->distortionOnValue = m_distortionToggle->getToggleState();
-    };
+    m_distortionToggle->onClick = [this] { m_fourOscPlugin->distortionOnValue = m_distortionToggle->getToggleState(); };
 
     effectsPanel->addAndMakeVisible(*m_distortionSlider);
     effectsPanel->addAndMakeVisible(*m_distortionToggle);
@@ -403,9 +396,7 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
 
     m_reverbToggle.reset(new juce::ToggleButton("Reverb"));
     m_reverbToggle->setToggleState(m_fourOscPlugin->reverbOnValue.get(), juce::dontSendNotification);
-    m_reverbToggle->onClick = [this] {
-        m_fourOscPlugin->reverbOnValue = m_reverbToggle->getToggleState();
-    };
+    m_reverbToggle->onClick = [this] { m_fourOscPlugin->reverbOnValue = m_reverbToggle->getToggleState(); };
 
     m_reverbSizeLabel.reset(new juce::Label("Size", "Size"));
     m_reverbMixLabel.reset(new juce::Label("Mix", "Mix"));
@@ -428,9 +419,7 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
 
     m_delayToggle.reset(new juce::ToggleButton("Delay"));
     m_delayToggle->setToggleState(m_fourOscPlugin->delayOnValue.get(), juce::dontSendNotification);
-    m_delayToggle->onClick = [this] {
-        m_fourOscPlugin->delayOnValue = m_delayToggle->getToggleState();
-    };
+    m_delayToggle->onClick = [this] { m_fourOscPlugin->delayOnValue = m_delayToggle->getToggleState(); };
 
     m_delayFeedbackLabel.reset(new juce::Label("Feedback", "Feedback"));
     m_delayMixLabel.reset(new juce::Label("Mix", "Mix"));
@@ -453,9 +442,7 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
 
     m_chorusToggle.reset(new juce::ToggleButton("Chorus"));
     m_chorusToggle->setToggleState(m_fourOscPlugin->chorusOnValue.get(), juce::dontSendNotification);
-    m_chorusToggle->onClick = [this] {
-        m_fourOscPlugin->chorusOnValue = m_chorusToggle->getToggleState();
-    };
+    m_chorusToggle->onClick = [this] { m_fourOscPlugin->chorusOnValue = m_chorusToggle->getToggleState(); };
 
     m_chorusDepthLabel.reset(new juce::Label("Depth", "Depth"));
     m_chorusMixLabel.reset(new juce::Label("Mix", "Mix"));
@@ -476,18 +463,17 @@ FourOscPluginComponent::FourOscPluginComponent(EditViewState& evs, te::Plugin::P
     updateOscComponentVisibility();
 }
 
-FourOscPluginComponent::~FourOscPluginComponent() 
+FourOscPluginComponent::~FourOscPluginComponent()
 {
     // Stop listening to plugin state changes
     m_plugin->state.removeListener(this);
 }
 
-void FourOscPluginComponent::paint(juce::Graphics& g) 
+void FourOscPluginComponent::paint(juce::Graphics &g)
 {
     auto background1 = m_editViewState.m_applicationState.getBackgroundColour1();
     auto background2 = m_editViewState.m_applicationState.getBackgroundColour2();
     g.fillAll(background2);
-
 
     g.setColour(background1);
 
@@ -495,13 +481,21 @@ void FourOscPluginComponent::paint(juce::Graphics& g)
 
     switch (getActiveOscComponent())
     {
-        case 0: colour = juce::Colour(0xffddcc00); break;
-        case 1: colour = juce::Colours::green; break;
-        case 2: colour = juce::Colours::blue; break;
-        case 3: colour = juce::Colours::red; break;
+    case 0:
+        colour = juce::Colour(0xffddcc00);
+        break;
+    case 1:
+        colour = juce::Colours::green;
+        break;
+    case 2:
+        colour = juce::Colours::blue;
+        break;
+    case 3:
+        colour = juce::Colours::red;
+        break;
     }
     g.setColour(colour);
-    GUIHelpers::drawRoundedRectWithSide(g, m_rectsToPaint[0].expanded(1,1).toFloat(), 10, true, true, true, true);
+    GUIHelpers::drawRoundedRectWithSide(g, m_rectsToPaint[0].expanded(1, 1).toFloat(), 10, true, true, true, true);
 
     g.setColour(background1);
     for (auto rect : m_rectsToPaint)
@@ -510,13 +504,13 @@ void FourOscPluginComponent::paint(juce::Graphics& g)
     }
 }
 
-void FourOscPluginComponent::resized() 
+void FourOscPluginComponent::resized()
 {
     m_rectsToPaint.clear();
     auto area = getLocalBounds();
     m_tabComponent->setBounds(area);
 
-    if (auto* mainPanel = m_tabComponent->getTabContentComponent(0))
+    if (auto *mainPanel = m_tabComponent->getTabContentComponent(0))
     {
         auto mainArea = mainPanel->getLocalBounds();
         auto tabWidth = m_tabComponent->getTabBarDepth();
@@ -531,14 +525,13 @@ void FourOscPluginComponent::resized()
             m_oscSelectButtons[i]->setBounds(oscButtonsArea.removeFromLeft(buttonWidth).reduced(2, 2));
         }
 
-        m_voiceModeCombo->setBounds(topRow.removeFromLeft(topRow.getWidth()/4).reduced(2, 2));
-
+        m_voiceModeCombo->setBounds(topRow.removeFromLeft(topRow.getWidth() / 4).reduced(2, 2));
 
         auto masterArea = topRow;
         m_masterLevelSlider->setBounds(masterArea.removeFromRight(masterArea.getHeight()));
         m_masterLevelLabel->setBounds(masterArea);
 
-        auto oscArea = mainArea.removeFromLeft(mainArea.getWidth()/3);
+        auto oscArea = mainArea.removeFromLeft(mainArea.getWidth() / 3);
         auto oscRect = oscArea;
         oscRect.translate(tabWidth, 0);
         oscRect.reduce(5, 5);
@@ -549,16 +542,16 @@ void FourOscPluginComponent::resized()
             m_oscComponents[i]->setBounds(oscArea.reduced(5));
         }
 
-        auto envFilterArea = mainArea.removeFromLeft(mainArea.getWidth()/2);
+        auto envFilterArea = mainArea.removeFromLeft(mainArea.getWidth() / 2);
 
-        auto ampEnvArea = envFilterArea.removeFromTop(envFilterArea.getHeight()/2).reduced(5);
+        auto ampEnvArea = envFilterArea.removeFromTop(envFilterArea.getHeight() / 2).reduced(5);
         m_ampEnvComponent->setBounds(ampEnvArea);
 
         m_filterEnvComp->setBounds(envFilterArea.reduced(5)); // Add a little vertical padding
         m_filterComponent->setBounds(mainArea);
     }
 
-    if (auto* effectsPanel = m_tabComponent->getTabContentComponent(1))
+    if (auto *effectsPanel = m_tabComponent->getTabContentComponent(1))
     {
         auto effectsArea = effectsPanel->getLocalBounds().reduced(5);
         auto effectHeight = effectsArea.getHeight() / 4;
@@ -576,7 +569,7 @@ void FourOscPluginComponent::resized()
         auto reverbSizeArea = reverbArea.removeFromLeft(reverbParamWidth).reduced(spacing, 0); // Abstand zum Toggle/Rand
         m_reverbSizeLabel->setBounds(reverbSizeArea.removeFromLeft(labelWidth));
         m_reverbSizeSlider->setBounds(reverbSizeArea.reduced(spacing, 0)); // Abstand zum Label
-        auto reverbMixArea = reverbArea.reduced(spacing, 0); // Abstand zum Size-Bereich
+        auto reverbMixArea = reverbArea.reduced(spacing, 0);               // Abstand zum Size-Bereich
         m_reverbMixLabel->setBounds(reverbMixArea.removeFromLeft(labelWidth));
         m_reverbMixSlider->setBounds(reverbMixArea.reduced(spacing, 0)); // Abstand zum Label
 
@@ -617,7 +610,7 @@ int FourOscPluginComponent::getActiveOscComponent()
     return -1;
 }
 
-void FourOscPluginComponent::valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) 
+void FourOscPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &)
 {
     // Update UI when plugin state changes
     if (m_voiceModeCombo != nullptr)
@@ -658,29 +651,16 @@ juce::ValueTree FourOscPluginComponent::getPluginState()
 
 juce::ValueTree FourOscPluginComponent::getFactoryDefaultState()
 {
-    juce::ValueTree defaultState ("PLUGIN");
-    defaultState.setProperty ("type", "4osc", nullptr);
+    juce::ValueTree defaultState("PLUGIN");
+    defaultState.setProperty("type", "4osc", nullptr);
     // TODO: Populate with all default values for a true factory-fresh state
     return defaultState;
 }
 
-void FourOscPluginComponent::restorePluginState(const juce::ValueTree& state)
-{
-    m_fourOscPlugin->restorePluginStateFromValueTree(state);
-}
+void FourOscPluginComponent::restorePluginState(const juce::ValueTree &state) { m_fourOscPlugin->restorePluginStateFromValueTree(state); }
 
-juce::String FourOscPluginComponent::getPresetSubfolder() const
-{
-    return PresetHelpers::getPluginPresetFolder(*m_fourOscPlugin);
-}
+juce::String FourOscPluginComponent::getPresetSubfolder() const { return PresetHelpers::getPluginPresetFolder(*m_fourOscPlugin); }
 
-juce::String FourOscPluginComponent::getPluginTypeName() const
-{
-    return "4osc";
-}
+juce::String FourOscPluginComponent::getPluginTypeName() const { return "4osc"; }
 
-ApplicationViewState& FourOscPluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
-
+ApplicationViewState &FourOscPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }

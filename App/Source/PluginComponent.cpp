@@ -19,22 +19,18 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "PluginComponent.h"
-#include "Utilities.h"
 #include "FourOscPluginComponent.h"
-#include "RackView.h"
-#include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
+#include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "PresetHelpers.h"
+#include "RackView.h"
+#include "Utilities.h"
 
 //==============================================================================
-ModifierViewComponent::DragHandle::DragHandle()
-{
-    setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-}
+ModifierViewComponent::DragHandle::DragHandle() { setMouseCursor(juce::MouseCursor::DraggingHandCursor); }
 
-void ModifierViewComponent::DragHandle::paint(juce::Graphics& g)
+void ModifierViewComponent::DragHandle::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colours::white.withAlpha(0.2f));
     g.fillRoundedRectangle(getLocalBounds().toFloat().reduced(2), 2);
@@ -49,46 +45,40 @@ void ModifierViewComponent::DragHandle::paint(juce::Graphics& g)
     g.drawLine(cx, cy - 3, cx, cy + 3, 1.0f);
 }
 
-void ModifierViewComponent::DragHandle::mouseDown(const juce::MouseEvent& e)
-{
-    toFront(false);
-}
+void ModifierViewComponent::DragHandle::mouseDown(const juce::MouseEvent &e) { toFront(false); }
 
-void ModifierViewComponent::DragHandle::mouseDrag(const juce::MouseEvent& e)
+void ModifierViewComponent::DragHandle::mouseDrag(const juce::MouseEvent &e)
 {
-    if (auto* dragContainer = juce::DragAndDropContainer::findParentDragContainerFor(this))
+    if (auto *dragContainer = juce::DragAndDropContainer::findParentDragContainerFor(this))
     {
         if (!dragContainer->isDragAndDropActive())
         {
-            dragContainer->startDragging(
-                te::AutomationDragDropTarget::automatableDragString,
-                this,
-                juce::Image(juce::Image::ARGB,1,1,true),
-                false);
+            dragContainer->startDragging(te::AutomationDragDropTarget::automatableDragString, this, juce::Image(juce::Image::ARGB, 1, 1, true), false);
         }
 
-        if (auto* rackView = findParentComponentOfClass<RackView>())
+        if (auto *rackView = findParentComponentOfClass<RackView>())
             rackView->repaint();
     }
 }
 
-void ModifierViewComponent::DragHandle::mouseUp(const juce::MouseEvent& e)
+void ModifierViewComponent::DragHandle::mouseUp(const juce::MouseEvent &e)
 {
     GUIHelpers::log("mouseUP");
     getParentComponent()->repaint();
 
-    if (auto* rackView = findParentComponentOfClass<RackView>())
+    if (auto *rackView = findParentComponentOfClass<RackView>())
     {
-        juce::Component::SafePointer<RackView> safeRackView (rackView);
-        juce::MessageManager::callAsync ([safeRackView]
-        {
-            if (safeRackView != nullptr)
-                safeRackView->clearDragSource();
-        });
+        juce::Component::SafePointer<RackView> safeRackView(rackView);
+        juce::MessageManager::callAsync(
+            [safeRackView]
+            {
+                if (safeRackView != nullptr)
+                    safeRackView->clearDragSource();
+            });
     }
 }
 
-void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param)
+void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget(const te::AutomatableParameter::Ptr &param)
 {
     if (m_modifier)
     {
@@ -97,29 +87,31 @@ void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget (c
             GUIHelpers::log("Can not connect modifier to its own parameters");
             getParentComponent()->repaint();
 
-            if (auto* rackView = findParentComponentOfClass<RackView>())
+            if (auto *rackView = findParentComponentOfClass<RackView>())
             {
-                juce::Component::SafePointer<RackView> safeRackView (rackView);
-                juce::MessageManager::callAsync ([safeRackView]
-                                                 {
-                                                 if (safeRackView != nullptr)
-                                                 safeRackView->clearDragSource();
-                                                 });
+                juce::Component::SafePointer<RackView> safeRackView(rackView);
+                juce::MessageManager::callAsync(
+                    [safeRackView]
+                    {
+                        if (safeRackView != nullptr)
+                            safeRackView->clearDragSource();
+                    });
             }
             return;
         }
 
         // if the droped modifier not belogs to the track, don't insert.
-        if (param->getTrack() != te::getTrackContainingModifier (m_modifier->edit, m_modifier))
+        if (param->getTrack() != te::getTrackContainingModifier(m_modifier->edit, m_modifier))
         {
-            if (auto* rackView = findParentComponentOfClass<RackView>())
+            if (auto *rackView = findParentComponentOfClass<RackView>())
             {
-                juce::Component::SafePointer<RackView> safeRackView (rackView);
-                juce::MessageManager::callAsync ([safeRackView]
-                                                 {
-                                                 if (safeRackView != nullptr)
-                                                 safeRackView->clearDragSource();
-                                                 });
+                juce::Component::SafePointer<RackView> safeRackView(rackView);
+                juce::MessageManager::callAsync(
+                    [safeRackView]
+                    {
+                        if (safeRackView != nullptr)
+                            safeRackView->clearDragSource();
+                    });
             }
             return;
         }
@@ -128,70 +120,70 @@ void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget (c
         param->addModifier(*m_modifier, 0.5f, 0.0f, 0.5f);
 
         // update table
-        if (auto* parentComponent = findParentComponentOfClass<ModifierViewComponent>())
+        if (auto *parentComponent = findParentComponentOfClass<ModifierViewComponent>())
         {
             parentComponent->m_listBoxModel.update();
             parentComponent->m_table.updateContent();
         }
 
         // update RackView painting for removing connection line
-        if (auto* rackView = findParentComponentOfClass<RackView>())
+        if (auto *rackView = findParentComponentOfClass<RackView>())
         {
-            juce::Component::SafePointer<RackView> safeRackView (rackView);
-            juce::MessageManager::callAsync ([safeRackView]
-                                             {
-                                             if (safeRackView != nullptr)
-                                             safeRackView->clearDragSource();
-                                             });
+            juce::Component::SafePointer<RackView> safeRackView(rackView);
+            juce::MessageManager::callAsync(
+                [safeRackView]
+                {
+                    if (safeRackView != nullptr)
+                        safeRackView->clearDragSource();
+                });
         }
     }
 }
 
-int ModifierViewComponent::ConnectedParametersListBoxModel::getNumRows()
-{
-    return cachedParams.size();
-}
+int ModifierViewComponent::ConnectedParametersListBoxModel::getNumRows() { return cachedParams.size(); }
 
-void ModifierViewComponent::ConnectedParametersListBoxModel::paintRowBackground (juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected)
+void ModifierViewComponent::ConnectedParametersListBoxModel::paintRowBackground(juce::Graphics &g, int rowNumber, int width, int height, bool rowIsSelected)
 {
     if (rowIsSelected)
-        g.fillAll (juce::Colours::lightblue);
+        g.fillAll(juce::Colours::lightblue);
     else if (rowNumber % 2)
-        g.fillAll (juce::Colours::darkgrey.withAlpha (0.5f));
+        g.fillAll(juce::Colours::darkgrey.withAlpha(0.5f));
 }
 
-void ModifierViewComponent::ConnectedParametersListBoxModel::paintCell (juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected)
+void ModifierViewComponent::ConnectedParametersListBoxModel::paintCell(juce::Graphics &g, int rowNumber, int columnId, int width, int height, bool rowIsSelected)
 {
-    g.setColour (rowIsSelected ? juce::Colours::black : juce::Colours::white);
+    g.setColour(rowIsSelected ? juce::Colours::black : juce::Colours::white);
 
     if (auto param = cachedParams[rowNumber])
     {
-        g.setFont (12.0f);
-        g.drawText (param->getPluginAndParamName(), 2, 0, width - 4, height, juce::Justification::centredLeft, true);
+        g.setFont(12.0f);
+        g.drawText(param->getPluginAndParamName(), 2, 0, width - 4, height, juce::Justification::centredLeft, true);
     }
 }
 
-void ModifierViewComponent::ConnectedParametersListBoxModel::cellClicked(int rowNumber, int columnId, const juce::MouseEvent& e)
+void ModifierViewComponent::ConnectedParametersListBoxModel::cellClicked(int rowNumber, int columnId, const juce::MouseEvent &e)
 {
     if (e.mods.isRightButtonDown())
     {
         juce::PopupMenu menu;
-        menu.addItem("Remove Connection", [this, rowNumber] {
-            if (auto param = cachedParams[rowNumber])
-            {
-                auto assignments = param->getAssignments();
-                for (auto& assignment : assignments)
-                {
-                    if (assignment->isForModifierSource(*modifier))
-                    {
-                        param->removeModifier(*assignment);
-                        break;
-                    }
-                }
-                update();
-                m_parent.m_table.updateContent();
-            }
-        });
+        menu.addItem("Remove Connection",
+                     [this, rowNumber]
+                     {
+                         if (auto param = cachedParams[rowNumber])
+                         {
+                             auto assignments = param->getAssignments();
+                             for (auto &assignment : assignments)
+                             {
+                                 if (assignment->isForModifierSource(*modifier))
+                                 {
+                                     param->removeModifier(*assignment);
+                                     break;
+                                 }
+                             }
+                             update();
+                             m_parent.m_table.updateContent();
+                         }
+                     });
         menu.show();
     }
 }
@@ -203,8 +195,10 @@ void ModifierViewComponent::ConnectedParametersListBoxModel::update()
 }
 
 //==============================================================================
-ModifierViewComponent::ModifierViewComponent(EditViewState& evs, te::Modifier::Ptr m)
-    : m_editViewState(evs), m_modifier(m), m_listBoxModel(m, evs.m_edit, *this)
+ModifierViewComponent::ModifierViewComponent(EditViewState &evs, te::Modifier::Ptr m)
+    : m_editViewState(evs),
+      m_modifier(m),
+      m_listBoxModel(m, evs.m_edit, *this)
 {
     m_dragHandle.setModifier(m);
     addAndMakeVisible(m_dragHandle);
@@ -215,7 +209,7 @@ ModifierViewComponent::ModifierViewComponent(EditViewState& evs, te::Modifier::P
     addAndMakeVisible(m_table);
     if (m)
     {
-        for (auto& param : m->getAutomatableParameters())
+        for (auto &param : m->getAutomatableParameters())
         {
             if (param)
             {
@@ -231,16 +225,14 @@ ModifierViewComponent::ModifierViewComponent(EditViewState& evs, te::Modifier::P
     m_viewPort.setScrollBarsShown(true, false, true, false);
 }
 
-ModifierViewComponent::~ModifierViewComponent()
-{
-}
+ModifierViewComponent::~ModifierViewComponent() {}
 
 void ModifierViewComponent::removeConnection(int rowIndex)
 {
     if (auto param = m_listBoxModel.cachedParams[rowIndex])
     {
         auto assignments = param->getAssignments();
-        for (auto& assignment : assignments)
+        for (auto &assignment : assignments)
         {
             if (assignment->isForModifierSource(*m_modifier))
             {
@@ -253,7 +245,7 @@ void ModifierViewComponent::removeConnection(int rowIndex)
     }
 }
 
-void ModifierViewComponent::paint(juce::Graphics& g)
+void ModifierViewComponent::paint(juce::Graphics &g)
 {
     g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
     g.fillAll();
@@ -274,16 +266,16 @@ void ModifierViewComponent::resized()
 }
 
 //==============================================================================
-LFOModifierComponent::LFOModifierComponent(EditViewState& evs, te::Modifier::Ptr m)
-    : ModifierViewComponent(evs, m)
-    , m_wave (m->getAutomatableParameterByID ("wave"), "Wave")
-    , m_sync (m->getAutomatableParameterByID ("syncType"), "Sync")
-    , m_rateType (m->getAutomatableParameterByID ("rateType"), "Rate Type")
-    , m_bipolar (m->getAutomatableParameterByID ("biopolar"), "Bipolar")
-    , m_rate (m->getAutomatableParameterByID ("rate"), "Rate")
-    , m_depth (m->getAutomatableParameterByID ("depth"), "Depth")
-    , m_phase (m->getAutomatableParameterByID ("phase"), "Phase")
-    , m_offset (m->getAutomatableParameterByID ("offset"), "Offset")
+LFOModifierComponent::LFOModifierComponent(EditViewState &evs, te::Modifier::Ptr m)
+    : ModifierViewComponent(evs, m),
+      m_wave(m->getAutomatableParameterByID("wave"), "Wave"),
+      m_sync(m->getAutomatableParameterByID("syncType"), "Sync"),
+      m_rateType(m->getAutomatableParameterByID("rateType"), "Rate Type"),
+      m_bipolar(m->getAutomatableParameterByID("biopolar"), "Bipolar"),
+      m_rate(m->getAutomatableParameterByID("rate"), "Rate"),
+      m_depth(m->getAutomatableParameterByID("depth"), "Depth"),
+      m_phase(m->getAutomatableParameterByID("phase"), "Phase"),
+      m_offset(m->getAutomatableParameterByID("offset"), "Offset")
 {
     // Clear generic UI
     m_parameters.clear();
@@ -291,17 +283,17 @@ LFOModifierComponent::LFOModifierComponent(EditViewState& evs, te::Modifier::Ptr
     removeChildComponent(&m_viewPort);
     m_viewPort.setViewedComponent(nullptr, false);
 
-    addAndMakeVisible (m_wave);
-    addAndMakeVisible (m_sync);
-    addAndMakeVisible (m_rate);
-    addAndMakeVisible (m_rateType);
-    addAndMakeVisible (m_depth);
-    addAndMakeVisible (m_bipolar);
-    addAndMakeVisible (m_phase);
-    addAndMakeVisible (m_offset);
+    addAndMakeVisible(m_wave);
+    addAndMakeVisible(m_sync);
+    addAndMakeVisible(m_rate);
+    addAndMakeVisible(m_rateType);
+    addAndMakeVisible(m_depth);
+    addAndMakeVisible(m_bipolar);
+    addAndMakeVisible(m_phase);
+    addAndMakeVisible(m_offset);
 }
 
-void LFOModifierComponent::paint(juce::Graphics& g)
+void LFOModifierComponent::paint(juce::Graphics &g)
 {
     ModifierViewComponent::paint(g);
     auto borderCol = m_editViewState.m_applicationState.getBorderColour();
@@ -336,7 +328,6 @@ void LFOModifierComponent::resized()
     m_rateType.setBounds(comboRect.removeFromTop(comboHeight));
     m_bipolar.setBounds(comboRect);
 
-
     auto upperKnobs = area.removeFromTop(area.getHeight() / 2);
     auto bottomKnobs = area;
     m_rate.setBounds(upperKnobs.removeFromLeft(upperKnobs.getWidth() / 2));
@@ -347,18 +338,18 @@ void LFOModifierComponent::resized()
 }
 
 //==============================================================================
-StepModifierComponent::StepDisplay::StepDisplay(te::StepModifier& m)
+StepModifierComponent::StepDisplay::StepDisplay(te::StepModifier &m)
     : m_modifier(m)
 {
     updateSteps();
     startTimerHz(30);
 }
 
-void StepModifierComponent::StepDisplay::paint(juce::Graphics& g)
+void StepModifierComponent::StepDisplay::paint(juce::Graphics &g)
 {
     if (m_currentStep >= 0 && m_currentStep < m_sliders.size())
     {
-        if (auto* s = m_sliders[m_currentStep])
+        if (auto *s = m_sliders[m_currentStep])
         {
             g.setColour(juce::Colours::white.withAlpha(0.2f));
             g.fillRect(s->getBounds());
@@ -375,13 +366,13 @@ void StepModifierComponent::StepDisplay::resized()
         int w = area.getWidth() / num;
         for (int i = 0; i < num; ++i)
         {
-            if (auto* s = m_sliders[i])
+            if (auto *s = m_sliders[i])
                 s->setBounds(area.removeFromLeft(w).reduced(1, 0));
         }
     }
 }
 
-void StepModifierComponent::StepDisplay::sliderValueChanged(juce::Slider* slider)
+void StepModifierComponent::StepDisplay::sliderValueChanged(juce::Slider *slider)
 {
     int index = m_sliders.indexOf(slider);
     if (index >= 0)
@@ -422,14 +413,14 @@ void StepModifierComponent::StepDisplay::updateSteps()
 }
 
 //==============================================================================
-StepModifierComponent::StepModifierComponent(EditViewState& evs, te::Modifier::Ptr m)
-    : ModifierViewComponent(evs, m)
-    , m_sync (m->getAutomatableParameterByID ("syncType"), "Sync")
-    , m_rateType (m->getAutomatableParameterByID ("rateType"), "Rate Type")
-    , m_numSteps (m->getAutomatableParameterByID ("numSteps"), "Steps")
-    , m_rate (m->getAutomatableParameterByID ("rate"), "Rate")
-    , m_depth (m->getAutomatableParameterByID ("depth"), "Depth")
-    , m_stepDisplay (*dynamic_cast<te::StepModifier*>(m.get()))
+StepModifierComponent::StepModifierComponent(EditViewState &evs, te::Modifier::Ptr m)
+    : ModifierViewComponent(evs, m),
+      m_sync(m->getAutomatableParameterByID("syncType"), "Sync"),
+      m_rateType(m->getAutomatableParameterByID("rateType"), "Rate Type"),
+      m_numSteps(m->getAutomatableParameterByID("numSteps"), "Steps"),
+      m_rate(m->getAutomatableParameterByID("rate"), "Rate"),
+      m_depth(m->getAutomatableParameterByID("depth"), "Depth"),
+      m_stepDisplay(*dynamic_cast<te::StepModifier *>(m.get()))
 {
     // Clear generic UI
     m_parameters.clear();
@@ -437,15 +428,15 @@ StepModifierComponent::StepModifierComponent(EditViewState& evs, te::Modifier::P
     removeChildComponent(&m_viewPort);
     m_viewPort.setViewedComponent(nullptr, false);
 
-    addAndMakeVisible (m_sync);
-    addAndMakeVisible (m_rateType);
-    addAndMakeVisible (m_numSteps);
-    addAndMakeVisible (m_rate);
-    addAndMakeVisible (m_depth);
-    addAndMakeVisible (m_stepDisplay);
+    addAndMakeVisible(m_sync);
+    addAndMakeVisible(m_rateType);
+    addAndMakeVisible(m_numSteps);
+    addAndMakeVisible(m_rate);
+    addAndMakeVisible(m_depth);
+    addAndMakeVisible(m_stepDisplay);
 }
 
-void StepModifierComponent::paint(juce::Graphics& g)
+void StepModifierComponent::paint(juce::Graphics &g)
 {
     ModifierViewComponent::paint(g);
     auto borderCol = m_editViewState.m_applicationState.getBorderColour();
@@ -501,10 +492,11 @@ static juce::Identifier getCollapsedStateID(te::EditItemID id)
     return "c_" + id.toString().retainCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_");
 }
 
-RackItemView::RackItemView
-    (EditViewState& evs, te::Track::Ptr t, te::Plugin::Ptr p)
-    : m_evs (evs), m_track(t), m_plugin (p)
-    , m_showPluginBtn( "Show Plugin", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr p)
+    : m_evs(evs),
+      m_track(t),
+      m_plugin(p),
+      m_showPluginBtn("Show Plugin", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     // Load collapsed state
     if (m_track)
@@ -516,11 +508,11 @@ RackItemView::RackItemView
     addAndMakeVisible(m_showPluginBtn);
     m_showPluginBtn.addListener(this);
 
-    name.setText(m_plugin->getName(),juce::NotificationType::dontSendNotification);
+    name.setText(m_plugin->getName(), juce::NotificationType::dontSendNotification);
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
-    name.setInterceptsMouseClicks (false, true);
-    GUIHelpers::log("PLUGIN TYPE: ",m_plugin->getPluginType());
+    name.setInterceptsMouseClicks(false, true);
+    GUIHelpers::log("PLUGIN TYPE: ", m_plugin->getPluginType());
 
     if (m_plugin->getPluginType() == "volume")
     {
@@ -554,9 +546,9 @@ RackItemView::RackItemView
     else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
     {
         GUIHelpers::log(m_plugin->getPluginType());
-        if (auto* sampler = dynamic_cast<te::SamplerPlugin*>(p.get()))
+        if (auto *sampler = dynamic_cast<te::SamplerPlugin *>(p.get()))
         {
-            m_pluginComponent = std::make_unique<DrumSamplerView> (evs, *sampler);
+            m_pluginComponent = std::make_unique<DrumSamplerView>(evs, *sampler);
         }
         else
         {
@@ -571,17 +563,18 @@ RackItemView::RackItemView
     if (m_pluginComponent)
         addAndMakeVisible(*m_pluginComponent);
 
-    if (auto* presetInterface = dynamic_cast<PluginPresetInterface*>(m_pluginComponent.get()))
+    if (auto *presetInterface = dynamic_cast<PluginPresetInterface *>(m_pluginComponent.get()))
     {
         m_presetManager = std::make_unique<PresetManagerComponent>(*presetInterface);
         addAndMakeVisible(*m_presetManager);
     }
 }
 
-RackItemView::RackItemView
-    (EditViewState& evs, te::Track::Ptr t, te::Modifier::Ptr m)
-    : m_evs (evs), m_track(t), m_modifier (m)
-    , m_showPluginBtn( "Show Modifier", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Modifier::Ptr m)
+    : m_evs(evs),
+      m_track(t),
+      m_modifier(m),
+      m_showPluginBtn("Show Modifier", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     // Load collapsed state
     if (m_track)
@@ -594,14 +587,14 @@ RackItemView::RackItemView
     m_showPluginBtn.addListener(this);
 
     // Modifiers don't have user-defined names usually, so we use the class name or type
-    name.setText(m->getName(), juce::NotificationType::dontSendNotification); 
+    name.setText(m->getName(), juce::NotificationType::dontSendNotification);
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
-    name.setInterceptsMouseClicks (false, true);
+    name.setInterceptsMouseClicks(false, true);
 
-    if (dynamic_cast<te::LFOModifier*>(m.get()))
+    if (dynamic_cast<te::LFOModifier *>(m.get()))
         m_modifierComponent = std::make_unique<LFOModifierComponent>(evs, m);
-    else if (dynamic_cast<te::StepModifier*>(m.get()))
+    else if (dynamic_cast<te::StepModifier *>(m.get()))
         m_modifierComponent = std::make_unique<StepModifierComponent>(evs, m);
     else
         m_modifierComponent = std::make_unique<ModifierViewComponent>(evs, m);
@@ -612,10 +605,10 @@ RackItemView::RackItemView
 RackItemView::~RackItemView()
 {
     if (m_plugin)
-        m_plugin->hideWindowForShutdown ();
+        m_plugin->hideWindowForShutdown();
 }
 
-void RackItemView::paint (juce::Graphics& g)
+void RackItemView::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
     area.reduce(0, 1);
@@ -628,34 +621,32 @@ void RackItemView::paint (juce::Graphics& g)
 
     juce::Colour trackCol;
     if (m_plugin)
-        trackCol = m_plugin->isEnabled () ? getTrackColour() : getTrackColour().darker (0.7f);
+        trackCol = m_plugin->isEnabled() ? getTrackColour() : getTrackColour().darker(0.7f);
     else
         trackCol = getTrackColour(); // Modifiers are always enabled effectively or handle it internally
 
-    auto labelingCol = trackCol.getBrightness() > 0.8f
-             ? juce::Colour(0xff000000)
-             : juce::Colour(0xffffffff);
+    auto labelingCol = trackCol.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
     name.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
-    GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg ,labelingCol);
+    GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg, labelingCol);
     auto header = area.removeFromLeft(m_headerWidth);
     g.setColour(trackCol);
     GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
 
     if (m_clickOnHeader)
     {
-        g.setColour (juce::Colour(0xffffffff));
-        g.drawRect (getLocalBounds ());
+        g.setColour(juce::Colour(0xffffffff));
+        g.drawRect(getLocalBounds());
     }
 
     g.setColour(m_evs.m_applicationState.getBorderColour());
     GUIHelpers::strokeRoundedRectWithSide(g, borderRect.toFloat(), cornerSize, true, false, true, false);
 }
 
-void RackItemView::mouseDown (const juce::MouseEvent& e)
+void RackItemView::mouseDown(const juce::MouseEvent &e)
 {
-    if (e.getMouseDownX () < m_headerWidth)
+    if (e.getMouseDownX() < m_headerWidth)
     {
         m_clickOnHeader = true;
         if (e.mods.isRightButtonDown())
@@ -663,16 +654,15 @@ void RackItemView::mouseDown (const juce::MouseEvent& e)
             juce::PopupMenu m;
             if (m_plugin)
             {
-                m.addItem ("Delete", [this] { m_plugin->deleteFromParent(); });
-                m.addItem (m_plugin->isEnabled () ? "Disable" : "Enable"
-                           , [this] {m_plugin->setEnabled (!m_plugin->isEnabled ());});
+                m.addItem("Delete", [this] { m_plugin->deleteFromParent(); });
+                m.addItem(m_plugin->isEnabled() ? "Disable" : "Enable", [this] { m_plugin->setEnabled(!m_plugin->isEnabled()); });
             }
             else if (m_modifier)
             {
-                m.addItem ("Delete", [this] { m_modifier->remove(); });
+                m.addItem("Delete", [this] { m_modifier->remove(); });
             }
 
-            juce::Component::SafePointer<RackItemView> safeThis (this);
+            juce::Component::SafePointer<RackItemView> safeThis(this);
             m.show();
 
             if (safeThis == nullptr)
@@ -683,27 +673,22 @@ void RackItemView::mouseDown (const juce::MouseEvent& e)
     {
         m_clickOnHeader = false;
     }
-    repaint ();
+    repaint();
 }
 
 void RackItemView::mouseDrag(const juce::MouseEvent &e)
 {
-    if (e.getMouseDownX () < m_headerWidth)
+    if (e.getMouseDownX() < m_headerWidth)
     {
-        juce::DragAndDropContainer* dragC
-                = juce::DragAndDropContainer::findParentDragContainerFor(this);
+        juce::DragAndDropContainer *dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
         if (!dragC->isDragAndDropActive())
         {
-            dragC->startDragging(
-                    "PluginComp"
-                    , this
-                    , juce::Image(juce::Image::ARGB,1,1,true)
-                    , false);
+            dragC->startDragging("PluginComp", this, juce::Image(juce::Image::ARGB, 1, 1, true), false);
         }
     }
 }
 
-void RackItemView::draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param)
+void RackItemView::draggedOntoAutomatableParameterTarget(const te::AutomatableParameter::Ptr &param)
 {
     if (m_modifier)
     {
@@ -717,10 +702,10 @@ void RackItemView::draggedOntoAutomatableParameterTarget (const te::AutomatableP
 void RackItemView::mouseUp(const juce::MouseEvent &event)
 {
     m_clickOnHeader = false;
-    repaint ();
+    repaint();
 }
 
-void RackItemView::mouseDoubleClick(const juce::MouseEvent& e)
+void RackItemView::mouseDoubleClick(const juce::MouseEvent &e)
 {
     if (e.getMouseDownX() < m_headerWidth)
     {
@@ -730,8 +715,10 @@ void RackItemView::mouseDoubleClick(const juce::MouseEvent& e)
         if (m_track)
         {
             te::EditItemID id;
-            if (m_plugin) id = m_plugin->itemID;
-            else if (m_modifier) id = m_modifier->itemID;
+            if (m_plugin)
+                id = m_plugin->itemID;
+            else if (m_modifier)
+                id = m_modifier->itemID;
 
             if (id.isValid())
             {
@@ -740,7 +727,7 @@ void RackItemView::mouseDoubleClick(const juce::MouseEvent& e)
             }
         }
 
-        if (auto* rackView = findParentComponentOfClass<RackView>())
+        if (auto *rackView = findParentComponentOfClass<RackView>())
             rackView->resized();
     }
 }
@@ -750,16 +737,11 @@ void RackItemView::resized()
     auto area = getLocalBounds();
     juce::Rectangle<int> showButton = {area.getX(), area.getY() + 5, m_headerWidth, m_headerWidth};
     m_showPluginBtn.setBounds(showButton);
-    auto nameLabelRect = juce::Rectangle<int>(area.getX()
-                                              , area.getHeight() - m_headerWidth
-                                              , area.getHeight()
-                                              , m_headerWidth);
+    auto nameLabelRect = juce::Rectangle<int>(area.getX(), area.getHeight() - m_headerWidth, area.getHeight(), m_headerWidth);
     name.setBounds(nameLabelRect);
-    name.setTransform(juce::AffineTransform::rotation ( - (juce::MathConstants<float>::halfPi)
-                                                 , nameLabelRect.getX() + 10.0
-                                                 , nameLabelRect.getY() + 10.0 ));
+    name.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), nameLabelRect.getX() + 10.0, nameLabelRect.getY() + 10.0));
     area.removeFromLeft(m_headerWidth);
-    area.reduce(1,1);
+    area.reduce(1, 1);
 
     if (m_presetManager)
         m_presetManager->setBounds(area.removeFromLeft(130));
@@ -770,7 +752,7 @@ void RackItemView::resized()
         m_modifierComponent->setBounds(area);
 }
 
-void RackItemView::buttonClicked(juce::Button* button)
+void RackItemView::buttonClicked(juce::Button *button)
 {
     if (button == &m_showPluginBtn)
         if (m_plugin)
@@ -794,8 +776,7 @@ int RackItemView::getNeededWidthFactor()
 }
 
 //------------------------------------------------------------------------------
-FilterPluginComponent::FilterPluginComponent
-    (EditViewState& evs, te::Plugin::Ptr p)
+FilterPluginComponent::FilterPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
 {
     auto um = &evs.m_edit.getUndoManager();
@@ -803,8 +784,7 @@ FilterPluginComponent::FilterPluginComponent
     m_freqPar = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("frequency"), "Freq");
     m_modeLabel.setJustificationType(juce::Justification::centred);
 
-
-    m_modeButton.onStateChange = [this, um] 
+    m_modeButton.onStateChange = [this, um]
     {
         if (m_modeButton.getToggleState())
             m_plugin->state.setProperty(te::IDs::mode, "highpass", um);
@@ -823,31 +803,27 @@ FilterPluginComponent::FilterPluginComponent
 void FilterPluginComponent::resized()
 {
     auto bounds = getLocalBounds();
-    auto h = bounds.getHeight()/12;
+    auto h = bounds.getHeight() / 12;
     bounds.removeFromTop(h);
-    auto modeButtonRect = bounds.removeFromTop(h*3);
-    m_modeButton.setBounds(modeButtonRect.reduced(modeButtonRect.getWidth() / 4, modeButtonRect.getHeight() / 4)); 
+    auto modeButtonRect = bounds.removeFromTop(h * 3);
+    m_modeButton.setBounds(modeButtonRect.reduced(modeButtonRect.getWidth() / 4, modeButtonRect.getHeight() / 4));
     m_modeLabel.setBounds(bounds.removeFromTop(h));
 
-    bounds.removeFromTop(h*2);
-    m_freqPar->setBounds(bounds.removeFromTop(h*4));
+    bounds.removeFromTop(h * 2);
+    m_freqPar->setBounds(bounds.removeFromTop(h * 4));
 }
 
+void FilterPluginComponent::paint(juce::Graphics &g) {}
 
-void FilterPluginComponent::paint(juce::Graphics &g)
+void FilterPluginComponent::updateLabel(juce::UndoManager &um)
 {
-}
-
-void FilterPluginComponent::updateLabel (juce::UndoManager& um)
-{
-    auto mode = m_plugin->state.getPropertyAsValue(
-                    te::IDs::mode,&um).toString();
+    auto mode = m_plugin->state.getPropertyAsValue(te::IDs::mode, &um).toString();
     if (mode == "highpass")
         mode = "Highpass";
     else
         mode = "Lowpass";
 
-    m_modeLabel.setText(mode, juce::NotificationType::dontSendNotification); 
+    m_modeLabel.setText(mode, juce::NotificationType::dontSendNotification);
 }
 
 juce::ValueTree FilterPluginComponent::getPluginState()
@@ -859,34 +835,20 @@ juce::ValueTree FilterPluginComponent::getPluginState()
 
 juce::ValueTree FilterPluginComponent::getFactoryDefaultState()
 {
-    juce::ValueTree defaultState ("PLUGIN");
-    defaultState.setProperty ("type", "lowpass", nullptr);
-    defaultState.setProperty (te::IDs::mode, "lowpass", nullptr);
-    defaultState.setProperty (te::IDs::frequency, 12000.0, nullptr);
+    juce::ValueTree defaultState("PLUGIN");
+    defaultState.setProperty("type", "lowpass", nullptr);
+    defaultState.setProperty(te::IDs::mode, "lowpass", nullptr);
+    defaultState.setProperty(te::IDs::frequency, 12000.0, nullptr);
     return defaultState;
 }
 
-void FilterPluginComponent::restorePluginState(const juce::ValueTree& state)
-{
-    m_plugin->restorePluginStateFromValueTree(state);
-}
+void FilterPluginComponent::restorePluginState(const juce::ValueTree &state) { m_plugin->restorePluginStateFromValueTree(state); }
 
-juce::String FilterPluginComponent::getPresetSubfolder() const
-{
-    return PresetHelpers::getPluginPresetFolder(*m_plugin);
-}
+juce::String FilterPluginComponent::getPresetSubfolder() const { return PresetHelpers::getPluginPresetFolder(*m_plugin); }
 
-juce::String FilterPluginComponent::getPluginTypeName() const
-{
-    return "lowpass";
-}
+juce::String FilterPluginComponent::getPluginTypeName() const { return "lowpass"; }
 
-ApplicationViewState& FilterPluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
-
-
+ApplicationViewState &FilterPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }
 
 juce::ValueTree EqPluginComponent::getPluginState()
 {
@@ -897,30 +859,18 @@ juce::ValueTree EqPluginComponent::getPluginState()
 
 juce::ValueTree EqPluginComponent::getFactoryDefaultState()
 {
-    juce::ValueTree defaultState ("PLUGIN");
-    defaultState.setProperty ("type", "4bandEq", nullptr);
+    juce::ValueTree defaultState("PLUGIN");
+    defaultState.setProperty("type", "4bandEq", nullptr);
     return defaultState;
 }
 
-void EqPluginComponent::restorePluginState(const juce::ValueTree& state)
-{
-    m_plugin->restorePluginStateFromValueTree(state);
-}
+void EqPluginComponent::restorePluginState(const juce::ValueTree &state) { m_plugin->restorePluginStateFromValueTree(state); }
 
-juce::String EqPluginComponent::getPresetSubfolder() const
-{
-    return PresetHelpers::getPluginPresetFolder(*m_plugin);
-}
+juce::String EqPluginComponent::getPresetSubfolder() const { return PresetHelpers::getPluginPresetFolder(*m_plugin); }
 
-juce::String EqPluginComponent::getPluginTypeName() const
-{
-    return "4bandEq";
-}
+juce::String EqPluginComponent::getPluginTypeName() const { return "4bandEq"; }
 
-ApplicationViewState& EqPluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
+ApplicationViewState &EqPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }
 
 juce::ValueTree DelayPluginComponent::getPluginState()
 {
@@ -931,32 +881,20 @@ juce::ValueTree DelayPluginComponent::getPluginState()
 
 juce::ValueTree DelayPluginComponent::getFactoryDefaultState()
 {
-    juce::ValueTree defaultState ("PLUGIN");
-    defaultState.setProperty ("type", "delay", nullptr);
+    juce::ValueTree defaultState("PLUGIN");
+    defaultState.setProperty("type", "delay", nullptr);
     return defaultState;
 }
 
-void DelayPluginComponent::restorePluginState(const juce::ValueTree& state)
-{
-    m_plugin->restorePluginStateFromValueTree(state);
-}
+void DelayPluginComponent::restorePluginState(const juce::ValueTree &state) { m_plugin->restorePluginStateFromValueTree(state); }
 
-juce::String DelayPluginComponent::getPresetSubfolder() const
-{
-    return PresetHelpers::getPluginPresetFolder(*m_plugin);
-}
+juce::String DelayPluginComponent::getPresetSubfolder() const { return PresetHelpers::getPluginPresetFolder(*m_plugin); }
 
-juce::String DelayPluginComponent::getPluginTypeName() const
-{
-    return "delay";
-}
+juce::String DelayPluginComponent::getPluginTypeName() const { return "delay"; }
 
-ApplicationViewState& DelayPluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
+ApplicationViewState &DelayPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }
 
-VolumePluginComponent::VolumePluginComponent(EditViewState& evs, te::Plugin::Ptr p)
+VolumePluginComponent::VolumePluginComponent(EditViewState &evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
 {
     m_volParComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("volume"), "Vol");
@@ -975,58 +913,42 @@ juce::ValueTree VolumePluginComponent::getPluginState()
 
 juce::ValueTree VolumePluginComponent::getFactoryDefaultState()
 {
-    juce::ValueTree defaultState ("PLUGIN");
-    defaultState.setProperty ("type", "volume", nullptr);
+    juce::ValueTree defaultState("PLUGIN");
+    defaultState.setProperty("type", "volume", nullptr);
     return defaultState;
 }
 
-void VolumePluginComponent::restorePluginState(const juce::ValueTree& state)
-{
-    m_plugin->restorePluginStateFromValueTree(state);
-}
+void VolumePluginComponent::restorePluginState(const juce::ValueTree &state) { m_plugin->restorePluginStateFromValueTree(state); }
 
-juce::String VolumePluginComponent::getPresetSubfolder() const
-{
-    return PresetHelpers::getPluginPresetFolder(*m_plugin);
-}
+juce::String VolumePluginComponent::getPresetSubfolder() const { return PresetHelpers::getPluginPresetFolder(*m_plugin); }
 
-juce::String VolumePluginComponent::getPluginTypeName() const
-{
-    return "volume";
-}
+juce::String VolumePluginComponent::getPluginTypeName() const { return "volume"; }
 
-ApplicationViewState& VolumePluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
+ApplicationViewState &VolumePluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }
 
 void VolumePluginComponent::resized()
 {
     auto bounds = getLocalBounds();
 
-    auto h = bounds.getHeight()/12;
+    auto h = bounds.getHeight() / 12;
     bounds.removeFromTop(h);
-    m_volParComp->setBounds(bounds.removeFromTop(h*4));
-    bounds.removeFromTop(h*2);
-    m_panParComp->setBounds(bounds.removeFromTop(h*4));
-
+    m_volParComp->setBounds(bounds.removeFromTop(h * 4));
+    bounds.removeFromTop(h * 2);
+    m_panParComp->setBounds(bounds.removeFromTop(h * 4));
 }
 
-void VolumePluginComponent::paint(juce::Graphics &g)
-{
-}
+void VolumePluginComponent::paint(juce::Graphics &g) {}
 
 // -----------------------------------------------------------------------------
 
-VstPluginComponent::VstPluginComponent
-    (EditViewState& evs, te::Plugin::Ptr p)
-    : PluginViewComponent(evs, p)
-    , m_lastChangedParameterComponent(nullptr)
-    , m_plugin(p)
+VstPluginComponent::VstPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
+    : PluginViewComponent(evs, p),
+      m_lastChangedParameterComponent(nullptr),
+      m_plugin(p)
 {
     if (p)
     {
-        for (auto& param : p->getAutomatableParameters())
+        for (auto &param : p->getAutomatableParameters())
         {
             if (param)
             {
@@ -1042,9 +964,7 @@ VstPluginComponent::VstPluginComponent
 
     if (p->getAutomatableParameter(0))
     {
-        m_lastChangedParameterComponent
-                = std::make_unique<ParameterComponent>(
-                                            *(p->getAutomatableParameter(0)), m_editViewState.m_applicationState);
+        m_lastChangedParameterComponent = std::make_unique<ParameterComponent>(*(p->getAutomatableParameter(0)), m_editViewState.m_applicationState);
         addAndMakeVisible(*m_lastChangedParameterComponent);
     }
     m_viewPort.setViewedComponent(&m_pluginListComponent, true);
@@ -1056,7 +976,7 @@ VstPluginComponent::~VstPluginComponent()
     m_lastChangedParameterComponent.reset();
     if (m_plugin)
     {
-        for (auto & param : m_plugin->getAutomatableParameters())
+        for (auto &param : m_plugin->getAutomatableParameters())
         {
             if (param)
             {
@@ -1066,7 +986,7 @@ VstPluginComponent::~VstPluginComponent()
     }
 }
 
-void VstPluginComponent::paint (juce::Graphics& g) 
+void VstPluginComponent::paint(juce::Graphics &g)
 {
     g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
     g.fillAll();
@@ -1085,23 +1005,20 @@ void VstPluginComponent::resized()
     const auto widgetHeight = 30;
     if (m_lastChangedParameterComponent)
     {
-         m_lastChangedParameterComponent->setBounds(area.removeFromTop(widgetHeight));
+        m_lastChangedParameterComponent->setBounds(area.removeFromTop(widgetHeight));
     }
     m_viewPort.setBounds(area);
-    m_pluginListComponent.setBounds(area.getX()
-                                    , area.getY()
-                                    , area.getWidth()
-                                    ,m_pluginListComponent.getChildren().size() * widgetHeight);
+    m_pluginListComponent.setBounds(area.getX(), area.getY(), area.getWidth(), m_pluginListComponent.getChildren().size() * widgetHeight);
 
     auto pcb = m_pluginListComponent.getBounds();
-    for (auto & pc : m_parameters)
+    for (auto &pc : m_parameters)
     {
         pc->setBounds(pcb.removeFromTop(widgetHeight));
     }
     m_viewPort.getVerticalScrollBar().setCurrentRangeStart(scrollPos);
 }
 
-void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, float) 
+void VstPluginComponent::parameterChanged(te::AutomatableParameter &param, float)
 {
     if (!m_lastChangedParameterComponent->isDragged() && &m_lastChangedParameterComponent->getParameter() != &param)
     {
@@ -1112,10 +1029,7 @@ void VstPluginComponent::parameterChanged (te::AutomatableParameter& param, floa
     }
 }
 
-ApplicationViewState& VstPluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
+ApplicationViewState &VstPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }
 
 juce::ValueTree VstPluginComponent::getPluginState()
 {
@@ -1126,7 +1040,7 @@ juce::ValueTree VstPluginComponent::getPluginState()
 
 juce::ValueTree VstPluginComponent::getFactoryDefaultState()
 {
-    if (auto* ep = dynamic_cast<te::ExternalPlugin*>(m_plugin.get()))
+    if (auto *ep = dynamic_cast<te::ExternalPlugin *>(m_plugin.get()))
     {
         juce::ValueTree state("PLUGIN");
         state.setProperty("type", ep->desc.pluginFormatName + juce::String::toHexString(ep->desc.deprecatedUid).toUpperCase(), nullptr);
@@ -1136,19 +1050,13 @@ juce::ValueTree VstPluginComponent::getFactoryDefaultState()
     return {};
 }
 
-void VstPluginComponent::restorePluginState(const juce::ValueTree& state)
-{
-    m_plugin->restorePluginStateFromValueTree(state);
-}
+void VstPluginComponent::restorePluginState(const juce::ValueTree &state) { m_plugin->restorePluginStateFromValueTree(state); }
 
-juce::String VstPluginComponent::getPresetSubfolder() const
-{
-    return PresetHelpers::getPluginPresetFolder(*m_plugin);
-}
+juce::String VstPluginComponent::getPresetSubfolder() const { return PresetHelpers::getPluginPresetFolder(*m_plugin); }
 
 juce::String VstPluginComponent::getPluginTypeName() const
 {
-    if (auto* ep = dynamic_cast<te::ExternalPlugin*>(m_plugin.get()))
+    if (auto *ep = dynamic_cast<te::ExternalPlugin *>(m_plugin.get()))
         return ep->desc.pluginFormatName + juce::String::toHexString(ep->desc.deprecatedUid).toUpperCase();
 
     return "unknown";
@@ -1156,8 +1064,10 @@ juce::String VstPluginComponent::getPluginTypeName() const
 
 //------------------------------------------------------------------------------
 
-ParameterComponent::ParameterComponent(te::AutomatableParameter& ap, ApplicationViewState& appstate)
-    : m_parameter(ap), m_appState(appstate), m_parameterSlider(&ap)
+ParameterComponent::ParameterComponent(te::AutomatableParameter &ap, ApplicationViewState &appstate)
+    : m_parameter(ap),
+      m_appState(appstate),
+      m_parameterSlider(&ap)
 {
     m_parameterName.setText(m_parameter.getParameterName(), juce::dontSendNotification);
     m_parameterName.setInterceptsMouseClicks(false, false);
@@ -1169,13 +1079,13 @@ ParameterComponent::ParameterComponent(te::AutomatableParameter& ap, Application
     m_parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
 }
 
-void ParameterComponent::paint(juce::Graphics& g) 
+void ParameterComponent::paint(juce::Graphics &g)
 {
     g.setColour(m_appState.getBackgroundColour1());
     auto area = getLocalBounds();
     area.reduce(2, 2);
     area.removeFromRight(10);
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), 10, true, false, true,  false);
+    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), 10, true, false, true, false);
 }
 void ParameterComponent::resized()
 {
@@ -1185,13 +1095,6 @@ void ParameterComponent::resized()
     m_parameterName.setBounds(area);
 }
 
-void ParameterComponent::mouseDown(const juce::MouseEvent &e)
-{
-    m_isDragged = true;
-}
+void ParameterComponent::mouseDown(const juce::MouseEvent &e) { m_isDragged = true; }
 
-
-void ParameterComponent::mouseUp(const juce::MouseEvent& e) 
-{
-    m_isDragged = false;
-}
+void ParameterComponent::mouseUp(const juce::MouseEvent &e) { m_isDragged = false; }

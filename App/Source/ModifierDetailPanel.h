@@ -18,7 +18,7 @@ namespace te = tracktion_engine;
 
 class ModifierDetailPanel : public juce::Component
 {
-  public:
+public:
     ModifierDetailPanel(EditViewState &evs);
     ~ModifierDetailPanel() override;
 
@@ -26,7 +26,7 @@ class ModifierDetailPanel : public juce::Component
     void paint(juce::Graphics &g) override;
     void resized() override;
 
-  private:
+private:
     EditViewState &m_evs;
     std::unique_ptr<juce::Component> m_view;
     juce::Label m_placeholderLabel;

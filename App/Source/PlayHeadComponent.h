@@ -20,41 +20,38 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
-#include "Utilities.h"
 #include "TimeLineComponent.h"
-
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
-class PlayheadComponent : public juce::Component
-                        , private juce::Timer
+class PlayheadComponent
+    : public juce::Component
+    , private juce::Timer
 {
 public:
-    PlayheadComponent (te::Edit&
-                       , EditViewState&
-                       , TimeLineComponent& tc);
+    PlayheadComponent(te::Edit &, EditViewState &, TimeLineComponent &tc);
 
-    void paint (juce::Graphics& g) override;
-    bool hitTest (int x, int y) override;
-    void mouseDrag (const juce::MouseEvent&) override;
-    void mouseDown (const juce::MouseEvent&) override;
-    void mouseUp (const juce::MouseEvent&) override;
+    void paint(juce::Graphics &g) override;
+    bool hitTest(int x, int y) override;
+    void mouseDrag(const juce::MouseEvent &) override;
+    void mouseDown(const juce::MouseEvent &) override;
+    void mouseUp(const juce::MouseEvent &) override;
 
     bool isPlaying() const;
 
 private:
     void timerCallback() override;
 
-    te::Edit& m_edit;
-    EditViewState& m_editViewState;
-    TimeLineComponent& m_timeLine;
+    te::Edit &m_edit;
+    EditViewState &m_editViewState;
+    TimeLineComponent &m_timeLine;
 
     int m_xPosition = 0;
     bool m_firstTimer = true;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PlayheadComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayheadComponent)
 };

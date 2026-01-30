@@ -1,12 +1,11 @@
 #include "DrumSamplerView.h"
 
-
-DrumSamplerView::DrumSamplerView(EditViewState& evs, te::SamplerPlugin& sampler)
+DrumSamplerView::DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler)
     : PluginViewComponent(evs, sampler),
-    m_edit(sampler.edit),
-    m_sampler(sampler),
-    m_drumPadComponent(sampler, evs.m_applicationState),
-    m_soundEditorPanel(sampler, sampler.edit, evs.m_applicationState)
+      m_edit(sampler.edit),
+      m_sampler(sampler),
+      m_drumPadComponent(sampler, evs.m_applicationState),
+      m_soundEditorPanel(sampler, sampler.edit, evs.m_applicationState)
 {
     GUIHelpers::log("DrumSamplerView: constructor");
 
@@ -20,15 +19,9 @@ DrumSamplerView::DrumSamplerView(EditViewState& evs, te::SamplerPlugin& sampler)
     };
 }
 
-DrumSamplerView::~DrumSamplerView()
-{
-    GUIHelpers::log("DrumSamplerView: destructor");
-}
+DrumSamplerView::~DrumSamplerView() { GUIHelpers::log("DrumSamplerView: destructor"); }
 
-void DrumSamplerView::paint(juce::Graphics& g)
-{
-    g.fillAll(m_editViewState.m_applicationState.getBackgroundColour1().darker());
-}
+void DrumSamplerView::paint(juce::Graphics &g) { g.fillAll(m_editViewState.m_applicationState.getBackgroundColour1().darker()); }
 
 void DrumSamplerView::resized()
 {
@@ -39,38 +32,22 @@ void DrumSamplerView::resized()
     m_soundEditorPanel.setBounds(area);
 }
 
-int DrumSamplerView::getNeededWidth()
-{
-    return 6; 
-}
-
+int DrumSamplerView::getNeededWidth() { return 6; }
 
 // PluginPresetInterface implementation
-juce::ValueTree DrumSamplerView::getPluginState()
-{
-    return m_sampler.state.createCopy();
-}
+juce::ValueTree DrumSamplerView::getPluginState() { return m_sampler.state.createCopy(); }
 
-void DrumSamplerView::restorePluginState(const juce::ValueTree& state)
+void DrumSamplerView::restorePluginState(const juce::ValueTree &state)
 {
     m_sampler.restorePluginStateFromValueTree(state);
     m_drumPadComponent.updatePadNames();
 }
 
-juce::String DrumSamplerView::getPresetSubfolder() const
-{
-    return "DrumSampler";
-}
+juce::String DrumSamplerView::getPresetSubfolder() const { return "DrumSampler"; }
 
-juce::String DrumSamplerView::getPluginTypeName() const
-{
-    return m_sampler.getPluginType();
-}
+juce::String DrumSamplerView::getPluginTypeName() const { return m_sampler.getPluginType(); }
 
-ApplicationViewState& DrumSamplerView::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
+ApplicationViewState &DrumSamplerView::getApplicationViewState() { return m_editViewState.m_applicationState; }
 
 juce::ValueTree DrumSamplerView::getFactoryDefaultState()
 {
@@ -94,5 +71,3 @@ juce::ValueTree DrumSamplerView::getFactoryDefaultState()
     }
     return defaultState;
 }
-
-

@@ -4,19 +4,19 @@
 
 #include "DrumPadComponent.h"
 #include "EditViewState.h"
-#include "PluginViewComponent.h"
 #include "PluginPresetInterface.h"
+#include "PluginViewComponent.h"
 #include "SoundEditorPanel.h"
-#include "Utilities.h" 
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 class DrumSamplerView : public PluginViewComponent
 {
 public:
-    DrumSamplerView(EditViewState& evs, te::SamplerPlugin& sampler);
+    DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler);
     ~DrumSamplerView() override;
 
-    void paint(juce::Graphics&) override;
+    void paint(juce::Graphics &) override;
     void resized() override;
 
     int getNeededWidth() override;
@@ -24,14 +24,14 @@ public:
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
-    void restorePluginState(const juce::ValueTree& state) override;
+    void restorePluginState(const juce::ValueTree &state) override;
     juce::String getPresetSubfolder() const override;
     juce::String getPluginTypeName() const override;
-    ApplicationViewState& getApplicationViewState() override;
-private:
+    ApplicationViewState &getApplicationViewState() override;
 
-    te::Edit& m_edit;
-    te::SamplerPlugin& m_sampler;
+private:
+    te::Edit &m_edit;
+    te::SamplerPlugin &m_sampler;
 
     DrumPadGridComponent m_drumPadComponent;
     SoundEditorPanel m_soundEditorPanel;
@@ -48,9 +48,9 @@ private:
     DragDropState m_dragDropState;
 
     // Drag & Drop methods
-    void startDrag(int padIndex, int soundIndex, const juce::MouseEvent& event);
-    void continueDrag(const juce::MouseEvent& event);
-    void endDrag(const juce::MouseEvent& event);
+    void startDrag(int padIndex, int soundIndex, const juce::MouseEvent &event);
+    void continueDrag(const juce::MouseEvent &event);
+    void endDrag(const juce::MouseEvent &event);
     void swapSounds(int sourcePad, int targetPad);
     juce::Image createDragImage(int padIndex);
 

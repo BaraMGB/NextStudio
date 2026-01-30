@@ -24,24 +24,25 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 #include "MenuBar.h"
 
-class LowerRangeTabBar  : public MenuBar,
-                          public juce::ValueTree::Listener
+class LowerRangeTabBar
+    : public MenuBar
+    , public juce::ValueTree::Listener
 {
 public:
-    LowerRangeTabBar(EditViewState& evs);
+    LowerRangeTabBar(EditViewState &evs);
     ~LowerRangeTabBar() override;
 
-    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override;
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
 
     std::function<void(LowerRangeView)> onTabSelected;
 
 private:
     void updateTabButtons();
 
-    EditViewState& m_evs;
+    EditViewState &m_evs;
     juce::DrawableButton m_mixerButton;
     juce::DrawableButton m_midiEditorButton;
     juce::DrawableButton m_pluginsButton;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LowerRangeTabBar)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LowerRangeTabBar)
 };

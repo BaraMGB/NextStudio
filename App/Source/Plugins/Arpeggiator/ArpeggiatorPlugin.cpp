@@ -19,38 +19,74 @@ ArpeggiatorPlugin::ArpeggiatorPlugin(PluginCreationInfo info)
     auto um = getUndoManager();
 
     // Mode Param
-    modeParam = addParam("mode", "Mode", {0.0f, 3.0f, 1.0f}, [](float v) {
+    modeParam = addParam(
+        "mode", "Mode", {0.0f, 3.0f, 1.0f},
+        [](float v)
+        {
             int mode = juce::roundToInt(v);
-            if (mode == up) return "Up";
-            if (mode == down) return "Down";
-            if (mode == upDown) return "Up/Down";
-            if (mode == random) return "Random";
-            return "Unknown"; }, [](const juce::String &s) {
-            if (s == "Up") return (float)up;
-            if (s == "Down") return (float)down;
-            if (s == "Up/Down") return (float)upDown;
-            if (s == "Random") return (float)random;
-            return 0.0f; });
+            if (mode == up)
+                return "Up";
+            if (mode == down)
+                return "Down";
+            if (mode == upDown)
+                return "Up/Down";
+            if (mode == random)
+                return "Random";
+            return "Unknown";
+        },
+        [](const juce::String &s)
+        {
+            if (s == "Up")
+                return (float)up;
+            if (s == "Down")
+                return (float)down;
+            if (s == "Up/Down")
+                return (float)upDown;
+            if (s == "Random")
+                return (float)random;
+            return 0.0f;
+        });
 
     // Rate Param
-    rateParam = addParam("rate", "Rate", {0.0f, 6.0f, 1.0f}, [](float v) {
+    rateParam = addParam(
+        "rate", "Rate", {0.0f, 6.0f, 1.0f},
+        [](float v)
+        {
             int r = juce::roundToInt(v);
-            if (r == 0) return "1/1";
-            if (r == 1) return "1/2";
-            if (r == 2) return "1/4";
-            if (r == 3) return "1/8";
-            if (r == 4) return "1/16";
-            if (r == 5) return "1/32";
-            if (r == 6) return "1/64";
-            return "1/8"; }, [](const juce::String &s) {
-            if (s == "1/1") return 0.0f;
-            if (s == "1/2") return 1.0f;
-            if (s == "1/4") return 2.0f;
-            if (s == "1/8") return 3.0f;
-            if (s == "1/16") return 4.0f;
-            if (s == "1/32") return 5.0f;
-            if (s == "1/64") return 6.0f;
-            return 3.0f; });
+            if (r == 0)
+                return "1/1";
+            if (r == 1)
+                return "1/2";
+            if (r == 2)
+                return "1/4";
+            if (r == 3)
+                return "1/8";
+            if (r == 4)
+                return "1/16";
+            if (r == 5)
+                return "1/32";
+            if (r == 6)
+                return "1/64";
+            return "1/8";
+        },
+        [](const juce::String &s)
+        {
+            if (s == "1/1")
+                return 0.0f;
+            if (s == "1/2")
+                return 1.0f;
+            if (s == "1/4")
+                return 2.0f;
+            if (s == "1/8")
+                return 3.0f;
+            if (s == "1/16")
+                return 4.0f;
+            if (s == "1/32")
+                return 5.0f;
+            if (s == "1/64")
+                return 6.0f;
+            return 3.0f;
+        });
 
     // Octave Param
     octaveParam = addParam("octave", "Octave", {0.0f, 3.0f, 1.0f}, [](float v) { return juce::String(juce::roundToInt(v) + 1); }, [](const juce::String &s) { return (float)(s.getIntValue() - 1); });
@@ -83,14 +119,9 @@ ArpeggiatorPlugin::~ArpeggiatorPlugin()
     gateParam->detachFromCurrentValue();
 }
 
-void ArpeggiatorPlugin::initialise(const PluginInitialisationInfo &info)
-{
-    updateAtomics();
-}
+void ArpeggiatorPlugin::initialise(const PluginInitialisationInfo &info) { updateAtomics(); }
 
-void ArpeggiatorPlugin::deinitialise()
-{
-}
+void ArpeggiatorPlugin::deinitialise() {}
 
 void ArpeggiatorPlugin::reset()
 {
@@ -117,7 +148,8 @@ void ArpeggiatorPlugin::updateAtomics()
 
 void ArpeggiatorPlugin::restorePluginStateFromValueTree(const juce::ValueTree &v)
 {
-    auto restore = [&](te::AutomatableParameter::Ptr &param, const char *name) {
+    auto restore = [&](te::AutomatableParameter::Ptr &param, const char *name)
+    {
         if (v.hasProperty(name))
             param->setParameter((float)v.getProperty(name), juce::sendNotification);
     };
@@ -157,8 +189,10 @@ void ArpeggiatorPlugin::updateSortedNotes()
 
     int octaves = std::round(audioParams.octave) + 1;
 
-    for (int oct = 0; oct < octaves; ++oct) {
-        for (int note : baseNotes) {
+    for (int oct = 0; oct < octaves; ++oct)
+    {
+        for (int note : baseNotes)
+        {
             int newNote = note + (oct * 12);
             if (newNote <= 127)
                 sortedNotes.push_back(newNote);
@@ -173,32 +207,40 @@ int ArpeggiatorPlugin::getNextNote()
 
     int mode = std::round(audioParams.mode);
 
-    if (mode == random) {
+    if (mode == random)
+    {
         juce::Random r;
         return sortedNotes[r.nextInt(sortedNotes.size())];
     }
 
-    if (mode == up) {
+    if (mode == up)
+    {
         currentStep = (currentStep + 1) % sortedNotes.size();
     }
-    else if (mode == down) {
+    else if (mode == down)
+    {
         currentStep--;
         if (currentStep < 0)
             currentStep = sortedNotes.size() - 1;
     }
-    else if (mode == upDown) {
-        if (goingUp) {
+    else if (mode == upDown)
+    {
+        if (goingUp)
+        {
             currentStep++;
-            if (currentStep >= sortedNotes.size()) {
+            if (currentStep >= sortedNotes.size())
+            {
                 currentStep = sortedNotes.size() - 2;
                 goingUp = false;
                 if (currentStep < 0)
                     currentStep = 0;
             }
         }
-        else {
+        else
+        {
             currentStep--;
-            if (currentStep < 0) {
+            if (currentStep < 0)
+            {
                 currentStep = 1;
                 goingUp = true;
                 if (currentStep >= sortedNotes.size())
@@ -219,11 +261,14 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
     bool notesChanged = false;
 
     // 1. Process incoming MIDI
-    for (const auto &m : midi) {
-        if (m.isNoteOn()) {
+    for (const auto &m : midi)
+    {
+        if (m.isNoteOn())
+        {
             bool found = false;
             for (auto &hn : heldNotes)
-                if (hn.note == m.getNoteNumber()) {
+                if (hn.note == m.getNoteNumber())
+                {
                     hn.velocity = m.getVelocity();
                     found = true;
                     break;
@@ -241,8 +286,10 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
             }
             notesChanged = true;
         }
-        else if (m.isNoteOff()) {
-            for (auto it = heldNotes.begin(); it != heldNotes.end();) {
+        else if (m.isNoteOff())
+        {
+            for (auto it = heldNotes.begin(); it != heldNotes.end();)
+            {
                 if (it->note == m.getNoteNumber())
                     it = heldNotes.erase(it);
                 else
@@ -257,8 +304,10 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
     if (notesChanged)
         updateSortedNotes();
 
-    if (heldNotes.empty()) {
-        if (lastNotePlayed != -1) {
+    if (heldNotes.empty())
+    {
+        if (lastNotePlayed != -1)
+        {
             midi.addMidiMessage(juce::MidiMessage::noteOff(1, lastNotePlayed), 0.0, te::MPESourceID{});
             lastNotePlayed = -1;
         }
@@ -272,12 +321,14 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
 
     double startBeats, endBeats;
 
-    if (fc.isPlaying) {
+    if (fc.isPlaying)
+    {
         startBeats = ts.toBeats(startPos).inBeats();
         endBeats = ts.toBeats(fc.editTime.getEnd()).inBeats();
         stoppedModeBeats = endBeats;
     }
-    else {
+    else
+    {
         double bpm = ts.getTempoAt(startPos).getBpm();
         double beatsInBlock = (fc.bufferNumSamples / sampleRate) * (bpm / 60.0);
         startBeats = stoppedModeBeats;
@@ -289,9 +340,11 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
     float gate = audioParams.gate;
 
     // 3. Note Offs
-    if (lastNotePlayed != -1) {
+    if (lastNotePlayed != -1)
+    {
         double noteEndBeat = lastNoteStartBeat + (lastNoteDuration * gate);
-        if (noteEndBeat > startBeats && noteEndBeat <= endBeats) {
+        if (noteEndBeat > startBeats && noteEndBeat <= endBeats)
+        {
             double offset = 0.0;
             if (fc.isPlaying)
                 offset = ts.toTime(tracktion::BeatPosition::fromBeats(noteEndBeat)).inSeconds() - startSeconds;
@@ -301,7 +354,8 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
             midi.addMidiMessage(juce::MidiMessage::noteOff(1, lastNotePlayed), offset, te::MPESourceID{});
             lastNotePlayed = -1;
         }
-        else if (noteEndBeat <= startBeats) {
+        else if (noteEndBeat <= startBeats)
+        {
             midi.addMidiMessage(juce::MidiMessage::noteOff(1, lastNotePlayed), 0.0, te::MPESourceID{});
             lastNotePlayed = -1;
         }
@@ -312,20 +366,23 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
     if (std::abs(startBeats - nextGridBeat) < 0.001)
         nextGridBeat = startBeats;
 
-    while (nextGridBeat < endBeats) {
+    while (nextGridBeat < endBeats)
+    {
         double offset = 0.0;
         if (fc.isPlaying)
             offset = ts.toTime(tracktion::BeatPosition::fromBeats(nextGridBeat)).inSeconds() - startSeconds;
         else
             offset = (nextGridBeat - startBeats) * (60.0 / ts.getTempoAt(startPos).getBpm());
 
-        if (lastNotePlayed != -1) {
+        if (lastNotePlayed != -1)
+        {
             midi.addMidiMessage(juce::MidiMessage::noteOff(1, lastNotePlayed), offset, te::MPESourceID{});
             lastNotePlayed = -1;
         }
 
         int note = getNextNote();
-        if (note != -1) {
+        if (note != -1)
+        {
             midi.addMidiMessage(juce::MidiMessage::noteOn(1, note, (juce::uint8)100), offset, te::MPESourceID{});
             lastNotePlayed = note;
             lastNoteStartBeat = nextGridBeat;
