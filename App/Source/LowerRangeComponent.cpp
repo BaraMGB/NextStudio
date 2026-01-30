@@ -19,42 +19,31 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "LowerRangeComponent.h"
 #include "Utilities.h"
 
-
 //------------------------------------------------------------------------------
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
-    : m_evs(evs)
-    , m_rackView(evs)
-    , m_pianoRollEditor (evs)
-    , m_mixer(evs)
-    , m_tabBar(evs)
-    , m_splitter ()
+    : m_evs(evs),
+      m_rackView(evs),
+      m_pianoRollEditor(evs),
+      m_mixer(evs),
+      m_tabBar(evs),
+      m_splitter()
 {
-    m_evs.setLowerRangeView (LowerRangeView::mixer);
+    m_evs.setLowerRangeView(LowerRangeView::mixer);
     addAndMakeVisible(m_tabBar);
-    addAndMakeVisible (m_splitter);
-    addChildComponent (m_pianoRollEditor);
-    addAndMakeVisible (m_rackView);
+    addAndMakeVisible(m_splitter);
+    addChildComponent(m_pianoRollEditor);
+    addAndMakeVisible(m_rackView);
     addAndMakeVisible(m_mixer);
-    m_evs.m_edit.state.addListener (this);
+    m_evs.m_edit.state.addListener(this);
 
-    m_tabBar.onTabSelected = [this](LowerRangeView view)
-    {
-        m_evs.setLowerRangeView(view);
-    };
+    m_tabBar.onTabSelected = [this](LowerRangeView view) { m_evs.setLowerRangeView(view); };
 
-    m_splitter.onMouseDown = [this]()
-    {
-        handleSplitterMouseDown();
-    };
+    m_splitter.onMouseDown = [this]() { handleSplitterMouseDown(); };
 
-    m_splitter.onDrag = [this](int dragDistance)
-    {
-        handleSplitterDrag(dragDistance);
-    };
+    m_splitter.onDrag = [this](int dragDistance) { handleSplitterDrag(dragDistance); };
 
     updateView();
 }
@@ -62,27 +51,23 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
 void LowerRangeComponent::handleSplitterMouseDown()
 {
     m_pianorollHeightAtMousedown = m_evs.m_midiEditorHeight;
-    m_cachedPianoNoteNum = (double) m_evs.getViewYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
+    m_cachedPianoNoteNum = (double)m_evs.getViewYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
 }
 
 void LowerRangeComponent::handleSplitterDrag(int dragDistance)
 {
     if (m_evs.getLowerRangeView() == LowerRangeView::midiEditor)
     {
-        auto newHeight = static_cast<int> (m_pianorollHeightAtMousedown - dragDistance);
-        auto noteHeight = (double) m_evs.getViewYScale(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
+        auto newHeight = static_cast<int>(m_pianorollHeightAtMousedown - dragDistance);
+        auto noteHeight = (double)m_evs.getViewYScale(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
         auto noteDist = dragDistance / noteHeight;
 
-        m_evs.setYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID(),
-                         juce::jlimit(0.0, 127.0 - (getHeight() / noteHeight), m_cachedPianoNoteNum + noteDist));
+        m_evs.setYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID(), juce::jlimit(0.0, 127.0 - (getHeight() / noteHeight), m_cachedPianoNoteNum + noteDist));
         m_evs.m_midiEditorHeight = std::max(20, newHeight);
     }
 }
 
-LowerRangeComponent::~LowerRangeComponent()
-{
-    m_evs.m_edit.state.removeListener (this);
-}
+LowerRangeComponent::~LowerRangeComponent() { m_evs.m_edit.state.removeListener(this); }
 
 void LowerRangeComponent::paint(juce::Graphics &g)
 {
@@ -93,7 +78,7 @@ void LowerRangeComponent::paint(juce::Graphics &g)
 
 void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
 {
-    auto area = getLocalBounds ();
+    auto area = getLocalBounds();
     area.removeFromTop((int)m_splitterHeight);
     GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_evs.m_applicationState.getMainFrameColour(), m_evs.m_applicationState.getBorderColour());
 }
@@ -101,10 +86,10 @@ void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
 void LowerRangeComponent::resized()
 {
     auto area = getLocalBounds();
-    auto splitter = area.removeFromTop ((int) m_splitterHeight);
-    splitter.reduce(10, 1); 
+    auto splitter = area.removeFromTop((int)m_splitterHeight);
+    splitter.reduce(10, 1);
 
-    m_splitter.setBounds (splitter);
+    m_splitter.setBounds(splitter);
 
     auto leftArea = area.removeFromLeft(70);
     auto presetArea = leftArea.removeFromTop(100);
@@ -117,15 +102,15 @@ void LowerRangeComponent::resized()
     m_rackView.setBounds(area);
     m_mixer.setBounds(area);
 
-    if (m_pianoRollEditor.isVisible ())
+    if (m_pianoRollEditor.isVisible())
     {
-        m_pianoRollEditor.setBounds (area);
+        m_pianoRollEditor.setBounds(area);
     }
 }
 
-void LowerRangeComponent::updatePresetManager(te::Track* track)
+void LowerRangeComponent::updatePresetManager(te::Track *track)
 {
-    if (auto audioTrack = dynamic_cast<te::AudioTrack*>(track))
+    if (auto audioTrack = dynamic_cast<te::AudioTrack *>(track))
     {
         // Safety check: If we already have an adapter for THIS track, don't recreate it.
         if (m_presetAdapter != nullptr && &m_presetAdapter->getTrack() == audioTrack)
@@ -162,8 +147,8 @@ void LowerRangeComponent::updateView()
 {
     auto currentView = m_evs.getLowerRangeView();
 
-    m_rackView.setVisible (currentView == LowerRangeView::pluginRack);
-    m_pianoRollEditor.setVisible (currentView == LowerRangeView::midiEditor);
+    m_rackView.setVisible(currentView == LowerRangeView::pluginRack);
+    m_pianoRollEditor.setVisible(currentView == LowerRangeView::midiEditor);
     m_mixer.setVisible(currentView == LowerRangeView::mixer);
 
     resized();
@@ -183,7 +168,7 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
         if (i == IDs::showLowerRange)
         {
             GUIHelpers::log("LowerRangeComponent valueTreePropertyChanged --------------- ");
-            if (auto track = te::findTrackForState (m_evs.m_edit, v))
+            if (auto track = te::findTrackForState(m_evs.m_edit, v))
             {
                 GUIHelpers::log("LowerRangeComponent valueTreePropertyChanged ", track->getName());
                 if ((bool)v.getProperty(IDs::showLowerRange) == true)
@@ -202,24 +187,24 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
             }
         }
     }
-    if (v.hasType (tracktion_engine::IDs::MIDICLIP))
+    if (v.hasType(tracktion_engine::IDs::MIDICLIP))
     {
-        resized ();
-        repaint ();
+        resized();
+        repaint();
     }
     if (v.hasType(m_pianoRollEditor.getTimeLineComponent().getTimeLineID()))
     {
-        resized ();
-        repaint ();
+        resized();
+        repaint();
     }
 }
 
-//if a new track is added, make its rackview visible
+// if a new track is added, make its rackview visible
 void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &v, juce::ValueTree &)
 {
     if (m_evs.getLowerRangeView() != LowerRangeView::midiEditor && v.hasType(te::IDs::TRACK))
     {
-        auto track = te::findTrackForState (m_evs.m_edit, v);
+        auto track = te::findTrackForState(m_evs.m_edit, v);
         if (track != nullptr)
         {
             m_rackView.setTrack(track);
@@ -227,8 +212,8 @@ void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &v, juce::ValueTre
             updatePresetManager(track);
         }
     }
-    resized ();
-    repaint ();
+    resized();
+    repaint();
 }
 
 void LowerRangeComponent::valueTreeChildRemoved(juce::ValueTree &v, juce::ValueTree &i, int)
@@ -245,12 +230,12 @@ void LowerRangeComponent::valueTreeChildRemoved(juce::ValueTree &v, juce::ValueT
         m_presetAdapter.reset();
     }
 
-    resized ();
-    repaint ();
+    resized();
+    repaint();
 }
 
 void LowerRangeComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int)
 {
-    resized ();
-    repaint ();
+    resized();
+    repaint();
 }

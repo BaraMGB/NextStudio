@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 //
 // Created by Zehn on 14.01.2022.
 //
@@ -30,11 +29,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "InstrumentEffectChooser.h"
 #include "Utilities.h"
 
-
 void TrackListView::resized()
 {
-    auto& trackHeightManager = m_editViewState.m_trackHeightManager;
-    const int yScroll = juce::roundToInt (m_editViewState.getViewYScroll(m_timeLineID));
+    auto &trackHeightManager = m_editViewState.m_trackHeightManager;
+    const int yScroll = juce::roundToInt(m_editViewState.getViewYScroll(m_timeLineID));
     int y = yScroll;
     const int folderIndent = static_cast<int>(m_editViewState.m_applicationState.m_folderTrackIndent);
 
@@ -44,7 +42,7 @@ void TrackListView::resized()
         auto leftEdge = 0;
         auto w = getWidth();
 
-        if (auto ft = header->getTrack()->getParentFolderTrack() )
+        if (auto ft = header->getTrack()->getParentFolderTrack())
         {
             if (auto ftv = getTrackHeaderView(ft))
             {
@@ -66,11 +64,11 @@ void TrackListView::mouseDown(const juce::MouseEvent &e)
         const int res = getPopupResult();
 
         if (res == 10)
-            addTrack (true, false, colour);
+            addTrack(true, false, colour);
         else if (res == 11)
-            addTrack (false, false, colour);
+            addTrack(false, false, colour);
         else if (res == 12)
-            addTrack (false, true, colour);
+            addTrack(false, true, colour);
         else if (res == 13)
             collapseTracks(true);
         else if (res == 14)
@@ -81,111 +79,100 @@ void TrackListView::mouseDown(const juce::MouseEvent &e)
         m_editViewState.m_selectionManager.deselectAll();
     }
 }
-void TrackListView::itemDropped(
-    const juce::DragAndDropTarget::SourceDetails& dragSourceDetails)
+void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    te::TrackInsertPoint ip {nullptr,
-                             m_editViewState.m_edit.getTrackList().at(
-                                 m_editViewState.m_edit.getTrackList().size() - 1)};
+    te::TrackInsertPoint ip{nullptr, m_editViewState.m_edit.getTrackList().at(m_editViewState.m_edit.getTrackList().size() - 1)};
 
     if (dragSourceDetails.description == "Track")
-        if (auto thc = dynamic_cast<TrackHeaderComponent*>(dragSourceDetails.sourceComponent.get()))
+        if (auto thc = dynamic_cast<TrackHeaderComponent *>(dragSourceDetails.sourceComponent.get()))
             m_editViewState.m_edit.moveTrack(thc->getTrack(), ip);
 
-    if  (dragSourceDetails.description == "PluginListEntry")
+    if (dragSourceDetails.description == "PluginListEntry")
     {
-        if (auto listbox = dynamic_cast<PluginListbox*>(dragSourceDetails.sourceComponent.get ()))
+        if (auto listbox = dynamic_cast<PluginListbox *>(dragSourceDetails.sourceComponent.get()))
         {
             auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
-            EngineHelpers::insertPluginWithPreset (m_editViewState, track, listbox->getSelectedPlugin(m_editViewState.m_edit));
+            EngineHelpers::insertPluginWithPreset(m_editViewState, track, listbox->getSelectedPlugin(m_editViewState.m_edit));
         }
     }
 
     if (dragSourceDetails.description == "Instrument or Effect")
     {
-        if (auto lb = dynamic_cast<InstrumentEffectTable*>(dragSourceDetails.sourceComponent.get()))
+        if (auto lb = dynamic_cast<InstrumentEffectTable *>(dragSourceDetails.sourceComponent.get()))
         {
             auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
-            EngineHelpers::insertPluginWithPreset (m_editViewState, track, lb->getSelectedPlugin(m_editViewState.m_edit));
+            EngineHelpers::insertPluginWithPreset(m_editViewState, track, lb->getSelectedPlugin(m_editViewState.m_edit));
         }
     }
 }
 
-void TrackListView::getAllCommands (juce::Array<juce::CommandID>& commands) 
+void TrackListView::getAllCommands(juce::Array<juce::CommandID> &commands)
 {
 
-    juce::Array<juce::CommandID> ids {
+    juce::Array<juce::CommandID> ids{
 
-            KeyPressCommandIDs::deleteSelectedTracks,
-            KeyPressCommandIDs::duplicateSelectedTracks
-        };
+        KeyPressCommandIDs::deleteSelectedTracks, KeyPressCommandIDs::duplicateSelectedTracks};
 
     commands.addArray(ids);
 }
 
-void TrackListView::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
+void TrackListView::getCommandInfo(juce::CommandID commandID, juce::ApplicationCommandInfo &result)
 {
 
     switch (commandID)
-    { 
-        case KeyPressCommandIDs::deleteSelectedTracks :
-            result.setInfo("delete selected tracks", "delete selected", "Tracks", 0);
-            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
-            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::duplicateSelectedTracks :
-            result.setInfo("duplicate selected tracks", "duplicate selected tracks", "Tracks", 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), juce::ModifierKeys::commandModifier);
-            break;
-        default:
-            break;
-        }
-
+    {
+    case KeyPressCommandIDs::deleteSelectedTracks:
+        result.setInfo("delete selected tracks", "delete selected", "Tracks", 0);
+        result.addDefaultKeypress(juce::KeyPress::backspaceKey, 0);
+        result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::duplicateSelectedTracks:
+        result.setInfo("duplicate selected tracks", "duplicate selected tracks", "Tracks", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
+    default:
+        break;
+    }
 }
 
-bool TrackListView::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
+bool TrackListView::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
 
     GUIHelpers::log("TrackListView perform");
     switch (info.commandID)
-    { 
-        case KeyPressCommandIDs::deleteSelectedTracks:
-        {
-            GUIHelpers::log("deleteSelectedTracks");
+    {
+    case KeyPressCommandIDs::deleteSelectedTracks:
+    {
+        GUIHelpers::log("deleteSelectedTracks");
 
-            for (auto t : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
-            {
-                m_editViewState.m_edit.deleteTrack (t);
-            }
-            break;
+        for (auto t : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
+        {
+            m_editViewState.m_edit.deleteTrack(t);
         }
-        case KeyPressCommandIDs::duplicateSelectedTracks :
-        {   
-            auto trackContent = std::make_unique<te::Clipboard::Tracks>();
-            auto selectedTracks =  m_editViewState.m_selectionManager.getItemsOfType<te::Track>();
-            for (auto t : selectedTracks) 
-            {
-                trackContent->tracks.push_back (t->state);
-            }
-            te::EditInsertPoint insertPoint(m_editViewState.m_edit);
-            te::Clipboard::Tracks::EditPastingOptions options(m_editViewState.m_edit
-                                                              ,insertPoint
-                                                              , &m_editViewState.m_selectionManager);
-            options.startTrack = selectedTracks.getLast();
-            trackContent->pasteIntoEdit (options);
-            break;
+        break;
+    }
+    case KeyPressCommandIDs::duplicateSelectedTracks:
+    {
+        auto trackContent = std::make_unique<te::Clipboard::Tracks>();
+        auto selectedTracks = m_editViewState.m_selectionManager.getItemsOfType<te::Track>();
+        for (auto t : selectedTracks)
+        {
+            trackContent->tracks.push_back(t->state);
         }
-        default:
-            return false;
+        te::EditInsertPoint insertPoint(m_editViewState.m_edit);
+        te::Clipboard::Tracks::EditPastingOptions options(m_editViewState.m_edit, insertPoint, &m_editViewState.m_selectionManager);
+        options.startTrack = selectedTracks.getLast();
+        trackContent->pasteIntoEdit(options);
+        break;
+    }
+    default:
+        return false;
     }
     return true;
 }
 
-void TrackListView::addHeaderView(std::unique_ptr<TrackHeaderComponent> header)
-{
-    m_trackHeaders.add(std::move(header));
-}
+void TrackListView::addHeaderView(std::unique_ptr<TrackHeaderComponent> header) { m_trackHeaders.add(std::move(header)); }
 
 void TrackListView::updateViews()
 {
@@ -216,12 +203,12 @@ te::AudioTrack::Ptr TrackListView::addTrack(bool isMidiTrack, bool isFolderTrack
 const int TrackListView::getPopupResult()
 {
     juce::PopupMenu m;
-    m.addItem (10, "Add instrument track");
-    m.addItem (11, "Add audio track");
-    m.addItem (12, "Add folder track");
+    m.addItem(10, "Add instrument track");
+    m.addItem(11, "Add audio track");
+    m.addItem(12, "Add folder track");
     m.addSeparator();
-    m.addItem (13, "collapse all tracks");
-    m.addItem (14, "expand all tracks");
+    m.addItem(13, "collapse all tracks");
+    m.addItem(14, "expand all tracks");
 
     return m.show();
 }
@@ -232,10 +219,10 @@ void TrackListView::collapseTracks(bool minimize)
         th->collapseTrack(minimize);
 }
 
-void TrackListView::changeListenerCallback(juce::ChangeBroadcaster* source)
+void TrackListView::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
     if (source == &m_editViewState.m_selectionManager)
-        for(auto th : m_trackHeaders)
+        for (auto th : m_trackHeaders)
             th->repaint();
 
     if (source == m_editViewState.m_trackHeightManager.get())
@@ -245,8 +232,7 @@ void TrackListView::changeListenerCallback(juce::ChangeBroadcaster* source)
     }
 }
 
-TrackHeaderComponent *
-    TrackListView::getTrackHeaderView(tracktion_engine::Track::Ptr track)
+TrackHeaderComponent *TrackListView::getTrackHeaderView(tracktion_engine::Track::Ptr track)
 {
     for (auto thv : m_trackHeaders)
         if (thv->getTrack() == track)

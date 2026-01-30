@@ -20,32 +20,26 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
-
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
-#include "Utilities.h" 
+#include "Utilities.h"
 
-
-
-class SearchFieldComponent : public juce::Component
-                            , public juce::ChangeBroadcaster
+class SearchFieldComponent
+    : public juce::Component
+    , public juce::ChangeBroadcaster
 {
 public:
-
-    SearchFieldComponent(ApplicationViewState& appState);
+    SearchFieldComponent(ApplicationViewState &appState);
 
     void resized() override;
     juce::String getText();
 
 private:
-
     juce::TextEditor m_searchField;
     juce::TextButton m_clearButton;
     juce::Label m_label;
 
-    ApplicationViewState& m_appState;
-
+    ApplicationViewState &m_appState;
 };

@@ -19,384 +19,345 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include "EditViewState.h"
-#include "Components/AutomatableSlider.h"
-#include "Components/AutomatableParameter.h"
-#include "Components/NonAutomatableParameter.h"
-#include "Components/AutomatableToggle.h"
-#include "Components/AutomatableComboBox.h"
-#include "Utilities.h"
 #include "Browser_Base.h"
+#include "Components/AutomatableComboBox.h"
+#include "Components/AutomatableParameter.h"
+#include "Components/AutomatableSlider.h"
+#include "Components/AutomatableToggle.h"
+#include "Components/NonAutomatableParameter.h"
+#include "DrumSamplerView.h"
+#include "EditViewState.h"
 #include "PluginViewComponent.h"
 #include "PresetManagerComponent.h"
-#include "DrumSamplerView.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
 class SoundEditorPanel;
 
-
 class BorderlessButton : public juce::DrawableButton
 
 {
 public:
-    BorderlessButton(const juce::String& buttonName
-                   , juce::DrawableButton::ButtonStyle buttonStyle) 
-    : juce::DrawableButton(buttonName, buttonStyle) {   }
+    BorderlessButton(const juce::String &buttonName, juce::DrawableButton::ButtonStyle buttonStyle)
+        : juce::DrawableButton(buttonName, buttonStyle)
+    {
+    }
 
-    void paint (juce::Graphics& g) override {}
+    void paint(juce::Graphics &g) override {}
 };
 
 class ParameterComponent : public juce::Component
 {
 public:
-    explicit ParameterComponent(te::AutomatableParameter& ap, ApplicationViewState& appstate);
-    ~ParameterComponent() override= default;
-    void paint(juce::Graphics& g) override;
+    explicit ParameterComponent(te::AutomatableParameter &ap, ApplicationViewState &appstate);
+    ~ParameterComponent() override = default;
+    void paint(juce::Graphics &g) override;
     void resized() override;
-    void mouseDown(const juce::MouseEvent& e) override;
-    void mouseUp(const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent &e) override;
+    void mouseUp(const juce::MouseEvent &e) override;
 
     bool isDragged() { return m_isDragged; }
-    te::AutomatableParameter& getParameter(){return m_parameter;}
+    te::AutomatableParameter &getParameter() { return m_parameter; }
 
 private:
-
-    te::AutomatableParameter& m_parameter;
-    ApplicationViewState& m_appState;
+    te::AutomatableParameter &m_parameter;
+    ApplicationViewState &m_appState;
     juce::Label m_parameterName;
     AutomatableSliderComponent m_parameterSlider;
 
-    bool m_isDragged {false};
+    bool m_isDragged{false};
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ParameterComponent)
 };
 
 //------------------------------------------------------------------------------
 
-class FilterPluginComponent : public PluginViewComponent
-                              , private te::ValueTreeAllEventListener
+class FilterPluginComponent
+    : public PluginViewComponent
+    , private te::ValueTreeAllEventListener
 {
 public:
-    FilterPluginComponent (EditViewState&, te::Plugin::Ptr);
-    ~FilterPluginComponent()
-    {
-        m_plugin->state.removeListener(this);
-    }
+    FilterPluginComponent(EditViewState &, te::Plugin::Ptr);
+    ~FilterPluginComponent() { m_plugin->state.removeListener(this); }
 
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics &) override;
     void resized() override;
-    int getNeededWidth() override {return 2;}
+    int getNeededWidth() override { return 2; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
-    void restorePluginState(const juce::ValueTree& state) override;
+    void restorePluginState(const juce::ValueTree &state) override;
     juce::String getPresetSubfolder() const override;
     juce::String getPluginTypeName() const override;
-    ApplicationViewState& getApplicationViewState() override;
+    ApplicationViewState &getApplicationViewState() override;
 
 private:
-    void updateLabel( juce::UndoManager & um);
-    void valueTreeChanged () override {}
-    void valueTreePropertyChanged (juce::ValueTree& v
-                                   , const juce::Identifier& i) override
+    void updateLabel(juce::UndoManager &um);
+    void valueTreeChanged() override {}
+    void valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i) override
     {
-        if (i == te::IDs::frequency )
+        if (i == te::IDs::frequency)
             m_freqPar->updateLabel();
     }
-    void valueTreeChildAdded (juce::ValueTree&
-                              , juce::ValueTree&) override {}
-    void valueTreeChildRemoved (juce::ValueTree&
-                                , juce::ValueTree&
-                                , int) override {}
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override{}
- 
-    std::unique_ptr<AutomatableParameterComponent>    m_freqPar;
-    juce::ToggleButton                                m_modeButton;
-    juce::Label                                       m_modeLabel;
-    std::unique_ptr<te::LowPassPlugin>                m_filterPlugin;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FilterPluginComponent)
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override {}
+
+    std::unique_ptr<AutomatableParameterComponent> m_freqPar;
+    juce::ToggleButton m_modeButton;
+    juce::Label m_modeLabel;
+    std::unique_ptr<te::LowPassPlugin> m_filterPlugin;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FilterPluginComponent)
 };
 
-class EqPluginComponent : public PluginViewComponent
-                              , private te::ValueTreeAllEventListener
+class EqPluginComponent
+    : public PluginViewComponent
+    , private te::ValueTreeAllEventListener
 {
 public:
-    EqPluginComponent (EditViewState&evs, te::Plugin::Ptr p)
+    EqPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
         : PluginViewComponent(evs, p)
     {
         m_lowFreqComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Low-pass freq"), "Freq");
         m_lowGainComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Low-pass gain"), "Gain");
-        m_lowQComp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Low-pass Q"), "Q");
-        m_midFreq1Comp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid freq 1"), "Freq");
-        m_midGain1Comp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid gain 1"), "Gain");
-        m_midQ1Comp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid Q 1"), "Q");
-        m_midFreq2Comp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid freq 2"), "Freq");
-        m_midGain2Comp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid gain 2"), "Gain");
-        m_midQ2Comp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid Q 2"), "Q");
-        m_hiFreqComp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("High-pass freq"), "Freq");
-        m_hiGainComp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("High-pass gain"), "Gain");
-        m_hiQComp=std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("High-pass Q"), "Q");
+        m_lowQComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Low-pass Q"), "Q");
+        m_midFreq1Comp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid freq 1"), "Freq");
+        m_midGain1Comp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid gain 1"), "Gain");
+        m_midQ1Comp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid Q 1"), "Q");
+        m_midFreq2Comp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid freq 2"), "Freq");
+        m_midGain2Comp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid gain 2"), "Gain");
+        m_midQ2Comp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("Mid Q 2"), "Q");
+        m_hiFreqComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("High-pass freq"), "Freq");
+        m_hiGainComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("High-pass gain"), "Gain");
+        m_hiQComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("High-pass Q"), "Q");
 
-        addAndMakeVisible (*m_lowFreqComp);
-        addAndMakeVisible (* m_lowGainComp);
-        addAndMakeVisible (* m_lowQComp);
-        addAndMakeVisible (*m_midFreq1Comp);
-        addAndMakeVisible (*m_midGain1Comp);
-        addAndMakeVisible (*m_midQ1Comp);
-        addAndMakeVisible (*m_midFreq2Comp);
-        addAndMakeVisible (*m_midGain2Comp);
-        addAndMakeVisible (*m_midQ2Comp);
-        addAndMakeVisible (*m_hiFreqComp);
-        addAndMakeVisible (*m_hiGainComp);
-        addAndMakeVisible (*m_hiQComp);
+        addAndMakeVisible(*m_lowFreqComp);
+        addAndMakeVisible(*m_lowGainComp);
+        addAndMakeVisible(*m_lowQComp);
+        addAndMakeVisible(*m_midFreq1Comp);
+        addAndMakeVisible(*m_midGain1Comp);
+        addAndMakeVisible(*m_midQ1Comp);
+        addAndMakeVisible(*m_midFreq2Comp);
+        addAndMakeVisible(*m_midGain2Comp);
+        addAndMakeVisible(*m_midQ2Comp);
+        addAndMakeVisible(*m_hiFreqComp);
+        addAndMakeVisible(*m_hiGainComp);
+        addAndMakeVisible(*m_hiQComp);
 
         m_plugin->state.addListener(this);
     }
-    ~EqPluginComponent()
-    {
-        m_plugin->state.removeListener(this);
-    }
+    ~EqPluginComponent() { m_plugin->state.removeListener(this); }
 
-    void paint (juce::Graphics&) override{}
+    void paint(juce::Graphics &) override {}
     void resized() override
     {
         auto area = getLocalBounds();
-        auto w = getWidth() /4;
+        auto w = getWidth() / 4;
         auto h = getHeight() / 12;
         auto low = area.removeFromLeft(w);
         auto mid1 = area.removeFromLeft(w);
         auto mid2 = area.removeFromLeft(w);
         auto hi = area.removeFromLeft(w);
 
-        m_lowFreqComp->setBounds(low.removeFromTop(h*4));
-        m_lowGainComp->setBounds(low.removeFromTop(h*4));
-        m_lowQComp->setBounds(low.removeFromTop(h*4));
-        m_midFreq1Comp->setBounds(mid1.removeFromTop(h*4));
-        m_midGain1Comp->setBounds(mid1.removeFromTop(h*4));
-        m_midQ1Comp->setBounds(mid1.removeFromTop(h*4));
-        m_midFreq2Comp->setBounds(mid2.removeFromTop(h*4));
-        m_midGain2Comp->setBounds(mid2.removeFromTop(h*4));
-        m_midQ2Comp->setBounds(mid2.removeFromTop(h*4));
-        m_hiFreqComp->setBounds(hi.removeFromTop(h*4));
-        m_hiGainComp->setBounds(hi.removeFromTop(h*4));
-        m_hiQComp->setBounds(hi.removeFromTop(h*4));
+        m_lowFreqComp->setBounds(low.removeFromTop(h * 4));
+        m_lowGainComp->setBounds(low.removeFromTop(h * 4));
+        m_lowQComp->setBounds(low.removeFromTop(h * 4));
+        m_midFreq1Comp->setBounds(mid1.removeFromTop(h * 4));
+        m_midGain1Comp->setBounds(mid1.removeFromTop(h * 4));
+        m_midQ1Comp->setBounds(mid1.removeFromTop(h * 4));
+        m_midFreq2Comp->setBounds(mid2.removeFromTop(h * 4));
+        m_midGain2Comp->setBounds(mid2.removeFromTop(h * 4));
+        m_midQ2Comp->setBounds(mid2.removeFromTop(h * 4));
+        m_hiFreqComp->setBounds(hi.removeFromTop(h * 4));
+        m_hiGainComp->setBounds(hi.removeFromTop(h * 4));
+        m_hiQComp->setBounds(hi.removeFromTop(h * 4));
     }
 
-    int getNeededWidth() override {return 4;}
+    int getNeededWidth() override { return 4; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
-    void restorePluginState(const juce::ValueTree& state) override;
+    void restorePluginState(const juce::ValueTree &state) override;
     juce::String getPresetSubfolder() const override;
     juce::String getPluginTypeName() const override;
-    ApplicationViewState& getApplicationViewState() override;
+    ApplicationViewState &getApplicationViewState() override;
 
 private:
-    void valueTreeChanged () override {}
-    void valueTreePropertyChanged (juce::ValueTree& v
-                                   , const juce::Identifier& i) override
+    void valueTreeChanged() override {}
+    void valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i) override
     {
-       if (i == te::IDs::loFreq)
-           m_lowFreqComp->updateLabel();
-       if (i == te::IDs::loGain )
-           m_lowGainComp->updateLabel();
-       if (i == te::IDs::loQ)
-           m_lowQComp->updateLabel();
+        if (i == te::IDs::loFreq)
+            m_lowFreqComp->updateLabel();
+        if (i == te::IDs::loGain)
+            m_lowGainComp->updateLabel();
+        if (i == te::IDs::loQ)
+            m_lowQComp->updateLabel();
 
-       if (i == te::IDs::midFreq1)
-           m_midFreq1Comp->updateLabel();
-       if (i == te::IDs::midGain1)
-           m_midGain1Comp->updateLabel();
-       if (i == te::IDs::midQ1)
-           m_midQ1Comp->updateLabel();
+        if (i == te::IDs::midFreq1)
+            m_midFreq1Comp->updateLabel();
+        if (i == te::IDs::midGain1)
+            m_midGain1Comp->updateLabel();
+        if (i == te::IDs::midQ1)
+            m_midQ1Comp->updateLabel();
 
-       if (i == te::IDs::midFreq2)
-           m_midFreq2Comp->updateLabel();
-       if (i == te::IDs::midGain2)
-           m_midGain2Comp->updateLabel();
-       if (i == te::IDs::midQ2)
-           m_midQ2Comp->updateLabel();
+        if (i == te::IDs::midFreq2)
+            m_midFreq2Comp->updateLabel();
+        if (i == te::IDs::midGain2)
+            m_midGain2Comp->updateLabel();
+        if (i == te::IDs::midQ2)
+            m_midQ2Comp->updateLabel();
 
-       if (i == te::IDs::hiQ)
-           m_hiQComp->updateLabel();
-       if (i == te::IDs::hiFreq)
-           m_hiFreqComp->updateLabel();
-       if (i == te::IDs::hiGain )
-           m_hiGainComp->updateLabel();
+        if (i == te::IDs::hiQ)
+            m_hiQComp->updateLabel();
+        if (i == te::IDs::hiFreq)
+            m_hiFreqComp->updateLabel();
+        if (i == te::IDs::hiGain)
+            m_hiGainComp->updateLabel();
     }
-    void valueTreeChildAdded (juce::ValueTree&
-                              , juce::ValueTree&) override {}
-    void valueTreeChildRemoved (juce::ValueTree&
-                                , juce::ValueTree&
-                                , int) override {}
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override{}
-    std::unique_ptr<AutomatableParameterComponent>    
-        m_lowFreqComp,
-        m_lowGainComp,       
-        m_lowQComp,
-        m_midFreq1Comp,
-        m_midGain1Comp,
-        m_midQ1Comp,
-        m_midFreq2Comp,
-        m_midGain2Comp,
-        m_midQ2Comp,
-        m_hiFreqComp,
-        m_hiGainComp,
-        m_hiQComp;
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override {}
+    std::unique_ptr<AutomatableParameterComponent> m_lowFreqComp, m_lowGainComp, m_lowQComp, m_midFreq1Comp, m_midGain1Comp, m_midQ1Comp, m_midFreq2Comp, m_midGain2Comp, m_midQ2Comp, m_hiFreqComp, m_hiGainComp, m_hiQComp;
 
-   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EqPluginComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EqPluginComponent)
 };
 
-
-class DelayPluginComponent : public PluginViewComponent
-                              , private te::ValueTreeAllEventListener
+class DelayPluginComponent
+    : public PluginViewComponent
+    , private te::ValueTreeAllEventListener
 {
 public:
-    DelayPluginComponent (EditViewState& evs, te::Plugin::Ptr p): PluginViewComponent(evs, p)
+    DelayPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
+        : PluginViewComponent(evs, p)
     {
-        m_fbParCom =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("feedback"), "FB");
+        m_fbParCom = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("feedback"), "FB");
         addAndMakeVisible(*m_fbParCom);
-        m_mix =  std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("mix proportion"), "Mix");
+        m_mix = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("mix proportion"), "Mix");
         addAndMakeVisible(*m_mix);
 
         auto timeVal = m_plugin->state.getPropertyAsValue(te::IDs::length, &m_editViewState.m_edit.getUndoManager());
-        if (static_cast<double> (timeVal.getValue()) < 1.0)
+        if (static_cast<double>(timeVal.getValue()) < 1.0)
             timeVal = 1.0;
 
-        m_time = std::make_unique<NonAutomatableParameterComponent>(timeVal,"Time", 1,1000);
+        m_time = std::make_unique<NonAutomatableParameterComponent>(timeVal, "Time", 1, 1000);
         addAndMakeVisible(*m_time);
         m_plugin->state.addListener(this);
     }
 
-    ~DelayPluginComponent()
-    {
-        m_plugin->state.removeListener(this);
-    }
+    ~DelayPluginComponent() { m_plugin->state.removeListener(this); }
 
     void resized() override
     {
         auto bounds = getLocalBounds();
-        auto h = bounds.getHeight()/12;
-        m_fbParCom->setBounds(bounds.removeFromTop(h*4));
-        m_mix->setBounds(bounds.removeFromTop(h*4));
-        m_time->setBounds(bounds.removeFromTop(h*4));
+        auto h = bounds.getHeight() / 12;
+        m_fbParCom->setBounds(bounds.removeFromTop(h * 4));
+        m_mix->setBounds(bounds.removeFromTop(h * 4));
+        m_time->setBounds(bounds.removeFromTop(h * 4));
     }
 
-    int getNeededWidth() override {return 2;}
+    int getNeededWidth() override { return 2; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
-    void restorePluginState(const juce::ValueTree& state) override;
+    void restorePluginState(const juce::ValueTree &state) override;
     juce::String getPresetSubfolder() const override;
     juce::String getPluginTypeName() const override;
-    ApplicationViewState& getApplicationViewState() override;
+    ApplicationViewState &getApplicationViewState() override;
 
 private:
-
-    void valueTreeChanged () override {}
-    void valueTreePropertyChanged (juce::ValueTree& v
-                                   , const juce::Identifier& i) override
+    void valueTreeChanged() override {}
+    void valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i) override
     {
-       if (i == te::IDs::feedback)
-           m_fbParCom->updateLabel();
-       if (i == te::IDs::mix )
-           m_mix->updateLabel();
+        if (i == te::IDs::feedback)
+            m_fbParCom->updateLabel();
+        if (i == te::IDs::mix)
+            m_mix->updateLabel();
     }
-    void valueTreeChildAdded (juce::ValueTree&
-                              , juce::ValueTree&) override {}
-    void valueTreeChildRemoved (juce::ValueTree&
-                                , juce::ValueTree&
-                                , int) override {}
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override{}
- 
-    std::unique_ptr<AutomatableParameterComponent>    m_mix, m_fbParCom;
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override {}
+
+    std::unique_ptr<AutomatableParameterComponent> m_mix, m_fbParCom;
     std::unique_ptr<NonAutomatableParameterComponent> m_time;
-   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DelayPluginComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DelayPluginComponent)
 };
 
-
-class VolumePluginComponent : public PluginViewComponent
-                              , private te::ValueTreeAllEventListener
+class VolumePluginComponent
+    : public PluginViewComponent
+    , private te::ValueTreeAllEventListener
 {
 public:
-    VolumePluginComponent (EditViewState&, te::Plugin::Ptr);
-    ~VolumePluginComponent()
-    {
-        m_plugin->state.removeListener(this);
-    }
+    VolumePluginComponent(EditViewState &, te::Plugin::Ptr);
+    ~VolumePluginComponent() { m_plugin->state.removeListener(this); }
 
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics &) override;
     void resized() override;
-    int getNeededWidth() override {return 2;}
+    int getNeededWidth() override { return 2; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
-    void restorePluginState(const juce::ValueTree& state) override;
+    void restorePluginState(const juce::ValueTree &state) override;
     juce::String getPresetSubfolder() const override;
     juce::String getPluginTypeName() const override;
-    ApplicationViewState& getApplicationViewState() override;
+    ApplicationViewState &getApplicationViewState() override;
 
 private:
-    void valueTreeChanged () override {}
-    void valueTreePropertyChanged (juce::ValueTree& v
-                                   , const juce::Identifier& i) override
+    void valueTreeChanged() override {}
+    void valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i) override
     {
-       if (i == te::IDs::pan)
-           m_panParComp->updateLabel();
-       if (i == te::IDs::volume )
-           m_volParComp->updateLabel();
+        if (i == te::IDs::pan)
+            m_panParComp->updateLabel();
+        if (i == te::IDs::volume)
+            m_volParComp->updateLabel();
     }
 
-    void valueTreeChildAdded (juce::ValueTree&
-                              , juce::ValueTree&) override {}
-    void valueTreeChildRemoved (juce::ValueTree&
-                                , juce::ValueTree&
-                                , int) override {}
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override{}
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override {}
 
-    std::unique_ptr<AutomatableParameterComponent>    m_volParComp, m_panParComp;
-   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumePluginComponent)
+    std::unique_ptr<AutomatableParameterComponent> m_volParComp, m_panParComp;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VolumePluginComponent)
 };
 
 //------------------------------------------------------------------------------
 
-class VstPluginComponent : public PluginViewComponent
-                         , private te::AutomatableParameter::Listener
+class VstPluginComponent
+    : public PluginViewComponent
+    , private te::AutomatableParameter::Listener
 {
 public:
-    VstPluginComponent (EditViewState&, te::Plugin::Ptr);
+    VstPluginComponent(EditViewState &, te::Plugin::Ptr);
     ~VstPluginComponent() override;
 
-    void paint (juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
-    void mouseDown(const juce::MouseEvent& ) override {}
+    void mouseDown(const juce::MouseEvent &) override {}
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
-    void restorePluginState(const juce::ValueTree& state) override;
+    void restorePluginState(const juce::ValueTree &state) override;
     juce::String getPresetSubfolder() const override;
     juce::String getPluginTypeName() const override;
-    ApplicationViewState& getApplicationViewState() override;
+    ApplicationViewState &getApplicationViewState() override;
 
-    int getNeededWidth() override {return 3;}
+    int getNeededWidth() override { return 3; }
+
 private:
+    void curveHasChanged(te::AutomatableParameter &) override {}
 
-    void curveHasChanged(te::AutomatableParameter&) override{} 
-
-    void parameterChanged (te::AutomatableParameter& param, float /*newValue*/) override;
+    void parameterChanged(te::AutomatableParameter &param, float /*newValue*/) override;
     std::unique_ptr<ParameterComponent> m_lastChangedParameterComponent;
     juce::Viewport m_viewPort;
     juce::Component m_pluginListComponent;
     juce::OwnedArray<ParameterComponent> m_parameters;
     te::Plugin::Ptr m_plugin;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VstPluginComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VstPluginComponent)
 };
 
 //-------------------------------------------------------------------------------------
@@ -404,10 +365,10 @@ private:
 class ModifierViewComponent : public juce::Component
 {
 public:
-    ModifierViewComponent (EditViewState&, te::Modifier::Ptr);
+    ModifierViewComponent(EditViewState &, te::Modifier::Ptr);
     ~ModifierViewComponent() override;
 
-    void paint (juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
     virtual int getNeededWidth() { return 2; }
     te::Modifier::Ptr getModifier() { return m_modifier; }
@@ -415,28 +376,29 @@ public:
     void removeConnection(int rowIndex);
 
 protected:
-    class DragHandle : public juce::Component
-                     , public te::ParameterisableDragDropSource
+    class DragHandle
+        : public juce::Component
+        , public te::ParameterisableDragDropSource
     {
     public:
         DragHandle();
 
         void setModifier(te::Modifier::Ptr m) { m_modifier = m; }
 
-        void paint(juce::Graphics& g) override;
-        void mouseDown(const juce::MouseEvent& e) override;
-        void mouseDrag(const juce::MouseEvent& e) override;
-        void mouseUp(const juce::MouseEvent& e) override;
+        void paint(juce::Graphics &g) override;
+        void mouseDown(const juce::MouseEvent &e) override;
+        void mouseDrag(const juce::MouseEvent &e) override;
+        void mouseUp(const juce::MouseEvent &e) override;
 
         // ParameterisableDragDropSource implementation
         void draggedOntoAutomatableParameterTargetBeforeParamSelection() override {}
-        void draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param) override;
+        void draggedOntoAutomatableParameterTarget(const te::AutomatableParameter::Ptr &param) override;
 
     private:
         te::Modifier::Ptr m_modifier;
     };
 
-    EditViewState& m_editViewState;
+    EditViewState &m_editViewState;
     te::Modifier::Ptr m_modifier;
     juce::Viewport m_viewPort;
     juce::Component m_paramListComponent;
@@ -445,128 +407,128 @@ protected:
 
     struct ConnectedParametersListBoxModel : public juce::TableListBoxModel
     {
-        ConnectedParametersListBoxModel(te::Modifier::Ptr m, te::Edit& e, ModifierViewComponent& parent)
-            : modifier(m), edit(e), m_parent(parent) { update(); }
+        ConnectedParametersListBoxModel(te::Modifier::Ptr m, te::Edit &e, ModifierViewComponent &parent)
+            : modifier(m),
+              edit(e),
+              m_parent(parent)
+        {
+            update();
+        }
         int getNumRows() override;
-        void paintRowBackground (juce::Graphics&, int rowNumber, int width, int height, bool rowIsSelected) override;
-        void paintCell (juce::Graphics&, int rowNumber, int columnId, int width, int height, bool rowIsSelected) override;
-        void cellClicked(int rowNumber, int columnId, const juce::MouseEvent& e) override;
+        void paintRowBackground(juce::Graphics &, int rowNumber, int width, int height, bool rowIsSelected) override;
+        void paintCell(juce::Graphics &, int rowNumber, int columnId, int width, int height, bool rowIsSelected) override;
+        void cellClicked(int rowNumber, int columnId, const juce::MouseEvent &e) override;
         void update();
 
         te::Modifier::Ptr modifier;
-        te::Edit& edit;
-        ModifierViewComponent& m_parent;
+        te::Edit &edit;
+        ModifierViewComponent &m_parent;
         juce::ReferenceCountedArray<te::AutomatableParameter> cachedParams;
     };
 
     ConnectedParametersListBoxModel m_listBoxModel;
     juce::TableListBox m_table;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ModifierViewComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModifierViewComponent)
 };
 
 class LFOModifierComponent : public ModifierViewComponent
 {
 public:
-    LFOModifierComponent(EditViewState& evs, te::Modifier::Ptr m);
+    LFOModifierComponent(EditViewState &evs, te::Modifier::Ptr m);
     ~LFOModifierComponent() override = default;
 
     void resized() override;
     int getNeededWidth() override { return 4; }
-    void paint (juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
 
 private:
     AutomatableChoiceComponent m_wave, m_sync, m_rateType, m_bipolar;
     AutomatableParameterComponent m_rate, m_depth, m_phase, m_offset;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LFOModifierComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LFOModifierComponent)
 };
 
 class StepModifierComponent : public ModifierViewComponent
 {
 public:
-    StepModifierComponent(EditViewState& evs, te::Modifier::Ptr m);
+    StepModifierComponent(EditViewState &evs, te::Modifier::Ptr m);
     ~StepModifierComponent() override = default;
 
     void resized() override;
     int getNeededWidth() override { return 6; }
-    void paint (juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
 
 private:
-    class StepDisplay : public juce::Component
-                      , public juce::Slider::Listener
-                      , private juce::Timer
+    class StepDisplay
+        : public juce::Component
+        , public juce::Slider::Listener
+        , private juce::Timer
     {
     public:
-        StepDisplay(te::StepModifier& m);
-        void paint(juce::Graphics& g) override;
+        StepDisplay(te::StepModifier &m);
+        void paint(juce::Graphics &g) override;
         void resized() override;
-        void sliderValueChanged(juce::Slider* slider) override;
+        void sliderValueChanged(juce::Slider *slider) override;
         void timerCallback() override;
         void updateSteps();
 
     private:
-        te::StepModifier& m_modifier;
+        te::StepModifier &m_modifier;
         juce::OwnedArray<juce::Slider> m_sliders;
-        int m_currentStep { -1 };
+        int m_currentStep{-1};
     };
 
     AutomatableChoiceComponent m_sync, m_rateType;
     AutomatableParameterComponent m_numSteps, m_rate, m_depth;
     StepDisplay m_stepDisplay;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StepModifierComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StepModifierComponent)
 };
 
 //-------------------------------------------------------------------------------------
 
-class RackItemView : public juce::Component
-                          , public juce::Button::Listener
-                          , public te::ParameterisableDragDropSource
+class RackItemView
+    : public juce::Component
+    , public juce::Button::Listener
+    , public te::ParameterisableDragDropSource
 {
 public:
-    RackItemView (EditViewState&, te::Track::Ptr, te::Plugin::Ptr);
-    RackItemView (EditViewState&, te::Track::Ptr, te::Modifier::Ptr);
+    RackItemView(EditViewState &, te::Track::Ptr, te::Plugin::Ptr);
+    RackItemView(EditViewState &, te::Track::Ptr, te::Modifier::Ptr);
     ~RackItemView() override;
 
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics &) override;
     void resized() override;
-    void mouseDown (const juce::MouseEvent&) override;
-    void mouseDrag(const juce::MouseEvent&) override;
-    void mouseUp(const juce::MouseEvent&) override;
-    void mouseDoubleClick(const juce::MouseEvent&) override;
+    void mouseDown(const juce::MouseEvent &) override;
+    void mouseDrag(const juce::MouseEvent &) override;
+    void mouseUp(const juce::MouseEvent &) override;
+    void mouseDoubleClick(const juce::MouseEvent &) override;
 
-    void buttonClicked(juce::Button* button) override;
+    void buttonClicked(juce::Button *button) override;
 
     // ParameterisableDragDropSource implementation
     void draggedOntoAutomatableParameterTargetBeforeParamSelection() override {}
-    void draggedOntoAutomatableParameterTarget (const te::AutomatableParameter::Ptr& param) override;
+    void draggedOntoAutomatableParameterTarget(const te::AutomatableParameter::Ptr &param) override;
 
     int getNeededWidthFactor();
 
-    [[maybe_unused]] void setNeededWidthFactor(int wf){ m_neededWidthFactor = wf; }
+    [[maybe_unused]] void setNeededWidthFactor(int wf) { m_neededWidthFactor = wf; }
 
     bool isCollapsed() const { return m_collapsed; }
     int getHeaderWidth() const { return m_headerWidth; }
 
-    te::Plugin::Ptr getPlugin()
-    {
-        return m_plugin;
-    }
+    te::Plugin::Ptr getPlugin() { return m_plugin; }
 
-    te::Modifier::Ptr getModifier()
-    {
-        return m_modifier;
-    }
+    te::Modifier::Ptr getModifier() { return m_modifier; }
 
 private:
-
     juce::Colour getTrackColour();
 
     juce::Label name;
 
-    [[maybe_unused]] int m_neededWidthFactor {1};
-    EditViewState& m_evs;
+    [[maybe_unused]] int m_neededWidthFactor{1};
+    EditViewState &m_evs;
     te::Track::Ptr m_track;
     te::Plugin::Ptr m_plugin;
     te::Modifier::Ptr m_modifier;
@@ -575,11 +537,10 @@ private:
     std::unique_ptr<ModifierViewComponent> m_modifierComponent;
 
     std::unique_ptr<PresetManagerComponent> m_presetManager;
-    BorderlessButton   m_showPluginBtn;    
-    bool m_clickOnHeader {false};
-    bool m_collapsed {false};
-    int m_headerWidth {20};
+    BorderlessButton m_showPluginBtn;
+    bool m_clickOnHeader{false};
+    bool m_collapsed{false};
+    int m_headerWidth{20};
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RackItemView)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RackItemView)
 };
-

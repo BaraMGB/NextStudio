@@ -28,7 +28,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 //==============================================================================
 
 MarkerComponent::MarkerComponent(MarkerType type, juce::Colour colour)
-    : m_type(type), m_colour(colour)
+    : m_type(type),
+      m_colour(colour)
 {
     m_line.setFill(colour);
     m_handle.setFill(colour);
@@ -38,10 +39,7 @@ MarkerComponent::MarkerComponent(MarkerType type, juce::Colour colour)
     setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
 }
 
-void MarkerComponent::setPosition(double time, double totalLength, float componentWidth)
-{
-    setPosition(time, totalLength, componentWidth, 0.0, totalLength);
-}
+void MarkerComponent::setPosition(double time, double totalLength, float componentWidth) { setPosition(time, totalLength, componentWidth, 0.0, totalLength); }
 
 void MarkerComponent::setPosition(double time, double totalLength, float componentWidth, double minTime, double maxTime)
 {
@@ -104,7 +102,7 @@ void MarkerComponent::updateFromTime(double time, double totalLength, float comp
     m_handle.setRectangle(handleRect);
 }
 
-bool MarkerComponent::isOverPosition(const juce::Point<float>& position) const
+bool MarkerComponent::isOverPosition(const juce::Point<float> &position) const
 {
     if (!isVisible() || m_totalLength <= 0.0)
         return false;
@@ -113,17 +111,11 @@ bool MarkerComponent::isOverPosition(const juce::Point<float>& position) const
     return getLocalBounds().toFloat().contains(position);
 }
 
-void MarkerComponent::resized()
-{
-    updateFromTime(m_time, m_totalLength, m_componentWidth);
-}
+void MarkerComponent::resized() { updateFromTime(m_time, m_totalLength, m_componentWidth); }
 
-void MarkerComponent::mouseDown(const juce::MouseEvent& e)
-{
-    m_isDragging = true;
-}
+void MarkerComponent::mouseDown(const juce::MouseEvent &e) { m_isDragging = true; }
 
-void MarkerComponent::mouseDrag(const juce::MouseEvent& e)
+void MarkerComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (!m_isDragging || m_totalLength <= 0.0)
         return;
@@ -143,12 +135,9 @@ void MarkerComponent::mouseDrag(const juce::MouseEvent& e)
     }
 }
 
-void MarkerComponent::mouseUp(const juce::MouseEvent& e)
-{
-    m_isDragging = false;
-}
+void MarkerComponent::mouseUp(const juce::MouseEvent &e) { m_isDragging = false; }
 
-double MarkerComponent::timeFromPosition(const juce::Point<float>& position) const
+double MarkerComponent::timeFromPosition(const juce::Point<float> &position) const
 {
     if (m_totalLength <= 0.0 || m_componentWidth <= 0)
         return 0.0;
@@ -168,7 +157,7 @@ double MarkerComponent::timeFromPosition(const juce::Point<float>& position) con
 // SampleDisplay Implementation
 //==============================================================================
 
-SampleDisplay::SampleDisplay(te::TransportControl&  tc, ApplicationViewState& appViewState)
+SampleDisplay::SampleDisplay(te::TransportControl &tc, ApplicationViewState &appViewState)
     : transport(tc),
       m_appViewState(appViewState),
       m_sampleView(tc.edit),
@@ -176,14 +165,16 @@ SampleDisplay::SampleDisplay(te::TransportControl&  tc, ApplicationViewState& ap
       m_endMarker(MarkerComponent::End, appViewState.getPrimeColour())
 {
     addAndMakeVisible(m_sampleView);
-    cursorUpdater.setCallback ([this]{
+    cursorUpdater.setCallback(
+        [this]
+        {
             updateCursorPosition();
 
             if (m_sampleView.getSmartThumbnail().isGeneratingProxy() || m_sampleView.getSmartThumbnail().isOutOfDate())
                 repaint();
         });
-    cursor.setFill (findColour (juce::Label::textColourId));
-    addAndMakeVisible (cursor);
+    cursor.setFill(findColour(juce::Label::textColourId));
+    addAndMakeVisible(cursor);
 
     addAndMakeVisible(m_startMarker);
     addAndMakeVisible(m_endMarker);
@@ -224,7 +215,7 @@ void SampleDisplay::resized()
 }
 void SampleDisplay::setFile(const tracktion_engine::AudioFile &file)
 {
-    m_sampleView.setFile (file);
+    m_sampleView.setFile(file);
 
     // Update total length for marker calculations
     if (file.isValid() && file.getSampleRate() > 0.0)
@@ -235,25 +226,22 @@ void SampleDisplay::setFile(const tracktion_engine::AudioFile &file)
         clearStartEndMarkers();
     }
 
-    cursorUpdater.startTimerHz (CURSOR_UPDATE_FPS);
+    cursorUpdater.startTimerHz(CURSOR_UPDATE_FPS);
 
     // Update markers with new total length
     updateStartEndMarkers();
 
     repaint();
 }
-void SampleDisplay::setColour(juce::Colour colour)
-{
-    m_sampleView.setColour(colour);
-}
+void SampleDisplay::setColour(juce::Colour colour) { m_sampleView.setColour(colour); }
 void SampleDisplay::updateCursorPosition()
 {
     const double loopLength = transport.getLoopRange().getLength().inSeconds();
     const double proportion = loopLength == 0.0 ? 0.0 : transport.getPosition().inSeconds() / loopLength;
 
     auto r = getLocalBounds().toFloat();
-    const float x = r.getWidth() * float (proportion);
-    cursor.setRectangle (r.withWidth (2.0f).withX (x));
+    const float x = r.getWidth() * float(proportion);
+    cursor.setRectangle(r.withWidth(2.0f).withX(x));
 }
 void SampleDisplay::mouseDown(const juce::MouseEvent &e)
 {
@@ -264,23 +252,20 @@ void SampleDisplay::mouseDown(const juce::MouseEvent &e)
         return;
 
     // Otherwise handle transport control as before
-    transport.setUserDragging (true);
-    mouseDrag (e);
+    transport.setUserDragging(true);
+    mouseDrag(e);
 }
 
 void SampleDisplay::mouseDrag(const juce::MouseEvent &e)
 {
     // Marker components handle their own dragging
     // Just handle transport control as before
-    jassert (getWidth() > 0);
-    const float proportion = (float) e.position.x / (float) getWidth();
-    transport.position = tracktion::TimePosition::fromSeconds(transport.getLoopRange().getLength().inSeconds()* proportion);
+    jassert(getWidth() > 0);
+    const float proportion = (float)e.position.x / (float)getWidth();
+    transport.position = tracktion::TimePosition::fromSeconds(transport.getLoopRange().getLength().inSeconds() * proportion);
 }
 
-void SampleDisplay::mouseUp(const juce::MouseEvent &)
-{
-    transport.setUserDragging (false);
-}
+void SampleDisplay::mouseUp(const juce::MouseEvent &) { transport.setUserDragging(false); }
 
 // New methods for start/end markers
 void SampleDisplay::setStartEndPositions(double start, double end)
@@ -316,18 +301,14 @@ void SampleDisplay::clearStartEndMarkers()
     updateStartEndMarkers();
 }
 
-void SampleDisplay::refreshMarkers()
-{
-    updateStartEndMarkers();
-}
+void SampleDisplay::refreshMarkers() { updateStartEndMarkers(); }
 
 void SampleDisplay::updateStartEndMarkers()
 {
     // Update start marker
     if (m_startPosition >= 0.0 && m_totalLength > 0.0)
     {
-        m_startMarker.setPosition(m_startPosition, m_totalLength, (float)getWidth(), 0.0,
-                                  (m_endPosition >= 0.0) ? m_endPosition : m_totalLength);
+        m_startMarker.setPosition(m_startPosition, m_totalLength, (float)getWidth(), 0.0, (m_endPosition >= 0.0) ? m_endPosition : m_totalLength);
         m_startMarker.setVisible(true);
     }
     else
@@ -338,8 +319,7 @@ void SampleDisplay::updateStartEndMarkers()
     // Update end marker
     if (m_endPosition >= 0.0 && m_totalLength > 0.0)
     {
-        m_endMarker.setPosition(m_endPosition, m_totalLength, (float)getWidth(),
-                                (m_startPosition >= 0.0) ? m_startPosition : 0.0, m_totalLength);
+        m_endMarker.setPosition(m_endPosition, m_totalLength, (float)getWidth(), (m_startPosition >= 0.0) ? m_startPosition : 0.0, m_totalLength);
         m_endMarker.setVisible(true);
     }
     else
@@ -348,8 +328,7 @@ void SampleDisplay::updateStartEndMarkers()
     }
 }
 
-
-double SampleDisplay::positionToTime(const juce::Point<float>& position) const
+double SampleDisplay::positionToTime(const juce::Point<float> &position) const
 {
     if (m_totalLength <= 0.0 || getWidth() <= 0)
         return 0.0;
@@ -358,7 +337,7 @@ double SampleDisplay::positionToTime(const juce::Point<float>& position) const
     return proportion * m_totalLength;
 }
 
-SampleView::SampleView(te::Edit& edit)
+SampleView::SampleView(te::Edit &edit)
     : m_edit(edit),
       m_audioFile(edit.engine, {}),
       m_smartThumbnail(m_edit.engine, te::AudioFile(m_edit.engine), *this, nullptr)
@@ -369,7 +348,7 @@ SampleView::SampleView(te::Edit& edit)
 void SampleView::setFile(const tracktion_engine::AudioFile &file)
 {
     m_audioFile = file;
-    m_smartThumbnail.setNewFile (file);
+    m_smartThumbnail.setNewFile(file);
 }
 
 void SampleView::paint(juce::Graphics &g)
@@ -380,18 +359,12 @@ void SampleView::paint(juce::Graphics &g)
     if (m_smartThumbnail.isGeneratingProxy())
     {
         g.setColour(colour);
-        g.drawText ("Creating proxy: "
-                    + juce::String (juce::roundToInt (
-                                        m_smartThumbnail.getProxyProgress() * 100.0f))
-                    + "%"
-                    , r
-                    , juce::Justification::centred);
-
+        g.drawText("Creating proxy: " + juce::String(juce::roundToInt(m_smartThumbnail.getProxyProgress() * 100.0f)) + "%", r, juce::Justification::centred);
     }
     else
     {
         const float brightness = m_smartThumbnail.isOutOfDate() ? 0.4f : 0.66f;
-        g.setColour (colour.withMultipliedBrightness (brightness));
-        m_smartThumbnail.drawChannels (g, r, { tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(m_smartThumbnail.getTotalLength()) }, 1.0f);
+        g.setColour(colour.withMultipliedBrightness(brightness));
+        m_smartThumbnail.drawChannels(g, r, {tracktion::TimePosition::fromSeconds(0.0), tracktion::TimeDuration::fromSeconds(m_smartThumbnail.getTotalLength())}, 1.0f);
     }
 }

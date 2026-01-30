@@ -19,21 +19,21 @@
 //
 #pragma once
 
-
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "EditViewState.h"
 #include "ApplicationViewState.h"
+#include "EditViewState.h"
+#include "PreviewComponent.h"
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
-#include "PreviewComponent.h"
 
-class PathComponent : public juce::Component
-                    , public juce::ChangeBroadcaster
+class PathComponent
+    : public juce::Component
+    , public juce::ChangeBroadcaster
 {
 public:
-    PathComponent(juce::File dir, ApplicationViewState& appState) ;
+    PathComponent(juce::File dir, ApplicationViewState &appState);
 
-    void paint (juce::Graphics& g) override
+    void paint(juce::Graphics &g) override
     {
         g.fillAll(m_appState.getBackgroundColour2());
         g.setColour(m_appState.getBorderColour());
@@ -46,13 +46,11 @@ public:
     juce::File getCurrentPath();
 
 private:
-
-
     juce::TextEditor m_currentPathField;
     juce::TextButton m_button{"^"};
     juce::File m_currentPath;
 
-    ApplicationViewState& m_appState;
+    ApplicationViewState &m_appState;
 };
 // ----------------------------------------------------------------------------------------------------
 //
@@ -64,66 +62,69 @@ class BrowserBaseComponent;
 class BrowserListBox : public juce::ListBox
 {
 public:
-BrowserListBox(BrowserBaseComponent& sbc, ApplicationViewState& appState)
-    : m_browser(sbc)
-    , m_appState(appState)
-    {}
+    BrowserListBox(BrowserBaseComponent &sbc, ApplicationViewState &appState)
+        : m_browser(sbc),
+          m_appState(appState)
+    {
+    }
 
     juce::File getSelectedFile();
 
 private:
-    BrowserBaseComponent& m_browser;
-    ApplicationViewState& m_appState;
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrowserListBox)
+    BrowserBaseComponent &m_browser;
+    ApplicationViewState &m_appState;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BrowserListBox)
 };
 // ----------------------------------------------------------------------------------------------------
 //
 //
 //
 // ----------------------------------------------------------------------------------------------------
-class BrowserBaseComponent : public juce::Component
-                               , public juce::ChangeBroadcaster
-        , private juce::ComboBox::Listener
-        , public juce::ListBoxModel
-        , public juce::ChangeListener
+class BrowserBaseComponent
+    : public juce::Component
+    , public juce::ChangeBroadcaster
+    , private juce::ComboBox::Listener
+    , public juce::ListBoxModel
+    , public juce::ChangeListener
 {
 public:
-    BrowserBaseComponent(ApplicationViewState& avs);
+    BrowserBaseComponent(ApplicationViewState &avs);
     ~BrowserBaseComponent() override;
 
-    void paint (juce::Graphics& g) override
+    void paint(juce::Graphics &g) override
     {
         g.fillAll(m_applicationViewState.getBackgroundColour2());
         g.setColour(m_applicationViewState.getBorderColour());
         g.drawHorizontalLine(m_sortingBox.getY() + m_sortingBox.getHeight(), 0, getWidth());
         g.drawHorizontalLine(m_searchField.getY(), 0, getWidth());
     }
-    int getNumRows() override { return m_contentList.size (); }
+    int getNumRows() override { return m_contentList.size(); }
 
     juce::Array<juce::File> &getContentList() { return m_contentList; }
     void setFileList(const juce::Array<juce::File> &fileList);
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
-    juce::ListBox& getListBox(){ return m_listBox; }
+    juce::ListBox &getListBox() { return m_listBox; }
 
     juce::File m_projectToLoad{};
+
 protected:
     virtual void sortList(int selectedID) = 0;
     void updateContentList();
-    BrowserListBox             m_listBox;
-    juce::Array<juce::File>    m_fileList;
-    juce::Array<juce::File>    m_contentList;
-    SearchFieldComponent       m_searchField;
-    juce::ComboBox              m_sortingBox;
-    juce::Label                 m_sortLabel;
-    PathComponent               m_currentPathField; 
-    ApplicationViewState &     m_applicationViewState;
+    BrowserListBox m_listBox;
+    juce::Array<juce::File> m_fileList;
+    juce::Array<juce::File> m_contentList;
+    SearchFieldComponent m_searchField;
+    juce::ComboBox m_sortingBox;
+    juce::Label m_sortLabel;
+    PathComponent m_currentPathField;
+    ApplicationViewState &m_applicationViewState;
 
-    juce::String                m_searchTerm;
+    juce::String m_searchTerm;
+
 private:
+    void comboBoxChanged(juce::ComboBox *box) override;
 
-    void comboBoxChanged(juce::ComboBox* box) override;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrowserBaseComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BrowserBaseComponent)
 };

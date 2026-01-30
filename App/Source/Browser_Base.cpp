@@ -23,20 +23,18 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-PathComponent::PathComponent(juce::File dir, ApplicationViewState& appState) 
-    : m_currentPath(dir)
-    , m_appState(appState)
+PathComponent::PathComponent(juce::File dir, ApplicationViewState &appState)
+    : m_currentPath(dir),
+      m_appState(appState)
 {
     addAndMakeVisible(m_currentPathField);
     m_currentPathField.setText(m_currentPath.getFullPathName());
-    m_currentPathField.onReturnKey = [this] {
-        setDir(juce::File (m_currentPathField.getText()));
-    };
+    m_currentPathField.onReturnKey = [this] { setDir(juce::File(m_currentPathField.getText())); };
     addAndMakeVisible(m_button);
-    m_button.onClick = [this] 
+    m_button.onClick = [this]
     {
         GUIHelpers::log("button");
-        setDir(m_currentPath.getParentDirectory()); 
+        setDir(m_currentPath.getParentDirectory());
     };
     m_currentPathField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());
     m_currentPathField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getBackgroundColour1().darker(0.3f));
@@ -45,7 +43,7 @@ PathComponent::PathComponent(juce::File dir, ApplicationViewState& appState)
     m_currentPathField.setColour(juce::TextEditor::ColourIds::highlightColourId, m_appState.getPrimeColour());
 }
 
-void PathComponent::resized() 
+void PathComponent::resized()
 {
     auto area = getLocalBounds();
     auto upButton = area.removeFromRight(getHeight());
@@ -54,8 +52,6 @@ void PathComponent::resized()
     m_currentPathField.setBounds(area);
     m_button.setBounds(upButton);
 }
-
-
 
 void PathComponent::setDir(juce::File file)
 {
@@ -67,11 +63,7 @@ void PathComponent::setDir(juce::File file)
     sendChangeMessage();
 }
 
-
-juce::File PathComponent::getCurrentPath()
-{
-    return m_currentPath;
-}
+juce::File PathComponent::getCurrentPath() { return m_currentPath; }
 
 // ----------------------------------------------------------------------------------------------------
 //
@@ -81,17 +73,17 @@ juce::File PathComponent::getCurrentPath()
 juce::File BrowserListBox::getSelectedFile()
 {
     auto row = getSelectedRows()[0];
-    return m_browser.getContentList()[row]; 
+    return m_browser.getContentList()[row];
 }
 BrowserBaseComponent::BrowserBaseComponent(ApplicationViewState &appState)
-    : m_applicationViewState(appState)
-    , m_listBox(*this, appState)
-    , m_searchField(appState)
-    , m_currentPathField(juce::File(appState.m_workDir), appState)
+    : m_applicationViewState(appState),
+      m_listBox(*this, appState),
+      m_searchField(appState),
+      m_currentPathField(juce::File(appState.m_workDir), appState)
 {
-    addAndMakeVisible (m_listBox);
-    m_listBox.setModel (this);
-    m_listBox.setRowHeight (20);
+    addAndMakeVisible(m_listBox);
+    m_listBox.setModel(this);
+    m_listBox.setRowHeight(20);
     addAndMakeVisible(m_searchField);
     m_searchField.addChangeListener(this);
 
@@ -105,28 +97,27 @@ BrowserBaseComponent::BrowserBaseComponent(ApplicationViewState &appState)
 }
 BrowserBaseComponent::~BrowserBaseComponent()
 {
-    m_searchField.removeChangeListener(this); 
+    m_searchField.removeChangeListener(this);
     m_currentPathField.removeChangeListener(this);
-} 
+}
 
 void BrowserBaseComponent::setFileList(const juce::Array<juce::File> &fileList)
 {
-    m_listBox.deselectAllRows ();
+    m_listBox.deselectAllRows();
     m_fileList = fileList;
 
     updateContentList();
 }
 
-
 void BrowserBaseComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto sf = dynamic_cast<SearchFieldComponent*>(source))
+    if (auto sf = dynamic_cast<SearchFieldComponent *>(source))
     {
         m_searchTerm = sf->getText();
         updateContentList();
     }
 }
-void BrowserBaseComponent::comboBoxChanged(juce::ComboBox* box) 
+void BrowserBaseComponent::comboBoxChanged(juce::ComboBox *box)
 {
     if (box == &m_sortingBox)
     {
@@ -139,7 +130,7 @@ void BrowserBaseComponent::updateContentList()
 {
     m_contentList.clear();
 
-    for (const auto& entry : m_fileList)
+    for (const auto &entry : m_fileList)
         if (entry.getFileName().containsIgnoreCase(m_searchTerm))
             m_contentList.add(entry);
 

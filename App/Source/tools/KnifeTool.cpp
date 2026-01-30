@@ -23,8 +23,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 void KnifeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    if (auto *note = viewport.getNoteByPos(event.position.toFloat())) {
-        if (auto *clip = viewport.getSelectedEvents().clipForEvent(note)) {
+    if (auto *note = viewport.getNoteByPos(event.position.toFloat()))
+    {
+        if (auto *clip = viewport.getSelectedEvents().clipForEvent(note))
+        {
             auto &um = m_evs.m_edit.getUndoManager();
             um.beginNewTransaction("Split MIDI Note");
 
@@ -36,20 +38,18 @@ void KnifeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
             auto noteStartBeat = note->getStartBeat().inBeats() + clip->getStartBeat().inBeats();
             auto noteEndBeat = note->getEndBeat().inBeats() + clip->getStartBeat().inBeats();
 
-            if (splitBeat > noteStartBeat && splitBeat < noteEndBeat) {
+            if (splitBeat > noteStartBeat && splitBeat < noteEndBeat)
+            {
                 auto originalEndBeat = noteEndBeat; // Absolute Endbeat-Position verwenden
 
                 // 1. Truncate the original note
                 note->setStartAndLength(note->getStartBeat(), tracktion::BeatDuration::fromBeats(splitBeat - noteStartBeat), &um);
 
                 // 2. Create the new note for the second part
-                clip->getSequence().addNote(
-                    note->getNoteNumber(),
-                    tracktion::BeatPosition::fromBeats(splitBeat - clip->getStartBeat().inBeats()), // Relative Position zum Clip
-                    tracktion::BeatDuration::fromBeats(originalEndBeat - splitBeat),                // Korrekte Länge berechnen
-                    note->getVelocity(),
-                    note->getColour(),
-                    &um);
+                clip->getSequence().addNote(note->getNoteNumber(),
+                                            tracktion::BeatPosition::fromBeats(splitBeat - clip->getStartBeat().inBeats()), // Relative Position zum Clip
+                                            tracktion::BeatDuration::fromBeats(originalEndBeat - splitBeat),                // Korrekte Länge berechnen
+                                            note->getVelocity(), note->getColour(), &um);
             }
         }
     }
@@ -70,7 +70,8 @@ void KnifeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
     viewport.setMouseCursor(getCursor(viewport));
 
     // Check if hovering over a note and update split line position
-    if (auto *note = viewport.getNoteByPos(event.position.toFloat())) {
+    if (auto *note = viewport.getNoteByPos(event.position.toFloat()))
+    {
         m_shouldDrawSplitLine = true;
         m_hoveredNote = note;
 
@@ -82,7 +83,8 @@ void KnifeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
         auto splitBeat = m_evs.timeToBeat(time);
         m_splitLineX = viewport.getTimeLine()->beatsToX(splitBeat);
     }
-    else {
+    else
+    {
         m_shouldDrawSplitLine = false;
         m_hoveredNote = nullptr;
     }
@@ -95,15 +97,9 @@ void KnifeTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &vi
     // No double click action
 }
 
-juce::MouseCursor KnifeTool::getCursor(MidiViewport &viewport) const
-{
-    return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Split, viewport.getCursorScale());
-}
+juce::MouseCursor KnifeTool::getCursor(MidiViewport &viewport) const { return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Split, viewport.getCursorScale()); }
 
-void KnifeTool::toolActivated(MidiViewport &viewport)
-{
-    viewport.setMouseCursor(getCursor(viewport));
-}
+void KnifeTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
 void KnifeTool::toolDeactivated(MidiViewport &viewport)
 {

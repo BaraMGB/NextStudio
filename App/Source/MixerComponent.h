@@ -19,7 +19,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -29,35 +28,35 @@ namespace te = tracktion_engine;
 
 class MixerChannelStripComponent; // Forward declaration
 
-class MixerComponent  : public juce::Component,
-                        public te::ValueTreeAllEventListener,
-                        private FlaggedAsyncUpdater
+class MixerComponent
+    : public juce::Component
+    , public te::ValueTreeAllEventListener
+    , private FlaggedAsyncUpdater
 {
 public:
-    MixerComponent(EditViewState& evs);
+    MixerComponent(EditViewState &evs);
     ~MixerComponent() override;
 
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics &) override;
     void resized() override;
 
     void valueTreeChanged() override {}
-    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
-    void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
-    void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
-
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override;
 
 private:
-    void handleAsyncUpdate () override;
+    void handleAsyncUpdate() override;
 
     void buildChannelStrips();
 
-    EditViewState& m_evs;
+    EditViewState &m_evs;
 
     juce::Viewport m_viewport;
     juce::Component m_channelStripContainer;
     juce::OwnedArray<MixerChannelStripComponent> m_channelStrips;
 
-    bool m_updateChannelStrips { false };
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MixerComponent)
+    bool m_updateChannelStrips{false};
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MixerComponent)
 };

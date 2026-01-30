@@ -1,17 +1,17 @@
 #include "DrumPadComponent.h"
 #include "ApplicationViewState.h"
-#include "Utilities.h"
 #include "Browser_Base.h"
+#include "Utilities.h"
 
 namespace
 {
-    static constexpr int VISUAL_FEEDBACK_DURATION_MS = 100;
+static constexpr int VISUAL_FEEDBACK_DURATION_MS = 100;
 }
 
-void PadComponent::paint(juce::Graphics& g)
+void PadComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().toFloat();
-    area.reduce (5, 5);
+    area.reduce(5, 5);
 
     // Highlight if drag target
     if (m_isDragTarget)
@@ -27,10 +27,8 @@ void PadComponent::paint(juce::Graphics& g)
     g.fillRoundedRectangle(area, 5);
 
     // Draw the note name in the top-left corner
-    area.reduce (2, 2);
-    g.setColour(m_colour.getBrightness() > 0.5f 
-        ? juce::Colours::black 
-        : owner->m_appViewState.getButtonTextColour());
+    area.reduce(2, 2);
+    g.setColour(m_colour.getBrightness() > 0.5f ? juce::Colours::black : owner->m_appViewState.getButtonTextColour());
     g.setFont(12.0f);
     g.drawText(owner->getMidiNoteNameForPad(padIndex), area, juce::Justification::topLeft);
 
@@ -39,7 +37,7 @@ void PadComponent::paint(juce::Graphics& g)
     g.drawText(m_text, area, juce::Justification::centred);
 }
 
-void PadComponent::mouseDown(const juce::MouseEvent& e)
+void PadComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_dragStartPos = e.getMouseDownPosition();
     m_isDragging = false;
@@ -50,7 +48,7 @@ void PadComponent::mouseDown(const juce::MouseEvent& e)
         owner->buttonDown(padIndex);
 }
 
-void PadComponent::mouseDrag(const juce::MouseEvent& e)
+void PadComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (!e.mods.isLeftButtonDown())
         return;
@@ -68,7 +66,7 @@ void PadComponent::mouseDrag(const juce::MouseEvent& e)
     }
 }
 
-void PadComponent::mouseUp(const juce::MouseEvent& e)
+void PadComponent::mouseUp(const juce::MouseEvent &e)
 {
     if (m_isDragging)
     {
@@ -89,7 +87,7 @@ void PadComponent::mouseUp(const juce::MouseEvent& e)
     }
 }
 
-void PadComponent::mouseEnter(const juce::MouseEvent& e)
+void PadComponent::mouseEnter(const juce::MouseEvent &e)
 {
     if (owner->isPadDragging() && padIndex != owner->getDragSourcePad())
     {
@@ -97,10 +95,7 @@ void PadComponent::mouseEnter(const juce::MouseEvent& e)
     }
 }
 
-void PadComponent::mouseExit(const juce::MouseEvent& e)
-{
-    setIsDragTarget(false);
-}
+void PadComponent::mouseExit(const juce::MouseEvent &e) { setIsDragTarget(false); }
 
 void PadComponent::setIsDragTarget(bool isTarget)
 {
@@ -133,10 +128,10 @@ void PadComponent::timerCallback()
 
 // -----------------------------------------------------------------------
 
-DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin& plugin, ApplicationViewState& appViewState)
-    : m_edit(plugin.edit)
-    , m_samplerPlugin(plugin)
-    , m_appViewState(appViewState)
+DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin &plugin, ApplicationViewState &appViewState)
+    : m_edit(plugin.edit),
+      m_samplerPlugin(plugin),
+      m_appViewState(appViewState)
 {
     GUIHelpers::log("DrumPadComponent: constructor");
 
@@ -164,7 +159,7 @@ DrumPadGridComponent::~DrumPadGridComponent()
     m_samplerPlugin.state.removeListener(this);
 }
 
-void DrumPadGridComponent::paint(juce::Graphics& g)
+void DrumPadGridComponent::paint(juce::Graphics &g)
 {
     g.fillAll(m_appViewState.getBackgroundColour2());
     auto bounds = getLocalBounds();
@@ -264,19 +259,18 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
     GUIHelpers::log("DrumPadComponent: Right click on pad " + juce::String(padIndex));
 
     juce::PopupMenu menu;
-                     menu.addItem("Load Sample", [this, padIndex]()
-                     {
+    menu.addItem("Load Sample",
+                 [this, padIndex]()
+                 {
                      int soundIndex = getSoundIndexForPad(padIndex);
                      GUIHelpers::log("DrumPadComponent: Opening file chooser for pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
 
-                     auto fc = std::make_shared<juce::FileChooser>("Select a sample to load",
-                                                                   juce::File(),
-                                                                   "*.wav;*.aif;*.aiff");
+                     auto fc = std::make_shared<juce::FileChooser>("Select a sample to load", juce::File(), "*.wav;*.aif;*.aiff");
 
                      juce::Component::SafePointer<DrumPadGridComponent> safeThis(this);
 
                      fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-                                     [safeThis, soundIndex, chooser = fc](const juce::FileChooser& fc)
+                                     [safeThis, soundIndex, chooser = fc](const juce::FileChooser &fc)
                                      {
                                          if (safeThis == nullptr)
                                              return;
@@ -291,44 +285,44 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
 
                                          safeThis->setupNewSample(soundIndex, file);
                                      });
-                     });
+                 });
     menu.addSeparator();
 
-    menu.addItem("Clear", [this, padIndex]()
+    menu.addItem("Clear",
+                 [this, padIndex]()
                  {
-                 int soundIndex = getSoundIndexForPad(padIndex);
-                 GUIHelpers::log("DrumPadComponent: Clearing pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
+                     int soundIndex = getSoundIndexForPad(padIndex);
+                     GUIHelpers::log("DrumPadComponent: Clearing pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
 
-                 if (soundIndex < m_samplerPlugin.getNumSounds())
-                 {
-                     // Clear the sound by setting empty media and name
-                     m_samplerPlugin.setSoundMedia(soundIndex, "");
-                     m_samplerPlugin.setSoundName(soundIndex, "Empty");
+                     if (soundIndex < m_samplerPlugin.getNumSounds())
+                     {
+                         // Clear the sound by setting empty media and name
+                         m_samplerPlugin.setSoundMedia(soundIndex, "");
+                         m_samplerPlugin.setSoundName(soundIndex, "Empty");
 
-                     // Reset MIDI parameters to pad's fixed midiNote
-                     int padMidiNote = getMidiNoteForPad(soundIndex);
-                     m_samplerPlugin.setSoundParams(soundIndex, padMidiNote, padMidiNote, padMidiNote);
-                     m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
+                         // Reset MIDI parameters to pad's fixed midiNote
+                         int padMidiNote = getMidiNoteForPad(soundIndex);
+                         m_samplerPlugin.setSoundParams(soundIndex, padMidiNote, padMidiNote, padMidiNote);
+                         m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
 
-                     GUIHelpers::log("DrumPadComponent: Cleared sound at index " + juce::String(soundIndex) +
-                                    " (pad midiNote: " + juce::String(padMidiNote) + ")");
+                         GUIHelpers::log("DrumPadComponent: Cleared sound at index " + juce::String(soundIndex) + " (pad midiNote: " + juce::String(padMidiNote) + ")");
 
-                     updatePadNames();
+                         updatePadNames();
 
-                     // Repaint the pad to show the updated text immediately
-                     if (padIndex >= 0 && padIndex < m_pads.size())
-                         m_pads[padIndex]->repaint();
-                 }
+                         // Repaint the pad to show the updated text immediately
+                         if (padIndex >= 0 && padIndex < m_pads.size())
+                             m_pads[padIndex]->repaint();
+                     }
                  });
 
     menu.show();
 }
 
-void DrumPadGridComponent::mouseDown(const juce::MouseEvent& e)
+void DrumPadGridComponent::mouseDown(const juce::MouseEvent &e)
 {
     if (e.mods.isRightButtonDown())
     {
-        auto* pad = dynamic_cast<PadComponent*>(getComponentAt(e.x, e.y));
+        auto *pad = dynamic_cast<PadComponent *>(getComponentAt(e.x, e.y));
         if (pad)
         {
             auto padIndex = m_pads.indexOf(pad);
@@ -338,7 +332,7 @@ void DrumPadGridComponent::mouseDown(const juce::MouseEvent& e)
     }
 }
 
-void DrumPadGridComponent::mouseDrag(const juce::MouseEvent& e)
+void DrumPadGridComponent::mouseDrag(const juce::MouseEvent &e)
 {
     // Handle drag image movement if we're dragging
     if (m_isPadDragging && m_dragImageComponent)
@@ -348,7 +342,7 @@ void DrumPadGridComponent::mouseDrag(const juce::MouseEvent& e)
     }
 }
 
-void DrumPadGridComponent::mouseUp(const juce::MouseEvent& e)
+void DrumPadGridComponent::mouseUp(const juce::MouseEvent &e)
 {
     // This will be handled by the individual pad's mouseUp
 }
@@ -359,10 +353,7 @@ void DrumPadGridComponent::parentHierarchyChanged()
         updatePadNames();
 }
 
-void DrumPadGridComponent::valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&)
-{
-    updatePadNames();
-}
+void DrumPadGridComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) { updatePadNames(); }
 
 void DrumPadGridComponent::updatePadNames()
 {
@@ -387,10 +378,7 @@ void DrumPadGridComponent::updatePadNames()
     }
 }
 
-int DrumPadGridComponent::getNeededWidth()
-{
-    return 4;
-}
+int DrumPadGridComponent::getNeededWidth() { return 4; }
 
 juce::String DrumPadGridComponent::getMidiNoteNameForPad(int padIndex)
 {
@@ -414,23 +402,20 @@ int DrumPadGridComponent::getSoundIndexForPad(int padIndex)
 // Drag and Drop
 //==============================================================================
 
-bool DrumPadGridComponent::isInterestedInDragSource (const SourceDetails& dragSourceDetails)
-{
-    return dragSourceDetails.description == "SampleBrowser";
-}
+bool DrumPadGridComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails) { return dragSourceDetails.description == "SampleBrowser"; }
 
-void DrumPadGridComponent::itemDragEnter (const SourceDetails& dragSourceDetails)
+void DrumPadGridComponent::itemDragEnter(const SourceDetails &dragSourceDetails)
 {
-    if (auto* pad = dynamic_cast<PadComponent*>(getComponentAt(dragSourceDetails.localPosition)))
+    if (auto *pad = dynamic_cast<PadComponent *>(getComponentAt(dragSourceDetails.localPosition)))
     {
         m_draggedOverPad = m_pads.indexOf(pad);
         pad->changeColour(m_appViewState.getPrimeColour());
     }
 }
 
-void DrumPadGridComponent::itemDragMove (const SourceDetails& dragSourceDetails)
+void DrumPadGridComponent::itemDragMove(const SourceDetails &dragSourceDetails)
 {
-    auto* padUnderCursor = dynamic_cast<PadComponent*>(getComponentAt(dragSourceDetails.localPosition));
+    auto *padUnderCursor = dynamic_cast<PadComponent *>(getComponentAt(dragSourceDetails.localPosition));
     int padIndex = padUnderCursor ? m_pads.indexOf(padUnderCursor) : -1;
 
     if (padIndex != m_draggedOverPad)
@@ -450,7 +435,7 @@ void DrumPadGridComponent::itemDragMove (const SourceDetails& dragSourceDetails)
     }
 }
 
-void DrumPadGridComponent::itemDragExit (const SourceDetails&)
+void DrumPadGridComponent::itemDragExit(const SourceDetails &)
 {
     if (m_draggedOverPad != -1)
     {
@@ -462,15 +447,15 @@ void DrumPadGridComponent::itemDragExit (const SourceDetails&)
     }
 }
 
-void DrumPadGridComponent::itemDropped (const SourceDetails& dragSourceDetails)
+void DrumPadGridComponent::itemDropped(const SourceDetails &dragSourceDetails)
 {
     juce::File f;
-    if (auto* browser = dynamic_cast<BrowserListBox*>(dragSourceDetails.sourceComponent.get()))
+    if (auto *browser = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
         f = browser->getSelectedFile();
 
     if (f.existsAsFile())
     {
-        if (auto* pad = dynamic_cast<PadComponent*>(getComponentAt(dragSourceDetails.localPosition)))
+        if (auto *pad = dynamic_cast<PadComponent *>(getComponentAt(dragSourceDetails.localPosition)))
         {
             int padIndex = m_pads.indexOf(pad);
             if (padIndex != -1)
@@ -497,7 +482,7 @@ void DrumPadGridComponent::itemDropped (const SourceDetails& dragSourceDetails)
 // Pad-to-Pad Drag & Drop Implementation
 //==============================================================================
 
-void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEvent& event)
+void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEvent &event)
 {
     if (sourcePadIndex < 0 || sourcePadIndex >= m_pads.size())
         return;
@@ -512,8 +497,7 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
     if (soundName.isEmpty() || soundName == "Empty")
         return;
 
-    GUIHelpers::log("DrumPadComponent: Starting drag from pad " + juce::String(sourcePadIndex) +
-                   " (sound: " + soundName + ")");
+    GUIHelpers::log("DrumPadComponent: Starting drag from pad " + juce::String(sourcePadIndex) + " (sound: " + soundName + ")");
 
     m_isPadDragging = true;
     m_dragSourcePad = sourcePadIndex;
@@ -524,20 +508,22 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
     {
         int sourcePadIndex;
         juce::String soundName;
-        ApplicationViewState& m_appViewState;
+        ApplicationViewState &m_appViewState;
 
-        DragImagePainter(int pad, const juce::String& name, ApplicationViewState& appViewState)
-            : sourcePadIndex(pad), soundName(name), m_appViewState(appViewState)
+        DragImagePainter(int pad, const juce::String &name, ApplicationViewState &appViewState)
+            : sourcePadIndex(pad),
+              soundName(name),
+              m_appViewState(appViewState)
         {
             setSize(50, 50);
             setAlwaysOnTop(true);
             setOpaque(false);
         }
 
-        void paint(juce::Graphics& g) override
+        void paint(juce::Graphics &g) override
         {
             auto area = getLocalBounds().toFloat();
-            area.reduce (5, 5);
+            area.reduce(5, 5);
 
             // Semi-transparent background
             g.setColour(m_appViewState.getButtonBackgroundColour().withAlpha(0.7f));
@@ -548,7 +534,7 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
             g.drawRoundedRectangle(area, 8, 2);
 
             // Pad info
-            area.reduce (5, 5);
+            area.reduce(5, 5);
             g.setColour(m_appViewState.getTextColour());
             g.setFont(12.0f);
             g.drawText("Pad " + juce::String(sourcePadIndex), area.removeFromTop(20), juce::Justification::centred);
@@ -581,7 +567,7 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
     m_pads[sourcePadIndex]->changeColour(m_appViewState.getPrimeColour().withAlpha(0.5f));
 }
 
-void DrumPadGridComponent::continuePadDrag(const juce::MouseEvent& event)
+void DrumPadGridComponent::continuePadDrag(const juce::MouseEvent &event)
 {
     if (!m_isPadDragging || !m_dragImageComponent)
         return;
@@ -613,7 +599,7 @@ void DrumPadGridComponent::continuePadDrag(const juce::MouseEvent& event)
     }
 }
 
-void DrumPadGridComponent::endPadDrag(const juce::MouseEvent& event)
+void DrumPadGridComponent::endPadDrag(const juce::MouseEvent &event)
 {
     if (!m_isPadDragging)
         return;
@@ -640,17 +626,14 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent& event)
         swapPadSounds(m_dragSourcePad, targetPadIndex);
 
         // Visual feedback on successful drop
-        m_pads[targetPadIndex]->triggerVisualFeedback(m_appViewState.getButtonTextColour(),
-                                                     targetPadIndex == m_selectedPadIndex ?
-                                                     m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour());
+        m_pads[targetPadIndex]->triggerVisualFeedback(m_appViewState.getButtonTextColour(), targetPadIndex == m_selectedPadIndex ? m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour());
         buttonDown(targetPadIndex);
     }
 
     // Restore source pad color
     if (m_dragSourcePad >= 0 && m_dragSourcePad < m_pads.size())
     {
-        juce::Colour sourceColor = (m_dragSourcePad == m_selectedPadIndex) ?
-                                   m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
+        juce::Colour sourceColor = (m_dragSourcePad == m_selectedPadIndex) ? m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
         m_pads[m_dragSourcePad]->changeColour(sourceColor);
     }
 
@@ -682,7 +665,8 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent& event)
 void DrumPadGridComponent::swapPadSounds(int sourcePad, int targetPad)
 {
     // Validation
-    if (sourcePad < 0 || sourcePad >= 16 || targetPad < 0 || targetPad >= 16) return;
+    if (sourcePad < 0 || sourcePad >= 16 || targetPad < 0 || targetPad >= 16)
+        return;
 
     int sourceSoundIdx = getSoundIndexForPad(sourcePad);
     int targetSoundIdx = getSoundIndexForPad(targetPad);
@@ -710,8 +694,10 @@ void DrumPadGridComponent::swapPadSounds(int sourcePad, int targetPad)
     updatePadNames();
 
     // Repaint specific pads for immediate feedback
-    if (sourcePad < m_pads.size()) m_pads[sourcePad]->repaint();
-    if (targetPad < m_pads.size()) m_pads[targetPad]->repaint();
+    if (sourcePad < m_pads.size())
+        m_pads[sourcePad]->repaint();
+    if (targetPad < m_pads.size())
+        m_pads[targetPad]->repaint();
 }
 
 //==============================================================================
@@ -722,7 +708,7 @@ void DrumPadGridComponent::setupMidiInputDevices()
 {
     GUIHelpers::log("DrumPadComponent: Setting up MIDI input devices");
 
-    auto& deviceManager = m_edit.engine.getDeviceManager();
+    auto &deviceManager = m_edit.engine.getDeviceManager();
 
     // Rescan for MIDI devices to ensure we have the latest list
     deviceManager.rescanMidiDeviceList();
@@ -732,11 +718,10 @@ void DrumPadGridComponent::setupMidiInputDevices()
 
     for (int i = 0; i < midiDevices.size(); ++i)
     {
-        auto& device = midiDevices[i];
-        GUIHelpers::log("DrumPadComponent: Device " + juce::String(i) + ": " + device->getName() +
-                       " (Type: " + juce::String(device->getDeviceType()) + ")");
+        auto &device = midiDevices[i];
+        GUIHelpers::log("DrumPadComponent: Device " + juce::String(i) + ": " + device->getName() + " (Type: " + juce::String(device->getDeviceType()) + ")");
 
-        if (auto physicalDevice = dynamic_cast<te::PhysicalMidiInputDevice*>(device.get()))
+        if (auto physicalDevice = dynamic_cast<te::PhysicalMidiInputDevice *>(device.get()))
         {
             GUIHelpers::log("DrumPadComponent: Found physical MIDI device: " + physicalDevice->getName());
 
@@ -749,13 +734,11 @@ void DrumPadGridComponent::setupMidiInputDevices()
             auto error = physicalDevice->openDevice();
             if (!error.isEmpty())
             {
-                GUIHelpers::log("DrumPadComponent: Error opening MIDI device " +
-                               physicalDevice->getName() + ": " + error);
+                GUIHelpers::log("DrumPadComponent: Error opening MIDI device " + physicalDevice->getName() + ": " + error);
             }
             else
             {
-                GUIHelpers::log("DrumPadComponent: Successfully connected to MIDI device: " +
-                               physicalDevice->getName());
+                GUIHelpers::log("DrumPadComponent: Successfully connected to MIDI device: " + physicalDevice->getName());
             }
         }
         else
@@ -778,7 +761,7 @@ void DrumPadGridComponent::cleanupMidiInputDevices()
 {
     GUIHelpers::log("DrumPadComponent: Cleaning up MIDI input devices");
 
-    for (auto* device : m_connectedMidiDevices)
+    for (auto *device : m_connectedMidiDevices)
     {
         if (device != nullptr)
         {
@@ -794,21 +777,22 @@ void DrumPadGridComponent::cleanupMidiInputDevices()
 // MIDI Input Callback Implementation
 //==============================================================================
 
-void DrumPadGridComponent::handleIncomingMidiMessage(const juce::MidiMessage& message)
+void DrumPadGridComponent::handleIncomingMidiMessage(const juce::MidiMessage &message)
 {
     // on message thread we can log and light up the pad
-    juce::MessageManager::callAsync([this, message]()
-    {
-        if (message.isNoteOn())
+    juce::MessageManager::callAsync(
+        [this, message]()
         {
-            GUIHelpers::log("MIDI Note ON: " + juce::String(message.getNoteNumber()));
-        }
+            if (message.isNoteOn())
+            {
+                GUIHelpers::log("MIDI Note ON: " + juce::String(message.getNoteNumber()));
+            }
 
-        processMidiForPadLighting(message);
-    });
+            processMidiForPadLighting(message);
+        });
 }
 
-void DrumPadGridComponent::processMidiForPadLighting(const juce::MidiMessage& message)
+void DrumPadGridComponent::processMidiForPadLighting(const juce::MidiMessage &message)
 {
     if (message.isNoteOn())
     {
@@ -846,8 +830,7 @@ void DrumPadGridComponent::illuminatePadForNote(int midiNote, float velocity)
         juce::Colour velocityColor = baseColor.withBrightness(brightness);
 
         // Get the return color (selected pad stays blue, others grey)
-        juce::Colour returnColor = (padIndex == m_selectedPadIndex) ?
-                                   m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
+        juce::Colour returnColor = (padIndex == m_selectedPadIndex) ? m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
 
         // Trigger visual feedback with velocity-based color
         m_pads[padIndex]->triggerVisualFeedback(velocityColor, returnColor);
@@ -861,8 +844,7 @@ void DrumPadGridComponent::turnOffPadForNote(int midiNote)
     if (padIndex >= 0 && padIndex < m_pads.size())
     {
         // Return to normal color
-        juce::Colour returnColor = (padIndex == m_selectedPadIndex) ?
-                                   m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
+        juce::Colour returnColor = (padIndex == m_selectedPadIndex) ? m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour();
         m_pads[padIndex]->changeColour(returnColor);
     }
 }
@@ -874,8 +856,7 @@ int DrumPadGridComponent::getPadIndexForMidiNote(int midiNote)
     if (midiNote >= BASE_MIDI_NOTE && midiNote < BASE_MIDI_NOTE + 16)
     {
         int padIndex = midiNote - BASE_MIDI_NOTE;
-        GUIHelpers::log("DrumPadComponent: Direct mapping - MIDI note " + juce::String(midiNote) +
-                       " -> pad index " + juce::String(padIndex));
+        GUIHelpers::log("DrumPadComponent: Direct mapping - MIDI note " + juce::String(midiNote) + " -> pad index " + juce::String(padIndex));
         return padIndex;
     }
 
@@ -887,10 +868,12 @@ int DrumPadGridComponent::getPadIndexForMidiNote(int midiNote)
 // Private Helper Functions
 //==============================================================================
 
-void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File& file)
+void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File &file)
 {
-    if (soundIndex < 0 || soundIndex >= m_samplerPlugin.getNumSounds()) return;
-    if (!file.existsAsFile()) return;
+    if (soundIndex < 0 || soundIndex >= m_samplerPlugin.getNumSounds())
+        return;
+    if (!file.existsAsFile())
+        return;
 
     auto filePath = file.getFullPathName();
     auto fileName = file.getFileNameWithoutExtension();
@@ -911,7 +894,6 @@ void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File& file
     m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
 }
 
-
 int DrumPadGridComponent::getMidiNoteForPad(int padIndex) const
 {
     if (padIndex >= 0 && padIndex < 16)
@@ -926,18 +908,18 @@ DrumPadGridComponent::TempSoundState DrumPadGridComponent::getSoundStateFromPlug
     TempSoundState s;
     if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
     {
-        s.filePath  = m_samplerPlugin.getSoundMedia(soundIndex);
-        s.name      = m_samplerPlugin.getSoundName(soundIndex);
-        s.gainDb    = m_samplerPlugin.getSoundGainDb(soundIndex);
-        s.pan       = m_samplerPlugin.getSoundPan(soundIndex);
-        s.start     = m_samplerPlugin.getSoundStartTime(soundIndex);
-        s.length    = m_samplerPlugin.getSoundLength(soundIndex);
+        s.filePath = m_samplerPlugin.getSoundMedia(soundIndex);
+        s.name = m_samplerPlugin.getSoundName(soundIndex);
+        s.gainDb = m_samplerPlugin.getSoundGainDb(soundIndex);
+        s.pan = m_samplerPlugin.getSoundPan(soundIndex);
+        s.start = m_samplerPlugin.getSoundStartTime(soundIndex);
+        s.length = m_samplerPlugin.getSoundLength(soundIndex);
         s.openEnded = m_samplerPlugin.isSoundOpenEnded(soundIndex);
     }
     return s;
 }
 
-void DrumPadGridComponent::applySoundStateToPlugin(int soundIndex, const TempSoundState& state)
+void DrumPadGridComponent::applySoundStateToPlugin(int soundIndex, const TempSoundState &state)
 {
     if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
     {

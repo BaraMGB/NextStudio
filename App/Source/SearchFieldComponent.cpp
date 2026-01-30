@@ -23,8 +23,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ApplicationViewState.h"
 #include "Utilities.h"
 
-SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
-   : m_appState(appState) 
+SearchFieldComponent::SearchFieldComponent(ApplicationViewState &appState)
+    : m_appState(appState)
 {
     m_searchField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());
     m_searchField.setColour(juce::TextEditor::ColourIds::shadowColourId, m_appState.getBackgroundColour1().darker(0.3f));
@@ -34,15 +34,14 @@ SearchFieldComponent::SearchFieldComponent(ApplicationViewState& appState)
 
     addAndMakeVisible(m_searchField);
 
-    m_searchField.onTextChange = [this] {
-        sendChangeMessage();
-    };
+    m_searchField.onTextChange = [this] { sendChangeMessage(); };
 
     m_clearButton.setWantsKeyboardFocus(false);
 
     addAndMakeVisible(m_clearButton);
     m_clearButton.setButtonText("X");
-    m_clearButton.onClick = [this] {
+    m_clearButton.onClick = [this]
+    {
         m_searchField.clear();
         sendChangeMessage();
     };
@@ -63,7 +62,4 @@ void SearchFieldComponent::resized()
     m_clearButton.setBounds(area.reduced(5));
 }
 
-juce::String SearchFieldComponent::getText()
-{
-    return m_searchField.getText();
-}
+juce::String SearchFieldComponent::getText() { return m_searchField.getText(); }

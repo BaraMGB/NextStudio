@@ -20,8 +20,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include "../ToolStrategy.h"
 #include "../MidiViewport.h"
+#include "../ToolStrategy.h"
 
 namespace te = tracktion_engine;
 
@@ -32,33 +32,36 @@ namespace te = tracktion_engine;
 class DrawTool : public ToolStrategy
 {
 public:
-    explicit DrawTool(EditViewState& evs) : ToolStrategy(evs) {}
+    explicit DrawTool(EditViewState &evs)
+        : ToolStrategy(evs)
+    {
+    }
     ~DrawTool() override = default;
 
-    void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseUp(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) override;
+    void mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport) override;
 
-    juce::MouseCursor getCursor(MidiViewport& viewport) const override;
+    juce::MouseCursor getCursor(MidiViewport &viewport) const override;
 
-    void toolActivated(MidiViewport& viewport) override;
-    void toolDeactivated(MidiViewport& viewport) override;
-    Tool getToolId () override { return Tool::draw; }
+    void toolActivated(MidiViewport &viewport) override;
+    void toolDeactivated(MidiViewport &viewport) override;
+    Tool getToolId() override { return Tool::draw; }
 
     // Public getters for MidiViewport's paint method
     bool isDrawing() const { return m_isDrawingNote; }
     int getDrawStartPos() const { return m_drawStartPos; }
     int getDrawCurrentPos() const { return m_drawCurrentPos; }
     int getDrawNoteNumber() const { return m_drawNoteNumber; }
-    te::MidiClip* getClickedClip() const { return m_clickedClip; }
+    te::MidiClip *getClickedClip() const { return m_clickedClip; }
 
 private:
-    bool m_isDrawingNote {false};
-    int m_drawStartPos {0};
-    int m_drawCurrentPos {0};
-    int m_intervalX {0};
-    int m_drawNoteNumber {0};
-    te::MidiClip* m_clickedClip {nullptr};
+    bool m_isDrawingNote{false};
+    int m_drawStartPos{0};
+    int m_drawCurrentPos{0};
+    int m_intervalX{0};
+    int m_drawNoteNumber{0};
+    te::MidiClip *m_clickedClip{nullptr};
 };

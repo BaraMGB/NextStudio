@@ -16,7 +16,8 @@ ArpeggiatorPluginComponent::ArpeggiatorPluginComponent(EditViewState &evs, Plugi
     : PluginViewComponent(evs, p),
       m_arpeggiator(dynamic_cast<ArpeggiatorPlugin *>(p.get()))
 {
-    if (m_arpeggiator != nullptr) {
+    if (m_arpeggiator != nullptr)
+    {
         m_arpeggiator->state.addListener(this);
 
         m_modeComp = std::make_unique<AutomatableChoiceComponent>(m_arpeggiator->modeParam, "Mode");
@@ -113,24 +114,16 @@ void ArpeggiatorPluginComponent::restorePluginState(const juce::ValueTree &state
         m_arpeggiator->restorePluginStateFromValueTree(state);
 }
 
-juce::String ArpeggiatorPluginComponent::getPresetSubfolder() const
-{
-    return "Arpeggiator";
-}
+juce::String ArpeggiatorPluginComponent::getPresetSubfolder() const { return "Arpeggiator"; }
 
-juce::String ArpeggiatorPluginComponent::getPluginTypeName() const
-{
-    return ArpeggiatorPlugin::xmlTypeName;
-}
+juce::String ArpeggiatorPluginComponent::getPluginTypeName() const { return ArpeggiatorPlugin::xmlTypeName; }
 
-ApplicationViewState &ArpeggiatorPluginComponent::getApplicationViewState()
-{
-    return m_editViewState.m_applicationState;
-}
+ApplicationViewState &ArpeggiatorPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }
 
 void ArpeggiatorPluginComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
-    if (m_arpeggiator && v == m_arpeggiator->state) {
+    if (m_arpeggiator && v == m_arpeggiator->state)
+    {
         // Update UI if needed, but automatable components handle themselves mostly
     }
 }

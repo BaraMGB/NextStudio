@@ -20,15 +20,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "AudioMidiSettings.h"
 
-MidiSettings::MidiSettings(tracktion_engine::Engine &engine, ApplicationViewState& appState)
-  : m_engine(engine), m_appState(appState)
+MidiSettings::MidiSettings(tracktion_engine::Engine &engine, ApplicationViewState &appState)
+    : m_engine(engine),
+      m_appState(appState)
 {
-    addAndMakeVisible (m_midiDefaultChooser);
-    addAndMakeVisible (m_midiDefaultLabel);
-    m_midiDefaultChooser.addListener (this);
+    addAndMakeVisible(m_midiDefaultChooser);
+    addAndMakeVisible(m_midiDefaultLabel);
+    m_midiDefaultChooser.addListener(this);
     m_midiDefaultLabel.attachToComponent(&m_midiDefaultChooser, true);
     m_midiDefaultLabel.setText("default Controller : ", juce::dontSendNotification);
 
@@ -51,18 +51,18 @@ void MidiSettings::populateMidiDevices()
 {
     m_midiDefaultChooser.clear(juce::dontSendNotification);
 
-    auto& dm = m_engine.getDeviceManager ();
+    auto &dm = m_engine.getDeviceManager();
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
     {
-        if (auto mip = dm.getMidiInDevice (i))
+        if (auto mip = dm.getMidiInDevice(i))
         {
             GUIHelpers::log("AudioMidiSettings.cpp: MIDI  Input Devices:" + mip->getName());
             if (mip->getDeviceType() == te::InputDevice::physicalMidiDevice)
             {
-                m_midiDefaultChooser.addItem (mip->getName (), i + 1);
-                if (dm.getDefaultMidiInDevice () == mip.get())
+                m_midiDefaultChooser.addItem(mip->getName(), i + 1);
+                if (dm.getDefaultMidiInDevice() == mip.get())
                 {
-                    m_midiDefaultChooser.setSelectedId (i + 1);
+                    m_midiDefaultChooser.setSelectedId(i + 1);
                 }
             }
         }
@@ -71,11 +71,11 @@ void MidiSettings::populateMidiDevices()
 
 void MidiSettings::resized()
 {
-    auto area = getLocalBounds ();
+    auto area = getLocalBounds();
     auto defaultController = area.removeFromTop(30);
     defaultController.removeFromRight(getWidth() * 0.05);
     defaultController.removeFromLeft(defaultController.getWidth() / 3);
-    m_midiDefaultChooser.setBounds (defaultController);
+    m_midiDefaultChooser.setBounds(defaultController);
 
     auto exclusiveFocusRow = area.removeFromTop(30);
     exclusiveFocusRow.removeFromRight(getWidth() * 0.05);
@@ -85,12 +85,12 @@ void MidiSettings::resized()
 
 void MidiSettings::comboBoxChanged(juce::ComboBox *comboBox)
 {
-    auto& dm = m_engine.getDeviceManager ();
-    if (auto defaultMidiIn = dm.getMidiInDevice(comboBox->getSelectedId () - 1))
-        dm.setDefaultMidiInDevice (defaultMidiIn->getDeviceID());
+    auto &dm = m_engine.getDeviceManager();
+    if (auto defaultMidiIn = dm.getMidiInDevice(comboBox->getSelectedId() - 1))
+        dm.setDefaultMidiInDevice(defaultMidiIn->getDeviceID());
 }
 
-void MidiSettings::buttonClicked(juce::Button* button)
+void MidiSettings::buttonClicked(juce::Button *button)
 {
     if (button == &m_exclusiveMidiFocusButton)
     {

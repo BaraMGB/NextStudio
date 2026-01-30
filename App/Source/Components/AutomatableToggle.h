@@ -10,13 +10,14 @@
 
 #pragma once
 
+#include "../EditViewState.h"
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "../Utilities.h"
-#include "../EditViewState.h"
 
 namespace te = tracktion_engine;
 
-class AutomatableToggleButton : public juce::ToggleButton
+class AutomatableToggleButton
+    : public juce::ToggleButton
     , public te::AutomatableParameter::Listener
     , public te::AutomationDragDropTarget
 {
@@ -25,19 +26,19 @@ public:
 
     ~AutomatableToggleButton() override;
 
-    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent &e) override;
 
     // AutomatableParameter::Listener overrides
-    void curveHasChanged(te::AutomatableParameter&) override {}
-    void currentValueChanged(te::AutomatableParameter& p) override;
+    void curveHasChanged(te::AutomatableParameter &) override {}
+    void currentValueChanged(te::AutomatableParameter &p) override;
 
     // AutomationDragDropTarget overrides
     bool hasAnAutomatableParameter() override { return true; }
-    void chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam, std::function<void()> /*startLearnMode*/) override;
+    void chooseAutomatableParameter(std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam, std::function<void()> /*startLearnMode*/) override;
 
 private:
     te::AutomatableParameter::Ptr m_automatableParameter;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableToggleButton)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AutomatableToggleButton)
 };
 
 class AutomatableToggleComponent : public juce::Component
@@ -50,5 +51,5 @@ public:
 private:
     std::unique_ptr<AutomatableToggleButton> m_button;
     juce::Label m_titleLabel;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AutomatableToggleComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AutomatableToggleComponent)
 };

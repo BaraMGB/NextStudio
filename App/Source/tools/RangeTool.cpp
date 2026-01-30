@@ -21,42 +21,21 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "RangeTool.h"
 
-void RangeTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewport)
-{
-    viewport.startLasso(event, true);
-}
+void RangeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.startLasso(event, true); }
 
-void RangeTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport)
-{
-    viewport.updateLasso(event);
-}
+void RangeTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.updateLasso(event); }
 
-void RangeTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
-{
-    viewport.stopLasso();
-}
+void RangeTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.stopLasso(); }
 
-void RangeTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
-{
-    viewport.setMouseCursor(getCursor(viewport));
-}
+void RangeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void RangeTool::mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport)
+void RangeTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // No double click action
 }
 
-juce::MouseCursor RangeTool::getCursor(MidiViewport& viewport) const
-{
-    return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Range, viewport.getCursorScale());
-}
+juce::MouseCursor RangeTool::getCursor(MidiViewport &viewport) const { return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Range, viewport.getCursorScale()); }
 
-void RangeTool::toolActivated(MidiViewport& viewport)
-{
-    viewport.setMouseCursor(getCursor(viewport));
-}
+void RangeTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void RangeTool::toolDeactivated(MidiViewport& viewport)
-{
-    viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
-}
+void RangeTool::toolDeactivated(MidiViewport &viewport) { viewport.setMouseCursor(juce::MouseCursor::NormalCursor); }

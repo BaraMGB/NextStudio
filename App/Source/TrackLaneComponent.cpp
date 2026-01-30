@@ -236,11 +236,11 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
 
             // Start clip drag
             m_songEditor.startDrag(DragType::Clip, xtoTime(e.x), e.getPosition(), m_hoveredClip->itemID);
-            auto& dragState = m_songEditor.getDragState();
+            auto &dragState = m_songEditor.getDragState();
             dragState.draggedClip = m_hoveredClip;
             dragState.isLeftEdge = m_leftBorderHovered;
             dragState.isRightEdge = m_rightBorderHovered;
-            
+
             repaint();
             return;
         }

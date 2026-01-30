@@ -22,8 +22,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities.h"
 #include "EditViewState.h"
+#include "Utilities.h"
 
 class MidiViewport;
 
@@ -34,66 +34,69 @@ class MidiViewport;
 class ToolStrategy
 {
 public:
-    explicit ToolStrategy(EditViewState& evs) : m_evs(evs) {}
+    explicit ToolStrategy(EditViewState &evs)
+        : m_evs(evs)
+    {
+    }
     virtual ~ToolStrategy() = default;
-    
+
     /**
      * Called when mouse button is pressed in the viewport.
      * @param event The mouse event
      * @param viewport Reference to the MidiViewport
      */
-    virtual void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) = 0;
-    
+    virtual void mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) = 0;
+
     /**
      * Called when mouse is dragged in the viewport.
      * @param event The mouse event
      * @param viewport Reference to the MidiViewport
      */
-    virtual void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) = 0;
-    
+    virtual void mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) = 0;
+
     /**
      * Called when mouse button is released in the viewport.
      * @param event The mouse event
      * @param viewport Reference to the MidiViewport
      */
-    virtual void mouseUp(const juce::MouseEvent& event, MidiViewport& viewport) = 0;
-    
+    virtual void mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) = 0;
+
     /**
      * Called when mouse moves over the viewport (hover effects).
      * @param event The mouse event
      * @param viewport Reference to the MidiViewport
      */
-    virtual void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) {}
-    
+    virtual void mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) {}
+
     /**
      * Called when mouse is double-clicked in the viewport.
      * @param event The mouse event
      * @param viewport Reference to the MidiViewport
      */
-    virtual void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) {}
-    
+    virtual void mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport) {}
+
     /**
      * Returns the appropriate cursor for this tool.
      * @return The cursor type to display
      */
-    virtual juce::MouseCursor getCursor(MidiViewport& viewport) const = 0;
-    
+    virtual juce::MouseCursor getCursor(MidiViewport &viewport) const = 0;
+
     /**
      * Called when this tool becomes active.
      * @param viewport Reference to the MidiViewport
      */
-    virtual void toolActivated(MidiViewport& viewport) {}
-    
+    virtual void toolActivated(MidiViewport &viewport) {}
+
     /**
      * Called when this tool becomes inactive.
      * @param viewport Reference to the MidiViewport
      */
-    virtual void toolDeactivated(MidiViewport& viewport) {}
+    virtual void toolDeactivated(MidiViewport &viewport) {}
 
-    virtual Tool getToolId () = 0;
-    
+    virtual Tool getToolId() = 0;
+
 protected:
-    EditViewState& m_evs;
+    EditViewState &m_evs;
 };
 
 /**
@@ -102,5 +105,5 @@ protected:
 class ToolFactory
 {
 public:
-    static std::unique_ptr<ToolStrategy> createTool(Tool toolType, EditViewState& evs);
+    static std::unique_ptr<ToolStrategy> createTool(Tool toolType, EditViewState &evs);
 };

@@ -20,93 +20,95 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "PluginWindow.h"
 
-
 #if JUCE_LINUX
- constexpr bool shouldAddPluginWindowToDesktop = false;
+constexpr bool shouldAddPluginWindowToDesktop = false;
 #else
- constexpr bool shouldAddPluginWindowToDesktop = true;
+constexpr bool shouldAddPluginWindowToDesktop = true;
 #endif
 
-PluginWindow::PluginWindow (te::Plugin& plug)
-    : DocumentWindow (plug.getName(), juce::Colours::black, DocumentWindow::closeButton, shouldAddPluginWindowToDesktop),
-      plugin (plug), windowState (*plug.windowState)
+PluginWindow::PluginWindow(te::Plugin &plug)
+    : DocumentWindow(plug.getName(), juce::Colours::black, DocumentWindow::closeButton, shouldAddPluginWindowToDesktop),
+      plugin(plug),
+      windowState(*plug.windowState)
 {
-    getConstrainer()->setMinimumOnscreenAmounts (0x10000, 50, 30, 50);
-    setResizeLimits (100, 50, 4000, 4000);
+    getConstrainer()->setMinimumOnscreenAmounts(0x10000, 50, 30, 50);
+    setResizeLimits(100, 50, 4000, 4000);
 
     recreateEditor();
 
-    setBoundsConstrained (getLocalBounds() + plugin.windowState->choosePositionForPluginWindow());
+    setBoundsConstrained(getLocalBounds() + plugin.windowState->choosePositionForPluginWindow());
 
-    #if JUCE_LINUX
-     setAlwaysOnTop (true);
-     addToDesktop();
-    #endif
+#if JUCE_LINUX
+    setAlwaysOnTop(true);
+    addToDesktop();
+#endif
 
-     updateStoredBounds = true;
+    updateStoredBounds = true;
 }
 
 PluginWindow::~PluginWindow()
 {
     updateStoredBounds = false;
-    plugin.edit.flushPluginStateIfNeeded (plugin);
-    setEditor (nullptr);
+    plugin.edit.flushPluginStateIfNeeded(plugin);
+    setEditor(nullptr);
 }
 
 void PluginWindow::show()
 {
-    setVisible (true);
-    toFront (false);
-    setBoundsConstrained (getBounds());
+    setVisible(true);
+    toFront(false);
+    setBoundsConstrained(getBounds());
 }
 
-void PluginWindow::setEditor (std::unique_ptr<te::Plugin::EditorComponent> newEditor)
+void PluginWindow::setEditor(std::unique_ptr<te::Plugin::EditorComponent> newEditor)
 {
     JUCE_AUTORELEASEPOOL
     {
-        setConstrainer (nullptr);
+        setConstrainer(nullptr);
         editor.reset();
 
         if (newEditor != nullptr)
         {
-            editor = std::move (newEditor);
-            setContentNonOwned (editor.get(), true);
+            editor = std::move(newEditor);
+            setContentNonOwned(editor.get(), true);
         }
 
-        setResizable (editor == nullptr || editor->allowWindowResizing(), false);
+        setResizable(editor == nullptr || editor->allowWindowResizing(), false);
 
         if (editor != nullptr && editor->allowWindowResizing())
-            setConstrainer (editor->getBoundsConstrainer());
+            setConstrainer(editor->getBoundsConstrainer());
     }
 }
 
-std::unique_ptr<juce::Component> PluginWindow::create (te::Plugin& plugin)
+std::unique_ptr<juce::Component> PluginWindow::create(te::Plugin &plugin)
 {
-    if (auto externalPlugin = dynamic_cast<te::ExternalPlugin*> (&plugin))
+    if (auto externalPlugin = dynamic_cast<te::ExternalPlugin *>(&plugin))
         if (externalPlugin->getAudioPluginInstance() == nullptr)
             return nullptr;
 
     std::unique_ptr<PluginWindow> w;
 
     {
-        struct Blocker : public Component { void inputAttemptWhenModal() override {} };
+        struct Blocker : public Component
+        {
+            void inputAttemptWhenModal() override {}
+        };
 
         Blocker blocker;
-        blocker.enterModalState (false);
+        blocker.enterModalState(false);
 
-       #if JUCE_WINDOWS && JUCE_WIN_PER_MONITOR_DPI_AWARE
-        if (! isDPIAware (plugin))
+#if JUCE_WINDOWS && JUCE_WIN_PER_MONITOR_DPI_AWARE
+        if (!isDPIAware(plugin))
         {
             juce::ScopedDPIAwarenessDisabler disableDPIAwareness;
-            w = std::make_unique<PluginWindow> (plugin);
+            w = std::make_unique<PluginWindow>(plugin);
         }
         else
-       #endif
+#endif
         {
-            w = std::make_unique<PluginWindow> (plugin);
+            w = std::make_unique<PluginWindow>(plugin);
         }
     }
 
@@ -120,19 +122,20 @@ std::unique_ptr<juce::Component> PluginWindow::create (te::Plugin& plugin)
 
 void PluginWindow::recreateEditor()
 {
-    setEditor (nullptr);
-    setEditor (plugin.createEditor());
+    setEditor(nullptr);
+    setEditor(plugin.createEditor());
 }
 
 void PluginWindow::recreateEditorAsync()
 {
-    setEditor (nullptr);
+    setEditor(nullptr);
 
-    juce::Timer::callAfterDelay (50, [this, sp = SafePointer<Component> (this)]
-                               {
-                                   if (sp != nullptr)
-                                       recreateEditor();
-                               });
+    juce::Timer::callAfterDelay(50,
+                                [this, sp = SafePointer<Component>(this)]
+                                {
+                                    if (sp != nullptr)
+                                        recreateEditor();
+                                });
 }
 
 void PluginWindow::moved()
@@ -140,7 +143,6 @@ void PluginWindow::moved()
     if (updateStoredBounds)
     {
         plugin.windowState->lastWindowBounds = getBounds();
-        plugin.edit.pluginChanged (plugin);
+        plugin.edit.pluginChanged(plugin);
     }
 }
-

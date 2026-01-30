@@ -41,18 +41,18 @@ public:
     class TimeRangeOverlayComponent : public juce::Component
     {
     public:
-        TimeRangeOverlayComponent(SongEditorView& owner);
-        void paint(juce::Graphics& g) override;
+        TimeRangeOverlayComponent(SongEditorView &owner);
+        void paint(juce::Graphics &g) override;
         bool hitTest(int x, int y) override;
-        void mouseMove(const juce::MouseEvent& e) override;
-        void mouseDown(const juce::MouseEvent& e) override;
-        void mouseDrag(const juce::MouseEvent& e) override;
-        void mouseUp(const juce::MouseEvent& e) override;
+        void mouseMove(const juce::MouseEvent &e) override;
+        void mouseDown(const juce::MouseEvent &e) override;
+        void mouseDrag(const juce::MouseEvent &e) override;
+        void mouseUp(const juce::MouseEvent &e) override;
 
     private:
-        SongEditorView& m_owner;
-        bool m_hoveredHandleLeft{ false };
-        bool m_hoveredHandleRight{ false };
+        SongEditorView &m_owner;
+        bool m_hoveredHandleLeft{false};
+        bool m_hoveredHandleRight{false};
     };
 
     SongEditorView(EditViewState &evs, MenuBar &toolBar, TimeLineComponent &timeLine);
@@ -247,8 +247,6 @@ public:
     void startDrag(DragType type, tracktion::TimePosition time, juce::Point<int> pos, tracktion::EditItemID itemId);
     void updateDrag(tracktion::TimePosition time, juce::Point<int> pos);
     void endDrag();
-
-
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SongEditorView)
 };

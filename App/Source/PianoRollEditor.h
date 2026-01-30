@@ -20,18 +20,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "KeyboardView.h"
 #include "MenuBar.h"
+#include "MidiViewport.h"
+#include "PlayHeadComponent.h"
 #include "TimeLineComponent.h"
 #include "TimelineOverlayComponent.h"
-#include "PlayHeadComponent.h"
-#include "MidiViewport.h"
 #include "VelocityEditor.h"
-#include "KeyboardView.h"
 
 class PianoRollEditor
     : public juce::Component
@@ -42,23 +41,22 @@ class PianoRollEditor
     , public juce::Button::Listener
 {
 public:
-    explicit PianoRollEditor(EditViewState&);
+    explicit PianoRollEditor(EditViewState &);
     ~PianoRollEditor() override;
 
-    void paint( juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void paintOverChildren(juce::Graphics &g) override;
-    void resized () override;
+    void resized() override;
     void mouseMove(const juce::MouseEvent &event) override;
 
-    
-    ApplicationCommandTarget* getNextCommandTarget() override   { return findFirstTargetParentComponent(); }
-    void getAllCommands (juce::Array<juce::CommandID>& commands) override;
-    void getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) override;
-    bool perform (const juce::ApplicationCommandTarget::InvocationInfo& info) override;
+    ApplicationCommandTarget *getNextCommandTarget() override { return findFirstTargetParentComponent(); }
+    void getAllCommands(juce::Array<juce::CommandID> &commands) override;
+    void getCommandInfo(juce::CommandID commandID, juce::ApplicationCommandInfo &result) override;
+    bool perform(const juce::ApplicationCommandTarget::InvocationInfo &info) override;
 
     void updateButtonColour();
-    void buttonClicked(juce::Button* button) override;
-    void changeListenerCallback(juce::ChangeBroadcaster* source) override
+    void buttonClicked(juce::Button *button) override;
+    void changeListenerCallback(juce::ChangeBroadcaster *source) override
     {
         if (source == m_pianoRollViewPort.get())
         {
@@ -81,21 +79,15 @@ public:
     void setTrack(tracktion_engine::Track::Ptr track);
     void clearTrack();
 
-    TimeLineComponent& getTimeLineComponent() { return m_timeLine; }
+    TimeLineComponent &getTimeLineComponent() { return m_timeLine; }
 
 private:
-
-    void valueTreePropertyChanged(
-        juce::ValueTree &treeWhosePropertyHasChanged
-        , const juce::Identifier &property) override;
+    void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
     void valueTreeChanged() override {}
-    void valueTreeChildAdded(juce::ValueTree& tree,
-                             juce::ValueTree& property) override;
-    void valueTreeChildRemoved(juce::ValueTree& tree,
-                               juce::ValueTree& property,
-                               int ) override;
+    void valueTreeChildAdded(juce::ValueTree &tree, juce::ValueTree &property) override;
+    void valueTreeChildRemoved(juce::ValueTree &tree, juce::ValueTree &property, int) override;
 
-    EditViewState& m_editViewState;
+    EditViewState &m_editViewState;
     TimeLineComponent m_timeLine;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
     std::unique_ptr<MidiViewport> m_pianoRollViewPort{nullptr};
@@ -104,22 +96,12 @@ private:
     PlayheadComponent m_playhead;
     MenuBar m_toolBar;
 
-    juce::DrawableButton    m_selectionBtn,
-                            m_drawBtn,
-                            m_rangeSelectBtn,
-                            m_erasorBtn,
-                            m_splitBtn,
-                            m_lassoBtn;
+    juce::DrawableButton m_selectionBtn, m_drawBtn, m_rangeSelectBtn, m_erasorBtn, m_splitBtn, m_lassoBtn;
 
     juce::String m_NoteDescUnderCursor;
     void handleAsyncUpdate() override;
 
-    bool m_updateKeyboard {false}
-        , m_updateVelocity {false}
-        , m_updateNoteEditor{false}
-        , m_updateClips{false}
-        , m_updateTracks{false}
-        , m_updateButtonColour {false};
+    bool m_updateKeyboard{false}, m_updateVelocity{false}, m_updateNoteEditor{false}, m_updateClips{false}, m_updateTracks{false}, m_updateButtonColour{false};
 
     juce::Rectangle<int> getHeaderRect();
     juce::Rectangle<int> getToolBarRect();
@@ -131,5 +113,5 @@ private:
     juce::Rectangle<int> getVelocityEditorRect();
     juce::Rectangle<int> getFooterRect();
     juce::Rectangle<int> getPlayHeadRect();
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PianoRollEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PianoRollEditor)
 };

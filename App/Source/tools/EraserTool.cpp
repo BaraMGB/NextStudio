@@ -22,7 +22,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EraserTool.h"
 #include "../Utilities.h"
 
-void EraserTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewport)
+void EraserTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     m_isDragging = false;
     m_notesToDelete.clear();
@@ -31,7 +31,7 @@ void EraserTool::mouseDown(const juce::MouseEvent& event, MidiViewport& viewport
     deleteNoteAtPosition(event, viewport);
 }
 
-void EraserTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport)
+void EraserTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     if (!m_isDragging && event.getDistanceFromDragStart() > 3)
     {
@@ -45,7 +45,7 @@ void EraserTool::mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport
     }
 }
 
-void EraserTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
+void EraserTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     if (m_isDragging)
     {
@@ -61,7 +61,7 @@ void EraserTool::mouseUp(const juce::MouseEvent& event, MidiViewport& viewport)
     viewport.repaint();
 }
 
-void EraserTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport)
+void EraserTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // Clear previous highlight
     if (m_lastHoveredNote)
@@ -71,7 +71,7 @@ void EraserTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport
     }
 
     // Highlight note under cursor for potential deletion
-    if (auto* note = viewport.getNoteByPos(event.position.toFloat()))
+    if (auto *note = viewport.getNoteByPos(event.position.toFloat()))
     {
         m_lastHoveredNote = note;
         highlightNoteForDeletion(note, viewport);
@@ -80,19 +80,19 @@ void EraserTool::mouseMove(const juce::MouseEvent& event, MidiViewport& viewport
     viewport.repaint();
 }
 
-void EraserTool::mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport)
+void EraserTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // Double-click deletes all notes in the same clip at the same time position
-    if (auto* note = viewport.getNoteByPos(event.position.toFloat()))
+    if (auto *note = viewport.getNoteByPos(event.position.toFloat()))
     {
-        if (auto* clip = viewport.getSelectedEvents().clipForEvent(note))
+        if (auto *clip = viewport.getSelectedEvents().clipForEvent(note))
         {
             auto noteStartBeat = note->getStartBeat();
-            auto& sequence = clip->getSequence();
+            auto &sequence = clip->getSequence();
 
             // Find all notes that start at the same beat
-            juce::Array<te::MidiNote*> notesToDelete;
-            for (auto* n : sequence.getNotes())
+            juce::Array<te::MidiNote *> notesToDelete;
+            for (auto *n : sequence.getNotes())
             {
                 auto beatDiff = n->getStartBeat() - noteStartBeat;
                 if (beatDiff.inBeats() < 0.001 && beatDiff.inBeats() > -0.001) // Small tolerance for floating point comparison
@@ -102,30 +102,26 @@ void EraserTool::mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& v
             }
 
             // Delete all notes at this time position
-            auto& um = m_evs.m_edit.getUndoManager();
-            for (auto* n : notesToDelete)
+            auto &um = m_evs.m_edit.getUndoManager();
+            for (auto *n : notesToDelete)
             {
                 sequence.removeNote(*n, &um);
             }
 
-            
             viewport.repaint();
         }
     }
 }
 
-juce::MouseCursor EraserTool::getCursor(MidiViewport& viewport) const
+juce::MouseCursor EraserTool::getCursor(MidiViewport &viewport) const
 {
     // Use a custom eraser cursor or crosshair as fallback
     return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Erasor, viewport.getCursorScale());
 }
 
-void EraserTool::toolActivated(MidiViewport& viewport)
-{
-    viewport.setMouseCursor(getCursor(viewport));
-}
+void EraserTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void EraserTool::toolDeactivated(MidiViewport& viewport)
+void EraserTool::toolDeactivated(MidiViewport &viewport)
 {
     // Clear any highlights
     clearHighlights(viewport);
@@ -139,15 +135,15 @@ void EraserTool::toolDeactivated(MidiViewport& viewport)
     viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
-void EraserTool::deleteNoteAtPosition(const juce::MouseEvent& event, MidiViewport& viewport)
+void EraserTool::deleteNoteAtPosition(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    if (auto* note = viewport.getNoteByPos(event.position.toFloat()))
+    if (auto *note = viewport.getNoteByPos(event.position.toFloat()))
     {
         // Check if we already marked this note for deletion
         if (m_notesToDelete.contains(note))
             return;
 
-        if (auto* clip = viewport.getSelectedEvents().clipForEvent(note))
+        if (auto *clip = viewport.getSelectedEvents().clipForEvent(note))
         {
             if (m_isDragging)
             {
@@ -155,13 +151,11 @@ void EraserTool::deleteNoteAtPosition(const juce::MouseEvent& event, MidiViewpor
                 m_notesToDelete.add(note);
                 if (!m_affectedClips.contains(clip))
                     m_affectedClips.add(clip);
-
-                
             }
             else
             {
                 // Single click - delete immediately
-                auto& sequence = clip->getSequence();
+                auto &sequence = clip->getSequence();
                 sequence.removeNote(*note, &m_evs.m_edit.getUndoManager());
 
                 viewport.repaint();
@@ -170,34 +164,34 @@ void EraserTool::deleteNoteAtPosition(const juce::MouseEvent& event, MidiViewpor
     }
 }
 
-void EraserTool::highlightNoteForDeletion(te::MidiNote* note, MidiViewport& viewport)
+void EraserTool::highlightNoteForDeletion(te::MidiNote *note, MidiViewport &viewport)
 {
     // This could be implemented to show visual feedback for the note that would be deleted
     // For now, we'll just change the cursor
     viewport.setMouseCursor(getCursor(viewport));
 }
 
-void EraserTool::clearHighlights(MidiViewport& viewport)
+void EraserTool::clearHighlights(MidiViewport &viewport)
 {
     // Clear any visual highlights
     // This would remove deletion preview indicators
 }
 
-void EraserTool::commitDeletions(MidiViewport& viewport)
+void EraserTool::commitDeletions(MidiViewport &viewport)
 {
     if (m_notesToDelete.isEmpty())
         return;
 
     // Group deletions by clip for better undo behavior
-    auto& um = m_evs.m_edit.getUndoManager();
+    auto &um = m_evs.m_edit.getUndoManager();
     um.beginNewTransaction("Delete MIDI Notes");
 
-    for (auto* clip : m_affectedClips)
+    for (auto *clip : m_affectedClips)
     {
-        auto& sequence = clip->getSequence();
+        auto &sequence = clip->getSequence();
 
         // Delete all notes in this clip that were marked for deletion
-        for (auto* note : m_notesToDelete)
+        for (auto *note : m_notesToDelete)
         {
             if (viewport.getSelectedEvents().clipForEvent(note) == clip)
             {

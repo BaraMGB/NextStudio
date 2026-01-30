@@ -20,13 +20,12 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "ThumbNailManager.h"
 #include "ApplicationViewState.h"
 #include "PluginMenu.h"
+#include "ThumbNailManager.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 
 namespace te = tracktion_engine;
@@ -44,31 +43,30 @@ enum class Tool
 enum KeyPressCommandIDs
 {
     midiNoteC = 1,
-    midiNoteCsharp ,
+    midiNoteCsharp,
     midiNoteD,
-    midiNoteDsharp ,
+    midiNoteDsharp,
     midiNoteE,
     midiNoteF,
-    midiNoteFsharp ,
+    midiNoteFsharp,
     midiNoteG,
-    midiNoteGsharp ,
+    midiNoteGsharp,
     midiNoteA,
-    midiNoteAsharp ,
+    midiNoteAsharp,
     midiNoteB,
     midiNoteUpperC,
-    midiNoteUpperCsharp ,
+    midiNoteUpperCsharp,
     midiNoteUpperD,
-    midiNoteUpperDsharp ,
+    midiNoteUpperDsharp,
     midiNoteUpperE,
     midiNoteUpperF,
-    midiNoteUpperFsharp ,
+    midiNoteUpperFsharp,
     midiNoteUpperG,
-    midiNoteUpperGsharp ,
+    midiNoteUpperGsharp,
     midiNoteUpperA,
-    midiNoteUpperAsharp ,
+    midiNoteUpperAsharp,
     midiNoteUpperB,
     midiNoteTopC,
-
 
     togglePlay,
     toggleRecord,
@@ -120,28 +118,18 @@ enum KeyPressCommandIDs
 
 namespace Helpers
 {
-    void addAndMakeVisible (
-            juce::Component& parent
-            , const juce::Array<juce::Component*>& children);
+void addAndMakeVisible(juce::Component &parent, const juce::Array<juce::Component *> &children);
 
-    juce::String getStringOrDefault (
-              const juce::String& stringToTest
-            , const juce::String& stringToReturnIfEmpty);
+juce::String getStringOrDefault(const juce::String &stringToTest, const juce::String &stringToReturnIfEmpty);
 
-    juce::File findRecentEdit (const juce::File& dir);
+juce::File findRecentEdit(const juce::File &dir);
 
-    template<typename T>
-    static T invert(T value)
-    {
-        return value * (-1);
-    }
-}
-
-
+template <typename T> static T invert(T value) { return value * (-1); }
+} // namespace Helpers
 
 namespace GUIHelpers
 {
-    enum class CustomMouseCursor
+enum class CustomMouseCursor
 {
     ShiftLeft,
     ShiftRight,
@@ -155,334 +143,246 @@ namespace GUIHelpers
     Erasor
 };
 
-    float getScale(const juce::Component& c);
+float getScale(const juce::Component &c);
 
-    juce::MouseCursor createCustomMouseCursor(CustomMouseCursor cursorType, float scale);
-    juce::MouseCursor getMouseCursorFromPng(const char* png, const int size, juce::Point<int> hotPoint);
-    juce::MouseCursor getMouseCursorFromSvg(const char* svgbinary, juce::Point<int> hitPoint, float scale=1.f);
+juce::MouseCursor createCustomMouseCursor(CustomMouseCursor cursorType, float scale);
+juce::MouseCursor getMouseCursorFromPng(const char *png, const int size, juce::Point<int> hotPoint);
+juce::MouseCursor getMouseCursorFromSvg(const char *svgbinary, juce::Point<int> hitPoint, float scale = 1.f);
 
-    std::unique_ptr<juce::Drawable> getDrawableFromSvg(const char* svgbinary, juce::Colour colour);
-    void drawFromSvg(juce::Graphics &g, const char* svgbinary, juce::Colour newColour, juce::Rectangle<float> drawRect);
-    void setDrawableOnButton(juce::DrawableButton& button, const char* svgbinary, juce::Colour colour);
-    juce::Image drawableToImage(const juce::Drawable& drawable, float targetWidth, float targetHeight);
+std::unique_ptr<juce::Drawable> getDrawableFromSvg(const char *svgbinary, juce::Colour colour);
+void drawFromSvg(juce::Graphics &g, const char *svgbinary, juce::Colour newColour, juce::Rectangle<float> drawRect);
+void setDrawableOnButton(juce::DrawableButton &button, const char *svgbinary, juce::Colour colour);
+juce::Image drawableToImage(const juce::Drawable &drawable, float targetWidth, float targetHeight);
 
-    float getZoomScaleFactor(int delta, float unitDistance);
+float getZoomScaleFactor(int delta, float unitDistance);
 
-    template<typename T>
-    void log(T message)
-    {
+template <typename T> void log(T message)
+{
 #ifdef DEBUG_OR_RELWITHDEBINFO
-        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
-                  << ": " << message << std::endl;
+    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true) << ": " << message << std::endl;
 #endif
-    }
-    template<typename T>
-    void log(const juce::String& d, T message)
-    {
-#ifdef DEBUG_OR_RELWITHDEBINFO
-        std::cout << juce::Time::getCurrentTime().toString(true, true, true, true)
-                  << ": " << d << " : "
-                  << ": " << message << std::endl;
-#endif
-    }
-
-    // void centerView(EditViewState& evs);
-
-    juce::Rectangle<float> getSensibleArea(juce::Point<float> p, float w);
-
-
-    void drawTrack(juce::Graphics& g, juce::Component& parent,EditViewState& evs, juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging=false);
-    void drawClip(juce::Graphics& g, juce::Component& parent, EditViewState& evs,juce::Rectangle<float> rect, te::Clip * clip, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
-
-    void drawClipBody(juce::Graphics& g, EditViewState& evs,juce::String name, juce::Rectangle<float> clipRect,bool isSelected, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
-
-    void drawMidiClip (juce::Graphics& g, EditViewState& evs,te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat);
-
-
-    void drawWaveform(juce::Graphics& g, EditViewState& evs, te::AudioClipBase& c, SimpleThumbnail& thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
-    void drawChannels(juce::Graphics& g, SimpleThumbnail& thumb, juce::Rectangle<float> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
-
-    void strokeRoundedRectWithSide(
-        juce::Graphics &g
-      , juce::Rectangle<float> area
-      , float cornerSize
-      , bool topLeft
-      , bool topRight
-      , bool bottomLeft
-      , bool bottomRight);
-    void drawRoundedRectWithSide(
-        juce::Graphics &g
-      , juce::Rectangle<float> area
-      , float cornerSize
-      , bool topLeft
-      , bool topRight
-      , bool bottomLeft
-      , bool bottomRight);
-
-    void saveEdit(
-            EditViewState& evs
-          , const juce::File& workDir);
-
-    void drawBarsAndBeatLines(juce::Graphics &g
-          , EditViewState &evs
-          , double x1beats
-          , double x2beats
-          , juce::Rectangle<float> boundingRect, bool printDescription=false);
-
-    double getIntervalBeatsOfSnap(int snapLevel, int numBeatsPerBar);
-
-    void drawFakeRoundCorners(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke=1);
-    // void moveView(EditViewState& evs, double newBeatPos);
-    void centerMidiEditorToClip(EditViewState& evs, te::Clip::Ptr c, juce::String timeLineID, int width);
-
-    double getSnapBeats(const te::TimecodeSnapType& snapType);
-    void drawBarBeatsShadow(juce::Graphics& g,
-                             const EditViewState& evs,
-                             double x1beats,
-                             double x2beats,
-                             const juce::Rectangle<float>& boundingRect,
-                             const juce::Colour& shade);
-    struct SelectedTimeRange
-    {
-        juce::Array<te::Track*> selectedTracks;
-        juce::Array<te::AutomatableParameter*> selectedAutomations;
-        tracktion::TimeRange timeRange;
-
-        tracktion::TimePosition getStart() { return timeRange.getStart(); }
-        tracktion::TimeDuration getLength() { return timeRange.getLength(); }
-        tracktion::TimePosition getEnd() { return timeRange.getEnd(); }
-    };
-    void drawSnapLines(juce::Graphics& g,
-                       const EditViewState& evs,
-                       double x1beats,
-                       double x2beats,
-                       const juce::Rectangle<int>& boundingRect,
-                       const juce::Colour& colour);
-    void drawPolyObject(juce::Graphics& g, juce::Rectangle<int> area, int edges, float tilt, float rotation,float radiusFac, float heightFac, float scale);
-    void drawLogoQuad(juce::Graphics&g, juce::Rectangle<int> area);
-    void printTextAt(juce::Graphics& graphic,
-                     juce::Rectangle<float> textRect,
-                     const juce::String& text,
-                     const juce::Colour& textColour);
-    void drawRectWithShadow(juce::Graphics& g,
-                            juce::Rectangle<float> area,
-                            float cornerSize,
-                            const juce::Colour& colour,
-                            const juce::Colour& shade);
-    void drawCircleWithShadow(juce::Graphics& g,
-                              juce::Rectangle<float> area,
-                              const juce::Colour& colour,
-                              const juce::Colour& shade);
-
-    void drawLogo (juce::Graphics& g, juce::Colour colour, float scale);
-
-     juce::String translate (juce::String stringToTranslate, ApplicationViewState& aps);
 }
+template <typename T> void log(const juce::String &d, T message)
+{
+#ifdef DEBUG_OR_RELWITHDEBINFO
+    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true) << ": " << d << " : " << ": " << message << std::endl;
+#endif
+}
+
+// void centerView(EditViewState& evs);
+
+juce::Rectangle<float> getSensibleArea(juce::Point<float> p, float w);
+
+void drawTrack(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging = false);
+void drawClip(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> rect, te::Clip *clip, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
+
+void drawClipBody(juce::Graphics &g, EditViewState &evs, juce::String name, juce::Rectangle<float> clipRect, bool isSelected, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
+
+void drawMidiClip(juce::Graphics &g, EditViewState &evs, te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat);
+
+void drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &c, SimpleThumbnail &thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
+void drawChannels(juce::Graphics &g, SimpleThumbnail &thumb, juce::Rectangle<float> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
+
+void strokeRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, bool topLeft, bool topRight, bool bottomLeft, bool bottomRight);
+void drawRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, bool topLeft, bool topRight, bool bottomLeft, bool bottomRight);
+
+void saveEdit(EditViewState &evs, const juce::File &workDir);
+
+void drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<float> boundingRect, bool printDescription = false);
+
+double getIntervalBeatsOfSnap(int snapLevel, int numBeatsPerBar);
+
+void drawFakeRoundCorners(juce::Graphics &g, juce::Rectangle<float> bounds, juce::Colour colour, juce::Colour outline, int stroke = 1);
+// void moveView(EditViewState& evs, double newBeatPos);
+void centerMidiEditorToClip(EditViewState &evs, te::Clip::Ptr c, juce::String timeLineID, int width);
+
+double getSnapBeats(const te::TimecodeSnapType &snapType);
+void drawBarBeatsShadow(juce::Graphics &g, const EditViewState &evs, double x1beats, double x2beats, const juce::Rectangle<float> &boundingRect, const juce::Colour &shade);
+struct SelectedTimeRange
+{
+    juce::Array<te::Track *> selectedTracks;
+    juce::Array<te::AutomatableParameter *> selectedAutomations;
+    tracktion::TimeRange timeRange;
+
+    tracktion::TimePosition getStart() { return timeRange.getStart(); }
+    tracktion::TimeDuration getLength() { return timeRange.getLength(); }
+    tracktion::TimePosition getEnd() { return timeRange.getEnd(); }
+};
+void drawSnapLines(juce::Graphics &g, const EditViewState &evs, double x1beats, double x2beats, const juce::Rectangle<int> &boundingRect, const juce::Colour &colour);
+void drawPolyObject(juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation, float radiusFac, float heightFac, float scale);
+void drawLogoQuad(juce::Graphics &g, juce::Rectangle<int> area);
+void printTextAt(juce::Graphics &graphic, juce::Rectangle<float> textRect, const juce::String &text, const juce::Colour &textColour);
+void drawRectWithShadow(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, const juce::Colour &colour, const juce::Colour &shade);
+void drawCircleWithShadow(juce::Graphics &g, juce::Rectangle<float> area, const juce::Colour &colour, const juce::Colour &shade);
+
+void drawLogo(juce::Graphics &g, juce::Colour colour, float scale);
+
+juce::String translate(juce::String stringToTranslate, ApplicationViewState &aps);
+} // namespace GUIHelpers
 
 namespace PlayHeadHelpers
 {
-    juce::String timeToTimecodeString (double seconds);
-    juce::StringArray getTimeCodeParts(te::Edit & edit, double time);
-    juce::String barsBeatsString (te::Edit & edit, double time);
+juce::String timeToTimecodeString(double seconds);
+juce::StringArray getTimeCodeParts(te::Edit &edit, double time);
+juce::String barsBeatsString(te::Edit &edit, double time);
 
-    struct TimeCodeStrings{
-        explicit TimeCodeStrings(te::Edit & edit)
-        {
-            auto tp = edit.getTransport ().getPosition ();
-            auto currenttime = tp.inSeconds();
-            bpm = juce::String(edit.tempoSequence.getTempoAt (tp).bpm, 2);
-            auto& timesig = edit.tempoSequence.getTimeSigAt (tp);
-            signature = juce::String(juce::String(timesig.numerator) + " / "
-                                     + juce::String(timesig.denominator));
-            time = timeToTimecodeString (currenttime);
-            beats = barsBeatsString (edit, currenttime);
-            loopIn  = barsBeatsString (edit, edit.getTransport ()
-                                       .getLoopRange ().getStart().inSeconds());
-            loopOut = barsBeatsString (edit, edit.getTransport ()
-                                       .getLoopRange ().getEnd ().inSeconds());
-        }
+struct TimeCodeStrings
+{
+    explicit TimeCodeStrings(te::Edit &edit)
+    {
+        auto tp = edit.getTransport().getPosition();
+        auto currenttime = tp.inSeconds();
+        bpm = juce::String(edit.tempoSequence.getTempoAt(tp).bpm, 2);
+        auto &timesig = edit.tempoSequence.getTimeSigAt(tp);
+        signature = juce::String(juce::String(timesig.numerator) + " / " + juce::String(timesig.denominator));
+        time = timeToTimecodeString(currenttime);
+        beats = barsBeatsString(edit, currenttime);
+        loopIn = barsBeatsString(edit, edit.getTransport().getLoopRange().getStart().inSeconds());
+        loopOut = barsBeatsString(edit, edit.getTransport().getLoopRange().getEnd().inSeconds());
+    }
 
-        juce::String bpm,
-        signature,
-        time,
-        beats,
-        loopIn,
-        loopOut;
-    };
-}
+    juce::String bpm, signature, time, beats, loopIn, loopOut;
+};
+} // namespace PlayHeadHelpers
 
 namespace EngineHelpers
 {
 
-    void renderEditToFile(EditViewState& evs, juce::File renderFile, tracktion::TimeRange range={});
-    bool renderCliptoNewTrack(EditViewState & evs, te::Clip::Ptr clip);
-    bool renderToNewTrack(EditViewState& evs, juce::Array<tracktion_engine::Track*> tracksToRender, tracktion::TimeRange range);
+void renderEditToFile(EditViewState &evs, juce::File renderFile, tracktion::TimeRange range = {});
+bool renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip);
+bool renderToNewTrack(EditViewState &evs, juce::Array<tracktion_engine::Track *> tracksToRender, tracktion::TimeRange range);
 
-    void setMidiInputFocusToSelection(EditViewState& evs);
-    te::MidiInputDevice* getVirtualMidiInputDevice(te::Edit& edit);
-    tracktion::core::TimePosition getTimePos(double t);
-    te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState& evs);
+void setMidiInputFocusToSelection(EditViewState &evs);
+te::MidiInputDevice *getVirtualMidiInputDevice(te::Edit &edit);
+tracktion::core::TimePosition getTimePos(double t);
+te::AudioTrack::Ptr getAudioTrack(te::Track::Ptr track, EditViewState &evs);
 
-    bool trackWantsClip(const te::Clip* clip, const te::Track* track);
-    bool trackWantsClip(const juce::ValueTree state, const te::Track *track);
-    te::Track* getTargetTrack(te::Track*, int verticalOffset);
-    juce::Array<te::Track*> getSortedTrackList(te::Edit& edit);
-    juce::Array<te::MidiClip*> getMidiClipsOfTrack(te::Track& track);
-    double getNoteStartBeat(const te::MidiClip* midiClip, const te::MidiNote* n);
-    double getNoteEndBeat(const te::MidiClip* midiClip, const te::MidiNote* n);
-    void deleteSelectedClips(EditViewState & evs);
+bool trackWantsClip(const te::Clip *clip, const te::Track *track);
+bool trackWantsClip(const juce::ValueTree state, const te::Track *track);
+te::Track *getTargetTrack(te::Track *, int verticalOffset);
+juce::Array<te::Track *> getSortedTrackList(te::Edit &edit);
+juce::Array<te::MidiClip *> getMidiClipsOfTrack(te::Track &track);
+double getNoteStartBeat(const te::MidiClip *midiClip, const te::MidiNote *n);
+double getNoteEndBeat(const te::MidiClip *midiClip, const te::MidiNote *n);
+void deleteSelectedClips(EditViewState &evs);
 
+bool isTrackItemInRange(te::TrackItem *ti, const tracktion::TimeRange &tr);
+void moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState &evs);
+void duplicateSelectedClips(EditViewState &evs);
+void copyAutomationForSelectedClips(double offset, te::SelectionManager &sm, bool copy);
 
-    bool isTrackItemInRange (te::TrackItem* ti,const tracktion::TimeRange& tr);
-    void moveSelectedClips(bool copy, double timeDelta, int verticalOffset,EditViewState& evs);
-    void duplicateSelectedClips(EditViewState& evs);
-    void copyAutomationForSelectedClips(double offset
-                                                     , te::SelectionManager& sm
-                                                     , bool copy);
+void selectAllClips(te::SelectionManager &sm, te::Edit &edit);
+void selectAllClipsOnTrack(te::SelectionManager &sm, te::AudioTrack &at);
+void moveAutomationOrCopy(const juce::Array<te::TrackAutomationSection> &origSections, tracktion::TimeDuration offset, bool copy);
+void moveAutomation(te::Track *src, te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
 
+te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter *ap, tracktion::TimeRange tr);
 
+void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState &evs);
 
+te::Project::Ptr createTempProject(te::Engine &engine);
 
-    void selectAllClips(te::SelectionManager& sm, te::Edit& edit);
-    void selectAllClipsOnTrack(te::SelectionManager& sm, te::AudioTrack& at);
-    void moveAutomationOrCopy(const juce::Array<te::TrackAutomationSection>& origSections, tracktion::TimeDuration offset, bool copy);
-	void moveAutomation(te::Track* src,te::TrackAutomationSection::ActiveParameters par, tracktion::TimeRange range, double insertTime, bool copy);
+void browseForAudioFile(te::Engine &engine, std::function<void(const juce::File &)> fileChosenCallback);
 
-    te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter* ap, tracktion::TimeRange tr);
+void removeAllClips(te::AudioTrack &track);
 
-    void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState & evs);
+te::AudioTrack *getOrInsertAudioTrackAt(te::Edit &edit, int index);
 
-    te::Project::Ptr createTempProject (te::Engine& engine);
+tracktion_engine::FolderTrack::Ptr addFolderTrack(juce::Colour trackColour, EditViewState &evs);
 
-    void browseForAudioFile (
-              te::Engine& engine
-            , std::function<void (const juce::File&)> fileChosenCallback);
+tracktion_engine::AudioTrack::Ptr addAudioTrack(bool isMidiTrack, juce::Colour trackColour, EditViewState &evs);
 
-    void removeAllClips (te::AudioTrack& track);
+te::WaveAudioClip::Ptr loadAudioFileOnNewTrack(EditViewState &evs, const juce::File &file, juce::Colour trackColour, double insertTime = 0.0);
 
-    te::AudioTrack* getOrInsertAudioTrackAt (te::Edit& edit, int index);
+te::WaveAudioClip::Ptr loadAudioFileToTrack(const juce::File &file, te::AudioTrack::Ptr track, te::ClipPosition pos);
 
-    tracktion_engine::FolderTrack::Ptr addFolderTrack(
-        juce::Colour trackColour,
-        EditViewState &evs);
+void refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile);
 
-    tracktion_engine::AudioTrack::Ptr addAudioTrack(
-            bool isMidiTrack
-          , juce::Colour trackColour
-          , EditViewState &evs);
+void insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
 
-    te::WaveAudioClip::Ptr loadAudioFileOnNewTrack (
-            EditViewState& evs
-          , const juce::File& file
-          , juce::Colour trackColour
-          , double insertTime = 0.0);
+// Inserts a plugin and tries to load its 'init' preset if available.
+// Use this for UI interactions where user adds a new plugin.
+void insertPluginWithPreset(EditViewState &evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
 
-    te::WaveAudioClip::Ptr loadAudioFileToTrack(
-            const juce::File& file
-          , te::AudioTrack::Ptr track
-          , te::ClipPosition pos);
+template <typename ClipType> typename ClipType::Ptr loopAroundClip(ClipType &clip)
+{
+    auto &transport = clip.edit.getTransport();
+    transport.setLoopRange(clip.getEditTimeRange());
+    transport.looping = true;
+    transport.position = 0.0;
+    transport.play(false);
 
-    void refreshRelativePathsToNewEditFile(EditViewState & evs
-                                       , const juce::File& newFile);
-
-    void insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
-
-    // Inserts a plugin and tries to load its 'init' preset if available.
-    // Use this for UI interactions where user adds a new plugin.
-    void insertPluginWithPreset(EditViewState& evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
-
-    template<typename ClipType>
-    typename ClipType::Ptr loopAroundClip (ClipType& clip)
-    {
-        auto& transport = clip.edit.getTransport();
-        transport.setLoopRange (clip.getEditTimeRange());
-        transport.looping = true;
-        transport.position = 0.0;
-        transport.play (false);
-
-        return clip;
-    }
-
-    juce::PluginDescription  getPluginDesc(const juce::String& uniqueId
-                                            , const juce::String& name,
-                                juce::String  xmlType_, bool isSynth);
-
-    juce::Array<juce::PluginDescription> getInternalPlugins();
-
-    tracktion::TimeRange getTimeRangeOfSelectedClips(EditViewState &evs);
-
-    void play (EditViewState &evs);
-    void stopPlay(EditViewState &evs);
-    void togglePlay (EditViewState &evs);
-    void toggleLoop (te::Edit& edit);
-    void loopAroundSelection (EditViewState &evs);
-    void loopOff (te::Edit& edit);
-    void loopOn (te::Edit& edit);
-    void loopAroundAll (te::Edit& edit);
-
-    void toggleSnap (EditViewState &evs);
-    void toggleMetronome (te::Edit& edit);
-
-    void toggleRecord (te::Edit& edit);
-    void armTrack (te::AudioTrack& t, bool arm, int position = 0);
-    bool isTrackArmed (te::AudioTrack& t, int position = 0);
-    bool isInputMonitoringEnabled (te::AudioTrack& t, int position = 0);
-    void enableInputMonitoring (te::AudioTrack& t, bool im, int position = 0);
-    bool trackHasInput (te::AudioTrack& t, int position = 0);
-
-    std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree (
-            te::Engine& engine);
-
-    struct CompareNameForward{
-        static int compareElements (const juce::PluginDescription& first,
-                                              const juce::PluginDescription& second)
-        {
-            return first.name.compareNatural(second.name);
-        }
-    };
-
-    struct CompareNameBackwards{
-        static int compareElements(const juce::PluginDescription& first,
-                                               const juce::PluginDescription& second)
-        {
-            return second.name.compareNatural(first.name);
-        }
-    };
-
-
-    struct CompareFormatForward{
-        static int compareElements(const juce::PluginDescription& first,
-                                                         const juce::PluginDescription& second)
-        {
-            return first.pluginFormatName.compareNatural(second.pluginFormatName);
-        }
-    };
-
-    struct CompareFormatBackward{
-        static int compareElements(const juce::PluginDescription& first,
-                                                          const juce::PluginDescription& second)
-        {
-            return second.pluginFormatName.compareNatural(first.pluginFormatName);
-        }
-    };
-
-    void sortByFormatName(juce::Array<juce::PluginDescription>& list, bool forward);
-    void sortByName(juce::Array<juce::PluginDescription>& list, bool forward);
-
-//INTERN
-
+    return clip;
 }
+
+juce::PluginDescription getPluginDesc(const juce::String &uniqueId, const juce::String &name, juce::String xmlType_, bool isSynth);
+
+juce::Array<juce::PluginDescription> getInternalPlugins();
+
+tracktion::TimeRange getTimeRangeOfSelectedClips(EditViewState &evs);
+
+void play(EditViewState &evs);
+void stopPlay(EditViewState &evs);
+void togglePlay(EditViewState &evs);
+void toggleLoop(te::Edit &edit);
+void loopAroundSelection(EditViewState &evs);
+void loopOff(te::Edit &edit);
+void loopOn(te::Edit &edit);
+void loopAroundAll(te::Edit &edit);
+
+void toggleSnap(EditViewState &evs);
+void toggleMetronome(te::Edit &edit);
+
+void toggleRecord(te::Edit &edit);
+void armTrack(te::AudioTrack &t, bool arm, int position = 0);
+bool isTrackArmed(te::AudioTrack &t, int position = 0);
+bool isInputMonitoringEnabled(te::AudioTrack &t, int position = 0);
+void enableInputMonitoring(te::AudioTrack &t, bool im, int position = 0);
+bool trackHasInput(te::AudioTrack &t, int position = 0);
+
+std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree(te::Engine &engine);
+
+struct CompareNameForward
+{
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return first.name.compareNatural(second.name); }
+};
+
+struct CompareNameBackwards
+{
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return second.name.compareNatural(first.name); }
+};
+
+struct CompareFormatForward
+{
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return first.pluginFormatName.compareNatural(second.pluginFormatName); }
+};
+
+struct CompareFormatBackward
+{
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return second.pluginFormatName.compareNatural(first.pluginFormatName); }
+};
+
+void sortByFormatName(juce::Array<juce::PluginDescription> &list, bool forward);
+void sortByName(juce::Array<juce::PluginDescription> &list, bool forward);
+
+// INTERN
+
+} // namespace EngineHelpers
 
 //==============================================================================
 class FlaggedAsyncUpdater : public juce::AsyncUpdater
 {
 public:
     //==============================================================================
-    void markAndUpdate (bool& flag)     { flag = true; triggerAsyncUpdate(); }
-
-    static bool compareAndReset (bool& flag) noexcept
+    void markAndUpdate(bool &flag)
     {
-        if (! flag)
+        flag = true;
+        triggerAsyncUpdate();
+    }
+
+    static bool compareAndReset(bool &flag) noexcept
+    {
+        if (!flag)
             return false;
 
         flag = false;

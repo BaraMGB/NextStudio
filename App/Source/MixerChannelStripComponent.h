@@ -22,35 +22,36 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "EditViewState.h"
-#include "Components/AutomatableSlider.h"
 #include "Components/AutomatableParameter.h"
+#include "Components/AutomatableSlider.h"
+#include "EditViewState.h"
 #include "LevelMeterComponent.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace te = tracktion_engine;
 
-class MixerChannelStripComponent  : public juce::Component
-                                  , public juce::ValueTree::Listener
+class MixerChannelStripComponent
+    : public juce::Component
+    , public juce::ValueTree::Listener
 {
 public:
-    MixerChannelStripComponent(EditViewState& evs, te::AudioTrack::Ptr at);
+    MixerChannelStripComponent(EditViewState &evs, te::AudioTrack::Ptr at);
     ~MixerChannelStripComponent() override;
 
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics &) override;
     void resized() override;
-    
+
     void updateComponentsFromTrack();
-    
+
     // ValueTree::Listener overrides
-    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override {}
-    void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override;
-    void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override;
-    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override;
-    void valueTreeParentChanged (juce::ValueTree&) override {}
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override {}
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override;
+    void valueTreeParentChanged(juce::ValueTree &) override {}
 
 private:
-    EditViewState& m_evs;
+    EditViewState &m_evs;
     te::AudioTrack::Ptr m_track;
 
     juce::Label m_trackName;
@@ -60,5 +61,5 @@ private:
     std::unique_ptr<LevelMeterComponent> m_levelMeterRight;
     juce::TextButton m_muteButton, m_soloButton, m_armButton;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MixerChannelStripComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MixerChannelStripComponent)
 };

@@ -20,35 +20,30 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
-
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "Components/AutomatableParameter.h"
+#include "Components/AutomatableSlider.h"
 #include "EditViewState.h"
-#include "Utilities.h"
 #include "LevelMeterComponent.h"
 #include "LowerRangeComponent.h"
 #include "RackView.h"
-#include "Components/AutomatableSlider.h"
-#include "Components/AutomatableParameter.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
 class ColourGridComponent : public juce::PopupMenu::CustomComponent
 {
 public:
-    ColourGridComponent(tracktion::Track::Ptr track,
-                        const juce::Array<juce::Colour>& colours, 
-                        juce::Colour currentColour, 
-                        int cols, int rows)
+    ColourGridComponent(tracktion::Track::Ptr track, const juce::Array<juce::Colour> &colours, juce::Colour currentColour, int cols, int rows)
         : juce::PopupMenu::CustomComponent(false),
-        m_track (track),
-        m_colours(colours),
-        m_currentColour(currentColour),
-        m_cols(cols),
-        m_rows(rows),
-        m_selectedIndex(-1)
+          m_track(track),
+          m_colours(colours),
+          m_currentColour(currentColour),
+          m_cols(cols),
+          m_rows(rows),
+          m_selectedIndex(-1)
     {
         // Aktuellen Farbindex bestimmen
         for (size_t i = 0; i < m_colours.size(); ++i)
@@ -56,7 +51,7 @@ public:
                 m_selectedIndex = static_cast<int>(i);
     }
 
-    void getIdealSize(int& idealWidth, int& idealHeight) override
+    void getIdealSize(int &idealWidth, int &idealHeight) override
     {
         // Ideale Größe für das Farbraster
         int cellSize = 24;
@@ -65,7 +60,7 @@ public:
         idealHeight = m_rows * cellSize + (m_rows + 1) * padding;
     }
 
-    void paint(juce::Graphics& g) override
+    void paint(juce::Graphics &g) override
     {
         g.fillAll(getLookAndFeel().findColour(juce::PopupMenu::backgroundColourId));
 
@@ -111,12 +106,9 @@ public:
         }
     }
 
-    void mouseMove(const juce::MouseEvent& e) override
-    {
-        updateHoverIndex(e.getPosition());
-    }
+    void mouseMove(const juce::MouseEvent &e) override { updateHoverIndex(e.getPosition()); }
 
-    void mouseExit(const juce::MouseEvent&) override
+    void mouseExit(const juce::MouseEvent &) override
     {
         if (m_hoverIndex != -1)
         {
@@ -125,7 +117,7 @@ public:
         }
     }
 
-    void mouseDown(const juce::MouseEvent& e) override
+    void mouseDown(const juce::MouseEvent &e) override
     {
         int index = getIndexAtPosition(e.getPosition());
         if (index >= 0 && index < (int)m_colours.size())
@@ -164,8 +156,7 @@ private:
                     int x = padding + col * (cellSize + padding);
                     int y = padding + row * (cellSize + padding);
 
-                    if (position.x >= x && position.x < x + cellSize &&
-                        position.y >= y && position.y < y + cellSize)
+                    if (position.x >= x && position.x < x + cellSize && position.y >= y && position.y < y + cellSize)
                     {
                         return index;
                     }
@@ -185,22 +176,20 @@ private:
     int m_hoverIndex = -1;
 };
 
-
 //=================================================================================================================
-
 
 class AutomationLaneHeaderComponent : public juce::Component
 {
 public:
-    explicit AutomationLaneHeaderComponent(te::AutomatableParameter::Ptr ap, EditViewState& evs);
-    void paint (juce::Graphics& g) override;
+    explicit AutomationLaneHeaderComponent(te::AutomatableParameter::Ptr ap, EditViewState &evs);
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
 private:
     juce::Label m_parameterName;
     juce::Label m_pluginName;
     te::AutomatableParameter::Ptr m_automatableParameter;
-    EditViewState& m_evs;
+    EditViewState &m_evs;
     int m_heightAtMouseDown = 0, m_mouseDownY = 0;
     bool m_resizing = false, m_hovering = false;
     AutomatableSliderComponent m_slider;
@@ -208,81 +197,69 @@ private:
     // MouseListener interface
 public:
     void mouseDown(const juce::MouseEvent &event) override;
-    void mouseDrag (const juce::MouseEvent &event) override;
-    void mouseMove (const juce::MouseEvent &event) override;
-    void mouseExit (const juce::MouseEvent &) override;
+    void mouseDrag(const juce::MouseEvent &event) override;
+    void mouseMove(const juce::MouseEvent &event) override;
+    void mouseExit(const juce::MouseEvent &) override;
     [[nodiscard]] te::AutomatableParameter::Ptr automatableParameter() const;
 };
 
-class TrackHeaderComponent : public juce::Component
-                           , private te::ValueTreeAllEventListener
-                           , private FlaggedAsyncUpdater
-                           , public juce::DragAndDropTarget
-                           , public juce::Label::Listener
-                           , public juce::ChangeBroadcaster
+class TrackHeaderComponent
+    : public juce::Component
+    , private te::ValueTreeAllEventListener
+    , private FlaggedAsyncUpdater
+    , public juce::DragAndDropTarget
+    , public juce::Label::Listener
+    , public juce::ChangeBroadcaster
 {
 public:
-    TrackHeaderComponent (EditViewState&, te::Track::Ptr);
+    TrackHeaderComponent(EditViewState &, te::Track::Ptr);
     ~TrackHeaderComponent() override;
 
-    void paint (juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
-    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &event) override;
     void mouseUp(const juce::MouseEvent &event) override;
-    void mouseMove(const juce::MouseEvent & e) override;
+    void mouseMove(const juce::MouseEvent &e) override;
     void mouseExit(const juce::MouseEvent &event) override;
     juce::Colour getTrackColour();
 
     [[nodiscard]] te::Track::Ptr getTrack() const;
-    bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
-    void itemDragMove(const SourceDetails& dragSourceDetails) override;
-    void itemDragExit(const SourceDetails& dragSourceDetails) override;
-    void itemDropped(const SourceDetails& details) override;
+    bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override;
+    void itemDragMove(const SourceDetails &dragSourceDetails) override;
+    void itemDragExit(const SourceDetails &dragSourceDetails) override;
+    void itemDropped(const SourceDetails &details) override;
 
     void labelTextChanged(juce::Label *labelThatHasChanged) override;
     void childrenSetVisible(bool v);
 
-    bool isFolderTrack(){ return m_track->isFolderTrack(); }
+    bool isFolderTrack() { return m_track->isFolderTrack(); }
 
     void collapseTrack(bool minimize);
-
 
 private:
     void handleAsyncUpdate() override;
     void valueTreeChanged() override {}
-    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
-    void valueTreeChildAdded(
-            juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenAdded) override;
-    void valueTreeChildRemoved(
-            juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenRemoved
-            , int indexFromWhichChildWasRemoved) override;
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
+    void valueTreeChildAdded(juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenAdded) override;
+    void valueTreeChildRemoved(juce::ValueTree &parentTree, juce::ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved) override;
 
-    void showPopupMenu(te::Track* at);
+    void showPopupMenu(te::Track *at);
     void deleteTrackFromEdit();
 
-    EditViewState& m_editViewState;
+    EditViewState &m_editViewState;
     te::Track::Ptr m_track;
     int m_trackHeightATMouseDown{};
     int m_yPosAtMouseDown{};
     juce::ValueTree inputsState;
     juce::Label m_trackName;
-    juce::ToggleButton m_armButton,
-                 m_muteButton,
-                 m_soloButton;
+    juce::ToggleButton m_armButton, m_muteButton, m_soloButton;
 
     std::unique_ptr<AutomatableSliderComponent> m_volumeKnob;
     std::unique_ptr<LevelMeterComponent> levelMeterComp;
     juce::Image m_dragImage;
-    bool m_isResizing {false},
-         m_isHover {false},
-         m_contentIsOver {false},
-         m_trackIsOver {false},
-         m_isDragging {false},
-         m_isAudioTrack {false},
-         m_updateAutomationLanes {false},
-         m_updateTrackHeight {false};
+    bool m_isResizing{false}, m_isHover{false}, m_contentIsOver{false}, m_trackIsOver{false}, m_isDragging{false}, m_isAudioTrack{false}, m_updateAutomationLanes{false}, m_updateTrackHeight{false};
     void buildAutomationHeader();
     juce::OwnedArray<AutomationLaneHeaderComponent> m_automationHeaders;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackHeaderComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TrackHeaderComponent)
 };

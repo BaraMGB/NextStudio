@@ -21,34 +21,35 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include "SampleDisplay.h"
+#include "Components/AutomatableParameter.h"
 #include "Components/AutomatableSlider.h"
 #include "Components/NonAutomatableParameter.h"
-#include "Components/AutomatableParameter.h"
+#include "SampleDisplay.h"
 
 namespace te = tracktion_engine;
 class ApplicationViewState;
 
-class SoundEditorPanel : public juce::Component, public juce::Button::Listener, public juce::Value::Listener
+class SoundEditorPanel
+    : public juce::Component
+    , public juce::Button::Listener
+    , public juce::Value::Listener
 {
 public:
-    SoundEditorPanel(tracktion::SamplerPlugin& plugin, te::Edit& edit, ApplicationViewState& appViewState);
+    SoundEditorPanel(tracktion::SamplerPlugin &plugin, te::Edit &edit, ApplicationViewState &appViewState);
     ~SoundEditorPanel() override;
 
-    void paint(juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
     void setSound(int soundIndex);
 
-    void buttonClicked(juce::Button* button) override;
-    void valueChanged(juce::Value& value) override;
-
+    void buttonClicked(juce::Button *button) override;
+    void valueChanged(juce::Value &value) override;
 
 private:
-
-    te::Edit& m_edit;
-    ApplicationViewState& m_appViewState;
-    te::SamplerPlugin& m_samplerPlugin;
+    te::Edit &m_edit;
+    ApplicationViewState &m_appViewState;
+    te::SamplerPlugin &m_samplerPlugin;
     int soundIndex = -1;
     bool m_markersNeedUpdate = false;
 

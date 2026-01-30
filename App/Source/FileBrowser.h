@@ -20,54 +20,46 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
-
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "EditViewState.h"
 #include "ApplicationViewState.h"
-#include "Utilities.h"
-#include "PreviewComponent.h"
 #include "Browser_Base.h"
+#include "EditViewState.h"
+#include "PreviewComponent.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 class FileBrowserComponent;
 class FileBrowserComponent : public BrowserBaseComponent
 {
 public:
-    FileBrowserComponent(ApplicationViewState& avs, te::Engine&, SamplePreviewComponent& spc);
+    FileBrowserComponent(ApplicationViewState &avs, te::Engine &, SamplePreviewComponent &spc);
     void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
 
-    juce::var getDragSourceDescription (const juce::SparseSet<int>& /*rowsToDescribe*/) override;
+    juce::var getDragSourceDescription(const juce::SparseSet<int> & /*rowsToDescribe*/) override;
 
-    void setDirecory(const juce::File& dir);
+    void setDirecory(const juce::File &dir);
     void listBoxItemClicked(int row, const juce::MouseEvent &e) override;
     void listBoxItemDoubleClicked(int row, const juce::MouseEvent &e) override;
     void selectedRowsChanged(int /*lastRowSelected*/) override;
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
-    void previewSampleFile(const juce::File& file);
+    void previewSampleFile(const juce::File &file);
 
 private:
     void sortList(int selectedID) override;
-    struct CompareNameForward{
-        static int compareElements (const juce::File& first, 
-                                              const juce::File& second)
-        {   
-            return first.getFileName().compareNatural(second.getFileName());
-        }
+    struct CompareNameForward
+    {
+        static int compareElements(const juce::File &first, const juce::File &second) { return first.getFileName().compareNatural(second.getFileName()); }
     };
 
-    struct CompareNameBackwards{
-        static int compareElements(const juce::File& first, 
-                                               const juce::File& second)
-        {
-            return second.getFileName().compareNatural(first.getFileName());
-        }
+    struct CompareNameBackwards
+    {
+        static int compareElements(const juce::File &first, const juce::File &second) { return second.getFileName().compareNatural(first.getFileName()); }
     };
-    void sortByName(juce::Array<juce::File>& list, bool forward);
-    SamplePreviewComponent&     m_samplePreviewComponent;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileBrowserComponent)
+    void sortByName(juce::Array<juce::File> &list, bool forward);
+    SamplePreviewComponent &m_samplePreviewComponent;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FileBrowserComponent)
 };

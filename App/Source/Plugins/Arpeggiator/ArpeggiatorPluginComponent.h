@@ -17,10 +17,11 @@
 #include "ArpeggiatorPlugin.h"
 
 //==============================================================================
-class ArpeggiatorPluginComponent : public PluginViewComponent,
-                                   private juce::ValueTree::Listener
+class ArpeggiatorPluginComponent
+    : public PluginViewComponent
+    , private juce::ValueTree::Listener
 {
-  public:
+public:
     ArpeggiatorPluginComponent(EditViewState &evs, te::Plugin::Ptr p);
     ~ArpeggiatorPluginComponent() override;
 
@@ -37,7 +38,7 @@ class ArpeggiatorPluginComponent : public PluginViewComponent,
     juce::String getPluginTypeName() const override;
     ApplicationViewState &getApplicationViewState() override;
 
-  private:
+private:
     void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}

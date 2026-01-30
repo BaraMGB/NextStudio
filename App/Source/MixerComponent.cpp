@@ -19,12 +19,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "MixerComponent.h"
 #include "MixerChannelStripComponent.h"
 
 //==============================================================================
-MixerComponent::MixerComponent(EditViewState& evs)
+MixerComponent::MixerComponent(EditViewState &evs)
     : m_evs(evs)
 {
     addAndMakeVisible(m_viewport);
@@ -33,15 +32,9 @@ MixerComponent::MixerComponent(EditViewState& evs)
     buildChannelStrips();
 }
 
-MixerComponent::~MixerComponent()
-{
-    m_evs.m_edit.state.removeListener(this);
-}
+MixerComponent::~MixerComponent() { m_evs.m_edit.state.removeListener(this); }
 
-void MixerComponent::paint (juce::Graphics& g)
-{
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-}
+void MixerComponent::paint(juce::Graphics &g) { g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId)); }
 
 void MixerComponent::resized()
 {
@@ -55,26 +48,21 @@ void MixerComponent::resized()
         strip->setBounds(area.removeFromLeft(channelWidth));
 }
 
-void MixerComponent::valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&)
-{
-}
+void MixerComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) {}
 
-void MixerComponent::valueTreeChildAdded(juce::ValueTree& p, juce::ValueTree& c)
+void MixerComponent::valueTreeChildAdded(juce::ValueTree &p, juce::ValueTree &c)
 {
     if (p.hasType(te::IDs::EDIT) && c.hasType(te::IDs::TRACK))
         markAndUpdate(m_updateChannelStrips);
 }
 
-void MixerComponent::valueTreeChildRemoved(juce::ValueTree& p, juce::ValueTree& c, int)
+void MixerComponent::valueTreeChildRemoved(juce::ValueTree &p, juce::ValueTree &c, int)
 {
     if (p.hasType(te::IDs::EDIT) && c.hasType(te::IDs::TRACK))
         markAndUpdate(m_updateChannelStrips);
 }
 
-void MixerComponent::valueTreeChildOrderChanged(juce::ValueTree&, int, int)
-{
-    markAndUpdate(m_updateChannelStrips);
-}
+void MixerComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int) { markAndUpdate(m_updateChannelStrips); }
 
 void MixerComponent::handleAsyncUpdate()
 {

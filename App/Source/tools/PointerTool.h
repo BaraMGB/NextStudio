@@ -20,8 +20,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include "../ToolStrategy.h"
 #include "../MidiViewport.h"
+#include "../ToolStrategy.h"
 
 /**
  * Pointer tool for selecting and moving notes.
@@ -30,18 +30,21 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 class PointerTool : public ToolStrategy
 {
 public:
-    explicit PointerTool(EditViewState& evs) : ToolStrategy(evs) {}
+    explicit PointerTool(EditViewState &evs)
+        : ToolStrategy(evs)
+    {
+    }
     ~PointerTool() override = default;
 
-    void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseUp(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) override;
+    void mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport) override;
 
-    juce::MouseCursor getCursor(MidiViewport& viewport) const override;
+    juce::MouseCursor getCursor(MidiViewport &viewport) const override;
 
-    Tool getToolId () override { return Tool::pointer; }
+    Tool getToolId() override { return Tool::pointer; }
     // Public getters for MidiViewport's paint method
     bool isDragging() const { return m_isDragging; }
     double getDraggedTimeDelta() const { return m_draggedTimeDelta; }
@@ -64,17 +67,17 @@ private:
     bool m_isDragging = false;
 
     // Drag state
-    double m_draggedTimeDelta {0.0};
-    int m_draggedNoteDelta {0};
-    double m_leftTimeDelta {0.0};
-    double m_rightTimeDelta {0.0};
+    double m_draggedTimeDelta{0.0};
+    int m_draggedNoteDelta{0};
+    double m_leftTimeDelta{0.0};
+    double m_rightTimeDelta{0.0};
 
     // Helper methods
-    void updateCursor(const juce::MouseEvent& event, MidiViewport& viewport);
-    void insertNoteAtPosition(const juce::MouseEvent& event, MidiViewport& viewport);
+    void updateCursor(const juce::MouseEvent &event, MidiViewport &viewport);
+    void insertNoteAtPosition(const juce::MouseEvent &event, MidiViewport &viewport);
 
     // When clicking on empty space we defer starting the Lasso until the user drags.
     // This flag indicates that a mouseDown on empty space occurred and a subsequent
     // mouseDrag should start the LassoTool. It must persist across mouse events.
-    bool m_pendingLassoStart { false };
+    bool m_pendingLassoStart{false};
 };

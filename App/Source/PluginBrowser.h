@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -43,72 +42,71 @@ public:
         descCol = 5
     };
 
-    PluginListBoxModel(te::Engine& engine, ApplicationViewState& appState);
+    PluginListBoxModel(te::Engine &engine, ApplicationViewState &appState);
 
-    void paintRowBackground( juce::Graphics &g, int row,int width, int height, bool rowIsSelected) override;
-    void paintCell (juce::Graphics& g, int row, int col, int width, int height, bool rowIsSelected) override;
+    void paintRowBackground(juce::Graphics &g, int row, int width, int height, bool rowIsSelected) override;
+    void paintCell(juce::Graphics &g, int row, int col, int width, int height, bool rowIsSelected) override;
 
-    void sortOrderChanged (int newSortColumnId, bool isForwards) override;
-    static juce::String getPluginDescription (const juce::PluginDescription& desc);
-    int getNumRows() override {return m_knownPlugins.getTypes().size ();}
+    void sortOrderChanged(int newSortColumnId, bool isForwards) override;
+    static juce::String getPluginDescription(const juce::PluginDescription &desc);
+    int getNumRows() override { return m_knownPlugins.getTypes().size(); }
 
-    juce::var getDragSourceDescription(const juce::SparseSet<int>& /*rowsToDescribe*/) override;
+    juce::var getDragSourceDescription(const juce::SparseSet<int> & /*rowsToDescribe*/) override;
+
 private:
-    juce::KnownPluginList& m_knownPlugins;
-    te::Engine& m_engine;
-    ApplicationViewState& m_appState;
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListBoxModel)
+    juce::KnownPluginList &m_knownPlugins;
+    te::Engine &m_engine;
+    ApplicationViewState &m_appState;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginListBoxModel)
 };
 //----------------------------------------------------------------------------------------
 
 class PluginListbox : public juce::TableListBox
 {
 public:
-    PluginListbox(te::Engine& engine);
+    PluginListbox(te::Engine &engine);
 
-    te::Plugin::Ptr getSelectedPlugin(te::Edit& edit);
+    te::Plugin::Ptr getSelectedPlugin(te::Edit &edit);
 
 private:
-    te::Engine& m_engine;
+    te::Engine &m_engine;
 
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginListbox)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginListbox)
 };
 
 // --------------------------------------------------------------------------------------------
 
-class PluginSettings : public juce::Component 
-                     , public juce::ChangeListener
+class PluginSettings
+    : public juce::Component
+    , public juce::ChangeListener
 {
 public:
-    PluginSettings(te::Engine& engine, ApplicationViewState& appState);
+    PluginSettings(te::Engine &engine, ApplicationViewState &appState);
     ~PluginSettings() override;
 
     void resized() override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
-    void scanFor (juce::AudioPluginFormat&);
-    void scanFor (juce::AudioPluginFormat&, const juce::StringArray& filesOrIdentifiersToScan);
+    void scanFor(juce::AudioPluginFormat &);
+    void scanFor(juce::AudioPluginFormat &, const juce::StringArray &filesOrIdentifiersToScan);
     juce::PopupMenu createOptionsMenu();
-    
-    void scanFinished (const juce::StringArray& failedFiles, const std::vector<juce::String>& newBlacklistedFiles);
+
+    void scanFinished(const juce::StringArray &failedFiles, const std::vector<juce::String> &newBlacklistedFiles);
     void removeSelectedPlugins();
-    void removePluginItem (int index);
-    
+    void removePluginItem(int index);
+
     void removeMissingPlugins();
 
 private:
     PluginListBoxModel m_model;
     PluginListbox m_listbox;
-    juce::PropertiesFile* m_propertiesToUse;
+    juce::PropertiesFile *m_propertiesToUse;
     juce::String m_dialogTitle, m_dialogText;
     bool m_allowAsync;
     int m_numThreads;
     std::unique_ptr<PluginScanner> currentScanner;
-    te::Engine&                           m_engine;
-    juce::TextButton                     m_setupButton;
+    te::Engine &m_engine;
+    juce::TextButton m_setupButton;
     juce::ScopedMessageBox m_messageBox;
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginSettings)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginSettings)
 };
-
-
-

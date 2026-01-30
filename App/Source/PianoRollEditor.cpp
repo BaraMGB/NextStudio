@@ -20,30 +20,29 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "PianoRollEditor.h"
 #include "KeyboardView.h"
 #include "Utilities.h"
 
-PianoRollEditor::PianoRollEditor(EditViewState & evs)
-    : m_editViewState(evs)
-    , m_toolBar(Alignment::Center)
-    , m_timeLine (evs, "PianoRoll")
-    , m_playhead (evs.m_edit, evs, m_timeLine)
-    , m_selectionBtn ("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_drawBtn ("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_rangeSelectBtn ("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_erasorBtn ("erasor mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_splitBtn ("split mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
-    , m_lassoBtn ("lasso mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
+PianoRollEditor::PianoRollEditor(EditViewState &evs)
+    : m_editViewState(evs),
+      m_toolBar(Alignment::Center),
+      m_timeLine(evs, "PianoRoll"),
+      m_playhead(evs.m_edit, evs, m_timeLine),
+      m_selectionBtn("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
+      m_drawBtn("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
+      m_rangeSelectBtn("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
+      m_erasorBtn("erasor mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
+      m_splitBtn("split mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
+      m_lassoBtn("lasso mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
     setWantsKeyboardFocus(true);
-    evs.m_edit.state.addListener (this);
+    evs.m_edit.state.addListener(this);
     evs.m_applicationState.m_applicationStateValueTree.addListener(this);
 
-    addAndMakeVisible (m_timeLine);
-    addAndMakeVisible (m_playhead);
-    m_playhead.setAlwaysOnTop (true);
+    addAndMakeVisible(m_timeLine);
+    addAndMakeVisible(m_playhead);
+    m_playhead.setAlwaysOnTop(true);
 
     m_selectionBtn.setName("select");
     m_selectionBtn.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
@@ -77,7 +76,6 @@ PianoRollEditor::PianoRollEditor(EditViewState & evs)
     m_toolBar.addButton(&m_splitBtn, 1);
     m_toolBar.addButton(&m_lassoBtn, 1);
 
-
     updateButtonColour();
 }
 PianoRollEditor::~PianoRollEditor()
@@ -89,9 +87,9 @@ PianoRollEditor::~PianoRollEditor()
     m_selectionBtn.removeListener(this);
     m_lassoBtn.removeListener(this);
     m_editViewState.m_applicationState.m_applicationStateValueTree.removeListener(this);
-    m_editViewState.m_edit.state.removeListener (this);
+    m_editViewState.m_edit.state.removeListener(this);
 }
-void PianoRollEditor::paint(juce::Graphics& g)
+void PianoRollEditor::paint(juce::Graphics &g)
 {
     g.setColour(juce::Colours::pink);
     g.fillAll();
@@ -111,27 +109,15 @@ void PianoRollEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::white);
     if (m_pianoRollViewPort == nullptr)
         g.drawText("select a clip for edit midi", getMidiEditorRect(), juce::Justification::centred);
-
 }
 void PianoRollEditor::paintOverChildren(juce::Graphics &g)
 {
-    g.setColour (juce::Colour(0xffffffff));
-    const auto snapType = m_timeLine.getBestSnapType ();
-    const auto snapTypeDesc = m_timeLine.getEditViewState ()
-                                .getSnapTypeDescription (snapType.level);
-    g.drawText (snapTypeDesc
-              , getWidth () - 100
-              , getHeight () -20
-              , 90
-              , 20
-              , juce::Justification::centredRight);
+    g.setColour(juce::Colour(0xffffffff));
+    const auto snapType = m_timeLine.getBestSnapType();
+    const auto snapTypeDesc = m_timeLine.getEditViewState().getSnapTypeDescription(snapType.level);
+    g.drawText(snapTypeDesc, getWidth() - 100, getHeight() - 20, 90, 20, juce::Justification::centredRight);
 
-    g.drawText (m_NoteDescUnderCursor
-              , getWidth () - 200
-              , getHeight () - 20
-              , 90
-              , 20
-              , juce::Justification::centredLeft);
+    g.drawText(m_NoteDescUnderCursor, getWidth() - 200, getHeight() - 20, 90, 20, juce::Justification::centredLeft);
 
     g.setColour(m_editViewState.m_applicationState.getBorderColour());
     g.fillRect(getHeaderRect().removeFromBottom(1));
@@ -142,7 +128,6 @@ void PianoRollEditor::paintOverChildren(juce::Graphics &g)
     g.fillRect(getParameterToolbarRect().removeFromTop(1));
     g.fillRect(getFooterRect().removeFromTop(1));
     g.fillRect(getParameterToolbarRect().removeFromRight(1));
-
 }
 void PianoRollEditor::resized()
 {
@@ -154,19 +139,19 @@ void PianoRollEditor::resized()
     m_toolBar.setBounds(toolbar);
 
     if (m_keyboard != nullptr)
-        m_keyboard->setBounds (keyboard);
-    m_timeLine.setBounds (timeline);
+        m_keyboard->setBounds(keyboard);
+    m_timeLine.setBounds(timeline);
 
     if (m_timelineOverlay != nullptr)
-        m_timelineOverlay->setBounds (getTimeLineRect().getUnion(getMidiEditorRect()));
+        m_timelineOverlay->setBounds(getTimeLineRect().getUnion(getMidiEditorRect()));
 
     if (m_velocityEditor != nullptr)
         m_velocityEditor->setBounds(getVelocityEditorRect());
 
     if (m_pianoRollViewPort != nullptr)
-        m_pianoRollViewPort->setBounds (getMidiEditorRect());
+        m_pianoRollViewPort->setBounds(getMidiEditorRect());
 
-    m_playhead.setBounds (playhead);
+    m_playhead.setBounds(playhead);
 }
 juce::Rectangle<int> PianoRollEditor::getPlayHeadRect()
 {
@@ -180,145 +165,131 @@ void PianoRollEditor::mouseMove(const juce::MouseEvent &event)
 {
     if (m_pianoRollViewPort)
     {
-        m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName (
-            (int) m_pianoRollViewPort->getNoteNumber(event.y)
-            , true
-            , true
-            , 3);
+        m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName((int)m_pianoRollViewPort->getNoteNumber(event.y), true, true, 3);
         repaint();
     }
 }
 
-
-void PianoRollEditor::getAllCommands (juce::Array<juce::CommandID>& commands) 
+void PianoRollEditor::getAllCommands(juce::Array<juce::CommandID> &commands)
 {
 
-    juce::Array<juce::CommandID> ids {
+    juce::Array<juce::CommandID> ids{
 
-            KeyPressCommandIDs::deleteSelectedNotes,
-            KeyPressCommandIDs::duplicateSelectedNotes,
-            KeyPressCommandIDs::nudgeNotesUp,
-            KeyPressCommandIDs::nudgeNotesDown,
-            KeyPressCommandIDs::nudgeNotesLeft,
-            KeyPressCommandIDs::nudgeNotesRight,
-            KeyPressCommandIDs::nudgeNotesOctaveUp,
-            KeyPressCommandIDs::nudgeNotesOctaveDown,
-        };
+        KeyPressCommandIDs::deleteSelectedNotes, KeyPressCommandIDs::duplicateSelectedNotes, KeyPressCommandIDs::nudgeNotesUp, KeyPressCommandIDs::nudgeNotesDown, KeyPressCommandIDs::nudgeNotesLeft, KeyPressCommandIDs::nudgeNotesRight, KeyPressCommandIDs::nudgeNotesOctaveUp, KeyPressCommandIDs::nudgeNotesOctaveDown,
+    };
 
     commands.addArray(ids);
 }
 
-
-void PianoRollEditor::getCommandInfo (juce::CommandID commandID, juce::ApplicationCommandInfo& result) 
+void PianoRollEditor::getCommandInfo(juce::CommandID commandID, juce::ApplicationCommandInfo &result)
 {
 
     switch (commandID)
-    { 
-        case KeyPressCommandIDs::deleteSelectedNotes :
-            result.setInfo("delete selected notes", "delete selected", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::backspaceKey , 0);
-            result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::duplicateSelectedNotes:
-            result.setInfo("duplicate selected Notes", "duplicate selected Notes", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), juce::ModifierKeys::commandModifier);
-            break;
+    {
+    case KeyPressCommandIDs::deleteSelectedNotes:
+        result.setInfo("delete selected notes", "delete selected", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::backspaceKey, 0);
+        result.addDefaultKeypress(juce::KeyPress::deleteKey, 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::duplicateSelectedNotes:
+        result.setInfo("duplicate selected Notes", "duplicate selected Notes", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
 
-        case KeyPressCommandIDs::nudgeNotesUp :
+    case KeyPressCommandIDs::nudgeNotesUp:
 
-            result.setInfo("move selected Notes up", "move selected notes up", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::upKey, 0);
-            break;
-        case KeyPressCommandIDs::nudgeNotesDown:
-            result.setInfo("move selected Notes down", "move selected notes down", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::downKey ,0);
-            break;
-        case KeyPressCommandIDs::nudgeNotesLeft :
-            result.setInfo("move selected Notes left", "move selected notes left ", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::leftKey ,0);
-            break;
-        case KeyPressCommandIDs::nudgeNotesRight :
-            result.setInfo("move selected Notes right", "move selected notes right", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::rightKey ,0);
-            break;
-        case KeyPressCommandIDs::nudgeNotesOctaveUp :
-            result.setInfo("move selected Notes ocatave up", "move selected notes octave up", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::upKey, juce::ModifierKeys::commandModifier);
-            break;
-        case KeyPressCommandIDs::nudgeNotesOctaveDown :
-            result.setInfo("move selected Notes octave down", "move selected notes octave down", "Notes", 0);
-            result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
-            break;
+        result.setInfo("move selected Notes up", "move selected notes up", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::upKey, 0);
+        break;
+    case KeyPressCommandIDs::nudgeNotesDown:
+        result.setInfo("move selected Notes down", "move selected notes down", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::downKey, 0);
+        break;
+    case KeyPressCommandIDs::nudgeNotesLeft:
+        result.setInfo("move selected Notes left", "move selected notes left ", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::leftKey, 0);
+        break;
+    case KeyPressCommandIDs::nudgeNotesRight:
+        result.setInfo("move selected Notes right", "move selected notes right", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::rightKey, 0);
+        break;
+    case KeyPressCommandIDs::nudgeNotesOctaveUp:
+        result.setInfo("move selected Notes ocatave up", "move selected notes octave up", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::upKey, juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::nudgeNotesOctaveDown:
+        result.setInfo("move selected Notes octave down", "move selected notes octave down", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
+        break;
 
-        default:
-            break;
-        }
-
+    default:
+        break;
+    }
 }
 
-bool PianoRollEditor::perform (const juce::ApplicationCommandTarget::InvocationInfo& info) 
+bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
 
     switch (info.commandID)
-    { 
-        case KeyPressCommandIDs::deleteSelectedNotes:
-        {
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->deleteSelectedNotes();
+    {
+    case KeyPressCommandIDs::deleteSelectedNotes:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->deleteSelectedNotes();
 
-            break;
-        }
-        case KeyPressCommandIDs::duplicateSelectedNotes :
-        {   
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->duplicateSelectedNotes();
+        break;
+    }
+    case KeyPressCommandIDs::duplicateSelectedNotes:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->duplicateSelectedNotes();
 
-            break;
-        }
-        case KeyPressCommandIDs::nudgeNotesUp :
-        {   
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 1);
+        break;
+    }
+    case KeyPressCommandIDs::nudgeNotesUp:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 1);
 
-            break;
-        }
-        case KeyPressCommandIDs::nudgeNotesDown :
-        {   
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -1);
-            break;
-        }
-        case KeyPressCommandIDs::nudgeNotesLeft :
-        {   
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), -1, 0);
+        break;
+    }
+    case KeyPressCommandIDs::nudgeNotesDown:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -1);
+        break;
+    }
+    case KeyPressCommandIDs::nudgeNotesLeft:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), -1, 0);
 
-            break;
-        }
-        case KeyPressCommandIDs::nudgeNotesRight :
-        {   
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 1, 0);
+        break;
+    }
+    case KeyPressCommandIDs::nudgeNotesRight:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 1, 0);
 
-            break;
-        }
-        case KeyPressCommandIDs::nudgeNotesOctaveUp :
-        {   
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(),0, 12);
+        break;
+    }
+    case KeyPressCommandIDs::nudgeNotesOctaveUp:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 12);
 
-            break;
-        }
-        case KeyPressCommandIDs::nudgeNotesOctaveDown :
-        {   
-            if (m_pianoRollViewPort != nullptr)
-                m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -12);
+        break;
+    }
+    case KeyPressCommandIDs::nudgeNotesOctaveDown:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -12);
 
-            break;
-        }
-        default:
-            return false;
+        break;
+    }
+    default:
+        return false;
     }
     return true;
 }
@@ -333,7 +304,7 @@ void PianoRollEditor::updateButtonColour()
     GUIHelpers::setDrawableOnButton(m_splitBtn, BinaryData::split_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_lassoBtn, BinaryData::rubberband_svg, buttonColour);
 }
-void PianoRollEditor::buttonClicked(juce::Button* button) 
+void PianoRollEditor::buttonClicked(juce::Button *button)
 {
     if (m_pianoRollViewPort == nullptr)
         return;
@@ -363,39 +334,36 @@ void PianoRollEditor::buttonClicked(juce::Button* button)
     {
         m_pianoRollViewPort->setTool(Tool::lasso);
     }
-    
 }
 
 void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
 {
-    auto sanitizedID = "ID" + track->itemID.toString().removeCharacters ("{}-");
+    auto sanitizedID = "ID" + track->itemID.toString().removeCharacters("{}-");
     m_timeLine.setTimeLineID(sanitizedID);
-    m_pianoRollViewPort = std::make_unique<MidiViewport> (m_editViewState, track, m_timeLine);
-    addAndMakeVisible (*m_pianoRollViewPort);
+    m_pianoRollViewPort = std::make_unique<MidiViewport>(m_editViewState, track, m_timeLine);
+    addAndMakeVisible(*m_pianoRollViewPort);
     m_pianoRollViewPort->addChangeListener(this);
 
-    m_timelineOverlay = std::make_unique<TimelineOverlayComponent> (m_editViewState, track, m_timeLine);
-    addAndMakeVisible (*m_timelineOverlay);
+    m_timelineOverlay = std::make_unique<TimelineOverlayComponent>(m_editViewState, track, m_timeLine);
+    addAndMakeVisible(*m_timelineOverlay);
 
     m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track, m_timeLine.getTimeLineID());
     addAndMakeVisible(*m_velocityEditor);
 
     m_keyboard = std::make_unique<KeyboardView>(m_editViewState, track, m_timeLine.getTimeLineID());
-    addAndMakeVisible (*m_keyboard);
-    resized ();
+    addAndMakeVisible(*m_keyboard);
+    resized();
 }
 void PianoRollEditor::clearTrack()
 {
-    m_timelineOverlay.reset (nullptr);
+    m_timelineOverlay.reset(nullptr);
     m_pianoRollViewPort->removeChangeListener(this);
-    m_pianoRollViewPort.reset (nullptr);
+    m_pianoRollViewPort.reset(nullptr);
     m_velocityEditor.reset(nullptr);
     m_keyboard.reset(nullptr);
-    resized ();
+    resized();
 }
-void PianoRollEditor::valueTreePropertyChanged(
-        juce::ValueTree &treeWhosePropertyHasChanged
-      , const juce::Identifier &property)
+void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property)
 {
     if (treeWhosePropertyHasChanged.hasType(te::IDs::NOTE) || treeWhosePropertyHasChanged.hasType(m_timeLine.getTimeLineID()))
     {
@@ -413,23 +381,18 @@ void PianoRollEditor::valueTreePropertyChanged(
         markAndUpdate(m_updateButtonColour);
     }
 }
-void PianoRollEditor::valueTreeChildAdded(juce::ValueTree&,
-                                                   juce::ValueTree& property)
+void PianoRollEditor::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &property)
 {
-    if (te::Clip::isClipState (property))
-        markAndUpdate (m_updateClips);
+    if (te::Clip::isClipState(property))
+        markAndUpdate(m_updateClips);
 }
-void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree& ,
-                                                     juce::ValueTree& property,
-                                                     int)
+void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &property, int)
 {
-    if (te::Clip::isClipState (property))
-        markAndUpdate (m_updateClips);
+    if (te::Clip::isClipState(property))
+        markAndUpdate(m_updateClips);
 
-    if (m_pianoRollViewPort != nullptr
-        && property == m_pianoRollViewPort->getTrack()->state)
-            markAndUpdate(m_updateTracks);
-
+    if (m_pianoRollViewPort != nullptr && property == m_pianoRollViewPort->getTrack()->state)
+        markAndUpdate(m_updateTracks);
 }
 void PianoRollEditor::handleAsyncUpdate()
 {
@@ -464,7 +427,7 @@ juce::Rectangle<int> PianoRollEditor::getToolBarRect()
 {
     auto area = getLocalBounds();
     area = area.removeFromTop(m_editViewState.m_timeLineHeight);
-    area.reduce(area.getWidth() / 3, 0) ;
+    area.reduce(area.getWidth() / 3, 0);
 
     return area;
 }
@@ -517,9 +480,7 @@ juce::Rectangle<int> PianoRollEditor::getVelocityEditorRect()
     area.removeFromBottom(getFooterRect().getHeight());
     area.removeFromLeft(m_editViewState.m_keyboardWidth);
 
-    int height = getHeight() < 400
-        ? getHeight() < 300 ? 0 : getHeight() / 5
-        : m_editViewState.m_velocityEditorHeight;
+    int height = getHeight() < 400 ? getHeight() < 300 ? 0 : getHeight() / 5 : m_editViewState.m_velocityEditorHeight;
 
     return area.removeFromBottom(height);
 }

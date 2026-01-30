@@ -19,17 +19,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-enum class TrackType {
+enum class TrackType
+{
     Folder,
     Audio,
-    Other  // For future extensions
+    Other // For future extensions
 };
-
-
 
 constexpr int folderTrackHeight = 30;
 constexpr int trackMinimizedHeight = 30;
@@ -40,76 +38,79 @@ constexpr int trackMaxHeight = 300;
 //
 //   TrackHeightManager is an handy object, that keeps track of the tracks height.
 //   When a track height is changed it will asychron update the state of the track
-//   in the edit state. For a performant value change we use this object for get the 
+//   in the edit state. For a performant value change we use this object for get the
 //   tracks height in the Song Editor and in the TracksListComponent. We can very fast
-//   change the height and update the painting in the Song Editor. The edit state is 
+//   change the height and update the painting in the Song Editor. The edit state is
 //   only saved when the value is not changing anymore.
 //-------------------------------------------------------------------------------------------
-class TrackHeightManager : public juce::Timer
-                         , public juce::ChangeBroadcaster
+class TrackHeightManager
+    : public juce::Timer
+    , public juce::ChangeBroadcaster
 {
 public:
     const int getTrackMinimizedHeight() { return trackMinimizedHeight; }
 
-    struct TrackHeightInfo {
-        tracktion_engine::Track* track = nullptr;
+    struct TrackHeightInfo
+    {
+        tracktion_engine::Track *track = nullptr;
         TrackType type = TrackType::Audio;
         bool isMinimized = false;
-        int baseHeight = 50;        // Base height without considering automation lanes
+        int baseHeight = 50;                                                            // Base height without considering automation lanes
         std::map<tracktion::AutomatableParameter::Ptr, int> automationParameterHeights; // Map of parameter ID to height
-        int hierarchyDepth = 0;     // Hierarchy level (0 = root)
-        tracktion_engine::Track* parentFolder = nullptr;
+        int hierarchyDepth = 0;                                                         // Hierarchy level (0 = root)
+        tracktion_engine::Track *parentFolder = nullptr;
 
         // Helper methods for quick checks
         bool isInFolder() const { return parentFolder != nullptr; }
         bool isVisible() const { return !isMinimized && hierarchyDepth >= 0; }
     };
 
-    TrackHeightManager(const juce::Array<tracktion_engine::Track*>& allTracks);
+    TrackHeightManager(const juce::Array<tracktion_engine::Track *> &allTracks);
 
     void flashStateFromTrackInfos();
-    void regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track*>& allTracks);
+    void regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track *> &allTracks);
 
-    TrackHeightInfo* getTrackInfoForTrack(tracktion_engine::Track* track) const;
-    tracktion_engine::AutomatableParameter::Ptr findAutomatableParameterByID(tracktion_engine::Track* track, const juce::String& paramID);
+    TrackHeightInfo *getTrackInfoForTrack(tracktion_engine::Track *track) const;
+    tracktion_engine::AutomatableParameter::Ptr findAutomatableParameterByID(tracktion_engine::Track *track, const juce::String &paramID);
 
-    int getTrackHeight(tracktion_engine::Track* track, bool withAutomation);
-    void setTrackHeight(tracktion_engine::Track* track, int height);
-    tracktion_engine::Track* getTrackForY(int y, int scrollOffsetY);
-    int getYForTrack(tracktion_engine::Track* track, int scrollOffsetY);
+    int getTrackHeight(tracktion_engine::Track *track, bool withAutomation);
+    void setTrackHeight(tracktion_engine::Track *track, int height);
+    tracktion_engine::Track *getTrackForY(int y, int scrollOffsetY);
+    int getYForTrack(tracktion_engine::Track *track, int scrollOffsetY);
 
-    int getAutomationHeight(tracktion_engine::AutomatableParameter* ap);
+    int getAutomationHeight(tracktion_engine::AutomatableParameter *ap);
     void setAutomationHeight(const tracktion_engine::AutomatableParameter::Ptr ap, int height);
-    tracktion_engine::AutomatableParameter::Ptr  getAutomatableParameterForY(int y, int scrollOffsetY);
-    int getYForAutomatableParameter(tracktion_engine::Track* track, const tracktion::AutomatableParameter::Ptr ap, int scrollOffsetY);
+    tracktion_engine::AutomatableParameter::Ptr getAutomatableParameterForY(int y, int scrollOffsetY);
+    int getYForAutomatableParameter(tracktion_engine::Track *track, const tracktion::AutomatableParameter::Ptr ap, int scrollOffsetY);
 
-    juce::Array<tracktion::EditItemID> getShowedTracks(tracktion::Edit& edit);
+    juce::Array<tracktion::EditItemID> getShowedTracks(tracktion::Edit &edit);
     bool isTrackShowable(tracktion_engine::Track::Ptr track);
-    bool isTrackMinimized(tracktion_engine::Track* track);
-    void setMinimized(tracktion_engine::Track* track, bool minimized);
-    bool isTrackInMinimizedFolderRecursive(tracktion_engine::Track* track);
-    tracktion::Track::Ptr getTrackFromID(tracktion_engine::Edit& edit, const tracktion_engine::EditItemID& id);
+    bool isTrackMinimized(tracktion_engine::Track *track);
+    void setMinimized(tracktion_engine::Track *track, bool minimized);
+    bool isTrackInMinimizedFolderRecursive(tracktion_engine::Track *track);
+    tracktion::Track::Ptr getTrackFromID(tracktion_engine::Edit &edit, const tracktion_engine::EditItemID &id);
 
-
-    bool isAutomationVisible(const tracktion_engine::AutomatableParameter& ap);
+    bool isAutomationVisible(const tracktion_engine::AutomatableParameter &ap);
 
     void triggerFlashState();
     void timerCallback() override;
+
 private:
+    void addTrackInfo(TrackHeightInfo *info);
+    int calculateHierarchyDepth(tracktion_engine::Track *track);
 
-    void addTrackInfo(TrackHeightInfo* info);
-    int calculateHierarchyDepth(tracktion_engine::Track* track);
-
-    juce::Array<TrackHeightInfo*> trackInfos;
+    juce::Array<TrackHeightInfo *> trackInfos;
     bool pendingFlashState = false;
 
-    class TrackHeightInfoComparator 
+    class TrackHeightInfoComparator
     {
     public:
-        int compareElements(TrackHeightInfo* first, TrackHeightInfo* second) const 
+        int compareElements(TrackHeightInfo *first, TrackHeightInfo *second) const
         {
-            if (first->hierarchyDepth < second->hierarchyDepth) return -1;
-            if (first->hierarchyDepth > second->hierarchyDepth) return 1;
+            if (first->hierarchyDepth < second->hierarchyDepth)
+                return -1;
+            if (first->hierarchyDepth > second->hierarchyDepth)
+                return 1;
             return 0;
         }
     };

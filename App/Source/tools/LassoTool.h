@@ -21,8 +21,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include "../ToolStrategy.h"
 #include "../MidiViewport.h"
+#include "../ToolStrategy.h"
 
 /**
  * Lasso tool for selecting notes by drawing a freeform shape.
@@ -30,18 +30,21 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 class LassoTool : public ToolStrategy
 {
 public:
-    explicit LassoTool(EditViewState& evs) : ToolStrategy(evs) {}
+    explicit LassoTool(EditViewState &evs)
+        : ToolStrategy(evs)
+    {
+    }
     ~LassoTool() override = default;
 
-    void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseUp(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) override;
+    void mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport) override;
 
-    juce::MouseCursor getCursor(MidiViewport& viewport) const override;
+    juce::MouseCursor getCursor(MidiViewport &viewport) const override;
 
-    void toolActivated(MidiViewport& viewport) override;
-    void toolDeactivated(MidiViewport& viewport) override;
-    Tool getToolId () override { return Tool::lasso; }
+    void toolActivated(MidiViewport &viewport) override;
+    void toolDeactivated(MidiViewport &viewport) override;
+    Tool getToolId() override { return Tool::lasso; }
 };

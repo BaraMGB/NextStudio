@@ -24,10 +24,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-
 SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, SamplePreviewComponent &spc)
-    : BrowserBaseComponent(avs)
-    , m_samplePreviewComponent(spc)
+    : BrowserBaseComponent(avs),
+      m_samplePreviewComponent(spc)
 {
     setName("SampleBrowser");
     m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
@@ -35,7 +34,7 @@ SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, Sample
     m_sortingBox.addItem(GUIHelpers::translate("Random", m_applicationViewState), 3);
     m_sortingBox.setSelectedId(1, juce::dontSendNotification);
 }
-void SampleBrowserComponent::resized() 
+void SampleBrowserComponent::resized()
 {
     auto area = getLocalBounds();
     auto sortcomp = area.removeFromTop(30);
@@ -48,7 +47,7 @@ void SampleBrowserComponent::resized()
     m_sortLabel.setBounds(sortlabel);
     m_sortingBox.setBounds(sortcomp);
     m_searchField.setBounds(searchfield);
-    m_listBox.setBounds (list);
+    m_listBox.setBounds(list);
 }
 
 void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
@@ -58,9 +57,9 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
         return;
     }
 
-    juce::Rectangle<int> bounds (0, 0, width, height);
+    juce::Rectangle<int> bounds(0, 0, width, height);
     auto textColour = m_applicationViewState.getTextColour();
-    g.setColour (rowNum%2==0 ? m_applicationViewState.getBackgroundColour2() : m_applicationViewState.getBackgroundColour2().brighter(0.05f));
+    g.setColour(rowNum % 2 == 0 ? m_applicationViewState.getBackgroundColour2() : m_applicationViewState.getBackgroundColour2().brighter(0.05f));
     g.fillRect(bounds);
     g.setColour(m_applicationViewState.getBorderColour().withAlpha(0.3f));
     g.drawHorizontalLine(height - 1, 0, width);
@@ -93,61 +92,49 @@ void SampleBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int
             auto colour = rowIsSelected ? juce::Colours::black : textColour;
 
             // Breite der einzelnen Textteile berechnen
-            const auto& font = g.getCurrentFont();
+            const auto &font = g.getCurrentFont();
             int preTermWidth = juce::GlyphArrangement::getStringWidthInt(font, preTerm);
             int termWidth = juce::GlyphArrangement::getStringWidthInt(font, searchTerm);
             int postTermWidth = juce::GlyphArrangement::getStringWidthInt(font, postTerm);
 
             g.setColour(colour);
             g.setFont(g.getCurrentFont().withHeight((float)height * 0.7f).withStyle(juce::Font::bold));
-            g.drawFittedText(preTerm, textArea.getX(), textArea.getY(), 
-                             juce::jmin(preTermWidth, textArea.getWidth()), textArea.getHeight(), 
-                             juce::Justification::centredLeft, 1, 0.9f);
+            g.drawFittedText(preTerm, textArea.getX(), textArea.getY(), juce::jmin(preTermWidth, textArea.getWidth()), textArea.getHeight(), juce::Justification::centredLeft, 1, 0.9f);
 
             if (textArea.getWidth() > preTermWidth)
             {
                 g.setColour(juce::Colours::coral);
-                g.drawFittedText(searchTerm, textArea.getX() + preTermWidth, textArea.getY(),
-                                 juce::jmin(termWidth, textArea.getWidth() - preTermWidth), textArea.getHeight(), 
-                                 juce::Justification::centredLeft, 1, 0.9f);
+                g.drawFittedText(searchTerm, textArea.getX() + preTermWidth, textArea.getY(), juce::jmin(termWidth, textArea.getWidth() - preTermWidth), textArea.getHeight(), juce::Justification::centredLeft, 1, 0.9f);
             }
 
             if (textArea.getWidth() > preTermWidth + termWidth)
             {
                 g.setColour(colour);
-                g.drawFittedText(postTerm, textArea.getX() + preTermWidth + termWidth, textArea.getY(),
-                                 juce::jmin(postTermWidth, textArea.getWidth() - preTermWidth - termWidth), textArea.getHeight(), 
-                                 juce::Justification::centredLeft, 1, 0.9f);
+                g.drawFittedText(postTerm, textArea.getX() + preTermWidth + termWidth, textArea.getY(), juce::jmin(postTermWidth, textArea.getWidth() - preTermWidth - termWidth), textArea.getHeight(), juce::Justification::centredLeft, 1, 0.9f);
             }
         }
     }
 }
-juce::var SampleBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
-{
-    return {"SampleBrowser"};
-}
+juce::var SampleBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &) { return {"SampleBrowser"}; }
 
 void SampleBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &e)
 {
-    if (e.mods.isRightButtonDown ())
+    if (e.mods.isRightButtonDown())
     {
         juce::PopupMenu p;
-        p.addItem (1, "Info");
+        p.addItem(1, "Info");
         const int result = p.show();
-        if(result == 1)
+        if (result == 1)
         {
         }
     }
 }
 
-void SampleBrowserComponent::selectedRowsChanged(int)
-{
-    previewSampleFile (m_contentList[m_listBox.getSelectedRow ()]);
-}
+void SampleBrowserComponent::selectedRowsChanged(int) { previewSampleFile(m_contentList[m_listBox.getSelectedRow()]); }
 
 void SampleBrowserComponent::previewSampleFile(const juce::File &file)
 {
-    if (m_samplePreviewComponent.setFile (file))
+    if (m_samplePreviewComponent.setFile(file))
     {
         m_samplePreviewComponent.rewind();
         m_samplePreviewComponent.play();
@@ -156,7 +143,7 @@ void SampleBrowserComponent::previewSampleFile(const juce::File &file)
 
 void SampleBrowserComponent::sortList(int selectedID)
 {
-    GUIHelpers::log("SELECTED ID: " , selectedID);
+    GUIHelpers::log("SELECTED ID: ", selectedID);
     juce::Array<juce::File> fileList;
 
     for (auto f : m_contentList)
@@ -173,9 +160,9 @@ void SampleBrowserComponent::sortList(int selectedID)
     m_contentList.clear();
     m_contentList.addArray(fileList);
 
-    getParentComponent()->resized(); 
+    getParentComponent()->resized();
 }
-void SampleBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forward)
+void SampleBrowserComponent::sortByName(juce::Array<juce::File> &list, bool forward)
 {
     if (list.size() > 1)
     {
@@ -191,7 +178,7 @@ void SampleBrowserComponent::sortByName(juce::Array<juce::File>& list, bool forw
         }
     }
 }
-void SampleBrowserComponent::shuffleFileArray(juce::Array<juce::File>& fileList)
+void SampleBrowserComponent::shuffleFileArray(juce::Array<juce::File> &fileList)
 {
     juce::Random r;
     for (int i = fileList.size(); --i > 0;)

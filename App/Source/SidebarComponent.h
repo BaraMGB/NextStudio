@@ -19,62 +19,61 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
-
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "AudioMidiSettings.h"
 #include "EditViewState.h"
-#include "ApplicationViewState.h"
-#include "SampleBrowser.h"
 #include "FileBrowser.h"
-#include "ProjectsBrowser.h"
-#include "Utilities.h"
-#include "PreviewComponent.h"
-#include "SidebarMenu.h"
-#include "PluginBrowser.h"
 #include "InstrumentEffectChooser.h"
+#include "PluginBrowser.h"
+#include "PreviewComponent.h"
+#include "ProjectsBrowser.h"
+#include "SampleBrowser.h"
+#include "SidebarMenu.h"
+#include "Utilities.h"
 
-class SidebarComponent : public juce::Component
-                       , public juce::Button::Listener
-                    
+class SidebarComponent
+    : public juce::Component
+    , public juce::Button::Listener
+
 {
 public:
-    SidebarComponent(EditViewState& evs, juce::ApplicationCommandManager& commandManager);
+    SidebarComponent(EditViewState &evs, juce::ApplicationCommandManager &commandManager);
     ~SidebarComponent() override;
 
-    void paint(juce::Graphics& g) override;
-    void paintOverChildren(juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
+    void paintOverChildren(juce::Graphics &g) override;
 
-    void resized() override; 
-    void buttonClicked (juce::Button* button) override;
+    void resized() override;
+    void buttonClicked(juce::Button *button) override;
 
     void updateParentsListener();
 
 private:
     void setAllVisibleOff();
-    int m_cachedSidebarWidth {0};
+    int m_cachedSidebarWidth{0};
     juce::String m_lastClickedButton;
-    EditViewState& m_evs;
-    ApplicationViewState& m_appState;
-    te::Engine& m_engine;
-    te::Edit& m_edit;
-    juce::ApplicationCommandManager& m_commandManager;
+    EditViewState &m_evs;
+    ApplicationViewState &m_appState;
+    te::Engine &m_engine;
+    te::Edit &m_edit;
+    juce::ApplicationCommandManager &m_commandManager;
     SidebarMenu m_menu;
     SettingsView m_settingsView;
     InstrumentEffectChooser m_instrumentList;
     InstrumentEffectChooser m_effectList;
     std::unique_ptr<juce::Component> m_renderComponent;
 
-    FileBrowserComponent           m_fileListBrowser;
+    FileBrowserComponent m_fileListBrowser;
 
     SamplePreviewComponent m_samplePreview;
     SampleBrowserComponent m_sampleBrowser;
     ProjectsBrowserComponent m_projectsBrowser;
-    const int CONTENT_HEADER_HEIGHT {30};
+    const int CONTENT_HEADER_HEIGHT{30};
     juce::String m_headerName;
     juce::Colour m_headerColour;
 
-JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SidebarComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SidebarComponent)
 };

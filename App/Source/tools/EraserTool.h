@@ -20,8 +20,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
-#include "../ToolStrategy.h"
 #include "../MidiViewport.h"
+#include "../ToolStrategy.h"
 
 namespace te = tracktion_engine;
 
@@ -32,30 +32,33 @@ namespace te = tracktion_engine;
 class EraserTool : public ToolStrategy
 {
 public:
-    explicit EraserTool(EditViewState& evs) : ToolStrategy(evs) {}
+    explicit EraserTool(EditViewState &evs)
+        : ToolStrategy(evs)
+    {
+    }
     ~EraserTool() override = default;
 
-    void mouseDown(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDrag(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseUp(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseMove(const juce::MouseEvent& event, MidiViewport& viewport) override;
-    void mouseDoubleClick(const juce::MouseEvent& event, MidiViewport& viewport) override;
+    void mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) override;
+    void mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport) override;
 
-    juce::MouseCursor getCursor(MidiViewport& viewport) const override;
+    juce::MouseCursor getCursor(MidiViewport &viewport) const override;
 
-    void toolActivated(MidiViewport& viewport) override;
-    void toolDeactivated(MidiViewport& viewport) override;
-    Tool getToolId () override { return Tool::eraser; }
+    void toolActivated(MidiViewport &viewport) override;
+    void toolDeactivated(MidiViewport &viewport) override;
+    Tool getToolId() override { return Tool::eraser; }
 
 private:
     bool m_isDragging = false;
-    juce::Array<te::MidiNote*> m_notesToDelete;
-    juce::Array<te::MidiClip*> m_affectedClips;
-    te::MidiNote* m_lastHoveredNote = nullptr;
+    juce::Array<te::MidiNote *> m_notesToDelete;
+    juce::Array<te::MidiClip *> m_affectedClips;
+    te::MidiNote *m_lastHoveredNote = nullptr;
 
     // Helper methods
-    void deleteNoteAtPosition(const juce::MouseEvent& event, MidiViewport& viewport);
-    void highlightNoteForDeletion(te::MidiNote* note, MidiViewport& viewport);
-    void clearHighlights(MidiViewport& viewport);
-    void commitDeletions(MidiViewport& viewport);
+    void deleteNoteAtPosition(const juce::MouseEvent &event, MidiViewport &viewport);
+    void highlightNoteForDeletion(te::MidiNote *note, MidiViewport &viewport);
+    void clearHighlights(MidiViewport &viewport);
+    void commitDeletions(MidiViewport &viewport);
 };

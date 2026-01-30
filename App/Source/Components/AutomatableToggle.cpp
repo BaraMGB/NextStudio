@@ -11,38 +11,32 @@
 #include "AutomatableToggle.h"
 
 AutomatableToggleButton::AutomatableToggleButton(te::AutomatableParameter::Ptr ap)
-: m_automatableParameter(ap)
+    : m_automatableParameter(ap)
 {
     ap->addListener(this);
     setButtonText(ap->getParameterName());
-    
+
     // Initial update
     currentValueChanged(*ap);
 
     onClick = [this]
-        {
-            float newVal = getToggleState() ? 1.0f : 0.0f;
-            if (m_automatableParameter->getCurrentValue() != newVal)
-                m_automatableParameter->setParameter(newVal, juce::sendNotification);
-        };
+    {
+        float newVal = getToggleState() ? 1.0f : 0.0f;
+        if (m_automatableParameter->getCurrentValue() != newVal)
+            m_automatableParameter->setParameter(newVal, juce::sendNotification);
+    };
 }
 
-AutomatableToggleButton::~AutomatableToggleButton()
-{
-    m_automatableParameter->removeListener(this);
-}
+AutomatableToggleButton::~AutomatableToggleButton() { m_automatableParameter->removeListener(this); }
 
-void AutomatableToggleButton::currentValueChanged(te::AutomatableParameter& p)
+void AutomatableToggleButton::currentValueChanged(te::AutomatableParameter &p)
 {
     bool shouldBeOn = p.getCurrentValue() > 0.5f;
     if (getToggleState() != shouldBeOn)
         setToggleState(shouldBeOn, juce::dontSendNotification);
 }
 
-void AutomatableToggleButton::chooseAutomatableParameter (std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam, std::function<void()> /*startLearnMode*/)
-{
-    handleChosenParam(m_automatableParameter);
-}
+void AutomatableToggleButton::chooseAutomatableParameter(std::function<void(te::AutomatableParameter::Ptr)> handleChosenParam, std::function<void()> /*startLearnMode*/) { handleChosenParam(m_automatableParameter); }
 
 void AutomatableToggleButton::mouseDown(const juce::MouseEvent &e)
 {
@@ -56,12 +50,12 @@ void AutomatableToggleButton::mouseDown(const juce::MouseEvent &e)
             juce::PopupMenu modifierMenu;
             int itemId = 1;
 
-            auto* track = m_automatableParameter->getTrack();
-            if (auto* modifierList = track != nullptr ? track->getModifierList() : nullptr)
+            auto *track = m_automatableParameter->getTrack();
+            if (auto *modifierList = track != nullptr ? track->getModifierList() : nullptr)
             {
-                for (auto* modifier : modifierList->getModifiers())
+                for (auto *modifier : modifierList->getModifiers())
                 {
-                    for (auto& assignment : assignments)
+                    for (auto &assignment : assignments)
                     {
                         if (assignment->isForModifierSource(*modifier))
                         {
@@ -93,8 +87,8 @@ void AutomatableToggleButton::mouseDown(const juce::MouseEvent &e)
         if (result == 2000)
         {
             auto start = tracktion::core::TimePosition::fromSeconds(0.0);
-            auto& um = m_automatableParameter->getTrack()->edit.getUndoManager();
-            m_automatableParameter->getCurve().addPoint(start, (float) getToggleState(), 0.0);
+            auto &um = m_automatableParameter->getTrack()->edit.getUndoManager();
+            m_automatableParameter->getCurve().addPoint(start, (float)getToggleState(), 0.0);
             m_automatableParameter->getTrack()->state.setProperty(IDs::isTrackMinimized, false, &um);
         }
         else if (result == 2001)
@@ -135,7 +129,7 @@ void AutomatableToggleComponent::resized()
     auto area = getLocalBounds();
     m_titleLabel.setBounds(area.removeFromTop(20));
     area.removeFromTop(8); // Intermediate padding
-    
+
     // Position Button
     auto buttonArea = area.removeFromTop(30);
     auto buttonSize = 20;

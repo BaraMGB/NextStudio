@@ -11,8 +11,8 @@ public:
     ~SimpleSynthPlugin() override;
 
     //==============================================================================
-    static constexpr const char* xmlTypeName = "simple_synth";
-    static const char* getPluginName() { return "Simple Synth"; }
+    static constexpr const char *xmlTypeName = "simple_synth";
+    static const char *getPluginName() { return "Simple Synth"; }
 
     juce::String getName() const override { return getPluginName(); }
     juce::String getPluginType() override { return xmlTypeName; }
@@ -23,22 +23,22 @@ public:
     bool takesAudioInput() override { return false; }
     bool producesAudioWhenNoAudioInput() override { return true; }
 
-    void getChannelNames (juce::StringArray* ins, juce::StringArray* outs) override;
-    int getNumOutputChannelsGivenInputs (int numInputChannels) override;
+    void getChannelNames(juce::StringArray *ins, juce::StringArray *outs) override;
+    int getNumOutputChannelsGivenInputs(int numInputChannels) override;
 
-    void initialise(const te::PluginInitialisationInfo&) override;
+    void initialise(const te::PluginInitialisationInfo &) override;
     void deinitialise() override;
     void reset() override;
-    void applyToBuffer(const te::PluginRenderContext&) override;
+    void applyToBuffer(const te::PluginRenderContext &) override;
     void midiPanic() override;
 
     //==============================================================================
-    void restorePluginStateFromValueTree(const juce::ValueTree& v) override;
+    void restorePluginStateFromValueTree(const juce::ValueTree &v) override;
 
     // Constants
     static constexpr float defaultSampleRate = 44100.0f;
-    static constexpr float referenceFrequency = 440.0f;  // A4 reference frequency
-    static constexpr float midiNoteA4 = 69.0f;      // MIDI note number for A4
+    static constexpr float referenceFrequency = 440.0f; // A4 reference frequency
+    static constexpr float midiNoteA4 = 69.0f;          // MIDI note number for A4
     static constexpr float maxFilterSweepSemitones = 60.0f;
     static constexpr float svfBaseQ = 0.7071f;
     static constexpr float levelSmoothingTime = 0.02f;
@@ -135,7 +135,7 @@ public:
 private:
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
+        void start(int note, float velocity, float sampleRate, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
         void stop();
         void kill();
 
@@ -166,38 +166,38 @@ private:
         juce::Random random;
     };
 
-    void processMidiMessages(te::MidiMessageArray* midiMessages, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
-    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters& ampParams, const juce::ADSR::Parameters& filterParams);
-    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters& ampAdsr, const juce::ADSR::Parameters& filterAdsr);
-    void renderAudio(const te::PluginRenderContext&, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
+    void processMidiMessages(te::MidiMessageArray *midiMessages, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
+    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
+    void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters &ampAdsr, const juce::ADSR::Parameters &filterAdsr);
+    void renderAudio(const te::PluginRenderContext &, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
 
-    inline float generateWaveSample(int waveShape, float phase, float phaseDelta, juce::Random& random);
+    inline float generateWaveSample(int waveShape, float phase, float phaseDelta, juce::Random &random);
 
-    Voice* findVoiceToSteal();
+    Voice *findVoiceToSteal();
     uint32_t noteCounter = 0;
     int lastUnisonOrder = 1;
 
     // Thread-safe parameters for the Audio Thread
     struct AudioParams
     {
-        std::atomic<float> level { 0.0f }, coarseTune { 0.0f }, fineTune { 0.0f }, wave { 2.0f };
-        std::atomic<float> osc2Enabled { 0.0f }, osc2Wave { 0.0f }, osc2Coarse { 0.0f }, osc2Fine { 0.0f }, osc2Level { 0.0f };
-        std::atomic<float> mixMode { 0.0f }, crossModAmount { 0.0f };
-        std::atomic<float> attack { 0.005f }, decay { 0.005f }, sustain { 1.0f }, release { 0.005f };
-        std::atomic<float> unisonOrder { 1.0f }, unisonDetune { 0.0f }, unisonSpread { 0.0f }, retrigger { 0.0f };
-        std::atomic<float> filterType { 0.0f }, filterCutoff { 20000.0f }, filterRes { 0.0f }, filterDrive { 1.0f }, filterEnvAmount { 0.0f };
-        std::atomic<float> filterAttack { 0.005f }, filterDecay { 0.005f }, filterSustain { 1.0f }, filterRelease { 0.005f };
+        std::atomic<float> level{0.0f}, coarseTune{0.0f}, fineTune{0.0f}, wave{2.0f};
+        std::atomic<float> osc2Enabled{0.0f}, osc2Wave{0.0f}, osc2Coarse{0.0f}, osc2Fine{0.0f}, osc2Level{0.0f};
+        std::atomic<float> mixMode{0.0f}, crossModAmount{0.0f};
+        std::atomic<float> attack{0.005f}, decay{0.005f}, sustain{1.0f}, release{0.005f};
+        std::atomic<float> unisonOrder{1.0f}, unisonDetune{0.0f}, unisonSpread{0.0f}, retrigger{0.0f};
+        std::atomic<float> filterType{0.0f}, filterCutoff{20000.0f}, filterRes{0.0f}, filterDrive{1.0f}, filterEnvAmount{0.0f};
+        std::atomic<float> filterAttack{0.005f}, filterDecay{0.005f}, filterSustain{1.0f}, filterRelease{0.005f};
     } audioParams;
 
     void updateAtomics();
-    void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
 
     static constexpr int numVoices = 16;
     Voice voices[numVoices];
 
     juce::LinearSmoothedValue<float> masterLevelSmoother;
     juce::LinearSmoothedValue<float> cutoffSmoother;
-    std::atomic<bool> panicTriggered { false };
+    std::atomic<bool> panicTriggered{false};
     bool lastWasPlaying = false;
 
     juce::dsp::LookupTable<float> sineTable;

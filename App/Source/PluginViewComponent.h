@@ -23,22 +23,23 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include "Utilities.h"
-#include "PluginPresetInterface.h"
 #include "EditViewState.h"
+#include "PluginPresetInterface.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
 
-class PluginViewComponent : public juce::Component, public PluginPresetInterface
+class PluginViewComponent
+    : public juce::Component
+    , public PluginPresetInterface
 {
 public:
-    PluginViewComponent (EditViewState&, te::Plugin::Ptr);
-
+    PluginViewComponent(EditViewState &, te::Plugin::Ptr);
 
     [[nodiscard]] te::Plugin::Ptr getPlugin() const;
 
     void setPlugin(const te::Plugin::Ptr &getPlugin);
-    virtual int getNeededWidth() {return 1;}
+    virtual int getNeededWidth() { return 1; }
 
     juce::Colour getTrackColour()
     {
@@ -51,13 +52,12 @@ public:
     bool getInitialPresetLoaded() override;
     void setInitialPresetLoaded(bool loaded) override;
     juce::String getLastLoadedPresetName() override;
-    void setLastLoadedPresetName(const juce::String& name) override;
+    void setLastLoadedPresetName(const juce::String &name) override;
 
 protected:
-    te::Plugin::Ptr    m_plugin;
-    EditViewState&     m_editViewState;
+    te::Plugin::Ptr m_plugin;
+    EditViewState &m_editViewState;
+
 private:
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginViewComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginViewComponent)
 };
-

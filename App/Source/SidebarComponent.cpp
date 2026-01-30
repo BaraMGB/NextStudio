@@ -20,27 +20,26 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SidebarComponent.h"
-#include "MainComponent.h"
-#include "RenderDialog.h"
 #include "BinaryData.h"
 #include "EditViewState.h"
+#include "MainComponent.h"
+#include "RenderDialog.h"
 #include "Utilities.h"
 
-
-SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandManager& commandManager)
-    : m_evs(evs)
-    , m_appState(evs.m_applicationState)
-    , m_engine(evs.m_edit.engine)
-    , m_edit(evs.m_edit)
-    , m_commandManager(commandManager)
-    , m_menu(m_appState)
-    , m_settingsView(m_engine, m_commandManager, m_appState)
-    , m_instrumentList(m_engine, true, m_appState)
-    , m_effectList(m_engine, false, m_appState)
-    , m_samplePreview(m_engine, m_edit, m_appState)
-    , m_sampleBrowser(m_appState, m_samplePreview)
-    , m_fileListBrowser(m_appState, m_engine, m_samplePreview)
-    , m_projectsBrowser(m_evs, m_appState)
+SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandManager &commandManager)
+    : m_evs(evs),
+      m_appState(evs.m_applicationState),
+      m_engine(evs.m_edit.engine),
+      m_edit(evs.m_edit),
+      m_commandManager(commandManager),
+      m_menu(m_appState),
+      m_settingsView(m_engine, m_commandManager, m_appState),
+      m_instrumentList(m_engine, true, m_appState),
+      m_effectList(m_engine, false, m_appState),
+      m_samplePreview(m_engine, m_edit, m_appState),
+      m_sampleBrowser(m_appState, m_samplePreview),
+      m_fileListBrowser(m_appState, m_engine, m_samplePreview),
+      m_projectsBrowser(m_evs, m_appState)
 {
     addAndMakeVisible(m_menu);
     addChildComponent(m_settingsView);
@@ -54,9 +53,9 @@ SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandM
         b->addListener(this);
 
     m_settingsView.setIndent(10);
-    m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav;*.WAV;*.mp3;*.MP3;*.aiff;*.AIFF;*.flac;*.FLAC" ) );
-    m_projectsBrowser.setFileList(juce::File(m_appState.m_projectsDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit" ) );
-    m_fileListBrowser.setFileList(juce::File(m_appState.m_workDir).findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories , false ) );
+    m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav;*.WAV;*.mp3;*.MP3;*.aiff;*.AIFF;*.flac;*.FLAC"));
+    m_projectsBrowser.setFileList(juce::File(m_appState.m_projectsDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit"));
+    m_fileListBrowser.setFileList(juce::File(m_appState.m_workDir).findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories, false));
 
     setAllVisibleOff();
     m_projectsBrowser.setVisible(true);
@@ -65,7 +64,7 @@ SidebarComponent::SidebarComponent(EditViewState& evs, juce::ApplicationCommandM
 SidebarComponent::~SidebarComponent()
 {
 
-    if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+    if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
     {
         m_fileListBrowser.removeChangeListener(parent);
         m_projectsBrowser.removeChangeListener(parent);
@@ -74,7 +73,7 @@ SidebarComponent::~SidebarComponent()
         b->removeListener(this);
 }
 
-void SidebarComponent::paint(juce::Graphics& g)
+void SidebarComponent::paint(juce::Graphics &g)
 {
     auto sideMenu = m_menu.getBounds();
     auto headerRect = getLocalBounds().removeFromTop(CONTENT_HEADER_HEIGHT).withLeft(sideMenu.getWidth());
@@ -91,19 +90,19 @@ void SidebarComponent::paint(juce::Graphics& g)
     g.fillRect(colourBulbF);
 
     g.setColour(m_appState.getBorderColour());
-    g.drawVerticalLine(sideMenu.getRight() -1, 0, getHeight());
-    g.drawHorizontalLine(CONTENT_HEADER_HEIGHT -1, sideMenu.getRight(), getWidth());
+    g.drawVerticalLine(sideMenu.getRight() - 1, 0, getHeight());
+    g.drawHorizontalLine(CONTENT_HEADER_HEIGHT - 1, sideMenu.getRight(), getWidth());
     g.drawHorizontalLine(getHeight() - CONTENT_HEADER_HEIGHT, sideMenu.getRight(), getWidth());
-    
+
     g.setColour(m_appState.getTextColour());
     headerRect.reduce(10, 0);
-    g.drawText(m_headerName, headerRect, juce::Justification::centredLeft,false );
+    g.drawText(m_headerName, headerRect, juce::Justification::centredLeft, false);
 
     auto iconRect = headerRect.removeFromRight(CONTENT_HEADER_HEIGHT);
     iconRect.reduce(2, 2);
 
     if (m_instrumentList.isVisible())
-        GUIHelpers::drawFromSvg(g, BinaryData::presetsButton_svg, m_headerColour, iconRect.toFloat());    
+        GUIHelpers::drawFromSvg(g, BinaryData::presetsButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_projectsBrowser.isVisible())
         GUIHelpers::drawFromSvg(g, BinaryData::projectsButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_sampleBrowser.isVisible())
@@ -116,14 +115,10 @@ void SidebarComponent::paint(juce::Graphics& g)
         GUIHelpers::drawFromSvg(g, BinaryData::settingsButton_svg, m_headerColour, iconRect.toFloat());
     else if (m_renderComponent != nullptr)
         GUIHelpers::drawFromSvg(g, BinaryData::renderButton_svg, m_headerColour, iconRect.toFloat());
-
 }
-void SidebarComponent::paintOverChildren(juce::Graphics& g)
-{
-    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(),m_appState.getBorderColour());
-}
+void SidebarComponent::paintOverChildren(juce::Graphics &g) { GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(), m_appState.getBorderColour()); }
 
-void SidebarComponent::resized() 
+void SidebarComponent::resized()
 {
     auto area = getLocalBounds();
 
@@ -183,7 +178,7 @@ void SidebarComponent::resized()
             m_headerColour = m_appState.getProjectsColour();
             m_headerName = "Projects";
         }
-        else if (m_renderComponent != nullptr) 
+        else if (m_renderComponent != nullptr)
         {
             addAndMakeVisible(*m_renderComponent);
             auto bounds = area;
@@ -194,14 +189,14 @@ void SidebarComponent::resized()
     }
     repaint();
 }
-void SidebarComponent::buttonClicked (juce::Button* button)
+void SidebarComponent::buttonClicked(juce::Button *button)
 {
 
     setAllVisibleOff();
-    auto parent = dynamic_cast<MainComponent*>(getParentComponent());
+    auto parent = dynamic_cast<MainComponent *>(getParentComponent());
     if (parent)
     {
-        if (auto db = dynamic_cast<juce::DrawableButton*>(button))
+        if (auto db = dynamic_cast<juce::DrawableButton *>(button))
         {
             db->getNormalImage()->replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
         }
@@ -212,7 +207,8 @@ void SidebarComponent::buttonClicked (juce::Button* button)
                 m_cachedSidebarWidth = m_appState.m_sidebarWidth;
             m_appState.m_sidebarCollapsed = !m_appState.m_sidebarCollapsed;
         }
-        else {
+        else
+        {
             m_appState.m_sidebarCollapsed = false;
             if (m_cachedSidebarWidth == 0)
                 m_cachedSidebarWidth = m_appState.m_sidebarWidth;
@@ -222,7 +218,7 @@ void SidebarComponent::buttonClicked (juce::Button* button)
         {
             m_appState.m_sidebarWidth = m_menu.getWidth();
         }
-        else 
+        else
         {
             m_appState.m_sidebarWidth = m_cachedSidebarWidth;
             if (m_appState.m_sidebarWidth < m_appState.m_minSidebarWidth)
@@ -266,12 +262,11 @@ void SidebarComponent::buttonClicked (juce::Button* button)
 
     resized();
     m_lastClickedButton = button->getName();
-
 }
 
 void SidebarComponent::updateParentsListener()
 {
-    if (auto parent = dynamic_cast<MainComponent*>(getParentComponent()))
+    if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
     {
         m_fileListBrowser.addChangeListener(parent);
         m_projectsBrowser.addChangeListener(parent);
@@ -291,6 +286,4 @@ void SidebarComponent::setAllVisibleOff()
     {
         m_renderComponent.reset();
     }
-
 }
-
