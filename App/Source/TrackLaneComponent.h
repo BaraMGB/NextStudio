@@ -20,36 +20,62 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
-
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "EditViewState.h"
-#include "Utilities.h"
 #include "AutomationLaneComponent.h"
+#include "EditViewState.h"
+#include "MouseEventThrottler.h"
+#include "Utilities.h"
 
 namespace te = tracktion_engine;
+
+class SongEditorView;
 
 class TrackLaneComponent : public juce::Component
 {
 public:
-    TrackLaneComponent(EditViewState& evs, te::Track::Ptr track, juce::String timelineID);
+    TrackLaneComponent(EditViewState &evs, te::Track::Ptr track, juce::String timelineID, SongEditorView &owner);
 
     ~TrackLaneComponent() override = default;
 
-    void paint(juce::Graphics& g) override;
+    void paint(juce::Graphics &g) override;
     void resized() override;
+
+    void mouseMove(const juce::MouseEvent &) override;
+    void mouseDown(const juce::MouseEvent &) override;
+    void mouseDrag(const juce::MouseEvent &) override;
+    void mouseUp(const juce::MouseEvent &) override;
+    void mouseExit(const juce::MouseEvent &) override;
+
     te::Track::Ptr getTrack() const { return m_track; }
 
     void buildAutomationLanes();
-    AutomationLaneComponent * getAutomationLane(tracktion::AutomatableParameter::Ptr ap);
+    AutomationLaneComponent *getAutomationLane(tracktion::AutomatableParameter::Ptr ap);
 
 private:
-    EditViewState& m_editViewState;
+    // Helpers
+    float timeToX(tracktion::TimePosition time);
+    tracktion::TimePosition xtoTime(int x);
+    tracktion::TimePosition getSnappedTime(tracktion::TimePosition time, bool downwards = false);
+    juce::Rectangle<float> getClipRect(te::Clip::Ptr clip);
+    void updateCursor(juce::ModifierKeys mods);
+
+    EditViewState &m_editViewState;
     juce::String m_timeLineID;
     te::Track::Ptr m_track;
+    SongEditorView &m_songEditor;
     juce::OwnedArray<AutomationLaneComponent> m_automationLanes;
+
+    // State
+    te::Clip::Ptr m_hoveredClip{nullptr};
+    bool m_leftBorderHovered{false};
+    bool m_rightBorderHovered{false};
+
+    // Note: Dragging state is now managed centrally by SongEditorView via DragState
+
+    // Mouse event throttling
+    MouseEventThrottler m_mouseThrottler;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TrackLaneComponent)
 };

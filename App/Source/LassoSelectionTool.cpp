@@ -20,21 +20,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #include "LassoSelectionTool.h"
 #include "MidiViewport.h"
 
-juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState& evs
-                                                            , double viewX1
-                                                            , double viewX2
-                                                            , int viewWidth) const
+juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState &evs, double viewX1, double viewX2, int viewWidth) const
 {
-    int x = evs.timeToX (m_startTime, viewWidth, viewX1, viewX2);
-    auto y = (int) m_top;
-    int w = evs.timeToX (m_endTime, viewWidth, viewX1, viewX2) - x;
-    auto h = (int) m_bottom - (int) m_top;
+    int x = evs.timeToX(m_startTime, viewWidth, viewX1, viewX2);
+    auto y = (int)m_top;
+    int w = evs.timeToX(m_endTime, viewWidth, viewX1, viewX2) - x;
+    auto h = (int)m_bottom - (int)m_top;
 
-    return  {x, y, w, h};
+    return {x, y, w, h};
 }
 
 void LassoSelectionTool::drawLasso(juce::Graphics &g)
@@ -43,11 +39,11 @@ void LassoSelectionTool::drawLasso(juce::Graphics &g)
     {
         auto x1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
         auto x2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
-        g.setColour (juce::Colour(0x99FFFFFF));
-        auto rect = m_lassoRect.getRect (m_editViewState, x1, x2, getWidth ());
-        g.drawRect (rect);
-        g.setColour (juce::Colour(0x22FFFFFF));
-        g.fillRect (rect);
+        g.setColour(juce::Colour(0x99FFFFFF));
+        auto rect = m_lassoRect.getRect(m_editViewState, x1, x2, getWidth());
+        g.drawRect(rect);
+        g.setColour(juce::Colour(0x22FFFFFF));
+        g.fillRect(rect);
     }
 }
 void LassoSelectionTool::startLasso(const juce::Point<int> mousePos, int startYScroll, bool isRangeTool)
@@ -55,11 +51,11 @@ void LassoSelectionTool::startLasso(const juce::Point<int> mousePos, int startYS
     m_isRangeSelecting = isRangeTool;
     setVisible(true);
     if (!isRangeTool)
-        setMouseCursor (juce::MouseCursor::CrosshairCursor);
+        setMouseCursor(juce::MouseCursor::CrosshairCursor);
     else
-        setMouseCursor (juce::MouseCursor::IBeamCursor);
+        setMouseCursor(juce::MouseCursor::IBeamCursor);
 
-    m_clickedTime = xToTime (mousePos.getX());
+    m_clickedTime = xToTime(mousePos.getX());
     m_startYScroll = startYScroll;
     m_startPos = mousePos;
 }
@@ -69,7 +65,7 @@ void LassoSelectionTool::updateLasso(const juce::Point<int> mousePos, int yScrol
 
     auto oldY = m_startPos.getY() + (yScroll - m_startYScroll);
 
-    double top =    juce::jmin(oldY, mousePos.y);
+    double top = juce::jmin(oldY, mousePos.y);
     double bottom = juce::jmax(oldY, mousePos.y);
 
     auto currentTime = xToTime(mousePos.x);
@@ -80,19 +76,21 @@ void LassoSelectionTool::updateLasso(const juce::Point<int> mousePos, int yScrol
 
     m_lassoRect = {tr, top, bottom};
 
-    repaint ();
+    // Store pixel rect for hit testing
+    auto x = juce::jmin(m_startPos.x, mousePos.x);
+    auto w = std::abs(mousePos.x - m_startPos.x);
+    m_lassoRect.m_rect = juce::Rectangle<int>(x, (int)top, w, (int)(bottom - top));
+
+    repaint();
 }
 
 double LassoSelectionTool::xToTime(const int x)
 {
     auto x1 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
     auto x2 = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
-    return m_editViewState.xToTime (x, getWidth (), x1, x2);
+    return m_editViewState.xToTime(x, getWidth(), x1, x2);
 }
-LassoSelectionTool::LassoRect LassoSelectionTool::getLassoRect() const
-{
-    return m_lassoRect;
-}
+LassoSelectionTool::LassoRect LassoSelectionTool::getLassoRect() const { return m_lassoRect; }
 void LassoSelectionTool::stopLasso()
 {
     setVisible(false);

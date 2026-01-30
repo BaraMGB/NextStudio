@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -32,41 +31,38 @@ namespace te = tracktion_engine;
 class TimelineOverlayComponent : public juce::Component
 {
 public:
-    TimelineOverlayComponent(
-            EditViewState& evs
-          , te::Track::Ptr track
-          , TimeLineComponent& tlc);
-    void paint (juce::Graphics& g) override;
-private:
-    bool hitTest(int,int) override;
-    void mouseMove(const juce::MouseEvent& e) override;
-    void mouseExit(const juce::MouseEvent& e) override;
-    void mouseDown(const juce::MouseEvent& e) override;
-    void mouseDrag(const juce::MouseEvent& e) override;
-    void mouseUp(const juce::MouseEvent& e) override;
+    TimelineOverlayComponent(EditViewState &evs, te::Track::Ptr track, TimeLineComponent &tlc);
+    void paint(juce::Graphics &g) override;
 
-    std::vector<te::MidiClip*> getMidiClipsOfTrack();
-    tracktion_engine::MidiClip * getMidiClipByPos(int x);
+private:
+    bool hitTest(int, int) override;
+    void mouseMove(const juce::MouseEvent &e) override;
+    void mouseExit(const juce::MouseEvent &e) override;
+    void mouseDown(const juce::MouseEvent &e) override;
+    void mouseDrag(const juce::MouseEvent &e) override;
+    void mouseUp(const juce::MouseEvent &e) override;
+
+    std::vector<te::MidiClip *> getMidiClipsOfTrack();
+    tracktion_engine::MidiClip *getMidiClipByPos(int x);
 
     int timeToX(double time);
     double xToBeats(int x);
-    double getSnapedTime(double time);
+    double getSnappedTime(double time);
     void updateClipRects();
     void moveSelectedClips(bool copy, bool snap);
-    juce::Rectangle<int> getClipRect(te::Clip::Ptr);    
-    EditViewState& m_evs;
+    juce::Rectangle<int> getClipRect(te::Clip::Ptr);
+    EditViewState &m_evs;
     tracktion_engine::Track::Ptr m_track;
-    [[maybe_unused]] double m_loop1AtMousedown{}
-         , m_loop2AtMousedown{};
-    bool m_leftResized {false};
+    [[maybe_unused]] double m_loop1AtMousedown{}, m_loop2AtMousedown{};
+    bool m_leftResized{false};
     bool m_rightResized{false};
     bool m_move{false};
     bool m_drawDraggedClip{false};
     te::ClipPosition m_cachedPos;
-    te::MidiClip * m_cachedClip{};
-    TimeLineComponent & m_timelineComponent;
+    te::MidiClip *m_cachedClip{};
+    TimeLineComponent &m_timelineComponent;
     juce::Array<juce::Rectangle<int>> m_clipRects;
-    juce::Rectangle<int> m_draggedClipRect;   
-    double m_draggedTimeDelta;  
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimelineOverlayComponent)
+    juce::Rectangle<int> m_draggedClipRect;
+    double m_draggedTimeDelta;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimelineOverlayComponent)
 };
