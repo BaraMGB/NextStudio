@@ -474,7 +474,6 @@ void SongEditorView::finishTimeRangeDrag(bool copy)
 
     m_isDraggingSelectedTimeRange = false;
     m_draggedTimeDelta = tracktion::TimeDuration();
-    m_hoveredTimeRange = false;
     repaint();
 }
 
@@ -987,9 +986,6 @@ void SongEditorView::logMousePositionInfo()
 {
     GUIHelpers::log("------------------------------------------------------------");
     GUIHelpers::log("ToolMode    : ", (int)m_toolMode);
-    GUIHelpers::log("TimeRange   : ", m_hoveredTimeRange);
-    GUIHelpers::log("TimeRange L : ", m_hoveredTimeRangeLeft);
-    GUIHelpers::log("TimeRange R : ", m_hoveredTimeRangeRight);
     GUIHelpers::log("Track       : ", m_hoveredTrack != nullptr);
     if (m_hoveredTrack)
     {
