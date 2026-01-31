@@ -1025,6 +1025,31 @@ void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)
         // 2. Add ALL desired targets
         for (auto *track : targetMidiTracks)
         {
+            // Logic to prevent double-triggering:
+            // If we are dealing with the Default MIDI Device (e.g. All MIDI Ins),
+            // check if the track already has ANOTHER physical input assigned.
+            if (defaultMidi && &instance->getInputDevice() == defaultMidi)
+            {
+                bool hasSpecificInput = false;
+                for (auto otherInst : evs.m_edit.getAllInputDevices())
+                {
+                    if (otherInst == instance)
+                        continue;
+                    if (virtualMidi && &otherInst->getInputDevice() == virtualMidi)
+                        continue;
+
+                    // If another device targets this track, we consider it a specific assignment
+                    if (otherInst->getTargets().contains(track->itemID))
+                    {
+                        hasSpecificInput = true;
+                        break;
+                    }
+                }
+
+                if (hasSpecificInput)
+                    continue; // Skip adding default device
+            }
+
             [[maybe_unused]] auto result = instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager(), 0);
             contextReallocNeeded = true;
         }
