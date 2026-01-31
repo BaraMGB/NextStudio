@@ -385,3 +385,21 @@ Beyond device management, `EngineBehaviour` controls numerous engine aspects:
 - **Control Surfaces**: Enable/disable hardware controller support
 
 This comprehensive I/O system provides the foundation for building professional audio applications with the Tracktion Engine.
+
+## Gemini Added Memories
+
+### MIDI Focus and Selection Optimization
+Refactored `EngineHelpers::setMidiInputFocusToSelection` in `App/Source/Utilities.cpp` to improve performance and stability:
+- **Early Exit:** Compares current MIDI targets with the desired selection. Returns immediately if they match, preventing unnecessary audio graph rebuilds (`ensureContextAllocated`).
+- **Robust Update:** Implements a "Clear All & Set All" strategy for modifying targets. This fixes issues where MIDI routing could get stuck (e.g., both old and new tracks playing) when switching selection quickly or using hardware controllers.
+- **Reliable Graph Update:** Uses `edit.restartPlayback()` after routing changes to ensure the audio graph correctly reflects the new input configuration.
+
+### Clip Interaction Safety
+Updated `TrackLaneComponent::mouseUp` to prevent accidental resource-heavy operations:
+- Checks if the mouse actually moved (`e.mouseWasDraggedSinceMouseDown()` and `delta > epsilon`) before calling `EngineHelpers::moveSelectedClips`.
+- This prevents simple clicks on clips from triggering the complex move logic, which includes aggressive plugin state optimization (stripping/restoring plugins) that causes graph rebuilds.
+
+### MIDI Input Device Handling
+- Validated that `InputDeviceInstance` in Tracktion Engine supports multiple targets (multicasting).
+- NextStudio enforces "Exclusive MIDI Focus" by manually clearing old targets before adding the selected track.
+- The default behavior of `InputDeviceInstance::setTarget(..., move=true)` would clear all targets, but NextStudio uses `move=false` and manages targets manually to support multi-selection scenarios.

@@ -35,6 +35,7 @@ public:
     explicit MidiSettings(te::Engine &engine, ApplicationViewState &appState);
     ~MidiSettings() override;
     void resized() override;
+    void visibilityChanged() override;
     void comboBoxChanged(juce::ComboBox *comboBox) override;
     void buttonClicked(juce::Button *button) override;
 

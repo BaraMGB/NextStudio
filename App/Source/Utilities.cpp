@@ -1008,44 +1008,32 @@ void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)
 
     bool contextReallocNeeded = false;
 
-    // Apply changes smartly
+    // Apply changes robustly: Clear all, then add needed
     for (auto *instance : midiInputsToModify)
     {
-        auto currentTargets = instance->getTargets();
+        // Ensure monitoring is ON for MIDI devices
+        instance->getInputDevice().setMonitorMode(te::InputDevice::MonitorMode::on);
 
-        // Remove targets that are NOT in our new target list
+        // 1. Remove ALL current targets
+        auto currentTargets = instance->getTargets();
         for (auto targetID : currentTargets)
         {
-            bool isTarget = false;
-            for (auto *track : targetMidiTracks)
-                if (track->itemID == targetID)
-                {
-                    isTarget = true;
-                    break;
-                }
-
-            if (!isTarget)
-            {
-                [[maybe_unused]] auto result = instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
-                // Removing a target doesn't strictly need reallocation for MIDI stability
-            }
+            [[maybe_unused]] auto result = instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
+            contextReallocNeeded = true;
         }
 
-        // Add targets that ARE in our list but not yet assigned
+        // 2. Add ALL desired targets
         for (auto *track : targetMidiTracks)
         {
-            if (!currentTargets.contains(track->itemID))
-            {
-                [[maybe_unused]] auto result = instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager(), 0);
-                contextReallocNeeded = true;
-            }
+            [[maybe_unused]] auto result = instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager(), 0);
+            contextReallocNeeded = true;
         }
     }
 
     if (contextReallocNeeded)
     {
-        GUIHelpers::log("Utilities: setMidiInputFocusToSelection - New targets added, reallocating context.");
-        evs.m_edit.getTransport().ensureContextAllocated();
+        GUIHelpers::log("Utilities: setMidiInputFocusToSelection - Targets updated, restarting playback.");
+        evs.m_edit.restartPlayback();
     }
 }
 te::MidiInputDevice *EngineHelpers::getVirtualMidiInputDevice(te::Edit &edit)
