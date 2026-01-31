@@ -735,7 +735,7 @@ void MainComponent::createTracksAndAssignInputs()
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
         if (auto mip = dm.getMidiInDevice(i))
         {
-            mip->setMonitorMode(te::InputDevice::MonitorMode::automatic);
+            mip->setMonitorMode(te::InputDevice::MonitorMode::on);
             mip->setEnabled(true);
         }
 

@@ -52,12 +52,12 @@ void MidiSettings::populateMidiDevices()
     m_midiDefaultChooser.clear(juce::dontSendNotification);
 
     auto &dm = m_engine.getDeviceManager();
+
     for (int i = 0; i < dm.getNumMidiInDevices(); i++)
     {
         if (auto mip = dm.getMidiInDevice(i))
         {
-            GUIHelpers::log("AudioMidiSettings.cpp: MIDI  Input Devices:" + mip->getName());
-            if (mip->getDeviceType() == te::InputDevice::physicalMidiDevice)
+            if (mip->getDeviceType() == te::InputDevice::physicalMidiDevice || mip->getDeviceType() == te::InputDevice::virtualMidiDevice)
             {
                 m_midiDefaultChooser.addItem(mip->getName(), i + 1);
                 if (dm.getDefaultMidiInDevice() == mip.get())
@@ -81,6 +81,12 @@ void MidiSettings::resized()
     exclusiveFocusRow.removeFromRight(getWidth() * 0.05);
     exclusiveFocusRow.removeFromLeft(exclusiveFocusRow.getWidth() / 3);
     m_exclusiveMidiFocusButton.setBounds(exclusiveFocusRow);
+}
+
+void MidiSettings::visibilityChanged()
+{
+    if (isVisible())
+        populateMidiDevices();
 }
 
 void MidiSettings::comboBoxChanged(juce::ComboBox *comboBox)
