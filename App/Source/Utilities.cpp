@@ -978,6 +978,34 @@ void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)
     if (targetMidiTracks.isEmpty())
         return;
 
+    // Early exit check: are all midiInputsToModify already pointing exactly to targetMidiTracks?
+    bool changeNeeded = false;
+    for (auto *instance : midiInputsToModify)
+    {
+        auto currentTargets = instance->getTargets();
+
+        if (currentTargets.size() != targetMidiTracks.size())
+        {
+            changeNeeded = true;
+            break;
+        }
+
+        for (auto *track : targetMidiTracks)
+        {
+            if (!currentTargets.contains(track->itemID))
+            {
+                changeNeeded = true;
+                break;
+            }
+        }
+
+        if (changeNeeded)
+            break;
+    }
+
+    if (!changeNeeded)
+        return;
+
     bool contextReallocNeeded = false;
 
     // Apply changes smartly
@@ -1207,6 +1235,10 @@ void restorePluginStates(const juce::Array<te::Track *> &involvedTracks, const j
 
 void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState &evs)
 {
+    // If not copying and no movement occurred, return early to avoid unnecessary processing
+    if (!copy && std::abs(timeDelta) < 1.0e-9 && verticalOffset == 0)
+        return;
+
     //---------------------------------------------------
     // when we insert a clip on a track with a plugin with a lot of parameters
     // the needed time is much more higher than a track without a plugin.

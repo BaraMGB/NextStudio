@@ -325,13 +325,22 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
 
         m_songEditor.updateDragGhost(dragState.draggedClip, dragState.timeDelta, verticalOffset);
 
-        if (m_leftBorderHovered || m_rightBorderHovered)
+        // Only apply changes if the mouse was actually dragged and there is real movement
+        // to avoid unnecessary processing and audio graph rebuilds on simple clicks.
+        if (e.mouseWasDraggedSinceMouseDown())
         {
-            EngineHelpers::resizeSelectedClips(m_leftBorderHovered, dragState.timeDelta.inSeconds(), m_editViewState);
-        }
-        else
-        {
-            EngineHelpers::moveSelectedClips(e.mods.isCtrlDown(), dragState.timeDelta.inSeconds(), verticalOffset, m_editViewState);
+            if (m_leftBorderHovered || m_rightBorderHovered)
+            {
+                if (std::abs(dragState.timeDelta.inSeconds()) > 1.0e-9)
+                    EngineHelpers::resizeSelectedClips(m_leftBorderHovered, dragState.timeDelta.inSeconds(), m_editViewState);
+            }
+            else
+            {
+                if (std::abs(dragState.timeDelta.inSeconds()) > 1.0e-9 || verticalOffset != 0)
+                {
+                    EngineHelpers::moveSelectedClips(e.mods.isCtrlDown(), dragState.timeDelta.inSeconds(), verticalOffset, m_editViewState);
+                }
+            }
         }
     }
     else
