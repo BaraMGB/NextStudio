@@ -1,5 +1,5 @@
-#include "SimpleSynthPlugin.h"
-#include "../../Utilities.h"
+#include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
+#include "Utilities/Utilities.h"
 
 // Helper function for PolyBLEP (Polynomial Band-Limited Step)
 // This technique reduces aliasing by smoothing the waveform discontinuities

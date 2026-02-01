@@ -10,11 +10,11 @@
 
 #pragma once
 
-#include "../../Components/AutomatableComboBox.h"
-#include "../../Components/AutomatableParameter.h"
-#include "../../Components/AutomatableSlider.h"
-#include "../../PluginViewComponent.h"
-#include "ArpeggiatorPlugin.h"
+#include "UI/Controls/AutomatableComboBox.h"
+#include "UI/Controls/AutomatableParameter.h"
+#include "UI/Controls/AutomatableSlider.h"
+#include "LowerRange/PluginChain/PluginViewComponent.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 
 //==============================================================================
 class ArpeggiatorPluginComponent

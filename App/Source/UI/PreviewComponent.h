@@ -1,0 +1,72 @@
+
+/*
+
+This file is part of NextStudio.
+Copyright (c) Steffen Baranowsky 2019-2025.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see https://www.gnu.org/licenses/.
+
+==============================================================================
+*/
+
+#pragma once
+
+#include "../JuceLibraryCode/JuceHeader.h"
+#include "Utilities/ApplicationViewState.h"
+#include "UI/SampleDisplay.h"
+#include "Utilities/Utilities.h"
+
+class SamplePreviewComponent
+    : public juce::Component
+    , public juce::Slider::Listener
+    , public juce::Timer
+    , private juce::ValueTree::Listener
+    , private FlaggedAsyncUpdater
+{
+public:
+    explicit SamplePreviewComponent(te::Engine &engine, te::Edit &edit, ApplicationViewState &avs);
+    ~SamplePreviewComponent();
+    void paint(juce::Graphics &g) override;
+    void resized() override;
+    void sliderValueChanged(juce::Slider *slider) override;
+    void timerCallback() override;
+
+    void play();
+    void stop();
+    void rewind();
+
+    bool setFile(const juce::File &file);
+
+private:
+    void valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i) override;
+    void handleAsyncUpdate() override;
+
+    void updateButtonColours();
+    void updateEngineLooping();
+
+    te::Engine &m_engine;
+    te::Edit &m_edit;
+    ApplicationViewState &m_avs;
+    std::unique_ptr<te::Edit> m_previewEdit;
+    std::unique_ptr<juce::Slider> m_volumeSlider;
+    juce::DrawableButton m_playBtn, m_stopBtn, m_loopBtn, m_syncTempoBtn;
+    juce::Label m_fileName, m_lenghtLabel, m_volumeLabel;
+    std::unique_ptr<SampleDisplay> m_thumbnail;
+    bool m_syncTempo{false};
+    std::unique_ptr<bool> m_isSync;
+    juce::File m_file;
+    float m_volume;
+    bool m_updateLooping{false};
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SamplePreviewComponent)
+};

@@ -8,7 +8,7 @@
   ==============================================================================
 */
 
-#include "SimpleSynthPluginComponent.h"
+#include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 
 //==============================================================================
 // SimpleSynthEnvelopeDisplay

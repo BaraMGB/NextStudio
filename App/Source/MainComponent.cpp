@@ -31,9 +31,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MainComponent.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
-#include "ProjectsBrowser.h"
-#include "SidebarComponent.h"
-#include "Utilities.h"
+#include "SideBrowser/ProjectsBrowser.h"
+#include "SideBrowser/SidebarComponent.h"
+#include "Utilities/Utilities.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state),

@@ -22,16 +22,6 @@ if (APPLE)
     set (CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
 
-# Compile with werror in release builds
-#if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-#    CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-#    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror")
-#elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-#    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /WX")
-#endif()
-
-
 # Adds all the module sources so they appear correctly in the IDE
 set_property(GLOBAL PROPERTY USE_FOLDERS YES)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Enable Module Source Groups" ON)
@@ -58,85 +48,94 @@ if(BUILD_DIR_NAME STREQUAL "jumake_build")
         RUNTIME_OUTPUT_DIRECTORY "${JUCE_BINARY_DIR}"
         )
 endif()
+
+target_include_directories(${TargetName} PRIVATE Source)
+
 target_sources(${TargetName} PRIVATE
         ../resources/icon.rc 
-        Source/Components/AutomatableSlider.cpp
-        Source/Components/AutomatableParameter.cpp
-        Source/Components/AutomatableEnvelopeParameter.cpp
-        Source/Components/NonAutomatableParameter.cpp
-        Source/Components/AutomatableToggle.cpp
-        Source/Components/AutomatableComboBox.cpp
+        Source/LowerRange/LowerRangeComponent.cpp
+        Source/LowerRange/LowerRangeTabBar.cpp
+        Source/LowerRange/Mixer/MixerChannelStripComponent.cpp
+        Source/LowerRange/Mixer/MixerComponent.cpp
+        Source/LowerRange/PianoRoll/KeyboardView.cpp
+        Source/LowerRange/PianoRoll/MidiViewport.cpp
+        Source/LowerRange/PianoRoll/PianoRollEditor.cpp
+        Source/LowerRange/PianoRoll/VelocityEditor.cpp
+        Source/LowerRange/PluginChain/ModifierViewComponent.cpp
+        Source/LowerRange/PluginChain/PluginViewComponent.cpp
+        Source/LowerRange/PluginChain/PresetHelpers.cpp
+        Source/LowerRange/PluginChain/PresetManagerComponent.cpp
+        Source/LowerRange/PluginChain/RackItemView.cpp
+        Source/LowerRange/PluginChain/RackView.cpp
         Source/Main.cpp
         Source/MainComponent.cpp
-        Source/MenuBar.cpp
-        Source/SidebarComponent.cpp
-        Source/SidebarMenu.cpp
-        Source/HeaderComponent.cpp
-        Source/TimeLineComponent.cpp
-        Source/EditComponent.cpp
-        Source/EditViewState.cpp
-        Source/FourOscPluginComponent.cpp
-        Source/Plugins/SimpleSynth/SimpleSynthPlugin.cpp
-        Source/Plugins/SimpleSynth/SimpleSynthPluginComponent.cpp
         Source/Plugins/Arpeggiator/ArpeggiatorPlugin.cpp
         Source/Plugins/Arpeggiator/ArpeggiatorPluginComponent.cpp
-        Source/PresetManagerComponent.cpp
-        Source/PresetHelpers.cpp
-        Source/FileBrowser.cpp
-        Source/HeaderComponent.cpp
-        Source/InstrumentEffectChooser.cpp
-        Source/PluginWindow.cpp
-        Source/PluginComponent.cpp
-        Source/PluginMenu.cpp
-        Source/LevelMeterComponent.cpp
-        Source/RackView.cpp
-        Source/PianoRollEditor.cpp
-        Source/PlayHeadComponent.cpp
-        Source/PreviewComponent.cpp
-        Source/PositionDisplayComponent.cpp
-        Source/LowerRangeComponent.cpp
-        Source/TrackHeadComponent.cpp
-        Source/AudioMidiSettings.cpp
-        Source/MidiViewport.cpp
-        Source/TimelineOverlayComponent.cpp
-        Source/RecordingClipComponent.cpp
-        Source/VelocityEditor.cpp
-        Source/KeyboardView.cpp
-        Source/LassoSelectionTool.cpp
-        Source/TrackListView.cpp
-        Source/SongEditorView.cpp
-        Source/Utilities.cpp
-        Source/Thumbnail.cpp
-        Source/PluginBrowser.cpp
-        Source/PluginScanner.cpp
-        Source/InstrumentEffectChooser.cpp
-        Source/SearchFieldComponent.cpp
-        Source/SampleBrowser.cpp
-        Source/FileBrowser.cpp
-        Source/ProjectsBrowser.cpp
-        Source/Browser_Base.cpp
-        Source/SplitterComponent.cpp
-        Source/TrackHeightManager.cpp
-        Source/TrackLaneComponent.cpp
-        Source/AutomationLaneComponent.cpp
-        Source/ThumbNailManager.cpp
-        Source/PluginViewComponent.cpp
-        Source/ModifierSidebar.cpp
-        Source/ModifierDetailPanel.cpp
-        Source/ToolFactory.cpp
-        Source/tools/PointerTool.cpp
-        Source/tools/DrawTool.cpp
-        Source/tools/EraserTool.cpp
-        Source/tools/KnifeTool.cpp
-        Source/tools/RangeTool.cpp
-        Source/tools/LassoTool.cpp
-        Source/DrumPadComponent.cpp
-        Source/SoundEditorPanel.cpp
-        Source/DrumSamplerView.cpp
-        Source/SampleDisplay.cpp
-        Source/MixerComponent.cpp
-        Source/LowerRangeTabBar.cpp
-        Source/MixerChannelStripComponent.cpp
+        Source/Plugins/Delay/DelayPluginComponent.cpp
+        Source/Plugins/DrumSampler/DrumPadComponent.cpp
+        Source/Plugins/DrumSampler/DrumSamplerView.cpp
+        Source/Plugins/DrumSampler/SoundEditorPanel.cpp
+        Source/Plugins/EQ/EqPluginComponent.cpp
+        Source/Plugins/Filter/FilterPluginComponent.cpp
+        Source/Plugins/FourOscPlugin/FourOscPluginComponent.cpp
+        Source/SideBrowser/InstrumentEffectChooser.cpp
+        Source/Plugins/PluginComponent.cpp
+        Source/UI/PluginMenu.cpp
+        Source/UI/PluginScanner.cpp
+        Source/LowerRange/PluginChain/PluginViewComponent.cpp
+        Source/UI/PluginWindow.cpp
+        Source/Plugins/SimpleSynth/SimpleSynthPlugin.cpp
+        Source/Plugins/SimpleSynth/SimpleSynthPluginComponent.cpp
+        Source/Plugins/VST/VstPluginComponent.cpp
+        Source/Plugins/Volume/VolumePluginComponent.cpp
+        Source/SideBrowser/AudioMidiSettings.cpp
+        Source/SideBrowser/Browser_Base.cpp
+        Source/SideBrowser/FileBrowser.cpp
+        Source/SideBrowser/PluginBrowser.cpp
+        Source/SideBrowser/ProjectsBrowser.cpp
+        Source/SideBrowser/SampleBrowser.cpp
+        Source/SideBrowser/SearchFieldComponent.cpp
+        Source/SideBrowser/SidebarComponent.cpp
+        Source/SideBrowser/SidebarMenu.cpp
+        Source/SongEditor/AutomationLaneComponent.cpp
+        Source/SongEditor/EditComponent.cpp
+        Source/SongEditor/PlayHeadComponent.cpp
+        Source/SongEditor/RecordingClipComponent.cpp
+        Source/SongEditor/SongEditorView.cpp
+        Source/SongEditor/Thumbnail.cpp
+        Source/SongEditor/TimeLineComponent.cpp
+        Source/SongEditor/TimelineOverlayComponent.cpp
+        Source/SongEditor/TrackHeadComponent.cpp
+        Source/SongEditor/TrackLaneComponent.cpp
+        Source/SongEditor/TrackListView.cpp
+        Source/Tools/ToolFactory.cpp
+        Source/Tools/tools/DrawTool.cpp
+        Source/Tools/tools/EraserTool.cpp
+        Source/Tools/tools/KnifeTool.cpp
+        Source/Tools/tools/LassoSelectionTool.cpp
+        Source/Tools/tools/LassoTool.cpp
+        Source/Tools/tools/PointerTool.cpp
+        Source/Tools/tools/RangeTool.cpp
+        Source/UI/Controls/AutomatableComboBox.cpp
+        Source/UI/Controls/AutomatableEnvelopeParameter.cpp
+        Source/UI/Controls/AutomatableParameter.cpp
+        Source/UI/Controls/AutomatableSlider.cpp
+        Source/UI/Controls/AutomatableToggle.cpp
+        Source/UI/Controls/NonAutomatableParameter.cpp
+        Source/UI/Controls/ParameterComponent.cpp
+        Source/UI/HeaderComponent.cpp
+        Source/UI/LevelMeterComponent.cpp
+        Source/UI/MenuBar.cpp
+        Source/UI/ModifierDetailPanel.cpp
+        Source/UI/ModifierSidebar.cpp
+        Source/UI/PositionDisplayComponent.cpp
+        Source/UI/PreviewComponent.cpp
+        Source/UI/SampleDisplay.cpp
+        Source/UI/SplitterComponent.cpp
+        Source/Utilities/EditViewState.cpp
+        Source/Utilities/ThumbNailManager.cpp
+        Source/Utilities/TrackHeightManager.cpp
+        Source/Utilities/Utilities.cpp
         )
 
 target_compile_definitions(${TargetName} PRIVATE
@@ -161,7 +160,7 @@ target_compile_definitions (${TargetName} PUBLIC
         JUCE_USE_MP3AUDIOFORMAT=1
         JUCE_USE_WINDOWS_MEDIA_FORMAT=1
         DONT_SET_USING_JUCE_NAMESPACE=1
-     	JUCE_MODAL_LOOPS_PERMITTED=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
         )
 
 if (WIN32)
@@ -197,6 +196,3 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "-latomic")
 endif()
-
-
-
