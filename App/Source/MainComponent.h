@@ -32,16 +32,16 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include "ApplicationViewState.h"
-#include "EditComponent.h"
-#include "EditViewState.h"
-#include "ExtendedUIBehavior.h"
-#include "HeaderComponent.h"
-#include "LowerRangeComponent.h"
-#include "NextLookAndFeel.h"
-#include "PluginWindow.h"
-#include "SidebarComponent.h"
-#include "Utilities.h"
+#include "Utilities/ApplicationViewState.h"
+#include "SongEditor/EditComponent.h"
+#include "Utilities/EditViewState.h"
+#include "Utilities/ExtendedUIBehavior.h"
+#include "UI/HeaderComponent.h"
+#include "LowerRange/LowerRangeComponent.h"
+#include "Utilities/NextLookAndFeel.h"
+#include "UI/PluginWindow.h"
+#include "SideBrowser/SidebarComponent.h"
+#include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
 

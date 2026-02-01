@@ -8,8 +8,8 @@
   ==============================================================================
 */
 
-#include "ArpeggiatorPlugin.h"
-#include "../../Utilities.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
+#include "Utilities/Utilities.h"
 
 using namespace tracktion_engine;
 

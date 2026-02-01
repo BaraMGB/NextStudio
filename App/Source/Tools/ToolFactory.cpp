@@ -1,0 +1,59 @@
+/*
+
+This file is part of NextStudio.
+Copyright (c) Steffen Baranowsky 2019-2025.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see https://www.gnu.org/licenses/.
+
+==============================================================================
+*/
+
+#include "Tools/ToolStrategy.h"
+#include "Tools/tools/DrawTool.h"
+#include "Tools/tools/EraserTool.h"
+#include "Tools/tools/KnifeTool.h"
+#include "Tools/tools/LassoTool.h"
+#include "Tools/tools/PointerTool.h"
+#include "Tools/tools/RangeTool.h"
+
+std::unique_ptr<ToolStrategy> ToolFactory::createTool(Tool toolType, EditViewState &evs)
+{
+    switch (toolType)
+    {
+    case Tool::pointer:
+        return std::make_unique<PointerTool>(evs);
+
+    case Tool::draw:
+        return std::make_unique<DrawTool>(evs);
+
+    case Tool::eraser:
+        return std::make_unique<EraserTool>(evs);
+
+    case Tool::knife:
+        return std::make_unique<KnifeTool>(evs);
+
+    case Tool::lasso:
+        return std::make_unique<LassoTool>(evs);
+
+    case Tool::range:
+        return std::make_unique<RangeTool>(evs);
+
+        // TODO: Implement remaining tools
+        // case Tool::timestretch:
+        //     return std::make_unique<TimestretchTool>(evs);
+
+    default:
+        return std::make_unique<PointerTool>(evs);
+    }
+}

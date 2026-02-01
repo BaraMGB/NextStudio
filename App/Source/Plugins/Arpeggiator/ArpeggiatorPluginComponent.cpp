@@ -8,7 +8,7 @@
   ==============================================================================
 */
 
-#include "ArpeggiatorPluginComponent.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
 
 using namespace tracktion_engine;
 

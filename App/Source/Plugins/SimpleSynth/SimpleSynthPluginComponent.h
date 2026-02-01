@@ -10,14 +10,14 @@
 
 #pragma once
 
-#include "../../Components/AutomatableComboBox.h"
-#include "../../Components/AutomatableEnvelopeParameter.h"
-#include "../../Components/AutomatableParameter.h"
-#include "../../Components/AutomatableSlider.h"
-#include "../../Components/AutomatableToggle.h"
-#include "../../PluginViewComponent.h"
-#include "../../Utilities.h"
-#include "SimpleSynthPlugin.h"
+#include "UI/Controls/AutomatableComboBox.h"
+#include "UI/Controls/AutomatableEnvelopeParameter.h"
+#include "UI/Controls/AutomatableParameter.h"
+#include "UI/Controls/AutomatableSlider.h"
+#include "UI/Controls/AutomatableToggle.h"
+#include "LowerRange/PluginChain/PluginViewComponent.h"
+#include "Utilities/Utilities.h"
+#include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 
 //==============================================================================
 class SimpleSynthOscSection : public juce::Component
