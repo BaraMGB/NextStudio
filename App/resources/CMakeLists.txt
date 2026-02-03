@@ -53,6 +53,7 @@ juce_add_binary_data(Pictures SOURCES
     ladspaIcon.svg
     la2Icon.svg
     AUIcon.svg
+    logo.svg
     INTIcon.svg
     menu.svg
     renderButton.svg

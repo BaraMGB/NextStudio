@@ -63,10 +63,16 @@ if(UNIX AND NOT APPLE)
     set(CPACK_RPM_PACKAGE_LICENSE "AGPL")
 
     install(FILES ${CMAKE_SOURCE_DIR}/resources/nextstudio.desktop
-            DESTINATION share/applications)
+            DESTINATION share/applications
+            RENAME com.nextstudio.NextStudio.desktop)
+
+    install(FILES ${CMAKE_SOURCE_DIR}/resources/logo.svg
+            DESTINATION share/icons/hicolor/scalable/apps
+            RENAME com.nextstudio.NextStudio.svg)
 
     install(FILES ${CMAKE_SOURCE_DIR}/resources/nextstudio.png
-            DESTINATION share/icons/hicolor/256x256/apps)
+            DESTINATION share/icons/hicolor/256x256/apps
+            RENAME com.nextstudio.NextStudio.png)
 endif()
 
 # Windows NSIS
