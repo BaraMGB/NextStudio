@@ -568,12 +568,12 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
             v.targetFrequency2 = baseFreq2 * v.currentDetuneMultiplier;
             v.phaseDelta2 = v.targetFrequency2 * juce::MathConstants<float>::twoPi / v.sampleRate;
 
-            v.filter.setResonance(resonance);
+            v.filter.setResonance(resonance * 1.15f); // Increased for more "scream" (was 1.0)
             v.filter.setDrive(drive);
 
-            // Map 0.0-1.0 to 0.707-10.0 for SVF Q
-            // SVF expects a Q factor where 0.707 is flat (Butterworth)
-            float svfQ = svfBaseQ + (resonance * 9.0f);
+            // Map 0.0-1.0 to 0.707-40.0 for SVF Q
+            // High Q values (> 20) give that "Vital" laser-like resonance
+            float svfQ = svfBaseQ + (resonance * 39.2929f); 
             v.svfFilter.setResonance(svfQ);
         }
     }
@@ -704,7 +704,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
                 }
 
                 // --- OSC 1 Generation ---
-                float s1 = generateWaveSample(waveShape, effectivePhase1, v.phaseDelta, v.random);
+                float s1 = generateWaveSample(waveShape, effectivePhase1, v.phaseDelta, v.random) * 0.5f;
 
                 // --- Mixing ---
                 float mixedSample = 0.0f;
@@ -716,6 +716,9 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
                 }
                 else
                 {
+                    // Scale Osc 2 by 0.5 as well to match Osc 1
+                    float s2Scaled = s2 * 0.5f;
+
                     switch (mixMode)
                     {
                     case MixMode::ringMod:
@@ -723,8 +726,8 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
                         // Base: S1 + S2*Lev
                         // Ring: S1 * S2
                         {
-                            float clean = s1 + (s2 * osc2Level);
-                            float ring = s1 * s2; // Pure Ring Mod
+                            float clean = s1 + (s2Scaled * osc2Level);
+                            float ring = s1 * s2Scaled * 2.0f; // Scale up RingMod slightly as it's inherently quieter
                             mixedSample = clean * (1.0f - crossMod) + ring * crossMod;
                         }
                         break;
@@ -733,7 +736,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
                     case MixMode::fm: // For FM, we usually just hear the Carrier (Osc 1), but let's allow mixing Osc 2
                     case MixMode::hardSync:
                     default:
-                        mixedSample = s1 + (s2 * osc2Level);
+                        mixedSample = s1 + (s2Scaled * osc2Level);
                         break;
                     }
                 }
@@ -781,8 +784,14 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
             }
         }
 
-        left[i] = l * gain;
-        right[i] = r * gain;
+        // --- Output Protection (Fast Soft Clipper) ---
+        // Efficient algebraic sigmoid: x / (1 + |x|)
+        // Provides musical saturation and protects against resonance peaks
+        float finalL = l * gain;
+        float finalR = r * gain;
+
+        left[i] = finalL / (1.0f + std::abs(finalL));
+        right[i] = finalR / (1.0f + std::abs(finalR));
     }
 }
 
