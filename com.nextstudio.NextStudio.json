@@ -27,8 +27,8 @@
                 }
             ],
             "post-install": [
-                "install -Dm644 App/resources/AUIcon.svg /app/share/icons/hicolor/scalable/apps/com.nextstudio.NextStudio.svg",
-                "install -Dm644 com.nextstudio.NextStudio.desktop /app/share/applications/com.nextstudio.NextStudio.desktop",
+                "install -Dm644 resources/logo.svg /app/share/icons/hicolor/scalable/apps/com.nextstudio.NextStudio.svg",
+                "install -Dm644 resources/nextstudio.desktop /app/share/applications/com.nextstudio.NextStudio.desktop",
                 "desktop-file-edit --set-key=Icon --set-value=com.nextstudio.NextStudio /app/share/applications/com.nextstudio.NextStudio.desktop"
             ]
         }

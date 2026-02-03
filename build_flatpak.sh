@@ -4,7 +4,7 @@ set -euo pipefail
 # --- Konfiguration ---
 APP_ID="com.nextstudio.NextStudio"
 MANIFEST="./com.nextstudio.NextStudio.json"
-DESKTOP="./com.nextstudio.NextStudio.desktop"
+DESKTOP="./resources/nextstudio.desktop"
 
 OUT_DIR="./dist"
 REPO_DIR="${OUT_DIR}/repo"
@@ -27,6 +27,26 @@ else
   BRANCH=""
 fi
 [[ -n "${BRANCH}" ]] || BRANCH="master"
+
+# --- Runtimes & SDKs prüfen und installieren ---
+if command -v jq >/dev/null 2>&1; then
+    RUNTIME=$(jq -r '.runtime' "$MANIFEST")
+    SDK=$(jq -r '.sdk' "$MANIFEST")
+    RUNTIME_VERSION=$(jq -r '."runtime-version"' "$MANIFEST")
+
+    echo "Prüfe Abhängigkeiten: Runtime $RUNTIME // SDK $SDK (Version $RUNTIME_VERSION)"
+    
+    # Flathub remote sicherstellen (User-Level)
+    if ! flatpak remote-list --user | grep -q "flathub"; then
+        echo "Füge Flathub Remote hinzu..."
+        flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    fi
+
+    # Runtimes installieren (User-Level)
+    flatpak install --user -y flathub "$RUNTIME//$RUNTIME_VERSION" "$SDK//$RUNTIME_VERSION"
+else
+    echo "Warnung: 'jq' nicht gefunden. Automatische Installation der Runtimes wird übersprungen."
+fi
 
 # Version für Dateinamen (best effort)
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
