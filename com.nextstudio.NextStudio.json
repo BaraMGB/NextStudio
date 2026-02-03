@@ -16,9 +16,9 @@
             "name": "nextstudio",
             "buildsystem": "simple",
             "build-commands": [
-                "cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/app",
-                "cmake --build build -j$(nproc)",
-                "cmake --install build --config RelWithDebInfo --prefix /app"
+                "cmake -S . -B flatpak_build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/app",
+                "cmake --build flatpak_build -j$(nproc)",
+                "cmake --install flatpak_build --config RelWithDebInfo --prefix /app"
             ],
             "sources": [
                 {

@@ -1,9 +1,11 @@
 [Desktop Entry]
-Version=1.0
-Type=Application
 Name=NextStudio
-Comment=Your NextStudio Application
+GenericName=Digital Audio Workstation
+Comment=Create, record, and edit music
 Exec=NextStudio
-Icon=nextstudio
+Icon=com.nextstudio.NextStudio
+Type=Application
+Categories=AudioVideo;Audio;AudioVideoEditing;Recorder;
+StartupNotify=true
 Terminal=false
-Categories=AudioVideo;Audio;Sequencer;
+MimeType=application/x-nextstudio-project;
