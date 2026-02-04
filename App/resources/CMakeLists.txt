@@ -64,3 +64,11 @@ juce_add_binary_data(Pictures SOURCES
     square.svg
     
     )
+
+file(GLOB_RECURSE SAMPLES_707 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} Samples/707/*)
+file(GLOB_RECURSE SAMPLES_808 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} Samples/808/*)
+file(GLOB_RECURSE SAMPLES_909 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} Samples/909/*)
+
+juce_add_binary_data(Samples707 SOURCES ${SAMPLES_707} NAMESPACE Samples707 HEADER_NAME Samples707.h)
+juce_add_binary_data(Samples808 SOURCES ${SAMPLES_808} NAMESPACE Samples808 HEADER_NAME Samples808.h)
+juce_add_binary_data(Samples909 SOURCES ${SAMPLES_909} NAMESPACE Samples909 HEADER_NAME Samples909.h)
