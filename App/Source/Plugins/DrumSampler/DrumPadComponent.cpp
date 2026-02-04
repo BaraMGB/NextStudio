@@ -402,7 +402,10 @@ int DrumPadGridComponent::getSoundIndexForPad(int padIndex)
 // Drag and Drop
 //==============================================================================
 
-bool DrumPadGridComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails) { return dragSourceDetails.description == "SampleBrowser"; }
+bool DrumPadGridComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails)
+{
+    return dragSourceDetails.description == "SampleBrowser" || dragSourceDetails.description == "FileBrowser";
+}
 
 void DrumPadGridComponent::itemDragEnter(const SourceDetails &dragSourceDetails)
 {
