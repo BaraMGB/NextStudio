@@ -183,6 +183,9 @@ endif()
 
 target_link_libraries(${TargetName} PRIVATE
         Pictures
+        Samples707
+        Samples808
+        Samples909
 
         tracktion::tracktion_core
         tracktion::tracktion_engine
