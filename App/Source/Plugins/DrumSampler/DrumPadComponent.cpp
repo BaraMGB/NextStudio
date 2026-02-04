@@ -870,8 +870,16 @@ int DrumPadGridComponent::getPadIndexForMidiNote(int midiNote)
 
 void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File &file)
 {
-    if (soundIndex < 0 || soundIndex >= m_samplerPlugin.getNumSounds())
+    if (soundIndex < 0)
         return;
+
+    // Ensure we have enough sound slots in the sampler
+    while (m_samplerPlugin.getNumSounds() <= soundIndex)
+    {
+        GUIHelpers::log("DrumPadComponent: Adding empty sound slot at index " + juce::String(m_samplerPlugin.getNumSounds()));
+        m_samplerPlugin.addSound({}, "Empty", 0, 0, 0);
+    }
+
     if (!file.existsAsFile())
         return;
 

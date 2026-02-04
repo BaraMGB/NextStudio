@@ -9,6 +9,13 @@ DrumSamplerView::DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler)
 {
     GUIHelpers::log("DrumSamplerView: constructor");
 
+    // Ensure the sampler has the expected 16 sounds if it's currently empty
+    if (m_sampler.getNumSounds() == 0)
+    {
+        GUIHelpers::log("DrumSamplerView: Sampler is empty, applying factory default state.");
+        restorePluginState(getFactoryDefaultState());
+    }
+
     addAndMakeVisible(m_drumPadComponent);
     addAndMakeVisible(m_soundEditorPanel);
 
@@ -61,9 +68,12 @@ juce::ValueTree DrumSamplerView::getFactoryDefaultState()
         sound.setProperty("name", "Empty", nullptr);
         sound.setProperty("startTime", 0.0, nullptr);
         sound.setProperty("length", 0.0, nullptr);
-        sound.setProperty("keyNote", 60 + i, nullptr);
-        sound.setProperty("minNote", 60 + i, nullptr);
-        sound.setProperty("maxNote", 60 + i, nullptr);
+
+        int midiNote = DrumPadGridComponent::BASE_MIDI_NOTE + i;
+        sound.setProperty("keyNote", midiNote, nullptr);
+        sound.setProperty("minNote", midiNote, nullptr);
+        sound.setProperty("maxNote", midiNote, nullptr);
+
         sound.setProperty("gainDb", 0.0, nullptr);
         sound.setProperty("pan", 0.0, nullptr);
         sound.setProperty("openEnded", true, nullptr);
