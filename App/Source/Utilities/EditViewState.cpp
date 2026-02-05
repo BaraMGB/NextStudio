@@ -75,11 +75,6 @@ EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationVi
 
 EditViewState::~EditViewState()
 {
-    for (auto &pair : componentViewData)
-        delete pair.second;
-
-    componentViewData.clear();
-
     if (m_state.getParent().isValid())
         m_state.getParent().removeChild(m_state, nullptr);
 
@@ -176,17 +171,19 @@ void EditViewState::setNewStartAndZoom(juce::String timeLineID, double startBeat
 {
     startBeat = juce::jmax(0.0, startBeat);
 
-    if (auto *myViewData = componentViewData[timeLineID])
+    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
+    if (node.isValid())
     {
         if (beatsPerPixel != -1)
-            myViewData->beatsPerPixel = beatsPerPixel;
-        myViewData->viewX = startBeat;
+            node.setProperty(IDs::beatsPerPixel, beatsPerPixel, nullptr);
+        node.setProperty(IDs::viewX, startBeat, nullptr);
     }
 }
 
 void EditViewState::setNewBeatRange(juce::String timeLineID, tracktion::BeatRange beatRange, float width)
 {
-    if (auto *myViewData = componentViewData[timeLineID])
+    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
+    if (node.isValid())
     {
         auto startBeat = beatRange.getStart().inBeats();
         auto endBeat = beatRange.getEnd().inBeats();
@@ -198,14 +195,15 @@ void EditViewState::setNewBeatRange(juce::String timeLineID, tracktion::BeatRang
             endBeat = startBeat + (beatsPerPixel * width);
         }
 
-        myViewData->viewX = startBeat;
-        myViewData->beatsPerPixel = beatsPerPixel;
+        node.setProperty(IDs::viewX, startBeat, nullptr);
+        node.setProperty(IDs::beatsPerPixel, beatsPerPixel, nullptr);
     }
 }
 
 void EditViewState::setNewTimeRange(juce::String timeLineID, tracktion::TimeRange timeRange, float width)
 {
-    if (auto *myViewData = componentViewData[timeLineID])
+    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
+    if (node.isValid())
     {
         auto startBeat = timeToBeat(timeRange.getStart().inSeconds());
         auto endBeat = timeToBeat(timeRange.getEnd().inSeconds());
@@ -217,17 +215,19 @@ void EditViewState::setNewTimeRange(juce::String timeLineID, tracktion::TimeRang
             endBeat = startBeat + (beatsPerPixel * width);
         }
 
-        myViewData->viewX = startBeat;
-        myViewData->beatsPerPixel = beatsPerPixel;
+        node.setProperty(IDs::viewX, startBeat, nullptr);
+        node.setProperty(IDs::beatsPerPixel, beatsPerPixel, nullptr);
     }
 }
 
 tracktion::BeatRange EditViewState::getVisibleBeatRange(juce::String id, int width)
 {
-    if (auto *myViewData = componentViewData[id])
+    auto node = m_viewDataTree.getChildWithName(id);
+    if (node.isValid())
     {
-        auto startBeat = myViewData->viewX.get();
-        auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
+        auto startBeat = static_cast<double>(node.getProperty(IDs::viewX, 0.0));
+        auto beatsPerPixel = static_cast<double>(node.getProperty(IDs::beatsPerPixel, 0.1));
+        auto endBeat = startBeat + (beatsPerPixel * width);
 
         return {tracktion::BeatPosition::fromBeats(startBeat), tracktion::BeatPosition::fromBeats(endBeat)};
     }
@@ -236,10 +236,12 @@ tracktion::BeatRange EditViewState::getVisibleBeatRange(juce::String id, int wid
 
 tracktion::TimeRange EditViewState::getVisibleTimeRange(juce::String id, int width)
 {
-    if (auto *myViewData = componentViewData[id])
+    auto node = m_viewDataTree.getChildWithName(id);
+    if (node.isValid())
     {
-        auto startBeat = myViewData->viewX.get();
-        auto endBeat = startBeat + (myViewData->beatsPerPixel * width);
+        auto startBeat = static_cast<double>(node.getProperty(IDs::viewX, 0.0));
+        auto beatsPerPixel = static_cast<double>(node.getProperty(IDs::beatsPerPixel, 0.1));
+        auto endBeat = startBeat + (beatsPerPixel * width);
 
         auto t1 = beatToTime(startBeat);
         auto t2 = beatToTime(endBeat);

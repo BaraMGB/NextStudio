@@ -69,7 +69,11 @@ void DrawTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
     if (viewport.isSnapping())
         endBeat = viewport.getTimeLine()->getQuantisedNoteBeat(endBeat, m_clickedClip);
 
-    auto newNote = viewport.addNewNote(m_drawNoteNumber, m_clickedClip, startBeat, endBeat - startBeat);
+    auto length = endBeat - startBeat;
+    if (length > 0)
+        viewport.getTimeLine()->setLastNoteLength(length);
+
+    auto newNote = viewport.addNewNote(m_drawNoteNumber, m_clickedClip, startBeat, length);
 
     viewport.unselectAll();
     viewport.setNoteSelected(newNote, false);

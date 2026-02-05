@@ -20,8 +20,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SongEditor/TrackLaneComponent.h"
-#include "Utilities/ScopedSaveLock.h"
 #include "SongEditor/SongEditorView.h"
+#include "Utilities/ScopedSaveLock.h"
 #include "Utilities/TimeUtils.h"
 
 TrackLaneComponent::TrackLaneComponent(EditViewState &evs, te::Track::Ptr track, juce::String timelineID, SongEditorView &owner)
@@ -214,7 +214,7 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
                         t->state.setProperty(IDs::showLowerRange, true, nullptr);
                 }
 
-                if (m_track->itemID.isValid())
+                if (e.getNumberOfClicks() > 1 && m_track->itemID.isValid())
                 {
                     auto trackTimeLineID = "ID" + m_track->itemID.toString().removeCharacters("{}-)");
                     GUIHelpers::centerMidiEditorToClip(m_editViewState, m_hoveredClip, trackTimeLineID, getWidth());
