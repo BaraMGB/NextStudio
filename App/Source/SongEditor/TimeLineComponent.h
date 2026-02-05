@@ -56,6 +56,9 @@ public:
     juce::String getTimeLineID() { return m_timeLineID; }
     void setTimeLineID(juce::String timeLineID);
 
+    void setLastNoteLength(double length);
+    double getLastNoteLength();
+
     // snapes relative to clip start
     double getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down = true) const;
     double getQuantisedBeat(double beat, bool down) const;

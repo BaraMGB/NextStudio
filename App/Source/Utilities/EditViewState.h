@@ -126,22 +126,6 @@ DECLARE_ID(selectedModifier)
 } // namespace IDs
 
 //==============================================================================
-struct ViewData
-{
-    juce::CachedValue<double> viewX;
-    juce::CachedValue<double> beatsPerPixel;
-    juce::CachedValue<double> viewY;
-    juce::CachedValue<double> viewYScale;
-
-    ViewData(juce::ValueTree &state)
-        : viewX(state, IDs::viewX, nullptr, 0.0),
-          beatsPerPixel(state, IDs::beatsPerPixel, nullptr, 0.1),
-          viewY(state, IDs::viewY, nullptr, 0.0),
-          viewYScale(state, IDs::viewYScale, nullptr, 20.0)
-    {
-    }
-};
-
 enum class LowerRangeView
 {
     none,
@@ -168,27 +152,27 @@ public:
 
     double getViewYScale(juce::String timeLineID)
     {
-        if (auto *myViewData = componentViewData[timeLineID])
-        {
-            return myViewData->viewYScale;
-        }
-        return -1;
+        auto node = m_viewDataTree.getChildWithName(timeLineID);
+        if (node.isValid())
+            return node.getProperty(IDs::viewYScale, 20.0);
+        return 20.0;
     }
 
     double getViewYScroll(juce::String timeLineID)
     {
-        if (auto *myViewData = componentViewData[timeLineID])
-        {
-            return myViewData->viewY;
-        }
-        return -1;
+        auto node = m_viewDataTree.getChildWithName(timeLineID);
+        if (node.isValid())
+            return node.getProperty(IDs::viewY, 0.0);
+        return 0.0;
     }
 
     bool setViewYScale(juce::String timeLineID, double newScale)
     {
-        if (auto *myViewData = componentViewData[timeLineID])
+        auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
+        if (node.isValid())
         {
-            myViewData->viewYScale = newScale;
+            // nullptr passed to UndoManager: View changes should not be undoable
+            node.setProperty(IDs::viewYScale, newScale, nullptr);
             return true;
         }
         return false;
@@ -196,9 +180,11 @@ public:
 
     bool setYScroll(juce::String timeLineID, double newScroll)
     {
-        if (auto *myViewData = componentViewData[timeLineID])
+        auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
+        if (node.isValid())
         {
-            myViewData->viewY = newScroll;
+            // nullptr passed to UndoManager: View changes should not be undoable
+            node.setProperty(IDs::viewY, newScroll, nullptr);
             return true;
         }
         return false;
@@ -280,7 +266,6 @@ public:
     juce::ValueTree m_viewDataTree;
     juce::ValueTree m_pluginPresetManagerUIStates;
     juce::ValueTree m_trackRackViewState;
-    std::map<juce::String, struct ViewData *> componentViewData;
     bool m_isSavingLocked{false}, m_needAutoSave{false};
     ApplicationViewState &m_applicationState;
 

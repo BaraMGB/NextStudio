@@ -378,10 +378,15 @@ void TimeLineComponent::setTimeLineID(juce::String timeLineID)
 {
     m_timeLineID = timeLineID;
     m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
-
-    if (m_evs.componentViewData.find(m_timeLineID) == m_evs.componentViewData.end())
-        m_evs.componentViewData[m_timeLineID] = new ViewData(m_tree);
 }
+
+void TimeLineComponent::setLastNoteLength(double length)
+{
+    // nullptr: Tool settings (like last note length) are transient and not part of the undo history
+    m_tree.setProperty(IDs::lastNoteLenght, length, nullptr);
+}
+
+double TimeLineComponent::getLastNoteLength() { return m_tree.getProperty(IDs::lastNoteLenght, 0.25); }
 
 double TimeLineComponent::getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down) const
 {
