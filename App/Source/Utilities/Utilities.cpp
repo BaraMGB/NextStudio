@@ -601,6 +601,14 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
         drawBarBeatsShadow(g, evs, x1beats, x2beats, boundingRect, shadowShade);
 
     int snapLevel = juce::jmax(3, evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth()).getLevel());
+    // At 1/16 and finer grids, emphasize quarter-beat landmarks for orientation.
+    const bool emphasizeQuarterBeatLines = snapLevel <= 5;
+    const auto quarterBeatColour = emphasizeQuarterBeatLines
+                                       ? avs.getTimeLineStrokeColour().withAlpha(0.2f)
+                                       : fracColour;
+    const auto subDivisionColour = emphasizeQuarterBeatLines
+                                       ? avs.getTimeLineStrokeColour().withAlpha(0.08f)
+                                       : fracColour.withAlpha(0.2f);
 
     double intervalBeats = getIntervalBeatsOfSnap(snapLevel, numBeatsPerBar);
 
@@ -641,12 +649,12 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
         }
         else if (std::abs(std::fmod(beat * 4.0, 1.0)) < epsilon)
         {
-            lineColour = fracColour;
+            lineColour = quarterBeatColour;
             isQuarterBeatLine = true;
         }
         else
         {
-            lineColour = fracColour.withAlpha(0.2f);
+            lineColour = subDivisionColour;
         }
 
         g.setColour(lineColour);
