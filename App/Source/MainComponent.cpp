@@ -33,6 +33,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "SideBrowser/ProjectsBrowser.h"
 #include "SideBrowser/SidebarComponent.h"
+#include "UI/SetupWizard.h"
 #include "Utilities/Utilities.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
@@ -40,6 +41,14 @@ MainComponent::MainComponent(ApplicationViewState &state)
       m_nextLookAndFeel(state),
       m_sidebarSplitter(false)
 {
+    const auto configuredWorkDir = juce::File(m_applicationState.m_workDir.get());
+    const auto defaultWorkDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio");
+    const bool configuredWorkDirExists = configuredWorkDir.exists() && configuredWorkDir.isDirectory();
+    const bool needsSetupWizard = !m_applicationState.m_setupComplete || !configuredWorkDirExists;
+
+    // Keep the current UX goal: preselect the fallback path, but don't create it until setup is resolved.
+    if (needsSetupWizard && !configuredWorkDirExists)
+        m_applicationState.setRootFolder(defaultWorkDir);
 
     float scale = m_applicationState.m_appScale;
     scale = juce::jlimit(0.2f, 3.f, scale);
@@ -48,6 +57,9 @@ MainComponent::MainComponent(ApplicationViewState &state)
     setWantsKeyboardFocus(true);
     juce::LookAndFeel::setDefaultLookAndFeel(&m_nextLookAndFeel);
     updateTheme();
+
+    if (!needsSetupWizard)
+        ensureUserDirectoriesAndSamples();
 
     addAndMakeVisible(m_sidebarSplitter);
     m_sidebarSplitter.onMouseDown = [this]() { m_sidebarWidthAtMousedown = m_applicationState.m_sidebarWidth; };
@@ -73,6 +85,9 @@ MainComponent::MainComponent(ApplicationViewState &state)
 
     m_selectionManager.addChangeListener(this);
     m_applicationState.m_applicationStateValueTree.addListener(this);
+
+    if (needsSetupWizard)
+        launchSetupWizardAsync();
 }
 
 MainComponent::~MainComponent()
@@ -626,6 +641,66 @@ void MainComponent::setupSideBrowser()
     m_sideBarBrowser->updateParentsListener();
 }
 
+void MainComponent::ensureUserDirectoriesAndSamples()
+{
+    juce::File(m_applicationState.m_workDir.get()).createDirectory();
+    juce::File(m_applicationState.m_presetDir.get()).createDirectory();
+    juce::File(m_applicationState.m_clipsDir.get()).createDirectory();
+    juce::File(m_applicationState.m_renderDir.get()).createDirectory();
+    juce::File(m_applicationState.m_samplesDir.get()).createDirectory();
+    juce::File(m_applicationState.m_projectsDir.get()).createDirectory();
+
+    extractSamplesIfNeeded(juce::File(m_applicationState.m_samplesDir.get()));
+}
+
+void MainComponent::launchSetupWizardAsync()
+{
+    juce::Component::SafePointer<MainComponent> safeThis(this);
+
+    juce::MessageManager::callAsync(
+        [safeThis]
+        {
+            if (safeThis != nullptr)
+                safeThis->runSetupWizard();
+        });
+}
+
+void MainComponent::runSetupWizard()
+{
+    auto wizard = std::make_unique<SetupWizard>(m_applicationState, m_engine);
+    wizard->setSize(1400, 1000);
+
+    juce::DialogWindow::LaunchOptions options;
+    options.content.setOwned(wizard.release());
+    options.componentToCentreAround = this;
+    options.dialogTitle = "NextStudio Setup Wizard";
+    options.dialogBackgroundColour = m_applicationState.getBackgroundColour1();
+    options.escapeKeyTriggersCloseButton = false;
+    options.useNativeTitleBar = true;
+    options.resizable = false;
+
+    const auto wizardResult = options.runModal();
+
+    if (wizardResult != 1)
+    {
+        // Aborting setup falls back to ~/NextStudio by product decision.
+        const auto defaultWorkDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio");
+        m_applicationState.setRootFolder(defaultWorkDir);
+        m_applicationState.m_setupComplete = true;
+        m_applicationState.saveState();
+    }
+
+    handleContentPathChangedFromSettings();
+}
+
+void MainComponent::handleContentPathChangedFromSettings()
+{
+    ensureUserDirectoriesAndSamples();
+    if (m_sideBarBrowser)
+        m_sideBarBrowser->refreshBrowsersFromAppState();
+    resized();
+}
+
 void MainComponent::setupEdit(juce::File editFile)
 {
     if (m_edit)
@@ -741,4 +816,31 @@ void MainComponent::createTracksAndAssignInputs()
 
     m_edit->getTransport().ensureContextAllocated();
     m_edit->restartPlayback();
+}
+
+void MainComponent::extractSamplesIfNeeded(const juce::File &samplesDir)
+{
+    auto extract = [](const juce::File &targetDir, const char *const *resourceList, const char *const *filenames, int size, auto getResourceFn)
+    {
+        if (targetDir.existsAsFile())
+            return;
+
+        if (!targetDir.exists() && !targetDir.createDirectory())
+            return;
+
+        for (int i = 0; i < size; ++i)
+        {
+            const auto destinationFile = targetDir.getChildFile(filenames[i]);
+            if (destinationFile.existsAsFile())
+                continue;
+
+            int dataSize = 0;
+            if (const char *data = getResourceFn(resourceList[i], dataSize))
+                destinationFile.replaceWithData(data, dataSize);
+        }
+    };
+
+    extract(samplesDir.getChildFile("707"), Samples707::namedResourceList, Samples707::originalFilenames, Samples707::namedResourceListSize, Samples707::getNamedResource);
+    extract(samplesDir.getChildFile("808"), Samples808::namedResourceList, Samples808::originalFilenames, Samples808::namedResourceListSize, Samples808::getNamedResource);
+    extract(samplesDir.getChildFile("909"), Samples909::namedResourceList, Samples909::originalFilenames, Samples909::namedResourceListSize, Samples909::getNamedResource);
 }

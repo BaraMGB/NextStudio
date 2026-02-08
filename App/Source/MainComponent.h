@@ -31,16 +31,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "Samples707.h"
+#include "Samples808.h"
+#include "Samples909.h"
 
-#include "Utilities/ApplicationViewState.h"
+#include "LowerRange/LowerRangeComponent.h"
+#include "SideBrowser/SidebarComponent.h"
 #include "SongEditor/EditComponent.h"
+#include "UI/HeaderComponent.h"
+#include "UI/PluginWindow.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/EditViewState.h"
 #include "Utilities/ExtendedUIBehavior.h"
-#include "UI/HeaderComponent.h"
-#include "LowerRange/LowerRangeComponent.h"
 #include "Utilities/NextLookAndFeel.h"
-#include "UI/PluginWindow.h"
-#include "SideBrowser/SidebarComponent.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
@@ -96,6 +99,7 @@ public:
 
     void setupEdit(juce::File = {});
     bool handleUnsavedEdit();
+    void handleContentPathChangedFromSettings();
 
 private:
     void handleAsyncUpdate() override;
@@ -104,6 +108,10 @@ private:
     void createTracksAndAssignInputs();
     void openValidStartEdit();
     void setupSideBrowser();
+    void ensureUserDirectoriesAndSamples();
+    void launchSetupWizardAsync();
+    void runSetupWizard();
+    void extractSamplesIfNeeded(const juce::File &samplesDir);
 
     void clearAudioTracks()
     {

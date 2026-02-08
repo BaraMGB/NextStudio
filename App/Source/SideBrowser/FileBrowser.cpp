@@ -20,10 +20,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SideBrowser/FileBrowser.h"
-#include "Utilities/ApplicationViewState.h"
 #include "SideBrowser/Browser_Base.h"
-#include "UI/PreviewComponent.h"
 #include "SideBrowser/SearchFieldComponent.h"
+#include "UI/PreviewComponent.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
 FileBrowserComponent::FileBrowserComponent(ApplicationViewState &avs, te::Engine &engine, SamplePreviewComponent &spc)
@@ -127,6 +127,7 @@ void FileBrowserComponent::setDirecory(const juce::File &dir)
     if (dir.exists() && dir.isDirectory())
     {
         GUIHelpers::log("FileBrowserComponent::setDirecory(): ");
+        m_currentPathField.setDir(dir);
         setFileList(dir.findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories, false));
     }
 }
