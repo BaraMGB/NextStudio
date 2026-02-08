@@ -71,6 +71,8 @@ private:
     int m_draggedNoteDelta{0};
     double m_leftTimeDelta{0.0};
     double m_rightTimeDelta{0.0};
+    bool m_hasPlayedDragGuideNote{false};
+    int m_lastGuideNoteDelta{0};
 
     // Helper methods
     void updateCursor(const juce::MouseEvent &event, MidiViewport &viewport);
