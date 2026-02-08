@@ -31,11 +31,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Samples707.h"
-#include "Samples808.h"
-#include "Samples909.h"
-#include "Utilities/ApplicationViewState.h"
 #include "MainComponent.h"
+#include "Utilities/ApplicationViewState.h"
 
 //==============================================================================
 class NextStudioApplication : public juce::JUCEApplication
@@ -49,46 +46,7 @@ public:
     bool moreThanOneInstanceAllowed() override { return false; }
 
     //==============================================================================
-    void initialise(const juce::String & /*commandLine*/) override
-    {
-        auto workingDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_workDir);
-        auto presetDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_presetDir);
-        auto clipsDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_clipsDir);
-        auto rendersDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_renderDir);
-        auto samplesDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_samplesDir);
-        auto projectsDir = juce::File().createFileWithoutCheckingPath(m_applicationState.m_projectsDir);
-        workingDir.createDirectory();
-        presetDir.createDirectory();
-        clipsDir.createDirectory();
-        rendersDir.createDirectory();
-        samplesDir.createDirectory();
-        projectsDir.createDirectory();
-
-        extractSamplesIfNeeded(samplesDir);
-
-        mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState));
-    }
-
-    void extractSamplesIfNeeded(const juce::File &samplesDir)
-    {
-        auto extract = [](const juce::File &targetDir, const char *const *resourceList, const char *const *filenames, int size, auto getResourceFn)
-        {
-            if (targetDir.exists())
-                return;
-
-            targetDir.createDirectory();
-            for (int i = 0; i < size; ++i)
-            {
-                int dataSize = 0;
-                if (const char *data = getResourceFn(resourceList[i], dataSize))
-                    targetDir.getChildFile(filenames[i]).replaceWithData(data, dataSize);
-            }
-        };
-
-        extract(samplesDir.getChildFile("707"), Samples707::namedResourceList, Samples707::originalFilenames, Samples707::namedResourceListSize, Samples707::getNamedResource);
-        extract(samplesDir.getChildFile("808"), Samples808::namedResourceList, Samples808::originalFilenames, Samples808::namedResourceListSize, Samples808::getNamedResource);
-        extract(samplesDir.getChildFile("909"), Samples909::namedResourceList, Samples909::originalFilenames, Samples909::namedResourceListSize, Samples909::getNamedResource);
-    }
+    void initialise(const juce::String & /*commandLine*/) override { mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState)); }
 
     void shutdown() override { mainWindow = nullptr; }
 

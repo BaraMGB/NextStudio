@@ -22,16 +22,16 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/ApplicationViewState.h"
 #include "SideBrowser/AudioMidiSettings.h"
-#include "Utilities/EditViewState.h"
 #include "SideBrowser/FileBrowser.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
 #include "SideBrowser/PluginBrowser.h"
-#include "UI/PreviewComponent.h"
 #include "SideBrowser/ProjectsBrowser.h"
 #include "SideBrowser/SampleBrowser.h"
 #include "SideBrowser/SidebarMenu.h"
+#include "UI/PreviewComponent.h"
+#include "Utilities/ApplicationViewState.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 class SidebarComponent
@@ -50,6 +50,7 @@ public:
     void buttonClicked(juce::Button *button) override;
 
     void updateParentsListener();
+    void refreshBrowsersFromAppState();
 
 private:
     void setAllVisibleOff();

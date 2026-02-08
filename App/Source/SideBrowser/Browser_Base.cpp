@@ -58,6 +58,9 @@ void PathComponent::setDir(juce::File file)
     if (!file.exists() || !file.isDirectory())
         return;
 
+    if (file == m_currentPath)
+        return;
+
     m_currentPath = file;
     m_currentPathField.setText(m_currentPath.getFullPathName());
     sendChangeMessage();

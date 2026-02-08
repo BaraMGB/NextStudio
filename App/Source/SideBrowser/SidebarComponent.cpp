@@ -21,9 +21,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "SideBrowser/SidebarComponent.h"
 #include "BinaryData.h"
-#include "Utilities/EditViewState.h"
 #include "MainComponent.h"
 #include "SideBrowser/RenderDialog.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandManager &commandManager)
@@ -53,9 +53,13 @@ SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandM
         b->addListener(this);
 
     m_settingsView.setIndent(10);
-    m_sampleBrowser.setFileList(juce::File(m_appState.m_samplesDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav;*.WAV;*.mp3;*.MP3;*.aiff;*.AIFF;*.flac;*.FLAC"));
-    m_projectsBrowser.setFileList(juce::File(m_appState.m_projectsDir).findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit"));
-    m_fileListBrowser.setFileList(juce::File(m_appState.m_workDir).findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories, false));
+    m_settingsView.setOnContentPathChanged(
+        [this]
+        {
+            if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
+                parent->handleContentPathChangedFromSettings();
+        });
+    refreshBrowsersFromAppState();
 
     setAllVisibleOff();
     m_projectsBrowser.setVisible(true);
@@ -271,6 +275,17 @@ void SidebarComponent::updateParentsListener()
         m_fileListBrowser.addChangeListener(parent);
         m_projectsBrowser.addChangeListener(parent);
     }
+}
+
+void SidebarComponent::refreshBrowsersFromAppState()
+{
+    const auto samplesRoot = juce::File(m_appState.m_samplesDir.get());
+    const auto projectsRoot = juce::File(m_appState.m_projectsDir.get());
+    const auto workRoot = juce::File(m_appState.m_workDir.get());
+
+    m_sampleBrowser.setFileList(samplesRoot.findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav;*.WAV;*.mp3;*.MP3;*.aiff;*.AIFF;*.flac;*.FLAC"));
+    m_projectsBrowser.setFileList(projectsRoot.findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit"));
+    m_fileListBrowser.setDirecory(workRoot);
 }
 
 void SidebarComponent::setAllVisibleOff()

@@ -21,9 +21,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #pragma once
-#include "Utilities/ApplicationViewState.h"
 #include "SideBrowser/PluginBrowser.h"
+#include "Utilities/ApplicationViewState.h"
 #include "juce_core/juce_core.h"
+#include <functional>
 
 namespace te = tracktion_engine;
 class MidiSettings
@@ -256,19 +257,22 @@ private:
 class GeneralSettings : public juce::Component
 {
 public:
-    GeneralSettings(ApplicationViewState &appState)
+    explicit GeneralSettings(ApplicationViewState &appState)
         : m_appState(appState)
     {
         m_scaleLabel.setText("Scaling Factor:", juce::dontSendNotification);
         addAndMakeVisible(m_scaleLabel);
 
-        m_scaleEditor.setMultiLine(false);
-        m_scaleEditor.setJustification(juce::Justification::centredLeft);
-        m_scaleEditor.setText(juce::String(m_appState.m_appScale), juce::dontSendNotification);
-        addAndMakeVisible(m_scaleEditor);
-
-        m_scaleEditor.onFocusLost = [this]() { updateScaling(); };
-        m_scaleEditor.onReturnKey = [this]() { updateScaling(); };
+        m_scaleSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+        m_scaleSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 22);
+        m_scaleSlider.setTextValueSuffix("x");
+        m_scaleSlider.setRange(0.2, 3.0, 0.01);
+        m_scaleSlider.setNumDecimalPlacesToDisplay(2);
+        m_scaleSlider.setSliderSnapsToMousePosition(false);
+        m_scaleSlider.setMouseDragSensitivity(800);
+        m_scaleSlider.setValue(juce::jlimit(0.2f, 3.0f, (float)m_appState.m_appScale.get()), juce::dontSendNotification);
+        addAndMakeVisible(m_scaleSlider);
+        m_scaleSlider.onValueChange = [this]() { updateScale(); };
 
         m_mouseScaleLabel.setText("Mouse Cursor Scaling:", juce::dontSendNotification);
         addAndMakeVisible(m_mouseScaleLabel);
@@ -278,8 +282,18 @@ public:
         m_mouseScaleEditor.setText(juce::String(m_appState.m_mouseCursorScale), juce::dontSendNotification);
         addAndMakeVisible(m_mouseScaleEditor);
 
-        m_mouseScaleEditor.onFocusLost = [this]() { updateScaling(); };
-        m_mouseScaleEditor.onReturnKey = [this]() { updateScaling(); };
+        m_mouseScaleEditor.onFocusLost = [this]() { updateMouseScale(); };
+        m_mouseScaleEditor.onReturnKey = [this]() { updateMouseScale(); };
+
+        m_contentPathLabel.setText("Content Folder:", juce::dontSendNotification);
+        addAndMakeVisible(m_contentPathLabel);
+
+        m_changeContentPathButton.onClick = [this]() { chooseContentPath(); };
+        addAndMakeVisible(m_changeContentPathButton);
+
+        m_contentPathValue.setJustificationType(juce::Justification::centredLeft);
+        addAndMakeVisible(m_contentPathValue);
+        updateContentPathLabel();
 
         m_themeLabel.setText("Theme Colors:", juce::dontSendNotification);
         addAndMakeVisible(m_themeLabel);
@@ -292,6 +306,8 @@ public:
         m_viewport->setViewedComponent(m_colourSettingsPanel.get(), false);
     }
 
+    void setOnContentPathChanged(std::function<void()> callback) { m_onContentPathChanged = std::move(callback); }
+
     void resized() override
     {
         auto bounds = getLocalBounds();
@@ -301,11 +317,19 @@ public:
 
         auto scaleRow = bounds.removeFromTop(rowHeight);
         m_scaleLabel.setBounds(scaleRow.removeFromLeft(140));
-        m_scaleEditor.setBounds(scaleRow.removeFromLeft(100).reduced(2));
+        m_scaleSlider.setBounds(scaleRow.reduced(2));
 
         auto mouseScaleRow = bounds.removeFromTop(rowHeight);
         m_mouseScaleLabel.setBounds(mouseScaleRow.removeFromLeft(140));
         m_mouseScaleEditor.setBounds(mouseScaleRow.removeFromLeft(100).reduced(2));
+
+        auto contentPathRow = bounds.removeFromTop(rowHeight);
+        m_contentPathLabel.setBounds(contentPathRow.removeFromLeft(140));
+        m_changeContentPathButton.setBounds(contentPathRow.removeFromLeft(110).reduced(2));
+
+        auto contentPathValueRow = bounds.removeFromTop(rowHeight);
+        contentPathValueRow.removeFromLeft(140);
+        m_contentPathValue.setBounds(contentPathValueRow.reduced(2));
 
         bounds.removeFromTop(padding / 2);
         m_themeLabel.setBounds(bounds.removeFromTop(rowHeight));
@@ -323,26 +347,101 @@ public:
 private:
     ApplicationViewState &m_appState;
     juce::Label m_scaleLabel;
-    juce::TextEditor m_scaleEditor;
+    juce::Slider m_scaleSlider;
     juce::Label m_mouseScaleLabel;
     juce::TextEditor m_mouseScaleEditor;
+    juce::Label m_contentPathLabel;
+    juce::Label m_contentPathValue;
+    juce::TextButton m_changeContentPathButton{"Change..."};
     juce::Label m_themeLabel;
     std::unique_ptr<juce::Viewport> m_viewport;
     std::unique_ptr<ColourSettingsPanel> m_colourSettingsPanel;
+    std::function<void()> m_onContentPathChanged;
 
-    void updateScaling()
+    static bool ensureDirectory(const juce::File &directory, juce::StringArray &errors)
     {
-        float newScale = m_scaleEditor.getText().getFloatValue();
-        if (newScale >= 0.2f && newScale <= 3.0f)
+        if (directory.existsAsFile())
         {
-            juce::Desktop::getInstance().setGlobalScaleFactor(newScale);
-            m_appState.m_appScale = newScale;
-        }
-        else
-        {
-            m_scaleEditor.setText(juce::String(juce::Desktop::getInstance().getGlobalScaleFactor()), juce::dontSendNotification);
+            errors.add("Path exists as file: " + directory.getFullPathName());
+            return false;
         }
 
+        if (directory.exists() && directory.isDirectory())
+            return true;
+
+        if (!directory.createDirectory() && !(directory.exists() && directory.isDirectory()))
+        {
+            errors.add("Unable to create directory: " + directory.getFullPathName());
+            return false;
+        }
+
+        return true;
+    }
+
+    static bool ensureContentLayout(const juce::File &root, juce::StringArray &errors)
+    {
+        if (!ensureDirectory(root, errors))
+            return false;
+
+        if (!ensureDirectory(root.getChildFile("Presets"), errors))
+            return false;
+        if (!ensureDirectory(root.getChildFile("Clips"), errors))
+            return false;
+        if (!ensureDirectory(root.getChildFile("Renders"), errors))
+            return false;
+        if (!ensureDirectory(root.getChildFile("Samples"), errors))
+            return false;
+        if (!ensureDirectory(root.getChildFile("Projects"), errors))
+            return false;
+
+        return true;
+    }
+
+    void showError(const juce::String &message) { juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Content Folder", message); }
+
+    void updateContentPathLabel()
+    {
+        const auto path = m_appState.m_workDir.get();
+        m_contentPathValue.setText(path, juce::dontSendNotification);
+        m_contentPathValue.setTooltip(path);
+    }
+
+    void chooseContentPath()
+    {
+        const auto currentRoot = juce::File(m_appState.m_workDir.get());
+        juce::FileChooser chooser("Select NextStudio User Folder...", currentRoot, "*");
+        if (!chooser.browseForDirectory())
+            return;
+
+        const auto newRoot = chooser.getResult();
+        if (!newRoot.isDirectory() || newRoot == currentRoot)
+            return;
+
+        juce::StringArray layoutErrors;
+        if (!ensureContentLayout(newRoot, layoutErrors))
+        {
+            showError(layoutErrors.joinIntoString("\n"));
+            return;
+        }
+
+        m_appState.setRootFolder(newRoot);
+        m_appState.m_setupComplete = true;
+        m_appState.saveState();
+        updateContentPathLabel();
+
+        if (m_onContentPathChanged)
+            m_onContentPathChanged();
+    }
+
+    void updateScale()
+    {
+        const auto newScale = (float)m_scaleSlider.getValue();
+        juce::Desktop::getInstance().setGlobalScaleFactor(newScale);
+        m_appState.m_appScale = newScale;
+    }
+
+    void updateMouseScale()
+    {
         float newMouseScale = m_mouseScaleEditor.getText().getFloatValue();
         if (newMouseScale >= 0.2 && newMouseScale <= 3.0f)
         {
@@ -384,6 +483,7 @@ public:
         m_generalSettings.getColourSettings()->addChangeListener(this);
     }
     ~SettingsView() override { m_generalSettings.getColourSettings()->removeChangeListener(this); }
+    void setOnContentPathChanged(std::function<void()> callback) { m_generalSettings.setOnContentPathChanged(std::move(callback)); }
     void changeListenerCallback(juce::ChangeBroadcaster *source) override
     {
         m_keyMappingEditor.setColours(m_appState.getBackgroundColour2(), m_appState.getTextColour());

@@ -79,6 +79,7 @@ DECLARE_ID(PreviewSliderPos)
 DECLARE_ID(PreviewLoop)
 DECLARE_ID(SidebarCollapsed)
 DECLARE_ID(ExclusiveMidiFocusEnabled)
+DECLARE_ID(SetupComplete)
 #undef DECLARE_ID
 } // namespace IDs
 
@@ -184,6 +185,7 @@ public:
         m_previewLoop.referTo(behavior, IDs::PreviewLoop, nullptr, false);
         m_sidebarCollapsed.referTo(behavior, IDs::SidebarCollapsed, nullptr, false);
         m_exclusiveMidiFocusEnabled.referTo(behavior, IDs::ExclusiveMidiFocusEnabled, nullptr, true);
+        m_setupComplete.referTo(behavior, IDs::SetupComplete, nullptr, false);
 
         themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
         themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
@@ -262,6 +264,16 @@ public:
         m_windowYpos = bounds.getY();
         m_windowWidth = bounds.getWidth();
         m_windowHeight = bounds.getHeight();
+    }
+
+    void setRootFolder(const juce::File &newRoot)
+    {
+        m_workDir = newRoot.getFullPathName();
+        m_presetDir = newRoot.getChildFile("Presets").getFullPathName();
+        m_clipsDir = newRoot.getChildFile("Clips").getFullPathName();
+        m_renderDir = newRoot.getChildFile("Renders").getFullPathName();
+        m_samplesDir = newRoot.getChildFile("Samples").getFullPathName();
+        m_projectsDir = newRoot.getChildFile("Projects").getFullPathName();
     }
 
     void saveState()
@@ -366,7 +378,7 @@ public:
     juce::CachedValue<juce::String> m_workDir, m_presetDir, m_clipsDir, m_samplesDir, m_renderDir, m_projectsDir, m_guiBackground1, m_mainFrameColour, m_primeColour, m_borderColour, m_buttonBackgroundColour, m_buttonTextColour, m_textColour, m_timeLine_strokeColour, m_timeLine_background, m_timeLine_shadowShade, m_timeLine_textColour, m_trackBackgroundColour, m_trackHeaderBackgroundColour, m_trackHeaderTextColour, m_guiBackground2, m_guiBackground3;
     juce::CachedValue<int> m_windowXpos, m_windowYpos, m_windowWidth, m_windowHeight, m_folderTrackIndent, m_autoSaveInterval, m_sidebarWidth;
     juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos;
-    juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_exclusiveMidiFocusEnabled;
+    juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_exclusiveMidiFocusEnabled, m_setupComplete;
     const int m_minSidebarWidth{250};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ApplicationViewState)
 };

@@ -131,6 +131,7 @@ target_sources(${TargetName} PRIVATE
         Source/UI/PositionDisplayComponent.cpp
         Source/UI/PreviewComponent.cpp
         Source/UI/SampleDisplay.cpp
+        Source/UI/SetupWizard.cpp
         Source/UI/SplitterComponent.cpp
         Source/Utilities/EditViewState.cpp
         Source/Utilities/ThumbNailManager.cpp
