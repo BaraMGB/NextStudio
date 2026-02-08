@@ -37,21 +37,54 @@ void VelocityEditor::paint(juce::Graphics &g)
 
 void VelocityEditor::mouseDown(const juce::MouseEvent &)
 {
-    if (auto n = getHoveredNote())
+    m_dragVelocityStates.clear();
+    m_dragReferenceNote = nullptr;
+
+    if (auto *hoveredNote = getHoveredNote())
     {
-        m_cachedVelocity = n->getVelocity();
+        m_dragReferenceNote = hoveredNote;
+
+        if (auto *selectedEvents = m_editViewState.m_selectionManager.getFirstItemOfType<te::SelectedMidiEvents>(); selectedEvents != nullptr && selectedEvents->isSelected(hoveredNote))
+        {
+            for (auto *note : selectedEvents->getSelectedNotes())
+                m_dragVelocityStates.add({note, note->getVelocity()});
+        }
+
+        if (m_dragVelocityStates.isEmpty())
+            m_dragVelocityStates.add({hoveredNote, hoveredNote->getVelocity()});
     }
 }
 
 void VelocityEditor::mouseDrag(const juce::MouseEvent &e)
 {
-    if (auto n = getHoveredNote())
+    if (m_dragVelocityStates.isEmpty())
+        return;
+
+    const int velocityDelta = -e.getDistanceFromDragStartY();
+    int lastVelocity = m_editViewState.m_lastVelocity;
+    bool updatedReferenceVelocity = false;
+
+    for (const auto &state : m_dragVelocityStates)
     {
-        auto v = juce::jlimit(0, 127, m_cachedVelocity - e.getDistanceFromDragStartY());
-        n->setVelocity(v, &m_editViewState.m_edit.getUndoManager());
-        m_editViewState.m_lastVelocity = v;
-        repaint();
+        if (state.note == nullptr)
+            continue;
+
+        const int velocity = juce::jlimit(0, 127, state.startVelocity + velocityDelta);
+        state.note->setVelocity(velocity, &m_editViewState.m_edit.getUndoManager());
+
+        if (!updatedReferenceVelocity && state.note == m_dragReferenceNote)
+        {
+            lastVelocity = velocity;
+            updatedReferenceVelocity = true;
+        }
+        else if (!updatedReferenceVelocity)
+        {
+            lastVelocity = velocity;
+        }
     }
+
+    m_editViewState.m_lastVelocity = lastVelocity;
+    repaint();
 }
 
 void VelocityEditor::mouseMove(const juce::MouseEvent &e)
@@ -70,7 +103,11 @@ void VelocityEditor::mouseExit(const juce::MouseEvent &)
     repaint();
 }
 
-void VelocityEditor::mouseUp(const juce::MouseEvent &) {}
+void VelocityEditor::mouseUp(const juce::MouseEvent &)
+{
+    m_dragVelocityStates.clear();
+    m_dragReferenceNote = nullptr;
+}
 
 void VelocityEditor::mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) {}
 

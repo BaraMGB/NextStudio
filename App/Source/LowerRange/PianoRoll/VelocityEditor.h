@@ -48,6 +48,12 @@ public:
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
 private:
+    struct DragVelocityState
+    {
+        te::MidiNote *note{};
+        int startVelocity{};
+    };
+
     EditViewState &m_editViewState;
     te::Track::Ptr m_track;
 
@@ -61,6 +67,7 @@ private:
     int getVelocity(int y);
     void clearNotesFlags();
     te::MidiNote *getHoveredNote();
-    int m_cachedVelocity;
+    juce::Array<DragVelocityState> m_dragVelocityStates;
+    te::MidiNote *m_dragReferenceNote{nullptr};
     juce::String m_timeLineID;
 };
