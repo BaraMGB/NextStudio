@@ -27,6 +27,8 @@ void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewpor
     m_dragStartPos = event.getPosition();
     m_lastDragPos = m_dragStartPos;
     m_isDragging = false;
+    m_hasPlayedDragGuideNote = false;
+    m_lastGuideNoteDelta = 0;
 
     viewport.setClickedNote(nullptr);
     viewport.setClickedClip(nullptr);
@@ -108,10 +110,18 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
                 m_draggedTimeDelta = newTime - oldTime;
                 m_draggedNoteDelta = viewport.getNoteNumber(event.y) - clickedNote->getNoteNumber();
 
-                viewport.getClickedClip()->getAudioTrack()->turnOffGuideNotes();
+                const bool shouldPlayGuideNotes = !m_hasPlayedDragGuideNote || (m_draggedNoteDelta != m_lastGuideNoteDelta);
 
-                for (auto n : viewport.getSelectedNotes())
-                    viewport.playGuideNote(viewport.getSelectedEvents().clipForEvent(n), n->getNoteNumber() + m_draggedNoteDelta, n->getVelocity());
+                if (shouldPlayGuideNotes)
+                {
+                    viewport.getClickedClip()->getAudioTrack()->turnOffGuideNotes();
+
+                    for (auto n : viewport.getSelectedNotes())
+                        viewport.playGuideNote(viewport.getSelectedEvents().clipForEvent(n), n->getNoteNumber() + m_draggedNoteDelta, n->getVelocity());
+
+                    m_hasPlayedDragGuideNote = true;
+                    m_lastGuideNoteDelta = m_draggedNoteDelta;
+                }
             }
             break;
 
@@ -243,6 +253,8 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
     m_draggedNoteDelta = 0;
     m_leftTimeDelta = 0.0;
     m_rightTimeDelta = 0.0;
+    m_hasPlayedDragGuideNote = false;
+    m_lastGuideNoteDelta = 0;
 
     viewport.cleanUpFlags();
     viewport.repaint();
