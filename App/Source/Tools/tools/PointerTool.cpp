@@ -61,7 +61,7 @@ void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewpor
     {
         // Empty space - don't immediately switch to LassoTool. Defer starting lasso until
         // the user drags the mouse to allow double-clicks to be detected by PointerTool.
-        m_evs.m_selectionManager.deselectAll();
+        viewport.unselectAll();
         m_pendingLassoStart = true;
     }
 }

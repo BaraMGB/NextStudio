@@ -25,8 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
-
-namespace te = tracktion_engine;
+#include <functional>
 
 class VirtualKeyboardComponent : public juce::KeyboardComponentBase
 {
@@ -66,14 +65,15 @@ public:
 class KeyboardView : public juce::Component
 {
 public:
-    explicit KeyboardView(EditViewState &evs, te::Track::Ptr track, juce::String timeLineID)
+    explicit KeyboardView(EditViewState &evs, juce::String timeLineID)
         : m_editViewState(evs),
-          m_track(track),
           m_timeLineID(timeLineID)
     {
         addAndMakeVisible(&m_keyboard);
     }
     ~KeyboardView() = default;
+
+    void setOnKeyClicked(std::function<void(int midiNoteNumber, bool addToSelection)> callback) { m_onKeyClicked = std::move(callback); }
 
     void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &e) override;
@@ -85,8 +85,7 @@ private:
 
     EditViewState &m_editViewState;
     VirtualKeyboardComponent m_keyboard;
-
-    te::Track::Ptr m_track;
+    std::function<void(int midiNoteNumber, bool addToSelection)> m_onKeyClicked;
 
     float m_clickedKey;
     double m_keyWidthCached;

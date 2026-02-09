@@ -25,14 +25,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 void KeyboardView::mouseDown(const juce::MouseEvent &e)
 {
+    const int clickedKey = juce::jlimit(0, 127, static_cast<int>(getKey(e.y)));
+
     if (m_keyboard.getBounds().contains(e.getPosition()))
     {
+        if (m_onKeyClicked)
+            m_onKeyClicked(clickedKey, e.mods.isShiftDown());
+
         if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState.m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, getKey(e.y), .8f), 0);
+            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, clickedKey, .8f), 0);
     }
 
     m_keyWidthCached = m_editViewState.getViewYScale(m_timeLineID);
-    m_clickedKey = getKey(e.y);
+    m_clickedKey = static_cast<float>(clickedKey);
 }
 void KeyboardView::mouseDrag(const juce::MouseEvent &e)
 {

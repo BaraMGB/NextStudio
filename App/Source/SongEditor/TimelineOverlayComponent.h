@@ -23,8 +23,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/EditViewState.h"
 #include "SongEditor/TimeLineComponent.h"
+#include "Utilities/EditViewState.h"
 
 namespace te = tracktion_engine;
 
@@ -43,7 +43,7 @@ private:
     void mouseUp(const juce::MouseEvent &e) override;
 
     std::vector<te::MidiClip *> getMidiClipsOfTrack();
-    tracktion_engine::MidiClip *getMidiClipByPos(int x);
+    tracktion_engine::MidiClip *getMidiClipAtPoint(juce::Point<int> point);
 
     int timeToX(double time);
     double xToBeats(int x);
@@ -62,6 +62,7 @@ private:
     te::MidiClip *m_cachedClip{};
     TimeLineComponent &m_timelineComponent;
     juce::Array<juce::Rectangle<int>> m_clipRects;
+    juce::Array<te::MidiClip *> m_clipsForRects;
     juce::Rectangle<int> m_draggedClipRect;
     double m_draggedTimeDelta;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimelineOverlayComponent)

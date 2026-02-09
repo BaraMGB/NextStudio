@@ -350,8 +350,9 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track)
     m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track, m_timeLine.getTimeLineID());
     addAndMakeVisible(*m_velocityEditor);
 
-    m_keyboard = std::make_unique<KeyboardView>(m_editViewState, track, m_timeLine.getTimeLineID());
+    m_keyboard = std::make_unique<KeyboardView>(m_editViewState, m_timeLine.getTimeLineID());
     addAndMakeVisible(*m_keyboard);
+    m_keyboard->setOnKeyClicked([this](int midiNoteNumber, bool addToSelection) { handleKeyboardKeyClick(midiNoteNumber, addToSelection); });
     resized();
 }
 void PianoRollEditor::clearTrack()
@@ -417,6 +418,122 @@ void PianoRollEditor::handleAsyncUpdate()
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateTracks))
         clearTrack();
+}
+
+void PianoRollEditor::handleKeyboardKeyClick(int midiNoteNumber, bool addToSelection)
+{
+    if (m_pianoRollViewPort == nullptr)
+        return;
+
+    selectNotesOfKeyInCurrentClip(midiNoteNumber, addToSelection);
+}
+
+juce::Array<te::MidiClip *> PianoRollEditor::getSelectedMidiClipsOnTrack() const
+{
+    juce::Array<te::MidiClip *> clips;
+    if (m_pianoRollViewPort == nullptr)
+        return clips;
+
+    const auto track = m_pianoRollViewPort->getTrack();
+    for (auto *clip : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
+    {
+        if (auto *midiClip = dynamic_cast<te::MidiClip *>(clip))
+        {
+            if (track != nullptr && midiClip->getTrack() == track.get())
+                clips.add(midiClip);
+        }
+    }
+
+    return clips;
+}
+
+bool PianoRollEditor::hasSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents) const
+{
+    for (auto *clip : clips)
+    {
+        for (auto *note : clip->getSequence().getNotes())
+        {
+            if (note->getNoteNumber() != midiNoteNumber)
+                continue;
+
+            if (selectedEvents.isSelected(note))
+                return true;
+        }
+    }
+
+    return false;
+}
+
+void PianoRollEditor::removeSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents)
+{
+    for (auto *clip : clips)
+    {
+        for (auto *note : clip->getSequence().getNotes())
+        {
+            if (note->getNoteNumber() != midiNoteNumber)
+                continue;
+
+            if (selectedEvents.isSelected(note))
+                selectedEvents.removeSelectedEvent(note);
+        }
+    }
+}
+
+std::pair<te::MidiClip *, te::MidiNote *> PianoRollEditor::selectNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, bool addToSelection)
+{
+    bool add = addToSelection;
+    te::MidiNote *firstSelectedNote = nullptr;
+    te::MidiClip *firstSelectedClip = nullptr;
+
+    for (auto *clip : clips)
+    {
+        for (auto *note : clip->getSequence().getNotes())
+        {
+            if (note->getNoteNumber() != midiNoteNumber)
+                continue;
+
+            if (firstSelectedNote == nullptr)
+            {
+                firstSelectedNote = note;
+                firstSelectedClip = clip;
+            }
+
+            m_pianoRollViewPort->setNoteSelected(note, add);
+            add = true;
+        }
+    }
+
+    return {firstSelectedClip, firstSelectedNote};
+}
+
+void PianoRollEditor::selectNotesOfKeyInCurrentClip(int midiNoteNumber, bool addToSelection)
+{
+    if (m_pianoRollViewPort == nullptr)
+        return;
+
+    const auto clips = getSelectedMidiClipsOnTrack();
+    if (clips.isEmpty())
+        return;
+
+    auto &selectedEvents = m_pianoRollViewPort->getSelectedEvents();
+
+    // Shift-click toggles this pitch: if any are selected, remove them all.
+    if (addToSelection && hasSelectedNotesOfKey(clips, midiNoteNumber, selectedEvents))
+    {
+        removeSelectedNotesOfKey(clips, midiNoteNumber, selectedEvents);
+        m_pianoRollViewPort->setClickedNote(nullptr);
+        m_pianoRollViewPort->repaint();
+        return;
+    }
+
+    if (!addToSelection)
+        m_pianoRollViewPort->unselectAll();
+
+    const auto selection = selectNotesOfKey(clips, midiNoteNumber, addToSelection);
+    if (selection.first != nullptr)
+        m_pianoRollViewPort->setClickedClip(selection.first);
+    m_pianoRollViewPort->setClickedNote(selection.second);
+    m_pianoRollViewPort->repaint();
 }
 juce::Rectangle<int> PianoRollEditor::getHeaderRect()
 {
