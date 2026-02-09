@@ -81,5 +81,12 @@ void MixerComponent::buildChannelStrips()
         m_channelStrips.add(strip);
         m_channelStripContainer.addAndMakeVisible(strip);
     }
+
+    if (auto *masterTrack = m_evs.m_edit.getMasterTrack())
+    {
+        auto strip = new MixerChannelStripComponent(m_evs, masterTrack);
+        m_channelStrips.add(strip);
+        m_channelStripContainer.addAndMakeVisible(strip);
+    }
     resized();
 }

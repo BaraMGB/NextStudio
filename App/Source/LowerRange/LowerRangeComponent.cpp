@@ -163,7 +163,7 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
         return;
     }
 
-    if (v.hasType(te::IDs::TRACK) || v.hasType(te::IDs::FOLDERTRACK))
+    if (v.hasType(te::IDs::TRACK) || v.hasType(te::IDs::FOLDERTRACK) || v.hasType(te::IDs::MASTERTRACK))
     {
         if (i == IDs::showLowerRange)
         {

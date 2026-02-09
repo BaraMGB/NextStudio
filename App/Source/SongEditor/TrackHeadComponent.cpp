@@ -21,10 +21,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SongEditor/TrackHeadComponent.h"
-#include "SongEditor/EditComponent.h"
-#include "Utilities/EditViewState.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
 #include "SideBrowser/PluginBrowser.h"
+#include "SongEditor/EditComponent.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 #include "juce_graphics/juce_graphics.h"
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter::Ptr ap, EditViewState &evs)
@@ -243,6 +243,39 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
 
             m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
             m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
+        }
+    }
+
+    if (m_track->isMasterTrack())
+    {
+        auto masterVol = m_track->edit.getMasterVolumePlugin();
+        GUIHelpers::log("Master header: master volume plugin " + juce::String(masterVol != nullptr ? "found" : "missing"));
+
+        m_soloButton.setVisible(false);
+        m_soloButton.setEnabled(false);
+        m_armButton.setVisible(false);
+        m_armButton.setEnabled(false);
+
+        m_trackName.setText("Master", juce::dontSendNotification);
+
+        if (masterVol != nullptr)
+        {
+            m_muteButton.onClick = [this, masterVol]
+            {
+                masterVol->muteOrUnmute();
+                m_muteButton.setToggleState(masterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
+            };
+
+            m_muteButton.setToggleState(masterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
+
+            m_volumeKnob = std::make_unique<AutomatableSliderComponent>(m_track->edit.getMasterSliderPosParameter());
+            m_volumeKnob->setOpaque(false);
+            addAndMakeVisible(m_volumeKnob.get());
+            m_volumeKnob->setRange(0.0f, 3.0f, 0.01f);
+            m_volumeKnob->setSkewFactorFromMidPoint(1.0f);
+            m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+            m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
+            GUIHelpers::log("Master header: volume knob created");
         }
     }
 
@@ -580,7 +613,7 @@ void TrackHeaderComponent::buildAutomationHeader()
 {
     m_automationHeaders.clear(true);
 
-    m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_track->edit));
+    m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromEdit(m_track->edit);
 
     auto *trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
     if (trackInfo == nullptr)
@@ -804,7 +837,8 @@ void TrackHeaderComponent::mouseDown(const juce::MouseEvent &event)
             }
             else if (event.getNumberOfClicks() > 1)
             {
-                m_trackName.showEditor();
+                if (!m_track->isMasterTrack())
+                    m_trackName.showEditor();
             }
             else
             {
@@ -819,6 +853,14 @@ void TrackHeaderComponent::mouseDown(const juce::MouseEvent &event)
                     {
                         t->state.setProperty(IDs::showLowerRange, true, nullptr);
                     }
+                }
+
+                if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
+                {
+                    if (m_track->isMasterTrack())
+                        masterTrack->state.setProperty(IDs::showLowerRange, true, nullptr);
+                    else
+                        masterTrack->state.setProperty(IDs::showLowerRange, false, nullptr);
                 }
             }
         }
@@ -959,6 +1001,9 @@ void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDeta
 
 void TrackHeaderComponent::labelTextChanged(juce::Label *labelThatHasChanged)
 {
+    if (m_track->isMasterTrack())
+        return;
+
     if (labelThatHasChanged == &m_trackName)
     {
         m_track->setName(labelThatHasChanged->getText());

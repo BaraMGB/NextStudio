@@ -625,6 +625,14 @@ void SongEditorView::setPianoRoll(te::Track *track)
         if (t == track)
             t->state.setProperty(IDs::showLowerRange, true, nullptr);
     }
+
+    if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
+    {
+        if (track != nullptr && track->isMasterTrack())
+            masterTrack->state.setProperty(IDs::showLowerRange, true, nullptr);
+        else
+            masterTrack->state.setProperty(IDs::showLowerRange, false, nullptr);
+    }
 }
 
 void SongEditorView::updateClipCache()
