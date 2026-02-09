@@ -35,8 +35,23 @@ bool isMasterAutomationParameter(const te::AutomatableParameter::Ptr &ap)
     if (ap == nullptr)
         return false;
 
+    if (auto *track = ap->getTrack())
+        return track->isMasterTrack();
+
     auto &edit = ap->getEdit();
-    return ap == edit.getMasterSliderPosParameter() || ap == edit.getMasterPanParameter();
+    if (ap == edit.getMasterSliderPosParameter() || ap == edit.getMasterPanParameter())
+        return true;
+
+    if (auto *masterTrack = edit.getMasterTrack())
+    {
+        for (auto *masterParam : masterTrack->getAllAutomatableParams())
+        {
+            if (masterParam == ap.get())
+                return true;
+        }
+    }
+
+    return false;
 }
 } // namespace
 
