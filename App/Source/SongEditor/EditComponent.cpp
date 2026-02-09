@@ -473,7 +473,7 @@ void EditComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Ide
     }
 }
 
-void EditComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
+void EditComponent::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree &c)
 {
     if (te::MidiClip::isClipState(c))
     {
@@ -486,7 +486,9 @@ void EditComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
     }
     if (c.hasType(te::IDs::POINT))
     {
-        markAndUpdate(m_updateTracks);
+        if (parent.hasType(te::IDs::AUTOMATIONCURVE) && parent.getNumChildren() == 1)
+            markAndUpdate(m_updateTracks);
+
         markAndUpdate(m_verticalUpdateSongEditor);
     }
     if (c.hasType(te::IDs::AUTOMATIONCURVE))
@@ -497,7 +499,7 @@ void EditComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
     }
 }
 
-void EditComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c, int)
+void EditComponent::valueTreeChildRemoved(juce::ValueTree &parent, juce::ValueTree &c, int)
 {
     if (te::MidiClip::isClipState(c))
     {
@@ -509,7 +511,10 @@ void EditComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c,
     }
     if (c.hasType(te::IDs::POINT))
     {
-        markAndUpdate(m_updateTracks);
+        if (parent.hasType(te::IDs::AUTOMATIONCURVE) && parent.getNumChildren() == 0)
+            markAndUpdate(m_updateTracks);
+
+        markAndUpdate(m_verticalUpdateSongEditor);
     }
     if (c.hasType(te::IDs::PLUGIN))
     {
