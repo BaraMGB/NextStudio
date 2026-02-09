@@ -21,8 +21,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SideBrowser/Browser_Base.h"
-#include "Utilities/EditViewState.h"
 #include "SongEditor/TrackHeadComponent.h"
+#include "Utilities/EditViewState.h"
 
 class TrackListView
     : public juce::Component
@@ -36,14 +36,9 @@ public:
           m_timeLineID(timeLineID)
     {
         m_editViewState.m_trackHeightManager->addChangeListener(this);
-        m_editViewState.m_selectionManager.addChangeListener(this);
         setWantsKeyboardFocus(true);
     }
-    ~TrackListView()
-    {
-        m_editViewState.m_selectionManager.removeChangeListener(this);
-        m_editViewState.m_trackHeightManager->removeChangeListener(this);
-    }
+    ~TrackListView() { m_editViewState.m_trackHeightManager->removeChangeListener(this); }
 
     void resized() override;
 
@@ -72,6 +67,7 @@ public:
 
     void addHeaderView(std::unique_ptr<TrackHeaderComponent> header);
     void updateViews();
+    void repaintTrackHeaders();
 
     void clear();
 

@@ -199,6 +199,12 @@ void TrackListView::updateViews()
     resized();
 }
 
+void TrackListView::repaintTrackHeaders()
+{
+    for (auto th : m_trackHeaders)
+        th->repaint();
+}
+
 void TrackListView::clear()
 {
     m_trackHeaders.clear(true);
@@ -236,10 +242,6 @@ void TrackListView::collapseTracks(bool minimize)
 
 void TrackListView::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (source == &m_editViewState.m_selectionManager)
-        for (auto th : m_trackHeaders)
-            th->repaint();
-
     if (source == m_editViewState.m_trackHeightManager.get())
     {
         resized();
