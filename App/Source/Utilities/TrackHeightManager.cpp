@@ -30,9 +30,6 @@ void TrackHeightManager::regenerateTrackHeightsFromEdit(tracktion_engine::Edit &
     edit.ensureMasterTrack();
 
     auto allTracks = tracktion::getAllTracks(edit);
-    if (auto *masterTrack = edit.getMasterTrack())
-        allTracks.add(masterTrack);
-
     regenerateTrackHeightsFromStates(allTracks);
 }
 

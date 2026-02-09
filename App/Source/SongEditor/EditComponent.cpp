@@ -134,7 +134,22 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_toolBar.setButtonGap(4, 30);
 
     markAndUpdate(m_updateTracks);
-    m_editViewState.m_selectionManager.selectOnly(te::getAllTracks(m_edit).getLast());
+
+    auto allTracks = te::getAllTracks(m_edit);
+    te::Track *lastNonMasterTrack = nullptr;
+
+    for (int i = allTracks.size(); --i >= 0;)
+    {
+        auto *track = allTracks.getUnchecked(i);
+        if (track != nullptr && !track->isMasterTrack())
+        {
+            lastNonMasterTrack = track;
+            break;
+        }
+    }
+
+    if (lastNonMasterTrack != nullptr)
+        m_editViewState.m_selectionManager.selectOnly(lastNonMasterTrack);
 
     markAndUpdate(m_verticalUpdateSongEditor);
     updateHorizontalScrollBar();

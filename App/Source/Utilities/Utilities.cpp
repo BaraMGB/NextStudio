@@ -1669,7 +1669,27 @@ tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(tracktion_e
 }
 tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(juce::Colour trackColour, EditViewState &evs)
 {
-    te::TrackInsertPoint tip(*te::getAllTracks(evs.m_edit).getLast(), false);
+    evs.m_edit.ensureMasterTrack();
+
+    auto allTracks = te::getAllTracks(evs.m_edit);
+    te::TrackInsertPoint tip{nullptr, nullptr};
+
+    te::Track *lastNonMasterTrack = nullptr;
+    for (int i = allTracks.size(); --i >= 0;)
+    {
+        auto *track = allTracks.getUnchecked(i);
+        if (track != nullptr && !track->isMasterTrack())
+        {
+            lastNonMasterTrack = track;
+            break;
+        }
+    }
+
+    if (lastNonMasterTrack != nullptr)
+        tip = te::TrackInsertPoint(*lastNonMasterTrack, true);
+    else if (auto *masterTrack = evs.m_edit.getMasterTrack())
+        tip = te::TrackInsertPoint{nullptr, masterTrack};
+
     auto ft = evs.m_edit.insertNewFolderTrack(tip, &evs.m_selectionManager, true);
 
     ft->state.setProperty(te::IDs::height, (int)evs.m_trackDefaultHeight, nullptr);
