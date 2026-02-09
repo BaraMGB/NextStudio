@@ -27,6 +27,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 #include "juce_graphics/juce_graphics.h"
+
+namespace
+{
+bool isMasterAutomationParameter(const te::AutomatableParameter::Ptr &ap)
+{
+    if (ap == nullptr)
+        return false;
+
+    auto &edit = ap->getEdit();
+    return ap == edit.getMasterSliderPosParameter() || ap == edit.getMasterPanParameter();
+}
+} // namespace
+
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter::Ptr ap, EditViewState &evs)
     : m_automatableParameter(ap),
       m_evs(evs),
@@ -61,9 +74,6 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
 
 void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 {
-    if (m_automatableParameter->getTrack() == nullptr)
-        return;
-
     g.setColour(juce::Colours::white);
     const int minimizedHeight = m_evs.m_trackHeightManager->getTrackMinimizedHeight();
     auto area = getLocalBounds().removeFromTop(minimizedHeight);
@@ -85,7 +95,8 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
         strokeHeight = 3;
     }
 
-    auto r = juce::Rectangle<int>(getLocalBounds().removeFromBottom(strokeHeight));
+    const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
+    auto r = juce::Rectangle<int>(resizeFromTop ? getLocalBounds().removeFromTop(strokeHeight) : getLocalBounds().removeFromBottom(strokeHeight));
     r.removeFromLeft(10);
     g.fillRect(r);
 }
@@ -135,10 +146,13 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (event.mouseWasDraggedSinceMouseDown())
     {
-        if (m_mouseDownY > m_heightAtMouseDown - 10)
+        const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
+        const auto resizeHandleHit = resizeFromTop ? (m_mouseDownY < 10) : (m_mouseDownY > m_heightAtMouseDown - 10);
+
+        if (resizeHandleHit)
         {
             m_resizing = true;
-            auto newHeight = static_cast<int>(m_heightAtMouseDown + event.getDistanceFromDragStartY());
+            auto newHeight = static_cast<int>(resizeFromTop ? (m_heightAtMouseDown - event.getDistanceFromDragStartY()) : (m_heightAtMouseDown + event.getDistanceFromDragStartY()));
             newHeight = juce::jlimit(30, 250, newHeight);
             m_evs.m_trackHeightManager->setAutomationHeight(m_automatableParameter, newHeight);
             getParentComponent()->getParentComponent()->resized();
@@ -149,8 +163,9 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
 {
     auto old = m_hovering;
+    const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
 
-    if (event.y > getHeight() - 10)
+    if (resizeFromTop ? (event.y < 10) : (event.y > getHeight() - 10))
     {
         m_hovering = true;
         setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
@@ -164,7 +179,7 @@ void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
     if (m_hovering != old)
     {
         auto stripeRect = getLocalBounds();
-        repaint(stripeRect.removeFromBottom(10));
+        repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
     }
 }
 
@@ -173,8 +188,9 @@ void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent & /*event*/
     m_resizing = false;
     m_hovering = false;
     setMouseCursor(juce::MouseCursor::NormalCursor);
+    const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
     auto stripeRect = getLocalBounds();
-    repaint(stripeRect.removeFromBottom(10));
+    repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
 }
 
 //------------------------------------------------------------------------------
@@ -697,7 +713,9 @@ void TrackHeaderComponent::paint(juce::Graphics &g)
             int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
             if (isFolderTrack())
                 height = m_editViewState.m_folderTrackHeight;
-            g.fillRect(juce::Rectangle<int>(headWidth - 1, height - strokeHeight, getWidth() - headWidth, strokeHeight));
+            const auto resizeFromTop = m_track->isMasterTrack();
+            const auto y = resizeFromTop ? 0 : (height - strokeHeight);
+            g.fillRect(juce::Rectangle<int>(headWidth - 1, y, getWidth() - headWidth, strokeHeight));
         }
 
         if (m_trackIsOver)
@@ -872,10 +890,13 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
     if (event.mouseWasDraggedSinceMouseDown())
     {
         auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
-        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10 && !isMinimized && !isFolderTrack())
+        const auto resizeFromTop = m_track->isMasterTrack();
+        const auto resizeHandleHit = resizeFromTop ? (m_yPosAtMouseDown < 10) : (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10);
+
+        if (resizeHandleHit && !isMinimized && !isFolderTrack())
         {
             m_isResizing = true;
-            auto newHeight = static_cast<int>(m_trackHeightATMouseDown + event.getDistanceFromDragStartY());
+            auto newHeight = static_cast<int>(resizeFromTop ? (m_trackHeightATMouseDown - event.getDistanceFromDragStartY()) : (m_trackHeightATMouseDown + event.getDistanceFromDragStartY()));
 
             auto &trackHeightManager = m_editViewState.m_trackHeightManager;
             trackHeightManager->setTrackHeight(m_track, newHeight);
@@ -907,8 +928,9 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent &e)
         auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
         auto old = m_isHover;
         int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+        const auto resizeFromTop = m_track->isMasterTrack();
 
-        if (e.y > height - 10 && !isMinimized && !isFolderTrack())
+        if ((resizeFromTop ? (e.y < 10) : (e.y > height - 10)) && !isMinimized && !isFolderTrack())
         {
             m_isHover = true;
             setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
@@ -923,7 +945,7 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent &e)
         {
             auto stripeRect = getLocalBounds();
             stripeRect.removeFromBottom(getHeight() - height);
-            repaint(stripeRect.removeFromBottom(10));
+            repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
         }
     }
 }
@@ -933,9 +955,10 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent & /*e*/)
     m_isHover = false;
     setMouseCursor(juce::MouseCursor::NormalCursor);
     int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+    const auto resizeFromTop = m_track->isMasterTrack();
     auto stripeRect = getLocalBounds();
     stripeRect.removeFromBottom(getHeight() - height);
-    repaint(stripeRect.removeFromBottom(10));
+    repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
 }
 
 juce::Colour TrackHeaderComponent::getTrackColour() { return m_track->getColour(); }
