@@ -652,7 +652,7 @@ void TrackHeaderComponent::buildAutomationHeader()
 
     juce::Array<te::AutomatableParameter *> params;
     for (const auto &[ap, height] : trackInfo->automationParameterHeights)
-        if (ap && ap->getCurve().getNumPoints() > 0)
+        if (ap && ap->getCurve().getNumPoints() > 0 && m_editViewState.m_trackHeightManager->isAutomationVisible(*ap))
             params.add(ap);
 
     // Sort the parameters by their ID string to ensure a consistent order

@@ -50,6 +50,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
         masterTrack->setColour(m_editViewState.m_applicationState.getPrimeColour());
 
     m_edit.state.addListener(this);
+    m_editViewState.m_selectionManager.addChangeListener(this);
 
     m_scrollbar_v.setAlwaysOnTop(true);
     m_scrollbar_v.setAutoHide(false);
@@ -158,6 +159,7 @@ EditComponent::~EditComponent()
     m_addAudioTrackBtn.removeListener(this);
     m_scrollbar_h.removeListener(this);
     m_scrollbar_v.removeListener(this);
+    m_editViewState.m_selectionManager.removeChangeListener(this);
     m_edit.state.removeListener(this);
 }
 
@@ -274,6 +276,19 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event, const juce::Mo
     else
     {
         m_scrollbar_v.setCurrentRangeStart(m_scrollbar_v.getCurrentRangeStart() - wheel.deltaY * 60);
+    }
+}
+
+void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
+{
+    if (source == &m_editViewState.m_selectionManager)
+    {
+        m_trackListView.repaintTrackHeaders();
+
+        if (m_masterHeader)
+            m_masterHeader->repaint();
+        if (m_masterLane)
+            m_masterLane->repaint();
     }
 }
 
@@ -530,18 +545,16 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset(m_verticalUpdateSongEditor))
     {
         m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromEdit(m_edit);
-        m_songEditor.resized();
-        m_trackListView.resized();
+        resized();
+
+        m_trackListView.repaintTrackHeaders();
+        m_songEditor.repaint();
+
         if (m_masterLane)
-        {
-            m_masterLane->resized();
             m_masterLane->repaint();
-        }
         if (m_masterHeader)
-        {
-            m_masterHeader->resized();
             m_masterHeader->repaint();
-        }
+
         updateVerticalScrollbar();
     }
 }

@@ -66,6 +66,7 @@ class EditComponent
     , private te::ValueTreeAllEventListener
     , private FlaggedAsyncUpdater
     , private juce::ScrollBar::Listener
+    , public juce::ChangeListener
     , private juce::Timer
     , public juce::Button::Listener
     , public juce::DragAndDropTarget
@@ -79,6 +80,7 @@ public:
     void resized() override;
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
+    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
     void buttonClicked(juce::Button *button) override;
 

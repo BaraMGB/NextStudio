@@ -498,6 +498,24 @@ bool TrackHeightManager::isAutomationVisible(const tracktion_engine::Automatable
 
     auto *apTrack = ap.getTrack();
 
+    if (apTrack == nullptr)
+    {
+        for (const auto *info : trackInfos)
+        {
+            for (const auto &entry : info->automationParameterHeights)
+            {
+                if (entry.first.get() == &ap)
+                {
+                    apTrack = info->track;
+                    break;
+                }
+            }
+
+            if (apTrack != nullptr)
+                break;
+        }
+    }
+
     if (apTrack != nullptr)
         if (isTrackMinimized(apTrack))
             return false;
