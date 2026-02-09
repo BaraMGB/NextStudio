@@ -252,8 +252,11 @@ void SongEditorView::itemDragMove(const SourceDetails &dragSourceDetails)
     }
     else
     {
-        auto lastTrackID = m_editViewState.m_trackHeightManager->getShowedTracks(m_editViewState.m_edit).getLast();
-        auto lastTrack = m_editViewState.m_trackHeightManager->getTrackFromID(m_editViewState.m_edit, lastTrackID);
+        auto showedTracks = m_editViewState.m_trackHeightManager->getShowedTracks(m_editViewState.m_edit);
+        te::Track::Ptr lastTrack;
+
+        if (!showedTracks.isEmpty())
+            lastTrack = m_editViewState.m_trackHeightManager->getTrackFromID(m_editViewState.m_edit, showedTracks.getLast());
 
         y = lastTrack ? getYForTrack(lastTrack) + m_editViewState.m_trackHeightManager->getTrackHeight(lastTrack, true) : 0;
         h = static_cast<int>(m_editViewState.m_trackDefaultHeight);
