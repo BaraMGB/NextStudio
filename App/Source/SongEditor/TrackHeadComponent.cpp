@@ -63,9 +63,36 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
     addAndMakeVisible(m_parameterName);
     addAndMakeVisible(m_pluginName);
     addAndMakeVisible(m_slider);
-    juce::String pluginDescription = m_automatableParameter->getFullName().fromFirstOccurrenceOf(">>", false, false);
-    juce::String parameterName = pluginDescription.fromFirstOccurrenceOf(">>", false, false);
-    juce::String pluginName = pluginDescription.upToFirstOccurrenceOf(">>", false, false);
+
+    juce::String pluginName;
+    juce::String parameterName = m_automatableParameter->getParameterName();
+
+    if (auto *plugin = m_automatableParameter->getPlugin())
+    {
+        pluginName = plugin->getName();
+    }
+    else
+    {
+        auto pluginAndParam = m_automatableParameter->getPluginAndParamName();
+        if (pluginAndParam.contains(">>"))
+        {
+            pluginName = pluginAndParam.upToFirstOccurrenceOf(">>", false, false).trim();
+            parameterName = pluginAndParam.fromFirstOccurrenceOf(">>", false, false).trim();
+        }
+        else if (isMasterAutomationParameter(m_automatableParameter))
+        {
+            pluginName = "Master";
+            if (m_automatableParameter == m_automatableParameter->getEdit().getMasterSliderPosParameter())
+                parameterName = "Volume";
+            else if (m_automatableParameter == m_automatableParameter->getEdit().getMasterPanParameter())
+                parameterName = "Pan";
+            else if (parameterName.isEmpty())
+                parameterName = pluginAndParam;
+        }
+
+        if (pluginName.isEmpty())
+            pluginName = "Automation";
+    }
 
     m_pluginName.setText(pluginName, juce::dontSendNotification);
     m_pluginName.setJustificationType(juce::Justification::centredLeft);
