@@ -20,8 +20,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SongEditor/AutomationLaneComponent.h"
-#include "Utilities/ScopedSaveLock.h"
 #include "SongEditor/SongEditorView.h"
+#include "Utilities/ScopedSaveLock.h"
 #include "Utilities/TimeUtils.h"
 
 AutomationLaneComponent::AutomationLaneComponent(EditViewState &evs, te::AutomatableParameter::Ptr parameter, juce::String timeLineID, SongEditorView &songEditor)
@@ -420,8 +420,14 @@ juce::OwnedArray<AutomationLaneComponent::CurvePoint> AutomationLaneComponent::g
 
 void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect)
 {
-    if (m_parameter->getTrack() == nullptr || drawRect.getWidth() <= 0 || drawRect.getHeight() <= 0)
+    if (drawRect.getWidth() <= 0 || drawRect.getHeight() <= 0)
         return;
+
+    auto automationColour = m_editViewState.m_applicationState.getPrimeColour();
+    if (auto *track = m_parameter->getTrack())
+        automationColour = track->getColour();
+    else if (auto *masterTrack = m_parameter->getEdit().getMasterTrack())
+        automationColour = masterTrack->getColour();
 
     // Early exit for very small lanes
     if (getHeight() < 5)
@@ -567,7 +573,7 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
         fillPath.lineTo(drawRect.getBottomLeft());
         fillPath.closeSubPath();
 
-        g.setColour(m_parameter->getTrack()->getColour().withAlpha(0.2f));
+        g.setColour(automationColour.withAlpha(0.2f));
         g.fillPath(fillPath);
     }
 

@@ -23,9 +23,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/ApplicationViewState.h"
-#include "UI/Controls/AutomatableSlider.h"
 #include "SongEditor/TrackHeadComponent.h"
+#include "UI/Controls/AutomatableSlider.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
 class NextLookAndFeel : public juce::LookAndFeel_V4
@@ -360,6 +360,11 @@ public:
             if (auto param = automatableSlider->getAutomatableParameter())
             {
                 volumeColour = automatableSlider->getTrackColour();
+                if (auto *track = param->getTrack())
+                    volumeColour = track->getColour();
+                else if (auto *masterTrack = param->getEdit().getMasterTrack())
+                    volumeColour = masterTrack->getColour();
+
                 isAutomationActive = param->isAutomationActive();
                 isModulationActive = !param->getAssignments().isEmpty();
 

@@ -26,6 +26,7 @@ enum class TrackType
 {
     Folder,
     Audio,
+    Master,
     Other // For future extensions
 };
 
@@ -69,6 +70,7 @@ public:
 
     void flashStateFromTrackInfos();
     void regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track *> &allTracks);
+    void regenerateTrackHeightsFromEdit(tracktion_engine::Edit &edit);
 
     TrackHeightInfo *getTrackInfoForTrack(tracktion_engine::Track *track) const;
     tracktion_engine::AutomatableParameter::Ptr findAutomatableParameterByID(tracktion_engine::Track *track, const juce::String &paramID);
