@@ -956,6 +956,9 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
         }
         else
         {
+            if (m_track->isMasterTrack())
+                return;
+
             juce::DragAndDropContainer *dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
 
             if (!dragC->isDragAndDropActive())
