@@ -24,17 +24,43 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 LevelMeterComponent::LevelMeterComponent(te::LevelMeasurer &lm, ChannelType channelType)
     : m_channelType(channelType),
-      m_levelMeasurer(lm)
+      m_levelMeasurer(&lm)
 {
     setOpaque(true);
-    m_levelMeasurer.addClient(m_levelClient);
+    m_levelMeasurer->addClient(m_levelClient);
+    startTimerHz(30);
+}
+
+LevelMeterComponent::LevelMeterComponent(std::function<te::LevelMeasurer *()> levelMeasurerProvider, ChannelType channelType)
+    : m_channelType(channelType),
+      m_levelMeasurerProvider(std::move(levelMeasurerProvider))
+{
+    setOpaque(true);
+    refreshLevelMeasurerSource();
     startTimerHz(30);
 }
 
 LevelMeterComponent::~LevelMeterComponent()
 {
-    m_levelMeasurer.removeClient(m_levelClient);
+    if (m_levelMeasurer != nullptr)
+        m_levelMeasurer->removeClient(m_levelClient);
     stopTimer();
+}
+
+void LevelMeterComponent::refreshLevelMeasurerSource()
+{
+    auto *nextLevelMeasurer = m_levelMeasurerProvider ? m_levelMeasurerProvider() : m_levelMeasurer;
+
+    if (nextLevelMeasurer == m_levelMeasurer)
+        return;
+
+    if (m_levelMeasurer != nullptr)
+        m_levelMeasurer->removeClient(m_levelClient);
+
+    m_levelMeasurer = nextLevelMeasurer;
+
+    if (m_levelMeasurer != nullptr)
+        m_levelMeasurer->addClient(m_levelClient);
 }
 
 void LevelMeterComponent::paint(juce::Graphics &g)
@@ -106,10 +132,21 @@ void LevelMeterComponent::paint(juce::Graphics &g)
 
 void LevelMeterComponent::timerCallback()
 {
+    refreshLevelMeasurerSource();
+
     m_prevLeveldBLeft = m_currentLeveldBLeft;
     m_prevLeveldBRight = m_currentLeveldBRight;
-    m_currentLeveldBLeft = m_levelClient.getAndClearAudioLevel(0).dB;
-    m_currentLeveldBRight = m_levelClient.getAndClearAudioLevel(1).dB;
+
+    if (m_levelMeasurer == nullptr)
+    {
+        m_currentLeveldBLeft = -100.0;
+        m_currentLeveldBRight = -100.0;
+    }
+    else
+    {
+        m_currentLeveldBLeft = m_levelClient.getAndClearAudioLevel(0).dB;
+        m_currentLeveldBRight = m_levelClient.getAndClearAudioLevel(1).dB;
+    }
 
     // Now we give the level bar fading charcteristics.
     // And, the below coversions, decibelsToGain and gainToDecibels,
