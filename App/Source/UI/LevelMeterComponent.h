@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include <functional>
 
 namespace te = tracktion_engine;
 
@@ -39,12 +40,14 @@ public:
     };
 
     explicit LevelMeterComponent(te::LevelMeasurer &lm, ChannelType channelType = ChannelType::Stereo);
+    explicit LevelMeterComponent(std::function<te::LevelMeasurer *()> levelMeasurerProvider, ChannelType channelType = ChannelType::Stereo);
     ~LevelMeterComponent() override;
 
     void paint(juce::Graphics &g) override;
 
 private:
     void timerCallback() override;
+    void refreshLevelMeasurerSource();
 
     const double RANGEMAXdB{3.0};
     const double RANGEMINdB{-30.0};
@@ -55,7 +58,8 @@ private:
     double m_prevLeveldBRight{0.0};
 
     ChannelType m_channelType;
-    te::LevelMeasurer &m_levelMeasurer;
+    te::LevelMeasurer *m_levelMeasurer = nullptr;
     te::LevelMeasurer::Client m_levelClient;
+    std::function<te::LevelMeasurer *()> m_levelMeasurerProvider;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterComponent)
 };

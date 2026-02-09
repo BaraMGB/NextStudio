@@ -117,8 +117,26 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
         if (auto masterVol = m_track->edit.getMasterVolumePlugin())
             m_muteButton.setToggleState(masterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
 
-        m_levelMeterLeft.reset();
-        m_levelMeterRight.reset();
+        m_levelMeterLeft = std::make_unique<LevelMeterComponent>(
+            [this]() -> te::LevelMeasurer *
+            {
+                if (auto epc = m_track->edit.getTransport().getCurrentPlaybackContext())
+                    return &epc->masterLevels;
+
+                return nullptr;
+            },
+            LevelMeterComponent::ChannelType::Left);
+        m_levelMeterRight = std::make_unique<LevelMeterComponent>(
+            [this]() -> te::LevelMeasurer *
+            {
+                if (auto epc = m_track->edit.getTransport().getCurrentPlaybackContext())
+                    return &epc->masterLevels;
+
+                return nullptr;
+            },
+            LevelMeterComponent::ChannelType::Right);
+        addAndMakeVisible(*m_levelMeterLeft);
+        addAndMakeVisible(*m_levelMeterRight);
     }
     else if (auto at = dynamic_cast<te::AudioTrack *>(m_track.get()))
     {

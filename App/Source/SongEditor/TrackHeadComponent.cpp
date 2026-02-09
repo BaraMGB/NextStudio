@@ -307,7 +307,16 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
     if (m_track->isMasterTrack())
     {
         auto masterVol = m_track->edit.getMasterVolumePlugin();
-        GUIHelpers::log("Master header: master volume plugin " + juce::String(masterVol != nullptr ? "found" : "missing"));
+
+        levelMeterComp = std::make_unique<LevelMeterComponent>(
+            [this]() -> te::LevelMeasurer *
+            {
+                if (auto epc = m_track->edit.getTransport().getCurrentPlaybackContext())
+                    return &epc->masterLevels;
+
+                return nullptr;
+            });
+        addAndMakeVisible(levelMeterComp.get());
 
         m_soloButton.setVisible(false);
         m_soloButton.setEnabled(false);
