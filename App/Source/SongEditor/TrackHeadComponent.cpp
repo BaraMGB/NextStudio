@@ -1043,6 +1043,14 @@ void TrackHeaderComponent::itemDragExit(const juce::DragAndDropTarget::SourceDet
 void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &details)
 {
 
+    if (details.description == "Track" && m_track->isMasterTrack())
+    {
+        m_contentIsOver = false;
+        m_trackIsOver = false;
+        repaint();
+        return;
+    }
+
     if (details.description == "PluginListEntry")
     {
         if (auto listbox = dynamic_cast<PluginListbox *>(details.sourceComponent.get()))
