@@ -403,3 +403,9 @@ Updated `TrackLaneComponent::mouseUp` to prevent accidental resource-heavy opera
 - Validated that `InputDeviceInstance` in Tracktion Engine supports multiple targets (multicasting).
 - NextStudio enforces "Exclusive MIDI Focus" by manually clearing old targets before adding the selected track.
 - The default behavior of `InputDeviceInstance::setTarget(..., move=true)` would clear all targets, but NextStudio uses `move=false` and manages targets manually to support multi-selection scenarios.
+
+### Piano Roll Keyboard Selection Behavior
+- Keyboard clicks select notes by pitch across the currently selected MIDI clips on the active track.
+- Shift-click toggles that pitch: if any notes of that pitch are selected, all of them are removed from selection.
+- Selection logic lives in `PianoRollEditor` via a keyboard callback; `KeyboardView` emits events only and does not know about the `MidiViewport`.
+- `MidiViewport::unselectAll()` clears only MIDI note selection and keeps track/clip selection intact.
