@@ -23,11 +23,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "UI/LevelMeterComponent.h"
 
 LevelMeterComponent::LevelMeterComponent(te::LevelMeasurer &lm, ChannelType channelType)
-    : m_channelType(channelType),
-      m_levelMeasurer(&lm)
+    : m_channelType(channelType)
 {
     setOpaque(true);
-    m_levelMeasurer->addClient(m_levelClient);
+    attachToLevelMeasurer(&lm);
     startTimerHz(30);
 }
 
@@ -42,25 +41,29 @@ LevelMeterComponent::LevelMeterComponent(std::function<te::LevelMeasurer *()> le
 
 LevelMeterComponent::~LevelMeterComponent()
 {
-    if (m_levelMeasurer != nullptr)
-        m_levelMeasurer->removeClient(m_levelClient);
     stopTimer();
+    attachToLevelMeasurer(nullptr);
+}
+
+void LevelMeterComponent::attachToLevelMeasurer(te::LevelMeasurer *nextLevelMeasurer)
+{
+    auto *currentLevelMeasurer = m_levelMeasurer.get();
+    if (nextLevelMeasurer == currentLevelMeasurer)
+        return;
+
+    if (currentLevelMeasurer != nullptr)
+        currentLevelMeasurer->removeClient(m_levelClient);
+
+    m_levelMeasurer = nextLevelMeasurer;
+
+    if (nextLevelMeasurer != nullptr)
+        nextLevelMeasurer->addClient(m_levelClient);
 }
 
 void LevelMeterComponent::refreshLevelMeasurerSource()
 {
-    auto *nextLevelMeasurer = m_levelMeasurerProvider ? m_levelMeasurerProvider() : m_levelMeasurer;
-
-    if (nextLevelMeasurer == m_levelMeasurer)
-        return;
-
-    if (m_levelMeasurer != nullptr)
-        m_levelMeasurer->removeClient(m_levelClient);
-
-    m_levelMeasurer = nextLevelMeasurer;
-
-    if (m_levelMeasurer != nullptr)
-        m_levelMeasurer->addClient(m_levelClient);
+    auto *nextLevelMeasurer = m_levelMeasurerProvider ? m_levelMeasurerProvider() : m_levelMeasurer.get();
+    attachToLevelMeasurer(nextLevelMeasurer);
 }
 
 void LevelMeterComponent::paint(juce::Graphics &g)
@@ -137,7 +140,7 @@ void LevelMeterComponent::timerCallback()
     m_prevLeveldBLeft = m_currentLeveldBLeft;
     m_prevLeveldBRight = m_currentLeveldBRight;
 
-    if (m_levelMeasurer == nullptr)
+    if (m_levelMeasurer.get() == nullptr)
     {
         m_currentLeveldBLeft = -100.0;
         m_currentLeveldBRight = -100.0;

@@ -197,7 +197,11 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
             auto newHeight = static_cast<int>(resizeFromTop ? (m_heightAtMouseDown - event.getDistanceFromDragStartY()) : (m_heightAtMouseDown + event.getDistanceFromDragStartY()));
             newHeight = juce::jlimit(30, 250, newHeight);
             m_evs.m_trackHeightManager->setAutomationHeight(m_automatableParameter, newHeight);
-            getParentComponent()->getParentComponent()->resized();
+
+            if (auto *editComponent = findParentComponentOfClass<EditComponent>())
+                editComponent->resized();
+            else if (auto *parent = getParentComponent())
+                parent->resized();
         }
     }
 }
@@ -306,8 +310,6 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
 
     if (m_track->isMasterTrack())
     {
-        auto masterVol = m_track->edit.getMasterVolumePlugin();
-
         levelMeterComp = std::make_unique<LevelMeterComponent>(
             [this]() -> te::LevelMeasurer *
             {
@@ -325,12 +327,15 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
 
         m_trackName.setText("Master", juce::dontSendNotification);
 
-        if (masterVol != nullptr)
+        if (auto masterVol = m_track->edit.getMasterVolumePlugin())
         {
-            m_muteButton.onClick = [this, masterVol]
+            m_muteButton.onClick = [this]
             {
-                masterVol->muteOrUnmute();
-                m_muteButton.setToggleState(masterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
+                if (auto currentMasterVol = m_track->edit.getMasterVolumePlugin())
+                {
+                    currentMasterVol->muteOrUnmute();
+                    m_muteButton.setToggleState(currentMasterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
+                }
             };
 
             m_muteButton.setToggleState(masterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
