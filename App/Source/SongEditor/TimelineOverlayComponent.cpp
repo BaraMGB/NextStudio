@@ -38,10 +38,16 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
 {
     auto colour = m_track->getColour();
     updateClipRects();
-    for (auto cr : m_clipRects)
+    const auto strokeColour = m_evs.m_applicationState.getTimeLineStrokeColour();
+    const auto selectedStrokeColour = m_evs.m_applicationState.getPrimeColour();
+    for (auto i = 0; i < m_clipRects.size(); ++i)
     {
+        auto cr = m_clipRects.getUnchecked(i);
+        auto *clip = m_clipsForRects.getUnchecked(i);
         g.setColour(colour);
         GUIHelpers::drawRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
+        g.setColour(m_evs.m_selectionManager.isSelected(clip) ? selectedStrokeColour : strokeColour);
+        GUIHelpers::strokeRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
     }
     if (m_drawDraggedClip)
     {
@@ -97,10 +103,14 @@ void TimelineOverlayComponent::mouseExit(const juce::MouseEvent & /*e*/) { setMo
 
 void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
-    if (auto mc = getMidiClipByPos(e.x))
+    if (auto mc = getMidiClipAtPoint(e.getPosition()))
     {
         m_cachedClip = mc;
         m_cachedPos = mc->getPosition();
+        if (e.mods.isShiftDown())
+            m_evs.m_selectionManager.select(mc, true);
+        else
+            m_evs.m_selectionManager.selectOnly(mc);
     }
 }
 
@@ -185,16 +195,13 @@ std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClips
     return midiClips;
 }
 
-tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipByPos(int x)
+tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipAtPoint(juce::Point<int> point)
 {
-    for (auto &clip : getMidiClipsOfTrack())
-    {
-        if (clip->getStartBeat().inBeats() < xToBeats(x) && clip->getEndBeat().inBeats() > xToBeats(x))
-        {
-            return clip;
-        }
-    }
-    return nullptr;
+    updateClipRects();
+    for (auto i = 0; i < m_clipRects.size(); ++i)
+        if (m_clipRects.getUnchecked(i).contains(point))
+            return m_clipsForRects.getUnchecked(i);
+    return {};
 }
 void TimelineOverlayComponent::moveSelectedClips(bool copy, bool snap) { EngineHelpers::moveSelectedClips(copy, -m_draggedTimeDelta, 0, m_evs); }
 int TimelineOverlayComponent::timeToX(double time)
@@ -212,12 +219,11 @@ double TimelineOverlayComponent::xToBeats(int x)
 void TimelineOverlayComponent::updateClipRects()
 {
     m_clipRects.clear();
-    if (auto audiotrack = dynamic_cast<te::AudioTrack *>(&(*m_track)))
+    m_clipsForRects.clear();
+    for (auto *clip : getMidiClipsOfTrack())
     {
-        for (auto c : audiotrack->getClips())
-        {
-            m_clipRects.add(getClipRect(c));
-        }
+        m_clipRects.add(getClipRect(clip));
+        m_clipsForRects.add(clip);
     }
 }
 juce::Rectangle<int> TimelineOverlayComponent::getClipRect(te::Clip::Ptr c)

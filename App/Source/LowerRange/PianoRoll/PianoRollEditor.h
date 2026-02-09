@@ -23,14 +23,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/EditViewState.h"
 #include "LowerRange/PianoRoll/KeyboardView.h"
-#include "UI/MenuBar.h"
 #include "LowerRange/PianoRoll/MidiViewport.h"
+#include "LowerRange/PianoRoll/VelocityEditor.h"
 #include "SongEditor/PlayHeadComponent.h"
 #include "SongEditor/TimeLineComponent.h"
 #include "SongEditor/TimelineOverlayComponent.h"
-#include "LowerRange/PianoRoll/VelocityEditor.h"
+#include "UI/MenuBar.h"
+#include "Utilities/EditViewState.h"
+#include <utility>
+
+namespace te = tracktion_engine;
 
 class PianoRollEditor
     : public juce::Component
@@ -86,6 +89,12 @@ private:
     void valueTreeChanged() override {}
     void valueTreeChildAdded(juce::ValueTree &tree, juce::ValueTree &property) override;
     void valueTreeChildRemoved(juce::ValueTree &tree, juce::ValueTree &property, int) override;
+    void handleKeyboardKeyClick(int midiNoteNumber, bool addToSelection);
+    juce::Array<te::MidiClip *> getSelectedMidiClipsOnTrack() const;
+    bool hasSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents) const;
+    void removeSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents);
+    std::pair<te::MidiClip *, te::MidiNote *> selectNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, bool addToSelection);
+    void selectNotesOfKeyInCurrentClip(int midiNoteNumber, bool addToSelection);
 
     EditViewState &m_editViewState;
     TimeLineComponent m_timeLine;

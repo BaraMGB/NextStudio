@@ -551,8 +551,11 @@ tracktion_engine::Track::Ptr MidiViewport::getTrack() { return m_track; }
 
 void MidiViewport::unselectAll()
 {
-    m_evs.m_selectionManager.deselectAll();
-    m_evs.m_selectionManager.addToSelection(m_track);
+    if (m_selectedEvents != nullptr)
+        m_evs.m_selectionManager.deselect(m_selectedEvents.get());
+
+    if (m_track != nullptr && !m_evs.m_selectionManager.isSelected(*m_track))
+        m_evs.m_selectionManager.addToSelection(m_track);
     repaint();
 }
 
