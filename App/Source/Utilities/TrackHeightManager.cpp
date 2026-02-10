@@ -260,7 +260,6 @@ void TrackHeightManager::setMinimized(tracktion_engine::Track *track, bool minim
         return;
 
     trackInfo->isMinimized = minimized;
-    track->state.setProperty(IDs::isTrackMinimized, minimized, nullptr);
 
     triggerFlashState();
 }
@@ -305,7 +304,6 @@ void TrackHeightManager::setAutomationHeight(const tracktion_engine::Automatable
         return;
 
     trackInfo->automationParameterHeights[ap] = height;
-    ap->getCurve().state.setProperty(tracktion_engine::IDs::height, height, nullptr);
 
     GUIHelpers::log("ParameterHeight set to: ", height);
     triggerFlashState();
@@ -370,16 +368,19 @@ void TrackHeightManager::flashStateFromTrackInfos()
             continue;
 
         // Update the minimized state
-        track->state.setProperty(IDs::isTrackMinimized, info->isMinimized, nullptr);
+        if ((bool)track->state.getProperty(IDs::isTrackMinimized, false) != info->isMinimized)
+            track->state.setProperty(IDs::isTrackMinimized, info->isMinimized, nullptr);
 
         if (info->type == TrackType::Folder)
         {
             // FolderTracks always have a fixed height
-            track->state.setProperty(tracktion_engine::IDs::height, folderTrackHeight, nullptr);
+            if ((int)track->state.getProperty(tracktion_engine::IDs::height, folderTrackHeight) != folderTrackHeight)
+                track->state.setProperty(tracktion_engine::IDs::height, folderTrackHeight, nullptr);
         }
         else if (info->type == TrackType::Audio || info->type == TrackType::Master)
         {
-            track->state.setProperty(tracktion_engine::IDs::height, info->baseHeight, nullptr);
+            if ((int)track->state.getProperty(tracktion_engine::IDs::height, info->baseHeight) != info->baseHeight)
+                track->state.setProperty(tracktion_engine::IDs::height, info->baseHeight, nullptr);
         }
 
         // Update individual automation parameter heights
@@ -388,7 +389,8 @@ void TrackHeightManager::flashStateFromTrackInfos()
             if (ap)
             {
                 GUIHelpers::log("SAVE HEIGHT TO STATE/  HEIGHT: ", height);
-                ap->getCurve().state.setProperty(tracktion_engine::IDs::height, height, nullptr);
+                if ((int)ap->getCurve().state.getProperty(tracktion_engine::IDs::height, height) != height)
+                    ap->getCurve().state.setProperty(tracktion_engine::IDs::height, height, nullptr);
             }
         }
     }
@@ -404,7 +406,6 @@ void TrackHeightManager::setTrackHeight(tracktion_engine::Track *track, int heig
 
     height = juce::jlimit(30, 300, height);
     trackInfo->baseHeight = height;
-    track->state.setProperty(tracktion_engine::IDs::height, height, nullptr);
 
     triggerFlashState();
 }
@@ -442,6 +443,27 @@ int TrackHeightManager::calculateHierarchyDepth(tracktion_engine::Track *track)
 void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track *> &allTracks)
 {
     GUIHelpers::log("Update TrackInfo from State");
+
+    std::map<tracktion_engine::Track *, bool> cachedMinimizedStates;
+    std::map<tracktion_engine::Track *, int> cachedBaseHeights;
+    std::map<tracktion_engine::Track *, std::map<tracktion_engine::AutomatableParameter *, int>> cachedAutomationHeights;
+
+    for (const auto *existingInfo : trackInfos)
+    {
+        if (existingInfo == nullptr || existingInfo->track == nullptr)
+            continue;
+
+        cachedMinimizedStates[existingInfo->track] = existingInfo->isMinimized;
+        cachedBaseHeights[existingInfo->track] = existingInfo->baseHeight;
+
+        auto &automationHeights = cachedAutomationHeights[existingInfo->track];
+        for (const auto &[ap, height] : existingInfo->automationParameterHeights)
+        {
+            if (ap != nullptr)
+                automationHeights[ap.get()] = height;
+        }
+    }
+
     trackInfos.clear();
 
     for (auto *track : allTracks)
@@ -459,10 +481,34 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
             info->type = TrackType::Master;
         else
             info->type = TrackType::Audio;
-        info->isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
-        info->baseHeight = track->isFolderTrack() ? folderTrackHeight : static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+        if (const auto it = cachedMinimizedStates.find(track); it != cachedMinimizedStates.end())
+            info->isMinimized = it->second;
+        else
+            info->isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
+
+        if (track->isFolderTrack())
+        {
+            info->baseHeight = folderTrackHeight;
+        }
+        else if (const auto it = cachedBaseHeights.find(track); it != cachedBaseHeights.end())
+        {
+            info->baseHeight = it->second;
+        }
+        else
+        {
+            info->baseHeight = static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+        }
+
         info->hierarchyDepth = calculateHierarchyDepth(track);
         info->parentFolder = track->getParentFolderTrack();
+
+        const auto *cachedTrackAutomationHeights = [&]() -> const std::map<tracktion_engine::AutomatableParameter *, int> *
+        {
+            if (const auto it = cachedAutomationHeights.find(track); it != cachedAutomationHeights.end())
+                return &it->second;
+
+            return nullptr;
+        }();
 
         auto addAutomationParameter = [&](te::AutomatableParameter *ap)
         {
@@ -473,6 +519,13 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
                 return;
 
             int height = static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
+
+            if (cachedTrackAutomationHeights != nullptr)
+            {
+                if (const auto it = cachedTrackAutomationHeights->find(ap); it != cachedTrackAutomationHeights->end())
+                    height = it->second;
+            }
+
             info->automationParameterHeights[ap] = height;
         };
 
