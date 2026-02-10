@@ -81,7 +81,11 @@ void TrackListView::mouseDown(const juce::MouseEvent &e)
 }
 void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    te::TrackInsertPoint ip{nullptr, m_editViewState.m_edit.getTrackList().at(m_editViewState.m_edit.getTrackList().size() - 1)};
+    te::TrackInsertPoint ip{nullptr, nullptr};
+
+    auto &trackList = m_editViewState.m_edit.getTrackList();
+    if (trackList.size() > 0)
+        ip = te::TrackInsertPoint{nullptr, trackList.at(trackList.size() - 1)};
 
     te::Track *lastNonMasterTrack = nullptr;
     auto allTracks = tracktion::getAllTracks(m_editViewState.m_edit);
@@ -97,6 +101,8 @@ void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
 
     if (lastNonMasterTrack != nullptr)
         ip = te::TrackInsertPoint(*lastNonMasterTrack, true);
+    else if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
+        ip = te::TrackInsertPoint{nullptr, masterTrack};
 
     if (dragSourceDetails.description == "Track")
         if (auto thc = dynamic_cast<TrackHeaderComponent *>(dragSourceDetails.sourceComponent.get()))
