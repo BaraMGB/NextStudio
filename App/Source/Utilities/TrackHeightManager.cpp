@@ -444,26 +444,6 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
 {
     GUIHelpers::log("Update TrackInfo from State");
 
-    std::map<tracktion_engine::Track *, bool> cachedMinimizedStates;
-    std::map<tracktion_engine::Track *, int> cachedBaseHeights;
-    std::map<tracktion_engine::Track *, std::map<tracktion_engine::AutomatableParameter *, int>> cachedAutomationHeights;
-
-    for (const auto *existingInfo : trackInfos)
-    {
-        if (existingInfo == nullptr || existingInfo->track == nullptr)
-            continue;
-
-        cachedMinimizedStates[existingInfo->track] = existingInfo->isMinimized;
-        cachedBaseHeights[existingInfo->track] = existingInfo->baseHeight;
-
-        auto &automationHeights = cachedAutomationHeights[existingInfo->track];
-        for (const auto &[ap, height] : existingInfo->automationParameterHeights)
-        {
-            if (ap != nullptr)
-                automationHeights[ap.get()] = height;
-        }
-    }
-
     trackInfos.clear();
 
     for (auto *track : allTracks)
@@ -481,18 +461,11 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
             info->type = TrackType::Master;
         else
             info->type = TrackType::Audio;
-        if (const auto it = cachedMinimizedStates.find(track); it != cachedMinimizedStates.end())
-            info->isMinimized = it->second;
-        else
-            info->isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
+        info->isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
 
         if (track->isFolderTrack())
         {
             info->baseHeight = folderTrackHeight;
-        }
-        else if (const auto it = cachedBaseHeights.find(track); it != cachedBaseHeights.end())
-        {
-            info->baseHeight = it->second;
         }
         else
         {
@@ -501,14 +474,6 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
 
         info->hierarchyDepth = calculateHierarchyDepth(track);
         info->parentFolder = track->getParentFolderTrack();
-
-        const auto *cachedTrackAutomationHeights = [&]() -> const std::map<tracktion_engine::AutomatableParameter *, int> *
-        {
-            if (const auto it = cachedAutomationHeights.find(track); it != cachedAutomationHeights.end())
-                return &it->second;
-
-            return nullptr;
-        }();
 
         auto addAutomationParameter = [&](te::AutomatableParameter *ap)
         {
@@ -519,13 +484,6 @@ void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<trac
                 return;
 
             int height = static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
-
-            if (cachedTrackAutomationHeights != nullptr)
-            {
-                if (const auto it = cachedTrackAutomationHeights->find(ap); it != cachedTrackAutomationHeights->end())
-                    height = it->second;
-            }
-
             info->automationParameterHeights[ap] = height;
         };
 

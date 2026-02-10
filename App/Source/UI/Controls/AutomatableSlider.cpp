@@ -156,11 +156,10 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
         if (result == 2000)
         {
             auto start = tracktion::core::TimePosition::fromSeconds(0.0);
-            auto &um = m_automatableParameter->getEdit().getUndoManager();
             m_automatableParameter->getCurve().addPoint(start, (float)getValue(), 0.0);
 
             if (auto *track = m_automatableParameter->getTrack())
-                track->state.setProperty(IDs::isTrackMinimized, false, &um);
+                track->state.setProperty(IDs::isTrackMinimized, false, nullptr);
         }
         else if (result == 2001)
         {
