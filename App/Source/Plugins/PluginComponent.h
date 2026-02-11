@@ -27,6 +27,7 @@
 #include "Plugins/EQ/EqPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
+#include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPluginComponent.h"
 #include "Plugins/VST/VstPluginComponent.h"
 #include "Plugins/Volume/VolumePluginComponent.h"
 #include "Utilities/EditViewState.h"

@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRange/PluginChain/PresetHelpers.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
+#include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.h"
 #include "Utilities/EditViewState.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_graphics/native/juce_EventTracing.h"
@@ -2217,5 +2218,6 @@ juce::Array<juce::PluginDescription> EngineHelpers::getInternalPlugins()
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::FourOscPlugin::getPluginName()), te::FourOscPlugin::xmlTypeName, true));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(SimpleSynthPlugin::getPluginName()), SimpleSynthPlugin::xmlTypeName, true));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(ArpeggiatorPlugin::getPluginName()), ArpeggiatorPlugin::xmlTypeName, false));
+    list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(SpectrumAnalyzerPlugin::getPluginName()), SpectrumAnalyzerPlugin::xmlTypeName, false));
     return list;
 }

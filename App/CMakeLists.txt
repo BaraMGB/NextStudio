@@ -87,6 +87,8 @@ target_sources(${TargetName} PRIVATE
         Source/UI/PluginWindow.cpp
         Source/Plugins/SimpleSynth/SimpleSynthPlugin.cpp
         Source/Plugins/SimpleSynth/SimpleSynthPluginComponent.cpp
+        Source/Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.cpp
+        Source/Plugins/SpectrumAnalyzer/SpectrumAnalyzerPluginComponent.cpp
         Source/Plugins/VST/VstPluginComponent.cpp
         Source/Plugins/Volume/VolumePluginComponent.cpp
         Source/SideBrowser/AudioMidiSettings.cpp

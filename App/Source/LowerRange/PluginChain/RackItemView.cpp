@@ -21,6 +21,8 @@
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
+#include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.h"
+#include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPluginComponent.h"
 #include "Plugins/VST/VstPluginComponent.h"
 #include "Plugins/Volume/VolumePluginComponent.h"
 #include "Utilities/Utilities.h"
@@ -86,6 +88,10 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     else if (m_plugin->getPluginType() == ArpeggiatorPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<ArpeggiatorPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == SpectrumAnalyzerPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<SpectrumAnalyzerPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
     {
