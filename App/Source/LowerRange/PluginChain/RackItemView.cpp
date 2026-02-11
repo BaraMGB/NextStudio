@@ -9,21 +9,20 @@
 */
 
 #include "LowerRange/PluginChain/RackItemView.h"
+#include "Utilities/Utilities.h"
 #include "LowerRange/PluginChain/PluginPresetInterface.h"
-#include "LowerRange/PluginChain/RackView.h"
-#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
-#include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
-#include "Plugins/Compressor/CompressorPluginComponent.h"
-#include "Plugins/Delay/DelayPluginComponent.h"
-#include "Plugins/DrumSampler/DrumSamplerView.h"
+#include "Plugins/Volume/VolumePluginComponent.h"
 #include "Plugins/EQ/EqPluginComponent.h"
+#include "Plugins/Delay/DelayPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
-#include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
+#include "Plugins/DrumSampler/DrumSamplerView.h"
 #include "Plugins/VST/VstPluginComponent.h"
-#include "Plugins/Volume/VolumePluginComponent.h"
-#include "Utilities/Utilities.h"
+#include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
+#include "LowerRange/PluginChain/RackView.h"
 
 //==============================================================================
 static juce::Identifier getCollapsedStateID(te::EditItemID id)
@@ -69,10 +68,6 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     else if (m_plugin->getPluginType() == "lowpass")
     {
         m_pluginComponent = std::make_unique<FilterPluginComponent>(evs, p);
-    }
-    else if (m_plugin->getPluginType() == te::CompressorPlugin::xmlTypeName)
-    {
-        m_pluginComponent = std::make_unique<CompressorPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == "4osc")
     {
