@@ -22,10 +22,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities/Utilities.h"
 
 #include "BinaryData.h"
-#include "Utilities/EditViewState.h"
+#include "LowerRange/PluginChain/PresetHelpers.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
-#include "LowerRange/PluginChain/PresetHelpers.h"
+#include "Utilities/EditViewState.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_graphics/native/juce_EventTracing.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
@@ -603,12 +603,8 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     int snapLevel = juce::jmax(3, evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth()).getLevel());
     // At 1/16 and finer grids, emphasize quarter-beat landmarks for orientation.
     const bool emphasizeQuarterBeatLines = snapLevel <= 5;
-    const auto quarterBeatColour = emphasizeQuarterBeatLines
-                                       ? avs.getTimeLineStrokeColour().withAlpha(0.2f)
-                                       : fracColour;
-    const auto subDivisionColour = emphasizeQuarterBeatLines
-                                       ? avs.getTimeLineStrokeColour().withAlpha(0.08f)
-                                       : fracColour.withAlpha(0.2f);
+    const auto quarterBeatColour = emphasizeQuarterBeatLines ? avs.getTimeLineStrokeColour().withAlpha(0.2f) : fracColour;
+    const auto subDivisionColour = emphasizeQuarterBeatLines ? avs.getTimeLineStrokeColour().withAlpha(0.08f) : fracColour.withAlpha(0.2f);
 
     double intervalBeats = getIntervalBeatsOfSnap(snapLevel, numBeatsPerBar);
 
@@ -1673,7 +1669,27 @@ tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(tracktion_e
 }
 tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(juce::Colour trackColour, EditViewState &evs)
 {
-    te::TrackInsertPoint tip(*te::getAllTracks(evs.m_edit).getLast(), false);
+    evs.m_edit.ensureMasterTrack();
+
+    auto allTracks = te::getAllTracks(evs.m_edit);
+    te::TrackInsertPoint tip{nullptr, nullptr};
+
+    te::Track *lastNonMasterTrack = nullptr;
+    for (int i = allTracks.size(); --i >= 0;)
+    {
+        auto *track = allTracks.getUnchecked(i);
+        if (track != nullptr && !track->isMasterTrack())
+        {
+            lastNonMasterTrack = track;
+            break;
+        }
+    }
+
+    if (lastNonMasterTrack != nullptr)
+        tip = te::TrackInsertPoint(*lastNonMasterTrack, true);
+    else if (auto *masterTrack = evs.m_edit.getMasterTrack())
+        tip = te::TrackInsertPoint{nullptr, masterTrack};
+
     auto ft = evs.m_edit.insertNewFolderTrack(tip, &evs.m_selectionManager, true);
 
     ft->state.setProperty(te::IDs::height, (int)evs.m_trackDefaultHeight, nullptr);
@@ -1686,7 +1702,7 @@ tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(juce::Colour tr
     ft->setColour(trackColour);
     evs.m_selectionManager.selectOnly(ft);
 
-    evs.m_trackHeightManager->regenerateTrackHeightsFromStates(te::getAllTracks(evs.m_edit));
+    evs.m_trackHeightManager->regenerateTrackHeightsFromEdit(evs.m_edit);
 
     return ft;
 }
@@ -1704,7 +1720,7 @@ tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(bool isMidiTrack,
         track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);
         track->setColour(trackColour);
         evs.m_selectionManager.selectOnly(track);
-        evs.m_trackHeightManager->regenerateTrackHeightsFromStates(te::getAllTracks(evs.m_edit));
+        evs.m_trackHeightManager->regenerateTrackHeightsFromEdit(evs.m_edit);
 
         return track;
     }

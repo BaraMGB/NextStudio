@@ -20,9 +20,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "LowerRange/PluginChain/RackView.h"
+#include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
 #include "UI/PluginMenu.h"
-#include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "Utilities/Utilities.h"
 
 //==============================================================================
@@ -129,10 +129,36 @@ RackView::~RackView()
         b->removeListener(this);
     }
 
-    if (m_track)
-        m_track->state.removeListener(this);
+    detachTrackListeners();
 
     m_viewport.setViewedComponent(nullptr, false);
+}
+
+void RackView::attachTrackListeners()
+{
+    detachTrackListeners();
+
+    if (m_track == nullptr)
+        return;
+
+    m_observedTrackState = m_track->state;
+    m_observedTrackState.addListener(this);
+
+    m_observedPluginListState = m_track->pluginList.state;
+    if (m_observedPluginListState.isValid())
+        m_observedPluginListState.addListener(this);
+}
+
+void RackView::detachTrackListeners()
+{
+    if (m_observedTrackState.isValid())
+        m_observedTrackState.removeListener(this);
+
+    if (m_observedPluginListState.isValid())
+        m_observedPluginListState.removeListener(this);
+
+    m_observedTrackState = {};
+    m_observedPluginListState = {};
 }
 
 void RackView::paint(juce::Graphics &g)
@@ -464,8 +490,10 @@ void RackView::buttonClicked(juce::Button *button)
 
 void RackView::setTrack(te::Track::Ptr track)
 {
+    detachTrackListeners();
+
     m_track = track;
-    m_track->state.addListener(this);
+    attachTrackListeners();
     m_trackID = m_track->itemID.toString();
     m_nameLabel.setText(m_track->getName(), juce::dontSendNotification);
 
@@ -477,8 +505,8 @@ void RackView::setTrack(te::Track::Ptr track)
 
 void RackView::clearTrack()
 {
-    if (m_track != nullptr)
-        m_track->state.removeListener(this);
+    detachTrackListeners();
+
     m_track = nullptr;
     m_trackID = "";
 

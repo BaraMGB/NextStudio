@@ -87,9 +87,10 @@ void AutomatableToggleButton::mouseDown(const juce::MouseEvent &e)
         if (result == 2000)
         {
             auto start = tracktion::core::TimePosition::fromSeconds(0.0);
-            auto &um = m_automatableParameter->getTrack()->edit.getUndoManager();
             m_automatableParameter->getCurve().addPoint(start, (float)getToggleState(), 0.0);
-            m_automatableParameter->getTrack()->state.setProperty(IDs::isTrackMinimized, false, &um);
+
+            if (auto *track = m_automatableParameter->getTrack())
+                track->state.setProperty(IDs::isTrackMinimized, false, nullptr);
         }
         else if (result == 2001)
         {

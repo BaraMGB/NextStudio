@@ -23,17 +23,18 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/EditViewState.h"
-#include "SideBrowser/FileBrowser.h"
-#include "Tools/tools/LassoSelectionTool.h"
 #include "LowerRange/LowerRangeComponent.h"
-#include "UI/MenuBar.h"
-#include "SongEditor/PlayHeadComponent.h"
 #include "LowerRange/PluginChain/RackView.h"
+#include "SideBrowser/FileBrowser.h"
+#include "SongEditor/PlayHeadComponent.h"
 #include "SongEditor/SongEditorView.h"
 #include "SongEditor/TimeLineComponent.h"
 #include "SongEditor/TrackHeadComponent.h"
+#include "SongEditor/TrackLaneComponent.h"
 #include "SongEditor/TrackListView.h"
+#include "Tools/tools/LassoSelectionTool.h"
+#include "UI/MenuBar.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 //------------------------------------------------------------------------------
@@ -65,6 +66,7 @@ class EditComponent
     , private te::ValueTreeAllEventListener
     , private FlaggedAsyncUpdater
     , private juce::ScrollBar::Listener
+    , public juce::ChangeListener
     , private juce::Timer
     , public juce::Button::Listener
     , public juce::DragAndDropTarget
@@ -78,6 +80,7 @@ public:
     void resized() override;
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
+    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
     void buttonClicked(juce::Button *button) override;
 
@@ -122,7 +125,7 @@ private:
     void updateVerticalScrollbar()
     {
         m_scrollbar_v.setRangeLimits(0, getSongHeight());
-        m_scrollbar_v.setCurrentRange(-m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()), getSongEditorRect().getHeight() / 2.0);
+        m_scrollbar_v.setCurrentRange(-m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()), getScrollableSongEditorRect().getHeight() / 2.0);
     }
 
     void trimMidiNotesToClipStart()
@@ -167,8 +170,18 @@ private:
     juce::Rectangle<int> getTrackListToolsRect();
     juce::Rectangle<int> getTrackListRect();
     juce::Rectangle<int> getSongEditorRect();
+    juce::Rectangle<int> getScrollableTrackListRect();
+    juce::Rectangle<int> getScrollableSongEditorRect();
+    juce::Rectangle<int> getBottomMixerRect();
+    juce::Rectangle<int> getMasterHeaderRect();
+    juce::Rectangle<int> getMasterLaneRect();
+    juce::Rectangle<int> getSendsHeaderRect();
+    juce::Rectangle<int> getSendsLaneRect();
+    juce::Rectangle<int> getHorizontalScrollbarRect();
     juce::Rectangle<int> getFooterRect();
     juce::Rectangle<int> getPlayHeadRect();
+    int getMasterAreaHeight();
+    te::Track::Ptr findMasterTrack();
     int getSongHeight();
 
     void sendAllNotedOff();
@@ -177,6 +190,8 @@ private:
     EditViewState &m_editViewState;
     TimeLineComponent m_timeLine{m_editViewState, "SongEditor"};
     SongEditorView m_songEditor;
+    std::unique_ptr<TrackHeaderComponent> m_masterHeader;
+    std::unique_ptr<TrackLaneComponent> m_masterLane;
     juce::ApplicationCommandManager &m_commandManager;
     TrackListView m_trackListView;
     FooterBarComponent m_footerbar;
@@ -194,6 +209,7 @@ private:
     PlayheadComponent m_playhead{m_edit, m_editViewState, m_timeLine};
 
     bool m_updateTracks = false, m_updateZoom = false, m_verticalUpdateSongEditor = false, m_dragOver = false, m_noteOffAll = false;
+    int m_sendsAreaHeight = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EditComponent)
 };
