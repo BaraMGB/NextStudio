@@ -573,7 +573,7 @@ void SimpleSynthPlugin::updateVoiceParameters(int unisonOrder, float unisonDetun
 
             // Map 0.0-1.0 to 0.707-40.0 for SVF Q
             // High Q values (> 20) give that "Vital" laser-like resonance
-            float svfQ = svfBaseQ + (resonance * 39.2929f); 
+            float svfQ = svfBaseQ + (resonance * 39.2929f);
             v.svfFilter.setResonance(svfQ);
         }
     }
@@ -634,6 +634,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
     masterLevelSmoother.setTargetValue(juce::Decibels::decibelsToGain(audioParams.level.load()));
     cutoffSmoother.setTargetValue(baseCutoff);
     const int filterType = (int)audioParams.filterType.load();
+    const float filterResonance = audioParams.filterRes.load();
 
     // New Params
     bool osc2On = audioParams.osc2Enabled.load() > 0.5f;
@@ -648,6 +649,19 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
     float unisonGainCorrection = 1.0f;
     if (unisonOrder > 1)
         unisonGainCorrection = 1.0f / std::sqrt((float)unisonOrder);
+
+    const bool filterCanBypass = std::abs(filterEnvAmount) <= 0.0001f && filterResonance <= 0.0001f && baseCutoff >= 19999.0f && (filterType == FilterType::svf || drive <= 1.0001f);
+    const auto protectOutput = [](float x)
+    {
+        constexpr float threshold = 0.98f;
+        const float magnitude = std::abs(x);
+        if (magnitude <= threshold)
+            return x;
+
+        const float excess = magnitude - threshold;
+        const float shaped = threshold + excess / (1.0f + excess);
+        return std::copysign(shaped, x);
+    };
 
     for (int i = 0; i < numSamples; ++i)
     {
@@ -755,8 +769,9 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
 
                 // --- Filtering ---
                 float sample = mixedSample; // Input to filter
+                const bool bypassFilterThisSample = filterCanBypass && modulatedCutoff >= 19999.0f;
 
-                if (filterType == FilterType::ladder)
+                if (!bypassFilterThisSample && filterType == FilterType::ladder)
                 {
                     float *channels[] = {&sample};
                     juce::dsp::AudioBlock<float> block(channels, 1, 1);
@@ -766,7 +781,7 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
 
                     block.multiplyBy(std::sqrt(drive));
                 }
-                else
+                else if (!bypassFilterThisSample)
                 {
                     v.svfFilter.setCutoffFrequency(modulatedCutoff);
                     sample = v.svfFilter.processSample(0, sample);
@@ -790,8 +805,8 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
         float finalL = l * gain;
         float finalR = r * gain;
 
-        left[i] = finalL / (1.0f + std::abs(finalL));
-        right[i] = finalR / (1.0f + std::abs(finalR));
+        left[i] = protectOutput(finalL);
+        right[i] = protectOutput(finalR);
     }
 }
 
