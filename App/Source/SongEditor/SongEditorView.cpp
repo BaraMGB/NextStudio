@@ -252,8 +252,11 @@ void SongEditorView::itemDragMove(const SourceDetails &dragSourceDetails)
     }
     else
     {
-        auto lastTrackID = m_editViewState.m_trackHeightManager->getShowedTracks(m_editViewState.m_edit).getLast();
-        auto lastTrack = m_editViewState.m_trackHeightManager->getTrackFromID(m_editViewState.m_edit, lastTrackID);
+        auto showedTracks = m_editViewState.m_trackHeightManager->getShowedTracks(m_editViewState.m_edit);
+        te::Track::Ptr lastTrack;
+
+        if (!showedTracks.isEmpty())
+            lastTrack = m_editViewState.m_trackHeightManager->getTrackFromID(m_editViewState.m_edit, showedTracks.getLast());
 
         y = lastTrack ? getYForTrack(lastTrack) + m_editViewState.m_trackHeightManager->getTrackHeight(lastTrack, true) : 0;
         h = static_cast<int>(m_editViewState.m_trackDefaultHeight);
@@ -282,7 +285,7 @@ void SongEditorView::itemDropped(const SourceDetails &dragSourceDetails)
     auto f = juce::File();
 
     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent *>(dragSourceDetails.sourceComponent.get()))
-        auto f = fileTreeComp->getSelectedFile();
+        f = fileTreeComp->getSelectedFile();
     else if (auto fileBrowser = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
         f = fileBrowser->getSelectedFile();
 
@@ -338,9 +341,25 @@ te::Track::Ptr SongEditorView::getTrackAt(int y)
 
 int SongEditorView::getYForTrack(te::Track *track)
 {
-    int scrollY = -(m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()));
-    auto h = m_editViewState.m_trackHeightManager->getYForTrack(track, scrollY);
-    return h;
+    if (track == nullptr)
+        return -1;
+
+    int y = -juce::roundToInt(m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()));
+    const auto showedTracks = m_editViewState.m_trackHeightManager->getShowedTracks(m_editViewState.m_edit);
+
+    for (const auto &trackID : showedTracks)
+    {
+        auto visibleTrack = m_editViewState.m_trackHeightManager->getTrackFromID(m_editViewState.m_edit, trackID);
+        if (visibleTrack == nullptr)
+            continue;
+
+        if (visibleTrack.get() == track)
+            return y;
+
+        y += m_editViewState.m_trackHeightManager->getTrackHeight(visibleTrack, true);
+    }
+
+    return -1;
 }
 
 void SongEditorView::updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration delta, int verticalOffset)
@@ -624,6 +643,14 @@ void SongEditorView::setPianoRoll(te::Track *track)
 
         if (t == track)
             t->state.setProperty(IDs::showLowerRange, true, nullptr);
+    }
+
+    if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
+    {
+        if (track != nullptr && track->isMasterTrack())
+            masterTrack->state.setProperty(IDs::showLowerRange, true, nullptr);
+        else
+            masterTrack->state.setProperty(IDs::showLowerRange, false, nullptr);
     }
 }
 

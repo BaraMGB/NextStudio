@@ -21,12 +21,40 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SongEditor/TrackHeadComponent.h"
-#include "SongEditor/EditComponent.h"
-#include "Utilities/EditViewState.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
 #include "SideBrowser/PluginBrowser.h"
+#include "SongEditor/EditComponent.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 #include "juce_graphics/juce_graphics.h"
+
+namespace
+{
+bool isMasterAutomationParameter(const te::AutomatableParameter::Ptr &ap)
+{
+    if (ap == nullptr)
+        return false;
+
+    if (auto *track = ap->getTrack())
+        return track->isMasterTrack();
+
+    auto &edit = ap->getEdit();
+    if (ap == edit.getMasterSliderPosParameter() || ap == edit.getMasterPanParameter())
+        return true;
+
+    if (auto *masterTrack = edit.getMasterTrack())
+    {
+        for (auto *masterParam : masterTrack->getAllAutomatableParams())
+        {
+            if (masterParam == ap.get())
+                return true;
+        }
+    }
+
+    return false;
+}
+} // namespace
+
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter::Ptr ap, EditViewState &evs)
     : m_automatableParameter(ap),
       m_evs(evs),
@@ -35,9 +63,36 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
     addAndMakeVisible(m_parameterName);
     addAndMakeVisible(m_pluginName);
     addAndMakeVisible(m_slider);
-    juce::String pluginDescription = m_automatableParameter->getFullName().fromFirstOccurrenceOf(">>", false, false);
-    juce::String parameterName = pluginDescription.fromFirstOccurrenceOf(">>", false, false);
-    juce::String pluginName = pluginDescription.upToFirstOccurrenceOf(">>", false, false);
+
+    juce::String pluginName;
+    juce::String parameterName = m_automatableParameter->getParameterName();
+
+    if (auto *plugin = m_automatableParameter->getPlugin())
+    {
+        pluginName = plugin->getName();
+    }
+    else
+    {
+        auto pluginAndParam = m_automatableParameter->getPluginAndParamName();
+        if (pluginAndParam.contains(">>"))
+        {
+            pluginName = pluginAndParam.upToFirstOccurrenceOf(">>", false, false).trim();
+            parameterName = pluginAndParam.fromFirstOccurrenceOf(">>", false, false).trim();
+        }
+        else if (isMasterAutomationParameter(m_automatableParameter))
+        {
+            pluginName = "Master";
+            if (m_automatableParameter == m_automatableParameter->getEdit().getMasterSliderPosParameter())
+                parameterName = "Volume";
+            else if (m_automatableParameter == m_automatableParameter->getEdit().getMasterPanParameter())
+                parameterName = "Pan";
+            else if (parameterName.isEmpty())
+                parameterName = pluginAndParam;
+        }
+
+        if (pluginName.isEmpty())
+            pluginName = "Automation";
+    }
 
     m_pluginName.setText(pluginName, juce::dontSendNotification);
     m_pluginName.setJustificationType(juce::Justification::centredLeft);
@@ -61,9 +116,6 @@ AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::A
 
 void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
 {
-    if (m_automatableParameter->getTrack() == nullptr)
-        return;
-
     g.setColour(juce::Colours::white);
     const int minimizedHeight = m_evs.m_trackHeightManager->getTrackMinimizedHeight();
     auto area = getLocalBounds().removeFromTop(minimizedHeight);
@@ -85,7 +137,8 @@ void AutomationLaneHeaderComponent::paint(juce::Graphics &g)
         strokeHeight = 3;
     }
 
-    auto r = juce::Rectangle<int>(getLocalBounds().removeFromBottom(strokeHeight));
+    const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
+    auto r = juce::Rectangle<int>(resizeFromTop ? getLocalBounds().removeFromTop(strokeHeight) : getLocalBounds().removeFromBottom(strokeHeight));
     r.removeFromLeft(10);
     g.fillRect(r);
 }
@@ -135,13 +188,20 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (event.mouseWasDraggedSinceMouseDown())
     {
-        if (m_mouseDownY > m_heightAtMouseDown - 10)
+        const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
+        const auto resizeHandleHit = resizeFromTop ? (m_mouseDownY < 10) : (m_mouseDownY > m_heightAtMouseDown - 10);
+
+        if (resizeHandleHit)
         {
             m_resizing = true;
-            auto newHeight = static_cast<int>(m_heightAtMouseDown + event.getDistanceFromDragStartY());
+            auto newHeight = static_cast<int>(resizeFromTop ? (m_heightAtMouseDown - event.getDistanceFromDragStartY()) : (m_heightAtMouseDown + event.getDistanceFromDragStartY()));
             newHeight = juce::jlimit(30, 250, newHeight);
             m_evs.m_trackHeightManager->setAutomationHeight(m_automatableParameter, newHeight);
-            getParentComponent()->getParentComponent()->resized();
+
+            if (auto *editComponent = findParentComponentOfClass<EditComponent>())
+                editComponent->resized();
+            else if (auto *parent = getParentComponent())
+                parent->resized();
         }
     }
 }
@@ -149,8 +209,9 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
 {
     auto old = m_hovering;
+    const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
 
-    if (event.y > getHeight() - 10)
+    if (resizeFromTop ? (event.y < 10) : (event.y > getHeight() - 10))
     {
         m_hovering = true;
         setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
@@ -164,7 +225,7 @@ void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
     if (m_hovering != old)
     {
         auto stripeRect = getLocalBounds();
-        repaint(stripeRect.removeFromBottom(10));
+        repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
     }
 }
 
@@ -173,8 +234,9 @@ void AutomationLaneHeaderComponent::mouseExit(const juce::MouseEvent & /*event*/
     m_resizing = false;
     m_hovering = false;
     setMouseCursor(juce::MouseCursor::NormalCursor);
+    const auto resizeFromTop = isMasterAutomationParameter(m_automatableParameter);
     auto stripeRect = getLocalBounds();
-    repaint(stripeRect.removeFromBottom(10));
+    repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
 }
 
 //------------------------------------------------------------------------------
@@ -243,6 +305,49 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
 
             m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
             m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
+        }
+    }
+
+    if (m_track->isMasterTrack())
+    {
+        levelMeterComp = std::make_unique<LevelMeterComponent>(
+            [this]() -> te::LevelMeasurer *
+            {
+                if (auto epc = m_track->edit.getTransport().getCurrentPlaybackContext())
+                    return &epc->masterLevels;
+
+                return nullptr;
+            });
+        addAndMakeVisible(levelMeterComp.get());
+
+        m_soloButton.setVisible(false);
+        m_soloButton.setEnabled(false);
+        m_armButton.setVisible(false);
+        m_armButton.setEnabled(false);
+
+        m_trackName.setText("Master", juce::dontSendNotification);
+
+        if (auto masterVol = m_track->edit.getMasterVolumePlugin())
+        {
+            m_muteButton.onClick = [this]
+            {
+                if (auto currentMasterVol = m_track->edit.getMasterVolumePlugin())
+                {
+                    currentMasterVol->muteOrUnmute();
+                    m_muteButton.setToggleState(currentMasterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
+                }
+            };
+
+            m_muteButton.setToggleState(masterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
+
+            m_volumeKnob = std::make_unique<AutomatableSliderComponent>(m_track->edit.getMasterSliderPosParameter());
+            m_volumeKnob->setOpaque(false);
+            addAndMakeVisible(m_volumeKnob.get());
+            m_volumeKnob->setRange(0.0f, 3.0f, 0.01f);
+            m_volumeKnob->setSkewFactorFromMidPoint(1.0f);
+            m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
+            m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
+            GUIHelpers::log("Master header: volume knob created");
         }
     }
 
@@ -580,7 +685,7 @@ void TrackHeaderComponent::buildAutomationHeader()
 {
     m_automationHeaders.clear(true);
 
-    m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_track->edit));
+    m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromEdit(m_track->edit);
 
     auto *trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
     if (trackInfo == nullptr)
@@ -588,7 +693,7 @@ void TrackHeaderComponent::buildAutomationHeader()
 
     juce::Array<te::AutomatableParameter *> params;
     for (const auto &[ap, height] : trackInfo->automationParameterHeights)
-        if (ap && ap->getCurve().getNumPoints() > 0)
+        if (ap && ap->getCurve().getNumPoints() > 0 && m_editViewState.m_trackHeightManager->isAutomationVisible(*ap))
             params.add(ap);
 
     // Sort the parameters by their ID string to ensure a consistent order
@@ -664,7 +769,9 @@ void TrackHeaderComponent::paint(juce::Graphics &g)
             int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
             if (isFolderTrack())
                 height = m_editViewState.m_folderTrackHeight;
-            g.fillRect(juce::Rectangle<int>(headWidth - 1, height - strokeHeight, getWidth() - headWidth, strokeHeight));
+            const auto resizeFromTop = m_track->isMasterTrack();
+            const auto y = resizeFromTop ? 0 : (height - strokeHeight);
+            g.fillRect(juce::Rectangle<int>(headWidth - 1, y, getWidth() - headWidth, strokeHeight));
         }
 
         if (m_trackIsOver)
@@ -804,7 +911,8 @@ void TrackHeaderComponent::mouseDown(const juce::MouseEvent &event)
             }
             else if (event.getNumberOfClicks() > 1)
             {
-                m_trackName.showEditor();
+                if (!m_track->isMasterTrack())
+                    m_trackName.showEditor();
             }
             else
             {
@@ -820,6 +928,14 @@ void TrackHeaderComponent::mouseDown(const juce::MouseEvent &event)
                         t->state.setProperty(IDs::showLowerRange, true, nullptr);
                     }
                 }
+
+                if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
+                {
+                    if (m_track->isMasterTrack())
+                        masterTrack->state.setProperty(IDs::showLowerRange, true, nullptr);
+                    else
+                        masterTrack->state.setProperty(IDs::showLowerRange, false, nullptr);
+                }
             }
         }
     }
@@ -830,10 +946,13 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
     if (event.mouseWasDraggedSinceMouseDown())
     {
         auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
-        if (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10 && !isMinimized && !isFolderTrack())
+        const auto resizeFromTop = m_track->isMasterTrack();
+        const auto resizeHandleHit = resizeFromTop ? (m_yPosAtMouseDown < 10) : (m_yPosAtMouseDown > m_trackHeightATMouseDown - 10);
+
+        if (resizeHandleHit && !isMinimized && !isFolderTrack())
         {
             m_isResizing = true;
-            auto newHeight = static_cast<int>(m_trackHeightATMouseDown + event.getDistanceFromDragStartY());
+            auto newHeight = static_cast<int>(resizeFromTop ? (m_trackHeightATMouseDown - event.getDistanceFromDragStartY()) : (m_trackHeightATMouseDown + event.getDistanceFromDragStartY()));
 
             auto &trackHeightManager = m_editViewState.m_trackHeightManager;
             trackHeightManager->setTrackHeight(m_track, newHeight);
@@ -842,6 +961,9 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
         }
         else
         {
+            if (m_track->isMasterTrack())
+                return;
+
             juce::DragAndDropContainer *dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
 
             if (!dragC->isDragAndDropActive())
@@ -865,8 +987,9 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent &e)
         auto isMinimized = m_editViewState.m_trackHeightManager->isTrackMinimized(m_track);
         auto old = m_isHover;
         int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+        const auto resizeFromTop = m_track->isMasterTrack();
 
-        if (e.y > height - 10 && !isMinimized && !isFolderTrack())
+        if ((resizeFromTop ? (e.y < 10) : (e.y > height - 10)) && !isMinimized && !isFolderTrack())
         {
             m_isHover = true;
             setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
@@ -881,7 +1004,7 @@ void TrackHeaderComponent::mouseMove(const juce::MouseEvent &e)
         {
             auto stripeRect = getLocalBounds();
             stripeRect.removeFromBottom(getHeight() - height);
-            repaint(stripeRect.removeFromBottom(10));
+            repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
         }
     }
 }
@@ -891,9 +1014,10 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent & /*e*/)
     m_isHover = false;
     setMouseCursor(juce::MouseCursor::NormalCursor);
     int height = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+    const auto resizeFromTop = m_track->isMasterTrack();
     auto stripeRect = getLocalBounds();
     stripeRect.removeFromBottom(getHeight() - height);
-    repaint(stripeRect.removeFromBottom(10));
+    repaint(resizeFromTop ? stripeRect.removeFromTop(10) : stripeRect.removeFromBottom(10));
 }
 
 juce::Colour TrackHeaderComponent::getTrackColour() { return m_track->getColour(); }
@@ -923,6 +1047,14 @@ void TrackHeaderComponent::itemDragExit(const juce::DragAndDropTarget::SourceDet
 }
 void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &details)
 {
+
+    if (details.description == "Track" && m_track->isMasterTrack())
+    {
+        m_contentIsOver = false;
+        m_trackIsOver = false;
+        repaint();
+        return;
+    }
 
     if (details.description == "PluginListEntry")
     {
@@ -959,6 +1091,9 @@ void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDeta
 
 void TrackHeaderComponent::labelTextChanged(juce::Label *labelThatHasChanged)
 {
+    if (m_track->isMasterTrack())
+        return;
+
     if (labelThatHasChanged == &m_trackName)
     {
         m_track->setName(labelThatHasChanged->getText());

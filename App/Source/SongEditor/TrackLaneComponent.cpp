@@ -57,6 +57,16 @@ void TrackLaneComponent::paint(juce::Graphics &g)
         g.fillRect(area);
         GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, area);
     }
+    else
+    {
+        float trackHeight = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
+        auto area = getLocalBounds().removeFromTop(trackHeight).toFloat();
+        auto x1beats = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+        auto x2beats = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+        g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour().darker(0.1f));
+        g.fillRect(area);
+        GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, area);
+    }
 }
 
 void TrackLaneComponent::resized()
@@ -85,7 +95,7 @@ void TrackLaneComponent::buildAutomationLanes()
 {
     m_automationLanes.clear(true);
 
-    m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_track->edit));
+    m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromEdit(m_track->edit);
 
     auto *trackInfo = m_editViewState.m_trackHeightManager->getTrackInfoForTrack(m_track);
     if (trackInfo == nullptr)
@@ -212,6 +222,14 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
                     t->state.setProperty(IDs::showLowerRange, false, nullptr);
                     if (t == m_track.get())
                         t->state.setProperty(IDs::showLowerRange, true, nullptr);
+                }
+
+                if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
+                {
+                    if (m_track->isMasterTrack())
+                        masterTrack->state.setProperty(IDs::showLowerRange, true, nullptr);
+                    else
+                        masterTrack->state.setProperty(IDs::showLowerRange, false, nullptr);
                 }
 
                 if (e.getNumberOfClicks() > 1 && m_track->itemID.isValid())

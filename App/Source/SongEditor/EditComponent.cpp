@@ -45,7 +45,12 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
       m_reverseClipButton("reverse clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_deleteClipButton("delete clips", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
+    m_edit.ensureMasterTrack();
+    if (auto *masterTrack = m_edit.getMasterTrack())
+        masterTrack->setColour(m_editViewState.m_applicationState.getPrimeColour());
+
     m_edit.state.addListener(this);
+    m_editViewState.m_selectionManager.addChangeListener(this);
 
     m_scrollbar_v.setAlwaysOnTop(true);
     m_scrollbar_v.setAutoHide(false);
@@ -129,7 +134,22 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_toolBar.setButtonGap(4, 30);
 
     markAndUpdate(m_updateTracks);
-    m_editViewState.m_selectionManager.selectOnly(te::getAllTracks(m_edit).getLast());
+
+    auto allTracks = te::getAllTracks(m_edit);
+    te::Track *lastNonMasterTrack = nullptr;
+
+    for (int i = allTracks.size(); --i >= 0;)
+    {
+        auto *track = allTracks.getUnchecked(i);
+        if (track != nullptr && !track->isMasterTrack())
+        {
+            lastNonMasterTrack = track;
+            break;
+        }
+    }
+
+    if (lastNonMasterTrack != nullptr)
+        m_editViewState.m_selectionManager.selectOnly(lastNonMasterTrack);
 
     markAndUpdate(m_verticalUpdateSongEditor);
     updateHorizontalScrollBar();
@@ -154,6 +174,7 @@ EditComponent::~EditComponent()
     m_addAudioTrackBtn.removeListener(this);
     m_scrollbar_h.removeListener(this);
     m_scrollbar_v.removeListener(this);
+    m_editViewState.m_selectionManager.removeChangeListener(this);
     m_edit.state.removeListener(this);
 }
 
@@ -188,7 +209,7 @@ void EditComponent::resized()
     GUIHelpers::log("EditComponent: resized()");
     m_toolBar.setBounds(getToolBarRect());
     m_timeLine.setBounds(getTimeLineRect());
-    m_trackListView.setBounds(getTrackListRect());
+    m_trackListView.setBounds(getScrollableTrackListRect());
     m_trackListView.resized();
     auto rect = getTrackListToolsRect().removeFromRight(getTrackListToolsRect().getWidth() / 2);
     rect.removeFromRight(10);
@@ -196,13 +217,28 @@ void EditComponent::resized()
     m_trackListToolsMenu.resized();
     m_trackListControlMenu.setBounds(getTrackListToolsRect().removeFromLeft(getTrackListToolsRect().getWidth() / 2));
     m_trackListControlMenu.resized();
-    m_songEditor.setBounds(getSongEditorRect());
+    m_songEditor.setBounds(getScrollableSongEditorRect());
     m_songEditor.resized();
-    m_scrollbar_v.setBounds(getSongEditorRect().removeFromRight(20));
-    m_scrollbar_v.setCurrentRange(-m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()), getSongEditorRect().getHeight() / 2.0);
+
+    if (m_masterHeader)
+    {
+        m_masterHeader->setVisible(true);
+        m_masterHeader->setBounds(getMasterHeaderRect());
+        m_masterHeader->resized();
+    }
+
+    if (m_masterLane)
+    {
+        m_masterLane->setVisible(true);
+        m_masterLane->setBounds(getMasterLaneRect());
+        m_masterLane->resized();
+    }
+
+    m_scrollbar_v.setBounds(getScrollableSongEditorRect().removeFromRight(20));
+    m_scrollbar_v.setCurrentRange(-m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()), getScrollableSongEditorRect().getHeight() / 2.0);
     m_footerbar.setBounds(getFooterRect());
     m_playhead.setBounds(getPlayHeadRect());
-    m_scrollbar_h.setBounds(getSongEditorRect().removeFromBottom(20));
+    m_scrollbar_h.setBounds(getHorizontalScrollbarRect());
 }
 void EditComponent::updateHorizontalScrollBar()
 {
@@ -255,6 +291,19 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event, const juce::Mo
     else
     {
         m_scrollbar_v.setCurrentRangeStart(m_scrollbar_v.getCurrentRangeStart() - wheel.deltaY * 60);
+    }
+}
+
+void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
+{
+    if (source == &m_editViewState.m_selectionManager)
+    {
+        m_trackListView.repaintTrackHeaders();
+
+        if (m_masterHeader)
+            m_masterHeader->repaint();
+        if (m_masterLane)
+            m_masterLane->repaint();
     }
 }
 
@@ -424,7 +473,7 @@ void EditComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Ide
     }
 }
 
-void EditComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
+void EditComponent::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree &c)
 {
     if (te::MidiClip::isClipState(c))
     {
@@ -437,7 +486,9 @@ void EditComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
     }
     if (c.hasType(te::IDs::POINT))
     {
-        // markAndUpdate(m_updateTracks);
+        if (parent.hasType(te::IDs::AUTOMATIONCURVE) && parent.getNumChildren() == 1)
+            markAndUpdate(m_updateTracks);
+
         markAndUpdate(m_verticalUpdateSongEditor);
     }
     if (c.hasType(te::IDs::AUTOMATIONCURVE))
@@ -448,7 +499,7 @@ void EditComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
     }
 }
 
-void EditComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c, int)
+void EditComponent::valueTreeChildRemoved(juce::ValueTree &parent, juce::ValueTree &c, int)
 {
     if (te::MidiClip::isClipState(c))
     {
@@ -460,7 +511,10 @@ void EditComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c,
     }
     if (c.hasType(te::IDs::POINT))
     {
-        // markAndUpdate(m_updateTracks);
+        if (parent.hasType(te::IDs::AUTOMATIONCURVE) && parent.getNumChildren() == 0)
+            markAndUpdate(m_updateTracks);
+
+        markAndUpdate(m_verticalUpdateSongEditor);
     }
     if (c.hasType(te::IDs::PLUGIN))
     {
@@ -490,6 +544,10 @@ void EditComponent::handleAsyncUpdate()
     {
         buildTracks();
         m_songEditor.repaint();
+        if (m_masterLane)
+            m_masterLane->repaint();
+        if (m_masterHeader)
+            m_masterHeader->repaint();
     }
     if (compareAndReset(m_updateZoom))
     {
@@ -497,14 +555,26 @@ void EditComponent::handleAsyncUpdate()
 
         m_timeLine.repaint();
         m_songEditor.repaint();
+        if (m_masterLane)
+            m_masterLane->repaint();
+        if (m_masterHeader)
+            m_masterHeader->repaint();
 
         updateHorizontalScrollBar();
     }
     if (compareAndReset(m_verticalUpdateSongEditor))
     {
-        m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromStates(tracktion::getAllTracks(m_edit));
-        m_songEditor.resized();
-        m_trackListView.resized();
+        m_editViewState.m_trackHeightManager->regenerateTrackHeightsFromEdit(m_edit);
+        resized();
+
+        m_trackListView.repaintTrackHeaders();
+        m_songEditor.repaint();
+
+        if (m_masterLane)
+            m_masterLane->repaint();
+        if (m_masterHeader)
+            m_masterHeader->repaint();
+
         updateVerticalScrollbar();
     }
 }
@@ -537,8 +607,16 @@ void EditComponent::buildTracks()
     m_trackListView.clear();
     m_songEditor.clear();
 
+    m_masterHeader.reset();
+    m_masterLane.reset();
+
+    auto masterTrack = findMasterTrack();
+
     for (auto t : tracktion_engine::getAllTracks(m_edit))
     {
+        if (t == nullptr || t->isMasterTrack())
+            continue;
+
         if (m_editViewState.m_trackHeightManager->isTrackShowable(t))
         {
             auto th = std::make_unique<TrackHeaderComponent>(m_editViewState, t);
@@ -546,6 +624,14 @@ void EditComponent::buildTracks()
             m_trackListView.addHeaderView(std::move(th));
             m_songEditor.addTrackLaneComponent(std::move(tl));
         }
+    }
+
+    if (masterTrack)
+    {
+        m_masterHeader = std::make_unique<TrackHeaderComponent>(m_editViewState, masterTrack);
+        m_masterLane = std::make_unique<TrackLaneComponent>(m_editViewState, masterTrack, m_timeLine.getTimeLineID(), m_songEditor);
+        addAndMakeVisible(*m_masterHeader);
+        addAndMakeVisible(*m_masterLane);
     }
 
     m_trackListView.updateViews();
@@ -743,6 +829,60 @@ juce::Rectangle<int> EditComponent::getSongEditorRect()
     area.removeFromBottom(getFooterRect().getHeight());
     return area.removeFromRight(getWidth() - m_editViewState.m_trackHeaderWidth);
 }
+juce::Rectangle<int> EditComponent::getScrollableTrackListRect()
+{
+    auto rect = getTrackListRect();
+    rect.removeFromBottom(getHorizontalScrollbarRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight());
+    return rect;
+}
+
+juce::Rectangle<int> EditComponent::getScrollableSongEditorRect()
+{
+    auto rect = getSongEditorRect();
+    rect.removeFromBottom(getHorizontalScrollbarRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight());
+    return rect;
+}
+
+juce::Rectangle<int> EditComponent::getBottomMixerRect()
+{
+    auto bottomHeight = getHorizontalScrollbarRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight();
+    auto left = getTrackListRect().removeFromBottom(bottomHeight);
+    auto right = getSongEditorRect().removeFromBottom(bottomHeight);
+    return left.getUnion(right);
+}
+
+juce::Rectangle<int> EditComponent::getSendsHeaderRect()
+{
+    auto rect = getTrackListRect().removeFromBottom(getHorizontalScrollbarRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight());
+    return rect.removeFromTop(m_sendsAreaHeight);
+}
+
+juce::Rectangle<int> EditComponent::getSendsLaneRect()
+{
+    auto rect = getSongEditorRect().removeFromBottom(getHorizontalScrollbarRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight());
+    return rect.removeFromTop(m_sendsAreaHeight);
+}
+
+juce::Rectangle<int> EditComponent::getMasterHeaderRect()
+{
+    auto rect = getTrackListRect().removeFromBottom(getHorizontalScrollbarRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight());
+    rect.removeFromTop(m_sendsAreaHeight);
+    return rect.removeFromTop(getMasterAreaHeight());
+}
+
+juce::Rectangle<int> EditComponent::getMasterLaneRect()
+{
+    auto rect = getSongEditorRect().removeFromBottom(getHorizontalScrollbarRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight());
+    rect.removeFromTop(m_sendsAreaHeight);
+    return rect.removeFromTop(getMasterAreaHeight());
+}
+
+juce::Rectangle<int> EditComponent::getHorizontalScrollbarRect()
+{
+    auto rect = getSongEditorRect();
+    return rect.removeFromBottom(20);
+}
+
 juce::Rectangle<int> EditComponent::getFooterRect()
 {
     auto area = getLocalBounds();
@@ -750,9 +890,24 @@ juce::Rectangle<int> EditComponent::getFooterRect()
 }
 juce::Rectangle<int> EditComponent::getPlayHeadRect()
 {
-    auto h = getTimeLineRect().getHeight() + getSongEditorRect().getHeight();
+    auto songEditorHeight = getScrollableSongEditorRect().getHeight() + m_sendsAreaHeight + getMasterAreaHeight();
+    auto h = getTimeLineRect().getHeight() + songEditorHeight;
     auto w = getTimeLineRect().getWidth();
     return {getTimeLineRect().getX(), getTimeLineRect().getY(), w, h};
+}
+
+int EditComponent::getMasterAreaHeight()
+{
+    if (auto masterTrack = findMasterTrack())
+        return m_editViewState.m_trackHeightManager->getTrackHeight(masterTrack, true);
+
+    return 0;
+}
+
+te::Track::Ptr EditComponent::findMasterTrack()
+{
+    m_edit.ensureMasterTrack();
+    return m_edit.getMasterTrack();
 }
 int EditComponent::getSongHeight()
 {

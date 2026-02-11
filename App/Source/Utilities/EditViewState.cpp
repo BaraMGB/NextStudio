@@ -27,6 +27,7 @@ EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationVi
       m_applicationState(avs)
 {
     m_trackHeightManager = std::make_unique<TrackHeightManager>(tracktion::getAllTracks(e));
+    m_trackHeightManager->regenerateTrackHeightsFromEdit(m_edit);
     m_thumbNailManager = std::make_unique<ThumbNailManager>(m_edit.engine);
     m_state = m_edit.state.getOrCreateChildWithName(IDs::EDITVIEWSTATE, nullptr);
     m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);

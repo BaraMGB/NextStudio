@@ -25,8 +25,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 //
 
 #include "SongEditor/TrackListView.h"
-#include "Utilities/ApplicationViewState.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
 void TrackListView::resized()
@@ -81,7 +81,28 @@ void TrackListView::mouseDown(const juce::MouseEvent &e)
 }
 void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    te::TrackInsertPoint ip{nullptr, m_editViewState.m_edit.getTrackList().at(m_editViewState.m_edit.getTrackList().size() - 1)};
+    te::TrackInsertPoint ip{nullptr, nullptr};
+
+    auto &trackList = m_editViewState.m_edit.getTrackList();
+    if (trackList.size() > 0)
+        ip = te::TrackInsertPoint{nullptr, trackList.at(trackList.size() - 1)};
+
+    te::Track *lastNonMasterTrack = nullptr;
+    auto allTracks = tracktion::getAllTracks(m_editViewState.m_edit);
+    for (auto i = allTracks.size(); --i >= 0;)
+    {
+        auto *track = allTracks.getUnchecked(i);
+        if (track && !track->isMasterTrack())
+        {
+            lastNonMasterTrack = track;
+            break;
+        }
+    }
+
+    if (lastNonMasterTrack != nullptr)
+        ip = te::TrackInsertPoint(*lastNonMasterTrack, true);
+    else if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
+        ip = te::TrackInsertPoint{nullptr, masterTrack};
 
     if (dragSourceDetails.description == "Track")
         if (auto thc = dynamic_cast<TrackHeaderComponent *>(dragSourceDetails.sourceComponent.get()))
@@ -184,6 +205,12 @@ void TrackListView::updateViews()
     resized();
 }
 
+void TrackListView::repaintTrackHeaders()
+{
+    for (auto th : m_trackHeaders)
+        th->repaint();
+}
+
 void TrackListView::clear()
 {
     m_trackHeaders.clear(true);
@@ -221,10 +248,6 @@ void TrackListView::collapseTracks(bool minimize)
 
 void TrackListView::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (source == &m_editViewState.m_selectionManager)
-        for (auto th : m_trackHeaders)
-            th->repaint();
-
     if (source == m_editViewState.m_trackHeightManager.get())
     {
         resized();

@@ -25,6 +25,14 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 TrackHeightManager::TrackHeightManager(const juce::Array<tracktion_engine::Track *> &allTracks) { regenerateTrackHeightsFromStates(allTracks); }
 
+void TrackHeightManager::regenerateTrackHeightsFromEdit(tracktion_engine::Edit &edit)
+{
+    edit.ensureMasterTrack();
+
+    auto allTracks = tracktion::getAllTracks(edit);
+    regenerateTrackHeightsFromStates(allTracks);
+}
+
 juce::Array<tracktion::EditItemID> TrackHeightManager::getShowedTracks(tracktion::Edit &edit)
 {
     juce::Array<tracktion::EditItemID> showedTracks;
@@ -124,17 +132,23 @@ int TrackHeightManager::getAutomationHeight(tracktion_engine::AutomatableParamet
     if (ap == nullptr)
         return 0;
 
-    tracktion_engine::Track *track = ap->getTrack();
-    if (track == nullptr)
-        return 0;
+    if (auto *track = ap->getTrack())
+    {
+        const TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
+        if (trackInfo != nullptr)
+        {
+            auto it = trackInfo->automationParameterHeights.find(ap);
+            if (it != trackInfo->automationParameterHeights.end())
+                return it->second;
+        }
+    }
 
-    const TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
-    if (trackInfo == nullptr)
-        return 0;
-
-    auto it = trackInfo->automationParameterHeights.find(ap);
-    if (it != trackInfo->automationParameterHeights.end())
-        return it->second;
+    for (const auto *trackInfo : trackInfos)
+    {
+        auto it = trackInfo->automationParameterHeights.find(ap);
+        if (it != trackInfo->automationParameterHeights.end())
+            return it->second;
+    }
 
     return 0;
 }
@@ -269,11 +283,23 @@ void TrackHeightManager::setAutomationHeight(const tracktion_engine::Automatable
     if (ap == nullptr)
         return;
 
-    tracktion_engine::Track *track = ap->getTrack();
-    if (track == nullptr)
-        return;
+    TrackHeightInfo *trackInfo = nullptr;
 
-    TrackHeightInfo *trackInfo = getTrackInfoForTrack(track);
+    if (auto *track = ap->getTrack())
+        trackInfo = getTrackInfoForTrack(track);
+
+    if (trackInfo == nullptr)
+    {
+        for (auto *info : trackInfos)
+        {
+            if (info->automationParameterHeights.count(ap.get()) > 0)
+            {
+                trackInfo = info;
+                break;
+            }
+        }
+    }
+
     if (trackInfo == nullptr)
         return;
 
@@ -342,16 +368,19 @@ void TrackHeightManager::flashStateFromTrackInfos()
             continue;
 
         // Update the minimized state
-        track->state.setProperty(IDs::isTrackMinimized, info->isMinimized, nullptr);
+        if ((bool)track->state.getProperty(IDs::isTrackMinimized, false) != info->isMinimized)
+            track->state.setProperty(IDs::isTrackMinimized, info->isMinimized, nullptr);
 
         if (info->type == TrackType::Folder)
         {
             // FolderTracks always have a fixed height
-            track->state.setProperty(tracktion_engine::IDs::height, folderTrackHeight, nullptr);
+            if ((int)track->state.getProperty(tracktion_engine::IDs::height, folderTrackHeight) != folderTrackHeight)
+                track->state.setProperty(tracktion_engine::IDs::height, folderTrackHeight, nullptr);
         }
-        else if (info->type == TrackType::Audio)
+        else if (info->type == TrackType::Audio || info->type == TrackType::Master)
         {
-            track->state.setProperty(tracktion_engine::IDs::height, info->baseHeight, nullptr);
+            if ((int)track->state.getProperty(tracktion_engine::IDs::height, info->baseHeight) != info->baseHeight)
+                track->state.setProperty(tracktion_engine::IDs::height, info->baseHeight, nullptr);
         }
 
         // Update individual automation parameter heights
@@ -360,7 +389,8 @@ void TrackHeightManager::flashStateFromTrackInfos()
             if (ap)
             {
                 GUIHelpers::log("SAVE HEIGHT TO STATE/  HEIGHT: ", height);
-                ap->getCurve().state.setProperty(tracktion_engine::IDs::height, height, nullptr);
+                if ((int)ap->getCurve().state.getProperty(tracktion_engine::IDs::height, height) != height)
+                    ap->getCurve().state.setProperty(tracktion_engine::IDs::height, height, nullptr);
             }
         }
     }
@@ -413,30 +443,57 @@ int TrackHeightManager::calculateHierarchyDepth(tracktion_engine::Track *track)
 void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track *> &allTracks)
 {
     GUIHelpers::log("Update TrackInfo from State");
+
     trackInfos.clear();
 
     for (auto *track : allTracks)
     {
         if (track == nullptr)
             continue;
-        if (!(track->isAudioTrack() || track->isFolderTrack()))
+        if (!(track->isAudioTrack() || track->isFolderTrack() || track->isMasterTrack()))
             continue;
 
         auto *info = new TrackHeightManager::TrackHeightInfo();
         info->track = track;
-        info->type = track->isFolderTrack() ? TrackType::Folder : TrackType::Audio;
+        if (track->isFolderTrack())
+            info->type = TrackType::Folder;
+        else if (track->isMasterTrack())
+            info->type = TrackType::Master;
+        else
+            info->type = TrackType::Audio;
         info->isMinimized = track->state.getProperty(IDs::isTrackMinimized, false);
-        info->baseHeight = track->isFolderTrack() ? folderTrackHeight : static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+
+        if (track->isFolderTrack())
+        {
+            info->baseHeight = folderTrackHeight;
+        }
+        else
+        {
+            info->baseHeight = static_cast<int>(track->state.getProperty(tracktion_engine::IDs::height, 50));
+        }
+
         info->hierarchyDepth = calculateHierarchyDepth(track);
         info->parentFolder = track->getParentFolderTrack();
 
-        for (auto *ap : track->getAllAutomatableParams())
+        auto addAutomationParameter = [&](te::AutomatableParameter *ap)
         {
+            if (ap == nullptr)
+                return;
+
             if (ap->getCurve().getNumPoints() == 0)
-                continue;
+                return;
 
             int height = static_cast<int>(ap->getCurve().state.getProperty(tracktion_engine::IDs::height, 50));
             info->automationParameterHeights[ap] = height;
+        };
+
+        for (auto *ap : track->getAllAutomatableParams())
+            addAutomationParameter(ap);
+
+        if (track->isMasterTrack())
+        {
+            addAutomationParameter(track->edit.getMasterSliderPosParameter().get());
+            addAutomationParameter(track->edit.getMasterPanParameter().get());
         }
 
         addTrackInfo(info);
@@ -447,11 +504,35 @@ bool TrackHeightManager::isAutomationVisible(const tracktion_engine::Automatable
     if (ap.getCurve().getNumPoints() == 0)
         return false;
 
-    if (isTrackMinimized(ap.getTrack()))
-        return false;
+    auto *apTrack = ap.getTrack();
+
+    if (apTrack == nullptr)
+    {
+        for (const auto *info : trackInfos)
+        {
+            for (const auto &entry : info->automationParameterHeights)
+            {
+                if (entry.first.get() == &ap)
+                {
+                    apTrack = info->track;
+                    break;
+                }
+            }
+
+            if (apTrack != nullptr)
+                break;
+        }
+    }
+
+    if (apTrack != nullptr)
+        if (isTrackMinimized(apTrack))
+            return false;
 
     std::function<bool(tracktion_engine::Track *)> isTrackInMinimizedFolder = [&](tracktion_engine::Track *track) -> bool
     {
+        if (track == nullptr)
+            return false;
+
         if (track->isPartOfSubmix())
         {
             auto folderTrack = track->getParentFolderTrack();
@@ -464,5 +545,5 @@ bool TrackHeightManager::isAutomationVisible(const tracktion_engine::Automatable
         return false;
     };
 
-    return !isTrackInMinimizedFolder(ap.getTrack());
+    return !isTrackInMinimizedFolder(apTrack);
 }

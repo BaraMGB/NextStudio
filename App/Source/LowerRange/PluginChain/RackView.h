@@ -23,9 +23,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include "Utilities/EditViewState.h"
 #include "UI/ModifierDetailPanel.h"
 #include "UI/ModifierSidebar.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 // #include "SideBrowser/PluginBrowser.h"
 
@@ -77,6 +77,9 @@ public:
     EditViewState &getEditViewState() { return m_evs; }
 
 private:
+    void attachTrackListeners();
+    void detachTrackListeners();
+
     void valueTreeChanged() override {}
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
@@ -88,6 +91,8 @@ private:
 
     EditViewState &m_evs;
     te::Track::Ptr m_track;
+    juce::ValueTree m_observedTrackState;
+    juce::ValueTree m_observedPluginListState;
     juce::Label m_nameLabel;
     juce::String m_trackID{""};
 

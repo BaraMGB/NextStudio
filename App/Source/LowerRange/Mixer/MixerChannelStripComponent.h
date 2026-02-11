@@ -24,8 +24,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "UI/Controls/AutomatableParameter.h"
 #include "UI/Controls/AutomatableSlider.h"
-#include "Utilities/EditViewState.h"
 #include "UI/LevelMeterComponent.h"
+#include "Utilities/EditViewState.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace te = tracktion_engine;
@@ -35,7 +35,7 @@ class MixerChannelStripComponent
     , public juce::ValueTree::Listener
 {
 public:
-    MixerChannelStripComponent(EditViewState &evs, te::AudioTrack::Ptr at);
+    MixerChannelStripComponent(EditViewState &evs, te::Track::Ptr track);
     ~MixerChannelStripComponent() override;
 
     void paint(juce::Graphics &) override;
@@ -52,7 +52,8 @@ public:
 
 private:
     EditViewState &m_evs;
-    te::AudioTrack::Ptr m_track;
+    te::Track::Ptr m_track;
+    bool m_isMasterTrack = false;
 
     juce::Label m_trackName;
     AutomatableSliderComponent m_volumeSlider;
