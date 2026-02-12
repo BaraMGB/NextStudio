@@ -124,8 +124,14 @@ void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewSt
         drawMidiClip(g, evs, mc, contentRect, displayedRect, color, x1Beat, x2beat);
     }
 
-    g.setColour(evs.m_applicationState.getBorderColour());
+    g.setColour(evs.m_applicationState.getTimeLineStrokeColour());
     g.drawRect(clipRect.toNearestInt());
+
+    if (isSelected)
+    {
+        g.setColour(evs.m_applicationState.getPrimeColour());
+        g.drawRect(clipRect.toNearestInt(), 2);
+    }
 }
 
 void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &c, SimpleThumbnail &thumb, juce::Colour colour, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
