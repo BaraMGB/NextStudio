@@ -74,8 +74,8 @@ void CompressorTransferGraphComponent::paint(juce::Graphics &g)
     }
 
     const float thresholdDb = m_thresholdParam != nullptr ? gainToDb(m_thresholdParam->getCurrentValue()) : -6.0f;
-    const float ratioAmount = m_ratioParam != nullptr ? juce::jlimit(0.0f, 0.999f, m_ratioParam->getCurrentValue()) : 0.5f;
-    const float effectiveRatio = 1.0f / juce::jmax(0.001f, 1.0f - ratioAmount);
+    const float ratioAmount = m_ratioParam != nullptr ? juce::jlimit(0.0f, 0.95f, m_ratioParam->getCurrentValue()) : 0.5f;
+    const float effectiveRatio = 1.0f / juce::jmax(0.001f, ratioAmount);
     const float outputDb = m_outputParam != nullptr ? m_outputParam->getCurrentValue() : 0.0f;
 
     const float thresholdX = mapDbToX(thresholdDb, area, minDb, maxDb);
@@ -137,6 +137,28 @@ CompressorPluginComponent::CompressorPluginComponent(EditViewState &evs, te::Plu
     m_attackComp = std::make_unique<AutomatableParameterComponent>(m_attackParam, "Attack");
     m_releaseComp = std::make_unique<AutomatableParameterComponent>(m_releaseParam, "Release");
     m_outputComp = std::make_unique<AutomatableParameterComponent>(m_outputParam, "Output");
+    m_sidechainGainComp = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("input gain"), "SC Gain");
+
+    m_sidechainSourceLabel.setText("Sidechain Source", juce::dontSendNotification);
+    m_sidechainSourceLabel.setJustificationType(juce::Justification::centredLeft);
+
+    m_sidechainTriggerButton.setButtonText("Sidechain Trigger");
+    m_sidechainTriggerButton.onClick = [this] { m_plugin->state.setProperty(te::IDs::sidechainTrigger, m_sidechainTriggerButton.getToggleState(), &m_editViewState.m_edit.getUndoManager()); };
+
+    m_sidechainSourceCombo.onChange = [this]
+    {
+        const auto selectedId = m_sidechainSourceCombo.getSelectedId();
+        const auto index = selectedId - 1;
+
+        if (index < 0 || index >= static_cast<int>(m_sidechainSourceIDs.size()))
+            return;
+
+        const auto newID = m_sidechainSourceIDs[(size_t)index];
+        m_plugin->setSidechainSourceID(newID);
+
+        if (newID.isValid() && m_plugin->getNumWires() == 0)
+            m_plugin->guessSidechainRouting();
+    };
 
     addAndMakeVisible(m_transferGraph);
     addAndMakeVisible(*m_thresholdComp);
@@ -144,10 +166,23 @@ CompressorPluginComponent::CompressorPluginComponent(EditViewState &evs, te::Plu
     addAndMakeVisible(*m_attackComp);
     addAndMakeVisible(*m_releaseComp);
     addAndMakeVisible(*m_outputComp);
+    addAndMakeVisible(*m_sidechainGainComp);
+    addAndMakeVisible(m_sidechainSourceLabel);
+    addAndMakeVisible(m_sidechainSourceCombo);
+    addAndMakeVisible(m_sidechainTriggerButton);
+
+    refreshSidechainSourceList();
+    syncSidechainTriggerButton();
+
     m_plugin->state.addListener(this);
+    m_editViewState.m_edit.state.addListener(this);
 }
 
-CompressorPluginComponent::~CompressorPluginComponent() { m_plugin->state.removeListener(this); }
+CompressorPluginComponent::~CompressorPluginComponent()
+{
+    m_plugin->state.removeListener(this);
+    m_editViewState.m_edit.state.removeListener(this);
+}
 
 void CompressorPluginComponent::paint(juce::Graphics &g)
 {
@@ -164,7 +199,8 @@ void CompressorPluginComponent::resized()
 
     area.removeFromTop(4);
 
-    auto row1 = area.removeFromTop(area.getHeight() / 2);
+    auto row1 = area.removeFromTop((int)(area.getHeight() * 0.46f));
+    auto sidechainRow = area.removeFromTop(26);
     auto row2 = area;
 
     auto colW1 = row1.getWidth() / 4;
@@ -173,8 +209,16 @@ void CompressorPluginComponent::resized()
     m_attackComp->setBounds(row1.removeFromLeft(colW1).reduced(2));
     m_releaseComp->setBounds(row1.reduced(2));
 
-    auto outputArea = row2.withSizeKeepingCentre(row2.getWidth() / 2, row2.getHeight());
-    m_outputComp->setBounds(outputArea.reduced(2));
+    auto sourceLabelArea = sidechainRow.removeFromLeft((int)(sidechainRow.getWidth() * 0.27f));
+    m_sidechainSourceLabel.setBounds(sourceLabelArea.reduced(2, 0));
+
+    auto triggerArea = sidechainRow.removeFromRight((int)(sidechainRow.getWidth() * 0.34f));
+    m_sidechainTriggerButton.setBounds(triggerArea.reduced(2, 0));
+    m_sidechainSourceCombo.setBounds(sidechainRow.reduced(2, 0));
+
+    auto halfWidth = row2.getWidth() / 2;
+    m_outputComp->setBounds(row2.removeFromLeft(halfWidth).reduced(2));
+    m_sidechainGainComp->setBounds(row2.reduced(2));
 }
 
 void CompressorPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &i)
@@ -189,8 +233,54 @@ void CompressorPluginComponent::valueTreePropertyChanged(juce::ValueTree &, cons
         m_releaseComp->updateLabel();
     else if (i == te::IDs::outputDb)
         m_outputComp->updateLabel();
+    else if (i == te::IDs::inputDb)
+        m_sidechainGainComp->updateLabel();
+    else if (i == te::IDs::sidechainTrigger)
+        syncSidechainTriggerButton();
+    else if (i == te::IDs::sidechainSourceID)
+        refreshSidechainSourceList();
+    else if (i == te::IDs::name)
+        refreshSidechainSourceList();
 
     m_transferGraph.repaint();
+}
+
+void CompressorPluginComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) { refreshSidechainSourceList(); }
+
+void CompressorPluginComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) { refreshSidechainSourceList(); }
+
+void CompressorPluginComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int) { refreshSidechainSourceList(); }
+
+void CompressorPluginComponent::refreshSidechainSourceList()
+{
+    const auto selectedSourceID = m_plugin->getSidechainSourceID();
+    m_sidechainSourceCombo.clear(juce::dontSendNotification);
+    m_sidechainSourceIDs.clear();
+
+    m_sidechainSourceCombo.addItem("<none>", 1);
+    m_sidechainSourceIDs.push_back({});
+
+    auto selectedComboID = 1;
+    for (auto *track : te::getAudioTracks(m_editViewState.m_edit))
+    {
+        if (track == m_plugin->getOwnerTrack())
+            continue;
+
+        m_sidechainSourceIDs.push_back(track->itemID);
+        const auto itemID = static_cast<int>(m_sidechainSourceIDs.size());
+        m_sidechainSourceCombo.addItem(track->getName(), itemID);
+
+        if (track->itemID == selectedSourceID)
+            selectedComboID = itemID;
+    }
+
+    m_sidechainSourceCombo.setSelectedId(selectedComboID, juce::dontSendNotification);
+}
+
+void CompressorPluginComponent::syncSidechainTriggerButton()
+{
+    const bool sidechainTriggerOn = static_cast<bool>(m_plugin->state.getProperty(te::IDs::sidechainTrigger, false));
+    m_sidechainTriggerButton.setToggleState(sidechainTriggerOn, juce::dontSendNotification);
 }
 
 juce::ValueTree CompressorPluginComponent::getPluginState()
