@@ -13,6 +13,8 @@
 #include <JuceHeader.h>
 #include <tracktion_engine/tracktion_engine.h>
 
+#include <vector>
+
 #include "LowerRange/PluginChain/PluginViewComponent.h"
 #include "UI/Controls/AutomatableParameter.h"
 
@@ -53,11 +55,14 @@ public:
     ApplicationViewState &getApplicationViewState() override;
 
 private:
+    void refreshSidechainSourceList();
+    void syncSidechainTriggerButton();
+
     void valueTreeChanged() override {}
     void valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i) override;
-    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
-    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}
-    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override {}
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override;
 
     te::AutomatableParameter::Ptr m_thresholdParam;
     te::AutomatableParameter::Ptr m_ratioParam;
@@ -72,6 +77,12 @@ private:
     std::unique_ptr<AutomatableParameterComponent> m_attackComp;
     std::unique_ptr<AutomatableParameterComponent> m_releaseComp;
     std::unique_ptr<AutomatableParameterComponent> m_outputComp;
+    std::unique_ptr<AutomatableParameterComponent> m_sidechainGainComp;
+
+    juce::Label m_sidechainSourceLabel;
+    juce::ComboBox m_sidechainSourceCombo;
+    juce::ToggleButton m_sidechainTriggerButton;
+    std::vector<te::EditItemID> m_sidechainSourceIDs;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompressorPluginComponent)
 };
