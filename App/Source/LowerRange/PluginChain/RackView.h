@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
+#include "LowerRange/Mixer/MixerChannelStripComponent.h"
 #include "UI/ModifierDetailPanel.h"
 #include "UI/ModifierSidebar.h"
 #include "Utilities/EditViewState.h"
@@ -102,6 +103,7 @@ private:
 
     ModifierSidebar m_modifierSidebar;
     ModifierDetailPanel m_modifierDetailPanel;
+    std::unique_ptr<MixerChannelStripComponent> m_channelStrip;
 
     bool m_updatePlugins = false;
     bool m_isOver = false;
@@ -109,6 +111,7 @@ private:
 
     te::EditItemID m_id;
     const int HEADERWIDTH = 20;
+    static constexpr int CHANNEL_STRIP_WIDTH = 95;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RackView)
 };
 
