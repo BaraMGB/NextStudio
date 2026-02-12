@@ -349,9 +349,6 @@ static bool isPluginHidden(te::Track &t, te::Plugin *p)
             return true;
         if (p == at->getLevelMeterPlugin())
             return true;
-        // Also hide Equaliser if it's considered internal/default
-        if (p == at->getEqualiserPlugin())
-            return true;
     }
     return false;
 }
