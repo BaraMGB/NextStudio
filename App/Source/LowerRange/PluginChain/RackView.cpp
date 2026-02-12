@@ -294,6 +294,9 @@ void RackView::resized()
     area.removeFromLeft(HEADERWIDTH);
     area = area.reduced(5);
 
+    if (m_channelStrip != nullptr)
+        m_channelStrip->setBounds(area.removeFromRight(CHANNEL_STRIP_WIDTH));
+
     // Layout Sidebar and Detail Panel
     m_modifierSidebar.setBounds(area.removeFromRight(160));
 
@@ -497,6 +500,17 @@ void RackView::setTrack(te::Track::Ptr track)
     m_modifierSidebar.setTrack(m_track);
     m_modifierDetailPanel.setModifier(nullptr);
 
+    const bool canShowChannelStrip = m_track != nullptr && (m_track->isMasterTrack() || m_track->isAudioTrack());
+    if (canShowChannelStrip)
+    {
+        m_channelStrip = std::make_unique<MixerChannelStripComponent>(m_evs, m_track);
+        addAndMakeVisible(*m_channelStrip);
+    }
+    else
+    {
+        m_channelStrip.reset();
+    }
+
     rebuildView();
 }
 
@@ -509,6 +523,7 @@ void RackView::clearTrack()
 
     m_modifierSidebar.setTrack(nullptr);
     m_modifierDetailPanel.setModifier(nullptr);
+    m_channelStrip.reset();
 
     rebuildView();
 }
