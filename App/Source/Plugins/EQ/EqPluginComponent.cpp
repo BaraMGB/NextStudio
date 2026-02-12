@@ -26,6 +26,19 @@ constexpr double previewSampleRate = 44100.0;
 
 inline float gainFromDb(float db) { return std::pow(10.0f, db / 20.0f); }
 
+juce::String formatFrequencyLabel(float hz)
+{
+    if (hz >= 1000.0f)
+    {
+        const auto khz = hz / 1000.0f;
+        if (khz >= 10.0f)
+            return juce::String((int)std::round(khz)) + "kHz";
+        return juce::String(khz, 2) + "kHz";
+    }
+
+    return juce::String((int)std::round(hz)) + "Hz";
+}
+
 inline double getBiquadMagnitude(const juce::IIRCoefficients &coeff, double frequency, double sampleRate)
 {
     const double w = juce::MathConstants<double>::twoPi * frequency / sampleRate;
@@ -203,6 +216,39 @@ void EqResponseGraphComponent::paint(juce::Graphics &g)
         g.drawText(juce::String(i + 1), juce::Rectangle<float>(x - 8.0f, y - 22.0f, 16.0f, 14.0f).toNearestInt(), juce::Justification::centred, false);
     }
 
+    const auto activeBand = m_dragBandIndex >= 0 ? m_dragBandIndex : m_hoverBandIndex;
+    if (activeBand >= 0 && activeBand < (int)m_bands.size())
+    {
+        const auto &band = m_bands[(size_t)activeBand];
+        if (band.freq != nullptr && band.gain != nullptr && band.q != nullptr)
+        {
+            const float x = xForFrequency(plotArea, band.freq->getCurrentValue());
+            const float y = yForGainDb(plotArea, band.gain->getCurrentValue());
+
+            const auto freqText = formatFrequencyLabel(band.freq->getCurrentValue());
+            const auto gainText = juce::String(band.gain->getCurrentValue() >= 0.0f ? "+" : "") + juce::String(band.gain->getCurrentValue(), 1) + " dB";
+            const auto qText = "Q " + juce::String(band.q->getCurrentValue(), 2);
+            const auto labelText = "B" + juce::String(activeBand + 1) + "  " + freqText + "  " + gainText + "  " + qText;
+
+            g.setFont(juce::FontOptions(11.0f));
+            const int textWidth = juce::jmax(120, g.getCurrentFont().getStringWidth(labelText) + 12);
+            const int textHeight = 18;
+
+            float labelX = x - (float)textWidth * 0.5f;
+            float labelY = y - 30.0f;
+            labelX = juce::jlimit(plotArea.getX(), plotArea.getRight() - (float)textWidth, labelX);
+            labelY = juce::jlimit(plotArea.getY(), plotArea.getBottom() - (float)textHeight, labelY);
+
+            const auto bubble = juce::Rectangle<float>(labelX, labelY, (float)textWidth, (float)textHeight);
+            g.setColour(juce::Colour(0xee14171d));
+            g.fillRoundedRectangle(bubble, 5.0f);
+            g.setColour(curveColour.withAlpha(0.9f));
+            g.drawRoundedRectangle(bubble, 5.0f, 1.0f);
+            g.setColour(juce::Colours::white.withAlpha(0.92f));
+            g.drawText(labelText, bubble.toNearestInt(), juce::Justification::centred, false);
+        }
+    }
+
     g.setColour(juce::Colour(0x33ffffff));
     g.drawRoundedRectangle(frameArea, 7.0f, 1.0f);
 }
@@ -229,9 +275,14 @@ void EqResponseGraphComponent::mouseDrag(const juce::MouseEvent &e)
 
     band.freq->setParameter(frequency, juce::sendNotification);
     band.gain->setParameter(gainDb, juce::sendNotification);
+    repaint();
 }
 
-void EqResponseGraphComponent::mouseUp(const juce::MouseEvent &) { m_dragBandIndex = -1; }
+void EqResponseGraphComponent::mouseUp(const juce::MouseEvent &)
+{
+    m_dragBandIndex = -1;
+    repaint();
+}
 
 void EqResponseGraphComponent::mouseMove(const juce::MouseEvent &e)
 {
@@ -356,100 +407,14 @@ EqPluginComponent::EqPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
       m_hiQParam(m_plugin->getAutomatableParameterByID("High-pass Q")),
       m_responseGraph(m_plugin, m_lowFreqParam, m_lowGainParam, m_lowQParam, m_midFreq1Param, m_midGain1Param, m_midQ1Param, m_midFreq2Param, m_midGain2Param, m_midQ2Param, m_hiFreqParam, m_hiGainParam, m_hiQParam)
 {
-    m_lowFreqComp = std::make_unique<AutomatableParameterComponent>(m_lowFreqParam, "L Freq");
-    m_lowGainComp = std::make_unique<AutomatableParameterComponent>(m_lowGainParam, "L Gain");
-    m_lowQComp = std::make_unique<AutomatableParameterComponent>(m_lowQParam, "L Q");
-
-    m_midFreq1Comp = std::make_unique<AutomatableParameterComponent>(m_midFreq1Param, "M1 Freq");
-    m_midGain1Comp = std::make_unique<AutomatableParameterComponent>(m_midGain1Param, "M1 Gain");
-    m_midQ1Comp = std::make_unique<AutomatableParameterComponent>(m_midQ1Param, "M1 Q");
-
-    m_midFreq2Comp = std::make_unique<AutomatableParameterComponent>(m_midFreq2Param, "M2 Freq");
-    m_midGain2Comp = std::make_unique<AutomatableParameterComponent>(m_midGain2Param, "M2 Gain");
-    m_midQ2Comp = std::make_unique<AutomatableParameterComponent>(m_midQ2Param, "M2 Q");
-
-    m_hiFreqComp = std::make_unique<AutomatableParameterComponent>(m_hiFreqParam, "H Freq");
-    m_hiGainComp = std::make_unique<AutomatableParameterComponent>(m_hiGainParam, "H Gain");
-    m_hiQComp = std::make_unique<AutomatableParameterComponent>(m_hiQParam, "H Q");
-
     addAndMakeVisible(m_responseGraph);
-    addAndMakeVisible(*m_lowFreqComp);
-    addAndMakeVisible(*m_lowGainComp);
-    addAndMakeVisible(*m_lowQComp);
-    addAndMakeVisible(*m_midFreq1Comp);
-    addAndMakeVisible(*m_midGain1Comp);
-    addAndMakeVisible(*m_midQ1Comp);
-    addAndMakeVisible(*m_midFreq2Comp);
-    addAndMakeVisible(*m_midGain2Comp);
-    addAndMakeVisible(*m_midQ2Comp);
-    addAndMakeVisible(*m_hiFreqComp);
-    addAndMakeVisible(*m_hiGainComp);
-    addAndMakeVisible(*m_hiQComp);
 
     m_plugin->state.addListener(this);
 }
 
-void EqPluginComponent::resized()
-{
-    auto area = getLocalBounds().reduced(6);
+void EqPluginComponent::resized() { m_responseGraph.setBounds(getLocalBounds().reduced(6)); }
 
-    auto graphArea = area.removeFromTop((int)(area.getHeight() * 0.52f));
-    m_responseGraph.setBounds(graphArea);
-
-    area.removeFromTop(6);
-
-    auto bandArea = area;
-    auto lowCol = bandArea.removeFromLeft(bandArea.getWidth() / 4).reduced(2);
-    auto mid1Col = bandArea.removeFromLeft(bandArea.getWidth() / 3).reduced(2);
-    auto mid2Col = bandArea.removeFromLeft(bandArea.getWidth() / 2).reduced(2);
-    auto highCol = bandArea.reduced(2);
-
-    const auto layoutColumn = [](juce::Rectangle<int> col, AutomatableParameterComponent *freq, AutomatableParameterComponent *gain, AutomatableParameterComponent *q)
-    {
-        auto third = col.getHeight() / 3;
-        freq->setBounds(col.removeFromTop(third).reduced(1));
-        gain->setBounds(col.removeFromTop(third).reduced(1));
-        q->setBounds(col.reduced(1));
-    };
-
-    layoutColumn(lowCol, m_lowFreqComp.get(), m_lowGainComp.get(), m_lowQComp.get());
-    layoutColumn(mid1Col, m_midFreq1Comp.get(), m_midGain1Comp.get(), m_midQ1Comp.get());
-    layoutColumn(mid2Col, m_midFreq2Comp.get(), m_midGain2Comp.get(), m_midQ2Comp.get());
-    layoutColumn(highCol, m_hiFreqComp.get(), m_hiGainComp.get(), m_hiQComp.get());
-}
-
-void EqPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &i)
-{
-    if (i == te::IDs::loFreq)
-        m_lowFreqComp->updateLabel();
-    if (i == te::IDs::loGain)
-        m_lowGainComp->updateLabel();
-    if (i == te::IDs::loQ)
-        m_lowQComp->updateLabel();
-
-    if (i == te::IDs::midFreq1)
-        m_midFreq1Comp->updateLabel();
-    if (i == te::IDs::midGain1)
-        m_midGain1Comp->updateLabel();
-    if (i == te::IDs::midQ1)
-        m_midQ1Comp->updateLabel();
-
-    if (i == te::IDs::midFreq2)
-        m_midFreq2Comp->updateLabel();
-    if (i == te::IDs::midGain2)
-        m_midGain2Comp->updateLabel();
-    if (i == te::IDs::midQ2)
-        m_midQ2Comp->updateLabel();
-
-    if (i == te::IDs::hiQ)
-        m_hiQComp->updateLabel();
-    if (i == te::IDs::hiFreq)
-        m_hiFreqComp->updateLabel();
-    if (i == te::IDs::hiGain)
-        m_hiGainComp->updateLabel();
-
-    m_responseGraph.repaint();
-}
+void EqPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) { m_responseGraph.repaint(); }
 
 juce::ValueTree EqPluginComponent::getPluginState()
 {
