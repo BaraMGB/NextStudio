@@ -11,7 +11,6 @@
 #pragma once
 
 #include "LowerRange/PluginChain/PluginViewComponent.h"
-#include "UI/Controls/AutomatableParameter.h"
 #include "Utilities/EditViewState.h"
 #include <JuceHeader.h>
 #include <array>
@@ -65,7 +64,7 @@ public:
 
     void paint(juce::Graphics &) override {}
     void resized() override;
-    int getNeededWidth() override { return 4; }
+    int getNeededWidth() override { return 5; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
@@ -87,11 +86,6 @@ private:
     te::AutomatableParameter::Ptr m_hiFreqParam, m_hiGainParam, m_hiQParam;
 
     EqResponseGraphComponent m_responseGraph;
-
-    std::unique_ptr<AutomatableParameterComponent> m_lowFreqComp, m_lowGainComp, m_lowQComp;
-    std::unique_ptr<AutomatableParameterComponent> m_midFreq1Comp, m_midGain1Comp, m_midQ1Comp;
-    std::unique_ptr<AutomatableParameterComponent> m_midFreq2Comp, m_midGain2Comp, m_midQ2Comp;
-    std::unique_ptr<AutomatableParameterComponent> m_hiFreqComp, m_hiGainComp, m_hiQComp;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EqPluginComponent)
 };
