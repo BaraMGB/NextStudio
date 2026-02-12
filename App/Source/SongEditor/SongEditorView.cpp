@@ -344,7 +344,7 @@ int SongEditorView::getYForTrack(te::Track *track)
     if (track == nullptr)
         return -1;
 
-    int y = -juce::roundToInt(m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()));
+    int y = juce::roundToInt(m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()));
     const auto showedTracks = m_editViewState.m_trackHeightManager->getShowedTracks(m_editViewState.m_edit);
 
     for (const auto &trackID : showedTracks)
