@@ -249,7 +249,7 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
             }
             else if (e.mods.isCtrlDown())
             {
-                sm.deselect(m_hoveredClip);
+                m_pendingCtrlToggleClip = m_hoveredClip;
             }
 
             // Start clip drag
@@ -360,9 +360,17 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
                 }
             }
         }
+        else if (m_pendingCtrlToggleClip != nullptr && m_pendingCtrlToggleClip == dragState.draggedClip)
+        {
+            m_editViewState.m_selectionManager.deselect(m_pendingCtrlToggleClip);
+        }
+
+        m_pendingCtrlToggleClip = nullptr;
     }
     else
     {
+        m_pendingCtrlToggleClip = nullptr;
+
         // Finish Lasso
         m_songEditor.stopLasso();
 
