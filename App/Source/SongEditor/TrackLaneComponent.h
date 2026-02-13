@@ -24,8 +24,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SongEditor/AutomationLaneComponent.h"
-#include "Utilities/EditViewState.h"
 #include "UI/MouseEventThrottler.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
@@ -71,6 +71,7 @@ private:
     te::Clip::Ptr m_hoveredClip{nullptr};
     bool m_leftBorderHovered{false};
     bool m_rightBorderHovered{false};
+    te::Clip::Ptr m_pendingCtrlToggleClip{nullptr};
 
     // Note: Dragging state is now managed centrally by SongEditorView via DragState
 
