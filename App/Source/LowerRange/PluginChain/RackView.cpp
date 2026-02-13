@@ -346,13 +346,14 @@ static te::Plugin::Ptr getPluginFromList(te::PluginList &list, te::EditItemID id
 
 static bool isPluginHidden(te::Track &t, te::Plugin *p)
 {
-    if (auto at = dynamic_cast<te::AudioTrack *>(&t))
-    {
-        if (p == at->getVolumePlugin())
-            return true;
-        if (p == at->getLevelMeterPlugin())
-            return true;
-    }
+    juce::ignoreUnused(t);
+
+    if (dynamic_cast<te::VolumeAndPanPlugin *>(p) != nullptr)
+        return true;
+
+    if (dynamic_cast<te::LevelMeterPlugin *>(p) != nullptr)
+        return true;
+
     return false;
 }
 
@@ -500,7 +501,7 @@ void RackView::setTrack(te::Track::Ptr track)
     m_modifierSidebar.setTrack(m_track);
     m_modifierDetailPanel.setModifier(nullptr);
 
-    const bool canShowChannelStrip = m_track != nullptr && (m_track->isMasterTrack() || m_track->isAudioTrack());
+    const bool canShowChannelStrip = m_track != nullptr && (m_track->isMasterTrack() || m_track->isAudioTrack() || m_track->isFolderTrack());
     if (canShowChannelStrip)
     {
         m_channelStrip = std::make_unique<MixerChannelStripComponent>(m_evs, m_track);

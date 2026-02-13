@@ -23,6 +23,18 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities/Utilities.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
+namespace
+{
+te::LevelMeterPlugin *findLevelMeterPlugin(te::Track &track)
+{
+    for (auto *plugin : track.pluginList)
+        if (auto *level = dynamic_cast<te::LevelMeterPlugin *>(plugin))
+            return level;
+
+    return nullptr;
+}
+} // namespace
+
 MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::Track::Ptr track)
     : m_evs(evs),
       m_track(track),
@@ -30,7 +42,6 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::T
       m_panSlider(m_evs.m_edit.getMasterPanParameter())
 {
     m_isMasterTrack = m_track != nullptr && m_track->isMasterTrack();
-
     m_trackName.setText(m_track->getName(), juce::dontSendNotification);
 
     auto trackCol = m_track->getColour();
@@ -91,6 +102,11 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::T
         m_armButton.setVisible(false);
         m_armButton.setEnabled(false);
     }
+    else if (!m_track->isAudioTrack())
+    {
+        m_armButton.setVisible(false);
+        m_armButton.setEnabled(false);
+    }
 
     m_track->state.addListener(this);
 }
@@ -107,6 +123,9 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
 {
     if (m_track == nullptr)
         return;
+
+    m_levelMeterLeft.reset();
+    m_levelMeterRight.reset();
 
     // Re-bind sliders
     if (m_isMasterTrack)
@@ -158,6 +177,26 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
         m_muteButton.setToggleState(m_track->isMuted(false), juce::dontSendNotification);
         m_soloButton.setToggleState(m_track->isSolo(false), juce::dontSendNotification);
         m_armButton.setToggleState(EngineHelpers::isTrackArmed(*at), juce::dontSendNotification);
+    }
+    else if (auto ft = dynamic_cast<te::FolderTrack *>(m_track.get()))
+    {
+        if (auto volPlugin = ft->getVolumePlugin())
+        {
+            m_volumeSlider.setParameter(volPlugin->getAutomatableParameterByID("volume"));
+            m_panSlider.setParameter(volPlugin->getAutomatableParameterByID("pan"));
+        }
+
+        if (auto levelPlugin = findLevelMeterPlugin(*ft))
+        {
+            m_levelMeterLeft = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Left);
+            m_levelMeterRight = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Right);
+
+            addAndMakeVisible(*m_levelMeterLeft);
+            addAndMakeVisible(*m_levelMeterRight);
+        }
+
+        m_muteButton.setToggleState(m_track->isMuted(false), juce::dontSendNotification);
+        m_soloButton.setToggleState(m_track->isSolo(false), juce::dontSendNotification);
     }
 
     resized();

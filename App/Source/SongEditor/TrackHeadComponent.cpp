@@ -30,6 +30,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace
 {
+te::LevelMeterPlugin *findLevelMeterPlugin(te::Track &track)
+{
+    for (auto *plugin : track.pluginList)
+        if (auto *level = dynamic_cast<te::LevelMeterPlugin *>(plugin))
+            return level;
+
+    return nullptr;
+}
+
 bool isMasterAutomationParameter(const te::AutomatableParameter::Ptr &ap)
 {
     if (ap == nullptr)
@@ -268,6 +277,12 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
             addAndMakeVisible(m_volumeKnob.get());
             m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
             m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
+        }
+
+        if (auto levelPlugin = findLevelMeterPlugin(*folderTrack))
+        {
+            levelMeterComp = std::make_unique<LevelMeterComponent>(levelPlugin->measurer);
+            addAndMakeVisible(levelMeterComp.get());
         }
     }
 
