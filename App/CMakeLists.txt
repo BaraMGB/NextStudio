@@ -73,6 +73,7 @@ target_sources(${TargetName} PRIVATE
         Source/Plugins/Arpeggiator/ArpeggiatorPluginComponent.cpp
         Source/Plugins/Compressor/CompressorPluginComponent.cpp
         Source/Plugins/Delay/DelayPluginComponent.cpp
+        Source/Plugins/Delay/NextDelayPlugin.cpp
         Source/Plugins/DrumSampler/DrumPadComponent.cpp
         Source/Plugins/DrumSampler/DrumSamplerView.cpp
         Source/Plugins/DrumSampler/SoundEditorPanel.cpp
