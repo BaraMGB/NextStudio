@@ -15,6 +15,7 @@
 #include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
 #include "Plugins/Compressor/CompressorPluginComponent.h"
 #include "Plugins/Delay/DelayPluginComponent.h"
+#include "Plugins/Delay/NextDelayPlugin.h"
 #include "Plugins/DrumSampler/DrumSamplerView.h"
 #include "Plugins/EQ/EqPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
@@ -64,7 +65,7 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     {
         m_pluginComponent = std::make_unique<EqPluginComponent>(evs, p);
     }
-    else if (m_plugin->getPluginType() == "delay")
+    else if (m_plugin->getPluginType() == "delay" || m_plugin->getPluginType() == NextDelayPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<DelayPluginComponent>(evs, p);
     }

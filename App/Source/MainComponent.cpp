@@ -30,6 +30,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "MainComponent.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
+#include "Plugins/Delay/NextDelayPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.h"
 #include "SideBrowser/ProjectsBrowser.h"
@@ -77,6 +78,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_engine.getPluginManager().createBuiltInType<SimpleSynthPlugin>();
     m_engine.getPluginManager().createBuiltInType<ArpeggiatorPlugin>();
     m_engine.getPluginManager().createBuiltInType<SpectrumAnalyzerPlugin>();
+    m_engine.getPluginManager().createBuiltInType<NextDelayPlugin>();
 
     openValidStartEdit();
 

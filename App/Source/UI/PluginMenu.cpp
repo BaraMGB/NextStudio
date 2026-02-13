@@ -22,6 +22,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "UI/PluginMenu.h"
 
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
+#include "Plugins/Delay/NextDelayPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.h"
 #include "Utilities/Utilities.h"
@@ -109,7 +110,7 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
     //    addInternalPlugin<te::LevelMeterPlugin> (*this, num);
     addInternalPlugin<te::EqualiserPlugin>(*this, num);
     addInternalPlugin<te::ReverbPlugin>(*this, num);
-    addInternalPlugin<te::DelayPlugin>(*this, num);
+    addInternalPlugin<NextDelayPlugin>(*this, num);
     addInternalPlugin<te::ChorusPlugin>(*this, num);
     addInternalPlugin<te::PhaserPlugin>(*this, num);
     addInternalPlugin<te::CompressorPlugin>(*this, num);
