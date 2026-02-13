@@ -30,14 +30,16 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace
 {
-te::LevelMeterPlugin *findLevelMeterPlugin(te::Track &track)
+template <typename PluginType> PluginType *findLastPluginOfType(te::Track &track)
 {
-    for (auto *plugin : track.pluginList)
-        if (auto *level = dynamic_cast<te::LevelMeterPlugin *>(plugin))
-            return level;
+    for (int i = track.pluginList.size(); --i >= 0;)
+        if (auto *plugin = dynamic_cast<PluginType *>(track.pluginList[i]))
+            return plugin;
 
     return nullptr;
 }
+
+te::LevelMeterPlugin *findLevelMeterPlugin(te::Track &track) { return findLastPluginOfType<te::LevelMeterPlugin>(track); }
 
 bool isMasterAutomationParameter(const te::AutomatableParameter::Ptr &ap)
 {
@@ -270,9 +272,9 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
 
         m_soloButton.onClick = [folderTrack] { folderTrack->setSolo(!folderTrack->isSolo(false)); };
 
-        if (folderTrack->getVolumePlugin())
+        if (auto *volumePlugin = findLastPluginOfType<te::VolumeAndPanPlugin>(*folderTrack))
         {
-            m_volumeKnob = std::make_unique<AutomatableSliderComponent>(folderTrack->getVolumePlugin()->getAutomatableParameterByID("volume"));
+            m_volumeKnob = std::make_unique<AutomatableSliderComponent>(volumePlugin->getAutomatableParameterByID("volume"));
             m_volumeKnob->setOpaque(false);
             addAndMakeVisible(m_volumeKnob.get());
             m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
