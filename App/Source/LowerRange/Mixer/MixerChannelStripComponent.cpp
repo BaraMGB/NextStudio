@@ -25,14 +25,16 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace
 {
-te::LevelMeterPlugin *findLevelMeterPlugin(te::Track &track)
+template <typename PluginType> PluginType *findLastPluginOfType(te::Track &track)
 {
-    for (auto *plugin : track.pluginList)
-        if (auto *level = dynamic_cast<te::LevelMeterPlugin *>(plugin))
-            return level;
+    for (int i = track.pluginList.size(); --i >= 0;)
+        if (auto *plugin = dynamic_cast<PluginType *>(track.pluginList[i]))
+            return plugin;
 
     return nullptr;
 }
+
+te::LevelMeterPlugin *findLevelMeterPlugin(te::Track &track) { return findLastPluginOfType<te::LevelMeterPlugin>(track); }
 } // namespace
 
 MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::Track::Ptr track)
@@ -180,7 +182,7 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
     }
     else if (auto ft = dynamic_cast<te::FolderTrack *>(m_track.get()))
     {
-        if (auto volPlugin = ft->getVolumePlugin())
+        if (auto volPlugin = findLastPluginOfType<te::VolumeAndPanPlugin>(*ft))
         {
             m_volumeSlider.setParameter(volPlugin->getAutomatableParameterByID("volume"));
             m_panSlider.setParameter(volPlugin->getAutomatableParameterByID("pan"));

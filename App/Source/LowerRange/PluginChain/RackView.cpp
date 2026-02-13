@@ -346,13 +346,26 @@ static te::Plugin::Ptr getPluginFromList(te::PluginList &list, te::EditItemID id
 
 static bool isPluginHidden(te::Track &t, te::Plugin *p)
 {
-    juce::ignoreUnused(t);
+    const bool isChannelStripPlugin = dynamic_cast<te::VolumeAndPanPlugin *>(p) != nullptr || dynamic_cast<te::LevelMeterPlugin *>(p) != nullptr;
 
-    if (dynamic_cast<te::VolumeAndPanPlugin *>(p) != nullptr)
-        return true;
+    if (!isChannelStripPlugin)
+        return false;
 
-    if (dynamic_cast<te::LevelMeterPlugin *>(p) != nullptr)
-        return true;
+    int hiddenTailCount = 0;
+    for (int i = t.pluginList.size() - 1; i >= 0; --i)
+    {
+        auto *tailPlugin = t.pluginList[i];
+        const bool tailIsChannelStripPlugin = dynamic_cast<te::VolumeAndPanPlugin *>(tailPlugin) != nullptr || dynamic_cast<te::LevelMeterPlugin *>(tailPlugin) != nullptr;
+
+        if (!tailIsChannelStripPlugin)
+            break;
+
+        if (++hiddenTailCount > 2)
+            break;
+
+        if (tailPlugin == p)
+            return true;
+    }
 
     return false;
 }
