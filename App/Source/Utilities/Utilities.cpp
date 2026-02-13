@@ -989,67 +989,29 @@ void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)
     if (targetMidiTracks.isEmpty())
         return;
 
-    // Early exit check: are all midiInputsToModify already pointing exactly to targetMidiTracks?
-    bool changeNeeded = false;
-    for (auto *instance : midiInputsToModify)
+    auto buildDesiredTargetsForInstance = [&](te::InputDeviceInstance *instance)
     {
-        auto currentTargets = instance->getTargets();
-
-        if (currentTargets.size() != targetMidiTracks.size())
-        {
-            changeNeeded = true;
-            break;
-        }
+        juce::Array<te::EditItemID> desiredTargets;
 
         for (auto *track : targetMidiTracks)
         {
-            if (!currentTargets.contains(track->itemID))
-            {
-                changeNeeded = true;
-                break;
-            }
-        }
+            if (track == nullptr)
+                continue;
 
-        if (changeNeeded)
-            break;
-    }
-
-    if (!changeNeeded)
-        return;
-
-    bool contextReallocNeeded = false;
-
-    // Apply changes robustly: Clear all, then add needed
-    for (auto *instance : midiInputsToModify)
-    {
-        // Ensure monitoring is ON for MIDI devices
-        instance->getInputDevice().setMonitorMode(te::InputDevice::MonitorMode::on);
-
-        // 1. Remove ALL current targets
-        auto currentTargets = instance->getTargets();
-        for (auto targetID : currentTargets)
-        {
-            [[maybe_unused]] auto result = instance->removeTarget(targetID, &evs.m_edit.getUndoManager());
-            contextReallocNeeded = true;
-        }
-
-        // 2. Add ALL desired targets
-        for (auto *track : targetMidiTracks)
-        {
-            // Logic to prevent double-triggering:
-            // If we are dealing with the Default MIDI Device (e.g. All MIDI Ins),
-            // check if the track already has ANOTHER physical input assigned.
+            // Prevent double-triggering on "All MIDI Ins": if a specific physical MIDI input
+            // already targets this track, don't add the default input for it.
             if (defaultMidi && &instance->getInputDevice() == defaultMidi)
             {
                 bool hasSpecificInput = false;
-                for (auto otherInst : evs.m_edit.getAllInputDevices())
+
+                for (auto *otherInst : evs.m_edit.getAllInputDevices())
                 {
                     if (otherInst == instance)
                         continue;
+
                     if (virtualMidi && &otherInst->getInputDevice() == virtualMidi)
                         continue;
 
-                    // If another device targets this track, we consider it a specific assignment
                     if (otherInst->getTargets().contains(track->itemID))
                     {
                         hasSpecificInput = true;
@@ -1058,12 +1020,46 @@ void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)
                 }
 
                 if (hasSpecificInput)
-                    continue; // Skip adding default device
+                    continue;
             }
 
-            [[maybe_unused]] auto result = instance->setTarget(track->itemID, false, &evs.m_edit.getUndoManager(), 0);
-            contextReallocNeeded = true;
+            desiredTargets.addIfNotAlreadyThere(track->itemID);
         }
+
+        return desiredTargets;
+    };
+
+    bool contextReallocNeeded = false;
+
+    // Apply only deltas so that simple track selection doesn't force needless graph restarts.
+    for (auto *instance : midiInputsToModify)
+    {
+        auto currentTargets = instance->getTargets();
+        auto desiredTargets = buildDesiredTargetsForInstance(instance);
+
+        juce::Array<te::EditItemID> targetsToRemove;
+        for (auto targetID : currentTargets)
+            if (!desiredTargets.contains(targetID))
+                targetsToRemove.add(targetID);
+
+        juce::Array<te::EditItemID> targetsToAdd;
+        for (auto targetID : desiredTargets)
+            if (!currentTargets.contains(targetID))
+                targetsToAdd.add(targetID);
+
+        if (targetsToRemove.isEmpty() && targetsToAdd.isEmpty())
+            continue;
+
+        // Ensure monitoring is ON for MIDI devices if there is any real rerouting.
+        instance->getInputDevice().setMonitorMode(te::InputDevice::MonitorMode::on);
+
+        for (auto targetID : targetsToRemove)
+            if (instance->removeTarget(targetID, &evs.m_edit.getUndoManager()).wasOk())
+                contextReallocNeeded = true;
+
+        for (auto targetID : targetsToAdd)
+            if (instance->setTarget(targetID, false, &evs.m_edit.getUndoManager(), 0).has_value())
+                contextReallocNeeded = true;
     }
 
     if (contextReallocNeeded)

@@ -936,22 +936,30 @@ void TrackHeaderComponent::mouseDown(const juce::MouseEvent &event)
                 m_editViewState.m_selectionManager.selectOnly(m_track);
                 m_dragImage = createComponentSnapshot(getLocalBounds());
 
-                m_editViewState.setLowerRangeView(LowerRangeView::pluginRack);
+                if (m_editViewState.getLowerRangeView() != LowerRangeView::pluginRack)
+                    m_editViewState.setLowerRangeView(LowerRangeView::pluginRack);
+
+                auto setShowLowerRangeIfNeeded = [](te::Track *track, bool shouldShow)
+                {
+                    if (track == nullptr)
+                        return;
+
+                    const bool currentlyShown = (bool)track->state.getProperty(IDs::showLowerRange, false);
+                    if (currentlyShown != shouldShow)
+                        track->state.setProperty(IDs::showLowerRange, shouldShow, nullptr);
+                };
+
                 for (auto t : te::getAllTracks(m_editViewState.m_edit))
                 {
-                    t->state.setProperty(IDs::showLowerRange, false, nullptr);
-                    if (t == m_track.get())
-                    {
-                        t->state.setProperty(IDs::showLowerRange, true, nullptr);
-                    }
+                    setShowLowerRangeIfNeeded(t, t == m_track.get());
                 }
 
                 if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
                 {
                     if (m_track->isMasterTrack())
-                        masterTrack->state.setProperty(IDs::showLowerRange, true, nullptr);
+                        setShowLowerRangeIfNeeded(masterTrack, true);
                     else
-                        masterTrack->state.setProperty(IDs::showLowerRange, false, nullptr);
+                        setShowLowerRangeIfNeeded(masterTrack, false);
                 }
             }
         }

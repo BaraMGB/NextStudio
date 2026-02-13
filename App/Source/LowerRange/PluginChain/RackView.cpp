@@ -504,6 +504,13 @@ void RackView::buttonClicked(juce::Button *button)
 
 void RackView::setTrack(te::Track::Ptr track)
 {
+    if (m_track == track && m_track != nullptr)
+    {
+        m_nameLabel.setText(m_track->getName(), juce::dontSendNotification);
+        m_modifierSidebar.setTrack(m_track);
+        return;
+    }
+
     detachTrackListeners();
 
     m_track = track;
