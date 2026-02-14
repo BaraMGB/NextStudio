@@ -80,6 +80,7 @@ target_sources(${TargetName} PRIVATE
         Source/Plugins/EQ/EqPluginComponent.cpp
         Source/Plugins/Filter/FilterPluginComponent.cpp
         Source/Plugins/FourOscPlugin/FourOscPluginComponent.cpp
+        Source/Plugins/Reverb/ReverbPluginComponent.cpp
         Source/SideBrowser/InstrumentEffectChooser.cpp
         Source/Plugins/PluginComponent.cpp
         Source/UI/PluginMenu.cpp
