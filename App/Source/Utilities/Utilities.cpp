@@ -2103,7 +2103,7 @@ void GUIHelpers::centerMidiEditorToClip(EditViewState &evs, te::Clip::Ptr c, juc
     evs.setYScroll(timeLineID, startKey);
 }
 
-void GUIHelpers::drawPolyObject(juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation, float radiusFac, float heightFac, float scale)
+void GUIHelpers::drawPolyObject(juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation, float radiusFac, float heightFac, float scale, float strokeThickness)
 {
     const float pi = static_cast<float>(3.141592653589793238L);
     auto phi = 0.f + tilt;
@@ -2140,7 +2140,7 @@ void GUIHelpers::drawPolyObject(juce::Graphics &g, juce::Rectangle<int> area, in
         poly.addLineSegment(topEdge, 2);
         poly.addLineSegment(bottomEdge, 2);
     }
-    auto st = juce::PathStrokeType(2);
+    auto st = juce::PathStrokeType(strokeThickness);
     st.setJointStyle(juce::PathStrokeType::JointStyle::beveled);
 
     g.strokePath(poly, st);

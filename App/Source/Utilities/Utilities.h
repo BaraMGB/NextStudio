@@ -23,8 +23,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/ApplicationViewState.h"
 #include "UI/PluginMenu.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/ThumbNailManager.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 
@@ -209,7 +209,7 @@ struct SelectedTimeRange
     tracktion::TimePosition getEnd() { return timeRange.getEnd(); }
 };
 void drawSnapLines(juce::Graphics &g, const EditViewState &evs, double x1beats, double x2beats, const juce::Rectangle<int> &boundingRect, const juce::Colour &colour);
-void drawPolyObject(juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation, float radiusFac, float heightFac, float scale);
+void drawPolyObject(juce::Graphics &g, juce::Rectangle<int> area, int edges, float tilt, float rotation, float radiusFac, float heightFac, float scale, float strokeThickness = 2.0f);
 void drawLogoQuad(juce::Graphics &g, juce::Rectangle<int> area);
 void printTextAt(juce::Graphics &graphic, juce::Rectangle<float> textRect, const juce::String &text, const juce::Colour &textColour);
 void drawRectWithShadow(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, const juce::Colour &colour, const juce::Colour &shade);

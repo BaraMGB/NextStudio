@@ -20,6 +20,7 @@
 #include "Plugins/EQ/EqPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
+#include "Plugins/Reverb/ReverbPluginComponent.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.h"
@@ -76,6 +77,10 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     else if (m_plugin->getPluginType() == te::CompressorPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<CompressorPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == te::ReverbPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<ReverbPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == "4osc")
     {
