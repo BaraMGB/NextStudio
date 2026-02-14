@@ -9,8 +9,8 @@
 */
 
 #include "LowerRange/PluginChain/ModifierViewComponent.h"
-#include "Utilities/Utilities.h"
 #include "LowerRange/PluginChain/RackView.h"
+#include "Utilities/Utilities.h"
 
 //==============================================================================
 ModifierViewComponent::DragHandle::DragHandle() { setMouseCursor(juce::MouseCursor::DraggingHandCursor); }
@@ -191,7 +191,6 @@ ModifierViewComponent::ModifierViewComponent(EditViewState &evs, te::Modifier::P
     m_table.setModel(&m_listBoxModel);
     m_table.getHeader().addColumn("Connected Parameters", 1, 200);
     m_table.setRowHeight(20);
-    addAndMakeVisible(m_table);
     if (m)
     {
         for (auto &param : m->getAutomatableParameters())
@@ -244,8 +243,6 @@ void ModifierViewComponent::resized()
     m_dragHandle.setBounds(area.removeFromTop(20).removeFromRight(20));
     m_dragHandle.toFront(false);
 
-    m_table.setBounds(area.removeFromLeft(area.getWidth() / 3));
-
     m_viewPort.setBounds(area);
     m_viewPort.getVerticalScrollBar().setCurrentRangeStart(scrollPos);
 }
@@ -285,7 +282,6 @@ void LFOModifierComponent::paint(juce::Graphics &g)
     auto background2 = m_editViewState.m_applicationState.getBackgroundColour1();
 
     auto area = getLocalBounds();
-    area.removeFromLeft(area.getWidth() / 3);
     auto comboRect = area.removeFromLeft(area.getWidth() / 2);
     comboRect.reduce(3, 5);
 
@@ -301,8 +297,6 @@ void LFOModifierComponent::resized()
 
     m_dragHandle.setBounds(area.removeFromTop(20).removeFromRight(20));
     m_dragHandle.toFront(false);
-
-    m_table.setBounds(area.removeFromLeft(area.getWidth() / 3));
 
     auto comboRect = area.removeFromLeft(area.getWidth() / 2);
     comboRect.reduce(0, 5);
@@ -428,7 +422,6 @@ void StepModifierComponent::paint(juce::Graphics &g)
     auto background2 = m_editViewState.m_applicationState.getBackgroundColour1();
 
     auto area = getLocalBounds();
-    area.removeFromLeft(area.getWidth() / 3);
     auto topPart = area.removeFromTop(area.getHeight() / 2);
 
     auto comboRect = topPart.removeFromLeft(topPart.getWidth() / 3);
@@ -452,8 +445,6 @@ void StepModifierComponent::resized()
 
     m_dragHandle.setBounds(area.removeFromTop(20).removeFromRight(20));
     m_dragHandle.toFront(false);
-
-    m_table.setBounds(area.removeFromLeft(area.getWidth() / 3));
 
     auto controls = area.removeFromTop(area.getHeight() / 2);
     auto comboRect = controls.removeFromLeft(controls.getWidth() / 3);

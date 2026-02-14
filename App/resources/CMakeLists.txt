@@ -41,6 +41,7 @@ juce_add_binary_data(Pictures SOURCES
     pitch.svg
     reverse_clip.svg
     delete_icon.svg
+    trashcan.svg
     pencil.svg
     projectsButton.svg
     pluginsButton.svg

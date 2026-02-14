@@ -9,6 +9,57 @@
 */
 
 #include "UI/ModifierSidebar.h"
+#include "BinaryData.h"
+
+namespace
+{
+juce::StringArray getConnectedParameterNames(EditViewState &evs, te::Modifier::Ptr modifier)
+{
+    juce::StringArray names;
+
+    if (modifier == nullptr)
+        return names;
+
+    auto connectedParams = te::getAllParametersBeingModifiedBy(evs.m_edit, *modifier);
+    for (auto *param : connectedParams)
+    {
+        if (param != nullptr)
+            names.add(param->getPluginAndParamName());
+    }
+
+    return names;
+}
+
+te::AutomatableParameter::ModifierAssignment::Ptr getAssignmentForModifier(te::AutomatableParameter::Ptr parameter, te::Modifier::Ptr modifier)
+{
+    if (parameter == nullptr || modifier == nullptr)
+        return {};
+
+    auto assignments = parameter->getAssignments();
+    for (auto assignment : assignments)
+    {
+        if (assignment != nullptr && assignment->isForModifierSource(*modifier))
+            return assignment;
+    }
+
+    return {};
+}
+
+void drawEyeIcon(juce::Graphics &g, juce::Rectangle<float> area, juce::Colour colour, bool enabled)
+{
+    g.setColour(colour);
+    g.drawEllipse(area.reduced(1.0f), 1.0f);
+
+    auto pupil = area.withSizeKeepingCentre(area.getWidth() * 0.3f, area.getHeight() * 0.3f);
+    if (enabled)
+        g.fillEllipse(pupil);
+    else
+        g.drawLine(area.getX() + 2.0f, area.getBottom() - 2.0f, area.getRight() - 2.0f, area.getY() + 2.0f, 1.2f);
+}
+
+const juce::Identifier kConnEnabled{"nsConnEnabled"};
+const juce::Identifier kConnPrevValue{"nsConnPrevValue"};
+} // namespace
 
 //==============================================================================
 ModifierSidebar::ItemComponent::ItemComponent(ModifierSidebar &o, te::Modifier::Ptr m)
@@ -33,14 +84,18 @@ ModifierSidebar::ItemComponent::~ItemComponent() {}
 
 void ModifierSidebar::ItemComponent::paint(juce::Graphics &g)
 {
-    auto bg = juce::Colours::transparentBlack;
+    g.fillAll(owner.m_evs.m_applicationState.getBackgroundColour1());
 
     if (m_isSelected)
-        bg = owner.m_evs.m_applicationState.getPrimeColour().withAlpha(0.2f);
-    else if (isMouseOver())
-        bg = juce::Colours::white.withAlpha(0.05f);
+    {
+        auto trackColour = owner.m_track != nullptr ? owner.m_track->getColour() : owner.m_evs.m_applicationState.getPrimeColour();
+        g.fillAll(trackColour.withAlpha(0.2f));
+    }
 
-    g.fillAll(bg);
+    rebuildConnectionRows();
+
+    auto textArea = getLocalBounds().reduced(5, 0).withLeft(25);
+    auto nameArea = textArea.removeFromTop(22);
 
     g.setColour(owner.m_evs.m_applicationState.getTextColour());
     g.setFont(14.0f);
@@ -59,15 +114,135 @@ void ModifierSidebar::ItemComponent::paint(juce::Graphics &g)
             name = "Modifier";
     }
 
-    g.drawText(name, getLocalBounds().reduced(5, 0).withRight(getWidth() - 25), juce::Justification::centredLeft, true);
+    g.drawText(name, nameArea, juce::Justification::centredLeft, true);
+
+    g.setColour(owner.m_evs.m_applicationState.getTextColour().withAlpha(0.65f));
+    g.setFont(11.0f);
+    auto connectionTextArea = textArea.withTrimmedLeft(8).withTrimmedRight(2);
+
+    if (m_connectionRows.empty())
+    {
+        g.drawFittedText("No connected parameters", connectionTextArea.removeFromTop(14), juce::Justification::centredLeft, 1);
+    }
+    else
+    {
+        auto iconColour = owner.m_evs.m_applicationState.getTextColour().withAlpha(0.7f);
+
+        for (auto &row : m_connectionRows)
+        {
+            auto rowRect = connectionTextArea.removeFromTop(14);
+            row.rowBounds = rowRect;
+            row.eyeBounds = rowRect.removeFromLeft(14).reduced(1);
+            row.trashBounds = rowRect.removeFromRight(14).reduced(1);
+
+            drawEyeIcon(g, row.eyeBounds.toFloat(), iconColour, row.enabled);
+            GUIHelpers::drawFromSvg(g, BinaryData::trashcan_svg, iconColour, row.trashBounds.toFloat());
+            g.drawFittedText(row.name, rowRect.withTrimmedLeft(6).withTrimmedRight(4), juce::Justification::centredLeft, 1);
+        }
+    }
 
     g.setColour(juce::Colours::grey.withAlpha(0.3f));
     g.drawRect(getLocalBounds(), 1);
 }
 
-void ModifierSidebar::ItemComponent::resized() { removeButton.setBounds(getWidth() - 25, 0, 25, getHeight()); }
+void ModifierSidebar::ItemComponent::resized() { removeButton.setBounds(0, 0, 25, 22); }
 
-void ModifierSidebar::ItemComponent::mouseDown(const juce::MouseEvent &) { owner.setSelectedModifier(modifier); }
+void ModifierSidebar::ItemComponent::mouseUp(const juce::MouseEvent &e)
+{
+    for (int i = 0; i < static_cast<int>(m_connectionRows.size()); ++i)
+    {
+        if (m_connectionRows[(size_t)i].trashBounds.contains(e.getPosition()))
+        {
+            removeConnection(i);
+            owner.repaint();
+            return;
+        }
+
+        if (m_connectionRows[(size_t)i].eyeBounds.contains(e.getPosition()))
+        {
+            toggleConnectionEnabled(i);
+            owner.repaint();
+            return;
+        }
+    }
+
+    owner.setSelectedModifier(modifier);
+}
+
+int ModifierSidebar::ItemComponent::getDesiredHeight()
+{
+    rebuildConnectionRows();
+    const int numLines = juce::jmax(1, static_cast<int>(m_connectionRows.size()));
+    return 24 + numLines * 14 + 4;
+}
+
+void ModifierSidebar::ItemComponent::rebuildConnectionRows()
+{
+    m_connectionRows.clear();
+
+    auto names = getConnectedParameterNames(owner.m_evs, modifier);
+    for (auto &name : names)
+    {
+        ConnectionRow row;
+        row.name = name;
+        m_connectionRows.push_back(row);
+    }
+
+    auto connectedParams = te::getAllParametersBeingModifiedBy(owner.m_evs.m_edit, *modifier);
+    for (int i = 0; i < connectedParams.size() && i < static_cast<int>(m_connectionRows.size()); ++i)
+    {
+        auto param = connectedParams[i];
+        if (param == nullptr)
+            continue;
+
+        auto assignment = getAssignmentForModifier(param, modifier);
+        m_connectionRows[(size_t)i].parameter = param;
+        m_connectionRows[(size_t)i].assignment = assignment;
+        m_connectionRows[(size_t)i].enabled = assignment != nullptr ? static_cast<bool>(assignment->state.getProperty(kConnEnabled, true)) : true;
+    }
+}
+
+void ModifierSidebar::ItemComponent::toggleConnectionEnabled(int rowIndex)
+{
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(m_connectionRows.size()))
+        return;
+
+    auto &row = m_connectionRows[(size_t)rowIndex];
+    if (row.assignment == nullptr)
+        return;
+
+    auto currentlyEnabled = row.assignment->state.getProperty(kConnEnabled, true);
+
+    if (currentlyEnabled)
+    {
+        row.assignment->state.setProperty(kConnPrevValue, row.assignment->value.get(), nullptr);
+        row.assignment->value = 0.0f;
+        row.assignment->state.setProperty(kConnEnabled, false, nullptr);
+        row.enabled = false;
+    }
+    else
+    {
+        auto previousValue = static_cast<float>(row.assignment->state.getProperty(kConnPrevValue, 0.5f));
+        row.assignment->value = previousValue;
+        row.assignment->state.setProperty(kConnEnabled, true, nullptr);
+        row.enabled = true;
+    }
+}
+
+void ModifierSidebar::ItemComponent::removeConnection(int rowIndex)
+{
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(m_connectionRows.size()))
+        return;
+
+    auto &row = m_connectionRows[(size_t)rowIndex];
+    if (row.parameter == nullptr || row.assignment == nullptr)
+        return;
+
+    row.parameter->removeModifier(*row.assignment);
+    rebuildConnectionRows();
+}
+
+void ModifierSidebar::ItemComponent::mouseDown(const juce::MouseEvent &) {}
 
 //==============================================================================
 ModifierSidebar::ModifierSidebar(EditViewState &evs)
@@ -75,7 +250,7 @@ ModifierSidebar::ModifierSidebar(EditViewState &evs)
 {
     addAndMakeVisible(m_viewport);
     m_viewport.setViewedComponent(&m_listContainer, false);
-    m_viewport.setScrollBarsShown(true, false, true, false); // vertical scrollbar only
+    m_viewport.setScrollBarsShown(true, false, false, false); // vertical scrollbar only
 
     addAndMakeVisible(m_addButton);
     m_addButton.setButtonText("+");
@@ -247,18 +422,22 @@ void ModifierSidebar::resized()
     auto area = getLocalBounds();
     auto header = area.removeFromTop(30);
 
-    m_addButton.setBounds(header.removeFromRight(30).reduced(4));
+    m_addButton.setBounds(header.removeFromLeft(30).reduced(4));
 
     m_viewport.setBounds(area);
 
-    int itemHeight = 30;
-    int totalHeight = m_items.size() * itemHeight;
+    int totalHeight = 0;
+    for (auto *item : m_items)
+        totalHeight += item->getDesiredHeight();
 
     m_listContainer.setSize(m_viewport.getWidth(), std::max(m_viewport.getHeight(), totalHeight));
 
-    for (int i = 0; i < m_items.size(); ++i)
+    int y = 0;
+    for (auto *item : m_items)
     {
-        m_items[i]->setBounds(0, i * itemHeight, m_listContainer.getWidth(), itemHeight);
+        auto itemHeight = item->getDesiredHeight();
+        item->setBounds(0, y, m_listContainer.getWidth(), itemHeight);
+        y += itemHeight;
     }
 }
 

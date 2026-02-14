@@ -294,21 +294,20 @@ void RackView::resized()
     area.removeFromLeft(HEADERWIDTH);
     area = area.reduced(5);
 
-    if (m_channelStrip != nullptr)
-        m_channelStrip->setBounds(area.removeFromRight(CHANNEL_STRIP_WIDTH));
-
-    // Layout Sidebar and Detail Panel
-    m_modifierSidebar.setBounds(area.removeFromRight(160));
+    m_modifierSidebar.setBounds(area.removeFromLeft(160));
 
     if (m_modifierSidebar.getSelectedModifier())
     {
         m_modifierDetailPanel.setVisible(true);
-        m_modifierDetailPanel.setBounds(area.removeFromRight(300));
+        m_modifierDetailPanel.setBounds(area.removeFromLeft(300));
     }
     else
     {
         m_modifierDetailPanel.setVisible(false);
     }
+
+    if (m_channelStrip != nullptr)
+        m_channelStrip->setBounds(area.removeFromRight(CHANNEL_STRIP_WIDTH));
 
     // Remaining area for Plugins
     m_viewport.setBounds(area);
