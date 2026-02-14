@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
@@ -72,6 +74,8 @@ private:
         void paint(juce::Graphics &g) override;
         void resized() override;
         void mouseDown(const juce::MouseEvent &) override;
+        void mouseUp(const juce::MouseEvent &) override;
+        int getDesiredHeight();
 
         void setSelected(bool selected)
         {
@@ -82,6 +86,22 @@ private:
         te::Modifier::Ptr modifier;
         ModifierSidebar &owner;
         juce::TextButton removeButton{"x"};
+        struct ConnectionRow
+        {
+            juce::String name;
+            te::AutomatableParameter::Ptr parameter;
+            te::AutomatableParameter::ModifierAssignment::Ptr assignment;
+            bool enabled = true;
+            juce::Rectangle<int> rowBounds;
+            juce::Rectangle<int> eyeBounds;
+            juce::Rectangle<int> trashBounds;
+        };
+
+        std::vector<ConnectionRow> m_connectionRows;
+
+        void rebuildConnectionRows();
+        void toggleConnectionEnabled(int rowIndex);
+        void removeConnection(int rowIndex);
         bool m_isSelected = false;
     };
 
