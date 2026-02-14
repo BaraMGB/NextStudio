@@ -36,6 +36,8 @@ static juce::Identifier getCollapsedStateID(te::EditItemID id)
     return "c_" + id.toString().retainCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_");
 }
 
+static bool shouldShowPluginPresetManager(te::Plugin &plugin) { return plugin.isSynth() && plugin.getPluginType() != te::ExternalPlugin::xmlTypeName; }
+
 RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr p)
     : m_evs(evs),
       m_track(t),
@@ -119,10 +121,13 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     if (m_pluginComponent)
         addAndMakeVisible(*m_pluginComponent);
 
-    if (auto *presetInterface = dynamic_cast<PluginPresetInterface *>(m_pluginComponent.get()))
+    if (m_plugin && shouldShowPluginPresetManager(*m_plugin))
     {
-        m_presetManager = std::make_unique<PresetManagerComponent>(*presetInterface);
-        addAndMakeVisible(*m_presetManager);
+        if (auto *presetInterface = dynamic_cast<PluginPresetInterface *>(m_pluginComponent.get()))
+        {
+            m_presetManager = std::make_unique<PresetManagerComponent>(*presetInterface);
+            addAndMakeVisible(*m_presetManager);
+        }
     }
 }
 

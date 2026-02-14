@@ -10,10 +10,10 @@
 
 #pragma once
 
-#include <JuceHeader.h>
 #include "LowerRange/PluginChain/PluginViewComponent.h"
-#include "Utilities/EditViewState.h"
 #include "UI/Controls/AutomatableParameter.h"
+#include "Utilities/EditViewState.h"
+#include <JuceHeader.h>
 #include <tracktion_engine/tracktion_engine.h>
 
 namespace te = tracktion_engine;
@@ -28,7 +28,7 @@ public:
 
     void paint(juce::Graphics &) override;
     void resized() override;
-    int getNeededWidth() override { return 2; }
+    int getNeededWidth() override { return 1; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;

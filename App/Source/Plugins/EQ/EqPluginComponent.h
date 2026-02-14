@@ -64,7 +64,7 @@ public:
 
     void paint(juce::Graphics &) override {}
     void resized() override;
-    int getNeededWidth() override { return 5; }
+    int getNeededWidth() override { return 3; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;
