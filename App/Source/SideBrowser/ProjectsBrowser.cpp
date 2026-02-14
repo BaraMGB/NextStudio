@@ -20,10 +20,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SideBrowser/ProjectsBrowser.h"
-#include "SideBrowser/Browser_Base.h"
-#include "SongEditor/EditComponent.h"
 #include "MainComponent.h"
+#include "SideBrowser/Browser_Base.h"
 #include "SideBrowser/SearchFieldComponent.h"
+#include "SongEditor/EditComponent.h"
 #include "Utilities/Utilities.h"
 
 const juce::DrawableButton::ButtonStyle buttonStyle{juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
@@ -137,11 +137,11 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
     if (m_searchTerm.isEmpty())
     {
         g.setColour(rowIsSelected ? m_applicationViewState.getPrimeColour().contrasting(.7f) : textColour);
-        g.drawFittedText(m_contentList[rowNum].getFileName().trimCharactersAtEnd(".tracktionedit"), bounds, juce::Justification::left, 1);
+        g.drawFittedText(m_contentList[rowNum].getFileNameWithoutExtension(), bounds, juce::Justification::left, 1);
     }
     else
     {
-        auto text = m_contentList[rowNum].getFileName();
+        auto text = m_contentList[rowNum].getFileNameWithoutExtension();
 
         juce::String preTerm, postTerm;
         int termStartIndex = text.indexOfIgnoreCase(m_searchTerm);
