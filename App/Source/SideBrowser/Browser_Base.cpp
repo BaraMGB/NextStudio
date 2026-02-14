@@ -134,7 +134,7 @@ void BrowserBaseComponent::updateContentList()
     m_contentList.clear();
 
     for (const auto &entry : m_fileList)
-        if (entry.getFileName().containsIgnoreCase(m_searchTerm))
+        if (entry.getFileNameWithoutExtension().containsIgnoreCase(m_searchTerm))
             m_contentList.add(entry);
 
     auto selectedId = m_sortingBox.getSelectedId();
