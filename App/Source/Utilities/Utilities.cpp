@@ -2036,7 +2036,7 @@ void EngineHelpers::insertPluginWithPreset(EditViewState &evs, te::Track::Ptr tr
     // Insert and capture the new plugin instance
     auto newPlugin = plugins.insertPlugin(plugin->state, index);
 
-    if (newPlugin)
+    if (newPlugin && newPlugin->isSynth() && newPlugin->getPluginType() != te::ExternalPlugin::xmlTypeName)
     {
         InitPresetLoaderAdapter adapter(newPlugin, evs.m_applicationState);
         PresetHelpers::tryLoadInitPreset(adapter);

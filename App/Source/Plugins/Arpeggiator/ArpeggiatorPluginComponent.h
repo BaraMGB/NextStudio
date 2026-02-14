@@ -10,11 +10,11 @@
 
 #pragma once
 
+#include "LowerRange/PluginChain/PluginViewComponent.h"
+#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "UI/Controls/AutomatableComboBox.h"
 #include "UI/Controls/AutomatableParameter.h"
 #include "UI/Controls/AutomatableSlider.h"
-#include "LowerRange/PluginChain/PluginViewComponent.h"
-#include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 
 //==============================================================================
 class ArpeggiatorPluginComponent
@@ -28,7 +28,7 @@ public:
     void paint(juce::Graphics &g) override;
     void resized() override;
 
-    int getNeededWidth() override { return 2; }
+    int getNeededWidth() override { return 1; }
 
     // PluginPresetInterface implementation
     juce::ValueTree getPluginState() override;
