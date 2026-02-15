@@ -13,6 +13,8 @@
 #include "LowerRange/PluginChain/RackView.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
+#include "Plugins/Chorus/ChorusPluginComponent.h"
+#include "Plugins/Chorus/NextChorusPlugin.h"
 #include "Plugins/Compressor/CompressorPluginComponent.h"
 #include "Plugins/Delay/DelayPluginComponent.h"
 #include "Plugins/Delay/NextDelayPlugin.h"
@@ -84,6 +86,10 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     else if (m_plugin->getPluginType() == te::ReverbPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<ReverbPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == NextChorusPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<ChorusPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == "4osc")
     {

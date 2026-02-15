@@ -21,6 +21,7 @@
 #include "LowerRange/PluginChain/PluginViewComponent.h"
 #include "LowerRange/PluginChain/PresetManagerComponent.h"
 #include "LowerRange/PluginChain/RackItemView.h"
+#include "Plugins/Chorus/ChorusPluginComponent.h"
 #include "Plugins/Compressor/CompressorPluginComponent.h"
 #include "Plugins/Delay/DelayPluginComponent.h"
 #include "Plugins/DrumSampler/DrumSamplerView.h"
