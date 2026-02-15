@@ -23,8 +23,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRange/PluginChain/PresetHelpers.h"
 #include "Utilities/Utilities.h"
 
-PresetManagerComponent::PresetManagerComponent(PluginPresetInterface &pluginInterface)
-    : m_pluginInterface(pluginInterface)
+PresetManagerComponent::PresetManagerComponent(PluginPresetInterface &pluginInterface, juce::Colour headerColour)
+    : m_pluginInterface(pluginInterface),
+      m_headerColour(headerColour)
 {
     m_presetCombo = std::make_unique<juce::ComboBox>("Presets");
     m_presetCombo->setTextWhenNothingSelected("Select Preset");
@@ -45,23 +46,26 @@ PresetManagerComponent::PresetManagerComponent(PluginPresetInterface &pluginInte
 
 void PresetManagerComponent::paint(juce::Graphics &g)
 {
-    auto background1 = m_pluginInterface.getApplicationViewState().getBackgroundColour1();
-    auto background2 = m_pluginInterface.getApplicationViewState().getBackgroundColour2();
-    auto borderColour = m_pluginInterface.getApplicationViewState().getBorderColour();
+    auto &appState = m_pluginInterface.getApplicationViewState();
+    auto borderColour = appState.getBorderColour();
+    auto backgroundColour = appState.getBackgroundColour1();
 
-    g.fillAll(background2);
-    g.setColour(background1);
+    GUIHelpers::drawHeaderBox(g, getLocalBounds().reduced(2).toFloat(), m_headerColour, borderColour, backgroundColour, 20.0f, GUIHelpers::HeaderPosition::top, "Presets");
+}
 
-    auto area = getLocalBounds().reduced(2);
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), 10, true, true, true, true);
+void PresetManagerComponent::setHeaderColour(juce::Colour colour)
+{
+    if (m_headerColour == colour)
+        return;
 
-    g.setColour(borderColour);
-    GUIHelpers::strokeRoundedRectWithSide(g, area.toFloat(), 10, true, true, true, true);
+    m_headerColour = colour;
+    repaint();
 }
 
 void PresetManagerComponent::resized()
 {
     auto area = getLocalBounds().reduced(5);
+    area.removeFromTop(20); // header
 
     int buttonHeight = 25;
     int spacing = 5;

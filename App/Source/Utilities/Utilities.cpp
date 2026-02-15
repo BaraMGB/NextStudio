@@ -400,6 +400,57 @@ void GUIHelpers::drawRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<floa
     g.fillPath(p);
 }
 
+void GUIHelpers::drawHeaderBox(juce::Graphics &g, juce::Rectangle<float> area, juce::Colour headerColour, juce::Colour strokeColour, juce::Colour backgroundColour, float headerWidth, GUIHelpers::HeaderPosition headerPosition, const juce::String &title)
+{
+    constexpr float cornerSize = 10.0f;
+
+    auto fullArea = area;
+
+    g.setColour(backgroundColour);
+    drawRoundedRectWithSide(g, fullArea, cornerSize, true, true, true, true);
+
+    juce::Rectangle<float> header;
+    if (headerPosition == GUIHelpers::HeaderPosition::right)
+        header = area.removeFromRight(headerWidth);
+    else if (headerPosition == GUIHelpers::HeaderPosition::left)
+        header = area.removeFromLeft(headerWidth);
+    else
+        header = area.removeFromTop(headerWidth);
+
+    g.setColour(headerColour);
+    if (headerPosition == GUIHelpers::HeaderPosition::right)
+        drawRoundedRectWithSide(g, header, cornerSize, false, true, false, true);
+    else if (headerPosition == GUIHelpers::HeaderPosition::left)
+        drawRoundedRectWithSide(g, header, cornerSize, true, false, true, false);
+    else
+        drawRoundedRectWithSide(g, header, cornerSize, true, true, false, false);
+
+    g.setColour(strokeColour);
+    strokeRoundedRectWithSide(g, fullArea, cornerSize, true, true, true, true);
+
+    if (title.isNotEmpty())
+    {
+        auto titleColour = headerColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
+        g.setColour(titleColour);
+        g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+
+        if (headerPosition == GUIHelpers::HeaderPosition::right || headerPosition == GUIHelpers::HeaderPosition::left)
+        {
+            juce::Graphics::ScopedSaveState saveState(g);
+            auto center = header.getCentre();
+            auto rotation = headerPosition == GUIHelpers::HeaderPosition::right ? juce::MathConstants<float>::halfPi : -juce::MathConstants<float>::halfPi;
+            g.addTransform(juce::AffineTransform::rotation(rotation, center.x, center.y));
+
+            auto textRect = juce::Rectangle<float>(center.x - header.getHeight() * 0.5f, center.y - header.getWidth() * 0.5f, header.getHeight(), header.getWidth());
+            g.drawFittedText(title, textRect.toNearestInt(), juce::Justification::centred, 1);
+        }
+        else
+        {
+            g.drawFittedText(title, header.toNearestInt(), juce::Justification::centred, 1);
+        }
+    }
+}
+
 void GUIHelpers::drawFromSvg(juce::Graphics &g, const char *svgbinary, juce::Colour newColour, juce::Rectangle<float> drawRect)
 {
     if (auto svg = juce::XmlDocument::parse(svgbinary))

@@ -31,14 +31,16 @@ class PresetManagerComponent : public juce::Component
 {
 public:
     // Constructor requires a valid interface reference. No nullptr possible.
-    explicit PresetManagerComponent(PluginPresetInterface &pluginInterface);
+    explicit PresetManagerComponent(PluginPresetInterface &pluginInterface, juce::Colour headerColour);
     ~PresetManagerComponent() override = default;
 
     void paint(juce::Graphics &g) override;
     void resized() override;
+    void setHeaderColour(juce::Colour colour);
 
 private:
     PluginPresetInterface &m_pluginInterface; // Reference instead of pointer
+    juce::Colour m_headerColour;
 
     std::unique_ptr<juce::ComboBox> m_presetCombo;
     std::unique_ptr<juce::TextButton> m_saveButton;

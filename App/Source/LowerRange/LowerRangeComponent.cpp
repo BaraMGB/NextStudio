@@ -91,13 +91,13 @@ void LowerRangeComponent::resized()
 
     m_splitter.setBounds(splitter);
 
-    auto leftArea = area.removeFromLeft(70);
-    auto presetArea = leftArea.removeFromTop(100);
+    auto leftArea = area.removeFromLeft(90);
+    auto presetArea = leftArea.removeFromTop(120);
     if (m_presetManager)
     {
         m_presetManager->setBounds(presetArea);
     }
-    m_tabBar.setBounds(leftArea);
+    m_tabBar.setBounds(leftArea.reduced(10, 0));
 
     m_rackView.setBounds(area);
     m_mixer.setBounds(area);
@@ -114,7 +114,11 @@ void LowerRangeComponent::updatePresetManager(te::Track *track)
     {
         // Safety check: If we already have an adapter for THIS track, don't recreate it.
         if (m_presetAdapter != nullptr && &m_presetAdapter->getTrack() == audioTrack)
+        {
+            if (m_presetManager)
+                m_presetManager->setHeaderColour(audioTrack->getColour());
             return;
+        }
 
         // Strict Ownership Protocol (Lifecycle Management):
         // The PresetManagerComponent holds a reference to the TrackPresetAdapter.
@@ -128,7 +132,7 @@ void LowerRangeComponent::updatePresetManager(te::Track *track)
 
         m_presetAdapter = std::make_unique<TrackPresetAdapter>(*audioTrack, m_evs.m_applicationState);
 
-        m_presetManager = std::make_unique<PresetManagerComponent>(*m_presetAdapter);
+        m_presetManager = std::make_unique<PresetManagerComponent>(*m_presetAdapter, audioTrack->getColour());
         addAndMakeVisible(*m_presetManager);
     }
     else

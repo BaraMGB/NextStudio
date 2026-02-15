@@ -58,6 +58,7 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks(false, true);
+    name.setVisible(false);
     GUIHelpers::log("PLUGIN TYPE: ", m_plugin->getPluginType());
 
     if (m_plugin->getPluginType() == "volume")
@@ -125,7 +126,8 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     {
         if (auto *presetInterface = dynamic_cast<PluginPresetInterface *>(m_pluginComponent.get()))
         {
-            m_presetManager = std::make_unique<PresetManagerComponent>(*presetInterface);
+            auto headerColour = m_track != nullptr ? m_track->getColour() : m_evs.m_applicationState.getPrimeColour();
+            m_presetManager = std::make_unique<PresetManagerComponent>(*presetInterface, headerColour);
             addAndMakeVisible(*m_presetManager);
         }
     }
@@ -152,6 +154,7 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Modifier::P
     name.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks(false, true);
+    name.setVisible(false);
 
     if (dynamic_cast<te::LFOModifier *>(m.get()))
         m_modifierComponent = std::make_unique<LFOModifierComponent>(evs, m);
@@ -173,12 +176,6 @@ void RackItemView::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
     area.reduce(0, 1);
-    auto cornerSize = 7.0f;
-    auto backgroundColour = m_evs.m_applicationState.getBackgroundColour2();
-    g.setColour(backgroundColour);
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, false, true, false);
-
-    auto borderRect = area;
 
     juce::Colour trackCol;
     if (m_plugin)
@@ -188,21 +185,17 @@ void RackItemView::paint(juce::Graphics &g)
 
     auto labelingCol = trackCol.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
-    name.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+    auto title = m_plugin ? m_plugin->getName() : (m_modifier ? m_modifier->getName() : juce::String(""));
+
+    GUIHelpers::drawHeaderBox(g, area.toFloat(), trackCol, m_evs.m_applicationState.getBorderColour(), m_evs.m_applicationState.getBackgroundColour2(), (float)m_headerWidth, GUIHelpers::HeaderPosition::left, title);
 
     GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg, labelingCol);
-    auto header = area.removeFromLeft(m_headerWidth);
-    g.setColour(trackCol);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
 
     if (m_clickOnHeader)
     {
         g.setColour(juce::Colour(0xffffffff));
         g.drawRect(getLocalBounds());
     }
-
-    g.setColour(m_evs.m_applicationState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, borderRect.toFloat(), cornerSize, true, false, true, false);
 }
 
 void RackItemView::mouseDown(const juce::MouseEvent &e)
@@ -298,11 +291,9 @@ void RackItemView::resized()
     auto area = getLocalBounds();
     juce::Rectangle<int> showButton = {area.getX(), area.getY() + 5, m_headerWidth, m_headerWidth};
     m_showPluginBtn.setBounds(showButton);
-    auto nameLabelRect = juce::Rectangle<int>(area.getX(), area.getHeight() - m_headerWidth, area.getHeight(), m_headerWidth);
-    name.setBounds(nameLabelRect);
-    name.setTransform(juce::AffineTransform::rotation(-(juce::MathConstants<float>::halfPi), nameLabelRect.getX() + 10.0, nameLabelRect.getY() + 10.0));
     area.removeFromLeft(m_headerWidth);
-    area.reduce(1, 1);
+    area.removeFromRight(m_headerWidth); // protect rounded rect
+    area.reduce(2, 2);
 
     if (m_presetManager)
         m_presetManager->setBounds(area.removeFromLeft(130));

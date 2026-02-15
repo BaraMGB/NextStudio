@@ -10,6 +10,7 @@
 
 #include "Plugins/Delay/DelayPluginComponent.h"
 #include "LowerRange/PluginChain/PresetHelpers.h"
+#include "Utilities/Utilities.h"
 
 #include <cmath>
 
@@ -36,15 +37,11 @@ public:
             return;
 
         const auto trackColour = m_owner.getTrackColour();
+        auto &appState = m_owner.m_editViewState.m_applicationState;
         auto panel = bounds.reduced(4.0f);
-        const float corner = 8.0f;
-
-        g.setColour(juce::Colour(0xff0f1319));
-        g.fillRoundedRectangle(panel, corner);
+        GUIHelpers::drawHeaderBox(g, panel, trackColour, appState.getBorderColour(), appState.getBackgroundColour1(), 22.0f, GUIHelpers::HeaderPosition::top);
 
         auto header = panel.removeFromTop(22.0f);
-        g.setColour(trackColour.withSaturation(0.55f).withBrightness(0.5f));
-        g.fillRoundedRectangle(header, 8.0f);
 
         g.setColour(trackColour.contrasting(0.85f));
         g.setFont(juce::FontOptions(11.0f, juce::Font::bold));
@@ -202,9 +199,6 @@ public:
         g.setFont(10.0f);
         g.drawFittedText("L", juce::Rectangle<int>((int)graph.getX() + 4, (int)(graph.getY() + 4), 12, 12), juce::Justification::centred, 1);
         g.drawFittedText("R", juce::Rectangle<int>((int)graph.getX() + 4, (int)(graph.getBottom() - 16), 12, 12), juce::Justification::centred, 1);
-
-        g.setColour(trackColour.withAlpha(0.45f));
-        g.drawRoundedRectangle(bounds.reduced(4.0f), corner, 1.0f);
     }
 
 private:

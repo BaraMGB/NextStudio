@@ -253,7 +253,7 @@ ModifierSidebar::ModifierSidebar(EditViewState &evs)
     m_viewport.setScrollBarsShown(true, false, false, false); // vertical scrollbar only
 
     addAndMakeVisible(m_addButton);
-    m_addButton.setButtonText("+");
+    m_addButton.setButtonText("Add modifier");
     m_addButton.onClick = [this]
     {
         if (!m_track)
@@ -412,17 +412,19 @@ void ModifierSidebar::updateSelectionState()
 
 void ModifierSidebar::paint(juce::Graphics &g)
 {
-    g.fillAll(m_evs.m_applicationState.getBackgroundColour2());
-    g.setColour(juce::Colours::grey);
-    g.drawRect(getLocalBounds().removeFromTop(30), 1); // Header border
+    auto headerColour = m_track != nullptr ? m_track->getColour() : m_evs.m_applicationState.getPrimeColour();
+    GUIHelpers::drawHeaderBox(g, getLocalBounds().reduced(2).toFloat(), headerColour, m_evs.m_applicationState.getBorderColour(), m_evs.m_applicationState.getBackgroundColour2(), 20.0f, GUIHelpers::HeaderPosition::top, "Modifiers");
 }
 
 void ModifierSidebar::resized()
 {
-    auto area = getLocalBounds();
-    auto header = area.removeFromTop(30);
+    auto area = getLocalBounds().reduced(2);
+    area.removeFromTop(20);
 
-    m_addButton.setBounds(header.removeFromLeft(30).reduced(4));
+    auto addButtonArea = area.removeFromTop(28).reduced(4, 2);
+    m_addButton.setBounds(addButtonArea);
+
+    area.reduce(2, 2);
 
     m_viewport.setBounds(area);
 

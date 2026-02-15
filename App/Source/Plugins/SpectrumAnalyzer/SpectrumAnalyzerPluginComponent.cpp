@@ -1,18 +1,23 @@
 #include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPluginComponent.h"
+#include "Utilities/Utilities.h"
 
 #include <algorithm>
 #include <cmath>
 #include <vector>
 
+namespace
+{
+constexpr int displayOuterInset = 5;
+constexpr float displayHeaderHeight = 20.0f;
+constexpr int displayInnerInset = 8;
+constexpr int yAxisLabelWidth = 42;
+constexpr int xAxisLabelHeight = 20;
+constexpr float plotTopInset = 10.0f;
+} // namespace
+
 SpectrumAnalyzerPluginComponent::SpectrumAnalyzerPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
     : PluginViewComponent(evs, p)
 {
-    m_titleLabel.setText("SPECTRUM", juce::dontSendNotification);
-    m_titleLabel.setJustificationType(juce::Justification::centred);
-    m_titleLabel.setFont(juce::FontOptions(12, juce::Font::bold));
-    m_titleLabel.setInterceptsMouseClicks(false, false);
-    addAndMakeVisible(m_titleLabel);
-
     if (auto *analyzer = getAnalyzer())
         analyzer->copySpectrum(m_spectrum);
 
@@ -27,24 +32,16 @@ SpectrumAnalyzerPluginComponent::~SpectrumAnalyzerPluginComponent()
 
 void SpectrumAnalyzerPluginComponent::paint(juce::Graphics &g)
 {
-    auto area = getLocalBounds().reduced(5);
-    const float cornerSize = 10.0f;
-
-    g.setColour(m_editViewState.m_applicationState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
-
+    auto area = getLocalBounds().reduced(displayOuterInset);
     auto trackColour = getTrackColour();
-    auto header = area.removeFromTop(20);
-    g.setColour(trackColour);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
+    GUIHelpers::drawHeaderBox(g, area.toFloat(), trackColour, m_editViewState.m_applicationState.getBorderColour(), m_editViewState.m_applicationState.getBackgroundColour1(), displayHeaderHeight, GUIHelpers::HeaderPosition::top, "SPECTRUM");
 
-    const auto labelColour = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
-    m_titleLabel.setColour(juce::Label::textColourId, labelColour);
+    area.removeFromTop((int)displayHeaderHeight);
 
-    auto graphFrame = area.reduced(8);
-    auto yLabelArea = graphFrame.removeFromLeft(38);
-    auto xLabelArea = graphFrame.removeFromBottom(18);
-    auto graphArea = graphFrame.toFloat();
+    auto graphFrame = area.reduced(displayInnerInset);
+    auto yLabelArea = graphFrame.removeFromLeft(yAxisLabelWidth);
+    auto xLabelArea = graphFrame.removeFromBottom(xAxisLabelHeight);
+    auto graphArea = graphFrame.toFloat().withTrimmedTop(plotTopInset);
 
     if (graphArea.getWidth() <= 1.0f || graphArea.getHeight() <= 1.0f)
         return;
@@ -170,17 +167,9 @@ void SpectrumAnalyzerPluginComponent::paint(juce::Graphics &g)
 
     g.setColour(trackColour.brighter(0.1f));
     g.strokePath(path, juce::PathStrokeType(2.0f));
-
-    g.setColour(m_editViewState.m_applicationState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, true, true, true);
 }
 
-void SpectrumAnalyzerPluginComponent::resized()
-{
-    auto area = getLocalBounds().reduced(5);
-    m_titleLabel.setBounds(area.removeFromTop(20));
-    updateTimerState();
-}
+void SpectrumAnalyzerPluginComponent::resized() { updateTimerState(); }
 
 void SpectrumAnalyzerPluginComponent::visibilityChanged() { updateTimerState(); }
 

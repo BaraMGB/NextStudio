@@ -23,7 +23,7 @@ namespace te = tracktion_engine;
 class CompressorTransferGraphComponent : public juce::Component
 {
 public:
-    CompressorTransferGraphComponent(te::AutomatableParameter::Ptr thresholdParam, te::AutomatableParameter::Ptr ratioParam, te::AutomatableParameter::Ptr outputParam);
+    CompressorTransferGraphComponent(te::AutomatableParameter::Ptr thresholdParam, te::AutomatableParameter::Ptr ratioParam, te::AutomatableParameter::Ptr outputParam, ApplicationViewState &appState, juce::Colour headerColour);
 
     void paint(juce::Graphics &g) override;
 
@@ -31,6 +31,8 @@ private:
     te::AutomatableParameter::Ptr m_thresholdParam;
     te::AutomatableParameter::Ptr m_ratioParam;
     te::AutomatableParameter::Ptr m_outputParam;
+    ApplicationViewState &m_appState;
+    juce::Colour m_headerColour;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompressorTransferGraphComponent)
 };

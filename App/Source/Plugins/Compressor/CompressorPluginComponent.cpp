@@ -11,6 +11,7 @@
 #include "Plugins/Compressor/CompressorPluginComponent.h"
 
 #include "LowerRange/PluginChain/PresetHelpers.h"
+#include "Utilities/Utilities.h"
 
 #include <array>
 
@@ -31,10 +32,12 @@ float mapDbToY(float db, const juce::Rectangle<float> &area, float minDb, float 
 }
 } // namespace
 
-CompressorTransferGraphComponent::CompressorTransferGraphComponent(te::AutomatableParameter::Ptr thresholdParam, te::AutomatableParameter::Ptr ratioParam, te::AutomatableParameter::Ptr outputParam)
+CompressorTransferGraphComponent::CompressorTransferGraphComponent(te::AutomatableParameter::Ptr thresholdParam, te::AutomatableParameter::Ptr ratioParam, te::AutomatableParameter::Ptr outputParam, ApplicationViewState &appState, juce::Colour headerColour)
     : m_thresholdParam(std::move(thresholdParam)),
       m_ratioParam(std::move(ratioParam)),
-      m_outputParam(std::move(outputParam))
+      m_outputParam(std::move(outputParam)),
+      m_appState(appState),
+      m_headerColour(headerColour)
 {
 }
 
@@ -44,13 +47,14 @@ void CompressorTransferGraphComponent::paint(juce::Graphics &g)
     if (bounds.getWidth() < 20.0f || bounds.getHeight() < 20.0f)
         return;
 
-    g.fillAll(juce::Colour(0xff101216));
+    auto panel = bounds.reduced(4.0f);
+    GUIHelpers::drawHeaderBox(g, panel, m_headerColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1(), 20.0f, GUIHelpers::HeaderPosition::top, "TRANSFER");
 
     constexpr float leftMargin = 58.0f;
     constexpr float rightMargin = 10.0f;
-    constexpr float topMargin = 18.0f;
+    constexpr float topMargin = 26.0f;
     constexpr float bottomMargin = 34.0f;
-    const auto area = bounds.withTrimmedLeft(leftMargin).withTrimmedRight(rightMargin).withTrimmedTop(topMargin).withTrimmedBottom(bottomMargin);
+    const auto area = panel.withTrimmedLeft(leftMargin).withTrimmedRight(rightMargin).withTrimmedTop(topMargin).withTrimmedBottom(bottomMargin);
     g.setColour(juce::Colour(0xff1b2027));
     g.fillRect(area);
 
@@ -68,7 +72,7 @@ void CompressorTransferGraphComponent::paint(juce::Graphics &g)
 
         g.setColour(juce::Colour(0xff7f8a99));
         g.setFont(11.0f);
-        g.drawFittedText(juce::String((int)db) + " dB", juce::Rectangle<int>((int)bounds.getX() + 20, (int)y - 7, (int)leftMargin - 24, 14), juce::Justification::centredLeft, 1);
+        g.drawFittedText(juce::String((int)db) + " dB", juce::Rectangle<int>((int)panel.getX() + 20, (int)y - 7, (int)leftMargin - 24, 14), juce::Justification::centredLeft, 1);
         g.drawFittedText(juce::String((int)db), juce::Rectangle<int>((int)x - 13, (int)area.getBottom() + 2, 26, 12), juce::Justification::centred, 1);
         g.setColour(juce::Colour(0xff2a3039));
     }
@@ -114,10 +118,10 @@ void CompressorTransferGraphComponent::paint(juce::Graphics &g)
     g.setColour(juce::Colour(0xffcad3df));
     g.setFont(12.0f);
     g.saveState();
-    g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, bounds.getX() + 10.0f, area.getCentreY()));
-    g.drawFittedText("Output", juce::Rectangle<int>((int)bounds.getX() - 28, (int)area.getCentreY() - 8, (int)area.getHeight(), 16), juce::Justification::centred, 1);
+    g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, panel.getX() + 10.0f, area.getCentreY()));
+    g.drawFittedText("Output", juce::Rectangle<int>((int)panel.getX() - 28, (int)area.getCentreY() - 8, (int)area.getHeight(), 16), juce::Justification::centred, 1);
     g.restoreState();
-    g.drawFittedText("Input (dB)", juce::Rectangle<int>((int)area.getX(), (int)bounds.getBottom() - 16, (int)area.getWidth(), 14), juce::Justification::centred, 1);
+    g.drawFittedText("Input (dB)", juce::Rectangle<int>((int)area.getX(), (int)panel.getBottom() - 16, (int)area.getWidth(), 14), juce::Justification::centred, 1);
 
     g.setColour(juce::Colour(0xff3a424f));
     g.drawRect(area, 1.0f);
@@ -130,7 +134,7 @@ CompressorPluginComponent::CompressorPluginComponent(EditViewState &evs, te::Plu
       m_attackParam(m_plugin->getAutomatableParameterByID("attack")),
       m_releaseParam(m_plugin->getAutomatableParameterByID("release")),
       m_outputParam(m_plugin->getAutomatableParameterByID("output gain")),
-      m_transferGraph(m_thresholdParam, m_ratioParam, m_outputParam)
+      m_transferGraph(m_thresholdParam, m_ratioParam, m_outputParam, m_editViewState.m_applicationState, getTrackColour())
 {
     m_thresholdComp = std::make_unique<AutomatableParameterComponent>(m_thresholdParam, "Thresh");
     m_ratioComp = std::make_unique<AutomatableParameterComponent>(m_ratioParam, "Ratio");
