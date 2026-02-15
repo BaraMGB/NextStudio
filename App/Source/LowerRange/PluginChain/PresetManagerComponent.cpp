@@ -23,9 +23,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRange/PluginChain/PresetHelpers.h"
 #include "Utilities/Utilities.h"
 
-PresetManagerComponent::PresetManagerComponent(PluginPresetInterface &pluginInterface, juce::Colour headerColour)
+PresetManagerComponent::PresetManagerComponent(PluginPresetInterface &pluginInterface, juce::Colour headerColour, juce::String title)
     : m_pluginInterface(pluginInterface),
-      m_headerColour(headerColour)
+      m_headerColour(headerColour),
+      m_title(title)
 {
     m_presetCombo = std::make_unique<juce::ComboBox>("Presets");
     m_presetCombo->setTextWhenNothingSelected("Select Preset");
@@ -50,7 +51,7 @@ void PresetManagerComponent::paint(juce::Graphics &g)
     auto borderColour = appState.getBorderColour();
     auto backgroundColour = appState.getBackgroundColour1();
 
-    GUIHelpers::drawHeaderBox(g, getLocalBounds().reduced(2).toFloat(), m_headerColour, borderColour, backgroundColour, 20.0f, GUIHelpers::HeaderPosition::top, "Presets");
+    GUIHelpers::drawHeaderBox(g, getLocalBounds().reduced(2).toFloat(), m_headerColour, borderColour, backgroundColour, 20.0f, GUIHelpers::HeaderPosition::top, m_title);
 }
 
 void PresetManagerComponent::setHeaderColour(juce::Colour colour)
