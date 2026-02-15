@@ -65,7 +65,7 @@ public:
         ColourButton(const juce::String &name = "ColourButton")
             : juce::TextButton(name)
         {
-            setButtonText("");
+            setButtonText(name);
         }
 
         void setCurrentColour(const juce::Colour &colour)
@@ -82,6 +82,11 @@ public:
 
             g.setColour(m_currentColour);
             g.fillRoundedRectangle(bounds, 4.0f);
+
+            // Draw text
+            g.setColour(m_currentColour.contrasting());
+            g.setFont(10.0f);
+            g.drawFittedText(getButtonText(), getLocalBounds().reduced(2), juce::Justification::centred, 2);
 
             g.setColour(findColour(juce::TextButton::buttonColourId).contrasting());
             g.drawRoundedRectangle(bounds.reduced(0.5f), 4.0f, 1.0f);
@@ -135,12 +140,7 @@ public:
         {
             auto setting = m_colourSettings[i];
 
-            auto label = std::make_unique<juce::Label>();
-            label->setText(setting->id.toString(), juce::dontSendNotification);
-            addAndMakeVisible(*label);
-            m_labels.add(std::move(label));
-
-            auto button = std::make_unique<ColourButton>();
+            auto button = std::make_unique<ColourButton>(setting->id.toString());
             button->setCurrentColour(juce::Colour::fromString(juce::String(setting->colour)));
             button->onClick = [this, i]() { showColourSelector(i); };
             addAndMakeVisible(button.get());
@@ -158,6 +158,35 @@ public:
         }
     }
 
+    void refreshColors()
+    {
+        m_colourSettings.clear();
+        m_colourSettings.add(new ColourSetting{IDs::PrimeColour, m_appState.m_primeColour});
+        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour1, m_appState.m_guiBackground1});
+        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour2, m_appState.m_guiBackground2});
+        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour3, m_appState.m_guiBackground3});
+        m_colourSettings.add(new ColourSetting{IDs::MenuTextColour, m_appState.m_textColour});
+        m_colourSettings.add(new ColourSetting{IDs::MainFrameColour, m_appState.m_mainFrameColour});
+        m_colourSettings.add(new ColourSetting{IDs::BorderColour, m_appState.m_borderColour});
+        m_colourSettings.add(new ColourSetting{IDs::ButtonBackgroundColour, m_appState.m_buttonBackgroundColour});
+        m_colourSettings.add(new ColourSetting{IDs::ButtonTextColour, m_appState.m_buttonTextColour});
+        m_colourSettings.add(new ColourSetting{IDs::timeLineStrokeColour, m_appState.m_timeLine_strokeColour});
+        m_colourSettings.add(new ColourSetting{IDs::timeLineShadowShade, m_appState.m_timeLine_shadowShade});
+        m_colourSettings.add(new ColourSetting{IDs::timeLineTextColour, m_appState.m_timeLine_textColour});
+        m_colourSettings.add(new ColourSetting{IDs::timeLineBackgroundColour, m_appState.m_timeLine_background});
+        m_colourSettings.add(new ColourSetting{IDs::trackBackgroundColour, m_appState.m_trackBackgroundColour});
+        m_colourSettings.add(new ColourSetting{IDs::trackHeaderBackgroundColour, m_appState.m_trackHeaderBackgroundColour});
+        m_colourSettings.add(new ColourSetting{IDs::trackHeaderTextColour, m_appState.m_trackHeaderTextColour});
+
+        for (int i = 0; i < m_colourSettings.size(); i++)
+        {
+            auto setting = m_colourSettings[i];
+            m_colourButtons[i]->setCurrentColour(juce::Colour::fromString(juce::String(setting->colour)));
+            m_selectors[i]->setCurrentColour(juce::Colour::fromString(setting->colour), juce::dontSendNotification);
+        }
+        repaint();
+    }
+
     ~ColourSettingsPanel() override
     {
         for (auto *selector : m_selectors)
@@ -168,9 +197,11 @@ public:
 
     int getPreferredHeight() const
     {
-        const int buttonRowHeight = 30;
+        const int tileSize = 80;
         const int selectorHeight = 250;
-        const int baseHeight = m_colourSettings.size() * buttonRowHeight + buttonRowHeight;
+        const int columns = juce::jmax(1, getWidth() / tileSize);
+        const int rows = (m_colourButtons.size() + columns - 1) / columns;
+        const int baseHeight = rows * tileSize + 20;
 
         return baseHeight + (m_activeSelector >= 0 ? selectorHeight : 0);
     }
@@ -178,25 +209,27 @@ public:
     void resized() override
     {
         auto bounds = getLocalBounds();
-        const int rowHeight = 30;
-        const int labelWidth = 200;
-        const int buttonWidth = 40;
         const int selectorHeight = 250;
+        const int tileSize = 80;
 
-        const auto selectorRect = bounds.removeFromTop(selectorHeight);
-
-        bounds.removeFromTop(rowHeight);
-
-        for (int i = 0; i < m_labels.size(); i++)
+        if (m_activeSelector >= 0)
         {
-            auto row = bounds.removeFromTop(rowHeight);
-            m_labels[i]->setBounds(row.removeFromLeft(labelWidth).reduced(2));
-            m_colourButtons[i]->setBounds(row.removeFromLeft(buttonWidth).reduced(2));
+            m_selectors[m_activeSelector]->setBounds(bounds.removeFromTop(selectorHeight).reduced(2));
+        }
 
-            if (i == m_activeSelector)
-            {
-                m_selectors[i]->setBounds(selectorRect);
-            }
+        bounds.removeFromTop(10); // padding
+
+        const int columns = juce::jmax(1, bounds.getWidth() / tileSize);
+        const int actualTileWidth = bounds.getWidth() / columns;
+        const int actualTileHeight = tileSize;
+
+        for (int i = 0; i < m_colourButtons.size(); i++)
+        {
+            const int row = i / columns;
+            const int col = i % columns;
+
+            auto tileBounds = juce::Rectangle<int>(col * actualTileWidth, bounds.getY() + row * actualTileHeight, actualTileWidth, actualTileHeight).reduced(2);
+            m_colourButtons[i]->setBounds(tileBounds);
         }
     }
 
@@ -220,7 +253,6 @@ public:
 private:
     ApplicationViewState &m_appState;
     juce::OwnedArray<ColourSetting> m_colourSettings;
-    juce::OwnedArray<juce::Label> m_labels;
     juce::OwnedArray<ColourButton> m_colourButtons;
     juce::OwnedArray<juce::ColourSelector> m_selectors;
     int m_activeSelector;
@@ -298,6 +330,21 @@ public:
         m_themeLabel.setText("Theme Colors:", juce::dontSendNotification);
         addAndMakeVisible(m_themeLabel);
 
+        m_themePresetsLabel.setText("Theme Presets:", juce::dontSendNotification);
+        addAndMakeVisible(m_themePresetsLabel);
+
+        m_themeCombo.setTextWhenNothingSelected("Select Theme");
+        m_themeCombo.onChange = [this] { loadThemeFromCombo(); };
+        addAndMakeVisible(m_themeCombo);
+
+        m_saveThemeButton.onClick = [this] { saveTheme(); };
+        addAndMakeVisible(m_saveThemeButton);
+
+        m_loadThemeButton.onClick = [this] { loadTheme(); };
+        addAndMakeVisible(m_loadThemeButton);
+
+        refreshThemeList();
+
         m_viewport = std::make_unique<juce::Viewport>();
         addAndMakeVisible(m_viewport.get());
 
@@ -307,6 +354,12 @@ public:
     }
 
     void setOnContentPathChanged(std::function<void()> callback) { m_onContentPathChanged = std::move(callback); }
+
+    void visibilityChanged() override
+    {
+        if (isVisible())
+            refreshThemeList();
+    }
 
     void resized() override
     {
@@ -332,6 +385,15 @@ public:
         m_contentPathValue.setBounds(contentPathValueRow.reduced(2));
 
         bounds.removeFromTop(padding / 2);
+        auto themePresetRow1 = bounds.removeFromTop(rowHeight);
+        m_themePresetsLabel.setBounds(themePresetRow1.removeFromLeft(120));
+        m_themeCombo.setBounds(themePresetRow1.reduced(2));
+
+        auto themePresetRow2 = bounds.removeFromTop(rowHeight);
+        m_saveThemeButton.setBounds(themePresetRow2.removeFromLeft(themePresetRow2.getWidth() / 2).reduced(2));
+        m_loadThemeButton.setBounds(themePresetRow2.reduced(2));
+
+        bounds.removeFromTop(padding / 2);
         m_themeLabel.setBounds(bounds.removeFromTop(rowHeight));
 
         bounds.removeFromTop(padding / 2);
@@ -354,9 +416,135 @@ private:
     juce::Label m_contentPathValue;
     juce::TextButton m_changeContentPathButton{"Change..."};
     juce::Label m_themeLabel;
+    juce::Label m_themePresetsLabel;
+    juce::ComboBox m_themeCombo;
+    juce::TextButton m_saveThemeButton{"Save Theme"};
+    juce::TextButton m_loadThemeButton{"Load Theme"};
     std::unique_ptr<juce::Viewport> m_viewport;
     std::unique_ptr<ColourSettingsPanel> m_colourSettingsPanel;
     std::function<void()> m_onContentPathChanged;
+
+    void refreshThemeList()
+    {
+        m_themeCombo.clear();
+
+        auto themeDir = getThemeDirectory();
+        if (!themeDir.exists())
+            themeDir.createDirectory();
+
+        juce::Array<juce::File> themeFiles;
+        themeDir.findChildFiles(themeFiles, juce::File::findFiles, false, "*.nxttheme");
+        themeFiles.sort();
+
+        for (int i = 0; i < themeFiles.size(); ++i)
+        {
+            m_themeCombo.addItem(themeFiles[i].getFileNameWithoutExtension(), i + 1);
+        }
+    }
+
+    void loadThemeFromCombo()
+    {
+        int selectedId = m_themeCombo.getSelectedId();
+        if (selectedId <= 0)
+            return;
+
+        auto themeDir = getThemeDirectory();
+        juce::Array<juce::File> themeFiles;
+        themeDir.findChildFiles(themeFiles, juce::File::findFiles, false, "*.nxttheme");
+        themeFiles.sort();
+
+        int index = selectedId - 1;
+        if (index >= 0 && index < themeFiles.size())
+        {
+            loadThemeFromFile(themeFiles[index]);
+        }
+    }
+
+    void saveTheme()
+    {
+        auto themeDir = getThemeDirectory();
+        if (!themeDir.exists())
+            themeDir.createDirectory();
+
+        juce::FileChooser fc("Save Theme", themeDir, "*.nxttheme");
+        if (fc.browseForFileToSave(true))
+        {
+            auto file = fc.getResult();
+            if (!file.hasFileExtension(".nxttheme"))
+                file = file.withFileExtension(".nxttheme");
+
+            auto themeState = m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState);
+            if (themeState.isValid())
+            {
+                if (auto xml = std::unique_ptr<juce::XmlElement>(themeState.createXml()))
+                {
+                    xml->writeTo(file, {});
+                    refreshThemeList();
+
+                    for (int i = 0; i < m_themeCombo.getNumItems(); ++i)
+                    {
+                        if (m_themeCombo.getItemText(i) == file.getFileNameWithoutExtension())
+                        {
+                            m_themeCombo.setSelectedId(i + 1, juce::dontSendNotification);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void loadTheme()
+    {
+        auto themeDir = getThemeDirectory();
+        juce::FileChooser fc("Load Theme", themeDir, "*.nxttheme");
+        if (fc.browseForFileToOpen())
+        {
+            loadThemeFromFile(fc.getResult());
+        }
+    }
+
+    void loadThemeFromFile(const juce::File &file)
+    {
+        if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(file)))
+        {
+            auto newThemeState = juce::ValueTree::fromXml(*xml);
+            if (newThemeState.hasType(IDs::ThemeState))
+            {
+                auto currentThemeState = m_appState.m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
+                currentThemeState.copyPropertiesFrom(newThemeState, nullptr);
+
+                m_appState.refreshThemeCache();
+
+                if (m_colourSettingsPanel != nullptr)
+                {
+                    m_colourSettingsPanel->refreshColors();
+                    m_colourSettingsPanel->sendChangeMessage();
+                }
+
+                resized();
+
+                // Select in combo if it's in the theme directory
+                if (file.getParentDirectory() == getThemeDirectory())
+                {
+                    for (int i = 0; i < m_themeCombo.getNumItems(); ++i)
+                    {
+                        if (m_themeCombo.getItemText(i) == file.getFileNameWithoutExtension())
+                        {
+                            m_themeCombo.setSelectedId(i + 1, juce::dontSendNotification);
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    m_themeCombo.setSelectedId(0, juce::dontSendNotification);
+                }
+            }
+        }
+    }
+
+    juce::File getThemeDirectory() { return juce::File(m_appState.m_presetDir.get()).getChildFile("Themes"); }
 
     static bool ensureDirectory(const juce::File &directory, juce::StringArray &errors)
     {
@@ -384,6 +572,8 @@ private:
             return false;
 
         if (!ensureDirectory(root.getChildFile("Presets"), errors))
+            return false;
+        if (!ensureDirectory(root.getChildFile("Presets").getChildFile("Themes"), errors))
             return false;
         if (!ensureDirectory(root.getChildFile("Clips"), errors))
             return false;

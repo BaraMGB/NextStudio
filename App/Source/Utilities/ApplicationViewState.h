@@ -225,6 +225,32 @@ public:
     juce::Colour getTrackHeaderBackgroundColour() { return juce::Colour::fromString(juce::String(m_trackHeaderBackgroundColour)); }
     juce::Colour getTrackHeaderTextColour() { return juce::Colour::fromString(juce::String(m_trackHeaderTextColour)); }
     juce::Colour getTrackBackgroundColour() { return juce::Colour::fromString(juce::String(m_trackBackgroundColour)); }
+
+    void refreshThemeCache()
+    {
+        auto themeState = m_applicationStateValueTree.getChildWithName(IDs::ThemeState);
+        if (themeState.isValid())
+        {
+            m_folderTrackIndent.forceUpdateOfCachedValue();
+            m_primeColour.forceUpdateOfCachedValue();
+            m_borderColour.forceUpdateOfCachedValue();
+            m_guiBackground1.forceUpdateOfCachedValue();
+            m_guiBackground2.forceUpdateOfCachedValue();
+            m_guiBackground3.forceUpdateOfCachedValue();
+            m_mainFrameColour.forceUpdateOfCachedValue();
+            m_buttonBackgroundColour.forceUpdateOfCachedValue();
+            m_buttonTextColour.forceUpdateOfCachedValue();
+            m_textColour.forceUpdateOfCachedValue();
+            m_timeLine_strokeColour.forceUpdateOfCachedValue();
+            m_timeLine_shadowShade.forceUpdateOfCachedValue();
+            m_timeLine_textColour.forceUpdateOfCachedValue();
+            m_timeLine_background.forceUpdateOfCachedValue();
+            m_trackBackgroundColour.forceUpdateOfCachedValue();
+            m_trackHeaderBackgroundColour.forceUpdateOfCachedValue();
+            m_trackHeaderTextColour.forceUpdateOfCachedValue();
+        }
+    }
+
     void addFavoriteType(const juce::Identifier &type)
     {
         auto favoriteTypes = m_applicationStateValueTree.getOrCreateChildWithName(IDs::FavoriteTypes, nullptr);
