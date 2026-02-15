@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Plugins/Chorus/NextChorusPlugin.h"
 #include "Plugins/Delay/NextDelayPlugin.h"
+#include "Plugins/Phaser/NextPhaserPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.h"
 #include "Utilities/EditViewState.h"
@@ -2265,7 +2266,7 @@ juce::Array<juce::PluginDescription> EngineHelpers::getInternalPlugins()
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::ReverbPlugin::getPluginName()), te::ReverbPlugin::xmlTypeName, false));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(NextDelayPlugin::getPluginName()), NextDelayPlugin::xmlTypeName, false));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(NextChorusPlugin::getPluginName()), NextChorusPlugin::xmlTypeName, false));
-    list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::PhaserPlugin::getPluginName()), te::PhaserPlugin::xmlTypeName, false));
+    list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(NextPhaserPlugin::getPluginName()), NextPhaserPlugin::xmlTypeName, false));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::CompressorPlugin::getPluginName()), te::CompressorPlugin::xmlTypeName, false));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::PitchShiftPlugin::getPluginName()), te::PitchShiftPlugin::xmlTypeName, false));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::LowPassPlugin::getPluginName()), te::LowPassPlugin::xmlTypeName, false));

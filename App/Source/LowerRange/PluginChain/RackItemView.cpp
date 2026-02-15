@@ -22,6 +22,8 @@
 #include "Plugins/EQ/EqPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
+#include "Plugins/Phaser/NextPhaserPlugin.h"
+#include "Plugins/Phaser/PhaserPluginComponent.h"
 #include "Plugins/Reverb/ReverbPluginComponent.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
@@ -90,6 +92,10 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     else if (m_plugin->getPluginType() == NextChorusPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<ChorusPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == NextPhaserPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<PhaserPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == "4osc")
     {
