@@ -85,6 +85,8 @@ target_sources(${TargetName} PRIVATE
         Source/Plugins/Phaser/NextPhaserPlugin.cpp
         Source/Plugins/Phaser/PhaserPluginComponent.cpp
         Source/Plugins/Reverb/ReverbPluginComponent.cpp
+        Source/Plugins/Saturation/NextSaturationPlugin.cpp
+        Source/Plugins/Saturation/SaturationPluginComponent.cpp
         Source/SideBrowser/InstrumentEffectChooser.cpp
         Source/Plugins/PluginComponent.cpp
         Source/UI/PluginMenu.cpp

@@ -30,6 +30,7 @@
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
 #include "Plugins/Phaser/PhaserPluginComponent.h"
 #include "Plugins/Reverb/ReverbPluginComponent.h"
+#include "Plugins/Saturation/SaturationPluginComponent.h"
 #include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPluginComponent.h"
 #include "Plugins/VST/VstPluginComponent.h"
 #include "Plugins/Volume/VolumePluginComponent.h"
