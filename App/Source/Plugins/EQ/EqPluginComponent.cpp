@@ -11,6 +11,7 @@
 #include "Plugins/EQ/EqPluginComponent.h"
 
 #include "LowerRange/PluginChain/PresetHelpers.h"
+#include "Utilities/Utilities.h"
 
 #include <cmath>
 #include <limits>
@@ -23,6 +24,12 @@ constexpr float maxGraphFreq = 20000.0f;
 constexpr float minGraphDb = -24.0f;
 constexpr float maxGraphDb = 24.0f;
 constexpr double previewSampleRate = 44100.0;
+constexpr int displayOuterInset = 5;
+constexpr float displayHeaderHeight = 20.0f;
+constexpr int displayInnerInset = 8;
+constexpr int yAxisLabelWidth = 42;
+constexpr int xAxisLabelHeight = 20;
+constexpr float plotTopInset = 10.0f;
 
 inline float gainFromDb(float db) { return std::pow(10.0f, db / 20.0f); }
 
@@ -64,8 +71,9 @@ inline double getBiquadMagnitude(const juce::IIRCoefficients &coeff, double freq
 }
 } // namespace
 
-EqResponseGraphComponent::EqResponseGraphComponent(te::Plugin::Ptr plugin, te::AutomatableParameter::Ptr lowFreq, te::AutomatableParameter::Ptr lowGain, te::AutomatableParameter::Ptr lowQ, te::AutomatableParameter::Ptr midFreq1, te::AutomatableParameter::Ptr midGain1, te::AutomatableParameter::Ptr midQ1, te::AutomatableParameter::Ptr midFreq2, te::AutomatableParameter::Ptr midGain2, te::AutomatableParameter::Ptr midQ2, te::AutomatableParameter::Ptr highFreq, te::AutomatableParameter::Ptr highGain, te::AutomatableParameter::Ptr highQ)
-    : m_plugin(plugin)
+EqResponseGraphComponent::EqResponseGraphComponent(te::Plugin::Ptr plugin, te::AutomatableParameter::Ptr lowFreq, te::AutomatableParameter::Ptr lowGain, te::AutomatableParameter::Ptr lowQ, te::AutomatableParameter::Ptr midFreq1, te::AutomatableParameter::Ptr midGain1, te::AutomatableParameter::Ptr midQ1, te::AutomatableParameter::Ptr midFreq2, te::AutomatableParameter::Ptr midGain2, te::AutomatableParameter::Ptr midQ2, te::AutomatableParameter::Ptr highFreq, te::AutomatableParameter::Ptr highGain, te::AutomatableParameter::Ptr highQ, ApplicationViewState &appState)
+    : m_plugin(plugin),
+      m_appState(appState)
 {
     m_bands[0] = BandHandle{lowFreq, lowGain, lowQ};
     m_bands[1] = BandHandle{midFreq1, midGain1, midQ1};
@@ -75,22 +83,20 @@ EqResponseGraphComponent::EqResponseGraphComponent(te::Plugin::Ptr plugin, te::A
 
 void EqResponseGraphComponent::paint(juce::Graphics &g)
 {
-    const auto frameArea = getLocalBounds().toFloat().reduced(8.0f);
-    const auto plotArea = getPlotArea();
-    auto yLabelArea = frameArea;
-    yLabelArea.setWidth(plotArea.getX() - frameArea.getX());
-    auto xLabelArea = frameArea;
-    xLabelArea.setY(plotArea.getBottom());
-    xLabelArea.setX(plotArea.getX());
-    xLabelArea.setHeight(frameArea.getBottom() - plotArea.getBottom());
-
+    auto frameArea = getLocalBounds().toFloat().reduced((float)displayOuterInset);
     auto curveColour = juce::Colour(0xfff28b1e);
     if (m_plugin != nullptr)
         if (auto *ownerTrack = m_plugin->getOwnerTrack())
             curveColour = ownerTrack->getColour();
 
-    g.setColour(juce::Colour(0xff1f2229));
-    g.fillRoundedRectangle(frameArea, 7.0f);
+    GUIHelpers::drawHeaderBox(g, frameArea, curveColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1(), displayHeaderHeight, GUIHelpers::HeaderPosition::top, "EQ CURVE");
+
+    frameArea.removeFromTop(displayHeaderHeight);
+
+    auto axisFrame = frameArea.reduced((float)displayInnerInset);
+    auto yLabelArea = axisFrame.removeFromLeft((float)yAxisLabelWidth);
+    auto xLabelArea = axisFrame.removeFromBottom((float)xAxisLabelHeight);
+    const auto plotArea = axisFrame.withTrimmedTop(plotTopInset);
 
     g.setColour(juce::Colours::black.withAlpha(0.18f));
     g.fillRoundedRectangle(plotArea, 6.0f);
@@ -101,9 +107,14 @@ void EqResponseGraphComponent::paint(juce::Graphics &g)
     {
         const auto y = yForGainDb(plotArea, db);
         const bool major = (db == 0.0f || db == 24.0f || db == -24.0f);
+        const bool boundary = (db == maxGraphDb || db == minGraphDb);
         const auto alpha = major ? 0.17f : 0.10f;
-        g.setColour(juce::Colours::white.withAlpha(alpha));
-        g.drawHorizontalLine((int)y, plotArea.getX(), plotArea.getRight());
+
+        if (!boundary)
+        {
+            g.setColour(juce::Colours::white.withAlpha(alpha));
+            g.drawHorizontalLine((int)y, plotArea.getX(), plotArea.getRight());
+        }
 
         auto row = juce::Rectangle<float>(yLabelArea.getX(), y - 7.0f, yLabelArea.getWidth() - 4.0f, 14.0f);
         g.setColour(juce::Colours::white.withAlpha(0.58f));
@@ -127,8 +138,13 @@ void EqResponseGraphComponent::paint(juce::Graphics &g)
     {
         const auto x = xForFrequency(plotArea, frequency);
         const bool major = (frequency == 20.0f || frequency == 100.0f || frequency == 1000.0f || frequency == 10000.0f);
-        g.setColour(juce::Colours::white.withAlpha(major ? 0.16f : 0.10f));
-        g.drawVerticalLine((int)x, plotArea.getY(), plotArea.getBottom());
+        const bool boundary = (frequency == minGraphFreq || frequency == maxGraphFreq);
+
+        if (!boundary)
+        {
+            g.setColour(juce::Colours::white.withAlpha(major ? 0.16f : 0.10f));
+            g.drawVerticalLine((int)x, plotArea.getY(), plotArea.getBottom());
+        }
 
         g.setColour(juce::Colours::white.withAlpha(0.60f));
         auto labelRect = juce::Rectangle<float>(x - 18.0f, xLabelArea.getY(), 36.0f, xLabelArea.getHeight());
@@ -248,9 +264,6 @@ void EqResponseGraphComponent::paint(juce::Graphics &g)
             g.drawText(labelText, bubble.toNearestInt(), juce::Justification::centred, false);
         }
     }
-
-    g.setColour(juce::Colour(0x33ffffff));
-    g.drawRoundedRectangle(frameArea, 7.0f, 1.0f);
 }
 
 void EqResponseGraphComponent::mouseDown(const juce::MouseEvent &e)
@@ -385,9 +398,12 @@ int EqResponseGraphComponent::getBandIndexAtPosition(juce::Point<float> point) c
 
 juce::Rectangle<float> EqResponseGraphComponent::getPlotArea() const
 {
-    auto frameArea = getLocalBounds().toFloat().reduced(8.0f);
-    frameArea.removeFromLeft(34.0f);
-    frameArea.removeFromBottom(18.0f);
+    auto frameArea = getLocalBounds().toFloat().reduced((float)displayOuterInset);
+    frameArea.removeFromTop(displayHeaderHeight);
+    frameArea = frameArea.reduced((float)displayInnerInset);
+    frameArea.removeFromLeft((float)yAxisLabelWidth);
+    frameArea.removeFromBottom((float)xAxisLabelHeight);
+    frameArea.removeFromTop(plotTopInset);
     return frameArea;
 }
 
@@ -405,14 +421,14 @@ EqPluginComponent::EqPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
       m_hiFreqParam(m_plugin->getAutomatableParameterByID("High-pass freq")),
       m_hiGainParam(m_plugin->getAutomatableParameterByID("High-pass gain")),
       m_hiQParam(m_plugin->getAutomatableParameterByID("High-pass Q")),
-      m_responseGraph(m_plugin, m_lowFreqParam, m_lowGainParam, m_lowQParam, m_midFreq1Param, m_midGain1Param, m_midQ1Param, m_midFreq2Param, m_midGain2Param, m_midQ2Param, m_hiFreqParam, m_hiGainParam, m_hiQParam)
+      m_responseGraph(m_plugin, m_lowFreqParam, m_lowGainParam, m_lowQParam, m_midFreq1Param, m_midGain1Param, m_midQ1Param, m_midFreq2Param, m_midGain2Param, m_midQ2Param, m_hiFreqParam, m_hiGainParam, m_hiQParam, m_editViewState.m_applicationState)
 {
     addAndMakeVisible(m_responseGraph);
 
     m_plugin->state.addListener(this);
 }
 
-void EqPluginComponent::resized() { m_responseGraph.setBounds(getLocalBounds().reduced(6)); }
+void EqPluginComponent::resized() { m_responseGraph.setBounds(getLocalBounds()); }
 
 void EqPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) { m_responseGraph.repaint(); }
 

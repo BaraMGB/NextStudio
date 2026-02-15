@@ -21,7 +21,7 @@ namespace te = tracktion_engine;
 class EqResponseGraphComponent : public juce::Component
 {
 public:
-    EqResponseGraphComponent(te::Plugin::Ptr plugin, te::AutomatableParameter::Ptr lowFreq, te::AutomatableParameter::Ptr lowGain, te::AutomatableParameter::Ptr lowQ, te::AutomatableParameter::Ptr midFreq1, te::AutomatableParameter::Ptr midGain1, te::AutomatableParameter::Ptr midQ1, te::AutomatableParameter::Ptr midFreq2, te::AutomatableParameter::Ptr midGain2, te::AutomatableParameter::Ptr midQ2, te::AutomatableParameter::Ptr highFreq, te::AutomatableParameter::Ptr highGain, te::AutomatableParameter::Ptr highQ);
+    EqResponseGraphComponent(te::Plugin::Ptr plugin, te::AutomatableParameter::Ptr lowFreq, te::AutomatableParameter::Ptr lowGain, te::AutomatableParameter::Ptr lowQ, te::AutomatableParameter::Ptr midFreq1, te::AutomatableParameter::Ptr midGain1, te::AutomatableParameter::Ptr midQ1, te::AutomatableParameter::Ptr midFreq2, te::AutomatableParameter::Ptr midGain2, te::AutomatableParameter::Ptr midQ2, te::AutomatableParameter::Ptr highFreq, te::AutomatableParameter::Ptr highGain, te::AutomatableParameter::Ptr highQ, ApplicationViewState &appState);
 
     void paint(juce::Graphics &) override;
     void mouseDown(const juce::MouseEvent &) override;
@@ -47,6 +47,7 @@ private:
     int getBandIndexAtPosition(juce::Point<float>) const;
 
     te::Plugin::Ptr m_plugin;
+    ApplicationViewState &m_appState;
     std::array<BandHandle, 4> m_bands;
     int m_dragBandIndex = -1;
     int m_hoverBandIndex = -1;

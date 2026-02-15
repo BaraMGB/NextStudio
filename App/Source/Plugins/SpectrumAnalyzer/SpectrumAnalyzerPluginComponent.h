@@ -38,7 +38,6 @@ private:
     std::array<float, SpectrumAnalyzerPlugin::numDisplayBins> m_spectrum{};
     std::vector<float> m_sampledY;
     int m_pointCount = 0;
-    juce::Label m_titleLabel;
     bool m_timerRunning = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectrumAnalyzerPluginComponent)

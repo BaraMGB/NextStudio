@@ -129,6 +129,13 @@ template <typename T> static T invert(T value) { return value * (-1); }
 
 namespace GUIHelpers
 {
+enum class HeaderPosition
+{
+    top,
+    left,
+    right
+};
+
 enum class CustomMouseCursor
 {
     ShiftLeft,
@@ -214,6 +221,7 @@ void drawLogoQuad(juce::Graphics &g, juce::Rectangle<int> area);
 void printTextAt(juce::Graphics &graphic, juce::Rectangle<float> textRect, const juce::String &text, const juce::Colour &textColour);
 void drawRectWithShadow(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, const juce::Colour &colour, const juce::Colour &shade);
 void drawCircleWithShadow(juce::Graphics &g, juce::Rectangle<float> area, const juce::Colour &colour, const juce::Colour &shade);
+void drawHeaderBox(juce::Graphics &g, juce::Rectangle<float> area, juce::Colour headerColour, juce::Colour strokeColour, juce::Colour backgroundColour, float headerWidth = 20.0f, HeaderPosition headerPosition = HeaderPosition::top, const juce::String &title = {});
 
 void drawLogo(juce::Graphics &g, juce::Colour colour, float scale);
 

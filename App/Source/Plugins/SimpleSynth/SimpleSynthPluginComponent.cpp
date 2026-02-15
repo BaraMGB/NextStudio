@@ -148,27 +148,13 @@ void SimpleSynthOscSection::updateUI()
 
 void SimpleSynthOscSection::paint(juce::Graphics &g)
 {
-    auto area = getLocalBounds().reduced(5);
-    auto cornerSize = 10.0f;
-
-    // Background
-    g.setColour(m_appState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
-
-    // Header Background
+    auto area = getLocalBounds().reduced(5).toFloat();
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
-    auto header = area.removeFromTop(20);
-    g.setColour(trackColour);
-    // Draw top corners rounded, bottom corners square
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
 
     // Label Colour
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
     m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
-
-    // Border
-    g.setColour(m_appState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, true, true, true);
 }
 
 void SimpleSynthOscSection::resized()
@@ -273,21 +259,12 @@ SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin &plugin, Ap
 
 void SimpleSynthFilterSection::paint(juce::Graphics &g)
 {
-    auto area = getLocalBounds().reduced(5);
-    auto cornerSize = 10.0f;
-    g.setColour(m_appState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
-
+    auto area = getLocalBounds().reduced(5).toFloat();
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
+
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
     m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
-
-    auto header = area.removeFromTop(20);
-    g.setColour(trackColour);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
-
-    g.setColour(m_appState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, true, true, true);
 }
 
 void SimpleSynthFilterSection::resized()
@@ -352,24 +329,15 @@ SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin &plugin, Applicat
 
 void SimpleSynthEnvSection::paint(juce::Graphics &g)
 {
-    auto area = getLocalBounds().reduced(5);
-    auto cornerSize = 10.0f;
-    g.setColour(m_appState.getBackgroundColour1());
-    GUIHelpers::drawRoundedRectWithSide(g, area.toFloat(), cornerSize, true, true, true, true);
-
+    auto area = getLocalBounds().reduced(5).toFloat();
     auto trackColour = m_plugin.getOwnerTrack()->getColour();
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
+
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
     m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
 
     // Update display colour to match track
     m_display.setColour(trackColour);
-
-    auto header = area.removeFromTop(20);
-    g.setColour(trackColour);
-    GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, true, false, false);
-
-    g.setColour(m_appState.getBorderColour());
-    GUIHelpers::strokeRoundedRectWithSide(g, getLocalBounds().reduced(5).toFloat(), cornerSize, true, true, true, true);
 }
 
 void SimpleSynthEnvSection::resized()

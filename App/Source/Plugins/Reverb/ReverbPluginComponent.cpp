@@ -20,7 +20,6 @@ namespace
 constexpr float minPanelWidth = 50.0f;
 constexpr float minPanelHeight = 40.0f;
 constexpr float panelPadding = 4.0f;
-constexpr float panelCorner = 8.0f;
 constexpr float headerHeight = 22.0f;
 constexpr float chamberInset = 8.0f;
 constexpr float chamberCorner = 6.0f;
@@ -49,13 +48,10 @@ public:
 
         auto panel = bounds.reduced(panelPadding);
         const auto trackColour = m_owner.getTrackColour();
-
-        g.setColour(juce::Colour(0xff0f1319));
-        g.fillRoundedRectangle(panel, panelCorner);
+        auto &appState = m_owner.m_editViewState.m_applicationState;
+        GUIHelpers::drawHeaderBox(g, panel, trackColour, appState.getBorderColour(), appState.getBackgroundColour1(), headerHeight, GUIHelpers::HeaderPosition::top);
 
         auto header = panel.removeFromTop(headerHeight);
-        g.setColour(trackColour.withSaturation(0.5f).withBrightness(0.46f));
-        g.fillRoundedRectangle(header, panelCorner);
 
         g.setColour(trackColour.contrasting(0.9f));
         g.setFont(juce::FontOptions(11.0f, juce::Font::bold));
@@ -131,9 +127,6 @@ public:
         }
 
         g.restoreState();
-
-        g.setColour(trackColour.withAlpha(0.45f));
-        g.drawRoundedRectangle(bounds.reduced(4.0f), 8.0f, strokeThickness);
     }
 
 private:
