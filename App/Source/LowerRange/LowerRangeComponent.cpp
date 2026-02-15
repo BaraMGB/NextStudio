@@ -72,7 +72,7 @@ LowerRangeComponent::~LowerRangeComponent() { m_evs.m_edit.state.removeListener(
 void LowerRangeComponent::paint(juce::Graphics &g)
 {
     auto rect = getLocalBounds();
-    g.setColour(juce::Colour(0xff181818));
+    g.setColour(m_evs.m_applicationState.getBackgroundColour1());
     g.fillRect(rect.removeFromBottom(getHeight() - (int)m_splitterHeight).toFloat());
 }
 
@@ -91,7 +91,7 @@ void LowerRangeComponent::resized()
 
     m_splitter.setBounds(splitter);
 
-    auto leftArea = area.removeFromLeft(90);
+    auto leftArea = area.removeFromLeft(100);
     auto presetArea = leftArea.removeFromTop(120);
     if (m_presetManager)
     {
@@ -132,7 +132,7 @@ void LowerRangeComponent::updatePresetManager(te::Track *track)
 
         m_presetAdapter = std::make_unique<TrackPresetAdapter>(*audioTrack, m_evs.m_applicationState);
 
-        m_presetManager = std::make_unique<PresetManagerComponent>(*m_presetAdapter, audioTrack->getColour());
+        m_presetManager = std::make_unique<PresetManagerComponent>(*m_presetAdapter, audioTrack->getColour(), "TrackPresets");
         addAndMakeVisible(*m_presetManager);
     }
     else
