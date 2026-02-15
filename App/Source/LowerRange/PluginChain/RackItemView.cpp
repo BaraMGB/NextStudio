@@ -25,6 +25,8 @@
 #include "Plugins/Phaser/NextPhaserPlugin.h"
 #include "Plugins/Phaser/PhaserPluginComponent.h"
 #include "Plugins/Reverb/ReverbPluginComponent.h"
+#include "Plugins/Saturation/NextSaturationPlugin.h"
+#include "Plugins/Saturation/SaturationPluginComponent.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.h"
@@ -96,6 +98,10 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     else if (m_plugin->getPluginType() == NextPhaserPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<PhaserPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == NextSaturationPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<SaturationPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == "4osc")
     {
