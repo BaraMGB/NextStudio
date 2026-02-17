@@ -66,18 +66,6 @@ ModifierSidebar::ItemComponent::ItemComponent(ModifierSidebar &o, te::Modifier::
     : owner(o),
       modifier(m)
 {
-    addAndMakeVisible(removeButton);
-    removeButton.setButtonText("x");
-    removeButton.onClick = [this]
-    {
-        if (modifier)
-            modifier->remove();
-    };
-
-    // Simple look for the remove button
-    removeButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    removeButton.setColour(juce::TextButton::textColourOffId, juce::Colours::grey);
-    removeButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
 }
 
 ModifierSidebar::ItemComponent::~ItemComponent() {}
@@ -94,7 +82,7 @@ void ModifierSidebar::ItemComponent::paint(juce::Graphics &g)
 
     rebuildConnectionRows();
 
-    auto textArea = getLocalBounds().reduced(5, 0).withLeft(25);
+    auto textArea = getLocalBounds().reduced(5, 0);
     auto nameArea = textArea.removeFromTop(22);
 
     g.setColour(owner.m_evs.m_applicationState.getTextColour());
@@ -145,10 +133,23 @@ void ModifierSidebar::ItemComponent::paint(juce::Graphics &g)
     g.drawRect(getLocalBounds(), 1);
 }
 
-void ModifierSidebar::ItemComponent::resized() { removeButton.setBounds(0, 0, 25, 22); }
+void ModifierSidebar::ItemComponent::resized() {}
 
 void ModifierSidebar::ItemComponent::mouseUp(const juce::MouseEvent &e)
 {
+    if (e.mods.isRightButtonDown())
+    {
+        juce::PopupMenu menu;
+        menu.addItem("Delete Modifier",
+                     [safeModifier = te::Modifier::Ptr(modifier)]
+                     {
+                         if (safeModifier != nullptr)
+                             safeModifier->remove();
+                     });
+        menu.show();
+        return;
+    }
+
     for (int i = 0; i < static_cast<int>(m_connectionRows.size()); ++i)
     {
         if (m_connectionRows[(size_t)i].trashBounds.contains(e.getPosition()))

@@ -85,7 +85,6 @@ private:
 
         te::Modifier::Ptr modifier;
         ModifierSidebar &owner;
-        juce::TextButton removeButton{"x"};
         struct ConnectionRow
         {
             juce::String name;
