@@ -23,8 +23,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/ApplicationViewState.h"
 #include "UI/SampleDisplay.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
 class SamplePreviewComponent

@@ -11,8 +11,8 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/Utilities.h"
 #include "UI/Controls/AutomatableParameter.h"
+#include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
 

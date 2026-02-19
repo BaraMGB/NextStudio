@@ -23,8 +23,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include "Utilities/EditViewState.h"
 #include "LowerRange/PluginChain/PluginPresetInterface.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;

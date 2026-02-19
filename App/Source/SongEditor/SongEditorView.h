@@ -22,13 +22,13 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SongEditor/AutomationLaneComponent.h"
-#include "Utilities/DragState.h"
-#include "Utilities/EditViewState.h"
-#include "Tools/tools/LassoSelectionTool.h"
-#include "UI/MenuBar.h"
 #include "SongEditor/RecordingClipComponent.h"
 #include "SongEditor/TimeLineComponent.h"
 #include "SongEditor/TrackLaneComponent.h"
+#include "Tools/tools/LassoSelectionTool.h"
+#include "UI/MenuBar.h"
+#include "Utilities/DragState.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 class SongEditorView

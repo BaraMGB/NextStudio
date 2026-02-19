@@ -23,9 +23,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "UI/PositionDisplayComponent.h"
 #include "Utilities/ApplicationViewState.h"
 #include "Utilities/EditViewState.h"
-#include "UI/PositionDisplayComponent.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;

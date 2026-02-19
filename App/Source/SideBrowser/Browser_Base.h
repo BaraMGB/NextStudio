@@ -20,10 +20,10 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "SideBrowser/SearchFieldComponent.h"
+#include "UI/PreviewComponent.h"
 #include "Utilities/ApplicationViewState.h"
 #include "Utilities/EditViewState.h"
-#include "UI/PreviewComponent.h"
-#include "SideBrowser/SearchFieldComponent.h"
 #include "Utilities/Utilities.h"
 
 class PathComponent

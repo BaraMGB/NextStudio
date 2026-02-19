@@ -21,11 +21,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 
+#include "LowerRange/PluginChain/PluginViewComponent.h"
+#include "LowerRange/PluginChain/PresetManagerComponent.h"
 #include "UI/Controls/AutomatableParameter.h"
 #include "UI/Controls/AutomatableSlider.h"
 #include "UI/Controls/NonAutomatableParameter.h"
-#include "LowerRange/PluginChain/PluginViewComponent.h"
-#include "LowerRange/PluginChain/PresetManagerComponent.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;

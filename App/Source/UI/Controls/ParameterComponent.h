@@ -10,10 +10,10 @@
 
 #pragma once
 
-#include <JuceHeader.h>
-#include "Utilities/Utilities.h"
-#include "Utilities/ApplicationViewState.h"
 #include "UI/Controls/AutomatableSlider.h"
+#include "Utilities/ApplicationViewState.h"
+#include "Utilities/Utilities.h"
+#include <JuceHeader.h>
 #include <tracktion_engine/tracktion_engine.h>
 
 namespace te = tracktion_engine;

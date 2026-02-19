@@ -20,9 +20,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "SideBrowser/InstrumentEffectChooser.h"
-#include "Utilities/ApplicationViewState.h"
-#include "UI/PluginMenu.h"
 #include "SideBrowser/SearchFieldComponent.h"
+#include "UI/PluginMenu.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
 InstrumentEffectListModel::InstrumentEffectListModel(tracktion::Engine &engine, bool isInstrumentList, ApplicationViewState &appState)
