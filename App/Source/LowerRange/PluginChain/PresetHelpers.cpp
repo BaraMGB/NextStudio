@@ -30,7 +30,7 @@ juce::String getPluginPresetFolder(te::Plugin &plugin)
         return "EQ";
     if (type == "delay")
         return "Delay";
-    if (type == "lowpass")
+    if (type == "lowpass" || type == "next_filter")
         return "Filter";
     if (type == "4osc")
         return "FourOSC";

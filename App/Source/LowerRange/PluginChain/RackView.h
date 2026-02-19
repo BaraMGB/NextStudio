@@ -24,6 +24,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "LowerRange/Mixer/MixerChannelStripComponent.h"
+#include "LowerRange/PluginChain/PresetManagerComponent.h"
+#include "LowerRange/PluginChain/TrackPresetAdapter.h"
 #include "UI/ModifierDetailPanel.h"
 #include "UI/ModifierSidebar.h"
 #include "Utilities/EditViewState.h"
@@ -33,13 +35,16 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 namespace te = tracktion_engine;
 
 class AddButton;
+class RackPluginListItem;
 
 class RackView
     : public juce::Component
     , private FlaggedAsyncUpdater
     , private te::ValueTreeAllEventListener
     , public juce::Button::Listener
+    , public juce::ScrollBar::Listener
     , public juce::DragAndDropTarget
+    , private juce::Timer
 {
 public:
     RackView(EditViewState &);
@@ -48,8 +53,10 @@ public:
     void paint(juce::Graphics &g) override;
     void paintOverChildren(juce::Graphics &g) override;
     void mouseDown(const juce::MouseEvent &e) override;
+    void mouseWheelMove(const juce::MouseEvent &, const juce::MouseWheelDetails &wheel) override;
     void resized() override;
     void buttonClicked(juce::Button *button) override;
+    void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
 
     void setTrack(te::Track::Ptr track);
     void clearTrack();
@@ -57,6 +64,7 @@ public:
 
     juce::OwnedArray<AddButton> &getAddButtons();
     juce::OwnedArray<RackItemView> &getPluginComponents();
+    void insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted);
 
     void ensureRackOrderConsistency();
     juce::StringArray getRackOrder() const;
@@ -89,6 +97,21 @@ private:
     void handleAsyncUpdate() override;
 
     void rebuildView();
+    void updateTrackPresetManager();
+    void rebuildPluginList();
+    void selectRackItemByIndex(int index);
+    void layoutSelectedRackItem();
+    void updateRackContentPosition();
+    void updateHorizontalScrollBar();
+    int getLastPluginLeftEdgeX() const;
+    int getMaxContentScrollX() const;
+    int getTargetScrollXForItem(const RackItemView &item) const;
+    void animateScrollToX(int targetX);
+    void addPluginAtCurrentPosition();
+    void reorderPluginListItem(te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter);
+    int getRackItemIndexForID(te::EditItemID id) const;
+    int getSelectedRackItemIndex() const;
+    void timerCallback() override;
 
     EditViewState &m_evs;
     te::Track::Ptr m_track;
@@ -98,20 +121,41 @@ private:
     juce::String m_trackID{""};
 
     class RackContentComponent;
+    class PluginListPanelComponent;
     std::unique_ptr<RackContentComponent> m_contentComp;
-    juce::Viewport m_viewport;
+    std::unique_ptr<PluginListPanelComponent> m_pluginPanel;
+    juce::Component m_pluginCanvas;
+    juce::ScrollBar m_horizontalScrollBar{false};
 
     ModifierSidebar m_modifierSidebar;
     ModifierDetailPanel m_modifierDetailPanel;
+    std::unique_ptr<TrackPresetAdapter> m_trackPresetAdapter;
+    std::unique_ptr<PresetManagerComponent> m_trackPresetManager;
     std::unique_ptr<MixerChannelStripComponent> m_channelStrip;
 
+    juce::TextButton m_addPluginButton{"Add plugin"};
+    juce::Component m_pluginListContent;
+    juce::Viewport m_pluginListViewport;
+    juce::OwnedArray<RackPluginListItem> m_pluginListButtons;
+    te::EditItemID m_selectedRackItemID;
+    bool m_scrollToSelectedAfterRebuild = false;
+    int m_contentScrollX = 0;
+    double m_targetContentScrollX = 0.0;
+    bool m_updatingHorizontalScrollBar = false;
+
     bool m_updatePlugins = false;
+    bool m_updateLayout = false;
     bool m_isOver = false;
     juce::Component::SafePointer<juce::Component> m_dragSource;
 
     te::EditItemID m_id;
     const int HEADERWIDTH = 20;
     static constexpr int CHANNEL_STRIP_WIDTH = 95;
+    static constexpr int HORIZONTAL_SCROLLBAR_HEIGHT = 20;
+    static constexpr int PLUGIN_LIST_WIDTH = 220;
+    static constexpr int MODIFIER_STACK_WIDTH = 170;
+    static constexpr int PLUGIN_LIST_ROW_HEIGHT = 24;
+    static constexpr int CONTROL_ROW_HEIGHT = 28;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RackView)
 };
 

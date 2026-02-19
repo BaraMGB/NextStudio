@@ -55,6 +55,12 @@ void AutomatableParameterComponent::setKnobColour(juce::Colour colour)
     repaint();
 }
 
+void AutomatableParameterComponent::setKnobSkewFromMidPoint(double midPoint)
+{
+    if (m_knob != nullptr)
+        m_knob->setSkewFactorFromMidPoint(midPoint);
+}
+
 void AutomatableParameterComponent::updateLabel()
 {
     auto customDisplay = getCustomDisplayString();
