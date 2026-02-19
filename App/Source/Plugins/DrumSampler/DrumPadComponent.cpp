@@ -1,6 +1,6 @@
 #include "Plugins/DrumSampler/DrumPadComponent.h"
-#include "Utilities/ApplicationViewState.h"
 #include "SideBrowser/Browser_Base.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace
@@ -402,10 +402,7 @@ int DrumPadGridComponent::getSoundIndexForPad(int padIndex)
 // Drag and Drop
 //==============================================================================
 
-bool DrumPadGridComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails)
-{
-    return dragSourceDetails.description == "SampleBrowser" || dragSourceDetails.description == "FileBrowser";
-}
+bool DrumPadGridComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails) { return dragSourceDetails.description == "SampleBrowser" || dragSourceDetails.description == "FileBrowser"; }
 
 void DrumPadGridComponent::itemDragEnter(const SourceDetails &dragSourceDetails)
 {

@@ -21,8 +21,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/EditViewState.h"
 #include "UI/MenuBar.h"
+#include "Utilities/EditViewState.h"
 
 class LowerRangeTabBar
     : public MenuBar

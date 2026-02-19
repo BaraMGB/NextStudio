@@ -2,11 +2,11 @@
 
 #include <JuceHeader.h>
 
-#include "Plugins/DrumSampler/DrumPadComponent.h"
-#include "Utilities/EditViewState.h"
 #include "LowerRange/PluginChain/PluginPresetInterface.h"
 #include "LowerRange/PluginChain/PluginViewComponent.h"
+#include "Plugins/DrumSampler/DrumPadComponent.h"
 #include "Plugins/DrumSampler/SoundEditorPanel.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;

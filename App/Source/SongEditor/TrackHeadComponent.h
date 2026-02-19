@@ -23,12 +23,12 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "UI/Controls/AutomatableParameter.h"
-#include "UI/Controls/AutomatableSlider.h"
-#include "Utilities/EditViewState.h"
-#include "UI/LevelMeterComponent.h"
 #include "LowerRange/LowerRangeComponent.h"
 #include "LowerRange/PluginChain/RackView.h"
+#include "UI/Controls/AutomatableParameter.h"
+#include "UI/Controls/AutomatableSlider.h"
+#include "UI/LevelMeterComponent.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;

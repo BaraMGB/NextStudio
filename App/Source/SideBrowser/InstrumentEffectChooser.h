@@ -21,10 +21,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/ApplicationViewState.h"
-#include "Utilities/EditViewState.h"
 #include "SideBrowser/PluginBrowser.h"
 #include "SideBrowser/SearchFieldComponent.h"
+#include "Utilities/ApplicationViewState.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 class InstrumentEffectListModel

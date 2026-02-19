@@ -10,12 +10,12 @@
 
 #pragma once
 
-#include <JuceHeader.h>
-#include <tracktion_engine/tracktion_engine.h>
-#include "Utilities/EditViewState.h"
-#include "UI/Controls/ParameterComponent.h"
 #include "UI/Controls/AutomatableComboBox.h"
 #include "UI/Controls/AutomatableParameter.h"
+#include "UI/Controls/ParameterComponent.h"
+#include "Utilities/EditViewState.h"
+#include <JuceHeader.h>
+#include <tracktion_engine/tracktion_engine.h>
 
 namespace te = tracktion_engine;
 

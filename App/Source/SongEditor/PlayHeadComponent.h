@@ -23,8 +23,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/EditViewState.h"
 #include "SongEditor/TimeLineComponent.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;

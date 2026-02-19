@@ -10,12 +10,12 @@
 
 #pragma once
 
-#include <JuceHeader.h>
-#include <tracktion_engine/tracktion_engine.h>
-#include "Utilities/EditViewState.h"
+#include "LowerRange/PluginChain/ModifierViewComponent.h"
 #include "LowerRange/PluginChain/PluginViewComponent.h"
 #include "LowerRange/PluginChain/PresetManagerComponent.h"
-#include "LowerRange/PluginChain/ModifierViewComponent.h"
+#include "Utilities/EditViewState.h"
+#include <JuceHeader.h>
+#include <tracktion_engine/tracktion_engine.h>
 
 namespace te = tracktion_engine;
 

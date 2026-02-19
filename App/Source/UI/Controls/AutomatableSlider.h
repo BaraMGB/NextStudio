@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "Utilities/EditViewState.h"
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;

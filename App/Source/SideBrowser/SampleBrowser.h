@@ -20,11 +20,11 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/ApplicationViewState.h"
 #include "SideBrowser/Browser_Base.h"
-#include "Utilities/EditViewState.h"
-#include "UI/PreviewComponent.h"
 #include "SideBrowser/SearchFieldComponent.h"
+#include "UI/PreviewComponent.h"
+#include "Utilities/ApplicationViewState.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
