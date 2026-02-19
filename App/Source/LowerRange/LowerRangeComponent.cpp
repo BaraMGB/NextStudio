@@ -25,7 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 //------------------------------------------------------------------------------
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     : m_evs(evs),
-      m_rackView(evs),
+      m_pluginChainView(evs),
       m_pianoRollEditor(evs),
       m_mixer(evs),
       m_tabBar(evs),
@@ -35,7 +35,7 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     addAndMakeVisible(m_tabBar);
     addAndMakeVisible(m_splitter);
     addChildComponent(m_pianoRollEditor);
-    addAndMakeVisible(m_rackView);
+    addAndMakeVisible(m_pluginChainView);
     addAndMakeVisible(m_mixer);
     m_evs.m_edit.state.addListener(this);
 
@@ -94,7 +94,7 @@ void LowerRangeComponent::resized()
     auto leftArea = area.removeFromLeft(100);
     m_tabBar.setBounds(leftArea.reduced(10, 0));
 
-    m_rackView.setBounds(area);
+    m_pluginChainView.setBounds(area);
     m_mixer.setBounds(area);
 
     if (m_pianoRollEditor.isVisible())
@@ -107,7 +107,7 @@ void LowerRangeComponent::updateView()
 {
     auto currentView = m_evs.getLowerRangeView();
 
-    m_rackView.setVisible(currentView == LowerRangeView::pluginRack);
+    m_pluginChainView.setVisible(currentView == LowerRangeView::pluginRack);
     m_pianoRollEditor.setVisible(currentView == LowerRangeView::midiEditor);
     m_mixer.setVisible(currentView == LowerRangeView::mixer);
 
@@ -139,7 +139,7 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
                     }
                     else
                     {
-                        m_rackView.setTrack(track);
+                        m_pluginChainView.setTrack(track);
                     }
                 }
             }
@@ -165,8 +165,8 @@ void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &v, juce::ValueTre
         auto track = te::findTrackForState(m_evs.m_edit, v);
         if (track != nullptr)
         {
-            m_rackView.setTrack(track);
-            m_rackView.setVisible(true);
+            m_pluginChainView.setTrack(track);
+            m_pluginChainView.setVisible(true);
         }
     }
     resized();
@@ -175,9 +175,9 @@ void LowerRangeComponent::valueTreeChildAdded(juce::ValueTree &v, juce::ValueTre
 
 void LowerRangeComponent::valueTreeChildRemoved(juce::ValueTree &v, juce::ValueTree &i, int)
 {
-    if (i.getProperty(te::IDs::id).toString() == m_rackView.getCurrentTrackID())
+    if (i.getProperty(te::IDs::id).toString() == m_pluginChainView.getCurrentTrackID())
     {
-        m_rackView.clearTrack();
+        m_pluginChainView.clearTrack();
     }
 
     resized();

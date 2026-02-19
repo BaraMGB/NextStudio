@@ -19,17 +19,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 ==============================================================================
 */
 
-#include "LowerRange/PluginChain/RackView.h"
+#include "LowerRange/PluginChain/PluginChainView.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
 #include "UI/PluginMenu.h"
 #include "Utilities/Utilities.h"
 
 //==============================================================================
-class RackView::RackContentComponent : public juce::Component
+class PluginChainView::RackContentComponent : public juce::Component
 {
 public:
-    RackContentComponent(RackView &v)
+    RackContentComponent(PluginChainView &v)
         : m_owner(v)
     {
     }
@@ -95,15 +95,15 @@ public:
         setSize(x, height);
     }
 
-    juce::OwnedArray<RackItemView> m_rackItems;
+    juce::OwnedArray<PluginChainItemView> m_rackItems;
     juce::OwnedArray<AddButton> m_addButtons;
-    RackView &m_owner;
+    PluginChainView &m_owner;
 };
 
-class RackView::PluginListPanelComponent : public juce::Component
+class PluginChainView::PluginListPanelComponent : public juce::Component
 {
 public:
-    explicit PluginListPanelComponent(RackView &owner)
+    explicit PluginListPanelComponent(PluginChainView &owner)
         : m_owner(owner)
     {
     }
@@ -115,7 +115,7 @@ public:
     }
 
 private:
-    RackView &m_owner;
+    PluginChainView &m_owner;
 };
 
 class RackPluginListItem
@@ -317,7 +317,7 @@ private:
 };
 
 //==============================================================================
-RackView::RackView(EditViewState &evs)
+PluginChainView::PluginChainView(EditViewState &evs)
     : m_evs(evs),
       m_modifierSidebar(evs),
       m_modifierDetailPanel(evs)
@@ -355,7 +355,7 @@ RackView::RackView(EditViewState &evs)
     };
 }
 
-RackView::~RackView()
+PluginChainView::~PluginChainView()
 {
     for (auto &b : m_contentComp->m_addButtons)
     {
@@ -367,7 +367,7 @@ RackView::~RackView()
     m_pluginListViewport.setViewedComponent(nullptr, false);
 }
 
-void RackView::attachTrackListeners()
+void PluginChainView::attachTrackListeners()
 {
     detachTrackListeners();
 
@@ -382,7 +382,7 @@ void RackView::attachTrackListeners()
         m_observedPluginListState.addListener(this);
 }
 
-void RackView::detachTrackListeners()
+void PluginChainView::detachTrackListeners()
 {
     if (m_observedTrackState.isValid())
         m_observedTrackState.removeListener(this);
@@ -394,7 +394,7 @@ void RackView::detachTrackListeners()
     m_observedPluginListState = {};
 }
 
-void RackView::paint(juce::Graphics &g)
+void PluginChainView::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(1);
     auto outerArea = area.toFloat();
@@ -441,7 +441,7 @@ void RackView::paint(juce::Graphics &g)
     g.drawRoundedRectangle(viewportBounds.expanded(1.0f, 1.0f), 6.0f, 1.0f);
 }
 
-void RackView::paintOverChildren(juce::Graphics &g)
+void PluginChainView::paintOverChildren(juce::Graphics &g)
 {
     auto *dragC = juce::DragAndDropContainer::findParentDragContainerFor(this);
     if (!dragC || !dragC->isDragAndDropActive())
@@ -498,7 +498,7 @@ void RackView::paintOverChildren(juce::Graphics &g)
                 lineColour = juce::Colours::grey;
                 g.setColour(juce::Colours::grey.withAlpha(0.4f));
 
-                // Need bounds relative to THIS (RackView)
+                // Need bounds relative to THIS (PluginChainView)
                 auto bounds = getLocalPoint(slider, juce::Point<int>(0, 0));
                 auto rect = juce::Rectangle<int>(bounds.getX(), bounds.getY(), slider->getWidth(), slider->getHeight());
 
@@ -530,12 +530,12 @@ void RackView::paintOverChildren(juce::Graphics &g)
     g.drawLine(sourceBounds.getX(), sourceBounds.getY(), mousePos.getX(), mousePos.getY(), 2.0f);
 }
 
-void RackView::mouseDown(const juce::MouseEvent &)
+void PluginChainView::mouseDown(const juce::MouseEvent &)
 {
     // editViewState.selectionManager.selectOnly (track.get());
 }
 
-void RackView::mouseWheelMove(const juce::MouseEvent &, const juce::MouseWheelDetails &wheel)
+void PluginChainView::mouseWheelMove(const juce::MouseEvent &, const juce::MouseWheelDetails &wheel)
 {
     float delta = 0.0f;
 
@@ -554,7 +554,7 @@ void RackView::mouseWheelMove(const juce::MouseEvent &, const juce::MouseWheelDe
     updateHorizontalScrollBar();
 }
 
-void RackView::resized()
+void PluginChainView::resized()
 {
     auto area = getLocalBounds();
     auto nameLabelRect = juce::Rectangle<int>(area.getX(), area.getHeight() - HEADERWIDTH, area.getHeight(), HEADERWIDTH);
@@ -622,18 +622,18 @@ void RackView::resized()
     updateHorizontalScrollBar();
 }
 
-juce::StringArray RackView::getRackOrder() const
+juce::StringArray PluginChainView::getRackOrder() const
 {
-    auto state = m_evs.getTrackRackViewState(m_track->itemID);
+    auto state = m_evs.getTrackPluginChainViewState(m_track->itemID);
     juce::String orderString = state.getProperty("rackItemOrder").toString();
     juce::StringArray order;
     order.addTokens(orderString, ",", "");
     return order;
 }
 
-void RackView::saveRackOrder(const juce::StringArray &order)
+void PluginChainView::saveRackOrder(const juce::StringArray &order)
 {
-    auto state = m_evs.getTrackRackViewState(m_track->itemID);
+    auto state = m_evs.getTrackPluginChainViewState(m_track->itemID);
     state.setProperty("rackItemOrder", order.joinIntoString(","), nullptr);
 }
 
@@ -671,7 +671,7 @@ static bool isPluginHidden(te::Track &t, te::Plugin *p)
     return false;
 }
 
-int RackView::getPluginIndexForVisualIndex(int visualIndex) const
+int PluginChainView::getPluginIndexForVisualIndex(int visualIndex) const
 {
     auto order = getRackOrder();
     int targetPluginIndex = 0;
@@ -683,7 +683,7 @@ int RackView::getPluginIndexForVisualIndex(int visualIndex) const
     return targetPluginIndex;
 }
 
-void RackView::ensureRackOrderConsistency()
+void PluginChainView::ensureRackOrderConsistency()
 {
     auto currentOrder = getRackOrder();
     juce::StringArray newOrder;
@@ -729,7 +729,7 @@ void RackView::ensureRackOrderConsistency()
         saveRackOrder(newOrder);
 }
 
-void RackView::moveItem(RackItemView *item, int targetIndex)
+void PluginChainView::moveItem(PluginChainItemView *item, int targetIndex)
 {
     te::EditItemID id;
     if (item->getPlugin())
@@ -761,7 +761,7 @@ void RackView::moveItem(RackItemView *item, int targetIndex)
     }
 }
 
-void RackView::buttonClicked(juce::Button *button)
+void PluginChainView::buttonClicked(juce::Button *button)
 {
     for (auto &b : m_contentComp->m_addButtons)
     {
@@ -787,7 +787,7 @@ void RackView::buttonClicked(juce::Button *button)
     }
 }
 
-void RackView::setTrack(te::Track::Ptr track)
+void PluginChainView::setTrack(te::Track::Ptr track)
 {
     if (m_track == track && m_track != nullptr)
     {
@@ -822,7 +822,7 @@ void RackView::setTrack(te::Track::Ptr track)
     rebuildView();
 }
 
-void RackView::clearTrack()
+void PluginChainView::clearTrack()
 {
     detachTrackListeners();
 
@@ -842,7 +842,7 @@ void RackView::clearTrack()
     rebuildView();
 }
 
-void RackView::updateTrackPresetManager()
+void PluginChainView::updateTrackPresetManager()
 {
     auto *audioTrack = dynamic_cast<te::AudioTrack *>(m_track.get());
     if (audioTrack == nullptr)
@@ -875,13 +875,13 @@ void RackView::updateTrackPresetManager()
     addAndMakeVisible(*m_trackPresetManager);
 }
 
-juce::String RackView::getCurrentTrackID() { return m_trackID; }
+juce::String PluginChainView::getCurrentTrackID() { return m_trackID; }
 
-juce::OwnedArray<AddButton> &RackView::getAddButtons() { return m_contentComp->m_addButtons; }
+juce::OwnedArray<AddButton> &PluginChainView::getAddButtons() { return m_contentComp->m_addButtons; }
 
-juce::OwnedArray<RackItemView> &RackView::getPluginComponents() { return m_contentComp->m_rackItems; }
+juce::OwnedArray<PluginChainItemView> &PluginChainView::getPluginComponents() { return m_contentComp->m_rackItems; }
 
-void RackView::insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted)
+void PluginChainView::insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted)
 {
     if (m_track == nullptr || plugin == nullptr)
         return;
@@ -903,25 +903,25 @@ void RackView::insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex
     }
 }
 
-void RackView::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
+void PluginChainView::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
 {
     if (c.hasType(te::IDs::PLUGIN))
         markAndUpdate(m_updatePlugins);
 }
 
-void RackView::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c, int)
+void PluginChainView::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &c, int)
 {
     if (c.hasType(te::IDs::PLUGIN))
         markAndUpdate(m_updatePlugins);
 }
 
-void RackView::valueTreeChildOrderChanged(juce::ValueTree &c, int, int)
+void PluginChainView::valueTreeChildOrderChanged(juce::ValueTree &c, int, int)
 {
     if (c.hasType(te::IDs::PLUGIN))
         markAndUpdate(m_updatePlugins);
 }
 
-void RackView::handleAsyncUpdate()
+void PluginChainView::handleAsyncUpdate()
 {
     if (compareAndReset(m_updatePlugins))
         rebuildView();
@@ -933,7 +933,7 @@ void RackView::handleAsyncUpdate()
     }
 }
 
-void RackView::rebuildView()
+void PluginChainView::rebuildView()
 {
     m_contentComp->m_rackItems.clear();
 
@@ -948,7 +948,7 @@ void RackView::rebuildView()
 
             if (auto p = getPluginFromList(m_track->pluginList, id))
             {
-                auto view = std::make_unique<RackItemView>(m_evs, m_track, p);
+                auto view = std::make_unique<PluginChainItemView>(m_evs, m_track, p);
                 m_contentComp->addAndMakeVisible(view.get());
                 m_contentComp->m_rackItems.add(std::move(view));
             }
@@ -976,7 +976,7 @@ void RackView::rebuildView()
         {
             selectRackItemByIndex(idx);
 
-            auto safeRack = juce::Component::SafePointer<RackView>(this);
+            auto safeRack = juce::Component::SafePointer<PluginChainView>(this);
             juce::MessageManager::callAsync(
                 [safeRack]
                 {
@@ -990,7 +990,7 @@ void RackView::rebuildView()
     }
 }
 
-void RackView::rebuildPluginList()
+void PluginChainView::rebuildPluginList()
 {
     m_pluginListButtons.clear();
 
@@ -1015,7 +1015,7 @@ void RackView::rebuildPluginList()
         button->setSelected(id == m_selectedRackItemID);
         button->onClick = [this, i] { selectRackItemByIndex(i); };
         button->onReorder = [this](te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter) { reorderPluginListItem(sourceID, targetID, placeAfter); };
-        auto safeRack = juce::Component::SafePointer<RackView>(this);
+        auto safeRack = juce::Component::SafePointer<PluginChainView>(this);
 
         button->onDelete = [safeRack, plugin]
         {
@@ -1055,7 +1055,7 @@ void RackView::rebuildPluginList()
     }
 }
 
-int RackView::getRackItemIndexForID(te::EditItemID id) const
+int PluginChainView::getRackItemIndexForID(te::EditItemID id) const
 {
     if (!id.isValid())
         return -1;
@@ -1070,7 +1070,7 @@ int RackView::getRackItemIndexForID(te::EditItemID id) const
     return -1;
 }
 
-void RackView::reorderPluginListItem(te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter)
+void PluginChainView::reorderPluginListItem(te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter)
 {
     const int sourceIndex = getRackItemIndexForID(sourceID);
     const int targetIndex = getRackItemIndexForID(targetID);
@@ -1095,7 +1095,7 @@ void RackView::reorderPluginListItem(te::EditItemID sourceID, te::EditItemID tar
     }
 }
 
-void RackView::selectRackItemByIndex(int index)
+void PluginChainView::selectRackItemByIndex(int index)
 {
     if (index < 0 || index >= m_contentComp->m_rackItems.size())
         return;
@@ -1114,7 +1114,7 @@ void RackView::selectRackItemByIndex(int index)
     }
 }
 
-int RackView::getSelectedRackItemIndex() const
+int PluginChainView::getSelectedRackItemIndex() const
 {
     if (!m_selectedRackItemID.isValid())
         return -1;
@@ -1130,7 +1130,7 @@ int RackView::getSelectedRackItemIndex() const
     return -1;
 }
 
-void RackView::layoutSelectedRackItem()
+void PluginChainView::layoutSelectedRackItem()
 {
     for (auto *item : m_contentComp->m_rackItems)
         item->setVisible(true);
@@ -1138,9 +1138,9 @@ void RackView::layoutSelectedRackItem()
     m_contentComp->refreshButtonsAndLayout();
 }
 
-void RackView::updateRackContentPosition() { m_contentComp->setTopLeftPosition(-m_contentScrollX, 0); }
+void PluginChainView::updateRackContentPosition() { m_contentComp->setTopLeftPosition(-m_contentScrollX, 0); }
 
-int RackView::getLastPluginLeftEdgeX() const
+int PluginChainView::getLastPluginLeftEdgeX() const
 {
     int leftEdge = 0;
     for (auto *item : m_contentComp->m_rackItems)
@@ -1149,9 +1149,9 @@ int RackView::getLastPluginLeftEdgeX() const
     return leftEdge;
 }
 
-int RackView::getMaxContentScrollX() const { return juce::jmax(0, getLastPluginLeftEdgeX()); }
+int PluginChainView::getMaxContentScrollX() const { return juce::jmax(0, getLastPluginLeftEdgeX()); }
 
-void RackView::updateHorizontalScrollBar()
+void PluginChainView::updateHorizontalScrollBar()
 {
     const auto visibleWidth = juce::jmax(0, m_pluginCanvas.getWidth());
     const auto totalWidth = juce::jmax(visibleWidth, getMaxContentScrollX() + visibleWidth);
@@ -1162,20 +1162,20 @@ void RackView::updateHorizontalScrollBar()
     m_updatingHorizontalScrollBar = false;
 }
 
-int RackView::getTargetScrollXForItem(const RackItemView &item) const
+int PluginChainView::getTargetScrollXForItem(const PluginChainItemView &item) const
 {
     const int maxX = getMaxContentScrollX();
     const int targetX = item.getX();
     return juce::jlimit(0, maxX, targetX);
 }
 
-void RackView::animateScrollToX(int targetX)
+void PluginChainView::animateScrollToX(int targetX)
 {
     m_targetContentScrollX = (double)juce::jlimit(0, getMaxContentScrollX(), targetX);
     startTimerHz(60);
 }
 
-void RackView::timerCallback()
+void PluginChainView::timerCallback()
 {
     const auto currentX = m_contentScrollX;
     const auto diff = m_targetContentScrollX - (double)currentX;
@@ -1195,7 +1195,7 @@ void RackView::timerCallback()
     updateHorizontalScrollBar();
 }
 
-void RackView::scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart)
+void PluginChainView::scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart)
 {
     if (scrollBarThatHasMoved != &m_horizontalScrollBar || m_updatingHorizontalScrollBar)
         return;
@@ -1207,7 +1207,7 @@ void RackView::scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double new
     updateHorizontalScrollBar();
 }
 
-void RackView::addPluginAtCurrentPosition()
+void PluginChainView::addPluginAtCurrentPosition()
 {
     if (m_track == nullptr)
         return;
@@ -1223,7 +1223,7 @@ void RackView::addPluginAtCurrentPosition()
     }
 }
 
-bool RackView::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
+bool PluginChainView::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Instrument or Effect" || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
     {
@@ -1232,7 +1232,7 @@ bool RackView::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDet
     return false;
 }
 
-void RackView::itemDragMove(const SourceDetails &dragSourceDetails)
+void PluginChainView::itemDragMove(const SourceDetails &dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginComp" || dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Instrument or Effect" || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
 
@@ -1247,7 +1247,7 @@ void RackView::itemDragMove(const SourceDetails &dragSourceDetails)
     repaint();
 }
 
-void RackView::itemDragExit(const SourceDetails &details)
+void PluginChainView::itemDragExit(const SourceDetails &details)
 {
     m_isOver = false;
 
@@ -1257,7 +1257,7 @@ void RackView::itemDragExit(const SourceDetails &details)
     repaint();
 }
 
-void RackView::itemDropped(const juce::DragAndDropTarget::SourceDetails &details)
+void PluginChainView::itemDropped(const juce::DragAndDropTarget::SourceDetails &details)
 {
     m_dragSource = nullptr;
 
@@ -1296,8 +1296,8 @@ void AddButton::itemDropped(const SourceDetails &dragSourceDetails)
         {
             if (auto lbm = dynamic_cast<PluginListbox *>(listbox->getModel()))
             {
-                // Find RackView via hierarchy search because AddButton is now inside RackContentComponent
-                auto pluginRackComp = findParentComponentOfClass<RackView>();
+                // Find PluginChainView via hierarchy search because AddButton is now inside RackContentComponent
+                auto pluginRackComp = findParentComponentOfClass<PluginChainView>();
                 if (pluginRackComp)
                 {
                     // Calculate the visual index where the user dropped the item
@@ -1315,10 +1315,10 @@ void AddButton::itemDropped(const SourceDetails &dragSourceDetails)
 
     if (dragSourceDetails.description == "PluginComp" || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
     {
-        auto pluginRackComp = findParentComponentOfClass<RackView>();
+        auto pluginRackComp = findParentComponentOfClass<PluginChainView>();
         if (pluginRackComp)
         {
-            auto *view = dynamic_cast<RackItemView *>(dragSourceDetails.sourceComponent.get());
+            auto *view = dynamic_cast<PluginChainItemView *>(dragSourceDetails.sourceComponent.get());
             if (view)
             {
                 int targetIndex = pluginRackComp->getAddButtons().indexOf(this);

@@ -119,7 +119,7 @@ DECLARE_ID(snapToGrid)
 DECLARE_ID(showLowerRange)
 DECLARE_ID(editNoteOutsideOfClipRange)
 DECLARE_ID(pluginPresetManagerUIStates)
-DECLARE_ID(trackRackViewState)
+DECLARE_ID(trackPluginChainViewState)
 DECLARE_ID(selectedModifier)
 
 #undef DECLARE_ID
@@ -145,7 +145,7 @@ public:
     LowerRangeView getLowerRangeView() { return static_cast<LowerRangeView>((int)m_lowerRangeView); }
 
     juce::ValueTree getPresetManagerUIStateForPlugin(const te::Plugin &plugin);
-    juce::ValueTree getTrackRackViewState(te::EditItemID trackID);
+    juce::ValueTree getTrackPluginChainViewState(te::EditItemID trackID);
 
     void setTrackSelectedModifier(te::EditItemID trackID, te::EditItemID modifierID);
     te::EditItemID getTrackSelectedModifier(te::EditItemID trackID);
@@ -265,7 +265,7 @@ public:
     juce::ValueTree m_state;
     juce::ValueTree m_viewDataTree;
     juce::ValueTree m_pluginPresetManagerUIStates;
-    juce::ValueTree m_trackRackViewState;
+    juce::ValueTree m_trackPluginChainViewState;
     bool m_isSavingLocked{false}, m_needAutoSave{false};
     ApplicationViewState &m_applicationState;
 

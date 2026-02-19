@@ -32,7 +32,7 @@ EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationVi
     m_state = m_edit.state.getOrCreateChildWithName(IDs::EDITVIEWSTATE, nullptr);
     m_viewDataTree = m_edit.state.getOrCreateChildWithName(IDs::viewData, nullptr);
     m_pluginPresetManagerUIStates = m_state.getOrCreateChildWithName(IDs::pluginPresetManagerUIStates, nullptr);
-    m_trackRackViewState = m_state.getOrCreateChildWithName(IDs::trackRackViewState, nullptr);
+    m_trackPluginChainViewState = m_state.getOrCreateChildWithName(IDs::trackPluginChainViewState, nullptr);
 
     auto um = &m_edit.getUndoManager();
 
@@ -91,22 +91,22 @@ juce::ValueTree EditViewState::getPresetManagerUIStateForPlugin(const te::Plugin
     return m_pluginPresetManagerUIStates.getOrCreateChildWithName(id, nullptr);
 }
 
-juce::ValueTree EditViewState::getTrackRackViewState(te::EditItemID trackID)
+juce::ValueTree EditViewState::getTrackPluginChainViewState(te::EditItemID trackID)
 {
     auto idStr = "t" + trackID.toString().replaceCharacters("-", "_");
     juce::Identifier id(idStr);
-    return m_trackRackViewState.getOrCreateChildWithName(id, nullptr);
+    return m_trackPluginChainViewState.getOrCreateChildWithName(id, nullptr);
 }
 
 void EditViewState::setTrackSelectedModifier(te::EditItemID trackID, te::EditItemID modifierID)
 {
-    auto state = getTrackRackViewState(trackID);
+    auto state = getTrackPluginChainViewState(trackID);
     state.setProperty(IDs::selectedModifier, modifierID.toString(), &m_edit.getUndoManager());
 }
 
 te::EditItemID EditViewState::getTrackSelectedModifier(te::EditItemID trackID)
 {
-    auto state = getTrackRackViewState(trackID);
+    auto state = getTrackPluginChainViewState(trackID);
     return te::EditItemID::fromVar(state.getProperty(IDs::selectedModifier));
 }
 

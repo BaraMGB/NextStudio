@@ -18,9 +18,9 @@
 // but ideally, usage should be replaced by including specific headers.
 
 #include "LowerRange/PluginChain/ModifierViewComponent.h"
+#include "LowerRange/PluginChain/PluginChainItemView.h"
 #include "LowerRange/PluginChain/PluginViewComponent.h"
 #include "LowerRange/PluginChain/PresetManagerComponent.h"
-#include "LowerRange/PluginChain/RackItemView.h"
 #include "Plugins/Chorus/ChorusPluginComponent.h"
 #include "Plugins/Compressor/CompressorPluginComponent.h"
 #include "Plugins/Delay/DelayPluginComponent.h"

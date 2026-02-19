@@ -9,7 +9,7 @@
 */
 
 #include "LowerRange/PluginChain/ModifierViewComponent.h"
-#include "LowerRange/PluginChain/RackView.h"
+#include "LowerRange/PluginChain/PluginChainView.h"
 #include "Utilities/Utilities.h"
 
 //==============================================================================
@@ -41,7 +41,7 @@ void ModifierViewComponent::DragHandle::mouseDrag(const juce::MouseEvent &e)
             dragContainer->startDragging(te::AutomationDragDropTarget::automatableDragString, this, juce::Image(juce::Image::ARGB, 1, 1, true), false);
         }
 
-        if (auto *rackView = findParentComponentOfClass<RackView>())
+        if (auto *rackView = findParentComponentOfClass<PluginChainView>())
             rackView->repaint();
     }
 }
@@ -51,14 +51,14 @@ void ModifierViewComponent::DragHandle::mouseUp(const juce::MouseEvent &e)
     GUIHelpers::log("mouseUP");
     getParentComponent()->repaint();
 
-    if (auto *rackView = findParentComponentOfClass<RackView>())
+    if (auto *rackView = findParentComponentOfClass<PluginChainView>())
     {
-        juce::Component::SafePointer<RackView> safeRackView(rackView);
+        juce::Component::SafePointer<PluginChainView> safePluginChainView(rackView);
         juce::MessageManager::callAsync(
-            [safeRackView]
+            [safePluginChainView]
             {
-                if (safeRackView != nullptr)
-                    safeRackView->clearDragSource();
+                if (safePluginChainView != nullptr)
+                    safePluginChainView->clearDragSource();
             });
     }
 }
@@ -72,14 +72,14 @@ void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget(co
             GUIHelpers::log("Can not connect modifier to its own parameters");
             getParentComponent()->repaint();
 
-            if (auto *rackView = findParentComponentOfClass<RackView>())
+            if (auto *rackView = findParentComponentOfClass<PluginChainView>())
             {
-                juce::Component::SafePointer<RackView> safeRackView(rackView);
+                juce::Component::SafePointer<PluginChainView> safePluginChainView(rackView);
                 juce::MessageManager::callAsync(
-                    [safeRackView]
+                    [safePluginChainView]
                     {
-                        if (safeRackView != nullptr)
-                            safeRackView->clearDragSource();
+                        if (safePluginChainView != nullptr)
+                            safePluginChainView->clearDragSource();
                     });
             }
             return;
@@ -88,14 +88,14 @@ void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget(co
         // if the droped modifier not belogs to the track, don't insert.
         if (param->getTrack() != te::getTrackContainingModifier(m_modifier->edit, m_modifier))
         {
-            if (auto *rackView = findParentComponentOfClass<RackView>())
+            if (auto *rackView = findParentComponentOfClass<PluginChainView>())
             {
-                juce::Component::SafePointer<RackView> safeRackView(rackView);
+                juce::Component::SafePointer<PluginChainView> safePluginChainView(rackView);
                 juce::MessageManager::callAsync(
-                    [safeRackView]
+                    [safePluginChainView]
                     {
-                        if (safeRackView != nullptr)
-                            safeRackView->clearDragSource();
+                        if (safePluginChainView != nullptr)
+                            safePluginChainView->clearDragSource();
                     });
             }
             return;
@@ -111,15 +111,15 @@ void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget(co
             parentComponent->m_table.updateContent();
         }
 
-        // update RackView painting for removing connection line
-        if (auto *rackView = findParentComponentOfClass<RackView>())
+        // update PluginChainView painting for removing connection line
+        if (auto *rackView = findParentComponentOfClass<PluginChainView>())
         {
-            juce::Component::SafePointer<RackView> safeRackView(rackView);
+            juce::Component::SafePointer<PluginChainView> safePluginChainView(rackView);
             juce::MessageManager::callAsync(
-                [safeRackView]
+                [safePluginChainView]
                 {
-                    if (safeRackView != nullptr)
-                        safeRackView->clearDragSource();
+                    if (safePluginChainView != nullptr)
+                        safePluginChainView->clearDragSource();
                 });
         }
     }

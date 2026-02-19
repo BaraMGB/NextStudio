@@ -24,7 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "LowerRange/LowerRangeComponent.h"
-#include "LowerRange/PluginChain/RackView.h"
+#include "LowerRange/PluginChain/PluginChainView.h"
 #include "SideBrowser/FileBrowser.h"
 #include "SongEditor/PlayHeadComponent.h"
 #include "SongEditor/SongEditorView.h"
