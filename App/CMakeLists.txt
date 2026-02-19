@@ -81,6 +81,7 @@ target_sources(${TargetName} PRIVATE
         Source/Plugins/DrumSampler/SoundEditorPanel.cpp
         Source/Plugins/EQ/EqPluginComponent.cpp
         Source/Plugins/Filter/FilterPluginComponent.cpp
+        Source/Plugins/Filter/NextFilterPlugin.cpp
         Source/Plugins/FourOscPlugin/FourOscPluginComponent.cpp
         Source/Plugins/Phaser/NextPhaserPlugin.cpp
         Source/Plugins/Phaser/PhaserPluginComponent.cpp

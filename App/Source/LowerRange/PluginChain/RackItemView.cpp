@@ -21,6 +21,7 @@
 #include "Plugins/DrumSampler/DrumSamplerView.h"
 #include "Plugins/EQ/EqPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
+#include "Plugins/Filter/NextFilterPlugin.h"
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
 #include "Plugins/Phaser/NextPhaserPlugin.h"
 #include "Plugins/Phaser/PhaserPluginComponent.h"
@@ -79,7 +80,7 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     {
         m_pluginComponent = std::make_unique<DelayPluginComponent>(evs, p);
     }
-    else if (m_plugin->getPluginType() == "lowpass")
+    else if (m_plugin->getPluginType() == NextFilterPlugin::xmlTypeName || m_plugin->getPluginType() == te::LowPassPlugin::xmlTypeName || m_plugin->getPluginType() == "lowpass")
     {
         m_pluginComponent = std::make_unique<FilterPluginComponent>(evs, p);
     }

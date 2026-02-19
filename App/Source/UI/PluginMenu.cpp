@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Plugins/Chorus/NextChorusPlugin.h"
 #include "Plugins/Delay/NextDelayPlugin.h"
+#include "Plugins/Filter/NextFilterPlugin.h"
 #include "Plugins/Phaser/NextPhaserPlugin.h"
 #include "Plugins/Saturation/NextSaturationPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
@@ -121,7 +122,7 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
     addInternalPlugin<te::PitchShiftPlugin>(*this, num);
     addInternalPlugin<ArpeggiatorPlugin>(*this, num, false);
     addInternalPlugin<SpectrumAnalyzerPlugin>(*this, num, false);
-    addInternalPlugin<te::LowPassPlugin>(*this, num);
+    addInternalPlugin<NextFilterPlugin>(*this, num);
     //    addInternalPlugin<te::MidiModifierPlugin> (*this, num);
     //    addInternalPlugin<te::MidiPatchBayPlugin> (*this, num);
     //    addInternalPlugin<te::PatchBayPlugin> (*this, num);

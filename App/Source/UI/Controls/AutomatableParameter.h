@@ -11,8 +11,8 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/Utilities.h"
 #include "UI/Controls/AutomatableSlider.h"
+#include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
 
@@ -28,6 +28,7 @@ public:
     void resized() override;
 
     void setKnobColour(juce::Colour colour);
+    void setKnobSkewFromMidPoint(double midPoint);
     void updateLabel();
 
     void curveHasChanged(te::AutomatableParameter &) override {}

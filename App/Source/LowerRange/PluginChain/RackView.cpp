@@ -36,6 +36,8 @@ public:
 
     void paint(juce::Graphics &) override {}
 
+    void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override { m_owner.mouseWheelMove(event, wheel); }
+
     void refreshButtonsAndLayout()
     {
         m_addButtons.clear();
@@ -98,6 +100,222 @@ public:
     RackView &m_owner;
 };
 
+class RackView::PluginListPanelComponent : public juce::Component
+{
+public:
+    explicit PluginListPanelComponent(RackView &owner)
+        : m_owner(owner)
+    {
+    }
+
+    void paint(juce::Graphics &g) override
+    {
+        auto headerColour = m_owner.m_track != nullptr ? m_owner.m_track->getColour() : m_owner.m_evs.m_applicationState.getPrimeColour();
+        GUIHelpers::drawHeaderBox(g, getLocalBounds().toFloat(), headerColour, m_owner.m_evs.m_applicationState.getBorderColour(), m_owner.m_evs.m_applicationState.getBackgroundColour2(), 20.0f, GUIHelpers::HeaderPosition::top, "Plugins");
+    }
+
+private:
+    RackView &m_owner;
+};
+
+class RackPluginListItem
+    : public juce::Component
+    , public juce::DragAndDropTarget
+{
+public:
+    RackPluginListItem(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr plugin, te::EditItemID id, juce::String labelText)
+        : m_evs(evs),
+          m_track(t),
+          m_plugin(std::move(plugin)),
+          m_itemID(id),
+          m_label(std::move(labelText))
+    {
+    }
+
+    static void drawEyeIcon(juce::Graphics &g, juce::Rectangle<float> area, juce::Colour colour, bool enabled)
+    {
+        g.setColour(colour);
+        g.drawEllipse(area, 1.4f);
+        g.fillEllipse(area.getCentreX() - 1.6f, area.getCentreY() - 1.6f, 3.2f, 3.2f);
+
+        if (!enabled)
+            g.drawLine(area.getX(), area.getY(), area.getRight(), area.getBottom(), 1.2f);
+    }
+
+    static juce::Image createEyeMenuIcon(juce::Colour colour, bool enabled)
+    {
+        juce::Image icon(juce::Image::ARGB, 16, 16, true);
+        juce::Graphics g(icon);
+        drawEyeIcon(g, {1.0f, 4.0f, 14.0f, 8.0f}, colour, enabled);
+        return icon;
+    }
+
+    static juce::Image createTrashMenuIcon(juce::Colour colour)
+    {
+        juce::Image icon(juce::Image::ARGB, 16, 16, true);
+        juce::Graphics g(icon);
+        GUIHelpers::drawFromSvg(g, BinaryData::trashcan_svg, colour, {1.0f, 1.0f, 14.0f, 14.0f});
+        return icon;
+    }
+
+    bool isInterestedInDragSource(const SourceDetails &details) override { return details.description == "RackPluginListItem"; }
+
+    void itemDragMove(const SourceDetails &details) override
+    {
+        m_dragOver = true;
+        m_dropAfter = details.localPosition.getY() > (float)getHeight() * 0.5f;
+        repaint();
+    }
+
+    void itemDragExit(const SourceDetails &) override
+    {
+        m_dragOver = false;
+        repaint();
+    }
+
+    void itemDropped(const SourceDetails &details) override
+    {
+        m_dragOver = false;
+        repaint();
+
+        auto *source = dynamic_cast<RackPluginListItem *>(details.sourceComponent.get());
+        if (source == nullptr || source == this || !source->m_itemID.isValid() || !m_itemID.isValid() || onReorder == nullptr)
+            return;
+
+        const bool placeAfter = details.localPosition.getY() > (float)getHeight() * 0.5f;
+        onReorder(source->m_itemID, m_itemID, placeAfter);
+    }
+
+    void setSelected(bool shouldBeSelected)
+    {
+        if (m_selected == shouldBeSelected)
+            return;
+
+        m_selected = shouldBeSelected;
+        repaint();
+    }
+
+    void paint(juce::Graphics &g) override
+    {
+        g.fillAll(m_evs.m_applicationState.getBackgroundColour1());
+
+        if (m_selected)
+        {
+            auto trackColour = m_track != nullptr ? m_track->getColour() : m_evs.m_applicationState.getPrimeColour();
+            g.fillAll(trackColour.withAlpha(0.2f));
+        }
+
+        g.setColour(m_evs.m_applicationState.getTextColour());
+        g.setFont(14.0f);
+        auto textArea = getLocalBounds().reduced(6, 0);
+        constexpr int iconSize = 14;
+        constexpr int iconGap = 4;
+        auto iconArea = textArea.removeFromRight((iconSize * 2) + iconGap);
+        const int iconY = (getHeight() - iconSize) / 2;
+        m_eyeBounds = juce::Rectangle<int>(iconArea.getX(), iconY, iconSize, iconSize).reduced(1);
+        m_trashBounds = juce::Rectangle<int>(iconArea.getX() + iconSize + iconGap, iconY, iconSize, iconSize).reduced(1);
+
+        auto iconColour = juce::Colours::lightgrey;
+        drawEyeIcon(g, m_eyeBounds.toFloat(), iconColour, m_plugin != nullptr ? m_plugin->isEnabled() : true);
+        GUIHelpers::drawFromSvg(g, BinaryData::trashcan_svg, iconColour, m_trashBounds.toFloat());
+
+        g.drawText(m_label, textArea, juce::Justification::centredLeft, true);
+
+        g.setColour(juce::Colours::grey.withAlpha(0.3f));
+        g.drawRect(getLocalBounds(), 1);
+
+        if (m_dragOver)
+        {
+            g.setColour(m_evs.m_applicationState.getPrimeColour().withAlpha(0.9f));
+            auto marker = getLocalBounds().reduced(2, 0);
+            marker.setHeight(2);
+            if (m_dropAfter)
+                marker.setY(getHeight() - 2);
+            g.fillRect(marker);
+        }
+    }
+
+    void mouseDown(const juce::MouseEvent &e) override
+    {
+        juce::ignoreUnused(e);
+        m_didDrag = false;
+    }
+
+    void mouseDrag(const juce::MouseEvent &e) override
+    {
+        if (m_didDrag || e.getDistanceFromDragStart() < 4)
+            return;
+
+        if (auto *container = juce::DragAndDropContainer::findParentDragContainerFor(this))
+        {
+            m_didDrag = true;
+            auto dragImage = createComponentSnapshot(getLocalBounds());
+            container->startDragging("RackPluginListItem", this, dragImage, true);
+        }
+    }
+
+    void mouseUp(const juce::MouseEvent &e) override
+    {
+        if (e.mods.isPopupMenu())
+        {
+            juce::PopupMenu menu;
+            const auto iconColour = juce::Colours::lightgrey;
+            const bool pluginEnabled = (m_plugin != nullptr ? m_plugin->isEnabled() : true);
+
+            menu.addItem(1, "Delete Plugin", true, false, createTrashMenuIcon(iconColour));
+            menu.addItem(2, pluginEnabled ? "Disable Plugin" : "Enable Plugin", true, false, createEyeMenuIcon(iconColour, pluginEnabled));
+
+            const int result = menu.show();
+            if (result == 1)
+            {
+                if (onDelete)
+                    onDelete();
+            }
+            else if (result == 2)
+            {
+                if (onToggleEnabled)
+                    onToggleEnabled();
+            }
+            return;
+        }
+
+        if (m_eyeBounds.contains(e.getPosition()))
+        {
+            if (onToggleEnabled)
+                onToggleEnabled();
+            return;
+        }
+
+        if (m_trashBounds.contains(e.getPosition()))
+        {
+            if (onDelete)
+                onDelete();
+            return;
+        }
+
+        if (!m_didDrag && !e.mods.isPopupMenu() && onClick)
+            onClick();
+    }
+
+    std::function<void()> onClick;
+    std::function<void(te::EditItemID, te::EditItemID, bool)> onReorder;
+    std::function<void()> onDelete;
+    std::function<void()> onToggleEnabled;
+
+private:
+    EditViewState &m_evs;
+    te::Track::Ptr m_track;
+    te::Plugin::Ptr m_plugin;
+    te::EditItemID m_itemID;
+    juce::String m_label;
+    juce::Rectangle<int> m_eyeBounds;
+    juce::Rectangle<int> m_trashBounds;
+    bool m_selected{false};
+    bool m_dragOver{false};
+    bool m_dropAfter{false};
+    bool m_didDrag{false};
+};
+
 //==============================================================================
 RackView::RackView(EditViewState &evs)
     : m_evs(evs),
@@ -108,9 +326,24 @@ RackView::RackView(EditViewState &evs)
     m_nameLabel.setJustificationType(juce::Justification::centred);
 
     m_contentComp = std::make_unique<RackContentComponent>(*this);
-    m_viewport.setViewedComponent(m_contentComp.get(), false);
-    m_viewport.setScrollBarsShown(false, true, false, true);
-    addAndMakeVisible(m_viewport);
+    addAndMakeVisible(m_pluginCanvas);
+    m_pluginCanvas.addAndMakeVisible(m_contentComp.get());
+
+    m_pluginPanel = std::make_unique<PluginListPanelComponent>(*this);
+    addAndMakeVisible(*m_pluginPanel);
+
+    addAndMakeVisible(m_horizontalScrollBar);
+    m_horizontalScrollBar.setSingleStepSize(30.0);
+    m_horizontalScrollBar.addListener(this);
+
+    m_pluginListViewport.setViewedComponent(&m_pluginListContent, false);
+    m_pluginListViewport.setScrollBarsShown(true, false, false, false);
+    m_pluginPanel->addAndMakeVisible(m_pluginListViewport);
+
+    m_pluginPanel->addAndMakeVisible(m_addPluginButton);
+    m_addPluginButton.setButtonText("Add plugin");
+
+    m_addPluginButton.onClick = [this] { addPluginAtCurrentPosition(); };
 
     addAndMakeVisible(m_modifierSidebar);
     addChildComponent(m_modifierDetailPanel); // Start hidden
@@ -118,7 +351,7 @@ RackView::RackView(EditViewState &evs)
     m_modifierSidebar.onModifierSelected = [this](te::Modifier::Ptr m)
     {
         m_modifierDetailPanel.setModifier(m);
-        resized();
+        markAndUpdate(m_updateLayout);
     };
 }
 
@@ -130,8 +363,8 @@ RackView::~RackView()
     }
 
     detachTrackListeners();
-
-    m_viewport.setViewedComponent(nullptr, false);
+    m_horizontalScrollBar.removeListener(this);
+    m_pluginListViewport.setViewedComponent(nullptr, false);
 }
 
 void RackView::attachTrackListeners()
@@ -163,23 +396,30 @@ void RackView::detachTrackListeners()
 
 void RackView::paint(juce::Graphics &g)
 {
-    g.setColour(m_evs.m_applicationState.getBackgroundColour1());
-    g.fillRoundedRectangle(getLocalBounds().withTrimmedLeft(2).toFloat(), 10);
-    g.setColour(juce::Colours::white);
+    auto area = getLocalBounds().reduced(1);
+    auto outerArea = area.toFloat();
+    auto cornerSize = 10.0f;
 
-    auto area = getLocalBounds();
+    g.setColour(m_evs.m_applicationState.getBackgroundColour1());
+    g.fillRoundedRectangle(outerArea, cornerSize);
+
+    g.setColour(m_evs.m_applicationState.getBorderColour().withAlpha(0.9f));
+    g.drawRoundedRectangle(outerArea, cornerSize, 1.2f);
 
     if (m_isOver)
-        g.drawRect(area, 2);
+    {
+        g.setColour(m_evs.m_applicationState.getPrimeColour());
+        g.drawRoundedRectangle(outerArea.reduced(1.0f), cornerSize - 1.0f, 2.0f);
+    }
 
     if (m_track == nullptr)
     {
-        g.drawText("select a track for showing rack", getLocalBounds(), juce::Justification::centred);
+        g.setColour(m_evs.m_applicationState.getTextColour().withAlpha(0.85f));
+        g.drawText("select a track for showing rack", area, juce::Justification::centred);
     }
     else
     {
         auto trackCol = m_track->getColour();
-        auto cornerSize = 10.0f;
         auto labelingCol = trackCol.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
         m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
@@ -187,7 +427,18 @@ void RackView::paint(juce::Graphics &g)
         auto header = area.removeFromLeft(HEADERWIDTH);
         g.setColour(trackCol);
         GUIHelpers::drawRoundedRectWithSide(g, header.toFloat(), cornerSize, true, false, true, false);
+
+        if (m_channelStrip != nullptr)
+        {
+            auto sepX = (float)m_channelStrip->getX() - 1.0f;
+            g.setColour(m_evs.m_applicationState.getBorderColour().withAlpha(0.8f));
+            g.drawLine(sepX, (float)area.getY(), sepX, (float)area.getBottom(), 1.4f);
+        }
     };
+
+    auto viewportBounds = m_pluginCanvas.getBounds().toFloat();
+    g.setColour(m_evs.m_applicationState.getBorderColour().withAlpha(0.55f));
+    g.drawRoundedRectangle(viewportBounds.expanded(1.0f, 1.0f), 6.0f, 1.0f);
 }
 
 void RackView::paintOverChildren(juce::Graphics &g)
@@ -212,10 +463,9 @@ void RackView::paintOverChildren(juce::Graphics &g)
 
     // Helper to find target inside the viewport
     juce::Component *target = compUnderMouse;
-    if (target == &m_viewport)
+    if (target == &m_pluginCanvas)
     {
-        // Transform point to content component
-        auto pt = m_viewport.getLocalPoint(this, getMouseXYRelative());
+        auto pt = m_contentComp->getLocalPoint(this, getMouseXYRelative());
         target = m_contentComp->getComponentAt(pt);
 
         if (target)
@@ -227,7 +477,7 @@ void RackView::paintOverChildren(juce::Graphics &g)
         }
     }
 
-    if (target == this || target == &m_viewport || target == m_contentComp.get())
+    if (target == this || target == &m_pluginCanvas || target == m_contentComp.get())
         target = nullptr;
 
     juce::Colour lineColour = m_evs.m_applicationState.getTextColour();
@@ -285,6 +535,25 @@ void RackView::mouseDown(const juce::MouseEvent &)
     // editViewState.selectionManager.selectOnly (track.get());
 }
 
+void RackView::mouseWheelMove(const juce::MouseEvent &, const juce::MouseWheelDetails &wheel)
+{
+    float delta = 0.0f;
+
+    if (std::abs(wheel.deltaX) > 0.0001f)
+        delta = wheel.deltaX;
+    else if (std::abs(wheel.deltaY) > 0.0001f)
+        delta = wheel.deltaY;
+
+    if (std::abs(delta) < 0.0001f)
+        return;
+
+    stopTimer();
+    m_contentScrollX = juce::jlimit(0, getMaxContentScrollX(), m_contentScrollX - (int)std::round(delta * 280.0f));
+    m_targetContentScrollX = (double)m_contentScrollX;
+    updateRackContentPosition();
+    updateHorizontalScrollBar();
+}
+
 void RackView::resized()
 {
     auto area = getLocalBounds();
@@ -294,30 +563,63 @@ void RackView::resized()
     area.removeFromLeft(HEADERWIDTH);
     area = area.reduced(5);
 
-    m_modifierSidebar.setBounds(area.removeFromLeft(160));
-
-    if (m_modifierSidebar.getSelectedModifier())
+    if (m_trackPresetManager)
     {
-        m_modifierDetailPanel.setVisible(true);
+        auto presetArea = area.removeFromLeft(MODIFIER_STACK_WIDTH);
+        m_trackPresetManager->setBounds(presetArea.reduced(2));
+    }
+
+    auto modifierArea = area.removeFromLeft(MODIFIER_STACK_WIDTH);
+    m_modifierSidebar.setBounds(modifierArea.reduced(2));
+
+    const bool shouldShowModifierDetail = (m_track != nullptr && m_evs.getTrackSelectedModifier(m_track->itemID).isValid());
+    if (shouldShowModifierDetail)
+    {
         m_modifierDetailPanel.setBounds(area.removeFromLeft(300));
+        m_modifierDetailPanel.setVisible(true);
     }
     else
     {
         m_modifierDetailPanel.setVisible(false);
     }
 
+    area.removeFromLeft(20);
+
     if (m_channelStrip != nullptr)
         m_channelStrip->setBounds(area.removeFromRight(CHANNEL_STRIP_WIDTH));
 
-    // Remaining area for Plugins
-    m_viewport.setBounds(area);
+    auto listArea = area.removeFromLeft(PLUGIN_LIST_WIDTH);
+    m_pluginPanel->setBounds(listArea.reduced(2));
 
-    // Always account for the horizontal scrollbar thickness since it's permanently shown
-    int scrollH = m_viewport.getScrollBarThickness();
-    int contentHeight = juce::jmax(0, m_viewport.getHeight() - scrollH);
+    auto listContentArea = m_pluginPanel->getLocalBounds();
+    listContentArea.removeFromTop(20);
 
-    m_contentComp->setSize(m_contentComp->getWidth(), contentHeight);
-    m_contentComp->refreshButtonsAndLayout();
+    auto controls = listContentArea.removeFromTop(CONTROL_ROW_HEIGHT).reduced(4, 2);
+
+    m_addPluginButton.setBounds(controls);
+
+    listContentArea.reduce(2, 2);
+    m_pluginListViewport.setBounds(listContentArea);
+
+    int y = 0;
+    for (auto *button : m_pluginListButtons)
+    {
+        button->setBounds(0, y, juce::jmax(0, m_pluginListViewport.getWidth() - 12), PLUGIN_LIST_ROW_HEIGHT);
+        y += PLUGIN_LIST_ROW_HEIGHT;
+    }
+    m_pluginListContent.setSize(juce::jmax(0, m_pluginListViewport.getWidth() - 12), juce::jmax(m_pluginListViewport.getHeight(), y));
+
+    auto scrollbarArea = area.removeFromBottom(HORIZONTAL_SCROLLBAR_HEIGHT);
+    m_horizontalScrollBar.setBounds(scrollbarArea);
+    m_pluginCanvas.setBounds(area);
+
+    int contentHeight = juce::jmax(0, m_pluginCanvas.getHeight());
+    m_contentComp->setSize(juce::jmax(0, m_contentComp->getWidth()), contentHeight);
+    layoutSelectedRackItem();
+    m_contentScrollX = juce::jlimit(0, getMaxContentScrollX(), m_contentScrollX);
+    m_targetContentScrollX = (double)m_contentScrollX;
+    updateRackContentPosition();
+    updateHorizontalScrollBar();
 }
 
 juce::StringArray RackView::getRackOrder() const
@@ -476,23 +778,7 @@ void RackView::buttonClicked(juce::Button *button)
             {
                 if (auto plugin = showMenuAndCreatePlugin(m_track->edit))
                 {
-                    // Calculate target Plugin List Index based on Rack Order
-                    ensureRackOrderConsistency();
-
-                    auto order = getRackOrder();
-                    int targetPluginIndex = 0;
-
-                    for (int i = 0; i < visualIndex && i < order.size(); ++i)
-                    {
-                        if (getPluginFromList(m_track->pluginList, te::EditItemID::fromVar(order[i])))
-                            targetPluginIndex++;
-                    }
-
-                    EngineHelpers::insertPluginWithPreset(m_evs, m_track, plugin, targetPluginIndex);
-
-                    // Update Rack Order
-                    order.insert(visualIndex, plugin->itemID.toString());
-                    saveRackOrder(order);
+                    insertPluginAtVisualIndex(plugin, visualIndex, true);
                 }
             }
 
@@ -507,6 +793,7 @@ void RackView::setTrack(te::Track::Ptr track)
     {
         m_nameLabel.setText(m_track->getName(), juce::dontSendNotification);
         m_modifierSidebar.setTrack(m_track);
+        updateTrackPresetManager();
         return;
     }
 
@@ -519,6 +806,7 @@ void RackView::setTrack(te::Track::Ptr track)
 
     m_modifierSidebar.setTrack(m_track);
     m_modifierDetailPanel.setModifier(nullptr);
+    updateTrackPresetManager();
 
     const bool canShowChannelStrip = m_track != nullptr && (m_track->isMasterTrack() || m_track->isAudioTrack() || m_track->isFolderTrack());
     if (canShowChannelStrip)
@@ -543,9 +831,48 @@ void RackView::clearTrack()
 
     m_modifierSidebar.setTrack(nullptr);
     m_modifierDetailPanel.setModifier(nullptr);
+    if (m_trackPresetManager)
+    {
+        removeChildComponent(m_trackPresetManager.get());
+        m_trackPresetManager.reset();
+    }
+    m_trackPresetAdapter.reset();
     m_channelStrip.reset();
 
     rebuildView();
+}
+
+void RackView::updateTrackPresetManager()
+{
+    auto *audioTrack = dynamic_cast<te::AudioTrack *>(m_track.get());
+    if (audioTrack == nullptr)
+    {
+        if (m_trackPresetManager)
+        {
+            removeChildComponent(m_trackPresetManager.get());
+            m_trackPresetManager.reset();
+        }
+        m_trackPresetAdapter.reset();
+        return;
+    }
+
+    if (m_trackPresetAdapter != nullptr && &m_trackPresetAdapter->getTrack() == audioTrack)
+    {
+        if (m_trackPresetManager)
+            m_trackPresetManager->setHeaderColour(audioTrack->getColour());
+        return;
+    }
+
+    if (m_trackPresetManager)
+    {
+        removeChildComponent(m_trackPresetManager.get());
+        m_trackPresetManager.reset();
+    }
+    m_trackPresetAdapter.reset();
+
+    m_trackPresetAdapter = std::make_unique<TrackPresetAdapter>(*audioTrack, m_evs.m_applicationState);
+    m_trackPresetManager = std::make_unique<PresetManagerComponent>(*m_trackPresetAdapter, audioTrack->getColour(), "TrackPresets");
+    addAndMakeVisible(*m_trackPresetManager);
 }
 
 juce::String RackView::getCurrentTrackID() { return m_trackID; }
@@ -553,6 +880,28 @@ juce::String RackView::getCurrentTrackID() { return m_trackID; }
 juce::OwnedArray<AddButton> &RackView::getAddButtons() { return m_contentComp->m_addButtons; }
 
 juce::OwnedArray<RackItemView> &RackView::getPluginComponents() { return m_contentComp->m_rackItems; }
+
+void RackView::insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted)
+{
+    if (m_track == nullptr || plugin == nullptr)
+        return;
+
+    ensureRackOrderConsistency();
+    auto order = getRackOrder();
+
+    const int clampedVisualIndex = juce::jlimit(0, order.size(), visualIndex);
+    const int targetPluginIndex = getPluginIndexForVisualIndex(clampedVisualIndex);
+
+    EngineHelpers::insertPluginWithPreset(m_evs, m_track, plugin, targetPluginIndex);
+    order.insert(clampedVisualIndex, plugin->itemID.toString());
+    saveRackOrder(order);
+
+    if (selectInserted)
+    {
+        m_selectedRackItemID = plugin->itemID;
+        m_scrollToSelectedAfterRebuild = true;
+    }
+}
 
 void RackView::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &c)
 {
@@ -576,6 +925,12 @@ void RackView::handleAsyncUpdate()
 {
     if (compareAndReset(m_updatePlugins))
         rebuildView();
+
+    if (compareAndReset(m_updateLayout))
+    {
+        resized();
+        repaint();
+    }
 }
 
 void RackView::rebuildView()
@@ -600,7 +955,272 @@ void RackView::rebuildView()
         }
     }
 
+    rebuildPluginList();
+
+    if (getSelectedRackItemIndex() < 0 && m_contentComp->m_rackItems.size() > 0)
+    {
+        if (auto plugin = m_contentComp->m_rackItems[0]->getPlugin())
+            m_selectedRackItemID = plugin->itemID;
+    }
+    else if (m_contentComp->m_rackItems.isEmpty())
+    {
+        m_selectedRackItemID = {};
+    }
+
     resized();
+
+    if (m_scrollToSelectedAfterRebuild)
+    {
+        m_scrollToSelectedAfterRebuild = false;
+        if (int idx = getSelectedRackItemIndex(); idx >= 0)
+        {
+            selectRackItemByIndex(idx);
+
+            auto safeRack = juce::Component::SafePointer<RackView>(this);
+            juce::MessageManager::callAsync(
+                [safeRack]
+                {
+                    if (safeRack == nullptr)
+                        return;
+
+                    if (int asyncIdx = safeRack->getSelectedRackItemIndex(); asyncIdx >= 0)
+                        safeRack->selectRackItemByIndex(asyncIdx);
+                });
+        }
+    }
+}
+
+void RackView::rebuildPluginList()
+{
+    m_pluginListButtons.clear();
+
+    for (int i = 0; i < m_contentComp->m_rackItems.size(); ++i)
+    {
+        auto *item = m_contentComp->m_rackItems[i];
+        juce::String name = "Plugin";
+        te::EditItemID id;
+        te::Plugin::Ptr plugin;
+
+        if (auto p = item->getPlugin())
+        {
+            plugin = p;
+            name = plugin->getName();
+            id = plugin->itemID;
+        }
+
+        if (name.isEmpty())
+            name = "Plugin";
+
+        auto button = std::make_unique<RackPluginListItem>(m_evs, m_track, plugin, id, name);
+        button->setSelected(id == m_selectedRackItemID);
+        button->onClick = [this, i] { selectRackItemByIndex(i); };
+        button->onReorder = [this](te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter) { reorderPluginListItem(sourceID, targetID, placeAfter); };
+        auto safeRack = juce::Component::SafePointer<RackView>(this);
+
+        button->onDelete = [safeRack, plugin]
+        {
+            if (safeRack == nullptr || plugin == nullptr)
+                return;
+
+            juce::MessageManager::callAsync(
+                [safeRack, plugin]
+                {
+                    if (safeRack != nullptr && plugin != nullptr)
+                    {
+                        plugin->deleteFromParent();
+                    }
+                });
+        };
+
+        button->onToggleEnabled = [safeRack, plugin]
+        {
+            if (safeRack == nullptr || plugin == nullptr)
+                return;
+
+            juce::MessageManager::callAsync(
+                [safeRack, plugin]
+                {
+                    if (safeRack == nullptr || plugin == nullptr)
+                        return;
+
+                    plugin->setEnabled(!plugin->isEnabled());
+                    safeRack->rebuildPluginList();
+                    safeRack->resized();
+                    safeRack->repaint();
+                });
+        };
+
+        m_pluginListContent.addAndMakeVisible(button.get());
+        m_pluginListButtons.add(button.release());
+    }
+}
+
+int RackView::getRackItemIndexForID(te::EditItemID id) const
+{
+    if (!id.isValid())
+        return -1;
+
+    for (int i = 0; i < m_contentComp->m_rackItems.size(); ++i)
+    {
+        if (auto plugin = m_contentComp->m_rackItems[i]->getPlugin())
+            if (plugin->itemID == id)
+                return i;
+    }
+
+    return -1;
+}
+
+void RackView::reorderPluginListItem(te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter)
+{
+    const int sourceIndex = getRackItemIndexForID(sourceID);
+    const int targetIndex = getRackItemIndexForID(targetID);
+    if (sourceIndex < 0 || targetIndex < 0)
+        return;
+
+    if (sourceIndex == targetIndex)
+        return;
+
+    int destinationIndex = targetIndex + (placeAfter ? 1 : 0);
+    if (sourceIndex < destinationIndex)
+        --destinationIndex;
+
+    destinationIndex = juce::jlimit(0, m_contentComp->m_rackItems.size() - 1, destinationIndex);
+
+    if (auto *item = m_contentComp->m_rackItems[sourceIndex])
+    {
+        if (auto plugin = item->getPlugin())
+            m_selectedRackItemID = plugin->itemID;
+
+        moveItem(item, destinationIndex);
+    }
+}
+
+void RackView::selectRackItemByIndex(int index)
+{
+    if (index < 0 || index >= m_contentComp->m_rackItems.size())
+        return;
+
+    if (auto *item = m_contentComp->m_rackItems[index])
+    {
+        if (auto plugin = item->getPlugin())
+            m_selectedRackItemID = plugin->itemID;
+
+        for (int i = 0; i < m_pluginListButtons.size(); ++i)
+            if (auto *listItem = static_cast<RackPluginListItem *>(m_pluginListButtons[i]))
+                listItem->setSelected(i == index);
+
+        animateScrollToX(getTargetScrollXForItem(*item));
+        repaint();
+    }
+}
+
+int RackView::getSelectedRackItemIndex() const
+{
+    if (!m_selectedRackItemID.isValid())
+        return -1;
+
+    for (int i = 0; i < m_contentComp->m_rackItems.size(); ++i)
+    {
+        auto *item = m_contentComp->m_rackItems[i];
+        if (auto plugin = item->getPlugin())
+            if (plugin->itemID == m_selectedRackItemID)
+                return i;
+    }
+
+    return -1;
+}
+
+void RackView::layoutSelectedRackItem()
+{
+    for (auto *item : m_contentComp->m_rackItems)
+        item->setVisible(true);
+
+    m_contentComp->refreshButtonsAndLayout();
+}
+
+void RackView::updateRackContentPosition() { m_contentComp->setTopLeftPosition(-m_contentScrollX, 0); }
+
+int RackView::getLastPluginLeftEdgeX() const
+{
+    int leftEdge = 0;
+    for (auto *item : m_contentComp->m_rackItems)
+        leftEdge = juce::jmax(leftEdge, item->getX());
+
+    return leftEdge;
+}
+
+int RackView::getMaxContentScrollX() const { return juce::jmax(0, getLastPluginLeftEdgeX()); }
+
+void RackView::updateHorizontalScrollBar()
+{
+    const auto visibleWidth = juce::jmax(0, m_pluginCanvas.getWidth());
+    const auto totalWidth = juce::jmax(visibleWidth, getMaxContentScrollX() + visibleWidth);
+
+    m_updatingHorizontalScrollBar = true;
+    m_horizontalScrollBar.setRangeLimits({0.0, (double)totalWidth}, juce::dontSendNotification);
+    m_horizontalScrollBar.setCurrentRange({(double)m_contentScrollX, (double)(m_contentScrollX + visibleWidth)}, juce::dontSendNotification);
+    m_updatingHorizontalScrollBar = false;
+}
+
+int RackView::getTargetScrollXForItem(const RackItemView &item) const
+{
+    const int maxX = getMaxContentScrollX();
+    const int targetX = item.getX();
+    return juce::jlimit(0, maxX, targetX);
+}
+
+void RackView::animateScrollToX(int targetX)
+{
+    m_targetContentScrollX = (double)juce::jlimit(0, getMaxContentScrollX(), targetX);
+    startTimerHz(60);
+}
+
+void RackView::timerCallback()
+{
+    const auto currentX = m_contentScrollX;
+    const auto diff = m_targetContentScrollX - (double)currentX;
+
+    if (std::abs(diff) < 0.75)
+    {
+        m_contentScrollX = juce::jlimit(0, getMaxContentScrollX(), (int)std::round(m_targetContentScrollX));
+        updateRackContentPosition();
+        updateHorizontalScrollBar();
+        stopTimer();
+        return;
+    }
+
+    const double step = diff * 0.24;
+    m_contentScrollX = juce::jlimit(0, getMaxContentScrollX(), (int)std::round((double)currentX + step));
+    updateRackContentPosition();
+    updateHorizontalScrollBar();
+}
+
+void RackView::scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart)
+{
+    if (scrollBarThatHasMoved != &m_horizontalScrollBar || m_updatingHorizontalScrollBar)
+        return;
+
+    stopTimer();
+    m_contentScrollX = juce::jlimit(0, getMaxContentScrollX(), (int)std::round(newRangeStart));
+    m_targetContentScrollX = (double)m_contentScrollX;
+    updateRackContentPosition();
+    updateHorizontalScrollBar();
+}
+
+void RackView::addPluginAtCurrentPosition()
+{
+    if (m_track == nullptr)
+        return;
+
+    if (auto plugin = showMenuAndCreatePlugin(m_track->edit))
+    {
+        int insertVisualIndex = m_contentComp->m_rackItems.size();
+        int selected = getSelectedRackItemIndex();
+        if (selected >= 0)
+            insertVisualIndex = selected + 1;
+
+        insertPluginAtVisualIndex(plugin, insertVisualIndex, true);
+    }
 }
 
 bool RackView::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
@@ -649,10 +1269,20 @@ void RackView::itemDropped(const juce::DragAndDropTarget::SourceDetails &details
 
     if (details.description == "PluginListEntry")
         if (auto listbox = dynamic_cast<PluginListbox *>(details.sourceComponent.get()))
-            EngineHelpers::insertPluginWithPreset(m_evs, track, listbox->getSelectedPlugin(m_evs.m_edit));
+            if (auto plugin = listbox->getSelectedPlugin(m_evs.m_edit))
+            {
+                m_selectedRackItemID = plugin->itemID;
+                m_scrollToSelectedAfterRebuild = true;
+                EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
+            }
     if (details.description == "Instrument or Effect")
         if (auto lb = dynamic_cast<InstrumentEffectTable *>(details.sourceComponent.get()))
-            EngineHelpers::insertPluginWithPreset(m_evs, track, lb->getSelectedPlugin(m_evs.m_edit));
+            if (auto plugin = lb->getSelectedPlugin(m_evs.m_edit))
+            {
+                m_selectedRackItemID = plugin->itemID;
+                m_scrollToSelectedAfterRebuild = true;
+                EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
+            }
 
     m_isOver = false;
     repaint();
@@ -673,21 +1303,10 @@ void AddButton::itemDropped(const SourceDetails &dragSourceDetails)
                     // Calculate the visual index where the user dropped the item
                     int visualIndex = pluginRackComp->getAddButtons().indexOf(this);
 
-                    // Ensure the internal rack order state matches the current reality before modifying it
-                    pluginRackComp->ensureRackOrderConsistency();
-                    auto order = pluginRackComp->getRackOrder();
-
-                    int targetPluginIndex = pluginRackComp->getPluginIndexForVisualIndex(visualIndex);
-
                     auto plugin = lbm->getSelectedPlugin(m_track->edit);
                     if (plugin)
                     {
-                        // Insert the plugin into the engine at the calculated index
-                        EngineHelpers::insertPluginWithPreset(pluginRackComp->getEditViewState(), m_track, plugin, targetPluginIndex);
-
-                        // Update the custom rack order to include the new plugin's ID at the correct visual position
-                        order.insert(visualIndex, plugin->itemID.toString());
-                        pluginRackComp->saveRackOrder(order);
+                        pluginRackComp->insertPluginAtVisualIndex(plugin, visualIndex, true);
                     }
                 }
             }

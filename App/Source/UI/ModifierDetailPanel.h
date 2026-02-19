@@ -11,8 +11,8 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Utilities/EditViewState.h"
 #include "Plugins/PluginComponent.h"
+#include "Utilities/EditViewState.h"
 
 namespace te = tracktion_engine;
 
@@ -28,6 +28,7 @@ public:
 
 private:
     EditViewState &m_evs;
+    te::Modifier::Ptr m_currentModifier;
     std::unique_ptr<juce::Component> m_view;
     juce::Label m_placeholderLabel;
 

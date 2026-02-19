@@ -24,14 +24,12 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include "Utilities/EditViewState.h"
 #include "LowerRange/LowerRangeTabBar.h"
 #include "LowerRange/Mixer/MixerComponent.h"
 #include "LowerRange/PianoRoll/PianoRollEditor.h"
-#include "LowerRange/PluginChain/PresetManagerComponent.h"
 #include "LowerRange/PluginChain/RackView.h"
 #include "UI/SplitterComponent.h"
-#include "LowerRange/PluginChain/TrackPresetAdapter.h"
+#include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
@@ -52,7 +50,6 @@ public:
 
 private:
     void updateView();
-    void updatePresetManager(te::Track *track);
 
     void valueTreeChanged() override {}
     void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
@@ -70,9 +67,6 @@ private:
     MixerComponent m_mixer;
     LowerRangeTabBar m_tabBar;
     SplitterComponent m_splitter;
-
-    std::unique_ptr<TrackPresetAdapter> m_presetAdapter;
-    std::unique_ptr<PresetManagerComponent> m_presetManager;
 
     const float m_splitterHeight{10.f};
 
