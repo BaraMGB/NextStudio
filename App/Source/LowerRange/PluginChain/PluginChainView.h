@@ -37,7 +37,7 @@ namespace te = tracktion_engine;
 class AddButton;
 class RackPluginListItem;
 
-class RackView
+class PluginChainView
     : public juce::Component
     , private FlaggedAsyncUpdater
     , private te::ValueTreeAllEventListener
@@ -47,8 +47,8 @@ class RackView
     , private juce::Timer
 {
 public:
-    RackView(EditViewState &);
-    ~RackView() override;
+    PluginChainView(EditViewState &);
+    ~PluginChainView() override;
 
     void paint(juce::Graphics &g) override;
     void paintOverChildren(juce::Graphics &g) override;
@@ -63,13 +63,13 @@ public:
     juce::String getCurrentTrackID();
 
     juce::OwnedArray<AddButton> &getAddButtons();
-    juce::OwnedArray<RackItemView> &getPluginComponents();
+    juce::OwnedArray<PluginChainItemView> &getPluginComponents();
     void insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted);
 
     void ensureRackOrderConsistency();
     juce::StringArray getRackOrder() const;
     void saveRackOrder(const juce::StringArray &order);
-    void moveItem(RackItemView *item, int targetIndex);
+    void moveItem(PluginChainItemView *item, int targetIndex);
     int getPluginIndexForVisualIndex(int visualIndex) const;
 
     bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override;
@@ -105,7 +105,7 @@ private:
     void updateHorizontalScrollBar();
     int getLastPluginLeftEdgeX() const;
     int getMaxContentScrollX() const;
-    int getTargetScrollXForItem(const RackItemView &item) const;
+    int getTargetScrollXForItem(const PluginChainItemView &item) const;
     void animateScrollToX(int targetX);
     void addPluginAtCurrentPosition();
     void reorderPluginListItem(te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter);
@@ -156,7 +156,7 @@ private:
     static constexpr int MODIFIER_STACK_WIDTH = 170;
     static constexpr int PLUGIN_LIST_ROW_HEIGHT = 24;
     static constexpr int CONTROL_ROW_HEIGHT = 28;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RackView)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginChainView)
 };
 
 class AddButton

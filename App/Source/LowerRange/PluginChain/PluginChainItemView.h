@@ -1,7 +1,7 @@
 /*
   ==============================================================================
 
-    RackItemView.h
+    PluginChainItemView.h
     Created: 31 Jan 2026
     Author:  NextStudio
 
@@ -30,15 +30,15 @@ public:
     void paint(juce::Graphics &g) override {}
 };
 
-class RackItemView
+class PluginChainItemView
     : public juce::Component
     , public juce::Button::Listener
     , public te::ParameterisableDragDropSource
 {
 public:
-    RackItemView(EditViewState &, te::Track::Ptr, te::Plugin::Ptr);
-    RackItemView(EditViewState &, te::Track::Ptr, te::Modifier::Ptr);
-    ~RackItemView() override;
+    PluginChainItemView(EditViewState &, te::Track::Ptr, te::Plugin::Ptr);
+    PluginChainItemView(EditViewState &, te::Track::Ptr, te::Modifier::Ptr);
+    ~PluginChainItemView() override;
 
     void paint(juce::Graphics &) override;
     void resized() override;
@@ -84,5 +84,5 @@ private:
     bool m_collapsed{false};
     int m_headerWidth{20};
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RackItemView)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginChainItemView)
 };

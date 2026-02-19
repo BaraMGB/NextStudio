@@ -314,7 +314,7 @@ void ModifierSidebar::setTrack(te::Track::Ptr track)
     if (m_track)
     {
         m_track->state.addListener(this);
-        newRackState = m_evs.getTrackRackViewState(m_track->itemID);
+        newRackState = m_evs.getTrackPluginChainViewState(m_track->itemID);
     }
 
     m_currentTrackRackState = newRackState;
@@ -354,7 +354,7 @@ void ModifierSidebar::handleAsyncUpdate()
         updateSelectionState();
     }
 
-    // Notify listener (RackView) about selection change if any update happened
+    // Notify listener (PluginChainView) about selection change if any update happened
     if (onModifierSelected)
     {
         auto selectedID = getSelectedModifier() ? getSelectedModifier()->itemID : te::EditItemID();

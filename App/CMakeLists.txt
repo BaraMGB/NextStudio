@@ -65,8 +65,8 @@ target_sources(${TargetName} PRIVATE
         Source/LowerRange/PluginChain/PluginViewComponent.cpp
         Source/LowerRange/PluginChain/PresetHelpers.cpp
         Source/LowerRange/PluginChain/PresetManagerComponent.cpp
-        Source/LowerRange/PluginChain/RackItemView.cpp
-        Source/LowerRange/PluginChain/RackView.cpp
+        Source/LowerRange/PluginChain/PluginChainItemView.cpp
+        Source/LowerRange/PluginChain/PluginChainView.cpp
         Source/Main.cpp
         Source/MainComponent.cpp
         Source/Plugins/Arpeggiator/ArpeggiatorPlugin.cpp

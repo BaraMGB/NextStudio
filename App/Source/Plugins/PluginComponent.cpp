@@ -11,7 +11,7 @@
 #include "Plugins/PluginComponent.h"
 
 // Implementations have been moved to their respective source files:
-// - App/Source/LowerRange/PluginChain/RackItemView.cpp
+// - App/Source/LowerRange/PluginChain/PluginChainItemView.cpp
 // - App/Source/LowerRange/PluginChain/ModifierViewComponent.cpp
 // - App/Source/Plugins/Filter/FilterPluginComponent.cpp
 // - App/Source/Plugins/EQ/EqPluginComponent.cpp

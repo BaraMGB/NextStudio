@@ -27,7 +27,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRange/LowerRangeTabBar.h"
 #include "LowerRange/Mixer/MixerComponent.h"
 #include "LowerRange/PianoRoll/PianoRollEditor.h"
-#include "LowerRange/PluginChain/RackView.h"
+#include "LowerRange/PluginChain/PluginChainView.h"
 #include "UI/SplitterComponent.h"
 #include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
@@ -62,7 +62,7 @@ private:
 
     EditViewState &m_evs;
 
-    RackView m_rackView;
+    PluginChainView m_pluginChainView;
     PianoRollEditor m_pianoRollEditor;
     MixerComponent m_mixer;
     LowerRangeTabBar m_tabBar;

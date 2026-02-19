@@ -1,16 +1,16 @@
 /*
   ==============================================================================
 
-    RackItemView.cpp
+    PluginChainItemView.cpp
     Created: 31 Jan 2026
     Author:  NextStudio
 
   ==============================================================================
 */
 
-#include "LowerRange/PluginChain/RackItemView.h"
+#include "LowerRange/PluginChain/PluginChainItemView.h"
+#include "LowerRange/PluginChain/PluginChainView.h"
 #include "LowerRange/PluginChain/PluginPresetInterface.h"
-#include "LowerRange/PluginChain/RackView.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPlugin.h"
 #include "Plugins/Arpeggiator/ArpeggiatorPluginComponent.h"
 #include "Plugins/Chorus/ChorusPluginComponent.h"
@@ -45,7 +45,7 @@ static juce::Identifier getCollapsedStateID(te::EditItemID id)
 
 static bool shouldShowPluginPresetManager(te::Plugin &plugin) { return plugin.isSynth() && plugin.getPluginType() != te::ExternalPlugin::xmlTypeName; }
 
-RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr p)
+PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr p)
     : m_evs(evs),
       m_track(t),
       m_plugin(p),
@@ -54,7 +54,7 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     // Load collapsed state
     if (m_track)
     {
-        auto state = m_evs.getTrackRackViewState(m_track->itemID);
+        auto state = m_evs.getTrackPluginChainViewState(m_track->itemID);
         m_collapsed = state.getProperty(getCollapsedStateID(m_plugin->itemID), false);
     }
 
@@ -152,7 +152,7 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr
     }
 }
 
-RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Modifier::Ptr m)
+PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, te::Modifier::Ptr m)
     : m_evs(evs),
       m_track(t),
       m_modifier(m),
@@ -161,7 +161,7 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Modifier::P
     // Load collapsed state
     if (m_track)
     {
-        auto state = m_evs.getTrackRackViewState(m_track->itemID);
+        auto state = m_evs.getTrackPluginChainViewState(m_track->itemID);
         m_collapsed = state.getProperty(getCollapsedStateID(m_modifier->itemID), false);
     }
 
@@ -185,13 +185,13 @@ RackItemView::RackItemView(EditViewState &evs, te::Track::Ptr t, te::Modifier::P
     addAndMakeVisible(*m_modifierComponent);
 }
 
-RackItemView::~RackItemView()
+PluginChainItemView::~PluginChainItemView()
 {
     if (m_plugin)
         m_plugin->hideWindowForShutdown();
 }
 
-void RackItemView::paint(juce::Graphics &g)
+void PluginChainItemView::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
     area.reduce(0, 1);
@@ -217,7 +217,7 @@ void RackItemView::paint(juce::Graphics &g)
     }
 }
 
-void RackItemView::mouseDown(const juce::MouseEvent &e)
+void PluginChainItemView::mouseDown(const juce::MouseEvent &e)
 {
     if (e.getMouseDownX() < m_headerWidth)
     {
@@ -235,7 +235,7 @@ void RackItemView::mouseDown(const juce::MouseEvent &e)
                 m.addItem("Delete", [this] { m_modifier->remove(); });
             }
 
-            juce::Component::SafePointer<RackItemView> safeThis(this);
+            juce::Component::SafePointer<PluginChainItemView> safeThis(this);
             m.show();
 
             if (safeThis == nullptr)
@@ -249,7 +249,7 @@ void RackItemView::mouseDown(const juce::MouseEvent &e)
     repaint();
 }
 
-void RackItemView::mouseDrag(const juce::MouseEvent &e)
+void PluginChainItemView::mouseDrag(const juce::MouseEvent &e)
 {
     if (e.getMouseDownX() < m_headerWidth)
     {
@@ -261,7 +261,7 @@ void RackItemView::mouseDrag(const juce::MouseEvent &e)
     }
 }
 
-void RackItemView::draggedOntoAutomatableParameterTarget(const te::AutomatableParameter::Ptr &param)
+void PluginChainItemView::draggedOntoAutomatableParameterTarget(const te::AutomatableParameter::Ptr &param)
 {
     if (m_modifier)
     {
@@ -272,13 +272,13 @@ void RackItemView::draggedOntoAutomatableParameterTarget(const te::AutomatablePa
     }
 }
 
-void RackItemView::mouseUp(const juce::MouseEvent &event)
+void PluginChainItemView::mouseUp(const juce::MouseEvent &event)
 {
     m_clickOnHeader = false;
     repaint();
 }
 
-void RackItemView::mouseDoubleClick(const juce::MouseEvent &e)
+void PluginChainItemView::mouseDoubleClick(const juce::MouseEvent &e)
 {
     if (e.getMouseDownX() < m_headerWidth)
     {
@@ -295,17 +295,17 @@ void RackItemView::mouseDoubleClick(const juce::MouseEvent &e)
 
             if (id.isValid())
             {
-                auto state = m_evs.getTrackRackViewState(m_track->itemID);
+                auto state = m_evs.getTrackPluginChainViewState(m_track->itemID);
                 state.setProperty(getCollapsedStateID(id), m_collapsed, &m_evs.m_edit.getUndoManager());
             }
         }
 
-        if (auto *rackView = findParentComponentOfClass<RackView>())
+        if (auto *rackView = findParentComponentOfClass<PluginChainView>())
             rackView->resized();
     }
 }
 
-void RackItemView::resized()
+void PluginChainItemView::resized()
 {
     auto area = getLocalBounds();
     juce::Rectangle<int> showButton = {area.getX(), area.getY() + 5, m_headerWidth, m_headerWidth};
@@ -323,21 +323,21 @@ void RackItemView::resized()
         m_modifierComponent->setBounds(area);
 }
 
-void RackItemView::buttonClicked(juce::Button *button)
+void PluginChainItemView::buttonClicked(juce::Button *button)
 {
     if (button == &m_showPluginBtn)
         if (m_plugin)
             m_plugin->showWindowExplicitly();
 }
 
-juce::Colour RackItemView::getTrackColour()
+juce::Colour PluginChainItemView::getTrackColour()
 {
     if (m_track)
         return m_track->getColour();
     return juce::Colours::grey;
 }
 
-int RackItemView::getNeededWidthFactor()
+int PluginChainItemView::getNeededWidthFactor()
 {
     if (m_pluginComponent)
         return m_pluginComponent->getNeededWidth();

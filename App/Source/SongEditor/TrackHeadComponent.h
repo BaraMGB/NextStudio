@@ -24,7 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "LowerRange/LowerRangeComponent.h"
-#include "LowerRange/PluginChain/RackView.h"
+#include "LowerRange/PluginChain/PluginChainView.h"
 #include "UI/Controls/AutomatableParameter.h"
 #include "UI/Controls/AutomatableSlider.h"
 #include "UI/LevelMeterComponent.h"
