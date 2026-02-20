@@ -61,9 +61,9 @@ if [[ "$BUILD_ONLY" == false ]]; then
     
     # Determine executable path
     case $BUILD_TYPE in
-        d) EXEC_PATH="./build/Debug/App/NextStudio_artefacts/Debug/NextStudio" ;;
-        r) EXEC_PATH="./build/Release/App/NextStudio_artefacts/Release/NextStudio" ;;
-        rd) EXEC_PATH="./build/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio" ;;
+        d) EXEC_PATH="./autobuild/Debug/App/NextStudio_artefacts/Debug/NextStudio" ;;
+        r) EXEC_PATH="./autobuild/Release/App/NextStudio_artefacts/Release/NextStudio" ;;
+        rd) EXEC_PATH="./autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio" ;;
     esac
     
     # Run with or without debugger
