@@ -18,7 +18,7 @@ esac
 echo "Building $BUILD_TYPE..."
 
 # Create build directory
-BUILD_DIR="./build/$BUILD_TYPE"
+BUILD_DIR="./autobuild/$BUILD_TYPE"
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
@@ -27,7 +27,7 @@ cd "$BUILD_DIR"
 
 # Build
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE="$BUILD_TYPE" ../..
-cmake --build . 
+cmake --build . -j 10
 
 
 # Move compile commands
