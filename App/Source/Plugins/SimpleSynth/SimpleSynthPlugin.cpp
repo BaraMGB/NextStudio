@@ -787,7 +787,8 @@ void SimpleSynthPlugin::renderAudio(const te::PluginRenderContext &fc, float bas
                     sample = v.svfFilter.processSample(0, sample);
                 }
 
-                JUCE_SNAP_TO_ZERO(sample);
+                // Snap to zero to avoid denormals
+                if (std::abs(sample) < 1e-10f) sample = 0.0f;
 
                 float adsrGain = v.adsr.getNextSample();
                 if (!v.adsr.isActive())
