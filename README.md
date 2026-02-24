@@ -25,9 +25,9 @@ To run NextStudio, ensure that your system meets the following requirements:
 
 ### Prerequisites
 
-Clone the NextStudio repository from the official GitLab page:
+Clone the NextStudio repository from GitHub:
 
-    git clone https://gitlab.com/BaraMGB/NextStudio
+    git clone https://github.com/BaraMGB/NextStudio
 
 Navigate to the cloned repository:
 
@@ -144,7 +144,7 @@ You're now ready to start using NextStudio for your music production needs!
 Note: Make sure you have all the necessary dependencies installed and configured correctly before building NextStudio with CMake.
 Support and Documentation
 
-If you encounter any issues or have questions about NextStudio, please file an issue on GitLab.
+If you encounter any issues or have questions about NextStudio, please file an issue on GitHub.
 
 # License
 
