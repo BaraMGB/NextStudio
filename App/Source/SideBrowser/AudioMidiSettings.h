@@ -327,6 +327,16 @@ public:
         addAndMakeVisible(m_contentPathValue);
         updateContentPathLabel();
 
+        m_versionLabel.setText("Version:", juce::dontSendNotification);
+        addAndMakeVisible(m_versionLabel);
+
+        if (auto *app = juce::JUCEApplication::getInstance())
+            m_versionValue.setText(app->getApplicationVersion(), juce::dontSendNotification);
+        else
+            m_versionValue.setText("unknown", juce::dontSendNotification);
+        m_versionValue.setJustificationType(juce::Justification::centredLeft);
+        addAndMakeVisible(m_versionValue);
+
         m_themeLabel.setText("Theme Colors:", juce::dontSendNotification);
         addAndMakeVisible(m_themeLabel);
 
@@ -384,6 +394,10 @@ public:
         contentPathValueRow.removeFromLeft(140);
         m_contentPathValue.setBounds(contentPathValueRow.reduced(2));
 
+        auto versionRow = bounds.removeFromTop(rowHeight);
+        m_versionLabel.setBounds(versionRow.removeFromLeft(140));
+        m_versionValue.setBounds(versionRow.reduced(2));
+
         bounds.removeFromTop(padding / 2);
         auto themePresetRow1 = bounds.removeFromTop(rowHeight);
         m_themePresetsLabel.setBounds(themePresetRow1.removeFromLeft(120));
@@ -414,6 +428,8 @@ private:
     juce::TextEditor m_mouseScaleEditor;
     juce::Label m_contentPathLabel;
     juce::Label m_contentPathValue;
+    juce::Label m_versionLabel;
+    juce::Label m_versionValue;
     juce::TextButton m_changeContentPathButton{"Change..."};
     juce::Label m_themeLabel;
     juce::Label m_themePresetsLabel;
