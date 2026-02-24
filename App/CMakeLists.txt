@@ -33,7 +33,10 @@ add_subdirectory(../modules/tracktion_engine/modules ./cmake_build_tracktion EXC
 
 add_subdirectory(resources)
 
-juce_add_gui_app(${TargetName} PRODUCT_NAME "NextStudio")
+juce_add_gui_app(${TargetName}
+        PRODUCT_NAME "NextStudio"
+        VERSION "${NEXTSTUDIO_VERSION}")
+set_target_properties(${TargetName} PROPERTIES JUCE_VERSION "${NEXTSTUDIO_VERSION}")
 juce_generate_juce_header(${TargetName})
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

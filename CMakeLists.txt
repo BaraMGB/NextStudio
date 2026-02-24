@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(NextStudio VERSION 0.1.0)
+set(NEXTSTUDIO_VERSION "0.01")
+
+project(NextStudio VERSION ${NEXTSTUDIO_VERSION})
 option(JUCE_BUILD_EXTRAS "Build JUCE Examples" OFF)
 option(JUCE_BUILD_EXAMPLES "Build JUCE Extras" OFF)
 
@@ -41,7 +43,7 @@ endif()
 # =========================================================================
 
 set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
-set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VERSION "${NEXTSTUDIO_VERSION}")
 set(CPACK_PACKAGE_VENDOR "NextStudio")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Your NextStudio Application")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENCE.md")

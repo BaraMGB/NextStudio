@@ -46,7 +46,11 @@ public:
     bool moreThanOneInstanceAllowed() override { return false; }
 
     //==============================================================================
-    void initialise(const juce::String & /*commandLine*/) override { mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState)); }
+    void initialise(const juce::String & /*commandLine*/) override
+    {
+        juce::Logger::writeToLog("Welcome to " + getApplicationName() + " v" + getApplicationVersion());
+        mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState));
+    }
 
     void shutdown() override { mainWindow = nullptr; }
 
