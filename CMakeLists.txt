@@ -27,7 +27,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
     install(TARGETS ${TargetName}
             RUNTIME DESTINATION bin
-	    COMPONENT Applications
+            BUNDLE DESTINATION .
+            COMPONENT Applications
     )
 
     # install(DIRECTORY ${CMAKE_SOURCE_DIR}/language
