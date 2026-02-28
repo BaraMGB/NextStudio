@@ -6,8 +6,6 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * *'  # Nightly at 02:00 UTC
 
 env:
   BUILD_TYPE: Release
@@ -20,13 +18,10 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x64
-            artifact: NextStudio-Linux-x64.tar.gz
           - os: windows-latest
             platform: windows-x64
-            artifact: NextStudio-Windows.zip
           - os: macos-latest
             platform: macos-arm64
-            artifact: NextStudio-macOS-ARM64.zip
 
     runs-on: ${{ matrix.os }}
 
@@ -55,36 +50,39 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} -j 4
 
-      # --- Package Linux ---
+      # --- Package with CPack ---
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
-          cd build/App
-          tar -czvf ${{ matrix.artifact }} NextStudio_artefacts/Release/NextStudio
+          cd build
+          cpack -C ${{ env.BUILD_TYPE }} -G DEB
+          cpack -C ${{ env.BUILD_TYPE }} -G TGZ
 
-      # --- Package Windows ---
       - name: Package (Windows)
         if: runner.os == 'Windows'
         run: |
-          cd build/App
-          7z a ${{ matrix.artifact }} NextStudio_artefacts/Release/NextStudio.exe
+          cd build
+          cpack -C ${{ env.BUILD_TYPE }} -G NSIS
 
-      # --- Package macOS ---
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
-          cd build/App
-          zip -r ${{ matrix.artifact }} NextStudio_artefacts/Release/NextStudio.app
+          cd build
+          cpack -C ${{ env.BUILD_TYPE }} -G DragNDrop
 
-      # --- Upload Artifact ---
-      - name: Upload Artifact
+      # --- Upload Artifacts ---
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: NextStudio-${{ matrix.platform }}
-          path: build/App/${{ matrix.artifact }}
+          path: |
+            build/*.exe
+            build/*.dmg
+            build/*.deb
+            build/*.tar.gz
+            build/_CPack_Packages/**/*
           if-no-files-found: error
 
-  # --- Release Job ---
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -101,19 +99,6 @@ jobs:
 
       - name: List Artifacts
         run: ls -la artifacts/
-
-      - name: Create Nightly Release
-        if: github.event_name == 'schedule'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: nightly-${{ github.run_number }}
-          name: Nightly Build #${{ github.run_number }}
-          body: |
-            Automated nightly build from ${{ github.sha }}
-            
-            **Date:** ${{ github.event.head_commit.timestamp }}
-          prerelease: true
-          files: artifacts/*
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
