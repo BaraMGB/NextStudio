@@ -21,6 +21,20 @@ Download installers from [GitHub Releases](https://github.com/BaraMGB/NextStudio
 | **macOS** | `.dmg` |
 | **Linux** | `.deb` or `.tar.gz` |
 
+### macOS Installation
+
+The DMG is not code-signed. On first launch, macOS will show a security warning.
+
+**Workaround:**
+1. Open the DMG and drag NextStudio to Applications
+2. Right-click NextStudio in Applications → "Open"
+3. Click "Open" in the dialog
+
+Or via Terminal:
+```bash
+xattr -d com.apple.quarantine /Applications/NextStudio.app
+```
+
 ## System Requirements
 
 - **Linux:** x86_64, ALSA or JACK audio
