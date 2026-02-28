@@ -1,156 +1,77 @@
 # NextStudio - Digital Audio Workstation (DAW)
 
-NextStudio is a powerful Digital Audio Workstation (DAW) designed for music production, recording, editing, and mixing. With a comprehensive set of features and a user-friendly interface, NextStudio provides musicians, producers, and audio engineers with the tools they need to create music.
+NextStudio is a Digital Audio Workstation designed for music production, recording, editing, and mixing. Built with JUCE and Tracktion Engine.
 
 ## Features
 
-- **Multi-Track Recording:** NextStudio allows you to record multiple audio tracks simultaneously, giving you the flexibility to capture performances from various instruments and sources.
+- **Multi-Track Recording:** Record multiple audio tracks simultaneously
+- **Audio Editing:** Trim, split, merge, and rearrange recordings
+- **Virtual Instruments:** Built-in synthesizers and samplers
+- **Plugin Support:** VST3, AU, LV2, and LADSPA plugins
+- **MIDI Support:** MIDI controller integration and recording
+- **Audio Effects:** EQ, compression, reverb, delay, and more
 
-- **Audio Editing:** With NextStudio, you can edit audio clips with precision. Trim, split, merge, and rearrange your recordings to achieve the desired composition.
+## Download
 
-- **Virtual Instruments:** NextStudio includes a wide range of virtual instruments, such as synthesizers, samplers, and drum machines. Also NextStudio supports VST3, AU, LV2 and LADSPA Plugins.
+Download installers from [GitHub Releases](https://github.com/BaraMGB/NextStudio/releases):
 
-- **MIDI Support:** NextStudio seamlessly integrates with MIDI controllers, allowing you to control virtual instruments and record MIDI data.
-
-- **Audio Effects and Plugins:** Enhance your audio with a variety of built-in audio effects, including EQ, compression, reverb, delay, and more. Additionally, NextStudio supports third-party plugins, expanding your creative possibilities.
+| Platform | Installer |
+|----------|-----------|
+| **Windows** | `.exe` (NSIS Installer) |
+| **macOS** | `.dmg` |
+| **Linux** | `.deb` or `.tar.gz` |
 
 ## System Requirements
 
-To run NextStudio, ensure that your system meets the following requirements:
+- **Linux:** x86_64, ALSA or JACK audio
+- **Windows:** 10/11, x64
+- **macOS:** 10.13 or later, Apple Silicon or Intel
 
-- Operating System: Linux (compatible distributions), Windows 10/11, macOS 10.13 or later
-- MIDI Controller (optional): For MIDI input and control
-
-## Installation and Building
+## Building from Source
 
 ### Prerequisites
 
-Clone the NextStudio repository from GitHub:
+```bash
+git clone https://github.com/BaraMGB/NextStudio
+cd NextStudio
+./fetch_submodules.sh
+```
 
-    git clone https://github.com/BaraMGB/NextStudio
+### Dependencies (Linux)
 
-Navigate to the cloned repository:
+```bash
+sudo apt install libasound2-dev libjack-dev libfreetype6-dev \
+  libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
+  libgl1-mesa-dev libxcomposite-dev libfontconfig1-dev \
+  libcurl4-openssl-dev libwebkit2gtk-4.1-dev libgtk-3-dev ladspa-sdk
+```
 
-    cd NextStudio
+### Build
 
-Fetch Tracktion Engine and JUCE submodules:
+```bash
+# Quick start
+./start.sh r
 
-    # Linux/macOS:
-    chmod +x fetch_submodules.sh
-    ./fetch_submodules.sh
+# Or manual build
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . -j4
+```
 
-    # Windows:
-    fetch_submodules.bat
+### Build Options
 
-### Quick Start (Linux/macOS)
+```bash
+./start.sh d        # Debug build
+./start.sh r        # Release build
+./start.sh d -clean # Clean build
+./start.sh d -debug # Run with debugger
+```
 
-For the fastest and easiest build experience on Linux and macOS, use the provided start script:
+## Development
 
-Make the script executable (first time only)
+- **Issues:** [GitHub Issues](https://github.com/BaraMGB/NextStudio/issues)
+- **License:** AGPL3
 
-    chmod +x start.sh
+## Acknowledgements
 
-Build and run debug version
-
-    ./start.sh d
-
-Or build and run release version
-
-    ./start.sh r
-
-Or clean build and run
-
-    ./start.sh d -clean
-
-Build only (don't run)
-
-    ./start.sh r -build
-
-Build and run with debugger
-
-    ./start.sh d -debug
-
-### Start Script Options
-
-    Build Types:
-        d - Debug build
-        r - Release build
-        rd - RelWithDebInfo build
-
-    Options:
-        -clean - Clean CMake cache before building
-        -build - Build only, don't run the application
-        -debug - Run with debugger (gdb on Linux, lldb on macOS)
-
-## Manual Build (All Platforms)
-
-If you prefer manual control or are on Windows, follow these steps:
-
-Create a build directory and navigate into it:
-
-    mkdir build && cd build
-
-## Generate the build files using CMake:
-
-Debug build
-
-    cmake -DCMAKE_BUILD_TYPE=Debug ..
-
-Release build
-
-    cmake -DCMAKE_BUILD_TYPE=Release ..
-
-## Build NextStudio:
-
-Linux/macOS
-
-    cmake --build . -j4
-
-Windows (Visual Studio)
-
-    cmake --build . --config Release
-
-The executable will be located at:
-
-        Linux: build/App/NextStudio_artefacts/[BuildType]/NextStudio
-        macOS: build/App/NextStudio_artefacts/[BuildType]/NextStudio.app
-        Windows: build/App/NextStudio_artefacts/[BuildType]/NextStudio.exe
-
-# Development Workflow
-
-
-Quick debug build and test
-    
-    ./start.sh d -clean
-
-Release build for testing performance
-    
-    ./start.sh r
-
-Debug with debugger attached
-    
-    ./start.sh d -debug
-
-Build only for CI/testing
-    
-    ./start.sh r -build
-
-# Getting Started
-
-After building, run NextStudio using the start script or execute the binary directly.
-Configure your audio and MIDI settings in the preferences menu according to your system's hardware setup.
-You're now ready to start using NextStudio for your music production needs!
-
-Note: Make sure you have all the necessary dependencies installed and configured correctly before building NextStudio with CMake.
-Support and Documentation
-
-If you encounter any issues or have questions about NextStudio, please file an issue on GitHub.
-
-# License
-
-NextStudio is available under the AGPL3. Please review the license file included with the software for more information.
-Acknowledgements
-
-We would like to express our gratitude to the open-source community for their valuable contributions to the technologies and libraries used in NextStudio.
-
-Thank you for choosing NextStudio as your Digital Audio Workstation! We hope it empowers you to unleash your creativity and produce incredible music. Happy composing!
+Built with [JUCE](https://juce.com) and [Tracktion Engine](https://github.com/Tracktion/tracktion_engine).
