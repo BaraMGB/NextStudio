@@ -18,8 +18,15 @@ Download installers from [GitHub Releases](https://github.com/BaraMGB/NextStudio
 | Platform | Installer |
 |----------|-----------|
 | **Windows** | `.exe` (NSIS Installer) |
-| **macOS** | `.dmg` |
+| **macOS** | `.dmg` or Homebrew |
 | **Linux** | `.deb` or `.tar.gz` |
+
+### macOS (Homebrew)
+
+```bash
+brew tap BaraMGB/tap
+brew install --cask nextstudio
+```
 
 ### macOS Installation
 
