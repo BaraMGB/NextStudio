@@ -118,6 +118,8 @@ private:
     void buildTracks();
 
     void refreshSnapTypeDesc();
+    void queueTempFileWrite(juce::ValueTree editStateCopy, const juce::File &targetTempFile, juce::uint64 generation);
+    void handleTempFileWriteFinished(bool wasSuccessful, juce::uint64 generation, const juce::File &targetTempFile);
 
     tracktion::core::TimeRange getSelectedClipRange();
 
@@ -150,7 +152,6 @@ private:
                             {
                                 if (note->getStartBeat().inBeats() < clipStartBeat)
                                 {
-                                    // Startpunkt der Note auf den Clip-Start setzen
                                     auto newStartBeat = tracktion::BeatPosition::fromBeats(clipStartBeat);
                                     auto newLength = note->getEndBeat() - newStartBeat;
                                     note->setStartAndLength(newStartBeat, newLength, &um);
@@ -207,9 +208,12 @@ private:
 
     juce::ScrollBar m_scrollbar_v, m_scrollbar_h;
     PlayheadComponent m_playhead{m_edit, m_editViewState, m_timeLine};
+    juce::ThreadPool m_autoSaveThreadPool;
 
     bool m_updateTracks = false, m_updateZoom = false, m_verticalUpdateSongEditor = false, m_dragOver = false, m_noteOffAll = false;
     int m_sendsAreaHeight = 0;
+    std::atomic<bool> m_autoSaveInProgress{false}, m_autoSaveQueued{false};
+    std::atomic<juce::uint64> m_autoSaveGeneration{0};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EditComponent)
 };

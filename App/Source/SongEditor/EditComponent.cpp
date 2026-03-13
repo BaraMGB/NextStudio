@@ -24,10 +24,40 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MainComponent.h"
 #include "Utilities/Utilities.h"
 
+namespace
+{
+void rewriteAutoSaveSourcePaths(juce::ValueTree node, te::Edit &edit, const juce::File &targetDirectory)
+{
+    if (node.hasProperty(te::IDs::source))
+    {
+        auto oldRelativePath = node.getProperty(te::IDs::source).toString();
+
+        if (oldRelativePath.isNotEmpty())
+        {
+            auto absoluteSourceFile = edit.filePathResolver(oldRelativePath);
+
+            if (absoluteSourceFile.existsAsFile())
+            {
+                auto newRelativePath = absoluteSourceFile.getRelativePathFrom(targetDirectory);
+                node.setProperty(te::IDs::source, newRelativePath, nullptr);
+            }
+            else
+            {
+                GUIHelpers::log("WARNING: Source file not found during autosave: " + absoluteSourceFile.getFullPathName());
+            }
+        }
+    }
+
+    for (int i = 0; i < node.getNumChildren(); ++i)
+        rewriteAutoSaveSourcePaths(node.getChild(i), edit, targetDirectory);
+}
+} // namespace
+
 EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewState &avs, te::SelectionManager &sm, juce::ApplicationCommandManager &cm)
     : m_edit(e),
       m_editViewState(evs),
       m_songEditor(m_editViewState, m_toolBar, m_timeLine),
+      m_autoSaveThreadPool(juce::ThreadPool::Options{}.withNumberOfThreads(1).withThreadName("Autosave")),
       m_commandManager(cm),
       m_trackListView(m_editViewState, m_timeLine.getTimeLineID()),
       m_scrollbar_v(true),
@@ -153,7 +183,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
 
     markAndUpdate(m_verticalUpdateSongEditor);
     updateHorizontalScrollBar();
-    startTimer(static_cast<int>(m_editViewState.m_applicationState.m_autoSaveInterval));
+    startTimer(juce::jmax(1, static_cast<int>(m_editViewState.m_applicationState.m_autoSaveInterval)));
     trimMidiNotesToClipStart();
 
     m_editViewState.m_needAutoSave = true;
@@ -162,6 +192,9 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
 
 EditComponent::~EditComponent()
 {
+    stopTimer();
+    m_autoSaveThreadPool.removeAllJobs(true, 5000);
+
     m_timeStretchButton.removeListener(this);
     m_splitClipButton.removeListener(this);
     m_timeRangeSelectButton.removeListener(this);
@@ -374,7 +407,7 @@ void EditComponent::saveTempFile()
     if (m_editViewState.m_isSavingLocked)
         return;
 
-    if (m_edit.getTransport().isPlaying() || m_edit.getTransport().isRecording())
+    if (m_edit.getTransport().isRecording())
         return;
 
     if (!m_editViewState.m_needAutoSave)
@@ -390,58 +423,83 @@ void EditComponent::saveTempFile()
 
     try
     {
+        if (m_autoSaveInProgress.exchange(true))
+        {
+            m_autoSaveQueued = true;
+            return;
+        }
+
+        const auto generation = m_autoSaveGeneration.load();
         auto editStateCopy = m_edit.state.createCopy();
 
-        // adjust relative paths to sve folder
-        for (int i = 0; i < editStateCopy.getNumChildren(); ++i)
-        {
-            auto childNode = editStateCopy.getChild(i);
+        // Keep the dirty state alive when edits arrive while the snapshot is being copied.
+        if (generation != m_autoSaveGeneration.load())
+            m_autoSaveQueued = true;
 
-            if (te::TrackList::isTrack(childNode))
-            {
-                for (int j = 0; j < childNode.getNumChildren(); ++j)
-                {
-                    auto trackItemNode = childNode.getChild(j);
+        rewriteAutoSaveSourcePaths(editStateCopy, m_edit, targetTempFile.getParentDirectory());
 
-                    if (trackItemNode.hasType(te::IDs::AUDIOCLIP))
-                    {
-                        if (trackItemNode.hasProperty(te::IDs::source))
-                        {
-                            auto oldRelativePath = trackItemNode.getProperty(te::IDs::source).toString();
-                            auto absoluteSourceFile = m_edit.filePathResolver(oldRelativePath);
-
-                            if (absoluteSourceFile.existsAsFile())
-                            {
-                                auto newRelativePath = absoluteSourceFile.getRelativePathFrom(targetTempFile.getParentDirectory());
-                                trackItemNode.setProperty(te::IDs::source, newRelativePath, nullptr);
-                            }
-                            else
-                            {
-                                GUIHelpers::log("WARNING: Source file not found during autosave: " + absoluteSourceFile.getFullPathName());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (auto xml = editStateCopy.createXml())
-        {
-            if (targetTempFile.replaceWithText(xml->toString()))
-            {
-                GUIHelpers::log("Autosave successful: " + targetTempFile.getFullPathName());
-                m_editViewState.m_needAutoSave = false;
-            }
-            else
-            {
-                GUIHelpers::log("ERROR: Autosave failed to write to file: " + targetTempFile.getFullPathName());
-            }
-        }
+        queueTempFileWrite(std::move(editStateCopy), targetTempFile, generation);
     }
     catch (const std::exception &e)
     {
+        m_autoSaveInProgress = false;
         GUIHelpers::log("ERROR: Exception during autosave process: " + juce::String(e.what()));
     }
+}
+
+void EditComponent::queueTempFileWrite(juce::ValueTree editStateCopy, const juce::File &targetTempFile, juce::uint64 generation)
+{
+    juce::Component::SafePointer<EditComponent> safeThis(this);
+
+    m_autoSaveThreadPool.addJob(
+        [safeThis, editStateCopy = std::move(editStateCopy), targetTempFile, generation]() mutable
+        {
+            bool wasSuccessful = false;
+
+            try
+            {
+                juce::TemporaryFile tempFile(targetTempFile);
+
+                if (auto output = std::unique_ptr<juce::FileOutputStream>(tempFile.getFile().createOutputStream()))
+                {
+                    editStateCopy.writeToStream(*output);
+                    output->flush();
+                    wasSuccessful = tempFile.overwriteTargetFileWithTemporary();
+                }
+            }
+            catch (const std::exception &e)
+            {
+                GUIHelpers::log("ERROR: Exception during autosave write: " + juce::String(e.what()));
+            }
+
+            juce::MessageManager::callAsync(
+                [safeThis, wasSuccessful, generation, targetTempFile]
+                {
+                    if (safeThis != nullptr)
+                        safeThis->handleTempFileWriteFinished(wasSuccessful, generation, targetTempFile);
+                });
+        });
+}
+
+void EditComponent::handleTempFileWriteFinished(bool wasSuccessful, juce::uint64 generation, const juce::File &targetTempFile)
+{
+    m_autoSaveInProgress = false;
+
+    if (wasSuccessful)
+    {
+        GUIHelpers::log("Autosave successful: " + targetTempFile.getFullPathName());
+
+        // Only clear the dirty flag when the written snapshot still matches the latest edit state.
+        if (generation == m_autoSaveGeneration.load())
+            m_editViewState.m_needAutoSave = false;
+    }
+    else
+    {
+        GUIHelpers::log("ERROR: Autosave failed to write to file: " + targetTempFile.getFullPathName());
+    }
+
+    if (m_autoSaveQueued.exchange(false))
+        saveTempFile();
 }
 
 void EditComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
@@ -456,7 +514,11 @@ void EditComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Ide
 
     if (i == te::IDs::lastSignificantChange)
     {
+        ++m_autoSaveGeneration;
         m_editViewState.m_needAutoSave = true;
+
+        if (m_autoSaveInProgress.load())
+            m_autoSaveQueued = true;
     }
     if (v.hasType(m_timeLine.getTimeLineID()))
     {
