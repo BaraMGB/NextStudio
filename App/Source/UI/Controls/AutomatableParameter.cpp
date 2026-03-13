@@ -31,10 +31,15 @@ AutomatableParameterComponent::AutomatableParameterComponent(const te::Automatab
 
     addAndMakeVisible(m_titleLabel);
 
-    m_automatableParameter->addListener(this);
+    if (m_automatableParameter != nullptr)
+        m_automatableParameter->addListener(this);
 }
 
-AutomatableParameterComponent::~AutomatableParameterComponent() { m_automatableParameter->removeListener(this); }
+AutomatableParameterComponent::~AutomatableParameterComponent()
+{
+    if (m_automatableParameter != nullptr)
+        m_automatableParameter->removeListener(this);
+}
 void AutomatableParameterComponent::resized()
 {
     auto area = getLocalBounds();
@@ -63,6 +68,12 @@ void AutomatableParameterComponent::setKnobSkewFromMidPoint(double midPoint)
 
 void AutomatableParameterComponent::updateLabel()
 {
+    if (m_automatableParameter == nullptr)
+    {
+        m_valueLabel.setText("-", juce::NotificationType::dontSendNotification);
+        return;
+    }
+
     auto customDisplay = getCustomDisplayString();
     if (customDisplay.isNotEmpty())
         m_valueLabel.setText(customDisplay, juce::NotificationType::dontSendNotification);

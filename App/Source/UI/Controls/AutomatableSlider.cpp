@@ -16,10 +16,19 @@ AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::A
 {
     setSliderStyle(juce::Slider::RotaryVerticalDrag);
     setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, false);
-    bindSliderToParameter();
-    m_automatableParameter->addListener(this);
-    if (auto t = m_automatableParameter->getTrack())
-        m_trackColour = t->getColour();
+
+    if (m_automatableParameter != nullptr)
+    {
+        bindSliderToParameter();
+        m_automatableParameter->addListener(this);
+
+        if (auto t = m_automatableParameter->getTrack())
+            m_trackColour = t->getColour();
+    }
+    else
+    {
+        setEnabled(false);
+    }
 
     m_modDepthSlider.setSliderStyle(juce::Slider::LinearBar);
     m_modDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
@@ -47,11 +56,15 @@ AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::A
     addChildComponent(m_modDepthSlider);
     m_modDepthSlider.addMouseListener(this, false);
 
-    if (auto def = m_automatableParameter->getDefaultValue())
-        setDoubleClickReturnValue(true, *def);
+    if (m_automatableParameter != nullptr)
+        if (auto def = m_automatableParameter->getDefaultValue())
+            setDoubleClickReturnValue(true, *def);
 
     m_modDepthSlider.onValueChange = [this]
     {
+        if (m_automatableParameter == nullptr)
+            return;
+
         auto assignments = m_automatableParameter->getAssignments();
         if (!assignments.isEmpty())
         {
@@ -67,7 +80,9 @@ AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::A
 AutomatableSliderComponent::~AutomatableSliderComponent()
 {
     m_modDepthSlider.removeMouseListener(this);
-    m_automatableParameter->removeListener(this);
+
+    if (m_automatableParameter != nullptr)
+        m_automatableParameter->removeListener(this);
 }
 
 void AutomatableSliderComponent::mouseEnter(const juce::MouseEvent &) { updateModDepthVisibility(); }
@@ -84,6 +99,12 @@ void AutomatableSliderComponent::resized()
 
 void AutomatableSliderComponent::updateModDepthVisibility()
 {
+    if (m_automatableParameter == nullptr)
+    {
+        m_modDepthSlider.setVisible(false);
+        return;
+    }
+
     auto assignments = m_automatableParameter->getAssignments();
 
     // Check if mouse is over this component or the depth slider itself
@@ -233,6 +254,12 @@ void AutomatableSliderComponent::setParameter(te::AutomatableParameter::Ptr newP
 
 void AutomatableSliderComponent::bindSliderToParameter()
 {
+    if (m_automatableParameter == nullptr)
+    {
+        setEnabled(false);
+        return;
+    }
+
     const auto v = m_automatableParameter->valueRange;
     const auto range = juce::NormalisableRange<double>(static_cast<double>(v.start), static_cast<double>(v.end), static_cast<double>(v.interval), static_cast<double>(v.skew), v.symmetricSkew);
 

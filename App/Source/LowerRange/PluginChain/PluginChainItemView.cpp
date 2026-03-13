@@ -80,7 +80,7 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     {
         m_pluginComponent = std::make_unique<DelayPluginComponent>(evs, p);
     }
-    else if (m_plugin->getPluginType() == NextFilterPlugin::xmlTypeName || m_plugin->getPluginType() == te::LowPassPlugin::xmlTypeName || m_plugin->getPluginType() == "lowpass")
+    else if (m_plugin->getPluginType() == NextFilterPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<FilterPluginComponent>(evs, p);
     }
