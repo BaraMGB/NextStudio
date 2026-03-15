@@ -33,6 +33,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Plugins/Chorus/NextChorusPlugin.h"
 #include "Plugins/Delay/NextDelayPlugin.h"
 #include "Plugins/Filter/NextFilterPlugin.h"
+#include "Plugins/PeakLimiter/PeakLimiterPlugin.h"
 #include "Plugins/Phaser/NextPhaserPlugin.h"
 #include "Plugins/Saturation/NextSaturationPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
@@ -82,6 +83,7 @@ MainComponent::MainComponent(ApplicationViewState &state)
     m_engine.getPluginManager().createBuiltInType<SimpleSynthPlugin>();
     m_engine.getPluginManager().createBuiltInType<ArpeggiatorPlugin>();
     m_engine.getPluginManager().createBuiltInType<SpectrumAnalyzerPlugin>();
+    m_engine.getPluginManager().createBuiltInType<PeakLimiterPlugin>();
     m_engine.getPluginManager().createBuiltInType<NextDelayPlugin>();
     m_engine.getPluginManager().createBuiltInType<NextChorusPlugin>();
     m_engine.getPluginManager().createBuiltInType<NextPhaserPlugin>();

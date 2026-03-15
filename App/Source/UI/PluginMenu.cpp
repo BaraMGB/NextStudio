@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Plugins/Chorus/NextChorusPlugin.h"
 #include "Plugins/Delay/NextDelayPlugin.h"
 #include "Plugins/Filter/NextFilterPlugin.h"
+#include "Plugins/PeakLimiter/PeakLimiterPlugin.h"
 #include "Plugins/Phaser/NextPhaserPlugin.h"
 #include "Plugins/Saturation/NextSaturationPlugin.h"
 #include "Plugins/SimpleSynth/SimpleSynthPlugin.h"
@@ -114,6 +115,7 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
     //    addInternalPlugin<te::LevelMeterPlugin> (*this, num);
     addInternalPlugin<te::EqualiserPlugin>(*this, num);
     addInternalPlugin<te::ReverbPlugin>(*this, num);
+    addInternalPlugin<PeakLimiterPlugin>(*this, num);
     addInternalPlugin<NextDelayPlugin>(*this, num);
     addInternalPlugin<NextChorusPlugin>(*this, num);
     addInternalPlugin<NextPhaserPlugin>(*this, num);

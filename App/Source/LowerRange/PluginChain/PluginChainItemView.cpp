@@ -23,6 +23,8 @@
 #include "Plugins/Filter/FilterPluginComponent.h"
 #include "Plugins/Filter/NextFilterPlugin.h"
 #include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
+#include "Plugins/PeakLimiter/PeakLimiterPlugin.h"
+#include "Plugins/PeakLimiter/PeakLimiterPluginComponent.h"
 #include "Plugins/Phaser/NextPhaserPlugin.h"
 #include "Plugins/Phaser/PhaserPluginComponent.h"
 #include "Plugins/Reverb/ReverbPluginComponent.h"
@@ -87,6 +89,10 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     else if (m_plugin->getPluginType() == te::CompressorPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<CompressorPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == PeakLimiterPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<PeakLimiterPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == te::ReverbPlugin::xmlTypeName)
     {

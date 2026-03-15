@@ -74,6 +74,8 @@ target_sources(${TargetName} PRIVATE
         Source/MainComponent.cpp
         Source/Plugins/Arpeggiator/ArpeggiatorPlugin.cpp
         Source/Plugins/Arpeggiator/ArpeggiatorPluginComponent.cpp
+        Source/Plugins/PeakLimiter/PeakLimiterPlugin.cpp
+        Source/Plugins/PeakLimiter/PeakLimiterPluginComponent.cpp
         Source/Plugins/Chorus/ChorusPluginComponent.cpp
         Source/Plugins/Chorus/NextChorusPlugin.cpp
         Source/Plugins/Compressor/CompressorPluginComponent.cpp
