@@ -128,8 +128,12 @@ void ArpeggiatorPlugin::reset()
     heldNotes.clear();
     sortedNotes.clear();
     lastNotePlayed = -1;
+    lastNoteStartBeat = -1.0;
+    lastNoteDuration = 0.0;
     currentStep = 0;
     goingUp = true;
+    stoppedModeBeats = 0.0;
+    wasPlaying = false;
 }
 
 void ArpeggiatorPlugin::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
@@ -167,6 +171,12 @@ void ArpeggiatorPlugin::midiPanic()
     heldNotes.clear();
     sortedNotes.clear();
     lastNotePlayed = -1;
+    lastNoteStartBeat = -1.0;
+    lastNoteDuration = 0.0;
+    currentStep = 0;
+    goingUp = true;
+    stoppedModeBeats = 0.0;
+    wasPlaying = false;
 }
 
 double ArpeggiatorPlugin::getRateInBeats(float rateIndex)
@@ -259,6 +269,24 @@ void ArpeggiatorPlugin::applyToBuffer(const PluginRenderContext &fc)
 {
     auto &midi = *fc.bufferForMidiMessages;
     bool notesChanged = false;
+
+    const bool justStopped = (wasPlaying && !fc.isPlaying);
+    wasPlaying = fc.isPlaying;
+
+    if (justStopped)
+    {
+        if (lastNotePlayed != -1)
+            midi.addMidiMessage(juce::MidiMessage::noteOff(1, lastNotePlayed), 0.0, te::MPESourceID{});
+
+        heldNotes.clear();
+        sortedNotes.clear();
+        lastNotePlayed = -1;
+        lastNoteStartBeat = -1.0;
+        lastNoteDuration = 0.0;
+        currentStep = 0;
+        goingUp = true;
+        stoppedModeBeats = 0.0;
+    }
 
     // 1. Process incoming MIDI
     for (const auto &m : midi)

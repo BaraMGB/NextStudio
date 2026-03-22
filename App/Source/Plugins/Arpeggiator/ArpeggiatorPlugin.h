@@ -93,6 +93,7 @@ private:
     int lastNotePlayed = -1;
     double lastNoteStartBeat = -1.0;
     double lastNoteDuration = 0.0;
+    bool wasPlaying = false;
 
     void updateSortedNotes();
     int getNextNote();
