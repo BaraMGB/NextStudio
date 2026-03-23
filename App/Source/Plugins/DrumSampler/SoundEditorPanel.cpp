@@ -96,7 +96,8 @@ void SoundEditorPanel::paint(juce::Graphics &g)
     waveformArea.reduce(1, 1);
     controlsArea.reduce(1, 1);
 
-    auto colour = m_samplerPlugin.getOwnerTrack()->getColour();
+    auto *ownerTrack = m_samplerPlugin.getOwnerTrack();
+    auto colour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
 
     // Draw header
     g.setColour(colour);

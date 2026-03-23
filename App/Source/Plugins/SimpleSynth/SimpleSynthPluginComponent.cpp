@@ -149,7 +149,8 @@ void SimpleSynthOscSection::updateUI()
 void SimpleSynthOscSection::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(5).toFloat();
-    auto trackColour = m_plugin.getOwnerTrack()->getColour();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
     GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
 
     // Label Colour
@@ -260,7 +261,8 @@ SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin &plugin, Ap
 void SimpleSynthFilterSection::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(5).toFloat();
-    auto trackColour = m_plugin.getOwnerTrack()->getColour();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
     GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
 
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
@@ -330,7 +332,8 @@ SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin &plugin, Applicat
 void SimpleSynthEnvSection::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds().reduced(5).toFloat();
-    auto trackColour = m_plugin.getOwnerTrack()->getColour();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
     GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
 
     auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
