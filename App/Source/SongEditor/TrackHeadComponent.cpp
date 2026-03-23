@@ -939,27 +939,22 @@ void TrackHeaderComponent::mouseDown(const juce::MouseEvent &event)
                 if (m_editViewState.getLowerRangeView() != LowerRangeView::pluginRack)
                     m_editViewState.setLowerRangeView(LowerRangeView::pluginRack);
 
-                auto setShowLowerRangeIfNeeded = [](te::Track *track, bool shouldShow)
-                {
-                    if (track == nullptr)
-                        return;
-
-                    const bool currentlyShown = (bool)track->state.getProperty(IDs::showLowerRange, false);
-                    if (currentlyShown != shouldShow)
-                        track->state.setProperty(IDs::showLowerRange, shouldShow, nullptr);
-                };
-
                 for (auto t : te::getAllTracks(m_editViewState.m_edit))
                 {
-                    setShowLowerRangeIfNeeded(t, t == m_track.get());
+                    if (t == nullptr)
+                        continue;
+
+                    t->state.setProperty(IDs::showLowerRange, false, nullptr);
+                    if (t == m_track.get())
+                        t->state.setProperty(IDs::showLowerRange, true, nullptr);
                 }
 
                 if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
                 {
                     if (m_track->isMasterTrack())
-                        setShowLowerRangeIfNeeded(masterTrack, true);
+                        masterTrack->state.setProperty(IDs::showLowerRange, true, nullptr);
                     else
-                        setShowLowerRangeIfNeeded(masterTrack, false);
+                        masterTrack->state.setProperty(IDs::showLowerRange, false, nullptr);
                 }
             }
         }
