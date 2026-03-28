@@ -1043,10 +1043,36 @@ void TrackHeaderComponent::mouseExit(const juce::MouseEvent & /*e*/)
 juce::Colour TrackHeaderComponent::getTrackColour() { return m_track->getColour(); }
 bool TrackHeaderComponent::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    if (dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Track" || dragSourceDetails.description == "Instrument or Effect")
+    if (dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Track")
     {
         return true;
     }
+    
+    if (dragSourceDetails.description == "Instrument or Effect")
+    {
+        // Check if we're trying to drag an instrument over a Wave track
+        if (auto lb = dynamic_cast<InstrumentEffectTable *>(dragSourceDetails.sourceComponent.get()))
+        {
+            bool isTargetMidiTrack = static_cast<bool>(getTrack()->state.getProperty(IDs::isMidiTrack));
+            
+            // Get the plugin to determine if it's an instrument
+            auto& pluginList = lb->getPluginList();
+            int selectedRow = lb->getLastRowSelected();
+            
+            if (selectedRow >= 0 && selectedRow < pluginList.size())
+            {
+                bool isInstrumentPlugin = pluginList[selectedRow].isInstrument;
+                
+                // Only allow instruments on MIDI tracks and effects on any track
+                if (isInstrumentPlugin && !isTargetMidiTrack)
+                {
+                    return false; // Don't allow instrument drag over Wave track
+                }
+            }
+        }
+        return true;
+    }
+    
     return false;
 }
 
@@ -1088,6 +1114,34 @@ void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDeta
     {
         if (auto lb = dynamic_cast<InstrumentEffectTable *>(details.sourceComponent.get()))
         {
+            // Check if we're trying to drop an instrument on a Wave track
+            bool isTargetMidiTrack = static_cast<bool>(getTrack()->state.getProperty(IDs::isMidiTrack));
+            
+            // Get the plugin list to determine if this is from an instrument browser
+            auto& pluginList = lb->getPluginList();
+            int selectedRow = lb->getLastRowSelected();
+            bool isInstrumentPlugin = false;
+            
+            if (selectedRow >= 0 && selectedRow < pluginList.size())
+            {
+                isInstrumentPlugin = pluginList[selectedRow].isInstrument;
+            }
+            
+            // Prevent instruments from being dropped on Wave tracks
+            if (isInstrumentPlugin && !isTargetMidiTrack)
+            {
+                juce::AlertWindow::showMessageBoxAsync(
+                    juce::AlertWindow::WarningIcon,
+                    "Invalid Track Type",
+                    "MIDI instruments can only be added to MIDI tracks.\n\n"
+                    "Please select a MIDI track (Instrument track) or create a new one using the '+MIDI' button."
+                );
+                m_contentIsOver = false;
+                m_trackIsOver = false;
+                repaint();
+                return;
+            }
+            
             EngineHelpers::insertPluginWithPreset(m_editViewState, getTrack(), lb->getSelectedPlugin(m_editViewState.m_edit));
         }
     }

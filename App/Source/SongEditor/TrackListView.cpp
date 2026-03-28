@@ -121,7 +121,18 @@ void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
     {
         if (auto lb = dynamic_cast<InstrumentEffectTable *>(dragSourceDetails.sourceComponent.get()))
         {
-            auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
+            // Determine if the selected plugin is an instrument or effect
+            auto& pluginList = lb->getPluginList();
+            int selectedRow = lb->getLastRowSelected();
+            bool isInstrumentPlugin = false;
+            
+            if (selectedRow >= 0 && selectedRow < pluginList.size())
+            {
+                isInstrumentPlugin = pluginList[selectedRow].isInstrument;
+            }
+            
+            // Create appropriate track type: MIDI track for instruments, Wave track for effects
+            auto track = EngineHelpers::addAudioTrack(isInstrumentPlugin, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
             EngineHelpers::insertPluginWithPreset(m_editViewState, track, lb->getSelectedPlugin(m_editViewState.m_edit));
         }
     }
