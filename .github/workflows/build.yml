@@ -80,6 +80,7 @@ jobs:
             build/*.deb
             build/*.tar.gz
           if-no-files-found: error
+          retention-days: 1
 
   release:
     needs: build
