@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 #include "SideBrowser/PluginBrowser.h"
 #include "Utilities/ApplicationViewState.h"
+#include "Utilities/Utilities.h"
 #include "juce_core/juce_core.h"
 #include <functional>
 
@@ -289,8 +290,9 @@ private:
 class GeneralSettings : public juce::Component
 {
 public:
-    explicit GeneralSettings(ApplicationViewState &appState)
-        : m_appState(appState)
+    explicit GeneralSettings(te::Engine &engine, ApplicationViewState &appState)
+        : m_engine(engine),
+          m_appState(appState)
     {
         m_scaleLabel.setText("Scaling Factor:", juce::dontSendNotification);
         addAndMakeVisible(m_scaleLabel);
@@ -316,6 +318,14 @@ public:
 
         m_mouseScaleEditor.onFocusLost = [this]() { updateMouseScale(); };
         m_mouseScaleEditor.onReturnKey = [this]() { updateMouseScale(); };
+
+        m_timeStretchLabel.setText("Time-Stretch Algorithm:", juce::dontSendNotification);
+        addAndMakeVisible(m_timeStretchLabel);
+
+        m_timeStretchCombo.setTextWhenNothingSelected("No algorithm available");
+        m_timeStretchCombo.onChange = [this] { updateTimeStretchMode(); };
+        addAndMakeVisible(m_timeStretchCombo);
+        refreshTimeStretchModes();
 
         m_contentPathLabel.setText("Content Folder:", juce::dontSendNotification);
         addAndMakeVisible(m_contentPathLabel);
@@ -368,7 +378,10 @@ public:
     void visibilityChanged() override
     {
         if (isVisible())
+        {
+            refreshTimeStretchModes();
             refreshThemeList();
+        }
     }
 
     void resized() override
@@ -385,6 +398,10 @@ public:
         auto mouseScaleRow = bounds.removeFromTop(rowHeight);
         m_mouseScaleLabel.setBounds(mouseScaleRow.removeFromLeft(140));
         m_mouseScaleEditor.setBounds(mouseScaleRow.removeFromLeft(100).reduced(2));
+
+        auto timeStretchRow = bounds.removeFromTop(rowHeight);
+        m_timeStretchLabel.setBounds(timeStretchRow.removeFromLeft(140));
+        m_timeStretchCombo.setBounds(timeStretchRow.reduced(2));
 
         auto contentPathRow = bounds.removeFromTop(rowHeight);
         m_contentPathLabel.setBounds(contentPathRow.removeFromLeft(140));
@@ -421,11 +438,14 @@ public:
     ColourSettingsPanel *getColourSettings() { return m_colourSettingsPanel.get(); }
 
 private:
+    te::Engine &m_engine;
     ApplicationViewState &m_appState;
     juce::Label m_scaleLabel;
     juce::Slider m_scaleSlider;
     juce::Label m_mouseScaleLabel;
     juce::TextEditor m_mouseScaleEditor;
+    juce::Label m_timeStretchLabel;
+    juce::ComboBox m_timeStretchCombo;
     juce::Label m_contentPathLabel;
     juce::Label m_contentPathValue;
     juce::Label m_versionLabel;
@@ -456,6 +476,34 @@ private:
         {
             m_themeCombo.addItem(themeFiles[i].getFileNameWithoutExtension(), i + 1);
         }
+    }
+
+    void refreshTimeStretchModes()
+    {
+        m_timeStretchCombo.clear(juce::dontSendNotification);
+
+        const auto modeNames = te::TimeStretcher::getPossibleModes(m_engine, true);
+
+        for (int i = 0; i < modeNames.size(); ++i)
+            m_timeStretchCombo.addItem(modeNames[i], i + 1);
+
+        const auto defaultModeName = EngineHelpers::getDefaultTimeStretchModeName(m_engine);
+        const auto currentModeName = modeNames.contains(juce::String(m_appState.m_timeStretchMode)) ? juce::String(m_appState.m_timeStretchMode) : defaultModeName;
+
+        if (currentModeName.isNotEmpty())
+            m_appState.m_timeStretchMode = currentModeName;
+
+        const auto selectedIndex = modeNames.indexOf(currentModeName);
+        m_timeStretchCombo.setSelectedId(selectedIndex >= 0 ? selectedIndex + 1 : 0, juce::dontSendNotification);
+        m_timeStretchCombo.setEnabled(modeNames.size() > 0);
+    }
+
+    void updateTimeStretchMode()
+    {
+        const auto selectedText = m_timeStretchCombo.getText();
+
+        if (selectedText.isNotEmpty())
+            m_appState.m_timeStretchMode = selectedText;
     }
 
     void loadThemeFromCombo()
@@ -674,7 +722,7 @@ public:
           m_appState(appState),
           m_commandManager(commandManager),
           m_midiSettings(engine, appState),
-          m_generalSettings(appState),
+          m_generalSettings(engine, appState),
           m_audioSettings(engine.getDeviceManager().deviceManager, 0, 512, 1, 512, false, false, false, false),
           m_keyMappingEditor(*m_commandManager.getKeyMappings(), true),
           m_pluginBrowser(engine, appState)

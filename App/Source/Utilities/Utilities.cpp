@@ -1649,6 +1649,33 @@ te::TrackAutomationSection EngineHelpers::getTrackAutomationSection(te::Automata
 
     return as;
 }
+
+juce::String EngineHelpers::getDefaultTimeStretchModeName(te::Engine &engine)
+{
+    const auto availableModes = te::TimeStretcher::getPossibleModes(engine, true);
+
+    if (availableModes.contains(te::TimeStretcher::getNameOfMode(te::TimeStretcher::soundtouchBetter)))
+        return te::TimeStretcher::getNameOfMode(te::TimeStretcher::soundtouchBetter);
+
+    const auto defaultModeName = te::TimeStretcher::getNameOfMode(te::TimeStretcher::defaultMode);
+
+    if (availableModes.contains(defaultModeName))
+        return defaultModeName;
+
+    return availableModes.isEmpty() ? juce::String() : availableModes[0];
+}
+
+te::TimeStretcher::Mode EngineHelpers::getPreferredTimeStretchMode(const ApplicationViewState &appState, te::Engine &engine)
+{
+    const auto savedModeName = juce::String(appState.m_timeStretchMode);
+    const auto availableModes = te::TimeStretcher::getPossibleModes(engine, true);
+
+    if (availableModes.contains(savedModeName))
+        return te::TimeStretcher::getModeFromName(engine, savedModeName);
+
+    return te::TimeStretcher::getModeFromName(engine, getDefaultTimeStretchModeName(engine));
+}
+
 void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState &evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
@@ -1694,6 +1721,7 @@ void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditVie
 void EngineHelpers::timeStretchSelectedClips(double delta, EditViewState &evs)
 {
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    auto stretchMode = getPreferredTimeStretchMode(evs.m_applicationState, evs.m_edit.engine);
 
     for (auto sc : selectedClips)
     {
@@ -1710,7 +1738,7 @@ void EngineHelpers::timeStretchSelectedClips(double delta, EditViewState &evs)
             if (sourceSegmentLength <= 0.0)
                 continue;
 
-            wac->setTimeStretchMode(te::TimeStretcher::soundtouchBetter);
+            wac->setTimeStretchMode(stretchMode);
             wac->setSpeedRatio(sourceSegmentLength / newLength);
             wac->setLength(tracktion::TimeDuration::fromSeconds(newLength), true);
             evs.removeThumbnail(wac->itemID);

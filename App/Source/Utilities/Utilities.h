@@ -301,6 +301,8 @@ void moveAutomation(te::Track *src, te::TrackAutomationSection::ActiveParameters
 
 te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter *ap, tracktion::TimeRange tr);
 
+juce::String getDefaultTimeStretchModeName(te::Engine &engine);
+te::TimeStretcher::Mode getPreferredTimeStretchMode(const ApplicationViewState &appState, te::Engine &engine);
 void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState &evs);
 void timeStretchSelectedClips(double delta, EditViewState &evs);
 

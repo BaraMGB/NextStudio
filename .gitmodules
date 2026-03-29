@@ -2,3 +2,7 @@
 	path = modules/tracktion_engine
 	url = https://github.com/Tracktion/tracktion_engine.git
 	branch = develop
+
+[submodule "modules/rubberband"]
+	path = modules/rubberband
+	url = https://github.com/breakfastquay/rubberband.git

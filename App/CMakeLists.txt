@@ -30,6 +30,12 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 add_subdirectory(../modules/tracktion_engine/modules/juce ./cmake_build_juce EXCLUDE_FROM_ALL)
 add_subdirectory(../modules/tracktion_engine/modules ./cmake_build_tracktion EXCLUDE_FROM_ALL)
 
+set(HAS_RUBBERBAND 0)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../modules/rubberband/")
+    message(STATUS "Found rubberband, enabling")
+    set(HAS_RUBBERBAND 1)
+endif()
+
 
 add_subdirectory(resources)
 
@@ -53,6 +59,11 @@ if(BUILD_DIR_NAME STREQUAL "jumake_build")
 endif()
 
 target_include_directories(${TargetName} PRIVATE Source)
+
+if(HAS_RUBBERBAND)
+    target_include_directories(${TargetName} PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../modules")
+endif()
 
 target_sources(${TargetName} PRIVATE
         ../resources/icon.rc 
@@ -163,7 +174,8 @@ target_compile_definitions(${TargetName} PRIVATE
         JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_PROJECT_NAME>"
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${TargetName},JUCE_VERSION>"
         TRACKTION_ENABLE_TIMESTRETCH_SOUNDTOUCH=1
-        TRACKTION_BUILD_RUBBERBAND=1
+        TRACKTION_ENABLE_TIMESTRETCH_RUBBERBAND=${HAS_RUBBERBAND}
+        TRACKTION_BUILD_RUBBERBAND=${HAS_RUBBERBAND}
         )
 
 target_compile_definitions (${TargetName} PUBLIC
