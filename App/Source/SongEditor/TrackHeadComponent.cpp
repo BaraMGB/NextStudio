@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SideBrowser/InstrumentEffectChooser.h"
 #include "SideBrowser/PluginBrowser.h"
 #include "SongEditor/EditComponent.h"
+#include "UI/PluginInsertFeedback.h"
 #include "Utilities/EditViewState.h"
 #include "Utilities/Utilities.h"
 #include "juce_graphics/juce_graphics.h"
@@ -64,6 +65,7 @@ bool isMasterAutomationParameter(const te::AutomatableParameter::Ptr &ap)
 
     return false;
 }
+
 } // namespace
 
 AutomationLaneHeaderComponent::AutomationLaneHeaderComponent(tracktion_engine::AutomatableParameter::Ptr ap, EditViewState &evs)
@@ -1080,7 +1082,9 @@ void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDeta
     {
         if (auto listbox = dynamic_cast<PluginListbox *>(details.sourceComponent.get()))
         {
-            EngineHelpers::insertPluginWithPreset(m_editViewState, getTrack(), listbox->getSelectedPlugin(m_editViewState.m_edit));
+            const auto insertResult = EngineHelpers::insertPluginWithPreset(m_editViewState, getTrack(), listbox->getSelectedPlugin(m_editViewState.m_edit));
+            if (insertResult != EngineHelpers::PluginInsertResult::inserted)
+                UIHelpers::showPluginInsertBlockedDialog(insertResult);
         }
     }
 
@@ -1088,7 +1092,9 @@ void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDeta
     {
         if (auto lb = dynamic_cast<InstrumentEffectTable *>(details.sourceComponent.get()))
         {
-            EngineHelpers::insertPluginWithPreset(m_editViewState, getTrack(), lb->getSelectedPlugin(m_editViewState.m_edit));
+            const auto insertResult = EngineHelpers::insertPluginWithPreset(m_editViewState, getTrack(), lb->getSelectedPlugin(m_editViewState.m_edit));
+            if (insertResult != EngineHelpers::PluginInsertResult::inserted)
+                UIHelpers::showPluginInsertBlockedDialog(insertResult);
         }
     }
 

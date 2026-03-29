@@ -107,7 +107,7 @@ private:
     int getMaxContentScrollX() const;
     int getTargetScrollXForItem(const PluginChainItemView &item) const;
     void animateScrollToX(int targetX);
-    void addPluginAtCurrentPosition();
+    void addPluginAtCurrentPosition(EngineHelpers::PluginChainRole role, juce::Component *targetComponent);
     void reorderPluginListItem(te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter);
     int getRackItemIndexForID(te::EditItemID id) const;
     int getSelectedRackItemIndex() const;
@@ -133,7 +133,6 @@ private:
     std::unique_ptr<PresetManagerComponent> m_trackPresetManager;
     std::unique_ptr<MixerChannelStripComponent> m_channelStrip;
 
-    juce::TextButton m_addPluginButton{"Add plugin"};
     juce::Component m_pluginListContent;
     juce::Viewport m_pluginListViewport;
     juce::OwnedArray<RackPluginListItem> m_pluginListButtons;
@@ -209,6 +208,10 @@ public:
     }
 
     void setPlugin(te::Plugin::Ptr pln) { plugin = std::move(pln); }
+    void setTargetPluginOrdinal(int ordinal) { m_targetPluginOrdinal = ordinal; }
+    int getTargetPluginOrdinal() const { return m_targetPluginOrdinal; }
+    void setSectionRole(EngineHelpers::PluginChainRole role) { m_sectionRole = role; }
+    EngineHelpers::PluginChainRole getSectionRole() const { return m_sectionRole; }
 
     te::Plugin::Ptr plugin{nullptr};
 
@@ -216,5 +219,8 @@ private:
     bool isOver{false};
     te::Track::Ptr m_track;
     ApplicationViewState &m_appState;
+    // Ordinal in the visible rack plugin order (hidden tail plugins excluded).
+    int m_targetPluginOrdinal{0};
+    EngineHelpers::PluginChainRole m_sectionRole{EngineHelpers::PluginChainRole::audioEffect};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AddButton)
 };

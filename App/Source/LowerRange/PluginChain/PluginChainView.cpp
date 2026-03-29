@@ -22,81 +22,287 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRange/PluginChain/PluginChainView.h"
 #include "Plugins/SimpleSynth/SimpleSynthPluginComponent.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
+#include "UI/PluginInsertFeedback.h"
 #include "UI/PluginMenu.h"
 #include "Utilities/Utilities.h"
+#include <map>
+#include <vector>
+
+namespace
+{
+bool pluginTreeItemMatchesRole(const PluginTreeItem &item, EngineHelpers::PluginChainRole role) { return EngineHelpers::getPluginChainRole(item.desc, item.xmlType) == role; }
+
+bool appendFilteredMenuItems(PluginTreeGroup &group, juce::PopupMenu &menu, EngineHelpers::PluginChainRole role, int &nextItemId, std::map<int, PluginTreeItem *> &itemLookup)
+{
+    bool hasAny = false;
+
+    for (int i = 0; i < group.getNumSubItems(); ++i)
+    {
+        if (auto *subGroup = dynamic_cast<PluginTreeGroup *>(group.getSubItem(i)))
+        {
+            juce::PopupMenu subMenu;
+            const bool subHasAny = appendFilteredMenuItems(*subGroup, subMenu, role, nextItemId, itemLookup);
+            if (subHasAny)
+            {
+                menu.addSubMenu(subGroup->name, subMenu, true);
+                hasAny = true;
+            }
+        }
+    }
+
+    for (int i = 0; i < group.getNumSubItems(); ++i)
+    {
+        auto *item = dynamic_cast<PluginTreeItem *>(group.getSubItem(i));
+        if (item == nullptr)
+            continue;
+
+        if (!pluginTreeItemMatchesRole(*item, role))
+            continue;
+
+        menu.addItem(nextItemId, item->desc.name, true, false);
+        itemLookup[nextItemId] = item;
+        ++nextItemId;
+        hasAny = true;
+    }
+
+    return hasAny;
+}
+
+te::Plugin::Ptr showMenuAndCreatePluginForRole(te::Edit &edit, EngineHelpers::PluginChainRole role, juce::Component *target)
+{
+    if (auto tree = EngineHelpers::createPluginTree(edit.engine))
+    {
+        PluginTreeGroup root(edit, *tree, te::Plugin::Type::allPlugins);
+        juce::PopupMenu menu;
+        std::map<int, PluginTreeItem *> itemLookup;
+        int nextItemId = 1;
+        appendFilteredMenuItems(root, menu, role, nextItemId, itemLookup);
+
+        if (itemLookup.empty())
+            return {};
+
+        const int result = target != nullptr ? menu.showAt(target) : menu.show();
+        if (result <= 0)
+            return {};
+
+        auto it = itemLookup.find(result);
+        if (it == itemLookup.end() || it->second == nullptr)
+            return {};
+
+        return it->second->create(edit);
+    }
+
+    return {};
+}
+
+struct ChainSectionSpec
+{
+    EngineHelpers::PluginChainRole role;
+    juce::String title;
+};
+
+std::vector<ChainSectionSpec> getSectionSpecsForTrack(const te::Track *track)
+{
+    if (track != nullptr && EngineHelpers::isMidiTrack(*track))
+    {
+        return {{EngineHelpers::PluginChainRole::midiEffect, "MIDI Plugins"}, {EngineHelpers::PluginChainRole::instrument, "Instrument"}, {EngineHelpers::PluginChainRole::audioEffect, "Audio Effects"}};
+    }
+
+    return {{EngineHelpers::PluginChainRole::audioEffect, "Audio Effects"}};
+}
+
+} // namespace
 
 //==============================================================================
 class PluginChainView::RackContentComponent : public juce::Component
 {
 public:
+    struct RoleBuckets
+    {
+        std::vector<PluginChainItemView *> midiItems;
+        std::vector<PluginChainItemView *> instrumentItems;
+        std::vector<PluginChainItemView *> audioItems;
+
+        const std::vector<PluginChainItemView *> &forRole(EngineHelpers::PluginChainRole role) const
+        {
+            if (role == EngineHelpers::PluginChainRole::midiEffect)
+                return midiItems;
+            if (role == EngineHelpers::PluginChainRole::instrument)
+                return instrumentItems;
+            return audioItems;
+        }
+    };
+
     RackContentComponent(PluginChainView &v)
         : m_owner(v)
     {
     }
 
-    void paint(juce::Graphics &) override {}
+    void paint(juce::Graphics &g) override
+    {
+        g.fillAll(m_owner.m_evs.m_applicationState.getBackgroundColour2().withAlpha(0.3f));
+
+        g.setFont(13.0f);
+        for (const auto &section : m_sections)
+        {
+            g.setColour(m_owner.m_evs.m_applicationState.getBorderColour().withAlpha(0.45f));
+            g.drawRoundedRectangle(section.bounds.toFloat(), 5.0f, 1.0f);
+
+            auto sectionBounds = section.bounds;
+            auto titleArea = sectionBounds.removeFromTop(18);
+            g.setColour(m_owner.m_evs.m_applicationState.getTextColour().withAlpha(0.9f));
+            g.drawText(section.title, titleArea.reduced(6, 0), juce::Justification::centredLeft, false);
+        }
+    }
 
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override { m_owner.mouseWheelMove(event, wheel); }
+
+    void createAddButton(EngineHelpers::PluginChainRole role, int targetPluginOrdinal, const juce::String &label, int x, int y, int w, int h)
+    {
+        auto adder = std::make_unique<AddButton>(m_owner.m_track, m_owner.m_evs.m_applicationState);
+        adder->setSectionRole(role);
+        adder->setTargetPluginOrdinal(targetPluginOrdinal);
+        adder->setButtonText(label);
+        addAndMakeVisible(adder.get());
+        adder->addListener(&m_owner);
+        adder->setBounds(x, y, w, h);
+        m_addButtons.add(std::move(adder));
+    }
+
+    RoleBuckets collectRoleBuckets() const
+    {
+        RoleBuckets buckets;
+
+        for (auto *item : m_rackItems)
+        {
+            if (item == nullptr)
+                continue;
+
+            auto plugin = item->getPlugin();
+            if (plugin == nullptr)
+                continue;
+
+            switch (EngineHelpers::getPluginChainRole(*plugin))
+            {
+            case EngineHelpers::PluginChainRole::midiEffect:
+                buckets.midiItems.push_back(item);
+                break;
+            case EngineHelpers::PluginChainRole::instrument:
+                buckets.instrumentItems.push_back(item);
+                break;
+            case EngineHelpers::PluginChainRole::audioEffect:
+                buckets.audioItems.push_back(item);
+                break;
+            }
+        }
+
+        return buckets;
+    }
+
+    int calculateSectionWidth(EngineHelpers::PluginChainRole role, const std::vector<PluginChainItemView *> &roleItems, int contentHeight, int sectionMinWidth) const
+    {
+        const int addButtonWidth = (role != EngineHelpers::PluginChainRole::instrument) ? 18 : 0;
+        int requiredWidth = 14;
+        if (role != EngineHelpers::PluginChainRole::instrument)
+            requiredWidth += addButtonWidth + 8;
+
+        for (auto *rackItem : roleItems)
+        {
+            int itemWidth = rackItem->isCollapsed() ? rackItem->getHeaderWidth() : (contentHeight * rackItem->getNeededWidthFactor()) / 2;
+            if (role != EngineHelpers::PluginChainRole::instrument)
+                requiredWidth += itemWidth + 6 + addButtonWidth + 6;
+            else
+                requiredWidth += itemWidth + 6;
+        }
+
+        if (role == EngineHelpers::PluginChainRole::instrument && roleItems.empty())
+            requiredWidth = juce::jmax(requiredWidth, 156);
+
+        return juce::jmax(sectionMinWidth, requiredWidth);
+    }
+
+    void layoutSection(const ChainSectionSpec &sectionSpec, const std::vector<PluginChainItemView *> &roleItems, int sectionStartX, int sectionWidth, int contentTop, int contentHeight, int sectionButtonHeight, int &visiblePluginOrdinal)
+    {
+        const auto role = sectionSpec.role;
+        const int addButtonWidth = (role != EngineHelpers::PluginChainRole::instrument) ? 18 : 0;
+        int cursorX = sectionStartX + 8;
+
+        if (role != EngineHelpers::PluginChainRole::instrument)
+        {
+            createAddButton(role, visiblePluginOrdinal, "+", cursorX, contentTop + 6, addButtonWidth, sectionButtonHeight);
+            cursorX += addButtonWidth + 8;
+        }
+
+        for (auto *rackItem : roleItems)
+        {
+            int itemWidth = rackItem->isCollapsed() ? rackItem->getHeaderWidth() : (contentHeight * rackItem->getNeededWidthFactor()) / 2;
+            rackItem->setBounds(cursorX, contentTop, itemWidth, contentHeight);
+            cursorX += itemWidth + 6;
+            ++visiblePluginOrdinal;
+
+            if (role != EngineHelpers::PluginChainRole::instrument)
+            {
+                createAddButton(role, visiblePluginOrdinal, "+", cursorX, contentTop + 6, addButtonWidth, sectionButtonHeight);
+                cursorX += addButtonWidth + 6;
+            }
+        }
+
+        if (role == EngineHelpers::PluginChainRole::instrument && roleItems.empty())
+        {
+            const int buttonWidth = juce::jmax(120, sectionWidth - 20);
+            const int buttonX = sectionStartX + (sectionWidth - buttonWidth) / 2;
+            createAddButton(role, visiblePluginOrdinal, "Add Instrument", buttonX, contentTop + 6, buttonWidth, sectionButtonHeight);
+        }
+    }
 
     void refreshButtonsAndLayout()
     {
         m_addButtons.clear();
+        m_sections.clear();
 
         int height = getHeight();
         if (height <= 0)
             return;
 
-        int x = 0;
+        int sectionX = 8;
+        const int sectionGap = 10;
+        const int contentTop = 20;
+        const int contentHeight = juce::jmax(1, height - contentTop - 4);
+        const int sectionMinWidth = 170;
 
         if (m_owner.m_track != nullptr)
         {
-            // --- First Add Button ---
-            auto firstAdder = std::make_unique<AddButton>(m_owner.m_track, m_owner.m_evs.m_applicationState);
-            addAndMakeVisible(firstAdder.get());
-            firstAdder->addListener(&m_owner);
-            firstAdder->setButtonText("+");
+            const auto sectionSpecs = getSectionSpecsForTrack(m_owner.m_track.get());
+            const auto roleBuckets = collectRoleBuckets();
 
-            firstAdder->setBounds(juce::Rectangle<int>(x, 0, 15, height).reduced(0, 10));
-            x += 15;
-
-            m_addButtons.add(std::move(firstAdder));
-
-            // --- Rack Items and Interleaved Buttons ---
-            for (auto p : m_rackItems)
+            int visiblePluginOrdinal = 0;
+            for (const auto &sectionSpec : sectionSpecs)
             {
-                x += 5; // padding
+                const auto role = sectionSpec.role;
+                const int sectionButtonHeight = juce::jmax(18, contentHeight - 12);
+                const auto &roleItems = roleBuckets.forRole(role);
 
-                int itemWidth = 0;
-                if (p->isCollapsed())
-                    itemWidth = p->getHeaderWidth();
-                else
-                    itemWidth = (height * p->getNeededWidthFactor()) / 2;
+                const int sectionWidth = calculateSectionWidth(role, roleItems, contentHeight, sectionMinWidth);
+                const int sectionStartX = sectionX;
+                layoutSection(sectionSpec, roleItems, sectionStartX, sectionWidth, contentTop, contentHeight, sectionButtonHeight, visiblePluginOrdinal);
 
-                p->setBounds(x, 0, itemWidth, height);
-                x += itemWidth;
-
-                x += 5; // padding
-
-                auto adder = std::make_unique<AddButton>(m_owner.m_track, m_owner.m_evs.m_applicationState);
-                if (p->getPlugin())
-                    adder->setPlugin(p->getPlugin());
-
-                addAndMakeVisible(adder.get());
-                adder->setButtonText("+");
-                adder->setBounds(juce::Rectangle<int>(x, 0, 15, height).reduced(0, 10));
-                adder->addListener(&m_owner);
-                m_addButtons.add(std::move(adder));
-
-                x += 15;
+                m_sections.push_back({sectionSpec.title, juce::Rectangle<int>(sectionStartX, 0, sectionWidth, height - 2)});
+                sectionX += sectionWidth + sectionGap;
             }
-            x += 5; // final padding
         }
 
-        setSize(x, height);
+        setSize(sectionX, height);
     }
+
+    struct SectionVisual
+    {
+        juce::String title;
+        juce::Rectangle<int> bounds;
+    };
 
     juce::OwnedArray<PluginChainItemView> m_rackItems;
     juce::OwnedArray<AddButton> m_addButtons;
+    std::vector<SectionVisual> m_sections;
     PluginChainView &m_owner;
 };
 
@@ -123,6 +329,25 @@ class RackPluginListItem
     , public juce::DragAndDropTarget
 {
 public:
+    explicit RackPluginListItem(EditViewState &evs, te::Track::Ptr t, juce::String sectionLabel, EngineHelpers::PluginChainRole sectionRole, bool showAddButton)
+        : m_evs(evs),
+          m_track(t),
+          m_label(std::move(sectionLabel)),
+          m_isSectionHeader(true),
+          m_sectionRole(sectionRole)
+    {
+        if (showAddButton)
+        {
+            addAndMakeVisible(m_headerAddButton);
+            m_headerAddButton.setButtonText("+");
+            m_headerAddButton.onClick = [this]
+            {
+                if (onAdd)
+                    onAdd(m_sectionRole, &m_headerAddButton);
+            };
+        }
+    }
+
     RackPluginListItem(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr plugin, te::EditItemID id, juce::String labelText)
         : m_evs(evs),
           m_track(t),
@@ -158,7 +383,13 @@ public:
         return icon;
     }
 
-    bool isInterestedInDragSource(const SourceDetails &details) override { return details.description == "RackPluginListItem"; }
+    bool isInterestedInDragSource(const SourceDetails &details) override
+    {
+        if (m_isSectionHeader)
+            return false;
+
+        return details.description == "RackPluginListItem";
+    }
 
     void itemDragMove(const SourceDetails &details) override
     {
@@ -188,6 +419,9 @@ public:
 
     void setSelected(bool shouldBeSelected)
     {
+        if (m_isSectionHeader)
+            shouldBeSelected = false;
+
         if (m_selected == shouldBeSelected)
             return;
 
@@ -195,8 +429,33 @@ public:
         repaint();
     }
 
+    te::EditItemID getItemID() const { return m_itemID; }
+
+    void resized() override
+    {
+        if (!m_isSectionHeader || !m_headerAddButton.isVisible())
+            return;
+
+        auto area = getLocalBounds().reduced(4, 2);
+        m_headerAddButton.setBounds(area.removeFromRight(22));
+    }
+
     void paint(juce::Graphics &g) override
     {
+        if (m_isSectionHeader)
+        {
+            g.fillAll(m_evs.m_applicationState.getBackgroundColour2().withAlpha(0.55f));
+            g.setColour(m_evs.m_applicationState.getTextColour().withAlpha(0.95f));
+            g.setFont(juce::Font(13.0f, juce::Font::bold));
+            auto area = getLocalBounds().reduced(6, 0);
+            if (m_headerAddButton.isVisible())
+                area.removeFromRight(26);
+            g.drawText(m_label, area, juce::Justification::centredLeft, false);
+            g.setColour(m_evs.m_applicationState.getBorderColour().withAlpha(0.5f));
+            g.drawRect(getLocalBounds(), 1);
+            return;
+        }
+
         g.fillAll(m_evs.m_applicationState.getBackgroundColour1());
 
         if (m_selected)
@@ -243,6 +502,9 @@ public:
 
     void mouseDrag(const juce::MouseEvent &e) override
     {
+        if (m_isSectionHeader)
+            return;
+
         if (m_didDrag || e.getDistanceFromDragStart() < 4)
             return;
 
@@ -256,6 +518,9 @@ public:
 
     void mouseUp(const juce::MouseEvent &e) override
     {
+        if (m_isSectionHeader)
+            return;
+
         if (e.mods.isPopupMenu())
         {
             juce::PopupMenu menu;
@@ -301,6 +566,7 @@ public:
     std::function<void(te::EditItemID, te::EditItemID, bool)> onReorder;
     std::function<void()> onDelete;
     std::function<void()> onToggleEnabled;
+    std::function<void(EngineHelpers::PluginChainRole, juce::Component *)> onAdd;
 
 private:
     EditViewState &m_evs;
@@ -314,6 +580,9 @@ private:
     bool m_dragOver{false};
     bool m_dropAfter{false};
     bool m_didDrag{false};
+    bool m_isSectionHeader{false};
+    EngineHelpers::PluginChainRole m_sectionRole{EngineHelpers::PluginChainRole::audioEffect};
+    juce::TextButton m_headerAddButton;
 };
 
 //==============================================================================
@@ -339,11 +608,6 @@ PluginChainView::PluginChainView(EditViewState &evs)
     m_pluginListViewport.setViewedComponent(&m_pluginListContent, false);
     m_pluginListViewport.setScrollBarsShown(true, false, false, false);
     m_pluginPanel->addAndMakeVisible(m_pluginListViewport);
-
-    m_pluginPanel->addAndMakeVisible(m_addPluginButton);
-    m_addPluginButton.setButtonText("Add plugin");
-
-    m_addPluginButton.onClick = [this] { addPluginAtCurrentPosition(); };
 
     addAndMakeVisible(m_modifierSidebar);
     addChildComponent(m_modifierDetailPanel); // Start hidden
@@ -594,9 +858,7 @@ void PluginChainView::resized()
     auto listContentArea = m_pluginPanel->getLocalBounds();
     listContentArea.removeFromTop(20);
 
-    auto controls = listContentArea.removeFromTop(CONTROL_ROW_HEIGHT).reduced(4, 2);
-
-    m_addPluginButton.setBounds(controls);
+    listContentArea.removeFromTop(2);
 
     listContentArea.reduce(2, 2);
     m_pluginListViewport.setBounds(listContentArea);
@@ -673,14 +935,64 @@ static bool isPluginHidden(te::Track &t, te::Plugin *p)
 
 int PluginChainView::getPluginIndexForVisualIndex(int visualIndex) const
 {
+    // Domain mapping:
+    // - visualIndex: position in rackItemOrder (plugins + modifiers)
+    // - returned track plugin index: insertion index in track.pluginList user-plugin domain
+    // Hidden tail plugins are excluded by counting only visible plugin IDs from rack order.
     auto order = getRackOrder();
-    int targetPluginIndex = 0;
+    int targetTrackPluginIndex = 0;
     for (int i = 0; i < visualIndex && i < order.size(); ++i)
     {
         if (getPluginFromList(m_track->pluginList, te::EditItemID::fromVar(order[i])))
-            targetPluginIndex++;
+            targetTrackPluginIndex++;
     }
-    return targetPluginIndex;
+    return targetTrackPluginIndex;
+}
+
+static int getVisiblePluginOrdinalForID(te::Track &track, te::EditItemID id)
+{
+    // Visible plugin ordinal = non-hidden plugin position used by rack ordering.
+    // It intentionally excludes hidden tail plugins (e.g. meter/pan) from pluginList.
+    int ordinal = 0;
+    for (auto *plugin : track.pluginList)
+    {
+        if (plugin == nullptr || isPluginHidden(track, plugin))
+            continue;
+
+        if (plugin->itemID == id)
+            return ordinal;
+
+        ++ordinal;
+    }
+
+    return -1;
+}
+
+static int getVisualIndexForPluginOrdinal(const juce::StringArray &order, te::Track &track, int pluginOrdinal)
+{
+    // Inverse mapping of the domain above:
+    // - pluginOrdinal: visible plugin position (no modifiers, no hidden tail plugins)
+    // - returned visual index: rackItemOrder insertion slot
+    if (pluginOrdinal < 0)
+        return order.size();
+
+    int currentOrdinal = 0;
+    for (int i = 0; i < order.size(); ++i)
+    {
+        const auto id = te::EditItemID::fromVar(order[i]);
+        if (auto plugin = getPluginFromList(track.pluginList, id))
+        {
+            if (isPluginHidden(track, plugin.get()))
+                continue;
+
+            if (currentOrdinal == pluginOrdinal)
+                return i;
+
+            ++currentOrdinal;
+        }
+    }
+
+    return order.size();
 }
 
 void PluginChainView::ensureRackOrderConsistency()
@@ -688,42 +1000,34 @@ void PluginChainView::ensureRackOrderConsistency()
     auto currentOrder = getRackOrder();
     juce::StringArray newOrder;
 
-    // 1. Keep existing items if they still exist and are not hidden
-    for (auto idStr : currentOrder)
+    // 1) Keep existing order entries that are still valid.
+    for (const auto &idStr : currentOrder)
     {
-        auto id = te::EditItemID::fromVar(idStr);
+        const auto id = te::EditItemID::fromVar(idStr);
+
         if (auto p = getPluginFromList(m_track->pluginList, id))
         {
             if (!isPluginHidden(*m_track, p.get()))
-                newOrder.add(idStr);
-        }
-        else if (auto *ml = m_track->getModifierList())
-        {
-            if (te::findModifierForID(*ml, id) != nullptr)
-            {
-                newOrder.add(idStr);
-            }
-        }
-    }
+                newOrder.addIfNotAlreadyThere(idStr);
 
-    // 2. Add any new items not in the list
-    for (auto *p : m_track->getAllPlugins())
-    {
-        if (isPluginHidden(*m_track, p))
             continue;
-
-        if (!newOrder.contains(p->itemID.toString()))
-            newOrder.add(p->itemID.toString());
-    }
-
-    if (auto *ml = m_track->getModifierList())
-    {
-        for (auto m : ml->getModifiers())
-        {
-            if (!newOrder.contains(m->itemID.toString()))
-                newOrder.add(m->itemID.toString());
         }
+
+        if (auto *ml = m_track->getModifierList())
+            if (te::findModifierForID(*ml, id) != nullptr)
+                newOrder.addIfNotAlreadyThere(idStr);
     }
+
+    // 2) Append any visible plugins that are missing.
+    for (auto *p : m_track->getAllPlugins())
+        if (p != nullptr && !isPluginHidden(*m_track, p))
+            newOrder.addIfNotAlreadyThere(p->itemID.toString());
+
+    // 3) Append any missing modifiers.
+    if (auto *ml = m_track->getModifierList())
+        for (auto m : ml->getModifiers())
+            if (m != nullptr)
+                newOrder.addIfNotAlreadyThere(m->itemID.toString());
 
     if (newOrder != currentOrder)
         saveRackOrder(newOrder);
@@ -742,20 +1046,31 @@ void PluginChainView::moveItem(PluginChainItemView *item, int targetIndex)
         auto order = getRackOrder();
         order.removeString(id.toString());
 
-        if (targetIndex >= order.size())
-            order.add(id.toString());
-        else
-            order.insert(targetIndex, id.toString());
-
-        saveRackOrder(order);
-
-        // Sync PluginList order
+        // Keep visual rack order aligned with the actual engine plugin order.
         if (item->getPlugin())
         {
-            int targetPluginIndex = getPluginIndexForVisualIndex(targetIndex);
-
-            m_track->pluginList.insertPlugin(item->getPlugin(), targetPluginIndex, nullptr);
+            int targetTrackPluginIndex = getPluginIndexForVisualIndex(targetIndex);
+            if (EngineHelpers::movePluginWithChainRules(m_track, item->getPlugin(), targetTrackPluginIndex))
+            {
+                const int pluginOrdinal = getVisiblePluginOrdinalForID(*m_track, id);
+                const int visualIndex = getVisualIndexForPluginOrdinal(order, *m_track, pluginOrdinal);
+                order.insert(visualIndex, id.toString());
+            }
+            else
+            {
+                const int fallbackIndex = juce::jlimit(0, order.size(), targetIndex);
+                order.insert(fallbackIndex, id.toString());
+            }
         }
+        else
+        {
+            if (targetIndex >= order.size())
+                order.add(id.toString());
+            else
+                order.insert(targetIndex, id.toString());
+        }
+
+        saveRackOrder(order);
 
         rebuildView();
     }
@@ -767,22 +1082,15 @@ void PluginChainView::buttonClicked(juce::Button *button)
     {
         if (b == button)
         {
-            int visualIndex = m_contentComp->m_addButtons.indexOf(b);
-
-            juce::PopupMenu m;
-            m.addItem(1, "Plugins...");
-
-            int result = m.showAt(button);
-
-            if (result == 1)
+            if (auto plugin = showMenuAndCreatePluginForRole(m_track->edit, b->getSectionRole(), button))
             {
-                if (auto plugin = showMenuAndCreatePlugin(m_track->edit))
-                {
-                    insertPluginAtVisualIndex(plugin, visualIndex, true);
-                }
+                const auto order = getRackOrder();
+                const int visualIndex = getVisualIndexForPluginOrdinal(order, *m_track, b->getTargetPluginOrdinal());
+                insertPluginAtVisualIndex(plugin, visualIndex, true);
             }
 
             m_evs.m_selectionManager.selectOnly(m_track);
+            break;
         }
     }
 }
@@ -890,13 +1198,26 @@ void PluginChainView::insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visu
     auto order = getRackOrder();
 
     const int clampedVisualIndex = juce::jlimit(0, order.size(), visualIndex);
-    const int targetPluginIndex = getPluginIndexForVisualIndex(clampedVisualIndex);
+    const int targetTrackPluginIndex = getPluginIndexForVisualIndex(clampedVisualIndex);
 
-    EngineHelpers::insertPluginWithPreset(m_evs, m_track, plugin, targetPluginIndex);
-    order.insert(clampedVisualIndex, plugin->itemID.toString());
-    saveRackOrder(order);
+    const auto insertResult = EngineHelpers::insertPluginWithPreset(m_evs, m_track, plugin, targetTrackPluginIndex);
+    if (insertResult != EngineHelpers::PluginInsertResult::inserted)
+    {
+        UIHelpers::showPluginInsertBlockedDialog(insertResult);
+        return;
+    }
 
-    if (selectInserted)
+    const int pluginOrdinal = getVisiblePluginOrdinalForID(*m_track, plugin->itemID);
+    const bool wasInserted = pluginOrdinal >= 0;
+    if (pluginOrdinal >= 0)
+    {
+        order.removeString(plugin->itemID.toString());
+        const int actualVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, pluginOrdinal);
+        order.insert(actualVisualIndex, plugin->itemID.toString());
+        saveRackOrder(order);
+    }
+
+    if (selectInserted && wasInserted)
     {
         m_selectedRackItemID = plugin->itemID;
         m_scrollToSelectedAfterRebuild = true;
@@ -994,9 +1315,16 @@ void PluginChainView::rebuildPluginList()
 {
     m_pluginListButtons.clear();
 
-    for (int i = 0; i < m_contentComp->m_rackItems.size(); ++i)
+    auto addSectionHeader = [this](const juce::String &title, EngineHelpers::PluginChainRole role, bool showAddButton)
     {
-        auto *item = m_contentComp->m_rackItems[i];
+        auto header = std::make_unique<RackPluginListItem>(m_evs, m_track, title, role, showAddButton);
+        header->onAdd = [this](EngineHelpers::PluginChainRole sectionRole, juce::Component *target) { addPluginAtCurrentPosition(sectionRole, target); };
+        m_pluginListContent.addAndMakeVisible(header.get());
+        m_pluginListButtons.add(header.release());
+    };
+
+    auto addListEntryForItem = [this](PluginChainItemView *item)
+    {
         juce::String name = "Plugin";
         te::EditItemID id;
         te::Plugin::Ptr plugin;
@@ -1013,7 +1341,12 @@ void PluginChainView::rebuildPluginList()
 
         auto button = std::make_unique<RackPluginListItem>(m_evs, m_track, plugin, id, name);
         button->setSelected(id == m_selectedRackItemID);
-        button->onClick = [this, i] { selectRackItemByIndex(i); };
+        button->onClick = [this, id]
+        {
+            const int index = getRackItemIndexForID(id);
+            if (index >= 0)
+                selectRackItemByIndex(index);
+        };
         button->onReorder = [this](te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter) { reorderPluginListItem(sourceID, targetID, placeAfter); };
         auto safeRack = juce::Component::SafePointer<PluginChainView>(this);
 
@@ -1052,6 +1385,35 @@ void PluginChainView::rebuildPluginList()
 
         m_pluginListContent.addAndMakeVisible(button.get());
         m_pluginListButtons.add(button.release());
+    };
+
+    auto addEntriesForRole = [&](EngineHelpers::PluginChainRole role)
+    {
+        for (auto *item : m_contentComp->m_rackItems)
+        {
+            if (item == nullptr)
+                continue;
+
+            auto plugin = item->getPlugin();
+            if (plugin == nullptr)
+                continue;
+
+            if (EngineHelpers::getPluginChainRole(*plugin) != role)
+                continue;
+
+            addListEntryForItem(item);
+        }
+    };
+
+    if (m_track != nullptr)
+    {
+        const auto sectionSpecs = getSectionSpecsForTrack(m_track.get());
+        for (const auto &sectionSpec : sectionSpecs)
+        {
+            const bool showAddButton = sectionSpec.role != EngineHelpers::PluginChainRole::instrument || !EngineHelpers::trackHasInstrumentPlugin(*m_track);
+            addSectionHeader(sectionSpec.title, sectionSpec.role, showAddButton);
+            addEntriesForRole(sectionSpec.role);
+        }
     }
 }
 
@@ -1107,7 +1469,7 @@ void PluginChainView::selectRackItemByIndex(int index)
 
         for (int i = 0; i < m_pluginListButtons.size(); ++i)
             if (auto *listItem = static_cast<RackPluginListItem *>(m_pluginListButtons[i]))
-                listItem->setSelected(i == index);
+                listItem->setSelected(listItem->getItemID() == m_selectedRackItemID);
 
         animateScrollToX(getTargetScrollXForItem(*item));
         repaint();
@@ -1207,18 +1569,36 @@ void PluginChainView::scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, dou
     updateHorizontalScrollBar();
 }
 
-void PluginChainView::addPluginAtCurrentPosition()
+void PluginChainView::addPluginAtCurrentPosition(EngineHelpers::PluginChainRole role, juce::Component *targetComponent)
 {
     if (m_track == nullptr)
         return;
 
-    if (auto plugin = showMenuAndCreatePlugin(m_track->edit))
-    {
-        int insertVisualIndex = m_contentComp->m_rackItems.size();
-        int selected = getSelectedRackItemIndex();
-        if (selected >= 0)
-            insertVisualIndex = selected + 1;
+    if (role == EngineHelpers::PluginChainRole::instrument && EngineHelpers::trackHasInstrumentPlugin(*m_track))
+        return;
 
+    if (auto plugin = showMenuAndCreatePluginForRole(m_track->edit, role, targetComponent))
+    {
+        int selectedRoleInsertOrdinal = -1;
+        if (const int selectedIndex = getSelectedRackItemIndex(); selectedIndex >= 0)
+        {
+            if (auto *selectedItem = m_contentComp->m_rackItems[selectedIndex])
+            {
+                if (auto selectedPlugin = selectedItem->getPlugin())
+                {
+                    if (EngineHelpers::getPluginChainRole(*selectedPlugin) == role)
+                    {
+                        const int selectedOrdinal = getVisiblePluginOrdinalForID(*m_track, selectedPlugin->itemID);
+                        if (selectedOrdinal >= 0)
+                            selectedRoleInsertOrdinal = selectedOrdinal + 1;
+                    }
+                }
+            }
+        }
+
+        const auto order = getRackOrder();
+        const int requestedOrdinal = selectedRoleInsertOrdinal >= 0 ? selectedRoleInsertOrdinal : m_contentComp->m_rackItems.size();
+        const int insertVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, requestedOrdinal);
         insertPluginAtVisualIndex(plugin, insertVisualIndex, true);
     }
 }
@@ -1271,17 +1651,37 @@ void PluginChainView::itemDropped(const juce::DragAndDropTarget::SourceDetails &
         if (auto listbox = dynamic_cast<PluginListbox *>(details.sourceComponent.get()))
             if (auto plugin = listbox->getSelectedPlugin(m_evs.m_edit))
             {
-                m_selectedRackItemID = plugin->itemID;
-                m_scrollToSelectedAfterRebuild = true;
-                EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
+                if (track == m_track)
+                {
+                    const int endVisualIndex = getRackOrder().size();
+                    insertPluginAtVisualIndex(plugin, endVisualIndex, true);
+                }
+                else
+                {
+                    m_selectedRackItemID = plugin->itemID;
+                    m_scrollToSelectedAfterRebuild = true;
+                    const auto insertResult = EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
+                    if (insertResult != EngineHelpers::PluginInsertResult::inserted)
+                        UIHelpers::showPluginInsertBlockedDialog(insertResult);
+                }
             }
     if (details.description == "Instrument or Effect")
         if (auto lb = dynamic_cast<InstrumentEffectTable *>(details.sourceComponent.get()))
             if (auto plugin = lb->getSelectedPlugin(m_evs.m_edit))
             {
-                m_selectedRackItemID = plugin->itemID;
-                m_scrollToSelectedAfterRebuild = true;
-                EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
+                if (track == m_track)
+                {
+                    const int endVisualIndex = getRackOrder().size();
+                    insertPluginAtVisualIndex(plugin, endVisualIndex, true);
+                }
+                else
+                {
+                    m_selectedRackItemID = plugin->itemID;
+                    m_scrollToSelectedAfterRebuild = true;
+                    const auto insertResult = EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
+                    if (insertResult != EngineHelpers::PluginInsertResult::inserted)
+                        UIHelpers::showPluginInsertBlockedDialog(insertResult);
+                }
             }
 
     m_isOver = false;
@@ -1296,17 +1696,16 @@ void AddButton::itemDropped(const SourceDetails &dragSourceDetails)
         {
             if (auto lbm = dynamic_cast<PluginListbox *>(listbox->getModel()))
             {
-                // Find PluginChainView via hierarchy search because AddButton is now inside RackContentComponent
+                // Resolve owning rack view from the AddButton hierarchy.
                 auto pluginRackComp = findParentComponentOfClass<PluginChainView>();
                 if (pluginRackComp)
                 {
-                    // Calculate the visual index where the user dropped the item
-                    int visualIndex = pluginRackComp->getAddButtons().indexOf(this);
-
                     auto plugin = lbm->getSelectedPlugin(m_track->edit);
                     if (plugin)
                     {
-                        pluginRackComp->insertPluginAtVisualIndex(plugin, visualIndex, true);
+                        const auto order = pluginRackComp->getRackOrder();
+                        const int targetVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, getTargetPluginOrdinal());
+                        pluginRackComp->insertPluginAtVisualIndex(plugin, targetVisualIndex, true);
                     }
                 }
             }
@@ -1321,7 +1720,8 @@ void AddButton::itemDropped(const SourceDetails &dragSourceDetails)
             auto *view = dynamic_cast<PluginChainItemView *>(dragSourceDetails.sourceComponent.get());
             if (view)
             {
-                int targetIndex = pluginRackComp->getAddButtons().indexOf(this);
+                const auto order = pluginRackComp->getRackOrder();
+                const int targetIndex = getVisualIndexForPluginOrdinal(order, *m_track, getTargetPluginOrdinal());
                 pluginRackComp->moveItem(view, targetIndex);
             }
         }

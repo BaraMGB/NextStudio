@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "SongEditor/TrackListView.h"
 #include "SideBrowser/InstrumentEffectChooser.h"
+#include "UI/PluginInsertFeedback.h"
 #include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
@@ -113,7 +114,9 @@ void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
         if (auto listbox = dynamic_cast<PluginListbox *>(dragSourceDetails.sourceComponent.get()))
         {
             auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
-            EngineHelpers::insertPluginWithPreset(m_editViewState, track, listbox->getSelectedPlugin(m_editViewState.m_edit));
+            const auto insertResult = EngineHelpers::insertPluginWithPreset(m_editViewState, track, listbox->getSelectedPlugin(m_editViewState.m_edit));
+            if (insertResult != EngineHelpers::PluginInsertResult::inserted)
+                UIHelpers::showPluginInsertBlockedDialog(insertResult);
         }
     }
 
@@ -122,7 +125,9 @@ void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dr
         if (auto lb = dynamic_cast<InstrumentEffectTable *>(dragSourceDetails.sourceComponent.get()))
         {
             auto track = EngineHelpers::addAudioTrack(true, m_editViewState.m_applicationState.getRandomTrackColour(), m_editViewState);
-            EngineHelpers::insertPluginWithPreset(m_editViewState, track, lb->getSelectedPlugin(m_editViewState.m_edit));
+            const auto insertResult = EngineHelpers::insertPluginWithPreset(m_editViewState, track, lb->getSelectedPlugin(m_editViewState.m_edit));
+            if (insertResult != EngineHelpers::PluginInsertResult::inserted)
+                UIHelpers::showPluginInsertBlockedDialog(insertResult);
         }
     }
 }

@@ -256,6 +256,21 @@ struct TimeCodeStrings
 namespace EngineHelpers
 {
 
+enum class PluginChainRole
+{
+    midiEffect,
+    instrument,
+    audioEffect
+};
+
+enum class PluginInsertResult
+{
+    inserted,
+    blockedTrackType,
+    blockedInstrumentSlot,
+    invalidInput
+};
+
 void renderEditToFile(EditViewState &evs, juce::File renderFile, tracktion::TimeRange range = {});
 bool renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip);
 bool renderToNewTrack(EditViewState &evs, juce::Array<tracktion_engine::Track *> tracksToRender, tracktion::TimeRange range);
@@ -310,7 +325,13 @@ void insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
 
 // Inserts a plugin and tries to load its 'init' preset if available.
 // Use this for UI interactions where user adds a new plugin.
-void insertPluginWithPreset(EditViewState &evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
+PluginInsertResult insertPluginWithPreset(EditViewState &evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
+bool movePluginWithChainRules(te::Track::Ptr track, te::Plugin::Ptr plugin, int requestedIndex);
+PluginChainRole getPluginChainRole(const juce::PluginDescription &desc, const juce::String &xmlType = {});
+PluginChainRole getPluginChainRole(te::Plugin &plugin);
+bool isPluginAllowedOnTrack(const te::Track &track, te::Plugin &plugin);
+bool trackHasInstrumentPlugin(const te::Track &track);
+bool isMidiTrack(const te::Track &track);
 
 template <typename ClipType> typename ClipType::Ptr loopAroundClip(ClipType &clip)
 {

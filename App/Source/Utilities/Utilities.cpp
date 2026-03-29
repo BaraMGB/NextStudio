@@ -2033,6 +2033,211 @@ std::unique_ptr<juce::KnownPluginList::PluginTree> EngineHelpers::createPluginTr
     return {};
 }
 
+namespace
+{
+bool isInstrumentPluginType(te::Plugin &plugin)
+{
+    if (plugin.isSynth())
+        return true;
+
+    if (auto *external = dynamic_cast<te::ExternalPlugin *>(&plugin))
+        return external->desc.isInstrument;
+
+    return false;
+}
+
+bool isExplicitMidiEffectDescription(const juce::PluginDescription &desc, const juce::String &xmlType)
+{
+    // Deliberately conservative until we introduce explicit whitelist support.
+    // We only classify MIDI FX when metadata is explicit enough to avoid false positives.
+    if (xmlType == ArpeggiatorPlugin::xmlTypeName)
+        return true;
+
+    if (desc.isInstrument)
+        return false;
+
+    const auto categoryLower = desc.category.toLowerCase();
+    const bool explicitMidiCategory = categoryLower.contains("midi");
+    const bool hasNoAudioIo = desc.numInputChannels == 0 && desc.numOutputChannels == 0;
+    return explicitMidiCategory && hasNoAudioIo;
+}
+
+int getReservedTailPluginCount(const te::PluginList &plugins)
+{
+    int reserved = 0;
+    for (int i = plugins.size() - 1; i >= 0; --i)
+    {
+        const auto *p = plugins[i];
+        const bool isChannelStripPlugin = dynamic_cast<const te::VolumeAndPanPlugin *>(p) != nullptr || dynamic_cast<const te::LevelMeterPlugin *>(p) != nullptr;
+
+        if (!isChannelStripPlugin)
+            break;
+
+        if (++reserved >= 2)
+            break;
+    }
+
+    return reserved;
+}
+
+int getUserPluginCount(const te::PluginList &plugins) { return juce::jmax(0, plugins.size() - getReservedTailPluginCount(plugins)); }
+
+te::Plugin *findInstrumentOnTrack(const te::Track &track)
+{
+    for (auto *candidate : track.pluginList)
+    {
+        if (candidate == nullptr)
+            continue;
+
+        if (isInstrumentPluginType(*candidate))
+            return candidate;
+    }
+
+    return nullptr;
+}
+
+int findPluginSourceIndex(const te::PluginList &plugins, te::EditItemID itemID, int userPluginCount)
+{
+    for (int i = 0; i < userPluginCount; ++i)
+    {
+        auto *existing = plugins[i];
+        if (existing != nullptr && existing->itemID == itemID)
+            return i;
+    }
+
+    return -1;
+}
+
+int resolveEffectiveBaseIndex(int baseIndex, int sourceIndex, int userPluginCount)
+{
+    int effectiveBaseIndex = baseIndex;
+    if (sourceIndex >= 0 && effectiveBaseIndex > sourceIndex)
+        --effectiveBaseIndex;
+
+    const int effectiveUserPluginCount = userPluginCount - (sourceIndex >= 0 ? 1 : 0);
+    return juce::jlimit(0, juce::jmax(0, effectiveUserPluginCount), effectiveBaseIndex);
+}
+
+struct MidiLayoutCounts
+{
+    int midiCount = 0;
+    bool hasInstrument = false;
+};
+
+MidiLayoutCounts countMidiLayoutWithoutSource(const te::PluginList &plugins, te::EditItemID sourceID, int userPluginCount)
+{
+    MidiLayoutCounts counts;
+    for (int i = 0; i < userPluginCount; ++i)
+    {
+        auto *existing = plugins[i];
+        if (existing == nullptr || existing->itemID == sourceID)
+            continue;
+
+        switch (EngineHelpers::getPluginChainRole(*existing))
+        {
+        case EngineHelpers::PluginChainRole::midiEffect:
+            ++counts.midiCount;
+            break;
+        case EngineHelpers::PluginChainRole::instrument:
+            counts.hasInstrument = true;
+            break;
+        case EngineHelpers::PluginChainRole::audioEffect:
+            break;
+        }
+    }
+
+    return counts;
+}
+
+int resolveInsertIndexWithRules(te::Track::Ptr track, te::Plugin::Ptr plugin, int requestedIndex)
+{
+    if (track == nullptr || plugin == nullptr)
+        return -1;
+
+    auto &plugins = track->pluginList;
+    // requestedIndex is interpreted in the user-plugin domain (channel-strip tail excluded).
+    // This function guarantees MIDI track ordering: MIDI FX -> Instrument slot -> Audio FX.
+    // When moving an existing plugin, sourceIndex is excluded from counting/clamping so
+    // callers can pass a position from the current list without off-by-one shifts.
+    const int userPluginCount = getUserPluginCount(plugins);
+    int baseIndex = requestedIndex;
+    if (baseIndex < 0)
+        baseIndex = userPluginCount;
+    baseIndex = juce::jlimit(0, userPluginCount, baseIndex);
+
+    if (!EngineHelpers::isMidiTrack(*track))
+        return baseIndex;
+
+    const auto role = EngineHelpers::getPluginChainRole(*plugin);
+    const int sourceIndex = findPluginSourceIndex(plugins, plugin->itemID, userPluginCount);
+    const int effectiveBaseIndex = resolveEffectiveBaseIndex(baseIndex, sourceIndex, userPluginCount);
+    const auto layoutCounts = countMidiLayoutWithoutSource(plugins, plugin->itemID, userPluginCount);
+
+    const int instrumentSlotIndex = layoutCounts.midiCount;
+    const int audioMinIndex = layoutCounts.midiCount + (layoutCounts.hasInstrument ? 1 : 0);
+
+    switch (role)
+    {
+    case EngineHelpers::PluginChainRole::instrument:
+        return instrumentSlotIndex;
+
+    case EngineHelpers::PluginChainRole::midiEffect:
+        return juce::jlimit(0, layoutCounts.midiCount, effectiveBaseIndex);
+
+    case EngineHelpers::PluginChainRole::audioEffect:
+        return juce::jmax(audioMinIndex, effectiveBaseIndex);
+    }
+
+    return baseIndex;
+}
+
+} // namespace
+
+EngineHelpers::PluginChainRole EngineHelpers::getPluginChainRole(te::Plugin &plugin)
+{
+    if (isInstrumentPluginType(plugin))
+        return PluginChainRole::instrument;
+
+    if (plugin.getPluginType() == ArpeggiatorPlugin::xmlTypeName)
+        return PluginChainRole::midiEffect;
+
+    if (auto *external = dynamic_cast<te::ExternalPlugin *>(&plugin))
+        return getPluginChainRole(external->desc, {});
+
+    return PluginChainRole::audioEffect;
+}
+
+EngineHelpers::PluginChainRole EngineHelpers::getPluginChainRole(const juce::PluginDescription &desc, const juce::String &xmlType)
+{
+    if (desc.isInstrument)
+        return PluginChainRole::instrument;
+
+    if (isExplicitMidiEffectDescription(desc, xmlType))
+        return PluginChainRole::midiEffect;
+
+    return PluginChainRole::audioEffect;
+}
+
+bool EngineHelpers::isMidiTrack(const te::Track &track) { return track.isAudioTrack() && static_cast<bool>(track.state.getProperty(IDs::isMidiTrack)); }
+
+bool EngineHelpers::isPluginAllowedOnTrack(const te::Track &track, te::Plugin &plugin)
+{
+    const auto role = getPluginChainRole(plugin);
+
+    if (!isMidiTrack(track))
+        return role == PluginChainRole::audioEffect;
+
+    if (role == PluginChainRole::instrument)
+    {
+        auto *existing = findInstrumentOnTrack(track);
+        return existing == nullptr || existing->itemID == plugin.itemID;
+    }
+
+    return true;
+}
+
+bool EngineHelpers::trackHasInstrumentPlugin(const te::Track &track) { return findInstrumentOnTrack(track) != nullptr; }
+
 void EngineHelpers::insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index)
 {
     auto &plugins = track->pluginList;
@@ -2078,14 +2283,23 @@ private:
     ApplicationViewState &m_appState;
 };
 
-void EngineHelpers::insertPluginWithPreset(EditViewState &evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index)
+EngineHelpers::PluginInsertResult EngineHelpers::insertPluginWithPreset(EditViewState &evs, te::Track::Ptr track, te::Plugin::Ptr plugin, int index)
 {
     if (track == nullptr || plugin == nullptr)
-        return;
+        return PluginInsertResult::invalidInput;
+
+    if (!isPluginAllowedOnTrack(*track, *plugin))
+    {
+        if (!isMidiTrack(*track))
+            return PluginInsertResult::blockedTrackType;
+
+        return PluginInsertResult::blockedInstrumentSlot;
+    }
 
     auto &plugins = track->pluginList;
-    if (index == -1)
-        index = plugins.size() - 2; // Mimic insertPlugin behavior (before level meter and volume)
+    index = resolveInsertIndexWithRules(track, plugin, index);
+    if (index < 0)
+        return PluginInsertResult::invalidInput;
 
     plugin->state.setProperty(te::IDs::remapOnTempoChange, true, nullptr);
 
@@ -2097,6 +2311,21 @@ void EngineHelpers::insertPluginWithPreset(EditViewState &evs, te::Track::Ptr tr
         InitPresetLoaderAdapter adapter(newPlugin, evs.m_applicationState);
         PresetHelpers::tryLoadInitPreset(adapter);
     }
+
+    return PluginInsertResult::inserted;
+}
+
+bool EngineHelpers::movePluginWithChainRules(te::Track::Ptr track, te::Plugin::Ptr plugin, int requestedIndex)
+{
+    if (track == nullptr || plugin == nullptr)
+        return false;
+
+    const int targetIndex = resolveInsertIndexWithRules(track, plugin, requestedIndex);
+    if (targetIndex < 0)
+        return false;
+
+    track->pluginList.insertPlugin(plugin, targetIndex, nullptr);
+    return true;
 }
 
 // void GUIHelpers::centerView(EditViewState &evs)
