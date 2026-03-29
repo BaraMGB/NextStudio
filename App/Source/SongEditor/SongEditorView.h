@@ -181,8 +181,6 @@ private:
     void resizeSelectedClips(bool snap, bool fromLeftEdge = false);
     tracktion_engine::MidiClip::Ptr createNewMidiClip(double beatPos, te::Track::Ptr track);
 
-    void setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLegth);
-
     juce::Rectangle<float> getClipRect(te::Clip::Ptr clip);
     juce::Range<int> getVerticalRangeOfTrack(tracktion_engine::Track::Ptr track, bool withAutomation);
 

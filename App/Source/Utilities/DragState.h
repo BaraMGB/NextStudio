@@ -52,6 +52,7 @@ struct DragState
     int verticalOffset{0};
     bool isLeftEdge{false};
     bool isRightEdge{false};
+    bool isTimeStretching{false};
     bool playheadWasMoved{false};
 
     bool isActive() const { return type != DragType::None; }
@@ -75,6 +76,7 @@ struct DragState
         verticalOffset = 0;
         isLeftEdge = false;
         isRightEdge = false;
+        isTimeStretching = false;
         playheadWasMoved = false;
     }
 

@@ -752,28 +752,6 @@ void SongEditorView::transposeSelectedClips(float pitchChange)
     }
 }
 
-void SongEditorView::setNewTempoOfClipByNewLength(te::WaveAudioClip::Ptr wac, double newLength)
-{
-    auto &engine = m_editViewState.m_edit.engine;
-
-    wac->setTimeStretchMode(te::TimeStretcher::soundtouchBetter);
-
-    const auto audioFileInfo = wac->getAudioFile().getInfo();
-
-    const auto loopInfo = audioFileInfo.loopInfo;
-    const auto tempo = loopInfo.getBpm(audioFileInfo);
-
-    GUIHelpers::log("file's BPM: ", tempo);
-
-    if (newLength != 0)
-    {
-        const double newSpeedRatio = audioFileInfo.getLengthInSeconds() / newLength;
-
-        wac->setSpeedRatio(newSpeedRatio);
-        wac->setLength(tracktion::TimeDuration::fromSeconds(audioFileInfo.getLengthInSeconds()) / wac->getSpeedRatio(), true);
-    }
-}
-
 void SongEditorView::updateAutomationSelection(bool add)
 {
     if (!add)

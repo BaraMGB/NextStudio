@@ -258,6 +258,7 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
             dragState.draggedClip = m_hoveredClip;
             dragState.isLeftEdge = m_leftBorderHovered;
             dragState.isRightEdge = m_rightBorderHovered;
+            dragState.isTimeStretching = dragState.isRightEdge && !m_hoveredClip->isMidi() && (toolMode == Tool::timestretch || e.mods.isCommandDown());
 
             repaint();
             return;
@@ -307,7 +308,7 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
     {
         auto draggedTime = xtoTime(e.getDistanceFromDragStartX()) - xtoTime(0);
         auto startTime = dragState.draggedClip->getPosition().getStart();
-        if (m_rightBorderHovered)
+        if (dragState.isRightEdge)
             startTime = dragState.draggedClip->getPosition().getEnd();
 
         auto targetTime = startTime + draggedTime;
@@ -347,10 +348,15 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
         // to avoid unnecessary processing and audio graph rebuilds on simple clicks.
         if (e.mouseWasDraggedSinceMouseDown())
         {
-            if (m_leftBorderHovered || m_rightBorderHovered)
+            if (dragState.isLeftEdge || dragState.isRightEdge)
             {
                 if (std::abs(dragState.timeDelta.inSeconds()) > 1.0e-9)
-                    EngineHelpers::resizeSelectedClips(m_leftBorderHovered, dragState.timeDelta.inSeconds(), m_editViewState);
+                {
+                    if (dragState.isTimeStretching)
+                        EngineHelpers::timeStretchSelectedClips(dragState.timeDelta.inSeconds(), m_editViewState);
+                    else
+                        EngineHelpers::resizeSelectedClips(dragState.isLeftEdge, dragState.timeDelta.inSeconds(), m_editViewState);
+                }
             }
             else
             {

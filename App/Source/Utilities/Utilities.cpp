@@ -1691,6 +1691,33 @@ void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditVie
     }
 }
 
+void EngineHelpers::timeStretchSelectedClips(double delta, EditViewState &evs)
+{
+    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+
+    for (auto sc : selectedClips)
+    {
+        if (auto wac = dynamic_cast<te::WaveAudioClip *>(sc))
+        {
+            const auto currentLength = wac->getPosition().getLength().inSeconds();
+            const auto newLength = currentLength + delta;
+
+            if (newLength <= 0.0)
+                continue;
+
+            const auto sourceSegmentLength = currentLength * wac->getSpeedRatio();
+
+            if (sourceSegmentLength <= 0.0)
+                continue;
+
+            wac->setTimeStretchMode(te::TimeStretcher::soundtouchBetter);
+            wac->setSpeedRatio(sourceSegmentLength / newLength);
+            wac->setLength(tracktion::TimeDuration::fromSeconds(newLength), true);
+            evs.removeThumbnail(wac->itemID);
+        }
+    }
+}
+
 tracktion_engine::Project::Ptr EngineHelpers::createTempProject(tracktion_engine::Engine &engine)
 {
     auto file = engine.getTemporaryFileManager().getTempDirectory().getChildFile("temp_project").withFileExtension(te::projectFileSuffix);

@@ -302,6 +302,7 @@ void moveAutomation(te::Track *src, te::TrackAutomationSection::ActiveParameters
 te::TrackAutomationSection getTrackAutomationSection(te::AutomatableParameter *ap, tracktion::TimeRange tr);
 
 void resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState &evs);
+void timeStretchSelectedClips(double delta, EditViewState &evs);
 
 te::Project::Ptr createTempProject(te::Engine &engine);
 
