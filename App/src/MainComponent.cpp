@@ -29,7 +29,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "MainComponent.h"
-#include "ClipOverwriteCommand.h"
+#include "AgentDebug.h"
+#include "ClipOverwriteCommand.h"},{
 #include "ArpeggiatorPlugin.h"
 #include "NextChorusPlugin.h"
 #include "NextDelayPlugin.h"
@@ -45,7 +46,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SetupWizard.h"
 #include "InitialContentSetup.h"
 #include "ThemeHelpers.h"
-#include "Utilities.h"
+#include "Utilities.h"},{
 
 MainComponent::MainComponent(ApplicationViewState &state)
     : m_applicationState(state),
@@ -169,6 +170,23 @@ void MainComponent::resized()
 bool MainComponent::keyStateChanged(bool isKeyDown)
 
 {
+    if (isKeyDown)
+    {
+        if (juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::F11Key))
+        {
+            const auto dumpFile = writeAgentStateDump();
+            NS_LOG_INFO(app, "agent state dump triggered via F11: " + dumpFile.getFullPathName());
+            return true;
+        }
+
+        if (juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::F12Key))
+        {
+            const auto snapshotFile = captureAgentSnapshot();
+            NS_LOG_INFO(app, "agent snapshot triggered via F12: " + snapshotFile.getFullPathName());
+            return true;
+        }
+    }
+
     int rootNote = 48;
     int gap = 0;
 
@@ -953,3 +971,51 @@ void MainComponent::createTracksAndAssignInputs()
     m_edit->restartPlayback();
 }
 
+juce::File MainComponent::getAgentDebugDirectory() const
+{
+    auto baseDir = m_engine.getTemporaryFileManager().getTempDirectory();
+    auto agentDir = baseDir.getChildFile("agent-debug");
+    agentDir.createDirectory();
+    return agentDir;
+}
+
+juce::String MainComponent::createAgentStateDump() const { return NextStudio::AgentDebug::createStateDumpJson(*this); }
+
+juce::File MainComponent::writeAgentStateDump() const { return NextStudio::AgentDebug::writeStateDump(*this); }
+
+juce::File MainComponent::captureAgentSnapshot(int maxWidth) const { return NextStudio::AgentDebug::captureSnapshot(*this, {}, maxWidth); }
+
+bool MainComponent::executeAgentCommand(const juce::String &commandName, const juce::String &argument)
+{
+    return NextStudio::AgentDebug::executeCommand(*this, commandName, argument);
+}
+
+bool MainComponent::selectTrackByName(const juce::String &trackName)
+{
+    if (m_editViewState == nullptr)
+        return false;
+
+    for (auto *track : te::getAllTracks(*m_edit))
+    {
+        if (track != nullptr && track->getName().equalsIgnoreCase(trackName.trim()))
+        {
+            m_selectionManager.selectOnly(track);
+            NS_LOG_INFO(selection, "agent selected track: " + track->getName());
+            return true;
+        }
+    }
+
+    NS_LOG_WARN(selection, "agent could not find track: " + trackName);
+    return false;
+}
+
+void MainComponent::switchLowerRangeView(LowerRangeView view)
+{
+    if (m_editViewState == nullptr)
+        return;
+
+    m_editViewState->setLowerRangeView(view);
+    resized();
+    repaint();
+    NS_LOG_INFO(viewstate, "agent switched lower range view to " + NextStudio::Logging::toLogString((int) view));
+}

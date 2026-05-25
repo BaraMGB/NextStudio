@@ -99,6 +99,20 @@ public:
     GUIHelpers::ProjectSaveResult saveCurrentProject(bool saveAs = false);
     void handleContentPathChangedFromSettings();
 
+    ApplicationViewState &getApplicationState() const { return m_applicationState; }
+    te::Edit *getCurrentEdit() const { return m_edit.get(); }
+    EditViewState *getEditViewState() const { return m_editViewState.get(); }
+    EditComponent *getEditComponent() const { return m_editComponent.get(); }
+    HeaderComponent *getHeaderComponent() const { return m_header.get(); }
+    LowerRangeComponent *getLowerRangeComponent() const { return m_lowerRange.get(); }
+    juce::File getAgentDebugDirectory() const;
+    juce::String createAgentStateDump() const;
+    juce::File writeAgentStateDump() const;
+    juce::File captureAgentSnapshot(int maxWidth = 640) const;
+    bool executeAgentCommand(const juce::String &commandName, const juce::String &argument = {});
+    bool selectTrackByName(const juce::String &trackName);
+    void switchLowerRangeView(LowerRangeView view);
+
 private:
     void handleAsyncUpdate() override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
