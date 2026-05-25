@@ -80,7 +80,7 @@ void PadComponent::mouseUp(const juce::MouseEvent &e)
             // Always use the pad's fixed midiNote - simplified logic!
             int midiNote = owner->getMidiNoteForPad(padIndex);
 
-            GUIHelpers::log("DrumPad::mouseUp: Using fixed MIDI note " + juce::String(midiNote) + " for padIndex " + juce::String(padIndex));
+            NS_LOG_DEBUG(engine, "drum pad mouse-up sends fixed MIDI note " + juce::String(midiNote) + " for pad " + juce::String(padIndex));
 
             virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, midiNote, .8f), 0);
         }
@@ -133,7 +133,7 @@ DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin &plugin, Applicatio
       m_samplerPlugin(plugin),
       m_appViewState(appViewState)
 {
-    GUIHelpers::log("DrumPadComponent: constructor");
+    NS_LOG_DEBUG(plugins, "DrumPadGridComponent constructed");
 
     m_samplerPlugin.state.addListener(this);
 
@@ -152,7 +152,7 @@ DrumPadGridComponent::DrumPadGridComponent(te::SamplerPlugin &plugin, Applicatio
 
 DrumPadGridComponent::~DrumPadGridComponent()
 {
-    GUIHelpers::log("DrumPadComponent: destructor");
+    NS_LOG_DEBUG(plugins, "DrumPadGridComponent destroyed");
 
     cleanupMidiInputDevices();
 
@@ -226,33 +226,33 @@ void DrumPadGridComponent::buttonDown(int padIndex)
         int soundIndex = getSoundIndexForPad(padIndex);
 
         // Always play sound when clicked, regardless of whether it has media
-        GUIHelpers::log("DrumPadComponent: Clicked pad " + juce::String(padIndex) + ", soundIndex: " + juce::String(soundIndex));
+        NS_LOG_INFO(ui, "drum pad clicked: pad=" + juce::String(padIndex) + ", soundIndex=" + juce::String(soundIndex));
 
         // Check if this pad has a valid sound
         if (soundIndex < m_samplerPlugin.getNumSounds())
         {
             auto soundName = m_samplerPlugin.getSoundName(soundIndex);
-            GUIHelpers::log("DrumPadComponent: Sound at soundIndex " + juce::String(soundIndex) + ": " + soundName);
+            NS_LOG_DEBUG(plugins, "drum pad sound resolved: index=" + juce::String(soundIndex) + ", name=" + soundName);
 
             if (!soundName.isEmpty() && soundName != "Empty")
             {
                 // Always use the pad's fixed midiNote - no more complex fallback logic!
                 int midiNote = getMidiNoteForPad(padIndex);
 
-                GUIHelpers::log("DrumPadComponent: Using fixed MIDI note " + juce::String(midiNote) + " for padIndex " + juce::String(padIndex));
+                NS_LOG_DEBUG(engine, "drum pad uses fixed MIDI note " + juce::String(midiNote) + " for pad " + juce::String(padIndex));
 
                 if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*getEdit()))
                     virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, midiNote, .8f), 0);
-                GUIHelpers::log("DrumPadComponent: Playing note " + juce::String(midiNote));
+                NS_LOG_INFO(engine, "drum pad triggered note " + juce::String(midiNote));
             }
             else
             {
-                GUIHelpers::log("DrumPadComponent: No valid sound at soundIndex " + juce::String(soundIndex));
+                NS_LOG_WARN(plugins, "drum pad has no valid sound at index " + juce::String(soundIndex));
             }
         }
         else
         {
-            GUIHelpers::log("DrumPadComponent: Sound index " + juce::String(soundIndex) + " out of range");
+            NS_LOG_WARN(plugins, "drum pad sound index out of range: " + juce::String(soundIndex));
         }
 
         // Visual feedback
@@ -263,14 +263,14 @@ void DrumPadGridComponent::buttonDown(int padIndex)
 
 void DrumPadGridComponent::showPadContextMenu(int padIndex)
 {
-    GUIHelpers::log("DrumPadComponent: Right click on pad " + juce::String(padIndex));
+    NS_LOG_DEBUG(ui, "drum pad context menu opened for pad " + juce::String(padIndex));
 
     juce::PopupMenu menu;
     menu.addItem("Load Sample",
                  [this, padIndex]()
                  {
                      int soundIndex = getSoundIndexForPad(padIndex);
-                     GUIHelpers::log("DrumPadComponent: Opening file chooser for pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
+                     NS_LOG_INFO(filesystem, "opening sample chooser for pad " + juce::String(padIndex) + ", soundIndex=" + juce::String(soundIndex));
 
                      auto fc = std::make_shared<juce::FileChooser>("Select a sample to load", juce::File(), "*.wav;*.aif;*.aiff");
 
@@ -284,7 +284,7 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
 
                                          if (fc.getResults().isEmpty())
                                          {
-                                             GUIHelpers::log("DrumPadComponent: File selection cancelled");
+                                             NS_LOG_DEBUG(filesystem, "sample chooser cancelled for drum pad");
                                              return;
                                          }
 
@@ -299,7 +299,7 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
                  [this, padIndex]()
                  {
                      int soundIndex = getSoundIndexForPad(padIndex);
-                     GUIHelpers::log("DrumPadComponent: Clearing pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
+                     NS_LOG_INFO(plugins, "clearing drum pad " + juce::String(padIndex) + ", soundIndex=" + juce::String(soundIndex));
 
                      if (soundIndex < m_samplerPlugin.getNumSounds())
                      {
@@ -312,7 +312,7 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
                          m_samplerPlugin.setSoundParams(soundIndex, padMidiNote, padMidiNote, padMidiNote);
                          m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
 
-                         GUIHelpers::log("DrumPadComponent: Cleared sound at index " + juce::String(soundIndex) + " (pad midiNote: " + juce::String(padMidiNote) + ")");
+                         NS_LOG_INFO(plugins, "cleared drum pad sound at index " + juce::String(soundIndex) + ", midiNote=" + juce::String(padMidiNote));
 
                          updatePadNames();
 
@@ -364,7 +364,7 @@ void DrumPadGridComponent::valueTreePropertyChanged(juce::ValueTree &, const juc
 
 void DrumPadGridComponent::updatePadNames()
 {
-    GUIHelpers::log("DrumPadComponent: updatePadNames - " + juce::String(m_samplerPlugin.getNumSounds()) + " sounds available");
+    NS_LOG_DEBUG(plugins, "updating drum pad names; sounds available=" + juce::String(m_samplerPlugin.getNumSounds()));
 
     for (int i = 0; i < m_pads.size(); ++i)
     {
@@ -376,7 +376,7 @@ void DrumPadGridComponent::updatePadNames()
                 m_pads[i]->setText("+");
             else
                 m_pads[i]->setText(soundName);
-            GUIHelpers::log("DrumPadComponent: Pad " + juce::String(i) + " (sound " + juce::String(soundIndex) + ") name: " + soundName);
+            NS_LOG_DEBUG(plugins, "drum pad label updated: pad=" + juce::String(i) + ", soundIndex=" + juce::String(soundIndex) + ", name=" + soundName);
         }
         else
         {
@@ -468,7 +468,7 @@ void DrumPadGridComponent::itemDropped(const SourceDetails &dragSourceDetails)
             if (padIndex != -1)
             {
                 int soundIndex = getSoundIndexForPad(padIndex);
-                GUIHelpers::log("DrumPadComponent: Dropped file " + f.getFileName() + " on pad " + juce::String(padIndex) + " (soundIndex: " + juce::String(soundIndex) + ")");
+                NS_LOG_INFO(filesystem, "sample dropped on drum pad: file=" + f.getFileName() + ", pad=" + juce::String(padIndex) + ", soundIndex=" + juce::String(soundIndex));
                 setupNewSample(soundIndex, f);
             }
         }
@@ -504,7 +504,7 @@ void DrumPadGridComponent::startPadDrag(int sourcePadIndex, const juce::MouseEve
     if (soundName.isEmpty() || soundName == "Empty")
         return;
 
-    GUIHelpers::log("DrumPadComponent: Starting drag from pad " + juce::String(sourcePadIndex) + " (sound: " + soundName + ")");
+    NS_LOG_DEBUG(ui, "starting drum pad drag: pad=" + juce::String(sourcePadIndex) + ", sound=" + soundName);
 
     m_isPadDragging = true;
     m_dragSourcePad = sourcePadIndex;
@@ -611,7 +611,7 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent &event)
     if (!m_isPadDragging)
         return;
 
-    GUIHelpers::log("DrumPadComponent: Ending drag from pad " + juce::String(m_dragSourcePad));
+    NS_LOG_DEBUG(ui, "ending drum pad drag from pad " + juce::String(m_dragSourcePad));
 
     // Check which pad we're dropping on - use same logic as continuePadDrag
     auto globalPos = event.getScreenPosition();
@@ -629,7 +629,7 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent &event)
 
     if (targetPadIndex >= 0 && targetPadIndex != m_dragSourcePad)
     {
-        GUIHelpers::log("DrumPadComponent: Dropping on pad " + juce::String(targetPadIndex));
+        NS_LOG_INFO(ui, "dropping drum pad onto target pad " + juce::String(targetPadIndex));
         swapPadSounds(m_dragSourcePad, targetPadIndex);
 
         // Visual feedback on successful drop
@@ -678,7 +678,7 @@ void DrumPadGridComponent::swapPadSounds(int sourcePad, int targetPad)
     int sourceSoundIdx = getSoundIndexForPad(sourcePad);
     int targetSoundIdx = getSoundIndexForPad(targetPad);
 
-    GUIHelpers::log("DrumPadComponent: Swapping sounds " + juce::String(sourceSoundIdx) + " <-> " + juce::String(targetSoundIdx));
+    NS_LOG_INFO(plugins, "swapping drum pad sounds " + juce::String(sourceSoundIdx) + " <-> " + juce::String(targetSoundIdx));
 
     // 1. Read status directly from the plugin (Single Source of Truth)
     auto stateA = getSoundStateFromPlugin(sourceSoundIdx);
@@ -713,7 +713,7 @@ void DrumPadGridComponent::swapPadSounds(int sourcePad, int targetPad)
 
 void DrumPadGridComponent::setupMidiInputDevices()
 {
-    GUIHelpers::log("DrumPadComponent: Setting up MIDI input devices");
+    NS_LOG_DEBUG(engine, "setting up drum pad MIDI input devices");
 
     auto &deviceManager = m_edit.engine.getDeviceManager();
 
@@ -721,16 +721,16 @@ void DrumPadGridComponent::setupMidiInputDevices()
     deviceManager.rescanMidiDeviceList();
 
     auto midiDevices = deviceManager.getMidiInDevices();
-    GUIHelpers::log("DrumPadComponent: Found " + juce::String(midiDevices.size()) + " MIDI input devices");
+    NS_LOG_INFO(engine, "found " + juce::String(midiDevices.size()) + " MIDI input devices for drum pads");
 
     for (int i = 0; i < midiDevices.size(); ++i)
     {
         auto &device = midiDevices[i];
-        GUIHelpers::log("DrumPadComponent: Device " + juce::String(i) + ": " + device->getName() + " (Type: " + juce::String(device->getDeviceType()) + ")");
+        NS_LOG_DEBUG(engine, "MIDI device " + juce::String(i) + ": " + device->getName() + " (type=" + juce::String(device->getDeviceType()) + ")");
 
         if (auto physicalDevice = dynamic_cast<te::PhysicalMidiInputDevice *>(device.get()))
         {
-            GUIHelpers::log("DrumPadComponent: Found physical MIDI device: " + physicalDevice->getName());
+            NS_LOG_DEBUG(engine, "physical MIDI device available: " + physicalDevice->getName());
 
             // Enable the device and add as listener
             physicalDevice->setEnabled(true);
@@ -741,39 +741,39 @@ void DrumPadGridComponent::setupMidiInputDevices()
             auto error = physicalDevice->openDevice();
             if (!error.isEmpty())
             {
-                GUIHelpers::log("DrumPadComponent: Error opening MIDI device " + physicalDevice->getName() + ": " + error);
+                NS_LOG_ERROR(engine, "failed to open MIDI device " + physicalDevice->getName() + ": " + error);
             }
             else
             {
-                GUIHelpers::log("DrumPadComponent: Successfully connected to MIDI device: " + physicalDevice->getName());
+                NS_LOG_INFO(engine, "connected drum pads to MIDI device: " + physicalDevice->getName());
             }
         }
         else
         {
-            GUIHelpers::log("DrumPadComponent: Device " + device->getName() + " is not a physical MIDI device");
+            NS_LOG_DEBUG(engine, "ignoring non-physical MIDI device: " + device->getName());
         }
     }
 
     if (m_connectedMidiDevices.isEmpty())
     {
-        GUIHelpers::log("DrumPadComponent: No physical MIDI devices found - pad lighting will only work with virtual MIDI");
+        NS_LOG_WARN(engine, "no physical MIDI devices found; drum pad lighting will rely on virtual MIDI only");
     }
     else
     {
-        GUIHelpers::log("DrumPadComponent: Connected to " + juce::String(m_connectedMidiDevices.size()) + " MIDI devices");
+        NS_LOG_INFO(engine, "connected drum pads to " + juce::String(m_connectedMidiDevices.size()) + " MIDI devices");
     }
 }
 
 void DrumPadGridComponent::cleanupMidiInputDevices()
 {
-    GUIHelpers::log("DrumPadComponent: Cleaning up MIDI input devices");
+    NS_LOG_DEBUG(engine, "cleaning up drum pad MIDI input devices");
 
     for (auto *device : m_connectedMidiDevices)
     {
         if (device != nullptr)
         {
             device->removeListener(this);
-            GUIHelpers::log("DrumPadComponent: Disconnected from MIDI device: " + device->getName());
+            NS_LOG_DEBUG(engine, "disconnected drum pads from MIDI device: " + device->getName());
         }
     }
 
@@ -792,7 +792,7 @@ void DrumPadGridComponent::handleIncomingMidiMessage(const juce::MidiMessage &me
         {
             if (message.isNoteOn())
             {
-                GUIHelpers::log("MIDI Note ON: " + juce::String(message.getNoteNumber()));
+                NS_LOG_DEBUG(engine, "incoming drum pad MIDI note-on: " + juce::String(message.getNoteNumber()));
             }
 
             processMidiForPadLighting(message);
@@ -863,11 +863,11 @@ int DrumPadGridComponent::getPadIndexForMidiNote(int midiNote)
     if (midiNote >= BASE_MIDI_NOTE && midiNote < BASE_MIDI_NOTE + 16)
     {
         int padIndex = midiNote - BASE_MIDI_NOTE;
-        GUIHelpers::log("DrumPadComponent: Direct mapping - MIDI note " + juce::String(midiNote) + " -> pad index " + juce::String(padIndex));
+        NS_LOG_DEBUG(engine, "drum pad direct MIDI mapping: note " + juce::String(midiNote) + " -> pad " + juce::String(padIndex));
         return padIndex;
     }
 
-    GUIHelpers::log("DrumPadComponent: MIDI note " + juce::String(midiNote) + " out of range");
+    NS_LOG_DEBUG(engine, "drum pad MIDI note out of range: " + juce::String(midiNote));
     return -1; // No pad found for this note
 }
 
@@ -883,7 +883,7 @@ void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File &file
     // Ensure we have enough sound slots in the sampler
     while (m_samplerPlugin.getNumSounds() <= soundIndex)
     {
-        GUIHelpers::log("DrumPadComponent: Adding empty sound slot at index " + juce::String(m_samplerPlugin.getNumSounds()));
+        NS_LOG_DEBUG(plugins, "adding empty drum sampler sound slot at index " + juce::String(m_samplerPlugin.getNumSounds()));
         m_samplerPlugin.addSound({}, "Empty", 0, 0, 0);
     }
 

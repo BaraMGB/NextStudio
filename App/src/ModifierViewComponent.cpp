@@ -70,7 +70,7 @@ void ModifierViewComponent::DragHandle::draggedOntoAutomatableParameterTarget(co
     {
         if (param->getOwnerID() == m_modifier->itemID)
         {
-            GUIHelpers::log("Can not connect modifier to its own parameters");
+            NS_LOG_WARN(plugins, "modifier connection rejected: modifier cannot target its own parameters");
             getParentComponent()->repaint();
 
             if (auto *rackView = findParentComponentOfClass<PluginChainView>())

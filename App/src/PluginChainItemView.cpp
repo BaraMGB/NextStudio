@@ -78,7 +78,7 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     addAndMakeVisible(name);
     name.setInterceptsMouseClicks(false, true);
     name.setVisible(false);
-    GUIHelpers::log("PLUGIN TYPE: ", m_plugin->getPluginType());
+    NS_LOG_DEBUG(plugins, "creating plugin chain item view for type=" + m_plugin->getPluginType());
 
     if (m_plugin->getPluginType() == "volume")
     {
@@ -138,14 +138,14 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     }
     else if (m_plugin->getPluginType() == te::SamplerPlugin::xmlTypeName)
     {
-        GUIHelpers::log(m_plugin->getPluginType());
+        NS_LOG_DEBUG(plugins, "instantiating sampler plugin UI for type=" + m_plugin->getPluginType());
         if (auto *sampler = dynamic_cast<te::SamplerPlugin *>(p.get()))
         {
             m_pluginComponent = std::make_unique<DrumSamplerView>(evs, *sampler);
         }
         else
         {
-            GUIHelpers::log("ERROR: Plugin claims to be sampler but dynamic_cast failed!");
+            NS_LOG_ERROR(plugins, "plugin reports sampler type but sampler cast failed");
         }
     }
     else

@@ -180,10 +180,10 @@ void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juc
     {
         if (i == IDs::showLowerRange)
         {
-            GUIHelpers::log("LowerRangeComponent valueTreePropertyChanged --------------- ");
+            NS_LOG_DEBUG(viewstate, "lower range track visibility changed");
             if (auto track = te::findTrackForState(m_evs.m_edit, v))
             {
-                GUIHelpers::log("LowerRangeComponent valueTreePropertyChanged ", track->getName());
+                NS_LOG_DEBUG(viewstate, "lower range active track candidate: " + track->getName());
                 if ((bool)v.getProperty(IDs::showLowerRange) == true)
                     syncActiveTrack(true);
             }

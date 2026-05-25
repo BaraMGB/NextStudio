@@ -200,7 +200,7 @@ bool SongEditorView::isInterestedInDragSource(const SourceDetails &dragSourceDet
     if (auto fileTreeComp = dynamic_cast<juce::FileTreeComponent *>(dragSourceDetails.sourceComponent.get()))
         return true;
 
-    GUIHelpers::log(dragSourceDetails.description.toString());
+    NS_LOG_DEBUG(ui, "SongEditor drag source: " + dragSourceDetails.description.toString());
 
     if (dragSourceDetails.description == "FileBrowser")
     {
@@ -621,9 +621,9 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
         auto range = te::getTimeRangeForSelectedItems(selectedClips);
         auto delta = range.getLength().inSeconds();
 
-        GUIHelpers::log("moving Clips.");
+        NS_LOG_INFO(edit, "duplicating selected clips");
         moveSelectedClips(true, delta, 0);
-        GUIHelpers::log("Clips moved.");
+        NS_LOG_DEBUG(edit, "selected clips duplicated");
     }
 }
 
@@ -1040,14 +1040,13 @@ void SongEditorView::buildRecordingClips(te::Track::Ptr track)
 
 void SongEditorView::logMousePositionInfo()
 {
-    GUIHelpers::log("------------------------------------------------------------");
-    GUIHelpers::log("ToolMode    : ", (int)m_toolMode);
-    GUIHelpers::log("Track       : ", m_hoveredTrack != nullptr);
-    if (m_hoveredTrack)
-    {
-        GUIHelpers::log("Track : ", m_hoveredTrack->getName());
-    }
+    juce::String message = "mouse context: toolMode=" + juce::String(static_cast<int>(m_toolMode))
+        + ", hasHoveredTrack=" + NextStudio::Logging::toLogString(m_hoveredTrack != nullptr);
 
+    if (m_hoveredTrack)
+        message << ", hoveredTrack=" << m_hoveredTrack->getName();
+
+    NS_LOG_DEBUG(ui, message);
     repaint();
 }
 

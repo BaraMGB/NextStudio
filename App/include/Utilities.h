@@ -28,6 +28,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ThumbNailManager.h"
 #include "ProjectLifecycle.h"
 #include "ClipPropertyEdit.h"
+#include "Logging.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 
 namespace te = tracktion_engine;
@@ -172,15 +173,11 @@ float getZoomScaleFactor(int delta, float unitDistance);
 
 template <typename T> void log(T message)
 {
-#ifdef DEBUG_OR_RELWITHDEBINFO
-    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true) << ": " << message << std::endl;
-#endif
+    NS_LOG_DEBUG(ui, NextStudio::Logging::toLogString(message));
 }
 template <typename T> void log(const juce::String &d, T message)
 {
-#ifdef DEBUG_OR_RELWITHDEBINFO
-    std::cout << juce::Time::getCurrentTime().toString(true, true, true, true) << ": " << d << " : " << ": " << message << std::endl;
-#endif
+    NS_LOG_DEBUG(ui, d + " : " + NextStudio::Logging::toLogString(message));
 }
 
 // void centerView(EditViewState& evs);

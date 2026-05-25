@@ -120,7 +120,7 @@ private:
 
     void updateTheme()
     {
-        GUIHelpers::log("update theme");
+        NS_LOG_DEBUG(viewstate, "updating application theme");
         ThemeHelpers::applyLookAndFeelColours(getLookAndFeel(), m_applicationState);
         if (m_editComponent)
             m_editComponent->updateButtonIcons();

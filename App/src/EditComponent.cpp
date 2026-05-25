@@ -44,7 +44,7 @@ void rewriteAutoSaveSourcePaths(juce::ValueTree node, te::Edit &edit, const juce
             }
             else
             {
-                GUIHelpers::log("WARNING: Source file not found during autosave: " + absoluteSourceFile.getFullPathName());
+                NS_LOG_WARN(autosave, "source file missing during autosave rewrite: " + absoluteSourceFile.getFullPathName());
             }
         }
     }
@@ -330,7 +330,7 @@ void EditComponent::paintOverChildren(juce::Graphics &g)
 
 void EditComponent::resized()
 {
-    GUIHelpers::log("EditComponent: resized()");
+    NS_LOG_DEBUG(ui, "EditComponent resized");
     m_automationToolBar.setBounds(getAutomationToolBarRect());
     m_toolBar.setBounds(getToolBarRect());
     m_clipPropertiesBar.setBounds(getClipPropertiesRect());
@@ -547,7 +547,7 @@ void EditComponent::saveTempFile()
 
     if (!m_editViewState.m_needAutoSave)
     {
-        GUIHelpers::log("Edit is up to date, no autosave needed.");
+        NS_LOG_DEBUG(autosave, "autosave skipped; edit already up to date");
         return;
     }
 
@@ -578,7 +578,7 @@ void EditComponent::saveTempFile()
     catch (const std::exception &e)
     {
         m_autoSaveInProgress = false;
-        GUIHelpers::log("ERROR: Exception during autosave process: " + juce::String(e.what()));
+        NS_LOG_ERROR(autosave, "exception during autosave process: " + juce::String(e.what()));
     }
 }
 
@@ -604,7 +604,7 @@ void EditComponent::queueTempFileWrite(juce::ValueTree editStateCopy, const juce
             }
             catch (const std::exception &e)
             {
-                GUIHelpers::log("ERROR: Exception during autosave write: " + juce::String(e.what()));
+                NS_LOG_ERROR(autosave, "exception during autosave write: " + juce::String(e.what()));
             }
 
             juce::MessageManager::callAsync(
@@ -622,7 +622,7 @@ void EditComponent::handleTempFileWriteFinished(bool wasSuccessful, juce::uint64
 
     if (wasSuccessful)
     {
-        GUIHelpers::log("Autosave successful: " + targetTempFile.getFullPathName());
+        NS_LOG_INFO(autosave, "autosave successful: " + targetTempFile.getFullPathName());
 
         // Only clear the dirty flag when the written snapshot still matches the latest edit state.
         if (generation == m_autoSaveGeneration.load())
@@ -630,7 +630,7 @@ void EditComponent::handleTempFileWriteFinished(bool wasSuccessful, juce::uint64
     }
     else
     {
-        GUIHelpers::log("ERROR: Autosave failed to write to file: " + targetTempFile.getFullPathName());
+        NS_LOG_ERROR(autosave, "autosave failed to write file: " + targetTempFile.getFullPathName());
     }
 
     if (m_autoSaveQueued.exchange(false))
@@ -694,7 +694,7 @@ void EditComponent::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree
     }
     if (c.hasType(te::IDs::AUTOMATIONCURVE))
     {
-        GUIHelpers::log(c.toXmlString());
+        NS_LOG_DEBUG(edit, "automation curve added\n" + c.toXmlString());
         markAndUpdate(m_updateTracks);
         markAndUpdate(m_verticalUpdateSongEditor);
     }
@@ -723,7 +723,7 @@ void EditComponent::valueTreeChildRemoved(juce::ValueTree &parent, juce::ValueTr
     }
     if (c.hasType(te::IDs::AUTOMATIONCURVE))
     {
-        GUIHelpers::log(c.toXmlString());
+        NS_LOG_DEBUG(edit, "automation curve removed\n" + c.toXmlString());
         markAndUpdate(m_updateTracks);
         markAndUpdate(m_verticalUpdateSongEditor);
     }
@@ -950,27 +950,27 @@ void EditComponent::duplicateSelectedTracks()
 
 bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
-    GUIHelpers::log("EditComponent perform commandID: ", info.commandID);
+    NS_LOG_DEBUG(workflow, "EditComponent command invoked: id=" + juce::String(static_cast<int>(info.commandID)));
 
     switch (info.commandID)
     {
     // send NoteOn
     case KeyPressCommandIDs::deleteSelectedClips:
     {
-        GUIHelpers::log("deleteSelectedClips Outer");
+        NS_LOG_DEBUG(edit, "delete selection requested");
         if (m_songEditor.getTracksWithSelectedTimeRange().size() > 0)
         {
-            GUIHelpers::log("deleteSelectedTimeRange");
+            NS_LOG_INFO(edit, "deleting selected time range");
             m_songEditor.deleteSelectedTimeRange();
         }
         else if (hasSelectedClips())
         {
-            GUIHelpers::log("deleteSelectedClips");
+            NS_LOG_INFO(edit, "deleting selected clips");
             EngineHelpers::deleteSelectedClips(m_editViewState);
         }
         else if (hasSelectedTracks())
         {
-            GUIHelpers::log("deleteSelectedTracks");
+            NS_LOG_INFO(edit, "deleting selected tracks from EditComponent");
             deleteSelectedTracks();
         }
         break;
@@ -992,14 +992,14 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         m_songEditor.renderSelectionToNewTrack();
         break;
     case KeyPressCommandIDs::transposeClipUp:
-        GUIHelpers::log("perform: transposeClipUp");
+        NS_LOG_INFO(edit, "transposing selected clips up");
         m_songEditor.transposeSelectedClips(+1.f);
         break;
     case KeyPressCommandIDs::transposeClipDown:
         m_songEditor.transposeSelectedClips(-1.f);
         break;
     case KeyPressCommandIDs::reverseClip:
-        GUIHelpers::log("reverse!!!!");
+        NS_LOG_INFO(edit, "reversing selected clips");
         m_songEditor.reverseSelectedClips();
         break;
     default:
@@ -1240,5 +1240,5 @@ void EditComponent::sendAllNotedOff()
         for (int i = 1; i <= 16; ++i)
             track->injectLiveMidiMessage(juce::MidiMessage::allNotesOff(i), {});
 
-    GUIHelpers::log("EditComponent: ", "All notes off!");
+    NS_LOG_INFO(transport, "all notes off sent to audio tracks");
 }
