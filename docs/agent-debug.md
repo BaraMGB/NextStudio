@@ -20,6 +20,235 @@ The goal is to keep the system:
 
 ## Current Architecture
 
+## Pi Extension
+
+A project-local pi extension is included for driving the debug shell from pi.
+
+Location:
+
+- `.pi/extensions/nextstudio-debug.ts`
+
+This means the tool is currently available only inside this repository when pi loads project-local extensions.
+It is **not** installed globally under `~/.pi/agent/extensions/`.
+
+The extension exposes these pi tools:
+
+- `nextstudio_debug_start`
+- `nextstudio_debug_command`
+- `nextstudio_debug_stop`
+
+These tools wrap a persistent NextStudio `--debug-shell` process and allow command-by-command interaction without rebuilding an ad-hoc external harness for every test.
+
+### Internal model
+
+The extension keeps a process session map in memory.
+
+Each session stores:
+
+- a generated `sessionId`
+- the spawned `NextStudio --debug-shell` process
+- buffered stdout/stderr lines
+- pending waiters for future shell responses
+- exit state (`exited`, `exitCode`, `exitSignal`)
+
+Stdout and stderr are collected line-by-line.
+
+- stdout lines are stored as-is
+- stderr lines are stored with the prefix `[stderr] `
+
+The extension keeps a rolling buffer of recent lines for diagnostics.
+
+### Tool: `nextstudio_debug_start`
+
+Purpose:
+
+- start a fresh persistent NextStudio debug-shell process
+- wait until the shell reports readiness
+
+Parameters:
+
+- `binaryPath` (optional)
+- `cwd` (optional)
+- `timeoutMs` (optional)
+
+Default binary path:
+
+- `autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio`
+
+Behavior:
+
+1. spawn `NextStudio --debug-shell`
+2. begin collecting stdout/stderr lines
+3. wait for a line starting with:
+   - `ok code=ready`
+4. return session metadata and recent output
+
+Important returned fields:
+
+- `ok`
+- `sessionId`
+- `readyLine`
+- `binaryPath`
+- `cwd`
+- `recentLines`
+
+Typical success shape:
+
+```json
+{
+  "ok": true,
+  "sessionId": "19a26866-edb6-473d-801f-976c4559837f",
+  "readyLine": "ok code=ready message=\"debug shell started\""
+}
+```
+
+### Tool: `nextstudio_debug_command`
+
+Purpose:
+
+- send exactly one command line to a running debug-shell session
+- wait for the next shell response line
+
+Parameters:
+
+- `sessionId`
+- `command`
+- `timeoutMs` (optional)
+
+Behavior:
+
+1. locate the running session by `sessionId`
+2. write `command + "\n"` to the process stdin
+3. wait for the next line that starts with either:
+   - `ok `
+   - `error `
+4. return the matching response plus all newly collected lines since the command was sent
+
+Important returned fields:
+
+- `ok`
+- `command`
+- `responseLine`
+- `newLines`
+- session status fields (`sessionId`, `exited`, `exitCode`, `exitSignal`)
+
+Typical example:
+
+```json
+{
+  "sessionId": "19a26866-edb6-473d-801f-976c4559837f",
+  "command": "ping",
+  "timeoutMs": 10000
+}
+```
+
+Typical success shape:
+
+```json
+{
+  "ok": true,
+  "command": "ping",
+  "responseLine": "ok code=ok app=NextStudio version=0.01 mode=debug-shell",
+  "newLines": [
+    "ok code=ok app=NextStudio version=0.01 mode=debug-shell"
+  ]
+}
+```
+
+`responseLine` is the primary shell result.
+
+`newLines` contains all newly observed shell and log lines since the command was issued, including stderr-prefixed lines.
+
+This is intentionally verbose enough to support debugging and validation from pi.
+
+### Tool: `nextstudio_debug_stop`
+
+Purpose:
+
+- stop a tracked debug-shell session
+- remove it from the extension's in-memory session map
+
+Parameters:
+
+- `sessionId`
+- `force` (optional)
+
+Behavior:
+
+- sends `SIGTERM` by default
+- sends `SIGKILL` when `force=true`
+- removes the session from the extension map regardless
+
+Typical success shape:
+
+```json
+{
+  "ok": true,
+  "force": false,
+  "sessionId": "19a26866-edb6-473d-801f-976c4559837f"
+}
+```
+
+### Typical pi workflow
+
+A normal pi-driven flow looks like this:
+
+1. call `nextstudio_debug_start`
+2. store the returned `sessionId`
+3. call `nextstudio_debug_command` with `ping`
+4. call `nextstudio_debug_command` with `play`
+5. optionally wait, inspect logs, or request screenshots
+6. call `nextstudio_debug_command` with `stop`
+7. call `nextstudio_debug_command` with `quit`
+8. optionally call `nextstudio_debug_stop` as cleanup if the process is still alive or the session must be discarded explicitly
+
+Example command sequence:
+
+```text
+nextstudio_debug_start
+nextstudio_debug_command(sessionId, "ping")
+nextstudio_debug_command(sessionId, "play")
+nextstudio_debug_command(sessionId, "screenshot")
+nextstudio_debug_command(sessionId, "stop")
+nextstudio_debug_command(sessionId, "quit")
+```
+
+### Relationship to NextStudio debug shell
+
+The pi extension is only a transport/persistence layer.
+
+It does **not** implement application behavior itself.
+
+It simply wraps the existing NextStudio debug shell and forwards command lines into:
+
+- `help`
+- `ping`
+- `play`
+- `stop`
+- `screenshot`
+- `quit`
+
+This separation is important:
+
+- NextStudio owns the command semantics
+- the pi extension owns persistent process/session handling inside pi
+
+### Testing implications
+
+When validating pi-driven control, both layers should be considered:
+
+1. NextStudio debug-shell behavior
+2. pi extension session/transport behavior
+
+A successful test should verify:
+
+- the session starts and returns `ready`
+- commands return the expected `responseLine`
+- `newLines` contain plausible supporting output where relevant
+- screenshots are copied or inspected before the debug-shell session is terminated
+
+---
+
 ### 1. Agent debug utilities
 
 These are internal helpers used by the app:
