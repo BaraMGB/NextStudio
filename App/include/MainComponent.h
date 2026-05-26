@@ -77,7 +77,7 @@ class MainComponent
     , private FlaggedAsyncUpdater
 {
 public:
-    explicit MainComponent(ApplicationViewState &state);
+    explicit MainComponent(ApplicationViewState &state, bool debugMode = false);
     ~MainComponent() override;
 
     void paint(juce::Graphics &g) override;
@@ -163,6 +163,7 @@ private:
     SplitterComponent m_sidebarSplitter;
 
     [[maybe_unused]] bool m_settingsLoaded{false};
+    bool m_debugMode{false};
     bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp{true};
 

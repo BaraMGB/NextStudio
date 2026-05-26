@@ -30,7 +30,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "MainComponent.h"
 #include "AgentDebug.h"
-#include "ClipOverwriteCommand.h"},{
+#include "ClipOverwriteCommand.h"
 #include "ArpeggiatorPlugin.h"
 #include "NextChorusPlugin.h"
 #include "NextDelayPlugin.h"
@@ -46,13 +46,44 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SetupWizard.h"
 #include "InitialContentSetup.h"
 #include "ThemeHelpers.h"
-#include "Utilities.h"},{
+#include "Utilities.h"
 
-MainComponent::MainComponent(ApplicationViewState &state)
+namespace
+{
+juce::File createDebugSessionTempDirectory()
+{
+    auto baseDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                       .getChildFile(ProjectInfo::projectName)
+                       .getChildFile("debug-shell");
+    baseDir.createDirectory();
+
+    const auto sessionName = "session-" + juce::Time::getCurrentTime().formatted("%Y%m%d-%H%M%S")
+                             + "-" + juce::String(juce::Random::getSystemRandom().nextInt(1000000));
+    auto sessionDir = baseDir.getChildFile(sessionName);
+    sessionDir.createDirectory();
+    return sessionDir;
+}
+}
+
+MainComponent::MainComponent(ApplicationViewState &state, bool debugMode)
     : m_applicationState(state),
       m_nextLookAndFeel(state),
-      m_sidebarSplitter(false)
+      m_sidebarSplitter(false),
+      m_debugMode(debugMode)
 {
+    if (m_debugMode)
+    {
+        const auto debugTempDir = createDebugSessionTempDirectory();
+        if (m_engine.getTemporaryFileManager().setTempDirectory(debugTempDir))
+        {
+            NS_LOG_INFO(app, "debug shell temp directory: " + debugTempDir.getFullPathName());
+        }
+        else
+        {
+            NS_LOG_ERROR(app, "failed to set debug shell temp directory: " + debugTempDir.getFullPathName());
+        }
+    }
+
     const auto configuredWorkDir = juce::File(m_applicationState.m_workDir.get());
     const auto defaultWorkDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio");
     const bool configuredWorkDirExists = configuredWorkDir.exists() && configuredWorkDir.isDirectory();
@@ -170,22 +201,7 @@ void MainComponent::resized()
 bool MainComponent::keyStateChanged(bool isKeyDown)
 
 {
-    if (isKeyDown)
-    {
-        if (juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::F11Key))
-        {
-            const auto dumpFile = writeAgentStateDump();
-            NS_LOG_INFO(app, "agent state dump triggered via F11: " + dumpFile.getFullPathName());
-            return true;
-        }
-
-        if (juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::F12Key))
-        {
-            const auto snapshotFile = captureAgentSnapshot();
-            NS_LOG_INFO(app, "agent snapshot triggered via F12: " + snapshotFile.getFullPathName());
-            return true;
-        }
-    }
+    juce::ignoreUnused(isKeyDown);
 
     int rootNote = 48;
     int gap = 0;

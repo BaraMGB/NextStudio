@@ -1,0 +1,78 @@
+#include "DebugAppController.h"
+
+#include "MainComponent.h"
+#include "Logging.h"
+
+namespace NextStudio::Debug
+{
+DebugAppController::DebugAppController(MainComponent &mainComponent)
+    : m_mainComponent(mainComponent)
+{
+}
+
+Result DebugAppController::execute(const Command &command)
+{
+    switch (command.type)
+    {
+    case CommandType::help:
+        return handleHelp();
+    case CommandType::ping:
+        return handlePing();
+    case CommandType::screenshot:
+        return handleScreenshot(command);
+    case CommandType::quit:
+        return handleQuit();
+    case CommandType::unknown:
+        break;
+    }
+
+    return Result::failure("unknown-command", "Unknown command. Try 'help'.");
+}
+
+Result DebugAppController::handleHelp() const
+{
+    auto result = Result::success();
+    result.fields.set("commands", "help ping screenshot quit");
+    return result;
+}
+
+Result DebugAppController::handlePing() const
+{
+    auto result = Result::success();
+    result.fields.set("app", ProjectInfo::projectName);
+    result.fields.set("version", ProjectInfo::versionString);
+    result.fields.set("mode", "debug-shell");
+    return result;
+}
+
+Result DebugAppController::handleScreenshot(const Command &command) const
+{
+    int maxWidth = 640;
+    if (command.argument.isNotEmpty())
+    {
+        maxWidth = command.argument.getIntValue();
+        if (maxWidth <= 0)
+            return Result::failure("invalid-argument", "screenshot expects an optional positive maxWidth");
+    }
+
+    const auto file = m_mainComponent.captureAgentSnapshot(maxWidth);
+    auto result = Result::success();
+    result.fields.set("path", file.getFullPathName());
+    return result;
+}
+
+Result DebugAppController::handleQuit() const
+{
+    if (auto *app = juce::JUCEApplication::getInstance())
+    {
+        NS_LOG_INFO(app, "debug shell requested quit");
+        app->quit();
+
+        auto result = Result::success();
+        result.fields.set("quitting", "true");
+        return result;
+    }
+
+    return Result::failure("no-app-instance", "No JUCE application instance");
+}
+} // namespace NextStudio::Debug
