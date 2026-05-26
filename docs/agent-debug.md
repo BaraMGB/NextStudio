@@ -1,65 +1,136 @@
-# Agent Debug Interface
+# Agent Debug and Debug Shell
 
 ## Overview
 
-NextStudio now contains a small internal agent/debug interface intended as a foundation for later agent-driven debugging.
+NextStudio currently exposes two related debugging layers:
 
-It currently provides three capabilities:
+1. **Agent debug utilities** inside the app
+2. **Debug shell** for simple agent control via stdin/stdout
 
-1. filtered state dumps
-2. a minimal command surface
-3. scaled UI snapshots
+The current direction for app control is the **debug shell**.
 
-The goal is to make the application observable and controllable without dumping large amounts of irrelevant internal data.
+The goal is to keep the system:
 
----
-
-## Design Principles
-
-### App-first
-
-The interface focuses on NextStudio's own behavior:
-
-- GUI state
-- selection
-- lower range state
-- transport state
-- track and plugin summaries
-- project/edit context
-
-### Filtered state instead of raw state
-
-Full plugin states, especially VST3 plugin states, can contain large binary payloads or long opaque strings. These are expensive and not useful for agent reasoning.
-
-Therefore the state dump is deliberately filtered and summarized.
-
-### Small, stable command surface
-
-The command API is intentionally minimal for now. It is meant to expose a few reliable, high-value actions before growing further.
-
-### Scaled snapshots
-
-Snapshots are captured with JUCE and scaled down to reduce storage and token cost when used downstream.
+- small
+- deterministic
+- easy to test
+- safe for normal user sessions
 
 ---
 
-## Files
+## Current Architecture
 
-Implementation:
+### 1. Agent debug utilities
+
+These are internal helpers used by the app:
+
+- filtered state dump creation
+- UI snapshot capture
+- a few convenience integration points on `MainComponent`
+
+Relevant files:
 
 - `App/Source/Utilities/AgentDebug.h`
 - `App/Source/Utilities/AgentDebug.cpp`
-
-Integration points:
-
 - `App/Source/MainComponent.h`
 - `App/Source/MainComponent.cpp`
+
+### 2. Debug shell
+
+This is the current agent-facing control path.
+
+It starts NextStudio in a dedicated debug mode and accepts simple commands over `stdin`, returning one response line per command over `stdout`.
+
+Relevant files:
+
+- `App/Source/Debug/DebugCommand.h`
+- `App/Source/Debug/DebugResult.h`
+- `App/Source/Debug/DebugAppController.h`
+- `App/Source/Debug/DebugAppController.cpp`
+- `App/Source/Debug/DebugShell.h`
+- `App/Source/Debug/DebugShell.cpp`
+- `App/Source/Main.cpp`
+
+---
+
+## Debug Shell
+
+### Start
+
+Run NextStudio with:
+
+```bash
+NextStudio --debug-shell
+```
+
+The app starts normally with GUI, but also opens a small command loop over `stdin/stdout`.
+
+### Command model
+
+The shell is intentionally minimal.
+
+Each command is a single line.
+
+Current supported commands:
+
+- `help`
+- `ping`
+- `play`
+- `stop`
+- `screenshot`
+- `screenshot 800`
+- `quit`
+
+### Response model
+
+Each command returns exactly one response line.
+
+Typical responses:
+
+```text
+ok code=ready message="debug shell started"
+ok code=ok app=NextStudio version=0.01 mode=debug-shell
+ok code=ok playing=true
+ok code=ok playing=false
+ok code=ok path=/tmp/.../ui-snapshot-....png
+ok code=ok quitting=true
+error code=unknown-command message="Unknown command. Try 'help'."
+```
+
+The shell is intended to be machine-readable, not interactive in a human shell-like sense.
+
+---
+
+## Debug Shell Session Isolation
+
+### Separate temp sandbox
+
+`--debug-shell` runs in its own session-specific temporary sandbox.
+
+It does **not** use the normal recovery/temp area of regular user sessions.
+
+This is important because debug-shell sessions are disposable and must not interfere with real recovery data.
+
+### Guarantees
+
+In debug-shell mode:
+
+- no normal recovery dialog is shown
+- normal user recovery data is not loaded
+- normal user recovery data is not deleted
+- autosave and debug artifacts are written only inside the debug-shell session sandbox
+
+Typical location:
+
+- `/tmp/NextStudio/debug-shell/session-...`
+
+This session directory is temporary and should be treated as disposable.
 
 ---
 
 ## Public MainComponent API
 
-The following methods were added to `MainComponent`:
+The following methods exist as internal integration points:
 
 - `juce::String createAgentStateDump() const`
 - `juce::File writeAgentStateDump() const`
@@ -78,6 +149,8 @@ Context getters:
 - `getHeaderComponent()`
 - `getLowerRangeComponent()`
 
+Note: the long-term control path should prefer the debug shell over ad-hoc keyboard shortcuts or temporary command hooks.
+
 ---
 
 ## State Dump
@@ -88,7 +161,7 @@ The state dump is a compact JSON summary of the current application state.
 
 ### Output location
 
-Written to the temporary directory managed by the app:
+Written to the app-managed temporary area:
 
 - `agent-debug/state-dump-*.json`
 
@@ -109,11 +182,11 @@ The dump currently includes:
 - track summaries
 - plugin summaries per track
 
-### Plugin filtering strategy
+### Filtering strategy
 
-The dump does **not** serialize full plugin state trees.
+The dump intentionally avoids full raw plugin state serialization.
 
-Instead it only stores summary data such as:
+Instead it stores compact summaries such as:
 
 - plugin name
 - plugin type
@@ -121,44 +194,10 @@ Instead it only stores summary data such as:
 - child state count
 - property count
 
-### String filtering strategy
-
-Strings are filtered by a small heuristic:
+Strings are also filtered:
 
 - long strings are truncated
 - binary-like strings are replaced with a placeholder
-
-This is intended to avoid token waste from opaque plugin payloads.
-
----
-
-## Command Surface
-
-### Purpose
-
-The command interface provides a small set of stable actions for agent testing and later automation.
-
-### Currently supported commands
-
-- `play`
-- `stop`
-- `toggle-record`
-- `toggle-metronome`
-- `dump-state`
-- `capture-snapshot`
-- `select-track`
-- `show-mixer`
-- `show-piano-roll`
-- `show-plugin-rack`
-
-### Notes
-
-- `select-track` expects a track name as argument
-- lower-range commands switch the visible lower-range mode
-- `dump-state` writes a JSON file
-- `capture-snapshot` writes a PNG file
-
-Unknown commands are rejected and logged.
 
 ---
 
@@ -176,6 +215,8 @@ Snapshots are created with JUCE using `createComponentSnapshot` on `MainComponen
 
 - `agent-debug/ui-snapshot-*.png`
 
+In debug-shell mode this path lives inside the debug session sandbox.
+
 ### Scaling
 
 Snapshots are scaled down to a configurable maximum width.
@@ -186,20 +227,39 @@ Current default:
 
 This keeps image size and downstream token usage under control.
 
+### Testing requirement
+
+A successful screenshot test is **not** just a successful command response.
+
+The test must also inspect the produced PNG and confirm that it contains a plausible NextStudio UI capture:
+
+- the image file exists
+- the PNG is readable
+- the image is not empty or corrupt
+- the visible content matches a real NextStudio window state
+
+In debug-shell mode, screenshots are written inside the session-specific temporary sandbox and are typically removed when the session exits.
+
+Because of that, screenshot tests must inspect or copy the PNG **before** sending `quit` or otherwise terminating the debug-shell session.
+
 ---
 
 ## Logging
 
-The agent/debug interface uses the central logging system documented in:
+The agent/debug code uses the central logging system documented in:
 
 - `docs/logging.md`
 
-Relevant categories used here include:
+Relevant categories commonly seen here include:
 
 - `app`
 - `workflow`
 - `selection`
 - `viewstate`
+- `transport`
+- `autosave`
+
+For reliable agent control, logs should be kept separate from command responses whenever possible.
 
 ---
 
@@ -209,50 +269,46 @@ Current scope is intentionally small.
 
 Not implemented yet:
 
-- external transport protocol
-- CLI or socket bridge
-- mouse automation
+- track creation commands
+- clip insertion commands
+- MIDI note insertion commands
+- test sample insertion commands
+- socket or IPC transport
 - deep GUI tree export
 - audio assertions
 - plugin parameter editing commands
-- ffmpeg-based post-processing
+- headless offscreen rendering mode
 
 ---
 
 ## Recommended Next Steps
 
-Reasonable follow-up work:
+Reasonable next additions:
 
-1. add a temporary trigger path for manual testing
-   - debug menu
-   - keyboard shortcut
-   - file-based command trigger
+1. extend debug-shell command coverage carefully
+   - create track
+   - insert clip
+   - insert MIDI note
+   - insert test sample
 
-2. extend command coverage carefully
-   - open project
-   - select clip
-   - render
-   - add track
+2. keep commands deterministic
+   - prefer `set`-style behavior over toggle-style behavior
 
-3. improve dump semantics
-   - active clip details
-   - visible UI panels
-   - plugin window state
-   - focused track/plugin context
+3. preserve shell simplicity
+   - one command per line
+   - one response per command
+   - no scripting language
 
-4. optionally add alternate output formats
-   - compact JSON
-   - human-readable text summary
+4. keep debug-shell isolated from normal user recovery flows
 
 ---
 
 ## Summary
 
-This interface is meant to be a practical first step:
+The current system is intentionally modest:
 
-- observable
-- filtered
-- small
-- extensible
+- internal debug utilities for state and snapshots
+- a small debug shell for agent control
+- isolated debug sessions that do not touch normal recovery data
 
-It is not a full automation framework yet, but it provides a good base for agent-assisted debugging in a DAW context.
+It is not a full automation framework yet, but it is now a clean base for incremental agent-driven testing and debugging.

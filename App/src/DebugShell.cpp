@@ -111,6 +111,10 @@ Command DebugShell::parseCommand(const juce::String &line)
         command.type = CommandType::help;
     else if (name == "ping")
         command.type = CommandType::ping;
+    else if (name == "play")
+        command.type = CommandType::play;
+    else if (name == "stop")
+        command.type = CommandType::stop;
     else if (name == "screenshot")
         command.type = CommandType::screenshot;
     else if (name == "quit" || name == "exit")

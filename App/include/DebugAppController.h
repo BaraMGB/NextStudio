@@ -17,6 +17,8 @@ public:
 private:
     Result handleHelp() const;
     Result handlePing() const;
+    Result handlePlay() const;
+    Result handleStop() const;
     Result handleScreenshot(const Command &command) const;
     Result handleQuit() const;
 

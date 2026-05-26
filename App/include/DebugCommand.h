@@ -8,6 +8,8 @@ enum class CommandType
 {
     help,
     ping,
+    play,
+    stop,
     screenshot,
     quit,
     unknown

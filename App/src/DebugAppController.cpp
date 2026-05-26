@@ -2,6 +2,7 @@
 
 #include "MainComponent.h"
 #include "Logging.h"
+#include "Utilities.h"
 
 namespace NextStudio::Debug
 {
@@ -18,6 +19,10 @@ Result DebugAppController::execute(const Command &command)
         return handleHelp();
     case CommandType::ping:
         return handlePing();
+    case CommandType::play:
+        return handlePlay();
+    case CommandType::stop:
+        return handleStop();
     case CommandType::screenshot:
         return handleScreenshot(command);
     case CommandType::quit:
@@ -32,7 +37,7 @@ Result DebugAppController::execute(const Command &command)
 Result DebugAppController::handleHelp() const
 {
     auto result = Result::success();
-    result.fields.set("commands", "help ping screenshot quit");
+    result.fields.set("commands", "help ping play stop screenshot quit");
     return result;
 }
 
@@ -43,6 +48,34 @@ Result DebugAppController::handlePing() const
     result.fields.set("version", ProjectInfo::versionString);
     result.fields.set("mode", "debug-shell");
     return result;
+}
+
+Result DebugAppController::handlePlay() const
+{
+    if (auto *editComponent = m_mainComponent.getEditComponent())
+    {
+        EngineHelpers::play(editComponent->getEditViewState());
+
+        auto result = Result::success();
+        result.fields.set("playing", "true");
+        return result;
+    }
+
+    return Result::failure("not-ready", "Edit component is unavailable");
+}
+
+Result DebugAppController::handleStop() const
+{
+    if (auto *editComponent = m_mainComponent.getEditComponent())
+    {
+        EngineHelpers::stopPlay(editComponent->getEditViewState());
+
+        auto result = Result::success();
+        result.fields.set("playing", "false");
+        return result;
+    }
+
+    return Result::failure("not-ready", "Edit component is unavailable");
 }
 
 Result DebugAppController::handleScreenshot(const Command &command) const
