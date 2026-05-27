@@ -105,7 +105,11 @@ Command DebugShell::parseCommand(const juce::String &line)
 
     const auto name = parts[0].toLowerCase();
     if (parts.size() > 1)
-        command.argument = parts[1];
+    {
+        const auto firstSpace = line.indexOfAnyOf(" \t");
+        if (firstSpace >= 0)
+            command.argument = line.substring(firstSpace).trim();
+    }
 
     if (name == "help")
         command.type = CommandType::help;
@@ -115,6 +119,8 @@ Command DebugShell::parseCommand(const juce::String &line)
         command.type = CommandType::systemState;
     else if (name == "transport-state" || name == "transport_state")
         command.type = CommandType::transportState;
+    else if (name == "state-dump" || name == "state_dump")
+        command.type = CommandType::stateDump;
     else if (name == "play")
         command.type = CommandType::play;
     else if (name == "stop")

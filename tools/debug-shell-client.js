@@ -2,6 +2,7 @@
 
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const defaultBinaryPath = path.resolve(process.cwd(), 'autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio');
@@ -70,6 +71,20 @@ function requireOkResponse(response, context) {
     throw new Error(`${context}: expected ok response, got ${response.responseLine || response.parsed.raw || '<none>'}`);
 }
 
+function requireErrorResponse(response, context) {
+  if (!response || !response.parsed)
+    throw new Error(`${context}: missing parsed response`);
+  if (response.parsed.status !== 'error')
+    throw new Error(`${context}: expected error response, got ${response.responseLine || response.parsed.raw || '<none>'}`);
+}
+
+function requireErrorCode(response, key, context) {
+  requireErrorResponse(response, context);
+  const actual = response.parsed.fields.code;
+  if (actual !== key)
+    throw new Error(`${context}: expected error code ${key}, got ${String(actual)}`);
+}
+
 function requireBooleanField(response, key, context) {
   const value = response?.parsed?.fields?.[key];
   if (value !== 'true' && value !== 'false')
@@ -85,9 +100,25 @@ function requireNumberField(response, key, context) {
   return value;
 }
 
+function requireFileExists(filePath, context) {
+  if (!filePath || !fs.existsSync(filePath))
+    throw new Error(`${context}: file is missing: ${String(filePath)}`);
+}
+
+function readJsonFile(filePath, context) {
+  requireFileExists(filePath, context);
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function createTempArtifactPath(prefix, extension) {
+  const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+  return path.join(os.tmpdir(), `${prefix}-${stamp}${extension}`);
+}
+
 class NextStudioDebugShellClient {
   constructor(options = {}) {
     this.binaryPath = path.resolve(options.binaryPath || defaultBinaryPath);
+    this.binaryArgs = Array.isArray(options.binaryArgs) ? [...options.binaryArgs] : ['--debug-shell'];
     this.cwd = path.resolve(options.cwd || process.cwd());
     this.defaultTimeoutMs = options.timeoutMs || 10000;
     this.process = null;
@@ -104,7 +135,7 @@ class NextStudioDebugShellClient {
     if (!fs.existsSync(this.binaryPath))
       throw new Error(`NextStudio binary not found: ${this.binaryPath}`);
 
-    this.process = spawn(this.binaryPath, ['--debug-shell'], {
+    this.process = spawn(this.binaryPath, this.binaryArgs, {
       cwd: this.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -382,18 +413,216 @@ async function runTransportSmokeTest(options = {}) {
   }
 }
 
+async function runCommandErrorSmokeTest(options = {}) {
+  const client = new NextStudioDebugShellClient(options);
+
+  try {
+    const readyLine = await client.start(options.startTimeoutMs || 30000);
+    const systemState = await client.waitForSystemReady(options.readyTimeoutMs || 30000);
+    const screenshotZero = await client.command('screenshot 0');
+    const screenshotNegative = await client.command('screenshot -1');
+    const unknown = await client.command('definitely-not-a-command');
+    const repeatedTransport = [];
+    for (let i = 0; i < (options.repeatedTransportStateCount || 5); ++i)
+      repeatedTransport.push(await client.command('transport-state'));
+    const quit = await client.command('quit');
+    await client.waitForExit(5000).catch(() => {});
+
+    requireOkResponse(systemState, 'system-state');
+    requireErrorCode(screenshotZero, 'invalid-argument', 'screenshot 0');
+    requireErrorCode(screenshotNegative, 'invalid-argument', 'screenshot -1');
+    requireErrorCode(unknown, 'unknown-command', 'unknown command');
+    for (const [index, response] of repeatedTransport.entries())
+      requireOkResponse(response, `transport-state repeat ${index + 1}`);
+    requireOkResponse(quit, 'quit');
+
+    if (client.exitCode !== null && client.exitCode !== 0)
+      throw new Error(`Debug shell exited with non-zero code: ${client.exitCode}`);
+
+    return {
+      readyLine,
+      systemState,
+      screenshotZero,
+      screenshotNegative,
+      unknown,
+      repeatedTransport,
+      quit,
+      exitCode: client.exitCode,
+      exitSignal: client.exitSignal,
+      recentLines: client.getRecentLines(30),
+    };
+  } finally {
+    await client.stop(true).catch(() => {});
+  }
+}
+
+async function runStateDumpSmokeTest(options = {}) {
+  const client = new NextStudioDebugShellClient(options);
+  const stateDumpCopyPath = path.resolve(options.stateDumpCopyPath || createTempArtifactPath('nextstudio-state-dump-smoke', '.json'));
+
+  try {
+    const readyLine = await client.start(options.startTimeoutMs || 30000);
+    const systemState = await client.waitForSystemReady(options.readyTimeoutMs || 30000);
+    const stateDump = await client.command('state-dump');
+    requireOkResponse(systemState, 'system-state');
+    requireOkResponse(stateDump, 'state-dump');
+
+    const sourceStateDumpPath = stateDump.parsed.fields.path;
+    client.copyFile(sourceStateDumpPath, stateDumpCopyPath);
+    const state = readJsonFile(stateDumpCopyPath, 'state-dump');
+    const tracks = Array.isArray(state?.edit?.tracks) ? state.edit.tracks : [];
+    const selectedTracks = Array.isArray(state?.edit?.selection?.selectedTracks) ? state.edit.selection.selectedTracks : [];
+
+    if (state?.application !== 'NextStudio')
+      throw new Error(`state-dump: expected application=NextStudio, got ${String(state?.application)}`);
+
+    const quit = await client.command('quit');
+    requireOkResponse(quit, 'quit');
+    await client.waitForExit(5000).catch(() => {});
+
+    if (client.exitCode !== null && client.exitCode !== 0)
+      throw new Error(`Debug shell exited with non-zero code: ${client.exitCode}`);
+
+    return {
+      readyLine,
+      systemState,
+      stateDump,
+      stateDumpPath: stateDumpCopyPath,
+      sourceStateDumpPath,
+      stateSummary: {
+        application: state?.application,
+        version: state?.version,
+        trackCount: tracks.length,
+        selectedTrackCount: state?.edit?.selection?.selectedTrackCount ?? null,
+        selectedTracks,
+      },
+      quit,
+      exitCode: client.exitCode,
+      exitSignal: client.exitSignal,
+      recentLines: client.getRecentLines(30),
+    };
+  } finally {
+    await client.stop(true).catch(() => {});
+  }
+}
+
+function createFakeProtocolShell() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nextstudio-debug-shell-protocol-'));
+  const scriptPath = path.join(tempDir, 'fake-debug-shell.js');
+  const script = `#!/usr/bin/env node
+let pending = '';
+process.stdout.write('ok code=ready message="fake ready"\\n');
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (chunk) => {
+  pending += chunk;
+  while (true) {
+    const newlineIndex = pending.indexOf('\\n');
+    if (newlineIndex < 0)
+      break;
+    const line = pending.slice(0, newlineIndex).replace(/\\r$/, '');
+    pending = pending.slice(newlineIndex + 1);
+    if (line === 'same') {
+      process.stdout.write('ok code=ok stable=true\\n');
+    } else if (line === 'hang-then-exit') {
+      setTimeout(() => process.exit(7), 200);
+    } else {
+      process.stdout.write('error code=unknown-command message="Unknown command"\\n');
+    }
+  }
+});
+`;
+  fs.writeFileSync(scriptPath, script);
+  fs.chmodSync(scriptPath, 0o755);
+  return { tempDir, scriptPath };
+}
+
+async function runClientProtocolRegressionTest(options = {}) {
+  const { tempDir, scriptPath } = createFakeProtocolShell();
+  const client = new NextStudioDebugShellClient({
+    ...options,
+    binaryPath: process.execPath,
+    binaryArgs: [scriptPath],
+    cwd: tempDir,
+  });
+
+  try {
+    const readyLine = await client.start(options.startTimeoutMs || 5000);
+    const identicalResponses = [];
+    const repeatCount = options.identicalResponseCount || 10;
+
+    for (let i = 0; i < repeatCount; ++i) {
+      const response = await client.command('same', options.commandTimeoutMs || 5000);
+      requireOkResponse(response, `same command ${i + 1}`);
+      if (response.responseLine !== 'ok code=ok stable=true')
+        throw new Error(`same command ${i + 1}: unexpected response line ${response.responseLine}`);
+      identicalResponses.push(response);
+    }
+
+    let exitWhileWaitingError = null;
+    try {
+      await client.command('hang-then-exit', options.commandTimeoutMs || 5000);
+    } catch (error) {
+      exitWhileWaitingError = error instanceof Error ? error.message : String(error);
+    }
+
+    if (exitWhileWaitingError === null)
+      throw new Error('Expected hang-then-exit to fail while waiting for a response');
+
+    const exitState = await client.waitForExit(5000);
+    if (exitState.code !== 7)
+      throw new Error(`Expected fake shell to exit with code 7, got ${String(exitState.code)}`);
+
+    return {
+      readyLine,
+      identicalResponses,
+      exitWhileWaitingError,
+      exitCode: client.exitCode,
+      exitSignal: client.exitSignal,
+      recentLines: client.getRecentLines(30),
+    };
+  } finally {
+    await client.stop(true).catch(() => {});
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+async function runAllSmokeTests(options = {}) {
+  return {
+    transport: await runTransportSmokeTest(options),
+    commandErrors: await runCommandErrorSmokeTest(options),
+    stateDump: await runStateDumpSmokeTest(options),
+    protocolRegression: await runClientProtocolRegressionTest(options),
+  };
+}
+
 module.exports = {
   NextStudioDebugShellClient,
   parseResponseLine,
   runTransportSmokeTest,
+  runCommandErrorSmokeTest,
+  runStateDumpSmokeTest,
+  runClientProtocolRegressionTest,
+  runAllSmokeTests,
 };
 
 if (require.main === module) {
   const args = process.argv.slice(2);
   const command = args[0] || 'smoke-transport';
 
-  if (command === 'smoke-transport') {
-    runTransportSmokeTest()
+  const runners = {
+    'smoke-transport': runTransportSmokeTest,
+    'smoke-errors': runCommandErrorSmokeTest,
+    'smoke-state': runStateDumpSmokeTest,
+    'smoke-protocol': runClientProtocolRegressionTest,
+    'smoke-all': runAllSmokeTests,
+  };
+
+  const runner = runners[command];
+  if (!runner) {
+    console.error(`Unknown command: ${command}`);
+    process.exitCode = 1;
+  } else {
+    runner()
       .then((result) => {
         console.log(JSON.stringify(result, null, 2));
       })
@@ -401,8 +630,5 @@ if (require.main === module) {
         console.error(error.stack || String(error));
         process.exitCode = 1;
       });
-  } else {
-    console.error(`Unknown command: ${command}`);
-    process.exitCode = 1;
   }
 }

@@ -10,6 +10,7 @@ enum class CommandType
     ping,
     systemState,
     transportState,
+    stateDump,
     play,
     stop,
     screenshot,

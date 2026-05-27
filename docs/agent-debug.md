@@ -247,6 +247,7 @@ It simply wraps the existing NextStudio debug shell and forwards command lines i
 - `ping`
 - `system-state`
 - `transport-state`
+- `state-dump`
 - `play`
 - `stop`
 - `screenshot`
@@ -298,6 +299,10 @@ The client exports:
 - `NextStudioDebugShellClient`
 - `parseResponseLine(...)`
 - `runTransportSmokeTest(...)`
+- `runCommandErrorSmokeTest(...)`
+- `runStateDumpSmokeTest(...)`
+- `runClientProtocolRegressionTest(...)`
+- `runAllSmokeTests(...)`
 
 Important client capabilities:
 
@@ -305,16 +310,20 @@ Important client capabilities:
 - `waitForSystemReady()` polls `system-state` until `readyForPlayback=true`
 - `command()` sends one command, safely matches the next shell response even in long noisy sessions, and parses quoted fields
 - `parseResponseLine(...)` understands quoted values, including escaped quotes
-- `copyFile()` preserves artifacts such as screenshots before session exit
+- `copyFile()` preserves artifacts such as screenshots or state dumps before session exit
 - `stop()` terminates the underlying process if cleanup is needed
 
-A built-in smoke test is available via:
+Built-in smoke test modes are available via:
 
 ```bash
 node tools/debug-shell-client.js smoke-transport
+node tools/debug-shell-client.js smoke-errors
+node tools/debug-shell-client.js smoke-state
+node tools/debug-shell-client.js smoke-protocol
+node tools/debug-shell-client.js smoke-all
 ```
 
-This smoke test performs a standard transport validation flow:
+`smoke-transport` performs a standard transport validation flow:
 
 1. start debug shell
 2. wait for system readiness
@@ -327,9 +336,14 @@ This smoke test performs a standard transport validation flow:
 9. query `transport-state` again
 10. send `quit`
 
-The smoke test is intentionally assertive. It fails if readiness never becomes true, if playback does not transition from stopped to playing and back, if transport position does not advance while playing, if screenshot copying fails, or if the process exits unsuccessfully.
+The smoke tests are intentionally assertive.
 
-This client is the preferred automated validation path for transport and screenshot behavior inside this repository.
+- `smoke-transport` validates readiness, playback transitions, forward transport movement, screenshot capture, and clean shutdown
+- `smoke-errors` validates invalid screenshot arguments, unknown-command handling, and repeated identical `transport-state` responses
+- `smoke-state` validates `state-dump` output and copies the dump to a persistent location before session teardown
+- `smoke-protocol` uses a temporary Node-based fake shell to validate repeated identical `ok ...` responses and process exit while a response wait is in flight
+
+This client is the preferred automated validation path for transport, command-error handling, state-dump behavior, and shell protocol regressions inside this repository.
 
 ---
 
@@ -390,6 +404,7 @@ Current supported commands:
 - `ping`
 - `system-state`
 - `transport-state`
+- `state-dump`
 - `play`
 - `stop`
 - `screenshot`
@@ -407,10 +422,13 @@ ok code=ready message="debug shell started"
 ok code=ok app=NextStudio version=0.01 mode=debug-shell
 ok code=ok debugMode=true currentEditAvailable=true editViewStateAvailable=true editComponentAvailable=true headerComponentAvailable=true lowerRangeComponentAvailable=true readyForPlayback=true transportPlaying=false transportRecording=false transportPositionSeconds=0.000
 ok code=ok playing=true recording=false looping=false positionSeconds=2.370
+ok code=ok path=/tmp/.../agent-debug/state-dump-....json
+ok code=ok selectedTrack=Arranger
 ok code=ok playing=true
 ok code=ok playing=false
 ok code=ok path=/tmp/.../ui-snapshot-....png
 ok code=ok quitting=true
+error code=track-not-found message="Track not found: __nextstudio_missing_track__"
 error code=unknown-command message="Unknown command. Try 'help'."
 ```
 

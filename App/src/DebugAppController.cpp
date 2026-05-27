@@ -23,6 +23,8 @@ Result DebugAppController::execute(const Command &command)
         return handleSystemState();
     case CommandType::transportState:
         return handleTransportState();
+    case CommandType::stateDump:
+        return handleStateDump(command);
     case CommandType::play:
         return handlePlay();
     case CommandType::stop:
@@ -41,7 +43,7 @@ Result DebugAppController::execute(const Command &command)
 Result DebugAppController::handleHelp() const
 {
     auto result = Result::success();
-    result.fields.set("commands", "help ping system-state transport-state play stop screenshot quit");
+    result.fields.set("commands", "help ping system-state transport-state state-dump play stop screenshot quit");
     return result;
 }
 
@@ -97,6 +99,20 @@ Result DebugAppController::handleTransportState() const
     }
 
     return Result::failure("not-ready", "Edit is unavailable");
+}
+
+Result DebugAppController::handleStateDump(const Command &command) const
+{
+    if (command.argument.isNotEmpty())
+        return Result::failure("invalid-argument", "state-dump does not accept an argument");
+
+    const auto file = m_mainComponent.writeAgentStateDump();
+    if (file == juce::File() || !file.existsAsFile())
+        return Result::failure("io-error", "Failed to write state dump");
+
+    auto result = Result::success();
+    result.fields.set("path", file.getFullPathName());
+    return result;
 }
 
 Result DebugAppController::handlePlay() const

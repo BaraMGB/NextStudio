@@ -219,7 +219,12 @@ juce::File writeStateDump(const MainComponent &mainComponent, const juce::File &
 {
     const auto directory = getOutputDirectory(mainComponent, outputDirectory);
     const auto file = directory.getNonexistentChildFile("state-dump-" + createTimestampToken(), ".json", false);
-    file.replaceWithText(createStateDumpJson(mainComponent));
+    if (!file.replaceWithText(createStateDumpJson(mainComponent)))
+    {
+        NS_LOG_ERROR(app, "failed to write agent state dump: " + file.getFullPathName());
+        return {};
+    }
+
     NS_LOG_INFO(app, "agent state dump written: " + file.getFullPathName());
     return file;
 }

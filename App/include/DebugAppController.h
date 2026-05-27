@@ -19,6 +19,7 @@ private:
     Result handlePing() const;
     Result handleSystemState() const;
     Result handleTransportState() const;
+    Result handleStateDump(const Command &command) const;
     Result handlePlay() const;
     Result handleStop() const;
     Result handleScreenshot(const Command &command) const;
