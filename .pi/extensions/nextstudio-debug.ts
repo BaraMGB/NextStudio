@@ -5,8 +5,20 @@ import { resolve } from "node:path";
 
 import { Type } from "typebox";
 
+type LineEntry = {
+	id: number;
+	line: string;
+};
+
+type ParsedResponse = {
+	raw: string;
+	status: string;
+	fields: Record<string, string>;
+};
+
 type Waiter = {
-	matcher: (line: string) => boolean;
+	matcher: (line: string, entry: LineEntry) => boolean;
+	minLineId: number;
 	resolve: (value: string | null) => void;
 	reject: (error: Error) => void;
 	timeout: NodeJS.Timeout;
@@ -15,15 +27,81 @@ type Waiter = {
 type DebugSession = {
 	id: string;
 	process: ChildProcessWithoutNullStreams;
-	lines: string[];
+	lineEntries: LineEntry[];
+	nextLineId: number;
 	waiters: Set<Waiter>;
+	commandQueue: Promise<void>;
+	closing: boolean;
+	desynchronised: boolean;
+	desynchronisedReason: string | null;
 	exited: boolean;
 	exitCode: number | null;
 	exitSignal: NodeJS.Signals | null;
 };
 
 const defaultBinaryPath = resolve(process.cwd(), "autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio");
-const maxBufferedLines = 400;
+const maxBufferedLines = 500;
+
+function tokenizeResponseLine(line: string) {
+	const tokens: string[] = [];
+	const input = line.trim();
+	let current = "";
+	let inQuotes = false;
+
+	for (let i = 0; i < input.length; ++i) {
+		const ch = input[i];
+
+		if (inQuotes && ch === "\\" && i + 1 < input.length) {
+			current += ch;
+			current += input[++i];
+			continue;
+		}
+
+		if (ch === '"') {
+			inQuotes = !inQuotes;
+			current += ch;
+			continue;
+		}
+
+		if (ch === " " && !inQuotes) {
+			if (current.length > 0) {
+				tokens.push(current);
+				current = "";
+			}
+			continue;
+		}
+
+		current += ch;
+	}
+
+	if (current.length > 0)
+		tokens.push(current);
+
+	return tokens;
+}
+
+function parseResponseLine(line: string): ParsedResponse {
+	const tokens = tokenizeResponseLine(line);
+	const result: ParsedResponse = {
+		raw: line,
+		status: tokens.shift() || "",
+		fields: {},
+	};
+
+	for (const token of tokens) {
+		const eq = token.indexOf("=");
+		if (eq < 0)
+			continue;
+
+		const key = token.slice(0, eq);
+		let value = token.slice(eq + 1);
+		if (value.startsWith('"') && value.endsWith('"'))
+			value = value.slice(1, -1).replace(/\\"/g, '"');
+		result.fields[key] = value;
+	}
+
+	return result;
+}
 
 function createLineCollector(session: DebugSession, source: "stdout" | "stderr") {
 	let pending = "";
@@ -33,7 +111,8 @@ function createLineCollector(session: DebugSession, source: "stdout" | "stderr")
 
 		while (true) {
 			const newlineIndex = pending.indexOf("\n");
-			if (newlineIndex < 0) break;
+			if (newlineIndex < 0)
+				break;
 
 			const rawLine = pending.slice(0, newlineIndex).replace(/\r$/, "");
 			pending = pending.slice(newlineIndex + 1);
@@ -44,12 +123,13 @@ function createLineCollector(session: DebugSession, source: "stdout" | "stderr")
 }
 
 function pushLine(session: DebugSession, line: string) {
-	session.lines.push(line);
-	if (session.lines.length > maxBufferedLines)
-		session.lines.splice(0, session.lines.length - maxBufferedLines);
+	const entry: LineEntry = { id: session.nextLineId++, line };
+	session.lineEntries.push(entry);
+	if (session.lineEntries.length > maxBufferedLines)
+		session.lineEntries.splice(0, session.lineEntries.length - maxBufferedLines);
 
 	for (const waiter of [...session.waiters]) {
-		if (!waiter.matcher(line))
+		if (entry.id < waiter.minLineId || !waiter.matcher(line, entry))
 			continue;
 
 		clearTimeout(waiter.timeout);
@@ -58,10 +138,27 @@ function pushLine(session: DebugSession, line: string) {
 	}
 }
 
-function waitForLine(session: DebugSession, matcher: (line: string) => boolean, timeoutMs: number) {
-	for (let i = session.lines.length - 1; i >= 0; --i)
-		if (matcher(session.lines[i]))
-			return Promise.resolve(session.lines[i]);
+function getRecentLines(session: DebugSession, count = 20) {
+	return session.lineEntries.slice(-count).map((entry) => entry.line);
+}
+
+function getLinesSince(session: DebugSession, minLineId: number) {
+	return session.lineEntries.filter((entry) => entry.id >= minLineId).map((entry) => entry.line);
+}
+
+function waitForLine(
+	session: DebugSession,
+	matcher: (line: string, entry: LineEntry) => boolean,
+	timeoutMs: number,
+	minLineId = 1,
+) {
+	for (let i = session.lineEntries.length - 1; i >= 0; --i) {
+		const entry = session.lineEntries[i];
+		if (entry.id < minLineId)
+			break;
+		if (matcher(entry.line, entry))
+			return Promise.resolve(entry.line);
+	}
 
 	if (session.exited)
 		return Promise.resolve<string | null>(null);
@@ -69,6 +166,7 @@ function waitForLine(session: DebugSession, matcher: (line: string) => boolean, 
 	return new Promise<string | null>((resolve, reject) => {
 		const waiter: Waiter = {
 			matcher,
+			minLineId,
 			resolve,
 			reject,
 			timeout: setTimeout(() => {
@@ -81,6 +179,14 @@ function waitForLine(session: DebugSession, matcher: (line: string) => boolean, 
 	});
 }
 
+function rejectAllWaiters(session: DebugSession, error: Error) {
+	for (const waiter of session.waiters) {
+		clearTimeout(waiter.timeout);
+		waiter.reject(error);
+	}
+	session.waiters.clear();
+}
+
 function flushWaitersOnExit(session: DebugSession, reason: string) {
 	for (const waiter of session.waiters) {
 		clearTimeout(waiter.timeout);
@@ -90,184 +196,281 @@ function flushWaitersOnExit(session: DebugSession, reason: string) {
 	pushLine(session, `[process] ${reason}`);
 }
 
+function enqueueCommand<T>(session: DebugSession, task: () => Promise<T>) {
+	const previous = session.commandQueue.catch(() => {});
+	let release = () => {};
+	session.commandQueue = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+
+	return previous.then(task).finally(() => {
+		release();
+	});
+}
+
+function markSessionDesynchronised(session: DebugSession, reason: string) {
+	session.desynchronised = true;
+	session.desynchronisedReason = reason;
+}
+
 function serialiseSession(session: DebugSession) {
 	return {
 		sessionId: session.id,
+		closing: session.closing,
+		desynchronised: session.desynchronised,
+		desynchronisedReason: session.desynchronisedReason,
 		exited: session.exited,
 		exitCode: session.exitCode,
 		exitSignal: session.exitSignal,
-		bufferedLines: session.lines.length,
+		bufferedLines: session.lineEntries.length,
 	};
+}
+
+function createSessionUnavailableResponse(session: DebugSession, sessionId: string) {
+	if (session.closing) {
+		return {
+			content: [{ type: "text", text: `NextStudio debug session is closing: ${sessionId}` }],
+			details: { ok: false, code: "session-closing", ...serialiseSession(session), recentLines: getRecentLines(session) },
+		};
+	}
+
+	if (session.desynchronised) {
+		return {
+			content: [{ type: "text", text: `NextStudio debug session is desynchronised and must be restarted: ${sessionId}` }],
+			details: { ok: false, code: "session-desynchronised", ...serialiseSession(session), recentLines: getRecentLines(session) },
+		};
+	}
+
+	if (session.exited || !session.process.stdin.writable) {
+		return {
+			content: [{ type: "text", text: `NextStudio debug session is no longer writable: ${sessionId}` }],
+			details: { ok: false, code: "session-exited", ...serialiseSession(session), recentLines: getRecentLines(session) },
+		};
+	}
+
+	return null;
+}
+
+function validateCommandLine(command: string) {
+	if (command.includes("\n") || command.includes("\r"))
+		return "Debug shell commands must be a single line";
+
+	if (command.trim().length === 0)
+		return "Debug shell commands must not be empty";
+
+	return null;
 }
 
 export default function (pi) {
 	const sessions = new Map<string, DebugSession>();
 
 	pi.registerTool({
-			name: "nextstudio_debug_start",
-			label: "NextStudio Debug Start",
-			description: "Start NextStudio in --debug-shell mode and wait for the ready response",
-			parameters: Type.Object({
-				binaryPath: Type.Optional(Type.String({ description: "Path to the NextStudio binary" })),
-				cwd: Type.Optional(Type.String({ description: "Working directory for the NextStudio process" })),
-				timeoutMs: Type.Optional(Type.Number({ description: "Startup timeout in milliseconds", minimum: 100, default: 20000 })),
-			}),
-			async execute(_toolCallId, params) {
-				const binaryPath = resolve(params.binaryPath ?? defaultBinaryPath);
-				const cwd = resolve(params.cwd ?? process.cwd());
-				const timeoutMs = Math.max(100, Math.floor(params.timeoutMs ?? 20000));
+		name: "nextstudio_debug_start",
+		label: "NextStudio Debug Start",
+		description: "Start NextStudio in --debug-shell mode and wait for the ready response",
+		parameters: Type.Object({
+			binaryPath: Type.Optional(Type.String({ description: "Path to the NextStudio binary" })),
+			cwd: Type.Optional(Type.String({ description: "Working directory for the NextStudio process" })),
+			timeoutMs: Type.Optional(Type.Number({ description: "Startup timeout in milliseconds", minimum: 100, default: 20000 })),
+		}),
+		async execute(_toolCallId, params) {
+			const binaryPath = resolve(params.binaryPath ?? defaultBinaryPath);
+			const cwd = resolve(params.cwd ?? process.cwd());
+			const timeoutMs = Math.max(100, Math.floor(params.timeoutMs ?? 20000));
 
-				if (!existsSync(binaryPath)) {
-					return {
-						content: [{ type: "text", text: `NextStudio binary not found: ${binaryPath}` }],
-						details: { ok: false, code: "binary-not-found", binaryPath },
-					};
-				}
-
-				const child = spawn(binaryPath, ["--debug-shell"], {
-					cwd,
-					stdio: ["pipe", "pipe", "pipe"],
-				});
-
-				const session: DebugSession = {
-					id: randomUUID(),
-					process: child,
-					lines: [],
-					waiters: new Set(),
-					exited: false,
-					exitCode: null,
-					exitSignal: null,
+			if (!existsSync(binaryPath)) {
+				return {
+					content: [{ type: "text", text: `NextStudio binary not found: ${binaryPath}` }],
+					details: { ok: false, code: "binary-not-found", binaryPath },
 				};
+			}
 
-				sessions.set(session.id, session);
-				child.stdout.on("data", createLineCollector(session, "stdout"));
-				child.stderr.on("data", createLineCollector(session, "stderr"));
-				child.on("exit", (code, signal) => {
-					session.exited = true;
-					session.exitCode = code;
-					session.exitSignal = signal;
-					flushWaitersOnExit(session, `process exited code=${code} signal=${signal ?? "none"}`);
-				});
-				child.on("error", (error) => {
-					pushLine(session, `[process-error] ${error.message}`);
-				});
+			const child = spawn(binaryPath, ["--debug-shell"], {
+				cwd,
+				stdio: ["pipe", "pipe", "pipe"],
+			});
 
-				try {
-					const readyLine = await waitForLine(session, (line) => line.startsWith("ok code=ready"), timeoutMs);
+			const session: DebugSession = {
+				id: randomUUID(),
+				process: child,
+				lineEntries: [],
+				nextLineId: 1,
+				waiters: new Set(),
+				commandQueue: Promise.resolve(),
+				closing: false,
+				desynchronised: false,
+				desynchronisedReason: null,
+				exited: false,
+				exitCode: null,
+				exitSignal: null,
+			};
+
+			sessions.set(session.id, session);
+			child.stdout.on("data", createLineCollector(session, "stdout"));
+			child.stderr.on("data", createLineCollector(session, "stderr"));
+			child.on("exit", (code, signal) => {
+				session.exited = true;
+				session.exitCode = code;
+				session.exitSignal = signal;
+				flushWaitersOnExit(session, `process exited code=${code} signal=${signal ?? "none"}`);
+			});
+			child.on("error", (error) => {
+				pushLine(session, `[process-error] ${error.message}`);
+				rejectAllWaiters(session, error instanceof Error ? error : new Error(String(error)));
+			});
+
+			try {
+				const readyLine = await waitForLine(session, (line) => line.startsWith("ok code=ready"), timeoutMs);
+				if (readyLine === null) {
+					sessions.delete(session.id);
 					return {
-						content: [{ type: "text", text: `Started NextStudio debug shell session ${session.id}` }],
+						content: [{ type: "text", text: `Failed to start NextStudio debug shell: process exited before ready` }],
 						details: {
-							ok: readyLine !== null,
-							readyLine,
+							ok: false,
+							code: "startup-exited",
+							message: "Process exited before debug shell readiness was reported",
 							binaryPath,
 							cwd,
 							...serialiseSession(session),
-							recentLines: session.lines.slice(-20),
+							recentLines: getRecentLines(session),
 						},
 					};
-				} catch (error) {
-					child.kill();
-					sessions.delete(session.id);
-					const message = error instanceof Error ? error.message : String(error);
-					return {
-						content: [{ type: "text", text: `Failed to start NextStudio debug shell: ${message}` }],
-						details: { ok: false, code: "startup-timeout", message, binaryPath, cwd, recentLines: session.lines.slice(-20) },
-					};
 				}
-			},
-		});
+				return {
+					content: [{ type: "text", text: `Started NextStudio debug shell session ${session.id}` }],
+					details: {
+						ok: true,
+						readyLine,
+						parsed: parseResponseLine(readyLine),
+						binaryPath,
+						cwd,
+						...serialiseSession(session),
+						recentLines: getRecentLines(session),
+					},
+				};
+			} catch (error) {
+				child.kill();
+				sessions.delete(session.id);
+				const message = error instanceof Error ? error.message : String(error);
+				const code = message.startsWith("Timed out after ") ? "startup-timeout" : "startup-failed";
+				return {
+					content: [{ type: "text", text: `Failed to start NextStudio debug shell: ${message}` }],
+					details: { ok: false, code, message, binaryPath, cwd, recentLines: getRecentLines(session) },
+				};
+			}
+		},
+	});
 
 	pi.registerTool({
-			name: "nextstudio_debug_command",
-			label: "NextStudio Debug Command",
-			description: "Send one command line to a running NextStudio debug-shell session and wait for the next shell response",
-			parameters: Type.Object({
-				sessionId: Type.String({ description: "Session id returned by nextstudio_debug_start" }),
-				command: Type.String({ description: "Single debug-shell command line" }),
-				timeoutMs: Type.Optional(Type.Number({ description: "Response timeout in milliseconds", minimum: 100, default: 10000 })),
-			}),
-			async execute(_toolCallId, params) {
-				const session = sessions.get(params.sessionId);
-				const timeoutMs = Math.max(100, Math.floor(params.timeoutMs ?? 10000));
+		name: "nextstudio_debug_command",
+		label: "NextStudio Debug Command",
+		description: "Send one command line to a running NextStudio debug-shell session and wait for the next shell response",
+		parameters: Type.Object({
+			sessionId: Type.String({ description: "Session id returned by nextstudio_debug_start" }),
+			command: Type.String({ description: "Single debug-shell command line" }),
+			timeoutMs: Type.Optional(Type.Number({ description: "Response timeout in milliseconds", minimum: 100, default: 10000 })),
+		}),
+		async execute(_toolCallId, params) {
+			const session = sessions.get(params.sessionId);
+			const timeoutMs = Math.max(100, Math.floor(params.timeoutMs ?? 10000));
+			const commandLine = String(params.command);
+			const validationError = validateCommandLine(commandLine);
 
-				if (!session) {
-					return {
-						content: [{ type: "text", text: `Unknown NextStudio debug session: ${params.sessionId}` }],
-						details: { ok: false, code: "unknown-session", sessionId: params.sessionId },
-					};
-				}
+			if (!session) {
+				return {
+					content: [{ type: "text", text: `Unknown NextStudio debug session: ${params.sessionId}` }],
+					details: { ok: false, code: "unknown-session", sessionId: params.sessionId },
+				};
+			}
 
-				if (session.exited || !session.process.stdin.writable) {
-					return {
-						content: [{ type: "text", text: `NextStudio debug session is no longer writable: ${params.sessionId}` }],
-						details: { ok: false, code: "session-exited", ...serialiseSession(session), recentLines: session.lines.slice(-20) },
-					};
-				}
+			if (validationError !== null) {
+				return {
+					content: [{ type: "text", text: validationError }],
+					details: { ok: false, code: "invalid-command", message: validationError, sessionId: params.sessionId },
+				};
+			}
 
-				const startIndex = session.lines.length;
-				session.process.stdin.write(params.command + "\n");
+			return enqueueCommand(session, async () => {
+				const unavailableResponse = createSessionUnavailableResponse(session, params.sessionId);
+				if (unavailableResponse !== null)
+					return unavailableResponse;
+
+				const startLineId = session.nextLineId;
+				session.process.stdin.write(commandLine.trim() + "\n");
 
 				try {
-					const responseLine = await waitForLine(session, (line) => {
-						if (!line.startsWith("ok ") && !line.startsWith("error "))
-							return false;
-						const responseIndex = session.lines.lastIndexOf(line);
-						return responseIndex >= startIndex;
-					}, timeoutMs);
+					const responseLine = await waitForLine(
+						session,
+						(line) => line.startsWith("ok ") || line.startsWith("error "),
+						timeoutMs,
+						startLineId,
+					);
 
-					const newLines = session.lines.slice(startIndex);
+					const parsed = responseLine ? parseResponseLine(responseLine) : null;
+					if (commandLine.trim().toLowerCase() === "quit" && parsed?.status === "ok")
+						session.closing = true;
+					const newLines = getLinesSince(session, startLineId);
 					return {
-						content: [{ type: "text", text: responseLine ?? `No shell response received for command: ${params.command}` }],
+						content: [{ type: "text", text: responseLine ?? `No shell response received for command: ${commandLine}` }],
 						details: {
 							ok: responseLine !== null && responseLine.startsWith("ok "),
-							command: params.command,
+							code: responseLine === null ? "session-exited" : undefined,
+							command: commandLine,
 							responseLine,
+							parsed,
 							newLines,
 							...serialiseSession(session),
 						},
 					};
 				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error);
+					const code = message.startsWith("Timed out after ") ? "response-timeout" : "response-failed";
+					if (code === "response-timeout")
+						markSessionDesynchronised(session, `Timed out waiting for response to command: ${params.command}`);
 					return {
-						content: [{ type: "text", text: `Timed out waiting for response to: ${params.command}` }],
+						content: [{ type: "text", text: `Failed waiting for response to: ${commandLine}` }],
 						details: {
 							ok: false,
-							code: "response-timeout",
+							code,
 							message,
-							command: params.command,
-							newLines: session.lines.slice(startIndex),
+							command: commandLine,
+							newLines: getLinesSince(session, startLineId),
 							...serialiseSession(session),
+							recentLines: getRecentLines(session),
 						},
 					};
 				}
-			},
-		});
+			});
+		},
+	});
 
 	pi.registerTool({
-			name: "nextstudio_debug_stop",
-			label: "NextStudio Debug Stop",
-			description: "Stop a running NextStudio debug-shell session",
-			parameters: Type.Object({
-				sessionId: Type.String({ description: "Session id returned by nextstudio_debug_start" }),
-				force: Type.Optional(Type.Boolean({ description: "Use SIGKILL instead of SIGTERM", default: false })),
-			}),
-			async execute(_toolCallId, params) {
-				const session = sessions.get(params.sessionId);
-				if (!session) {
-					return {
-						content: [{ type: "text", text: `Unknown NextStudio debug session: ${params.sessionId}` }],
-						details: { ok: false, code: "unknown-session", sessionId: params.sessionId },
-					};
-				}
-
-				if (!session.exited)
-					session.process.kill(params.force ? "SIGKILL" : "SIGTERM");
-
-				sessions.delete(params.sessionId);
+		name: "nextstudio_debug_stop",
+		label: "NextStudio Debug Stop",
+		description: "Stop a running NextStudio debug-shell session",
+		parameters: Type.Object({
+			sessionId: Type.String({ description: "Session id returned by nextstudio_debug_start" }),
+			force: Type.Optional(Type.Boolean({ description: "Use SIGKILL instead of SIGTERM", default: false })),
+		}),
+		async execute(_toolCallId, params) {
+			const session = sessions.get(params.sessionId);
+			if (!session) {
 				return {
-					content: [{ type: "text", text: `Stopped NextStudio debug session ${params.sessionId}` }],
-					details: { ok: true, force: Boolean(params.force), ...serialiseSession(session), recentLines: session.lines.slice(-20) },
+					content: [{ type: "text", text: `Unknown NextStudio debug session: ${params.sessionId}` }],
+					details: { ok: false, code: "unknown-session", sessionId: params.sessionId },
 				};
-			},
-		});
+			}
+
+			session.closing = true;
+			sessions.delete(params.sessionId);
+
+			if (!session.exited)
+				session.process.kill(params.force ? "SIGKILL" : "SIGTERM");
+
+			return {
+				content: [{ type: "text", text: `Stopped NextStudio debug session ${params.sessionId}` }],
+				details: { ok: true, force: Boolean(params.force), ...serialiseSession(session), recentLines: getRecentLines(session) },
+			};
+		},
+	});
 }

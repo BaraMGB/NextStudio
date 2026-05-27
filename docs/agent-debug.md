@@ -47,7 +47,7 @@ Each session stores:
 
 - a generated `sessionId`
 - the spawned `NextStudio --debug-shell` process
-- buffered stdout/stderr lines
+- buffered stdout/stderr line entries with monotonic line ids
 - pending waiters for future shell responses
 - exit state (`exited`, `exitCode`, `exitSignal`)
 
@@ -57,6 +57,12 @@ Stdout and stderr are collected line-by-line.
 - stderr lines are stored with the prefix `[stderr] `
 
 The extension keeps a rolling buffer of recent lines for diagnostics.
+
+Line ids matter because response matching should be based on "the next matching response after command send", not on response text uniqueness. This avoids mis-correlating repeated `ok ...` lines in longer or noisier sessions.
+
+Command execution is also serialized per session inside the extension. The shell protocol is inherently request/response over a single stdin/stdout stream, so serialisation avoids cross-correlating overlapping commands that would otherwise compete for the same next response.
+
+If a command times out waiting for a shell response, the extension treats the session as desynchronised. That session must then be stopped and restarted before sending more commands, because a late response from the timed-out command can no longer be attributed safely.
 
 ### Tool: `nextstudio_debug_start`
 
@@ -81,13 +87,15 @@ Behavior:
 2. begin collecting stdout/stderr lines
 3. wait for a line starting with:
    - `ok code=ready`
-4. return session metadata and recent output
+4. if the process exits before readiness, return a startup failure and do not keep the dead session registered
+5. otherwise return session metadata and recent output
 
 Important returned fields:
 
 - `ok`
 - `sessionId`
 - `readyLine`
+- `parsed`
 - `binaryPath`
 - `cwd`
 - `recentLines`
@@ -107,7 +115,7 @@ Typical success shape:
 Purpose:
 
 - send exactly one command line to a running debug-shell session
-- wait for the next shell response line
+- wait for the next shell response line after that command was sent
 
 Parameters:
 
@@ -118,17 +126,21 @@ Parameters:
 Behavior:
 
 1. locate the running session by `sessionId`
-2. write `command + "\n"` to the process stdin
-3. wait for the next line that starts with either:
+2. reject empty/whitespace-only or multi-line command strings
+3. write one validated command line plus `"\n"` to the process stdin
+4. wait for the next line that starts with either:
    - `ok `
    - `error `
-4. return the matching response plus all newly collected lines since the command was sent
+5. return the matching response plus all newly collected lines since the command was sent
+
+A single tool call must map to exactly one shell command line. Embedded `\n` or `\r` are rejected explicitly.
 
 Important returned fields:
 
 - `ok`
 - `command`
 - `responseLine`
+- `parsed`
 - `newLines`
 - session status fields (`sessionId`, `exited`, `exitCode`, `exitSignal`)
 
@@ -157,7 +169,11 @@ Typical success shape:
 
 `responseLine` is the primary shell result.
 
+`parsed` contains a tokenised view of the shell response, including quoted-field handling.
+
 `newLines` contains all newly observed shell and log lines since the command was issued, including stderr-prefixed lines.
+
+After a successful `quit` response, the extension marks the session as closing immediately. Additional commands on that session are rejected instead of being allowed to time out against a shell that has already stopped reading input.
 
 This is intentionally verbose enough to support debugging and validation from pi.
 
@@ -175,6 +191,7 @@ Parameters:
 
 Behavior:
 
+- marks the session as closing immediately so no further queued commands are accepted
 - sends `SIGTERM` by default
 - sends `SIGKILL` when `force=true`
 - removes the session from the extension map regardless
