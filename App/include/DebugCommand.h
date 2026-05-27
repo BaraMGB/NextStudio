@@ -8,6 +8,8 @@ enum class CommandType
 {
     help,
     ping,
+    systemState,
+    transportState,
     play,
     stop,
     screenshot,

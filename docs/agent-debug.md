@@ -196,18 +196,23 @@ A normal pi-driven flow looks like this:
 1. call `nextstudio_debug_start`
 2. store the returned `sessionId`
 3. call `nextstudio_debug_command` with `ping`
-4. call `nextstudio_debug_command` with `play`
-5. optionally wait, inspect logs, or request screenshots
-6. call `nextstudio_debug_command` with `stop`
-7. call `nextstudio_debug_command` with `quit`
-8. optionally call `nextstudio_debug_stop` as cleanup if the process is still alive or the session must be discarded explicitly
+4. call `nextstudio_debug_command` with `system-state`
+5. verify or wait until `readyForPlayback=true`
+6. call `nextstudio_debug_command` with `play`
+7. optionally wait, inspect logs, or request screenshots
+8. call `nextstudio_debug_command` with `transport-state`
+9. call `nextstudio_debug_command` with `stop`
+10. call `nextstudio_debug_command` with `quit`
+11. optionally call `nextstudio_debug_stop` as cleanup if the process is still alive or the session must be discarded explicitly
 
 Example command sequence:
 
 ```text
 nextstudio_debug_start
 nextstudio_debug_command(sessionId, "ping")
+nextstudio_debug_command(sessionId, "system-state")
 nextstudio_debug_command(sessionId, "play")
+nextstudio_debug_command(sessionId, "transport-state")
 nextstudio_debug_command(sessionId, "screenshot")
 nextstudio_debug_command(sessionId, "stop")
 nextstudio_debug_command(sessionId, "quit")
@@ -223,6 +228,8 @@ It simply wraps the existing NextStudio debug shell and forwards command lines i
 
 - `help`
 - `ping`
+- `system-state`
+- `transport-state`
 - `play`
 - `stop`
 - `screenshot`
@@ -232,6 +239,10 @@ This separation is important:
 
 - NextStudio owns the command semantics
 - the pi extension owns persistent process/session handling inside pi
+
+`system-state` is useful for readiness checks.
+
+`transport-state` is especially useful for validation because it exposes a compact transport snapshot without relying only on logs or visual inspection.
 
 ### Testing implications
 
@@ -243,9 +254,65 @@ When validating pi-driven control, both layers should be considered:
 A successful test should verify:
 
 - the session starts and returns `ready`
+- `system-state` eventually reports `readyForPlayback=true`
 - commands return the expected `responseLine`
+- `transport-state` confirms the expected playback transition (`false -> true -> false`) and forward position movement while playing
 - `newLines` contain plausible supporting output where relevant
 - screenshots are copied or inspected before the debug-shell session is terminated
+
+### Official test client
+
+A repository-local test client is included for stable debug-shell validation.
+
+Location:
+
+- `tools/debug-shell-client.js`
+
+Purpose:
+
+- provide one maintained test harness instead of repeatedly creating ad-hoc scripts
+- start a persistent debug-shell session
+- wait for shell readiness and playback readiness
+- send commands and parse response lines
+- copy screenshots out of the temporary debug-shell sandbox before shutdown
+
+The client exports:
+
+- `NextStudioDebugShellClient`
+- `parseResponseLine(...)`
+- `runTransportSmokeTest(...)`
+
+Important client capabilities:
+
+- `start()` waits for `ok code=ready` and rejects cleanly if process startup fails
+- `waitForSystemReady()` polls `system-state` until `readyForPlayback=true`
+- `command()` sends one command, safely matches the next shell response even in long noisy sessions, and parses quoted fields
+- `parseResponseLine(...)` understands quoted values, including escaped quotes
+- `copyFile()` preserves artifacts such as screenshots before session exit
+- `stop()` terminates the underlying process if cleanup is needed
+
+A built-in smoke test is available via:
+
+```bash
+node tools/debug-shell-client.js smoke-transport
+```
+
+This smoke test performs a standard transport validation flow:
+
+1. start debug shell
+2. wait for system readiness
+3. query `transport-state`
+4. send `play`
+5. wait briefly
+6. query `transport-state` again
+7. capture and copy a screenshot
+8. send `stop`
+9. query `transport-state` again
+10. send `quit`
+
+The smoke test is intentionally assertive. It fails if readiness never becomes true, if playback does not transition from stopped to playing and back, if transport position does not advance while playing, if screenshot copying fails, or if the process exits unsuccessfully.
+
+This client is the preferred automated validation path for transport and screenshot behavior inside this repository.
 
 ---
 
@@ -304,6 +371,8 @@ Current supported commands:
 
 - `help`
 - `ping`
+- `system-state`
+- `transport-state`
 - `play`
 - `stop`
 - `screenshot`
@@ -319,6 +388,8 @@ Typical responses:
 ```text
 ok code=ready message="debug shell started"
 ok code=ok app=NextStudio version=0.01 mode=debug-shell
+ok code=ok debugMode=true currentEditAvailable=true editViewStateAvailable=true editComponentAvailable=true headerComponentAvailable=true lowerRangeComponentAvailable=true readyForPlayback=true transportPlaying=false transportRecording=false transportPositionSeconds=0.000
+ok code=ok playing=true recording=false looping=false positionSeconds=2.370
 ok code=ok playing=true
 ok code=ok playing=false
 ok code=ok path=/tmp/.../ui-snapshot-....png

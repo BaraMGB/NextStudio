@@ -111,6 +111,10 @@ Command DebugShell::parseCommand(const juce::String &line)
         command.type = CommandType::help;
     else if (name == "ping")
         command.type = CommandType::ping;
+    else if (name == "system-state" || name == "system_state")
+        command.type = CommandType::systemState;
+    else if (name == "transport-state" || name == "transport_state")
+        command.type = CommandType::transportState;
     else if (name == "play")
         command.type = CommandType::play;
     else if (name == "stop")

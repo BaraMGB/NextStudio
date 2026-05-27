@@ -100,6 +100,7 @@ public:
     void handleContentPathChangedFromSettings();
 
     ApplicationViewState &getApplicationState() const { return m_applicationState; }
+    bool isDebugMode() const { return m_debugMode; }
     te::Edit *getCurrentEdit() const { return m_edit.get(); }
     EditViewState *getEditViewState() const { return m_editViewState.get(); }
     EditComponent *getEditComponent() const { return m_editComponent.get(); }
