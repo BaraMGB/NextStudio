@@ -372,14 +372,17 @@ These are internal helpers used by the app:
 
 - filtered state dump creation
 - UI snapshot capture
-- a few convenience integration points on `MainComponent`
+- a narrow host abstraction for debug-only access to app state
 
 Relevant files:
 
 - `App/Source/Utilities/AgentDebug.h`
 - `App/Source/Utilities/AgentDebug.cpp`
-- `App/Source/MainComponent.h`
-- `App/Source/MainComponent.cpp`
+- `App/Source/Debug/DebugHost.h`
+- `App/Source/Debug/MainComponentDebugHost.h`
+- `App/Source/Debug/MainComponentDebugHost.cpp`
+- `App/Source/Debug/DebugSessionEnvironment.h`
+- `App/Source/Debug/DebugSessionEnvironment.cpp`
 
 ### 2. Debug shell
 
@@ -442,12 +445,11 @@ ok code=ok app=NextStudio version=0.01 mode=debug-shell
 ok code=ok debugMode=true currentEditAvailable=true editViewStateAvailable=true editComponentAvailable=true headerComponentAvailable=true lowerRangeComponentAvailable=true readyForPlayback=true transportPlaying=false transportRecording=false transportPositionSeconds=0.000
 ok code=ok playing=true recording=false looping=false positionSeconds=2.370
 ok code=ok path=/tmp/.../agent-debug/state-dump-....json
-ok code=ok selectedTrack=Arranger
 ok code=ok playing=true
 ok code=ok playing=false
 ok code=ok path=/tmp/.../ui-snapshot-....png
 ok code=ok quitting=true
-error code=track-not-found message="Track not found: __nextstudio_missing_track__"
+error code=invalid-argument message="screenshot expects an optional positive maxWidth"
 error code=unknown-command message="Unknown command. Try 'help'."
 ```
 
@@ -485,26 +487,29 @@ This session directory is temporary and should be treated as disposable.
 
 ---
 
-## Public MainComponent API
+## Debug host abstraction
 
-The following methods exist as internal integration points:
+The debug system no longer reaches directly into `MainComponent` through a wide public API.
 
-- `juce::String createAgentStateDump() const`
-- `juce::File writeAgentStateDump() const`
-- `juce::File captureAgentSnapshot(int maxWidth = 640) const`
-- `bool executeAgentCommand(const juce::String& commandName, const juce::String& argument = {})`
-- `bool selectTrackByName(const juce::String& trackName)`
-- `void switchLowerRangeView(LowerRangeView view)`
-- `juce::File getAgentDebugDirectory() const`
+Instead it uses a small internal host interface:
 
-Context getters:
+- `App/Source/Debug/DebugHost.h`
 
-- `getApplicationState()`
-- `getCurrentEdit()`
-- `getEditViewState()`
-- `getEditComponent()`
-- `getHeaderComponent()`
-- `getLowerRangeComponent()`
+Current concrete adapter:
+
+- `App/Source/Debug/MainComponentDebugHost.h`
+- `App/Source/Debug/MainComponentDebugHost.cpp`
+
+This keeps the debug-shell integration cleaner by isolating:
+
+- app/edit access
+- screenshot capture
+- debug artifact directory access
+- lower-range switching
+- track selection
+- quit requests
+
+`MainComponent` remains the backing implementation, but the debug stack now depends on the host abstraction rather than on a broad set of debug-specific public methods.
 
 Note: the long-term control path should prefer the debug shell over ad-hoc keyboard shortcuts or temporary command hooks.
 
@@ -566,7 +571,9 @@ The snapshot is a lightweight visual debug artifact.
 
 ### Implementation
 
-Snapshots are created with JUCE using `createComponentSnapshot` on `MainComponent`.
+Snapshots are created with JUCE using `createComponentSnapshot` through the active debug host implementation.
+
+At the moment this is backed by `MainComponentDebugHost`, which delegates to `MainComponent`.
 
 ### Output location
 
