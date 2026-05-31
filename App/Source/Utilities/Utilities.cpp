@@ -126,38 +126,35 @@ void GUIHelpers::drawTrack(juce::Graphics &g, juce::Component &parent, EditViewS
     auto ta = etr.getStart().inSeconds();
     auto te = etr.getEnd().inSeconds();
 
-    auto ba = evs.timeToBeat(ta);
-    auto be = evs.timeToBeat(te);
-
     drawBarsAndBeatLines(g, evs, x1beats, x2beats, displayedRect);
 
     auto firstIdx = clipTrack->getIndexOfNextTrackItemAt(tracktion::TimePosition::fromSeconds(ta));
     auto lastIdx = clipTrack->getIndexOfNextTrackItemAt(tracktion::TimePosition::fromSeconds(te)) + 1;
 
-    for (auto clipIdx = firstIdx; clipIdx < lastIdx; clipIdx++)
+    for (auto clipIdx = firstIdx; clipIdx < lastIdx; ++clipIdx)
     {
-        if (clipIdx < clipTrack->getNumTrackItems())
-        {
-            auto clip = clipTrack->getTrackItem(clipIdx);
+        if (clipIdx >= clipTrack->getNumTrackItems())
+            continue;
 
-            if (clip->getPosition().time.intersects(etr))
-            {
-                float x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
-                float y = displayedRect.getY();
-                float w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
-                float h = displayedRect.getHeight();
+        juce::ReferenceCountedObjectPtr<te::TrackItem> trackItem(clipTrack->getTrackItem(clipIdx));
+        auto *clip = dynamic_cast<te::Clip *>(trackItem.get());
 
-                juce::Rectangle<float> clipRect(x, y, w, h);
+        if (clip == nullptr || !clip->getPosition().time.intersects(etr))
+            continue;
 
-                auto color = clip->getTrack()->getColour();
+        float x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
+        float y = displayedRect.getY();
+        float w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
+        float h = displayedRect.getHeight();
 
-                if (forDragging)
-                    color = color.withAlpha(0.7f);
+        juce::Rectangle<float> clipRect(x, y, w, h);
 
-                if (auto c = dynamic_cast<te::Clip *>(clip))
-                    drawClip(g, parent, evs, clipRect, c, color, displayedRect, x1beats, x2beats);
-            }
-        }
+        auto color = clipTrack->getColour();
+
+        if (forDragging)
+            color = color.withAlpha(0.7f);
+
+        drawClip(g, parent, evs, clipRect, clip, color, displayedRect, x1beats, x2beats);
     }
 
     g.setColour(juce::Colour(0x60ffffff));
