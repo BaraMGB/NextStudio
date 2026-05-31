@@ -7,7 +7,7 @@ namespace NextStudio::Debug
 class DebugShell final : private juce::Timer
 {
 public:
-    explicit DebugShell(MainComponent &mainComponent);
+    explicit DebugShell(DebugHost &debugHost);
     ~DebugShell() override;
 
     void start();

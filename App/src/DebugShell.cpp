@@ -1,7 +1,6 @@
 #include "DebugShell.h"
 
-#include "MainComponent.h"
-#include "Logging.h"
+#include "../Utilities/Logging.h"
 
 #include <iostream>
 
@@ -21,8 +20,8 @@ void logAndStopShell(DebugShell &shell)
 }
 } // namespace
 
-DebugShell::DebugShell(MainComponent &mainComponent)
-    : m_controller(mainComponent)
+DebugShell::DebugShell(DebugHost &debugHost)
+    : m_controller(debugHost)
 {
 }
 

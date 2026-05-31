@@ -44,6 +44,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
+namespace NextStudio::Debug
+{
+class MainComponentDebugHost;
+}
 
 class EditorContainer : public juce::Component
 {
@@ -98,21 +102,6 @@ public:
     bool handleUnsavedEdit();
     GUIHelpers::ProjectSaveResult saveCurrentProject(bool saveAs = false);
     void handleContentPathChangedFromSettings();
-
-    ApplicationViewState &getApplicationState() const { return m_applicationState; }
-    bool isDebugMode() const { return m_debugMode; }
-    te::Edit *getCurrentEdit() const { return m_edit.get(); }
-    EditViewState *getEditViewState() const { return m_editViewState.get(); }
-    EditComponent *getEditComponent() const { return m_editComponent.get(); }
-    HeaderComponent *getHeaderComponent() const { return m_header.get(); }
-    LowerRangeComponent *getLowerRangeComponent() const { return m_lowerRange.get(); }
-    juce::File getAgentDebugDirectory() const;
-    juce::String createAgentStateDump() const;
-    juce::File writeAgentStateDump() const;
-    juce::File captureAgentSnapshot(int maxWidth = 640) const;
-    bool executeAgentCommand(const juce::String &commandName, const juce::String &argument = {});
-    bool selectTrackByName(const juce::String &trackName);
-    void switchLowerRangeView(LowerRangeView view);
 
 private:
     void handleAsyncUpdate() override;
@@ -173,5 +162,7 @@ private:
     juce::File m_tempDir;
     juce::Array<juce::KeyPress> m_pressedKeysForMidiKeyboard;
     juce::TooltipWindow tooltipWindow{this, 500};
+
+    friend class NextStudio::Debug::MainComponentDebugHost;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -1,13 +1,13 @@
 #include "DebugAppController.h"
 
-#include "MainComponent.h"
+#include "AgentDebug.h"
 #include "Logging.h"
 #include "Utilities.h"
 
 namespace NextStudio::Debug
 {
-DebugAppController::DebugAppController(MainComponent &mainComponent)
-    : m_mainComponent(mainComponent)
+DebugAppController::DebugAppController(DebugHost &debugHost)
+    : m_debugHost(debugHost)
 {
 }
 
@@ -58,15 +58,15 @@ Result DebugAppController::handlePing() const
 
 Result DebugAppController::handleSystemState() const
 {
-    const auto hasEdit = m_mainComponent.getCurrentEdit() != nullptr;
-    const auto hasEditViewState = m_mainComponent.getEditViewState() != nullptr;
-    const auto hasEditComponent = m_mainComponent.getEditComponent() != nullptr;
-    const auto hasHeader = m_mainComponent.getHeaderComponent() != nullptr;
-    const auto hasLowerRange = m_mainComponent.getLowerRangeComponent() != nullptr;
+    const auto hasEdit = m_debugHost.getCurrentEdit() != nullptr;
+    const auto hasEditViewState = m_debugHost.getEditViewState() != nullptr;
+    const auto hasEditComponent = m_debugHost.getEditComponent() != nullptr;
+    const auto hasHeader = m_debugHost.hasHeaderComponent();
+    const auto hasLowerRange = m_debugHost.hasLowerRangeComponent();
     const auto readyForPlayback = hasEdit && hasEditViewState && hasEditComponent;
 
     auto result = Result::success();
-    result.fields.set("debugMode", m_mainComponent.isDebugMode() ? "true" : "false");
+    result.fields.set("debugMode", m_debugHost.isDebugMode() ? "true" : "false");
     result.fields.set("currentEditAvailable", hasEdit ? "true" : "false");
     result.fields.set("editViewStateAvailable", hasEditViewState ? "true" : "false");
     result.fields.set("editComponentAvailable", hasEditComponent ? "true" : "false");
@@ -74,7 +74,7 @@ Result DebugAppController::handleSystemState() const
     result.fields.set("lowerRangeComponentAvailable", hasLowerRange ? "true" : "false");
     result.fields.set("readyForPlayback", readyForPlayback ? "true" : "false");
 
-    if (auto *edit = m_mainComponent.getCurrentEdit())
+    if (auto *edit = m_debugHost.getCurrentEdit())
     {
         auto &transport = edit->getTransport();
         result.fields.set("transportPlaying", transport.isPlaying() ? "true" : "false");
@@ -87,7 +87,7 @@ Result DebugAppController::handleSystemState() const
 
 Result DebugAppController::handleTransportState() const
 {
-    if (auto *edit = m_mainComponent.getCurrentEdit())
+    if (auto *edit = m_debugHost.getCurrentEdit())
     {
         auto &transport = edit->getTransport();
         auto result = Result::success();
@@ -106,7 +106,7 @@ Result DebugAppController::handleStateDump(const Command &command) const
     if (command.argument.isNotEmpty())
         return Result::failure("invalid-argument", "state-dump does not accept an argument");
 
-    const auto file = m_mainComponent.writeAgentStateDump();
+    const auto file = NextStudio::AgentDebug::writeStateDump(m_debugHost);
     if (file == juce::File() || !file.existsAsFile())
         return Result::failure("io-error", "Failed to write state dump");
 
@@ -117,7 +117,7 @@ Result DebugAppController::handleStateDump(const Command &command) const
 
 Result DebugAppController::handlePlay() const
 {
-    if (auto *editComponent = m_mainComponent.getEditComponent())
+    if (auto *editComponent = m_debugHost.getEditComponent())
     {
         EngineHelpers::play(editComponent->getEditViewState());
 
@@ -131,7 +131,7 @@ Result DebugAppController::handlePlay() const
 
 Result DebugAppController::handleStop() const
 {
-    if (auto *editComponent = m_mainComponent.getEditComponent())
+    if (auto *editComponent = m_debugHost.getEditComponent())
     {
         EngineHelpers::stopPlay(editComponent->getEditViewState());
 
@@ -153,7 +153,7 @@ Result DebugAppController::handleScreenshot(const Command &command) const
             return Result::failure("invalid-argument", "screenshot expects an optional positive maxWidth");
     }
 
-    const auto file = m_mainComponent.captureAgentSnapshot(maxWidth);
+    const auto file = NextStudio::AgentDebug::captureSnapshot(m_debugHost, {}, maxWidth);
     auto result = Result::success();
     result.fields.set("path", file.getFullPathName());
     return result;
@@ -161,16 +161,11 @@ Result DebugAppController::handleScreenshot(const Command &command) const
 
 Result DebugAppController::handleQuit() const
 {
-    if (auto *app = juce::JUCEApplication::getInstance())
-    {
-        NS_LOG_INFO(app, "debug shell requested quit");
-        app->quit();
+    NS_LOG_INFO(app, "debug shell requested quit");
+    m_debugHost.requestQuit();
 
-        auto result = Result::success();
-        result.fields.set("quitting", "true");
-        return result;
-    }
-
-    return Result::failure("no-app-instance", "No JUCE application instance");
+    auto result = Result::success();
+    result.fields.set("quitting", "true");
+    return result;
 }
 } // namespace NextStudio::Debug

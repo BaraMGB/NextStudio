@@ -1,16 +1,15 @@
 #pragma once
 
 #include "DebugCommand.h"
+#include "DebugHost.h"
 #include "DebugResult.h"
-
-class MainComponent;
 
 namespace NextStudio::Debug
 {
 class DebugAppController
 {
 public:
-    explicit DebugAppController(MainComponent &mainComponent);
+    explicit DebugAppController(DebugHost &debugHost);
 
     Result execute(const Command &command);
 
@@ -25,6 +24,6 @@ private:
     Result handleScreenshot(const Command &command) const;
     Result handleQuit() const;
 
-    MainComponent &m_mainComponent;
+    DebugHost &m_debugHost;
 };
 } // namespace NextStudio::Debug

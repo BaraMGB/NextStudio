@@ -29,7 +29,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "MainComponent.h"
-#include "AgentDebug.h"
+#include "DebugSessionEnvironment.h"
 #include "ClipOverwriteCommand.h"
 #include "ArpeggiatorPlugin.h"
 #include "NextChorusPlugin.h"
@@ -48,23 +48,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ThemeHelpers.h"
 #include "Utilities.h"
 
-namespace
-{
-juce::File createDebugSessionTempDirectory()
-{
-    auto baseDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
-                       .getChildFile(ProjectInfo::projectName)
-                       .getChildFile("debug-shell");
-    baseDir.createDirectory();
-
-    const auto sessionName = "session-" + juce::Time::getCurrentTime().formatted("%Y%m%d-%H%M%S")
-                             + "-" + juce::String(juce::Random::getSystemRandom().nextInt(1000000));
-    auto sessionDir = baseDir.getChildFile(sessionName);
-    sessionDir.createDirectory();
-    return sessionDir;
-}
-}
-
 MainComponent::MainComponent(ApplicationViewState &state, bool debugMode)
     : m_applicationState(state),
       m_nextLookAndFeel(state),
@@ -73,7 +56,7 @@ MainComponent::MainComponent(ApplicationViewState &state, bool debugMode)
 {
     if (m_debugMode)
     {
-        const auto debugTempDir = createDebugSessionTempDirectory();
+        const auto debugTempDir = NextStudio::Debug::SessionEnvironment::createDebugSessionTempDirectory();
         if (m_engine.getTemporaryFileManager().setTempDirectory(debugTempDir))
         {
             NS_LOG_INFO(app, "debug shell temp directory: " + debugTempDir.getFullPathName());
@@ -985,53 +968,4 @@ void MainComponent::createTracksAndAssignInputs()
 
     m_edit->getTransport().ensureContextAllocated();
     m_edit->restartPlayback();
-}
-
-juce::File MainComponent::getAgentDebugDirectory() const
-{
-    auto baseDir = m_engine.getTemporaryFileManager().getTempDirectory();
-    auto agentDir = baseDir.getChildFile("agent-debug");
-    agentDir.createDirectory();
-    return agentDir;
-}
-
-juce::String MainComponent::createAgentStateDump() const { return NextStudio::AgentDebug::createStateDumpJson(*this); }
-
-juce::File MainComponent::writeAgentStateDump() const { return NextStudio::AgentDebug::writeStateDump(*this); }
-
-juce::File MainComponent::captureAgentSnapshot(int maxWidth) const { return NextStudio::AgentDebug::captureSnapshot(*this, {}, maxWidth); }
-
-bool MainComponent::executeAgentCommand(const juce::String &commandName, const juce::String &argument)
-{
-    return NextStudio::AgentDebug::executeCommand(*this, commandName, argument);
-}
-
-bool MainComponent::selectTrackByName(const juce::String &trackName)
-{
-    if (m_editViewState == nullptr)
-        return false;
-
-    for (auto *track : te::getAllTracks(*m_edit))
-    {
-        if (track != nullptr && track->getName().equalsIgnoreCase(trackName.trim()))
-        {
-            m_selectionManager.selectOnly(track);
-            NS_LOG_INFO(selection, "agent selected track: " + track->getName());
-            return true;
-        }
-    }
-
-    NS_LOG_WARN(selection, "agent could not find track: " + trackName);
-    return false;
-}
-
-void MainComponent::switchLowerRangeView(LowerRangeView view)
-{
-    if (m_editViewState == nullptr)
-        return;
-
-    m_editViewState->setLowerRangeView(view);
-    resized();
-    repaint();
-    NS_LOG_INFO(viewstate, "agent switched lower range view to " + NextStudio::Logging::toLogString((int) view));
 }

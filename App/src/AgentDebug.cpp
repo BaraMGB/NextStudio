@@ -1,6 +1,6 @@
 #include "AgentDebug.h"
 
-#include "MainComponent.h"
+#include "DebugHost.h"
 #include "Logging.h"
 
 namespace te = tracktion_engine;
@@ -140,11 +140,11 @@ juce::var buildSelectionSummary(const EditViewState &evs)
     return object;
 }
 
-juce::File getOutputDirectory(const MainComponent &mainComponent, const juce::File &requestedDirectory)
+juce::File getOutputDirectory(const NextStudio::Debug::DebugHost &debugHost, const juce::File &requestedDirectory)
 {
     auto directory = requestedDirectory;
     if (directory == juce::File())
-        directory = mainComponent.getAgentDebugDirectory();
+        directory = debugHost.getDebugArtifactsDirectory();
 
     directory.createDirectory();
     return directory;
@@ -156,7 +156,7 @@ juce::String createTimestampToken()
 }
 } // namespace
 
-juce::var createStateDump(const MainComponent &mainComponent)
+juce::var createStateDump(const NextStudio::Debug::DebugHost &debugHost)
 {
     auto *root = new juce::DynamicObject();
     root->setProperty("timestamp", juce::Time::getCurrentTime().toISO8601(true));
@@ -164,14 +164,14 @@ juce::var createStateDump(const MainComponent &mainComponent)
     root->setProperty("version", ProjectInfo::versionString);
 
     auto *window = new juce::DynamicObject();
-    const auto bounds = mainComponent.getScreenBounds();
+    const auto bounds = debugHost.getScreenBounds();
     window->setProperty("x", bounds.getX());
     window->setProperty("y", bounds.getY());
     window->setProperty("width", bounds.getWidth());
     window->setProperty("height", bounds.getHeight());
     root->setProperty("window", window);
 
-    const auto &appState = mainComponent.getApplicationState();
+    const auto &appState = debugHost.getApplicationState();
     auto *ui = new juce::DynamicObject();
     ui->setProperty("sidebarWidth", (int) appState.m_sidebarWidth);
     ui->setProperty("sidebarCollapsed", (bool) appState.m_sidebarCollapsed);
@@ -179,7 +179,7 @@ juce::var createStateDump(const MainComponent &mainComponent)
     ui->setProperty("workDir", sanitiseString(appState.m_workDir.get()));
     root->setProperty("ui", ui);
 
-    if (auto *evs = mainComponent.getEditViewState())
+    if (auto *evs = debugHost.getEditViewState())
     {
         auto *edit = new juce::DynamicObject();
         const auto editFile = te::EditFileOperations(evs->m_edit).getEditFile();
@@ -194,7 +194,7 @@ juce::var createStateDump(const MainComponent &mainComponent)
         auto *transportState = new juce::DynamicObject();
         transportState->setProperty("playing", transport.isPlaying());
         transportState->setProperty("recording", transport.isRecording());
-        transportState->setProperty("looping", (bool) transport.looping); 
+        transportState->setProperty("looping", (bool) transport.looping);
         transportState->setProperty("positionSeconds", transport.getPosition().inSeconds());
         edit->setProperty("transport", transportState);
 
@@ -210,16 +210,11 @@ juce::var createStateDump(const MainComponent &mainComponent)
     return root;
 }
 
-juce::String createStateDumpJson(const MainComponent &mainComponent)
+juce::File writeStateDump(const NextStudio::Debug::DebugHost &debugHost, const juce::File &outputDirectory)
 {
-    return juce::JSON::toString(createStateDump(mainComponent), true);
-}
-
-juce::File writeStateDump(const MainComponent &mainComponent, const juce::File &outputDirectory)
-{
-    const auto directory = getOutputDirectory(mainComponent, outputDirectory);
+    const auto directory = getOutputDirectory(debugHost, outputDirectory);
     const auto file = directory.getNonexistentChildFile("state-dump-" + createTimestampToken(), ".json", false);
-    if (!file.replaceWithText(createStateDumpJson(mainComponent)))
+    if (!file.replaceWithText(juce::JSON::toString(createStateDump(debugHost), true)))
     {
         NS_LOG_ERROR(app, "failed to write agent state dump: " + file.getFullPathName());
         return {};
@@ -229,13 +224,13 @@ juce::File writeStateDump(const MainComponent &mainComponent, const juce::File &
     return file;
 }
 
-juce::File captureSnapshot(const MainComponent &mainComponent, const juce::File &outputDirectory, int maxWidth)
+juce::File captureSnapshot(const NextStudio::Debug::DebugHost &debugHost, const juce::File &outputDirectory, int maxWidth)
 {
-    const auto directory = getOutputDirectory(mainComponent, outputDirectory);
-    const auto bounds = mainComponent.getLocalBounds();
+    const auto directory = getOutputDirectory(debugHost, outputDirectory);
+    const auto bounds = debugHost.getLocalBounds();
     const auto width = juce::jmax(1, bounds.getWidth());
     const auto scale = maxWidth > 0 ? juce::jmin(1.0f, (float) maxWidth / (float) width) : 1.0f;
-    const auto image = const_cast<MainComponent &>(mainComponent).createComponentSnapshot(bounds, false, scale);
+    const auto image = debugHost.createSnapshot(bounds, scale);
 
     const auto file = directory.getNonexistentChildFile("ui-snapshot-" + createTimestampToken(), ".png", false);
     juce::PNGImageFormat png;
@@ -246,73 +241,4 @@ juce::File captureSnapshot(const MainComponent &mainComponent, const juce::File 
     return file;
 }
 
-bool executeCommand(MainComponent &mainComponent, const juce::String &commandName, const juce::String &argument)
-{
-    const auto command = commandName.trim().toLowerCase();
-    NS_LOG_INFO(workflow, "agent command requested: " + command + (argument.isNotEmpty() ? " arg=" + argument : juce::String()));
-
-    if (command == "play")
-    {
-        if (auto *editComponent = mainComponent.getEditComponent())
-            EngineHelpers::play(editComponent->getEditViewState());
-        return true;
-    }
-
-    if (command == "stop")
-    {
-        if (auto *editComponent = mainComponent.getEditComponent())
-            EngineHelpers::stopPlay(editComponent->getEditViewState());
-        return true;
-    }
-
-    if (command == "toggle-record")
-    {
-        if (auto *editComponent = mainComponent.getEditComponent())
-            EngineHelpers::toggleRecord(editComponent->getEditViewState());
-        return true;
-    }
-
-    if (command == "toggle-metronome")
-    {
-        if (auto *edit = mainComponent.getCurrentEdit())
-            EngineHelpers::toggleMetronome(*edit);
-        return true;
-    }
-
-    if (command == "dump-state")
-    {
-        writeStateDump(mainComponent);
-        return true;
-    }
-
-    if (command == "capture-snapshot")
-    {
-        captureSnapshot(mainComponent);
-        return true;
-    }
-
-    if (command == "select-track")
-        return mainComponent.selectTrackByName(argument);
-
-    if (command == "show-mixer")
-    {
-        mainComponent.switchLowerRangeView(LowerRangeView::mixer);
-        return true;
-    }
-
-    if (command == "show-piano-roll")
-    {
-        mainComponent.switchLowerRangeView(LowerRangeView::midiEditor);
-        return true;
-    }
-
-    if (command == "show-plugin-rack")
-    {
-        mainComponent.switchLowerRangeView(LowerRangeView::pluginRack);
-        return true;
-    }
-
-    NS_LOG_WARN(workflow, "unknown agent command: " + command);
-    return false;
-}
 } // namespace NextStudio::AgentDebug

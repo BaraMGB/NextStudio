@@ -33,6 +33,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "DebugLaunchDiagnostics.h"
 #include "DebugShell.h"
+#include "MainComponentDebugHost.h"
 #include "MainComponent.h"
 #include "ApplicationViewState.h"
 #include "Logging.h"
@@ -70,7 +71,8 @@ public:
         {
             if (auto *mainComponent = mainWindow->getMainComponent())
             {
-                m_debugShell = std::make_unique<NextStudio::Debug::DebugShell>(*mainComponent);
+                m_debugHost = std::make_unique<NextStudio::Debug::MainComponentDebugHost>(*mainComponent);
+                m_debugShell = std::make_unique<NextStudio::Debug::DebugShell>(*m_debugHost);
                 m_debugShell->start();
             }
             else
@@ -86,6 +88,7 @@ public:
             NextStudio::Debug::LaunchDiagnostics::recordDebugShellSingleInstanceRejection(getCommandLineParameters(), m_launchOptions.debugShellRequestId);
 
         m_debugShell = nullptr;
+        m_debugHost = nullptr;
         mainWindow = nullptr;
     }
 
@@ -103,12 +106,8 @@ public:
 
     void anotherInstanceStarted(const juce::String &commandLine) override
     {
-        const auto options = parseLaunchOptions(commandLine);
-        if (!options.debugShell)
-            return;
-
-        NextStudio::Debug::LaunchDiagnostics::recordDebugShellSingleInstanceRejection(commandLine, options.debugShellRequestId);
-        NS_LOG_WARN(app, "debug shell launch rejected because another NextStudio instance is already running");
+        if (parseLaunchOptions(commandLine).debugShell)
+            NS_LOG_WARN(app, "debug shell launch rejected because another NextStudio instance is already running");
     }
 
     static LaunchOptions parseLaunchOptions(const juce::String &commandLine)
@@ -176,6 +175,7 @@ private:
     LaunchOptions m_launchOptions;
     bool m_initialiseEntered{false};
     std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<NextStudio::Debug::DebugHost> m_debugHost;
     std::unique_ptr<NextStudio::Debug::DebugShell> m_debugShell;
 };
 
