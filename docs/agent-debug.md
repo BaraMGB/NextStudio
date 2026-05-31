@@ -43,6 +43,8 @@ These tools wrap a persistent NextStudio `--debug-shell` process and allow comma
 
 The extension keeps a process session map in memory.
 
+Each debug-shell start attempt also carries a unique request id so single-instance launch rejections can be attributed to the correct failed launch attempt.
+
 Each session stores:
 
 - a generated `sessionId`
@@ -88,7 +90,23 @@ Behavior:
 3. wait for a line starting with:
    - `ok code=ready`
 4. if the process exits before readiness, return a startup failure and do not keep the dead session registered
-5. otherwise return session metadata and recent output
+5. if another NextStudio instance is already running, surface this specifically as a single-instance conflict
+6. otherwise return session metadata and recent output
+
+Single-instance conflict detection is explicit, not heuristic:
+
+- the debug-shell launcher adds a unique `--debug-shell-request-id=...` argument to each start attempt
+- if JUCE rejects that launch during its single-instance check, the short-lived app process reaches `shutdown()` without ever entering `initialise(...)`
+- in that path NextStudio writes a rejection marker file containing the matching request id
+- the launcher only reports `startup-single-instance-conflict` when that marker matches the current request id
+
+Important note:
+
+- NextStudio intentionally keeps JUCE single-instance protection enabled for normal DAW safety
+- `--debug-shell` does **not** bypass that policy
+- if a regular NextStudio instance is already open, debug-shell startup must fail with a clear agent-facing error
+- the expected tool error code for this case is:
+  - `startup-single-instance-conflict`
 
 Important returned fields:
 
@@ -307,6 +325,7 @@ The client exports:
 Important client capabilities:
 
 - `start()` waits for `ok code=ready` and rejects cleanly if process startup fails
+- `start()` should report an explicit single-instance conflict if another NextStudio process already holds the JUCE app lock
 - `waitForSystemReady()` polls `system-state` until `readyForPlayback=true`
 - `command()` sends one command, safely matches the next shell response even in long noisy sessions, and parses quoted fields
 - `parseResponseLine(...)` understands quoted values, including escaped quotes
@@ -441,6 +460,9 @@ The shell is intended to be machine-readable, not interactive in a human shell-l
 ### Separate temp sandbox
 
 `--debug-shell` runs in its own session-specific temporary sandbox.
+
+This only applies after a debug-shell session has actually started.
+If another NextStudio instance is already running, JUCE single-instance protection prevents the debug-shell process from starting at all.
 
 It does **not** use the normal recovery/temp area of regular user sessions.
 

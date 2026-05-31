@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, resolve } from "node:path";
 
 import { Type } from "typebox";
 
@@ -27,6 +28,7 @@ type Waiter = {
 type DebugSession = {
 	id: string;
 	process: ChildProcessWithoutNullStreams;
+	launchRequestId: string | null;
 	lineEntries: LineEntry[];
 	nextLineId: number;
 	waiters: Set<Waiter>;
@@ -39,8 +41,106 @@ type DebugSession = {
 	exitSignal: NodeJS.Signals | null;
 };
 
+type SingleInstanceRejectionMarker = {
+	reason?: unknown;
+	requestId?: unknown;
+	unixMs?: unknown;
+	commandLine?: unknown;
+	timestamp?: unknown;
+	pid?: unknown;
+};
+
 const defaultBinaryPath = resolve(process.cwd(), "autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio");
 const maxBufferedLines = 500;
+const debugShellSingleInstanceRejectionFile = resolve(tmpdir(), "NextStudio", "debug", "launch-rejections", "debug-shell-last-rejection.json");
+
+function detectLikelySingleInstanceConflict(binaryPath: string) {
+	if (process.platform === "win32")
+		return null;
+
+	const processName = basename(binaryPath);
+	const diagnostics: string[] = [];
+
+	const pgrep = spawnSync("pgrep", ["-a", "-x", processName], { encoding: "utf8" });
+	if (pgrep.error == null && pgrep.status !== 127) {
+		const runningProcesses = pgrep.stdout
+			.split(/\r?\n/)
+			.map((line) => line.trim())
+			.filter((line) => line.length > 0)
+			.filter((line) => !line.includes("<defunct>"));
+
+		if (runningProcesses.length > 0) {
+			return {
+				processName,
+				runningProcesses,
+				diagnostics,
+			};
+		}
+
+		diagnostics.push(`pgrep status=${String(pgrep.status)}`);
+	}
+	else if (pgrep.error != null) {
+		diagnostics.push(`pgrep error=${pgrep.error.message}`);
+	}
+
+	const ps = spawnSync("ps", ["-A", "-o", "pid=,comm="], { encoding: "utf8" });
+	if (ps.error == null && ps.status === 0) {
+		const runningProcesses = ps.stdout
+			.split(/\r?\n/)
+			.map((line) => line.trim())
+			.filter((line) => line.length > 0)
+			.filter((line) => line.split(/\s+/, 2)[1] === processName);
+
+		if (runningProcesses.length > 0) {
+			return {
+				processName,
+				runningProcesses,
+				diagnostics,
+			};
+		}
+	}
+	else if (ps.error != null) {
+		diagnostics.push(`ps error=${ps.error.message}`);
+	}
+
+	return null;
+}
+
+function readSingleInstanceRejectionMarker() {
+	if (!existsSync(debugShellSingleInstanceRejectionFile))
+		return null;
+
+	try {
+		return JSON.parse(readFileSync(debugShellSingleInstanceRejectionFile, "utf8")) as SingleInstanceRejectionMarker;
+	}
+	catch {
+		return null;
+	}
+}
+
+function isMatchingSingleInstanceRejectionMarker(marker: SingleInstanceRejectionMarker | null, requestId: string, startTimeMs: number) {
+	if (marker == null)
+		return false;
+
+	if (marker.reason !== "single-instance-conflict" || marker.requestId !== requestId)
+		return false;
+
+	const unixMs = Number(marker.unixMs);
+	return Number.isFinite(unixMs) && unixMs >= startTimeMs - 5000;
+}
+
+async function waitForMatchingSingleInstanceRejectionMarker(requestId: string, startTimeMs: number, timeoutMs = 1500, pollIntervalMs = 50) {
+	const deadline = Date.now() + timeoutMs;
+
+	while (Date.now() <= deadline) {
+		const marker = readSingleInstanceRejectionMarker();
+		if (isMatchingSingleInstanceRejectionMarker(marker, requestId, startTimeMs))
+			return marker;
+		await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+	}
+
+	return null;
+}
 
 function tokenizeResponseLine(line: string) {
 	const tokens: string[] = [];
@@ -216,6 +316,7 @@ function markSessionDesynchronised(session: DebugSession, reason: string) {
 function serialiseSession(session: DebugSession) {
 	return {
 		sessionId: session.id,
+		launchRequestId: session.launchRequestId,
 		closing: session.closing,
 		desynchronised: session.desynchronised,
 		desynchronisedReason: session.desynchronisedReason,
@@ -277,6 +378,8 @@ export default function (pi) {
 			const binaryPath = resolve(params.binaryPath ?? defaultBinaryPath);
 			const cwd = resolve(params.cwd ?? process.cwd());
 			const timeoutMs = Math.max(100, Math.floor(params.timeoutMs ?? 20000));
+			const launchRequestId = randomUUID();
+			const startTimeMs = Date.now();
 
 			if (!existsSync(binaryPath)) {
 				return {
@@ -285,7 +388,7 @@ export default function (pi) {
 				};
 			}
 
-			const child = spawn(binaryPath, ["--debug-shell"], {
+			const child = spawn(binaryPath, ["--debug-shell", `--debug-shell-request-id=${launchRequestId}`], {
 				cwd,
 				stdio: ["pipe", "pipe", "pipe"],
 			});
@@ -293,6 +396,7 @@ export default function (pi) {
 			const session: DebugSession = {
 				id: randomUUID(),
 				process: child,
+				launchRequestId,
 				lineEntries: [],
 				nextLineId: 1,
 				waiters: new Set(),
@@ -323,16 +427,24 @@ export default function (pi) {
 				const readyLine = await waitForLine(session, (line) => line.startsWith("ok code=ready"), timeoutMs);
 				if (readyLine === null) {
 					sessions.delete(session.id);
+					const rejectionMarker = await waitForMatchingSingleInstanceRejectionMarker(launchRequestId, startTimeMs);
+					const possibleRunningProcesses = detectLikelySingleInstanceConflict(binaryPath);
+					const code = rejectionMarker ? "startup-single-instance-conflict" : "startup-exited";
+					const message = rejectionMarker
+						? "NextStudio is already running. JUCE single-instance protection rejected the debug-shell launch. Close the existing NextStudio instance and retry."
+						: "Process exited before debug shell readiness was reported";
 					return {
-						content: [{ type: "text", text: `Failed to start NextStudio debug shell: process exited before ready` }],
+						content: [{ type: "text", text: `Failed to start NextStudio debug shell: ${message}` }],
 						details: {
 							ok: false,
-							code: "startup-exited",
-							message: "Process exited before debug shell readiness was reported",
+							code,
+							message,
 							binaryPath,
 							cwd,
 							...serialiseSession(session),
 							recentLines: getRecentLines(session),
+							rejectionMarker,
+							possibleRunningProcesses,
 						},
 					};
 				}

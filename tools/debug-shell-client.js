@@ -1,11 +1,86 @@
 #!/usr/bin/env node
 
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
 const defaultBinaryPath = path.resolve(process.cwd(), 'autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio');
+const debugShellSingleInstanceRejectionFile = path.resolve(os.tmpdir(), 'NextStudio', 'debug', 'launch-rejections', 'debug-shell-last-rejection.json');
+
+function detectLikelySingleInstanceConflict(binaryPath) {
+  if (process.platform === 'win32')
+    return null;
+
+  const processName = path.basename(binaryPath);
+  const diagnostics = [];
+
+  const pgrep = spawnSync('pgrep', ['-a', '-x', processName], { encoding: 'utf8' });
+  if (!pgrep.error && pgrep.status !== 127) {
+    const runningProcesses = pgrep.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .filter((line) => !line.includes('<defunct>'));
+
+    if (runningProcesses.length > 0)
+      return { processName, runningProcesses, diagnostics };
+
+    diagnostics.push(`pgrep status=${String(pgrep.status)}`);
+  } else if (pgrep.error) {
+    diagnostics.push(`pgrep error=${pgrep.error.message}`);
+  }
+
+  const ps = spawnSync('ps', ['-A', '-o', 'pid=,comm='], { encoding: 'utf8' });
+  if (!ps.error && ps.status === 0) {
+    const runningProcesses = ps.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .filter((line) => line.split(/\s+/, 2)[1] === processName);
+
+    if (runningProcesses.length > 0)
+      return { processName, runningProcesses, diagnostics };
+  } else if (ps.error) {
+    diagnostics.push(`ps error=${ps.error.message}`);
+  }
+
+  return null;
+}
+
+function readSingleInstanceRejectionMarker() {
+  if (!fs.existsSync(debugShellSingleInstanceRejectionFile))
+    return null;
+
+  try {
+    return JSON.parse(fs.readFileSync(debugShellSingleInstanceRejectionFile, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function isMatchingSingleInstanceRejectionMarker(marker, requestId, startTimeMs) {
+  if (!marker)
+    return false;
+  if (marker.reason !== 'single-instance-conflict' || marker.requestId !== requestId)
+    return false;
+
+  const unixMs = Number(marker.unixMs);
+  return Number.isFinite(unixMs) && unixMs >= startTimeMs - 5000;
+}
+
+async function waitForMatchingSingleInstanceRejectionMarker(requestId, startTimeMs, timeoutMs = 1500, pollIntervalMs = 50) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() <= deadline) {
+    const marker = readSingleInstanceRejectionMarker();
+    if (isMatchingSingleInstanceRejectionMarker(marker, requestId, startTimeMs))
+      return marker;
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  return null;
+}
 
 function tokenizeResponseLine(line) {
   const tokens = [];
@@ -119,9 +194,11 @@ class NextStudioDebugShellClient {
   constructor(options = {}) {
     this.binaryPath = path.resolve(options.binaryPath || defaultBinaryPath);
     this.binaryArgs = Array.isArray(options.binaryArgs) ? [...options.binaryArgs] : ['--debug-shell'];
+    this.injectDebugShellRequestId = !Array.isArray(options.binaryArgs);
     this.cwd = path.resolve(options.cwd || process.cwd());
     this.defaultTimeoutMs = options.timeoutMs || 10000;
     this.process = null;
+    this.launchRequestId = null;
     this.lines = [];
     this.lineEntries = [];
     this.nextLineId = 1;
@@ -131,17 +208,22 @@ class NextStudioDebugShellClient {
     this.exitSignal = null;
   }
 
-  start(timeoutMs = 30000) {
+  async start(timeoutMs = 30000) {
     if (!fs.existsSync(this.binaryPath))
       throw new Error(`NextStudio binary not found: ${this.binaryPath}`);
 
-    this.process = spawn(this.binaryPath, this.binaryArgs, {
+    const startTimeMs = Date.now();
+    this.launchRequestId = this.injectDebugShellRequestId ? `${Date.now()}-${Math.random().toString(16).slice(2, 10)}` : null;
+    const spawnArgs = this.launchRequestId
+      ? [...this.binaryArgs, `--debug-shell-request-id=${this.launchRequestId}`]
+      : this.binaryArgs;
+
+    this.process = spawn(this.binaryPath, spawnArgs, {
       cwd: this.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     this._attachStream(this.process.stdout, false);
-    this._attachStream(this.process.stderr, true);
     this.process.on('error', (error) => {
       this.exited = true;
       this.exitCode = null;
@@ -156,8 +238,24 @@ class NextStudioDebugShellClient {
       this._pushLine(`[process] exited code=${code} signal=${signal || 'none'}`);
       this._resolveAllWaitersWithNull();
     });
+    this._attachStream(this.process.stderr, true);
 
-    return this.waitForLine((line) => line.startsWith('ok code=ready'), timeoutMs);
+    const readyLine = await this.waitForLine((line) => line.startsWith('ok code=ready'), timeoutMs);
+    if (readyLine !== null)
+      return readyLine;
+
+    const rejectionMarker = this.launchRequestId
+      ? await waitForMatchingSingleInstanceRejectionMarker(this.launchRequestId, startTimeMs)
+      : null;
+    if (rejectionMarker) {
+      throw new Error('NextStudio debug shell exited before readiness was reported. Another NextStudio instance is already running and JUCE single-instance protection rejected the launch. Close the existing instance and retry.');
+    }
+
+    const possibleRunningProcesses = detectLikelySingleInstanceConflict(this.binaryPath);
+    const suffix = possibleRunningProcesses
+      ? ` Existing NextStudio processes were detected, but no explicit JUCE rejection marker matched this launch request: ${possibleRunningProcesses.runningProcesses.join(' | ')}`
+      : '';
+    throw new Error(`NextStudio debug shell exited before readiness was reported.${suffix}`);
   }
 
   async waitForSystemReady(timeoutMs = 30000, pollIntervalMs = 200) {

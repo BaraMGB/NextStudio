@@ -31,6 +31,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "DebugLaunchDiagnostics.h"
 #include "DebugShell.h"
 #include "MainComponent.h"
 #include "ApplicationViewState.h"
@@ -43,6 +44,7 @@ public:
     struct LaunchOptions
     {
         bool debugShell{false};
+        juce::String debugShellRequestId;
     };
 
     //==============================================================================
@@ -50,11 +52,16 @@ public:
 
     const juce::String getApplicationName() override { return ProjectInfo::projectName; }
     const juce::String getApplicationVersion() override { return ProjectInfo::versionString; }
-    bool moreThanOneInstanceAllowed() override { return false; }
+    bool moreThanOneInstanceAllowed() override
+    {
+        m_launchOptions = parseLaunchOptions(getCommandLineParameters());
+        return false;
+    }
 
     //==============================================================================
     void initialise(const juce::String &commandLine) override
     {
+        m_initialiseEntered = true;
         m_launchOptions = parseLaunchOptions(commandLine);
         NS_LOG_INFO(app, "Welcome to " + getApplicationName() + " v" + getApplicationVersion());
         mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState, m_launchOptions.debugShell));
@@ -75,6 +82,9 @@ public:
 
     void shutdown() override
     {
+        if (!m_initialiseEntered && m_launchOptions.debugShell && m_launchOptions.debugShellRequestId.isNotEmpty())
+            NextStudio::Debug::LaunchDiagnostics::recordDebugShellSingleInstanceRejection(getCommandLineParameters(), m_launchOptions.debugShellRequestId);
+
         m_debugShell = nullptr;
         mainWindow = nullptr;
     }
@@ -91,7 +101,15 @@ public:
         quit();
     }
 
-    void anotherInstanceStarted(const juce::String & /*commandLine*/) override {}
+    void anotherInstanceStarted(const juce::String &commandLine) override
+    {
+        const auto options = parseLaunchOptions(commandLine);
+        if (!options.debugShell)
+            return;
+
+        NextStudio::Debug::LaunchDiagnostics::recordDebugShellSingleInstanceRejection(commandLine, options.debugShellRequestId);
+        NS_LOG_WARN(app, "debug shell launch rejected because another NextStudio instance is already running");
+    }
 
     static LaunchOptions parseLaunchOptions(const juce::String &commandLine)
     {
@@ -99,7 +117,15 @@ public:
         auto args = juce::StringArray::fromTokens(commandLine, true);
         args.trim();
         args.removeEmptyStrings();
-        options.debugShell = args.contains("--debug-shell");
+
+        for (const auto &arg : args)
+        {
+            if (arg == "--debug-shell")
+                options.debugShell = true;
+            else if (arg.startsWith("--debug-shell-request-id="))
+                options.debugShellRequestId = arg.fromFirstOccurrenceOf("=", false, false).trim();
+        }
+
         return options;
     }
 
@@ -148,6 +174,7 @@ public:
 private:
     ApplicationViewState m_applicationState;
     LaunchOptions m_launchOptions;
+    bool m_initialiseEntered{false};
     std::unique_ptr<MainWindow> mainWindow;
     std::unique_ptr<NextStudio::Debug::DebugShell> m_debugShell;
 };
