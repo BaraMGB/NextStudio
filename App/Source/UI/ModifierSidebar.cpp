@@ -363,6 +363,8 @@ void ModifierSidebar::updateList()
     if (m_track)
         selectedID = m_evs.getTrackSelectedModifier(m_track->itemID);
 
+    bool selectedModifierStillExists = !selectedID.isValid();
+
     if (m_track)
     {
         if (auto *ml = m_track->getModifierList())
@@ -370,14 +372,22 @@ void ModifierSidebar::updateList()
             for (auto m : ml->getModifiers())
             {
                 auto *item = new ItemComponent(*this, m);
-                if (m->itemID == selectedID)
+                const bool isSelected = m->itemID == selectedID;
+
+                if (isSelected)
+                {
                     item->setSelected(true);
+                    selectedModifierStillExists = true;
+                }
 
                 m_listContainer.addAndMakeVisible(item);
                 m_items.add(item);
             }
         }
     }
+
+    if (m_track && !selectedModifierStillExists)
+        m_evs.setTrackSelectedModifier(m_track->itemID, {});
 
     resized();
     repaint();
