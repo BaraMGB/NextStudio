@@ -43,6 +43,9 @@ public:
     static constexpr float svfBaseQ = 0.7071f;
     static constexpr float levelSmoothingTime = 0.02f;
     static constexpr float cutoffSmoothingTime = 0.05f;
+    static constexpr float maxGlideTimeSeconds = 2.0f;
+    static constexpr int maxMidiNotes = 128;
+    static constexpr int noNote = -1;
 
     enum FilterType
     {
@@ -70,6 +73,21 @@ public:
         numMixModes
     };
 
+    enum VoiceMode
+    {
+        poly = 0,
+        mono,
+        numVoiceModes
+    };
+
+    enum GlideMode
+    {
+        glideOff = 0,
+        glideAlways,
+        glideLegato,
+        numGlideModes
+    };
+
     // Parameters (Automatable)
     te::AutomatableParameter::Ptr levelParam;
     te::AutomatableParameter::Ptr coarseTuneParam;
@@ -83,6 +101,9 @@ public:
     te::AutomatableParameter::Ptr unisonDetuneParam;
     te::AutomatableParameter::Ptr unisonSpreadParam;
     te::AutomatableParameter::Ptr retriggerParam;
+    te::AutomatableParameter::Ptr voiceModeParam;
+    te::AutomatableParameter::Ptr glideModeParam;
+    te::AutomatableParameter::Ptr glideTimeParam;
     te::AutomatableParameter::Ptr filterTypeParam;
     te::AutomatableParameter::Ptr filterCutoffParam;
     te::AutomatableParameter::Ptr filterResParam;
@@ -114,6 +135,9 @@ public:
     juce::CachedValue<float> unisonDetuneValue;
     juce::CachedValue<float> unisonSpreadValue;
     juce::CachedValue<float> retriggerValue;
+    juce::CachedValue<float> voiceModeValue;
+    juce::CachedValue<float> glideModeValue;
+    juce::CachedValue<float> glideTimeValue;
     juce::CachedValue<float> filterTypeValue;
     juce::CachedValue<float> filterCutoffValue;
     juce::CachedValue<float> filterResValue;
@@ -135,21 +159,25 @@ public:
 private:
     struct Voice
     {
-        void start(int note, float velocity, float sampleRate, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams, float unisonBias, bool retrigger, uint32_t timestamp);
+        void start(int note, float velocity, float sampleRate, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams, float unisonBias, bool retrigger, uint32_t timestamp, int glideStartNote = noNote, float glideTimeSeconds = 0.0f);
         void stop();
         void kill();
 
         bool active = false;
         bool isKeyDown = false;
-        int currentNote = -1;
+        int currentNote = noNote;
         uint32_t noteOnTime = 0; // For LRU Voice Stealing
         float currentVelocity = 0.0f;
         float phase = 0.0f;
         float phaseDelta = 0.0f;
         float targetFrequency = 0.0f;
+        float currentFrequency = 0.0f;
+        int glideStartNote = noNote;
+        float glideRemainingSamples = 0.0f;
         float phase2 = 0.0f;
         float phaseDelta2 = 0.0f;
         float targetFrequency2 = 0.0f;
+        float currentFrequency2 = 0.0f;
         float sampleRate = 44100.0f;
 
         // Unison Handling
@@ -167,7 +195,9 @@ private:
     };
 
     void processMidiMessage(const te::MidiMessageWithSource &message, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
-    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
+    void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams, int glideStartNote = noNote, float glideTimeSeconds = 0.0f);
+    void handleMonoNoteOff(int note, int glideMode, float glideTimeSeconds, bool retrigger, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
+    void retuneMonoVoices(int note, float velocity, int glideStartNote, float glideTimeSeconds, bool retriggerEnvelopes, bool resetPhase, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
     void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters &ampAdsr, const juce::ADSR::Parameters &filterAdsr);
     void renderAudioRange(const te::PluginRenderContext &, int startSample, int numSamples, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
 
@@ -176,6 +206,20 @@ private:
     Voice *findVoiceToSteal();
     uint32_t noteCounter = 0;
     int lastUnisonOrder = 1;
+    int monoHeldNotes[maxMidiNotes] = {};
+    float monoHeldVelocities[maxMidiNotes] = {};
+    int monoHeldNoteCount = 0;
+    int lastMonoNote = noNote;
+
+    void addMonoHeldNote(int note, float velocity);
+    void removeMonoHeldNote(int note);
+    void clearMonoHeldNotes();
+    void killAllVoices();
+    void stopAllKeyDownVoices();
+    void stopVoicesForNote(int note);
+    int getCurrentMonoHeldNote() const;
+    float getCurrentMonoHeldVelocity() const;
+    int getActiveKeyDownVoiceCount() const;
 
     // Thread-safe parameters for the Audio Thread
     struct AudioParams
@@ -185,6 +229,7 @@ private:
         std::atomic<float> mixMode{0.0f}, crossModAmount{0.0f};
         std::atomic<float> attack{0.005f}, decay{0.005f}, sustain{1.0f}, release{0.005f};
         std::atomic<float> unisonOrder{1.0f}, unisonDetune{0.0f}, unisonSpread{0.0f}, retrigger{0.0f};
+        std::atomic<float> voiceMode{0.0f}, glideMode{0.0f}, glideTime{0.0f};
         std::atomic<float> filterType{0.0f}, filterCutoff{20000.0f}, filterRes{0.0f}, filterDrive{1.0f}, filterEnvAmount{0.0f};
         std::atomic<float> filterAttack{0.005f}, filterDecay{0.005f}, filterSustain{1.0f}, filterRelease{0.005f};
     } audioParams;

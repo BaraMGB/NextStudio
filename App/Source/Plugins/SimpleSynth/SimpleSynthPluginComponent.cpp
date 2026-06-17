@@ -134,6 +134,8 @@ SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin &plugin, Applicat
         m_crossModComp = std::make_unique<AutomatableParameterComponent>(plugin.crossModAmountParam, "Cross Mod");
         addAndMakeVisible(*m_crossModComp);
     }
+
+    updateUI();
 }
 
 void SimpleSynthOscSection::updateUI()
@@ -229,6 +231,75 @@ void SimpleSynthOscSection::resized()
         if (m_crossModComp)
             m_crossModComp->setBounds(rowBottom.reduced(2));
     }
+}
+
+//==============================================================================
+// SimpleSynthVoiceSection
+//==============================================================================
+
+SimpleSynthVoiceSection::SimpleSynthVoiceSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_voiceModeComp(plugin.voiceModeParam, "Voice"),
+      m_glideModeComp(plugin.glideModeParam, "Glide"),
+      m_glideTimeComp(plugin.glideTimeParam, "Time")
+{
+    m_nameLabel.setText("VOICE", juce::dontSendNotification);
+    m_nameLabel.setJustificationType(juce::Justification::centred);
+    m_nameLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_nameLabel);
+
+    m_glideInfoLabel.setText("Glide requires\nMono", juce::dontSendNotification);
+    m_glideInfoLabel.setJustificationType(juce::Justification::centred);
+    m_glideInfoLabel.setFont(juce::FontOptions(10.0f));
+    m_glideInfoLabel.setColour(juce::Label::textColourId, juce::Colours::orange);
+    m_glideInfoLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_glideInfoLabel);
+
+    addAndMakeVisible(m_voiceModeComp);
+    addAndMakeVisible(m_glideModeComp);
+    addAndMakeVisible(m_glideTimeComp);
+
+    updateUI();
+}
+
+void SimpleSynthVoiceSection::paint(juce::Graphics &g)
+{
+    auto area = getLocalBounds().reduced(5).toFloat();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
+
+    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
+    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+}
+
+void SimpleSynthVoiceSection::resized()
+{
+    auto area = getLocalBounds().reduced(5);
+    auto header = area.removeFromTop(20);
+    m_nameLabel.setBounds(header);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+
+    area.reduce(0, 5);
+    auto rowHeight = area.getHeight() / 3;
+
+    m_voiceModeComp.setBounds(area.removeFromTop(rowHeight).reduced(2));
+    m_glideModeComp.setBounds(area.removeFromTop(rowHeight).reduced(2));
+
+    auto bottom = area.reduced(2);
+    m_glideTimeComp.setBounds(bottom);
+    m_glideInfoLabel.setBounds(bottom);
+}
+
+void SimpleSynthVoiceSection::updateUI()
+{
+    const bool isMono = juce::roundToInt(m_plugin.voiceModeParam->getCurrentValue()) == SimpleSynthPlugin::VoiceMode::mono;
+    const bool glideEnabled = juce::roundToInt(m_plugin.glideModeParam->getCurrentValue()) != SimpleSynthPlugin::GlideMode::glideOff;
+
+    m_glideModeComp.setEnabled(isMono);
+    m_glideTimeComp.setEnabled(isMono && glideEnabled);
+    m_glideInfoLabel.setVisible(!isMono);
 }
 
 //==============================================================================
@@ -376,6 +447,7 @@ SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState &evs, te::P
       m_synth(dynamic_cast<SimpleSynthPlugin *>(p.get())),
       m_osc1Section(*m_synth, evs.m_applicationState, 0),
       m_osc2Section(*m_synth, evs.m_applicationState, 1),
+      m_voiceSection(*m_synth, evs.m_applicationState),
       m_filterSection(*m_synth, evs.m_applicationState),
       m_ampEnvSection(*m_synth, evs.m_applicationState, "AMP ENV", false),
       m_filterEnvSection(*m_synth, evs.m_applicationState, "FILTER ENV", true),
@@ -385,6 +457,7 @@ SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState &evs, te::P
 
     addAndMakeVisible(m_osc1Section);
     addAndMakeVisible(m_osc2Section);
+    addAndMakeVisible(m_voiceSection);
     addAndMakeVisible(m_filterSection);
     addAndMakeVisible(m_ampEnvSection);
     addAndMakeVisible(m_filterEnvSection);
@@ -422,17 +495,15 @@ void SimpleSynthPluginComponent::resized()
 
     area.removeFromRight(5); // Spacing
 
-    // New Layout: Osc 1 (25%) | Osc 2 (20%) | Mix (10%) | Filter (25%) | Envs (20%)
+    auto voiceArea = area.removeFromRight(115);
+    m_voiceSection.setBounds(voiceArea);
+    area.removeFromRight(5); // Spacing
 
-    // We have roughly 900-1000px usually.
-    // Let's divide based on content.
-
+    // Layout: Osc 1 | Osc 2 | Filter | Envs | Voice | Master
     auto totalWidth = area.getWidth();
     int osc1W = totalWidth * 0.22f;
-    int osc2W = totalWidth * 0.22f; // Now larger to hold mix controls
-    // Mix Section removed
+    int osc2W = totalWidth * 0.22f;
     int filterW = totalWidth * 0.22f;
-    // Remainder for Envs (~22%)
 
     m_osc1Section.setBounds(area.removeFromLeft(osc1W));
     m_osc2Section.setBounds(area.removeFromLeft(osc2W));
@@ -448,6 +519,7 @@ void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree &, con
 {
     m_osc1Section.updateUI();
     m_osc2Section.updateUI();
+    m_voiceSection.updateUI();
     m_filterSection.updateUI();
     m_ampEnvSection.updateUI();
     m_filterEnvSection.updateUI();
@@ -491,6 +563,9 @@ juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
     add("unisonDetune", m_synth->unisonDetuneValue);
     add("unisonSpread", m_synth->unisonSpreadValue);
     add("retrigger", m_synth->retriggerValue);
+    add("voiceMode", m_synth->voiceModeValue);
+    add("glideMode", m_synth->glideModeValue);
+    add("glideTime", m_synth->glideTimeValue);
 
     add("filterType", m_synth->filterTypeValue);
     add("cutoff", m_synth->filterCutoffValue);

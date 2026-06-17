@@ -57,6 +57,30 @@ private:
 };
 
 //==============================================================================
+class SimpleSynthVoiceSection : public juce::Component
+{
+public:
+    SimpleSynthVoiceSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState);
+    ~SimpleSynthVoiceSection() override = default;
+
+    void paint(juce::Graphics &g) override;
+    void resized() override;
+    void updateUI();
+
+private:
+    SimpleSynthPlugin &m_plugin;
+    ApplicationViewState &m_appState;
+
+    AutomatableChoiceComponent m_voiceModeComp;
+    AutomatableChoiceComponent m_glideModeComp;
+    AutomatableParameterComponent m_glideTimeComp;
+    juce::Label m_nameLabel;
+    juce::Label m_glideInfoLabel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthVoiceSection)
+};
+
+//==============================================================================
 class SimpleSynthFilterSection : public juce::Component
 {
 public:
@@ -165,6 +189,7 @@ private:
     // Sections
     SimpleSynthOscSection m_osc1Section;
     SimpleSynthOscSection m_osc2Section;
+    SimpleSynthVoiceSection m_voiceSection;
     SimpleSynthFilterSection m_filterSection;
     SimpleSynthEnvSection m_ampEnvSection;
     SimpleSynthEnvSection m_filterEnvSection;
