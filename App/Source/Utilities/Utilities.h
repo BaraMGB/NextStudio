@@ -274,6 +274,7 @@ enum class PluginInsertResult
 
 void renderEditToFile(EditViewState &evs, juce::File renderFile, tracktion::TimeRange range = {});
 bool renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip);
+bool renderSelectedClipsToNewTrack(EditViewState &evs);
 bool renderToNewTrack(EditViewState &evs, juce::Array<tracktion_engine::Track *> tracksToRender, tracktion::TimeRange range);
 
 void setMidiInputFocusToSelection(EditViewState &evs);

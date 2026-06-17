@@ -790,7 +790,7 @@ void EditComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
         break;
 
     case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack:
-        result.setInfo("render time range to new track", "render time range on new track", "Song Editor", 0);
+        result.setInfo("render selection to new track", "render selected time range or selected clips to new track", "Song Editor", 0);
         result.addDefaultKeypress(juce::KeyPress::createFromDescription("r").getKeyCode(), juce::ModifierKeys::commandModifier);
         break;
     case KeyPressCommandIDs::transposeClipUp:
@@ -887,7 +887,7 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         EngineHelpers::selectAllClips(m_editViewState.m_selectionManager, m_editViewState.m_edit);
         break;
     case KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack:
-        m_songEditor.renderSelectedTimeRangeToNewTrack();
+        m_songEditor.renderSelectionToNewTrack();
         break;
     case KeyPressCommandIDs::transposeClipUp:
         GUIHelpers::log("perform: transposeClipUp");

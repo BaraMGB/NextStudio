@@ -89,7 +89,9 @@ public:
 
     void duplicateSelectedClipsOrTimeRange();
     void deleteSelectedTimeRange();
+    void renderSelectionToNewTrack();
     void renderSelectedTimeRangeToNewTrack();
+    void renderSelectedClipsToNewTrack();
     void transposeSelectedClips(float pitchChange);
     void reverseSelectedClips();
     juce::Array<te::Track *> getTracksWithSelectedTimeRange();

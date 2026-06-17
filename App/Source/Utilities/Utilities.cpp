@@ -1103,6 +1103,45 @@ bool EngineHelpers::renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip)
     return true;
 }
 
+bool EngineHelpers::renderSelectedClipsToNewTrack(EditViewState &evs)
+{
+    auto previousSelection = evs.m_selectionManager.getSelectedObjects();
+    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    if (selectedClips.isEmpty())
+        return false;
+
+    auto range = getTimeRangeOfSelectedClips(evs);
+    if (range.getLength().inSeconds() <= 0.0)
+        return false;
+
+    juce::Array<te::Track *> selectedTracks;
+    for (auto *clip : selectedClips)
+    {
+        if (clip != nullptr)
+            selectedTracks.addIfNotAlreadyThere(clip->getTrack());
+    }
+
+    auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
+    auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
+
+    const auto tracksToDo = getAudibleTracksToRender(evs.m_edit, selectedTracks);
+
+    if (tracksToDo.isZero())
+    {
+        if (!writeSilentRenderFile(renderFile, range, evs.m_edit.engine))
+            return false;
+    }
+    else
+    {
+        te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo, true, true, selectedClips);
+    }
+
+    EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum, range.getStart().inSeconds());
+    evs.m_selectionManager.select(previousSelection);
+
+    return true;
+}
+
 void EngineHelpers::renderEditToFile(EditViewState &evs, juce::File renderFile, tracktion::TimeRange range)
 {
     if (!renderFile.create())

@@ -934,6 +934,18 @@ juce::Rectangle<float> SongEditorView::getClipRect(te::Clip::Ptr clip)
     return clipRect;
 }
 
+void SongEditorView::renderSelectionToNewTrack()
+{
+    if (getTracksWithSelectedTimeRange().size() > 0)
+    {
+        renderSelectedTimeRangeToNewTrack();
+        return;
+    }
+
+    if (!m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().isEmpty())
+        renderSelectedClipsToNewTrack();
+}
+
 void SongEditorView::renderSelectedTimeRangeToNewTrack()
 {
     if (getTracksWithSelectedTimeRange().size() <= 0)
@@ -944,6 +956,11 @@ void SongEditorView::renderSelectedTimeRangeToNewTrack()
     auto range = getSelectedTimeRange();
 
     EngineHelpers::renderToNewTrack(m_editViewState, selectedTracks, range);
+}
+
+void SongEditorView::renderSelectedClipsToNewTrack()
+{
+    EngineHelpers::renderSelectedClipsToNewTrack(m_editViewState);
 }
 
 void SongEditorView::buildRecordingClips(te::Track::Ptr track)
