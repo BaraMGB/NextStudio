@@ -17,7 +17,7 @@ The goal is **not** to fully mirror internal `tracktion_engine` details.
 
 Only use the central logger from:
 
-- `App/Source/Utilities/Logging.h`
+- `App/include/Logging.h`
 
 Macros:
 

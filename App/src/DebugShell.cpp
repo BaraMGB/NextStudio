@@ -1,6 +1,6 @@
 #include "DebugShell.h"
 
-#include "../Utilities/Logging.h"
+#include "Logging.h"
 
 #include <iostream>
 

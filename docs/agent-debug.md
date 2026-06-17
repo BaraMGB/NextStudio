@@ -376,13 +376,13 @@ These are internal helpers used by the app:
 
 Relevant files:
 
-- `App/Source/Utilities/AgentDebug.h`
-- `App/Source/Utilities/AgentDebug.cpp`
-- `App/Source/Debug/DebugHost.h`
-- `App/Source/Debug/MainComponentDebugHost.h`
-- `App/Source/Debug/MainComponentDebugHost.cpp`
-- `App/Source/Debug/DebugSessionEnvironment.h`
-- `App/Source/Debug/DebugSessionEnvironment.cpp`
+- `App/include/AgentDebug.h`
+- `App/src/AgentDebug.cpp`
+- `App/include/DebugHost.h`
+- `App/include/MainComponentDebugHost.h`
+- `App/src/MainComponentDebugHost.cpp`
+- `App/include/DebugSessionEnvironment.h`
+- `App/src/DebugSessionEnvironment.cpp`
 
 ### 2. Debug shell
 
@@ -392,13 +392,13 @@ It starts NextStudio in a dedicated debug mode and accepts simple commands over 
 
 Relevant files:
 
-- `App/Source/Debug/DebugCommand.h`
-- `App/Source/Debug/DebugResult.h`
-- `App/Source/Debug/DebugAppController.h`
-- `App/Source/Debug/DebugAppController.cpp`
-- `App/Source/Debug/DebugShell.h`
-- `App/Source/Debug/DebugShell.cpp`
-- `App/Source/Main.cpp`
+- `App/include/DebugCommand.h`
+- `App/include/DebugResult.h`
+- `App/include/DebugAppController.h`
+- `App/src/DebugAppController.cpp`
+- `App/include/DebugShell.h`
+- `App/src/DebugShell.cpp`
+- `App/src/Main.cpp`
 
 ---
 
@@ -493,12 +493,12 @@ The debug system no longer reaches directly into `MainComponent` through a wide 
 
 Instead it uses a small internal host interface:
 
-- `App/Source/Debug/DebugHost.h`
+- `App/include/DebugHost.h`
 
 Current concrete adapter:
 
-- `App/Source/Debug/MainComponentDebugHost.h`
-- `App/Source/Debug/MainComponentDebugHost.cpp`
+- `App/include/MainComponentDebugHost.h`
+- `App/src/MainComponentDebugHost.cpp`
 
 This keeps the debug-shell integration cleaner by isolating:
 

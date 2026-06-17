@@ -1,6 +1,7 @@
 #include "DebugAppController.h"
 
 #include "AgentDebug.h"
+#include "EditComponent.h"
 #include "Logging.h"
 #include "Utilities.h"
 
