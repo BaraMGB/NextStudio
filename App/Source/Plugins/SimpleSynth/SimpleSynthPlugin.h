@@ -197,7 +197,7 @@ private:
     void processMidiMessage(const te::MidiMessageWithSource &message, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
     void triggerNote(int note, float velocity, int unisonOrder, bool retrigger, float startCutoff, float drive, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams, int glideStartNote = noNote, float glideTimeSeconds = 0.0f);
     void handleMonoNoteOff(int note, int glideMode, float glideTimeSeconds, bool retrigger, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
-    void retuneMonoVoices(int note, float velocity, int glideStartNote, float glideTimeSeconds, bool retriggerEnvelopes, bool resetPhase, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
+    void retuneMonoVoices(int note, float velocity, int glideStartNote, float glideTimeSeconds, bool retriggerEnvelopes, bool resetPhase, bool includeReleasingVoices, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams);
     void updateVoiceParameters(int unisonOrder, float unisonDetuneCents, float unisonSpread, float resonance, float drive, float coarseTune, float fineTuneCents, float osc2Coarse, float osc2FineCents, const juce::ADSR::Parameters &ampAdsr, const juce::ADSR::Parameters &filterAdsr);
     void renderAudioRange(const te::PluginRenderContext &, int startSample, int numSamples, float baseCutoff, float filterEnvAmount, int waveShape, int unisonOrder, float drive);
 
@@ -220,6 +220,7 @@ private:
     int getCurrentMonoHeldNote() const;
     float getCurrentMonoHeldVelocity() const;
     int getActiveKeyDownVoiceCount() const;
+    int getActiveVoiceCount() const;
 
     // Thread-safe parameters for the Audio Thread
     struct AudioParams

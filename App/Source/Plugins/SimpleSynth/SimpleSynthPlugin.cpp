@@ -576,6 +576,17 @@ int SimpleSynthPlugin::getActiveKeyDownVoiceCount() const
     return count;
 }
 
+int SimpleSynthPlugin::getActiveVoiceCount() const
+{
+    int count = 0;
+    for (const auto &v : voices)
+    {
+        if (v.active)
+            ++count;
+    }
+    return count;
+}
+
 SimpleSynthPlugin::Voice *SimpleSynthPlugin::findVoiceToSteal()
 {
     Voice *oldestReleaseVoice = nullptr;
@@ -635,6 +646,7 @@ void SimpleSynthPlugin::handleMonoNoteOff(int note, int glideMode, float glideTi
                      shouldGlide ? glideTimeSeconds : 0.0f,
                      retrigger,
                      retrigger,
+                     false,
                      ampParams,
                      filterParams);
     lastMonoNote = nextNote;
@@ -696,9 +708,12 @@ void SimpleSynthPlugin::processMidiMessage(const te::MidiMessageWithSource &m, c
 
         addMonoHeldNote(note, velocity);
 
-        if (wasLegato && getActiveKeyDownVoiceCount() == unisonOrder)
+        const bool canReuseLegatoVoices = wasLegato && getActiveKeyDownVoiceCount() == unisonOrder;
+        const bool canReuseReleasingVoices = !wasLegato && getActiveVoiceCount() > 0;
+
+        if (canReuseLegatoVoices || canReuseReleasingVoices)
         {
-            retuneMonoVoices(note, velocity, glideStartNote, activeGlideTime, shouldRetriggerEnvelopes, retrigger, adsrParams, filterAdsrParams);
+            retuneMonoVoices(note, velocity, glideStartNote, activeGlideTime, shouldRetriggerEnvelopes, retrigger, canReuseReleasingVoices, adsrParams, filterAdsrParams);
         }
         else
         {
@@ -722,15 +737,16 @@ void SimpleSynthPlugin::processMidiMessage(const te::MidiMessageWithSource &m, c
     }
 }
 
-void SimpleSynthPlugin::retuneMonoVoices(int note, float velocity, int startNote, float glideTimeSeconds, bool retriggerEnvelopes, bool resetPhase, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams)
+void SimpleSynthPlugin::retuneMonoVoices(int note, float velocity, int startNote, float glideTimeSeconds, bool retriggerEnvelopes, bool resetPhase, bool includeReleasingVoices, const juce::ADSR::Parameters &ampParams, const juce::ADSR::Parameters &filterParams)
 {
     const float glideSamples = glideTimeSeconds > 0.0f && sampleRate > 0.0 ? glideTimeSeconds * (float)sampleRate : 0.0f;
 
     for (auto &v : voices)
     {
-        if (!v.active || !v.isKeyDown)
+        if (!v.active || (!includeReleasingVoices && !v.isKeyDown))
             continue;
 
+        v.isKeyDown = true;
         v.currentNote = note;
         v.currentVelocity = velocity;
         v.noteOnTime = noteCounter;
