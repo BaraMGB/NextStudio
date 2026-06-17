@@ -394,23 +394,27 @@ bool SongEditorView::hitTestTimeRange(int x, te::Track *track, bool &outLeftEdge
     if (m_selectedRange.timeRange.getLength().inSeconds() <= 0)
         return false;
 
-    // Check if x position is within the time range
     auto x1 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats();
     auto x2 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getEnd().inBeats();
     auto timeAtX = tracktion::TimePosition::fromSeconds(m_editViewState.xToTime(x, getWidth(), x1, x2));
-
-    if (!m_selectedRange.timeRange.contains(timeAtX))
-        return false;
-
-    // Check for edge proximity
     auto leftX = static_cast<int>(m_editViewState.timeToX(m_selectedRange.timeRange.getStart().inSeconds(), getWidth(), x1, x2));
     auto rightX = static_cast<int>(m_editViewState.timeToX(m_selectedRange.timeRange.getEnd().inSeconds(), getWidth(), x1, x2));
 
     const int edgeThreshold = 5;
-    if (x < leftX + edgeThreshold)
+    if (x >= leftX - edgeThreshold && x <= leftX + edgeThreshold)
+    {
         outLeftEdge = true;
-    else if (x > rightX - edgeThreshold)
+        return true;
+    }
+
+    if (x >= rightX - edgeThreshold && x <= rightX + edgeThreshold)
+    {
         outRightEdge = true;
+        return true;
+    }
+
+    if (!m_selectedRange.timeRange.contains(timeAtX))
+        return false;
 
     return true;
 }
@@ -429,23 +433,27 @@ bool SongEditorView::hitTestTimeRange(int x, te::AutomatableParameter *param, bo
     if (m_selectedRange.timeRange.getLength().inSeconds() <= 0)
         return false;
 
-    // Check if x position is within the time range
     auto x1 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats();
     auto x2 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getEnd().inBeats();
     auto timeAtX = tracktion::TimePosition::fromSeconds(m_editViewState.xToTime(x, getWidth(), x1, x2));
-
-    if (!m_selectedRange.timeRange.contains(timeAtX))
-        return false;
-
-    // Check for edge proximity
     auto leftX = static_cast<int>(m_editViewState.timeToX(m_selectedRange.timeRange.getStart().inSeconds(), getWidth(), x1, x2));
     auto rightX = static_cast<int>(m_editViewState.timeToX(m_selectedRange.timeRange.getEnd().inSeconds(), getWidth(), x1, x2));
 
     const int edgeThreshold = 5;
-    if (x < leftX + edgeThreshold)
+    if (x >= leftX - edgeThreshold && x <= leftX + edgeThreshold)
+    {
         outLeftEdge = true;
-    else if (x > rightX - edgeThreshold)
+        return true;
+    }
+
+    if (x >= rightX - edgeThreshold && x <= rightX + edgeThreshold)
+    {
         outRightEdge = true;
+        return true;
+    }
+
+    if (!m_selectedRange.timeRange.contains(timeAtX))
+        return false;
 
     return true;
 }
@@ -1059,23 +1067,25 @@ bool SongEditorView::TimeRangeOverlayComponent::hitTest(int x, int y)
     if (m_owner.m_selectedRange.timeRange.getLength().inSeconds() <= 0)
         return false;
 
-    bool left = false, right = false;
-    // We check ALL tracks/automations because the overlay covers everything
-    // Use the first track to determine if we are within the horizontal bounds of the selection
-    if (m_owner.hitTestTimeRange(x, m_owner.m_selectedRange.selectedTracks.getFirst(), left, right))
-    {
-        // Check if Y is actually within one of the selected tracks or automations
-        // Otherwise a click on a non-selected track in the same time range would be intercepted
-        auto track = m_owner.getTrackAt(y);
-        if (track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
-            return true;
+    auto x1 = m_owner.m_editViewState.getVisibleBeatRange(m_owner.m_timeLine.getTimeLineID(), m_owner.getWidth()).getStart().inBeats();
+    auto x2 = m_owner.m_editViewState.getVisibleBeatRange(m_owner.m_timeLine.getTimeLineID(), m_owner.getWidth()).getEnd().inBeats();
+    auto leftX = static_cast<int>(m_owner.m_editViewState.timeToX(m_owner.m_selectedRange.timeRange.getStart().inSeconds(), m_owner.getWidth(), x1, x2));
+    auto rightX = static_cast<int>(m_owner.m_editViewState.timeToX(m_owner.m_selectedRange.timeRange.getEnd().inSeconds(), m_owner.getWidth(), x1, x2));
 
-        // Check automations
-        for (auto ap : m_owner.m_selectedRange.selectedAutomations)
-        {
-            if (m_owner.getAutomationRect(ap).contains(static_cast<float>(x), static_cast<float>(y)))
-                return true;
-        }
+    const int edgeThreshold = 5;
+    if (x < leftX - edgeThreshold || x > rightX + edgeThreshold)
+        return false;
+
+    // Check if Y is actually within one of the selected tracks or automations.
+    // Otherwise a click on a non-selected track in the same time range would be intercepted.
+    auto track = m_owner.getTrackAt(y);
+    if (track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
+        return true;
+
+    for (auto ap : m_owner.m_selectedRange.selectedAutomations)
+    {
+        if (m_owner.getAutomationRect(ap).contains(static_cast<float>(x), static_cast<float>(y)))
+            return true;
     }
 
     return false;
@@ -1197,39 +1207,59 @@ void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics &g)
         g.drawRect(selectedRangeRect, 1.0f);
     }
 
-    if (m_hoveredHandleLeft)
+    auto drawHoveredEdge = [&](tracktion::TimePosition time)
     {
-        auto lastSelectedTrack = m_owner.m_selectedRange.selectedTracks.getLast();
-        auto height = static_cast<float>(m_owner.m_editViewState.m_trackHeightManager->getTrackHeight(lastSelectedTrack, true));
-        float x = m_owner.timeToX(m_owner.m_selectedRange.getStart());
-        float y = static_cast<float>(m_owner.getYForTrack(m_owner.m_selectedRange.selectedTracks.getLast())) + height;
+        const float x = m_owner.timeToX(time);
         g.setColour(yellowgreen);
-        g.drawLine(x, 0.0f, x, y, 1.0f);
-    }
+
+        for (auto track : m_owner.m_selectedRange.selectedTracks)
+        {
+            if (!m_owner.m_editViewState.m_trackHeightManager->isTrackShowable(track))
+                continue;
+
+            if (m_owner.m_editViewState.m_trackHeightManager->isTrackInMinimizedFolderRecursive(track))
+                continue;
+
+            const float y = static_cast<float>(m_owner.getYForTrack(track));
+            const float h = static_cast<float>(m_owner.m_editViewState.m_trackHeightManager->getTrackHeight(track, false));
+            g.drawLine(x, y, x, y + h, 1.0f);
+        }
+
+        for (auto automation : m_owner.m_selectedRange.selectedAutomations)
+        {
+            const auto rect = m_owner.getAutomationRect(automation);
+            if (rect.getHeight() > 0.0f)
+                g.drawLine(x, rect.getY(), x, rect.getBottom(), 1.0f);
+        }
+    };
+
+    if (m_hoveredHandleLeft)
+        drawHoveredEdge(m_owner.m_selectedRange.getStart());
 
     if (m_hoveredHandleRight)
-    {
-        auto lastSelectedTrack = m_owner.m_selectedRange.selectedTracks.getLast();
-        auto height = static_cast<float>(m_owner.m_editViewState.m_trackHeightManager->getTrackHeight(lastSelectedTrack, true));
-        float x = m_owner.timeToX(m_owner.m_selectedRange.getEnd());
-        float y = static_cast<float>(m_owner.getYForTrack(m_owner.m_selectedRange.selectedTracks.getLast())) + height;
-        g.setColour(yellowgreen);
-        g.drawLine(x, 0.0f, x, y, 1.0f);
-    }
+        drawHoveredEdge(m_owner.m_selectedRange.getEnd());
 }
 
 void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent &e)
 {
     bool left = false, right = false;
-    if (m_owner.m_selectedRange.selectedTracks.size() > 0)
+    if (auto track = m_owner.getTrackAt(e.y); track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
     {
-        m_owner.hitTestTimeRange(e.x, m_owner.m_selectedRange.selectedTracks.getFirst(), left, right);
+        m_owner.hitTestTimeRange(e.x, track, left, right);
     }
-    else if (m_owner.m_selectedRange.selectedAutomations.size() > 0)
+    else
     {
-        m_owner.hitTestTimeRange(e.x, m_owner.m_selectedRange.selectedAutomations.getFirst(), left, right);
+        for (auto automation : m_owner.m_selectedRange.selectedAutomations)
+        {
+            if (m_owner.getAutomationRect(automation).contains(static_cast<float>(e.x), static_cast<float>(e.y)))
+            {
+                m_owner.hitTestTimeRange(e.x, automation, left, right);
+                break;
+            }
+        }
     }
 
+    const bool changed = m_hoveredHandleLeft != left || m_hoveredHandleRight != right;
     m_hoveredHandleLeft = left;
     m_hoveredHandleRight = right;
 
@@ -1239,6 +1269,19 @@ void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent
         setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
     else
         setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, m_owner.m_editViewState.m_applicationState.m_mouseCursorScale));
+
+    if (changed)
+        repaint();
+}
+
+void SongEditorView::TimeRangeOverlayComponent::mouseExit(const juce::MouseEvent &)
+{
+    if (m_hoveredHandleLeft || m_hoveredHandleRight)
+    {
+        m_hoveredHandleLeft = false;
+        m_hoveredHandleRight = false;
+        repaint();
+    }
 }
 
 void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent &e)

@@ -259,10 +259,12 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     }
 
     // 2. Empty Space Interaction
-    if (!isClipClicked && leftButton)
+    // The range tool must be able to draw a time range no matter what is under the
+    // cursor, so an active range tool also enters this branch even when a clip was hit.
+    if (leftButton && (!isClipClicked || toolMode == Tool::range))
     {
-        // Double Click -> Create MIDI Clip
-        if (e.getNumberOfClicks() > 1)
+        // Double Click -> Create MIDI Clip (only on actual empty space)
+        if (!isClipClicked && e.getNumberOfClicks() > 1)
         {
             auto beat = e.mods.isShiftDown() ? m_editViewState.timeToBeat(xtoTime(e.x).inSeconds()) : m_songEditor.xToSnapedBeat(e.getEventRelativeTo(&m_songEditor).x);
 

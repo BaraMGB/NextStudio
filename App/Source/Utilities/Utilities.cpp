@@ -187,14 +187,20 @@ void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewSt
             drawAudioClipFades(g, evs, *audioClip, clipRect, displayedRect, x1Beat, x2beat, color);
     }
 
-    g.setColour(evs.m_applicationState.getTimeLineStrokeColour());
-    g.drawRect(clipRect.toNearestInt());
-
-    if (isSelected)
+    g.saveState();
     {
-        g.setColour(evs.m_applicationState.getPrimeColour());
-        g.drawRect(clipRect.toNearestInt(), 2);
+        g.reduceClipRegion(displayedRect.toNearestInt());
+
+        g.setColour(evs.m_applicationState.getTimeLineStrokeColour());
+        g.drawRect(clipRect.toNearestInt());
+
+        if (isSelected)
+        {
+            g.setColour(evs.m_applicationState.getPrimeColour());
+            g.drawRect(clipRect.toNearestInt(), 2);
+        }
     }
+    g.restoreState();
 }
 
 void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &c, SimpleThumbnail &thumb, juce::Colour colour, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
