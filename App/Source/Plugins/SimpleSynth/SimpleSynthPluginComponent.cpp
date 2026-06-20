@@ -501,15 +501,13 @@ void SimpleSynthPluginComponent::resized()
 
     // Layout: Osc 1 | Osc 2 | Filter | Envs | Voice | Master
     auto totalWidth = area.getWidth();
-    int osc1W = totalWidth * 0.22f;
-    int osc2W = totalWidth * 0.22f;
-    int filterW = totalWidth * 0.22f;
+    int colW = totalWidth / 4;
 
-    m_osc1Section.setBounds(area.removeFromLeft(osc1W));
-    m_osc2Section.setBounds(area.removeFromLeft(osc2W));
-    m_filterSection.setBounds(area.removeFromLeft(filterW));
+    m_osc1Section.setBounds(area.removeFromLeft(colW));
+    m_osc2Section.setBounds(area.removeFromLeft(colW));
+    m_filterSection.setBounds(area.removeFromLeft(colW));
 
-    auto envArea = area;
+    auto envArea = area.removeFromLeft(colW);
     auto envHeight = envArea.getHeight() / 2;
     m_ampEnvSection.setBounds(envArea.removeFromTop(envHeight).reduced(0, 2));
     m_filterEnvSection.setBounds(envArea.reduced(0, 2));
