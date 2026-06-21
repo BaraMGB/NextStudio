@@ -220,6 +220,7 @@ target_link_libraries(${TargetName} PRIVATE
         Samples707
         Samples808
         Samples909
+        SoundFontData
 
         tracktion::tracktion_core
         tracktion::tracktion_engine

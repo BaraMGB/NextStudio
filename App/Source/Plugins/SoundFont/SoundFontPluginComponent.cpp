@@ -189,7 +189,12 @@ void SoundFontPluginComponent::refreshFromPlugin()
 
 void SoundFontPluginComponent::chooseSoundFontFile()
 {
-    auto chooser = std::make_shared<juce::FileChooser>("Select a SoundFont", juce::File(), "*.sf2");
+    auto startDir = juce::File(m_editViewState.m_applicationState.m_presetDir.get())
+                        .getChildFile("SoundFonts");
+    if (!startDir.isDirectory())
+        startDir = juce::File();
+
+    auto chooser = std::make_shared<juce::FileChooser>("Select a SoundFont", startDir, "*.sf2");
     juce::Component::SafePointer<SoundFontPluginComponent> safeThis(this);
 
     chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
