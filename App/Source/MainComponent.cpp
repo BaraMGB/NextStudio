@@ -670,7 +670,6 @@ void MainComponent::ensureUserDirectoriesAndSamples()
     juce::File(m_applicationState.m_projectsDir.get()).createDirectory();
 
     extractSamplesIfNeeded(juce::File(m_applicationState.m_samplesDir.get()));
-    extractSoundFontIfNeeded(juce::File(m_applicationState.m_presetDir.get()));
 }
 
 void MainComponent::launchSetupWizardAsync()
@@ -873,26 +872,4 @@ void MainComponent::extractSamplesIfNeeded(const juce::File &samplesDir)
     extract(samplesDir.getChildFile("707"), Samples707::namedResourceList, Samples707::originalFilenames, Samples707::namedResourceListSize, Samples707::getNamedResource);
     extract(samplesDir.getChildFile("808"), Samples808::namedResourceList, Samples808::originalFilenames, Samples808::namedResourceListSize, Samples808::getNamedResource);
     extract(samplesDir.getChildFile("909"), Samples909::namedResourceList, Samples909::originalFilenames, Samples909::namedResourceListSize, Samples909::getNamedResource);
-}
-
-void MainComponent::extractSoundFontIfNeeded(const juce::File &presetDir)
-{
-    auto soundFontDir = presetDir.getChildFile("SoundFonts");
-
-    if (soundFontDir.existsAsFile())
-        return;
-
-    if (!soundFontDir.exists() && !soundFontDir.createDirectory())
-        return;
-
-    for (int i = 0; i < SoundFontData::namedResourceListSize; ++i)
-    {
-        const auto destinationFile = soundFontDir.getChildFile(SoundFontData::originalFilenames[i]);
-        if (destinationFile.existsAsFile())
-            continue;
-
-        int dataSize = 0;
-        if (const char *data = SoundFontData::getNamedResource(SoundFontData::namedResourceList[i], dataSize))
-            destinationFile.replaceWithData(data, dataSize);
-    }
 }
