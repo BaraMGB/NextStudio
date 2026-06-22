@@ -34,7 +34,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Samples707.h"
 #include "Samples808.h"
 #include "Samples909.h"
-#include "SoundFontData.h"
 
 #include "LowerRange/LowerRangeComponent.h"
 #include "SideBrowser/SidebarComponent.h"
@@ -113,7 +112,6 @@ private:
     void launchSetupWizardAsync();
     void runSetupWizard();
     void extractSamplesIfNeeded(const juce::File &samplesDir);
-    void extractSoundFontIfNeeded(const juce::File &presetDir);
 
     void clearAudioTracks()
     {
