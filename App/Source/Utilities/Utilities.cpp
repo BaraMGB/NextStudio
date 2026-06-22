@@ -2827,7 +2827,6 @@ juce::Array<juce::PluginDescription> EngineHelpers::getInternalPlugins()
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::PitchShiftPlugin::getPluginName()), te::PitchShiftPlugin::xmlTypeName, false));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(NextFilterPlugin::getPluginName()), NextFilterPlugin::xmlTypeName, false));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::SamplerPlugin::getPluginName()), te::SamplerPlugin::xmlTypeName, true));
-    list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(te::FourOscPlugin::getPluginName()), te::FourOscPlugin::xmlTypeName, true));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(SoundFontPlugin::getPluginName()), SoundFontPlugin::xmlTypeName, true));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(SimpleSynthPlugin::getPluginName()), SimpleSynthPlugin::xmlTypeName, true));
     list.add(getPluginDesc(juce::String(num++) + "_trkbuiltin", TRANS(ArpeggiatorPlugin::getPluginName()), ArpeggiatorPlugin::xmlTypeName, false));

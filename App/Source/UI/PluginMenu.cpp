@@ -141,7 +141,6 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
     if (types == te::Plugin::Type::allPlugins)
     {
         addInternalPlugin<te::SamplerPlugin>(*this, num, true);
-        addInternalPlugin<te::FourOscPlugin>(*this, num, true);
         addInternalPlugin<SoundFontPlugin>(*this, num, true);
         addInternalPlugin<SimpleSynthPlugin>(*this, num, true);
     }

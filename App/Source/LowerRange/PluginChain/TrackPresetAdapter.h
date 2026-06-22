@@ -138,7 +138,7 @@ protected:
         if (type == ArpeggiatorPlugin::xmlTypeName)
             return EngineHelpers::PluginChainRole::midiEffect;
 
-        if (type == te::SamplerPlugin::xmlTypeName || type == te::FourOscPlugin::xmlTypeName || type == SoundFontPlugin::xmlTypeName || type == SimpleSynthPlugin::xmlTypeName)
+        if (type == te::SamplerPlugin::xmlTypeName || type == SoundFontPlugin::xmlTypeName || type == SimpleSynthPlugin::xmlTypeName)
             return EngineHelpers::PluginChainRole::instrument;
 
         if (type == te::ExternalPlugin::xmlTypeName || type == te::RackInstance::xmlTypeName)

@@ -27,7 +27,6 @@
 #include "Plugins/DrumSampler/DrumSamplerView.h"
 #include "Plugins/EQ/EqPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
-#include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
 #include "Plugins/PeakLimiter/PeakLimiterPluginComponent.h"
 #include "Plugins/Phaser/PhaserPluginComponent.h"
 #include "Plugins/Reverb/ReverbPluginComponent.h"

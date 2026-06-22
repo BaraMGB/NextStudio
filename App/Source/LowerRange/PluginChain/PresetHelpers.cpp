@@ -33,8 +33,6 @@ juce::String getPluginPresetFolder(te::Plugin &plugin)
         return "Delay";
     if (type == "lowpass" || type == "next_filter")
         return "Filter";
-    if (type == "4osc")
-        return "FourOSC";
     if (type == SoundFontPlugin::xmlTypeName)
         return "SoundFontPlayer";
 

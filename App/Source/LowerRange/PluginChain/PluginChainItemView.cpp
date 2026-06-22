@@ -22,7 +22,6 @@
 #include "Plugins/EQ/EqPluginComponent.h"
 #include "Plugins/Filter/FilterPluginComponent.h"
 #include "Plugins/Filter/NextFilterPlugin.h"
-#include "Plugins/FourOscPlugin/FourOscPluginComponent.h"
 #include "Plugins/PeakLimiter/PeakLimiterPlugin.h"
 #include "Plugins/PeakLimiter/PeakLimiterPluginComponent.h"
 #include "Plugins/Phaser/NextPhaserPlugin.h"
@@ -120,11 +119,6 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     else if (m_plugin->getPluginType() == NextSaturationPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<SaturationPluginComponent>(evs, p);
-    }
-    else if (m_plugin->getPluginType() == "4osc")
-    {
-        GUIHelpers::log("4OSC");
-        m_pluginComponent = std::make_unique<FourOscPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == SimpleSynthPlugin::xmlTypeName)
     {
