@@ -38,6 +38,7 @@ public:
 
 private:
     void updateTabButtons();
+    void updateButtonIcons();
 
     EditViewState &m_evs;
     juce::DrawableButton m_mixerButton;

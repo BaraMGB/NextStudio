@@ -288,6 +288,12 @@ void SidebarComponent::refreshBrowsersFromAppState()
     m_fileListBrowser.setDirecory(workRoot);
 }
 
+void SidebarComponent::refreshThemeFromAppState()
+{
+    m_settingsView.refreshThemeFromAppState();
+    repaint();
+}
+
 void SidebarComponent::setAllVisibleOff()
 {
     m_settingsView.setVisible(false);

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ThemeState PrimeColour="ffe5cf03" BorderColour="ff000000" MainFrameColour="ff2b322d"
+            BackgroundColour1="ff191e1c" BackgroundColour2="ff2f3030" BackgroundColour3="ff162123"
+            MenuTextColour="ffb4b4b4" timeLineStrokeColour="ffffffff" timeLineShadowShade="541f2700"
+            timeLineTextColour="ffffffff" timeLineBackgroundColour="ff2d3934"
+            ButtonBackgroundColour="ff394440" ButtonTextColour="ffffffff"
+            trackBackgroundColour="ff3a3a3a" trackHeaderBackgroundColour="ff414b44"
+            trackHeaderTextColour="ffffffff"/>

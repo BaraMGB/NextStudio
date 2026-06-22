@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 #include "SideBrowser/PluginBrowser.h"
 #include "Utilities/ApplicationViewState.h"
+#include "Utilities/InitialContentSetup.h"
 #include "Utilities/Utilities.h"
 #include "juce_core/juce_core.h"
 #include <functional>
@@ -183,7 +184,11 @@ public:
         {
             auto setting = m_colourSettings[i];
             m_colourButtons[i]->setCurrentColour(juce::Colour::fromString(juce::String(setting->colour)));
+            m_selectors[i]->setColour(juce::ColourSelector::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());
+            m_selectors[i]->setColour(juce::ColourSelector::ColourIds::labelTextColourId, m_appState.getTextColour());
             m_selectors[i]->setCurrentColour(juce::Colour::fromString(setting->colour), juce::dontSendNotification);
+            m_selectors[i]->sendLookAndFeelChange();
+            m_selectors[i]->repaint();
         }
         repaint();
     }
@@ -374,6 +379,13 @@ public:
     }
 
     void setOnContentPathChanged(std::function<void()> callback) { m_onContentPathChanged = std::move(callback); }
+    void refreshThemeFromAppState()
+    {
+        refreshThemeList();
+        if (m_colourSettingsPanel != nullptr)
+            m_colourSettingsPanel->refreshColors();
+        repaint();
+    }
 
     void visibilityChanged() override
     {
@@ -465,17 +477,16 @@ private:
         m_themeCombo.clear();
 
         auto themeDir = getThemeDirectory();
-        if (!themeDir.exists())
-            themeDir.createDirectory();
+        InitialContentSetup::populateBundledContent(juce::File(m_appState.m_workDir.get()));
 
         juce::Array<juce::File> themeFiles;
         themeDir.findChildFiles(themeFiles, juce::File::findFiles, false, "*.nxttheme");
         themeFiles.sort();
 
         for (int i = 0; i < themeFiles.size(); ++i)
-        {
             m_themeCombo.addItem(themeFiles[i].getFileNameWithoutExtension(), i + 1);
-        }
+
+        syncThemeComboToCurrentTheme();
     }
 
     void refreshTimeStretchModes()
@@ -572,14 +583,8 @@ private:
     {
         if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(file)))
         {
-            auto newThemeState = juce::ValueTree::fromXml(*xml);
-            if (newThemeState.hasType(IDs::ThemeState))
+            if (m_appState.applyThemeState(juce::ValueTree::fromXml(*xml)))
             {
-                auto currentThemeState = m_appState.m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
-                currentThemeState.copyPropertiesFrom(newThemeState, nullptr);
-
-                m_appState.refreshThemeCache();
-
                 if (m_colourSettingsPanel != nullptr)
                 {
                     m_colourSettingsPanel->refreshColors();
@@ -588,7 +593,6 @@ private:
 
                 resized();
 
-                // Select in combo if it's in the theme directory
                 if (file.getParentDirectory() == getThemeDirectory())
                 {
                     for (int i = 0; i < m_themeCombo.getNumItems(); ++i)
@@ -608,48 +612,55 @@ private:
         }
     }
 
+    bool isThemeStateEquivalent(const juce::ValueTree &a, const juce::ValueTree &b) const
+    {
+        if (!a.isValid() || !b.isValid() || !a.hasType(IDs::ThemeState) || !b.hasType(IDs::ThemeState))
+            return false;
+
+        if (a.getNumProperties() != b.getNumProperties())
+            return false;
+
+        for (int i = 0; i < a.getNumProperties(); ++i)
+        {
+            const auto property = a.getPropertyName(i);
+            if (a[property] != b[property])
+                return false;
+        }
+
+        return true;
+    }
+
+    void syncThemeComboToCurrentTheme()
+    {
+        const auto currentThemeState = m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState);
+        if (!currentThemeState.isValid())
+        {
+            m_themeCombo.setSelectedId(0, juce::dontSendNotification);
+            return;
+        }
+
+        auto themeDir = getThemeDirectory();
+        juce::Array<juce::File> themeFiles;
+        themeDir.findChildFiles(themeFiles, juce::File::findFiles, false, "*.nxttheme");
+        themeFiles.sort();
+
+        for (int i = 0; i < themeFiles.size(); ++i)
+        {
+            if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(themeFiles[i])))
+            {
+                const auto fileThemeState = juce::ValueTree::fromXml(*xml);
+                if (isThemeStateEquivalent(currentThemeState, fileThemeState))
+                {
+                    m_themeCombo.setSelectedId(i + 1, juce::dontSendNotification);
+                    return;
+                }
+            }
+        }
+
+        m_themeCombo.setSelectedId(0, juce::dontSendNotification);
+    }
+
     juce::File getThemeDirectory() { return juce::File(m_appState.m_presetDir.get()).getChildFile("Themes"); }
-
-    static bool ensureDirectory(const juce::File &directory, juce::StringArray &errors)
-    {
-        if (directory.existsAsFile())
-        {
-            errors.add("Path exists as file: " + directory.getFullPathName());
-            return false;
-        }
-
-        if (directory.exists() && directory.isDirectory())
-            return true;
-
-        if (!directory.createDirectory() && !(directory.exists() && directory.isDirectory()))
-        {
-            errors.add("Unable to create directory: " + directory.getFullPathName());
-            return false;
-        }
-
-        return true;
-    }
-
-    static bool ensureContentLayout(const juce::File &root, juce::StringArray &errors)
-    {
-        if (!ensureDirectory(root, errors))
-            return false;
-
-        if (!ensureDirectory(root.getChildFile("Presets"), errors))
-            return false;
-        if (!ensureDirectory(root.getChildFile("Presets").getChildFile("Themes"), errors))
-            return false;
-        if (!ensureDirectory(root.getChildFile("Clips"), errors))
-            return false;
-        if (!ensureDirectory(root.getChildFile("Renders"), errors))
-            return false;
-        if (!ensureDirectory(root.getChildFile("Samples"), errors))
-            return false;
-        if (!ensureDirectory(root.getChildFile("Projects"), errors))
-            return false;
-
-        return true;
-    }
 
     void showError(const juce::String &message) { juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Content Folder", message); }
 
@@ -671,14 +682,15 @@ private:
         if (!newRoot.isDirectory() || newRoot == currentRoot)
             return;
 
-        juce::StringArray layoutErrors;
-        if (!ensureContentLayout(newRoot, layoutErrors))
+        juce::String errorMessage;
+        if (!InitialContentSetup::validateAndPrepareRoot(newRoot, errorMessage))
         {
-            showError(layoutErrors.joinIntoString("\n"));
+            showError(errorMessage);
             return;
         }
 
         m_appState.setRootFolder(newRoot);
+        refreshThemeList();
         m_appState.m_setupComplete = true;
         m_appState.saveState();
         updateContentPathLabel();
@@ -715,6 +727,7 @@ private:
 class SettingsView
     : public juce::TabbedComponent
     , public juce::ChangeListener
+    , private juce::ValueTree::Listener
 {
 public:
     SettingsView(te::Engine &engine, juce::ApplicationCommandManager &commandManager, ApplicationViewState &appState)
@@ -728,26 +741,66 @@ public:
           m_pluginBrowser(engine, appState)
     {
         setOutline(0);
-        m_keyMappingEditor.setColours(appState.getBackgroundColour2(), appState.getTextColour());
         addTab("Audio", appState.getBackgroundColour2(), &m_audioSettings, true);
         addTab("MIDI", appState.getBackgroundColour2(), &m_midiSettings, true);
         addTab("Plugins", appState.getBackgroundColour2(), &m_pluginBrowser, true);
         addTab("General", appState.getBackgroundColour2(), &m_generalSettings, true);
         addTab("Keys", appState.getBackgroundColour2(), &m_keyMappingEditor, true);
+        applyThemeToTabs();
         m_generalSettings.getColourSettings()->addChangeListener(this);
+        m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState).addListener(this);
     }
-    ~SettingsView() override { m_generalSettings.getColourSettings()->removeChangeListener(this); }
-    void setOnContentPathChanged(std::function<void()> callback) { m_generalSettings.setOnContentPathChanged(std::move(callback)); }
-    void changeListenerCallback(juce::ChangeBroadcaster *source) override
+    ~SettingsView() override
     {
-        m_keyMappingEditor.setColours(m_appState.getBackgroundColour2(), m_appState.getTextColour());
-        for (int i = 0; i < getNumTabs(); i++)
-        {
-            setTabBackgroundColour(i, m_appState.getBackgroundColour2());
-        }
+        m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState).removeListener(this);
+        m_generalSettings.getColourSettings()->removeChangeListener(this);
     }
+    void setOnContentPathChanged(std::function<void()> callback) { m_generalSettings.setOnContentPathChanged(std::move(callback)); }
+    void refreshThemeFromAppState()
+    {
+        m_generalSettings.refreshThemeFromAppState();
+        m_pluginBrowser.refreshThemeFromAppState();
+        applyThemeToTabs();
+    }
+    void changeListenerCallback(juce::ChangeBroadcaster *) override { applyThemeToTabs(); }
 
 private:
+    void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &) override
+    {
+        if (treeWhosePropertyHasChanged.hasType(IDs::ThemeState))
+            applyThemeToTabs();
+    }
+
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override {}
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override {}
+    void valueTreeParentChanged(juce::ValueTree &) override {}
+    void valueTreeRedirected(juce::ValueTree &) override {}
+
+    void applyThemeToTabs()
+    {
+        setColour(juce::TabbedComponent::backgroundColourId, m_appState.getBackgroundColour2());
+        setColour(juce::TabbedComponent::outlineColourId, m_appState.getBorderColour());
+        getTabbedButtonBar().setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
+        getTabbedButtonBar().setColour(juce::TabbedButtonBar::frontTextColourId, m_appState.getPrimeColour());
+
+        m_keyMappingEditor.setColours(m_appState.getBackgroundColour2(), m_appState.getTextColour());
+
+        for (int i = 0; i < getNumTabs(); ++i)
+        {
+            setTabBackgroundColour(i, m_appState.getBackgroundColour2());
+
+            if (auto *component = getTabContentComponent(i))
+            {
+                component->sendLookAndFeelChange();
+                component->repaint();
+            }
+        }
+
+        getTabbedButtonBar().repaint();
+        repaint();
+    }
+
     ApplicationViewState &m_appState;
 
     juce::ApplicationCommandManager &m_commandManager;

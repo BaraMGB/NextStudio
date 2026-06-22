@@ -21,8 +21,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "UI/PositionDisplayComponent.h"
-PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit)
-    : m_edit(edit)
+PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit, ApplicationViewState &appState)
+    : m_edit(edit),
+      m_appState(appState)
 {
     Helpers::addAndMakeVisible(*this, {&m_bpmLabel, &m_sigLabel, &m_barBeatTickLabel, &m_timeLabel, &m_loopInLabel, &m_loopOutLabel});
     m_bpmLabel.setJustificationType(juce::Justification::centred);
@@ -40,16 +41,28 @@ PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit)
     m_loopInLabel.setInterceptsMouseClicks(false, false);
     m_loopOutLabel.setInterceptsMouseClicks(false, false);
 
+    updateColours();
     update();
+}
+
+void PositionDisplayComponent::updateColours()
+{
+    const auto colour = m_appState.getButtonTextColour();
+    m_bpmLabel.setColour(juce::Label::textColourId, colour);
+    m_sigLabel.setColour(juce::Label::textColourId, colour);
+    m_barBeatTickLabel.setColour(juce::Label::textColourId, colour);
+    m_timeLabel.setColour(juce::Label::textColourId, colour);
+    m_loopInLabel.setColour(juce::Label::textColourId, colour);
+    m_loopOutLabel.setColour(juce::Label::textColourId, colour);
 }
 
 void PositionDisplayComponent::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
 
-    g.setColour(juce::Colour(0xff1c1c1c));
+    g.setColour(m_appState.getButtonBackgroundColour());
     g.fillRoundedRectangle(area.toFloat(), 5.0f);
-    g.setColour(juce::Colour(0xff999999));
+    g.setColour(m_appState.getButtonTextColour());
     g.drawRoundedRectangle(area.reduced(1).toFloat(), 5.0f, 0.5f);
 }
 
@@ -175,6 +188,8 @@ void PositionDisplayComponent::resized()
 
 void PositionDisplayComponent::update()
 {
+    updateColours();
+
     const auto nt = juce::NotificationType::dontSendNotification;
     PlayHeadHelpers::TimeCodeStrings positionStr(m_edit);
 

@@ -31,10 +31,7 @@ LowerRangeTabBar::LowerRangeTabBar(EditViewState &evs)
 {
     const auto margin = 7;
 
-    auto color = m_evs.m_applicationState.getButtonTextColour();
-    GUIHelpers::setDrawableOnButton(m_mixerButton, BinaryData::headphonessettings_svg, color);
-    GUIHelpers::setDrawableOnButton(m_midiEditorButton, BinaryData::piano_svg, color);
-    GUIHelpers::setDrawableOnButton(m_pluginsButton, BinaryData::powerplug_svg, color);
+    updateButtonIcons();
 
     addButton(&m_mixerButton, 1);
     m_mixerButton.setEdgeIndent(margin);
@@ -66,15 +63,31 @@ LowerRangeTabBar::LowerRangeTabBar(EditViewState &evs)
     setButtonGap(15);
 
     m_evs.m_state.addListener(this);
+    m_evs.m_applicationState.m_applicationStateValueTree.addListener(this);
     updateTabButtons();
 }
 
-LowerRangeTabBar::~LowerRangeTabBar() { m_evs.m_state.removeListener(this); }
-
-void LowerRangeTabBar::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &i)
+LowerRangeTabBar::~LowerRangeTabBar()
 {
+    m_evs.m_applicationState.m_applicationStateValueTree.removeListener(this);
+    m_evs.m_state.removeListener(this);
+}
+
+void LowerRangeTabBar::valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &i)
+{
+    if (tree.hasType(IDs::ThemeState))
+        updateButtonIcons();
+
     if (i == IDs::lowerRangeView)
         updateTabButtons();
+}
+
+void LowerRangeTabBar::updateButtonIcons()
+{
+    const auto colour = m_evs.m_applicationState.getButtonTextColour();
+    GUIHelpers::setDrawableOnButton(m_mixerButton, BinaryData::headphonessettings_svg, colour);
+    GUIHelpers::setDrawableOnButton(m_midiEditorButton, BinaryData::piano_svg, colour);
+    GUIHelpers::setDrawableOnButton(m_pluginsButton, BinaryData::powerplug_svg, colour);
 }
 
 void LowerRangeTabBar::updateTabButtons()

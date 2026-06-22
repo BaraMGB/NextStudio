@@ -31,10 +31,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Samples707.h"
-#include "Samples808.h"
-#include "Samples909.h"
-
 #include "LowerRange/LowerRangeComponent.h"
 #include "SideBrowser/SidebarComponent.h"
 #include "SongEditor/EditComponent.h"
@@ -44,6 +40,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities/EditViewState.h"
 #include "Utilities/ExtendedUIBehavior.h"
 #include "Utilities/NextLookAndFeel.h"
+#include "Utilities/ThemeHelpers.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
@@ -111,7 +108,6 @@ private:
     void ensureUserDirectoriesAndSamples();
     void launchSetupWizardAsync();
     void runSetupWizard();
-    void extractSamplesIfNeeded(const juce::File &samplesDir);
 
     void clearAudioTracks()
     {
@@ -124,26 +120,13 @@ private:
     void updateTheme()
     {
         GUIHelpers::log("update theme");
-        getLookAndFeel().setColour(juce::AlertWindow::backgroundColourId, m_applicationState.getBackgroundColour1());
-        getLookAndFeel().setColour(juce::AlertWindow::textColourId, m_applicationState.getTextColour());
-        getLookAndFeel().setColour(juce::AlertWindow::outlineColourId, m_applicationState.getBorderColour());
-        getLookAndFeel().setColour(juce::Label::textColourId, m_applicationState.getTextColour());
-        getLookAndFeel().setColour(juce::ComboBox::ColourIds::textColourId, m_applicationState.getTextColour());
-        getLookAndFeel().setColour(juce::TabbedButtonBar::ColourIds::tabTextColourId, m_applicationState.getTextColour());
-        getLookAndFeel().setColour(juce::TabbedButtonBar::ColourIds::frontTextColourId, m_applicationState.getPrimeColour());
-        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::textColourId, m_applicationState.getTextColour());
-        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::backgroundColourId, m_applicationState.getBackgroundColour2());
-        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::outlineColourId, m_applicationState.getBorderColour());
-        getLookAndFeel().setColour(juce::TableHeaderComponent::ColourIds::highlightColourId, m_applicationState.getPrimeColour());
-        getLookAndFeel().setColour(juce::TableListBox::textColourId, m_applicationState.getTextColour());
-        getLookAndFeel().setColour(juce::TableListBox::backgroundColourId, m_applicationState.getBackgroundColour2());
-        getLookAndFeel().setColour(juce::DrawableButton::textColourId, m_applicationState.getButtonTextColour());
-        getLookAndFeel().setColour(juce::DrawableButton::textColourOnId, m_applicationState.getButtonTextColour());
-        getLookAndFeel().setColour(juce::ResizableWindow::backgroundColourId, m_applicationState.getBackgroundColour2());
+        ThemeHelpers::applyLookAndFeelColours(getLookAndFeel(), m_applicationState);
         if (m_editComponent)
             m_editComponent->updateButtonIcons();
         if (m_header)
             m_header->updateIcons();
+        if (m_sideBarBrowser)
+            m_sideBarBrowser->refreshThemeFromAppState();
 
         repaint();
     }

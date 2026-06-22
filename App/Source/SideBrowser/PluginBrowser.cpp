@@ -190,12 +190,14 @@ tracktion::Plugin::Ptr PluginListbox::getSelectedPlugin(te::Edit &edit)
 
 PluginSettings::PluginSettings(te::Engine &engine, ApplicationViewState &appState)
     : m_engine(engine),
+      m_appState(appState),
       m_model(engine, appState),
       m_listbox(engine)
 {
     addAndMakeVisible(m_listbox);
     addAndMakeVisible(m_setupButton);
     m_setupButton.setButtonText(TRANS("Plug-in Actions"));
+    updateButtonColours();
     juce::TableHeaderComponent &header = m_listbox.getHeader();
 
     header.addColumn(TRANS("Format"), 1, 40, 40, 40, juce::TableHeaderComponent::notResizable);
@@ -218,6 +220,28 @@ PluginSettings::PluginSettings(te::Engine &engine, ApplicationViewState &appStat
 }
 
 PluginSettings::~PluginSettings() { m_engine.getPluginManager().knownPluginList.removeChangeListener(this); }
+
+void PluginSettings::updateButtonColours()
+{
+    m_setupButton.setColour(juce::TextButton::buttonColourId, m_appState.getButtonBackgroundColour());
+    m_setupButton.setColour(juce::TextButton::textColourOffId, m_appState.getButtonTextColour());
+    m_setupButton.setColour(juce::TextButton::textColourOnId, m_appState.getButtonTextColour());
+    m_setupButton.repaint();
+}
+
+void PluginSettings::lookAndFeelChanged()
+{
+    updateButtonColours();
+    m_listbox.repaint();
+}
+
+void PluginSettings::refreshThemeFromAppState()
+{
+    updateButtonColours();
+    m_listbox.sendLookAndFeelChange();
+    m_listbox.repaint();
+}
+
 void PluginSettings::resized()
 {
     auto area = getLocalBounds();

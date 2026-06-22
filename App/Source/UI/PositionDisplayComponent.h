@@ -23,7 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-// #include "Utilities/ApplicationViewState.h"
+#include "Utilities/ApplicationViewState.h"
 #include "Utilities/Utilities.h"
 
 namespace te = tracktion_engine;
@@ -31,7 +31,7 @@ namespace te = tracktion_engine;
 class PositionDisplayComponent : public juce::Component
 {
 public:
-    explicit PositionDisplayComponent(te::Edit &edit);
+    PositionDisplayComponent(te::Edit &edit, ApplicationViewState &appState);
 
     void paint(juce::Graphics &) override;
     void resized() override;
@@ -42,7 +42,10 @@ public:
     void update();
 
 private:
+    void updateColours();
+
     te::Edit &m_edit;
+    ApplicationViewState &m_appState;
     juce::Rectangle<int> m_bmpRect, m_sigRect, m_barBeatTickRect, m_timeRect, m_loopInrect, m_loopOutRect;
     juce::Label m_bpmLabel, m_sigLabel, m_barBeatTickLabel, m_timeLabel, m_loopInLabel, m_loopOutLabel;
 

@@ -37,7 +37,7 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
       m_edit(evs.m_edit),
       m_applicationState(applicationState),
       m_commandManager(commandManager),
-      m_display(m_edit)
+      m_display(m_edit, applicationState)
 {
     Helpers::addAndMakeVisible(*this, {&m_stopButton, &m_playButton, &m_recordButton, &m_countInButton, &m_display, &m_clickButton, &m_loopButton, &m_followPlayheadButton, &m_undoButton, &m_redoButton});
 

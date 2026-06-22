@@ -85,7 +85,9 @@ public:
     ~PluginSettings() override;
 
     void resized() override;
+    void lookAndFeelChanged() override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
+    void refreshThemeFromAppState();
 
     void scanFor(juce::AudioPluginFormat &);
     void scanFor(juce::AudioPluginFormat &, const juce::StringArray &filesOrIdentifiersToScan);
@@ -105,7 +107,10 @@ private:
     bool m_allowAsync = false;
     int m_numThreads = 0;
     std::unique_ptr<PluginScanner> currentScanner;
+    void updateButtonColours();
+
     te::Engine &m_engine;
+    ApplicationViewState &m_appState;
     juce::TextButton m_setupButton;
     juce::ScopedMessageBox m_messageBox;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginSettings)

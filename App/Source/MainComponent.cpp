@@ -42,6 +42,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SideBrowser/ProjectsBrowser.h"
 #include "SideBrowser/SidebarComponent.h"
 #include "UI/SetupWizard.h"
+#include "Utilities/InitialContentSetup.h"
+#include "Utilities/ThemeHelpers.h"
 #include "Utilities/Utilities.h"
 
 MainComponent::MainComponent(ApplicationViewState &state)
@@ -660,17 +662,7 @@ void MainComponent::setupSideBrowser()
     m_sideBarBrowser->updateParentsListener();
 }
 
-void MainComponent::ensureUserDirectoriesAndSamples()
-{
-    juce::File(m_applicationState.m_workDir.get()).createDirectory();
-    juce::File(m_applicationState.m_presetDir.get()).createDirectory();
-    juce::File(m_applicationState.m_clipsDir.get()).createDirectory();
-    juce::File(m_applicationState.m_renderDir.get()).createDirectory();
-    juce::File(m_applicationState.m_samplesDir.get()).createDirectory();
-    juce::File(m_applicationState.m_projectsDir.get()).createDirectory();
-
-    extractSamplesIfNeeded(juce::File(m_applicationState.m_samplesDir.get()));
-}
+void MainComponent::ensureUserDirectoriesAndSamples() { InitialContentSetup::populateBundledContent(juce::File(m_applicationState.m_workDir.get())); }
 
 void MainComponent::launchSetupWizardAsync()
 {
@@ -705,6 +697,7 @@ void MainComponent::runSetupWizard()
         // Aborting setup falls back to ~/NextStudio by product decision.
         const auto defaultWorkDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio");
         m_applicationState.setRootFolder(defaultWorkDir);
+        ThemeHelpers::applyBuiltInTheme(m_applicationState, ThemeHelpers::getDefaultBuiltInThemeName());
         m_applicationState.m_setupComplete = true;
         m_applicationState.saveState();
     }
@@ -847,29 +840,3 @@ void MainComponent::createTracksAndAssignInputs()
     m_edit->restartPlayback();
 }
 
-void MainComponent::extractSamplesIfNeeded(const juce::File &samplesDir)
-{
-    auto extract = [](const juce::File &targetDir, const char *const *resourceList, const char *const *filenames, int size, auto getResourceFn)
-    {
-        if (targetDir.existsAsFile())
-            return;
-
-        if (!targetDir.exists() && !targetDir.createDirectory())
-            return;
-
-        for (int i = 0; i < size; ++i)
-        {
-            const auto destinationFile = targetDir.getChildFile(filenames[i]);
-            if (destinationFile.existsAsFile())
-                continue;
-
-            int dataSize = 0;
-            if (const char *data = getResourceFn(resourceList[i], dataSize))
-                destinationFile.replaceWithData(data, dataSize);
-        }
-    };
-
-    extract(samplesDir.getChildFile("707"), Samples707::namedResourceList, Samples707::originalFilenames, Samples707::namedResourceListSize, Samples707::getNamedResource);
-    extract(samplesDir.getChildFile("808"), Samples808::namedResourceList, Samples808::originalFilenames, Samples808::namedResourceListSize, Samples808::getNamedResource);
-    extract(samplesDir.getChildFile("909"), Samples909::namedResourceList, Samples909::originalFilenames, Samples909::namedResourceListSize, Samples909::getNamedResource);
-}

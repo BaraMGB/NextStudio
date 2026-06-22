@@ -51,6 +51,7 @@ public:
 
     void updateParentsListener();
     void refreshBrowsersFromAppState();
+    void refreshThemeFromAppState();
 
 private:
     void setAllVisibleOff();

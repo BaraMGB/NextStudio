@@ -166,6 +166,8 @@ target_sources(${TargetName} PRIVATE
         Source/UI/SetupWizard.cpp
         Source/UI/SplitterComponent.cpp
         Source/Utilities/EditViewState.cpp
+        Source/Utilities/InitialContentSetup.cpp
+        Source/Utilities/ThemeHelpers.cpp
         Source/Utilities/ThumbNailManager.cpp
         Source/Utilities/TrackHeightManager.cpp
         Source/Utilities/Utilities.cpp
@@ -217,6 +219,7 @@ endif()
 
 target_link_libraries(${TargetName} PRIVATE
         Pictures
+        ThemePresets
         Samples707
         Samples808
         Samples909

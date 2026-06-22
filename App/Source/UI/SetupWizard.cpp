@@ -1,82 +1,8 @@
 
 #include "SetupWizard.h"
 #include "BinaryData.h"
-#include <array>
 
-bool SetupWizard::ensureDirectory(const juce::File &directory, juce::StringArray &errors)
-{
-    if (directory.existsAsFile())
-    {
-        errors.add("Path exists as a file: " + directory.getFullPathName());
-        return false;
-    }
-
-    if (directory.exists() && directory.isDirectory())
-        return true;
-
-    if (!directory.createDirectory() && !(directory.exists() && directory.isDirectory()))
-    {
-        errors.add("Unable to create directory: " + directory.getFullPathName());
-        return false;
-    }
-
-    return true;
-}
-
-bool SetupWizard::ensureWritable(const juce::File &directory, juce::StringArray &errors)
-{
-    const auto probeFile = directory.getNonexistentChildFile(".nextstudio_write_test_", ".tmp", false);
-    if (!probeFile.replaceWithText("write-test"))
-    {
-        errors.add("No write access to directory: " + directory.getFullPathName());
-        return false;
-    }
-
-    if (!probeFile.deleteFile() && probeFile.existsAsFile())
-    {
-        errors.add("Unable to clean up write-test file in: " + directory.getFullPathName());
-        return false;
-    }
-
-    return true;
-}
-
-bool SetupWizard::ensureContentLayout(const juce::File &root, juce::StringArray &errors)
-{
-    if (!ensureDirectory(root, errors))
-        return false;
-
-    static constexpr std::array<const char *, 5> requiredDirs{"Presets", "Clips", "Renders", "Samples", "Projects"};
-    for (const auto *name : requiredDirs)
-    {
-        if (!ensureDirectory(root.getChildFile(name), errors))
-            return false;
-    }
-
-    if (!ensureWritable(root, errors))
-        return false;
-
-    for (const auto *name : requiredDirs)
-    {
-        if (!ensureWritable(root.getChildFile(name), errors))
-            return false;
-    }
-
-    return true;
-}
-
-bool SetupWizard::validateAndPrepareContentRoot(const juce::File &root, juce::String &errorMessage) const
-{
-    juce::StringArray errors;
-    if (!ensureContentLayout(root, errors))
-    {
-        errorMessage = errors.joinIntoString("\n");
-        return false;
-    }
-
-    errorMessage.clear();
-    return true;
-}
+bool SetupWizard::validateAndPrepareContentRoot(const juce::File &root, juce::String &errorMessage) const { return InitialContentSetup::validateAndPrepareRoot(root, errorMessage); }
 
 void SetupWizard::showValidationError(const juce::String &message) const { juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Invalid Content Folder", message); }
 
@@ -153,6 +79,17 @@ SetupWizard::SetupWizard(ApplicationViewState &avs, tracktion::Engine &engine)
     m_guiScaleSlider.setValue(juce::jlimit(0.2f, 3.0f, (float)m_avs.m_appScale.get()), juce::dontSendNotification);
     m_guiScaleSlider.onValueChange = [this]() { updateGuiScale(); };
 
+    addAndMakeVisible(m_themeLabel);
+    m_themeLabel.setText("Theme:", juce::dontSendNotification);
+    m_themeLabel.setJustificationType(juce::Justification::centredLeft);
+
+    addAndMakeVisible(m_themeCombo);
+    for (const auto &themeName : ThemeHelpers::getBuiltInThemeNames())
+        m_themeCombo.addItem(themeName, m_themeCombo.getNumItems() + 1);
+    m_themeCombo.setSelectedId(1, juce::dontSendNotification);
+    m_themeCombo.onChange = [this]() { applySelectedTheme(); };
+    applySelectedTheme();
+
     // Plugin Group
     addAndMakeVisible(m_pluginGroup);
     m_pluginGroup.setText("Plug-ins");
@@ -184,6 +121,8 @@ SetupWizard::SetupWizard(ApplicationViewState &avs, tracktion::Engine &engine)
         }
 
         m_avs.setRootFolder(selectedRoot);
+        InitialContentSetup::populateBundledContent(selectedRoot);
+        applySelectedTheme();
         m_avs.m_setupComplete = true;
         m_avs.saveState();
         m_finished = true;
@@ -202,6 +141,20 @@ void SetupWizard::updateGuiScale()
     const auto guiScale = (float)m_guiScaleSlider.getValue();
     juce::Desktop::getInstance().setGlobalScaleFactor(guiScale);
     m_avs.m_appScale = guiScale;
+}
+
+void SetupWizard::applySelectedTheme()
+{
+    ThemeHelpers::applyBuiltInTheme(m_avs, m_themeCombo.getText());
+    ThemeHelpers::applyLookAndFeelColours(getLookAndFeel(), m_avs);
+    sendLookAndFeelChange();
+    m_pluginSettings.refreshThemeFromAppState();
+    m_finishButton.setColour(juce::TextButton::buttonColourId, m_avs.getButtonBackgroundColour());
+    m_finishButton.setColour(juce::TextButton::textColourOffId, m_avs.getButtonTextColour());
+    repaint();
+
+    if (auto *parent = getParentComponent())
+        parent->repaint();
 }
 
 void SetupWizard::paint(juce::Graphics &g)
@@ -254,12 +207,19 @@ void SetupWizard::resized()
 
     leftColumn.removeFromTop(sectionSpacing);
 
-    auto interfaceArea = leftColumn.removeFromTop(90);
+    auto interfaceArea = leftColumn.removeFromTop(120);
     m_interfaceGroup.setBounds(interfaceArea);
     auto interfaceContent = interfaceArea.reduced(10, 20);
     interfaceContent.removeFromTop(10);
-    m_guiScaleLabel.setBounds(interfaceContent.removeFromLeft(120));
-    m_guiScaleSlider.setBounds(interfaceContent);
+
+    auto guiScaleRow = interfaceContent.removeFromTop(30);
+    m_guiScaleLabel.setBounds(guiScaleRow.removeFromLeft(120));
+    m_guiScaleSlider.setBounds(guiScaleRow);
+
+    interfaceContent.removeFromTop(8);
+    auto themeRow = interfaceContent.removeFromTop(30);
+    m_themeLabel.setBounds(themeRow.removeFromLeft(120));
+    m_themeCombo.setBounds(themeRow);
 
     m_pluginGroup.setBounds(pluginArea);
     auto pluginContent = pluginArea.reduced(10, 20);

@@ -4,6 +4,8 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "../SideBrowser/PluginBrowser.h"
 #include "../Utilities/ApplicationViewState.h"
+#include "../Utilities/InitialContentSetup.h"
+#include "../Utilities/ThemeHelpers.h"
 
 class SetupWizard : public juce::Component
 {
@@ -17,13 +19,11 @@ public:
     bool isFinished() const { return m_finished; }
 
 private:
-    static bool ensureDirectory(const juce::File &directory, juce::StringArray &errors);
-    static bool ensureWritable(const juce::File &directory, juce::StringArray &errors);
-    static bool ensureContentLayout(const juce::File &root, juce::StringArray &errors);
     bool validateAndPrepareContentRoot(const juce::File &root, juce::String &errorMessage) const;
     void showValidationError(const juce::String &message) const;
     void updatePathLabel();
     void updateGuiScale();
+    void applySelectedTheme();
 
     ApplicationViewState &m_avs;
     tracktion::Engine &m_engine;
@@ -47,6 +47,8 @@ private:
     juce::GroupComponent m_interfaceGroup;
     juce::Label m_guiScaleLabel;
     juce::Slider m_guiScaleSlider;
+    juce::Label m_themeLabel;
+    juce::ComboBox m_themeCombo;
 
     // Plugin setup
     juce::GroupComponent m_pluginGroup;

@@ -258,6 +258,17 @@ public:
         }
     }
 
+    bool applyThemeState(const juce::ValueTree &themeState)
+    {
+        if (!themeState.isValid() || !themeState.hasType(IDs::ThemeState))
+            return false;
+
+        auto currentThemeState = m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
+        currentThemeState.copyPropertiesFrom(themeState, nullptr);
+        refreshThemeCache();
+        return true;
+    }
+
     void addFavoriteType(const juce::Identifier &type)
     {
         auto favoriteTypes = m_applicationStateValueTree.getOrCreateChildWithName(IDs::FavoriteTypes, nullptr);
