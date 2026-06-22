@@ -326,6 +326,20 @@ void AutomationLaneHeaderComponent::mouseDrag(const juce::MouseEvent &event)
     }
 }
 
+void AutomationLaneHeaderComponent::mouseUp(const juce::MouseEvent &event)
+{
+    juce::ignoreUnused(event);
+
+    if (m_resizing && m_automatableParameter != nullptr)
+    {
+        const auto height = m_evs.m_trackHeightManager->getAutomationHeight(m_automatableParameter.get());
+        if (height > 0)
+            m_automatableParameter->getCurve().state.setProperty(tracktion_engine::IDs::height, height, nullptr);
+    }
+
+    m_resizing = false;
+}
+
 void AutomationLaneHeaderComponent::mouseMove(const juce::MouseEvent &event)
 {
     auto old = m_hovering;
