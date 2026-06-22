@@ -2,6 +2,15 @@
 set -euo pipefail
 
 # Parse arguments (viel einfacher jetzt)
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 <d|r|rd> [-clean]"
+    echo "  d   Debug"
+    echo "  r   Release"
+    echo "  rd  RelWithDebInfo"
+    echo "  -clean  (optional) Clear CMake cache before building"
+    exit 1
+fi
+
 BUILD_TYPE_ARG="$1"
 CLEAN_CACHE=false
 
@@ -36,4 +45,3 @@ cmake --build . -j "$JOBS"
 [[ -f compile_commands.json ]] && mv compile_commands.json ../../
 
 echo "Build completed successfully!"
-
