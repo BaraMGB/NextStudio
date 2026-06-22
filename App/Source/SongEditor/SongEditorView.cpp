@@ -1077,6 +1077,9 @@ SongEditorView::TimeRangeOverlayComponent::TimeRangeOverlayComponent(SongEditorV
 
 bool SongEditorView::TimeRangeOverlayComponent::hitTest(int x, int y)
 {
+    if (m_owner.getToolMode() != Tool::pointer)
+        return false;
+
     // If no range is selected, we are invisible to mouse
     if (m_owner.m_selectedRange.selectedTracks.isEmpty() && m_owner.m_selectedRange.selectedAutomations.isEmpty())
         return false;
