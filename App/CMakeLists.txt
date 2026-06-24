@@ -230,6 +230,10 @@ target_link_libraries(${TargetName} PRIVATE
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
+    # gcc 15: nanorange.hpp (tracktion 3rd-party) has a template-body error
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-template-body")
+    endif()
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
