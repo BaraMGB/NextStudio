@@ -58,7 +58,7 @@ if(BUILD_DIR_NAME STREQUAL "jumake_build")
         )
 endif()
 
-target_include_directories(${TargetName} PRIVATE Source)
+target_include_directories(${TargetName} PRIVATE include)
 target_include_directories(${TargetName} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../modules/tinysoundfont")
 
 if(HAS_RUBBERBAND)
@@ -66,110 +66,10 @@ if(HAS_RUBBERBAND)
             "${CMAKE_CURRENT_SOURCE_DIR}/../modules")
 endif()
 
+file(GLOB NEXTSTUDIO_SOURCES src/*.cpp)
 target_sources(${TargetName} PRIVATE
-        ../resources/icon.rc 
-        Source/LowerRange/LowerRangeComponent.cpp
-        Source/LowerRange/LowerRangeTabBar.cpp
-        Source/LowerRange/Mixer/MixerChannelStripComponent.cpp
-        Source/LowerRange/Mixer/MixerComponent.cpp
-        Source/LowerRange/PianoRoll/KeyboardView.cpp
-        Source/LowerRange/PianoRoll/MidiViewport.cpp
-        Source/LowerRange/PianoRoll/PianoRollEditor.cpp
-        Source/LowerRange/PianoRoll/VelocityEditor.cpp
-        Source/LowerRange/PluginChain/ModifierViewComponent.cpp
-        Source/LowerRange/PluginChain/PluginViewComponent.cpp
-        Source/LowerRange/PluginChain/PresetHelpers.cpp
-        Source/LowerRange/PluginChain/PresetManagerComponent.cpp
-        Source/LowerRange/PluginChain/PluginChainItemView.cpp
-        Source/LowerRange/PluginChain/PluginChainView.cpp
-        Source/Main.cpp
-        Source/MainComponent.cpp
-        Source/Plugins/Arpeggiator/ArpeggiatorPlugin.cpp
-        Source/Plugins/Arpeggiator/ArpeggiatorPluginComponent.cpp
-        Source/Plugins/PeakLimiter/PeakLimiterPlugin.cpp
-        Source/Plugins/PeakLimiter/PeakLimiterPluginComponent.cpp
-        Source/Plugins/Chorus/ChorusPluginComponent.cpp
-        Source/Plugins/Chorus/NextChorusPlugin.cpp
-        Source/Plugins/Compressor/CompressorPluginComponent.cpp
-        Source/Plugins/Delay/DelayPluginComponent.cpp
-        Source/Plugins/Delay/NextDelayPlugin.cpp
-        Source/Plugins/DrumSampler/DrumPadComponent.cpp
-        Source/Plugins/DrumSampler/DrumSamplerView.cpp
-        Source/Plugins/DrumSampler/SoundEditorPanel.cpp
-        Source/Plugins/EQ/EqPluginComponent.cpp
-        Source/Plugins/Filter/FilterPluginComponent.cpp
-        Source/Plugins/Filter/NextFilterPlugin.cpp
-        Source/Plugins/Phaser/NextPhaserPlugin.cpp
-        Source/Plugins/Phaser/PhaserPluginComponent.cpp
-        Source/Plugins/Reverb/ReverbPluginComponent.cpp
-        Source/Plugins/Saturation/NextSaturationPlugin.cpp
-        Source/Plugins/Saturation/SaturationPluginComponent.cpp
-        Source/Plugins/SoundFont/SoundFontPlugin.cpp
-        Source/Plugins/SoundFont/SoundFontPluginComponent.cpp
-        Source/SideBrowser/InstrumentEffectChooser.cpp
-        Source/Plugins/PluginComponent.cpp
-        Source/UI/PluginMenu.cpp
-        Source/UI/PluginScanner.cpp
-        Source/LowerRange/PluginChain/PluginViewComponent.cpp
-        Source/UI/PluginWindow.cpp
-        Source/Plugins/SimpleSynth/SimpleSynthPlugin.cpp
-        Source/Plugins/SimpleSynth/SimpleSynthPluginComponent.cpp
-        Source/Plugins/SpectrumAnalyzer/SpectrumAnalyzerPlugin.cpp
-        Source/Plugins/SpectrumAnalyzer/SpectrumAnalyzerPluginComponent.cpp
-        Source/Plugins/VST/VstPluginComponent.cpp
-        Source/Plugins/Volume/VolumePluginComponent.cpp
-        Source/SideBrowser/AudioMidiSettings.cpp
-        Source/SideBrowser/Browser_Base.cpp
-        Source/SideBrowser/FileBrowser.cpp
-        Source/SideBrowser/PluginBrowser.cpp
-        Source/SideBrowser/ProjectsBrowser.cpp
-        Source/SideBrowser/SampleBrowser.cpp
-        Source/SideBrowser/SearchFieldComponent.cpp
-        Source/SideBrowser/SidebarComponent.cpp
-        Source/SideBrowser/SidebarMenu.cpp
-        Source/SongEditor/AutomationLaneComponent.cpp
-        Source/SongEditor/EditComponent.cpp
-        Source/SongEditor/PlayHeadComponent.cpp
-        Source/SongEditor/RecordingClipComponent.cpp
-        Source/SongEditor/SongEditorView.cpp
-        Source/SongEditor/Thumbnail.cpp
-        Source/SongEditor/TimeLineComponent.cpp
-        Source/SongEditor/TimelineOverlayComponent.cpp
-        Source/SongEditor/TrackHeadComponent.cpp
-        Source/SongEditor/TrackLaneComponent.cpp
-        Source/SongEditor/TrackListView.cpp
-        Source/Tools/ToolFactory.cpp
-        Source/Tools/tools/DrawTool.cpp
-        Source/Tools/tools/EraserTool.cpp
-        Source/Tools/tools/KnifeTool.cpp
-        Source/Tools/tools/LassoSelectionTool.cpp
-        Source/Tools/tools/LassoTool.cpp
-        Source/Tools/tools/PointerTool.cpp
-        Source/Tools/tools/RangeTool.cpp
-        Source/UI/Controls/AutomatableComboBox.cpp
-        Source/UI/Controls/AutomatableMidiLearnSupport.cpp
-        Source/UI/Controls/AutomatableEnvelopeParameter.cpp
-        Source/UI/Controls/AutomatableParameter.cpp
-        Source/UI/Controls/AutomatableSlider.cpp
-        Source/UI/Controls/AutomatableToggle.cpp
-        Source/UI/Controls/NonAutomatableParameter.cpp
-        Source/UI/Controls/ParameterComponent.cpp
-        Source/UI/HeaderComponent.cpp
-        Source/UI/LevelMeterComponent.cpp
-        Source/UI/MenuBar.cpp
-        Source/UI/ModifierDetailPanel.cpp
-        Source/UI/ModifierSidebar.cpp
-        Source/UI/PositionDisplayComponent.cpp
-        Source/UI/PreviewComponent.cpp
-        Source/UI/SampleDisplay.cpp
-        Source/UI/SetupWizard.cpp
-        Source/UI/SplitterComponent.cpp
-        Source/Utilities/EditViewState.cpp
-        Source/Utilities/InitialContentSetup.cpp
-        Source/Utilities/ThemeHelpers.cpp
-        Source/Utilities/ThumbNailManager.cpp
-        Source/Utilities/TrackHeightManager.cpp
-        Source/Utilities/Utilities.cpp
+        ../resources/icon.rc
+        ${NEXTSTUDIO_SOURCES}
         )
 
 target_compile_definitions(${TargetName} PRIVATE

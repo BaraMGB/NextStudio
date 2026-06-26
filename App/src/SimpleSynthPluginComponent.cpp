@@ -1,0 +1,587 @@
+/*
+  ==============================================================================
+
+    SimpleSynthPluginComponent.cpp
+    Created: 15 Jan 2026
+    Author:  NextStudio
+
+  ==============================================================================
+*/
+
+#include "SimpleSynthPluginComponent.h"
+
+//==============================================================================
+// SimpleSynthEnvelopeDisplay
+//==============================================================================
+
+SimpleSynthEnvelopeDisplay::SimpleSynthEnvelopeDisplay(te::AutomatableParameter::Ptr attack, te::AutomatableParameter::Ptr decay, te::AutomatableParameter::Ptr sustain, te::AutomatableParameter::Ptr release)
+    : m_attack(attack),
+      m_decay(decay),
+      m_sustain(sustain),
+      m_release(release)
+{
+}
+
+void SimpleSynthEnvelopeDisplay::paint(juce::Graphics &g)
+{
+    g.fillAll(juce::Colours::black.withAlpha(0.2f));
+
+    auto area = getLocalBounds().toFloat();
+    auto w = area.getWidth();
+    auto h = area.getHeight();
+
+    // Get normalized values (0.0 - 1.0)
+    float a = m_attack->getCurrentNormalisedValue();
+    float d = m_decay->getCurrentNormalisedValue();
+    float s = m_sustain->getCurrentNormalisedValue();
+    float r = m_release->getCurrentNormalisedValue();
+
+    // Define relative widths for visualization
+    // We add a base width so 0 values are still slightly visible or at least logic holds
+    // But let's just use the values directly + a constant for Sustain
+
+    // A, D, R width based on parameter. Sustain is fixed width.
+    float sWidth = 0.2f;
+
+    // Normalize widths to total available width
+    float totalUnits = a + d + sWidth + r;
+    if (totalUnits < 0.1f)
+        totalUnits = 0.1f; // Prevent div by zero
+
+    float scaleX = w / totalUnits;
+
+    float xA = a * scaleX;
+    float xD = d * scaleX;
+    float xS = sWidth * scaleX;
+    float xR = r * scaleX;
+
+    juce::Path p;
+    p.startNewSubPath(area.getX(), h); // Start at bottom-left
+
+    // Attack phase: up to peak (0)
+    p.lineTo(xA, area.getY());
+
+    // Decay phase: down to sustain level
+    // Y is inverted (0 is top, h is bottom)
+    // Sustain level s=1 means top (0), s=0 means bottom (h)
+    float susY = h * (1.0f - s);
+    p.lineTo(xA + xD, susY);
+
+    // Sustain phase: hold level
+    p.lineTo(xA + xD + xS, susY);
+
+    // Release phase: down to zero
+    p.lineTo(xA + xD + xS + xR, h);
+
+    // Close path for filling
+    p.lineTo(area.getX(), h);
+    p.closeSubPath();
+
+    // Draw Fill
+    g.setColour(m_colour.withAlpha(0.3f));
+    g.fillPath(p);
+
+    // Draw Outline
+    g.setColour(m_colour);
+    g.strokePath(p, juce::PathStrokeType(2.0f));
+}
+
+//==============================================================================
+// SimpleSynthOscSection
+//==============================================================================
+
+SimpleSynthOscSection::SimpleSynthOscSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState, int oscIndex)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_oscIndex(oscIndex),
+      m_waveComp(oscIndex == 0 ? plugin.waveParam : plugin.osc2WaveParam, "Wave"),
+      m_coarseTuneComp(oscIndex == 0 ? plugin.coarseTuneParam : plugin.osc2CoarseParam, "Tune"),
+      m_fineTuneComp(oscIndex == 0 ? plugin.fineTuneParam : plugin.osc2FineParam, "Fine")
+{
+    juce::String title = (oscIndex == 0) ? "OSC 1" : "OSC 2";
+    m_nameLabel.setText(title, juce::dontSendNotification);
+    m_nameLabel.setJustificationType(juce::Justification::centred);
+    m_nameLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_nameLabel);
+
+    addAndMakeVisible(m_waveComp);
+    addAndMakeVisible(m_coarseTuneComp);
+    addAndMakeVisible(m_fineTuneComp);
+
+    if (m_oscIndex == 0)
+    {
+        m_unisonOrderComp = std::make_unique<AutomatableParameterComponent>(plugin.unisonOrderParam, "Voices");
+        m_unisonDetuneComp = std::make_unique<AutomatableParameterComponent>(plugin.unisonDetuneParam, "Detune");
+        m_unisonSpreadComp = std::make_unique<AutomatableParameterComponent>(plugin.unisonSpreadParam, "Spread");
+        m_retriggerComp = std::make_unique<AutomatableToggleComponent>(plugin.retriggerParam, "Retrig");
+
+        addAndMakeVisible(*m_unisonOrderComp);
+        addAndMakeVisible(*m_unisonDetuneComp);
+        addAndMakeVisible(*m_unisonSpreadComp);
+        addAndMakeVisible(*m_retriggerComp);
+    }
+    else
+    {
+        m_levelComp = std::make_unique<AutomatableParameterComponent>(plugin.osc2LevelParam, "Level");
+        addAndMakeVisible(*m_levelComp);
+
+        m_enabledComp = std::make_unique<AutomatableToggleComponent>(plugin.osc2EnabledParam, "On");
+        addAndMakeVisible(*m_enabledComp);
+
+        m_mixModeComp = std::make_unique<AutomatableChoiceComponent>(plugin.mixModeParam, "Mix Mode");
+        addAndMakeVisible(*m_mixModeComp);
+
+        m_crossModComp = std::make_unique<AutomatableParameterComponent>(plugin.crossModAmountParam, "Cross Mod");
+        addAndMakeVisible(*m_crossModComp);
+    }
+
+    updateUI();
+}
+
+void SimpleSynthOscSection::updateUI()
+{
+    if (m_crossModComp && m_mixModeComp)
+    {
+        int mode = (int)m_plugin.mixModeParam->getCurrentValue();
+        bool crossModActive = (mode == SimpleSynthPlugin::MixMode::ringMod || mode == SimpleSynthPlugin::MixMode::fm);
+        m_crossModComp->setEnabled(crossModActive);
+    }
+}
+
+void SimpleSynthOscSection::paint(juce::Graphics &g)
+{
+    auto area = getLocalBounds().reduced(5).toFloat();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
+
+    // Label Colour
+    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
+    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+}
+
+void SimpleSynthOscSection::resized()
+{
+    auto area = getLocalBounds().reduced(5); // Remove extra vertical padding as header takes top space now
+
+    // Header (Horizontal Label)
+    auto headerHeight = 20;
+    auto header = area.removeFromTop(headerHeight);
+    m_nameLabel.setBounds(header);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+    m_nameLabel.setTransform(juce::AffineTransform()); // Reset transform just in case
+
+    area.reduce(0, 5); // Some padding below header
+
+    // Calculate row height based on remaining area
+    auto rowHeight = area.getHeight() / 3;
+
+    // Content Layout
+    auto topRow = area.removeFromTop(rowHeight);
+    if (m_oscIndex == 0)
+    {
+        m_waveComp.setBounds(topRow.reduced(2));
+    }
+    else
+    {
+        auto waveArea = topRow;
+        if (m_enabledComp)
+            m_enabledComp->setBounds(waveArea.removeFromLeft(60).reduced(2));
+        m_waveComp.setBounds(waveArea.reduced(2));
+    }
+
+    if (m_oscIndex == 0)
+    {
+        // OSC 1 Layout (Complex)
+        auto row1 = area.removeFromTop(rowHeight);
+        auto paramWidth = row1.getWidth() / 3;
+
+        m_coarseTuneComp.setBounds(row1.removeFromLeft(paramWidth).reduced(2));
+        m_fineTuneComp.setBounds(row1.removeFromLeft(paramWidth).reduced(2));
+        if (m_unisonOrderComp)
+            m_unisonOrderComp->setBounds(row1.removeFromLeft(paramWidth).reduced(2));
+
+        auto row2 = area;
+        paramWidth = row2.getWidth() / 3;
+        if (m_unisonDetuneComp)
+            m_unisonDetuneComp->setBounds(row2.removeFromLeft(paramWidth).reduced(2));
+        if (m_unisonSpreadComp)
+            m_unisonSpreadComp->setBounds(row2.removeFromLeft(paramWidth).reduced(2));
+        if (m_retriggerComp)
+            m_retriggerComp->setBounds(row2.reduced(2));
+    }
+    else
+    {
+        // OSC 2 Layout
+        // Middle Row: Level | Tune | Fine
+        auto rowMid = area.removeFromTop(rowHeight);
+        auto midWidth = rowMid.getWidth() / 3;
+
+        if (m_levelComp)
+            m_levelComp->setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
+        m_coarseTuneComp.setBounds(rowMid.removeFromLeft(midWidth).reduced(2));
+        m_fineTuneComp.setBounds(rowMid.reduced(2));
+
+        // Bottom Row: Mix Mode | Cross Mod
+        auto rowBottom = area;
+        auto botWidth = rowBottom.getWidth() / 2;
+
+        if (m_mixModeComp)
+            m_mixModeComp->setBounds(rowBottom.removeFromLeft(botWidth).reduced(2));
+        if (m_crossModComp)
+            m_crossModComp->setBounds(rowBottom.reduced(2));
+    }
+}
+
+//==============================================================================
+// SimpleSynthVoiceSection
+//==============================================================================
+
+SimpleSynthVoiceSection::SimpleSynthVoiceSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_voiceModeComp(plugin.voiceModeParam, "Voice"),
+      m_glideModeComp(plugin.glideModeParam, "Glide"),
+      m_glideTimeComp(plugin.glideTimeParam, "Time")
+{
+    m_nameLabel.setText("VOICE", juce::dontSendNotification);
+    m_nameLabel.setJustificationType(juce::Justification::centred);
+    m_nameLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_nameLabel);
+
+    m_glideInfoLabel.setText("Glide requires\nMono", juce::dontSendNotification);
+    m_glideInfoLabel.setJustificationType(juce::Justification::centred);
+    m_glideInfoLabel.setFont(juce::FontOptions(10.0f));
+    m_glideInfoLabel.setColour(juce::Label::textColourId, juce::Colours::orange);
+    m_glideInfoLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_glideInfoLabel);
+
+    addAndMakeVisible(m_voiceModeComp);
+    addAndMakeVisible(m_glideModeComp);
+    addAndMakeVisible(m_glideTimeComp);
+
+    updateUI();
+}
+
+void SimpleSynthVoiceSection::paint(juce::Graphics &g)
+{
+    auto area = getLocalBounds().reduced(5).toFloat();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
+
+    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
+    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+}
+
+void SimpleSynthVoiceSection::resized()
+{
+    auto area = getLocalBounds().reduced(5);
+    auto header = area.removeFromTop(20);
+    m_nameLabel.setBounds(header);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+
+    area.reduce(0, 5);
+    auto rowHeight = area.getHeight() / 3;
+
+    m_voiceModeComp.setBounds(area.removeFromTop(rowHeight).reduced(2));
+    m_glideModeComp.setBounds(area.removeFromTop(rowHeight).reduced(2));
+
+    auto bottom = area.reduced(2);
+    m_glideTimeComp.setBounds(bottom);
+    m_glideInfoLabel.setBounds(bottom);
+}
+
+void SimpleSynthVoiceSection::updateUI()
+{
+    const bool isMono = juce::roundToInt(m_plugin.voiceModeParam->getCurrentValue()) == SimpleSynthPlugin::VoiceMode::mono;
+    const bool glideEnabled = juce::roundToInt(m_plugin.glideModeParam->getCurrentValue()) != SimpleSynthPlugin::GlideMode::glideOff;
+
+    m_glideModeComp.setEnabled(isMono);
+    m_glideTimeComp.setEnabled(isMono && glideEnabled);
+    m_glideInfoLabel.setVisible(!isMono);
+}
+
+//==============================================================================
+// SimpleSynthFilterSection
+//==============================================================================
+
+SimpleSynthFilterSection::SimpleSynthFilterSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_filterTypeComp(plugin.filterTypeParam, "Type"),
+      m_cutoffComp(plugin.filterCutoffParam, "Cutoff"),
+      m_resComp(plugin.filterResParam, "Res"),
+      m_driveComp(plugin.filterDriveParam, "Drive"),
+      m_envAmountComp(plugin.filterEnvAmountParam, "Env Amt")
+{
+    m_nameLabel.setText("FILTER", juce::dontSendNotification);
+    m_nameLabel.setJustificationType(juce::Justification::centred);
+    m_nameLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_nameLabel);
+
+    addAndMakeVisible(m_filterTypeComp);
+    addAndMakeVisible(m_cutoffComp);
+    addAndMakeVisible(m_resComp);
+    addAndMakeVisible(m_driveComp);
+    addAndMakeVisible(m_envAmountComp);
+
+    updateUI();
+}
+
+void SimpleSynthFilterSection::paint(juce::Graphics &g)
+{
+    auto area = getLocalBounds().reduced(5).toFloat();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
+
+    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
+    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+}
+
+void SimpleSynthFilterSection::resized()
+{
+    auto area = getLocalBounds().reduced(5);
+    auto headerHeight = 20;
+    auto header = area.removeFromTop(headerHeight);
+    m_nameLabel.setBounds(header);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+    m_nameLabel.setTransform(juce::AffineTransform());
+
+    area.reduce(0, 5);
+
+    auto rowHeight = area.getHeight() / 3;
+
+    // Row 1: Type
+    m_filterTypeComp.setBounds(area.removeFromTop(rowHeight).reduced(2));
+
+    // Row 2: Cutoff, Res
+    auto row2 = area.removeFromTop(rowHeight);
+    auto halfWidth = row2.getWidth() / 2;
+    m_cutoffComp.setBounds(row2.removeFromLeft(halfWidth).reduced(2));
+    m_resComp.setBounds(row2.reduced(2));
+
+    // Row 3: Drive, EnvAmt
+    auto row3 = area;
+    m_driveComp.setBounds(row3.removeFromLeft(halfWidth).reduced(2));
+    m_envAmountComp.setBounds(row3.reduced(2));
+}
+
+void SimpleSynthFilterSection::updateUI()
+{
+    bool isLadder = m_plugin.filterTypeParam->getCurrentValue() < 0.5f;
+    m_driveComp.setEnabled(isLadder);
+}
+
+//==============================================================================
+// SimpleSynthEnvSection
+//==============================================================================
+
+SimpleSynthEnvSection::SimpleSynthEnvSection(SimpleSynthPlugin &plugin, ApplicationViewState &appState, const juce::String &name, bool isFilterEnv)
+    : m_plugin(plugin),
+      m_appState(appState),
+      m_display(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam, isFilterEnv ? plugin.filterDecayParam : plugin.decayParam, isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam, isFilterEnv ? plugin.filterReleaseParam : plugin.releaseParam),
+      m_attackComp(isFilterEnv ? plugin.filterAttackParam : plugin.attackParam, "A"),
+      m_decayComp(isFilterEnv ? plugin.filterDecayParam : plugin.decayParam, "D"),
+      m_sustainComp(isFilterEnv ? plugin.filterSustainParam : plugin.sustainParam, "S"),
+      m_releaseComp(isFilterEnv ? plugin.filterReleaseParam : plugin.releaseParam, "R")
+{
+    m_nameLabel.setText(name, juce::dontSendNotification);
+    m_nameLabel.setJustificationType(juce::Justification::centred);
+    m_nameLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_nameLabel);
+
+    addAndMakeVisible(m_display);
+
+    addAndMakeVisible(m_attackComp);
+    addAndMakeVisible(m_decayComp);
+    addAndMakeVisible(m_sustainComp);
+    addAndMakeVisible(m_releaseComp);
+}
+
+void SimpleSynthEnvSection::paint(juce::Graphics &g)
+{
+    auto area = getLocalBounds().reduced(5).toFloat();
+    auto *ownerTrack = m_plugin.getOwnerTrack();
+    auto trackColour = ownerTrack != nullptr ? ownerTrack->getColour() : juce::Colours::grey;
+    GUIHelpers::drawHeaderBox(g, area, trackColour, m_appState.getBorderColour(), m_appState.getBackgroundColour1());
+
+    auto labelingCol = trackColour.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
+    m_nameLabel.setColour(juce::Label::ColourIds::textColourId, labelingCol);
+
+    // Update display colour to match track
+    m_display.setColour(trackColour);
+}
+
+void SimpleSynthEnvSection::resized()
+{
+    auto area = getLocalBounds().reduced(5);
+    auto headerHeight = 20;
+    auto header = area.removeFromTop(headerHeight);
+    m_nameLabel.setBounds(header);
+    m_nameLabel.setFont(juce::FontOptions(12, juce::Font::bold));
+    m_nameLabel.setTransform(juce::AffineTransform());
+
+    area.reduce(0, 5);
+
+    // Reserve top half for display
+    auto displayHeight = area.getHeight() * 0.4f;
+    m_display.setBounds(area.removeFromTop(displayHeight).reduced(4));
+
+    auto paramWidth = area.getWidth() / 4;
+    m_attackComp.setBounds(area.removeFromLeft(paramWidth).reduced(2));
+    m_decayComp.setBounds(area.removeFromLeft(paramWidth).reduced(2));
+    m_sustainComp.setBounds(area.removeFromLeft(paramWidth).reduced(2));
+    m_releaseComp.setBounds(area.reduced(2));
+}
+
+void SimpleSynthEnvSection::updateUI() { m_display.repaint(); }
+
+//==============================================================================
+// SimpleSynthPluginComponent
+//==============================================================================
+
+SimpleSynthPluginComponent::SimpleSynthPluginComponent(EditViewState &evs, te::Plugin::Ptr p)
+    : PluginViewComponent(evs, p),
+      m_synth(dynamic_cast<SimpleSynthPlugin *>(p.get())),
+      m_osc1Section(*m_synth, evs.m_applicationState, 0),
+      m_osc2Section(*m_synth, evs.m_applicationState, 1),
+      m_voiceSection(*m_synth, evs.m_applicationState),
+      m_filterSection(*m_synth, evs.m_applicationState),
+      m_ampEnvSection(*m_synth, evs.m_applicationState, "AMP ENV", false),
+      m_filterEnvSection(*m_synth, evs.m_applicationState, "FILTER ENV", true),
+      m_levelSlider(*m_synth->levelParam)
+{
+    jassert(m_synth != nullptr);
+
+    addAndMakeVisible(m_osc1Section);
+    addAndMakeVisible(m_osc2Section);
+    addAndMakeVisible(m_voiceSection);
+    addAndMakeVisible(m_filterSection);
+    addAndMakeVisible(m_ampEnvSection);
+    addAndMakeVisible(m_filterEnvSection);
+
+    m_levelSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    addAndMakeVisible(m_levelSlider);
+
+    m_levelLabel.setText("Master", juce::dontSendNotification);
+    m_levelLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(m_levelLabel);
+
+    p->state.addListener(this);
+}
+
+SimpleSynthPluginComponent::~SimpleSynthPluginComponent()
+{
+    if (m_synth)
+        m_synth->state.removeListener(this);
+}
+
+void SimpleSynthPluginComponent::paint(juce::Graphics &g)
+{
+    g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
+    g.fillAll();
+}
+
+void SimpleSynthPluginComponent::resized()
+{
+    auto area = getLocalBounds().reduced(5);
+
+    // Master Section (Right Side)
+    auto masterArea = area.removeFromRight(60);
+    m_levelLabel.setBounds(masterArea.removeFromBottom(20));
+    m_levelSlider.setBounds(masterArea);
+
+    area.removeFromRight(5); // Spacing
+
+    auto voiceArea = area.removeFromRight(115);
+    m_voiceSection.setBounds(voiceArea);
+    area.removeFromRight(5); // Spacing
+
+    // Layout: Osc 1 | Osc 2 | Filter | Envs | Voice | Master
+    auto totalWidth = area.getWidth();
+    int colW = totalWidth / 4;
+
+    m_osc1Section.setBounds(area.removeFromLeft(colW));
+    m_osc2Section.setBounds(area.removeFromLeft(colW));
+    m_filterSection.setBounds(area.removeFromLeft(colW));
+
+    auto envArea = area.removeFromLeft(colW);
+    auto envHeight = envArea.getHeight() / 2;
+    m_ampEnvSection.setBounds(envArea.removeFromTop(envHeight).reduced(0, 2));
+    m_filterEnvSection.setBounds(envArea.reduced(0, 2));
+}
+
+void SimpleSynthPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &)
+{
+    m_osc1Section.updateUI();
+    m_osc2Section.updateUI();
+    m_voiceSection.updateUI();
+    m_filterSection.updateUI();
+    m_ampEnvSection.updateUI();
+    m_filterEnvSection.updateUI();
+}
+
+// PluginPresetInterface implementation
+juce::ValueTree SimpleSynthPluginComponent::getPluginState()
+{
+    auto state = m_synth->state.createCopy();
+    state.setProperty("type", getPluginTypeName(), nullptr);
+    return state;
+}
+
+juce::ValueTree SimpleSynthPluginComponent::getFactoryDefaultState()
+{
+    juce::ValueTree defaultState("PLUGIN");
+    defaultState.setProperty("type", SimpleSynthPlugin::xmlTypeName, nullptr);
+
+    // Helper to set property from CachedValue default
+    auto add = [&](const juce::String &id, const auto &cachedValue) { defaultState.setProperty(id, cachedValue.getDefault(), nullptr); };
+
+    add("level", m_synth->levelValue);
+    add("coarseTune", m_synth->coarseTuneValue);
+    add("fineTune", m_synth->fineTuneValue);
+
+    add("osc2Enabled", m_synth->osc2EnabledValue);
+    add("osc2Wave", m_synth->osc2WaveValue);
+    add("osc2Coarse", m_synth->osc2CoarseValue);
+    add("osc2Fine", m_synth->osc2FineValue);
+    add("osc2Level", m_synth->osc2LevelValue);
+    add("mixMode", m_synth->mixModeValue);
+    add("crossModAmount", m_synth->crossModAmountValue);
+
+    add("wave", m_synth->waveValue);
+    add("attack", m_synth->attackValue);
+    add("decay", m_synth->decayValue);
+    add("sustain", m_synth->sustainValue);
+    add("release", m_synth->releaseValue);
+
+    add("unisonOrder", m_synth->unisonOrderValue);
+    add("unisonDetune", m_synth->unisonDetuneValue);
+    add("unisonSpread", m_synth->unisonSpreadValue);
+    add("retrigger", m_synth->retriggerValue);
+    add("voiceMode", m_synth->voiceModeValue);
+    add("glideMode", m_synth->glideModeValue);
+    add("glideTime", m_synth->glideTimeValue);
+
+    add("filterType", m_synth->filterTypeValue);
+    add("cutoff", m_synth->filterCutoffValue);
+    add("resonance", m_synth->filterResValue);
+    add("drive", m_synth->filterDriveValue);
+    add("filterEnvAmount", m_synth->filterEnvAmountValue);
+    add("filterAttack", m_synth->filterAttackValue);
+    add("filterDecay", m_synth->filterDecayValue);
+    add("filterSustain", m_synth->filterSustainValue);
+    add("filterRelease", m_synth->filterReleaseValue);
+
+    return defaultState;
+}
+
+void SimpleSynthPluginComponent::restorePluginState(const juce::ValueTree &state) { m_synth->restorePluginStateFromValueTree(state); }
+
+juce::String SimpleSynthPluginComponent::getPresetSubfolder() const { return "SimpleSynth"; }
+
+juce::String SimpleSynthPluginComponent::getPluginTypeName() const { return SimpleSynthPlugin::xmlTypeName; }
+
+ApplicationViewState &SimpleSynthPluginComponent::getApplicationViewState() { return m_editViewState.m_applicationState; }
