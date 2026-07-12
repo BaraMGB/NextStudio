@@ -48,8 +48,7 @@ juce_generate_juce_header(${TargetName})
 # ---------------------------------------------------------------------------
 # Unit tests for the pure PositionDisplay helpers
 # ---------------------------------------------------------------------------
-option(NEXTSTUDIO_BUILD_TESTS "Build the NextStudio helper unit tests" ON)
-if(NEXTSTUDIO_BUILD_TESTS)
+if(BUILD_TESTING)
     juce_add_console_app(NextStudioTests
             PRODUCT_NAME "NextStudioTests")
     juce_generate_juce_header(NextStudioTests)
@@ -68,6 +67,9 @@ if(NEXTSTUDIO_BUILD_TESTS)
     target_compile_definitions(NextStudioTests PRIVATE
             JUCE_WEB_BROWSER=0
             JUCE_USE_CURL=0)
+
+    add_test(NAME PositionDisplayHelpers
+            COMMAND NextStudioTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

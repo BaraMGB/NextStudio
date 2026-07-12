@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.15)
 set(NEXTSTUDIO_VERSION "0.02")
 
 project(NextStudio VERSION ${NEXTSTUDIO_VERSION})
+include(CTest)
+
 option(JUCE_BUILD_EXTRAS "Build JUCE Examples" OFF)
 option(JUCE_BUILD_EXAMPLES "Build JUCE Extras" OFF)
 
