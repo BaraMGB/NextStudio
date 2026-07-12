@@ -39,10 +39,10 @@ static constexpr float fieldVerticalPadding = 3.0f;
 static constexpr float leadingLabelGap = 6.0f;
 static constexpr float topLabelHeightRatio = 0.34f;
 static constexpr float topLabelExtraHeight = 4.0f;
-static constexpr float topLabelFontHeightRatio = 0.13f;
-static constexpr float sideValueFontHeightRatio = 0.24f;
-static constexpr float timeValueFontHeightRatio = 0.28f;
-static constexpr float positionValueFontHeightRatio = 0.40f;
+static constexpr float titleFontHeight = 9.0f;
+static constexpr float sideValueFontHeight = 14.0f;
+static constexpr float timeValueFontHeight = 16.0f;
+static constexpr float positionValueFontHeight = 22.0f;
 static constexpr int panelOuterPaddingX = 8;
 static constexpr int panelOuterPaddingY = 6;
 static constexpr int panelColumnGap = 10;
@@ -75,6 +75,13 @@ public:
     void setValueJustification(juce::Justification justification)
     {
         m_valueJustification = justification;
+        repaint();
+    }
+
+    void setLeadingContentJustification(juce::Justification justification)
+    {
+        m_leadingContentJustification = justification;
+        resized();
         repaint();
     }
 
@@ -398,7 +405,17 @@ private:
             const auto preferredWidth = m_fixedTitleWidth > 0.0f ? m_fixedTitleWidth
                                                                   : measureTextWidth(m_titleFont, m_title) + PositionDisplayMetrics::titleWidthPadding;
             const auto titleWidth = juce::jmin(area.getWidth() * 0.4f, juce::jmax(24.0f, preferredWidth));
-            return area.removeFromLeft(titleWidth);
+            const auto valueWidth = juce::jmin(juce::jmax(0.0f, area.getWidth() - titleWidth - PositionDisplayMetrics::leadingLabelGap),
+                                               measureTextWidth(m_font, m_displayText));
+            const auto contentWidth = titleWidth + PositionDisplayMetrics::leadingLabelGap + valueWidth;
+
+            auto contentX = area.getX();
+            if (m_leadingContentJustification.testFlags(juce::Justification::horizontallyCentred))
+                contentX = area.getCentreX() - (contentWidth * 0.5f);
+            else if (m_leadingContentJustification.testFlags(juce::Justification::right))
+                contentX = area.getRight() - contentWidth;
+
+            return {contentX, area.getY(), titleWidth, area.getHeight()};
         }
 
         const auto titleHeight = juce::jmin(area.getHeight() * PositionDisplayMetrics::topLabelHeightRatio,
@@ -419,7 +436,18 @@ private:
             const auto preferredWidth = m_fixedTitleWidth > 0.0f ? m_fixedTitleWidth
                                                                   : measureTextWidth(m_titleFont, m_title) + PositionDisplayMetrics::titleWidthPadding;
             const auto titleWidth = juce::jmin(area.getWidth() * 0.4f, juce::jmax(24.0f, preferredWidth));
-            area.removeFromLeft(titleWidth + PositionDisplayMetrics::leadingLabelGap);
+            const auto maximumValueWidth = juce::jmax(0.0f, area.getWidth() - titleWidth - PositionDisplayMetrics::leadingLabelGap);
+            const auto valueWidth = juce::jmin(maximumValueWidth, measureTextWidth(m_font, m_displayText));
+            const auto contentWidth = titleWidth + PositionDisplayMetrics::leadingLabelGap + valueWidth;
+
+            auto contentX = area.getX();
+            if (m_leadingContentJustification.testFlags(juce::Justification::horizontallyCentred))
+                contentX = area.getCentreX() - (contentWidth * 0.5f);
+            else if (m_leadingContentJustification.testFlags(juce::Justification::right))
+                contentX = area.getRight() - contentWidth;
+
+            area.setX(contentX + titleWidth + PositionDisplayMetrics::leadingLabelGap);
+            area.setWidth(m_leadingContentJustification.testFlags(juce::Justification::left) ? maximumValueWidth : valueWidth);
         }
         else
         {
@@ -466,6 +494,7 @@ private:
     juce::Font m_titleFont{juce::FontOptions(12.0f)};
     TitlePlacement m_titlePlacement{TitlePlacement::top};
     juce::Justification m_valueJustification{juce::Justification::centred};
+    juce::Justification m_leadingContentJustification{juce::Justification::centredLeft};
     float m_fixedTitleWidth{0.0f};
     juce::Colour m_textColour{juce::Colours::white};
     juce::Colour m_highlightColour{juce::Colours::white.withAlpha(0.15f)};
@@ -670,22 +699,22 @@ PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit, ApplicationVi
 
     m_bpmField->setTitle("BPM");
     m_timeSignatureField->setTitle("SIG");
-    m_positionField->setTitle("POSITION");
+    m_positionField->setTitle("POS");
     m_timeField->setTitle("TIME");
     m_loopInField->setTitle("IN");
     m_loopOutField->setTitle("OUT");
 
-    for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_loopInField.get(), m_loopOutField.get()})
+    for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_positionField.get(), m_timeField.get(), m_loopInField.get(), m_loopOutField.get()})
     {
         field->setTitlePlacement(PositionDisplayField::TitlePlacement::leading);
         field->setValueJustification(juce::Justification::centredLeft);
     }
 
     for (auto *field : {m_positionField.get(), m_timeField.get()})
-    {
-        field->setTitlePlacement(PositionDisplayField::TitlePlacement::top);
-        field->setValueJustification(juce::Justification::centred);
-    }
+        field->setLeadingContentJustification(juce::Justification::centred);
+
+    for (auto *field : {m_loopInField.get(), m_loopOutField.get()})
+        field->setLeadingContentJustification(juce::Justification::centredRight);
 
     Helpers::addAndMakeVisible(*this, {m_bpmField.get(), m_timeSignatureField.get(), m_positionField.get(), m_timeField.get(), m_loopInField.get(), m_loopOutField.get()});
 
@@ -722,8 +751,17 @@ void PositionDisplayComponent::paint(juce::Graphics &g)
 
     g.setColour(m_appState.getButtonBackgroundColour());
     g.fillRoundedRectangle(area.toFloat(), 5.0f);
-    g.setColour(m_appState.getButtonTextColour());
+    const auto textColour = m_appState.getButtonTextColour();
+    g.setColour(textColour);
     g.drawRoundedRectangle(area.reduced(1).toFloat(), 5.0f, 0.5f);
+
+    g.setColour(textColour.withAlpha(0.18f));
+    const auto separatorTop = static_cast<float>(PositionDisplayMetrics::panelOuterPaddingY + 3);
+    const auto separatorBottom = static_cast<float>(getHeight() - PositionDisplayMetrics::panelOuterPaddingY - 3);
+    g.drawLine(static_cast<float>(m_leftGroupSeparatorX), separatorTop,
+               static_cast<float>(m_leftGroupSeparatorX), separatorBottom, 1.0f);
+    g.drawLine(static_cast<float>(m_rightGroupSeparatorX), separatorTop,
+               static_cast<float>(m_rightGroupSeparatorX), separatorBottom, 1.0f);
 }
 
 void PositionDisplayComponent::resized()
@@ -733,8 +771,8 @@ void PositionDisplayComponent::resized()
     auto area = getLocalBounds().reduced(PositionDisplayMetrics::panelOuterPaddingX,
                                          PositionDisplayMetrics::panelOuterPaddingY);
 
-    const auto titleFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::topLabelFontHeightRatio));
-    const auto sideValueFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::sideValueFontHeightRatio));
+    const auto titleFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::titleFontHeight));
+    const auto sideValueFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::sideValueFontHeight));
 
     auto sideLabelWidth = measureTextWidth(titleFont, "BPM") + PositionDisplayMetrics::titleWidthPadding;
     sideLabelWidth = juce::jmax(sideLabelWidth, measureTextWidth(titleFont, "SIG") + PositionDisplayMetrics::titleWidthPadding);
@@ -752,8 +790,11 @@ void PositionDisplayComponent::resized()
     const auto maximumSideWidth = juce::jmax(0, (area.getWidth() - minimumCenterWidth - (PositionDisplayMetrics::panelColumnGap * 2)) / 2);
 
     auto leftColumn = area.removeFromLeft(juce::jmin(leftColumnWidth, maximumSideWidth));
+    m_leftGroupSeparatorX = area.getX() + (PositionDisplayMetrics::panelColumnGap / 2);
     area.removeFromLeft(PositionDisplayMetrics::panelColumnGap);
+
     auto rightColumn = area.removeFromRight(juce::jmin(rightColumnWidth, maximumSideWidth));
+    m_rightGroupSeparatorX = rightColumn.getX() - ((PositionDisplayMetrics::panelColumnGap + 1) / 2);
     area.removeFromRight(PositionDisplayMetrics::panelColumnGap);
     auto centerColumn = area;
 
@@ -894,10 +935,10 @@ void PositionDisplayComponent::updateFieldStyles()
     const auto highlightColour = textColour.withAlpha(0.15f);
     const auto focusColour = textColour.withAlpha(0.7f);
 
-    const auto titleFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::topLabelFontHeightRatio));
-    const auto sideValueFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::sideValueFontHeightRatio));
-    const auto timeFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::timeValueFontHeightRatio));
-    const auto positionFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::positionValueFontHeightRatio));
+    const auto titleFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::titleFontHeight));
+    const auto sideValueFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::sideValueFontHeight));
+    const auto timeFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::timeValueFontHeight));
+    const auto positionFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::positionValueFontHeight));
 
     auto titleWidth = measureTextWidth(titleFont, "BPM") + PositionDisplayMetrics::titleWidthPadding;
     titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "SIG") + PositionDisplayMetrics::titleWidthPadding);
@@ -908,8 +949,16 @@ void PositionDisplayComponent::updateFieldStyles()
     {
         field->setColours(textColour, highlightColour, focusColour);
         field->setTitleFont(titleFont);
-        field->setFixedTitleWidth(titleWidth);
     }
+
+    for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_loopInField.get(), m_loopOutField.get()})
+        field->setFixedTitleWidth(titleWidth);
+
+    const auto centerTitleWidth = juce::jmax(measureTextWidth(titleFont, "POS"),
+                                                measureTextWidth(titleFont, "TIME"))
+                                  + PositionDisplayMetrics::titleWidthPadding;
+    m_positionField->setFixedTitleWidth(centerTitleWidth);
+    m_timeField->setFixedTitleWidth(centerTitleWidth);
 
     m_bpmField->setFont(sideValueFont);
     m_timeSignatureField->setFont(sideValueFont);

@@ -124,6 +124,8 @@ private:
     bool m_needsTempoListenerRebuild{true};
     DisplaySnapshot m_snapshot{};
     DragState m_dragState{};
+    int m_leftGroupSeparatorX{};
+    int m_rightGroupSeparatorX{};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PositionDisplayComponent)
 };
