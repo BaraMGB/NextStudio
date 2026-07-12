@@ -103,7 +103,8 @@ private:
 class HeaderComponent
     : public juce::Component
     , public juce::Button::Listener
-    , public juce::Timer
+    , public juce::ValueTree::Listener
+    , public juce::ChangeListener
     , public juce::ChangeBroadcaster
 {
 public:
@@ -115,7 +116,8 @@ public:
     void resized() override;
     void buttonClicked(juce::Button *button) override;
     void mouseDown(const juce::MouseEvent &e) override;
-    void timerCallback() override;
+    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
 
     juce::File getSelectedFile() const;
 

@@ -66,11 +66,20 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
     updateCountInButton();
     updateUndoRedoButtons(true);
     updateCountInDisplay();
-    startTimer(30);
+
+    m_edit.state.addListener(this);
+    m_edit.getTransport().state.addListener(this);
+    m_edit.getTransport().addChangeListener(this);
+    m_edit.getUndoManager().addChangeListener(this);
 }
 
 HeaderComponent::~HeaderComponent()
 {
+    m_edit.getUndoManager().removeChangeListener(this);
+    m_edit.getTransport().removeChangeListener(this);
+    m_edit.getTransport().state.removeListener(this);
+    m_edit.state.removeListener(this);
+
     m_playButton.removeListener(this);
     m_stopButton.removeListener(this);
     m_recordButton.removeListener(this);
@@ -330,11 +339,26 @@ void HeaderComponent::updateCountInDisplay()
     m_countInButton.setCounterActive(displayText.isNotEmpty());
 }
 
-void HeaderComponent::timerCallback()
+void HeaderComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    m_display.update();
-    updateCountInDisplay();
-    updateUndoRedoButtons();
+    if (source == &m_edit.getUndoManager())
+    {
+        updateUndoRedoButtons();
+        return;
+    }
+
+    if (source == &m_edit.getTransport())
+    {
+        const auto *svg = m_edit.getTransport().isPlaying() ? BinaryData::pause_svg : BinaryData::play_svg;
+        GUIHelpers::setDrawableOnButton(m_playButton, svg, m_btn_col);
+        updateCountInDisplay();
+    }
+}
+
+void HeaderComponent::valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &)
+{
+    if (tree == m_edit.getTransport().state)
+        updateCountInDisplay();
 }
 
 juce::File HeaderComponent::getSelectedFile() const { return m_loadingFile; }

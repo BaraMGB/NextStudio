@@ -45,6 +45,31 @@ juce_add_gui_app(${TargetName}
 set_target_properties(${TargetName} PROPERTIES JUCE_VERSION "${NEXTSTUDIO_VERSION}")
 juce_generate_juce_header(${TargetName})
 
+# ---------------------------------------------------------------------------
+# Unit tests for the pure PositionDisplay helpers
+# ---------------------------------------------------------------------------
+option(NEXTSTUDIO_BUILD_TESTS "Build the NextStudio helper unit tests" ON)
+if(NEXTSTUDIO_BUILD_TESTS)
+    juce_add_console_app(NextStudioTests
+            PRODUCT_NAME "NextStudioTests")
+    juce_generate_juce_header(NextStudioTests)
+
+    target_sources(NextStudioTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/PositionDisplayHelpers.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PositionDisplayTests.cpp)
+
+    target_include_directories(NextStudioTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(NextStudioTests PRIVATE
+            juce::juce_core
+            tracktion::tracktion_core)
+
+    target_compile_definitions(NextStudioTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+endif()
+
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES

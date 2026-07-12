@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -21,39 +20,700 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "PositionDisplayComponent.h"
-PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit, ApplicationViewState &appState)
-    : m_edit(edit),
-      m_appState(appState)
+#include "PositionDisplayHelpers.h"
+
+#include <cmath>
+#include <cstdlib>
+#include <optional>
+#include <vector>
+
+struct FieldSegment
 {
-    Helpers::addAndMakeVisible(*this, {&m_bpmLabel, &m_sigLabel, &m_barBeatTickLabel, &m_timeLabel, &m_loopInLabel, &m_loopOutLabel});
-    m_bpmLabel.setJustificationType(juce::Justification::centred);
-    m_sigLabel.setJustificationType(juce::Justification::centred);
-    m_barBeatTickLabel.setJustificationType(juce::Justification::centred);
-    m_barBeatTickLabel.setFont(28);
-    m_timeLabel.setJustificationType(juce::Justification::centred);
-    m_loopInLabel.setJustificationType(juce::Justification::centred);
-    m_loopOutLabel.setJustificationType(juce::Justification::centred);
+    juce::Range<int> textRange;
+};
 
-    m_bpmLabel.setInterceptsMouseClicks(false, false);
-    m_sigLabel.setInterceptsMouseClicks(false, false);
-    m_barBeatTickLabel.setInterceptsMouseClicks(false, false);
-    m_timeLabel.setInterceptsMouseClicks(false, false);
-    m_loopInLabel.setInterceptsMouseClicks(false, false);
-    m_loopOutLabel.setInterceptsMouseClicks(false, false);
-
-    updateColours();
-    update();
+namespace PositionDisplayMetrics
+{
+static constexpr float fieldHorizontalPadding = 8.0f;
+static constexpr float fieldVerticalPadding = 3.0f;
+static constexpr float leadingLabelGap = 6.0f;
+static constexpr float topLabelHeightRatio = 0.34f;
+static constexpr float topLabelExtraHeight = 4.0f;
+static constexpr float topLabelFontHeightRatio = 0.13f;
+static constexpr float sideValueFontHeightRatio = 0.24f;
+static constexpr float timeValueFontHeightRatio = 0.28f;
+static constexpr float positionValueFontHeightRatio = 0.40f;
+static constexpr int panelOuterPaddingX = 8;
+static constexpr int panelOuterPaddingY = 6;
+static constexpr int panelColumnGap = 10;
+static constexpr int panelRowGap = 4;
+static constexpr float minimumCenterWidthRatio = 0.46f;
+static constexpr float titleWidthPadding = 10.0f;
 }
 
-void PositionDisplayComponent::updateColours()
+float measureTextWidth(const juce::Font &font, const juce::String &text)
 {
-    const auto colour = m_appState.getButtonTextColour();
-    m_bpmLabel.setColour(juce::Label::textColourId, colour);
-    m_sigLabel.setColour(juce::Label::textColourId, colour);
-    m_barBeatTickLabel.setColour(juce::Label::textColourId, colour);
-    m_timeLabel.setColour(juce::Label::textColourId, colour);
-    m_loopInLabel.setColour(juce::Label::textColourId, colour);
-    m_loopOutLabel.setColour(juce::Label::textColourId, colour);
+    juce::GlyphArrangement glyphs;
+    glyphs.addLineOfText(font, text, 0.0f, 0.0f);
+    return glyphs.getBoundingBox(0, -1, true).getWidth();
+}
+
+class PositionDisplayField : public juce::Component
+{
+public:
+    PositionDisplayField()
+    {
+        setWantsKeyboardFocus(true);
+    }
+
+    enum class TitlePlacement
+    {
+        top,
+        leading
+    };
+
+    void setValueJustification(juce::Justification justification)
+    {
+        m_valueJustification = justification;
+        repaint();
+    }
+
+    void setFixedTitleWidth(float width)
+    {
+        m_fixedTitleWidth = width;
+        resized();
+        repaint();
+    }
+
+    struct Callbacks
+    {
+        std::function<bool(const juce::String &)> commitText;
+        std::function<void(int segmentIndex)> dragStarted;
+        std::function<void(int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)> dragUpdated;
+        std::function<void(int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)> stepped;
+        std::function<void()> dragEnded;
+    };
+
+    void setCallbacks(Callbacks callbacks) { m_callbacks = std::move(callbacks); }
+
+    void setTitle(juce::String title)
+    {
+        m_title = std::move(title);
+        repaint();
+    }
+
+    void setTitlePlacement(TitlePlacement placement)
+    {
+        m_titlePlacement = placement;
+        resized();
+        repaint();
+    }
+
+    void setDisplayText(const juce::String &text)
+    {
+        m_displayText = text;
+
+        if (!isEditing())
+            repaint();
+    }
+
+    void setSegments(std::vector<FieldSegment> segments)
+    {
+        m_segments = std::move(segments);
+
+        if (m_selectedSegment >= static_cast<int>(m_segments.size()))
+            m_selectedSegment = m_segments.empty() ? -1 : static_cast<int>(m_segments.size()) - 1;
+
+        repaint();
+    }
+
+    void setFont(juce::Font font)
+    {
+        m_font = std::move(font);
+
+        if (m_editor != nullptr)
+            m_editor->applyFontToAllText(m_font);
+
+        repaint();
+    }
+
+    void setTitleFont(juce::Font font)
+    {
+        m_titleFont = std::move(font);
+        repaint();
+    }
+
+    void setColours(juce::Colour textColour, juce::Colour highlightColour, juce::Colour focusColour)
+    {
+        m_textColour = textColour;
+        m_highlightColour = highlightColour;
+        m_focusColour = focusColour;
+
+        if (m_editor != nullptr)
+        {
+            m_editor->setColour(juce::TextEditor::textColourId, m_textColour);
+            m_editor->setColour(juce::TextEditor::highlightColourId, m_highlightColour);
+            m_editor->setColour(juce::TextEditor::outlineColourId, m_focusColour);
+        }
+
+        repaint();
+    }
+
+    bool isEditing() const { return m_editor != nullptr; }
+
+    void paint(juce::Graphics &g) override
+    {
+        auto area = getLocalBounds().toFloat().reduced(2.0f);
+
+        if (hasKeyboardFocus(true))
+        {
+            g.setColour(m_focusColour.withAlpha(0.6f));
+            g.drawRoundedRectangle(area, 4.0f, 1.0f);
+        }
+
+        if (m_title.isNotEmpty())
+        {
+            g.setColour(m_textColour.withAlpha(0.85f));
+            g.setFont(m_titleFont);
+
+            const auto justification = m_titlePlacement == TitlePlacement::leading
+                                           ? juce::Justification::centredLeft
+                                           : juce::Justification::centred;
+
+            g.drawFittedText(m_title, getTitleBounds().toNearestInt(), justification, 1);
+        }
+
+        if (!isEditing() && m_selectedSegment >= 0 && m_selectedSegment < static_cast<int>(m_segments.size()))
+        {
+            g.setColour(m_highlightColour);
+            g.fillRoundedRectangle(getSegmentBounds(m_selectedSegment).expanded(4.0f, 2.0f), 4.0f);
+        }
+
+        if (!isEditing())
+        {
+            g.setColour(m_textColour);
+            g.setFont(m_font);
+            g.drawFittedText(m_displayText, getValueBounds().toNearestInt(), m_valueJustification, 1);
+        }
+    }
+
+    void resized() override
+    {
+        if (m_editor != nullptr)
+            m_editor->setBounds(getValueBounds().toNearestInt());
+    }
+
+    void mouseDown(const juce::MouseEvent &event) override
+    {
+        if (!event.mods.isLeftButtonDown() || isEditing())
+            return;
+
+        grabKeyboardFocus();
+        m_selectedSegment = findSegmentAt(event.position);
+        m_dragActive = true;
+        m_lastDragStep = 0;
+
+        if (m_callbacks.dragStarted)
+            m_callbacks.dragStarted(m_selectedSegment < 0 ? 0 : m_selectedSegment);
+
+        repaint();
+    }
+
+    void mouseDrag(const juce::MouseEvent &event) override
+    {
+        if (!m_dragActive || isEditing())
+            return;
+
+        event.source.enableUnboundedMouseMovement(true);
+
+        constexpr int pixelsPerStep = 4;
+        const auto stepDelta = -(event.getDistanceFromDragStartY() / pixelsPerStep);
+
+        if (stepDelta == m_lastDragStep)
+            return;
+
+        m_lastDragStep = stepDelta;
+
+        if (m_callbacks.dragUpdated)
+            m_callbacks.dragUpdated(m_selectedSegment < 0 ? 0 : m_selectedSegment, stepDelta, event.mods);
+    }
+
+    void mouseUp(const juce::MouseEvent &) override
+    {
+        if (!m_dragActive)
+            return;
+
+        m_dragActive = false;
+        m_lastDragStep = 0;
+
+        if (m_callbacks.dragEnded)
+            m_callbacks.dragEnded();
+    }
+
+    void mouseDoubleClick(const juce::MouseEvent &) override
+    {
+        beginEditing();
+    }
+
+    void mouseWheelMove(const juce::MouseEvent &, const juce::MouseWheelDetails &wheel) override
+    {
+        if (isEditing() || m_segments.empty())
+            return;
+
+        grabKeyboardFocus();
+
+        if (m_selectedSegment < 0)
+            m_selectedSegment = 0;
+
+        const auto step = wheel.deltaY > 0.0f ? 1 : (wheel.deltaY < 0.0f ? -1 : 0);
+
+        if (step != 0 && m_callbacks.stepped)
+            m_callbacks.stepped(m_selectedSegment, step, juce::ModifierKeys::getCurrentModifiersRealtime());
+    }
+
+    bool keyPressed(const juce::KeyPress &key) override
+    {
+        if (isEditing())
+            return false;
+
+        const auto keyCode = key.getKeyCode();
+
+        if (keyCode == juce::KeyPress::returnKey || keyCode == juce::KeyPress::F2Key)
+        {
+            beginEditing();
+            return true;
+        }
+
+        if (!m_segments.empty())
+        {
+            if (keyCode == juce::KeyPress::leftKey)
+            {
+                if (m_selectedSegment < 0)
+                    m_selectedSegment = 0;
+                else
+                    m_selectedSegment = juce::jmax(0, m_selectedSegment - 1);
+
+                repaint();
+                return true;
+            }
+
+            if (keyCode == juce::KeyPress::rightKey)
+            {
+                if (m_selectedSegment < 0)
+                    m_selectedSegment = 0;
+                else
+                    m_selectedSegment = juce::jmin(static_cast<int>(m_segments.size()) - 1, m_selectedSegment + 1);
+
+                repaint();
+                return true;
+            }
+
+            if ((keyCode == juce::KeyPress::upKey || keyCode == juce::KeyPress::downKey) && m_callbacks.stepped)
+            {
+                if (m_selectedSegment < 0)
+                    m_selectedSegment = 0;
+
+                m_callbacks.stepped(m_selectedSegment, keyCode == juce::KeyPress::upKey ? 1 : -1, key.getModifiers());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+private:
+    void beginEditing()
+    {
+        if (m_callbacks.commitText == nullptr || isEditing())
+            return;
+
+        m_editor = std::make_unique<juce::TextEditor>();
+        addAndMakeVisible(*m_editor);
+        m_editor->setBounds(getValueBounds().toNearestInt());
+        m_editor->setFont(m_font);
+        m_editor->applyFontToAllText(m_font);
+        m_editor->setJustification(m_valueJustification);
+        m_editor->setText(m_displayText, false);
+        m_editor->setColour(juce::TextEditor::textColourId, m_textColour);
+        m_editor->setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        m_editor->setColour(juce::TextEditor::highlightColourId, m_highlightColour);
+        m_editor->setColour(juce::TextEditor::outlineColourId, m_focusColour);
+        m_editor->onReturnKey = [this] { commitEditorText(); };
+        m_editor->onEscapeKey = [this] { endEditing(false); };
+        m_editor->onFocusLost = [this] { commitEditorText(); };
+        m_editor->grabKeyboardFocus();
+        m_editor->selectAll();
+        repaint();
+    }
+
+    void endEditing(bool keepChanges)
+    {
+        if (m_editor == nullptr)
+            return;
+
+        if (!keepChanges)
+            m_editor->setText(m_displayText, false);
+
+        m_editor.reset();
+        repaint();
+    }
+
+    void commitEditorText()
+    {
+        if (m_editor == nullptr)
+            return;
+
+        if (m_callbacks.commitText && m_callbacks.commitText(m_editor->getText()))
+        {
+            endEditing(true);
+            return;
+        }
+
+        juce::LookAndFeel::getDefaultLookAndFeel().playAlertSound();
+        m_editor->selectAll();
+    }
+
+    int findSegmentAt(juce::Point<float> position) const
+    {
+        if (m_segments.empty())
+            return -1;
+
+        for (int i = 0; i < static_cast<int>(m_segments.size()); ++i)
+            if (getSegmentBounds(i).expanded(4.0f, 2.0f).contains(position))
+                return i;
+
+        return 0;
+    }
+
+    juce::Rectangle<float> getTitleBounds() const
+    {
+        auto area = getLocalBounds().toFloat().reduced(PositionDisplayMetrics::fieldHorizontalPadding,
+                                                       PositionDisplayMetrics::fieldVerticalPadding);
+
+        if (m_title.isEmpty())
+            return {};
+
+        if (m_titlePlacement == TitlePlacement::leading)
+        {
+            const auto preferredWidth = m_fixedTitleWidth > 0.0f ? m_fixedTitleWidth
+                                                                  : measureTextWidth(m_titleFont, m_title) + PositionDisplayMetrics::titleWidthPadding;
+            const auto titleWidth = juce::jmin(area.getWidth() * 0.4f, juce::jmax(24.0f, preferredWidth));
+            return area.removeFromLeft(titleWidth);
+        }
+
+        const auto titleHeight = juce::jmin(area.getHeight() * PositionDisplayMetrics::topLabelHeightRatio,
+                                            m_titleFont.getHeight() + PositionDisplayMetrics::topLabelExtraHeight);
+        return area.removeFromTop(titleHeight);
+    }
+
+    juce::Rectangle<float> getValueBounds() const
+    {
+        auto area = getLocalBounds().toFloat().reduced(PositionDisplayMetrics::fieldHorizontalPadding,
+                                                       PositionDisplayMetrics::fieldVerticalPadding);
+
+        if (m_title.isEmpty())
+            return area;
+
+        if (m_titlePlacement == TitlePlacement::leading)
+        {
+            const auto preferredWidth = m_fixedTitleWidth > 0.0f ? m_fixedTitleWidth
+                                                                  : measureTextWidth(m_titleFont, m_title) + PositionDisplayMetrics::titleWidthPadding;
+            const auto titleWidth = juce::jmin(area.getWidth() * 0.4f, juce::jmax(24.0f, preferredWidth));
+            area.removeFromLeft(titleWidth + PositionDisplayMetrics::leadingLabelGap);
+        }
+        else
+        {
+            const auto titleHeight = juce::jmin(area.getHeight() * PositionDisplayMetrics::topLabelHeightRatio,
+                                                m_titleFont.getHeight() + PositionDisplayMetrics::topLabelExtraHeight);
+            area.removeFromTop(titleHeight);
+        }
+
+        return area;
+    }
+
+    juce::Rectangle<float> getSegmentBounds(int index) const
+    {
+        if (index < 0 || index >= static_cast<int>(m_segments.size()))
+            return {};
+
+        const auto area = getValueBounds();
+        const auto totalWidth = measureTextWidth(m_font, m_displayText);
+
+        float textStartX = area.getX();
+
+        if (m_valueJustification.testFlags(juce::Justification::horizontallyCentred))
+            textStartX = area.getCentreX() - (totalWidth * 0.5f);
+        else if (m_valueJustification.testFlags(juce::Justification::right))
+            textStartX = area.getRight() - totalWidth;
+
+        const auto textY = area.getCentreY() - (m_font.getHeight() * 0.5f);
+
+        const auto &segment = m_segments[static_cast<size_t>(index)].textRange;
+        const auto prefix = m_displayText.substring(0, segment.getStart());
+        const auto text = m_displayText.substring(segment.getStart(), segment.getEnd());
+
+        const auto x = textStartX + measureTextWidth(m_font, prefix);
+        const auto width = measureTextWidth(m_font, text);
+
+        return {x, textY, width, m_font.getHeight()};
+    }
+
+    Callbacks m_callbacks;
+    juce::String m_title;
+    juce::String m_displayText;
+    std::vector<FieldSegment> m_segments;
+    juce::Font m_font{juce::FontOptions(16.0f)};
+    juce::Font m_titleFont{juce::FontOptions(12.0f)};
+    TitlePlacement m_titlePlacement{TitlePlacement::top};
+    juce::Justification m_valueJustification{juce::Justification::centred};
+    float m_fixedTitleWidth{0.0f};
+    juce::Colour m_textColour{juce::Colours::white};
+    juce::Colour m_highlightColour{juce::Colours::white.withAlpha(0.15f)};
+    juce::Colour m_focusColour{juce::Colours::white.withAlpha(0.8f)};
+    std::unique_ptr<juce::TextEditor> m_editor;
+    int m_selectedSegment{-1};
+    bool m_dragActive{false};
+    int m_lastDragStep{0};
+};
+
+namespace
+{
+using PositionDisplayHelpers::parseStrictInt;
+using PositionDisplayHelpers::parseStrictDouble;
+using PositionDisplayHelpers::formatBpm;
+using PositionDisplayHelpers::formatTimeSignature;
+using PositionDisplayHelpers::formatTime;
+using PositionDisplayHelpers::parseTimeValue;
+using PositionDisplayHelpers::clampPositionToRange;
+using PositionDisplayHelpers::parseTimeSignatureValue;
+using PositionDisplayHelpers::getDenominatorIndex;
+using PositionDisplayHelpers::getDenominatorForIndex;
+
+juce::String formatBarsBeatsTicks(te::Edit &edit, tracktion::TimePosition position)
+{
+    const auto barsBeats = edit.tempoSequence.toBarsAndBeats(position);
+    const auto bars = barsBeats.bars + 1;
+    const auto beats = barsBeats.getWholeBeats() + 1;
+    const auto ticks = juce::jlimit(0,
+                                    te::Edit::ticksPerQuarterNote - 1,
+                                    static_cast<int>(barsBeats.getFractionalBeats().inBeats() * te::Edit::ticksPerQuarterNote));
+
+    return juce::String::formatted("%d.%d.%03d", bars, beats, ticks);
+}
+
+std::vector<FieldSegment> buildSegmentsFromDelimitedText(const juce::String &text, const juce::String &delimiters)
+{
+    std::vector<FieldSegment> segments;
+    int segmentStart = 0;
+
+    for (int i = 0; i < text.length(); ++i)
+    {
+        if (delimiters.containsChar(text[i]))
+        {
+            if (i > segmentStart)
+                segments.push_back({juce::Range<int>(segmentStart, i)});
+
+            segmentStart = i + 1;
+        }
+    }
+
+    if (segmentStart < text.length())
+        segments.push_back({juce::Range<int>(segmentStart, text.length())});
+
+    return segments;
+}
+
+std::vector<FieldSegment> buildSingleSegment(const juce::String &text)
+{
+    return {{juce::Range<int>(0, text.length())}};
+}
+
+struct BarsBeatsTicksParts
+{
+    int bar{1};
+    int beat{1};
+    int tick{0};
+};
+
+BarsBeatsTicksParts getBarsBeatsTicksParts(te::Edit &edit, tracktion::TimePosition position)
+{
+    const auto barsBeats = edit.tempoSequence.toBarsAndBeats(position);
+
+    return {
+        barsBeats.bars + 1,
+        barsBeats.getWholeBeats() + 1,
+        juce::jlimit(0,
+                     te::Edit::ticksPerQuarterNote - 1,
+                     static_cast<int>(barsBeats.getFractionalBeats().inBeats() * te::Edit::ticksPerQuarterNote))};
+}
+
+std::optional<tracktion::TimePosition> parseBarsBeatsTicks(te::Edit &edit, const juce::String &text)
+{
+    auto parts = juce::StringArray::fromTokens(text.trim(), ".", "");
+
+    if (parts.size() != 3)
+        return {};
+
+    const auto bar = parseStrictInt(parts[0]);
+    const auto beat = parseStrictInt(parts[1]);
+    const auto tick = parseStrictInt(parts[2]);
+
+    if (!bar.has_value() || !beat.has_value() || !tick.has_value())
+        return {};
+
+    if (*bar < 1 || *beat < 1 || *tick < 0 || *tick >= te::Edit::ticksPerQuarterNote)
+        return {};
+
+    tracktion::tempo::BarsAndBeats barsBeats;
+    barsBeats.bars = *bar - 1;
+    barsBeats.beats = tracktion::BeatDuration::fromBeats((*beat - 1) + (*tick / static_cast<double>(te::Edit::ticksPerQuarterNote)));
+
+    return edit.tempoSequence.toTime(barsBeats);
+}
+
+tracktion::TimePosition clampToValidPosition(tracktion::TimePosition position)
+{
+    return clampPositionToRange(position, te::Edit::getMaximumEditEnd());
+}
+
+tracktion::TimePosition timeFromDuration(const te::TimecodeDuration &duration)
+{
+    if (!duration.seconds.has_value())
+        return {};
+
+    return tracktion::TimePosition::fromSeconds(duration.seconds->inSeconds());
+}
+
+} // namespace
+
+PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit, ApplicationViewState &appState)
+    : m_edit(edit),
+      m_appState(appState),
+      m_bpmField(std::make_unique<PositionDisplayField>()),
+      m_timeSignatureField(std::make_unique<PositionDisplayField>()),
+      m_positionField(std::make_unique<PositionDisplayField>()),
+      m_timeField(std::make_unique<PositionDisplayField>()),
+      m_loopInField(std::make_unique<PositionDisplayField>()),
+      m_loopOutField(std::make_unique<PositionDisplayField>())
+{
+    m_bpmField->setCallbacks({
+        [this](const juce::String &text) { return commitBpm(text); },
+        [this](int segmentIndex) { beginDrag(FieldId::bpm, segmentIndex); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers) { updateDrag(FieldId::bpm, segmentIndex, stepDelta, modifiers); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
+        {
+            beginDrag(FieldId::bpm, segmentIndex);
+            updateDrag(FieldId::bpm, segmentIndex, stepDelta, modifiers);
+            endDrag(FieldId::bpm);
+        },
+        [this] { endDrag(FieldId::bpm); }});
+
+    m_timeSignatureField->setCallbacks({
+        [this](const juce::String &text) { return commitTimeSignature(text); },
+        [this](int segmentIndex) { beginDrag(FieldId::timeSignature, segmentIndex); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers) { updateDrag(FieldId::timeSignature, segmentIndex, stepDelta, modifiers); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
+        {
+            beginDrag(FieldId::timeSignature, segmentIndex);
+            updateDrag(FieldId::timeSignature, segmentIndex, stepDelta, modifiers);
+            endDrag(FieldId::timeSignature);
+        },
+        [this] { endDrag(FieldId::timeSignature); }});
+
+    m_positionField->setCallbacks({
+        [this](const juce::String &text) { return commitTransportPositionFromBarsBeats(text); },
+        [this](int segmentIndex) { beginDrag(FieldId::position, segmentIndex); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers) { updateDrag(FieldId::position, segmentIndex, stepDelta, modifiers); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
+        {
+            beginDrag(FieldId::position, segmentIndex);
+            updateDrag(FieldId::position, segmentIndex, stepDelta, modifiers);
+            endDrag(FieldId::position);
+        },
+        [this] { endDrag(FieldId::position); }});
+
+    m_timeField->setCallbacks({
+        [this](const juce::String &text) { return commitTransportPositionFromTime(text); },
+        [this](int segmentIndex) { beginDrag(FieldId::time, segmentIndex); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers) { updateDrag(FieldId::time, segmentIndex, stepDelta, modifiers); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
+        {
+            beginDrag(FieldId::time, segmentIndex);
+            updateDrag(FieldId::time, segmentIndex, stepDelta, modifiers);
+            endDrag(FieldId::time);
+        },
+        [this] { endDrag(FieldId::time); }});
+
+    m_loopInField->setCallbacks({
+        [this](const juce::String &text) { return commitLoopIn(text); },
+        [this](int segmentIndex) { beginDrag(FieldId::loopIn, segmentIndex); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers) { updateDrag(FieldId::loopIn, segmentIndex, stepDelta, modifiers); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
+        {
+            beginDrag(FieldId::loopIn, segmentIndex);
+            updateDrag(FieldId::loopIn, segmentIndex, stepDelta, modifiers);
+            endDrag(FieldId::loopIn);
+        },
+        [this] { endDrag(FieldId::loopIn); }});
+
+    m_loopOutField->setCallbacks({
+        [this](const juce::String &text) { return commitLoopOut(text); },
+        [this](int segmentIndex) { beginDrag(FieldId::loopOut, segmentIndex); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers) { updateDrag(FieldId::loopOut, segmentIndex, stepDelta, modifiers); },
+        [this](int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
+        {
+            beginDrag(FieldId::loopOut, segmentIndex);
+            updateDrag(FieldId::loopOut, segmentIndex, stepDelta, modifiers);
+            endDrag(FieldId::loopOut);
+        },
+        [this] { endDrag(FieldId::loopOut); }});
+
+    m_bpmField->setTitle("BPM");
+    m_timeSignatureField->setTitle("SIG");
+    m_positionField->setTitle("POSITION");
+    m_timeField->setTitle("TIME");
+    m_loopInField->setTitle("IN");
+    m_loopOutField->setTitle("OUT");
+
+    for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_loopInField.get(), m_loopOutField.get()})
+    {
+        field->setTitlePlacement(PositionDisplayField::TitlePlacement::leading);
+        field->setValueJustification(juce::Justification::centredLeft);
+    }
+
+    for (auto *field : {m_positionField.get(), m_timeField.get()})
+    {
+        field->setTitlePlacement(PositionDisplayField::TitlePlacement::top);
+        field->setValueJustification(juce::Justification::centred);
+    }
+
+    Helpers::addAndMakeVisible(*this, {m_bpmField.get(), m_timeSignatureField.get(), m_positionField.get(), m_timeField.get(), m_loopInField.get(), m_loopOutField.get()});
+
+    m_edit.state.addListener(this);
+    m_edit.getTransport().state.addListener(this);
+    m_themeState = m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState);
+    if (m_themeState.isValid())
+        m_themeState.addListener(this);
+
+    rebuildTempoSequenceListeners();
+    refreshFromModel();
+}
+
+PositionDisplayComponent::~PositionDisplayComponent()
+{
+    cancelPendingUpdate();
+
+    if (m_dragState.active && (m_dragState.field == FieldId::position || m_dragState.field == FieldId::time))
+        m_edit.getTransport().setUserDragging(false);
+
+    for (auto state : m_tempoItemStates)
+        state.removeListener(this);
+
+    m_edit.getTransport().state.removeListener(this);
+    m_edit.state.removeListener(this);
+
+    if (m_themeState.isValid())
+        m_themeState.removeListener(this);
 }
 
 void PositionDisplayComponent::paint(juce::Graphics &g)
@@ -66,137 +726,491 @@ void PositionDisplayComponent::paint(juce::Graphics &g)
     g.drawRoundedRectangle(area.reduced(1).toFloat(), 5.0f, 0.5f);
 }
 
-void PositionDisplayComponent::mouseDown(const juce::MouseEvent &event)
-{
-    m_mousedownPosition = event.getMouseDownPosition();
-    m_mousedownBPM = m_edit.tempoSequence.getTempos()[0]->getBpm();
-    m_mousedownBeatPosition = m_edit.tempoSequence.toBeats(m_edit.getTransport().getPosition());
-    m_mousedownTime = m_edit.getTransport().getPosition();
-    m_mousedownNumerator = m_edit.tempoSequence.getTimeSigAt(m_mousedownTime).numerator;
-    m_mousedownDenominator = m_edit.tempoSequence.getTimeSigAt(m_mousedownTime).denominator;
-    m_mousedownLoopIn = m_edit.tempoSequence.toBeats(m_edit.getTransport().getLoopRange().getStart());
-    m_mousedownLoopOut = m_edit.tempoSequence.toBeats(m_edit.getTransport().getLoopRange().getEnd());
-}
-
-void PositionDisplayComponent::mouseDrag(const juce::MouseEvent &event)
-{
-    event.source.enableUnboundedMouseMovement(true);
-
-    auto draggedDist = event.getDistanceFromDragStartY();
-    if (m_bmpRect.contains(m_mousedownPosition))
-    {
-        auto r = m_bmpRect;
-
-        auto &tempo = m_edit.tempoSequence.getTempoAt(m_mousedownTime);
-        tempo.setBpm(r.removeFromLeft(r.getWidth() / 2).contains(m_mousedownPosition) ? (int)(m_mousedownBPM - (draggedDist / 10.0)) : m_mousedownBPM - (draggedDist / 1000.0));
-        // set the Position back to the Beat Position at Mouse down
-        m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(m_mousedownBeatPosition));
-    }
-    else if (m_sigRect.contains(m_mousedownPosition))
-    {
-        auto r = m_sigRect;
-        if (r.removeFromLeft(r.getWidth() / 2).contains(m_mousedownPosition))
-            m_edit.tempoSequence.getTimeSigAt(m_mousedownTime).numerator = juce::jlimit(1, 16, m_mousedownNumerator - draggedDist);
-        else
-            m_edit.tempoSequence.getTimeSigAt(m_mousedownTime).denominator = juce::jlimit(1, 16, m_mousedownDenominator - draggedDist);
-    }
-    else if (m_barBeatTickRect.contains(m_mousedownPosition))
-    {
-
-        auto timeAtMd = m_edit.tempoSequence.toTime(m_mousedownBeatPosition);
-        te::TimecodeSnapType snapType;
-        snapType.type = te::TimecodeType::barsBeats;
-        snapType.level = 0;
-
-        auto snapedTime = snapType.roundTimeNearest(timeAtMd, m_edit.tempoSequence);
-        auto snapedBeat = m_edit.tempoSequence.toBeats(snapedTime);
-        auto r = m_barBeatTickRect;
-        auto leftRect = r.removeFromLeft(m_barBeatTickRect.getWidth() / 3);
-        auto centerRect = r.removeFromLeft(m_barBeatTickRect.getWidth() / 3);
-
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(snapedBeat - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist))));
-        else if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(snapedBeat - (tracktion::BeatDuration::fromBeats(draggedDist))));
-        else
-            m_edit.getTransport().setPosition(m_edit.tempoSequence.toTime(snapedBeat - (tracktion::BeatDuration::fromBeats((double)draggedDist / 960.0))));
-    }
-    else if (m_timeRect.contains(m_mousedownPosition))
-    {
-        auto r = m_timeRect;
-        auto leftRect = r.removeFromLeft(m_timeRect.getWidth() / 3);
-        auto centerRect = r.removeFromLeft(m_timeRect.getWidth() / 3);
-
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds(draggedDist * 60));
-        if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds(draggedDist));
-        else
-            m_edit.getTransport().setPosition(m_mousedownTime - tracktion::TimeDuration::fromSeconds((double)draggedDist / 1000));
-    }
-    else if (m_loopInrect.contains(m_mousedownPosition))
-    {
-        auto r = m_loopInrect;
-        auto leftRect = r.removeFromLeft(m_loopInrect.getWidth() / 3);
-        auto centerRect = r.removeFromLeft(m_loopInrect.getWidth() / 3);
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(m_mousedownLoopIn - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist))));
-        else if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(m_mousedownLoopIn - (tracktion::BeatDuration::fromBeats(draggedDist))));
-        else
-            m_edit.getTransport().setLoopIn(m_edit.tempoSequence.toTime(m_mousedownLoopIn - (tracktion::BeatDuration::fromBeats((double)draggedDist / 960.0))));
-    }
-    else if (m_loopOutRect.contains(m_mousedownPosition))
-    {
-        auto r = m_loopOutRect;
-        auto leftRect = r.removeFromLeft(m_loopOutRect.getWidth() / 3);
-        auto centerRect = r.removeFromLeft(m_loopOutRect.getWidth() / 3);
-
-        if (leftRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(m_mousedownLoopOut - (tracktion::BeatDuration::fromBeats(4.0 * draggedDist))));
-        else if (centerRect.contains(m_mousedownPosition))
-            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(m_mousedownLoopOut - (tracktion::BeatDuration::fromBeats(draggedDist))));
-        else
-            m_edit.getTransport().setLoopOut(m_edit.tempoSequence.toTime(m_mousedownLoopOut - (tracktion::BeatDuration::fromBeats((double)draggedDist / 960.0))));
-    }
-}
-
-void PositionDisplayComponent::mouseUp(const juce::MouseEvent &) { m_edit.getTransport().setUserDragging(false); }
-
 void PositionDisplayComponent::resized()
 {
-    auto area = getLocalBounds();
-    auto leftColumb = area.removeFromLeft(getWidth() / 4);
+    updateFieldStyles();
 
-    m_bmpRect = leftColumb.removeFromTop(leftColumb.getHeight() / 2);
-    m_sigRect = leftColumb;
+    auto area = getLocalBounds().reduced(PositionDisplayMetrics::panelOuterPaddingX,
+                                         PositionDisplayMetrics::panelOuterPaddingY);
 
-    auto rightColumb = area.removeFromRight(getWidth() / 4);
+    const auto titleFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::topLabelFontHeightRatio));
+    const auto sideValueFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::sideValueFontHeightRatio));
 
-    m_loopInrect = rightColumb.removeFromTop(rightColumb.getHeight() / 2);
-    m_loopOutRect = rightColumb;
-    m_barBeatTickRect = area.removeFromTop((getHeight() / 3) * 2);
-    m_timeRect = area;
+    auto sideLabelWidth = measureTextWidth(titleFont, "BPM") + PositionDisplayMetrics::titleWidthPadding;
+    sideLabelWidth = juce::jmax(sideLabelWidth, measureTextWidth(titleFont, "SIG") + PositionDisplayMetrics::titleWidthPadding);
+    sideLabelWidth = juce::jmax(sideLabelWidth, measureTextWidth(titleFont, "IN") + PositionDisplayMetrics::titleWidthPadding);
+    sideLabelWidth = juce::jmax(sideLabelWidth, measureTextWidth(titleFont, "OUT") + PositionDisplayMetrics::titleWidthPadding);
 
-    m_bpmLabel.setBounds(m_bmpRect);
-    m_sigLabel.setBounds(m_sigRect);
-    m_barBeatTickLabel.setBounds(m_barBeatTickRect);
-    m_timeLabel.setBounds(m_timeRect);
-    m_loopInLabel.setBounds(m_loopInrect);
-    m_loopOutLabel.setBounds(m_loopOutRect);
+    const auto leftValueWidth = juce::jmax(measureTextWidth(sideValueFont, m_snapshot.bpmText),
+                                           measureTextWidth(sideValueFont, m_snapshot.timeSignatureText));
+    const auto rightValueWidth = juce::jmax(measureTextWidth(sideValueFont, m_snapshot.loopInText),
+                                            measureTextWidth(sideValueFont, m_snapshot.loopOutText));
+
+    const auto leftColumnWidth = juce::roundToInt(sideLabelWidth + PositionDisplayMetrics::leadingLabelGap + leftValueWidth + (PositionDisplayMetrics::fieldHorizontalPadding * 2.0f));
+    const auto rightColumnWidth = juce::roundToInt(sideLabelWidth + PositionDisplayMetrics::leadingLabelGap + rightValueWidth + (PositionDisplayMetrics::fieldHorizontalPadding * 2.0f));
+    const auto minimumCenterWidth = juce::roundToInt(area.getWidth() * PositionDisplayMetrics::minimumCenterWidthRatio);
+    const auto maximumSideWidth = juce::jmax(0, (area.getWidth() - minimumCenterWidth - (PositionDisplayMetrics::panelColumnGap * 2)) / 2);
+
+    auto leftColumn = area.removeFromLeft(juce::jmin(leftColumnWidth, maximumSideWidth));
+    area.removeFromLeft(PositionDisplayMetrics::panelColumnGap);
+    auto rightColumn = area.removeFromRight(juce::jmin(rightColumnWidth, maximumSideWidth));
+    area.removeFromRight(PositionDisplayMetrics::panelColumnGap);
+    auto centerColumn = area;
+
+    const auto splitColumn = [] (juce::Rectangle<int> column)
+    {
+        auto top = column.removeFromTop((column.getHeight() - PositionDisplayMetrics::panelRowGap) / 2);
+        column.removeFromTop(PositionDisplayMetrics::panelRowGap);
+        return std::pair{top, column};
+    };
+
+    const auto [bpmBounds, timeSignatureBounds] = splitColumn(leftColumn);
+    const auto [loopInBounds, loopOutBounds] = splitColumn(rightColumn);
+    const auto [positionBounds, timeBounds] = splitColumn(centerColumn);
+
+    m_bpmField->setBounds(bpmBounds);
+    m_timeSignatureField->setBounds(timeSignatureBounds);
+    m_positionField->setBounds(positionBounds);
+    m_timeField->setBounds(timeBounds);
+    m_loopInField->setBounds(loopInBounds);
+    m_loopOutField->setBounds(loopOutBounds);
 }
 
-void PositionDisplayComponent::update()
+void PositionDisplayComponent::handleAsyncUpdate()
 {
-    updateColours();
+    if (m_needsTempoListenerRebuild)
+        rebuildTempoSequenceListeners();
 
-    const auto nt = juce::NotificationType::dontSendNotification;
-    PlayHeadHelpers::TimeCodeStrings positionStr(m_edit);
+    refreshFromModel();
+}
 
-    m_bpmLabel.setText(positionStr.bpm, nt);
-    m_sigLabel.setText(positionStr.signature, nt);
-    m_barBeatTickLabel.setText(positionStr.beats, nt);
-    m_timeLabel.setText(positionStr.time, nt);
-    m_loopInLabel.setText(positionStr.loopIn, nt);
-    m_loopOutLabel.setText(positionStr.loopOut, nt);
+void PositionDisplayComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &)
+{
+    scheduleRefresh();
+}
+
+void PositionDisplayComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &)
+{
+    scheduleRefresh(true);
+}
+
+void PositionDisplayComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int)
+{
+    scheduleRefresh(true);
+}
+
+void PositionDisplayComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int)
+{
+    scheduleRefresh(true);
+}
+
+void PositionDisplayComponent::valueTreeParentChanged(juce::ValueTree &)
+{
+    scheduleRefresh(true);
+}
+
+void PositionDisplayComponent::valueTreeRedirected(juce::ValueTree &)
+{
+    scheduleRefresh(true);
+}
+
+void PositionDisplayComponent::scheduleRefresh(bool rebuildTempoListeners)
+{
+    m_needsTempoListenerRebuild = m_needsTempoListenerRebuild || rebuildTempoListeners;
+    triggerAsyncUpdate();
+}
+
+void PositionDisplayComponent::rebuildTempoSequenceListeners()
+{
+    for (auto state : m_tempoItemStates)
+        state.removeListener(this);
+
+    m_tempoItemStates.clearQuick();
+
+    auto addObservedState = [this](juce::ValueTree state)
+    {
+        if (!state.isValid())
+            return;
+
+        state.addListener(this);
+        m_tempoItemStates.add(state);
+    };
+
+    addObservedState(m_edit.tempoSequence.getState());
+
+    for (auto *tempo : m_edit.tempoSequence.getTempos())
+        addObservedState(tempo->state);
+
+    for (auto *timeSig : m_edit.tempoSequence.getTimeSigs())
+        addObservedState(timeSig->state);
+
+    m_needsTempoListenerRebuild = false;
+}
+
+void PositionDisplayComponent::refreshFromModel()
+{
+    updateFieldStyles();
+    repaint();
+
+    const auto position = m_edit.getTransport().getPosition();
+    const auto loopRange = m_edit.getTransport().getLoopRange();
+    auto &tempo = m_edit.tempoSequence.getTempoAt(position);
+    auto &timeSignature = m_edit.tempoSequence.getTimeSigAt(position);
+
+    m_snapshot.bpm = tempo.getBpm();
+    m_snapshot.numerator = timeSignature.numerator;
+    m_snapshot.denominator = timeSignature.denominator;
+    m_snapshot.position = position;
+    m_snapshot.loopRange = loopRange;
+    m_snapshot.bpmText = formatBpm(m_snapshot.bpm);
+    m_snapshot.timeSignatureText = formatTimeSignature(m_snapshot.numerator, m_snapshot.denominator);
+    m_snapshot.positionText = formatBarsBeatsTicks(m_edit, m_snapshot.position);
+    m_snapshot.timeText = formatTime(m_snapshot.position);
+    m_snapshot.loopInText = formatBarsBeatsTicks(m_edit, loopRange.getStart());
+    m_snapshot.loopOutText = formatBarsBeatsTicks(m_edit, loopRange.getEnd());
+
+    m_bpmField->setDisplayText(m_snapshot.bpmText);
+    m_bpmField->setSegments(buildSingleSegment(m_snapshot.bpmText));
+
+    m_timeSignatureField->setDisplayText(m_snapshot.timeSignatureText);
+    m_timeSignatureField->setSegments(buildSegmentsFromDelimitedText(m_snapshot.timeSignatureText, "/"));
+
+    m_positionField->setDisplayText(m_snapshot.positionText);
+    m_positionField->setSegments(buildSegmentsFromDelimitedText(m_snapshot.positionText, "."));
+
+    m_timeField->setDisplayText(m_snapshot.timeText);
+    m_timeField->setSegments(buildSegmentsFromDelimitedText(m_snapshot.timeText, ":."));
+
+    m_loopInField->setDisplayText(m_snapshot.loopInText);
+    m_loopInField->setSegments(buildSegmentsFromDelimitedText(m_snapshot.loopInText, "."));
+
+    m_loopOutField->setDisplayText(m_snapshot.loopOutText);
+    m_loopOutField->setSegments(buildSegmentsFromDelimitedText(m_snapshot.loopOutText, "."));
+}
+
+void PositionDisplayComponent::updateFieldStyles()
+{
+    const auto textColour = m_appState.getButtonTextColour();
+    const auto highlightColour = textColour.withAlpha(0.15f);
+    const auto focusColour = textColour.withAlpha(0.7f);
+
+    const auto titleFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::topLabelFontHeightRatio));
+    const auto sideValueFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::sideValueFontHeightRatio));
+    const auto timeFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::timeValueFontHeightRatio));
+    const auto positionFont = juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * PositionDisplayMetrics::positionValueFontHeightRatio));
+
+    auto titleWidth = measureTextWidth(titleFont, "BPM") + PositionDisplayMetrics::titleWidthPadding;
+    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "SIG") + PositionDisplayMetrics::titleWidthPadding);
+    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "IN") + PositionDisplayMetrics::titleWidthPadding);
+    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "OUT") + PositionDisplayMetrics::titleWidthPadding);
+
+    for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_positionField.get(), m_timeField.get(), m_loopInField.get(), m_loopOutField.get()})
+    {
+        field->setColours(textColour, highlightColour, focusColour);
+        field->setTitleFont(titleFont);
+        field->setFixedTitleWidth(titleWidth);
+    }
+
+    m_bpmField->setFont(sideValueFont);
+    m_timeSignatureField->setFont(sideValueFont);
+    m_positionField->setFont(positionFont);
+    m_timeField->setFont(timeFont);
+    m_loopInField->setFont(sideValueFont);
+    m_loopOutField->setFont(sideValueFont);
+}
+
+PositionDisplayField &PositionDisplayComponent::fieldForId(FieldId field)
+{
+    switch (field)
+    {
+        case FieldId::bpm: return *m_bpmField;
+        case FieldId::timeSignature: return *m_timeSignatureField;
+        case FieldId::position: return *m_positionField;
+        case FieldId::time: return *m_timeField;
+        case FieldId::loopIn: return *m_loopInField;
+        case FieldId::loopOut: return *m_loopOutField;
+    }
+
+    return *m_bpmField;
+}
+
+const PositionDisplayField &PositionDisplayComponent::fieldForId(FieldId field) const
+{
+    switch (field)
+    {
+        case FieldId::bpm: return *m_bpmField;
+        case FieldId::timeSignature: return *m_timeSignatureField;
+        case FieldId::position: return *m_positionField;
+        case FieldId::time: return *m_timeField;
+        case FieldId::loopIn: return *m_loopInField;
+        case FieldId::loopOut: return *m_loopOutField;
+    }
+
+    return *m_bpmField;
+}
+
+void PositionDisplayComponent::beginDrag(FieldId field, int segmentIndex)
+{
+    m_dragState.active = true;
+    m_dragState.field = field;
+    m_dragState.segment = segmentIndex;
+    m_dragState.anchor = m_snapshot;
+
+    auto &undoManager = m_edit.getUndoManager();
+
+    switch (field)
+    {
+        case FieldId::bpm:
+            undoManager.beginNewTransaction("Adjust Tempo");
+            break;
+        case FieldId::timeSignature:
+            undoManager.beginNewTransaction("Adjust Time Signature");
+            break;
+        case FieldId::position:
+            undoManager.beginNewTransaction("Move Playhead");
+            m_edit.getTransport().setUserDragging(true);
+            break;
+        case FieldId::time:
+            undoManager.beginNewTransaction("Move Playhead");
+            m_edit.getTransport().setUserDragging(true);
+            break;
+        case FieldId::loopIn:
+            undoManager.beginNewTransaction("Adjust Loop In");
+            break;
+        case FieldId::loopOut:
+            undoManager.beginNewTransaction("Adjust Loop Out");
+            break;
+    }
+}
+
+void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
+{
+    if (!m_dragState.active || m_dragState.field != field)
+        return;
+
+    switch (field)
+    {
+        case FieldId::bpm:
+        {
+            const auto stepSize = modifiers.isShiftDown() ? 1.0 : (modifiers.isAltDown() ? 0.01 : 0.1);
+            applyTempo(m_dragState.anchor.bpm + (stepDelta * stepSize));
+            break;
+        }
+
+        case FieldId::timeSignature:
+        {
+            if (segmentIndex == 0)
+            {
+                const auto stepSize = modifiers.isShiftDown() ? 4 : 1;
+                applyTimeSignature(juce::jlimit(1, 64, m_dragState.anchor.numerator + (stepDelta * stepSize)), m_dragState.anchor.denominator);
+            }
+            else
+            {
+                const auto startIndex = getDenominatorIndex(m_dragState.anchor.denominator);
+                applyTimeSignature(m_dragState.anchor.numerator, getDenominatorForIndex(startIndex + stepDelta));
+            }
+            break;
+        }
+
+        case FieldId::position:
+        case FieldId::loopIn:
+        case FieldId::loopOut:
+        {
+            const auto anchorTime = field == FieldId::position ? m_dragState.anchor.position
+                                                               : (field == FieldId::loopIn ? m_dragState.anchor.loopRange.getStart()
+                                                                                           : m_dragState.anchor.loopRange.getEnd());
+
+            const auto partValues = getBarsBeatsTicksParts(m_edit, anchorTime);
+            const auto multiplier = modifiers.isShiftDown() ? (segmentIndex == 2 ? 10 : 4) : 1;
+
+            int newValue = 0;
+            int formatPart = 0;
+
+            if (segmentIndex == 0)
+            {
+                newValue = partValues.bar + (stepDelta * multiplier);
+                formatPart = 2;
+            }
+            else if (segmentIndex == 1)
+            {
+                newValue = partValues.beat + (stepDelta * multiplier);
+                formatPart = 1;
+            }
+            else
+            {
+                newValue = partValues.tick + (stepDelta * multiplier);
+                formatPart = 0;
+            }
+
+            te::TimecodeDisplayFormat format(te::TimecodeType::barsBeats);
+            const auto newDuration = format.getNewTimeWithPartValue(te::TimecodeDuration::fromSecondsOnly(tracktion::TimeDuration::fromSeconds(anchorTime.inSeconds())),
+                                                                    m_edit.tempoSequence,
+                                                                    formatPart,
+                                                                    newValue,
+                                                                    false);
+            const auto newTime = clampToValidPosition(timeFromDuration(newDuration));
+
+            if (field == FieldId::position)
+                applyTransportPosition(newTime);
+            else if (field == FieldId::loopIn)
+                applyLoopIn(newTime);
+            else
+                applyLoopOut(newTime);
+
+            break;
+        }
+
+        case FieldId::time:
+        {
+            const auto anchorTime = m_dragState.anchor.position;
+            const auto showHours = tracktion::abs(anchorTime).inSeconds() >= 3600.0;
+            const auto isMilliseconds = segmentIndex == (showHours ? 3 : 2);
+            const auto unitScale = modifiers.isShiftDown() ? 10.0 : 1.0;
+
+            double secondsPerStep = 0.0;
+
+            if (showHours)
+            {
+                if (segmentIndex == 0)
+                    secondsPerStep = 3600.0;
+                else if (segmentIndex == 1)
+                    secondsPerStep = 60.0;
+                else if (segmentIndex == 2)
+                    secondsPerStep = 1.0;
+            }
+            else
+            {
+                if (segmentIndex == 0)
+                    secondsPerStep = 60.0;
+                else if (segmentIndex == 1)
+                    secondsPerStep = 1.0;
+            }
+
+            if (isMilliseconds)
+                secondsPerStep = modifiers.isAltDown() ? 0.001 : 0.01;
+            else
+                secondsPerStep *= unitScale;
+
+            applyTransportPosition(clampToValidPosition(anchorTime + tracktion::TimeDuration::fromSeconds(stepDelta * secondsPerStep)));
+            break;
+        }
+    }
+}
+
+void PositionDisplayComponent::endDrag(FieldId field)
+{
+    if (!m_dragState.active || m_dragState.field != field)
+        return;
+
+    if (field == FieldId::position || field == FieldId::time)
+        m_edit.getTransport().setUserDragging(false);
+
+    m_dragState = {};
+}
+
+bool PositionDisplayComponent::commitBpm(const juce::String &text)
+{
+    const auto bpm = parseStrictDouble(text);
+
+    if (!bpm.has_value())
+        return false;
+
+    m_edit.getUndoManager().beginNewTransaction("Set Tempo");
+    applyTempo(*bpm);
+    return true;
+}
+
+bool PositionDisplayComponent::commitTimeSignature(const juce::String &text)
+{
+    const auto timeSignature = parseTimeSignatureValue(text);
+
+    if (!timeSignature.has_value())
+        return false;
+
+    m_edit.getUndoManager().beginNewTransaction("Set Time Signature");
+    applyTimeSignature(timeSignature->first, timeSignature->second);
+    return true;
+}
+
+bool PositionDisplayComponent::commitTransportPositionFromBarsBeats(const juce::String &text)
+{
+    const auto position = parseBarsBeatsTicks(m_edit, text);
+
+    if (!position.has_value())
+        return false;
+
+    m_edit.getUndoManager().beginNewTransaction("Set Playhead Position");
+    applyTransportPosition(*position);
+    return true;
+}
+
+bool PositionDisplayComponent::commitTransportPositionFromTime(const juce::String &text)
+{
+    const auto position = parseTimeValue(text);
+
+    if (!position.has_value())
+        return false;
+
+    m_edit.getUndoManager().beginNewTransaction("Set Playhead Position");
+    applyTransportPosition(*position);
+    return true;
+}
+
+bool PositionDisplayComponent::commitLoopIn(const juce::String &text)
+{
+    const auto position = parseBarsBeatsTicks(m_edit, text);
+
+    if (!position.has_value())
+        return false;
+
+    m_edit.getUndoManager().beginNewTransaction("Set Loop In");
+    applyLoopIn(*position);
+    return true;
+}
+
+bool PositionDisplayComponent::commitLoopOut(const juce::String &text)
+{
+    const auto position = parseBarsBeatsTicks(m_edit, text);
+
+    if (!position.has_value())
+        return false;
+
+    m_edit.getUndoManager().beginNewTransaction("Set Loop Out");
+    applyLoopOut(*position);
+    return true;
+}
+
+void PositionDisplayComponent::applyTempo(double bpm)
+{
+    auto &transport = m_edit.getTransport();
+    const auto beatPosition = m_edit.tempoSequence.toBeats(transport.getPosition());
+
+    auto &tempo = m_edit.tempoSequence.getTempoAt(transport.getPosition());
+    tempo.setBpm(juce::jlimit(te::TempoSetting::minBPM, te::TempoSetting::maxBPM, bpm));
+
+    transport.setPosition(clampToValidPosition(m_edit.tempoSequence.toTime(beatPosition)));
+}
+
+void PositionDisplayComponent::applyTimeSignature(int numerator, int denominator)
+{
+    auto &timeSignature = m_edit.tempoSequence.getTimeSigAt(m_edit.getTransport().getPosition());
+    timeSignature.numerator = juce::jlimit(1, 64, numerator);
+    timeSignature.denominator = juce::jlimit(1, 64, denominator);
+}
+
+void PositionDisplayComponent::applyTransportPosition(tracktion::TimePosition position)
+{
+    m_edit.getTransport().setPosition(clampToValidPosition(position));
+}
+
+void PositionDisplayComponent::applyLoopIn(tracktion::TimePosition position)
+{
+    const auto loopOut = m_edit.getTransport().getLoopRange().getEnd();
+    m_edit.getTransport().setLoopIn(juce::jmin(clampToValidPosition(position), loopOut));
+}
+
+void PositionDisplayComponent::applyLoopOut(tracktion::TimePosition position)
+{
+    const auto loopIn = m_edit.getTransport().getLoopRange().getStart();
+    m_edit.getTransport().setLoopOut(juce::jmax(clampToValidPosition(position), loopIn));
 }

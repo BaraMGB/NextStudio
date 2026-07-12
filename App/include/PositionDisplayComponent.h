@@ -1,4 +1,3 @@
-
 /*
 
 This file is part of NextStudio.
@@ -28,33 +27,103 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace te = tracktion_engine;
 
-class PositionDisplayComponent : public juce::Component
+class PositionDisplayField;
+
+class PositionDisplayComponent : public juce::Component,
+                                 private juce::AsyncUpdater,
+                                 private juce::ValueTree::Listener
 {
 public:
     PositionDisplayComponent(te::Edit &edit, ApplicationViewState &appState);
+    ~PositionDisplayComponent() override;
 
     void paint(juce::Graphics &) override;
     void resized() override;
-    void mouseDown(const juce::MouseEvent &) override;
-    void mouseDrag(const juce::MouseEvent &) override;
-    void mouseUp(const juce::MouseEvent &) override;
-
-    void update();
 
 private:
-    void updateColours();
+    enum class FieldId
+    {
+        bpm,
+        timeSignature,
+        position,
+        time,
+        loopIn,
+        loopOut
+    };
+
+    struct DisplaySnapshot
+    {
+        double bpm{};
+        int numerator{};
+        int denominator{};
+        tracktion::TimePosition position{};
+        tracktion::TimeRange loopRange{};
+
+        juce::String bpmText;
+        juce::String timeSignatureText;
+        juce::String positionText;
+        juce::String timeText;
+        juce::String loopInText;
+        juce::String loopOutText;
+    };
+
+    struct DragState
+    {
+        bool active{false};
+        FieldId field{FieldId::bpm};
+        int segment{0};
+        DisplaySnapshot anchor{};
+    };
+
+    void handleAsyncUpdate() override;
+
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
+    void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override;
+    void valueTreeParentChanged(juce::ValueTree &) override;
+    void valueTreeRedirected(juce::ValueTree &) override;
+
+    void scheduleRefresh(bool rebuildTempoListeners = false);
+    void rebuildTempoSequenceListeners();
+    void refreshFromModel();
+    void updateFieldStyles();
+
+    PositionDisplayField &fieldForId(FieldId);
+    const PositionDisplayField &fieldForId(FieldId) const;
+
+    void beginDrag(FieldId field, int segmentIndex);
+    void updateDrag(FieldId field, int segmentIndex, int stepDelta, juce::ModifierKeys modifiers);
+    void endDrag(FieldId field);
+
+    bool commitBpm(const juce::String &text);
+    bool commitTimeSignature(const juce::String &text);
+    bool commitTransportPositionFromBarsBeats(const juce::String &text);
+    bool commitTransportPositionFromTime(const juce::String &text);
+    bool commitLoopIn(const juce::String &text);
+    bool commitLoopOut(const juce::String &text);
+
+    void applyTempo(double bpm);
+    void applyTimeSignature(int numerator, int denominator);
+    void applyTransportPosition(tracktion::TimePosition position);
+    void applyLoopIn(tracktion::TimePosition position);
+    void applyLoopOut(tracktion::TimePosition position);
 
     te::Edit &m_edit;
     ApplicationViewState &m_appState;
-    juce::Rectangle<int> m_bmpRect, m_sigRect, m_barBeatTickRect, m_timeRect, m_loopInrect, m_loopOutRect;
-    juce::Label m_bpmLabel, m_sigLabel, m_barBeatTickLabel, m_timeLabel, m_loopInLabel, m_loopOutLabel;
 
-    juce::Point<int> m_mousedownPosition;
+    std::unique_ptr<PositionDisplayField> m_bpmField;
+    std::unique_ptr<PositionDisplayField> m_timeSignatureField;
+    std::unique_ptr<PositionDisplayField> m_positionField;
+    std::unique_ptr<PositionDisplayField> m_timeField;
+    std::unique_ptr<PositionDisplayField> m_loopInField;
+    std::unique_ptr<PositionDisplayField> m_loopOutField;
 
-    double m_mousedownBPM{};
-    tracktion::TimePosition m_mousedownTime;
-    tracktion::BeatPosition m_mousedownBeatPosition, m_mousedownLoopIn, m_mousedownLoopOut;
+    juce::Array<juce::ValueTree> m_tempoItemStates;
+    juce::ValueTree m_themeState;
+    bool m_needsTempoListenerRebuild{true};
+    DisplaySnapshot m_snapshot{};
+    DragState m_dragState{};
 
-    int m_mousedownNumerator{}, m_mousedownDenominator{};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PositionDisplayComponent)
 };
