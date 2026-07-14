@@ -115,64 +115,57 @@ juce::String formatTime(tracktion::TimePosition position)
 
 std::optional<tracktion::TimePosition> parseTimeValue(const juce::String &text)
 {
-    auto trimmed = text.trim();
+    auto trimmed = text.trim().replaceCharacter(',', '.');
     const auto isNegative = trimmed.startsWithChar('-');
 
     if (isNegative)
         trimmed = trimmed.substring(1).trim();
 
-    auto timeAndMilliseconds = juce::StringArray::fromTokens(trimmed, ".", "");
-
-    if (timeAndMilliseconds.size() != 2)
+    if (trimmed.isEmpty() || trimmed.startsWithChar(':') || trimmed.endsWithChar(':') || trimmed.contains("::"))
         return {};
 
-    const auto milliseconds = parseStrictInt(timeAndMilliseconds[1]);
-    if (!milliseconds.has_value() || *milliseconds < 0 || *milliseconds > 999)
+    auto timeParts = juce::StringArray::fromTokens(trimmed, ":", "");
+
+    if (timeParts.isEmpty() || timeParts.size() > 3)
         return {};
 
-    auto timeParts = juce::StringArray::fromTokens(timeAndMilliseconds[0], ":", "");
-
-    if (timeParts.size() != 2 && timeParts.size() != 3)
+    const auto parsedLastPart = parseStrictDouble(timeParts[timeParts.size() - 1]);
+    if (!parsedLastPart.has_value() || *parsedLastPart < 0.0)
         return {};
 
-    int hours = 0;
-    int minutes = 0;
-    int seconds = 0;
+    double totalSeconds = 0.0;
 
     if (timeParts.size() == 3)
     {
         const auto parsedHours = parseStrictInt(timeParts[0]);
         const auto parsedMinutes = parseStrictInt(timeParts[1]);
-        const auto parsedSeconds = parseStrictInt(timeParts[2]);
 
-        if (!parsedHours.has_value() || !parsedMinutes.has_value() || !parsedSeconds.has_value())
+        if (!parsedHours.has_value() || !parsedMinutes.has_value())
             return {};
 
-        if (*parsedHours < 0 || *parsedMinutes < 0 || *parsedMinutes > 59 || *parsedSeconds < 0 || *parsedSeconds > 59)
+        if (*parsedHours < 0 || *parsedMinutes < 0 || *parsedMinutes > 59 || *parsedLastPart >= 60.0)
             return {};
 
-        hours = *parsedHours;
-        minutes = *parsedMinutes;
-        seconds = *parsedSeconds;
+        totalSeconds = (*parsedHours * 3600.0) + (*parsedMinutes * 60.0) + *parsedLastPart;
+    }
+    else if (timeParts.size() == 2)
+    {
+        const auto parsedMinutes = parseStrictInt(timeParts[0]);
+
+        if (!parsedMinutes.has_value())
+            return {};
+
+        if (*parsedMinutes < 0 || *parsedLastPart >= 60.0)
+            return {};
+
+        totalSeconds = (*parsedMinutes * 60.0) + *parsedLastPart;
     }
     else
     {
-        const auto parsedMinutes = parseStrictInt(timeParts[0]);
-        const auto parsedSeconds = parseStrictInt(timeParts[1]);
-
-        if (!parsedMinutes.has_value() || !parsedSeconds.has_value())
-            return {};
-
-        if (*parsedMinutes < 0 || *parsedSeconds < 0 || *parsedSeconds > 59)
-            return {};
-
-        minutes = *parsedMinutes;
-        seconds = *parsedSeconds;
+        totalSeconds = *parsedLastPart;
     }
 
-    const auto totalSeconds = (hours * 3600.0) + (minutes * 60.0) + seconds + (*milliseconds / 1000.0);
-
-    if (totalSeconds < 0.0)
+    if (!std::isfinite(totalSeconds) || totalSeconds < 0.0)
         return {};
 
     return tracktion::TimePosition::fromSeconds(isNegative ? -totalSeconds : totalSeconds);

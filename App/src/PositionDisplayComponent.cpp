@@ -47,7 +47,7 @@ static constexpr int panelOuterPaddingX = 8;
 static constexpr int panelOuterPaddingY = 6;
 static constexpr int panelColumnGap = 10;
 static constexpr int panelRowGap = 4;
-static constexpr float minimumCenterWidthRatio = 0.46f;
+static constexpr float minimumCenterWidthRatio = 0.36f;
 static constexpr float titleWidthPadding = 10.0f;
 }
 
@@ -58,12 +58,18 @@ float measureTextWidth(const juce::Font &font, const juce::String &text)
     return glyphs.getBoundingBox(0, -1, true).getWidth();
 }
 
-class PositionDisplayField : public juce::Component
+class PositionDisplayField : public juce::Component,
+                             private juce::Timer
 {
 public:
     PositionDisplayField()
     {
         setWantsKeyboardFocus(true);
+    }
+
+    ~PositionDisplayField() override
+    {
+        juce::Desktop::getInstance().removeGlobalMouseListener(this);
     }
 
     enum class TitlePlacement
@@ -131,6 +137,12 @@ public:
         if (m_selectedSegment >= static_cast<int>(m_segments.size()))
             m_selectedSegment = m_segments.empty() ? -1 : static_cast<int>(m_segments.size()) - 1;
 
+        if (m_interactionSegment >= static_cast<int>(m_segments.size()))
+            m_interactionSegment = -1;
+
+        if (m_temporaryHighlightSegment >= static_cast<int>(m_segments.size()))
+            m_temporaryHighlightSegment = -1;
+
         repaint();
     }
 
@@ -159,8 +171,10 @@ public:
         if (m_editor != nullptr)
         {
             m_editor->setColour(juce::TextEditor::textColourId, m_textColour);
-            m_editor->setColour(juce::TextEditor::highlightColourId, m_highlightColour);
-            m_editor->setColour(juce::TextEditor::outlineColourId, m_focusColour);
+            m_editor->setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+            m_editor->setColour(juce::TextEditor::highlightColourId, juce::Colours::transparentBlack);
+            m_editor->setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+            m_editor->setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
         }
 
         repaint();
@@ -190,10 +204,22 @@ public:
             g.drawFittedText(m_title, getTitleBounds().toNearestInt(), justification, 1);
         }
 
-        if (!isEditing() && m_selectedSegment >= 0 && m_selectedSegment < static_cast<int>(m_segments.size()))
+        if (!isEditing())
         {
-            g.setColour(m_highlightColour);
-            g.fillRoundedRectangle(getSegmentBounds(m_selectedSegment).expanded(4.0f, 2.0f), 4.0f);
+            int highlightedSegment = -1;
+
+            if (m_dragActive)
+                highlightedSegment = m_interactionSegment;
+            else if (m_temporaryHighlightSegment >= 0)
+                highlightedSegment = m_temporaryHighlightSegment;
+            else if (hasKeyboardFocus(true))
+                highlightedSegment = m_selectedSegment;
+
+            if (highlightedSegment >= 0 && highlightedSegment < static_cast<int>(m_segments.size()))
+            {
+                g.setColour(m_highlightColour);
+                g.fillRoundedRectangle(getSegmentBounds(highlightedSegment).expanded(4.0f, 2.0f), 4.0f);
+            }
         }
 
         if (!isEditing())
@@ -207,21 +233,39 @@ public:
     void resized() override
     {
         if (m_editor != nullptr)
-            m_editor->setBounds(getValueBounds().toNearestInt());
+            m_editor->setBounds(getEditorBounds().toNearestInt());
     }
 
     void mouseDown(const juce::MouseEvent &event) override
     {
-        if (!event.mods.isLeftButtonDown() || isEditing())
+        if (isEditing())
+        {
+            if (!m_editor->getScreenBounds().contains(event.getScreenPosition()))
+                endEditing(false);
+
+            return;
+        }
+
+        if (!event.mods.isLeftButtonDown())
             return;
 
         grabKeyboardFocus();
-        m_selectedSegment = findSegmentAt(event.position);
+        m_selectedSegment = -1;
+        m_interactionSegment = findSegmentAt(event.position);
+        m_temporaryHighlightSegment = -1;
+        stopTimer();
+
+        if (m_interactionSegment < 0)
+        {
+            repaint();
+            return;
+        }
+
         m_dragActive = true;
         m_lastDragStep = 0;
 
         if (m_callbacks.dragStarted)
-            m_callbacks.dragStarted(m_selectedSegment < 0 ? 0 : m_selectedSegment);
+            m_callbacks.dragStarted(m_interactionSegment);
 
         repaint();
     }
@@ -242,7 +286,7 @@ public:
         m_lastDragStep = stepDelta;
 
         if (m_callbacks.dragUpdated)
-            m_callbacks.dragUpdated(m_selectedSegment < 0 ? 0 : m_selectedSegment, stepDelta, event.mods);
+            m_callbacks.dragUpdated(m_interactionSegment < 0 ? 0 : m_interactionSegment, stepDelta, event.mods);
     }
 
     void mouseUp(const juce::MouseEvent &) override
@@ -252,6 +296,8 @@ public:
 
         m_dragActive = false;
         m_lastDragStep = 0;
+        showTemporaryHighlight(m_interactionSegment);
+        m_interactionSegment = -1;
 
         if (m_callbacks.dragEnded)
             m_callbacks.dragEnded();
@@ -262,20 +308,27 @@ public:
         beginEditing();
     }
 
-    void mouseWheelMove(const juce::MouseEvent &, const juce::MouseWheelDetails &wheel) override
+    void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override
     {
         if (isEditing() || m_segments.empty())
             return;
 
         grabKeyboardFocus();
+        m_selectedSegment = -1;
 
-        if (m_selectedSegment < 0)
-            m_selectedSegment = 0;
-
+        const auto segment = findSegmentAt(event.position);
         const auto step = wheel.deltaY > 0.0f ? 1 : (wheel.deltaY < 0.0f ? -1 : 0);
 
-        if (step != 0 && m_callbacks.stepped)
-            m_callbacks.stepped(m_selectedSegment, step, juce::ModifierKeys::getCurrentModifiersRealtime());
+        if (segment >= 0 && step != 0 && m_callbacks.stepped)
+        {
+            showTemporaryHighlight(segment);
+            m_callbacks.stepped(segment, step, juce::ModifierKeys::getCurrentModifiersRealtime());
+        }
+        else
+        {
+            showTemporaryHighlight(-1);
+            repaint();
+        }
     }
 
     bool keyPressed(const juce::KeyPress &key) override
@@ -329,25 +382,58 @@ public:
     }
 
 private:
+    void timerCallback() override
+    {
+        stopTimer();
+
+        if (m_temporaryHighlightSegment >= 0)
+        {
+            m_temporaryHighlightSegment = -1;
+            repaint();
+        }
+    }
+
+    void showTemporaryHighlight(int segment)
+    {
+        m_temporaryHighlightSegment = segment;
+
+        if (segment >= 0)
+        {
+            startTimer(180);
+            repaint();
+        }
+        else
+        {
+            stopTimer();
+        }
+    }
+
     void beginEditing()
     {
         if (m_callbacks.commitText == nullptr || isEditing())
             return;
 
+        stopTimer();
+        m_interactionSegment = -1;
+        m_temporaryHighlightSegment = -1;
+
         m_editor = std::make_unique<juce::TextEditor>();
         addAndMakeVisible(*m_editor);
-        m_editor->setBounds(getValueBounds().toNearestInt());
+        m_editor->setBounds(getEditorBounds().toNearestInt());
         m_editor->setFont(m_font);
         m_editor->applyFontToAllText(m_font);
-        m_editor->setJustification(m_valueJustification);
+        m_editor->setJustification(juce::Justification::centredLeft);
+        m_editor->setBorder(juce::BorderSize<int>(0, 4, 0, 4));
         m_editor->setText(m_displayText, false);
         m_editor->setColour(juce::TextEditor::textColourId, m_textColour);
         m_editor->setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
-        m_editor->setColour(juce::TextEditor::highlightColourId, m_highlightColour);
-        m_editor->setColour(juce::TextEditor::outlineColourId, m_focusColour);
+        m_editor->setColour(juce::TextEditor::highlightColourId, juce::Colours::transparentBlack);
+        m_editor->setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        m_editor->setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
         m_editor->onReturnKey = [this] { commitEditorText(); };
         m_editor->onEscapeKey = [this] { endEditing(false); };
-        m_editor->onFocusLost = [this] { commitEditorText(); };
+        m_editor->onFocusLost = [this] { endEditing(false); };
+        juce::Desktop::getInstance().addGlobalMouseListener(this);
         m_editor->grabKeyboardFocus();
         m_editor->selectAll();
         repaint();
@@ -361,6 +447,7 @@ private:
         if (!keepChanges)
             m_editor->setText(m_displayText, false);
 
+        juce::Desktop::getInstance().removeGlobalMouseListener(this);
         m_editor.reset();
         repaint();
     }
@@ -389,7 +476,7 @@ private:
             if (getSegmentBounds(i).expanded(4.0f, 2.0f).contains(position))
                 return i;
 
-        return 0;
+        return -1;
     }
 
     juce::Rectangle<float> getTitleBounds() const
@@ -459,6 +546,12 @@ private:
         return area;
     }
 
+    juce::Rectangle<float> getEditorBounds() const
+    {
+        return getValueBounds().expanded(6.0f, 2.0f)
+                              .getIntersection(getLocalBounds().toFloat().reduced(1.0f));
+    }
+
     juce::Rectangle<float> getSegmentBounds(int index) const
     {
         if (index < 0 || index >= static_cast<int>(m_segments.size()))
@@ -501,6 +594,8 @@ private:
     juce::Colour m_focusColour{juce::Colours::white.withAlpha(0.8f)};
     std::unique_ptr<juce::TextEditor> m_editor;
     int m_selectedSegment{-1};
+    int m_interactionSegment{-1};
+    int m_temporaryHighlightSegment{-1};
     bool m_dragActive{false};
     int m_lastDragStep{0};
 };
@@ -578,14 +673,19 @@ BarsBeatsTicksParts getBarsBeatsTicksParts(te::Edit &edit, tracktion::TimePositi
 
 std::optional<tracktion::TimePosition> parseBarsBeatsTicks(te::Edit &edit, const juce::String &text)
 {
-    auto parts = juce::StringArray::fromTokens(text.trim(), ".", "");
+    const auto trimmed = text.trim();
 
-    if (parts.size() != 3)
+    if (trimmed.isEmpty() || trimmed.startsWithChar('.') || trimmed.endsWithChar('.') || trimmed.contains(".."))
+        return {};
+
+    auto parts = juce::StringArray::fromTokens(trimmed, ".", "");
+
+    if (parts.isEmpty() || parts.size() > 3)
         return {};
 
     const auto bar = parseStrictInt(parts[0]);
-    const auto beat = parseStrictInt(parts[1]);
-    const auto tick = parseStrictInt(parts[2]);
+    const auto beat = parts.size() >= 2 ? parseStrictInt(parts[1]) : std::optional<int>(1);
+    const auto tick = parts.size() >= 3 ? parseStrictInt(parts[2]) : std::optional<int>(0);
 
     if (!bar.has_value() || !beat.has_value() || !tick.has_value())
         return {};
@@ -1041,7 +1141,7 @@ void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int s
     {
         case FieldId::bpm:
         {
-            const auto stepSize = modifiers.isShiftDown() ? 1.0 : (modifiers.isAltDown() ? 0.01 : 0.1);
+            const auto stepSize = modifiers.isAltDown() ? 0.01 : (modifiers.isShiftDown() ? 0.1 : 1.0);
             applyTempo(m_dragState.anchor.bpm + (stepDelta * stepSize));
             break;
         }
@@ -1050,7 +1150,7 @@ void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int s
         {
             if (segmentIndex == 0)
             {
-                const auto stepSize = modifiers.isShiftDown() ? 4 : 1;
+                const auto stepSize = modifiers.isShiftDown() ? 1 : 4;
                 applyTimeSignature(juce::jlimit(1, 64, m_dragState.anchor.numerator + (stepDelta * stepSize)), m_dragState.anchor.denominator);
             }
             else
@@ -1070,7 +1170,7 @@ void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int s
                                                                                            : m_dragState.anchor.loopRange.getEnd());
 
             const auto partValues = getBarsBeatsTicksParts(m_edit, anchorTime);
-            const auto multiplier = modifiers.isShiftDown() ? (segmentIndex == 2 ? 10 : 4) : 1;
+            const auto multiplier = modifiers.isShiftDown() ? 1 : (segmentIndex == 2 ? 10 : 4);
 
             int newValue = 0;
             int formatPart = 0;
@@ -1114,7 +1214,7 @@ void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int s
             const auto anchorTime = m_dragState.anchor.position;
             const auto showHours = tracktion::abs(anchorTime).inSeconds() >= 3600.0;
             const auto isMilliseconds = segmentIndex == (showHours ? 3 : 2);
-            const auto unitScale = modifiers.isShiftDown() ? 10.0 : 1.0;
+            const auto unitScale = modifiers.isShiftDown() ? 1.0 : 10.0;
 
             double secondsPerStep = 0.0;
 
@@ -1136,7 +1236,7 @@ void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int s
             }
 
             if (isMilliseconds)
-                secondsPerStep = modifiers.isAltDown() ? 0.001 : 0.01;
+                secondsPerStep = modifiers.isAltDown() || modifiers.isShiftDown() ? 0.001 : 0.01;
             else
                 secondsPerStep *= unitScale;
 
