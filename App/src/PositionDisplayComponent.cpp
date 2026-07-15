@@ -58,6 +58,15 @@ float measureTextWidth(const juce::Font &font, const juce::String &text)
     return glyphs.getBoundingBox(0, -1, true).getWidth();
 }
 
+juce::String makeStableWidthReference(juce::String text)
+{
+    for (int i = 0; i < text.length(); ++i)
+        if (juce::CharacterFunctions::isDigit(text[i]))
+            text = text.replaceSection(i, 1, "8");
+
+    return text;
+}
+
 class PositionDisplayField : public juce::Component,
                              private juce::Timer
 {
@@ -94,6 +103,13 @@ public:
     void setFixedTitleWidth(float width)
     {
         m_fixedTitleWidth = width;
+        resized();
+        repaint();
+    }
+
+    void setFixedValueWidth(float width)
+    {
+        m_fixedValueWidth = width;
         resized();
         repaint();
     }
@@ -492,8 +508,10 @@ private:
             const auto preferredWidth = m_fixedTitleWidth > 0.0f ? m_fixedTitleWidth
                                                                   : measureTextWidth(m_titleFont, m_title) + PositionDisplayMetrics::titleWidthPadding;
             const auto titleWidth = juce::jmin(area.getWidth() * 0.4f, juce::jmax(24.0f, preferredWidth));
+            const auto preferredValueWidth = m_fixedValueWidth > 0.0f ? m_fixedValueWidth
+                                                                       : measureTextWidth(m_font, m_displayText);
             const auto valueWidth = juce::jmin(juce::jmax(0.0f, area.getWidth() - titleWidth - PositionDisplayMetrics::leadingLabelGap),
-                                               measureTextWidth(m_font, m_displayText));
+                                               preferredValueWidth);
             const auto contentWidth = titleWidth + PositionDisplayMetrics::leadingLabelGap + valueWidth;
 
             auto contentX = area.getX();
@@ -524,7 +542,9 @@ private:
                                                                   : measureTextWidth(m_titleFont, m_title) + PositionDisplayMetrics::titleWidthPadding;
             const auto titleWidth = juce::jmin(area.getWidth() * 0.4f, juce::jmax(24.0f, preferredWidth));
             const auto maximumValueWidth = juce::jmax(0.0f, area.getWidth() - titleWidth - PositionDisplayMetrics::leadingLabelGap);
-            const auto valueWidth = juce::jmin(maximumValueWidth, measureTextWidth(m_font, m_displayText));
+            const auto preferredValueWidth = m_fixedValueWidth > 0.0f ? m_fixedValueWidth
+                                                                       : measureTextWidth(m_font, m_displayText);
+            const auto valueWidth = juce::jmin(maximumValueWidth, preferredValueWidth);
             const auto contentWidth = titleWidth + PositionDisplayMetrics::leadingLabelGap + valueWidth;
 
             auto contentX = area.getX();
@@ -534,7 +554,7 @@ private:
                 contentX = area.getRight() - contentWidth;
 
             area.setX(contentX + titleWidth + PositionDisplayMetrics::leadingLabelGap);
-            area.setWidth(m_leadingContentJustification.testFlags(juce::Justification::left) ? maximumValueWidth : valueWidth);
+            area.setWidth(valueWidth);
         }
         else
         {
@@ -589,6 +609,7 @@ private:
     juce::Justification m_valueJustification{juce::Justification::centred};
     juce::Justification m_leadingContentJustification{juce::Justification::centredLeft};
     float m_fixedTitleWidth{0.0f};
+    float m_fixedValueWidth{0.0f};
     juce::Colour m_textColour{juce::Colours::white};
     juce::Colour m_highlightColour{juce::Colours::white.withAlpha(0.15f)};
     juce::Colour m_focusColour{juce::Colours::white.withAlpha(0.8f)};
@@ -990,9 +1011,6 @@ void PositionDisplayComponent::rebuildTempoSequenceListeners()
 
 void PositionDisplayComponent::refreshFromModel()
 {
-    updateFieldStyles();
-    repaint();
-
     const auto position = m_edit.getTransport().getPosition();
     const auto loopRange = m_edit.getTransport().getLoopRange();
     auto &tempo = m_edit.tempoSequence.getTempoAt(position);
@@ -1009,6 +1027,9 @@ void PositionDisplayComponent::refreshFromModel()
     m_snapshot.timeText = formatTime(m_snapshot.position);
     m_snapshot.loopInText = formatBarsBeatsTicks(m_edit, loopRange.getStart());
     m_snapshot.loopOutText = formatBarsBeatsTicks(m_edit, loopRange.getEnd());
+
+    updateFieldStyles();
+    repaint();
 
     m_bpmField->setDisplayText(m_snapshot.bpmText);
     m_bpmField->setSegments(buildSingleSegment(m_snapshot.bpmText));
@@ -1059,6 +1080,13 @@ void PositionDisplayComponent::updateFieldStyles()
                                   + PositionDisplayMetrics::titleWidthPadding;
     m_positionField->setFixedTitleWidth(centerTitleWidth);
     m_timeField->setFixedTitleWidth(centerTitleWidth);
+
+    m_bpmField->setFixedValueWidth(measureTextWidth(sideValueFont, makeStableWidthReference(m_snapshot.bpmText.isEmpty() ? "888.88" : m_snapshot.bpmText)));
+    m_timeSignatureField->setFixedValueWidth(measureTextWidth(sideValueFont, makeStableWidthReference(m_snapshot.timeSignatureText.isEmpty() ? "8 / 8" : m_snapshot.timeSignatureText)));
+    m_positionField->setFixedValueWidth(measureTextWidth(positionFont, makeStableWidthReference(m_snapshot.positionText.isEmpty() ? "8.8.888" : m_snapshot.positionText)));
+    m_timeField->setFixedValueWidth(measureTextWidth(timeFont, makeStableWidthReference(m_snapshot.timeText.isEmpty() ? "0:00.000" : m_snapshot.timeText)));
+    m_loopInField->setFixedValueWidth(measureTextWidth(sideValueFont, makeStableWidthReference(m_snapshot.loopInText.isEmpty() ? "8.8.888" : m_snapshot.loopInText)));
+    m_loopOutField->setFixedValueWidth(measureTextWidth(sideValueFont, makeStableWidthReference(m_snapshot.loopOutText.isEmpty() ? "8.8.888" : m_snapshot.loopOutText)));
 
     m_bpmField->setFont(sideValueFont);
     m_timeSignatureField->setFont(sideValueFont);
