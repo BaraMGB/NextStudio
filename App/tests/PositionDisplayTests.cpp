@@ -81,15 +81,20 @@ void testParseTimeValue()
     REQUIRE_EQ(PositionDisplayHelpers::parseTimeValue("1:05.250")->inSeconds(), 65.25);
     REQUIRE_EQ(PositionDisplayHelpers::parseTimeValue("0:00.500")->inSeconds(), 0.5);
 
-    // Invalid component ranges must be rejected, but a leading minus (a valid
-    // negative position representation matching formatTime) is accepted.
+    // Convenient input variants are accepted even when they do not exactly
+    // match the display format.
+    REQUIRE_EQ(PositionDisplayHelpers::parseTimeValue("0:05.9999")->inSeconds(), 5.9999);
+    REQUIRE_EQ(PositionDisplayHelpers::parseTimeValue("0:05")->inSeconds(), 5.0);
+    REQUIRE_EQ(PositionDisplayHelpers::parseTimeValue("5.25")->inSeconds(), 5.25);
+    REQUIRE_EQ(PositionDisplayHelpers::parseTimeValue("1:02:03.5")->inSeconds(), 3723.5);
+    REQUIRE_EQ(PositionDisplayHelpers::parseTimeValue("0:05,25")->inSeconds(), 5.25);
+
+    // Invalid component ranges must still be rejected, but a leading minus is accepted.
     REQUIRE(! PositionDisplayHelpers::parseTimeValue("0:60.000").has_value());
-    REQUIRE(! PositionDisplayHelpers::parseTimeValue("0:05.9999").has_value());
     REQUIRE(! PositionDisplayHelpers::parseTimeValue("0:-5.000").has_value());
     REQUIRE(PositionDisplayHelpers::parseTimeValue("-0:05.000").has_value());
     REQUIRE(! PositionDisplayHelpers::parseTimeValue("abc").has_value());
     REQUIRE(! PositionDisplayHelpers::parseTimeValue("1:2:3:4.000").has_value());
-    REQUIRE(! PositionDisplayHelpers::parseTimeValue("0:05").has_value());
 }
 
 void testPositionClamping()

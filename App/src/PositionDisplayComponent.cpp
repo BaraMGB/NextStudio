@@ -856,6 +856,9 @@ PositionDisplayComponent::~PositionDisplayComponent()
     if (m_dragState.active && (m_dragState.field == FieldId::position || m_dragState.field == FieldId::time))
         m_edit.getTransport().setUserDragging(false);
 
+    if (m_dragState.undoTransactionStarted)
+        m_edit.getUndoManager().beginNewTransaction();
+
     for (auto state : m_tempoItemStates)
         state.removeListener(this);
 
@@ -1133,31 +1136,8 @@ void PositionDisplayComponent::beginDrag(FieldId field, int segmentIndex)
     m_dragState.segment = segmentIndex;
     m_dragState.anchor = m_snapshot;
 
-    auto &undoManager = m_edit.getUndoManager();
-
-    switch (field)
-    {
-        case FieldId::bpm:
-            undoManager.beginNewTransaction("Adjust Tempo");
-            break;
-        case FieldId::timeSignature:
-            undoManager.beginNewTransaction("Adjust Time Signature");
-            break;
-        case FieldId::position:
-            undoManager.beginNewTransaction("Move Playhead");
-            m_edit.getTransport().setUserDragging(true);
-            break;
-        case FieldId::time:
-            undoManager.beginNewTransaction("Move Playhead");
-            m_edit.getTransport().setUserDragging(true);
-            break;
-        case FieldId::loopIn:
-            undoManager.beginNewTransaction("Adjust Loop In");
-            break;
-        case FieldId::loopOut:
-            undoManager.beginNewTransaction("Adjust Loop Out");
-            break;
-    }
+    if (field == FieldId::position || field == FieldId::time)
+        m_edit.getTransport().setUserDragging(true);
 }
 
 void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int stepDelta, juce::ModifierKeys modifiers)
@@ -1170,21 +1150,50 @@ void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int s
         case FieldId::bpm:
         {
             const auto stepSize = modifiers.isAltDown() ? 0.01 : (modifiers.isShiftDown() ? 0.1 : 1.0);
-            applyTempo(m_dragState.anchor.bpm + (stepDelta * stepSize));
+            const auto bpm = juce::jlimit(te::TempoSetting::minBPM,
+                                         te::TempoSetting::maxBPM,
+                                         m_dragState.anchor.bpm + (stepDelta * stepSize));
+            const auto currentBpm = m_edit.tempoSequence.getTempoAt(m_edit.getTransport().getPosition()).getBpm();
+
+            if (bpm != currentBpm)
+            {
+                if (!m_dragState.undoTransactionStarted)
+                {
+                    m_edit.getUndoManager().beginNewTransaction("Adjust Tempo");
+                    m_dragState.undoTransactionStarted = true;
+                }
+
+                applyTempo(bpm);
+            }
             break;
         }
 
         case FieldId::timeSignature:
         {
+            auto numerator = m_dragState.anchor.numerator;
+            auto denominator = m_dragState.anchor.denominator;
+
             if (segmentIndex == 0)
             {
                 const auto stepSize = modifiers.isShiftDown() ? 1 : 4;
-                applyTimeSignature(juce::jlimit(1, 64, m_dragState.anchor.numerator + (stepDelta * stepSize)), m_dragState.anchor.denominator);
+                numerator = juce::jlimit(1, 64, numerator + (stepDelta * stepSize));
             }
             else
             {
-                const auto startIndex = getDenominatorIndex(m_dragState.anchor.denominator);
-                applyTimeSignature(m_dragState.anchor.numerator, getDenominatorForIndex(startIndex + stepDelta));
+                const auto startIndex = getDenominatorIndex(denominator);
+                denominator = getDenominatorForIndex(startIndex + stepDelta);
+            }
+
+            const auto &current = m_edit.tempoSequence.getTimeSigAt(m_edit.getTransport().getPosition());
+            if (numerator != current.numerator || denominator != current.denominator)
+            {
+                if (!m_dragState.undoTransactionStarted)
+                {
+                    m_edit.getUndoManager().beginNewTransaction("Adjust Time Signature");
+                    m_dragState.undoTransactionStarted = true;
+                }
+
+                applyTimeSignature(numerator, denominator);
             }
             break;
         }
@@ -1282,6 +1291,9 @@ void PositionDisplayComponent::endDrag(FieldId field)
     if (field == FieldId::position || field == FieldId::time)
         m_edit.getTransport().setUserDragging(false);
 
+    if (m_dragState.undoTransactionStarted)
+        m_edit.getUndoManager().beginNewTransaction();
+
     m_dragState = {};
 }
 
@@ -1292,8 +1304,17 @@ bool PositionDisplayComponent::commitBpm(const juce::String &text)
     if (!bpm.has_value())
         return false;
 
-    m_edit.getUndoManager().beginNewTransaction("Set Tempo");
-    applyTempo(*bpm);
+    const auto targetBpm = juce::jlimit(te::TempoSetting::minBPM, te::TempoSetting::maxBPM, *bpm);
+    const auto currentBpm = m_edit.tempoSequence.getTempoAt(m_edit.getTransport().getPosition()).getBpm();
+
+    if (targetBpm != currentBpm)
+    {
+        auto &undoManager = m_edit.getUndoManager();
+        undoManager.beginNewTransaction("Set Tempo");
+        applyTempo(targetBpm);
+        undoManager.beginNewTransaction();
+    }
+
     return true;
 }
 
@@ -1304,8 +1325,15 @@ bool PositionDisplayComponent::commitTimeSignature(const juce::String &text)
     if (!timeSignature.has_value())
         return false;
 
-    m_edit.getUndoManager().beginNewTransaction("Set Time Signature");
-    applyTimeSignature(timeSignature->first, timeSignature->second);
+    const auto &current = m_edit.tempoSequence.getTimeSigAt(m_edit.getTransport().getPosition());
+    if (timeSignature->first != current.numerator || timeSignature->second != current.denominator)
+    {
+        auto &undoManager = m_edit.getUndoManager();
+        undoManager.beginNewTransaction("Set Time Signature");
+        applyTimeSignature(timeSignature->first, timeSignature->second);
+        undoManager.beginNewTransaction();
+    }
+
     return true;
 }
 
@@ -1316,7 +1344,6 @@ bool PositionDisplayComponent::commitTransportPositionFromBarsBeats(const juce::
     if (!position.has_value())
         return false;
 
-    m_edit.getUndoManager().beginNewTransaction("Set Playhead Position");
     applyTransportPosition(*position);
     return true;
 }
@@ -1328,7 +1355,6 @@ bool PositionDisplayComponent::commitTransportPositionFromTime(const juce::Strin
     if (!position.has_value())
         return false;
 
-    m_edit.getUndoManager().beginNewTransaction("Set Playhead Position");
     applyTransportPosition(*position);
     return true;
 }
@@ -1340,7 +1366,6 @@ bool PositionDisplayComponent::commitLoopIn(const juce::String &text)
     if (!position.has_value())
         return false;
 
-    m_edit.getUndoManager().beginNewTransaction("Set Loop In");
     applyLoopIn(*position);
     return true;
 }
@@ -1352,7 +1377,6 @@ bool PositionDisplayComponent::commitLoopOut(const juce::String &text)
     if (!position.has_value())
         return false;
 
-    m_edit.getUndoManager().beginNewTransaction("Set Loop Out");
     applyLoopOut(*position);
     return true;
 }

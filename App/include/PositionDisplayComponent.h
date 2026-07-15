@@ -72,6 +72,7 @@ private:
         bool active{false};
         FieldId field{FieldId::bpm};
         int segment{0};
+        bool undoTransactionStarted{false};
         DisplaySnapshot anchor{};
     };
 
