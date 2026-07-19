@@ -200,11 +200,7 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     addAndMakeVisible(*m_modifierComponent);
 }
 
-PluginChainItemView::~PluginChainItemView()
-{
-    if (m_plugin)
-        m_plugin->hideWindowForShutdown();
-}
+PluginChainItemView::~PluginChainItemView() = default;
 
 void PluginChainItemView::paint(juce::Graphics &g)
 {
