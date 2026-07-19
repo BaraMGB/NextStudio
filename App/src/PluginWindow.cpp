@@ -90,26 +90,16 @@ std::unique_ptr<juce::Component> PluginWindow::create(te::Plugin &plugin)
 
     std::unique_ptr<PluginWindow> w;
 
-    {
-        struct Blocker : public Component
-        {
-            void inputAttemptWhenModal() override {}
-        };
-
-        Blocker blocker;
-        blocker.enterModalState(false);
-
 #if JUCE_WINDOWS && JUCE_WIN_PER_MONITOR_DPI_AWARE
-        if (!isDPIAware(plugin))
-        {
-            juce::ScopedDPIAwarenessDisabler disableDPIAwareness;
-            w = std::make_unique<PluginWindow>(plugin);
-        }
-        else
+    if (!isDPIAware(plugin))
+    {
+        juce::ScopedDPIAwarenessDisabler disableDPIAwareness;
+        w = std::make_unique<PluginWindow>(plugin);
+    }
+    else
 #endif
-        {
-            w = std::make_unique<PluginWindow>(plugin);
-        }
+    {
+        w = std::make_unique<PluginWindow>(plugin);
     }
 
     if (w == nullptr || w->getEditor() == nullptr)
