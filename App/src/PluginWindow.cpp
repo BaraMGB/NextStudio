@@ -41,7 +41,6 @@ PluginWindow::PluginWindow(te::Plugin &plug)
     setBoundsConstrained(getLocalBounds() + plugin.windowState->choosePositionForPluginWindow());
 
 #if JUCE_LINUX
-    setAlwaysOnTop(true);
     addToDesktop();
 #endif
 
