@@ -110,6 +110,15 @@ std::unique_ptr<juce::Component> PluginWindow::create(te::Plugin &plugin)
     return w;
 }
 
+void PluginWindow::userTriedToCloseWindow()
+{
+    // Keep the editor alive and only hide its host window. Destroying some native
+    // VST editors while several desktop windows are active can block the message
+    // thread. The retained window is reused by showWindowExplicitly().
+    windowState.wasExplicitlyClosed = true;
+    setVisible(false);
+}
+
 void PluginWindow::recreateEditor()
 {
     setEditor(nullptr);

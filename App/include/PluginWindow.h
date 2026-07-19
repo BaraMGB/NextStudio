@@ -112,7 +112,7 @@ public:
 
 private:
     void moved() override;
-    void userTriedToCloseWindow() override { plugin.windowState->closeWindowExplicitly(); }
+    void userTriedToCloseWindow() override;
     void closeButtonPressed() override { userTriedToCloseWindow(); }
     float getDesktopScaleFactor() const override { return 1.0f; }
 
