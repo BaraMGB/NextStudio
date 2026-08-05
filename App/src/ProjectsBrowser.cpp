@@ -34,7 +34,8 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
       m_avs(avs),
       m_newProjectButton("New", buttonStyle),
       m_loadProjectButton("Load", buttonStyle),
-      m_saveProjectButton("Save", buttonStyle)
+      m_saveProjectButton("Save", buttonStyle),
+      m_saveAsProjectButton("Save As", buttonStyle)
 {
     const auto margin = 7;
 
@@ -55,8 +56,13 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
 
     m_projectsMenu.addButton(&m_saveProjectButton);
     GUIHelpers::setDrawableOnButton(m_saveProjectButton, BinaryData::contentsaveedit_svg, juce::Colours::seagreen);
-    m_saveProjectButton.setTooltip(GUIHelpers::translate("handle projects", avs));
+    m_saveProjectButton.setTooltip("Save project");
     m_saveProjectButton.setEdgeIndent(margin);
+
+    m_projectsMenu.addButton(&m_saveAsProjectButton);
+    GUIHelpers::setDrawableOnButton(m_saveAsProjectButton, BinaryData::contentsaveedit_svg, juce::Colours::cornflowerblue);
+    m_saveAsProjectButton.setTooltip("Save project as a new file");
+    m_saveAsProjectButton.setEdgeIndent(margin);
 
     m_newProjectButton.onClick = [this]
     {
@@ -86,6 +92,12 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     {
         if (auto *main = findParentComponentOfClass<MainComponent>())
             main->saveCurrentProject();
+    };
+
+    m_saveAsProjectButton.onClick = [this]
+    {
+        if (auto *main = findParentComponentOfClass<MainComponent>())
+            main->saveCurrentProject(true);
     };
 
     setName("ProjectBrowser");

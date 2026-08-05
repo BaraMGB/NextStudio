@@ -38,6 +38,11 @@ bool isPersistentProjectFile(const juce::File &file)
     return file.getFileExtension().equalsIgnoreCase(".tracktionedit");
 }
 
+bool shouldChooseSaveTarget(const juce::File &currentFile, bool forceSaveAs)
+{
+    return forceSaveAs || !isPersistentProjectFile(currentFile);
+}
+
 LoadFileStatus inspectLoadFile(const juce::File &file, bool allowRecoveryFile)
 {
     if (!file.existsAsFile())

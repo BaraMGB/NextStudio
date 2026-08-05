@@ -862,12 +862,12 @@ void MainComponent::saveSettings()
     m_applicationState.saveState();
 }
 
-GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject()
+GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs)
 {
     if (!m_editViewState)
         return GUIHelpers::ProjectSaveResult::failed;
 
-    const auto result = GUIHelpers::saveEdit(*m_editViewState, juce::File(m_applicationState.m_projectsDir.get()));
+    const auto result = GUIHelpers::saveEdit(*m_editViewState, juce::File(m_applicationState.m_projectsDir.get()), saveAs);
     if (result == GUIHelpers::ProjectSaveResult::saved)
     {
         if (m_editComponent)

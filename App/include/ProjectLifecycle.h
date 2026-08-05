@@ -35,6 +35,7 @@ bool shouldProceedAfterUnsavedChoice(UnsavedChoice choice, SaveResult saveResult
 
 juce::File withProjectExtension(const juce::File &file);
 bool isPersistentProjectFile(const juce::File &file);
+bool shouldChooseSaveTarget(const juce::File &currentFile, bool forceSaveAs);
 
 enum class LoadFileStatus
 {

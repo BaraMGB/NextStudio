@@ -61,8 +61,13 @@ void testProjectExtensionHandling()
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.txt")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.tracktionedit")).getFileName(), juce::String("Song.tracktionedit"));
-    REQUIRE(isPersistentProjectFile(root.getChildFile("Song.TRACKTIONEDIT")));
-    REQUIRE(!isPersistentProjectFile(root.getChildFile("Song.nextTemp")));
+    const auto persistentProject = root.getChildFile("Song.TRACKTIONEDIT");
+    const auto temporaryProject = root.getChildFile("Song.nextTemp");
+    REQUIRE(isPersistentProjectFile(persistentProject));
+    REQUIRE(!isPersistentProjectFile(temporaryProject));
+    REQUIRE(!shouldChooseSaveTarget(persistentProject, false));
+    REQUIRE(shouldChooseSaveTarget(persistentProject, true));
+    REQUIRE(shouldChooseSaveTarget(temporaryProject, false));
 }
 
 void testProjectRequestState()

@@ -43,7 +43,7 @@ public:
     void selectedRowsChanged(int /*lastRowSelected*/) override;
 
 private:
-    juce::DrawableButton m_loadProjectButton, m_saveProjectButton, m_newProjectButton;
+    juce::DrawableButton m_loadProjectButton, m_saveProjectButton, m_saveAsProjectButton, m_newProjectButton;
     MenuBar m_projectsMenu;
     void sortList(int selectedID) override;
     EditViewState &m_evs;

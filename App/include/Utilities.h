@@ -196,7 +196,7 @@ void drawRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<float> area, flo
 
 using ProjectSaveResult = ProjectLifecycle::SaveResult;
 
-ProjectSaveResult saveEdit(EditViewState &evs, const juce::File &workDir);
+ProjectSaveResult saveEdit(EditViewState &evs, const juce::File &workDir, bool forceSaveAs = false);
 
 void drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<float> boundingRect, bool printDescription = false);
 
