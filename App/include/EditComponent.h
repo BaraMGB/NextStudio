@@ -104,6 +104,7 @@ public:
     TrackListView &getTrackListView() { return m_trackListView; }
     TimeLineComponent &getTimeLineComponent() { return m_timeLine; }
     void saveTempFile();
+    void projectSaved();
     void updateButtonIcons();
 
 private:

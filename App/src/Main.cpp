@@ -54,7 +54,17 @@ public:
 
     void shutdown() override { mainWindow = nullptr; }
 
-    void systemRequestedQuit() override { quit(); }
+    void systemRequestedQuit() override
+    {
+        if (mainWindow != nullptr)
+        {
+            if (auto *mc = dynamic_cast<MainComponent *>(mainWindow->getContentComponent()))
+                if (!mc->handleUnsavedEdit())
+                    return;
+        }
+
+        quit();
+    }
 
     void anotherInstanceStarted(const juce::String & /*commandLine*/) override {}
 
@@ -82,17 +92,7 @@ public:
 
         void closeButtonPressed() override
         {
-            if (auto mc = dynamic_cast<MainComponent *>(getContentComponent()))
-            {
-                if (mc->handleUnsavedEdit())
-                {
-                    JUCEApplication::getInstance()->systemRequestedQuit();
-                }
-            }
-            else
-            {
-                JUCEApplication::getInstance()->systemRequestedQuit();
-            }
+            JUCEApplication::getInstance()->systemRequestedQuit();
         }
 
     private:

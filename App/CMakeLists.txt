@@ -70,6 +70,28 @@ if(BUILD_TESTING)
 
     add_test(NAME PositionDisplayHelpers
             COMMAND NextStudioTests)
+
+    juce_add_console_app(ProjectLifecycleTests
+            PRODUCT_NAME "ProjectLifecycleTests")
+    juce_generate_juce_header(ProjectLifecycleTests)
+
+    target_sources(ProjectLifecycleTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ProjectLifecycle.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/ProjectLifecycleTests.cpp)
+
+    target_include_directories(ProjectLifecycleTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(ProjectLifecycleTests PRIVATE
+            juce::juce_core
+            juce::juce_data_structures)
+
+    target_compile_definitions(ProjectLifecycleTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME ProjectLifecycle
+            COMMAND ProjectLifecycleTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

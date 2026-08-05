@@ -181,11 +181,8 @@ void FileBrowserComponent::listBoxItemDoubleClicked(int row, const juce::MouseEv
     if (e.mods.isLeftButtonDown() && clickedFile.isDirectory())
         m_currentPathField.setDir(clickedFile);
 
-    if (e.mods.isLeftButtonDown() && clickedFile.getFileName().contains(".tracktionedit"))
-    {
-        m_projectToLoad = clickedFile;
+    if (e.mods.isLeftButtonDown() && m_projectRequest.requestLoadProject(clickedFile))
         sendChangeMessage();
-    }
 }
 
 void FileBrowserComponent::selectedRowsChanged(int) { previewSampleFile(m_contentList[m_listBox.getSelectedRow()]); }

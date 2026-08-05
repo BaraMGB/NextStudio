@@ -452,6 +452,22 @@ void EditComponent::buttonClicked(juce::Button *button)
 }
 void EditComponent::timerCallback() { saveTempFile(); }
 
+void EditComponent::projectSaved()
+{
+    ++m_autoSaveGeneration;
+    m_autoSaveQueued = false;
+    const bool autosaveStopped = m_autoSaveThreadPool.removeAllJobs(true, 5000);
+    m_editViewState.m_needAutoSave = false;
+
+    if (autosaveStopped)
+    {
+        m_autoSaveInProgress = false;
+        const auto recoveryFiles = m_edit.getTempDirectory(false).findChildFiles(juce::File::findFiles, false, "*.nextTemp");
+        for (const auto &recoveryFile : recoveryFiles)
+            recoveryFile.deleteFile();
+    }
+}
+
 void EditComponent::saveTempFile()
 {
     if (m_editViewState.m_isSavingLocked)

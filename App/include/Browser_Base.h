@@ -25,6 +25,7 @@
 #include "ApplicationViewState.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "ProjectLifecycle.h"
 
 class PathComponent
     : public juce::Component
@@ -107,7 +108,7 @@ public:
 
     juce::ListBox &getListBox() { return m_listBox; }
 
-    juce::File m_projectToLoad{};
+    ProjectLifecycle::ProjectRequestState m_projectRequest;
 
 protected:
     virtual void sortList(int selectedID) = 0;

@@ -96,6 +96,7 @@ public:
 
     void setupEdit(juce::File = {});
     bool handleUnsavedEdit();
+    GUIHelpers::ProjectSaveResult saveCurrentProject();
     void handleContentPathChangedFromSettings();
 
 private:

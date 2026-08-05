@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PluginMenu.h"
 #include "ApplicationViewState.h"
 #include "ThumbNailManager.h"
+#include "ProjectLifecycle.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 
 namespace te = tracktion_engine;
@@ -193,7 +194,9 @@ void drawChannels(juce::Graphics &g, SimpleThumbnail &thumb, juce::Rectangle<flo
 void strokeRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, bool topLeft, bool topRight, bool bottomLeft, bool bottomRight);
 void drawRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, bool topLeft, bool topRight, bool bottomLeft, bool bottomRight);
 
-void saveEdit(EditViewState &evs, const juce::File &workDir);
+using ProjectSaveResult = ProjectLifecycle::SaveResult;
+
+ProjectSaveResult saveEdit(EditViewState &evs, const juce::File &workDir);
 
 void drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<float> boundingRect, bool printDescription = false);
 

@@ -60,13 +60,14 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
 
     m_newProjectButton.onClick = [this]
     {
-        m_evs.m_edit.engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
-        m_projectToLoad = juce::File();
+        m_projectRequest.requestNewProject();
         sendChangeMessage();
     };
 
     m_loadProjectButton.onClick = [this]
     {
+        // Clearing first ensures that cancelling the chooser can never replay a stale request.
+        m_projectRequest.clear();
         juce::WildcardFileFilter wildcardFilter("*.tracktionedit", juce::String(), "Next Studio Project File");
 
         juce::FileBrowserComponent browser(juce::FileBrowserComponent::openMode + juce::FileBrowserComponent::canSelectFiles, juce::File(m_avs.m_projectsDir), &wildcardFilter, nullptr);
@@ -75,13 +76,17 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
 
         if (dialogBox.show())
         {
-            m_projectToLoad = browser.getSelectedFile(0);
-            sendChangeMessage();
+            const auto selectedFile = browser.getSelectedFile(0);
+            if (m_projectRequest.requestLoadProject(selectedFile))
+                sendChangeMessage();
         }
-        sendChangeMessage();
     };
 
-    m_saveProjectButton.onClick = [this] { GUIHelpers::saveEdit(m_evs, juce::File::createFileWithoutCheckingPath(m_avs.m_projectsDir)); };
+    m_saveProjectButton.onClick = [this]
+    {
+        if (auto *main = findParentComponentOfClass<MainComponent>())
+            main->saveCurrentProject();
+    };
 
     setName("ProjectBrowser");
     m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
@@ -180,10 +185,10 @@ void ProjectsBrowserComponent::listBoxItemClicked(int row, const juce::MouseEven
         {
         }
     }
-    else if (e.getNumberOfClicks() > 1)
+    else if (e.getNumberOfClicks() > 1 && juce::isPositiveAndBelow(row, getContentList().size()))
     {
-        m_projectToLoad = getContentList()[row];
-        sendChangeMessage();
+        if (m_projectRequest.requestLoadProject(getContentList()[row]))
+            sendChangeMessage();
     }
 }
 

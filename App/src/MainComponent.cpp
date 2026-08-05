@@ -607,16 +607,28 @@ void MainComponent::handleAsyncUpdate()
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto pro = dynamic_cast<BrowserBaseComponent *>(source))
+    if (auto *browser = dynamic_cast<BrowserBaseComponent *>(source))
     {
-        if (pro->m_projectToLoad.exists())
+        const auto request = browser->m_projectRequest.take();
+
+        juce::Component::SafePointer<MainComponent> safeThis(this);
+        if (request.action == ProjectLifecycle::ProjectAction::loadProject)
         {
-            auto editfile = pro->m_projectToLoad;
-            setupEdit(editfile);
+            juce::MessageManager::callAsync(
+                [safeThis, editFile = request.file]
+                {
+                    if (safeThis != nullptr)
+                        safeThis->setupEdit(editFile);
+                });
         }
-        else
+        else if (request.action == ProjectLifecycle::ProjectAction::newProject)
         {
-            setupEdit(juce::File());
+            juce::MessageManager::callAsync(
+                [safeThis]
+                {
+                    if (safeThis != nullptr)
+                        safeThis->setupEdit(juce::File());
+                });
         }
     }
 
@@ -715,32 +727,92 @@ void MainComponent::handleContentPathChangedFromSettings()
 
 void MainComponent::setupEdit(juce::File editFile)
 {
-    if (m_edit)
-    {
-        if (!handleUnsavedEdit())
-            return;
-    }
-    if (m_tempDir.exists() && (editFile.getParentDirectory() != m_tempDir))
-        m_tempDir.deleteRecursively();
-
     m_tempDir.createDirectory();
 
     const bool isNewEdit = (editFile == juce::File());
+    const bool isRecoveryEdit = !isNewEdit && editFile.getParentDirectory() == m_tempDir;
+
+    if (!isNewEdit)
+    {
+        const auto loadStatus = ProjectLifecycle::inspectLoadFile(editFile, isRecoveryEdit);
+        if (loadStatus != ProjectLifecycle::LoadFileStatus::valid)
+        {
+            juce::String reason;
+            switch (loadStatus)
+            {
+            case ProjectLifecycle::LoadFileStatus::missing: reason = "The selected project file no longer exists."; break;
+            case ProjectLifecycle::LoadFileStatus::unsupportedExtension: reason = "The selected file is not a supported project file."; break;
+            case ProjectLifecycle::LoadFileStatus::empty: reason = "The selected project file is empty."; break;
+            case ProjectLifecycle::LoadFileStatus::invalidData: reason = "The selected project file is damaged or invalid."; break;
+            case ProjectLifecycle::LoadFileStatus::valid: break;
+            }
+
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::AlertWindow::WarningIcon,
+                "Project could not be loaded",
+                reason + "\n\n" + editFile.getFullPathName());
+            return;
+        }
+    }
+
+    if (m_edit && !handleUnsavedEdit())
+        return;
 
     if (isNewEdit)
         editFile = m_tempDir.getNonexistentChildFile("autosave", ".nextTemp", false);
 
-    m_lowerRange = nullptr;
+    // Validate and construct the replacement before destroying the current project or its recovery file.
+    std::unique_ptr<te::Edit> replacementEdit;
+    try
+    {
+        replacementEdit = isNewEdit ? te::createEmptyEdit(m_engine, editFile)
+                                    : te::loadEditFromFile(m_engine, editFile);
+    }
+    catch (const std::exception &e)
+    {
+        GUIHelpers::log("ERROR: Exception while loading project: " + juce::String(e.what()));
+    }
+
+    if (!replacementEdit)
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon,
+            "Project could not be loaded",
+            "NextStudio could not read the selected project:\n\n" + editFile.getFullPathName());
+        return;
+    }
+
     m_selectionManager.deselectAll();
-    m_editComponent = nullptr;
 
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
         uiBehaviour->setFocusedEdit(nullptr);
 
-    if (editFile.existsAsFile())
-        m_edit = te::loadEditFromFile(m_engine, editFile);
-    else
-        m_edit = te::createEmptyEdit(m_engine, editFile);
+    if (m_edit)
+    {
+        m_edit->state.removeListener(this);
+        m_edit->getTransport().removeChangeListener(this);
+    }
+
+    // Destroy every object that refers to the old Edit before replacing it.
+    m_editorContainer = nullptr;
+    m_header = nullptr;
+    m_editComponent = nullptr;
+    m_lowerRange = nullptr;
+    m_sideBarBrowser = nullptr;
+    m_editViewState = nullptr;
+    m_edit = nullptr;
+
+    // A recovery project must keep its source file. For other switches, remove only old
+    // recovery snapshots; the replacement Edit may already have created other temp resources.
+    if (!isRecoveryEdit)
+    {
+        const auto oldRecoveryFiles = m_tempDir.findChildFiles(juce::File::findFiles, false, "*.nextTemp");
+        for (const auto &oldRecoveryFile : oldRecoveryFiles)
+            oldRecoveryFile.deleteFile();
+    }
+    m_tempDir.createDirectory();
+
+    m_edit = std::move(replacementEdit);
 
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
         uiBehaviour->setFocusedEdit(m_edit.get());
@@ -750,13 +822,10 @@ void MainComponent::setupEdit(juce::File editFile)
 
     m_edit->setTempDirectory(m_tempDir);
 
-    if (auto w = dynamic_cast<juce::DocumentWindow *>(getParentComponent()))
-    {
-        w->setName(editFile.getFileNameWithoutExtension());
-    }
+    if (auto *w = dynamic_cast<juce::DocumentWindow *>(getParentComponent()))
+        w->setName(isNewEdit ? "Untitled" : editFile.getFileNameWithoutExtension());
 
     m_edit->playInStopEnabled = true;
-
     m_edit->getTransport().addChangeListener(this);
 
     createTracksAndAssignInputs();
@@ -793,22 +862,55 @@ void MainComponent::saveSettings()
     m_applicationState.saveState();
 }
 
+GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject()
+{
+    if (!m_editViewState)
+        return GUIHelpers::ProjectSaveResult::failed;
+
+    const auto result = GUIHelpers::saveEdit(*m_editViewState, juce::File(m_applicationState.m_projectsDir.get()));
+    if (result == GUIHelpers::ProjectSaveResult::saved)
+    {
+        if (m_editComponent)
+            m_editComponent->projectSaved();
+
+        const auto projectFile = m_edit->editFileRetriever ? m_edit->editFileRetriever() : juce::File{};
+        if (auto *w = dynamic_cast<juce::DocumentWindow *>(getParentComponent()))
+            w->setName(projectFile.getFileNameWithoutExtension());
+
+        if (m_sideBarBrowser)
+            m_sideBarBrowser->refreshBrowsersFromAppState();
+    }
+
+    return result;
+}
+
 bool MainComponent::handleUnsavedEdit()
 {
     if (m_edit->hasChangedSinceSaved())
     {
-        auto result = juce::AlertWindow::showYesNoCancelBox(juce::AlertWindow::QuestionIcon, "Unsaved Project", "Do you want to save the project?", "Yes", "No", "Cancel");
+        const auto result = juce::AlertWindow::showYesNoCancelBox(
+            juce::AlertWindow::QuestionIcon,
+            "Unsaved Project",
+            "Do you want to save the project?",
+            "Yes",
+            "No",
+            "Cancel");
+
         switch (result)
         {
         case 1:
-            GUIHelpers::saveEdit(m_editComponent->getEditViewState(), juce::File::createFileWithoutCheckingPath(m_applicationState.m_workDir));
-            return true;
+            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(
+                ProjectLifecycle::UnsavedChoice::save,
+                saveCurrentProject());
         case 2:
-            return true;
+            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(
+                ProjectLifecycle::UnsavedChoice::discard,
+                GUIHelpers::ProjectSaveResult::cancelled);
         case 3:
-            // cancel
         default:
-            return false;
+            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(
+                ProjectLifecycle::UnsavedChoice::cancel,
+                GUIHelpers::ProjectSaveResult::cancelled);
         }
     }
     return true;

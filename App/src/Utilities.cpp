@@ -644,26 +644,67 @@ juce::Image GUIHelpers::drawableToImage(const juce::Drawable &drawable, float ta
 
 //--------------------------------------
 
-void GUIHelpers::saveEdit(EditViewState &evs, const juce::File &workDir)
+GUIHelpers::ProjectSaveResult GUIHelpers::saveEdit(EditViewState &evs, const juce::File &workDir)
 {
+    const auto currentFile = evs.m_edit.editFileRetriever ? evs.m_edit.editFileRetriever() : juce::File{};
+    const bool hasPersistentProjectFile = ProjectLifecycle::isPersistentProjectFile(currentFile);
+    auto targetFile = currentFile;
 
-    juce::WildcardFileFilter wildcardFilter("*.tracktionedit", juce::String(), "Next Studio Project File");
-
-    juce::FileBrowserComponent browser(juce::FileBrowserComponent::saveMode + juce::FileBrowserComponent::canSelectFiles, workDir, &wildcardFilter, nullptr);
-
-    juce::FileChooserDialogBox dialogBox("Save the project", "Please choose some kind of file that you want to save...", browser, true, juce::Colours::black);
-
-    if (dialogBox.show())
+    if (!hasPersistentProjectFile)
     {
-        juce::File selectedFile = browser.getSelectedFile(0).withFileExtension(".tracktionedit");
-        evs.m_editName = selectedFile.getFileNameWithoutExtension();
+        juce::WildcardFileFilter wildcardFilter("*.tracktionedit", juce::String(), "Next Studio Project File");
+        juce::FileBrowserComponent browser(juce::FileBrowserComponent::saveMode + juce::FileBrowserComponent::canSelectFiles, workDir, &wildcardFilter, nullptr);
 
-        auto cf = evs.m_edit.editFileRetriever();
-        EngineHelpers::refreshRelativePathsToNewEditFile(evs, selectedFile);
-        te::EditFileOperations(evs.m_edit).writeToFile(selectedFile, false);
-        EngineHelpers::refreshRelativePathsToNewEditFile(evs, cf);
-        evs.m_edit.sendSourceFileUpdate();
+        // Overwrite checking is performed below, after the required extension has been added.
+        juce::FileChooserDialogBox dialogBox("Save the project", "Please choose a project file to save...", browser, false, juce::Colours::black);
+
+        if (!dialogBox.show())
+            return ProjectSaveResult::cancelled;
+
+        targetFile = ProjectLifecycle::withProjectExtension(browser.getSelectedFile(0));
+        if (targetFile == juce::File() || targetFile.isDirectory())
+            return ProjectSaveResult::failed;
+
+        if (targetFile.existsAsFile())
+        {
+            const auto overwrite = juce::AlertWindow::showOkCancelBox(
+                juce::AlertWindow::WarningIcon,
+                "File already exists",
+                "The project already exists:\n\n" + targetFile.getFullPathName() + "\n\nDo you want to overwrite it?",
+                "Overwrite",
+                "Cancel");
+
+            if (!overwrite)
+                return ProjectSaveResult::cancelled;
+        }
     }
+
+    const auto oldName = evs.m_editName.get();
+    const bool isSaveAs = targetFile != currentFile;
+
+    if (isSaveAs)
+        EngineHelpers::refreshRelativePathsToNewEditFile(evs, targetFile);
+
+    evs.m_editName = targetFile.getFileNameWithoutExtension();
+    const bool wasWritten = te::EditFileOperations(evs.m_edit).writeToFile(targetFile, false);
+
+    if (!wasWritten)
+    {
+        if (isSaveAs)
+            EngineHelpers::refreshRelativePathsToNewEditFile(evs, currentFile);
+
+        evs.m_editName = oldName;
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon,
+            "Project could not be saved",
+            "NextStudio could not write the project to:\n\n" + targetFile.getFullPathName());
+        return ProjectSaveResult::failed;
+    }
+
+    evs.m_edit.resetChangedStatus();
+    evs.m_needAutoSave = false;
+    evs.m_edit.sendSourceFileUpdate();
+    return ProjectSaveResult::saved;
 }
 
 double GUIHelpers::getIntervalBeatsOfSnap(int snapLevel, int numBeatsPerBar)
