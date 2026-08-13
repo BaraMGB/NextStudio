@@ -203,6 +203,18 @@ void DrumPadGridComponent::resized()
     }
 }
 
+void DrumPadGridComponent::setSelectedPad(int padIndex)
+{
+    if (padIndex < 0 || padIndex >= m_pads.size())
+        return;
+
+    if (m_selectedPadIndex >= 0 && m_selectedPadIndex < m_pads.size())
+        m_pads[m_selectedPadIndex]->changeColour(m_appViewState.getButtonBackgroundColour());
+
+    m_selectedPadIndex = padIndex;
+    m_pads[m_selectedPadIndex]->changeColour(m_appViewState.getPrimeColour());
+}
+
 void DrumPadGridComponent::buttonDown(int padIndex)
 {
     if (onPadClicked)
@@ -210,13 +222,8 @@ void DrumPadGridComponent::buttonDown(int padIndex)
 
     if (padIndex != -1)
     {
-        // Update selection
-        if (m_selectedPadIndex != -1 && m_selectedPadIndex < m_pads.size())
-            m_pads[m_selectedPadIndex]->changeColour(m_appViewState.getButtonBackgroundColour());
-
-        m_selectedPadIndex = padIndex;
+        setSelectedPad(padIndex);
         int soundIndex = getSoundIndexForPad(padIndex);
-        m_pads[m_selectedPadIndex]->changeColour(m_appViewState.getPrimeColour());
 
         // Always play sound when clicked, regardless of whether it has media
         GUIHelpers::log("DrumPadComponent: Clicked pad " + juce::String(padIndex) + ", soundIndex: " + juce::String(soundIndex));

@@ -167,19 +167,21 @@ void SoundEditorPanel::setSound(int index)
 {
     if (m_thumbnail != nullptr)
     {
-        if (index != -1)
+        if (index >= 0 && index < m_samplerPlugin.getNumSounds())
         {
             soundIndex = index;
 
             gainValue.setValue(m_samplerPlugin.getSoundGainDb(soundIndex));
             panValue.setValue(m_samplerPlugin.getSoundPan(soundIndex));
+            gainSlider->updateLabel();
+            panSlider->updateLabel();
+            openEndedButton.setToggleState(m_samplerPlugin.isSoundOpenEnded(soundIndex), juce::dontSendNotification);
 
             auto audioFile = m_samplerPlugin.getSoundFile(soundIndex);
 
             if (audioFile.isValid())
             {
                 m_audioFile = std::make_unique<te::AudioFile>(audioFile);
-                openEndedButton.setToggleState(m_samplerPlugin.isSoundOpenEnded(soundIndex), juce::dontSendNotification);
 
                 m_thumbnail->setFile(audioFile);
                 m_thumbnail->setColour(m_appViewState.getTextColour());
@@ -192,6 +194,7 @@ void SoundEditorPanel::setSound(int index)
             }
             else
             {
+                m_audioFile.reset();
                 m_thumbnail->setFile(te::AudioFile(m_edit.engine, {}));
                 m_thumbnail->clearStartEndMarkers();
             }
@@ -199,6 +202,7 @@ void SoundEditorPanel::setSound(int index)
         else
         {
             soundIndex = -1;
+            m_audioFile.reset();
             m_thumbnail->setFile(te::AudioFile(m_edit.engine, {}));
             m_thumbnail->clearStartEndMarkers();
         }

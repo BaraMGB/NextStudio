@@ -57,6 +57,7 @@ public:
     void resized() override;
 
     void buttonDown(int padIndex);
+    void setSelectedPad(int padIndex);
     void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &e) override;
     void mouseUp(const juce::MouseEvent &e) override;

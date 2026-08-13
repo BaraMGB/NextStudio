@@ -19,11 +19,29 @@ DrumSamplerView::DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler)
     addAndMakeVisible(m_drumPadComponent);
     addAndMakeVisible(m_soundEditorPanel);
 
-    m_drumPadComponent.onPadClicked = [this, &sampler](int padIndex)
+    if (auto *ownerTrack = m_sampler.getOwnerTrack())
     {
-        int soundIndex = m_drumPadComponent.getSoundIndexForPad(padIndex);
+        auto trackViewState = evs.getTrackPluginChainViewState(ownerTrack->itemID);
+        auto pluginStateID = juce::Identifier("p" + m_sampler.itemID.toString().replaceCharacters("-", "_"));
+        m_viewState = trackViewState.getOrCreateChildWithName(pluginStateID, nullptr);
+    }
+
+    m_drumPadComponent.onPadClicked = [this](int padIndex)
+    {
+        const int soundIndex = m_drumPadComponent.getSoundIndexForPad(padIndex);
         m_soundEditorPanel.setSound(soundIndex);
+
+        if (m_viewState.isValid())
+            m_viewState.setProperty("selectedDrumPad", padIndex, nullptr);
     };
+
+    if (m_sampler.getNumSounds() > 0)
+    {
+        const int lastSoundIndex = juce::jmin(15, m_sampler.getNumSounds() - 1);
+        const int selectedPad = juce::jlimit(0, lastSoundIndex, static_cast<int>(m_viewState.getProperty("selectedDrumPad", 0)));
+        m_drumPadComponent.setSelectedPad(selectedPad);
+        m_soundEditorPanel.setSound(m_drumPadComponent.getSoundIndexForPad(selectedPad));
+    }
 }
 
 DrumSamplerView::~DrumSamplerView() { GUIHelpers::log("DrumSamplerView: destructor"); }

@@ -35,6 +35,7 @@ private:
 
     DrumPadGridComponent m_drumPadComponent;
     SoundEditorPanel m_soundEditorPanel;
+    juce::ValueTree m_viewState;
 
     // Drag & Drop state
     struct DragDropState
