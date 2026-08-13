@@ -1,79 +1,82 @@
-# Änderungen: NotePropertiesBar und Positionsanzeige
+# Change: Note Properties Bar and Position Display Helpers
 
-Dieses Dokument beschreibt alle Änderungen des zugehörigen Diffs. Die Änderung ergänzt den Piano-Roll um eine Eigenschaftenleiste für ausgewählte MIDI-Noten und macht die bestehende `Takt.Schlag.Tick`-Logik wiederverwendbar.
+## Summary
 
-## Neue Dateien
+This change adds exact multi-note property editing to the Piano Roll and extracts bars/beats/ticks conversion from `PositionDisplayComponent` into shared, testable helpers.
+
+It also strengthens MIDI selection lifetime, note deletion, active-track switching, and narrow-layout behavior.
+
+## New files
 
 ### `App/include/NotePropertiesBar.h`
 
-Deklariert die neue JUCE-Komponente `NotePropertiesBar` mit:
+Declares `NotePropertiesBar`, including:
 
-- den Eigenschaften Start, Ende, Dauer, Tonhöhe und Velocity,
-- einem injizierbaren Provider für Paare aus MIDI-Clip und MIDI-Note,
-- einem spezialisierten `PropertyEditor` für Tastaturbedienung, Mausrad und vertikales Scrubbing,
-- Formatierungs-, Parsing-, Validierungs- und Undo-Hilfsfunktionen,
-- Zuständen für Mehrfachauswahl, gemischte Werte und ungültige Eingaben.
+- the Start, End, Duration, Pitch, and Velocity property enum;
+- an injected provider for `(MidiClip*, MidiNote*)` selection pairs;
+- a specialized `PropertyEditor` supporting keyboard navigation, mouse wheel, and vertical scrubbing;
+- parsing, formatting, validation, mutation, and undo helpers;
+- state for multiple selection, mixed values, invalid input, focus, and layout.
 
 ### `App/src/NotePropertiesBar.cpp`
 
-Implementiert:
+Implements:
 
-- Anzeige der Anzahl ausgewählter Noten,
-- gemeinsame und gemischte Werte bei Mehrfachauswahl,
-- absolute und relative Bearbeitung aller fünf Eigenschaften,
-- Positionsumrechnung zwischen globalen und clipinternen Beats,
-- Eingabe von `Takt.Schlag.Tick`, Notenwerten, Ticks, Notennamen und MIDI-Werten,
-- Validierung vor der Änderung aller ausgewählten Noten,
-- Undo-Transaktionen mit eigenschaftsspezifischen Namen,
-- Texteingabe per Doppelklick, `Enter`/`F2`, `Tab` und `Escape`,
-- Scrubbing per Mausrad und vertikalem Drag,
-- Theme-Farben, Fehlerdarstellung und ein responsives Layout.
+- selected-note count;
+- common and mixed values across a multiple selection;
+- absolute and relative editing of all five properties;
+- global/clip-internal beat conversion;
+- bars/beats/ticks, note fraction, tick, pitch-name, MIDI-number, and velocity input;
+- validation of the complete selection before mutation;
+- semantic undo transactions;
+- text entry through double-click, Enter/F2, Tab, and Escape;
+- wheel and vertical-drag scrubbing;
+- theme colors, invalid-state display, and proportional narrow-width layout.
 
-Eine ausführliche Komponentenbeschreibung befindet sich in [NotePropertiesBar](../note-properties-bar.md).
+See [NotePropertiesBar](../components/note-properties-bar.md) for its full contract.
 
-## Geänderte Dateien
+## Modified files
 
 ### `App/include/MidiViewport.h`
 
-`MidiViewport` implementiert zusätzlich privat `juce::ChangeListener`. Der neue Callback dient dazu, Änderungen des internen `te::SelectedMidiEvents` nach außen über den bereits vorhandenen `ChangeBroadcaster` weiterzugeben.
+`MidiViewport` now privately implements `juce::ChangeListener`. The callback forwards changes from its internal `te::SelectedMidiEvents` through the viewport's existing `ChangeBroadcaster` interface.
 
 ### `App/src/MidiViewport.cpp`
 
-Änderungen an Auswahl und Lebenszyklus:
+Selection lifecycle changes:
 
-1. Der Viewport registriert sich nach dem Erzeugen eines `SelectedMidiEvents` als Change-Listener.
-2. Vor dem Ersetzen oder Zerstören des Auswahlobjekts wird der Listener entfernt.
-3. Auswahländerungen werden mit `sendChangeMessage()` an den `PianoRollEditor` weitergereicht.
-4. Beim Löschen werden die selektierten `(Clip, Note)`-Paare zuerst gesichert und anschließend deselektiert, bevor die Noten entfernt werden. Dadurch bleiben weder die Properties-Bar noch der SelectionManager an gelöschten Noten hängen.
+1. The viewport registers as a listener after creating `SelectedMidiEvents`.
+2. It removes the listener before replacing or destroying that object.
+3. Note-selection changes call the viewport's `sendChangeMessage()`, allowing `PianoRollEditor` to refresh dependent UI.
+4. Deleting selected notes first captures valid `(clip, note)` pairs, then clears selection before removing model objects. This prevents the selection manager and properties UI from retaining deleted note pointers.
 
 ### `App/include/PianoRollEditor.h`
 
-Der Piano-Roll besitzt jetzt:
+The Piano Roll now owns:
 
-- ein `NotePropertiesBar`-Member,
-- ein zusätzliches Async-Update-Flag `m_updateNoteProperties`,
-- die Layoutfunktion `getNotePropertiesRect()`,
-- Auswahlbehandlung sowohl für den globalen `SelectionManager` als auch für den `MidiViewport`.
-
-Bei Auswahländerungen wird die Properties-Bar aktualisiert. Eine aktive Texteingabe wird verworfen, wenn sich die tatsächliche Notenauswahl geändert hat.
+- a `NotePropertiesBar` member;
+- an `m_updateNoteProperties` asynchronous refresh flag;
+- `getNotePropertiesRect()` for the new layout row;
+- selection handling for both global `SelectionManager` and `MidiViewport` changes.
 
 ### `App/src/PianoRollEditor.cpp`
 
-Integration der neuen Komponente:
+Integration work:
 
-1. Die Leiste wird konstruiert und als sichtbares Child hinzugefügt.
-2. Ein `SelectionProvider` ordnet selektierte Noten ihren noch vorhandenen gecachten MIDI-Clips zu. Nicht mehr im Clipmodell enthaltene Noten werden ignoriert.
-3. Der Editor registriert und entfernt sich korrekt als Listener des globalen `SelectionManager`.
-4. Die Leiste erhält einen 30 Pixel hohen Bereich unterhalb der Kopfzeile.
-5. Timeline, Timeline-Hilfe, Keyboard, MIDI-Editor und Playhead werden entsprechend nach unten versetzt.
-6. Hintergrund und untere Trennlinie der Leiste werden mitgezeichnet.
-7. Theme-Updates rufen `NotePropertiesBar::updateColours()` auf.
-8. NOTE-Property-Änderungen und entfernte Noten planen ein asynchrones Refresh der Leiste ein.
-9. Beim Leeren oder Wechseln des Tracks wird nur das alte `SelectedMidiEvents` aus dem SelectionManager entfernt. Der alte Track wird nicht erneut ausgewählt. Danach wird die Properties-Auswahl geleert.
+1. Constructs and displays `NotePropertiesBar`.
+2. Installs a defensive selection provider that resolves selected notes only against current cached MIDI clips.
+3. Registers/removes the Piano Roll as a global selection-manager listener.
+4. Allocates a 30-pixel properties row below the tool header.
+5. Moves timeline, timeline helper, keyboard, grid, and playhead layout below the new row.
+6. Paints the row background and lower separator.
+7. Sends theme updates to `NotePropertiesBar::updateColours()`.
+8. Schedules property refreshes for NOTE changes and note removal.
+9. Clears stale note-property selection when the active track is removed or switched.
+10. Removes the old `SelectedMidiEvents` from global selection directly during track clearing rather than calling `MidiViewport::unselectAll()`, which would reselect the old track.
 
 ### `App/include/PositionDisplayHelpers.h`
 
-Die öffentliche Helper-Schnittstelle wurde um zwei wiederverwendbare Funktionen ergänzt:
+Adds two reusable functions:
 
 ```cpp
 juce::String formatBarsBeatsTicks(
@@ -87,61 +90,85 @@ std::optional<tracktion::TimePosition> parseBarsBeatsTicks(
     int ticksPerQuarterNote);
 ```
 
-Die Funktionen hängen nur von einer Tempo-Sequenz und der Tickauflösung ab und können deshalb sowohl von der Transportanzeige als auch von der `NotePropertiesBar` verwendet werden.
+The API depends only on a tempo sequence and tick resolution, allowing reuse by both the transport position display and the note properties editor.
 
 ### `App/src/PositionDisplayHelpers.cpp`
 
-Die zuvor lokale `Takt.Schlag.Tick`-Logik wurde in die gemeinsamen Helper verschoben.
+Moves bars/beats/ticks conversion into the shared helper module.
 
-Formatierung:
+Formatting behavior:
 
-- Takt und Schlag werden einsbasiert ausgegeben.
-- Ticks werden nullbasiert und dreistellig formatiert.
-- Der Tickwert wird auf den gültigen PPQ-Bereich begrenzt.
+- bar and beat are displayed one-based;
+- tick is zero-based and formatted with at least three digits;
+- tick is limited to the valid PPQ range.
 
-Parsing:
+Parsing behavior:
 
-- akzeptiert `Takt`, `Takt.Schlag` und `Takt.Schlag.Tick`,
-- ergänzt fehlenden Schlag mit `1` und fehlende Ticks mit `0`,
-- lehnt leere Komponenten, mehr als drei Komponenten, Takt/Schlag kleiner als eins sowie ungültige Ticks ab,
-- konvertiert das Ergebnis über `tracktion::tempo::Sequence` in eine `TimePosition`.
+- accepts `bar`, `bar.beat`, and `bar.beat.tick`;
+- defaults missing beat to 1 and missing tick to 0;
+- rejects empty components, more than three components, bar/beat below one, negative ticks, and ticks at or above PPQ;
+- converts through `tracktion::tempo::Sequence` to `TimePosition`.
 
 ### `App/src/PositionDisplayComponent.cpp`
 
-Die lokalen Implementierungen von `formatBarsBeatsTicks` und `parseBarsBeatsTicks` wurden entfernt. Die Komponente verwendet jetzt `PositionDisplayHelpers` für:
+Removes the component-local bars/beats/ticks parser and formatter. Shared helpers are now used for:
 
-- die aktuelle Transportposition,
-- Loop-In,
-- Loop-Out,
-- manuell eingegebene Transport- und Loop-Positionen.
+- current transport position;
+- Loop In display and commit;
+- Loop Out display and commit;
+- manually entered transport position.
 
-Das sichtbare Verhalten bleibt dabei gleich; die Logik ist nun zentralisiert und testbar.
+Visible behavior remains equivalent while conversion becomes reusable and directly testable.
 
 ### `App/tests/PositionDisplayTests.cpp`
 
-Die Helper-Tests decken jetzt zusätzlich ab:
+Adds bars/beats/ticks tests for:
 
-- Roundtrip von `6.2.240` über Parsing und Formatierung,
-- verkürzte Eingaben `6` und `6.2`,
-- zu viele Komponenten,
-- Takt null,
-- einen Tickwert außerhalb der PPQ-Auflösung.
+- round-trip of `6.2.240`;
+- abbreviated `6` and `6.2` inputs;
+- too many components;
+- bar zero;
+- tick equal to PPQ and therefore outside the valid range.
 
-## Behobene Robustheitsprobleme
+## Robustness fixes made during review
 
-Im Zuge der Integration wurden drei Probleme abgesichert:
+### Active-track switching
 
-1. **Track-Wechsel:** Das Leeren des Piano-Roll wählt den alten Track nicht mehr erneut aus.
-2. **Gelöschte Noten:** Vor dem Löschen wird die MIDI-Auswahl sauber aufgehoben; Refreshes filtern zusätzlich nicht mehr vorhandene Noten.
-3. **Schmale Fenster:** Eigenschaftsfelder werden proportional verkleinert, sodass rechte Felder nicht vollständig verschwinden.
+Calling `MidiViewport::unselectAll()` while clearing the viewport deselects MIDI events but then ensures the viewport's track is selected. During a track switch, that could reintroduce the old track and interfere with lower-range active-track synchronization.
 
-## Build und Tests
+The fix removes the viewport's `SelectedMidiEvents` directly from the selection manager during teardown and does not select the old track.
 
-Validiert mit:
+### Deleted-note selection
+
+Removing notes while they remained in `SelectedMidiEvents` could leave stale raw pointers in the property selection. Later `clipForEvent()` calls could assert or display obsolete values.
+
+The fix captures ownership pairs, clears selection, removes notes, schedules a properties refresh on NOTE child removal, and filters provider output against current clip sequences.
+
+### Narrow layout
+
+The initial field layout consumed fixed widths left-to-right. On narrow windows, Pitch and Velocity could receive zero width.
+
+The fix calculates preferred field widths and proportionally distributes all remaining width, preserving a non-exclusive share for every field.
+
+## Documentation added later
+
+The initial change introduced:
+
+- `docs/components/note-properties-bar.md` (originally at `docs/note-properties-bar.md`);
+- this change document;
+- a documentation index.
+
+The documentation was subsequently reorganized into user, component, architecture, development, and change sections and standardized on English.
+
+## Validation
+
+The implementation was validated with the portable public workflow:
 
 ```bash
-BUILD_JOBS=12 ./build.sh rd
+./build.sh rd
 ctest --test-dir autobuild/RelWithDebInfo --output-on-failure
 ```
 
-Der Build und beide vorhandenen Testprogramme laufen erfolgreich durch.
+Parallelism may be tuned for a specific machine with `BUILD_JOBS=<count>`.
+
+At the time of the change, both registered test suites passed. The `NotePropertiesBar` UI itself still relies on build/manual validation; dedicated parsing and model-application tests remain a recommended follow-up.

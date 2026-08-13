@@ -79,27 +79,46 @@ sudo apt install libasound2-dev libjack-dev libfreetype6-dev \
 ### Build
 
 ```bash
-# Quick start
-./start.sh r
-
-# Or manual build
-mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . -j4
+./build.sh r
 ```
 
-### Build Options
+The script defaults to a portable job count. Parallelism can be adjusted for the current machine:
 
 ```bash
-./start.sh d        # Debug build
-./start.sh r        # Release build
-./start.sh d -clean # Clean build
-./start.sh d -debug # Run with debugger
+BUILD_JOBS=8 ./build.sh r
 ```
+
+Build and launch with `start.sh`:
+
+```bash
+./start.sh d        # Debug build and run
+./start.sh r        # Release build and run
+./start.sh rd       # RelWithDebInfo build and run
+./start.sh d -clean # Clean CMake cache, build, and run
+./start.sh d -debug # Build and run under a debugger
+```
+
+Run the test suites with:
+
+```bash
+./test.sh rd
+```
+
+See the detailed [building](docs/development/building.md) and [testing](docs/development/testing.md) guides.
+
+## Documentation
+
+The documentation index includes user guides, architecture, component documentation, and development workflows:
+
+- [NextStudio documentation](docs/README.md)
+- [Getting started](docs/user/getting-started.md)
+- [Piano Roll](docs/user/piano-roll.md)
+- [Architecture overview](docs/architecture/overview.md)
 
 ## Development
 
 - **Issues:** [GitHub Issues](https://github.com/BaraMGB/NextStudio/issues)
+- **Source layout:** [docs/development/source-layout.md](docs/development/source-layout.md)
 - **License:** AGPL3
 
 ## Acknowledgements
