@@ -45,8 +45,18 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install nsis -y
 
+      - name: Extract version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          # Strip 'v' prefix and '-alpha' suffix to get clean version (e.g. v0.03-alpha -> 0.03)
+          VERSION=$(echo "$TAG" | sed 's/^v//' | sed 's/-.*$//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION from tag $TAG"
+
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DNEXTSTUDIO_VERSION=${{ steps.version.outputs.version || '0.0.0-dev' }}
 
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} -j 4
