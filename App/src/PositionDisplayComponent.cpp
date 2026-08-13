@@ -628,23 +628,13 @@ using PositionDisplayHelpers::parseStrictDouble;
 using PositionDisplayHelpers::formatBpm;
 using PositionDisplayHelpers::formatTimeSignature;
 using PositionDisplayHelpers::formatTime;
+using PositionDisplayHelpers::formatBarsBeatsTicks;
 using PositionDisplayHelpers::parseTimeValue;
+using PositionDisplayHelpers::parseBarsBeatsTicks;
 using PositionDisplayHelpers::clampPositionToRange;
 using PositionDisplayHelpers::parseTimeSignatureValue;
 using PositionDisplayHelpers::getDenominatorIndex;
 using PositionDisplayHelpers::getDenominatorForIndex;
-
-juce::String formatBarsBeatsTicks(te::Edit &edit, tracktion::TimePosition position)
-{
-    const auto barsBeats = edit.tempoSequence.toBarsAndBeats(position);
-    const auto bars = barsBeats.bars + 1;
-    const auto beats = barsBeats.getWholeBeats() + 1;
-    const auto ticks = juce::jlimit(0,
-                                    te::Edit::ticksPerQuarterNote - 1,
-                                    static_cast<int>(barsBeats.getFractionalBeats().inBeats() * te::Edit::ticksPerQuarterNote));
-
-    return juce::String::formatted("%d.%d.%03d", bars, beats, ticks);
-}
 
 std::vector<FieldSegment> buildSegmentsFromDelimitedText(const juce::String &text, const juce::String &delimiters)
 {
@@ -690,35 +680,6 @@ BarsBeatsTicksParts getBarsBeatsTicksParts(te::Edit &edit, tracktion::TimePositi
         juce::jlimit(0,
                      te::Edit::ticksPerQuarterNote - 1,
                      static_cast<int>(barsBeats.getFractionalBeats().inBeats() * te::Edit::ticksPerQuarterNote))};
-}
-
-std::optional<tracktion::TimePosition> parseBarsBeatsTicks(te::Edit &edit, const juce::String &text)
-{
-    const auto trimmed = text.trim();
-
-    if (trimmed.isEmpty() || trimmed.startsWithChar('.') || trimmed.endsWithChar('.') || trimmed.contains(".."))
-        return {};
-
-    auto parts = juce::StringArray::fromTokens(trimmed, ".", "");
-
-    if (parts.isEmpty() || parts.size() > 3)
-        return {};
-
-    const auto bar = parseStrictInt(parts[0]);
-    const auto beat = parts.size() >= 2 ? parseStrictInt(parts[1]) : std::optional<int>(1);
-    const auto tick = parts.size() >= 3 ? parseStrictInt(parts[2]) : std::optional<int>(0);
-
-    if (!bar.has_value() || !beat.has_value() || !tick.has_value())
-        return {};
-
-    if (*bar < 1 || *beat < 1 || *tick < 0 || *tick >= te::Edit::ticksPerQuarterNote)
-        return {};
-
-    tracktion::tempo::BarsAndBeats barsBeats;
-    barsBeats.bars = *bar - 1;
-    barsBeats.beats = tracktion::BeatDuration::fromBeats((*beat - 1) + (*tick / static_cast<double>(te::Edit::ticksPerQuarterNote)));
-
-    return edit.tempoSequence.toTime(barsBeats);
 }
 
 tracktion::TimePosition clampToValidPosition(tracktion::TimePosition position)
@@ -1026,10 +987,11 @@ void PositionDisplayComponent::refreshFromModel()
     m_snapshot.loopRange = loopRange;
     m_snapshot.bpmText = formatBpm(m_snapshot.bpm);
     m_snapshot.timeSignatureText = formatTimeSignature(m_snapshot.numerator, m_snapshot.denominator);
-    m_snapshot.positionText = formatBarsBeatsTicks(m_edit, m_snapshot.position);
+    const auto &tempoSequence = m_edit.tempoSequence.getInternalSequence();
+    m_snapshot.positionText = formatBarsBeatsTicks(tempoSequence, m_snapshot.position, te::Edit::ticksPerQuarterNote);
     m_snapshot.timeText = formatTime(m_snapshot.position);
-    m_snapshot.loopInText = formatBarsBeatsTicks(m_edit, loopRange.getStart());
-    m_snapshot.loopOutText = formatBarsBeatsTicks(m_edit, loopRange.getEnd());
+    m_snapshot.loopInText = formatBarsBeatsTicks(tempoSequence, loopRange.getStart(), te::Edit::ticksPerQuarterNote);
+    m_snapshot.loopOutText = formatBarsBeatsTicks(tempoSequence, loopRange.getEnd(), te::Edit::ticksPerQuarterNote);
 
     updateFieldStyles();
     repaint();
@@ -1339,7 +1301,7 @@ bool PositionDisplayComponent::commitTimeSignature(const juce::String &text)
 
 bool PositionDisplayComponent::commitTransportPositionFromBarsBeats(const juce::String &text)
 {
-    const auto position = parseBarsBeatsTicks(m_edit, text);
+    const auto position = parseBarsBeatsTicks(m_edit.tempoSequence.getInternalSequence(), text, te::Edit::ticksPerQuarterNote);
 
     if (!position.has_value())
         return false;
@@ -1361,7 +1323,7 @@ bool PositionDisplayComponent::commitTransportPositionFromTime(const juce::Strin
 
 bool PositionDisplayComponent::commitLoopIn(const juce::String &text)
 {
-    const auto position = parseBarsBeatsTicks(m_edit, text);
+    const auto position = parseBarsBeatsTicks(m_edit.tempoSequence.getInternalSequence(), text, te::Edit::ticksPerQuarterNote);
 
     if (!position.has_value())
         return false;
@@ -1372,7 +1334,7 @@ bool PositionDisplayComponent::commitLoopIn(const juce::String &text)
 
 bool PositionDisplayComponent::commitLoopOut(const juce::String &text)
 {
-    const auto position = parseBarsBeatsTicks(m_edit, text);
+    const auto position = parseBarsBeatsTicks(m_edit.tempoSequence.getInternalSequence(), text, te::Edit::ticksPerQuarterNote);
 
     if (!position.has_value())
         return false;

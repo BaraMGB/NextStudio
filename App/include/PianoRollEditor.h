@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "KeyboardView.h"
 #include "MidiViewport.h"
+#include "NotePropertiesBar.h"
 #include "VelocityEditor.h"
 #include "PlayHeadComponent.h"
 #include "TimeLineComponent.h"
@@ -63,8 +64,13 @@ public:
     void buttonClicked(juce::Button *button) override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override
     {
-        if (source == m_pianoRollViewPort.get())
+        if (source == &m_editViewState.m_selectionManager)
         {
+            m_notePropertiesBar.refreshFromSelection(true);
+        }
+        else if (source == m_pianoRollViewPort.get())
+        {
+            m_notePropertiesBar.refreshFromSelection(true);
 
             if (m_pianoRollViewPort->getCurrentToolType() == Tool::pointer)
                 m_selectionBtn.setToggleState(true, juce::NotificationType::dontSendNotification);
@@ -100,6 +106,7 @@ private:
 
     EditViewState &m_editViewState;
     TimeLineComponent m_timeLine;
+    NotePropertiesBar m_notePropertiesBar;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
     std::unique_ptr<MidiViewport> m_pianoRollViewPort{nullptr};
     std::unique_ptr<VelocityEditor> m_velocityEditor{nullptr};
@@ -113,13 +120,14 @@ private:
     juce::String m_NoteDescUnderCursor;
     void handleAsyncUpdate() override;
 
-    bool m_updateKeyboard{false}, m_updateVelocity{false}, m_updateNoteEditor{false}, m_updateClips{false}, m_updateTracks{false}, m_updateButtonColour{false}, m_updateHorizontalScrollbar{false};
+    bool m_updateKeyboard{false}, m_updateVelocity{false}, m_updateNoteEditor{false}, m_updateNoteProperties{false}, m_updateClips{false}, m_updateTracks{false}, m_updateButtonColour{false}, m_updateHorizontalScrollbar{false};
 
     void updateHorizontalScrollBar();
     int getScrollbarThickness() const;
 
     juce::Rectangle<int> getHeaderRect();
     juce::Rectangle<int> getToolBarRect();
+    juce::Rectangle<int> getNotePropertiesRect();
     juce::Rectangle<int> getTimeLineRect();
     juce::Rectangle<int> getTimelineHelperRect();
     juce::Rectangle<int> getKeyboardRect();

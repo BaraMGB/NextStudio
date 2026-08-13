@@ -37,6 +37,7 @@ class MidiViewport
     , public juce::ChangeBroadcaster
     , public juce::Timer
     , private juce::ValueTree::Listener
+    , private juce::ChangeListener
 {
 public:
     MidiViewport(EditViewState &, te::Track::Ptr, TimeLineComponent &timeLine);
@@ -98,6 +99,7 @@ public:
     void stopLasso();
 
 private:
+    void changeListenerCallback(juce::ChangeBroadcaster *) override;
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
 

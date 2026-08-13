@@ -26,9 +26,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 PianoRollEditor::PianoRollEditor(EditViewState &evs)
     : m_editViewState(evs),
-      m_toolBar(Alignment::Center),
       m_timeLine(evs, "PianoRoll"),
+      m_notePropertiesBar(evs),
       m_playhead(evs.m_edit, evs, m_timeLine),
+      m_toolBar(Alignment::Center),
       m_selectionBtn("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_drawBtn("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_rangeSelectBtn("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
@@ -39,7 +40,30 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
     setWantsKeyboardFocus(true);
     evs.m_edit.state.addListener(this);
     evs.m_applicationState.m_applicationStateValueTree.addListener(this);
+    evs.m_selectionManager.addChangeListener(this);
 
+    m_notePropertiesBar.setSelectionProvider([this]
+    {
+        juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> selection;
+        if (m_pianoRollViewPort == nullptr)
+            return selection;
+
+        const auto &clips = m_pianoRollViewPort->getCachedMidiClips();
+        for (auto *note : m_pianoRollViewPort->getSelectedNotes())
+        {
+            for (auto *clip : clips)
+            {
+                if (clip != nullptr && clip->getSequence().getNotes().contains(note))
+                {
+                    selection.add({clip, note});
+                    break;
+                }
+            }
+        }
+        return selection;
+    });
+
+    addAndMakeVisible(m_notePropertiesBar);
     addAndMakeVisible(m_timeLine);
     addAndMakeVisible(m_playhead);
     addAndMakeVisible(m_horizontalScrollBar);
@@ -92,6 +116,7 @@ PianoRollEditor::~PianoRollEditor()
     m_selectionBtn.removeListener(this);
     m_lassoBtn.removeListener(this);
     m_horizontalScrollBar.removeListener(this);
+    m_editViewState.m_selectionManager.removeChangeListener(this);
     m_editViewState.m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_editViewState.m_edit.state.removeListener(this);
 }
@@ -101,6 +126,7 @@ void PianoRollEditor::paint(juce::Graphics &g)
     g.fillAll();
 
     g.setColour(m_editViewState.m_applicationState.getBackgroundColour2());
+    g.fillRect(getNotePropertiesRect());
     g.fillRect(getTimeLineRect());
     g.fillRect(getTimelineHelperRect());
     g.fillRect(getKeyboardRect());
@@ -125,6 +151,7 @@ void PianoRollEditor::paintOverChildren(juce::Graphics &g)
 
     g.setColour(m_editViewState.m_applicationState.getBorderColour());
     g.fillRect(getHeaderRect().removeFromBottom(1));
+    g.fillRect(getNotePropertiesRect().removeFromBottom(1));
     g.fillRect(getTimeLineRect().removeFromBottom(1));
     g.fillRect(getTimelineHelperRect().removeFromBottom(1));
     g.fillRect(getTimelineHelperRect().removeFromRight(1));
@@ -143,6 +170,7 @@ void PianoRollEditor::resized()
     auto toolbar = getToolBarRect();
 
     m_toolBar.setBounds(toolbar);
+    m_notePropertiesBar.setBounds(getNotePropertiesRect());
 
     if (m_keyboard != nullptr)
         m_keyboard->setBounds(keyboard);
@@ -192,6 +220,7 @@ juce::Rectangle<int> PianoRollEditor::getPlayHeadRect()
 {
     auto area = getLocalBounds();
     area.removeFromTop(getHeaderRect().getHeight());
+    area.removeFromTop(getNotePropertiesRect().getHeight());
     area.removeFromLeft(m_editViewState.m_keyboardWidth);
     area.removeFromBottom(getFooterRect().getHeight());
     area.removeFromBottom(getScrollbarThickness());
@@ -332,6 +361,7 @@ bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationIn
 
 void PianoRollEditor::updateButtonColour()
 {
+    m_notePropertiesBar.updateColours();
     auto buttonColour = m_editViewState.m_applicationState.getButtonTextColour();
     GUIHelpers::setDrawableOnButton(m_selectionBtn, BinaryData::select_icon_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_drawBtn, BinaryData::pencil_svg, buttonColour);
@@ -407,12 +437,14 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
 }
 void PianoRollEditor::clearTrack()
 {
+    m_editViewState.m_selectionManager.deselect(&m_pianoRollViewPort->getSelectedEvents());
     m_timelineOverlay.reset(nullptr);
     m_pianoRollViewPort->removeChangeListener(this);
     m_pianoRollViewPort.reset(nullptr);
     m_velocityEditor.reset(nullptr);
     m_keyboard.reset(nullptr);
     m_horizontalScrollBar.setVisible(false);
+    m_notePropertiesBar.clearSelection();
     resized();
 }
 void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property)
@@ -421,6 +453,7 @@ void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropert
     {
         markAndUpdate(m_updateNoteEditor);
         markAndUpdate(m_updateVelocity);
+        markAndUpdate(m_updateNoteProperties);
     }
 
     if (treeWhosePropertyHasChanged.hasType(m_timeLine.getTimeLineID()))
@@ -444,6 +477,9 @@ void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &
     if (te::Clip::isClipState(property))
         markAndUpdate(m_updateClips);
 
+    if (property.hasType(te::IDs::NOTE))
+        markAndUpdate(m_updateNoteProperties);
+
     if (m_pianoRollViewPort != nullptr && property == m_pianoRollViewPort->getTrack()->state)
         markAndUpdate(m_updateTracks);
 }
@@ -464,6 +500,9 @@ void PianoRollEditor::handleAsyncUpdate()
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateVelocity))
         m_velocityEditor->repaint();
+
+    if (compareAndReset(m_updateNoteProperties))
+        m_notePropertiesBar.refreshFromSelection();
 
     if (compareAndReset(m_updateHorizontalScrollbar))
         updateHorizontalScrollBar();
@@ -603,10 +642,18 @@ juce::Rectangle<int> PianoRollEditor::getToolBarRect()
 
     return area;
 }
+juce::Rectangle<int> PianoRollEditor::getNotePropertiesRect()
+{
+    auto area = getLocalBounds();
+    area.removeFromTop(getHeaderRect().getHeight());
+    return area.removeFromTop(30);
+}
+
 juce::Rectangle<int> PianoRollEditor::getTimeLineRect()
 {
     auto area = getLocalBounds();
     area.removeFromTop(getHeaderRect().getHeight());
+    area.removeFromTop(getNotePropertiesRect().getHeight());
     area.removeFromLeft(m_editViewState.m_keyboardWidth);
     return area.removeFromTop(m_editViewState.m_timeLineHeight);
 }
@@ -614,6 +661,7 @@ juce::Rectangle<int> PianoRollEditor::getTimelineHelperRect()
 {
     auto area = getLocalBounds();
     area.removeFromTop(getHeaderRect().getHeight());
+    area.removeFromTop(getNotePropertiesRect().getHeight());
     area.removeFromRight(getWidth() - m_editViewState.m_keyboardWidth);
 
     return area.removeFromTop(m_editViewState.m_timeLineHeight);
@@ -622,6 +670,7 @@ juce::Rectangle<int> PianoRollEditor::getKeyboardRect()
 {
     auto area = getLocalBounds();
     area.removeFromTop(getHeaderRect().getHeight());
+    area.removeFromTop(getNotePropertiesRect().getHeight());
     area.removeFromTop(m_editViewState.m_timeLineHeight);
     area.removeFromBottom(getFooterRect().getHeight());
     area.removeFromBottom(getScrollbarThickness());
@@ -633,6 +682,7 @@ juce::Rectangle<int> PianoRollEditor::getMidiEditorRect()
 {
     auto area = getLocalBounds();
     area.removeFromTop(getHeaderRect().getHeight());
+    area.removeFromTop(getNotePropertiesRect().getHeight());
     area.removeFromTop(getTimeLineRect().getHeight());
     area.removeFromBottom(getFooterRect().getHeight());
     area.removeFromBottom(getScrollbarThickness());

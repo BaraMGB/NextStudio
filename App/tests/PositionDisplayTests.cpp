@@ -74,6 +74,25 @@ void testFormatTime()
     REQUIRE(PositionDisplayHelpers::formatTime(tracktion::TimePosition::fromSeconds(3700.0)).startsWith("01:01:40.000"));
 }
 
+void testBarsBeatsTicks()
+{
+    tracktion::tempo::Sequence sequence(
+        std::vector<tracktion::tempo::TempoChange>{{tracktion::BeatPosition(), 120.0, 0.0f}},
+        std::vector<tracktion::tempo::TimeSigChange>{{tracktion::BeatPosition(), 4, 4, false}},
+        tracktion::tempo::LengthOfOneBeat::isAlwaysACrotchet);
+
+    constexpr int ppq = 960;
+    const auto position = PositionDisplayHelpers::parseBarsBeatsTicks(sequence, "6.2.240", ppq);
+    REQUIRE(position.has_value());
+    REQUIRE_EQ(PositionDisplayHelpers::formatBarsBeatsTicks(sequence, *position, ppq), juce::String("6.2.240"));
+
+    REQUIRE(PositionDisplayHelpers::parseBarsBeatsTicks(sequence, "6", ppq).has_value());
+    REQUIRE(PositionDisplayHelpers::parseBarsBeatsTicks(sequence, "6.2", ppq).has_value());
+    REQUIRE(! PositionDisplayHelpers::parseBarsBeatsTicks(sequence, "6.2.1.000", ppq).has_value());
+    REQUIRE(! PositionDisplayHelpers::parseBarsBeatsTicks(sequence, "0.1.000", ppq).has_value());
+    REQUIRE(! PositionDisplayHelpers::parseBarsBeatsTicks(sequence, "1.1.960", ppq).has_value());
+}
+
 void testParseTimeValue()
 {
     REQUIRE(PositionDisplayHelpers::parseTimeValue("0:05.000").has_value());
@@ -139,6 +158,7 @@ int main()
     testFormatBpm();
     testFormatTimeSignature();
     testFormatTime();
+    testBarsBeatsTicks();
     testParseTimeValue();
     testPositionClamping();
     testParseTimeSignatureValue();

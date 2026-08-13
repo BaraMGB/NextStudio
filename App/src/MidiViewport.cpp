@@ -44,8 +44,17 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
 
 MidiViewport::~MidiViewport()
 {
+    if (m_selectedEvents != nullptr)
+        m_selectedEvents->removeChangeListener(this);
+
     if (m_track != nullptr)
         m_track->state.removeListener(this);
+}
+
+void MidiViewport::changeListenerCallback(juce::ChangeBroadcaster *source)
+{
+    if (source == m_selectedEvents.get())
+        sendChangeMessage();
 }
 
 void MidiViewport::paintOverChildren(juce::Graphics &g) { m_lassoTool.drawLasso(g); }
@@ -641,8 +650,18 @@ bool MidiViewport::isInLassoRange(const te::MidiClip *clip, const tracktion_engi
 
 void MidiViewport::deleteSelectedNotes()
 {
-    for (auto n : getSelectedNotes())
-        m_selectedEvents->clipForEvent(n)->getSequence().removeNote(*n, &m_evs.m_edit.getUndoManager());
+    juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> notesToDelete;
+    for (auto *note : getSelectedNotes())
+        if (auto *clip = m_selectedEvents->clipForEvent(note))
+            notesToDelete.add({clip, note});
+
+    if (notesToDelete.isEmpty())
+        return;
+
+    unselectAll();
+
+    for (const auto &[clip, note] : notesToDelete)
+        clip->getSequence().removeNote(*note, &m_evs.m_edit.getUndoManager());
 }
 
 bool MidiViewport::isSelected(tracktion_engine::MidiNote *note) { return m_selectedEvents->isSelected(note); }
@@ -794,12 +813,17 @@ juce::Range<double> MidiViewport::getLassoVerticalKeyRange()
 void MidiViewport::updateSelectedEvents()
 {
     if (m_selectedEvents != nullptr)
+    {
+        m_selectedEvents->removeChangeListener(this);
         m_selectedEvents->deselect();
+    }
 
     if (getCachedMidiClips().size() > 0)
         m_selectedEvents = std::make_unique<te::SelectedMidiEvents>(getCachedMidiClips());
     else
         m_selectedEvents = std::make_unique<te::SelectedMidiEvents>(juce::Array<te::MidiClip *>());
+
+    m_selectedEvents->addChangeListener(this);
 }
 
 void MidiViewport::refreshClipCache()

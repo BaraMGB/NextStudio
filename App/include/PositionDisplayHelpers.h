@@ -35,8 +35,14 @@ namespace PositionDisplayHelpers
     juce::String formatBpm(double bpm);
     juce::String formatTimeSignature(int numerator, int denominator);
     juce::String formatTime(tracktion::TimePosition position);
+    juce::String formatBarsBeatsTicks(const tracktion::tempo::Sequence &tempoSequence,
+                                      tracktion::TimePosition position,
+                                      int ticksPerQuarterNote);
 
     std::optional<tracktion::TimePosition> parseTimeValue(const juce::String &text);
+    std::optional<tracktion::TimePosition> parseBarsBeatsTicks(const tracktion::tempo::Sequence &tempoSequence,
+                                                               const juce::String &text,
+                                                               int ticksPerQuarterNote);
     tracktion::TimePosition clampPositionToRange(tracktion::TimePosition position,
                                                  tracktion::TimePosition maximum);
     std::optional<std::pair<int, int>> parseTimeSignatureValue(const juce::String &text);

@@ -113,6 +113,21 @@ juce::String formatTime(tracktion::TimePosition position)
     return result;
 }
 
+juce::String formatBarsBeatsTicks(const tracktion::tempo::Sequence &tempoSequence,
+                                  tracktion::TimePosition position,
+                                  int ticksPerQuarterNote)
+{
+    const auto barsBeats = tempoSequence.toBarsAndBeats(position);
+    const auto ticks = juce::jlimit(0,
+                                    ticksPerQuarterNote - 1,
+                                    static_cast<int>(barsBeats.getFractionalBeats().inBeats() * ticksPerQuarterNote));
+
+    return juce::String::formatted("%d.%d.%03d",
+                                   barsBeats.bars + 1,
+                                   barsBeats.getWholeBeats() + 1,
+                                   ticks);
+}
+
 std::optional<tracktion::TimePosition> parseTimeValue(const juce::String &text)
 {
     auto trimmed = text.trim().replaceCharacter(',', '.');
@@ -169,6 +184,33 @@ std::optional<tracktion::TimePosition> parseTimeValue(const juce::String &text)
         return {};
 
     return tracktion::TimePosition::fromSeconds(isNegative ? -totalSeconds : totalSeconds);
+}
+
+std::optional<tracktion::TimePosition> parseBarsBeatsTicks(const tracktion::tempo::Sequence &tempoSequence,
+                                                           const juce::String &text,
+                                                           int ticksPerQuarterNote)
+{
+    const auto trimmed = text.trim();
+
+    if (trimmed.isEmpty() || trimmed.startsWithChar('.') || trimmed.endsWithChar('.') || trimmed.contains(".."))
+        return {};
+
+    auto parts = juce::StringArray::fromTokens(trimmed, ".", "");
+    if (parts.isEmpty() || parts.size() > 3)
+        return {};
+
+    const auto bar = parseStrictInt(parts[0]);
+    const auto beat = parts.size() >= 2 ? parseStrictInt(parts[1]) : std::optional<int>(1);
+    const auto tick = parts.size() >= 3 ? parseStrictInt(parts[2]) : std::optional<int>(0);
+
+    if (!bar || !beat || !tick || *bar < 1 || *beat < 1 || *tick < 0 || *tick >= ticksPerQuarterNote)
+        return {};
+
+    tracktion::tempo::BarsAndBeats barsBeats;
+    barsBeats.bars = *bar - 1;
+    barsBeats.beats = tracktion::BeatDuration::fromBeats(
+        (*beat - 1) + (*tick / static_cast<double>(ticksPerQuarterNote)));
+    return tempoSequence.toTime(barsBeats);
 }
 
 tracktion::TimePosition clampPositionToRange(tracktion::TimePosition position,
