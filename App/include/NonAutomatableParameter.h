@@ -18,11 +18,14 @@ class NonAutomatableParameterComponent : public juce::Component
 public:
     NonAutomatableParameterComponent(juce::Value v, juce::String name, int rangeStart, int rangeEnd);
     void resized() override;
+    void mouseDown(const juce::MouseEvent &event) override;
 
     void updateLabel();
     void setSliderRange(double start, double end, double interval = 1.0);
 
 private:
+    void showValueEntryDialog();
+
     juce::Slider m_knob;
     juce::Label m_valueLabel;
     juce::Label m_titleLabel;

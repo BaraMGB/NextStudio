@@ -58,6 +58,7 @@ public:
 
 private:
     void updateModDepthVisibility();
+    void showValueEntryDialog();
 
     juce::Slider m_modDepthSlider;
     te::AutomatableParameter::Ptr m_automatableParameter;

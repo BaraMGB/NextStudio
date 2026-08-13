@@ -9,8 +9,11 @@
 */
 
 #include "AutomatableSlider.h"
+#include "DismissibleAlertWindow.h"
 #include "NextLookAndFeel.h"
 #include "AutomationWriteGuard.h"
+
+#include <cmath>
 
 namespace
 {
@@ -19,6 +22,7 @@ constexpr int addAutomationLaneMenuId = 2000;
 constexpr int clearAutomationMenuId = 2001;
 constexpr int midiLearnMenuId = 2100;
 constexpr int removeMidiMappingMenuId = 2101;
+constexpr int enterValueMenuId = 2200;
 }
 
 AutomatableSliderComponent::AutomatableSliderComponent(const tracktion_engine::AutomatableParameter::Ptr ap)
@@ -180,6 +184,9 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
     {
         juce::PopupMenu m;
 
+        m.addItem(enterValueMenuId, "Enter value...");
+        m.addSeparator();
+
         auto assignments = m_automatableParameter->getAssignments();
         if (!assignments.isEmpty())
         {
@@ -224,7 +231,11 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
 
         const int result = m.show();
 
-        if (m_midiLearn != nullptr && m_midiLearn->handleContextMenuResult(result, midiLearnMenuId, removeMidiMappingMenuId))
+        if (result == enterValueMenuId)
+        {
+            showValueEntryDialog();
+        }
+        else if (m_midiLearn != nullptr && m_midiLearn->handleContextMenuResult(result, midiLearnMenuId, removeMidiMappingMenuId))
         {
         }
         else if (result == addAutomationLaneMenuId)
@@ -252,6 +263,70 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
     {
         juce::Slider::mouseDown(e);
     }
+}
+
+void AutomatableSliderComponent::showValueEntryDialog()
+{
+    if (m_automatableParameter == nullptr)
+        return;
+
+    DismissibleAlertWindow dialog("Enter Parameter Value", "Enter a value for " + m_automatableParameter->getParameterName() + ":");
+    dialog.addTextEditor("value", m_automatableParameter->valueToString(m_automatableParameter->getCurrentBaseValue()));
+    dialog.addButton("Set", 1, juce::KeyPress(juce::KeyPress::returnKey));
+    dialog.addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+    // Enter modal state without focusing the AlertWindow itself, then explicitly
+    // focus the editor before starting the nested event loop.
+    dialog.enterModalState(false);
+    dialog.toFront(true);
+    if (auto *editor = dialog.getTextEditor("value"))
+    {
+        editor->setWantsKeyboardFocus(true);
+        editor->grabKeyboardFocus();
+        editor->selectAll();
+
+        // Some window managers assign focus to the newly-created top-level
+        // window after the immediate request. Retry once that activation has
+        // settled, but never disturb an editor that already has focus.
+        juce::Component::SafePointer<juce::TextEditor> safeEditor(editor);
+        const auto focusEditor = [safeEditor]
+        {
+            if (safeEditor != nullptr && !safeEditor->hasKeyboardFocus(false))
+            {
+                safeEditor->grabKeyboardFocus();
+                safeEditor->selectAll();
+            }
+        };
+        juce::Timer::callAfterDelay(50, focusEditor);
+        juce::Timer::callAfterDelay(200, focusEditor);
+    }
+
+    if (dialog.runModalLoop() != 1)
+        return;
+
+    auto text = dialog.getTextEditorContents("value").trim().replaceCharacter(',', '.');
+    const auto lowerText = text.toLowerCase();
+    const bool hasNumericValue = text.containsAnyOf("0123456789") || lowerText.contains("inf") || lowerText == "centre" || lowerText == "center";
+
+    if (!hasNumericValue)
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Invalid Value", "Please enter a numeric value.");
+        return;
+    }
+
+    auto value = m_automatableParameter->stringToValue(text);
+    if (!std::isfinite(value))
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Invalid Value", "The entered value is not valid for this parameter.");
+        return;
+    }
+
+    const auto &range = m_automatableParameter->valueRange;
+    value = range.snapToLegalValue(juce::jlimit(range.start, range.end, value));
+
+    m_automatableParameter->beginParameterChangeGesture();
+    m_automatableParameter->setParameter(value, juce::sendNotification);
+    m_automatableParameter->endParameterChangeGesture();
 }
 
 void AutomatableSliderComponent::mouseDrag(const juce::MouseEvent &e)
