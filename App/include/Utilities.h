@@ -114,7 +114,8 @@ enum KeyPressCommandIDs
     undo,
     redo,
 
-    debugOutputEdit
+    debugOutputEdit,
+    saveProject
 };
 
 namespace Helpers

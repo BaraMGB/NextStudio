@@ -207,7 +207,7 @@ void MainComponent::getAllCommands(juce::Array<juce::CommandID> &commands)
 
                                      KeyPressCommandIDs::undo, KeyPressCommandIDs::redo,
 
-                                     KeyPressCommandIDs::debugOutputEdit};
+                                     KeyPressCommandIDs::debugOutputEdit, KeyPressCommandIDs::saveProject};
 
     commands.addArray(ids);
 }
@@ -362,6 +362,10 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
     case KeyPressCommandIDs::redo:
         result.setInfo("Redo last action", "Redo", "Song Editor", 0);
         result.addDefaultKeypress(juce::KeyPress::createFromDescription("z").getKeyCode(), juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
+        break;
+    case KeyPressCommandIDs::saveProject:
+        result.setInfo("Save project", "Save the current project", "Project", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("s").getKeyCode(), juce::ModifierKeys::commandModifier);
         break;
     default:
         break;
@@ -554,6 +558,9 @@ bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         break;
     case KeyPressCommandIDs::redo:
         m_edit->redo();
+        break;
+    case KeyPressCommandIDs::saveProject:
+        saveCurrentProject();
         break;
     // case KeyPressCommandIDs::snapToBar:
     //     EngineHelpers::snapToBar(m_editComponent->getEditViewState());
