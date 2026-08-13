@@ -426,14 +426,56 @@ void MidiViewport::stopLasso()
 
 void MidiViewport::duplicateSelectedNotes()
 {
-    // auto range = m_selectedEvents->getSelectedRange ();
-    // auto rangeLength = range.getLength ().inSeconds();
-    //
-    // m_draggedTimeDelta = rangeLength;
-    //
-    // performNoteMoveOrCopy(true);
-    //
-    // cleanUpFlags();
+    if (m_selectedEvents == nullptr || m_selectedEvents->getNumSelected() == 0)
+        return;
+
+    const auto duplicateOffset = m_selectedEvents->getSelectedRange().getLength();
+    if (duplicateOffset.inSeconds() <= 0.0)
+        return;
+
+    struct NoteCopy
+    {
+        te::MidiClip *clip;
+        tracktion::BeatPosition startBeat;
+        tracktion::BeatDuration length;
+        int noteNumber;
+        int velocity;
+        int colour;
+    };
+
+    juce::Array<NoteCopy> copies;
+    for (auto *note : getSelectedNotes())
+    {
+        auto *clip = m_selectedEvents->clipForEvent(note);
+        if (clip == nullptr)
+            continue;
+
+        const auto destinationTime = note->getEditStartTime(*clip) + duplicateOffset;
+        const auto destinationBeat = clip->getContentBeatAtTime(destinationTime) + toDuration(clip->getLoopStartBeats());
+        copies.add({clip, destinationBeat, note->getLengthBeats(), note->getNoteNumber(), note->getVelocity(), note->getColour()});
+    }
+
+    if (copies.isEmpty())
+        return;
+
+    auto &undoManager = m_evs.m_edit.getUndoManager();
+    undoManager.beginNewTransaction("Duplicate MIDI Notes");
+
+    unselectAll();
+
+    // Clear all destinations before creating notes so duplicated notes cannot
+    // erase each other when several selected notes share a pitch.
+    for (const auto &copy : copies)
+        cleanUnderNote(copy.noteNumber, {copy.startBeat, copy.startBeat + copy.length}, copy.clip);
+
+    for (const auto &copy : copies)
+    {
+        auto *newNote = copy.clip->getSequence().addNote(copy.noteNumber, copy.startBeat, copy.length, copy.velocity, copy.colour, &undoManager);
+        setNoteSelected(newNote, true);
+    }
+
+    cleanUpFlags();
+    repaint();
 }
 
 void MidiViewport::snapToGrid(te::MidiNote *note, const te::MidiClip *clip) const
