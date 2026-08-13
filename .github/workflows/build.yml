@@ -99,9 +99,26 @@ jobs:
       - name: List Artifacts
         run: ls -la artifacts/
 
+      - name: Checkout Release Notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            RELEASE_NOTES.md
+
+      - name: Set Release Body
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: body
+        run: |
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
-          generate_release_notes: true
+          body: ${{ steps.body.outputs.body }}
+          draft: false
+          prerelease: true
