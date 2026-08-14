@@ -43,18 +43,19 @@ jobs:
 
       - name: Install NSIS (Windows)
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          choco install nsis -y --no-progress || true
-          # Verify NSIS is available
-          if ! command -v makensis &>/dev/null; then
-            echo "Chocolatey install may have failed, trying direct download..."
-            curl -sL -o /tmp/nsis-setup.exe https://prdownloads.sourceforge.net/nsis/nsis-3.12.0-setup.exe
-            /tmp/nsis-setup.exe /S
-            echo "C:\Program Files (x86)\NSIS" >> $GITHUB_PATH
-          fi
-          # Final check
-          makensis -VERSION || { echo "NSIS not found!"; exit 1; }
+          choco install nsis -y --no-progress
+          # Add NSIS to current session PATH
+          $nsisPath = 'C:\Program Files (x86)\NSIS'
+          if (Test-Path $nsisPath) {
+            Add-Content -Path $env:GITHUB_PATH -Value $nsisPath
+            $env:Path = "$env:Path;$nsisPath"
+            Write-Host "NSIS added to PATH: $nsisPath"
+          }
+          # Verify
+          makensis -VERSION
+          if ($LASTEXITCODE -ne 0) { Write-Error 'NSIS not found!'; exit 1 }
 
       - name: Extract version from tag
         if: startsWith(github.ref, 'refs/tags/v')
