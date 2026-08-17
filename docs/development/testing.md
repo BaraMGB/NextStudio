@@ -10,6 +10,7 @@ The current suites are:
 |---|---|---|
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
 | `ProjectLifecycle` | project request, extension, validation, and unsaved-choice rules | `App/tests/ProjectLifecycleTests.cpp` |
+| `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
 
 ## Run all tests
 
@@ -114,6 +115,32 @@ Current coverage includes:
 - context-sensitive acceptance of `.nextTemp` recovery files.
 
 Temporary test files are created in a unique child of JUCE's temporary directory and removed by RAII cleanup.
+
+## MidiNoteOverlap tests
+
+`MidiNoteOverlapTests` compiles:
+
+- `App/src/MidiNoteOverlap.cpp`;
+- `App/tests/MidiNoteOverlapTests.cpp`.
+
+The helper is pure (no Tracktion or JUCE dependency), so the executable links only JUCE core.
+
+Current coverage includes:
+
+- no intersection and touching boundaries;
+- clear range fully containing the note;
+- exact equality between note and clear range;
+- splitting a note into two pieces;
+- trimming the note end and note start;
+- multiple clear ranges producing multiple pieces;
+- overlapping and adjacent clear ranges;
+- clear ranges outside the note;
+- sub-epsilon pieces being dropped;
+- empty note and empty clear inputs;
+- full coverage by several clear ranges;
+- unsorted clear ranges.
+
+This is the planning layer behind `MidiViewport::cleanUnderNoteRanges()`. The mutation layer (applying the plan to real `MidiClip`/`MidiNote` objects) is not exercised by this suite.
 
 ## What is not covered yet
 

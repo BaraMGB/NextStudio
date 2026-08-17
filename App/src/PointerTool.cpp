@@ -22,6 +22,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PointerTool.h"
 #include "LassoTool.h"
 
+#include <map>
+
 void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     m_dragStartPos = event.getPosition();
@@ -187,8 +189,7 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
             tracktion::BeatPosition startBeat;
             tracktion::BeatDuration length;
             int noteNumber;
-            int velocity;
-            int colour;
+            juce::ValueTree noteState;
         };
 
         if (viewport.getSelectedEvents().getNumSelected() > 0)
@@ -201,6 +202,9 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
             auto selectedNotes = viewport.getSelectedNotes();
             auto &tempoSequence = m_evs.m_edit.tempoSequence;
 
+            const bool isResize = (m_currentDragMode == DragMode::resizeLeft ||
+                                   m_currentDragMode == DragMode::resizeRight);
+
             // --- PHASE 1: Collect Info & Prepare ---
             for (auto *note : selectedNotes)
             {
@@ -208,33 +212,46 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
                 if (clip == nullptr)
                     continue;
 
+                // Resize deltas only affect the note whose edge is being dragged.
+                const bool isClickedNote = (note == viewport.getClickedNote());
+                const double leftDelta  = (isResize && isClickedNote) ? m_evs.timeToBeat(m_leftTimeDelta)  : 0.0;
+                const double rightDelta = (isResize && isClickedNote) ? m_evs.timeToBeat(m_rightTimeDelta) : 0.0;
+
                 auto originalNoteStartTime = tempoSequence.toTime(note->getStartBeat());
                 auto newNoteStartTime = originalNoteStartTime + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta);
                 auto newNoteStartBeat = tempoSequence.toBeats(newNoteStartTime);
                 auto beatDelta = newNoteStartBeat - note->getStartBeat();
-                auto lengthDelta = m_evs.timeToBeat(m_leftTimeDelta * (-1) + (m_rightTimeDelta));
+                auto lengthDelta = leftDelta * (-1) + rightDelta;
 
-                plannedNotes.add({clip, note->getStartBeat() + beatDelta + tracktion::BeatDuration::fromBeats(m_evs.timeToBeat(m_leftTimeDelta)), note->getLengthBeats() + tracktion::BeatDuration::fromBeats(lengthDelta), note->getNoteNumber() + m_draggedNoteDelta, note->getVelocity(), note->getColour()});
+                plannedNotes.add({clip,
+                                  note->getStartBeat() + beatDelta + tracktion::BeatDuration::fromBeats(leftDelta),
+                                  note->getLengthBeats() + tracktion::BeatDuration::fromBeats(lengthDelta),
+                                  note->getNoteNumber() + m_draggedNoteDelta,
+                                  note->state.createCopy()});
 
                 if (!copy)
-                {
                     clip->getSequence().removeNote(*note, &um);
-                }
             }
 
             viewport.unselectAll();
 
             // --- PHASE 2: Clear Target Area ---
+            std::map<std::pair<te::MidiClip *, int>, juce::Array<tracktion::BeatRange>> rangesByPitch;
             for (const auto &noteInfo : plannedNotes)
-            {
-                tracktion::BeatRange targetBeatRange(noteInfo.startBeat, noteInfo.startBeat + noteInfo.length);
-                viewport.cleanUnderNote(noteInfo.noteNumber, targetBeatRange, noteInfo.targetClip);
-            }
+                rangesByPitch[{noteInfo.targetClip, noteInfo.noteNumber}].add({noteInfo.startBeat, noteInfo.startBeat + noteInfo.length});
+
+            for (auto &[key, ranges] : rangesByPitch)
+                viewport.cleanUnderNoteRanges(key.second, ranges, key.first);
 
             // --- PHASE 3: Create New Notes & Update Selection ---
             for (const auto &noteInfo : plannedNotes)
             {
-                auto *newNote = noteInfo.targetClip->getSequence().addNote(noteInfo.noteNumber, noteInfo.startBeat, noteInfo.length, noteInfo.velocity, noteInfo.colour, &um);
+                auto newState = noteInfo.noteState.createCopy();
+                newState.setProperty(te::IDs::p, noteInfo.noteNumber, nullptr);
+                newState.setProperty(te::IDs::b, noteInfo.startBeat.inBeats(), nullptr);
+                newState.setProperty(te::IDs::l, noteInfo.length.inBeats(), nullptr);
+
+                auto *newNote = noteInfo.targetClip->getSequence().addNote(te::MidiNote(newState), &um);
                 viewport.setNoteSelected(newNote, true);
             }
 

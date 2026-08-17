@@ -89,6 +89,7 @@ public:
 
     // Methods needed by Tools and other components
     void cleanUnderNote(int noteNumb, tracktion::BeatRange beatRange, const te::MidiClip *clip);
+    void cleanUnderNoteRanges(int noteNumb, const juce::Array<tracktion::BeatRange> &ranges, const te::MidiClip *clip);
     te::MidiNote *addNewNoteAt(int x, int y, te::MidiClip *clip);
     te::MidiNote *addNewNote(int noteNumb, const te::MidiClip *clip, double beat, double length = -1);
     void playGuideNote(const te::MidiClip *clip, const int noteNumb, int vel = 100);
@@ -117,7 +118,6 @@ private:
 
     juce::Colour getNoteColour(tracktion_engine::MidiClip *const &midiClip, tracktion_engine::MidiNote *n);
 
-    juce::Array<te::MidiNote *> getNotesInRange(juce::Range<double> beatRange, const te::MidiClip *clip);
     void removeNote(te::MidiClip *clip, te::MidiNote *note);
     static float getVelocity(const tracktion_engine::MidiNote *note);
 

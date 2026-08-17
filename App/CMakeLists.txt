@@ -92,6 +92,27 @@ if(BUILD_TESTING)
 
     add_test(NAME ProjectLifecycle
             COMMAND ProjectLifecycleTests)
+
+    juce_add_console_app(MidiNoteOverlapTests
+            PRODUCT_NAME "MidiNoteOverlapTests")
+    juce_generate_juce_header(MidiNoteOverlapTests)
+
+    target_sources(MidiNoteOverlapTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/MidiNoteOverlap.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/MidiNoteOverlapTests.cpp)
+
+    target_include_directories(MidiNoteOverlapTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(MidiNoteOverlapTests PRIVATE
+            juce::juce_core)
+
+    target_compile_definitions(MidiNoteOverlapTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME MidiNoteOverlap
+            COMMAND MidiNoteOverlapTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

@@ -10,6 +10,7 @@ This directory contains the user and developer documentation for NextStudio.
 
 ## Component documentation
 
+- [Piano Roll Editor](components/piano-roll-editor.md) — component hierarchy, data model, coordinate conversion, rendering, hit testing, tool architecture, and note-editing operations.
 - [NotePropertiesBar](components/note-properties-bar.md) — behavior, input formats, validation, selection handling, undo, and Piano Roll integration.
 
 ## Architecture

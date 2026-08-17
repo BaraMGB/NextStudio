@@ -20,12 +20,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "MidiViewport.h"
+#include "MidiNoteOverlap.h"
 #include "ToolStrategy.h"
 #include "DrawTool.h"
 #include "KnifeTool.h"
 #include "PointerTool.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+
+#include <map>
 
 MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr track, TimeLineComponent &timeLine)
     : m_evs(evs),
@@ -383,8 +386,11 @@ te::MidiNote *MidiViewport::addNewNote(int noteNumb, const te::MidiClip *clip, d
             length = 0.25;
     }
 
+    auto &um = m_evs.m_edit.getUndoManager();
+    um.beginNewTransaction("Add MIDI Note");
+
     cleanUnderNote(noteNumb, {tracktion::BeatPosition::fromBeats(beat), tracktion::BeatDuration::fromBeats(length)}, clip);
-    return clip->getSequence().addNote(noteNumb, tracktion::core::BeatPosition::fromBeats(beat), tracktion::core::BeatDuration::fromBeats(length), m_evs.m_lastVelocity, 111, &m_evs.m_edit.getUndoManager());
+    return clip->getSequence().addNote(noteNumb, tracktion::core::BeatPosition::fromBeats(beat), tracktion::core::BeatDuration::fromBeats(length), m_evs.m_lastVelocity, 111, &um);
 }
 
 void MidiViewport::playGuideNote(const te::MidiClip *clip, const int noteNumb, int vel)
@@ -448,8 +454,7 @@ void MidiViewport::duplicateSelectedNotes()
         tracktion::BeatPosition startBeat;
         tracktion::BeatDuration length;
         int noteNumber;
-        int velocity;
-        int colour;
+        juce::ValueTree noteState;
     };
 
     juce::Array<NoteCopy> copies;
@@ -461,7 +466,7 @@ void MidiViewport::duplicateSelectedNotes()
 
         const auto destinationTime = note->getEditStartTime(*clip) + duplicateOffset;
         const auto destinationBeat = clip->getContentBeatAtTime(destinationTime) + toDuration(clip->getLoopStartBeats());
-        copies.add({clip, destinationBeat, note->getLengthBeats(), note->getNoteNumber(), note->getVelocity(), note->getColour()});
+        copies.add({clip, destinationBeat, note->getLengthBeats(), note->getNoteNumber(), note->state.createCopy()});
     }
 
     if (copies.isEmpty())
@@ -474,12 +479,21 @@ void MidiViewport::duplicateSelectedNotes()
 
     // Clear all destinations before creating notes so duplicated notes cannot
     // erase each other when several selected notes share a pitch.
+    std::map<std::pair<te::MidiClip *, int>, juce::Array<tracktion::BeatRange>> rangesByPitch;
     for (const auto &copy : copies)
-        cleanUnderNote(copy.noteNumber, {copy.startBeat, copy.startBeat + copy.length}, copy.clip);
+        rangesByPitch[{copy.clip, copy.noteNumber}].add({copy.startBeat, copy.startBeat + copy.length});
+
+    for (auto &[key, ranges] : rangesByPitch)
+        cleanUnderNoteRanges(key.second, ranges, key.first);
 
     for (const auto &copy : copies)
     {
-        auto *newNote = copy.clip->getSequence().addNote(copy.noteNumber, copy.startBeat, copy.length, copy.velocity, copy.colour, &undoManager);
+        auto newState = copy.noteState.createCopy();
+        newState.setProperty(te::IDs::p, copy.noteNumber, nullptr);
+        newState.setProperty(te::IDs::b, copy.startBeat.inBeats(), nullptr);
+        newState.setProperty(te::IDs::l, copy.length.inBeats(), nullptr);
+
+        auto *newNote = copy.clip->getSequence().addNote(te::MidiNote(newState), &undoManager);
         setNoteSelected(newNote, true);
     }
 
@@ -675,7 +689,22 @@ void MidiViewport::timerCallback()
 
 void MidiViewport::cleanUnderNote(int noteNumb, tracktion::BeatRange beatRange, const te::MidiClip *clip)
 {
-    if (clip == nullptr || beatRange.isEmpty())
+    juce::Array<tracktion::BeatRange> ranges;
+    ranges.add(beatRange);
+    cleanUnderNoteRanges(noteNumb, ranges, clip);
+}
+
+void MidiViewport::cleanUnderNoteRanges(int noteNumb, const juce::Array<tracktion::BeatRange> &ranges, const te::MidiClip *clip)
+{
+    if (clip == nullptr || ranges.isEmpty())
+        return;
+
+    std::vector<MidiNoteOverlap::Interval> clears;
+    for (const auto &r : ranges)
+        if (!r.isEmpty())
+            clears.push_back({r.getStart().inBeats(), r.getEnd().inBeats()});
+
+    if (clears.empty())
         return;
 
     auto &um = m_evs.m_edit.getUndoManager();
@@ -686,68 +715,39 @@ void MidiViewport::cleanUnderNote(int noteNumb, tracktion::BeatRange beatRange, 
 
     for (auto *note : allNotesInClip)
     {
-        if (note->getNoteNumber() == noteNumb)
+        if (note->getNoteNumber() != noteNumb)
+            continue;
+
+        const MidiNoteOverlap::Interval noteInterval{note->getStartBeat().inBeats(), note->getEndBeat().inBeats()};
+        const auto remaining = MidiNoteOverlap::subtractIntervals(noteInterval, clears);
+
+        if (remaining.empty())
         {
-            tracktion::BeatRange noteBeatRange(note->getStartBeat(), note->getEndBeat());
+            if (m_selectedEvents != nullptr)
+                m_selectedEvents->removeSelectedEvent(note);
 
-            if (noteBeatRange.intersects(beatRange))
-            {
-                // To avoid floating point inaccuracies, we can add a tiny epsilon.
-                constexpr double epsilon = 0.00001;
+            sequence.removeNote(*note, &um);
+            continue;
+        }
 
-                // Case 1: The existing note is completely contained within the clear area.
-                if (beatRange.contains(noteBeatRange))
-                {
-                    sequence.removeNote(*note, &um);
-                }
-                // Case 2: The clear area splits the existing note.
-                else if (noteBeatRange.getStart() < beatRange.getStart() && noteBeatRange.getEnd() > beatRange.getEnd())
-                {
-                    auto oldEndBeat = note->getEndBeat();
+        // Trim the original note to the first remaining piece.
+        const auto &first = remaining.front();
+        note->setStartAndLength(tracktion::BeatPosition::fromBeats(first.startBeat),
+                                tracktion::BeatDuration::fromBeats(first.length()),
+                                &um);
 
-                    // Trim the original note to end where the clear area begins.
-                    auto newLength1 = beatRange.getStart() - noteBeatRange.getStart();
-                    note->setStartAndLength(note->getStartBeat(), newLength1, &um);
-
-                    // Create a new note for the part after the clear area.
-                    sequence.addNote(noteNumb, beatRange.getEnd(), oldEndBeat - beatRange.getEnd(), note->getVelocity(), note->getColour(), &um);
-                }
-                // Case 3: The clear area trims the end of the existing note.
-                else if (noteBeatRange.getStart() < beatRange.getStart())
-                {
-                    auto newLength = beatRange.getStart() - noteBeatRange.getStart();
-
-                    if (newLength.inBeats() > epsilon)
-                        note->setStartAndLength(note->getStartBeat(), newLength, &um);
-                    else
-                        sequence.removeNote(*note, &um);
-                }
-                // Case 4: The clear area trims the start of the existing note.
-                else if (noteBeatRange.getEnd() > beatRange.getEnd())
-                {
-                    auto newStart = beatRange.getEnd();
-                    auto newLength = noteBeatRange.getEnd() - newStart;
-
-                    if (newLength.inBeats() > epsilon)
-                        note->setStartAndLength(newStart, newLength, &um);
-                    else
-                        sequence.removeNote(*note, &um);
-                }
-            }
+        // Add the remaining pieces as new notes, preserving all properties.
+        for (size_t i = 1; i < remaining.size(); ++i)
+        {
+            const auto &piece = remaining[i];
+            auto tail = te::MidiNote(te::MidiNote::createNote(*note,
+                                                               tracktion::BeatPosition::fromBeats(piece.startBeat),
+                                                               tracktion::BeatDuration::fromBeats(piece.length())));
+            sequence.addNote(tail, &um);
         }
     }
 }
 
-juce::Array<te::MidiNote *> MidiViewport::getNotesInRange(juce::Range<double> beatRange, const te::MidiClip *clip)
-{
-    juce::Array<te::MidiNote *> notesInRange;
-
-    for (auto n : clip->getSequence().getNotes())
-        if (beatRange.intersects({n->getStartBeat().inBeats(), n->getEndBeat().inBeats()}))
-            notesInRange.add(n);
-
-    return notesInRange;
-}
 te::MidiClip *MidiViewport::getNearestClipBefore(int x)
 {
     if (auto clipAt = getMidiClipAt(x))

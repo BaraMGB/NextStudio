@@ -80,6 +80,14 @@ Snapping is enabled during drag. Hold `Shift` to temporarily disable it.
 
 Hold `Ctrl` during mouse release after dragging to create copies instead of removing the original notes. This path currently checks the physical Control modifier directly.
 
+Dragging only previews the copy; the model is changed on drop. The destination range is cleared of same-pitch material before the copy is inserted. If the destination overlaps the original note, the overlapping part of the original is removed:
+
+- dragging right trims the original's end;
+- dragging left trims the original's start;
+- a destination that exactly covers the original removes it.
+
+This keeps the pitch monophonic in the affected range.
+
 #### Resize
 
 Drag the left or right edge of a note. The cursor changes near resizable edges. Resizing one note updates the remembered last note length when the resulting length is valid.
