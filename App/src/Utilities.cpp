@@ -1473,99 +1473,19 @@ double EngineHelpers::getNoteEndBeat(const te::MidiClip *midiClip, const te::Mid
 
 bool EngineHelpers::isTrackItemInRange(te::TrackItem *ti, const tracktion::TimeRange &tr) { return ti->getEditTimeRange().intersects(tr); }
 
-juce::ValueTree exportPluginStates(const tracktion::engine::PluginList &pluginList)
-{
-    juce::ValueTree pluginsTree("Plugins");
-
-    for (auto *plugin : pluginList.getPlugins())
-    {
-        if (plugin != nullptr)
-        {
-            // Create a copy of the plugin's state and add it to the tree
-            pluginsTree.appendChild(plugin->state.createCopy(), nullptr);
-        }
-    }
-
-    return pluginsTree;
-}
-
-void storePluginStatesAndClear(juce::Array<te::Track *> &involvedTracks, juce::Array<juce::ValueTree> &states, const juce::Array<te::Clip *> &selectedClips, int verticalOffset)
-{
-    for (const auto &selectedClip : selectedClips)
-    {
-        if (auto *sourceTrack = selectedClip->getTrack())
-        {
-            if (auto *targetTrack = EngineHelpers::getTargetTrack(sourceTrack, verticalOffset))
-            {
-                for (auto *track : {sourceTrack, targetTrack})
-                {
-                    if (involvedTracks.addIfNotAlreadyThere(track))
-                    {
-                        juce::ValueTree exportedState = exportPluginStates(track->pluginList);
-                        if (!exportedState.isValid())
-                        {
-                            GUIHelpers::log("Warning: Plugin state export failed for track " + track->getName());
-                        }
-                        states.add(exportedState);
-                        track->pluginList.clear();
-                    }
-                }
-            }
-            else
-            {
-                GUIHelpers::log("Warning: Target track not found for source track " + sourceTrack->getName());
-            }
-        }
-        else
-        {
-            GUIHelpers::log("Warning: Selected clip has no valid source track!");
-        }
-    }
-
-    jassert(involvedTracks.size() == states.size());
-    GUIHelpers::log("Stored states: " + juce::String(states.size()));
-    GUIHelpers::log("Stored tracks: " + juce::String(involvedTracks.size()));
-}
-
-void restorePluginStates(const juce::Array<te::Track *> &involvedTracks, const juce::Array<juce::ValueTree> &states)
-{
-    for (auto i = 0; i < involvedTracks.size(); i++)
-    {
-        involvedTracks[i]->pluginList.addPluginsFrom(states[i], true, false);
-    }
-
-    jassert(involvedTracks.size() == states.size());
-    GUIHelpers::log("Restored plugins. Tracks involved: " + juce::String(involvedTracks.size()));
-}
-
 void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState &evs)
 {
     // If not copying and no movement occurred, return early to avoid unnecessary processing
     if (!copy && std::abs(timeDelta) < 1.0e-9 && verticalOffset == 0)
         return;
 
-    //---------------------------------------------------
-    // when we insert a clip on a track with a plugin with a lot of parameters
-    // the needed time is much more higher than a track without a plugin.
-    // If you have to duplicate a lot of clips, this could take a lot of time.
-    // So this approach removes all plugins and save them in a value tree. After
-    // moving or coping the clips, we reinsert the plugins from the state
-    // The time is reduced a lot, but I don't know, if this is the best approach.
-    //---------------------------------------------------
-    bool testOptimisation = false;
-    testOptimisation = true;
-    //---------------------------------------------------
+    te::TransportControl::ReallocationInhibitor reallocationInhibitor(evs.m_edit.getTransport());
 
     if (verticalOffset == 0)
         copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
 
     auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto tempPosition = evs.m_edit.getLength().inSeconds() + timeDelta;
-
-    auto involvedTracks = juce::Array<te::Track *>();
-    auto states = juce::Array<juce::ValueTree>();
-    if (testOptimisation == true)
-        storePluginStatesAndClear(involvedTracks, states, selectedClips, verticalOffset);
 
     juce::Array<te::Clip *> newClips;
 
@@ -1605,9 +1525,6 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
             }
         }
     }
-
-    if (testOptimisation)
-        restorePluginStates(involvedTracks, states);
 }
 
 void EngineHelpers::duplicateSelectedClips(EditViewState &evs) { moveSelectedClips(true, getTimeRangeOfSelectedClips(evs).getLength().inSeconds(), 0, evs); }
