@@ -81,6 +81,7 @@ void MidiViewport::paint(juce::Graphics &g)
     }
 
     drawPendingPasteNotes(g);
+    drawNotePropertyPreview(g);
 
     if (auto *pointerTool = dynamic_cast<PointerTool *>(m_currentTool.get()))
     {
@@ -229,6 +230,32 @@ void MidiViewport::drawDraggedNotes(juce::Graphics &g, te::MidiNote *n, te::Midi
         noteRect.reduce(1, 1);
         g.setColour(borderColour);
         drawKeyNum(g, &mn, noteRect);
+    }
+}
+
+void MidiViewport::drawNotePropertyPreview(juce::Graphics &g)
+{
+    for (const auto &edit : m_notePropertyPreview)
+    {
+        if (edit.clip == nullptr || !edit.sourceState.isValid())
+            continue;
+
+        auto state = edit.sourceState.createCopy();
+        state.setProperty(te::IDs::p, edit.noteNumber, nullptr);
+        state.setProperty(te::IDs::b, edit.startBeat.inBeats(), nullptr);
+        state.setProperty(te::IDs::l, edit.length.inBeats(), nullptr);
+        te::MidiNote previewNote(state);
+        auto noteRect = getNoteRect(edit.clip, &previewNote);
+
+        if (!m_evs.m_editNotesOutsideClipRange)
+            noteRect = noteRect.getIntersection(getClipRect(edit.clip));
+        if (noteRect.isEmpty())
+            continue;
+
+        g.setColour(juce::Colours::white.withAlpha(0.18f));
+        g.fillRect(noteRect);
+        g.setColour(juce::Colours::white.withAlpha(0.9f));
+        g.drawRect(noteRect, 2.0f);
     }
 }
 
@@ -615,6 +642,93 @@ bool MidiViewport::finishPendingPasteOnDeselect()
 bool MidiViewport::cancelPendingPaste()
 {
     return resolvePendingPaste(m_pendingPasteState.cancel(), false);
+}
+
+void MidiViewport::setNotePropertyPreview(const juce::Array<MidiNotePropertyEdit> &preview)
+{
+    m_notePropertyPreview = preview;
+    repaint();
+}
+
+void MidiViewport::commitNotePropertyEdit(const juce::Array<MidiNotePropertyEdit> &requestedEdits,
+                                          bool resolveOverlaps)
+{
+    m_notePropertyPreview.clearQuick();
+
+    juce::Array<MidiNotePropertyEdit> edits;
+    juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> unchangedNotes;
+    for (const auto &edit : requestedEdits)
+    {
+        if (edit.clip == nullptr || edit.sourceNote == nullptr
+            || !edit.clip->getSequence().getNotes().contains(edit.sourceNote))
+            continue;
+
+        const bool changed = std::abs(edit.startBeat.inBeats() - edit.sourceNote->getStartBeat().inBeats()) >= 1.0e-7
+                             || std::abs(edit.length.inBeats() - edit.sourceNote->getLengthBeats().inBeats()) >= 1.0e-7
+                             || edit.noteNumber != edit.sourceNote->getNoteNumber()
+                             || edit.velocity != edit.sourceNote->getVelocity();
+        if (changed)
+            edits.add(edit);
+        else
+            unchangedNotes.add({edit.clip, edit.sourceNote});
+    }
+
+    if (edits.isEmpty())
+    {
+        repaint();
+        return;
+    }
+
+    auto &undo = m_evs.m_edit.getUndoManager();
+    if (!resolveOverlaps)
+    {
+        for (const auto &edit : edits)
+            edit.sourceNote->setVelocity(edit.velocity, &undo);
+        repaint();
+        return;
+    }
+
+    // The destination notes have priority. Remove all edited sources first,
+    // clear the complete destination ranges, then recreate from full state copies.
+    unselectAll();
+    for (const auto &edit : edits)
+        edit.clip->getSequence().removeNote(*edit.sourceNote, &undo);
+
+    std::map<std::pair<te::MidiClip *, int>, juce::Array<tracktion::BeatRange>> rangesByPitch;
+    for (const auto &edit : edits)
+        rangesByPitch[{edit.clip, edit.noteNumber}].add({edit.startBeat, edit.startBeat + edit.length});
+
+    for (auto &[key, ranges] : rangesByPitch)
+        cleanUnderNoteRanges(key.second, ranges, key.first);
+
+    juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> createdNotes;
+    for (const auto &edit : edits)
+    {
+        // Absolute property edits can make selected destinations overlap each
+        // other. Resolve those conflicts in selection order as well.
+        cleanUnderNote(edit.noteNumber, {edit.startBeat, edit.length}, edit.clip);
+
+        auto state = edit.sourceState.createCopy();
+        state.setProperty(te::IDs::p, edit.noteNumber, nullptr);
+        state.setProperty(te::IDs::b, edit.startBeat.inBeats(), nullptr);
+        state.setProperty(te::IDs::l, edit.length.inBeats(), nullptr);
+        auto *newNote = edit.clip->getSequence().addNote(te::MidiNote(state), &undo);
+        createdNotes.add({edit.clip, newNote});
+    }
+
+    for (const auto &[clip, note] : createdNotes)
+        if (note != nullptr && clip->getSequence().getNotes().contains(note))
+            setNoteSelected(note, true);
+
+    // Notes clamped at a pitch/velocity boundary may have had no effective
+    // change. Restore their selection if they survived destination clearing.
+    for (const auto &[clip, note] : unchangedNotes)
+        if (clip->getSequence().getNotes().contains(note))
+            setNoteSelected(note, true);
+
+    cleanUpFlags();
+    repaint();
+    sendChangeMessage();
 }
 
 bool MidiViewport::resolvePendingPaste(MidiPendingPaste::Resolution resolution, bool keepSelection)

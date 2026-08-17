@@ -187,19 +187,19 @@ A wheel event on a read-only enabled field applies one positive or negative step
 
 A read-only field begins scrubbing after four vertical pixels. Every four pixels correspond to one step. Upward drag increases and downward drag decreases.
 
-Once active, unbounded mouse movement is enabled so screen edges do not stop the gesture. Drag start opens one undo transaction; updates reuse it; drag end closes the grouping by beginning a fresh unnamed transaction.
+Once active, unbounded mouse movement is enabled so screen edges do not stop the gesture. Dragging only updates an in-memory edit plan, the displayed field values, and translucent note previews in `MidiViewport`; it does not mutate Tracktion note state or open an undo transaction. Releasing the mouse commits the final plan as one transaction. Returning to the original value before release produces no model or undo change.
 
 ## Scrub step sizes
 
 | Property | Step input generated internally |
 |---|---|
-| Start | `±N/16` |
-| End | `±N/16` |
-| Duration | `±N/16` |
+| Start | `±N × current SNAP interval` |
+| End | `±N × current SNAP interval` |
+| Duration | `±N × current SNAP interval` |
 | Pitch | `±N st` |
 | Velocity | signed integer delta |
 
-The parser receives the generated relative string through the same `apply()` path as typed input.
+The parser receives the generated relative string through the same `apply()` path as typed input. Fixed SNAP uses the selected note value, Adaptive uses the current zoom-dependent interval, and Off uses one tick. Pitch and Velocity retain semitone/integer stepping.
 
 ## Parsing and formatting
 
@@ -291,9 +291,9 @@ Velocity input is a strict integer. A leading sign makes it relative; unsigned i
 
 ## Validation
 
-`apply()` first resolves the current selection again. It parses once, then validates the complete operation against every selected note before modifying any note.
+`apply()` first resolves the current selection again. It parses once, then validates and plans the complete operation against every selected note before modifying any note.
 
-This all-or-nothing validation prevents partial multi-note edits.
+This all-or-nothing validation prevents partial multi-note edits. Text commits and wheel steps apply the plan immediately; drag scrubbing retains the plan provisionally until mouse-up.
 
 ### Start
 
@@ -345,27 +345,16 @@ This conversion is essential for clips with non-zero content offsets and for edi
 
 ## Applying properties
 
-All mutations use the edit undo manager.
+All mutations use the edit undo manager. Each plan captures the source note's complete state plus its destination start, length, pitch, and velocity.
 
-### Start
+Start, End, Duration, and Pitch can create same-pitch timing conflicts. Their commit path therefore uses the same destination-priority behavior as Piano Roll dragging:
 
-Calls `MidiNote::setStartAndLength()` with converted internal start and unchanged length.
+1. remove all edited source notes;
+2. clear existing notes under the grouped destination ranges with `MidiViewport::cleanUnderNoteRanges()`;
+3. resolve conflicts between planned destinations in selection order;
+4. recreate and select the resulting notes from full state copies.
 
-### End
-
-Computes the new length from either the relative duration delta or absolute global end, then calls `setStartAndLength()` with unchanged start.
-
-### Duration
-
-Calls `setStartAndLength()` with unchanged start and the new absolute/relative length.
-
-### Pitch
-
-Calls `setNoteNumber()` with an absolute value or current pitch plus relative semitones, clamped to MIDI range.
-
-### Velocity
-
-Calls `setVelocity()` with an absolute value or current velocity plus delta, clamped to `1..127`.
+This preserves custom note properties while ensuring committed notes do not overlap. Velocity cannot create timing conflicts and is applied directly with `setVelocity()`, clamped to `1..127`.
 
 ## Undo transactions
 
@@ -379,7 +368,7 @@ Property operations use semantic transaction names:
 | Pitch | `Change MIDI Note Pitch` |
 | Velocity | `Change MIDI Note Velocity` |
 
-Text commits and wheel changes begin transactions per application. Drag scrubbing starts one transaction at drag start and avoids opening another transaction for each step.
+Text commits and wheel changes begin transactions per application. Drag scrubbing begins its single transaction only on mouse-up; preview updates never touch the undo manager.
 
 ## Model synchronization
 

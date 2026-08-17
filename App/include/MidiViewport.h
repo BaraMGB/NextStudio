@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TimeLineComponent.h"
 #include "MidiPendingPaste.h"
+#include "MidiNotePropertyEdit.h"
 #include "ToolStrategy.h"
 #include "LassoSelectionTool.h"
 #include "EditViewState.h"
@@ -98,6 +99,9 @@ public:
     bool finishPendingPasteOnDeselect();
     bool cancelPendingPaste();
 
+    void setNotePropertyPreview(const juce::Array<MidiNotePropertyEdit> &);
+    void commitNotePropertyEdit(const juce::Array<MidiNotePropertyEdit> &, bool resolveOverlaps);
+
     te::SelectedMidiEvents &getSelectedEvents();
     const juce::Array<te::MidiClip *> &getCachedMidiClips();
     juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip *const &midiClip, const tracktion_engine::MidiNote *n);
@@ -126,6 +130,7 @@ private:
     void drawClipRange(juce::Graphics &g, tracktion_engine::MidiClip *const &midiClip);
     void drawNote(juce::Graphics &g, tracktion_engine::MidiClip *const &midiClip, te::MidiNote *n);
     void drawDraggedNotes(juce::Graphics &g, te::MidiNote *n, te::MidiClip *clip);
+    void drawNotePropertyPreview(juce::Graphics &g);
     void drawPendingPasteNotes(juce::Graphics &g);
     void drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour);
     void drawKeyLines(juce::Graphics &g) const;
@@ -179,6 +184,7 @@ private:
 
     MidiPendingPaste::State m_pendingPasteState;
     MidiClipboard m_pendingPasteNotes;
+    juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
 
     bool m_expandLeft{false}, m_expandRight{false}, m_noteAdding{false};
 

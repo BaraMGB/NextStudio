@@ -443,9 +443,9 @@ void NotePropertiesBar::configureField(Field &field, int focusOrder)
         }
     };
     field.editor.wheelMoved = [this, &field](int direction) { scrub(field, direction); };
-    field.editor.dragStarted = [this, &field] { beginUndoTransaction(field.property); };
+    field.editor.dragStarted = [this, &field] { beginScrub(field); };
     field.editor.dragUpdated = [this, &field](int stepDelta) { scrub(field, stepDelta, false); };
-    field.editor.dragEnded = [this] { m_evs.m_edit.getUndoManager().beginNewTransaction(); };
+    field.editor.dragEnded = [this] { endScrub(); };
 }
 
 void NotePropertiesBar::setSelectionProvider(SelectionProvider provider)
@@ -454,8 +454,20 @@ void NotePropertiesBar::setSelectionProvider(SelectionProvider provider)
     refreshFromSelection(true);
 }
 
+void NotePropertiesBar::setEditHandlers(PreviewHandler previewHandler, CommitHandler commitHandler)
+{
+    m_previewHandler = std::move(previewHandler);
+    m_commitHandler = std::move(commitHandler);
+}
+
+void NotePropertiesBar::setTimingStepProvider(TimingStepProvider provider)
+{
+    m_timingStepProvider = std::move(provider);
+}
+
 void NotePropertiesBar::clearSelection()
 {
+    cancelScrub();
     m_selection.clear();
     m_handlingEditorCallback = true;
     for (auto &field : m_fields)
@@ -495,6 +507,14 @@ void NotePropertiesBar::refreshFromSelection(bool discardActiveEdit)
                 break;
             }
         }
+    }
+
+    if (m_scrubActive)
+    {
+        if (selectionChanged)
+            cancelScrub();
+        else
+            return;
     }
 
     m_selection = newSelection;
@@ -612,29 +632,120 @@ void NotePropertiesBar::scrub(Field &field, int stepDelta, bool shouldBeginUndoT
     if (!field.editor.isEnabled() || stepDelta == 0)
         return;
 
+    if (m_scrubActive && !shouldBeginUndoTransaction)
+        m_scrubSteps += stepDelta;
+
+    const auto steps = m_scrubActive && !shouldBeginUndoTransaction ? m_scrubSteps : stepDelta;
     juce::String relative;
     switch (field.property)
     {
     case Property::start:
     case Property::end:
     case Property::duration:
-        relative = (stepDelta > 0 ? "+" : "") + juce::String(stepDelta) + "/16";
+    {
+        const auto minimumStep = 1.0 / te::Edit::ticksPerQuarterNote;
+        const auto stepBeats = m_timingStepProvider ? juce::jmax(minimumStep, m_timingStepProvider()) : 0.25;
+        const auto ticksPerStep = juce::jmax(1, juce::roundToInt(stepBeats * te::Edit::ticksPerQuarterNote));
+        const auto tickDelta = static_cast<int64_t>(steps) * ticksPerStep;
+        relative = (tickDelta > 0 ? "+" : "-") + juce::String(std::abs(tickDelta)) + " ticks";
         break;
+    }
     case Property::pitch:
-        relative = (stepDelta > 0 ? "+" : "") + juce::String(stepDelta) + " st";
+        relative = (steps > 0 ? "+" : "") + juce::String(steps) + " st";
         break;
     case Property::velocity:
-        relative = (stepDelta > 0 ? "+" : "") + juce::String(stepDelta);
+        relative = (steps > 0 ? "+" : "") + juce::String(steps);
         break;
     }
 
-    if (apply(field.property, relative, shouldBeginUndoTransaction))
+    if (m_scrubActive && !shouldBeginUndoTransaction)
     {
-        refreshFromSelection();
-        m_handlingEditorCallback = true;
-        field.editor.setText(field.displayedText, false);
-        m_handlingEditorCallback = false;
+        if (m_scrubSteps == 0)
+        {
+            m_scrubPreview = m_scrubBase;
+            showPlan(m_scrubPreview);
+            if (m_previewHandler)
+                m_previewHandler(m_scrubPreview);
+        }
+        else if (auto plan = createEditPlan(field.property, relative, m_scrubSelection, &m_scrubBase))
+        {
+            m_scrubPreview = *plan;
+            showPlan(m_scrubPreview);
+            if (m_previewHandler)
+                m_previewHandler(m_scrubPreview);
+        }
+        return;
     }
+
+    if (apply(field.property, relative, shouldBeginUndoTransaction))
+        refreshFromSelection();
+}
+
+void NotePropertiesBar::beginScrub(Field &field)
+{
+    cancelScrub();
+    m_scrubSelection = m_selectionProvider ? m_selectionProvider() : decltype(m_scrubSelection){};
+    m_scrubSelection.removeIf([](const auto &item) { return item.first == nullptr || item.second == nullptr; });
+    if (m_scrubSelection.isEmpty())
+        return;
+
+    m_scrubProperty = field.property;
+    m_scrubSteps = 0;
+    m_scrubBase.clearQuick();
+    for (const auto &[clip, note] : m_scrubSelection)
+        m_scrubBase.add({clip, note, note->getStartBeat(), note->getLengthBeats(),
+                         note->getNoteNumber(), note->getVelocity(), note->state.createCopy()});
+    m_scrubPreview = m_scrubBase;
+    m_scrubActive = true;
+}
+
+void NotePropertiesBar::endScrub()
+{
+    if (!m_scrubActive)
+        return;
+
+    auto currentSelection = m_selectionProvider ? m_selectionProvider() : decltype(m_selection){};
+    currentSelection.removeIf([](const auto &item) { return item.first == nullptr || item.second == nullptr; });
+    bool selectionMatches = currentSelection.size() == m_scrubSelection.size();
+    for (int i = 0; selectionMatches && i < currentSelection.size(); ++i)
+        selectionMatches = currentSelection.getReference(i) == m_scrubSelection.getReference(i);
+
+    const auto property = m_scrubProperty;
+    const auto plan = m_scrubPreview;
+    const bool shouldCommit = selectionMatches && planChangesNotes(plan);
+
+    m_scrubActive = false;
+    m_scrubSteps = 0;
+    m_scrubSelection.clearQuick();
+    m_scrubBase.clearQuick();
+    m_scrubPreview.clearQuick();
+    if (m_previewHandler)
+        m_previewHandler({});
+
+    if (shouldCommit)
+    {
+        beginUndoTransaction(property);
+        if (m_commitHandler)
+            m_commitHandler(property, plan);
+        else
+            applyPlan(plan);
+    }
+
+    refreshFromSelection();
+}
+
+void NotePropertiesBar::cancelScrub()
+{
+    if (!m_scrubActive)
+        return;
+
+    m_scrubActive = false;
+    m_scrubSteps = 0;
+    m_scrubSelection.clearQuick();
+    m_scrubBase.clearQuick();
+    m_scrubPreview.clearQuick();
+    if (m_previewHandler)
+        m_previewHandler({});
 }
 
 void NotePropertiesBar::beginUndoTransaction(Property property)
@@ -657,9 +768,46 @@ bool NotePropertiesBar::apply(Property property, const juce::String &input, bool
     if (m_selection.isEmpty())
         return false;
 
+    auto plan = createEditPlan(property, input, m_selection);
+    if (!plan)
+        return false;
+
+    bool changesNotes = false;
+    for (const auto &edit : *plan)
+        if (edit.sourceNote != nullptr
+            && (!nearlyEqual(edit.startBeat.inBeats(), edit.sourceNote->getStartBeat().inBeats())
+                || !nearlyEqual(edit.length.inBeats(), edit.sourceNote->getLengthBeats().inBeats())
+                || edit.noteNumber != edit.sourceNote->getNoteNumber()
+                || edit.velocity != edit.sourceNote->getVelocity()))
+        {
+            changesNotes = true;
+            break;
+        }
+
+    if (!changesNotes)
+        return true;
+
+    if (shouldBeginUndoTransaction)
+        beginUndoTransaction(property);
+
+    if (m_commitHandler)
+        m_commitHandler(property, *plan);
+    else
+        applyPlan(*plan);
+    return true;
+}
+
+std::optional<juce::Array<MidiNotePropertyEdit>> NotePropertiesBar::createEditPlan(
+    Property property, const juce::String &input,
+    const juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> &selection,
+    const juce::Array<MidiNotePropertyEdit> *base) const
+{
+    if (selection.isEmpty() || (base != nullptr && base->size() != selection.size()))
+        return {};
+
     const auto text = input.trim();
     if (text.isEmpty() || text == juce::String::fromUTF8("\xe2\x80\x94"))
-        return false;
+        return {};
 
     const bool relative = text.startsWithChar('+') || text.startsWithChar('-');
     double timingValue = 0.0;
@@ -671,14 +819,14 @@ bool NotePropertiesBar::apply(Property property, const juce::String &input, bool
         {
             auto parsed = parseDuration(text.substring(1));
             if (!parsed)
-                return false;
+                return {};
             timingValue = *parsed * (text.startsWithChar('-') ? -1.0 : 1.0);
         }
         else
         {
             auto parsed = parsePosition(text);
             if (!parsed)
-                return false;
+                return {};
             timingValue = *parsed;
         }
     }
@@ -686,7 +834,7 @@ bool NotePropertiesBar::apply(Property property, const juce::String &input, bool
     {
         auto parsed = parseDuration(relative ? text.substring(1) : text);
         if (!parsed)
-            return false;
+            return {};
         timingValue = *parsed * (relative && text.startsWithChar('-') ? -1.0 : 1.0);
     }
     else if (property == Property::pitch)
@@ -696,14 +844,14 @@ bool NotePropertiesBar::apply(Property property, const juce::String &input, bool
             auto relativeText = text.dropLastCharacters(text.endsWithIgnoreCase("st") ? 2 : 0).trim();
             auto parsed = parseStrictInt(relativeText);
             if (!parsed || !text.endsWithIgnoreCase("st"))
-                return false;
+                return {};
             integerValue = *parsed;
         }
         else
         {
             auto parsed = parsePitch(text);
             if (!parsed)
-                return false;
+                return {};
             integerValue = *parsed;
         }
     }
@@ -711,66 +859,143 @@ bool NotePropertiesBar::apply(Property property, const juce::String &input, bool
     {
         auto parsed = parseStrictInt(text);
         if (!parsed)
-            return false;
+            return {};
         integerValue = *parsed;
     }
 
-    // Validate the complete operation before changing any selected note.
-    for (const auto &item : m_selection)
+    juce::Array<MidiNotePropertyEdit> plan;
+    for (int i = 0; i < selection.size(); ++i)
     {
-        const auto start = getGlobalStart(*item.first, *item.second);
-        const auto length = item.second->getLengthBeats().inBeats();
-        if (property == Property::start && (relative ? start + timingValue : timingValue) < 0.0)
-            return false;
-        if (property == Property::end && (relative ? length + timingValue : timingValue - start) <= 0.0)
-            return false;
-        if (property == Property::duration && (relative ? length + timingValue : timingValue) <= 0.0)
-            return false;
-        if (property == Property::pitch && !relative && (integerValue < 0 || integerValue > 127))
-            return false;
-    }
+        auto *clip = selection.getReference(i).first;
+        auto *note = selection.getReference(i).second;
+        const auto *original = base != nullptr ? &base->getReference(i) : nullptr;
+        if (clip == nullptr || note == nullptr ||
+            (original != nullptr && (original->clip != clip || original->sourceNote != note)))
+            return {};
 
-    auto &undo = m_evs.m_edit.getUndoManager();
-    if (shouldBeginUndoTransaction)
-        beginUndoTransaction(property);
+        const auto startBeat = original != nullptr ? original->startBeat : note->getStartBeat();
+        const auto length = original != nullptr ? original->length : note->getLengthBeats();
+        const auto noteNumber = original != nullptr ? original->noteNumber : note->getNoteNumber();
+        const auto velocity = original != nullptr ? original->velocity : note->getVelocity();
+        const auto globalStart = clip->getStartBeat().inBeats() + startBeat.inBeats()
+                                 - clip->getOffsetInBeats().inBeats();
 
-    for (const auto &item : m_selection)
-    {
-        auto *clip = item.first;
-        auto *note = item.second;
-        const auto start = getGlobalStart(*clip, *note);
-        const auto length = note->getLengthBeats().inBeats();
+        auto newStartBeat = startBeat;
+        auto newLength = length;
+        auto newNoteNumber = noteNumber;
+        auto newVelocity = velocity;
 
         switch (property)
         {
         case Property::start:
         {
-            const auto newStart = relative ? start + timingValue : timingValue;
-            note->setStartAndLength(tracktion::BeatPosition::fromBeats(getInternalStart(*clip, newStart)), note->getLengthBeats(), &undo);
+            const auto newGlobalStart = relative ? globalStart + timingValue : timingValue;
+            if (newGlobalStart < 0.0)
+                return {};
+            newStartBeat = tracktion::BeatPosition::fromBeats(getInternalStart(*clip, newGlobalStart));
             break;
         }
         case Property::end:
-        {
-            const auto newLength = relative ? length + timingValue : timingValue - start;
-            note->setStartAndLength(note->getStartBeat(), tracktion::BeatDuration::fromBeats(newLength), &undo);
+            newLength = tracktion::BeatDuration::fromBeats(relative ? length.inBeats() + timingValue
+                                                                    : timingValue - globalStart);
+            if (newLength.inBeats() <= 0.0)
+                return {};
             break;
-        }
         case Property::duration:
-        {
-            const auto newLength = relative ? length + timingValue : timingValue;
-            note->setStartAndLength(note->getStartBeat(), tracktion::BeatDuration::fromBeats(newLength), &undo);
+            newLength = tracktion::BeatDuration::fromBeats(relative ? length.inBeats() + timingValue : timingValue);
+            if (newLength.inBeats() <= 0.0)
+                return {};
             break;
-        }
         case Property::pitch:
-            note->setNoteNumber(juce::jlimit(0, 127, relative ? note->getNoteNumber() + integerValue : integerValue), &undo);
+            if (!relative && (integerValue < 0 || integerValue > 127))
+                return {};
+            newNoteNumber = juce::jlimit(0, 127, relative ? noteNumber + integerValue : integerValue);
             break;
         case Property::velocity:
-            note->setVelocity(juce::jlimit(1, 127, relative ? note->getVelocity() + integerValue : integerValue), &undo);
+            newVelocity = juce::jlimit(1, 127, relative ? velocity + integerValue : integerValue);
             break;
         }
+
+        plan.add({clip, note, newStartBeat, newLength, newNoteNumber, newVelocity,
+                  original != nullptr ? original->sourceState.createCopy() : note->state.createCopy()});
     }
 
-    return true;
+    return plan;
+}
+
+void NotePropertiesBar::applyPlan(const juce::Array<MidiNotePropertyEdit> &plan)
+{
+    auto &undo = m_evs.m_edit.getUndoManager();
+    for (const auto &edit : plan)
+    {
+        if (edit.sourceNote == nullptr)
+            continue;
+        edit.sourceNote->setStartAndLength(edit.startBeat, edit.length, &undo);
+        edit.sourceNote->setNoteNumber(edit.noteNumber, &undo);
+        edit.sourceNote->setVelocity(edit.velocity, &undo);
+    }
+}
+
+void NotePropertiesBar::showPlan(const juce::Array<MidiNotePropertyEdit> &plan)
+{
+    if (plan.isEmpty())
+        return;
+
+    auto commonValue = [&plan](auto getter, auto formatter)
+    {
+        const auto first = getter(plan.getFirst());
+        for (const auto &edit : plan)
+            if (!nearlyEqual(static_cast<double>(getter(edit)), static_cast<double>(first)))
+                return juce::String::fromUTF8("\xe2\x80\x94");
+        return formatter(first);
+    };
+
+    const auto startText = commonValue(
+        [](const auto &edit)
+        {
+            return edit.clip->getStartBeat().inBeats() + edit.startBeat.inBeats()
+                   - edit.clip->getOffsetInBeats().inBeats();
+        },
+        [this](double value) { return formatPosition(value); });
+    const auto endText = commonValue(
+        [](const auto &edit)
+        {
+            return edit.clip->getStartBeat().inBeats() + edit.startBeat.inBeats()
+                   - edit.clip->getOffsetInBeats().inBeats() + edit.length.inBeats();
+        },
+        [this](double value) { return formatPosition(value); });
+    const auto durationText = commonValue(
+        [](const auto &edit) { return edit.length.inBeats(); },
+        [this](double value) { return formatDuration(value); });
+    const auto pitchText = commonValue(
+        [](const auto &edit) { return edit.noteNumber; },
+        [](int value) { return juce::MidiMessage::getMidiNoteName(value, true, true, 3); });
+    const auto velocityText = commonValue(
+        [](const auto &edit) { return edit.velocity; },
+        [](int value) { return juce::String(value); });
+
+    const std::array<juce::String, 5> texts{{startText, endText, durationText, pitchText, velocityText}};
+    m_handlingEditorCallback = true;
+    for (size_t i = 0; i < m_fields.size(); ++i)
+        m_fields[i].editor.setText(texts[i], false);
+    m_handlingEditorCallback = false;
+}
+
+bool NotePropertiesBar::planChangesNotes(const juce::Array<MidiNotePropertyEdit> &plan) const
+{
+    if (plan.size() != m_scrubBase.size())
+        return false;
+
+    for (int i = 0; i < plan.size(); ++i)
+    {
+        const auto &edit = plan.getReference(i);
+        const auto &original = m_scrubBase.getReference(i);
+        if (!nearlyEqual(edit.startBeat.inBeats(), original.startBeat.inBeats())
+            || !nearlyEqual(edit.length.inBeats(), original.length.inBeats())
+            || edit.noteNumber != original.noteNumber || edit.velocity != original.velocity)
+            return true;
+    }
+    return false;
 }
 
 void NotePropertiesBar::setInvalid(Field &field, bool invalid)

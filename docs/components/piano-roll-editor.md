@@ -298,7 +298,7 @@ The exact properties bar clamps committed velocity to `1..127`, so velocity-zero
 
 ### Exact properties
 
-`NotePropertiesBar` edits start, end, duration, pitch, and velocity as text fields with absolute and relative input, wheel stepping, and vertical drag scrubbing. It is documented in detail in [NotePropertiesBar](note-properties-bar.md).
+`NotePropertiesBar` edits start, end, duration, pitch, and velocity as text fields with absolute and relative input, wheel stepping, and vertical drag scrubbing. Scrubbing creates a transient `MidiNotePropertyEdit` plan rendered by `MidiViewport`; the model and undo history remain unchanged until mouse-up. Timing and pitch commits remove the edited sources, clear grouped destination ranges, resolve conflicts between planned destinations, and recreate the notes from full state copies. It is documented in detail in [NotePropertiesBar](note-properties-bar.md).
 
 ## Overlap handling
 

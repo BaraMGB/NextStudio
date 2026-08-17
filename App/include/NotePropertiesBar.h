@@ -14,6 +14,7 @@ by the Free Software Foundation, either version 3 of the License, or
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "MidiNotePropertyEdit.h"
 #include <array>
 #include <functional>
 #include <optional>
@@ -34,10 +35,15 @@ public:
     };
 
     using SelectionProvider = std::function<juce::Array<std::pair<te::MidiClip *, te::MidiNote *>>() >;
+    using PreviewHandler = std::function<void(const juce::Array<MidiNotePropertyEdit> &)>;
+    using CommitHandler = std::function<void(Property, const juce::Array<MidiNotePropertyEdit> &)>;
+    using TimingStepProvider = std::function<double()>;
 
     explicit NotePropertiesBar(EditViewState &);
 
     void setSelectionProvider(SelectionProvider);
+    void setEditHandlers(PreviewHandler, CommitHandler);
+    void setTimingStepProvider(TimingStepProvider);
     void refreshFromSelection(bool discardActiveEdit = false);
     void clearSelection();
     void updateColours();
@@ -86,8 +92,18 @@ private:
     void cancel(Field &);
     void focusAdjacent(Field &, bool backwards);
     void scrub(Field &, int stepDelta, bool beginUndoTransaction = true);
+    void beginScrub(Field &);
+    void endScrub();
+    void cancelScrub();
     void beginUndoTransaction(Property);
     bool apply(Property, const juce::String &, bool beginUndoTransaction = true);
+    std::optional<juce::Array<MidiNotePropertyEdit>> createEditPlan(
+        Property, const juce::String &,
+        const juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> &,
+        const juce::Array<MidiNotePropertyEdit> *base = nullptr) const;
+    void applyPlan(const juce::Array<MidiNotePropertyEdit> &);
+    void showPlan(const juce::Array<MidiNotePropertyEdit> &);
+    bool planChangesNotes(const juce::Array<MidiNotePropertyEdit> &) const;
     void setInvalid(Field &, bool);
 
     juce::String formatPosition(double globalBeat) const;
@@ -101,6 +117,9 @@ private:
 
     EditViewState &m_evs;
     SelectionProvider m_selectionProvider;
+    PreviewHandler m_previewHandler;
+    CommitHandler m_commitHandler;
+    TimingStepProvider m_timingStepProvider;
     std::array<Field, 5> m_fields{{
         {Property::start, {}, {}, {}},
         {Property::end, {}, {}, {}},
@@ -108,6 +127,12 @@ private:
         {Property::pitch, {}, {}, {}},
         {Property::velocity, {}, {}, {}}}};
     juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> m_selection;
+    juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> m_scrubSelection;
+    juce::Array<MidiNotePropertyEdit> m_scrubBase;
+    juce::Array<MidiNotePropertyEdit> m_scrubPreview;
+    Property m_scrubProperty{Property::start};
+    int m_scrubSteps{0};
+    bool m_scrubActive{false};
     juce::Label m_snapLabel;
     juce::ComboBox m_snapBox;
     juce::Label m_noteLengthLabel;

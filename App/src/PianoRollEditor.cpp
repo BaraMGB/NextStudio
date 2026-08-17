@@ -62,6 +62,23 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
         }
         return selection;
     });
+    m_notePropertiesBar.setEditHandlers(
+        [this](const juce::Array<MidiNotePropertyEdit> &preview)
+        {
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->setNotePropertyPreview(preview);
+        },
+        [this](NotePropertiesBar::Property property, const juce::Array<MidiNotePropertyEdit> &edits)
+        {
+            if (m_pianoRollViewPort != nullptr)
+                m_pianoRollViewPort->commitNotePropertyEdit(edits, property != NotePropertiesBar::Property::velocity);
+        });
+    m_notePropertiesBar.setTimingStepProvider([this]
+    {
+        return m_timeLine.isSnappingEnabled()
+                   ? m_timeLine.getSnapIntervalBeats()
+                   : 1.0 / te::Edit::ticksPerQuarterNote;
+    });
 
     addAndMakeVisible(m_notePropertiesBar);
     addAndMakeVisible(m_timeLine);
@@ -143,7 +160,29 @@ void PianoRollEditor::paint(juce::Graphics &g)
 void PianoRollEditor::paintOverChildren(juce::Graphics &g)
 {
     g.setColour(juce::Colour(0xffffffff));
-    g.drawText(m_NoteDescUnderCursor, getWidth() - 200, getHeight() - 20, 90, 20, juce::Justification::centredLeft);
+
+    const auto snapMode = static_cast<PianoRollSnapMode>(static_cast<int>(m_editViewState.m_pianoRollSnapMode));
+    juce::String snapDescription;
+    if (snapMode == PianoRollSnapMode::off)
+    {
+        snapDescription = "Off";
+    }
+    else if (snapMode == PianoRollSnapMode::fixed)
+    {
+        snapDescription = "1/" + juce::String(juce::jmax(1, static_cast<int>(m_editViewState.m_pianoRollSnapDenominator)));
+    }
+    else
+    {
+        const auto snapType = m_timeLine.getBestSnapType();
+        snapDescription = "Adaptive: " + m_timeLine.getEditViewState().getSnapTypeDescription(snapType.level);
+    }
+
+    auto footerContent = getFooterRect().reduced(10, 0);
+    auto snapBounds = footerContent.removeFromRight(juce::jmin(180, footerContent.getWidth()));
+    g.drawFittedText(snapDescription, snapBounds, juce::Justification::centredRight, 1);
+
+    auto noteBounds = footerContent.removeFromRight(juce::jmin(100, footerContent.getWidth()));
+    g.drawText(m_NoteDescUnderCursor, noteBounds, juce::Justification::centredLeft);
 
     g.setColour(m_editViewState.m_applicationState.getBorderColour());
     g.fillRect(getHeaderRect().removeFromBottom(1));
@@ -534,6 +573,9 @@ void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropert
         markAndUpdate(m_updateHorizontalScrollbar);
     }
 
+    if (property == IDs::pianoRollSnapMode || property == IDs::pianoRollSnapDenominator)
+        repaint(getFooterRect());
+
     if (treeWhosePropertyHasChanged.hasType(IDs::ThemeState))
     {
         markAndUpdate(m_updateButtonColour);
@@ -568,6 +610,7 @@ void PianoRollEditor::handleAsyncUpdate()
     {
         m_pianoRollViewPort->repaint();
         m_timeLine.repaint();
+        repaint(getFooterRect());
     }
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateVelocity))
