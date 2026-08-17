@@ -29,6 +29,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "MainComponent.h"
+#include "ClipOverwriteCommand.h"
 #include "ArpeggiatorPlugin.h"
 #include "NextChorusPlugin.h"
 #include "NextDelayPlugin.h"
@@ -821,6 +822,11 @@ void MainComponent::setupEdit(juce::File editFile)
     m_tempDir.createDirectory();
 
     m_edit = std::move(replacementEdit);
+
+    for (auto *track : te::getAudioTracks(*m_edit))
+        if (ClipEditing::hasOverlaps(*track))
+            GUIHelpers::log("WARNING: Loaded track contains overlapping clips: "
+                            + track->getName() + " (" + ClipEditing::describeOverlaps(*track) + ")");
 
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
         uiBehaviour->setFocusedEdit(m_edit.get());
