@@ -79,6 +79,8 @@ void MidiViewport::paint(juce::Graphics &g)
             drawNote(g, midiClip, n);
     }
 
+    drawPendingPasteNotes(g);
+
     if (auto *pointerTool = dynamic_cast<PointerTool *>(m_currentTool.get()))
     {
         if (pointerTool->isDragging())
@@ -228,6 +230,39 @@ void MidiViewport::drawDraggedNotes(juce::Graphics &g, te::MidiNote *n, te::Midi
     }
 }
 
+void MidiViewport::drawPendingPasteNotes(juce::Graphics &g)
+{
+    if (!m_pendingPasteState.isActive())
+        return;
+
+    for (const auto &clipboardNote : m_pendingPasteNotes)
+    {
+        auto *clip = findClipboardClip(clipboardNote.clipID);
+        if (clip == nullptr)
+            continue;
+
+        auto previewState = clipboardNote.copiedState.createCopy();
+        const int pitch = juce::jlimit(0, 127, static_cast<int>(previewState.getProperty(te::IDs::p)) + m_pendingPasteState.getPitchDelta());
+        const double startBeat = static_cast<double>(previewState.getProperty(te::IDs::b)) + m_pendingPasteState.getBeatDelta();
+        previewState.setProperty(te::IDs::p, pitch, nullptr);
+        previewState.setProperty(te::IDs::b, startBeat, nullptr);
+
+        te::MidiNote previewNote(previewState);
+        auto noteRect = getNoteRect(clip, &previewNote);
+
+        if (!m_evs.m_editNotesOutsideClipRange)
+            noteRect = noteRect.getIntersection(getClipRect(clip));
+
+        if (noteRect.isEmpty())
+            continue;
+
+        g.setColour(juce::Colours::white.withAlpha(0.18f));
+        g.fillRect(noteRect);
+        g.setColour(juce::Colours::white.withAlpha(0.9f));
+        g.drawRect(noteRect, 2.0f);
+    }
+}
+
 void MidiViewport::drawKeyNum(juce::Graphics &g, const tracktion_engine::MidiNote *n, juce::Rectangle<float> &noteRect) const
 {
     if (m_evs.getViewYScale(m_timeLine.getTimeLineID()) > 13)
@@ -296,6 +331,8 @@ void MidiViewport::mouseMove(const juce::MouseEvent &e)
 
 void MidiViewport::mouseDown(const juce::MouseEvent &e)
 {
+    finishPendingPasteOnDeselect();
+
     if (m_currentTool)
         m_currentTool->mouseDown(e, *this);
 
@@ -437,6 +474,208 @@ void MidiViewport::stopLasso()
         setMouseCursor(juce::MouseCursor::NormalCursor);
         m_lassoTool.stopLasso();
     }
+}
+
+MidiViewport::MidiClipboard MidiViewport::copySelectedNotesToClipboard()
+{
+    MidiClipboard clipboard;
+
+    if (m_selectedEvents == nullptr)
+        return clipboard;
+
+    for (auto *note : getSelectedNotes())
+    {
+        if (auto *clip = m_selectedEvents->clipForEvent(note))
+            clipboard.add({clip->itemID, note->state.createCopy()});
+    }
+
+    return clipboard;
+}
+
+bool MidiViewport::beginPendingPaste(const MidiClipboard &clipboard)
+{
+    cancelPendingPaste();
+
+    for (const auto &clipboardNote : clipboard)
+    {
+        if (!clipboardNote.copiedState.hasType(te::IDs::NOTE))
+            continue;
+
+        if (findClipboardClip(clipboardNote.clipID) != nullptr)
+            m_pendingPasteNotes.add(clipboardNote);
+    }
+
+    if (m_pendingPasteNotes.isEmpty())
+        return false;
+
+    m_pendingPasteState.begin();
+    deselectActualNotes();
+    repaint();
+    sendChangeMessage();
+    return true;
+}
+
+bool MidiViewport::nudgePendingPaste(te::TimecodeSnapType snapType, int leftRight, int upDown)
+{
+    if (!m_pendingPasteState.isActive())
+        return false;
+
+    double beatDelta = 0.0;
+    int pitchDelta = 0;
+
+    if (leftRight != 0)
+    {
+        for (const auto &clipboardNote : m_pendingPasteNotes)
+        {
+            auto *clip = findClipboardClip(clipboardNote.clipID);
+            if (clip == nullptr)
+                continue;
+
+            auto state = clipboardNote.copiedState.createCopy();
+            state.setProperty(te::IDs::b,
+                              static_cast<double>(state.getProperty(te::IDs::b)) + m_pendingPasteState.getBeatDelta(),
+                              nullptr);
+            te::MidiNote referenceNote(state);
+            const auto start = referenceNote.getEditStartTime(*clip);
+            const auto snapped = leftRight < 0
+                                     ? snapType.roundTimeDown(start - tracktion::TimeDuration::fromSeconds(0.01), m_evs.m_edit.tempoSequence)
+                                     : snapType.roundTimeUp(start + tracktion::TimeDuration::fromSeconds(0.01), m_evs.m_edit.tempoSequence);
+            beatDelta = (m_evs.m_edit.tempoSequence.toBeats(snapped)
+                         - m_evs.m_edit.tempoSequence.toBeats(start)).inBeats();
+            break;
+        }
+    }
+
+    if (upDown != 0)
+    {
+        int minimumPitch = 127;
+        int maximumPitch = 0;
+
+        for (const auto &clipboardNote : m_pendingPasteNotes)
+        {
+            const int pitch = static_cast<int>(clipboardNote.copiedState.getProperty(te::IDs::p))
+                              + m_pendingPasteState.getPitchDelta();
+            minimumPitch = juce::jmin(minimumPitch, pitch);
+            maximumPitch = juce::jmax(maximumPitch, pitch);
+        }
+
+        pitchDelta = juce::jlimit(-minimumPitch, 127 - maximumPitch, upDown);
+    }
+
+    if (m_pendingPasteState.nudge(beatDelta, pitchDelta))
+        repaint();
+
+    return true;
+}
+
+bool MidiViewport::confirmPendingPaste(bool keepSelection)
+{
+    return resolvePendingPaste(m_pendingPasteState.confirm(), keepSelection);
+}
+
+bool MidiViewport::finishPendingPasteOnDeselect()
+{
+    return resolvePendingPaste(m_pendingPasteState.finishOnDeselect(), false);
+}
+
+bool MidiViewport::cancelPendingPaste()
+{
+    return resolvePendingPaste(m_pendingPasteState.cancel(), false);
+}
+
+bool MidiViewport::resolvePendingPaste(MidiPendingPaste::Resolution resolution, bool keepSelection)
+{
+    if (resolution.action == MidiPendingPaste::Action::none)
+        return false;
+
+    if (resolution.action == MidiPendingPaste::Action::cancel)
+    {
+        m_pendingPasteNotes.clear();
+        repaint();
+        sendChangeMessage();
+        return true;
+    }
+
+    struct PlannedNote
+    {
+        te::MidiClip *clip{};
+        tracktion::BeatPosition startBeat;
+        tracktion::BeatDuration length;
+        int pitch{};
+        juce::ValueTree state;
+    };
+
+    juce::Array<PlannedNote> plannedNotes;
+
+    for (const auto &clipboardNote : m_pendingPasteNotes)
+    {
+        auto *clip = findClipboardClip(clipboardNote.clipID);
+        if (clip == nullptr)
+            continue;
+
+        const auto startBeat = tracktion::BeatPosition::fromBeats(
+            static_cast<double>(clipboardNote.copiedState.getProperty(te::IDs::b)) + resolution.beatDelta);
+        const auto length = tracktion::BeatDuration::fromBeats(
+            static_cast<double>(clipboardNote.copiedState.getProperty(te::IDs::l)));
+        const int pitch = juce::jlimit(0, 127,
+                                      static_cast<int>(clipboardNote.copiedState.getProperty(te::IDs::p))
+                                          + resolution.pitchDelta);
+
+        if (length.inBeats() <= 0.0)
+            continue;
+
+        plannedNotes.add({clip, startBeat, length, pitch, clipboardNote.copiedState.createCopy()});
+    }
+
+    m_pendingPasteNotes.clear();
+
+    if (plannedNotes.isEmpty())
+    {
+        repaint();
+        sendChangeMessage();
+        return true;
+    }
+
+    auto &undoManager = m_evs.m_edit.getUndoManager();
+    undoManager.beginNewTransaction("Paste MIDI Notes");
+
+    std::map<std::pair<te::MidiClip *, int>, juce::Array<tracktion::BeatRange>> rangesByPitch;
+    for (const auto &note : plannedNotes)
+        rangesByPitch[{note.clip, note.pitch}].add({note.startBeat, note.startBeat + note.length});
+
+    for (auto &[key, ranges] : rangesByPitch)
+        cleanUnderNoteRanges(key.second, ranges, key.first);
+
+    for (const auto &note : plannedNotes)
+    {
+        auto state = note.state.createCopy();
+        state.setProperty(te::IDs::p, note.pitch, nullptr);
+        state.setProperty(te::IDs::b, note.startBeat.inBeats(), nullptr);
+        state.setProperty(te::IDs::l, note.length.inBeats(), nullptr);
+
+        auto *newNote = note.clip->getSequence().addNote(te::MidiNote(state), &undoManager);
+        if (keepSelection)
+            setNoteSelected(newNote, true);
+    }
+
+    repaint();
+    sendChangeMessage();
+    return true;
+}
+
+te::MidiClip *MidiViewport::findClipboardClip(te::EditItemID clipID) const
+{
+    auto *clip = dynamic_cast<te::MidiClip *>(te::findClipForID(m_evs.m_edit, clipID));
+    return clip != nullptr && clip->getTrack() == m_track.get() ? clip : nullptr;
+}
+
+void MidiViewport::deselectActualNotes()
+{
+    if (m_selectedEvents != nullptr)
+        m_evs.m_selectionManager.deselect(m_selectedEvents.get());
+
+    if (m_track != nullptr && !m_evs.m_selectionManager.isSelected(*m_track))
+        m_evs.m_selectionManager.addToSelection(m_track);
 }
 
 void MidiViewport::duplicateSelectedNotes()
@@ -616,11 +855,8 @@ tracktion_engine::Track::Ptr MidiViewport::getTrack() { return m_track; }
 
 void MidiViewport::unselectAll()
 {
-    if (m_selectedEvents != nullptr)
-        m_evs.m_selectionManager.deselect(m_selectedEvents.get());
-
-    if (m_track != nullptr && !m_evs.m_selectionManager.isSelected(*m_track))
-        m_evs.m_selectionManager.addToSelection(m_track);
+    finishPendingPasteOnDeselect();
+    deselectActualNotes();
     repaint();
 }
 
@@ -812,6 +1048,8 @@ juce::Range<double> MidiViewport::getLassoVerticalKeyRange()
 
 void MidiViewport::updateSelectedEvents()
 {
+    finishPendingPasteOnDeselect();
+
     if (m_selectedEvents != nullptr)
     {
         m_selectedEvents->removeChangeListener(this);
@@ -872,6 +1110,8 @@ te::SelectedMidiEvents &MidiViewport::getSelectedEvents()
 
 void MidiViewport::setTool(Tool tool)
 {
+    finishPendingPasteOnDeselect();
+
     if (m_currentTool)
         m_currentTool->toolDeactivated(*this);
 

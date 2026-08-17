@@ -76,6 +76,21 @@ Click the body of a note and drag:
 
 Snapping is enabled during drag. Hold `Shift` to temporarily disable it.
 
+#### Copy and paste in place
+
+`Command+C` copies the selected notes. `Command+V` starts a provisional in-place paste: preview blocks appear exactly over the source notes, but the project model and undo history are not changed yet.
+
+While the paste is pending:
+
+- arrow keys move the preview using the same snap and pitch steps as normal note nudging;
+- `Command+Up` / `Command+Down` move the preview by one octave;
+- `Enter` positively commits the paste, including an unshifted in-place paste;
+- `Escape` always cancels the paste;
+- clicking/deselecting without moving cancels it, leaving only the originals;
+- clicking/deselecting after moving commits the copies at their preview positions.
+
+The pasted destination always has priority during commit. Source notes remain unchanged when the moved preview no longer overlaps them; if a preview still overlaps a source or another same-pitch note, the existing note is trimmed or removed so the pasted note remains complete. Confirming an unshifted preview with `Enter` replaces the notes at the same ranges rather than stacking duplicate note events. The complete commit is one `Paste MIDI Notes` undo transaction.
+
 #### Copy while dragging
 
 Hold `Ctrl` during mouse release after dragging to create copies instead of removing the original notes. This path currently checks the physical Control modifier directly.
@@ -225,6 +240,10 @@ The Piano Roll's vertical scroll and scale are stored per active-track timeline 
 | Action | Shortcut |
 |---|---|
 | Delete selected notes | `Backspace`, `Delete`, or `Command+X` |
+| Copy selected notes | `Command+C` |
+| Paste notes in place (pending) | `Command+V` |
+| Confirm pending paste | `Enter` |
+| Cancel pending paste | `Escape` |
 | Duplicate selected notes | `Command+D` |
 | Nudge pitch up/down | `Up` / `Down` |
 | Nudge time left/right | `Left` / `Right` |
@@ -245,7 +264,7 @@ Clearing all destinations first prevents one newly created duplicate from erasin
 
 ## Undo and model updates
 
-Piano Roll operations use the edit's undo manager. Named transactions are used for multi-note changes, copying, movement, splitting, deletion, and property editing.
+Piano Roll operations use the edit's undo manager. Named transactions are used for multi-note changes, copying, movement, splitting, deletion, and property editing. Copying and the provisional `Command+V` preview do not change the model; committing the preview creates one `Paste MIDI Notes` transaction.
 
 Model changes trigger deferred refreshes for:
 

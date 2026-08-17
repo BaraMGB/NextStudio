@@ -53,6 +53,7 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
     void resized() override;
     void mouseMove(const juce::MouseEvent &event) override;
+    bool keyPressed(const juce::KeyPress &key) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
 
     ApplicationCommandTarget *getNextCommandTarget() override { return findFirstTargetParentComponent(); }
@@ -89,6 +90,7 @@ public:
 
     void setTrack(tracktion_engine::Track::Ptr track, bool forceRefresh = false);
     void clearTrack();
+    bool confirmPendingPasteIfActive();
 
     TimeLineComponent &getTimeLineComponent() { return m_timeLine; }
 
@@ -118,6 +120,7 @@ private:
     juce::DrawableButton m_selectionBtn, m_drawBtn, m_rangeSelectBtn, m_erasorBtn, m_splitBtn, m_lassoBtn;
 
     juce::String m_NoteDescUnderCursor;
+    MidiViewport::MidiClipboard m_midiClipboard;
     void handleAsyncUpdate() override;
 
     bool m_updateKeyboard{false}, m_updateVelocity{false}, m_updateNoteEditor{false}, m_updateNoteProperties{false}, m_updateClips{false}, m_updateTracks{false}, m_updateButtonColour{false}, m_updateHorizontalScrollbar{false};

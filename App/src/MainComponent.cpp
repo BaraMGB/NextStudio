@@ -513,7 +513,8 @@ bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         EngineHelpers::togglePlay(m_editComponent->getEditViewState());
         break;
     case KeyPressCommandIDs::play:
-        EngineHelpers::play(m_editComponent->getEditViewState());
+        if (m_lowerRange == nullptr || !m_lowerRange->getPianoRollEditor().confirmPendingPasteIfActive())
+            EngineHelpers::play(m_editComponent->getEditViewState());
         break;
     case KeyPressCommandIDs::stop:
         EngineHelpers::stopPlay(m_editComponent->getEditViewState());

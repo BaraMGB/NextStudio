@@ -11,6 +11,7 @@ The current suites are:
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
 | `ProjectLifecycle` | project request, extension, validation, and unsaved-choice rules | `App/tests/ProjectLifecycleTests.cpp` |
 | `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
+| `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
 
 ## Run all tests
 
@@ -132,6 +133,7 @@ Current coverage includes:
 - exact equality between note and clear range;
 - splitting a note into two pieces;
 - trimming the note end and note start;
+- regression coverage that an inserted range wins against an overlapping right-hand note;
 - multiple clear ranges producing multiple pieces;
 - overlapping and adjacent clear ranges;
 - clear ranges outside the note;
@@ -141,6 +143,27 @@ Current coverage includes:
 - unsorted clear ranges.
 
 This is the planning layer behind `MidiViewport::cleanUnderNoteRanges()`. The mutation layer (applying the plan to real `MidiClip`/`MidiNote` objects) is not exercised by this suite.
+
+## MidiPendingPaste tests
+
+`MidiPendingPasteTests` compiles:
+
+- `App/src/MidiPendingPaste.cpp`;
+- `App/tests/MidiPendingPasteTests.cpp`.
+
+Current coverage includes:
+
+- inactive commands producing no resolution;
+- deselect without movement cancelling the preview;
+- deselect after movement committing accumulated offsets;
+- `Enter` committing positively with zero offset;
+- `Enter` committing accumulated beat/pitch movement;
+- `Escape` cancelling after movement;
+- zero nudges not marking the state as moved;
+- repeated `begin()` resetting previous offsets;
+- moving away and back to the origin still counting as a positive edit.
+
+This suite exercises the pure pending-paste state machine. Clipboard capture, preview rendering, clip resolution, destination cleanup, note creation, command routing, and undo integration remain covered by application compilation and focused manual testing.
 
 ## What is not covered yet
 

@@ -113,6 +113,27 @@ if(BUILD_TESTING)
 
     add_test(NAME MidiNoteOverlap
             COMMAND MidiNoteOverlapTests)
+
+    juce_add_console_app(MidiPendingPasteTests
+            PRODUCT_NAME "MidiPendingPasteTests")
+    juce_generate_juce_header(MidiPendingPasteTests)
+
+    target_sources(MidiPendingPasteTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/MidiPendingPaste.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/MidiPendingPasteTests.cpp)
+
+    target_include_directories(MidiPendingPasteTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(MidiPendingPasteTests PRIVATE
+            juce::juce_core)
+
+    target_compile_definitions(MidiPendingPasteTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME MidiPendingPaste
+            COMMAND MidiPendingPasteTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

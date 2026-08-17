@@ -12,6 +12,7 @@ This document describes the implementation: component ownership, the Tracktion d
 |---|---|
 | Editor frame, layout, commands | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp` |
 | Note grid, hit testing, note operations | `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
+| Pending paste state machine | `App/include/MidiPendingPaste.h`, `App/src/MidiPendingPaste.cpp` |
 | Tool base and factory | `App/include/ToolStrategy.h`, `App/src/ToolFactory.cpp` |
 | Pointer tool | `App/include/PointerTool.h`, `App/src/PointerTool.cpp` |
 | Draw tool | `App/include/DrawTool.h`, `App/src/DrawTool.cpp` |
@@ -44,7 +45,7 @@ PianoRollEditor
 └── juce::ScrollBar (horizontal)
 ```
 
-`PianoRollEditor` is the composition root for the subsystem. It owns the layout rectangles, the tool-bar buttons, the application commands, and the refresh scheduling. `MidiViewport` owns the note grid, the current tool, the lasso rectangle, the `SelectedMidiEvents` object, and the clip cache.
+`PianoRollEditor` is the composition root for the subsystem. It owns the layout rectangles, the tool-bar buttons, the application commands, the MIDI-note clipboard, and the refresh scheduling. `MidiViewport` owns the note grid, the current tool, the lasso rectangle, the `SelectedMidiEvents` object, the active pending-paste preview, and the clip cache.
 
 The track-specific children (`MidiViewport`, `TimelineOverlayComponent`, `VelocityEditor`, `KeyboardView`) are created in `PianoRollEditor::setTrack()` and destroyed in `clearTrack()`. `clearTrack()` deselects the old `SelectedMidiEvents` object, removes listeners, and resets the unique pointers before the track reference is dropped.
 
@@ -242,6 +243,34 @@ Clearing selection before removal prevents the properties bar from retaining del
 
 The operation is grouped as `Split MIDI Note`. A vertical preview line is drawn while hovering over a note.
 
+### Provisional copy and paste in place
+
+`PianoRollEditor` registers `Command+C` and `Command+V` as note commands. The clipboard contains each source clip ID and a deep copy of the note state.
+
+`Command+V` calls `MidiViewport::beginPendingPaste()`. It validates the source clips, clears the real note selection, starts `MidiPendingPaste::State`, and stores the clipboard entries as transient preview data. No Tracktion note is created and no undo transaction begins.
+
+`drawPendingPasteNotes()` renders each copied state with the pending beat/pitch deltas as a translucent selected outline. Arrow commands are intercepted before normal `SelectedMidiEvents::nudge()`:
+
+- horizontal steps use the same `TimecodeSnapType::roundTimeDown/Up()` calculation as Tracktion's note nudge;
+- vertical steps accumulate semitone or octave deltas while clamping the group to `0..127`;
+- the state machine records whether any effective movement occurred.
+
+The pending state resolves as follows:
+
+| Event | Result |
+|---|---|
+| Deselect/click without movement | Cancel; no model or undo change |
+| Deselect/click after movement | Commit copies, leave them deselected |
+| `Enter` | Commit positively, even at zero offset; select the new notes |
+| `Escape` | Cancel regardless of movement |
+| Tool or track change | Resolve using deselect semantics |
+
+`Enter` is also handled by `MainComponent` before its global Play command, so an active pending paste is confirmed instead of starting playback.
+
+Commit resolves clips by ID, begins one `Paste MIDI Notes` transaction, groups destination ranges by clip/pitch, clears all existing same-pitch material under those ranges, and creates notes from full copied states. The pasted destination has priority: a source or right-hand note that still overlaps it is trimmed/removed, never allowed to cover or shorten the pasted note. Source notes remain complete only when the moved preview no longer overlaps them. An explicit zero-offset `Enter` therefore replaces the notes at the same ranges and selects the replacements instead of stacking duplicate note events.
+
+The pure `MidiPendingPaste::State` contains only active/moved flags and accumulated offsets. It is independent of JUCE/Tracktion model mutation and is covered by `MidiPendingPasteTests`.
+
 ### Duplicate
 
 `MidiViewport::duplicateSelectedNotes()` (bound to `Command+D`) copies the selection by the length of the selected time range:
@@ -314,7 +343,8 @@ The cache is invalidated when a `MIDICLIP` child is added to or removed from the
 | Operation | Transaction name |
 |---|---|
 | Move notes | `Move MIDI Notes` |
-| Copy notes | `Copy MIDI Notes` |
+| Copy notes by drag | `Copy MIDI Notes` |
+| Paste notes in place | `Paste MIDI Notes` |
 | Add note | `Add MIDI Note` |
 | Duplicate notes | `Duplicate MIDI Notes` |
 | Delete notes (drag) | `Delete MIDI Notes` |

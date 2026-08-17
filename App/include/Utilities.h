@@ -100,6 +100,10 @@ enum KeyPressCommandIDs
 
     deleteSelectedNotes,
     duplicateSelectedNotes,
+    copySelectedNotes,
+    pasteNotesInPlace,
+    confirmPendingPaste,
+    cancelPendingPaste,
     nudgeNotesUp,
     nudgeNotesDown,
     nudgeNotesLeft,

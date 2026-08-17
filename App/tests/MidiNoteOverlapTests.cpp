@@ -113,6 +113,14 @@ void testTrimStart()
                       {{0.5, 1.0}});
 }
 
+void testInsertedRangeWinsAgainstRightNote()
+{
+    // The inserted range [1, 3) must trim the overlapping right note [2, 4)
+    // to [3, 4), never cover or shorten the inserted note itself.
+    requireIntervals (MidiNoteOverlap::subtractIntervals ({2.0, 4.0}, {{1.0, 3.0}}),
+                      {{3.0, 4.0}});
+}
+
 void testMultipleClears()
 {
     requireIntervals (MidiNoteOverlap::subtractIntervals ({0.0, 4.0}, {{1.0, 2.0}, {3.0, 4.0}}),
@@ -182,6 +190,7 @@ int main()
     testSplit();
     testTrimEnd();
     testTrimStart();
+    testInsertedRangeWinsAgainstRightNote();
     testMultipleClears();
     testOverlappingClears();
     testAdjacentClears();

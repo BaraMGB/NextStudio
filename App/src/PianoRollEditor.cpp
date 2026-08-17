@@ -235,12 +235,36 @@ void PianoRollEditor::mouseMove(const juce::MouseEvent &event)
     }
 }
 
+bool PianoRollEditor::keyPressed(const juce::KeyPress &key)
+{
+    if (m_pianoRollViewPort != nullptr && m_pianoRollViewPort->hasPendingPaste())
+    {
+        if (key.getKeyCode() == juce::KeyPress::returnKey)
+            return m_pianoRollViewPort->confirmPendingPaste(true);
+
+        if (key.getKeyCode() == juce::KeyPress::escapeKey)
+            return m_pianoRollViewPort->cancelPendingPaste();
+    }
+
+    return juce::Component::keyPressed(key);
+}
+
+bool PianoRollEditor::confirmPendingPasteIfActive()
+{
+    return m_pianoRollViewPort != nullptr && m_pianoRollViewPort->confirmPendingPaste(true);
+}
+
 void PianoRollEditor::getAllCommands(juce::Array<juce::CommandID> &commands)
 {
 
     juce::Array<juce::CommandID> ids{
 
-        KeyPressCommandIDs::deleteSelectedNotes, KeyPressCommandIDs::duplicateSelectedNotes, KeyPressCommandIDs::nudgeNotesUp, KeyPressCommandIDs::nudgeNotesDown, KeyPressCommandIDs::nudgeNotesLeft, KeyPressCommandIDs::nudgeNotesRight, KeyPressCommandIDs::nudgeNotesOctaveUp, KeyPressCommandIDs::nudgeNotesOctaveDown,
+        KeyPressCommandIDs::deleteSelectedNotes, KeyPressCommandIDs::duplicateSelectedNotes,
+        KeyPressCommandIDs::copySelectedNotes, KeyPressCommandIDs::pasteNotesInPlace,
+        KeyPressCommandIDs::confirmPendingPaste, KeyPressCommandIDs::cancelPendingPaste,
+        KeyPressCommandIDs::nudgeNotesUp, KeyPressCommandIDs::nudgeNotesDown,
+        KeyPressCommandIDs::nudgeNotesLeft, KeyPressCommandIDs::nudgeNotesRight,
+        KeyPressCommandIDs::nudgeNotesOctaveUp, KeyPressCommandIDs::nudgeNotesOctaveDown,
     };
 
     commands.addArray(ids);
@@ -260,6 +284,21 @@ void PianoRollEditor::getCommandInfo(juce::CommandID commandID, juce::Applicatio
     case KeyPressCommandIDs::duplicateSelectedNotes:
         result.setInfo("duplicate selected Notes", "duplicate selected Notes", "Notes", 0);
         result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::copySelectedNotes:
+        result.setInfo("copy selected Notes", "copy selected Notes", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("c").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::pasteNotesInPlace:
+        result.setInfo("paste Notes in place", "paste Notes in place", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("v").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::confirmPendingPaste:
+        result.setInfo("confirm pending MIDI paste", "confirm pending MIDI paste", "Notes", 0);
+        break;
+    case KeyPressCommandIDs::cancelPendingPaste:
+        result.setInfo("cancel pending MIDI paste", "cancel pending MIDI paste", "Notes", 0);
+        result.addDefaultKeypress(juce::KeyPress::escapeKey, 0);
         break;
 
     case KeyPressCommandIDs::nudgeNotesUp:
@@ -301,7 +340,10 @@ bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationIn
     case KeyPressCommandIDs::deleteSelectedNotes:
     {
         if (m_pianoRollViewPort != nullptr)
-            m_pianoRollViewPort->deleteSelectedNotes();
+        {
+            if (!m_pianoRollViewPort->cancelPendingPaste())
+                m_pianoRollViewPort->deleteSelectedNotes();
+        }
 
         break;
     }
@@ -312,43 +354,76 @@ bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationIn
 
         break;
     }
-    case KeyPressCommandIDs::nudgeNotesUp:
+    case KeyPressCommandIDs::copySelectedNotes:
     {
         if (m_pianoRollViewPort != nullptr)
+        {
+            auto clipboard = m_pianoRollViewPort->copySelectedNotesToClipboard();
+            if (!clipboard.isEmpty())
+                m_midiClipboard = std::move(clipboard);
+        }
+        break;
+    }
+    case KeyPressCommandIDs::pasteNotesInPlace:
+    {
+        if (m_pianoRollViewPort != nullptr && m_pianoRollViewPort->beginPendingPaste(m_midiClipboard))
+            grabKeyboardFocus();
+        break;
+    }
+    case KeyPressCommandIDs::confirmPendingPaste:
+    {
+        confirmPendingPasteIfActive();
+        break;
+    }
+    case KeyPressCommandIDs::cancelPendingPaste:
+    {
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->cancelPendingPaste();
+        break;
+    }
+    case KeyPressCommandIDs::nudgeNotesUp:
+    {
+        if (m_pianoRollViewPort != nullptr &&
+            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, 1))
             m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 1);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesDown:
     {
-        if (m_pianoRollViewPort != nullptr)
+        if (m_pianoRollViewPort != nullptr &&
+            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, -1))
             m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -1);
         break;
     }
     case KeyPressCommandIDs::nudgeNotesLeft:
     {
-        if (m_pianoRollViewPort != nullptr)
+        if (m_pianoRollViewPort != nullptr &&
+            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), -1, 0))
             m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), -1, 0);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesRight:
     {
-        if (m_pianoRollViewPort != nullptr)
+        if (m_pianoRollViewPort != nullptr &&
+            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 1, 0))
             m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 1, 0);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesOctaveUp:
     {
-        if (m_pianoRollViewPort != nullptr)
+        if (m_pianoRollViewPort != nullptr &&
+            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, 12))
             m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 12);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesOctaveDown:
     {
-        if (m_pianoRollViewPort != nullptr)
+        if (m_pianoRollViewPort != nullptr &&
+            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, -12))
             m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -12);
 
         break;
@@ -437,6 +512,7 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
 }
 void PianoRollEditor::clearTrack()
 {
+    m_pianoRollViewPort->finishPendingPasteOnDeselect();
     m_editViewState.m_selectionManager.deselect(&m_pianoRollViewPort->getSelectedEvents());
     m_timelineOverlay.reset(nullptr);
     m_pianoRollViewPort->removeChangeListener(this);
@@ -519,6 +595,7 @@ void PianoRollEditor::handleKeyboardKeyClick(int midiNoteNumber, bool addToSelec
     if (m_pianoRollViewPort == nullptr)
         return;
 
+    m_pianoRollViewPort->finishPendingPasteOnDeselect();
     selectNotesOfKeyInCurrentClip(midiNoteNumber, addToSelection);
 }
 

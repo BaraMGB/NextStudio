@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TimeLineComponent.h"
+#include "MidiPendingPaste.h"
 #include "ToolStrategy.h"
 #include "LassoSelectionTool.h"
 #include "EditViewState.h"
@@ -40,6 +41,14 @@ class MidiViewport
     , private juce::ChangeListener
 {
 public:
+    struct MidiClipboardNote
+    {
+        te::EditItemID clipID;
+        juce::ValueTree copiedState;
+    };
+
+    using MidiClipboard = juce::Array<MidiClipboardNote>;
+
     MidiViewport(EditViewState &, te::Track::Ptr, TimeLineComponent &timeLine);
     ~MidiViewport() override;
 
@@ -79,6 +88,15 @@ public:
     void updateSelectedEvents();
     void duplicateSelectedNotes();
     void deleteSelectedNotes();
+
+    MidiClipboard copySelectedNotesToClipboard();
+    bool beginPendingPaste(const MidiClipboard &clipboard);
+    bool hasPendingPaste() const { return m_pendingPasteState.isActive(); }
+    bool nudgePendingPaste(te::TimecodeSnapType snapType, int leftRight, int upDown);
+    bool confirmPendingPaste(bool keepSelection = true);
+    bool finishPendingPasteOnDeselect();
+    bool cancelPendingPaste();
+
     te::SelectedMidiEvents &getSelectedEvents();
     const juce::Array<te::MidiClip *> &getCachedMidiClips();
     juce::Rectangle<float> getNoteRect(tracktion_engine::MidiClip *const &midiClip, const tracktion_engine::MidiNote *n);
@@ -107,6 +125,7 @@ private:
     void drawClipRange(juce::Graphics &g, tracktion_engine::MidiClip *const &midiClip);
     void drawNote(juce::Graphics &g, tracktion_engine::MidiClip *const &midiClip, te::MidiNote *n);
     void drawDraggedNotes(juce::Graphics &g, te::MidiNote *n, te::MidiClip *clip);
+    void drawPendingPasteNotes(juce::Graphics &g);
     void drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour);
     void drawKeyLines(juce::Graphics &g) const;
     void drawKeyNum(juce::Graphics &g, const tracktion_engine::MidiNote *n, juce::Rectangle<float> &noteRect) const;
@@ -139,6 +158,10 @@ private:
     void refreshClipCache();
     void invalidateClipCache();
 
+    te::MidiClip *findClipboardClip(te::EditItemID clipID) const;
+    void deselectActualNotes();
+    bool resolvePendingPaste(MidiPendingPaste::Resolution resolution, bool keepSelection);
+
     EditViewState &m_evs;
     std::unique_ptr<ToolStrategy> m_currentTool;
 
@@ -152,6 +175,9 @@ private:
     std::unique_ptr<te::SelectedMidiEvents> m_selectedEvents;
     bool m_snap{false};
     te::MidiNote *m_hoveredNote{nullptr};
+
+    MidiPendingPaste::State m_pendingPasteState;
+    MidiClipboard m_pendingPasteNotes;
 
     bool m_expandLeft{false}, m_expandRight{false}, m_noteAdding{false};
 
