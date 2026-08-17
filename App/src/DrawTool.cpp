@@ -30,11 +30,8 @@ void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 
     viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
 
-    const auto intervalBeats = viewport.getTimeLine()->isSnappingEnabled()
-                                   ? viewport.getTimeLine()->getSnapIntervalBeats()
-                                   : juce::jmax(1.0 / te::Edit::ticksPerQuarterNote,
-                                                viewport.getTimeLine()->getLastNoteLength());
-    m_intervalX = intervalBeats / viewport.getTimeLine()->getBeatsPerPixel();
+    m_insertLengthBeats = viewport.getTimeLine()->getNoteInsertLength();
+    m_intervalX = juce::jmax(1, juce::roundToInt(m_insertLengthBeats / viewport.getTimeLine()->getBeatsPerPixel()));
 
     m_isDrawingNote = true;
     m_drawStartPos = event.getPosition().x;
@@ -67,11 +64,9 @@ void DrawTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
     auto endBeat = viewport.getTimeLine()->xToBeatPos(m_drawCurrentPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
     if (viewport.isSnapping())
         endBeat = viewport.getTimeLine()->getQuantisedNoteBeat(endBeat, m_clickedClip);
+    endBeat = PianoRollNoteLength::applyMinimum(startBeat, endBeat, m_insertLengthBeats);
 
-    auto length = endBeat - startBeat;
-    if (length > 0)
-        viewport.getTimeLine()->setLastNoteLength(length);
-
+    const auto length = endBeat - startBeat;
     auto newNote = viewport.addNewNote(m_drawNoteNumber, m_clickedClip, startBeat, length);
 
     viewport.unselectAll();
@@ -84,6 +79,7 @@ void DrawTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
     m_drawCurrentPos = 0;
     m_drawNoteNumber = 0;
     m_intervalX = 0;
+    m_insertLengthBeats = PianoRollNoteLength::defaultLengthBeats;
 
     viewport.repaint();
 }
@@ -121,6 +117,7 @@ void DrawTool::toolDeactivated(MidiViewport &viewport)
     m_drawCurrentPos = 0;
     m_drawNoteNumber = 0;
     m_intervalX = 0;
+    m_insertLengthBeats = PianoRollNoteLength::defaultLengthBeats;
 
     viewport.repaint();
     viewport.setMouseCursor(juce::MouseCursor::NormalCursor);

@@ -13,6 +13,7 @@ This document describes the implementation: component ownership, the Tracktion d
 | Editor frame, layout, commands | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp` |
 | Note grid, hit testing, note operations | `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
 | Pending paste state machine | `App/include/MidiPendingPaste.h`, `App/src/MidiPendingPaste.cpp` |
+| Inserted-note length rules | `App/include/PianoRollNoteLength.h`, `App/src/PianoRollNoteLength.cpp` |
 | Tool base and factory | `App/include/ToolStrategy.h`, `App/src/ToolFactory.cpp` |
 | Pointer tool | `App/include/PointerTool.h`, `App/src/PointerTool.cpp` |
 | Draw tool | `App/include/DrawTool.h`, `App/src/DrawTool.cpp` |
@@ -176,16 +177,19 @@ enum class Tool { pointer, draw, range, eraser, knife, lasso, timestretch };
 
 Two paths create notes:
 
-1. **Draw tool** (`DrawTool`): `mouseDown` records the start pixel, the note number, and the minimum interval width derived from the current snap level. `mouseDrag` extends the end pixel. `mouseUp` converts start/end pixels to clip-relative beats, quantises them when snapping is active, and calls `MidiViewport::addNewNote()`.
-2. **Pointer double-click** (`PointerTool::insertNoteAtPosition`): calls `MidiViewport::addNewNoteAt()`, which derives the note number and beat from the click position.
+1. **Draw tool** (`DrawTool`): `mouseDown` records the start pixel, note number, and minimum width from `TimeLineComponent::getNoteInsertLength()`. `mouseDrag` can extend the note. `mouseUp` converts start/end pixels to clip-relative beats, applies position snapping when enabled, enforces the independently selected minimum length, and calls `MidiViewport::addNewNote()`.
+2. **Pointer double-click** (`PointerTool::insertNoteAtPosition`): calls `MidiViewport::addNewNoteAt()`, which derives the note number and beat from the click position and uses the selected inserted-note length.
+
+`PianoRollNoteLength` isolates note-value conversion, mode resolution, fallback behavior, and draw minimum enforcement. The length mode is Adaptive, Last Inserted, or a fixed denominator (`1/1`–`1/128`). Adaptive length always uses the zoom-dependent best snap interval and does not depend on the selected position-snap mode.
 
 `MidiViewport::addNewNote()`:
 
-1. resolves the length (remembered last note length, falling back to `0.25` beats);
+1. resolves an omitted length through `TimeLineComponent::getNoteInsertLength()`;
 2. calls `cleanUnderNote()` to clear conflicting same-pitch material;
-3. calls `clip->getSequence().addNote(...)` with `m_evs.m_lastVelocity` as velocity.
+3. calls `clip->getSequence().addNote(...)` with `m_evs.m_lastVelocity` as velocity;
+4. stores the successfully inserted duration as the timeline's Last Inserted length.
 
-The new note becomes selected. The draw tool also stores the resulting length as the remembered last note length.
+The new note becomes selected. Resizing an existing note does not update Last Inserted.
 
 ### Select
 
@@ -223,7 +227,7 @@ During the drag, `PointerTool` only computes deltas:
 2. **Clear** — group the planned destinations by clip and pitch, then call `cleanUnderNoteRanges()` once per group.
 3. **Create** — rebuild each note from its captured state copy with the new pitch, start, and length, then select it. Rebuilding from the state copy preserves mute, colour, velocity, and any custom note properties.
 
-The transaction is named `Copy MIDI Notes` or `Move MIDI Notes`. Resizing a single note updates the remembered last note length.
+The transaction is named `Copy MIDI Notes` or `Move MIDI Notes`. Resizing does not update the remembered Last Inserted length.
 
 During a copy, the source notes are still present when the destination is cleared. `cleanUnderNote()` therefore also trims or removes a source note when the destination overlaps it, keeping the pitch monophonic in the affected range. This is intentional: dragging right trims the source's end, dragging left trims its start, and an exactly covering destination removes the source.
 

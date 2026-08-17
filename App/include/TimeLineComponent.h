@@ -57,7 +57,8 @@ public:
     void setTimeLineID(juce::String timeLineID);
 
     void setLastNoteLength(double length);
-    double getLastNoteLength();
+    double getLastNoteLength() const;
+    double getNoteInsertLength() const;
 
     // snapes relative to clip start
     double getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down = true) const;
@@ -66,6 +67,7 @@ public:
     bool isSnappingEnabled() const;
     bool isUsingFixedSnap() const;
     double getSnapIntervalBeats() const;
+    double getAdaptiveSnapIntervalBeats() const;
     double getNudgeDeltaBeats(double beat, int direction) const;
     tracktion::TimePosition snapTime(tracktion::TimePosition time, bool down = false) const;
     double getSnappedTime(double time);

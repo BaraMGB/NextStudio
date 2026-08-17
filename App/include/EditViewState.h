@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "PianoRollNoteLength.h"
 #include "TrackHeightManager.h"
 #include "Utilities.h"
 
@@ -118,6 +119,8 @@ DECLARE_ID(needAutoSave)
 DECLARE_ID(snapToGrid)
 DECLARE_ID(pianoRollSnapMode)
 DECLARE_ID(pianoRollSnapDenominator)
+DECLARE_ID(pianoRollNoteLengthMode)
+DECLARE_ID(pianoRollNoteLengthDenominator)
 DECLARE_ID(showLowerRange)
 DECLARE_ID(editNoteOutsideOfClipRange)
 DECLARE_ID(pluginPresetManagerUIStates)
@@ -268,7 +271,7 @@ public:
     te::SelectionManager &m_selectionManager;
 
     juce::CachedValue<bool> m_showGlobalTrack, m_showMarkerTrack, m_showChordTrack, m_showArrangerTrack, m_showMasterTrack, m_drawWaveforms, m_showHeaders, m_showFooters, m_showMidiDevices, m_showWaveDevices, m_isAutoArmed, m_automationFollowsClip, m_followPlayhead, m_syncAutomation;
-    juce::CachedValue<int> m_lowerRangeView, m_followModeVal, m_pianoRollSnapMode, m_pianoRollSnapDenominator;
+    juce::CachedValue<int> m_lowerRangeView, m_followModeVal, m_pianoRollSnapMode, m_pianoRollSnapDenominator, m_pianoRollNoteLengthMode, m_pianoRollNoteLengthDenominator;
     juce::CachedValue<double> m_lastNoteLength, m_playHeadStartTime, m_timeLineZoomUnit;
     juce::CachedValue<int> m_midiEditorHeight, m_velocityEditorHeight, m_clipHeaderHeight;
     juce::CachedValue<int> m_snapType;

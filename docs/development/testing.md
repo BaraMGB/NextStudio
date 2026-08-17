@@ -12,6 +12,7 @@ The current suites are:
 | `ProjectLifecycle` | project request, extension, validation, and unsaved-choice rules | `App/tests/ProjectLifecycleTests.cpp` |
 | `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
+| `PianoRollNoteLength` | inserted-note length modes, note values, fallbacks, and draw minimum | `App/tests/PianoRollNoteLengthTests.cpp` |
 
 ## Run all tests
 

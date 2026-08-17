@@ -32,6 +32,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "TimeLineComponent.h"
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "PianoRollNoteLength.h"
 #include "Utilities.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
 
@@ -384,7 +385,19 @@ void TimeLineComponent::setLastNoteLength(double length)
     m_tree.setProperty(IDs::lastNoteLenght, length, nullptr);
 }
 
-double TimeLineComponent::getLastNoteLength() { return m_tree.getProperty(IDs::lastNoteLenght, 0.25); }
+double TimeLineComponent::getLastNoteLength() const
+{
+    return m_tree.getProperty(IDs::lastNoteLenght, PianoRollNoteLength::defaultLengthBeats);
+}
+
+double TimeLineComponent::getNoteInsertLength() const
+{
+    return PianoRollNoteLength::resolve(
+        static_cast<PianoRollNoteLengthMode>(static_cast<int>(m_evs.m_pianoRollNoteLengthMode)),
+        static_cast<int>(m_evs.m_pianoRollNoteLengthDenominator),
+        getLastNoteLength(),
+        getAdaptiveSnapIntervalBeats());
+}
 
 double TimeLineComponent::getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down) const
 {
@@ -450,7 +463,14 @@ double TimeLineComponent::getSnapIntervalBeats() const
     if (isUsingFixedSnap())
         return 4.0 / juce::jmax(1, static_cast<int>(m_evs.m_pianoRollSnapDenominator));
 
-    const auto snapType = getBestSnapType();
+    return getAdaptiveSnapIntervalBeats();
+}
+
+double TimeLineComponent::getAdaptiveSnapIntervalBeats() const
+{
+    const auto x1 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    const auto x2 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    const auto snapType = m_evs.getBestSnapType(x1, x2, getWidth());
     const auto position = m_evs.m_edit.getTransport().getPosition();
     const auto &tempo = m_evs.m_edit.tempoSequence.getTempoAt(position);
     return m_evs.m_edit.tempoSequence.toBeats(position + snapType.getApproxIntervalTime(tempo)).inBeats()

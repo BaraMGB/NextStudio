@@ -110,8 +110,12 @@ private:
     juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> m_selection;
     juce::Label m_snapLabel;
     juce::ComboBox m_snapBox;
+    juce::Label m_noteLengthLabel;
+    juce::ComboBox m_noteLengthBox;
     juce::Rectangle<int> m_panelBounds;
     juce::Rectangle<int> m_selectionCountBounds;
+    juce::Rectangle<int> m_snapControlBounds;
+    juce::Rectangle<int> m_noteLengthControlBounds;
     bool m_handlingEditorCallback{false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NotePropertiesBar)

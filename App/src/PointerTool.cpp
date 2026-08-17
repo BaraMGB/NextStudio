@@ -253,12 +253,6 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
                 viewport.setNoteSelected(newNote, true);
             }
 
-            if (plannedNotes.size() == 1 && (m_currentDragMode == DragMode::resizeLeft || m_currentDragMode == DragMode::resizeRight))
-            {
-                auto length = plannedNotes.getFirst().length.inBeats();
-                if (length > 0)
-                    viewport.getTimeLine()->setLastNoteLength(length);
-            }
         }
     }
 

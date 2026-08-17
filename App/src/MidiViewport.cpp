@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "KnifeTool.h"
 #include "PointerTool.h"
 #include "EditViewState.h"
+#include "PianoRollNoteLength.h"
 #include "Utilities.h"
 
 #include <map>
@@ -111,6 +112,7 @@ void MidiViewport::paint(juce::Graphics &g)
             auto endBeat = m_timeLine.xToBeatPos(drawTool->getDrawCurrentPos()).inBeats() - clipStartBeat;
             if (m_snap)
                 endBeat = m_timeLine.getQuantisedNoteBeat(endBeat, clickedClip);
+            endBeat = PianoRollNoteLength::applyMinimum(startBeat, endBeat, drawTool->getInsertLengthBeats());
             auto endX = m_timeLine.beatsToX(endBeat + clipStartBeat);
 
             auto noteRect = getNoteRect(drawTool->getDrawNoteNumber(), startX, endX);
@@ -417,17 +419,16 @@ te::MidiNote *MidiViewport::addNewNoteAt(int x, int y, te::MidiClip *clip)
 te::MidiNote *MidiViewport::addNewNote(int noteNumb, const te::MidiClip *clip, double beat, double length)
 {
     if (length <= 0)
-    {
-        length = m_timeLine.getLastNoteLength();
-        if (length <= 0)
-            length = 0.25;
-    }
+        length = m_timeLine.getNoteInsertLength();
 
     auto &um = m_evs.m_edit.getUndoManager();
     um.beginNewTransaction("Add MIDI Note");
 
     cleanUnderNote(noteNumb, {tracktion::BeatPosition::fromBeats(beat), tracktion::BeatDuration::fromBeats(length)}, clip);
-    return clip->getSequence().addNote(noteNumb, tracktion::core::BeatPosition::fromBeats(beat), tracktion::core::BeatDuration::fromBeats(length), m_evs.m_lastVelocity, 111, &um);
+    auto *note = clip->getSequence().addNote(noteNumb, tracktion::core::BeatPosition::fromBeats(beat), tracktion::core::BeatDuration::fromBeats(length), m_evs.m_lastVelocity, 111, &um);
+    if (note != nullptr)
+        m_timeLine.setLastNoteLength(length);
+    return note;
 }
 
 void MidiViewport::playGuideNote(const te::MidiClip *clip, const int noteNumb, int vel)

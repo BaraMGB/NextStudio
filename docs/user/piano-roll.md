@@ -21,7 +21,7 @@ If no active track is available, the grid displays a prompt to select a MIDI cli
 From top to bottom:
 
 1. **Tool bar** — pointer, draw, range, eraser, knife, and lasso.
-2. **Note properties bar** — selection count plus start, end, duration, pitch, and velocity.
+2. **Note properties bar** — selection count, exact note properties, position snapping, and inserted-note length.
 3. **Timeline** — musical time and overlay above the note grid.
 4. **Piano keyboard and note grid** — pitch vertically, time horizontally.
 5. **Velocity editor** — velocity stems/handles for notes.
@@ -105,11 +105,11 @@ This keeps the pitch monophonic in the affected range.
 
 #### Resize
 
-Drag the left or right edge of a note. The cursor changes near resizable edges. Resizing one note updates the remembered last note length when the resulting length is valid.
+Drag the left or right edge of a note. The cursor changes near resizable edges. Resizing does not change the remembered last-inserted length.
 
 #### Insert by double-click
 
-Double-click empty grid space over a MIDI clip to insert a note using the current/remembered note length behavior.
+Double-click empty grid space over a MIDI clip to insert a note using the length selected by **INSERT LENGHT**.
 
 #### Overlap handling
 
@@ -120,13 +120,13 @@ Move/copy/create operations clear conflicting note material of the same pitch in
 The draw tool creates a note by dragging from its start to end.
 
 - drawing is possible only over an existing MIDI clip;
-- the initial minimum width follows the current snap interval;
+- the initial minimum width follows the value selected by **INSERT LENGHT**;
 - dragging right extends the note;
-- `Shift` temporarily disables snapping;
-- the resulting length becomes the remembered last note length;
+- `Shift` temporarily disables position snapping;
+- the resulting inserted length becomes the remembered **Last Inserted** length;
 - the new note becomes selected.
 
-Double-click performs a minimal draw operation using the default interval.
+Double-click performs a minimal draw operation using the selected inserted-note length.
 
 ### Range
 
@@ -162,7 +162,17 @@ Use the **SNAP** selector in the note-properties bar to choose **Off**, a fixed 
 
 Hold `Shift` during pointer move/resize, drawing, or knife splitting to bypass enabled snapping temporarily.
 
-View and snap state are stored in edit-local UI state and do not create musical undo steps.
+## Inserted-note length
+
+Use the independent **INSERT LENGHT** selector next to **SNAP** to choose:
+
+- **Adaptive** — the zoom-dependent interval that adaptive snapping would use, regardless of the selected SNAP mode;
+- **Last Inserted** — the actual duration of the most recently created note on the active track timeline;
+- a fixed note value from **1/1** through **1/128**.
+
+The selected length is the default and minimum duration for click/double-click drawing. Dragging farther creates a longer note. Creating a note updates **Last Inserted**; resizing an existing note does not. The default mode is **Last Inserted**.
+
+View, snap, and inserted-note-length state are stored in edit-local UI state and do not create musical undo steps.
 
 ## Exact note properties
 

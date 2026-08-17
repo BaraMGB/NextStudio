@@ -46,7 +46,7 @@ set_target_properties(${TargetName} PROPERTIES JUCE_VERSION "${NEXTSTUDIO_VERSIO
 juce_generate_juce_header(${TargetName})
 
 # ---------------------------------------------------------------------------
-# Unit tests for the pure PositionDisplay helpers
+# Focused console unit tests
 # ---------------------------------------------------------------------------
 if(BUILD_TESTING)
     juce_add_console_app(NextStudioTests
@@ -134,6 +134,27 @@ if(BUILD_TESTING)
 
     add_test(NAME MidiPendingPaste
             COMMAND MidiPendingPasteTests)
+
+    juce_add_console_app(PianoRollNoteLengthTests
+            PRODUCT_NAME "PianoRollNoteLengthTests")
+    juce_generate_juce_header(PianoRollNoteLengthTests)
+
+    target_sources(PianoRollNoteLengthTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/PianoRollNoteLength.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PianoRollNoteLengthTests.cpp)
+
+    target_include_directories(PianoRollNoteLengthTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(PianoRollNoteLengthTests PRIVATE
+            juce::juce_core)
+
+    target_compile_definitions(PianoRollNoteLengthTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME PianoRollNoteLength
+            COMMAND PianoRollNoteLengthTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

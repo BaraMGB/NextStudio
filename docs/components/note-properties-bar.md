@@ -23,7 +23,12 @@ The bar displays the selection count and five editable properties:
 | `PITCH` | MIDI note number/name | `60`, `C3`, `G#4`, `Bb2` | `+1 st`, `-12 st` |
 | `VELOCITY` | MIDI velocity | integer | `+5`, `-10` |
 
-The left side displays `SELECTED NOTES:` and the number of valid selected note/clip pairs. A `SNAP` combo box on the right selects Off, a fixed note value (`1/1`–`1/128`), or Adaptive zoom-dependent snapping.
+The left side displays `SELECTED NOTES:` and the number of valid selected note/clip pairs. Two combo boxes immediately after the Velocity field configure new-note behavior:
+
+- `SNAP` selects Off, a fixed note value (`1/1`–`1/128`), or Adaptive zoom-dependent position snapping;
+- `INSERT LENGHT` independently selects Adaptive, Last Inserted, or a fixed note value (`1/1`–`1/128`) for newly created notes.
+
+Adaptive length uses the zoom-dependent interval independently of the current SNAP choice. Both modes persist in edit-local UI state, with Last Inserted as the default length mode.
 
 ## Public interface
 
@@ -402,12 +407,13 @@ The component uses text measurement through `juce::GlyphArrangement`. Stable ref
 - velocity: `888`;
 - selection count: `8888`.
 
-At preferred width, fields receive their measured content width plus padding. When space is constrained:
+A responsive area for the SNAP and INSERT LENGHT controls is placed immediately after the property panel, so the controls follow the Velocity field instead of being anchored to the right edge. At preferred width, the property fields receive their measured content width plus padding. When space is constrained:
 
-1. selection-count area is allocated first, up to available width;
-2. remaining field width excludes fixed inter-field gaps;
-3. every property receives a proportional share based on preferred width;
-4. the final field receives the rounding remainder.
+1. the two combo-box areas shrink to their compact allocation;
+2. selection-count area is allocated first within the property panel, up to available width;
+3. remaining field width excludes fixed inter-field gaps;
+4. every property receives a proportional share based on preferred width;
+5. the final field receives the rounding remainder.
 
 This prevents rightmost fields such as Pitch and Velocity from collapsing to zero merely because earlier fields consumed all available space.
 
@@ -421,7 +427,8 @@ Colors come from `ApplicationViewState`:
 - enabled values use full button text color;
 - disabled selection count and fields use reduced opacity;
 - invalid text and focus outline use red;
-- active writable editor gets a rounded one-pixel focus outline.
+- active writable editor gets a rounded one-pixel focus outline;
+- vertical border-colour separators distinguish the selection count, each note-property field, SNAP, and INSERT LENGHT.
 
 Editor backgrounds, selection highlight, and built-in outlines are transparent so the Piano Roll row background remains visible.
 
@@ -433,7 +440,7 @@ Any new programmatic editor mutation should consider whether it must be wrapped 
 
 ## Known limitations and follow-up opportunities
 
-- Component parsing/application behavior does not yet have a dedicated test target.
+- Component parsing/application behavior does not yet have a dedicated test target; inserted-note length resolution is covered separately by `PianoRollNoteLengthTests`.
 - The component holds raw model pointers between refreshes; current integration filters validity, but future asynchronous model changes must preserve that invariant.
 - Integer conversion uses JUCE's `getIntValue()` after digit validation and does not explicitly report overflow.
 - Velocity range differs from `VelocityEditor` at zero.

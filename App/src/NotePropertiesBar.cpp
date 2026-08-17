@@ -65,6 +65,17 @@ constexpr int snapThirtySecondItem = 7;
 constexpr int snapSixtyFourthItem = 8;
 constexpr int snapOneTwentyEighthItem = 9;
 constexpr int snapAdaptiveItem = 10;
+
+constexpr int lengthAdaptiveItem = 20;
+constexpr int lengthLastInsertedItem = 21;
+constexpr int lengthWholeItem = 22;
+constexpr int lengthHalfItem = 23;
+constexpr int lengthQuarterItem = 24;
+constexpr int lengthEighthItem = 25;
+constexpr int lengthSixteenthItem = 26;
+constexpr int lengthThirtySecondItem = 27;
+constexpr int lengthSixtyFourthItem = 28;
+constexpr int lengthOneTwentyEighthItem = 29;
 } // namespace
 
 bool NotePropertiesBar::PropertyEditor::keyPressed(const juce::KeyPress &key)
@@ -261,6 +272,69 @@ NotePropertiesBar::NotePropertiesBar(EditViewState &evs)
         }
     };
 
+    m_noteLengthLabel.setText("INSERT LENGHT", juce::dontSendNotification);
+    m_noteLengthLabel.setJustificationType(juce::Justification::centredLeft);
+    m_noteLengthLabel.setFont(juce::Font(juce::FontOptions(titleFontHeight)));
+    m_noteLengthLabel.setBorderSize({});
+    m_noteLengthLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_noteLengthLabel);
+
+    m_noteLengthBox.addItem("Adaptive", lengthAdaptiveItem);
+    m_noteLengthBox.addItem("Last Inserted", lengthLastInsertedItem);
+    m_noteLengthBox.addItem("1/1", lengthWholeItem);
+    m_noteLengthBox.addItem("1/2", lengthHalfItem);
+    m_noteLengthBox.addItem("1/4", lengthQuarterItem);
+    m_noteLengthBox.addItem("1/8", lengthEighthItem);
+    m_noteLengthBox.addItem("1/16", lengthSixteenthItem);
+    m_noteLengthBox.addItem("1/32", lengthThirtySecondItem);
+    m_noteLengthBox.addItem("1/64", lengthSixtyFourthItem);
+    m_noteLengthBox.addItem("1/128", lengthOneTwentyEighthItem);
+    m_noteLengthBox.setExplicitFocusOrder(7);
+    addAndMakeVisible(m_noteLengthBox);
+
+    const auto lengthMode = static_cast<PianoRollNoteLengthMode>(static_cast<int>(m_evs.m_pianoRollNoteLengthMode));
+    int selectedLengthItem = lengthLastInsertedItem;
+    if (lengthMode == PianoRollNoteLengthMode::adaptive)
+        selectedLengthItem = lengthAdaptiveItem;
+    else if (lengthMode == PianoRollNoteLengthMode::fixed)
+    {
+        switch (static_cast<int>(m_evs.m_pianoRollNoteLengthDenominator))
+        {
+        case 1: selectedLengthItem = lengthWholeItem; break;
+        case 2: selectedLengthItem = lengthHalfItem; break;
+        case 4: selectedLengthItem = lengthQuarterItem; break;
+        case 8: selectedLengthItem = lengthEighthItem; break;
+        case 16: selectedLengthItem = lengthSixteenthItem; break;
+        case 32: selectedLengthItem = lengthThirtySecondItem; break;
+        case 64: selectedLengthItem = lengthSixtyFourthItem; break;
+        case 128: selectedLengthItem = lengthOneTwentyEighthItem; break;
+        default: break;
+        }
+    }
+    m_noteLengthBox.setSelectedId(selectedLengthItem, juce::dontSendNotification);
+    m_noteLengthBox.onChange = [this]
+    {
+        const auto selected = m_noteLengthBox.getSelectedId();
+        if (selected == lengthAdaptiveItem)
+        {
+            m_evs.m_pianoRollNoteLengthMode = static_cast<int>(PianoRollNoteLengthMode::adaptive);
+            return;
+        }
+        if (selected == lengthLastInsertedItem)
+        {
+            m_evs.m_pianoRollNoteLengthMode = static_cast<int>(PianoRollNoteLengthMode::lastInserted);
+            return;
+        }
+
+        const std::array<int, 8> denominators{{1, 2, 4, 8, 16, 32, 64, 128}};
+        const auto index = selected - lengthWholeItem;
+        if (index >= 0 && index < static_cast<int>(denominators.size()))
+        {
+            m_evs.m_pianoRollNoteLengthDenominator = denominators[static_cast<size_t>(index)];
+            m_evs.m_pianoRollNoteLengthMode = static_cast<int>(PianoRollNoteLengthMode::fixed);
+        }
+    };
+
     updateColours();
     clearSelection();
 }
@@ -279,6 +353,11 @@ void NotePropertiesBar::updateColours()
     m_snapBox.setColour(juce::ComboBox::backgroundColourId, m_evs.m_applicationState.getBackgroundColour1());
     m_snapBox.setColour(juce::ComboBox::outlineColourId, m_evs.m_applicationState.getBorderColour());
     m_snapBox.setColour(juce::ComboBox::arrowColourId, textColour);
+    m_noteLengthLabel.setColour(juce::Label::textColourId, textColour.withAlpha(0.85f));
+    m_noteLengthBox.setColour(juce::ComboBox::textColourId, textColour);
+    m_noteLengthBox.setColour(juce::ComboBox::backgroundColourId, m_evs.m_applicationState.getBackgroundColour1());
+    m_noteLengthBox.setColour(juce::ComboBox::outlineColourId, m_evs.m_applicationState.getBorderColour());
+    m_noteLengthBox.setColour(juce::ComboBox::arrowColourId, textColour);
     repaint();
 }
 
@@ -821,6 +900,17 @@ void NotePropertiesBar::paint(juce::Graphics &g)
     g.drawFittedText(juce::String(m_selection.size()), selectionContent,
                      juce::Justification::centredLeft, 1);
 
+    g.setColour(m_evs.m_applicationState.getBorderColour());
+    juce::Array<int> separatorPositions;
+    for (const auto &field : m_fields)
+        separatorPositions.addIfNotAlreadyThere(field.bounds.getX() - ((fieldGap + 1) / 2));
+    separatorPositions.addIfNotAlreadyThere(m_snapControlBounds.getX() - ((fieldGap + 1) / 2));
+    separatorPositions.addIfNotAlreadyThere(m_noteLengthControlBounds.getX() - ((fieldGap + 1) / 2));
+
+    for (const auto x : separatorPositions)
+        if (x > 0 && x < getWidth())
+            g.drawVerticalLine(x, 3.0f, static_cast<float>(getHeight() - 3));
+
     for (const auto &field : m_fields)
     {
         if (field.editor.isReadOnly() || !field.editor.hasKeyboardFocus(true))
@@ -856,15 +946,31 @@ void NotePropertiesBar::resized()
 
     preferredPanelWidth += preferredFieldsWidth + fieldGap * static_cast<int>(m_fields.size() - 1);
     auto fullArea = getLocalBounds().reduced(4, 1);
-    auto snapArea = fullArea.removeFromRight(juce::jmin(170, fullArea.getWidth()));
-    fullArea.removeFromRight(juce::jmin(fieldGap, fullArea.getWidth()));
-    m_panelBounds = fullArea;
-    m_panelBounds.setWidth(juce::jmin(m_panelBounds.getWidth(), preferredPanelWidth));
+    const auto controlsWidth = juce::jmin(fullArea.getWidth(),
+                                         juce::jmin(390, juce::jmax(300, fullArea.getWidth() / 3)));
+    const auto panelWidth = juce::jmin(preferredPanelWidth,
+                                      juce::jmax(0, fullArea.getWidth() - controlsWidth - fieldGap));
+    m_panelBounds = fullArea.removeFromLeft(panelWidth);
+    fullArea.removeFromLeft(juce::jmin(fieldGap, fullArea.getWidth()));
+    auto controlsArea = fullArea.removeFromLeft(juce::jmin(controlsWidth, fullArea.getWidth()));
 
-    snapArea = snapArea.reduced(2, 2);
-    m_snapLabel.setBounds(snapArea.removeFromLeft(38));
+    auto snapArea = controlsArea.removeFromLeft(juce::roundToInt(controlsArea.getWidth() * 0.38f));
+    controlsArea.removeFromLeft(juce::jmin(fieldGap, controlsArea.getWidth()));
+    auto noteLengthArea = controlsArea;
+    m_snapControlBounds = snapArea;
+    m_noteLengthControlBounds = noteLengthArea;
+
+    snapArea = snapArea.reduced(fieldPadding, 2);
+    const auto snapLabelWidth = juce::roundToInt(measureTextWidth(titleFont, m_snapLabel.getText())) + 4;
+    m_snapLabel.setBounds(snapArea.removeFromLeft(juce::jmin(snapLabelWidth, snapArea.getWidth())));
     snapArea.removeFromLeft(juce::jmin(labelGap, snapArea.getWidth()));
     m_snapBox.setBounds(snapArea);
+
+    noteLengthArea = noteLengthArea.reduced(fieldPadding, 2);
+    const auto noteLengthLabelWidth = juce::roundToInt(measureTextWidth(titleFont, m_noteLengthLabel.getText())) + 4;
+    m_noteLengthLabel.setBounds(noteLengthArea.removeFromLeft(juce::jmin(noteLengthLabelWidth, noteLengthArea.getWidth())));
+    noteLengthArea.removeFromLeft(juce::jmin(labelGap, noteLengthArea.getWidth()));
+    m_noteLengthBox.setBounds(noteLengthArea);
 
     auto area = m_panelBounds.reduced(panelPadding, 2);
     m_selectionCountBounds = area.removeFromLeft(juce::jmin(selectionCountWidth, area.getWidth()));

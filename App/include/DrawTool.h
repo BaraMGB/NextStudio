@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "MidiViewport.h"
+#include "PianoRollNoteLength.h"
 #include "ToolStrategy.h"
 
 namespace te = tracktion_engine;
@@ -56,12 +57,14 @@ public:
     int getDrawCurrentPos() const { return m_drawCurrentPos; }
     int getDrawNoteNumber() const { return m_drawNoteNumber; }
     te::MidiClip *getClickedClip() const { return m_clickedClip; }
+    double getInsertLengthBeats() const { return m_insertLengthBeats; }
 
 private:
     bool m_isDrawingNote{false};
     int m_drawStartPos{0};
     int m_drawCurrentPos{0};
     int m_intervalX{0};
+    double m_insertLengthBeats{PianoRollNoteLength::defaultLengthBeats};
     int m_drawNoteNumber{0};
     te::MidiClip *m_clickedClip{nullptr};
 };
