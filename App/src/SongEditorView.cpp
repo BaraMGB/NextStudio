@@ -916,10 +916,10 @@ float SongEditorView::beatToX(tracktion::BeatPosition beat)
     return m_editViewState.beatsToX(beat.inBeats(), getWidth(), x1, x2);
 }
 
-double SongEditorView::xToSnapedBeat(int x)
+double SongEditorView::xToSnapedBeat(int x, bool downwards)
 {
     auto time = xtoTime(x);
-    time = getSnappedTime(time);
+    time = getSnappedTime(time, downwards);
     return m_editViewState.timeToBeat(time.inSeconds());
 }
 

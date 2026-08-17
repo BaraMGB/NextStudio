@@ -78,7 +78,7 @@ public:
 
     int getYForTrack(te::Track *track);
     int getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int> &dropPos);
-    double xToSnapedBeat(int x);
+    double xToSnapedBeat(int x, bool downwards = false);
 
     void updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration delta, int verticalOffset);
 
