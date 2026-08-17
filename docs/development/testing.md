@@ -76,6 +76,10 @@ ctest --test-dir autobuild/RelWithDebInfo --repeat until-fail:20 --output-on-fai
 `ClipOverwriteCommandTests` creates real Tracktion edits and verifies selective
 victim splitting, move identity, copy-on-self, block and cross-track moves,
 multiple removal masks, winner validation, selection, and atomic undo/redo.
+It also covers audio fades/takes/clip plug-ins, horizontal and vertical
+automation, resize/time-stretch placement finalisation, multi-track time ranges,
+commit rollback, frozen/bounds/duplicate-source validation, grouped copies,
+arrangement recording policy, and a 200-clip bulk regression.
 
 ## Position display tests
 
@@ -178,7 +182,7 @@ This suite exercises the pure pending-paste state machine. Clipboard capture, pr
 The current tests do not directly exercise:
 
 - GUI layout and mouse/keyboard interaction;
-- full Tracktion edit construction and project replacement;
+- full application-level project replacement;
 - asynchronous autosave worker timing;
 - audio-device configuration;
 - real-time DSP behavior;
@@ -277,6 +281,10 @@ For UI or engine changes without automated coverage, record and execute a focuse
 - clean shutdown and crash-recovery behavior;
 - Debug build assertions;
 - at least one relevant platform-specific path.
+
+For the arrangement overwrite feature, additionally verify mouse-driven move,
+Ctrl-copy, resize, time stretch, MIDI double-click creation, audio drag/drop,
+time-range duplication, and audio/MIDI recording while playback is active.
 
 Manual validation should supplement rather than replace extractable unit tests.
 
