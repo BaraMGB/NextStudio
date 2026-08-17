@@ -332,6 +332,17 @@ void testAutomationMovesHorizontallyAndVertically()
         return;
     sourceParameter->getCurve().addPoint(TimePosition::fromSeconds(0.5), 0.75f, 0.0f);
 
+    auto sourceOnlyPlugin = f.edit->getPluginCache().createNewPlugin(te::ReverbPlugin::xmlTypeName, {});
+    REQUIRE(sourceOnlyPlugin != nullptr);
+    if (sourceOnlyPlugin == nullptr)
+        return;
+    f.track->pluginList.insertPlugin(sourceOnlyPlugin, 0, nullptr);
+    auto sourceOnlyParameter = sourceOnlyPlugin->getAutomatableParameter(0);
+    REQUIRE(sourceOnlyParameter != nullptr);
+    if (sourceOnlyParameter == nullptr)
+        return;
+    sourceOnlyParameter->getCurve().addPoint(TimePosition::fromSeconds(0.75), 0.5f, 0.0f);
+
     ClipEditing::Options horizontalOptions;
     horizontalOptions.moveAutomation = true;
     horizontalOptions.automationOffset = TimeDuration::fromSeconds(3.0);
@@ -358,6 +369,8 @@ void testAutomationMovesHorizontallyAndVertically()
     REQUIRE(vertical.succeeded);
     REQUIRE(!destinationParameter->getCurve().getPointsInRegion(
                  {TimePosition::fromSeconds(6.0), TimePosition::fromSeconds(8.0)}).isEmpty());
+    REQUIRE(!sourceOnlyParameter->getCurve().getPointsInRegion(
+                 {TimePosition::fromSeconds(3.0), TimePosition::fromSeconds(5.0)}).isEmpty());
 }
 
 void testResizeAndTimeStretchPlacementsOverwriteDestination()
@@ -584,17 +597,34 @@ void testUndoRedoIsAtomic()
     f.add(4.0, 8.0);
     f.edit->getUndoManager().clearUndoHistory();
 
+    auto parameter = firstAutomatableParameter(*f.track);
+    REQUIRE(parameter != nullptr);
+    if (parameter == nullptr)
+        return;
+
+    ClipEditing::Options options;
+    options.additionalEdit = [parameter]
+    {
+        parameter->getCurve().addPoint(TimePosition::fromSeconds(10.0), 0.25f, 0.0f);
+        return true;
+    };
     auto result = ClipEditing::applyOverwrite(*f.edit, f.selection,
-                                               {f.move(moving, 5.0, 7.0)});
+                                               {f.move(moving, 5.0, 7.0)}, options);
     REQUIRE(result.succeeded);
     REQUIRE(closeTo(moving->getPosition().getStart().inSeconds(), 5.0));
+    REQUIRE(!parameter->getCurve().getPointsInRegion(
+                 {TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
 
     REQUIRE(f.edit->getUndoManager().undo());
     auto *restored = te::findClipForID(*f.edit, moving->itemID);
     REQUIRE(restored != nullptr);
     REQUIRE(closeTo(restored->getPosition().getStart().inSeconds(), 0.0));
+    REQUIRE(parameter->getCurve().getPointsInRegion(
+                 {TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
     REQUIRE(f.edit->getUndoManager().redo());
     REQUIRE(closeTo(te::findClipForID(*f.edit, moving->itemID)->getPosition().getStart().inSeconds(), 5.0));
+    REQUIRE(!parameter->getCurve().getPointsInRegion(
+                 {TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
 }
 
 } // namespace

@@ -493,9 +493,9 @@ void SongEditorView::updateTimeRangeDragResizeRight(tracktion::TimePosition newE
 
 void SongEditorView::finishTimeRangeDrag(bool copy)
 {
-    if (m_isDraggingSelectedTimeRange)
+    if (m_isDraggingSelectedTimeRange
+        && moveSelectedTimeRanges(m_draggedTimeDelta, copy))
     {
-        moveSelectedTimeRanges(m_draggedTimeDelta, copy);
         auto newStart = m_selectedRange.getStart() + m_draggedTimeDelta;
         m_selectedRange.timeRange = m_selectedRange.timeRange.movedToStartAt(newStart);
     }
@@ -582,8 +582,8 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
 
     if (isTimeRangeSelected)
     {
-        moveSelectedTimeRanges(m_selectedRange.getLength(), true);
-        setSelectedTimeRange({m_selectedRange.getStart() + m_selectedRange.getLength(), m_selectedRange.getLength()}, false, false);
+        if (moveSelectedTimeRanges(m_selectedRange.getLength(), true))
+            setSelectedTimeRange({m_selectedRange.getStart() + m_selectedRange.getLength(), m_selectedRange.getLength()}, false, false);
         repaint(); // Repaint all tracks and lanes after duplication
     }
     else
@@ -816,63 +816,67 @@ void SongEditorView::selectClipsInLasso(const tracktion_engine::Track *track)
     }
 }
 
-void SongEditorView::moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy)
+bool SongEditorView::moveSelectedTimeRanges(tracktion::TimeDuration duration, bool copy)
 {
-    for (auto t : m_selectedRange.selectedTracks)
-        if (t != nullptr)
-            moveSelectedRangeOfTrack(t, td, copy);
-
-    for (auto ap : m_selectedRange.selectedAutomations)
-    {
-        auto as = EngineHelpers::getTrackAutomationSection(ap, m_selectedRange.timeRange);
-        EngineHelpers::moveAutomationOrCopy(as, td, copy);
-    }
-}
-
-void SongEditorView::moveSelectedRangeOfTrack(te::Track::Ptr track, tracktion::TimeDuration duration, bool copy)
-{
-    auto *clipTrack = dynamic_cast<te::ClipTrack *>(track.get());
-    if (clipTrack == nullptr)
-        return;
-
     const auto sourceRange = m_selectedRange.timeRange;
     const auto targetRange = sourceRange + duration;
     std::vector<ClipEditing::Placement> placements;
     ClipEditing::Options options;
     options.undoName = copy ? "Copy time range" : "Move time range";
-    options.destinationRemovals.push_back({clipTrack, targetRange});
 
-    for (auto *clip : clipTrack->getClips())
+    for (auto track : m_selectedRange.selectedTracks)
     {
-        const auto segment = clip->getPosition().time.getIntersectionWith(sourceRange);
-        if (segment.isEmpty())
+        auto *clipTrack = dynamic_cast<te::ClipTrack *>(track);
+        if (clipTrack == nullptr)
             continue;
 
-        auto finalPosition = clip->getPosition();
-        finalPosition.time = segment + duration;
-        finalPosition.offset = finalPosition.offset + (segment.getStart() - clip->getPosition().getStart());
+        options.destinationRemovals.push_back({clipTrack, targetRange});
 
-        ClipEditing::Placement placement;
-        placement.mode = ClipEditing::PlacementMode::insertState;
-        placement.state = clip->state.createCopy();
-        placement.destination = clipTrack;
-        placement.finalPosition = finalPosition;
-        placement.name = clip->getName();
-        placements.push_back(std::move(placement));
+        for (auto *clip : clipTrack->getClips())
+        {
+            const auto segment = clip->getPosition().time.getIntersectionWith(sourceRange);
+            if (segment.isEmpty())
+                continue;
 
-        if (!copy)
-            options.sourceRemovals.push_back({clip, sourceRange});
+            auto finalPosition = clip->getPosition();
+            finalPosition.time = segment + duration;
+            finalPosition.offset = finalPosition.offset
+                                   + (segment.getStart() - clip->getPosition().getStart());
+
+            ClipEditing::Placement placement;
+            placement.mode = ClipEditing::PlacementMode::insertState;
+            placement.state = clip->state.createCopy();
+            placement.destination = clipTrack;
+            placement.finalPosition = finalPosition;
+            placement.name = clip->getName();
+            placements.push_back(std::move(placement));
+
+            if (!copy)
+                options.sourceRemovals.push_back({clip, sourceRange});
+        }
     }
+
+    juce::Array<te::TrackAutomationSection> automationSections;
+    for (auto *parameter : m_selectedRange.selectedAutomations)
+        automationSections.add(EngineHelpers::getTrackAutomationSection(parameter, sourceRange));
+
+    if (!automationSections.isEmpty())
+        options.additionalEdit = [automationSections, duration, copy]
+        {
+            EngineHelpers::moveAutomationOrCopy(automationSections, duration, copy);
+            return true;
+        };
 
     auto result = ClipEditing::applyOverwrite(m_editViewState, std::move(placements), options);
     if (!result.succeeded)
     {
         GUIHelpers::log("Time range move failed: " + result.error);
-        return;
+        return false;
     }
 
     for (auto clip : result.clips)
         m_editViewState.m_selectionManager.deselect(clip.get());
+    return true;
 }
 
 tracktion::TimeDuration SongEditorView::distanceToTime(int distance)

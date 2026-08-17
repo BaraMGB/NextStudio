@@ -168,6 +168,100 @@ juce::Array<te::EditItemID> getSelectedClipIDs(te::SelectionManager &selectionMa
     return result;
 }
 
+te::AutomationCurve *getDestinationCurve(te::Track &track,
+                                         const te::AutomatableParameter::Ptr &sourceParameter)
+{
+    if (sourceParameter == nullptr)
+        return nullptr;
+
+    auto *sourcePlugin = sourceParameter->getPlugin();
+    if (sourcePlugin == nullptr)
+        return nullptr;
+
+    const auto parameterIndex = sourcePlugin->indexOfAutomatableParameter(sourceParameter);
+    for (auto destinationPlugin : track.getAllPlugins())
+        if (destinationPlugin->getName() == sourcePlugin->getName())
+            if (auto parameter = destinationPlugin->getAutomatableParameter(parameterIndex))
+                return &parameter->getCurve();
+
+    return nullptr;
+}
+
+void mergeAutomationSections(const juce::Array<te::TrackAutomationSection> &source,
+                             juce::Array<te::TrackAutomationSection> &destination)
+{
+    for (const auto &section : source)
+    {
+        bool merged = false;
+        for (auto &existing : destination)
+            if (existing.overlaps(section))
+            {
+                existing.mergeIn(section);
+                merged = true;
+                break;
+            }
+
+        if (!merged)
+            destination.add(section);
+    }
+}
+
+struct AutomationCurveSnapshot
+{
+    te::AutomatableParameter::Ptr parameter;
+    juce::Array<te::AutomationCurve::AutomationPoint> points;
+};
+
+AutomationCurveSnapshot snapshotCurve(te::AutomatableParameter::Ptr parameter)
+{
+    AutomationCurveSnapshot snapshot;
+    snapshot.parameter = std::move(parameter);
+    auto &curve = snapshot.parameter->getCurve();
+    for (int i = 0; i < curve.getNumPoints(); ++i)
+        snapshot.points.add(curve.getPoint(i));
+    return snapshot;
+}
+
+void restoreCurve(const AutomationCurveSnapshot &snapshot)
+{
+    auto &curve = snapshot.parameter->getCurve();
+    curve.clear();
+    for (const auto &point : snapshot.points)
+        curve.addPoint(point.time, point.value, point.curve);
+}
+
+void moveAutomationPreservingUnmapped(const juce::Array<te::TrackAutomationSection> &sourceSections,
+                                      tracktion::TimeDuration offset, bool copy)
+{
+    if (copy)
+    {
+        te::moveAutomation(sourceSections, offset, true);
+        return;
+    }
+
+    juce::Array<te::TrackAutomationSection> sections;
+    mergeAutomationSections(sourceSections, sections);
+
+    std::vector<AutomationCurveSnapshot> unmappedCurves;
+    std::set<te::AutomatableParameter *> snappedParameters;
+    for (const auto &section : sections)
+        if (section.src != section.dst)
+            for (auto element : section.src->getAllAutomatableEditItems())
+                for (int i = 0; i < element->getNumAutomatableParameters(); ++i)
+                {
+                    auto parameter = element->getAutomatableParameter(i);
+                    if (parameter->getCurve().getNumPoints() > 0
+                        && getDestinationCurve(*section.dst, parameter) == nullptr
+                        && snappedParameters.insert(parameter.get()).second)
+                        unmappedCurves.push_back(snapshotCurve(std::move(parameter)));
+                }
+
+    te::moveAutomation(sections, offset, false);
+
+    for (const auto &snapshot : unmappedCurves)
+        restoreCurve(snapshot);
+}
+
 } // namespace
 
 bool hasOverlaps(const te::ClipTrack &track)
@@ -222,9 +316,10 @@ Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
                       std::vector<Placement> placements, const Options &options)
 {
     Result result;
-    if (placements.empty() && options.sourceRemovals.empty() && options.destinationRemovals.empty())
+    if (placements.empty() && options.sourceRemovals.empty() && options.destinationRemovals.empty()
+        && !options.additionalEdit)
     {
-        result.error = "No clip placements or removals";
+        result.error = "No clip placements, removals, or additional edit";
         return result;
     }
 
@@ -415,7 +510,14 @@ Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
     }
 
     if (options.moveAutomation && !automationSections.isEmpty())
-        te::moveAutomation(automationSections, options.automationOffset, options.copyAutomation);
+        moveAutomationPreservingUnmapped(automationSections, options.automationOffset,
+                                         options.copyAutomation);
+
+    if (options.additionalEdit && !options.additionalEdit())
+    {
+        rollback("Could not apply an additional edit");
+        return result;
+    }
 
     for (auto *track : affectedTracks)
         if (track != nullptr && hasOverlaps(*track))
