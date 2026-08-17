@@ -175,8 +175,7 @@ private:
     void setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd);
     void selectClipsInLasso(const tracktion_engine::Track *track);
 
-    void moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy);
-    void moveSelectedRangeOfTrack(te::Track::Ptr, tracktion::TimeDuration td, bool copy);
+    bool moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy);
 
     void moveSelectedClips(bool copy, double delta, int verticalOffset);
     void addWaveFileToTrack(te::AudioFile audioFile, double dropTime, te::AudioTrack::Ptr track) const;

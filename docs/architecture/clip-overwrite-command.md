@@ -48,9 +48,12 @@ The commit is guarded by:
 Victims are edited first without passing a `SelectionManager` to Tracktion.
 Existing winners are then moved/resized directly and copies/inserts are created
 at their final destinations. When `automationFollowsClip` is enabled, captured
-automation is moved or copied to the mapped destination track. Automation and
-final selection are applied once.
-Every affected track is checked for overlaps before success is returned.
+automation is moved or copied to matching parameters on the destination track.
+Automation without a matching destination parameter remains unchanged on the
+source track. Additional edits can join the same transaction; time-range edits
+use this to commit all selected tracks and automation atomically. Automation and
+final selection are applied once. Every affected track is checked for overlaps
+before success is returned.
 
 ## Entry points
 

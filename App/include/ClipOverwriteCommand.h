@@ -61,6 +61,7 @@ struct Options
     tracktion::TimeDuration automationOffset;
     std::vector<SourceRemoval> sourceRemovals;
     std::vector<DestinationRemoval> destinationRemovals;
+    std::function<bool()> additionalEdit;
 };
 
 struct Result
