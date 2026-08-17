@@ -70,4 +70,6 @@ recording finalisation.
 
 `App/tests/ClipOverwriteCommandTests.cpp` covers insertion splitting, identity-
 preserving moves, copy-on-self, protected block moves, winner conflict
-validation, multiple removal masks, and atomic undo/redo.
+validation, multiple removal masks, audio state, automation, resize/time stretch,
+multi-track time ranges, rollback, validation boundaries, grouping, recording
+policy, bulk edits, and atomic undo/redo.

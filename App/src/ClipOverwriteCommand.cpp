@@ -205,6 +205,19 @@ juce::String describeOverlaps(const te::ClipTrack &track)
     return result;
 }
 
+void configureArrangementRecordingDevice(te::InputDevice &device)
+{
+    if (auto *midiInput = dynamic_cast<te::MidiInputDevice *>(&device))
+    {
+        midiInput->mergeRecordings = false;
+        midiInput->replaceExistingClips = true;
+    }
+    else if (auto *waveInput = dynamic_cast<te::WaveInputDevice *>(&device))
+    {
+        waveInput->setMergeMode(te::WaveInputDevice::getMergeModes()[1]);
+    }
+}
+
 Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
                       std::vector<Placement> placements, const Options &options)
 {

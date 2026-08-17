@@ -2288,17 +2288,7 @@ void EngineHelpers::toggleRecord(EditViewState &evs)
         // insertion paths. Tracktion otherwise defaults to creating overlapping
         // wave takes in the arranger.
         for (auto *instance : evs.m_edit.getAllInputDevices())
-        {
-            if (auto *midiInput = dynamic_cast<te::MidiInputDevice *>(&instance->getInputDevice()))
-            {
-                midiInput->mergeRecordings = false;
-                midiInput->replaceExistingClips = true;
-            }
-            else if (auto *waveInput = dynamic_cast<te::WaveInputDevice *>(&instance->getInputDevice()))
-            {
-                waveInput->setMergeMode(te::WaveInputDevice::getMergeModes()[1]);
-            }
-        }
+            ClipEditing::configureArrangementRecordingDevice(instance->getInputDevice());
 
         evs.beginRecordCountIn();
         transport.record(false);

@@ -75,5 +75,6 @@ Result applyOverwrite(EditViewState &, std::vector<Placement>, const Options & =
 
 bool hasOverlaps(const te::ClipTrack &);
 juce::String describeOverlaps(const te::ClipTrack &);
+void configureArrangementRecordingDevice(te::InputDevice &);
 
 } // namespace ClipEditing
