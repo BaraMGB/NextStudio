@@ -92,7 +92,8 @@ public:
     MidiClipboard copySelectedNotesToClipboard();
     bool beginPendingPaste(const MidiClipboard &clipboard);
     bool hasPendingPaste() const { return m_pendingPasteState.isActive(); }
-    bool nudgePendingPaste(te::TimecodeSnapType snapType, int leftRight, int upDown);
+    bool nudgePendingPaste(int leftRight, int upDown);
+    void nudgeSelectedNotes(int leftRight, int upDown);
     bool confirmPendingPaste(bool keepSelection = true);
     bool finishPendingPasteOnDeselect();
     bool cancelPendingPaste();

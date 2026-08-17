@@ -35,8 +35,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
 
-TimeLineComponent::TimeLineComponent(EditViewState &evs, juce::String timeLineID)
+TimeLineComponent::TimeLineComponent(EditViewState &evs, juce::String timeLineID, bool usePianoRollSnapSettings)
     : m_evs(evs),
+      m_usePianoRollSnapSettings(usePianoRollSnapSettings),
       m_isMouseDown(false)
 {
     setTimeLineID(timeLineID);
@@ -112,6 +113,7 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
     m_evs.followsPlayhead(false);
     m_changeLoopRange = false;
     m_loopRangeClicked = false;
+    m_isSnapping = isSnappingEnabled() && !e.mods.isShiftDown();
     m_cachedLoopRange = m_evs.m_edit.getTransport().getLoopRange();
     m_oldDragDistanceX = 0;
     m_oldDragDistanceY = 0;
@@ -149,7 +151,7 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
 void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
 {
     m_draggedTime = tracktion::TimeDuration();
-    m_isSnapping = !e.mods.isShiftDown();
+    m_isSnapping = isSnappingEnabled() && !e.mods.isShiftDown();
 
     if (m_loopRangeClicked)
     {
@@ -160,14 +162,13 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
     }
     else if (m_changeLoopRange)
     {
-        auto &ts = m_evs.m_edit.tempoSequence;
         auto t1 = xToTimePos(e.getMouseDownX());
         auto t2 = xToTimePos(e.x);
 
         if (m_isSnapping)
         {
-            t1 = getBestSnapType().roundTimeDown(t1, ts);
-            t2 = getBestSnapType().roundTimeDown(t2, ts);
+            t1 = snapTime(t1, true);
+            t2 = snapTime(t2, true);
         }
 
         if (t1 < t2)
@@ -252,9 +253,7 @@ tracktion::TimeRange TimeLineComponent::getCurrentTimeRange()
 
 tracktion_engine::TimecodeSnapType TimeLineComponent::getBestSnapType()
 {
-    double x1beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
-    double x2beats = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
-    return m_evs.getBestSnapType(x1beats, x2beats, getWidth());
+    return static_cast<const TimeLineComponent &>(*this).getBestSnapType();
 }
 
 EditViewState &TimeLineComponent::getEditViewState() { return m_evs; }
@@ -302,11 +301,10 @@ juce::Rectangle<int> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange tr
 tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
 {
     auto draggedLoopRange = m_cachedLoopRange;
-    auto &t = m_evs.m_edit.tempoSequence;
 
     if (m_leftResized)
     {
-        auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) : draggedLoopRange.getStart() + m_draggedTime;
+        auto newStart = m_isSnapping ? snapTime(draggedLoopRange.getStart() + m_draggedTime, true) : draggedLoopRange.getStart() + m_draggedTime;
 
         if (newStart > draggedLoopRange.getEnd())
             draggedLoopRange = {draggedLoopRange.getEnd(), newStart};
@@ -315,7 +313,7 @@ tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
     }
     else if (m_rightResized)
     {
-        auto newEnd = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getEnd() + m_draggedTime, t) : draggedLoopRange.getEnd() + m_draggedTime;
+        auto newEnd = m_isSnapping ? snapTime(draggedLoopRange.getEnd() + m_draggedTime, true) : draggedLoopRange.getEnd() + m_draggedTime;
 
         if (newEnd < draggedLoopRange.getStart())
             draggedLoopRange = {newEnd, draggedLoopRange.getStart()};
@@ -324,7 +322,7 @@ tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
     }
     else
     {
-        auto newStart = m_isSnapping ? getBestSnapType().roundTimeDown(draggedLoopRange.getStart() + m_draggedTime, t) : draggedLoopRange.getStart() + m_draggedTime;
+        auto newStart = m_isSnapping ? snapTime(draggedLoopRange.getStart() + m_draggedTime, true) : draggedLoopRange.getStart() + m_draggedTime;
         newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0.0), newStart);
 
         draggedLoopRange = draggedLoopRange.movedToStartAt(newStart);
@@ -397,20 +395,106 @@ double TimeLineComponent::getQuantisedNoteBeat(double beat, const te::MidiClip *
 
 double TimeLineComponent::getQuantisedBeat(double beat, bool down) const
 {
-    auto snapType = getBestSnapType();
-    auto time = m_evs.beatToTime(beat);
-    auto snapedTime = m_evs.getSnappedTime(time, snapType, down);
-    auto quantisedBeat = m_evs.timeToBeat(snapedTime);
+    if (!isSnappingEnabled())
+        return beat;
 
-    return quantisedBeat;
+    if (isUsingFixedSnap())
+    {
+        const auto interval = getSnapIntervalBeats();
+        const auto gridPosition = beat / interval;
+        return (down ? std::floor(gridPosition) : std::round(gridPosition)) * interval;
+    }
+
+    const auto time = tracktion::TimePosition::fromSeconds(m_evs.beatToTime(beat));
+    return m_evs.timeToBeat(snapTime(time, down).inSeconds());
 }
 
 te::TimecodeSnapType TimeLineComponent::getBestSnapType() const
 {
-    auto x1 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
-    auto x2 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
+    if (isUsingFixedSnap())
+    {
+        const auto denominator = static_cast<int>(m_evs.m_pianoRollSnapDenominator);
+        int level = 9;
+        switch (denominator)
+        {
+        case 4: level = 9; break;
+        case 8: level = 8; break;
+        case 16: level = 7; break;
+        case 32: level = 6; break;
+        case 64: level = 5; break;
+        case 128: level = 4; break;
+        default: break;
+        }
+        return m_evs.m_edit.getTimecodeFormat().getSnapType(level);
+    }
 
+    const auto x1 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getStart().inBeats();
+    const auto x2 = m_evs.getVisibleBeatRange(m_timeLineID, getWidth()).getEnd().inBeats();
     return m_evs.getBestSnapType(x1, x2, getWidth());
 }
 
-double TimeLineComponent::getSnappedTime(double time) { return m_evs.getSnappedTime(time, getBestSnapType(), false); }
+bool TimeLineComponent::isSnappingEnabled() const
+{
+    return !m_usePianoRollSnapSettings
+           || static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_pianoRollSnapMode)) != PianoRollSnapMode::off;
+}
+
+bool TimeLineComponent::isUsingFixedSnap() const
+{
+    return m_usePianoRollSnapSettings
+           && static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_pianoRollSnapMode)) == PianoRollSnapMode::fixed;
+}
+
+double TimeLineComponent::getSnapIntervalBeats() const
+{
+    if (isUsingFixedSnap())
+        return 4.0 / juce::jmax(1, static_cast<int>(m_evs.m_pianoRollSnapDenominator));
+
+    const auto snapType = getBestSnapType();
+    const auto position = m_evs.m_edit.getTransport().getPosition();
+    const auto &tempo = m_evs.m_edit.tempoSequence.getTempoAt(position);
+    return m_evs.m_edit.tempoSequence.toBeats(position + snapType.getApproxIntervalTime(tempo)).inBeats()
+           - m_evs.m_edit.tempoSequence.toBeats(position).inBeats();
+}
+
+double TimeLineComponent::getNudgeDeltaBeats(double beat, int direction) const
+{
+    if (direction == 0)
+        return 0.0;
+
+    if (isUsingFixedSnap() || !isSnappingEnabled())
+    {
+        const auto interval = isUsingFixedSnap() ? getSnapIntervalBeats()
+                                                 : 1.0 / te::Edit::ticksPerQuarterNote;
+        constexpr double epsilon = 1.0e-9;
+        const auto target = direction < 0
+                                ? std::floor((beat - epsilon) / interval) * interval
+                                : std::ceil((beat + epsilon) / interval) * interval;
+        return target - beat;
+    }
+
+    const auto start = tracktion::TimePosition::fromSeconds(m_evs.beatToTime(beat));
+    const auto snapped = direction < 0
+                             ? getBestSnapType().roundTimeDown(start - tracktion::TimeDuration::fromSeconds(0.01), m_evs.m_edit.tempoSequence)
+                             : getBestSnapType().roundTimeUp(start + tracktion::TimeDuration::fromSeconds(0.01), m_evs.m_edit.tempoSequence);
+    return m_evs.timeToBeat(snapped.inSeconds()) - beat;
+}
+
+tracktion::TimePosition TimeLineComponent::snapTime(tracktion::TimePosition time, bool down) const
+{
+    if (!isSnappingEnabled())
+        return time;
+
+    if (isUsingFixedSnap())
+    {
+        const auto beat = m_evs.timeToBeat(time.inSeconds());
+        return tracktion::TimePosition::fromSeconds(m_evs.beatToTime(getQuantisedBeat(beat, down)));
+    }
+
+    return tracktion::TimePosition::fromSeconds(m_evs.getSnappedTime(time.inSeconds(), getBestSnapType(), down));
+}
+
+double TimeLineComponent::getSnappedTime(double time)
+{
+    return snapTime(tracktion::TimePosition::fromSeconds(time), false).inSeconds();
+}

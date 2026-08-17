@@ -94,9 +94,7 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
             }
         }
 
-        viewport.setSnap(true);
-        if (event.mods.isShiftDown())
-            viewport.setSnap(false);
+        viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
 
         switch (m_currentDragMode)
         {

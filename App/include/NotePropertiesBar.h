@@ -108,6 +108,8 @@ private:
         {Property::pitch, {}, {}, {}},
         {Property::velocity, {}, {}, {}}}};
     juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> m_selection;
+    juce::Label m_snapLabel;
+    juce::ComboBox m_snapBox;
     juce::Rectangle<int> m_panelBounds;
     juce::Rectangle<int> m_selectionCountBounds;
     bool m_handlingEditorCallback{false};

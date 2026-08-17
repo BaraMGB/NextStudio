@@ -29,7 +29,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 class TimeLineComponent : public juce::Component
 {
 public:
-    TimeLineComponent(EditViewState &, juce::String timeLineID);
+    TimeLineComponent(EditViewState &, juce::String timeLineID, bool usePianoRollSnapSettings = false);
     ~TimeLineComponent() override;
 
     void paint(juce::Graphics &g) override;
@@ -63,6 +63,11 @@ public:
     double getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down = true) const;
     double getQuantisedBeat(double beat, bool down) const;
     te::TimecodeSnapType getBestSnapType() const;
+    bool isSnappingEnabled() const;
+    bool isUsingFixedSnap() const;
+    double getSnapIntervalBeats() const;
+    double getNudgeDeltaBeats(double beat, int direction) const;
+    tracktion::TimePosition snapTime(tracktion::TimePosition time, bool down = false) const;
     double getSnappedTime(double time);
 
 private:
@@ -75,6 +80,7 @@ private:
     juce::String m_timeLineID;
 
     EditViewState &m_evs;
+    const bool m_usePianoRollSnapSettings;
     juce::ValueTree m_tree;
     double m_cachedBeat{};
     bool m_isMouseDown, m_isSnapping{true}, m_leftResized, m_rightResized, m_changeLoopRange{false}, m_loopRangeClicked;

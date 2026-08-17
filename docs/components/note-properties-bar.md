@@ -23,7 +23,7 @@ The bar displays the selection count and five editable properties:
 | `PITCH` | MIDI note number/name | `60`, `C3`, `G#4`, `Bb2` | `+1 st`, `-12 st` |
 | `VELOCITY` | MIDI velocity | integer | `+5`, `-10` |
 
-The left side displays `SELECTED NOTES:` and the number of valid selected note/clip pairs.
+The left side displays `SELECTED NOTES:` and the number of valid selected note/clip pairs. A `SNAP` combo box on the right selects Off, a fixed note value (`1/1`–`1/128`), or Adaptive zoom-dependent snapping.
 
 ## Public interface
 

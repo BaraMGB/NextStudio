@@ -408,7 +408,7 @@ te::MidiNote *MidiViewport::addNewNoteAt(int x, int y, te::MidiClip *clip)
     auto noteNum = getKeyForY(y);
     auto beat = m_timeLine.xToBeatPos(x).inBeats() - clip->getStartBeat().inBeats();
 
-    if (m_evs.m_snapToGrid && !juce::ModifierKeys::getCurrentModifiers().isShiftDown())
+    if (m_timeLine.isSnappingEnabled() && !juce::ModifierKeys::getCurrentModifiers().isShiftDown())
         beat = m_timeLine.getQuantisedNoteBeat(beat, clip, true);
 
     return addNewNote(noteNum, clip, beat);
@@ -515,7 +515,7 @@ bool MidiViewport::beginPendingPaste(const MidiClipboard &clipboard)
     return true;
 }
 
-bool MidiViewport::nudgePendingPaste(te::TimecodeSnapType snapType, int leftRight, int upDown)
+bool MidiViewport::nudgePendingPaste(int leftRight, int upDown)
 {
     if (!m_pendingPasteState.isActive())
         return false;
@@ -537,11 +537,7 @@ bool MidiViewport::nudgePendingPaste(te::TimecodeSnapType snapType, int leftRigh
                               nullptr);
             te::MidiNote referenceNote(state);
             const auto start = referenceNote.getEditStartTime(*clip);
-            const auto snapped = leftRight < 0
-                                     ? snapType.roundTimeDown(start - tracktion::TimeDuration::fromSeconds(0.01), m_evs.m_edit.tempoSequence)
-                                     : snapType.roundTimeUp(start + tracktion::TimeDuration::fromSeconds(0.01), m_evs.m_edit.tempoSequence);
-            beatDelta = (m_evs.m_edit.tempoSequence.toBeats(snapped)
-                         - m_evs.m_edit.tempoSequence.toBeats(start)).inBeats();
+            beatDelta = m_timeLine.getNudgeDeltaBeats(m_evs.m_edit.tempoSequence.toBeats(start).inBeats(), leftRight);
             break;
         }
     }
@@ -566,6 +562,43 @@ bool MidiViewport::nudgePendingPaste(te::TimecodeSnapType snapType, int leftRigh
         repaint();
 
     return true;
+}
+
+void MidiViewport::nudgeSelectedNotes(int leftRight, int upDown)
+{
+    if (m_selectedEvents == nullptr)
+        return;
+
+    if (!m_timeLine.isUsingFixedSnap() && m_timeLine.isSnappingEnabled())
+    {
+        m_selectedEvents->nudge(m_timeLine.getBestSnapType(), leftRight, upDown);
+        return;
+    }
+
+    if (upDown != 0)
+        m_selectedEvents->nudge(m_timeLine.getBestSnapType(), 0, upDown);
+
+    if (leftRight == 0)
+        return;
+
+    const auto selectedNotes = getSelectedNotes();
+    if (selectedNotes.isEmpty())
+        return;
+
+    auto *firstNote = selectedNotes.getFirst();
+    if (firstNote == nullptr)
+        return;
+
+    auto *firstClip = m_selectedEvents->clipForEvent(firstNote);
+    if (firstClip == nullptr)
+        return;
+
+    const auto globalBeat = m_evs.m_edit.tempoSequence.toBeats(firstNote->getEditStartTime(*firstClip)).inBeats();
+    const auto beatDelta = m_timeLine.getNudgeDeltaBeats(globalBeat, leftRight);
+    auto &undoManager = m_evs.m_edit.getUndoManager();
+    for (auto *note : selectedNotes)
+        note->setStartAndLength(note->getStartBeat() + tracktion::BeatDuration::fromBeats(beatDelta),
+                                note->getLengthBeats(), &undoManager);
 }
 
 bool MidiViewport::confirmPendingPaste(bool keepSelection)

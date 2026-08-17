@@ -121,7 +121,8 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
         auto clickOffset = e.getMouseDownX() - timeToX(m_cachedPos.getStart().inSeconds());
         auto br = m_timelineComponent.getCurrentBeatRange();
         auto mouseTime = EngineHelpers::getTimePos(m_evs.xToTime(e.x, getWidth(), br.getStart().inBeats(), br.getEnd().inBeats()));
-        mouseTime = e.mods.isShiftDown() ? mouseTime : m_timelineComponent.getBestSnapType().roundTimeDown(mouseTime, m_evs.m_edit.tempoSequence);
+        const bool shouldSnap = m_timelineComponent.isSnappingEnabled() && !e.mods.isShiftDown();
+        mouseTime = shouldSnap ? m_timelineComponent.snapTime(mouseTime, true) : mouseTime;
         m_drawDraggedClip = false;
         if (m_cachedClip)
         {
@@ -131,8 +132,8 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
             {
                 auto co = m_cachedPos.getOffset();
                 auto newStart = juce::jmax(mouseTime, cs - co);
-                if (!e.mods.isShiftDown())
-                    newStart = tracktion::TimePosition::fromSeconds(getSnappedTime(newStart.inSeconds()));
+                if (shouldSnap)
+                    newStart = m_timelineComponent.snapTime(newStart);
                 m_draggedTimeDelta = cs.inSeconds() - newStart.inSeconds();
                 m_draggedClipRect = getClipRect(m_cachedClip);
                 m_draggedClipRect.setLeft(timeToX(newStart.inSeconds()));
@@ -141,10 +142,10 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
             else if (m_rightResized)
             {
                 auto newEnd = juce::jmax(cs, mouseTime);
-                if (!e.mods.isShiftDown())
-                    newEnd = tracktion::TimePosition::fromSeconds(getSnappedTime(newEnd.inSeconds()));
+                if (shouldSnap)
+                    newEnd = m_timelineComponent.snapTime(newEnd);
 
-                m_draggedTimeDelta = m_cachedPos.getEnd().inSeconds() - mouseTime.inSeconds();
+                m_draggedTimeDelta = m_cachedPos.getEnd().inSeconds() - newEnd.inSeconds();
                 m_draggedClipRect = getClipRect(m_cachedClip);
                 m_draggedClipRect.setRight(timeToX(newEnd.inSeconds()));
                 repaint();
@@ -152,8 +153,7 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
             else
             {
                 auto newStart = EngineHelpers::getTimePos(m_evs.beatToTime(xToBeats(e.x - clickOffset)));
-                auto snaped = m_timelineComponent.getBestSnapType().roundTimeDown(newStart, m_evs.m_edit.tempoSequence);
-                newStart = e.mods.isShiftDown() ? newStart : snaped;
+                newStart = shouldSnap ? m_timelineComponent.snapTime(newStart, true) : newStart;
                 m_draggedTimeDelta = cs.inSeconds() - newStart.inSeconds();
                 m_draggedClipRect = getClipRect(m_cachedClip);
                 m_draggedClipRect.setPosition(timeToX(newStart.inSeconds()), m_draggedClipRect.getY());
@@ -172,13 +172,13 @@ void TimelineOverlayComponent::mouseUp(const juce::MouseEvent &e)
         EngineHelpers::resizeSelectedClips(m_leftResized, -m_draggedTimeDelta, m_evs);
     }
     else if (m_move)
-        moveSelectedClips(e.mods.isCtrlDown(), !e.mods.isShiftDown());
+        moveSelectedClips(e.mods.isCtrlDown(), m_timelineComponent.isSnappingEnabled() && !e.mods.isShiftDown());
     m_drawDraggedClip = false;
     m_draggedTimeDelta = 0;
     repaint();
 }
 
-double TimelineOverlayComponent::getSnappedTime(double time) { return m_evs.getSnappedTime(time, m_timelineComponent.getBestSnapType()); }
+double TimelineOverlayComponent::getSnappedTime(double time) { return m_timelineComponent.getSnappedTime(time); }
 std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClipsOfTrack()
 {
     std::vector<te::MidiClip *> midiClips;

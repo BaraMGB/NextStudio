@@ -25,7 +25,7 @@ From top to bottom:
 3. **Timeline** — musical time and overlay above the note grid.
 4. **Piano keyboard and note grid** — pitch vertically, time horizontally.
 5. **Velocity editor** — velocity stems/handles for notes.
-6. **Horizontal scrollbar and footer** — horizontal position, snap description, and note name under the pointer.
+6. **Horizontal scrollbar and footer** — horizontal position and note name under the pointer.
 
 The playhead overlays the timeline/grid region.
 
@@ -158,9 +158,9 @@ Drag to select notes in a rectangular area. Releasing switches back to the point
 
 ## Snapping
 
-The current snap resolution is derived from timeline zoom and Tracktion's timecode format. Its description appears in the footer.
+Use the **SNAP** selector in the note-properties bar to choose **Off**, a fixed note value from **1/1** through **1/128**, or **Adaptive**. Adaptive snapping derives its resolution from the timeline zoom and is the default.
 
-Common note gestures enable snapping by default. Hold `Shift` during pointer move/resize, drawing, or knife splitting to bypass snapping temporarily.
+Hold `Shift` during pointer move/resize, drawing, or knife splitting to bypass enabled snapping temporarily.
 
 View and snap state are stored in edit-local UI state and do not create musical undo steps.
 

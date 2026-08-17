@@ -72,6 +72,8 @@ EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationVi
     m_clipHeaderHeight.referTo(m_state, IDs::clipHeaderHeight, um, 20);
     m_syncAutomation.referTo(m_state, IDs::syncAutomation, um, true);
     m_snapToGrid.referTo(m_state, IDs::snapToGrid, um, true);
+    m_pianoRollSnapMode.referTo(m_state, IDs::pianoRollSnapMode, um, static_cast<int>(PianoRollSnapMode::adaptive));
+    m_pianoRollSnapDenominator.referTo(m_state, IDs::pianoRollSnapDenominator, um, 16);
     m_editNotesOutsideClipRange.referTo(m_state, IDs::editNoteOutsideOfClipRange, um, false);
 }
 

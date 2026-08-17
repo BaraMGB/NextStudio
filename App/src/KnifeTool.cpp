@@ -31,7 +31,7 @@ void KnifeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
             um.beginNewTransaction("Split MIDI Note");
 
             auto time = viewport.getTimeLine()->xToTimePos(event.x).inSeconds();
-            if (viewport.isSnapping() && !event.mods.isShiftDown())
+            if (viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown())
                 time = viewport.getTimeLine()->getSnappedTime(time);
 
             auto splitBeat = m_evs.timeToBeat(time);
@@ -77,7 +77,7 @@ void KnifeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 
         // Calculate snapped position for the line
         auto time = viewport.getTimeLine()->xToTimePos(event.x).inSeconds();
-        if (viewport.isSnapping() && !event.mods.isShiftDown())
+        if (viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown())
             time = viewport.getTimeLine()->getSnappedTime(time);
 
         auto splitBeat = m_evs.timeToBeat(time);

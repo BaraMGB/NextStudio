@@ -26,7 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 PianoRollEditor::PianoRollEditor(EditViewState &evs)
     : m_editViewState(evs),
-      m_timeLine(evs, "PianoRoll"),
+      m_timeLine(evs, "PianoRoll", true),
       m_notePropertiesBar(evs),
       m_playhead(evs.m_edit, evs, m_timeLine),
       m_toolBar(Alignment::Center),
@@ -143,10 +143,6 @@ void PianoRollEditor::paint(juce::Graphics &g)
 void PianoRollEditor::paintOverChildren(juce::Graphics &g)
 {
     g.setColour(juce::Colour(0xffffffff));
-    const auto snapType = m_timeLine.getBestSnapType();
-    const auto snapTypeDesc = m_timeLine.getEditViewState().getSnapTypeDescription(snapType.level);
-    g.drawText(snapTypeDesc, getWidth() - 100, getHeight() - 20, 90, 20, juce::Justification::centredRight);
-
     g.drawText(m_NoteDescUnderCursor, getWidth() - 200, getHeight() - 20, 90, 20, juce::Justification::centredLeft);
 
     g.setColour(m_editViewState.m_applicationState.getBorderColour());
@@ -384,47 +380,47 @@ bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationIn
     case KeyPressCommandIDs::nudgeNotesUp:
     {
         if (m_pianoRollViewPort != nullptr &&
-            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, 1))
-            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 1);
+            !m_pianoRollViewPort->nudgePendingPaste(0, 1))
+            m_pianoRollViewPort->nudgeSelectedNotes(0, 1);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesDown:
     {
         if (m_pianoRollViewPort != nullptr &&
-            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, -1))
-            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -1);
+            !m_pianoRollViewPort->nudgePendingPaste(0, -1))
+            m_pianoRollViewPort->nudgeSelectedNotes(0, -1);
         break;
     }
     case KeyPressCommandIDs::nudgeNotesLeft:
     {
         if (m_pianoRollViewPort != nullptr &&
-            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), -1, 0))
-            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), -1, 0);
+            !m_pianoRollViewPort->nudgePendingPaste(-1, 0))
+            m_pianoRollViewPort->nudgeSelectedNotes(-1, 0);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesRight:
     {
         if (m_pianoRollViewPort != nullptr &&
-            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 1, 0))
-            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 1, 0);
+            !m_pianoRollViewPort->nudgePendingPaste(1, 0))
+            m_pianoRollViewPort->nudgeSelectedNotes(1, 0);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesOctaveUp:
     {
         if (m_pianoRollViewPort != nullptr &&
-            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, 12))
-            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, 12);
+            !m_pianoRollViewPort->nudgePendingPaste(0, 12))
+            m_pianoRollViewPort->nudgeSelectedNotes(0, 12);
 
         break;
     }
     case KeyPressCommandIDs::nudgeNotesOctaveDown:
     {
         if (m_pianoRollViewPort != nullptr &&
-            !m_pianoRollViewPort->nudgePendingPaste(m_timeLine.getBestSnapType(), 0, -12))
-            m_pianoRollViewPort->getSelectedEvents().nudge(m_timeLine.getBestSnapType(), 0, -12);
+            !m_pianoRollViewPort->nudgePendingPaste(0, -12))
+            m_pianoRollViewPort->nudgeSelectedNotes(0, -12);
 
         break;
     }

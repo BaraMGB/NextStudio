@@ -284,7 +284,7 @@ Clearing all destinations first prevents one duplicate from erasing another when
 
 ### Nudge
 
-`PianoRollEditor::perform()` delegates arrow-key nudging to `SelectedMidiEvents::nudge(snapType, leftRight, upDown)`. Time nudges use the current best snap type; pitch nudges use one semitone, or twelve semitones with `Command`.
+`PianoRollEditor::perform()` delegates arrow-key nudging to `MidiViewport`. Horizontal steps use the selected fixed note value, the current adaptive snap type, or one tick when snapping is off. Pitch nudges use one semitone, or twelve semitones with `Command`.
 
 ### Velocity
 

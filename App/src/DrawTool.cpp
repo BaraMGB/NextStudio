@@ -28,11 +28,12 @@ void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
     if (m_clickedClip == nullptr)
         return;
 
-    const auto numBeatsPerBar = static_cast<int>(m_evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
+    viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
 
-    int snapLevel = viewport.getTimeLine()->getBestSnapType().getLevel();
-
-    double intervalBeats = GUIHelpers::getIntervalBeatsOfSnap(snapLevel, numBeatsPerBar);
+    const auto intervalBeats = viewport.getTimeLine()->isSnappingEnabled()
+                                   ? viewport.getTimeLine()->getSnapIntervalBeats()
+                                   : juce::jmax(1.0 / te::Edit::ticksPerQuarterNote,
+                                                viewport.getTimeLine()->getLastNoteLength());
     m_intervalX = intervalBeats / viewport.getTimeLine()->getBeatsPerPixel();
 
     m_isDrawingNote = true;
@@ -45,9 +46,7 @@ void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 
 void DrawTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    viewport.setSnap(true);
-    if (event.mods.isShiftDown())
-        viewport.setSnap(false);
+    viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
 
     if (!m_isDrawingNote)
         return;
