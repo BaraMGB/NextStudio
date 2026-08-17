@@ -299,10 +299,8 @@ double getNoteStartBeat(const te::MidiClip *midiClip, const te::MidiNote *n);
 double getNoteEndBeat(const te::MidiClip *midiClip, const te::MidiNote *n);
 void deleteSelectedClips(EditViewState &evs);
 
-bool isTrackItemInRange(te::TrackItem *ti, const tracktion::TimeRange &tr);
 void moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState &evs);
 void duplicateSelectedClips(EditViewState &evs);
-void copyAutomationForSelectedClips(double offset, te::SelectionManager &sm, bool copy);
 
 void selectAllClips(te::SelectionManager &sm, te::Edit &edit);
 void selectAllClipsOnTrack(te::SelectionManager &sm, te::AudioTrack &at);
@@ -332,7 +330,7 @@ tracktion_engine::AudioTrack::Ptr addSoundFontTrack(EditViewState &evs, const ju
 
 te::WaveAudioClip::Ptr loadAudioFileOnNewTrack(EditViewState &evs, const juce::File &file, juce::Colour trackColour, double insertTime = 0.0);
 
-te::WaveAudioClip::Ptr loadAudioFileToTrack(const juce::File &file, te::AudioTrack::Ptr track, te::ClipPosition pos);
+te::WaveAudioClip::Ptr loadAudioFileToTrack(EditViewState &evs, const juce::File &file, te::AudioTrack::Ptr track, te::ClipPosition pos);
 
 void refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile);
 

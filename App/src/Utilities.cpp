@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "Utilities.h"
 
+#include "ClipOverwriteCommand.h"
 #include "BinaryData.h"
 #include "PresetHelpers.h"
 #include "ArpeggiatorPlugin.h"
@@ -1424,10 +1425,12 @@ te::Track *EngineHelpers::getTargetTrack(te::Track *sourceTrack, int verticalOff
 
     auto &edit = sourceTrack->edit;
     auto tracks = getSortedTrackList(edit);
-    auto targetIdx = tracks.indexOf(sourceTrack) + verticalOffset;
-    auto targetTrack = tracks[targetIdx];
+    const auto sourceIndex = tracks.indexOf(sourceTrack);
+    const auto targetIndex = sourceIndex + verticalOffset;
+    if (sourceIndex < 0 || !juce::isPositiveAndBelow(targetIndex, tracks.size()))
+        return nullptr;
 
-    return targetTrack;
+    return tracks.getUnchecked(targetIndex);
 }
 
 juce::Array<te::Track *> EngineHelpers::getSortedTrackList(te::Edit &edit)
@@ -1471,79 +1474,52 @@ double EngineHelpers::getNoteEndBeat(const te::MidiClip *midiClip, const te::Mid
     return eBeat.inBeats();
 }
 
-bool EngineHelpers::isTrackItemInRange(te::TrackItem *ti, const tracktion::TimeRange &tr) { return ti->getEditTimeRange().intersects(tr); }
-
 void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState &evs)
 {
-    // If not copying and no movement occurred, return early to avoid unnecessary processing
     if (!copy && std::abs(timeDelta) < 1.0e-9 && verticalOffset == 0)
         return;
 
-    te::TransportControl::ReallocationInhibitor reallocationInhibitor(evs.m_edit.getTransport());
+    const auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    if (selectedClips.isEmpty())
+        return;
 
-    if (verticalOffset == 0)
-        copyAutomationForSelectedClips(timeDelta, evs.m_selectionManager, copy);
+    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(timeDelta);
+    auto earliestStart = selectedClips.getFirst()->getPosition().getStart();
+    for (auto *clip : selectedClips)
+        earliestStart = std::min(earliestStart, clip->getPosition().getStart());
+    if (earliestStart + effectiveDelta < tracktion::TimePosition())
+        effectiveDelta = tracktion::TimePosition() - earliestStart;
 
-    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
-    auto tempPosition = evs.m_edit.getLength().inSeconds() + timeDelta;
+    std::vector<ClipEditing::Placement> placements;
+    placements.reserve(static_cast<size_t>(selectedClips.size()));
 
-    juce::Array<te::Clip *> newClips;
-
-    for (auto selectedClip : selectedClips)
+    for (auto *clip : selectedClips)
     {
-        auto targetTrack = getTargetTrack(selectedClip->getTrack(), verticalOffset);
-
-        if (trackWantsClip(selectedClip, targetTrack))
+        auto *targetTrack = dynamic_cast<te::ClipTrack *>(getTargetTrack(clip->getTrack(), verticalOffset));
+        if (targetTrack == nullptr || !trackWantsClip(clip, targetTrack))
         {
-            auto newClip = te::duplicateClip(*selectedClip);
-            newClips.add(newClip);
-            newClip->setStart(newClip->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
-
-            if (!copy)
-                selectedClip->removeFromParent();
-            else
-                evs.m_selectionManager.deselect(selectedClip);
+            GUIHelpers::log("Clip move cancelled: invalid destination track");
+            return;
         }
+
+        auto finalPosition = clip->getPosition();
+        finalPosition.time = finalPosition.time + effectiveDelta;
+        placements.push_back({copy ? ClipEditing::PlacementMode::copy : ClipEditing::PlacementMode::move,
+                              clip, {}, targetTrack, finalPosition});
     }
 
-    for (auto newClip : newClips)
-    {
-        auto pasteTime = newClip->getPosition().getStart().inSeconds() + timeDelta - tempPosition;
-        auto targetTrack = EngineHelpers::getTargetTrack(newClip->getTrack(), verticalOffset);
+    ClipEditing::Options options;
+    options.undoName = copy ? "Copy clips" : "Move clips";
+    options.moveAutomation = static_cast<bool>(evs.m_automationFollowsClip);
+    options.copyAutomation = copy;
+    options.automationOffset = effectiveDelta;
 
-        if (EngineHelpers::trackWantsClip(newClip, targetTrack))
-        {
-            if (auto tct = dynamic_cast<te::ClipTrack *>(targetTrack))
-            {
-                tct->deleteRegion({tracktion::TimePosition::fromSeconds(pasteTime), newClip->getPosition().getLength()}, &evs.m_selectionManager);
-
-                if (auto owner = dynamic_cast<te::ClipOwner *>(targetTrack))
-                    newClip->moveTo(*owner);
-                newClip->setStart(tracktion::TimePosition::fromSeconds(pasteTime), false, true);
-
-                evs.m_selectionManager.addToSelection(newClip);
-            }
-        }
-    }
+    const auto result = ClipEditing::applyOverwrite(evs, std::move(placements), options);
+    if (!result.succeeded)
+        GUIHelpers::log("Clip move failed: " + result.error);
 }
 
 void EngineHelpers::duplicateSelectedClips(EditViewState &evs) { moveSelectedClips(true, getTimeRangeOfSelectedClips(evs).getLength().inSeconds(), 0, evs); }
-
-void EngineHelpers::copyAutomationForSelectedClips(double offset, te::SelectionManager &sm, bool copy)
-{
-    const auto clipSelection = sm.getSelectedObjects().getItemsOfType<te::Clip>();
-
-    if (clipSelection.size() <= 0)
-        return;
-
-    juce::Array<te::TrackAutomationSection> sections;
-
-    for (const auto &selectedClip : clipSelection)
-        if (selectedClip->getTrack() != nullptr)
-            sections.add(te::TrackAutomationSection(*selectedClip));
-
-    te::moveAutomation(sections, tracktion::TimeDuration::fromSeconds(offset), copy);
-}
 
 void EngineHelpers::selectAllClips(te::SelectionManager &sm, te::Edit &edit)
 {
@@ -1823,72 +1799,145 @@ te::TimeStretcher::Mode EngineHelpers::getPreferredTimeStretchMode(const Applica
 
 void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState &evs)
 {
-    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
-    auto tempPosition = evs.m_edit.getLength().inSeconds() + delta;
+    const auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    if (selectedClips.isEmpty())
+        return;
 
-    if (fromLeftEdge)
+    constexpr auto minimumLength = tracktion::TimeDuration::fromSeconds(0.000001);
+    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(delta);
+
+    for (auto *clip : selectedClips)
     {
-        for (auto sc : selectedClips)
+        const auto position = clip->getPosition();
+        if (fromLeftEdge)
         {
-            auto newStart = juce::jmax(sc->getPosition().getStart() - sc->getPosition().getOffset(), sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(delta));
-            newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0), newStart);
-            sc->setStart(newStart, true, false);
-
-            // save clip for damage
-            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+            const auto lowerBound = std::max(tracktion::TimePosition(), position.getStart() - position.getOffset());
+            effectiveDelta = std::max(effectiveDelta, lowerBound - position.getStart());
+            effectiveDelta = std::min(effectiveDelta, position.getLength() - minimumLength);
         }
-    }
-    else
-    {
-        for (auto sc : selectedClips)
+        else
         {
-            auto newEnd = sc->getPosition().getEnd() + tracktion::TimeDuration::fromSeconds(delta);
-
-            sc->setEnd(newEnd, true);
-            // save clip for damage
-            sc->setStart(sc->getPosition().getStart() + tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+            effectiveDelta = std::max(effectiveDelta, minimumLength - position.getLength());
         }
     }
 
-    for (auto sc : selectedClips)
-    {
-        if (auto ct = sc->getClipTrack())
+    // Selected clips are all winners. Limit an expanding resize so they can never
+    // overwrite one another; unselected clips remain overwrite victims.
+    for (auto *clip : selectedClips)
+        for (auto *other : selectedClips)
         {
-            const tracktion::TimeRange range = {sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition), sc->getPosition().getEnd() - tracktion::TimeDuration::fromSeconds(tempPosition)};
-            ct->deleteRegion(range, &evs.m_selectionManager);
+            if (clip == other || clip->getClipTrack() != other->getClipTrack())
+                continue;
+
+            const auto position = clip->getPosition();
+            const auto otherPosition = other->getPosition();
+            if (fromLeftEdge && effectiveDelta < tracktion::TimeDuration()
+                && otherPosition.getEnd() <= position.getStart())
+                effectiveDelta = std::max(effectiveDelta, otherPosition.getEnd() - position.getStart());
+            else if (!fromLeftEdge && effectiveDelta > tracktion::TimeDuration()
+                     && otherPosition.getStart() >= position.getEnd())
+                effectiveDelta = std::min(effectiveDelta, otherPosition.getStart() - position.getEnd());
         }
 
-        // restore clip
-        sc->setStart(sc->getPosition().getStart() - tracktion::TimeDuration::fromSeconds(tempPosition), false, true);
+    if (effectiveDelta == tracktion::TimeDuration())
+        return;
+
+    std::vector<ClipEditing::Placement> placements;
+    placements.reserve(static_cast<size_t>(selectedClips.size()));
+
+    for (auto *clip : selectedClips)
+    {
+        auto finalPosition = clip->getPosition();
+        if (fromLeftEdge)
+        {
+            finalPosition.time = finalPosition.time.withStart(finalPosition.getStart() + effectiveDelta);
+            finalPosition.offset = std::max(tracktion::TimeDuration(), finalPosition.offset + effectiveDelta);
+        }
+        else
+        {
+            finalPosition.time = finalPosition.time.withEnd(finalPosition.getEnd() + effectiveDelta);
+        }
+
+        placements.push_back({ClipEditing::PlacementMode::move, clip, {},
+                              clip->getClipTrack(), finalPosition});
     }
+
+    ClipEditing::Options options;
+    options.undoName = "Resize clips";
+    const auto result = ClipEditing::applyOverwrite(evs, std::move(placements), options);
+    if (!result.succeeded)
+        GUIHelpers::log("Clip resize failed: " + result.error);
 }
 
 void EngineHelpers::timeStretchSelectedClips(double delta, EditViewState &evs)
 {
-    auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
-    auto stretchMode = getPreferredTimeStretchMode(evs.m_applicationState, evs.m_edit.engine);
+    const auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    juce::Array<te::WaveAudioClip *> waveClips;
+    for (auto *clip : selectedClips)
+        if (auto *wave = dynamic_cast<te::WaveAudioClip *>(clip))
+            waveClips.add(wave);
 
-    for (auto sc : selectedClips)
+    if (waveClips.isEmpty())
+        return;
+
+    constexpr auto minimumLength = tracktion::TimeDuration::fromSeconds(0.000001);
+    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(delta);
+    for (auto *clip : waveClips)
+        effectiveDelta = std::max(effectiveDelta, minimumLength - clip->getPosition().getLength());
+
+    for (auto *clip : waveClips)
+        for (auto *other : waveClips)
+            if (clip != other && clip->getClipTrack() == other->getClipTrack()
+                && effectiveDelta > tracktion::TimeDuration()
+                && other->getPosition().getStart() >= clip->getPosition().getEnd())
+                effectiveDelta = std::min(effectiveDelta,
+                                          other->getPosition().getStart() - clip->getPosition().getEnd());
+
+    if (effectiveDelta == tracktion::TimeDuration())
+        return;
+
+    const auto stretchMode = getPreferredTimeStretchMode(evs.m_applicationState, evs.m_edit.engine);
+    std::vector<ClipEditing::Placement> placements;
+    placements.reserve(static_cast<size_t>(waveClips.size()));
+
+    for (auto *clip : waveClips)
     {
-        if (auto wac = dynamic_cast<te::WaveAudioClip *>(sc))
+        const auto oldLength = clip->getPosition().getLength().inSeconds();
+        const auto newLength = (clip->getPosition().getLength() + effectiveDelta).inSeconds();
+        const auto sourceSegmentLength = oldLength * clip->getSpeedRatio();
+        if (newLength <= 0.0 || sourceSegmentLength <= 0.0)
+            return;
+
+        auto finalPosition = clip->getPosition();
+        finalPosition.time = finalPosition.time.withEnd(finalPosition.getEnd() + effectiveDelta);
+
+        ClipEditing::Placement placement;
+        placement.mode = ClipEditing::PlacementMode::move;
+        placement.source = clip;
+        placement.destination = clip->getClipTrack();
+        placement.finalPosition = finalPosition;
+        placement.finalize = [stretchMode, sourceSegmentLength, newLength, &evs](te::Clip &placedClip)
         {
-            const auto currentLength = wac->getPosition().getLength().inSeconds();
-            const auto newLength = currentLength + delta;
-
-            if (newLength <= 0.0)
-                continue;
-
-            const auto sourceSegmentLength = currentLength * wac->getSpeedRatio();
-
-            if (sourceSegmentLength <= 0.0)
-                continue;
-
-            wac->setTimeStretchMode(stretchMode);
-            wac->setSpeedRatio(sourceSegmentLength / newLength);
-            wac->setLength(tracktion::TimeDuration::fromSeconds(newLength), true);
-            evs.removeThumbnail(wac->itemID);
-        }
+            auto *wave = dynamic_cast<te::WaveAudioClip *>(&placedClip);
+            if (wave == nullptr)
+                return false;
+            wave->setTimeStretchMode(stretchMode);
+            wave->setSpeedRatio(sourceSegmentLength / newLength);
+            evs.removeThumbnail(wave->itemID);
+            return true;
+        };
+        placements.push_back(std::move(placement));
     }
+
+    ClipEditing::Options options;
+    options.undoName = "Time stretch clips";
+    const auto result = ClipEditing::applyOverwrite(evs, std::move(placements), options);
+    if (!result.succeeded)
+        GUIHelpers::log("Clip time stretch failed: " + result.error);
+    else
+        for (auto *clip : selectedClips)
+            if (dynamic_cast<te::WaveAudioClip *>(clip) == nullptr && clip->getClipTrack() != nullptr)
+                evs.m_selectionManager.addToSelection(clip);
 }
 
 tracktion_engine::Project::Ptr EngineHelpers::createTempProject(tracktion_engine::Engine &engine)
@@ -2029,25 +2078,41 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileOnNewTrack(Edit
             removeAllClips(*track);
             te::ClipPosition pos;
             pos.time = {tracktion::TimePosition::fromSeconds(insertTime), tracktion::TimeDuration::fromSeconds(audioFile.getLength())};
-            loadAudioFileToTrack(file, track, pos);
+            return loadAudioFileToTrack(evs, file, track, pos);
         }
     }
     return {};
 }
 
-tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileToTrack(const juce::File &file, te::AudioTrack::Ptr track, te::ClipPosition pos)
+tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileToTrack(EditViewState &evs, const juce::File &file, te::AudioTrack::Ptr track, te::ClipPosition pos)
 {
+    if (track == nullptr)
+        return {};
 
-    if (auto newClip = track->insertWaveClip(file.getFileNameWithoutExtension(), file, pos, true))
+    ClipEditing::Placement placement;
+    placement.mode = ClipEditing::PlacementMode::insertWaveFile;
+    placement.destination = track.get();
+    placement.finalPosition = pos;
+    placement.name = file.getFileNameWithoutExtension();
+    placement.sourceFile = file;
+
+    ClipEditing::Options options;
+    options.undoName = "Insert audio clip";
+    auto result = ClipEditing::applyOverwrite(evs, {std::move(placement)}, options);
+    if (!result.succeeded || result.clips.isEmpty())
+    {
+        GUIHelpers::log("Audio clip insertion failed: " + result.error);
+        return {};
+    }
+
+    auto newClip = te::WaveAudioClip::Ptr(dynamic_cast<te::WaveAudioClip *>(result.clips.getFirst().get()));
+    if (newClip != nullptr)
     {
         GUIHelpers::log("loading : " + file.getFullPathName());
         newClip->setAutoTempo(false);
         newClip->setAutoPitch(false);
-        newClip->setPosition(pos);
-        return newClip;
     }
-
-    return {};
+    return newClip;
 }
 void EngineHelpers::refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile)
 {
@@ -2219,6 +2284,22 @@ void EngineHelpers::toggleRecord(EditViewState &evs)
     }
     else
     {
+        // Arrangement tracks use the same incoming-wins rule as all other clip
+        // insertion paths. Tracktion otherwise defaults to creating overlapping
+        // wave takes in the arranger.
+        for (auto *instance : evs.m_edit.getAllInputDevices())
+        {
+            if (auto *midiInput = dynamic_cast<te::MidiInputDevice *>(&instance->getInputDevice()))
+            {
+                midiInput->mergeRecordings = false;
+                midiInput->replaceExistingClips = true;
+            }
+            else if (auto *waveInput = dynamic_cast<te::WaveInputDevice *>(&instance->getInputDevice()))
+            {
+                waveInput->setMergeMode(te::WaveInputDevice::getMergeModes()[1]);
+            }
+        }
+
         evs.beginRecordCountIn();
         transport.record(false);
     }

@@ -13,6 +13,7 @@ The current suites are:
 | `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
 | `PianoRollNoteLength` | inserted-note length modes, note values, fallbacks, and draw minimum | `App/tests/PianoRollNoteLengthTests.cpp` |
+| `ClipOverwriteCommand` | incoming-wins clip placement, trimming, identity, selection, and undo | `App/tests/ClipOverwriteCommandTests.cpp` |
 
 ## Run all tests
 
@@ -69,6 +70,12 @@ ctest --test-dir autobuild/RelWithDebInfo -V
 # Repeat until failure when investigating intermittent behavior
 ctest --test-dir autobuild/RelWithDebInfo --repeat until-fail:20 --output-on-failure
 ```
+
+## Clip overwrite tests
+
+`ClipOverwriteCommandTests` creates real Tracktion edits and verifies selective
+victim splitting, move identity, copy-on-self, block and cross-track moves,
+multiple removal masks, winner validation, selection, and atomic undo/redo.
 
 ## Position display tests
 

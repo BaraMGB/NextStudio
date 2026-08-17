@@ -8,7 +8,7 @@ It is intended for compound edit operations such as moving, copying, or insertin
 
 NextStudio currently uses the guard in:
 
-- `App/src/Utilities.cpp` — `EngineHelpers::moveSelectedClips()`
+- `App/src/ClipOverwriteCommand.cpp` — `ClipEditing::applyOverwrite()`
 
 The implementation belongs to Tracktion Engine:
 
@@ -76,33 +76,11 @@ The resulting sequence is:
 
 ## Current NextStudio usage
 
-`EngineHelpers::moveSelectedClips()` creates the guard after its no-op check and before automation and clip mutations:
-
-```cpp
-void EngineHelpers::moveSelectedClips(bool copy,
-                                      double timeDelta,
-                                      int verticalOffset,
-                                      EditViewState& evs)
-{
-    if (!copy && std::abs(timeDelta) < 1.0e-9 && verticalOffset == 0)
-        return;
-
-    te::TransportControl::ReallocationInhibitor reallocationInhibitor(
-        evs.m_edit.getTransport());
-
-    // Copy/move automation and clips.
-}
-```
-
-The guard covers the complete synchronous operation, including:
-
-- automation movement or copying;
-- creation of duplicate clips;
-- temporary and final clip positioning;
-- removal of source clips for move operations;
-- deletion of material in destination regions;
-- moving clips between tracks;
-- final selection updates.
+`ClipEditing::applyOverwrite()` owns the guard for the complete commit of a
+planned incoming-wins edit. It covers selective victim trimming and splitting,
+direct identity-preserving moves/resizes, copy or insert creation, automation,
+selection updates, invariant validation, and rollback. No clip is staged at a
+temporary position beyond the end of the edit.
 
 Previously this path temporarily removed every plug-in from the affected tracks and recreated the plug-ins after editing the clips. That avoided some plug-in-related work but destroyed the live plug-in instances. For external VST3 plug-ins, a stale serialized state could then recreate the plug-in at its factory or `Init` state.
 
@@ -233,7 +211,7 @@ When changing guarded clip operations, verify that:
 
 | Responsibility | Source |
 |---|---|
-| NextStudio guarded clip operation | `App/src/Utilities.cpp` |
+| NextStudio guarded clip operation | `App/src/ClipOverwriteCommand.cpp` |
 | Inhibitor declaration | `modules/tracktion_engine/modules/tracktion_engine/playback/tracktion_TransportControl.h` |
 | Inhibitor counter and delayed request | `modules/tracktion_engine/modules/tracktion_engine/playback/tracktion_TransportControl.cpp` |
 | Edit restart scheduling | `modules/tracktion_engine/modules/tracktion_engine/model/edit/tracktion_Edit.cpp` |
