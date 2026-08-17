@@ -27,12 +27,13 @@ class ScopedSaveLock
 {
 public:
     explicit ScopedSaveLock(EditViewState &state)
-        : m_state(state)
+        : m_state(state),
+          m_wasLocked(state.m_isSavingLocked)
     {
         m_state.m_isSavingLocked = true;
     }
 
-    ~ScopedSaveLock() { m_state.m_isSavingLocked = false; }
+    ~ScopedSaveLock() { m_state.m_isSavingLocked = m_wasLocked; }
 
     ScopedSaveLock(const ScopedSaveLock &) = delete;
     ScopedSaveLock &operator=(const ScopedSaveLock &) = delete;
@@ -41,4 +42,5 @@ public:
 
 private:
     EditViewState &m_state;
+    bool m_wasLocked = false;
 };

@@ -22,6 +22,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "SongEditorView.h"
 #include "Browser_Base.h"
+#include "ClipOverwriteCommand.h"
 #include "TimeUtils.h"
 #include "Utilities.h"
 
@@ -320,7 +321,7 @@ void SongEditorView::addWaveFileToTrack(te::AudioFile audioFile, double dropTime
         te::ClipPosition clipPos;
         clipPos.time = {dropPos, length};
 
-        EngineHelpers::loadAudioFileToTrack(audioFile.getFile(), track, clipPos);
+        EngineHelpers::loadAudioFileToTrack(m_editViewState, audioFile.getFile(), track, clipPos);
     }
 }
 
@@ -628,10 +629,22 @@ tracktion_engine::MidiClip::Ptr SongEditorView::createNewMidiClip(double beatPos
         auto start = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beatPos)));
         auto end = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beatPos)) + m_editViewState.beatToTime(4));
         tracktion::core::TimeRange newPos(start, end);
-        at->deleteRegion(newPos, &m_editViewState.m_selectionManager);
+        ClipEditing::Placement placement;
+        placement.mode = ClipEditing::PlacementMode::insertMidi;
+        placement.destination = at;
+        placement.finalPosition = {newPos, {}};
+        placement.name = at->getName();
 
-        auto mc = at->insertMIDIClip(newPos, &m_editViewState.m_selectionManager);
-        mc->setName(at->getName());
+        ClipEditing::Options options;
+        options.undoName = "Create MIDI clip";
+        auto result = ClipEditing::applyOverwrite(m_editViewState, {std::move(placement)}, options);
+        if (!result.succeeded || result.clips.isEmpty())
+            return nullptr;
+
+        auto mc = te::MidiClip::Ptr(dynamic_cast<te::MidiClip *>(result.clips.getFirst().get()));
+        if (mc == nullptr)
+            return nullptr;
+
         auto trackTimeLineID = "ID" + track->itemID.toString().removeCharacters("{}-");
         setPianoRoll(track.get());
         GUIHelpers::centerMidiEditorToClip(m_editViewState, mc, trackTimeLineID, getWidth());
@@ -818,57 +831,48 @@ void SongEditorView::moveSelectedTimeRanges(tracktion::TimeDuration td, bool cop
 
 void SongEditorView::moveSelectedRangeOfTrack(te::Track::Ptr track, tracktion::TimeDuration duration, bool copy)
 {
-    if (auto ct = dynamic_cast<te::ClipTrack *>(track.get()))
+    auto *clipTrack = dynamic_cast<te::ClipTrack *>(track.get());
+    if (clipTrack == nullptr)
+        return;
+
+    const auto sourceRange = m_selectedRange.timeRange;
+    const auto targetRange = sourceRange + duration;
+    std::vector<ClipEditing::Placement> placements;
+    ClipEditing::Options options;
+    options.undoName = copy ? "Copy time range" : "Move time range";
+    options.destinationRemovals.push_back({clipTrack, targetRange});
+
+    for (auto *clip : clipTrack->getClips())
     {
-        const auto editStart = tracktion::TimePosition::fromSeconds(0.0);
-        const auto viewStartTime = m_editViewState.getVisibleTimeRange(m_timeLine.getTimeLineID(), getWidth()).getLength();
-        const auto targetStart = m_selectedRange.getStart() + duration;
-        const auto targetEnd = m_selectedRange.getEnd() + duration;
+        const auto segment = clip->getPosition().time.getIntersectionWith(sourceRange);
+        if (segment.isEmpty())
+            continue;
 
-        te::Clipboard::getInstance()->clear();
-        auto clipContent = std::make_unique<te::Clipboard::Clips>();
+        auto finalPosition = clip->getPosition();
+        finalPosition.time = segment + duration;
+        finalPosition.offset = finalPosition.offset + (segment.getStart() - clip->getPosition().getStart());
 
-        for (auto &c : ct->getClips())
-            if (EngineHelpers::isTrackItemInRange(c, m_selectedRange.timeRange))
-                clipContent->addClip(0, c->state);
-
-        ct->deleteRegion({targetStart, targetEnd}, &m_editViewState.m_selectionManager);
+        ClipEditing::Placement placement;
+        placement.mode = ClipEditing::PlacementMode::insertState;
+        placement.state = clip->state.createCopy();
+        placement.destination = clipTrack;
+        placement.finalPosition = finalPosition;
+        placement.name = clip->getName();
+        placements.push_back(std::move(placement));
 
         if (!copy)
-            ct->deleteRegion(m_selectedRange.timeRange, &m_editViewState.m_selectionManager);
-
-        te::EditInsertPoint insertPoint(m_editViewState.m_edit);
-        insertPoint.setNextInsertPoint(tracktion::TimePosition(), track);
-        te::Clipboard::ContentType::EditPastingOptions options(m_editViewState.m_edit, insertPoint);
-        options.selectionManager = &m_editViewState.m_selectionManager;
-        options.startTime = editStart + duration;
-
-        clipContent->pasteIntoEdit(options);
-
-        for (auto &clip : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>())
-        {
-            constrainClipInRange(clip, {targetStart, targetEnd});
-            m_editViewState.m_selectionManager.deselect(clip);
-        }
+            options.sourceRemovals.push_back({clip, sourceRange});
     }
-}
 
-void SongEditorView::constrainClipInRange(te::Clip *c, tracktion::TimeRange r)
-{
-    auto pos = c->getPosition();
-
-    if (!r.intersects(c->getPosition().time))
+    auto result = ClipEditing::applyOverwrite(m_editViewState, std::move(placements), options);
+    if (!result.succeeded)
     {
-        c->removeFromParent();
+        GUIHelpers::log("Time range move failed: " + result.error);
+        return;
     }
-    else
-    {
-        if (pos.getStart() < r.getStart())
-            c->setStart(r.getStart(), true, false);
 
-        if (pos.getEnd() > r.getEnd())
-            c->setEnd(r.getEnd(), true);
-    }
+    for (auto clip : result.clips)
+        m_editViewState.m_selectionManager.deselect(clip.get());
 }
 
 tracktion::TimeDuration SongEditorView::distanceToTime(int distance)

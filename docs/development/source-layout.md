@@ -146,6 +146,7 @@ DSP/model classes and their UI components are separate where appropriate. Exampl
 
 #### Shared controls and helpers
 
+- `ClipOverwriteCommand.*`
 - `Utilities.*`
 - `PositionDisplayHelpers.*`
 - `ThemeHelpers.*`

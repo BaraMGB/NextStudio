@@ -179,7 +179,6 @@ private:
     void moveSelectedRangeOfTrack(te::Track::Ptr, tracktion::TimeDuration td, bool copy);
 
     void moveSelectedClips(bool copy, double delta, int verticalOffset);
-    void constrainClipInRange(te::Clip *c, tracktion::TimeRange r);
     void addWaveFileToTrack(te::AudioFile audioFile, double dropTime, te::AudioTrack::Ptr track) const;
     void resizeSelectedClips(bool snap, bool fromLeftEdge = false);
     tracktion_engine::MidiClip::Ptr createNewMidiClip(double beatPos, te::Track::Ptr track);

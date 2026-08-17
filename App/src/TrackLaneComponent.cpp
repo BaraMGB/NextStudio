@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "TrackLaneComponent.h"
+#include "ClipOverwriteCommand.h"
 #include "SongEditorView.h"
 #include "ScopedSaveLock.h"
 #include "TimeUtils.h"
@@ -275,7 +276,17 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
                     auto start = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beat)));
                     auto end = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beat)) + m_editViewState.beatToTime(4));
 
-                    at->insertMIDIClip({start, end}, &sm);
+                    ClipEditing::Placement placement;
+                    placement.mode = ClipEditing::PlacementMode::insertMidi;
+                    placement.destination = at;
+                    placement.finalPosition = {{start, end}, {}};
+                    placement.name = at->getName();
+
+                    ClipEditing::Options options;
+                    options.undoName = "Create MIDI clip";
+                    auto result = ClipEditing::applyOverwrite(m_editViewState, {std::move(placement)}, options);
+                    if (!result.succeeded)
+                        GUIHelpers::log("MIDI clip creation failed: " + result.error);
                 }
             }
         }
