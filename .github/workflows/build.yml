@@ -6,6 +6,17 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build (all, windows, macos, linux)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - windows
+          - macos
+          - linux
 
 env:
   BUILD_TYPE: Release
@@ -18,12 +29,16 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x64
+            label: linux
           - os: windows-latest
             platform: windows-x64
+            label: windows
           - os: macos-latest
             platform: macos-arm64
+            label: macos
 
     runs-on: ${{ matrix.os }}
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == matrix.label
 
     steps:
       - name: Checkout
@@ -118,6 +133,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
 
