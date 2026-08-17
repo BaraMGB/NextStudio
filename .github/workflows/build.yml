@@ -38,7 +38,7 @@ jobs:
             label: macos
 
     runs-on: ${{ matrix.os }}
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == matrix.label
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.label
 
     steps:
       - name: Checkout
