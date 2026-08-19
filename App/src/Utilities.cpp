@@ -2264,6 +2264,7 @@ void EngineHelpers::togglePlay(EditViewState &evs)
     {
         evs.clearRecordCountIn();
         transport.stop(false, false);
+        transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
     }
     else
     {

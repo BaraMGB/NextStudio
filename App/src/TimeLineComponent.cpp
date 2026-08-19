@@ -138,14 +138,8 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
         e.source.enableUnboundedMouseMovement(true, false);
 
         m_isMouseDown = true;
+        m_playheadClickPending = e.mods.isLeftButtonDown();
         m_cachedBeat = m_evs.xToBeats(e.getMouseDownPosition().getX(), getWidth(), x1beats, x2beats);
-
-        if (e.getNumberOfClicks() > 1)
-        {
-            auto newTime = m_evs.beatToTime(m_cachedBeat);
-            m_evs.m_playHeadStartTime = newTime;
-            m_evs.m_edit.getTransport().setPosition(tracktion::TimePosition::fromSeconds(newTime));
-        }
     }
 }
 
@@ -185,7 +179,7 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
     }
 }
 
-void TimeLineComponent::mouseUp(const juce::MouseEvent &)
+void TimeLineComponent::mouseUp(const juce::MouseEvent &event)
 {
     m_evs.followsPlayhead(m_cachedFollowPlayhead);
     auto &t = m_evs.m_edit.getTransport();
@@ -193,6 +187,13 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent &)
         t.setLoopRange(getLoopRangeToBeMovedOrResized());
     else if (m_changeLoopRange)
         t.setLoopRange(m_newLoopRange);
+    else if (m_playheadClickPending && !event.mouseWasDraggedSinceMouseDown())
+    {
+        auto position = snapTime(beatToTime(tracktion::BeatPosition::fromBeats(m_cachedBeat)));
+        position = juce::jmax(tracktion::TimePosition(), position);
+        m_evs.m_playHeadStartTime = position.inSeconds();
+        t.setPosition(position);
+    }
 
     m_oldDragDistanceX = 0;
     m_oldDragDistanceY = 0;
@@ -202,6 +203,7 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent &)
     m_loopRangeClicked = false;
     m_isMouseDown = false;
     m_changeLoopRange = false;
+    m_playheadClickPending = false;
     m_newLoopRange = {};
     m_isSnapping = true;
 

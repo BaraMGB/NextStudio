@@ -93,6 +93,7 @@ private:
     tracktion::TimeDuration m_draggedTime;
     int m_oldDragDistanceY, m_oldDragDistanceX;
     bool m_cachedFollowPlayhead;
+    bool m_playheadClickPending{false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimeLineComponent)
 };

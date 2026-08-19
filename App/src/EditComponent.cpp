@@ -86,6 +86,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_editViewState.m_selectionManager.addChangeListener(this);
     m_edit.getAutomationRecordManager().addChangeListener(this);
     m_edit.getTransport().addChangeListener(this);
+    m_songEditor.addMouseListener(this, true);
 
     m_clipPropertiesBar.setEditHandlers(
         [this](const juce::Array<ClipPropertyEdit> &preview)
@@ -267,10 +268,36 @@ EditComponent::~EditComponent()
     m_scrollbar_h.removeListener(this);
     m_scrollbar_v.removeListener(this);
     m_clipPropertiesBar.setEditHandlers({}, {});
+    m_songEditor.removeMouseListener(this);
     m_edit.getTransport().removeChangeListener(this);
     m_edit.getAutomationRecordManager().removeChangeListener(this);
     m_editViewState.m_selectionManager.removeChangeListener(this);
     m_edit.state.removeListener(this);
+}
+
+void EditComponent::mouseDown(const juce::MouseEvent &event)
+{
+    auto *eventComponent = event.eventComponent;
+    m_songEditorPlayheadClickPending = event.mods.isLeftButtonDown()
+                                           && eventComponent != nullptr
+                                           && (eventComponent == &m_songEditor || m_songEditor.isParentOf(eventComponent));
+}
+
+void EditComponent::mouseUp(const juce::MouseEvent &event)
+{
+    if (!m_songEditorPlayheadClickPending)
+        return;
+
+    m_songEditorPlayheadClickPending = false;
+    if (event.mouseWasDraggedSinceMouseDown())
+        return;
+
+    const auto songEditorEvent = event.getEventRelativeTo(&m_songEditor);
+    auto position = m_timeLine.snapTime(m_timeLine.xToTimePos(songEditorEvent.x));
+    position = juce::jmax(tracktion::TimePosition(), position);
+
+    m_editViewState.m_playHeadStartTime = position.inSeconds();
+    m_edit.getTransport().setPosition(position);
 }
 
 void EditComponent::paint(juce::Graphics &g)
