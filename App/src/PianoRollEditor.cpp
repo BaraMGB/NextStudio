@@ -67,11 +67,15 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
         {
             if (m_pianoRollViewPort != nullptr)
                 m_pianoRollViewPort->setNotePropertyPreview(preview);
+            if (m_velocityEditor != nullptr)
+                m_velocityEditor->setNotePropertyPreview(preview);
         },
         [this](NotePropertiesBar::Property property, const juce::Array<MidiNotePropertyEdit> &edits)
         {
             if (m_pianoRollViewPort != nullptr)
                 m_pianoRollViewPort->commitNotePropertyEdit(edits, property != NotePropertiesBar::Property::velocity);
+            if (m_velocityEditor != nullptr)
+                m_velocityEditor->repaint();
         });
     m_notePropertiesBar.setTimingStepProvider([this]
     {
@@ -613,7 +617,7 @@ void PianoRollEditor::handleAsyncUpdate()
         repaint(getFooterRect());
     }
 
-    if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateVelocity))
+    if (m_velocityEditor != nullptr && compareAndReset(m_updateVelocity))
         m_velocityEditor->repaint();
 
     if (compareAndReset(m_updateNoteProperties))

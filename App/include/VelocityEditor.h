@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "MidiNotePropertyEdit.h"
 #include "Utilities.h"
 
 class VelocityEditor : public juce::Component
@@ -40,6 +41,7 @@ public:
     ~VelocityEditor() override {}
 
     void paint(juce::Graphics &g) override;
+    void setNotePropertyPreview(const juce::Array<MidiNotePropertyEdit> &);
     void mouseDown(const juce::MouseEvent &) override;
     void mouseDrag(const juce::MouseEvent &) override;
     void mouseMove(const juce::MouseEvent &) override;
@@ -62,12 +64,14 @@ private:
     void drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour);
     juce::Range<float> getXLineRange(te::MidiClip *const &midiClip, const te::MidiNote *n) const;
     int getVelocityPixel(const te::MidiNote *n) const;
+    int getDisplayedVelocity(const te::MidiNote *n) const;
 
     void drawVelocityRuler(juce::Graphics &graphics, tracktion_engine::MidiClip *&midiClip, tracktion_engine::MidiNote *n);
     int getVelocity(int y);
     void clearNotesFlags();
     te::MidiNote *getHoveredNote();
     juce::Array<DragVelocityState> m_dragVelocityStates;
+    juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
     te::MidiNote *m_dragReferenceNote{nullptr};
     juce::String m_timeLineID;
 };

@@ -35,6 +35,12 @@ void VelocityEditor::paint(juce::Graphics &g)
     }
 }
 
+void VelocityEditor::setNotePropertyPreview(const juce::Array<MidiNotePropertyEdit> &preview)
+{
+    m_notePropertyPreview = preview;
+    repaint();
+}
+
 void VelocityEditor::mouseDown(const juce::MouseEvent &)
 {
     m_dragVelocityStates.clear();
@@ -153,7 +159,16 @@ juce::Range<float> VelocityEditor::getXLineRange(te::MidiClip *const &midiClip, 
 
 int VelocityEditor::getVelocity(int y) { return juce::jmap((getHeight() - 4) - y, 0, getHeight() - 8, 0, 127); }
 
-int VelocityEditor::getVelocityPixel(const te::MidiNote *n) const { return (getHeight() - 4) - juce::jmap(n->getVelocity(), 0, 127, 0, getHeight() - 8); }
+int VelocityEditor::getVelocityPixel(const te::MidiNote *n) const { return (getHeight() - 4) - juce::jmap(getDisplayedVelocity(n), 0, 127, 0, getHeight() - 8); }
+
+int VelocityEditor::getDisplayedVelocity(const te::MidiNote *n) const
+{
+    for (const auto &edit : m_notePropertyPreview)
+        if (edit.sourceNote == n)
+            return edit.velocity;
+
+    return n->getVelocity();
+}
 
 tracktion_engine::MidiNote *VelocityEditor::getNote(juce::Point<float> p)
 {
