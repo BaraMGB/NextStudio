@@ -44,6 +44,7 @@ class PianoRollEditor
     , public juce::ApplicationCommandTarget
     , public juce::Button::Listener
     , private juce::ScrollBar::Listener
+    , private te::MidiInputDevice::MidiKeyChangeDispatcher::Listener
 {
 public:
     explicit PianoRollEditor(EditViewState &);
@@ -104,6 +105,8 @@ private:
     void removeSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents);
     std::pair<te::MidiClip *, te::MidiNote *> selectNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, bool addToSelection);
     void selectNotesOfKeyInCurrentClip(int midiNoteNumber, bool addToSelection);
+    void midiKeyStateChanged(te::AudioTrack *track, const juce::Array<int> &notesOn,
+                             const juce::Array<int> &velocities, const juce::Array<int> &notesOff) override;
 
     EditViewState &m_editViewState;
     TimeLineComponent m_timeLine;
@@ -112,6 +115,7 @@ private:
     std::unique_ptr<MidiViewport> m_pianoRollViewPort{nullptr};
     std::unique_ptr<VelocityEditor> m_velocityEditor{nullptr};
     std::unique_ptr<KeyboardView> m_keyboard;
+    juce::SharedResourcePointer<te::MidiInputDevice::MidiKeyChangeDispatcher> m_midiKeyChangeDispatcher;
     PlayheadComponent m_playhead;
     MenuBar m_toolBar;
     juce::ScrollBar m_horizontalScrollBar{false};

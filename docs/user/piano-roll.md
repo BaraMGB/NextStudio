@@ -59,6 +59,14 @@ Clicking a key in the left keyboard selects notes of that pitch in the selected 
 
 Dragging across the keyboard auditions successive pitches.
 
+### Live MIDI key feedback
+
+The keyboard lights keys for live MIDI routed to the track currently displayed in the Piano Roll. This includes external MIDI devices and NextStudio's virtual MIDI input. Held white keys use the application's PrimeColour; held black keys use a darker variant. Releasing a note restores the normal key color.
+
+The feedback is track-aware: MIDI routed to a different track does not light the displayed keyboard. Several simultaneously held notes can be shown at once. Lighting indicates only held/released state and does not vary with velocity. It visualizes live input, not notes played back from MIDI clips in the arrangement.
+
+Fast dragging across the clickable keyboard sends successive note-off/note-on pairs. These events are batched internally, but released keys are cleared at the end of each batch so they do not remain lit after the mouse is released.
+
 ## Tools
 
 ### Pointer
@@ -313,6 +321,7 @@ When setting a global start, it converts back to clip coordinates before updatin
 - Velocity lane dragging permits zero, while the exact velocity property clamps to one or higher.
 - Eraser hover preview is minimal.
 - Time-stretch is an arrangement tool and is not implemented as a Piano Roll `ToolStrategy`.
+- Piano-key lighting represents routed live MIDI input only and does not encode velocity or arrangement playback.
 
 ## Related documents
 

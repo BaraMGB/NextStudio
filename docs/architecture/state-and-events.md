@@ -111,7 +111,8 @@ Short-lived interaction state belongs to components or tools. Examples include:
 - the Piano Roll's cached note-under-pointer value;
 - asynchronous update flags;
 - current layout bounds;
-- cached clip pointers that can be regenerated.
+- cached clip pointers that can be regenerated;
+- the Piano Roll keyboard's active live-MIDI note bits.
 
 Transient state must be reset when the underlying edit, track, clip set, or selection changes.
 
@@ -283,6 +284,20 @@ Tool calls MidiViewport::setNoteSelected
 → PianoRollEditor refreshes NotePropertiesBar
 → SelectionManager also reflects SelectedMidiEvents for global command context
 ```
+
+### Live MIDI feedback in the Piano Roll
+
+```text
+Physical or virtual MidiInputDevice receives a note change
+→ Tracktion batches key-state changes in MidiKeyChangeDispatcher
+→ PianoRollEditor receives the destination track and note arrays
+→ callback is ignored unless the destination is the displayed track
+→ KeyboardView applies note-ons followed by note-offs
+→ VirtualKeyboardComponent updates transient active-note bits
+→ affected key rectangles repaint with ApplicationViewState PrimeColour
+```
+
+The listener is attached to the long-lived `PianoRollEditor` and removed symmetrically in its destructor. The track-specific `KeyboardView` does not own the global subscription and may be safely replaced by `setTrack()`/`clearTrack()`.
 
 ### Changing the theme
 

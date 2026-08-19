@@ -23,6 +23,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "KeyboardView.h"
 #include "Utilities.h"
 
+void KeyboardView::setMidiNotesDown(const juce::Array<int> &notesOn, const juce::Array<int> &notesOff)
+{
+    // The dispatcher batches rapid drag events, so notes may occur in both arrays.
+    // Applying note-offs last prevents already released keys from remaining lit.
+    for (auto note : notesOn)
+        m_keyboard.setNoteDown(note, true);
+
+    for (auto note : notesOff)
+        m_keyboard.setNoteDown(note, false);
+}
+
 void KeyboardView::mouseDown(const juce::MouseEvent &e)
 {
     const int clickedKey = juce::jlimit(0, 127, static_cast<int>(getKey(e.y)));

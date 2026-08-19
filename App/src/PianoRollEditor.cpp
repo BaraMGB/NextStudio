@@ -41,6 +41,7 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
     evs.m_edit.state.addListener(this);
     evs.m_applicationState.m_applicationStateValueTree.addListener(this);
     evs.m_selectionManager.addChangeListener(this);
+    m_midiKeyChangeDispatcher->listeners.add(this);
 
     m_notePropertiesBar.setSelectionProvider([this]
     {
@@ -130,6 +131,7 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
 }
 PianoRollEditor::~PianoRollEditor()
 {
+    m_midiKeyChangeDispatcher->listeners.remove(this);
     m_splitBtn.removeListener(this);
     m_erasorBtn.removeListener(this);
     m_rangeSelectBtn.removeListener(this);
@@ -641,6 +643,14 @@ void PianoRollEditor::handleKeyboardKeyClick(int midiNoteNumber, bool addToSelec
 
     m_pianoRollViewPort->finishPendingPasteOnDeselect();
     selectNotesOfKeyInCurrentClip(midiNoteNumber, addToSelection);
+}
+
+void PianoRollEditor::midiKeyStateChanged(te::AudioTrack *track, const juce::Array<int> &notesOn,
+                                          const juce::Array<int> &, const juce::Array<int> &notesOff)
+{
+    if (m_keyboard != nullptr && m_pianoRollViewPort != nullptr &&
+        m_pianoRollViewPort->getTrack().get() == track)
+        m_keyboard->setMidiNotesDown(notesOn, notesOff);
 }
 
 juce::Array<te::MidiClip *> PianoRollEditor::getSelectedMidiClipsOnTrack() const

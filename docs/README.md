@@ -33,6 +33,7 @@ This directory contains the user and developer documentation for NextStudio.
 Change documents explain a coherent implementation diff rather than acting as release notes. User-facing release history remains in [`CHANGELOG.md`](../CHANGELOG.md).
 
 - [Note properties bar and position display](changes/note-properties-bar-and-position-display.md)
+- [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 
 ## Documentation conventions
 
