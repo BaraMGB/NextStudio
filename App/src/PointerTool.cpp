@@ -273,8 +273,10 @@ void PointerTool::insertNoteAtPosition(const juce::MouseEvent &event, MidiViewpo
 {
     if (auto clip = viewport.getClickedClip())
     {
+        viewport.unselectAll();
         if (auto note = viewport.addNewNoteAt(event.x, event.y, clip))
         {
+            viewport.setNoteSelected(note, false);
             auto noteNumber = note->getNoteNumber();
             // Play the new note as guide note
             viewport.playGuideNote(clip, noteNumber);
