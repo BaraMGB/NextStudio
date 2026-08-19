@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "AutomationLaneComponent.h"
 #include "RecordingClipComponent.h"
 #include "TimeLineComponent.h"
+#include "ClipPropertyEdit.h"
 #include "TrackLaneComponent.h"
 #include "LassoSelectionTool.h"
 #include "MenuBar.h"
@@ -79,8 +80,14 @@ public:
     int getYForTrack(te::Track *track);
     int getVerticalOffset(te::Track::Ptr sourceTrack, const juce::Point<int> &dropPos);
     double xToSnapedBeat(int x, bool downwards = false);
+    double getClipInsertLength() const { return m_timeLine.getClipInsertLength(); }
+    tracktion::TimePosition snapTime(tracktion::TimePosition time, bool downwards = false)
+    {
+        return m_timeLine.snapTime(time, downwards);
+    }
 
     void updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration delta, int verticalOffset);
+    void setClipPropertyPreview(const juce::Array<ClipPropertyEdit> &);
 
     void updateTrackHeights(EditViewState &evs);
 
@@ -224,6 +231,7 @@ private:
     TimeRangeOverlayComponent m_timeRangeOverlay;
 
     te::Clip::Ptr m_draggedClip;
+    juce::Array<ClipPropertyEdit> m_clipPropertyPreview;
     tracktion::TimeDuration m_draggedTimeDelta;
     int m_draggedVerticalOffset{0};
 

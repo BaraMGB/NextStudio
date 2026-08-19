@@ -1474,6 +1474,29 @@ double EngineHelpers::getNoteEndBeat(const te::MidiClip *midiClip, const te::Mid
     return eBeat.inBeats();
 }
 
+juce::Array<ClipPropertyEdit> EngineHelpers::calculateSelectedClipMove(double timeDelta, EditViewState &evs)
+{
+    const auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    juce::Array<ClipPropertyEdit> result;
+    if (selectedClips.isEmpty())
+        return result;
+
+    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(timeDelta);
+    auto earliestStart = selectedClips.getFirst()->getPosition().getStart();
+    for (auto *clip : selectedClips)
+        earliestStart = std::min(earliestStart, clip->getPosition().getStart());
+    if (earliestStart + effectiveDelta < tracktion::TimePosition())
+        effectiveDelta = tracktion::TimePosition() - earliestStart;
+
+    for (auto *clip : selectedClips)
+    {
+        auto position = clip->getPosition();
+        position.time = position.time + effectiveDelta;
+        result.add({clip, position});
+    }
+    return result;
+}
+
 void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState &evs)
 {
     if (!copy && std::abs(timeDelta) < 1.0e-9 && verticalOffset == 0)
@@ -1795,6 +1818,58 @@ te::TimeStretcher::Mode EngineHelpers::getPreferredTimeStretchMode(const Applica
         return te::TimeStretcher::getModeFromName(engine, savedModeName);
 
     return te::TimeStretcher::getModeFromName(engine, getDefaultTimeStretchModeName(engine));
+}
+
+juce::Array<ClipPropertyEdit> EngineHelpers::calculateSelectedClipResize(bool fromLeftEdge, double delta, EditViewState &evs)
+{
+    const auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    juce::Array<ClipPropertyEdit> result;
+    if (selectedClips.isEmpty())
+        return result;
+
+    constexpr auto minimumLength = tracktion::TimeDuration::fromSeconds(0.000001);
+    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(delta);
+    for (auto *clip : selectedClips)
+    {
+        const auto position = clip->getPosition();
+        if (fromLeftEdge)
+        {
+            const auto lowerBound = std::max(tracktion::TimePosition(), position.getStart() - position.getOffset());
+            effectiveDelta = std::max(effectiveDelta, lowerBound - position.getStart());
+            effectiveDelta = std::min(effectiveDelta, position.getLength() - minimumLength);
+        }
+        else
+            effectiveDelta = std::max(effectiveDelta, minimumLength - position.getLength());
+    }
+
+    for (auto *clip : selectedClips)
+        for (auto *other : selectedClips)
+        {
+            if (clip == other || clip->getClipTrack() != other->getClipTrack())
+                continue;
+            const auto position = clip->getPosition();
+            const auto otherPosition = other->getPosition();
+            if (fromLeftEdge && effectiveDelta < tracktion::TimeDuration()
+                && otherPosition.getEnd() <= position.getStart())
+                effectiveDelta = std::max(effectiveDelta, otherPosition.getEnd() - position.getStart());
+            else if (!fromLeftEdge && effectiveDelta > tracktion::TimeDuration()
+                     && otherPosition.getStart() >= position.getEnd())
+                effectiveDelta = std::min(effectiveDelta, otherPosition.getStart() - position.getEnd());
+        }
+
+    for (auto *clip : selectedClips)
+    {
+        auto position = clip->getPosition();
+        if (fromLeftEdge)
+        {
+            position.time = position.time.withStart(position.getStart() + effectiveDelta);
+            position.offset = std::max(tracktion::TimeDuration(), position.offset + effectiveDelta);
+        }
+        else
+            position.time = position.time.withEnd(position.getEnd() + effectiveDelta);
+        result.add({clip, position});
+    }
+    return result;
 }
 
 void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditViewState &evs)

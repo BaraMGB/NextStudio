@@ -399,6 +399,15 @@ double TimeLineComponent::getNoteInsertLength() const
         getAdaptiveSnapIntervalBeats());
 }
 
+double TimeLineComponent::getClipInsertLength() const
+{
+    if (static_cast<ClipInsertLengthMode>(static_cast<int>(m_evs.m_clipInsertLengthMode))
+        == ClipInsertLengthMode::fixed)
+        return 4.0 / juce::jmax(1, static_cast<int>(m_evs.m_clipInsertLengthDenominator));
+
+    return getAdaptiveSnapIntervalBeats();
+}
+
 double TimeLineComponent::getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down) const
 {
     auto editBeat = c->getStartBeat().inBeats() + beat;
@@ -426,7 +435,9 @@ te::TimecodeSnapType TimeLineComponent::getBestSnapType() const
 {
     if (isUsingFixedSnap())
     {
-        const auto denominator = static_cast<int>(m_evs.m_pianoRollSnapDenominator);
+        const auto denominator = m_usePianoRollSnapSettings
+                                     ? static_cast<int>(m_evs.m_pianoRollSnapDenominator)
+                                     : static_cast<int>(m_evs.m_clipSnapDenominator);
         int level = 9;
         switch (denominator)
         {
@@ -448,20 +459,29 @@ te::TimecodeSnapType TimeLineComponent::getBestSnapType() const
 
 bool TimeLineComponent::isSnappingEnabled() const
 {
-    return !m_usePianoRollSnapSettings
-           || static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_pianoRollSnapMode)) != PianoRollSnapMode::off;
+    const auto mode = m_usePianoRollSnapSettings
+                          ? static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_pianoRollSnapMode))
+                          : static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_clipSnapMode));
+    return mode != PianoRollSnapMode::off;
 }
 
 bool TimeLineComponent::isUsingFixedSnap() const
 {
-    return m_usePianoRollSnapSettings
-           && static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_pianoRollSnapMode)) == PianoRollSnapMode::fixed;
+    const auto mode = m_usePianoRollSnapSettings
+                          ? static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_pianoRollSnapMode))
+                          : static_cast<PianoRollSnapMode>(static_cast<int>(m_evs.m_clipSnapMode));
+    return mode == PianoRollSnapMode::fixed;
 }
 
 double TimeLineComponent::getSnapIntervalBeats() const
 {
     if (isUsingFixedSnap())
-        return 4.0 / juce::jmax(1, static_cast<int>(m_evs.m_pianoRollSnapDenominator));
+    {
+        const auto denominator = m_usePianoRollSnapSettings
+                                     ? static_cast<int>(m_evs.m_pianoRollSnapDenominator)
+                                     : static_cast<int>(m_evs.m_clipSnapDenominator);
+        return 4.0 / juce::jmax(1, denominator);
+    }
 
     return getAdaptiveSnapIntervalBeats();
 }

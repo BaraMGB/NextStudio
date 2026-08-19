@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "LowerRangeComponent.h"
+#include "ClipPropertiesBar.h"
 #include "PluginChainView.h"
 #include "FileBrowser.h"
 #include "PlayHeadComponent.h"
@@ -52,7 +53,7 @@ public:
         //           , getWidth ()
         //           , getHeight ());
         g.setColour(juce::Colour(0xffffffff));
-        g.drawText(m_snapTypeDesc, getWidth() - 100, 0, 90, getHeight(), juce::Justification::centredRight);
+        g.drawFittedText(m_snapTypeDesc, getWidth() - 190, 0, 180, getHeight(), juce::Justification::centredRight, 1);
         g.setColour(juce::Colour(0xff555555));
     }
     juce::String m_snapTypeDesc;
@@ -174,6 +175,7 @@ private:
     juce::Rectangle<int> getAutomationToolBarRect();
     juce::Rectangle<int> getToolBarRect();
     juce::Rectangle<int> getEditorHeaderRect();
+    juce::Rectangle<int> getClipPropertiesRect();
     juce::Rectangle<int> getTimeLineRect();
     juce::Rectangle<int> getTrackListToolsRect();
     juce::Rectangle<int> getTrackListRect();
@@ -197,6 +199,7 @@ private:
     te::Edit &m_edit;
     EditViewState &m_editViewState;
     TimeLineComponent m_timeLine{m_editViewState, "SongEditor"};
+    ClipPropertiesBar m_clipPropertiesBar{m_editViewState};
     SongEditorView m_songEditor;
     std::unique_ptr<TrackHeaderComponent> m_masterHeader;
     std::unique_ptr<TrackLaneComponent> m_masterLane;

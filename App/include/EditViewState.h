@@ -121,6 +121,10 @@ DECLARE_ID(pianoRollSnapMode)
 DECLARE_ID(pianoRollSnapDenominator)
 DECLARE_ID(pianoRollNoteLengthMode)
 DECLARE_ID(pianoRollNoteLengthDenominator)
+DECLARE_ID(clipSnapMode)
+DECLARE_ID(clipSnapDenominator)
+DECLARE_ID(clipInsertLengthMode)
+DECLARE_ID(clipInsertLengthDenominator)
 DECLARE_ID(showLowerRange)
 DECLARE_ID(editNoteOutsideOfClipRange)
 DECLARE_ID(pluginPresetManagerUIStates)
@@ -131,6 +135,12 @@ DECLARE_ID(selectedModifier)
 } // namespace IDs
 
 //==============================================================================
+enum class ClipInsertLengthMode
+{
+    adaptive = 0,
+    fixed = 1
+};
+
 enum class LowerRangeView
 {
     none,
@@ -271,7 +281,7 @@ public:
     te::SelectionManager &m_selectionManager;
 
     juce::CachedValue<bool> m_showGlobalTrack, m_showMarkerTrack, m_showChordTrack, m_showArrangerTrack, m_showMasterTrack, m_drawWaveforms, m_showHeaders, m_showFooters, m_showMidiDevices, m_showWaveDevices, m_isAutoArmed, m_automationFollowsClip, m_followPlayhead, m_syncAutomation;
-    juce::CachedValue<int> m_lowerRangeView, m_followModeVal, m_pianoRollSnapMode, m_pianoRollSnapDenominator, m_pianoRollNoteLengthMode, m_pianoRollNoteLengthDenominator;
+    juce::CachedValue<int> m_lowerRangeView, m_followModeVal, m_pianoRollSnapMode, m_pianoRollSnapDenominator, m_pianoRollNoteLengthMode, m_pianoRollNoteLengthDenominator, m_clipSnapMode, m_clipSnapDenominator, m_clipInsertLengthMode, m_clipInsertLengthDenominator;
     juce::CachedValue<double> m_lastNoteLength, m_playHeadStartTime, m_timeLineZoomUnit;
     juce::CachedValue<int> m_midiEditorHeight, m_velocityEditorHeight, m_clipHeaderHeight;
     juce::CachedValue<int> m_snapType;

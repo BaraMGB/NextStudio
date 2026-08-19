@@ -273,8 +273,11 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
             {
                 if ((bool)m_track->state.getProperty(IDs::isMidiTrack))
                 {
-                    auto start = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beat)));
-                    auto end = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beat)) + m_editViewState.beatToTime(4));
+                    const auto clipLength = m_songEditor.getClipInsertLength();
+                    auto start = m_editViewState.m_edit.tempoSequence.toTime(
+                        tracktion::BeatPosition::fromBeats(beat));
+                    auto end = m_editViewState.m_edit.tempoSequence.toTime(
+                        tracktion::BeatPosition::fromBeats(beat + clipLength));
 
                     ClipEditing::Placement placement;
                     placement.mode = ClipEditing::PlacementMode::insertMidi;
@@ -442,7 +445,10 @@ float TrackLaneComponent::timeToX(tracktion::TimePosition time) { return TimeUti
 
 tracktion::TimePosition TrackLaneComponent::xtoTime(int x) { return TimeUtils::xToTime(x, m_editViewState, m_timeLineID, getWidth()); }
 
-tracktion::TimePosition TrackLaneComponent::getSnappedTime(tracktion::TimePosition time, bool downwards) { return TimeUtils::getSnappedTime(time, m_editViewState, m_timeLineID, getWidth(), downwards); }
+tracktion::TimePosition TrackLaneComponent::getSnappedTime(tracktion::TimePosition time, bool downwards)
+{
+    return m_songEditor.snapTime(time, downwards);
+}
 
 TrackLaneComponent::ClipHoverState TrackLaneComponent::getClipHoverState(juce::Point<float> point, bool allowFadeHandles)
 {

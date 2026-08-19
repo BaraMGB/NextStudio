@@ -27,6 +27,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ApplicationViewState.h"
 #include "ThumbNailManager.h"
 #include "ProjectLifecycle.h"
+#include "ClipPropertyEdit.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 
 namespace te = tracktion_engine;
@@ -299,6 +300,8 @@ double getNoteStartBeat(const te::MidiClip *midiClip, const te::MidiNote *n);
 double getNoteEndBeat(const te::MidiClip *midiClip, const te::MidiNote *n);
 void deleteSelectedClips(EditViewState &evs);
 
+juce::Array<ClipPropertyEdit> calculateSelectedClipMove(double timeDelta, EditViewState &evs);
+juce::Array<ClipPropertyEdit> calculateSelectedClipResize(bool fromLeftEdge, double delta, EditViewState &evs);
 void moveSelectedClips(bool copy, double timeDelta, int verticalOffset, EditViewState &evs);
 void duplicateSelectedClips(EditViewState &evs);
 

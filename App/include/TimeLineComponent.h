@@ -59,6 +59,7 @@ public:
     void setLastNoteLength(double length);
     double getLastNoteLength() const;
     double getNoteInsertLength() const;
+    double getClipInsertLength() const;
 
     // snapes relative to clip start
     double getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down = true) const;

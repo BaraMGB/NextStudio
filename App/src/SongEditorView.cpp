@@ -112,6 +112,29 @@ void SongEditorView::paintOverChildren(juce::Graphics &g)
         }
     }
 
+    for (const auto &edit : m_clipPropertyPreview)
+    {
+        if (edit.clip == nullptr || edit.clip->getClipTrack() == nullptr)
+            continue;
+
+        const auto x = timeToX(edit.position.getStart());
+        const auto y = static_cast<float>(getYForTrack(edit.clip->getClipTrack()));
+        const auto width = timeToX(edit.position.getEnd()) - x;
+        const auto height = static_cast<float>(m_editViewState.m_trackHeightManager->getTrackHeight(
+            edit.clip->getClipTrack(), false));
+        const juce::Rectangle<float> previewRect{x, y, width, height};
+        if (previewRect.isEmpty())
+            continue;
+
+        const auto x1 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getStart().inBeats();
+        const auto x2 = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), getWidth()).getEnd().inBeats();
+        const juce::Rectangle<float> trackRect{0.0f, y, static_cast<float>(getWidth()), height};
+        GUIHelpers::drawClip(g, *this, m_editViewState, previewRect, edit.clip,
+                             edit.clip->getClipTrack()->getColour().withAlpha(0.18f), trackRect, x1, x2);
+        g.setColour(juce::Colours::white.withAlpha(0.9f));
+        g.drawRect(previewRect, 2.0f);
+    }
+
     if (m_dragItemRect.visible)
     {
         if (m_dragItemRect.valid)
@@ -371,6 +394,12 @@ void SongEditorView::updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration
     repaint();
 }
 
+void SongEditorView::setClipPropertyPreview(const juce::Array<ClipPropertyEdit> &preview)
+{
+    m_clipPropertyPreview = preview;
+    repaint();
+}
+
 juce::Rectangle<float> SongEditorView::getAutomationRect(te::AutomatableParameter::Ptr ap)
 {
     int scrollY = -(m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()));
@@ -626,8 +655,10 @@ tracktion_engine::MidiClip::Ptr SongEditorView::createNewMidiClip(double beatPos
     if (auto at = dynamic_cast<te::AudioTrack *>(track.get()))
     {
 
-        auto start = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beatPos)));
-        auto end = tracktion::core::TimePosition::fromSeconds(juce::jmax(0.0, m_editViewState.beatToTime(beatPos)) + m_editViewState.beatToTime(4));
+        const auto startBeat = m_timeLine.getQuantisedBeat(beatPos, true);
+        const auto endBeat = startBeat + m_timeLine.getClipInsertLength();
+        auto start = m_editViewState.m_edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(startBeat));
+        auto end = m_editViewState.m_edit.tempoSequence.toTime(tracktion::BeatPosition::fromBeats(endBeat));
         tracktion::core::TimeRange newPos(start, end);
         ClipEditing::Placement placement;
         placement.mode = ClipEditing::PlacementMode::insertMidi;
@@ -908,7 +939,10 @@ tracktion::BeatPosition SongEditorView::getSnapedBeat(tracktion::BeatPosition be
     return ts.toBeats(snapTime);
 }
 
-tracktion::TimePosition SongEditorView::getSnappedTime(tracktion::TimePosition time, bool downwards) { return TimeUtils::getSnappedTime(time, m_editViewState, m_timeLine.getTimeLineID(), getWidth(), downwards); }
+tracktion::TimePosition SongEditorView::getSnappedTime(tracktion::TimePosition time, bool downwards)
+{
+    return m_timeLine.snapTime(time, downwards);
+}
 
 float SongEditorView::timeDurationToPixel(tracktion::TimeDuration duration)
 {

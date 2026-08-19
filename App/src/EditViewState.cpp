@@ -76,6 +76,10 @@ EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationVi
     m_pianoRollSnapDenominator.referTo(m_state, IDs::pianoRollSnapDenominator, um, 16);
     m_pianoRollNoteLengthMode.referTo(m_state, IDs::pianoRollNoteLengthMode, um, static_cast<int>(PianoRollNoteLengthMode::lastInserted));
     m_pianoRollNoteLengthDenominator.referTo(m_state, IDs::pianoRollNoteLengthDenominator, um, 16);
+    m_clipSnapMode.referTo(m_state, IDs::clipSnapMode, um, static_cast<int>(PianoRollSnapMode::adaptive));
+    m_clipSnapDenominator.referTo(m_state, IDs::clipSnapDenominator, um, 16);
+    m_clipInsertLengthMode.referTo(m_state, IDs::clipInsertLengthMode, um, static_cast<int>(ClipInsertLengthMode::fixed));
+    m_clipInsertLengthDenominator.referTo(m_state, IDs::clipInsertLengthDenominator, um, 1);
     m_editNotesOutsideClipRange.referTo(m_state, IDs::editNoteOutsideOfClipRange, um, false);
 }
 
