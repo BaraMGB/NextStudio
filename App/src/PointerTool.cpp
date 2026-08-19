@@ -210,10 +210,10 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
                 if (clip == nullptr)
                     continue;
 
-                // Resize deltas only affect the note whose edge is being dragged.
-                const bool isClickedNote = (note == viewport.getClickedNote());
-                const double leftDelta  = (isResize && isClickedNote) ? m_evs.timeToBeat(m_leftTimeDelta)  : 0.0;
-                const double rightDelta = (isResize && isClickedNote) ? m_evs.timeToBeat(m_rightTimeDelta) : 0.0;
+                // Keep the committed result consistent with the drag preview: resizing
+                // one edge applies the same delta to every selected note.
+                const double leftDelta  = isResize ? m_evs.timeToBeat(m_leftTimeDelta)  : 0.0;
+                const double rightDelta = isResize ? m_evs.timeToBeat(m_rightTimeDelta) : 0.0;
 
                 auto originalNoteStartTime = tempoSequence.toTime(note->getStartBeat());
                 auto newNoteStartTime = originalNoteStartTime + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta);

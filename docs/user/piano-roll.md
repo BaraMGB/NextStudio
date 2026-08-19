@@ -113,7 +113,7 @@ This keeps the pitch monophonic in the affected range.
 
 #### Resize
 
-Drag the left or right edge of a note. The cursor changes near resizable edges. Resizing does not change the remembered last-inserted length.
+Drag the left or right edge of a note. The cursor changes near resizable edges. If the dragged note is part of a multi-note selection, the same edge delta is applied to every selected note, matching the drag preview. Dragging a left edge changes each selected note's start and duration; dragging a right edge changes each duration while preserving its start. Resizing does not change the remembered last-inserted length.
 
 #### Insert by double-click
 

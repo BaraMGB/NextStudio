@@ -231,13 +231,13 @@ During the drag, `PointerTool` only computes deltas:
 
 - `m_draggedTimeDelta` — horizontal time delta for moving;
 - `m_draggedNoteDelta` — vertical pitch delta;
-- `m_leftTimeDelta` / `m_rightTimeDelta` — edge resize deltas.
+- `m_leftTimeDelta` / `m_rightTimeDelta` — edge resize deltas shared by every selected note.
 
-`MidiViewport::drawDraggedNotes()` renders a preview from these deltas without mutating the model. Guide notes audition pitch changes.
+`MidiViewport::drawDraggedNotes()` renders a preview from these deltas without mutating the model. Resizing either edge applies the same time delta to all selected notes in both the preview and the committed result. A left-edge resize changes each selected note's start and inversely changes its duration; a right-edge resize changes each duration while preserving its start. Guide notes audition pitch changes.
 
 `mouseUp` commits the operation in three phases:
 
-1. **Plan** — for every selected note, compute the destination start beat, length, and note number, and capture a full copy of the note state. Time conversion goes through `tempoSequence.toTime()` / `toBeats()` so tempo changes are respected. Resize deltas (`m_leftTimeDelta` / `m_rightTimeDelta`) only affect the note whose edge is being dragged; other selected notes keep their start and length. When `Ctrl` is held, the originals are kept (copy); otherwise they are removed.
+1. **Plan** — for every selected note, compute the destination start beat, length, and note number, and capture a full copy of the note state. Time conversion goes through `tempoSequence.toTime()` / `toBeats()` so tempo changes are respected. Resize deltas (`m_leftTimeDelta` / `m_rightTimeDelta`) are applied uniformly to every selected note, matching the multi-note drag preview. When `Ctrl` is held, the originals are kept (copy); otherwise they are removed.
 2. **Clear** — group the planned destinations by clip and pitch, then call `cleanUnderNoteRanges()` once per group.
 3. **Create** — rebuild each note from its captured state copy with the new pitch, start, and length, then select it. Rebuilding from the state copy preserves mute, colour, velocity, and any custom note properties.
 
