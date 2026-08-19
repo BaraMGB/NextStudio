@@ -73,7 +73,8 @@ Directly writing arbitrary properties is appropriate only where Tracktion or Nex
 - track heights and minimized state;
 - visibility of editor areas;
 - lower-range view and Piano Roll height;
-- snap settings;
+- independent arrangement and Piano Roll snap settings;
+- arrangement MIDI-clip and Piano Roll note insertion-length modes;
 - playhead follow mode;
 - timeline, keyboard, velocity-editor, footer, and clip-header dimensions;
 - last note length and velocity;
@@ -106,6 +107,8 @@ Short-lived interaction state belongs to components or tools. Examples include:
 - clicked/hovered MIDI note;
 - pending lasso state;
 - temporary text-editor contents;
+- provisional clip/note property edit plans;
+- the Piano Roll's cached note-under-pointer value;
 - asynchronous update flags;
 - current layout bounds;
 - cached clip pointers that can be regenerated.
@@ -175,6 +178,8 @@ Tracktion collections often expose raw pointers to objects owned by model contai
 
 The `NotePropertiesBar` selection provider therefore does not blindly call `SelectedMidiEvents::clipForEvent()` for a potentially stale selected pointer. It walks the current cached clips and includes a note only if that clip's sequence still contains the pointer. Deleting selected notes also clears selection before removal.
 
+`ClipPropertiesBar` queries the current typed clip selection on every refresh or application instead of treating its cached array as authoritative.
+
 General rule: when a notification may arrive after deletion, re-resolve objects from the current model rather than trusting a cache.
 
 ## Component callback styles
@@ -191,7 +196,7 @@ NextStudio uses several callback mechanisms:
 
 Choose the narrowest mechanism that matches ownership:
 
-- direct callback when the parent owns the child and the event has a clear semantic meaning;
+- direct callback when the parent owns the child and the event has a clear semantic meaning (for example, `MidiViewport::NoteUnderMouseHandler`, which emits only when the pitch row changes);
 - broadcaster when multiple observers or late binding are useful;
 - `ValueTree` listener when the model itself is the source of truth;
 - command manager when the action needs keyboard mapping or routing.

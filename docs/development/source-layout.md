@@ -66,6 +66,7 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 #### Arrangement and tracks
 
 - `EditComponent.*`
+- `ClipPropertiesBar.*` / `ClipPropertyEdit.h`
 - `SongEditorView.*`
 - `TrackListView.*`
 - `TrackHeadComponent.*`

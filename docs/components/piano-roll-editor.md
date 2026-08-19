@@ -178,7 +178,7 @@ enum class Tool { pointer, draw, range, eraser, knife, lasso, timestretch };
 Two paths create notes:
 
 1. **Draw tool** (`DrawTool`): `mouseDown` records the start pixel, note number, and minimum width from `TimeLineComponent::getNoteInsertLength()`. `mouseDrag` can extend the note. `mouseUp` converts start/end pixels to clip-relative beats, applies position snapping when enabled, enforces the independently selected minimum length, and calls `MidiViewport::addNewNote()`.
-2. **Pointer double-click** (`PointerTool::insertNoteAtPosition`): calls `MidiViewport::addNewNoteAt()`, which derives the note number and beat from the click position and uses the selected inserted-note length.
+2. **Pointer double-click** (`PointerTool::insertNoteAtPosition`): clears the previous note selection, calls `MidiViewport::addNewNoteAt()`, then exclusively selects the new note. The insertion derives note number and beat from the click position and uses the selected inserted-note length.
 
 `PianoRollNoteLength` isolates note-value conversion, mode resolution, fallback behavior, and draw minimum enforcement. The length mode is Adaptive, Last Inserted, or a fixed denominator (`1/1`–`1/128`). Adaptive length always uses the zoom-dependent best snap interval and does not depend on the selected position-snap mode.
 
@@ -294,6 +294,8 @@ Clearing all destinations first prevents one duplicate from erasing another when
 
 `VelocityEditor` draws one vertical stem and handle per note. `mouseDown` records the hovered note and, if it belongs to the current `SelectedMidiEvents`, all selected notes with their starting velocities. `mouseDrag` applies the same vertical delta to each note via `setVelocity()`, clamped to `0..127`, and updates `m_evs.m_lastVelocity`.
 
+`NotePropertiesBar` scrub previews are also forwarded to `VelocityEditor`. It resolves a note's displayed velocity from the provisional `MidiNotePropertyEdit` when present, so the velocity stem follows property-bar scrubbing before the model is committed. Clearing the preview returns rendering to `MidiNote::getVelocity()`, and direct commits explicitly repaint the lane.
+
 The exact properties bar clamps committed velocity to `1..127`, so velocity-zero behavior differs between the two paths.
 
 ### Exact properties
@@ -332,6 +334,12 @@ In the copy path, source notes are intentionally not excluded, so a destination 
 
 `SelectedMidiEvents::clipForEvent(note)` maps a selected note to its owning clip. Because Tracktion exposes raw pointers, the `NotePropertiesBar` selection provider re-resolves notes against the current clip sequences instead of trusting a possibly stale pointer.
 
+## Note-under-pointer status
+
+The footer note-name display is driven by `MidiViewport`, where mouse coordinates are already local to the note grid. The viewport stores the last mouse position and the last reported MIDI note. `NoteUnderMouseHandler` is called only when the pointer crosses a pitch boundary, not on every pixel of mouse movement.
+
+`refreshNoteUnderMouse()` recomputes the pitch after vertical scroll, vertical scale/view changes, or a resize while preserving the same change-only callback rule. `mouseExit()` reports `std::nullopt`, which clears the footer. Reported pitches are clamped to the MIDI range `0..127`. `PianoRollEditor` formats changed values with `juce::MidiMessage::getMidiNoteName()` and repaints only the footer region.
+
 ## Clip cache
 
 `MidiViewport` caches the track's MIDI clips in `m_cachedClips` with a validity flag:
@@ -365,7 +373,7 @@ View-only changes (scroll, zoom, tool selection, hover) do not create undo steps
 `PianoRollEditor` implements `te::ValueTreeAllEventListener` and `FlaggedAsyncUpdater`. Model notifications set named flags, and `handleAsyncUpdate()` consumes them with `compareAndReset()`:
 
 - NOTE property changes → note repaint, velocity repaint, properties refresh;
-- timeline property changes → keyboard layout, scrollbar update;
+- timeline property changes → keyboard layout, scrollbar update, and note-under-pointer recalculation;
 - clip child added/removed → clip-set update (`updateSelectedEvents`);
 - track state removed → `clearTrack()`;
 - theme changes → button colour update.

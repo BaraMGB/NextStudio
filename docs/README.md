@@ -12,6 +12,7 @@ This directory contains the user and developer documentation for NextStudio.
 
 - [Piano Roll Editor](components/piano-roll-editor.md) — component hierarchy, data model, coordinate conversion, rendering, hit testing, tool architecture, and note-editing operations.
 - [NotePropertiesBar](components/note-properties-bar.md) — behavior, input formats, validation, selection handling, undo, and Piano Roll integration.
+- [ClipPropertiesBar](components/clip-properties-bar.md) — arrangement clip fields, preview/commit flow, snapping, insertion length, and selection integration.
 
 ## Architecture
 
@@ -49,6 +50,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 | Persistent application settings | `App/include/ApplicationViewState.h` |
 | Edit-local UI state | `App/include/EditViewState.h`, `App/src/EditViewState.cpp` |
 | Arrangement editor | `App/include/EditComponent.h`, `App/src/EditComponent.cpp` |
+| Arrangement clip properties | `App/include/ClipPropertiesBar.h`, `App/src/ClipPropertiesBar.cpp` |
 | Lower editor area | `App/include/LowerRangeComponent.h`, `App/src/LowerRangeComponent.cpp` |
 | Piano Roll | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp`, `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
 | MIDI note properties | `App/include/NotePropertiesBar.h`, `App/src/NotePropertiesBar.cpp` |

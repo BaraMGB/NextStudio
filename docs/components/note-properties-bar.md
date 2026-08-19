@@ -187,7 +187,7 @@ A wheel event on a read-only enabled field applies one positive or negative step
 
 A read-only field begins scrubbing after four vertical pixels. Every four pixels correspond to one step. Upward drag increases and downward drag decreases.
 
-Once active, unbounded mouse movement is enabled so screen edges do not stop the gesture. Dragging only updates an in-memory edit plan, the displayed field values, and translucent note previews in `MidiViewport`; it does not mutate Tracktion note state or open an undo transaction. Releasing the mouse commits the final plan as one transaction. Returning to the original value before release produces no model or undo change.
+Once active, unbounded mouse movement is enabled so screen edges do not stop the gesture. Dragging only updates an in-memory edit plan and the displayed field values; it does not mutate Tracktion note state or open an undo transaction. `MidiViewport` renders timing/pitch plans as translucent note previews, while `VelocityEditor` reads provisional velocity values from the same plan and moves its stems/handles immediately. Releasing the mouse commits the final plan as one transaction. Returning to the original value before release produces no model or undo change.
 
 ## Scrub step sizes
 
@@ -354,7 +354,7 @@ Start, End, Duration, and Pitch can create same-pitch timing conflicts. Their co
 3. resolve conflicts between planned destinations in selection order;
 4. recreate and select the resulting notes from full state copies.
 
-This preserves custom note properties while ensuring committed notes do not overlap. Velocity cannot create timing conflicts and is applied directly with `setVelocity()`, clamped to `1..127`.
+This preserves custom note properties while ensuring committed notes do not overlap. Velocity cannot create timing conflicts and is applied directly with `setVelocity()`, clamped to `1..127`. `PianoRollEditor` forwards velocity preview plans to `VelocityEditor` and repaints the lane after commit so both editors remain visually synchronized.
 
 ## Undo transactions
 

@@ -86,6 +86,13 @@ The header contains transport and global project controls, including playback, r
 
 The arrangement editor shows tracks, clips, timeline, playhead, automation controls, and editing tools. Track headers are on the left and lanes on the right.
 
+A clip-properties row above the timeline displays the number of selected clips and exact `START`, `END`, and `DURATION` values. Mixed values appear as `—`. Double-click a field to type a bars/beats/ticks position, note fraction, or tick duration. Mouse-wheel stepping and vertical drag scrubbing use the current arrangement snap interval; drag scrubbing previews the resulting clip positions before committing on release.
+
+The same row provides independent arrangement controls:
+
+- **SNAP** — Off, Adaptive, or a fixed value from `1/1` through `1/128`;
+- **INSERT LENGTH** — Adaptive or a fixed value used when creating MIDI clips.
+
 Track controls above the list can add:
 
 - audio tracks;
@@ -200,7 +207,7 @@ NextStudio disables wave inputs by default during edit initialization and enable
 4. Record MIDI or create a MIDI clip.
 5. Select the MIDI clip and open **MIDI Editor**.
 
-See [Piano Roll](piano-roll.md) for note editing.
+See [Piano Roll](piano-roll.md) for note editing and [ClipPropertiesBar](../components/clip-properties-bar.md) for exact arrangement clip editing.
 
 ### Plug-in chain
 

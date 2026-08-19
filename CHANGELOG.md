@@ -5,6 +5,19 @@ All notable changes to NextStudio are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Arrangement clip properties bar** — The Song Editor now provides exact Start, End, and Duration fields for selected clips, including mixed-value display, text entry, wheel stepping, drag scrubbing with a non-destructive preview, and multi-clip edits that preserve selection-relative offsets.
+- **Independent arrangement snapping and insertion length** — Arrangement snapping can be Off, Adaptive, or fixed from 1/1 through 1/128. Newly created MIDI clips use a separately configurable Adaptive or fixed insertion length.
+
+### Fixed
+
+- **Piano Roll velocity synchronization** — Velocity changes previewed or committed through the note-properties bar now immediately update the velocity lane.
+- **Double-click note selection** — A note inserted with the pointer tool by double-click is now selected and replaces the previous MIDI-note selection.
+- **Piano Roll pointer pitch display** — The footer now derives pitch from note-grid-local coordinates, updates after vertical view changes, clears when the pointer leaves the grid, and limits values to MIDI range 0–127. Updates are emitted only when the pointer crosses a note boundary.
+
 ## [v0.03-alpha] - 2026-08-13
 
 ### Added

@@ -96,6 +96,7 @@ MainComponent
 
 - the song timeline and playhead;
 - track headers and track lanes;
+- `ClipPropertiesBar` for exact multi-clip timing, arrangement snapping, and MIDI-clip insertion length;
 - arrangement tools and automation controls;
 - horizontal and vertical scrollbars;
 - the footer and snap description;

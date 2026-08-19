@@ -109,7 +109,7 @@ Drag the left or right edge of a note. The cursor changes near resizable edges. 
 
 #### Insert by double-click
 
-Double-click empty grid space over a MIDI clip to insert a note using the length selected by **INSERT LENGHT**.
+Double-click empty grid space over a MIDI clip to insert a note using the length selected by **INSERT LENGHT**. The previous MIDI-note selection is cleared and the inserted note becomes selected.
 
 #### Overlap handling
 
@@ -221,6 +221,8 @@ The velocity lane draws one vertical stem and handle for each visible note.
 - values are clamped to `0..127` in the velocity-lane drag path;
 - the reference value updates the remembered last velocity.
 
+Dragging the Velocity field in the exact properties bar previews the changed stems and handles immediately in the velocity lane, before the values are committed on release.
+
 The exact properties bar uses a `1..127` clamp for committed property values, so velocity zero behavior differs between these two editing paths in the current implementation.
 
 ## Navigation and zoom
@@ -242,6 +244,10 @@ Horizontal zoom is limited to a broad safe range to prevent invalid or unusably 
 Dragging from the keyboard area into its surrounding component can change vertical scale and scroll. The calculation keeps the initially clicked pitch anchored while clamping visible pitch count and MIDI range.
 
 The Piano Roll's vertical scroll and scale are stored per active-track timeline ID.
+
+## Note name under the pointer
+
+The footer displays the pitch row currently under the pointer while the pointer is inside the note grid. It updates when the pointer crosses into another pitch row and clears when the pointer leaves the grid. Vertical scrolling, zooming, and layout changes recalculate the value even when the pointer itself has not moved. Displayed values are limited to valid MIDI notes `0..127`.
 
 ## Keyboard shortcuts
 
