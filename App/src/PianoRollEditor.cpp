@@ -265,15 +265,6 @@ juce::Rectangle<int> PianoRollEditor::getPlayHeadRect()
     area.removeFromBottom(getScrollbarThickness());
     return area;
 }
-void PianoRollEditor::mouseMove(const juce::MouseEvent &event)
-{
-    if (m_pianoRollViewPort)
-    {
-        m_NoteDescUnderCursor = juce::MidiMessage::getMidiNoteName((int)m_pianoRollViewPort->getNoteNumber(event.y), true, true, 3);
-        repaint();
-    }
-}
-
 bool PianoRollEditor::keyPressed(const juce::KeyPress &key)
 {
     if (m_pianoRollViewPort != nullptr && m_pianoRollViewPort->hasPendingPaste())
@@ -534,6 +525,13 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
     auto sanitizedID = "ID" + track->itemID.toString().removeCharacters("{}-");
     m_timeLine.setTimeLineID(sanitizedID);
     m_pianoRollViewPort = std::make_unique<MidiViewport>(m_editViewState, track, m_timeLine);
+    m_pianoRollViewPort->setNoteUnderMouseHandler([this](std::optional<int> note)
+    {
+        m_NoteDescUnderCursor = note.has_value()
+                                    ? juce::MidiMessage::getMidiNoteName(*note, true, true, 3)
+                                    : juce::String{};
+        repaint(getFooterRect());
+    });
     addAndMakeVisible(*m_pianoRollViewPort);
     m_pianoRollViewPort->addChangeListener(this);
     m_horizontalScrollBar.setVisible(true);
@@ -556,6 +554,8 @@ void PianoRollEditor::clearTrack()
     m_timelineOverlay.reset(nullptr);
     m_pianoRollViewPort->removeChangeListener(this);
     m_pianoRollViewPort.reset(nullptr);
+    m_NoteDescUnderCursor.clear();
+    repaint(getFooterRect());
     m_velocityEditor.reset(nullptr);
     m_keyboard.reset(nullptr);
     m_horizontalScrollBar.setVisible(false);
@@ -612,6 +612,7 @@ void PianoRollEditor::handleAsyncUpdate()
 
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateNoteEditor))
     {
+        m_pianoRollViewPort->refreshNoteUnderMouse();
         m_pianoRollViewPort->repaint();
         m_timeLine.repaint();
         repaint(getFooterRect());

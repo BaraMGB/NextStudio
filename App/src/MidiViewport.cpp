@@ -156,6 +156,7 @@ void MidiViewport::resized()
 {
     auto area = getLocalBounds();
     m_lassoTool.setBounds(area);
+    updateNoteUnderMouse();
 }
 
 void MidiViewport::drawNote(juce::Graphics &g, tracktion_engine::MidiClip *const &midiClip, tracktion_engine::MidiNote *n)
@@ -352,6 +353,10 @@ void MidiViewport::drawClipRange(juce::Graphics &g, tracktion_engine::MidiClip *
 
 void MidiViewport::mouseMove(const juce::MouseEvent &e)
 {
+    m_lastMousePosition = e.getPosition();
+    m_mouseInside = true;
+    updateNoteUnderMouse();
+
     if (m_currentTool)
         m_currentTool->mouseMove(e, *this);
     else
@@ -423,6 +428,9 @@ void MidiViewport::cleanUpFlags()
 
 void MidiViewport::mouseExit(const juce::MouseEvent &)
 {
+    m_mouseInside = false;
+    updateNoteUnderMouse();
+
     // Clear hover state when mouse leaves the component
     if (m_hoveredNote != nullptr)
     {
@@ -946,6 +954,32 @@ void MidiViewport::scrollPianoRoll(float delta)
     auto startKey = m_evs.getViewYScroll(m_timeLine.getTimeLineID());
     auto keyWidth = m_evs.getViewYScale(m_timeLine.getTimeLineID());
     m_evs.setYScroll(m_timeLine.getTimeLineID(), juce::jlimit(0.f, 127.f - (float)(getHeight() / keyWidth), (float)startKey + delta));
+    refreshNoteUnderMouse();
+}
+
+void MidiViewport::setNoteUnderMouseHandler(NoteUnderMouseHandler handler)
+{
+    m_noteUnderMouseHandler = std::move(handler);
+    refreshNoteUnderMouse();
+}
+
+void MidiViewport::refreshNoteUnderMouse()
+{
+    updateNoteUnderMouse();
+}
+
+void MidiViewport::updateNoteUnderMouse()
+{
+    std::optional<int> note;
+    if (m_mouseInside && getLocalBounds().contains(m_lastMousePosition))
+        note = getNoteNumber(m_lastMousePosition.y);
+
+    if (note == m_noteUnderMouse)
+        return;
+
+    m_noteUnderMouse = note;
+    if (m_noteUnderMouseHandler)
+        m_noteUnderMouseHandler(note);
 }
 
 void MidiViewport::drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour)
@@ -957,8 +991,7 @@ void MidiViewport::drawBarsAndBeatLines(juce::Graphics &g, juce::Colour colour)
 
 int MidiViewport::getNoteNumber(int y)
 {
-    auto noteNumb = (int)getKeyForY(y);
-    return noteNumb;
+    return juce::jlimit(0, 127, static_cast<int>(getKeyForY(y)));
 }
 
 tracktion::MidiClip *MidiViewport::getClipAt(int x)

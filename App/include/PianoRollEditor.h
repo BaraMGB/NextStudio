@@ -52,7 +52,6 @@ public:
     void paint(juce::Graphics &g) override;
     void paintOverChildren(juce::Graphics &g) override;
     void resized() override;
-    void mouseMove(const juce::MouseEvent &event) override;
     bool keyPressed(const juce::KeyPress &key) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
 

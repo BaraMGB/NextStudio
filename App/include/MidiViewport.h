@@ -30,6 +30,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 #include "Utilities.h"
 
+#include <functional>
+#include <optional>
+
 namespace te = tracktion_engine;
 
 class ToolStrategy;
@@ -49,6 +52,7 @@ public:
     };
 
     using MidiClipboard = juce::Array<MidiClipboardNote>;
+    using NoteUnderMouseHandler = std::function<void(std::optional<int>)>;
 
     MidiViewport(EditViewState &, te::Track::Ptr, TimeLineComponent &timeLine);
     ~MidiViewport() override;
@@ -65,6 +69,9 @@ public:
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
     void timerCallback() override;
+
+    void setNoteUnderMouseHandler(NoteUnderMouseHandler);
+    void refreshNoteUnderMouse();
 
     te::Track::Ptr getTrack();
     TimeLineComponent *getTimeLine() { return &m_timeLine; }
@@ -153,6 +160,7 @@ private:
 
     void snapToGrid(te::MidiNote *note, const te::MidiClip *clip) const;
     void scrollPianoRoll(float delta);
+    void updateNoteUnderMouse();
 
     void updateLassoSelection();
     juce::Range<double> getLassoVerticalKeyRange();
@@ -181,6 +189,10 @@ private:
     std::unique_ptr<te::SelectedMidiEvents> m_selectedEvents;
     bool m_snap{false};
     te::MidiNote *m_hoveredNote{nullptr};
+    NoteUnderMouseHandler m_noteUnderMouseHandler;
+    std::optional<int> m_noteUnderMouse;
+    juce::Point<int> m_lastMousePosition;
+    bool m_mouseInside{false};
 
     MidiPendingPaste::State m_pendingPasteState;
     MidiClipboard m_pendingPasteNotes;
