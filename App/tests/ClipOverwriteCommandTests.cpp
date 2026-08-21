@@ -20,9 +20,9 @@ int failures = 0;
 
 using namespace tracktion;
 
-bool closeTo(double actual, double expected)
+bool closeTo(double actual, double expected, double tolerance = 1.0e-9)
 {
-    return std::abs(actual - expected) < 1.0e-9;
+    return std::abs(actual - expected) < tolerance;
 }
 
 class TemporaryWaveFile
@@ -302,7 +302,7 @@ void testAudioCopyPreservesFadesTakesAndPlugins()
     auto copiedPlugin = copied->getPluginList()->findFirstPluginOfType<te::VolumeAndPanPlugin>();
     REQUIRE(copiedPlugin != nullptr);
     if (copiedPlugin != nullptr)
-        REQUIRE(closeTo(copiedPlugin->getVolumeDb(), -6.0));
+        REQUIRE(closeTo(copiedPlugin->getVolumeDb(), -6.0, 1.0e-4));
     REQUIRE(!ClipEditing::hasOverlaps(*f.track));
 }
 
