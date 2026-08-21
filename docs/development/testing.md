@@ -301,7 +301,7 @@ Manual validation should supplement rather than replace extractable unit tests.
 
 ## CI
 
-GitHub Actions builds and runs CTest on Linux, Windows, and macOS. Linux additionally runs the complete debug-shell smoke suite under Xvfb; hosted Linux runners have no audio device/clock, so CI disables only the transport clock-advance assertion with `NEXTSTUDIO_REQUIRE_TRANSPORT_ADVANCE=0` while retaining play/stop transition checks. Windows runs redirected-stdin startup/repeated-command/EOF/quit smoke tests, and macOS runs the transport-client protocol regression. Floating-point assertions must use a tolerance appropriate to the production value type. Packaging follows successful tests. Local validation should still use the repository build command, CTest, and the relevant smoke mode before pushing logic changes.
+GitHub Actions builds and runs CTest on Linux, Windows, and macOS. Linux additionally runs the complete debug-shell smoke suite under Xvfb; hosted Linux runners have no audio device/clock and immediately stop playback, so CI disables the sustained-playing and clock-advance assertions with `NEXTSTUDIO_REQUIRE_AUDIO_CLOCK=0` while retaining command-acknowledgement and final stopped-state checks. Windows runs redirected-stdin startup/repeated-command/EOF/quit smoke tests, and macOS runs the transport-client protocol regression. Floating-point assertions must use a tolerance appropriate to the production value type. Packaging follows successful tests. Local validation should still use the repository build command, CTest, and the relevant smoke mode before pushing logic changes.
 
 ## Related documents
 

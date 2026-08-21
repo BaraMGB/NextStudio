@@ -125,7 +125,7 @@ jobs:
         timeout-minutes: 5
         run: |
           xvfb-run -a env NEXTSTUDIO_DEBUG_BINARY="$PWD/build/App/NextStudio_artefacts/Release/NextStudio" \
-            NEXTSTUDIO_REQUIRE_TRANSPORT_ADVANCE=0 \
+            NEXTSTUDIO_REQUIRE_AUDIO_CLOCK=0 \
             node tools/debug-shell-client.js smoke-all
 
       - name: Run debug-shell stdin smoke test (Windows)

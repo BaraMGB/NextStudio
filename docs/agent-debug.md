@@ -371,7 +371,7 @@ node tools/debug-shell-client.js smoke-all
 
 The smoke tests are intentionally assertive.
 
-- `smoke-transport` validates readiness, playback transitions, forward transport movement, PNG structure and dimensions, and clean shutdown; `NEXTSTUDIO_REQUIRE_TRANSPORT_ADVANCE=0` disables only the clock-advance assertion on hosts without an audio clock
+- `smoke-transport` validates readiness, playback transitions, forward transport movement, PNG structure and dimensions, and clean shutdown; `NEXTSTUDIO_REQUIRE_AUDIO_CLOCK=0` disables the sustained-playing and clock-advance assertions on hosts without an audio clock, while command acknowledgements and the stopped state remain required
 - `smoke-errors` validates invalid screenshot arguments, unknown-command handling, and repeated identical `transport-state` responses
 - `smoke-state` validates `state-dump` output and copies the dump to a persistent location before session teardown
 - `smoke-basic` validates startup, ten repeated `ping` commands, `quit`, and process exit; CI runs it on Windows
@@ -698,7 +698,7 @@ Focused C++ tests cover command parsing, JSON response round-trips and malformed
 CI behavior:
 
 - all platforms build and run CTest
-- Linux runs `smoke-all` under Xvfb; because hosted runners expose no audio device/clock, CI sets `NEXTSTUDIO_REQUIRE_TRANSPORT_ADVANCE=0` while still checking play/stop state transitions and all other assertions
+- Linux runs `smoke-all` under Xvfb; because hosted runners expose no audio device/clock and immediately stop playback, CI sets `NEXTSTUDIO_REQUIRE_AUDIO_CLOCK=0` while still checking play/stop acknowledgements, the final stopped state, and all other assertions
 - Windows runs `smoke-basic` and `smoke-eof`, including startup, repeated redirected-pipe commands, EOF, `quit`, and clean process exit
 - macOS runs the client protocol regression without launching the GUI
 

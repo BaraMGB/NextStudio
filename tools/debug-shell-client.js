@@ -431,8 +431,8 @@ async function runTransportSmokeTest(options = {}) {
   const client = new NextStudioDebugShellClient(options);
   const screenshotCopyPath = path.resolve(options.screenshotCopyPath || '/tmp/nextstudio-transport-smoke.png');
   const minPositionDeltaSeconds = options.minPositionDeltaSeconds ?? 0.25;
-  const requirePositionAdvance = options.requirePositionAdvance
-    ?? process.env.NEXTSTUDIO_REQUIRE_TRANSPORT_ADVANCE !== '0';
+  const requireAudioClock = options.requireAudioClock
+    ?? process.env.NEXTSTUDIO_REQUIRE_AUDIO_CLOCK !== '0';
 
   try {
     const readyLine = await client.start(options.startTimeoutMs || 30000);
@@ -474,7 +474,7 @@ async function runTransportSmokeTest(options = {}) {
       throw new Error('transport-state before play unexpectedly reported playing=true');
     if (!playAcknowledged)
       throw new Error('play response did not acknowledge playing=true');
-    if (!duringPlaying)
+    if (requireAudioClock && !duringPlaying)
       throw new Error('transport-state during play did not report playing=true');
     if (stopAcknowledged)
       throw new Error('stop response unexpectedly reported playing=true');
@@ -487,7 +487,7 @@ async function runTransportSmokeTest(options = {}) {
     const duringPosition = requireNumberField(during, 'positionSeconds', 'transport-state during play');
     const afterPosition = requireNumberField(after, 'positionSeconds', 'transport-state after stop');
 
-    if (requirePositionAdvance && duringPosition <= beforePosition + minPositionDeltaSeconds)
+    if (requireAudioClock && duringPosition <= beforePosition + minPositionDeltaSeconds)
       throw new Error(`transport position did not advance enough during playback: before=${beforePosition}, during=${duringPosition}, minDelta=${minPositionDeltaSeconds}`);
 
     const screenshotPng = readPngMetadata(screenshotCopyPath, 'copied screenshot');
@@ -515,7 +515,7 @@ async function runTransportSmokeTest(options = {}) {
         duringPosition,
         afterPosition,
         minPositionDeltaSeconds,
-        positionAdvanceRequired: requirePositionAdvance,
+        audioClockRequired: requireAudioClock,
         screenshotCopied: true,
         screenshotPng,
         quitAcknowledged,
