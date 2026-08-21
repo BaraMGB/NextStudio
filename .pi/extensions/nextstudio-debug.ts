@@ -13,7 +13,9 @@ type LineEntry = {
 
 type ParsedResponse = {
 	raw: string;
-	status: string;
+	status: "ok" | "error";
+	code: string;
+	message?: string;
 	fields: Record<string, string>;
 };
 
@@ -142,65 +144,28 @@ async function waitForMatchingSingleInstanceRejectionMarker(requestId: string, s
 	return null;
 }
 
-function tokenizeResponseLine(line: string) {
-	const tokens: string[] = [];
-	const input = line.trim();
-	let current = "";
-	let inQuotes = false;
+function parseResponseLine(line: string): ParsedResponse {
+	const parsed = JSON.parse(line) as Partial<ParsedResponse>;
+	if (parsed == null || typeof parsed !== "object" || (parsed.status !== "ok" && parsed.status !== "error"))
+		throw new Error("Invalid debug-shell JSON response");
 
-	for (let i = 0; i < input.length; ++i) {
-		const ch = input[i];
-
-		if (inQuotes && ch === "\\" && i + 1 < input.length) {
-			current += ch;
-			current += input[++i];
-			continue;
-		}
-
-		if (ch === '"') {
-			inQuotes = !inQuotes;
-			current += ch;
-			continue;
-		}
-
-		if (ch === " " && !inQuotes) {
-			if (current.length > 0) {
-				tokens.push(current);
-				current = "";
-			}
-			continue;
-		}
-
-		current += ch;
-	}
-
-	if (current.length > 0)
-		tokens.push(current);
-
-	return tokens;
+	return {
+		raw: line,
+		status: parsed.status,
+		code: typeof parsed.code === "string" ? parsed.code : "",
+		message: typeof parsed.message === "string" ? parsed.message : undefined,
+		fields: parsed.fields != null && typeof parsed.fields === "object" ? parsed.fields : {},
+	};
 }
 
-function parseResponseLine(line: string): ParsedResponse {
-	const tokens = tokenizeResponseLine(line);
-	const result: ParsedResponse = {
-		raw: line,
-		status: tokens.shift() || "",
-		fields: {},
-	};
-
-	for (const token of tokens) {
-		const eq = token.indexOf("=");
-		if (eq < 0)
-			continue;
-
-		const key = token.slice(0, eq);
-		let value = token.slice(eq + 1);
-		if (value.startsWith('"') && value.endsWith('"'))
-			value = value.slice(1, -1).replace(/\\"/g, '"');
-		result.fields[key] = value;
+function isResponseLine(line: string) {
+	try {
+		const parsed = parseResponseLine(line);
+		return parsed.status === "ok" || parsed.status === "error";
 	}
-
-	return result;
+	catch {
+		return false;
+	}
 }
 
 function createLineCollector(session: DebugSession, source: "stdout" | "stderr") {
@@ -365,6 +330,16 @@ function validateCommandLine(command: string) {
 export default function (pi) {
 	const sessions = new Map<string, DebugSession>();
 
+	pi.on("session_shutdown", () => {
+		for (const session of sessions.values()) {
+			session.closing = true;
+			rejectAllWaiters(session, new Error("NextStudio debug extension session is shutting down"));
+			if (!session.exited)
+				session.process.kill("SIGTERM");
+		}
+		sessions.clear();
+	});
+
 	pi.registerTool({
 		name: "nextstudio_debug_start",
 		label: "NextStudio Debug Start",
@@ -424,7 +399,12 @@ export default function (pi) {
 			});
 
 			try {
-				const readyLine = await waitForLine(session, (line) => line.startsWith("ok code=ready"), timeoutMs);
+				const readyLine = await waitForLine(session, (line) => {
+					if (!isResponseLine(line))
+						return false;
+					const parsed = parseResponseLine(line);
+					return parsed.status === "ok" && parsed.code === "ready";
+				}, timeoutMs);
 				if (readyLine === null) {
 					sessions.delete(session.id);
 					const rejectionMarker = await waitForMatchingSingleInstanceRejectionMarker(launchRequestId, startTimeMs);
@@ -513,7 +493,7 @@ export default function (pi) {
 				try {
 					const responseLine = await waitForLine(
 						session,
-						(line) => line.startsWith("ok ") || line.startsWith("error "),
+						isResponseLine,
 						timeoutMs,
 						startLineId,
 					);
@@ -525,8 +505,9 @@ export default function (pi) {
 					return {
 						content: [{ type: "text", text: responseLine ?? `No shell response received for command: ${commandLine}` }],
 						details: {
-							ok: responseLine !== null && responseLine.startsWith("ok "),
-							code: responseLine === null ? "session-exited" : undefined,
+							ok: parsed?.status === "ok",
+							code: responseLine === null ? "session-exited" : parsed?.code,
+							message: parsed?.message,
 							command: commandLine,
 							responseLine,
 							parsed,

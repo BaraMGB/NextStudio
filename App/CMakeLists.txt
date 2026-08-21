@@ -71,6 +71,118 @@ if(BUILD_TESTING)
     add_test(NAME PositionDisplayHelpers
             COMMAND NextStudioTests)
 
+    juce_add_console_app(DebugProtocolTests
+            PRODUCT_NAME "DebugProtocolTests")
+    juce_generate_juce_header(DebugProtocolTests)
+
+    target_sources(DebugProtocolTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/DebugProtocol.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/DebugProtocolTests.cpp)
+
+    target_include_directories(DebugProtocolTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(DebugProtocolTests PRIVATE
+            juce::juce_core)
+
+    target_compile_definitions(DebugProtocolTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME DebugProtocol
+            COMMAND DebugProtocolTests)
+
+    juce_add_console_app(DebugSnapshotWriterTests
+            PRODUCT_NAME "DebugSnapshotWriterTests")
+    juce_generate_juce_header(DebugSnapshotWriterTests)
+
+    target_sources(DebugSnapshotWriterTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/DebugSnapshotWriter.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/DebugSnapshotWriterTests.cpp)
+
+    target_include_directories(DebugSnapshotWriterTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(DebugSnapshotWriterTests PRIVATE
+            juce::juce_graphics)
+
+    target_compile_definitions(DebugSnapshotWriterTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME DebugSnapshotWriter
+            COMMAND DebugSnapshotWriterTests)
+
+    juce_add_console_app(DebugStateFilterTests
+            PRODUCT_NAME "DebugStateFilterTests")
+    juce_generate_juce_header(DebugStateFilterTests)
+
+    target_sources(DebugStateFilterTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/DebugStateFilter.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/DebugStateFilterTests.cpp)
+
+    target_include_directories(DebugStateFilterTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(DebugStateFilterTests PRIVATE
+            juce::juce_core)
+
+    target_compile_definitions(DebugStateFilterTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME DebugStateFilter
+            COMMAND DebugStateFilterTests)
+
+    juce_add_console_app(DebugSettingsIsolationTests
+            PRODUCT_NAME "DebugSettingsIsolationTests")
+    juce_generate_juce_header(DebugSettingsIsolationTests)
+
+    target_sources(DebugSettingsIsolationTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Logging.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/DebugSettingsIsolationTests.cpp)
+
+    target_include_directories(DebugSettingsIsolationTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(DebugSettingsIsolationTests PRIVATE
+            juce::juce_graphics
+            juce::juce_data_structures)
+
+    target_compile_definitions(DebugSettingsIsolationTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME DebugSettingsIsolation
+            COMMAND DebugSettingsIsolationTests)
+
+    juce_add_console_app(DebugAppControllerTests
+            PRODUCT_NAME "DebugAppControllerTests")
+    juce_generate_juce_header(DebugAppControllerTests)
+
+    target_sources(DebugAppControllerTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/DebugAppController.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/DebugProtocol.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Logging.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/DebugAppControllerTests.cpp)
+
+    target_include_directories(DebugAppControllerTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(DebugAppControllerTests PRIVATE
+            tracktion::tracktion_engine
+            tracktion::tracktion_core
+            juce::juce_gui_basics)
+
+    target_compile_definitions(DebugAppControllerTests PRIVATE
+            TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME DebugAppController
+            COMMAND DebugAppControllerTests)
+
     juce_add_console_app(ProjectLifecycleTests
             PRODUCT_NAME "ProjectLifecycleTests")
     juce_generate_juce_header(ProjectLifecycleTests)

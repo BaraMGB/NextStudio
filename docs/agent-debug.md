@@ -58,7 +58,7 @@ Stdout and stderr are collected line-by-line.
 - stdout lines are stored as-is
 - stderr lines are stored with the prefix `[stderr] `
 
-The extension keeps a rolling buffer of recent lines for diagnostics.
+The extension keeps a rolling buffer of recent lines for diagnostics. On pi `session_shutdown`, it rejects pending waiters, terminates every tracked child process, and clears the session map; cleanup is idempotent across reload, session replacement, and quit.
 
 Line ids matter because response matching should be based on "the next matching response after command send", not on response text uniqueness. This avoids mis-correlating repeated `ok ...` lines in longer or noisier sessions.
 
@@ -87,8 +87,9 @@ Behavior:
 
 1. spawn `NextStudio --debug-shell`
 2. begin collecting stdout/stderr lines
-3. wait for a line starting with:
-   - `ok code=ready`
+3. wait for a JSON response object with:
+   - `status == "ok"`
+   - `code == "ready"`
 4. if the process exits before readiness, return a startup failure and do not keep the dead session registered
 5. if another NextStudio instance is already running, surface this specifically as a single-instance conflict
 6. otherwise return session metadata and recent output
@@ -124,7 +125,7 @@ Typical success shape:
 {
   "ok": true,
   "sessionId": "19a26866-edb6-473d-801f-976c4559837f",
-  "readyLine": "ok code=ready message=\"debug shell started\""
+  "readyLine": "{\"status\":\"ok\",\"code\":\"ready\",\"message\":\"debug shell started\",\"fields\":{}}"
 }
 ```
 
@@ -146,9 +147,9 @@ Behavior:
 1. locate the running session by `sessionId`
 2. reject empty/whitespace-only or multi-line command strings
 3. write one validated command line plus `"\n"` to the process stdin
-4. wait for the next line that starts with either:
-   - `ok `
-   - `error `
+4. wait for the next valid JSON response object whose `status` is either:
+   - `ok`
+   - `error`
 5. return the matching response plus all newly collected lines since the command was sent
 
 A single tool call must map to exactly one shell command line. Embedded `\n` or `\r` are rejected explicitly.
@@ -178,16 +179,16 @@ Typical success shape:
 {
   "ok": true,
   "command": "ping",
-  "responseLine": "ok code=ok app=NextStudio version=0.04 mode=debug-shell",
+  "responseLine": "{\"status\":\"ok\",\"code\":\"ok\",\"fields\":{\"app\":\"NextStudio\",\"version\":\"0.04\",\"mode\":\"debug-shell\"}}",
   "newLines": [
-    "ok code=ok app=NextStudio version=0.04 mode=debug-shell"
+    "{\"status\":\"ok\",\"code\":\"ok\",\"fields\":{\"app\":\"NextStudio\",\"version\":\"0.04\",\"mode\":\"debug-shell\"}}"
   ]
 }
 ```
 
 `responseLine` is the primary shell result.
 
-`parsed` contains a tokenised view of the shell response, including quoted-field handling.
+`parsed` contains the decoded JSON response object.
 
 `newLines` contains all newly observed shell and log lines since the command was issued, including stderr-prefixed lines.
 
@@ -269,6 +270,11 @@ It simply wraps the existing NextStudio debug shell and forwards command lines i
 - `play`
 - `stop`
 - `screenshot`
+- `ensure-track`
+- `select-track`
+- `ensure-midi-clip`
+- `ensure-midi-note`
+- `set-plugin-parameter`
 - `quit`
 
 This separation is important:
@@ -319,16 +325,20 @@ The client exports:
 - `runTransportSmokeTest(...)`
 - `runCommandErrorSmokeTest(...)`
 - `runStateDumpSmokeTest(...)`
+- `runBasicShellSmokeTest(...)`
+- `runEofSmokeTest(...)`
+- `runSettingsIsolationSmokeTest(...)`
+- `runEditingSmokeTest(...)`
 - `runClientProtocolRegressionTest(...)`
 - `runAllSmokeTests(...)`
 
 Important client capabilities:
 
-- `start()` waits for `ok code=ready` and rejects cleanly if process startup fails
+- `start()` waits for a JSON response with `status="ok"` and `code="ready"` and rejects cleanly if process startup fails
 - `start()` should report an explicit single-instance conflict if another NextStudio process already holds the JUCE app lock
 - `waitForSystemReady()` polls `system-state` until `readyForPlayback=true`
-- `command()` sends one command, safely matches the next shell response even in long noisy sessions, and parses quoted fields
-- `parseResponseLine(...)` understands quoted values, including escaped quotes
+- `command()` sends one command, safely matches the next valid JSON response even in long noisy sessions, and parses it
+- `parseResponseLine(...)` uses the platform JSON parser, including standard escaping for Unicode and control characters
 - `copyFile()` preserves artifacts such as screenshots or state dumps before session exit
 - `stop()` terminates the underlying process if cleanup is needed
 
@@ -338,6 +348,10 @@ Built-in smoke test modes are available via:
 node tools/debug-shell-client.js smoke-transport
 node tools/debug-shell-client.js smoke-errors
 node tools/debug-shell-client.js smoke-state
+node tools/debug-shell-client.js smoke-basic
+node tools/debug-shell-client.js smoke-eof
+node tools/debug-shell-client.js smoke-settings
+node tools/debug-shell-client.js smoke-editing
 node tools/debug-shell-client.js smoke-protocol
 node tools/debug-shell-client.js smoke-all
 ```
@@ -357,10 +371,14 @@ node tools/debug-shell-client.js smoke-all
 
 The smoke tests are intentionally assertive.
 
-- `smoke-transport` validates readiness, playback transitions, forward transport movement, screenshot capture, and clean shutdown
+- `smoke-transport` validates readiness, playback transitions, forward transport movement, PNG structure and dimensions, and clean shutdown
 - `smoke-errors` validates invalid screenshot arguments, unknown-command handling, and repeated identical `transport-state` responses
 - `smoke-state` validates `state-dump` output and copies the dump to a persistent location before session teardown
-- `smoke-protocol` uses a temporary Node-based fake shell to validate repeated identical `ok ...` responses and process exit while a response wait is in flight
+- `smoke-basic` validates startup, ten repeated `ping` commands, `quit`, and process exit; CI runs it on Windows
+- `smoke-eof` closes stdin after `ping` and verifies deterministic clean application exit; CI runs it on Windows
+- `smoke-settings` verifies that settings live inside the session sandbox and the normal `AppSettings.xml` remains byte-for-byte unchanged
+- `smoke-editing` creates and reuses a stable track and clip, inserts and updates a MIDI note, sets a plugin parameter, and confirms all mutations through state dumps
+- `smoke-protocol` uses a temporary Node-based fake shell to validate repeated identical JSON responses, adversarial escaped values, malformed unrelated output, and process exit while a response wait is in flight
 
 This client is the preferred automated validation path for transport, command-error handling, state-dump behavior, and shell protocol regressions inside this repository.
 
@@ -394,6 +412,12 @@ Relevant files:
 
 - `App/include/DebugCommand.h`
 - `App/include/DebugResult.h`
+- `App/include/DebugProtocol.h`
+- `App/src/DebugProtocol.cpp`
+- `App/include/DebugSnapshotWriter.h`
+- `App/src/DebugSnapshotWriter.cpp`
+- `App/include/DebugStateFilter.h`
+- `App/src/DebugStateFilter.cpp`
 - `App/include/DebugAppController.h`
 - `App/src/DebugAppController.cpp`
 - `App/include/DebugShell.h`
@@ -416,49 +440,69 @@ The app starts normally with GUI, but also opens a small command loop over `stdi
 
 ### Command model
 
-The shell is intentionally minimal.
+The shell is intentionally minimal. Each request is exactly one physical line.
 
-Each command is a single line.
-
-Current supported commands:
+Diagnostic and transport commands support the legacy command-name form. Except for `screenshot`, trailing legacy arguments are rejected:
 
 | Command | Argument | Success fields | Errors | Aliases |
 | --- | --- | --- | --- | --- |
-| `help` | currently ignored | `commands` | — | — |
-| `ping` | currently ignored | `app`, `version`, `mode` | — | — |
-| `system-state` | currently ignored | component readiness and transport summary | — | `system_state` |
-| `transport-state` | currently ignored | `playing`, `recording`, `looping`, `positionSeconds` | `not-ready` | `transport_state` |
+| `help` | none | `commands` | `invalid-argument` | — |
+| `ping` | none | `app`, `version`, `mode` | `invalid-argument` | — |
+| `system-state` | none | paths, component readiness, and transport summary | `invalid-argument` | `system_state` |
+| `transport-state` | none | `playing`, `recording`, `looping`, `positionSeconds` | `not-ready`, `invalid-argument` | `transport_state` |
 | `state-dump` | none | `path` | `invalid-argument`, `io-error` | `state_dump` |
-| `play` | currently ignored | `playing` | `not-ready` | — |
-| `stop` | currently ignored | `playing` | `not-ready` | — |
-| `screenshot` | optional positive integer `maxWidth`; default `640` | `path` | `invalid-argument` | — |
-| `quit` | currently ignored | `quitting` | — | `exit` |
+| `play` | none | `playing` | `not-ready`, `invalid-argument` | — |
+| `stop` | none | `playing` | `not-ready`, `invalid-argument` | — |
+| `screenshot` | optional integer `maxWidth` from `1` to `8192`; default `640` | `path` | `invalid-argument`, `io-error` | — |
+| `quit` | none | `quitting` | `invalid-argument` | `exit` |
 
-Unknown command names return `unknown-command`. Empty lines are ignored and do not produce a response. The fact that several commands currently ignore trailing arguments is existing behavior, not a compatibility guarantee.
+Editing requests use a JSON request object so names and numeric values do not need a second custom escaping grammar:
+
+```json
+{"command":"ensure-track","arguments":{"type":"midi","name":"Agent MIDI"}}
+{"command":"select-track","arguments":{"trackId":"1010"}}
+{"command":"ensure-midi-clip","arguments":{"trackId":"1010","name":"Intro","startSeconds":0,"lengthSeconds":4}}
+{"command":"ensure-midi-note","arguments":{"clipId":"1013","noteNumber":60,"startBeats":0,"lengthBeats":1,"velocity":100}}
+{"command":"set-plugin-parameter","arguments":{"pluginId":"1011","parameterId":"volume","value":0.75}}
+```
+
+| Command | Required arguments | Deterministic behavior | Success fields |
+| --- | --- | --- | --- |
+| `ensure-track` | `type`: `midi` or `audio`; non-empty `name` | Reuses a same-name track of the requested type | `trackId`, `name`, `type`, `created` |
+| `select-track` | `trackId` | Selects exactly the stable Tracktion item ID | `trackId`, `name`, `selected` |
+| `ensure-midi-clip` | `trackId`, `name`, `startSeconds >= 0`, `lengthSeconds > 0` | Reuses a same-name MIDI clip at the same range | `clipId`, `trackId`, `created` |
+| `ensure-midi-note` | `clipId`, MIDI `noteNumber`, `startBeats`, `lengthBeats`, `velocity` | Reuses the pitch/start/length tuple and sets its velocity | `clipId`, `noteKey`, `created`, `velocity` |
+| `set-plugin-parameter` | `pluginId`, `parameterId`, native-range numeric `value` | Sets a specific stable plugin/parameter ID | IDs, native and normalised values |
+
+Malformed JSON requests return `invalid-request`. Type/range errors return `invalid-argument`; missing IDs return `not-found`; wrong track types return `wrong-type`; engine mutation failures return `edit-error`. Unknown command names return `unknown-command`. Empty lines are ignored and do not produce a response.
 
 ### Response model
 
 Each command returns exactly one response line.
 
-Typical responses:
+Responses use JSON Lines: one compact JSON object followed by one newline.
 
-```text
-ok code=ready message="debug shell started"
-ok code=ok app=NextStudio version=0.04 mode=debug-shell
-ok code=ok debugMode=true currentEditAvailable=true editViewStateAvailable=true editComponentAvailable=true headerComponentAvailable=true lowerRangeComponentAvailable=true readyForPlayback=true transportPlaying=false transportRecording=false transportPositionSeconds=0.000
-ok code=ok playing=true recording=false looping=false positionSeconds=2.370
-ok code=ok path=/tmp/.../agent-debug/state-dump-....json
-ok code=ok playing=true
-ok code=ok playing=false
-ok code=ok path=/tmp/.../ui-snapshot-....png
-ok code=ok quitting=true
-error code=invalid-argument message="screenshot expects an optional positive maxWidth"
-error code=unknown-command message="Unknown command. Try 'help'."
+```json
+{"status":"ok","code":"ready","message":"debug shell started","fields":{}}
+{"status":"ok","code":"ok","fields":{"app":"NextStudio","version":"0.04","mode":"debug-shell"}}
+{"status":"ok","code":"ok","fields":{"playing":"true","recording":"false","looping":"false","positionSeconds":"2.370"}}
+{"status":"ok","code":"ok","fields":{"path":"/tmp/.../agent-debug/state-dump-....json"}}
+{"status":"error","code":"invalid-argument","message":"screenshot expects an optional integer maxWidth from 1 to 8192","fields":{}}
+{"status":"error","code":"unknown-command","message":"Unknown command. Try 'help'.","fields":{}}
 ```
 
-The shell is intended to be machine-readable, not interactive in a human shell-like sense.
+Schema:
 
-The current response format is a custom space-separated key/value format. Values containing spaces, tabs, quotes, or equals signs are quoted. Only quotes are escaped reliably; backslashes and control characters do not have a complete round-trip specification yet. Consumers must therefore treat the format as provisional. Issue #35 tracks replacement or full specification of this protocol.
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `status` | `"ok"` or `"error"` | Result class |
+| `code` | string | Stable machine-readable result code |
+| `message` | string, optional | Human-readable diagnostic |
+| `fields` | object of string values | Command-specific payload |
+
+JSON escaping is the complete wire escaping contract. Spaces, quotes, backslashes, equals signs, Unicode, tabs, carriage returns, and logical newlines round-trip through standard JSON escaping without introducing extra physical protocol lines. Unknown stdout lines are not responses and are ignored by the maintained clients while they wait for the next response object.
+
+The shell is intended to be machine-readable, not interactive in a human shell-like sense.
 
 ---
 
@@ -490,9 +534,9 @@ Typical location:
 
 This session directory is temporary and should be treated as disposable.
 
-### Current settings boundary
+### Settings boundary
 
-The Tracktion temporary directory, recovery data, state dumps, and screenshots are isolated in the session sandbox. The current implementation still constructs `ApplicationViewState` from the normal user `NextStudio/AppSettings.xml` and writes that file during shutdown. A debug-shell run can therefore currently read and modify global application settings. Issue #34 tracks isolation of this remaining user-state boundary.
+The Tracktion temporary directory, recovery data, workspace, state dumps, screenshots, and `ApplicationViewState` settings all live inside the same session sandbox. Debug mode neither reads nor writes the normal user `NextStudio/AppSettings.xml`. `system-state` reports `settingsPath` and `debugArtifactsPath` for assertions. The complete session directory is deleted during application shutdown after clients have had the opportunity to copy requested artifacts.
 
 ---
 
@@ -514,11 +558,9 @@ This keeps the debug-shell integration cleaner by isolating:
 - app/edit access
 - screenshot capture
 - debug artifact directory access
-- lower-range switching
-- track selection
 - quit requests
 
-`MainComponent` remains the backing implementation, but the debug stack now depends on the host abstraction rather than on a broad set of debug-specific public methods.
+`MainComponent` remains the backing implementation, but the debug stack now depends on the host abstraction rather than on a broad set of debug-specific public methods. The host is non-owning, must outlive `DebugAppController`, and may only be called on the JUCE message thread. Returned pointers are valid only during synchronous command execution.
 
 Note: the long-term control path should prefer the debug shell over ad-hoc keyboard shortcuts or temporary command hooks.
 
@@ -550,8 +592,9 @@ The dump currently includes:
 - autosave flag
 - transport state
 - selection summary
-- track summaries
-- plugin summaries per track
+- track IDs, types, selection, and clip summaries
+- clip IDs, ranges, and MIDI-note summaries
+- plugin IDs, compact state counts, and parameter IDs/current values per track
 
 ### Filtering strategy
 
@@ -564,6 +607,8 @@ Instead it stores compact summaries such as:
 - enabled state
 - child state count
 - property count
+- stable plugin and parameter IDs
+- current native and normalised parameter values
 
 Strings are also filtered:
 
@@ -604,9 +649,9 @@ This keeps image size and downstream token usage under control.
 
 A complete screenshot test is **not** just a successful command response.
 
-The current `smoke-transport` implementation copies the reported file and checks only that the copy exists. It does not yet validate PNG decoding, dimensions, non-empty content, or visual plausibility. Issue #32 tracks the missing production and regression checks.
+Production code rejects invalid component bounds or images, checks output stream creation and PNG encoding, flushes the stream, verifies non-zero file size, decodes the PNG again, and compares decoded dimensions. Any failure deletes partial output and returns `io-error`.
 
-The intended complete test must inspect the produced PNG and confirm that it contains a plausible NextStudio UI capture:
+`smoke-transport` copies the artifact before shutdown and validates the PNG signature, IHDR record, non-zero size, and dimensions. Automated tests do not judge visual semantics; visual inspection is still required when UI appearance itself is under test:
 
 - the image file exists
 - the PNG is readable
@@ -648,13 +693,22 @@ ctest --test-dir autobuild/RelWithDebInfo --output-on-failure
 node tools/debug-shell-client.js smoke-all
 ```
 
-The C++ test suite currently contains no focused debug-system tests. The Node smoke suite is the maintained end-to-end validation path. CI builds Linux, Windows, and macOS, but does not yet run the debug-shell smoke suite. Issue #37 tracks those gaps.
+Focused C++ tests cover command parsing, JSON response round-trips and malformed input, fake-host controller validation/error/quit behavior, state-string filtering and truncation, validated PNG writing/failure paths, and explicit settings-file isolation. The Node suite covers complete process/session behavior and editing mutations.
+
+CI behavior:
+
+- all platforms build and run CTest
+- Linux runs `smoke-all` under Xvfb
+- Windows runs `smoke-basic` and `smoke-eof`, including startup, repeated redirected-pipe commands, EOF, `quit`, and clean process exit
+- macOS runs the client protocol regression without launching the GUI
 
 ### Platform behavior
 
-- Linux and macOS use non-blocking `poll()` from the JUCE timer callback.
-- Windows currently uses `std::streambuf::in_avail()`. Redirected pipes and EOF are not guaranteed to behave reliably with this fallback; issue #33 tracks a dedicated blocking reader that hands commands to the JUCE message thread.
-- All command execution currently occurs on the JUCE message thread.
+- A dedicated blocking worker reads stdin on every platform; it never executes application commands itself.
+- Linux and macOS use `poll()` plus `read()` with a bounded wake interval so shutdown can join the reader deterministically.
+- Windows uses `ReadFile()` for console or redirected pipe input and `CancelSynchronousIo()` during shutdown. EOF, broken pipes, cancellation, and parent termination are handled without blocking the message thread.
+- Complete lines are posted to the JUCE message thread. All parsing side effects, host access, and command execution occur there.
+- `stop()` cancels or wakes the reader and joins it before the shell is destroyed.
 
 ## Current Limitations
 
@@ -662,14 +716,13 @@ Current scope is intentionally small.
 
 Not implemented yet:
 
-- track creation commands
-- clip insertion commands
-- MIDI note insertion commands
-- test sample insertion commands
+- audio-file or generated test-sample insertion
+- plugin insertion/removal commands
+- clip deletion, movement, and audio-clip editing
+- MIDI-note deletion and bulk operations
 - socket or IPC transport
 - deep GUI tree export
-- audio assertions
-- plugin parameter editing commands
+- rendered-audio assertions
 - headless offscreen rendering mode
 
 ---
@@ -678,21 +731,11 @@ Not implemented yet:
 
 Reasonable next additions:
 
-1. extend debug-shell command coverage carefully
-   - create track
-   - insert clip
-   - insert MIDI note
-   - insert test sample
-
-2. keep commands deterministic
-   - prefer `set`-style behavior over toggle-style behavior
-
-3. preserve shell simplicity
-   - one command per line
-   - one response per command
-   - no scripting language
-
-4. keep debug-shell isolated from normal user recovery flows
+1. add generated test-sample and audio-clip insertion with explicit fixture ownership
+2. add deterministic deletion and movement operations using stable IDs
+3. add rendered-audio assertions only after defining tolerances and artifact retention
+4. preserve one request and one JSON response per physical line; do not grow a scripting language
+5. keep every new mutation idempotent where practical and confirmable through state dumps
 
 ---
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 const { spawn, spawnSync } = require('node:child_process');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const defaultBinaryPath = path.resolve(process.cwd(), 'autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio');
+const defaultBinaryPath = path.resolve(process.env.NEXTSTUDIO_DEBUG_BINARY || path.join(process.cwd(), 'autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio'));
 const debugShellSingleInstanceRejectionFile = path.resolve(os.tmpdir(), 'NextStudio', 'debug', 'launch-rejections', 'debug-shell-last-rejection.json');
 
 function detectLikelySingleInstanceConflict(binaryPath) {
@@ -82,61 +83,31 @@ async function waitForMatchingSingleInstanceRejectionMarker(requestId, startTime
   return null;
 }
 
-function tokenizeResponseLine(line) {
-  const tokens = [];
-  const input = line.trim();
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < input.length; ++i) {
-    const ch = input[i];
-
-    if (inQuotes && ch === '\\' && i + 1 < input.length) {
-      current += ch;
-      current += input[++i];
-      continue;
-    }
-
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-      current += ch;
-      continue;
-    }
-
-    if (ch === ' ' && !inQuotes) {
-      if (current.length > 0) {
-        tokens.push(current);
-        current = '';
-      }
-      continue;
-    }
-
-    current += ch;
+function parseResponseLine(line) {
+  let parsed;
+  try {
+    parsed = JSON.parse(line);
+  } catch (error) {
+    throw new Error(`Invalid debug-shell JSON response: ${error.message}`);
   }
 
-  if (current.length > 0)
-    tokens.push(current);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+    throw new Error('Invalid debug-shell response: expected a JSON object');
+  if (parsed.status !== 'ok' && parsed.status !== 'error')
+    throw new Error(`Invalid debug-shell response status: ${String(parsed.status)}`);
+  if (!parsed.fields || typeof parsed.fields !== 'object' || Array.isArray(parsed.fields))
+    parsed.fields = {};
 
-  return tokens;
+  return { raw: line, ...parsed };
 }
 
-function parseResponseLine(line) {
-  const result = { raw: line, fields: {} };
-  const tokens = tokenizeResponseLine(line);
-
-  result.status = tokens.shift() || '';
-
-  for (const token of tokens) {
-    const eq = token.indexOf('=');
-    if (eq < 0) continue;
-    const key = token.slice(0, eq);
-    let value = token.slice(eq + 1);
-    if (value.startsWith('"') && value.endsWith('"'))
-      value = value.slice(1, -1).replace(/\\"/g, '"');
-    result.fields[key] = value;
+function isResponseLine(line) {
+  try {
+    const parsed = JSON.parse(line);
+    return parsed?.status === 'ok' || parsed?.status === 'error';
+  } catch {
+    return false;
   }
-
-  return result;
 }
 
 function requireOkResponse(response, context) {
@@ -155,7 +126,7 @@ function requireErrorResponse(response, context) {
 
 function requireErrorCode(response, key, context) {
   requireErrorResponse(response, context);
-  const actual = response.parsed.fields.code;
+  const actual = response.parsed.code;
   if (actual !== key)
     throw new Error(`${context}: expected error code ${key}, got ${String(actual)}`);
 }
@@ -180,6 +151,21 @@ function requireFileExists(filePath, context) {
     throw new Error(`${context}: file is missing: ${String(filePath)}`);
 }
 
+function readPngMetadata(filePath, context) {
+  requireFileExists(filePath, context);
+  const data = fs.readFileSync(filePath);
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (data.length < 24 || !data.subarray(0, 8).equals(signature) || data.toString('ascii', 12, 16) !== 'IHDR')
+    throw new Error(`${context}: file is not a structurally valid PNG`);
+
+  const width = data.readUInt32BE(16);
+  const height = data.readUInt32BE(20);
+  if (width <= 0 || height <= 0)
+    throw new Error(`${context}: PNG dimensions are invalid: ${width}x${height}`);
+
+  return { sizeBytes: data.length, width, height };
+}
+
 function readJsonFile(filePath, context) {
   requireFileExists(filePath, context);
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -188,6 +174,31 @@ function readJsonFile(filePath, context) {
 function createTempArtifactPath(prefix, extension) {
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
   return path.join(os.tmpdir(), `${prefix}-${stamp}${extension}`);
+}
+
+function getDefaultSettingsPath() {
+  if (process.platform === 'win32')
+    return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'NextStudio', 'AppSettings.xml');
+  if (process.platform === 'darwin')
+    return path.join(os.homedir(), 'Library', 'Application Support', 'NextStudio', 'AppSettings.xml');
+  return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'NextStudio', 'AppSettings.xml');
+}
+
+function jsonCommand(command, argumentsObject = {}) {
+  return JSON.stringify({ command, arguments: argumentsObject });
+}
+
+function snapshotFile(filePath) {
+  if (!fs.existsSync(filePath))
+    return { exists: false };
+  const data = fs.readFileSync(filePath);
+  const stat = fs.statSync(filePath);
+  return {
+    exists: true,
+    size: stat.size,
+    modifiedMs: stat.mtimeMs,
+    sha256: crypto.createHash('sha256').update(data).digest('hex'),
+  };
 }
 
 class NextStudioDebugShellClient {
@@ -240,7 +251,11 @@ class NextStudioDebugShellClient {
     });
     this._attachStream(this.process.stderr, true);
 
-    const readyLine = await this.waitForLine((line) => line.startsWith('ok code=ready'), timeoutMs);
+    const readyLine = await this.waitForLine((line) => {
+      if (!isResponseLine(line)) return false;
+      const parsed = parseResponseLine(line);
+      return parsed.status === 'ok' && parsed.code === 'ready';
+    }, timeoutMs);
     if (readyLine !== null)
       return readyLine;
 
@@ -277,7 +292,7 @@ class NextStudioDebugShellClient {
 
     const startLineId = this.nextLineId;
     this.process.stdin.write(commandLine + '\n');
-    const responseLine = await this.waitForLine((line) => line.startsWith('ok ') || line.startsWith('error '), timeoutMs, startLineId);
+    const responseLine = await this.waitForLine(isResponseLine, timeoutMs, startLineId);
 
     if (responseLine === null)
       throw new Error(`No response received for command: ${commandLine}`);
@@ -473,8 +488,7 @@ async function runTransportSmokeTest(options = {}) {
     if (duringPosition <= beforePosition + minPositionDeltaSeconds)
       throw new Error(`transport position did not advance enough during playback: before=${beforePosition}, during=${duringPosition}, minDelta=${minPositionDeltaSeconds}`);
 
-    if (!fs.existsSync(screenshotCopyPath))
-      throw new Error(`Copied screenshot is missing: ${screenshotCopyPath}`);
+    const screenshotPng = readPngMetadata(screenshotCopyPath, 'copied screenshot');
 
     if (client.exitCode !== null && client.exitCode !== 0)
       throw new Error(`Debug shell exited with non-zero code: ${client.exitCode}`);
@@ -500,6 +514,7 @@ async function runTransportSmokeTest(options = {}) {
         afterPosition,
         minPositionDeltaSeconds,
         screenshotCopied: true,
+        screenshotPng,
         quitAcknowledged,
       },
       exitCode: client.exitCode,
@@ -604,12 +619,173 @@ async function runStateDumpSmokeTest(options = {}) {
   }
 }
 
+async function runEditingSmokeTest(options = {}) {
+  const client = new NextStudioDebugShellClient(options);
+  const stateCopyPath = path.resolve(options.editingStateCopyPath || createTempArtifactPath('nextstudio-editing-state', '.json'));
+
+  try {
+    await client.start(options.startTimeoutMs || 30000);
+    await client.waitForSystemReady(options.readyTimeoutMs || 30000);
+
+    const trackArguments = { type: 'midi', name: 'Agent MIDI Track' };
+    const createdTrack = await client.command(jsonCommand('ensure-track', trackArguments));
+    requireOkResponse(createdTrack, 'ensure-track create');
+    const trackId = createdTrack.parsed.fields.trackId;
+    if (!trackId || createdTrack.parsed.fields.created !== 'true')
+      throw new Error('ensure-track did not create and return a stable track id');
+
+    const existingTrack = await client.command(jsonCommand('ensure-track', trackArguments));
+    requireOkResponse(existingTrack, 'ensure-track existing');
+    if (existingTrack.parsed.fields.trackId !== trackId || existingTrack.parsed.fields.created !== 'false')
+      throw new Error('ensure-track was not idempotent');
+
+    const selectedTrack = await client.command(jsonCommand('select-track', { trackId }));
+    requireOkResponse(selectedTrack, 'select-track');
+
+    const clipArguments = { trackId, name: 'Agent MIDI Clip', startSeconds: 0, lengthSeconds: 4 };
+    const createdClip = await client.command(jsonCommand('ensure-midi-clip', clipArguments));
+    requireOkResponse(createdClip, 'ensure-midi-clip create');
+    const clipId = createdClip.parsed.fields.clipId;
+    const existingClip = await client.command(jsonCommand('ensure-midi-clip', clipArguments));
+    requireOkResponse(existingClip, 'ensure-midi-clip existing');
+    if (!clipId || existingClip.parsed.fields.clipId !== clipId || existingClip.parsed.fields.created !== 'false')
+      throw new Error('ensure-midi-clip was not idempotent');
+
+    const noteArguments = { clipId, noteNumber: 60, startBeats: 0, lengthBeats: 1, velocity: 96 };
+    const createdNote = await client.command(jsonCommand('ensure-midi-note', noteArguments));
+    requireOkResponse(createdNote, 'ensure-midi-note create');
+    const updatedNote = await client.command(jsonCommand('ensure-midi-note', { ...noteArguments, velocity: 110 }));
+    requireOkResponse(updatedNote, 'ensure-midi-note update');
+    if (createdNote.parsed.fields.created !== 'true' || updatedNote.parsed.fields.created !== 'false' || updatedNote.parsed.fields.velocity !== '110')
+      throw new Error('ensure-midi-note did not create then update deterministically');
+
+    const stateResponse = await client.command('state-dump');
+    requireOkResponse(stateResponse, 'editing state-dump');
+    client.copyFile(stateResponse.parsed.fields.path, stateCopyPath);
+    let state = readJsonFile(stateCopyPath, 'editing state dump');
+    let track = state.edit.tracks.find((candidate) => candidate.id === trackId);
+    let clip = track?.clips?.find((candidate) => candidate.id === clipId);
+    let note = clip?.notes?.find((candidate) => candidate.noteNumber === 60 && candidate.velocity === 110);
+    if (!track || !clip || !note)
+      throw new Error('state-dump did not confirm the created track, clip, and note');
+
+    const plugin = track.plugins?.find((candidate) => Array.isArray(candidate.parameters) && candidate.parameters.length > 0);
+    if (!plugin)
+      throw new Error('created track has no queryable plugin parameter for set-plugin-parameter validation');
+    const parameter = plugin.parameters[0];
+    const setParameter = await client.command(jsonCommand('set-plugin-parameter', {
+      pluginId: plugin.id,
+      parameterId: parameter.id,
+      value: parameter.value,
+    }));
+    requireOkResponse(setParameter, 'set-plugin-parameter');
+
+    const confirmResponse = await client.command('state-dump');
+    requireOkResponse(confirmResponse, 'confirmed editing state-dump');
+    client.copyFile(confirmResponse.parsed.fields.path, stateCopyPath);
+    state = readJsonFile(stateCopyPath, 'confirmed editing state dump');
+    track = state.edit.tracks.find((candidate) => candidate.id === trackId);
+    clip = track?.clips?.find((candidate) => candidate.id === clipId);
+    note = clip?.notes?.find((candidate) => candidate.noteNumber === 60 && candidate.velocity === 110);
+    const confirmedPlugin = track?.plugins?.find((candidate) => candidate.id === plugin.id);
+    const confirmedParameter = confirmedPlugin?.parameters?.find((candidate) => candidate.id === parameter.id);
+    if (!note || !confirmedParameter)
+      throw new Error('final state query did not confirm edit and plugin parameter state');
+
+    const quit = await client.command('quit');
+    requireOkResponse(quit, 'editing quit');
+    await client.waitForExit(5000);
+
+    return { trackId, clipId, noteKey: updatedNote.parsed.fields.noteKey, parameter: setParameter.parsed.fields, stateCopyPath, quit };
+  } finally {
+    await client.stop(true).catch(() => {});
+  }
+}
+
+async function runBasicShellSmokeTest(options = {}) {
+  const client = new NextStudioDebugShellClient(options);
+  try {
+    const readyLine = await client.start(options.startTimeoutMs || 30000);
+    const responses = [];
+    const repeatCount = options.repeatCount || 10;
+    for (let i = 0; i < repeatCount; ++i) {
+      const ping = await client.command('ping');
+      requireOkResponse(ping, `ping ${i + 1}`);
+      responses.push(ping);
+    }
+    const quit = await client.command('quit');
+    requireOkResponse(quit, 'basic quit');
+    await client.waitForExit(5000);
+    return { readyLine, repeatCount, responses, quit, exitCode: client.exitCode, exitSignal: client.exitSignal };
+  } finally {
+    await client.stop(true).catch(() => {});
+  }
+}
+
+async function runEofSmokeTest(options = {}) {
+  const client = new NextStudioDebugShellClient(options);
+  try {
+    const readyLine = await client.start(options.startTimeoutMs || 30000);
+    const ping = await client.command('ping');
+    requireOkResponse(ping, 'EOF ping');
+    client.process.stdin.end();
+    const exit = await client.waitForExit(5000);
+    if (exit.code !== 0)
+      throw new Error(`Debug shell did not exit cleanly after stdin EOF: ${JSON.stringify(exit)}`);
+    return { readyLine, ping, exitCode: client.exitCode, exitSignal: client.exitSignal };
+  } finally {
+    await client.stop(true).catch(() => {});
+  }
+}
+
+async function runSettingsIsolationSmokeTest(options = {}) {
+  const client = new NextStudioDebugShellClient(options);
+  const normalSettingsPath = path.resolve(options.normalSettingsPath || getDefaultSettingsPath());
+  const before = snapshotFile(normalSettingsPath);
+
+  try {
+    await client.start(options.startTimeoutMs || 30000);
+    const systemState = await client.waitForSystemReady(options.readyTimeoutMs || 30000);
+    requireOkResponse(systemState, 'settings isolation system-state');
+
+    const rawSessionSettingsPath = systemState.parsed.fields.settingsPath;
+    const rawArtifactsPath = systemState.parsed.fields.debugArtifactsPath;
+    if (!rawSessionSettingsPath || !rawArtifactsPath)
+      throw new Error('system-state did not report debug settings and artifact paths');
+    const sessionSettingsPath = path.resolve(rawSessionSettingsPath);
+    const artifactsPath = path.resolve(rawArtifactsPath);
+    if (sessionSettingsPath === normalSettingsPath)
+      throw new Error(`Debug session uses the normal settings path: ${normalSettingsPath}`);
+    if (!sessionSettingsPath.startsWith(path.dirname(artifactsPath) + path.sep))
+      throw new Error(`Debug settings are not inside the debug session sandbox: ${sessionSettingsPath}`);
+
+    const ping = await client.command('ping');
+    requireOkResponse(ping, 'settings isolation ping');
+    const quit = await client.command('quit');
+    requireOkResponse(quit, 'settings isolation quit');
+    await client.waitForExit(5000);
+
+    const after = snapshotFile(normalSettingsPath);
+    if (JSON.stringify(after) !== JSON.stringify(before))
+      throw new Error(`Debug session modified normal settings: ${normalSettingsPath}`);
+
+    return { normalSettingsPath, sessionSettingsPath, artifactsPath, before, after, ping, quit };
+  } finally {
+    await client.stop(true).catch(() => {});
+  }
+}
+
 function createFakeProtocolShell() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nextstudio-debug-shell-protocol-'));
   const scriptPath = path.join(tempDir, 'fake-debug-shell.js');
   const script = `#!/usr/bin/env node
 let pending = '';
-process.stdout.write('ok code=ready message="fake ready"\\n');
+const emit = (status, code, fields = {}, message) => {
+  const response = { status, code, fields };
+  if (message !== undefined) response.message = message;
+  process.stdout.write(JSON.stringify(response) + '\\n');
+};
+emit('ok', 'ready', {}, 'fake ready');
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => {
   pending += chunk;
@@ -620,11 +796,16 @@ process.stdin.on('data', (chunk) => {
     const line = pending.slice(0, newlineIndex).replace(/\\r$/, '');
     pending = pending.slice(newlineIndex + 1);
     if (line === 'same') {
-      process.stdout.write('ok code=ok stable=true\\n');
+      emit('ok', 'ok', { stable: 'true' });
+    } else if (line === 'adversarial') {
+      emit('ok', 'ok', { value: 'space "quote" \\\\ slash = equal \\t tab \\n logical newline 😀' });
+    } else if (line === 'malformed-then-valid') {
+      process.stdout.write('{not-json}\\n');
+      emit('ok', 'ok', { recovered: 'true' });
     } else if (line === 'hang-then-exit') {
       setTimeout(() => process.exit(7), 200);
     } else {
-      process.stdout.write('error code=unknown-command message="Unknown command"\\n');
+      emit('error', 'unknown-command', {}, 'Unknown command');
     }
   }
 });
@@ -651,10 +832,21 @@ async function runClientProtocolRegressionTest(options = {}) {
     for (let i = 0; i < repeatCount; ++i) {
       const response = await client.command('same', options.commandTimeoutMs || 5000);
       requireOkResponse(response, `same command ${i + 1}`);
-      if (response.responseLine !== 'ok code=ok stable=true')
+      if (response.parsed.fields.stable !== 'true')
         throw new Error(`same command ${i + 1}: unexpected response line ${response.responseLine}`);
       identicalResponses.push(response);
     }
+
+    const adversarial = await client.command('adversarial', options.commandTimeoutMs || 5000);
+    requireOkResponse(adversarial, 'adversarial response');
+    const expectedAdversarial = 'space "quote" \\ slash = equal \t tab \n logical newline 😀';
+    if (adversarial.parsed.fields.value !== expectedAdversarial)
+      throw new Error('Adversarial JSON response did not round-trip');
+
+    const recovered = await client.command('malformed-then-valid', options.commandTimeoutMs || 5000);
+    requireOkResponse(recovered, 'malformed response recovery');
+    if (recovered.parsed.fields.recovered !== 'true')
+      throw new Error('Client did not recover after an unrelated malformed output line');
 
     let exitWhileWaitingError = null;
     try {
@@ -673,6 +865,8 @@ async function runClientProtocolRegressionTest(options = {}) {
     return {
       readyLine,
       identicalResponses,
+      adversarial,
+      recovered,
       exitWhileWaitingError,
       exitCode: client.exitCode,
       exitSignal: client.exitSignal,
@@ -689,6 +883,9 @@ async function runAllSmokeTests(options = {}) {
     transport: await runTransportSmokeTest(options),
     commandErrors: await runCommandErrorSmokeTest(options),
     stateDump: await runStateDumpSmokeTest(options),
+    settingsIsolation: await runSettingsIsolationSmokeTest(options),
+    eof: await runEofSmokeTest(options),
+    editing: await runEditingSmokeTest(options),
     protocolRegression: await runClientProtocolRegressionTest(options),
   };
 }
@@ -699,6 +896,10 @@ module.exports = {
   runTransportSmokeTest,
   runCommandErrorSmokeTest,
   runStateDumpSmokeTest,
+  runEditingSmokeTest,
+  runBasicShellSmokeTest,
+  runEofSmokeTest,
+  runSettingsIsolationSmokeTest,
   runClientProtocolRegressionTest,
   runAllSmokeTests,
 };
@@ -711,6 +912,10 @@ if (require.main === module) {
     'smoke-transport': runTransportSmokeTest,
     'smoke-errors': runCommandErrorSmokeTest,
     'smoke-state': runStateDumpSmokeTest,
+    'smoke-basic': runBasicShellSmokeTest,
+    'smoke-eof': runEofSmokeTest,
+    'smoke-editing': runEditingSmokeTest,
+    'smoke-settings': runSettingsIsolationSmokeTest,
     'smoke-protocol': runClientProtocolRegressionTest,
     'smoke-all': runAllSmokeTests,
   };

@@ -29,30 +29,25 @@ struct Result
         return result;
     }
 
+    /** Serialises one complete JSON object without embedded physical newlines.
+        JUCE's JSON encoder provides the escaping contract for all field values. */
     juce::String toResponseLine() const
     {
-        juce::StringArray tokens;
-        tokens.add(ok ? "ok" : "error");
-
-        if (code.isNotEmpty())
-            tokens.add("code=" + quoteIfNeeded(code));
+        auto *root = new juce::DynamicObject();
+        root->setProperty("status", ok ? "ok" : "error");
+        root->setProperty("code", code);
 
         if (message.isNotEmpty())
-            tokens.add("message=" + quoteIfNeeded(message));
+            root->setProperty("message", message);
 
+        auto *fieldObject = new juce::DynamicObject();
+        const auto keys = fields.getAllKeys();
+        const auto values = fields.getAllValues();
         for (int i = 0; i < fields.size(); ++i)
-            tokens.add(fields.getAllKeys()[i] + "=" + quoteIfNeeded(fields.getAllValues()[i]));
+            fieldObject->setProperty(juce::Identifier(keys[i]), values[i]);
+        root->setProperty("fields", fieldObject);
 
-        return tokens.joinIntoString(" ");
-    }
-
-private:
-    static juce::String quoteIfNeeded(const juce::String &value)
-    {
-        if (value.containsAnyOf(" \t\"="))
-            return "\"" + value.replace("\"", "\\\"") + "\"";
-
-        return value;
+        return juce::JSON::toString(juce::var(root), true);
     }
 };
 } // namespace NextStudio::Debug

@@ -1,6 +1,8 @@
 #include "AgentDebug.h"
 
 #include "DebugHost.h"
+#include "DebugSnapshotWriter.h"
+#include "DebugStateFilter.h"
 #include "Logging.h"
 
 namespace te = tracktion_engine;
@@ -9,8 +11,6 @@ namespace NextStudio::AgentDebug
 {
 namespace
 {
-constexpr int maxStringLength = 120;
-
 juce::String lowerRangeViewToString(LowerRangeView view)
 {
     switch (view)
@@ -48,38 +48,60 @@ juce::String clipTypeToString(const te::Clip &clip)
     return "other";
 }
 
-juce::String sanitiseString(const juce::String &value)
-{
-    if (value.isEmpty())
-        return {};
-
-    bool containsBinaryLikeData = false;
-    for (auto character : value)
-    {
-        if ((character < 32 && character != '\n' && character != '\r' && character != '\t') || character == 0xfffd)
-        {
-            containsBinaryLikeData = true;
-            break;
-        }
-    }
-
-    if (containsBinaryLikeData)
-        return "<filtered-binary-data>";
-
-    if (value.length() > maxStringLength)
-        return value.substring(0, maxStringLength) + "…<truncated>";
-
-    return value;
-}
-
 juce::var buildPluginSummary(const te::Plugin &plugin)
 {
     auto *object = new juce::DynamicObject();
-    object->setProperty("name", sanitiseString(plugin.getName()));
-    object->setProperty("type", sanitiseString(const_cast<te::Plugin &>(plugin).getPluginType()));
+    object->setProperty("id", plugin.itemID.toString());
+    object->setProperty("name", sanitiseStateString(plugin.getName()));
+    object->setProperty("type", sanitiseStateString(const_cast<te::Plugin &>(plugin).getPluginType()));
     object->setProperty("enabled", plugin.isEnabled());
     object->setProperty("childStateCount", plugin.state.getNumChildren());
     object->setProperty("propertyCount", plugin.state.getNumProperties());
+
+    juce::Array<juce::var> parameters;
+    for (auto parameter : const_cast<te::Plugin &>(plugin).getAutomatableParameters())
+    {
+        if (parameter == nullptr)
+            continue;
+        auto *parameterObject = new juce::DynamicObject();
+        parameterObject->setProperty("id", sanitiseStateString(parameter->paramID));
+        parameterObject->setProperty("name", sanitiseStateString(parameter->getParameterName()));
+        parameterObject->setProperty("value", parameter->getCurrentValue());
+        parameterObject->setProperty("normalisedValue", parameter->getCurrentNormalisedValue());
+        parameters.add(parameterObject);
+    }
+    object->setProperty("parameters", parameters);
+    return object;
+}
+
+juce::var buildClipSummary(const te::Clip &clip)
+{
+    auto *object = new juce::DynamicObject();
+    object->setProperty("id", clip.itemID.toString());
+    object->setProperty("name", sanitiseStateString(clip.getName()));
+    object->setProperty("type", clipTypeToString(clip));
+    object->setProperty("startSeconds", clip.getPosition().getStart().inSeconds());
+    object->setProperty("lengthSeconds", clip.getPosition().getLength().inSeconds());
+
+    if (auto *midiClip = dynamic_cast<const te::MidiClip *>(&clip))
+    {
+        juce::Array<juce::var> notes;
+        for (auto *note : midiClip->getSequence().getNotes())
+        {
+            if (note == nullptr)
+                continue;
+            auto *noteObject = new juce::DynamicObject();
+            noteObject->setProperty("key", juce::String(note->getNoteNumber()) + "@" + juce::String(note->getStartBeat().inBeats(), 6));
+            noteObject->setProperty("noteNumber", note->getNoteNumber());
+            noteObject->setProperty("startBeats", note->getStartBeat().inBeats());
+            noteObject->setProperty("lengthBeats", note->getLengthBeats().inBeats());
+            noteObject->setProperty("velocity", note->getVelocity());
+            notes.add(noteObject);
+        }
+        object->setProperty("notes", notes);
+        object->setProperty("noteCount", notes.size());
+    }
+
     return object;
 }
 
@@ -87,7 +109,7 @@ juce::var buildTrackSummary(const te::Track &track, const te::SelectionManager &
 {
     auto *object = new juce::DynamicObject();
     object->setProperty("id", track.itemID.toString());
-    object->setProperty("name", sanitiseString(track.getName()));
+    object->setProperty("name", sanitiseStateString(track.getName()));
     object->setProperty("type", trackTypeToString(track));
     object->setProperty("selected", selectionManager.isSelected(const_cast<te::Track *>(&track)));
     object->setProperty("colour", track.getColour().toDisplayString(true));
@@ -101,7 +123,14 @@ juce::var buildTrackSummary(const te::Track &track, const te::SelectionManager &
     object->setProperty("plugins", plugins);
 
     if (auto *audioTrack = dynamic_cast<const te::AudioTrack *>(&track))
-        object->setProperty("clipCount", audioTrack->getClips().size());
+    {
+        juce::Array<juce::var> clips;
+        for (auto *clip : audioTrack->getClips())
+            if (clip != nullptr)
+                clips.add(buildClipSummary(*clip));
+        object->setProperty("clipCount", clips.size());
+        object->setProperty("clips", clips);
+    }
 
     return object;
 }
@@ -118,7 +147,7 @@ juce::var buildSelectionSummary(const EditViewState &evs)
     juce::Array<juce::var> trackNames;
     for (auto *track : selectedTracks)
         if (track != nullptr)
-            trackNames.add(sanitiseString(track->getName()));
+            trackNames.add(sanitiseStateString(track->getName()));
     object->setProperty("selectedTracks", trackNames);
 
     juce::Array<juce::var> clipSummaries;
@@ -128,9 +157,9 @@ juce::var buildSelectionSummary(const EditViewState &evs)
             continue;
 
         auto *clipObject = new juce::DynamicObject();
-        clipObject->setProperty("name", sanitiseString(clip->getName()));
+        clipObject->setProperty("name", sanitiseStateString(clip->getName()));
         clipObject->setProperty("type", clipTypeToString(*clip));
-        clipObject->setProperty("track", clip->getTrack() != nullptr ? sanitiseString(clip->getTrack()->getName()) : juce::String());
+        clipObject->setProperty("track", clip->getTrack() != nullptr ? sanitiseStateString(clip->getTrack()->getName()) : juce::String());
         clipObject->setProperty("startSeconds", clip->getPosition().getStart().inSeconds());
         clipObject->setProperty("lengthSeconds", clip->getPosition().getLength().inSeconds());
         clipSummaries.add(clipObject);
@@ -146,7 +175,12 @@ juce::File getOutputDirectory(const NextStudio::Debug::DebugHost &debugHost, con
     if (directory == juce::File())
         directory = debugHost.getDebugArtifactsDirectory();
 
-    directory.createDirectory();
+    if (directory == juce::File() || directory.createDirectory().failed() || !directory.isDirectory())
+    {
+        NS_LOG_ERROR(filesystem, "failed to create agent debug directory: " + directory.getFullPathName());
+        return {};
+    }
+
     return directory;
 }
 
@@ -176,14 +210,14 @@ juce::var createStateDump(const NextStudio::Debug::DebugHost &debugHost)
     ui->setProperty("sidebarWidth", (int) appState.m_sidebarWidth);
     ui->setProperty("sidebarCollapsed", (bool) appState.m_sidebarCollapsed);
     ui->setProperty("setupComplete", (bool) appState.m_setupComplete);
-    ui->setProperty("workDir", sanitiseString(appState.m_workDir.get()));
+    ui->setProperty("workDir", sanitiseStateString(appState.m_workDir.get()));
     root->setProperty("ui", ui);
 
     if (auto *evs = debugHost.getEditViewState())
     {
         auto *edit = new juce::DynamicObject();
         const auto editFile = te::EditFileOperations(evs->m_edit).getEditFile();
-        edit->setProperty("file", sanitiseString(editFile.getFullPathName()));
+        edit->setProperty("file", sanitiseStateString(editFile.getFullPathName()));
         edit->setProperty("trackCount", te::getAllTracks(evs->m_edit).size());
         edit->setProperty("audioTrackCount", te::getAudioTracks(evs->m_edit).size());
         edit->setProperty("lowerRangeView", lowerRangeViewToString(evs->getLowerRangeView()));
@@ -213,6 +247,9 @@ juce::var createStateDump(const NextStudio::Debug::DebugHost &debugHost)
 juce::File writeStateDump(const NextStudio::Debug::DebugHost &debugHost, const juce::File &outputDirectory)
 {
     const auto directory = getOutputDirectory(debugHost, outputDirectory);
+    if (directory == juce::File())
+        return {};
+
     const auto file = directory.getNonexistentChildFile("state-dump-" + createTimestampToken(), ".json", false);
     if (!file.replaceWithText(juce::JSON::toString(createStateDump(debugHost), true)))
     {
@@ -228,14 +265,26 @@ juce::File captureSnapshot(const NextStudio::Debug::DebugHost &debugHost, const 
 {
     const auto directory = getOutputDirectory(debugHost, outputDirectory);
     const auto bounds = debugHost.getLocalBounds();
-    const auto width = juce::jmax(1, bounds.getWidth());
-    const auto scale = maxWidth > 0 ? juce::jmin(1.0f, (float) maxWidth / (float) width) : 1.0f;
+    if (directory == juce::File() || bounds.isEmpty() || maxWidth <= 0)
+    {
+        NS_LOG_ERROR(app, "agent UI snapshot rejected invalid output directory, bounds, or width");
+        return {};
+    }
+
+    const auto scale = juce::jmin(1.0f, static_cast<float>(maxWidth) / static_cast<float>(bounds.getWidth()));
     const auto image = debugHost.createSnapshot(bounds, scale);
+    if (!image.isValid() || image.getWidth() <= 0 || image.getHeight() <= 0)
+    {
+        NS_LOG_ERROR(app, "agent UI snapshot capture returned an invalid image");
+        return {};
+    }
 
     const auto file = directory.getNonexistentChildFile("ui-snapshot-" + createTimestampToken(), ".png", false);
-    juce::PNGImageFormat png;
-    if (auto stream = std::unique_ptr<juce::FileOutputStream>(file.createOutputStream()))
-        png.writeImageToStream(image, *stream);
+    if (!NextStudio::Debug::writeValidatedPng(image, file))
+    {
+        NS_LOG_ERROR(filesystem, "failed to write a valid agent UI snapshot: " + file.getFullPathName());
+        return {};
+    }
 
     NS_LOG_INFO(app, "agent UI snapshot written: " + file.getFullPathName());
     return file;

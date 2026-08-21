@@ -53,6 +53,8 @@ This directory contains the user and developer documentation for NextStudio.
 - [Building](development/building.md) — prerequisites, submodules, build types, scripts, output locations, and packaging.
 - [Testing](development/testing.md) — test targets, commands, current coverage, and adding tests.
 - [Source layout](development/source-layout.md) — repository map, naming conventions, source registration, resources, and common extension points.
+- [Agent debug system](agent-debug.md) — debug-shell protocol, pi tools, isolated sessions, deterministic editing commands, artifacts, and tests.
+- [Logging](logging.md) — central logger API, categories, levels, output policy, and migration rules.
 
 ## Change documentation
 
@@ -83,4 +85,5 @@ Change documents explain a coherent implementation diff rather than acting as re
 | MIDI note properties | `App/include/NotePropertiesBar.h`, `App/src/NotePropertiesBar.cpp` |
 | Position formatting | `App/include/PositionDisplayHelpers.h`, `App/src/PositionDisplayHelpers.cpp` |
 | Project lifecycle helpers | `App/include/ProjectLifecycle.h`, `App/src/ProjectLifecycle.cpp` |
+| Agent debug system | `App/include/Debug*.h`, `App/src/Debug*.cpp`, `.pi/extensions/nextstudio-debug.ts`, `tools/debug-shell-client.js` |
 | Tests | `App/tests/` |

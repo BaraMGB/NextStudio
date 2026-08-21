@@ -81,7 +81,7 @@ class MainComponent
     , private FlaggedAsyncUpdater
 {
 public:
-    explicit MainComponent(ApplicationViewState &state, bool debugMode = false);
+    explicit MainComponent(ApplicationViewState &state, bool debugMode = false, const juce::File &debugSessionDirectory = {});
     ~MainComponent() override;
 
     void paint(juce::Graphics &g) override;

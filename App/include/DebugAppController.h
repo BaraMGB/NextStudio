@@ -22,6 +22,11 @@ private:
     Result handlePlay() const;
     Result handleStop() const;
     Result handleScreenshot(const Command &command) const;
+    Result handleEnsureTrack(const Command &command) const;
+    Result handleSelectTrack(const Command &command) const;
+    Result handleEnsureMidiClip(const Command &command) const;
+    Result handleEnsureMidiNote(const Command &command) const;
+    Result handleSetPluginParameter(const Command &command) const;
     Result handleQuit() const;
 
     DebugHost &m_debugHost;

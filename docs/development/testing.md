@@ -9,6 +9,11 @@ The current suites are:
 | CTest name | Executable/production area | Test source |
 |---|---|---|
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
+| `DebugProtocol` | command/JSON Lines parsing and serialization | `App/tests/DebugProtocolTests.cpp` |
+| `DebugSnapshotWriter` | PNG success, decode validation, and failure paths | `App/tests/DebugSnapshotWriterTests.cpp` |
+| `DebugStateFilter` | binary-like state filtering and bounded strings | `App/tests/DebugStateFilterTests.cpp` |
+| `DebugSettingsIsolation` | explicit sandbox settings persistence | `App/tests/DebugSettingsIsolationTests.cpp` |
+| `DebugAppController` | fake-host validation, readiness, artifacts, errors, and quit | `App/tests/DebugAppControllerTests.cpp` |
 | `ProjectLifecycle` | project request, extension, validation, and unsaved-choice rules | `App/tests/ProjectLifecycleTests.cpp` |
 | `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
@@ -70,6 +75,12 @@ ctest --test-dir autobuild/RelWithDebInfo -V
 # Repeat until failure when investigating intermittent behavior
 ctest --test-dir autobuild/RelWithDebInfo --repeat until-fail:20 --output-on-failure
 ```
+
+## Debug-system tests
+
+The focused debug tests compile the same protocol, controller, and PNG writer used by the application. They cover legacy and JSON request parsing, malformed requests, aliases, adversarial JSON response values, standard escaping, response recognition, fake-host controller validation and error paths, state-string filtering/truncation, invalid images, successful encode/decode with dimensions, unopenable output, explicit session settings paths, and quit dispatch.
+
+Full process behavior is covered by `tools/debug-shell-client.js`. Its modes validate transport, errors, state artifacts, settings isolation, repeated Windows-compatible stdin commands, deterministic track/clip/note/plugin editing, and protocol desynchronisation. See [Agent Debug System](../agent-debug.md) for commands and CI distribution.
 
 ## Clip overwrite tests
 
@@ -290,7 +301,7 @@ Manual validation should supplement rather than replace extractable unit tests.
 
 ## CI
 
-GitHub Actions builds and packages the application on Linux, Windows, and macOS. At the time of this document, the workflow's primary job is build/package validation; contributors should not assume that local CTest coverage is automatically equivalent to every CI job. Always run the test script before pushing logic changes.
+GitHub Actions builds and runs CTest on Linux, Windows, and macOS. Linux additionally runs the complete debug-shell smoke suite under Xvfb, Windows runs redirected-stdin startup/repeated-command/EOF/quit smoke tests, and macOS runs the transport-client protocol regression. Packaging follows successful tests. Local validation should still use the repository build command, CTest, and the relevant smoke mode before pushing logic changes.
 
 ## Related documents
 
@@ -298,3 +309,4 @@ GitHub Actions builds and packages the application on Linux, Windows, and macOS.
 - [Source Layout](source-layout.md)
 - [Project Lifecycle](../architecture/project-lifecycle.md)
 - [State and Event Model](../architecture/state-and-events.md)
+- [Agent Debug System](../agent-debug.md)

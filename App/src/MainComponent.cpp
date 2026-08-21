@@ -48,7 +48,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ThemeHelpers.h"
 #include "Utilities.h"
 
-MainComponent::MainComponent(ApplicationViewState &state, bool debugMode)
+MainComponent::MainComponent(ApplicationViewState &state, bool debugMode, const juce::File &debugSessionDirectory)
     : m_applicationState(state),
       m_nextLookAndFeel(state),
       m_sidebarSplitter(false),
@@ -56,7 +56,9 @@ MainComponent::MainComponent(ApplicationViewState &state, bool debugMode)
 {
     if (m_debugMode)
     {
-        const auto debugTempDir = NextStudio::Debug::SessionEnvironment::createDebugSessionTempDirectory();
+        const auto debugTempDir = debugSessionDirectory == juce::File()
+                                      ? NextStudio::Debug::SessionEnvironment::createDebugSessionTempDirectory()
+                                      : debugSessionDirectory;
         if (m_engine.getTemporaryFileManager().setTempDirectory(debugTempDir))
         {
             NS_LOG_INFO(app, "debug shell temp directory: " + debugTempDir.getFullPathName());
@@ -150,7 +152,8 @@ MainComponent::~MainComponent()
     m_edit = nullptr;
 
     saveSettings();
-    m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
+    if (!m_debugMode)
+        m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
     setLookAndFeel(nullptr);
 }
 

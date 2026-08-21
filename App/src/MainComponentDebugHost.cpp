@@ -1,5 +1,6 @@
 #include "MainComponentDebugHost.h"
 
+#include "AgentDebug.h"
 #include "DebugSessionEnvironment.h"
 #include "MainComponent.h"
 #include "Logging.h"
@@ -21,7 +22,7 @@ te::Edit *MainComponentDebugHost::getCurrentEdit() const { return m_mainComponen
 
 EditViewState *MainComponentDebugHost::getEditViewState() const { return m_mainComponent.m_editViewState.get(); }
 
-EditComponent *MainComponentDebugHost::getEditComponent() const { return m_mainComponent.m_editComponent.get(); }
+bool MainComponentDebugHost::hasEditComponent() const { return m_mainComponent.m_editComponent != nullptr; }
 
 bool MainComponentDebugHost::hasHeaderComponent() const { return m_mainComponent.m_header != nullptr; }
 
@@ -41,34 +42,40 @@ juce::File MainComponentDebugHost::getDebugArtifactsDirectory() const
     return SessionEnvironment::getDebugArtifactsDirectory(m_mainComponent.m_engine.getTemporaryFileManager().getTempDirectory());
 }
 
-bool MainComponentDebugHost::selectTrackByName(const juce::String &trackName)
+juce::File MainComponentDebugHost::writeStateDump() const
 {
-    if (m_mainComponent.m_editViewState == nullptr)
-        return false;
-
-    for (auto *track : te::getAllTracks(*m_mainComponent.m_edit))
-    {
-        if (track != nullptr && track->getName().equalsIgnoreCase(trackName.trim()))
-        {
-            m_mainComponent.m_selectionManager.selectOnly(track);
-            NS_LOG_INFO(selection, "agent selected track: " + track->getName());
-            return true;
-        }
-    }
-
-    NS_LOG_WARN(selection, "agent could not find track: " + trackName);
-    return false;
+    return NextStudio::AgentDebug::writeStateDump(*this);
 }
 
-void MainComponentDebugHost::switchLowerRangeView(LowerRangeView view)
+juce::File MainComponentDebugHost::captureSnapshot(int maxWidth) const
+{
+    return NextStudio::AgentDebug::captureSnapshot(*this, {}, maxWidth);
+}
+
+bool MainComponentDebugHost::play()
+{
+    if (m_mainComponent.m_editComponent == nullptr)
+        return false;
+    EngineHelpers::play(m_mainComponent.m_editComponent->getEditViewState());
+    return true;
+}
+
+bool MainComponentDebugHost::stop()
+{
+    if (m_mainComponent.m_editComponent == nullptr)
+        return false;
+    EngineHelpers::stopPlay(m_mainComponent.m_editComponent->getEditViewState());
+    return true;
+}
+
+te::AudioTrack *MainComponentDebugHost::createAudioTrack(bool midi, const juce::String &name)
 {
     if (m_mainComponent.m_editViewState == nullptr)
-        return;
-
-    m_mainComponent.m_editViewState->setLowerRangeView(view);
-    m_mainComponent.resized();
-    m_mainComponent.repaint();
-    NS_LOG_INFO(viewstate, "agent switched lower range view to " + NextStudio::Logging::toLogString(static_cast<int>(view)));
+        return nullptr;
+    auto track = EngineHelpers::addAudioTrack(midi, juce::Colour(0xff4f81bd), *m_mainComponent.m_editViewState);
+    if (track != nullptr)
+        track->setName(name);
+    return track;
 }
 
 void MainComponentDebugHost::requestQuit()
