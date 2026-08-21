@@ -178,9 +178,9 @@ Typical success shape:
 {
   "ok": true,
   "command": "ping",
-  "responseLine": "ok code=ok app=NextStudio version=0.01 mode=debug-shell",
+  "responseLine": "ok code=ok app=NextStudio version=0.04 mode=debug-shell",
   "newLines": [
-    "ok code=ok app=NextStudio version=0.01 mode=debug-shell"
+    "ok code=ok app=NextStudio version=0.04 mode=debug-shell"
   ]
 }
 ```
@@ -422,16 +422,19 @@ Each command is a single line.
 
 Current supported commands:
 
-- `help`
-- `ping`
-- `system-state`
-- `transport-state`
-- `state-dump`
-- `play`
-- `stop`
-- `screenshot`
-- `screenshot 800`
-- `quit`
+| Command | Argument | Success fields | Errors | Aliases |
+| --- | --- | --- | --- | --- |
+| `help` | currently ignored | `commands` | — | — |
+| `ping` | currently ignored | `app`, `version`, `mode` | — | — |
+| `system-state` | currently ignored | component readiness and transport summary | — | `system_state` |
+| `transport-state` | currently ignored | `playing`, `recording`, `looping`, `positionSeconds` | `not-ready` | `transport_state` |
+| `state-dump` | none | `path` | `invalid-argument`, `io-error` | `state_dump` |
+| `play` | currently ignored | `playing` | `not-ready` | — |
+| `stop` | currently ignored | `playing` | `not-ready` | — |
+| `screenshot` | optional positive integer `maxWidth`; default `640` | `path` | `invalid-argument` | — |
+| `quit` | currently ignored | `quitting` | — | `exit` |
+
+Unknown command names return `unknown-command`. Empty lines are ignored and do not produce a response. The fact that several commands currently ignore trailing arguments is existing behavior, not a compatibility guarantee.
 
 ### Response model
 
@@ -441,7 +444,7 @@ Typical responses:
 
 ```text
 ok code=ready message="debug shell started"
-ok code=ok app=NextStudio version=0.01 mode=debug-shell
+ok code=ok app=NextStudio version=0.04 mode=debug-shell
 ok code=ok debugMode=true currentEditAvailable=true editViewStateAvailable=true editComponentAvailable=true headerComponentAvailable=true lowerRangeComponentAvailable=true readyForPlayback=true transportPlaying=false transportRecording=false transportPositionSeconds=0.000
 ok code=ok playing=true recording=false looping=false positionSeconds=2.370
 ok code=ok path=/tmp/.../agent-debug/state-dump-....json
@@ -454,6 +457,8 @@ error code=unknown-command message="Unknown command. Try 'help'."
 ```
 
 The shell is intended to be machine-readable, not interactive in a human shell-like sense.
+
+The current response format is a custom space-separated key/value format. Values containing spaces, tabs, quotes, or equals signs are quoted. Only quotes are escaped reliably; backslashes and control characters do not have a complete round-trip specification yet. Consumers must therefore treat the format as provisional. Issue #35 tracks replacement or full specification of this protocol.
 
 ---
 
@@ -484,6 +489,10 @@ Typical location:
 - `/tmp/NextStudio/debug-shell/session-...`
 
 This session directory is temporary and should be treated as disposable.
+
+### Current settings boundary
+
+The Tracktion temporary directory, recovery data, state dumps, and screenshots are isolated in the session sandbox. The current implementation still constructs `ApplicationViewState` from the normal user `NextStudio/AppSettings.xml` and writes that file during shutdown. A debug-shell run can therefore currently read and modify global application settings. Issue #34 tracks isolation of this remaining user-state boundary.
 
 ---
 
@@ -593,9 +602,11 @@ This keeps image size and downstream token usage under control.
 
 ### Testing requirement
 
-A successful screenshot test is **not** just a successful command response.
+A complete screenshot test is **not** just a successful command response.
 
-The test must also inspect the produced PNG and confirm that it contains a plausible NextStudio UI capture:
+The current `smoke-transport` implementation copies the reported file and checks only that the copy exists. It does not yet validate PNG decoding, dimensions, non-empty content, or visual plausibility. Issue #32 tracks the missing production and regression checks.
+
+The intended complete test must inspect the produced PNG and confirm that it contains a plausible NextStudio UI capture:
 
 - the image file exists
 - the PNG is readable
@@ -626,6 +637,24 @@ Relevant categories commonly seen here include:
 For reliable agent control, logs should be kept separate from command responses whenever possible.
 
 ---
+
+## Build and validation
+
+From the repository root:
+
+```bash
+BUILD_JOBS=12 ./build.sh rd
+ctest --test-dir autobuild/RelWithDebInfo --output-on-failure
+node tools/debug-shell-client.js smoke-all
+```
+
+The C++ test suite currently contains no focused debug-system tests. The Node smoke suite is the maintained end-to-end validation path. CI builds Linux, Windows, and macOS, but does not yet run the debug-shell smoke suite. Issue #37 tracks those gaps.
+
+### Platform behavior
+
+- Linux and macOS use non-blocking `poll()` from the JUCE timer callback.
+- Windows currently uses `std::streambuf::in_avail()`. Redirected pipes and EOF are not guaranteed to behave reliably with this fallback; issue #33 tracks a dedicated blocking reader that hands commands to the JUCE message thread.
+- All command execution currently occurs on the JUCE message thread.
 
 ## Current Limitations
 
