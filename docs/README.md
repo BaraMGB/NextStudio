@@ -8,6 +8,32 @@ This directory contains the user and developer documentation for NextStudio.
 - [Piano roll](user/piano-roll.md) — selecting MIDI material, editing notes, tools, navigation, velocity, and shortcuts.
 - [Peak Limiter](user/peak-limiter.md) — controls, metering, suggested settings, and limitations.
 
+## UI documentation
+
+- [Header Bar](ui/header-bar.md) — transport controls, time display, global switches, automation controls, pre-roll counter.
+- [Side Browser](ui/side-browser.md) — projects, instruments, effects, samples, home, settings, render, sample preview.
+- [Song Editor](ui/song-editor.md) — track list, arrangement area, toolbar, clip properties bar, footer bar, navigation.
+- [Mixer](ui/mixer.md) — channel strips, master channel, level meters, navigation.
+- [Track Chain](ui/track-chain.md) — modifier stack, plugin chain sections, channel strip, MIDI learn, automation lanes.
+- [Keyboard Shortcuts](ui/shortcuts.md) — transport, global editing, song editor, track list, MIDI editor, virtual MIDI keyboard.
+
+## Plugin documentation
+
+- [Arpeggiator](plugins/arpeggiator.md) — MIDI arpeggiator with mode, rate, octave, and gate controls.
+- [SoundFont Player](plugins/soundfont-player.md) — `.sf2` sample player using TinySoundFont engine.
+- [Simple Synth](plugins/simple-synth.md) — two-oscillator subtractive synthesizer with unison, filter, and mono/portamento.
+- [Drum Sampler](plugins/drum-sampler.md) — 16-pad drum sampler with drag & drop and sound editor.
+- [Volume & Pan](plugins/volume-pan.md) — utility volume and pan control.
+- [Spectrum Analyzer](plugins/spectrum-analyzer.md) — real-time FFT frequency analyzer (pass-through).
+- [EQ](plugins/eq.md) — 4-band parametric equalizer with interactive frequency response graph.
+- [Compressor](plugins/compressor.md) — dynamic compressor with sidechain support and transfer curve.
+- [Filter](plugins/filter.md) — state-variable filter with lowpass/highpass and selectable slope.
+- [Delay](plugins/delay.md) — versatile delay with sync, multiple modes, and feedback filters.
+- [Reverb](plugins/reverb.md) — algorithmic reverb based on JUCE reverb engine.
+- [Chorus](plugins/chorus.md) — stereo chorus with modulated delay line.
+- [Phaser](plugins/phaser.md) — stereo phaser with adjustable feedback and sweep graph.
+- [Saturation](plugins/saturation.md) — saturation/distortion with multiple modes, oversampling, and tone filter.
+
 ## Component documentation
 
 - [Piano Roll Editor](components/piano-roll-editor.md) — component hierarchy, data model, coordinate conversion, rendering, hit testing, tool architecture, and note-editing operations.
