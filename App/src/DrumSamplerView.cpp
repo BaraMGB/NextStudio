@@ -7,12 +7,12 @@ DrumSamplerView::DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler)
       m_drumPadComponent(sampler, evs.m_applicationState),
       m_soundEditorPanel(sampler, sampler.edit, evs.m_applicationState)
 {
-    GUIHelpers::log("DrumSamplerView: constructor");
+    NS_LOG_DEBUG(plugins, "DrumSamplerView constructed");
 
     // Ensure the sampler has the expected 16 sounds if it's currently empty
     if (m_sampler.getNumSounds() == 0)
     {
-        GUIHelpers::log("DrumSamplerView: Sampler is empty, applying factory default state.");
+        NS_LOG_INFO(plugins, "drum sampler empty; applying factory default state");
         restorePluginState(getFactoryDefaultState());
     }
 
@@ -44,7 +44,7 @@ DrumSamplerView::DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler)
     }
 }
 
-DrumSamplerView::~DrumSamplerView() { GUIHelpers::log("DrumSamplerView: destructor"); }
+DrumSamplerView::~DrumSamplerView() { NS_LOG_DEBUG(plugins, "DrumSamplerView destroyed"); }
 
 void DrumSamplerView::paint(juce::Graphics &g) { g.fillAll(m_editViewState.m_applicationState.getBackgroundColour1().darker()); }
 

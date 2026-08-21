@@ -27,7 +27,7 @@ SoundEditorPanel::SoundEditorPanel(te::SamplerPlugin &plugin, te::Edit &edit, Ap
       m_appViewState(appViewState),
       m_samplerPlugin(plugin)
 {
-    GUIHelpers::log("SoundEditorPanel: constructor");
+    NS_LOG_DEBUG(plugins, "SoundEditorPanel constructed");
 
     // Create gain slider with range -48.0 to 48.0
     gainValue.setValue(-48.0);
@@ -70,7 +70,7 @@ SoundEditorPanel::SoundEditorPanel(te::SamplerPlugin &plugin, te::Edit &edit, Ap
 
 SoundEditorPanel::~SoundEditorPanel()
 {
-    GUIHelpers::log("SoundEditorPanel: destructor");
+    NS_LOG_DEBUG(plugins, "SoundEditorPanel destroyed");
     gainValue.removeListener(this);
     panValue.removeListener(this);
     openEndedButton.removeListener(this);

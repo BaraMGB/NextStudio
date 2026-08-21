@@ -262,14 +262,14 @@ void PresetManagerComponent::applyPresetFile(const juce::File &presetFile)
     {
         if (!xml->hasTagName("PLUGIN"))
         {
-            GUIHelpers::log("PresetManagerComponent: Root element is not <PLUGIN> in " + presetFile.getFileName());
+            NS_LOG_WARN(plugins, "preset rejected: root element is not <PLUGIN> in " + presetFile.getFileName());
             return;
         }
 
         auto presetState = juce::ValueTree::fromXml(*xml);
         if (!m_pluginInterface.applyPresetState(presetState))
         {
-            GUIHelpers::log("PresetManagerComponent: Preset type mismatch or invalid format in " + presetFile.getFileName());
+            NS_LOG_WARN(plugins, "preset rejected: type mismatch or invalid format in " + presetFile.getFileName());
             return;
         }
 
@@ -279,7 +279,7 @@ void PresetManagerComponent::applyPresetFile(const juce::File &presetFile)
         return;
     }
 
-    GUIHelpers::log("PresetManagerComponent: Failed to parse XML in " + presetFile.getFullPathName());
+    NS_LOG_ERROR(plugins, "failed to parse preset XML: " + presetFile.getFullPathName());
 }
 
 juce::Array<juce::File> PresetManagerComponent::getAvailablePresetFiles()

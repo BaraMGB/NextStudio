@@ -487,7 +487,7 @@ TrackHeaderComponent::TrackHeaderComponent(EditViewState &evs, te::Track::Ptr t)
             m_volumeKnob->setSkewFactorFromMidPoint(1.0f);
             m_volumeKnob->setSliderStyle(juce::Slider::RotaryVerticalDrag);
             m_volumeKnob->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, false);
-            GUIHelpers::log("Master header: volume knob created");
+            NS_LOG_DEBUG(ui, "master track header volume knob created");
         }
     }
 
@@ -671,7 +671,7 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     {
         if (auto aut = dynamic_cast<te::AudioTrack *>(m_track.get()))
         {
-            GUIHelpers::log("TrackHeadComponent.cpp : enable input");
+            NS_LOG_INFO(ui, "toggling input monitoring for track: " + m_track->getName());
             bool ticked = EngineHelpers::isInputMonitoringEnabled(*aut);
             EngineHelpers::enableInputMonitoring(*aut, !ticked);
         }

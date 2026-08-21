@@ -33,6 +33,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "MainComponent.h"
 #include "ApplicationViewState.h"
+#include "Logging.h"
 
 //==============================================================================
 class NextStudioApplication : public juce::JUCEApplication
@@ -48,7 +49,7 @@ public:
     //==============================================================================
     void initialise(const juce::String & /*commandLine*/) override
     {
-        juce::Logger::writeToLog("Welcome to " + getApplicationName() + " v" + getApplicationVersion());
+        NS_LOG_INFO(app, "Welcome to " + getApplicationName() + " v" + getApplicationVersion());
         mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState));
     }
 

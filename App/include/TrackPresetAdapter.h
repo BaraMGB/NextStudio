@@ -419,7 +419,7 @@ protected:
             auto tempPlugin = m_track.edit.engine.getPluginManager().createNewPlugin(m_track.edit, stateCopy);
             if (tempPlugin == nullptr)
             {
-                GUIHelpers::log("TrackPresetAdapter: Failed to create plugin from preset state for track '" + m_track.getName() + "'.");
+                NS_LOG_ERROR(plugins, "failed to create plugin from preset state for track '" + m_track.getName() + "'");
                 return false;
             }
 
@@ -527,7 +527,7 @@ protected:
         std::vector<PreparedPluginState> prepared;
         if (!collectPreparedPluginStates(state, prepared) || !validator(prepared))
         {
-            GUIHelpers::log(context + ": Rejected incompatible track preset for track '" + getTrack().getName() + "'.");
+            NS_LOG_WARN(plugins, context + ": rejected incompatible track preset for track '" + getTrack().getName() + "'");
             return false;
         }
 

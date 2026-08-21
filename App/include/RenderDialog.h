@@ -301,18 +301,18 @@ private:
     {
         if (button == &m_startButton)
         {
-            GUIHelpers::log(getRenderFile().getFullPathName());
+            NS_LOG_INFO(filesystem, "render requested: " + getRenderFile().getFullPathName());
             if (getRenderFile().isDirectory())
             {
-                GUIHelpers::log("no file choosen!");
+                NS_LOG_WARN(filesystem, "render aborted: no output file selected");
                 return;
             }
             if (getRenderFile().existsAsFile())
             {
-                GUIHelpers::log("an existing file is choosen");
+                NS_LOG_WARN(filesystem, "render aborted: output file already exists");
                 return;
             }
-            GUIHelpers::log("this is a new created file");
+            NS_LOG_DEBUG(filesystem, "render output path is new and writable candidate");
             EngineHelpers::renderEditToFile(m_evs, getRenderFile(), getTimeRange());
         }
     }

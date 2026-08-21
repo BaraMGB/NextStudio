@@ -122,7 +122,7 @@ public:
         int index = getIndexAtPosition(e.getPosition());
         if (index >= 0 && index < (int)m_colours.size())
         {
-            std::cout << "FARBINEDX: " << index << std::endl;
+            NS_LOG_DEBUG(ui, "track colour selected: index=" + juce::String(index));
             m_track->setColour(m_colours[index]);
             m_selectedIndex = index;
             getParentComponent()->exitModalState(3000 + index);

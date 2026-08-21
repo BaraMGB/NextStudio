@@ -375,8 +375,7 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 
 bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
-
-    GUIHelpers::log("MainComponent::perform() (ApplicationCommandTarget)");
+    NS_LOG_DEBUG(workflow, "command invoked: id=" + juce::String(static_cast<int>(info.commandID)));
     int rootNote = 48;
     switch (info.commandID)
     {
@@ -385,7 +384,7 @@ bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
 
         if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
         {
-            GUIHelpers::log("NAME: ", virMidiIn->getName());
+            NS_LOG_DEBUG(engine, "virtual MIDI note-on routed to device=" + virMidiIn->getName());
             virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
             m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
         }
@@ -521,7 +520,7 @@ bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         EngineHelpers::stopPlay(m_editComponent->getEditViewState());
         break;
     case KeyPressCommandIDs::toggleRecord:
-        std::cout << "toggleRecord" << std::endl;
+        NS_LOG_INFO(transport, "toggle record requested");
         EngineHelpers::toggleRecord(m_editComponent->getEditViewState());
         break;
     case KeyPressCommandIDs::loopToggle:
@@ -547,10 +546,8 @@ bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         break;
     case KeyPressCommandIDs::debugOutputEdit:
     {
-        std::cout << "DEBUG EDIT: " << juce::Time::getCurrentTime().toString(true, true, true, true) << std::endl;
-        std::cout << "=================================================================================" << std::endl;
         auto editString = m_edit->state.toXmlString();
-        std::cout << editString << std::endl;
+        NS_LOG_DEBUG(edit, "edit state dump requested\n" + editString);
 
         break;
     }
@@ -645,7 +642,7 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
     {
         if (m_editViewState->m_applicationState.m_exclusiveMidiFocusEnabled)
         {
-            GUIHelpers::log("MainComponent: selectionManager changed, calling setMidiInputFocusToSelection.");
+            NS_LOG_DEBUG(selection, "selection changed; updating exclusive MIDI focus");
             EngineHelpers::setMidiInputFocusToSelection(*m_editViewState);
         }
     }
@@ -659,7 +656,7 @@ void MainComponent::openValidStartEdit()
     auto f = Helpers::findRecentEdit(m_tempDir);
     if (f.existsAsFile())
     {
-        GUIHelpers::log("MainComponent: found Temp file:" + f.getFullPathName());
+        NS_LOG_WARN(autosave, "recovery file found: " + f.getFullPathName());
         auto result = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon, "Restore crashed project?", "It seems, NextStudio is crashed last time. Do you want to restore the last session?", "Yes", "No");
         if (result)
         {

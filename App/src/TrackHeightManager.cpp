@@ -305,7 +305,7 @@ void TrackHeightManager::setAutomationHeight(const tracktion_engine::Automatable
 
     trackInfo->automationParameterHeights[ap] = height;
 
-    GUIHelpers::log("ParameterHeight set to: ", height);
+    NS_LOG_DEBUG(viewstate, "automation parameter height set: " + juce::String(height));
     triggerFlashState();
 }
 tracktion::Track::Ptr TrackHeightManager::getTrackFromID(tracktion_engine::Edit &edit, const tracktion_engine::EditItemID &id)
@@ -355,7 +355,7 @@ tracktion_engine::AutomatableParameter::Ptr TrackHeightManager::findAutomatableP
 
 void TrackHeightManager::flashStateFromTrackInfos()
 {
-    GUIHelpers::log("Update State from TrackInfos");
+    NS_LOG_DEBUG(viewstate, "flushing track height state from cached track infos");
     // Sort TrackInfos by hierarchy depth so parent folders are processed first
     TrackHeightInfoComparator comparator;
     trackInfos.sort(comparator);
@@ -388,7 +388,7 @@ void TrackHeightManager::flashStateFromTrackInfos()
         {
             if (ap)
             {
-                GUIHelpers::log("SAVE HEIGHT TO STATE/  HEIGHT: ", height);
+                NS_LOG_DEBUG(viewstate, "saving automation lane height to state: " + juce::String(height));
                 if ((int)ap->getCurve().state.getProperty(tracktion_engine::IDs::height, height) != height)
                     ap->getCurve().state.setProperty(tracktion_engine::IDs::height, height, nullptr);
             }
@@ -412,7 +412,7 @@ void TrackHeightManager::setTrackHeight(tracktion_engine::Track *track, int heig
 void TrackHeightManager::triggerFlashState()
 {
     sendChangeMessage();
-    GUIHelpers::log("TrackHeightManager: flash state triggered");
+    NS_LOG_DEBUG(viewstate, "track height state flush scheduled");
     pendingFlashState = true;
     startTimer(100);
 }
@@ -420,10 +420,10 @@ void TrackHeightManager::timerCallback()
 {
     stopTimer();
 
-    GUIHelpers::log("TrackHeightManager: timer callback");
+    NS_LOG_DEBUG(viewstate, "track height flush timer fired");
     if (pendingFlashState)
     {
-        GUIHelpers::log("TrackHeightManager: pending state: true");
+        NS_LOG_DEBUG(viewstate, "pending track height state detected; flushing now");
         flashStateFromTrackInfos();
         pendingFlashState = false;
     }
@@ -442,7 +442,7 @@ int TrackHeightManager::calculateHierarchyDepth(tracktion_engine::Track *track)
 
 void TrackHeightManager::regenerateTrackHeightsFromStates(const juce::Array<tracktion_engine::Track *> &allTracks)
 {
-    GUIHelpers::log("Update TrackInfo from State");
+    NS_LOG_DEBUG(viewstate, "rebuilding track height cache from edit state");
 
     trackInfos.clear();
 

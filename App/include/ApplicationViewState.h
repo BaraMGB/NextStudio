@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "Logging.h"
 #include "juce_graphics/juce_graphics.h"
 
 namespace IDs
@@ -336,11 +337,11 @@ public:
         auto xmlToWrite = m_applicationStateValueTree.createXml();
         if (xmlToWrite->writeTo(settingsFile))
         {
-            std::cout << "settings written to: " + settingsFile.getFullPathName() << std::endl;
+            NS_LOG_INFO(project, "settings written: " + settingsFile.getFullPathName());
         }
         else
         {
-            std::cout << "couldn't write to: " + settingsFile.getFullPathName() << std::endl;
+            NS_LOG_ERROR(project, "failed to write settings: " + settingsFile.getFullPathName());
         }
     }
 

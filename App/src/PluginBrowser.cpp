@@ -265,7 +265,7 @@ void PluginSettings::changeListenerCallback(juce::ChangeBroadcaster *source)
     }
     else if (dynamic_cast<juce::KnownPluginList *>(source))
     {
-        GUIHelpers::log("Liste changed");
+        NS_LOG_DEBUG(plugins, "known plugin list changed; refreshing browser");
         m_listbox.updateContent();
 
         if (isShowing())

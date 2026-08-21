@@ -143,7 +143,7 @@ void SampleBrowserComponent::previewSampleFile(const juce::File &file)
 
 void SampleBrowserComponent::sortList(int selectedID)
 {
-    GUIHelpers::log("SELECTED ID: ", selectedID);
+    NS_LOG_DEBUG(filesystem, "sample browser sort mode selected: id=" + juce::String(selectedID));
     juce::Array<juce::File> fileList;
 
     for (auto f : m_contentList)

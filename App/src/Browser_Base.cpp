@@ -33,7 +33,7 @@ PathComponent::PathComponent(juce::File dir, ApplicationViewState &appState)
     addAndMakeVisible(m_button);
     m_button.onClick = [this]
     {
-        GUIHelpers::log("button");
+        NS_LOG_DEBUG(ui, "browser path up button pressed");
         setDir(m_currentPath.getParentDirectory());
     };
     m_currentPathField.setColour(juce::TextEditor::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());

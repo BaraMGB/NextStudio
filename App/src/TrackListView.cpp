@@ -234,12 +234,12 @@ void TrackListView::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 bool TrackListView::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
 
-    GUIHelpers::log("TrackListView perform");
+    NS_LOG_DEBUG(workflow, "TrackListView command invoked: id=" + juce::String(static_cast<int>(info.commandID)));
     switch (info.commandID)
     {
     case KeyPressCommandIDs::deleteSelectedTracks:
     {
-        GUIHelpers::log("deleteSelectedTracks");
+        NS_LOG_INFO(edit, "deleting selected tracks from TrackListView");
 
         for (auto t : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
         {

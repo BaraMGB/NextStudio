@@ -73,12 +73,12 @@ bool tryLoadInitPreset(PluginPresetInterface &interface)
             }
             else
             {
-                GUIHelpers::log("Error loading init preset: Type mismatch. Expected " + interface.getPluginTypeName());
+                NS_LOG_WARN(plugins, "init preset type mismatch; expected " + interface.getPluginTypeName());
             }
         }
         else
         {
-            GUIHelpers::log("Error parsing init preset XML for " + interface.getPluginTypeName());
+            NS_LOG_ERROR(plugins, "failed to parse init preset XML for " + interface.getPluginTypeName());
         }
     }
     return false;

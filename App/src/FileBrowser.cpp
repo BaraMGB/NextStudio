@@ -126,7 +126,7 @@ void FileBrowserComponent::setDirecory(const juce::File &dir)
 {
     if (dir.exists() && dir.isDirectory())
     {
-        GUIHelpers::log("FileBrowserComponent::setDirecory(): ");
+        NS_LOG_INFO(filesystem, "file browser directory set: " + dir.getFullPathName());
         m_currentPathField.setDir(dir);
         setFileList(dir.findChildFiles(juce::File::TypesOfFileToFind::findFilesAndDirectories, false));
     }
@@ -201,7 +201,7 @@ void FileBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *sourc
     BrowserBaseComponent::changeListenerCallback(source);
     if (source == &m_currentPathField)
     {
-        GUIHelpers::log("FileBrowserComponent::setDir()");
+        NS_LOG_DEBUG(filesystem, "file browser path field changed");
         setDirecory(m_currentPathField.getCurrentPath());
     }
 }

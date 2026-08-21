@@ -164,7 +164,7 @@ private:
                                     auto newStartBeat = tracktion::BeatPosition::fromBeats(clipStartBeat);
                                     auto newLength = note->getEndBeat() - newStartBeat;
                                     note->setStartAndLength(newStartBeat, newLength, &um);
-                                    GUIHelpers::log("Attention: note start corrected!");
+                                    NS_LOG_WARN(edit, "corrected MIDI note start before clip boundary");
                                 }
                             }
                         }

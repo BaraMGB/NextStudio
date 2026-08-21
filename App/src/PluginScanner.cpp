@@ -182,7 +182,7 @@ void PluginScanner::startScan()
     }
     else if (m_propertiesToUse != nullptr)
     {
-        GUIHelpers::log("setLastSearchPath");
+        NS_LOG_DEBUG(plugins, "persisting last plugin scan path");
         setLastSearchPath(*m_propertiesToUse, m_formatToScan, m_pathList.getPath());
         m_propertiesToUse->saveIfNeeded();
     }

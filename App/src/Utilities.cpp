@@ -53,11 +53,11 @@ juce::String Helpers::getStringOrDefault(const juce::String &stringToTest, const
 
 juce::File Helpers::findRecentEdit(const juce::File &dir)
 {
-    GUIHelpers::log("Utilities: search for temp file: " + dir.getFullPathName());
+    NS_LOG_DEBUG(filesystem, "searching for temp edit in: " + dir.getFullPathName());
     auto files = dir.findChildFiles(juce::File::findFiles, false, "*.nextTemp");
     if (files.size() > 0)
     {
-        GUIHelpers::log("Utilities: found at least 1 File");
+        NS_LOG_DEBUG(filesystem, "found temp edit candidates");
         files.sort();
         return files.getLast();
     }
@@ -1188,12 +1188,12 @@ void EngineHelpers::renderEditToFile(EditViewState &evs, juce::File renderFile, 
 {
     if (!renderFile.create())
     {
-        juce::Logger::writeToLog("Error: Could not create file. Check permissions.");
+        NS_LOG_ERROR(filesystem, "could not create render file: check permissions for " + renderFile.getFullPathName());
         return;
     }
     else
     {
-        GUIHelpers::log("File exists");
+        NS_LOG_DEBUG(filesystem, "render file prepared: " + renderFile.getFullPathName());
     }
 
     if (range == tracktion::TimeRange{})
@@ -1201,7 +1201,7 @@ void EngineHelpers::renderEditToFile(EditViewState &evs, juce::File renderFile, 
 
     if (te::getAudioTracks(evs.m_edit).size() == 0)
     {
-        juce::Logger::writeToLog("Error: The edit contains no tracks.");
+        NS_LOG_WARN(edit, "render aborted: edit contains no audio tracks");
         return;
     }
 
@@ -1210,7 +1210,7 @@ void EngineHelpers::renderEditToFile(EditViewState &evs, juce::File renderFile, 
     if (tracksToDo.isZero())
     {
         if (!writeSilentRenderFile(renderFile, range, evs.m_edit.engine))
-            juce::Logger::writeToLog("Error: Could not create silent render file.");
+            NS_LOG_ERROR(filesystem, "could not create silent render file: " + renderFile.getFullPathName());
 
         return;
     }
@@ -1350,7 +1350,7 @@ void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)
 
     if (contextReallocNeeded)
     {
-        GUIHelpers::log("Utilities: setMidiInputFocusToSelection - Targets updated, restarting playback.");
+        NS_LOG_INFO(selection, "MIDI input targets updated from selection; restarting playback");
         evs.m_edit.restartPlayback();
     }
 }
@@ -1363,7 +1363,7 @@ te::MidiInputDevice *EngineHelpers::getVirtualMidiInputDevice(te::Edit &edit)
 
     for (const auto instance : edit.getAllInputDevices())
     {
-        DBG(instance->getInputDevice().getName());
+        NS_LOG_DEBUG(engine, "available MIDI input device: " + instance->getInputDevice().getName());
 
         if (instance->getInputDevice().getDeviceType() == te::InputDevice::virtualMidiDevice && instance->getInputDevice().getName() == name)
             return dynamic_cast<te::MidiInputDevice *>(&instance->getInputDevice());
@@ -2183,7 +2183,7 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileToTrack(EditVie
     auto newClip = te::WaveAudioClip::Ptr(dynamic_cast<te::WaveAudioClip *>(result.clips.getFirst().get()));
     if (newClip != nullptr)
     {
-        GUIHelpers::log("loading : " + file.getFullPathName());
+        NS_LOG_INFO(filesystem, "loading audio file to track: " + file.getFullPathName());
         newClip->setAutoTempo(false);
         newClip->setAutoPitch(false);
     }
@@ -2223,7 +2223,7 @@ void EngineHelpers::refreshRelativePathsToNewEditFile(EditViewState &evs, const 
 
 void EngineHelpers::play(EditViewState &evs)
 {
-    GUIHelpers::log("play");
+    NS_LOG_INFO(transport, "play requested");
     auto &transport = evs.m_edit.getTransport();
 
     if (transport.isPlaying())
@@ -2247,13 +2247,13 @@ void EngineHelpers::stopPlay(EditViewState &evs)
         transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
         evs.setNewStartAndZoom("SongEditor", 0.0);
         transport.stop(false, true);
-        GUIHelpers::log("EngineHelpers::stopPlay: stop and Device cleared.");
+        NS_LOG_INFO(transport, "playback stopped and preview device cleared");
     }
     else
     {
         transport.stop(false, false);
         transport.setPosition(tracktion::TimePosition::fromSeconds(static_cast<double>(evs.m_playHeadStartTime)));
-        GUIHelpers::log("EngineHelpers::stopPlay: stop.");
+        NS_LOG_INFO(transport, "playback stopped");
     }
 }
 void EngineHelpers::togglePlay(EditViewState &evs)
@@ -2345,7 +2345,7 @@ void EngineHelpers::toggleSnap(EditViewState &evs)
 
 void EngineHelpers::toggleMetronome(te::Edit &edit)
 {
-    GUIHelpers::log("toggle metronome");
+    NS_LOG_INFO(transport, "toggle metronome requested");
     edit.clickTrackEnabled = !edit.clickTrackEnabled;
 }
 
@@ -2378,7 +2378,7 @@ void EngineHelpers::armTrack(te::AudioTrack &t, bool arm, int position)
     {
         if (te::isOnTargetTrack(*instance, t, position))
         {
-            GUIHelpers::log("Utilities.cpp: arm Track");
+            NS_LOG_INFO(edit, "arming selected MIDI track for recording");
             instance->setRecordingEnabled(t.itemID, arm);
         }
     }
