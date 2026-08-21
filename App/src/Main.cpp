@@ -31,6 +31,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "DebugLaunchDiagnostics.h"
+#include "DebugSessionEnvironment.h"
+#include "DebugShell.h"
+#include "MainComponentDebugHost.h"
 #include "MainComponent.h"
 #include "ApplicationViewState.h"
 #include "Logging.h"
@@ -39,21 +43,85 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 class NextStudioApplication : public juce::JUCEApplication
 {
 public:
+    struct LaunchOptions
+    {
+        bool debugShell{false};
+        juce::String debugShellRequestId;
+    };
+
     //==============================================================================
     NextStudioApplication() {}
 
     const juce::String getApplicationName() override { return ProjectInfo::projectName; }
     const juce::String getApplicationVersion() override { return ProjectInfo::versionString; }
-    bool moreThanOneInstanceAllowed() override { return false; }
-
-    //==============================================================================
-    void initialise(const juce::String & /*commandLine*/) override
+    bool moreThanOneInstanceAllowed() override
     {
-        NS_LOG_INFO(app, "Welcome to " + getApplicationName() + " v" + getApplicationVersion());
-        mainWindow.reset(new MainWindow(getApplicationName(), m_applicationState));
+        m_launchOptions = parseLaunchOptions(getCommandLineParameters());
+        return false;
     }
 
-    void shutdown() override { mainWindow = nullptr; }
+    //==============================================================================
+    void initialise(const juce::String &commandLine) override
+    {
+        m_initialiseEntered = true;
+        m_launchOptions = parseLaunchOptions(commandLine);
+        NS_LOG_INFO(app, "Welcome to " + getApplicationName() + " v" + getApplicationVersion());
+
+        if (m_launchOptions.debugShell)
+        {
+            m_debugSessionDirectory = NextStudio::Debug::SessionEnvironment::createDebugSessionTempDirectory();
+            if (m_debugSessionDirectory == juce::File())
+            {
+                NS_LOG_ERROR(app, "failed to create debug-shell session directory");
+                quit();
+                return;
+            }
+
+            const auto workspace = m_debugSessionDirectory.getChildFile("workspace");
+            workspace.createDirectory();
+            m_applicationState = std::make_unique<ApplicationViewState>(m_debugSessionDirectory.getChildFile("settings/AppSettings.xml"));
+            m_applicationState->setRootFolder(workspace);
+            m_applicationState->m_setupComplete = true;
+            m_applicationState->saveState();
+        }
+        else
+        {
+            m_applicationState = std::make_unique<ApplicationViewState>();
+        }
+
+        mainWindow.reset(new MainWindow(getApplicationName(), *m_applicationState, m_launchOptions.debugShell, m_debugSessionDirectory));
+
+        if (m_launchOptions.debugShell)
+        {
+            if (auto *mainComponent = mainWindow->getMainComponent())
+            {
+                m_debugHost = std::make_unique<NextStudio::Debug::MainComponentDebugHost>(*mainComponent);
+                m_debugShell = std::make_unique<NextStudio::Debug::DebugShell>(*m_debugHost);
+                m_debugShell->start();
+            }
+            else
+            {
+                NS_LOG_ERROR(app, "debug shell requested but MainComponent is unavailable");
+            }
+        }
+    }
+
+    void shutdown() override
+    {
+        if (!m_initialiseEntered && m_launchOptions.debugShell && m_launchOptions.debugShellRequestId.isNotEmpty())
+            NextStudio::Debug::LaunchDiagnostics::recordDebugShellSingleInstanceRejection(getCommandLineParameters(), m_launchOptions.debugShellRequestId);
+
+        m_debugShell = nullptr;
+        m_debugHost = nullptr;
+        mainWindow = nullptr;
+        m_applicationState = nullptr;
+
+        if (m_debugSessionDirectory != juce::File())
+        {
+            m_debugSessionDirectory.deleteRecursively();
+            m_debugSessionDirectory = juce::File();
+        }
+    }
 
     void systemRequestedQuit() override
     {
@@ -67,14 +135,38 @@ public:
         quit();
     }
 
-    void anotherInstanceStarted(const juce::String & /*commandLine*/) override {}
+    void anotherInstanceStarted(const juce::String &commandLine) override
+    {
+        if (parseLaunchOptions(commandLine).debugShell)
+            NS_LOG_WARN(app, "debug shell launch rejected because another NextStudio instance is already running");
+    }
+
+    static LaunchOptions parseLaunchOptions(const juce::String &commandLine)
+    {
+        LaunchOptions options;
+        auto args = juce::StringArray::fromTokens(commandLine, true);
+        args.trim();
+        args.removeEmptyStrings();
+
+        for (const auto &arg : args)
+        {
+            if (arg == "--debug-shell")
+                options.debugShell = true;
+            else if (arg.startsWith("--debug-shell-request-id="))
+                options.debugShellRequestId = arg.fromFirstOccurrenceOf("=", false, false).trim();
+        }
+
+        return options;
+    }
 
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        MainWindow(juce::String name, ApplicationViewState &applicationSettings)
+        MainWindow(juce::String name, ApplicationViewState &applicationSettings, bool debugShellEnabled, const juce::File &debugSessionDirectory)
             : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons),
-              m_applicationState(applicationSettings)
+              m_applicationState(applicationSettings),
+              m_debugShellEnabled(debugShellEnabled),
+              m_debugSessionDirectory(debugSessionDirectory)
         {
             setUsingNativeTitleBar(true);
 
@@ -85,25 +177,40 @@ public:
             setBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             setResizable(true, true);
 #endif
-            auto mc = new MainComponent(m_applicationState);
+            auto mc = new MainComponent(m_applicationState, m_debugShellEnabled, m_debugSessionDirectory);
             mc->setSize(m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             setContentOwned(mc, true);
             setVisible(true);
         }
 
+        MainComponent *getMainComponent() const
+        {
+            return dynamic_cast<MainComponent *>(getContentComponent());
+        }
+
         void closeButtonPressed() override
         {
-            JUCEApplication::getInstance()->systemRequestedQuit();
+            if (m_debugShellEnabled)
+                JUCEApplication::getInstance()->quit();
+            else
+                JUCEApplication::getInstance()->systemRequestedQuit();
         }
 
     private:
         ApplicationViewState &m_applicationState;
+        bool m_debugShellEnabled{false};
+        juce::File m_debugSessionDirectory;
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
     };
 
 private:
-    ApplicationViewState m_applicationState;
+    std::unique_ptr<ApplicationViewState> m_applicationState;
+    juce::File m_debugSessionDirectory;
+    LaunchOptions m_launchOptions;
+    bool m_initialiseEntered{false};
     std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<NextStudio::Debug::DebugHost> m_debugHost;
+    std::unique_ptr<NextStudio::Debug::DebugShell> m_debugShell;
 };
 
 //==============================================================================

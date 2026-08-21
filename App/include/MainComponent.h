@@ -44,6 +44,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
+namespace NextStudio::Debug
+{
+class MainComponentDebugHost;
+}
 
 class EditorContainer : public juce::Component
 {
@@ -77,7 +81,7 @@ class MainComponent
     , private FlaggedAsyncUpdater
 {
 public:
-    explicit MainComponent(ApplicationViewState &state);
+    explicit MainComponent(ApplicationViewState &state, bool debugMode = false, const juce::File &debugSessionDirectory = {});
     ~MainComponent() override;
 
     void paint(juce::Graphics &g) override;
@@ -149,6 +153,7 @@ private:
     SplitterComponent m_sidebarSplitter;
 
     [[maybe_unused]] bool m_settingsLoaded{false};
+    bool m_debugMode{false};
     bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp{true};
 
@@ -157,5 +162,7 @@ private:
     juce::File m_tempDir;
     juce::Array<juce::KeyPress> m_pressedKeysForMidiKeyboard;
     juce::TooltipWindow tooltipWindow{this, 500};
+
+    friend class NextStudio::Debug::MainComponentDebugHost;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -114,12 +114,16 @@ struct Favorite
 class ApplicationViewState
 {
 public:
-    ApplicationViewState()
-
+    static juce::File getDefaultSettingsFile()
     {
-        auto settingsFile = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("NextStudio/AppSettings.xml");
-        settingsFile.create();
-        juce::XmlDocument xmlDoc(settingsFile);
+        return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+            .getChildFile("NextStudio/AppSettings.xml");
+    }
+
+    explicit ApplicationViewState(const juce::File &settingsFile = {})
+        : m_settingsFile(settingsFile == juce::File() ? getDefaultSettingsFile() : settingsFile)
+    {
+        juce::XmlDocument xmlDoc(m_settingsFile);
         auto xmlToRead = xmlDoc.getDocumentElement();
         if (xmlToRead)
         {
@@ -215,6 +219,8 @@ public:
         behavior.setProperty(IDs::ScrollbarThickness, juce::var(m_scrollbarThickness), nullptr);
     }
     ~ApplicationViewState() { saveState(); }
+
+    const juce::File &getSettingsFile() const noexcept { return m_settingsFile; }
 
     juce::Colour getBorderColour() { return juce::Colour::fromString(juce::String(m_borderColour)); }
     juce::Colour getPrimeColour() { return juce::Colour::fromString(juce::String(m_primeColour)); }
@@ -332,16 +338,20 @@ public:
 
         auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName(IDs::FileBrowser, nullptr);
 
-        auto settingsFile = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("NextStudio/AppSettings.xml");
-        settingsFile.create();
-        auto xmlToWrite = m_applicationStateValueTree.createXml();
-        if (xmlToWrite->writeTo(settingsFile))
+        if (m_settingsFile.getParentDirectory().createDirectory().failed())
         {
-            NS_LOG_INFO(project, "settings written: " + settingsFile.getFullPathName());
+            NS_LOG_ERROR(project, "failed to create settings directory: " + m_settingsFile.getParentDirectory().getFullPathName());
+            return;
+        }
+
+        auto xmlToWrite = m_applicationStateValueTree.createXml();
+        if (xmlToWrite->writeTo(m_settingsFile))
+        {
+            NS_LOG_INFO(project, "settings written: " + m_settingsFile.getFullPathName());
         }
         else
         {
-            NS_LOG_ERROR(project, "failed to write settings: " + settingsFile.getFullPathName());
+            NS_LOG_ERROR(project, "failed to write settings: " + m_settingsFile.getFullPathName());
         }
     }
 
@@ -416,6 +426,7 @@ public:
         return file;
     }
 
+    juce::File m_settingsFile;
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;
     juce::Array<juce::Colour> m_trackColours{juce::Colour(0xff1dd13d), juce::Colour(0xff008CDC), juce::Colour(0xffFFAD00), juce::Colour(0xffFF3E5A), juce::Colour(0xffC766FF), juce::Colour(0xff356800), juce::Colour(0xff054D77), juce::Colour(0xff9A6C0B), juce::Colour(0xff862835), juce::Colour(0xff5A1582), juce::Colour(0xffFFF800), juce::Colour(0xff84E185), juce::Colour(0xffEC610F), juce::Colour(0xffD6438A), juce::Colour(0xff0053FF), juce::Colour(0xffD3CF4F), juce::Colour(0xff5D937F), juce::Colour(0xffA27956), juce::Colour(0xffAA7A99), juce::Colour(0xff3A5BA1)};

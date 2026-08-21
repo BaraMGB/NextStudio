@@ -72,7 +72,7 @@ jobs:
           sudo apt install -y libasound2-dev libjack-dev libfreetype6-dev \
             libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
             libgl1-mesa-dev libxcomposite-dev libfontconfig1-dev \
-            libcurl4-openssl-dev libwebkit2gtk-4.1-dev libgtk-3-dev ladspa-sdk
+            libcurl4-openssl-dev libwebkit2gtk-4.1-dev libgtk-3-dev ladspa-sdk xvfb
 
       - name: Install NSIS (Windows)
         if: runner.os == 'Windows'
@@ -116,6 +116,30 @@ jobs:
 
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} -j 4
+
+      - name: Run C++ tests
+        run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
+
+      - name: Run debug-shell smoke tests (Linux)
+        if: runner.os == 'Linux'
+        timeout-minutes: 5
+        run: |
+          xvfb-run -a env NEXTSTUDIO_DEBUG_BINARY="$PWD/build/App/NextStudio_artefacts/Release/NextStudio" \
+            NEXTSTUDIO_REQUIRE_AUDIO_CLOCK=0 \
+            node tools/debug-shell-client.js smoke-all
+
+      - name: Run debug-shell stdin smoke test (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $env:NEXTSTUDIO_DEBUG_BINARY = "$PWD/build/App/NextStudio_artefacts/Release/NextStudio.exe"
+          node tools/debug-shell-client.js smoke-basic
+          node tools/debug-shell-client.js smoke-eof
+
+      - name: Run client protocol regression (macOS)
+        if: runner.os == 'macOS'
+        run: node tools/debug-shell-client.js smoke-protocol
 
       - name: Package (Linux)
         if: runner.os == 'Linux'
