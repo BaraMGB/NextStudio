@@ -7,16 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.04-alpha] - 2026-08-21
+
 ### Added
 
 - **Arrangement clip properties bar** — The Song Editor now provides exact Start, End, and Duration fields for selected clips, including mixed-value display, text entry, wheel stepping, drag scrubbing with a non-destructive preview, and multi-clip edits that preserve selection-relative offsets.
 - **Independent arrangement snapping and insertion length** — Arrangement snapping can be Off, Adaptive, or fixed from 1/1 through 1/128. Newly created MIDI clips use a separately configurable Adaptive or fixed insertion length.
+- **Piano Roll snap and insert length selectors** — The piano roll now has its own snap selector and insert length selector, giving independent control over grid snapping and note insertion duration.
+- **Provisional MIDI note paste** — Pasted MIDI notes are now inserted provisionally, allowing preview before committing. Note properties (velocity, length) are preserved during paste.
+- **Live MIDI feedback on piano roll keyboard** — The piano roll keyboard now lights up in real time during playback, showing which notes are currently sounding.
+- **Resize selected piano roll notes together** — Selecting multiple notes and resizing now resizes all selected notes as a group.
+- **Centralized clip overwrite edits** — Destructive clip overwrite operations are now centralized through a single code path, ensuring consistent behavior across clip automation, range edits, and clip duplication.
 
 ### Fixed
 
 - **Piano Roll velocity synchronization** — Velocity changes previewed or committed through the note-properties bar now immediately update the velocity lane.
 - **Double-click note selection** — A note inserted with the pointer tool by double-click is now selected and replaces the previous MIDI-note selection.
 - **Piano Roll pointer pitch display** — The footer now derives pitch from note-grid-local coordinates, updates after vertical view changes, clears when the pointer leaves the grid, and limits values to MIDI range 0–127. Updates are emitted only when the pointer crosses a note boundary.
+- **Playhead click and playback return behavior** — Clicking the playhead no longer triggers unexpected playback jumps. Playback returns to the correct position after reaching the loop end.
+- **Piano roll note cursor display** — The note cursor in the piano roll now displays correctly after vertical scroll and view changes.
+- **MIDI note overlap handling** — Overlapping MIDI notes are now handled safely, preserving note properties when notes overlap or are moved on top of each other.
+- **Plugin preservation during clip duplication** — Duplicating clips no longer drops or resets plugins on the target track.
+- **Clip automation and range edit safety** — Clip automation data and range edits are now handled safely during overwrite operations, preventing data corruption.
+- **New MIDI clip snap point** — Newly created MIDI clips now snap to the preceding grid point, preventing clips from starting slightly off-grid.
+- **Provisional note property edits** — Note property edits (velocity, length) are now provisional and snap-aware, ensuring smooth drag editing without accidental value jumps.
 
 ## [v0.03-alpha] - 2026-08-13
 
