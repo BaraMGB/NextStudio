@@ -166,7 +166,7 @@ public:
     {
     public:
         MainWindow(juce::String name, ApplicationViewState &applicationSettings, bool debugShellEnabled, const juce::File &debugSessionDirectory, NextStudio::WineRendererFallback &wineRendererFallback)
-            : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons, false),
+            : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons),
               m_applicationState(applicationSettings),
               m_debugShellEnabled(debugShellEnabled),
               m_debugSessionDirectory(debugSessionDirectory)
@@ -183,7 +183,6 @@ public:
             auto mc = new MainComponent(m_applicationState, wineRendererFallback, m_debugShellEnabled, m_debugSessionDirectory);
             mc->setSize(m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             setContentOwned(mc, true);
-            addToDesktop();
             wineRendererFallback.applyTo(*this);
             setVisible(true);
         }
