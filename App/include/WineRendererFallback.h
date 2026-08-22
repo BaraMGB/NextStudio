@@ -28,5 +28,6 @@ private:
 
     bool active{false};
     bool missingSoftwareRendererLogged{false};
+    bool availableRenderersLogged{false};
 };
 } // namespace NextStudio

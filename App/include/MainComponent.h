@@ -31,19 +31,24 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "LowerRangeComponent.h"
-#include "SidebarComponent.h"
-#include "EditComponent.h"
-#include "HeaderComponent.h"
-#include "PluginWindow.h"
 #include "ApplicationViewState.h"
+#include "EditComponent.h"
 #include "EditViewState.h"
 #include "ExtendedUIBehavior.h"
+#include "HeaderComponent.h"
+#include "LowerRangeComponent.h"
 #include "NextLookAndFeel.h"
+#include "PluginWindow.h"
+#include "SidebarComponent.h"
 #include "ThemeHelpers.h"
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
+namespace NextStudio
+{
+class WineRendererFallback;
+}
+
 namespace NextStudio::Debug
 {
 class MainComponentDebugHost;
@@ -81,7 +86,7 @@ class MainComponent
     , private FlaggedAsyncUpdater
 {
 public:
-    explicit MainComponent(ApplicationViewState &state, bool debugMode = false, const juce::File &debugSessionDirectory = {});
+    explicit MainComponent(ApplicationViewState &state, NextStudio::WineRendererFallback &wineRendererFallback, bool debugMode = false, const juce::File &debugSessionDirectory = {});
     ~MainComponent() override;
 
     void paint(juce::Graphics &g) override;
@@ -137,6 +142,7 @@ private:
     }
 
     ApplicationViewState &m_applicationState;
+    NextStudio::WineRendererFallback &m_wineRendererFallback;
     NextLookAndFeel m_nextLookAndFeel;
 
     tracktion_engine::Engine m_engine{ProjectInfo::projectName, std::make_unique<ExtendedUIBehaviour>(), nullptr};

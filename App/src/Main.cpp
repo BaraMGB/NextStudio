@@ -31,13 +31,13 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ApplicationViewState.h"
 #include "DebugLaunchDiagnostics.h"
 #include "DebugSessionEnvironment.h"
 #include "DebugShell.h"
-#include "MainComponentDebugHost.h"
-#include "MainComponent.h"
-#include "ApplicationViewState.h"
 #include "Logging.h"
+#include "MainComponent.h"
+#include "MainComponentDebugHost.h"
 #include "WineRendererFallback.h"
 
 //==============================================================================
@@ -166,7 +166,7 @@ public:
     {
     public:
         MainWindow(juce::String name, ApplicationViewState &applicationSettings, bool debugShellEnabled, const juce::File &debugSessionDirectory, NextStudio::WineRendererFallback &wineRendererFallback)
-            : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons),
+            : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons, false),
               m_applicationState(applicationSettings),
               m_debugShellEnabled(debugShellEnabled),
               m_debugSessionDirectory(debugSessionDirectory)
@@ -180,17 +180,15 @@ public:
             setBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             setResizable(true, true);
 #endif
-            auto mc = new MainComponent(m_applicationState, m_debugShellEnabled, m_debugSessionDirectory);
+            auto mc = new MainComponent(m_applicationState, wineRendererFallback, m_debugShellEnabled, m_debugSessionDirectory);
             mc->setSize(m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             setContentOwned(mc, true);
+            addToDesktop();
             wineRendererFallback.applyTo(*this);
             setVisible(true);
         }
 
-        MainComponent *getMainComponent() const
-        {
-            return dynamic_cast<MainComponent *>(getContentComponent());
-        }
+        MainComponent *getMainComponent() const { return dynamic_cast<MainComponent *>(getContentComponent()); }
 
         void closeButtonPressed() override
         {

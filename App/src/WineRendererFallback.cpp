@@ -72,6 +72,16 @@ void WineRendererFallback::applyTo(juce::Component &component)
         return;
 
     const auto engines = peer->getAvailableRenderingEngines();
+
+    if (!availableRenderersLogged)
+    {
+        availableRenderersLogged = true;
+        NS_LOG_INFO(app, "Available JUCE rendering engines under Wine:");
+
+        for (const auto &engine : engines)
+            NS_LOG_INFO(app, "  " + engine);
+    }
+
     const auto softwareRenderer = engines.indexOf("Software Renderer");
 
     if (softwareRenderer < 0)

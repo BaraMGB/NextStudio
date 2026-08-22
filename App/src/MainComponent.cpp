@@ -29,37 +29,36 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "MainComponent.h"
-#include "DebugSessionEnvironment.h"
-#include "ClipOverwriteCommand.h"
 #include "ArpeggiatorPlugin.h"
+#include "ClipOverwriteCommand.h"
+#include "DebugSessionEnvironment.h"
+#include "InitialContentSetup.h"
 #include "NextChorusPlugin.h"
 #include "NextDelayPlugin.h"
 #include "NextFilterPlugin.h"
-#include "PeakLimiterPlugin.h"
 #include "NextPhaserPlugin.h"
 #include "NextSaturationPlugin.h"
+#include "PeakLimiterPlugin.h"
+#include "ProjectsBrowser.h"
+#include "SetupWizard.h"
+#include "SidebarComponent.h"
 #include "SimpleSynthPlugin.h"
 #include "SoundFontPlugin.h"
 #include "SpectrumAnalyzerPlugin.h"
-#include "ProjectsBrowser.h"
-#include "SidebarComponent.h"
-#include "SetupWizard.h"
-#include "InitialContentSetup.h"
 #include "ThemeHelpers.h"
 #include "Utilities.h"
 #include "WineRendererFallback.h"
 
-MainComponent::MainComponent(ApplicationViewState &state, bool debugMode, const juce::File &debugSessionDirectory)
+MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRendererFallback &wineRendererFallback, bool debugMode, const juce::File &debugSessionDirectory)
     : m_applicationState(state),
+      m_wineRendererFallback(wineRendererFallback),
       m_nextLookAndFeel(state),
       m_sidebarSplitter(false),
       m_debugMode(debugMode)
 {
     if (m_debugMode)
     {
-        const auto debugTempDir = debugSessionDirectory == juce::File()
-                                      ? NextStudio::Debug::SessionEnvironment::createDebugSessionTempDirectory()
-                                      : debugSessionDirectory;
+        const auto debugTempDir = debugSessionDirectory == juce::File() ? NextStudio::Debug::SessionEnvironment::createDebugSessionTempDirectory() : debugSessionDirectory;
         if (m_engine.getTemporaryFileManager().setTempDirectory(debugTempDir))
         {
             NS_LOG_INFO(app, "debug shell temp directory: " + debugTempDir.getFullPathName());
@@ -718,19 +717,30 @@ void MainComponent::launchSetupWizardAsync()
 
 void MainComponent::runSetupWizard()
 {
+    class SetupWizardDialogWindow final : public juce::DialogWindow
+    {
+    public:
+        SetupWizardDialogWindow(const juce::String &name, juce::Colour backgroundColour)
+            : juce::DialogWindow(name, backgroundColour, false, false)
+        {
+        }
+
+        void closeButtonPressed() override { setVisible(false); }
+    };
+
     auto wizard = std::make_unique<SetupWizard>(m_applicationState, m_engine);
     wizard->setSize(1400, 1000);
 
-    juce::DialogWindow::LaunchOptions options;
-    options.content.setOwned(wizard.release());
-    options.componentToCentreAround = this;
-    options.dialogTitle = "NextStudio Setup Wizard";
-    options.dialogBackgroundColour = m_applicationState.getBackgroundColour1();
-    options.escapeKeyTriggersCloseButton = false;
-    options.useNativeTitleBar = true;
-    options.resizable = false;
+    auto *dialog = new SetupWizardDialogWindow("NextStudio Setup Wizard", m_applicationState.getBackgroundColour1());
+    dialog->setContentOwned(wizard.release(), true);
+    dialog->centreAroundComponent(this, 1400, 1000);
+    dialog->setResizable(false, false);
+    dialog->setUsingNativeTitleBar(true);
+    dialog->addToDesktop();
+    m_wineRendererFallback.applyTo(*dialog);
+    dialog->enterModalState(true, nullptr, true);
 
-    const auto wizardResult = options.runModal();
+    const auto wizardResult = dialog->runModalLoop();
 
     if (wizardResult != 1)
     {
@@ -768,17 +778,23 @@ void MainComponent::setupEdit(juce::File editFile)
             juce::String reason;
             switch (loadStatus)
             {
-            case ProjectLifecycle::LoadFileStatus::missing: reason = "The selected project file no longer exists."; break;
-            case ProjectLifecycle::LoadFileStatus::unsupportedExtension: reason = "The selected file is not a supported project file."; break;
-            case ProjectLifecycle::LoadFileStatus::empty: reason = "The selected project file is empty."; break;
-            case ProjectLifecycle::LoadFileStatus::invalidData: reason = "The selected project file is damaged or invalid."; break;
-            case ProjectLifecycle::LoadFileStatus::valid: break;
+            case ProjectLifecycle::LoadFileStatus::missing:
+                reason = "The selected project file no longer exists.";
+                break;
+            case ProjectLifecycle::LoadFileStatus::unsupportedExtension:
+                reason = "The selected file is not a supported project file.";
+                break;
+            case ProjectLifecycle::LoadFileStatus::empty:
+                reason = "The selected project file is empty.";
+                break;
+            case ProjectLifecycle::LoadFileStatus::invalidData:
+                reason = "The selected project file is damaged or invalid.";
+                break;
+            case ProjectLifecycle::LoadFileStatus::valid:
+                break;
             }
 
-            juce::AlertWindow::showMessageBoxAsync(
-                juce::AlertWindow::WarningIcon,
-                "Project could not be loaded",
-                reason + "\n\n" + editFile.getFullPathName());
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Project could not be loaded", reason + "\n\n" + editFile.getFullPathName());
             return;
         }
     }
@@ -793,8 +809,7 @@ void MainComponent::setupEdit(juce::File editFile)
     std::unique_ptr<te::Edit> replacementEdit;
     try
     {
-        replacementEdit = isNewEdit ? te::createEmptyEdit(m_engine, editFile)
-                                    : te::loadEditFromFile(m_engine, editFile);
+        replacementEdit = isNewEdit ? te::createEmptyEdit(m_engine, editFile) : te::loadEditFromFile(m_engine, editFile);
     }
     catch (const std::exception &e)
     {
@@ -803,10 +818,7 @@ void MainComponent::setupEdit(juce::File editFile)
 
     if (!replacementEdit)
     {
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon,
-            "Project could not be loaded",
-            "NextStudio could not read the selected project:\n\n" + editFile.getFullPathName());
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Project could not be loaded", "NextStudio could not read the selected project:\n\n" + editFile.getFullPathName());
         return;
     }
 
@@ -844,8 +856,7 @@ void MainComponent::setupEdit(juce::File editFile)
 
     for (auto *track : te::getAudioTracks(*m_edit))
         if (ClipEditing::hasOverlaps(*track))
-            GUIHelpers::log("WARNING: Loaded track contains overlapping clips: "
-                            + track->getName() + " (" + ClipEditing::describeOverlaps(*track) + ")");
+            GUIHelpers::log("WARNING: Loaded track contains overlapping clips: " + track->getName() + " (" + ClipEditing::describeOverlaps(*track) + ")");
 
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
         uiBehaviour->setFocusedEdit(m_edit.get());
@@ -921,29 +932,17 @@ bool MainComponent::handleUnsavedEdit()
 {
     if (m_edit->hasChangedSinceSaved())
     {
-        const auto result = juce::AlertWindow::showYesNoCancelBox(
-            juce::AlertWindow::QuestionIcon,
-            "Unsaved Project",
-            "Do you want to save the project?",
-            "Yes",
-            "No",
-            "Cancel");
+        const auto result = juce::AlertWindow::showYesNoCancelBox(juce::AlertWindow::QuestionIcon, "Unsaved Project", "Do you want to save the project?", "Yes", "No", "Cancel");
 
         switch (result)
         {
         case 1:
-            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(
-                ProjectLifecycle::UnsavedChoice::save,
-                saveCurrentProject());
+            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(ProjectLifecycle::UnsavedChoice::save, saveCurrentProject());
         case 2:
-            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(
-                ProjectLifecycle::UnsavedChoice::discard,
-                GUIHelpers::ProjectSaveResult::cancelled);
+            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(ProjectLifecycle::UnsavedChoice::discard, GUIHelpers::ProjectSaveResult::cancelled);
         case 3:
         default:
-            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(
-                ProjectLifecycle::UnsavedChoice::cancel,
-                GUIHelpers::ProjectSaveResult::cancelled);
+            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(ProjectLifecycle::UnsavedChoice::cancel, GUIHelpers::ProjectSaveResult::cancelled);
         }
     }
     return true;
