@@ -47,6 +47,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "InitialContentSetup.h"
 #include "ThemeHelpers.h"
 #include "Utilities.h"
+#include "WineRendererFallback.h"
 
 MainComponent::MainComponent(ApplicationViewState &state, bool debugMode, const juce::File &debugSessionDirectory)
     : m_applicationState(state),
@@ -84,6 +85,7 @@ MainComponent::MainComponent(ApplicationViewState &state, bool debugMode, const 
 
     setWantsKeyboardFocus(true);
     juce::LookAndFeel::setDefaultLookAndFeel(&m_nextLookAndFeel);
+    NextStudio::WineRendererFallback::configureFontFallback(m_nextLookAndFeel);
     updateTheme();
 
     if (!needsSetupWizard)

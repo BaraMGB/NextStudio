@@ -9,8 +9,12 @@ namespace
 bool isRunningUnderWine()
 {
 #if JUCE_WINDOWS
-    juce::DynamicLibrary ntdll("ntdll.dll");
-    return ntdll.getFunction("wine_get_version") != nullptr;
+    static const auto result = []
+    {
+        juce::DynamicLibrary ntdll("ntdll.dll");
+        return ntdll.getFunction("wine_get_version") != nullptr;
+    }();
+    return result;
 #else
     return false;
 #endif
@@ -36,6 +40,26 @@ void WineRendererFallback::stop()
 
     cancelPendingUpdate();
     active = false;
+}
+
+void WineRendererFallback::configureFontFallback(juce::LookAndFeel &lookAndFeel)
+{
+    if (!isRunningUnderWine())
+        return;
+
+    const auto typefaceNames = juce::Font::findAllTypefaceNames();
+
+    for (const auto *candidate : {"Tahoma", "Arial", "Liberation Sans", "DejaVu Sans"})
+    {
+        if (!typefaceNames.contains(candidate, true))
+            continue;
+
+        lookAndFeel.setDefaultSansSerifTypefaceName(candidate);
+        NS_LOG_INFO(app, "Wine font fallback configured: " + juce::String(candidate));
+        return;
+    }
+
+    NS_LOG_WARN(app, "Wine font fallback could not find a suitable sans-serif typeface");
 }
 
 void WineRendererFallback::applyTo(juce::Component &component)

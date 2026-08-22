@@ -19,6 +19,8 @@ public:
     bool isActive() const noexcept { return active; }
     void applyTo(juce::Component &component);
 
+    static void configureFontFallback(juce::LookAndFeel &lookAndFeel);
+
 private:
     void globalFocusChanged(juce::Component *focusedComponent) override;
     void handleAsyncUpdate() override;
