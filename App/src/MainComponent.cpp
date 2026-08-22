@@ -717,30 +717,19 @@ void MainComponent::launchSetupWizardAsync()
 
 void MainComponent::runSetupWizard()
 {
-    class SetupWizardDialogWindow final : public juce::DialogWindow
-    {
-    public:
-        SetupWizardDialogWindow(const juce::String &name, juce::Colour backgroundColour)
-            : juce::DialogWindow(name, backgroundColour, false, false)
-        {
-        }
-
-        void closeButtonPressed() override { setVisible(false); }
-    };
-
     auto wizard = std::make_unique<SetupWizard>(m_applicationState, m_engine);
     wizard->setSize(1400, 1000);
 
-    auto *dialog = new SetupWizardDialogWindow("NextStudio Setup Wizard", m_applicationState.getBackgroundColour1());
-    dialog->setContentOwned(wizard.release(), true);
-    dialog->centreAroundComponent(this, 1400, 1000);
-    dialog->setResizable(false, false);
-    dialog->setUsingNativeTitleBar(true);
-    dialog->addToDesktop();
-    m_wineRendererFallback.applyTo(*dialog);
-    dialog->enterModalState(true, nullptr, true);
+    juce::DialogWindow::LaunchOptions options;
+    options.content.setOwned(wizard.release());
+    options.componentToCentreAround = this;
+    options.dialogTitle = "NextStudio Setup Wizard";
+    options.dialogBackgroundColour = m_applicationState.getBackgroundColour1();
+    options.escapeKeyTriggersCloseButton = false;
+    options.useNativeTitleBar = true;
+    options.resizable = false;
 
-    const auto wizardResult = dialog->runModalLoop();
+    const auto wizardResult = options.runModal();
 
     if (wizardResult != 1)
     {
