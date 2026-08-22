@@ -34,6 +34,7 @@ void WineRendererFallback::stop()
     if (active)
         juce::Desktop::getInstance().removeFocusChangeListener(this);
 
+    cancelPendingUpdate();
     active = false;
 }
 
@@ -66,7 +67,9 @@ void WineRendererFallback::applyTo(juce::Component &component)
     }
 }
 
-void WineRendererFallback::globalFocusChanged(juce::Component *) { applyToDesktopComponents(); }
+void WineRendererFallback::globalFocusChanged(juce::Component *) { triggerAsyncUpdate(); }
+
+void WineRendererFallback::handleAsyncUpdate() { applyToDesktopComponents(); }
 
 void WineRendererFallback::applyToDesktopComponents()
 {

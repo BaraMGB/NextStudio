@@ -8,7 +8,9 @@ namespace NextStudio
     software renderer. JUCE 8 defaults to Direct2D, which currently requires
     Direct2D/DirectComposition functionality that stock Wine does not provide.
 */
-class WineRendererFallback final : private juce::FocusChangeListener
+class WineRendererFallback final
+    : private juce::FocusChangeListener
+    , private juce::AsyncUpdater
 {
 public:
     void start();
@@ -19,6 +21,7 @@ public:
 
 private:
     void globalFocusChanged(juce::Component *focusedComponent) override;
+    void handleAsyncUpdate() override;
     void applyToDesktopComponents();
 
     bool active{false};

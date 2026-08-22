@@ -91,8 +91,7 @@ public:
             m_applicationState = std::make_unique<ApplicationViewState>();
         }
 
-        mainWindow.reset(new MainWindow(getApplicationName(), *m_applicationState, m_launchOptions.debugShell, m_debugSessionDirectory));
-        m_wineRendererFallback.applyTo(*mainWindow);
+        mainWindow.reset(new MainWindow(getApplicationName(), *m_applicationState, m_launchOptions.debugShell, m_debugSessionDirectory, m_wineRendererFallback));
 
         if (m_launchOptions.debugShell)
         {
@@ -166,7 +165,7 @@ public:
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        MainWindow(juce::String name, ApplicationViewState &applicationSettings, bool debugShellEnabled, const juce::File &debugSessionDirectory)
+        MainWindow(juce::String name, ApplicationViewState &applicationSettings, bool debugShellEnabled, const juce::File &debugSessionDirectory, NextStudio::WineRendererFallback &wineRendererFallback)
             : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons),
               m_applicationState(applicationSettings),
               m_debugShellEnabled(debugShellEnabled),
@@ -184,6 +183,7 @@ public:
             auto mc = new MainComponent(m_applicationState, m_debugShellEnabled, m_debugSessionDirectory);
             mc->setSize(m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             setContentOwned(mc, true);
+            wineRendererFallback.applyTo(*this);
             setVisible(true);
         }
 
