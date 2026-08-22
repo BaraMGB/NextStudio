@@ -38,6 +38,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MainComponent.h"
 #include "ApplicationViewState.h"
 #include "Logging.h"
+#include "WineRendererFallback.h"
 
 //==============================================================================
 class NextStudioApplication : public juce::JUCEApplication
@@ -66,6 +67,7 @@ public:
         m_initialiseEntered = true;
         m_launchOptions = parseLaunchOptions(commandLine);
         NS_LOG_INFO(app, "Welcome to " + getApplicationName() + " v" + getApplicationVersion());
+        m_wineRendererFallback.start();
 
         if (m_launchOptions.debugShell)
         {
@@ -90,6 +92,7 @@ public:
         }
 
         mainWindow.reset(new MainWindow(getApplicationName(), *m_applicationState, m_launchOptions.debugShell, m_debugSessionDirectory));
+        m_wineRendererFallback.applyTo(*mainWindow);
 
         if (m_launchOptions.debugShell)
         {
@@ -113,6 +116,7 @@ public:
 
         m_debugShell = nullptr;
         m_debugHost = nullptr;
+        m_wineRendererFallback.stop();
         mainWindow = nullptr;
         m_applicationState = nullptr;
 
@@ -208,6 +212,7 @@ private:
     juce::File m_debugSessionDirectory;
     LaunchOptions m_launchOptions;
     bool m_initialiseEntered{false};
+    NextStudio::WineRendererFallback m_wineRendererFallback;
     std::unique_ptr<MainWindow> mainWindow;
     std::unique_ptr<NextStudio::Debug::DebugHost> m_debugHost;
     std::unique_ptr<NextStudio::Debug::DebugShell> m_debugShell;
