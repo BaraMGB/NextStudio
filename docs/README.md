@@ -53,6 +53,7 @@ This directory contains the user and developer documentation for NextStudio.
 - [Building](development/building.md) — prerequisites, submodules, build types, scripts, output locations, and packaging.
 - [Testing](development/testing.md) — test targets, commands, current coverage, and adding tests.
 - [Source layout](development/source-layout.md) — repository map, naming conventions, source registration, resources, and common extension points.
+- [Wine/Bottles compatibility](development/wine-bottles.md) — JUCE 8 renderer issues under Wine, runtime fallbacks, Bottles test workflow, and current limitations.
 - [Agent debug system](agent-debug.md) — debug-shell protocol, pi tools, isolated sessions, deterministic editing commands, artifacts, and tests.
 - [Logging](logging.md) — central logger API, categories, levels, output policy, and migration rules.
 
