@@ -151,7 +151,8 @@ void HeaderComponent::resized()
     auto timeLineButtons = {&m_clickButton, &m_loopButton, &m_followPlayheadButton};
     auto historyButtons = {&m_undoButton, &m_redoButton};
 
-    auto displayWidth = (area.getWidth() / 5) - (getGapSize() * 4);
+    const auto displayWidth = juce::jmax(PositionDisplayComponent::minimumWidth,
+                                         (area.getWidth() / 5) - (getGapSize() * 4));
     const auto buttonWidth = getButtonSize();
     const auto gapWidth = getGapSize();
     const auto timelineControlsWidth = (buttonWidth * 3) + (gapWidth * 6);
@@ -165,8 +166,14 @@ void HeaderComponent::resized()
     timelineSetBox.items.add(juce::FlexItem((float)timelineControlsWidth, (float)buttonWidth, timelineControlsBox));
     timelineSetBox.items.add(juce::FlexItem((float)historyWidth, (float)buttonWidth, historyBox));
 
-    auto containers = {&transportBox, &positionBox, &timelineSetBox};
-    addFlexBoxToFlexBox(container, containers);
+    const auto positionContainerWidth = displayWidth + (gapWidth * 2);
+    const auto availableSideWidth = juce::jmax(0, area.getWidth() - positionContainerWidth);
+    const auto leftContainerWidth = availableSideWidth / 2;
+    const auto rightContainerWidth = availableSideWidth - leftContainerWidth;
+
+    container.items.add(juce::FlexItem((float)leftContainerWidth, (float)buttonWidth, transportBox));
+    container.items.add(juce::FlexItem((float)positionContainerWidth, (float)buttonWidth, positionBox));
+    container.items.add(juce::FlexItem((float)rightContainerWidth, (float)buttonWidth, timelineSetBox));
 
     container.performLayout(area);
 }
@@ -380,15 +387,6 @@ void HeaderComponent::addButtonsToFlexBox(juce::FlexBox &box, const juce::Array<
 
     for (auto b : buttons)
         box.items.add(juce::FlexItem((float)w, (float)h, *b).withMargin((float)margin));
-}
-
-void HeaderComponent::addFlexBoxToFlexBox(juce::FlexBox &target, const juce::Array<juce::FlexBox *> &items)
-{
-    auto w = getWidth() / items.size();
-    auto h = getButtonSize();
-
-    for (auto b : items)
-        target.items.add(juce::FlexItem((float)w, (float)h, *b));
 }
 
 int HeaderComponent::getButtonSize()

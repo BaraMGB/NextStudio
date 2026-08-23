@@ -40,6 +40,8 @@ public:
     void paint(juce::Graphics &) override;
     void resized() override;
 
+    static constexpr int minimumWidth = 400;
+
 private:
     enum class FieldId
     {
