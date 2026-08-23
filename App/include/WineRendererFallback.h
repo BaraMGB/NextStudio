@@ -27,6 +27,7 @@ private:
     void applyToDesktopComponents();
 
     bool active{false};
+    bool listeningForFocusChanges{false};
     bool missingSoftwareRendererLogged{false};
     bool availableRenderersLogged{false};
 };

@@ -59,16 +59,15 @@ void WineRendererFallback::start()
         reasons.add("NEXTSTUDIO_FORCE_SOFTWARE_RENDERER");
 
     NS_LOG_INFO(app, "Forcing JUCE Software Renderer for desktop windows (" + reasons.joinIntoString(", ") + ")");
-    juce::Desktop::getInstance().addFocusChangeListener(this);
-    applyToDesktopComponents();
 }
 
 void WineRendererFallback::stop()
 {
-    if (active)
+    if (listeningForFocusChanges)
         juce::Desktop::getInstance().removeFocusChangeListener(this);
 
     cancelPendingUpdate();
+    listeningForFocusChanges = false;
     active = false;
 }
 
@@ -96,6 +95,13 @@ void WineRendererFallback::applyTo(juce::Component &component)
 {
     if (!active)
         return;
+
+    if (!listeningForFocusChanges)
+    {
+        juce::Desktop::getInstance().addFocusChangeListener(this);
+        listeningForFocusChanges = true;
+        NS_LOG_INFO(app, "Renderer fallback focus monitoring started");
+    }
 
     auto *peer = component.getPeer();
     if (peer == nullptr)
