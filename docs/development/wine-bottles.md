@@ -27,6 +27,8 @@ The current NextStudio workaround is:
 2. switch JUCE desktop windows to the **Software Renderer** instead of Direct2D;
 3. choose a real installed sans-serif font under Wine instead of JUCE's default Wine fallback family.
 
+Native Windows Remote Desktop sessions keep JUCE's default Direct2D renderer. This path was validated successfully and does not require the Wine workaround.
+
 This logic is implemented entirely in NextStudio and does **not** require patching JUCE or requiring a custom Wine build.
 
 ## Why this is necessary
@@ -125,8 +127,11 @@ The class is started from application startup in `App/src/Main.cpp`.
 Current behavior:
 
 - `NextStudioApplication` creates and owns a `NextStudio::WineRendererFallback` instance;
-- `start()` enables the workaround only if Wine is detected;
+- `start()` enables the workaround when Wine is detected;
+- setting `NEXTSTUDIO_FORCE_SOFTWARE_RENDERER=1` enables it manually for diagnosis;
+- setting `NEXTSTUDIO_FORCE_DEFAULT_RENDERER=1` bypasses the fallback for comparison testing under Wine;
 - the main `DocumentWindow` is switched before it is shown;
+- the setup wizard peer is switched before it enters modal state and becomes visible;
 - focus changes trigger asynchronous re-application so additional JUCE desktop windows are also corrected.
 
 This was intentionally done as a **runtime adaptation layer** instead of patching JUCE internals.
@@ -150,12 +155,13 @@ This is important because the software renderer only solves the rendering backen
 
 The workaround emits log lines through the central logging system.
 
-Typical messages include:
+The fallback records only significant, one-time events at `info` level:
 
-- Wine detected;
-- software renderer enabled for a window;
-- Wine font fallback configured;
-- missing suitable fallback font.
+- software rendering was requested, including the activation reason;
+- the software renderer was enabled successfully;
+- the Wine font fallback was configured.
+
+A missing software renderer or suitable fallback font is logged at `warn` level. Technical details such as the Wine DXGI guard are limited to `debug` logging. Renderer checks triggered by focus changes do not emit repeated messages.
 
 Relevant source:
 

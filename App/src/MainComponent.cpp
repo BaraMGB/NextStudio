@@ -124,7 +124,10 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     m_applicationState.m_applicationStateValueTree.addListener(this);
 
     if (needsSetupWizard)
+    {
+        NS_LOG_INFO(setup, "setup wizard scheduled");
         launchSetupWizardAsync();
+    }
 }
 
 MainComponent::~MainComponent()
@@ -729,7 +732,10 @@ void MainComponent::runSetupWizard()
     options.useNativeTitleBar = true;
     options.resizable = false;
 
-    const auto wizardResult = options.runModal();
+    auto *dialog = options.create();
+    m_wineRendererFallback.applyTo(*dialog);
+    dialog->enterModalState(true, nullptr, true);
+    const auto wizardResult = dialog->runModalLoop();
 
     if (wizardResult != 1)
     {
@@ -742,6 +748,18 @@ void MainComponent::runSetupWizard()
     }
 
     handleContentPathChangedFromSettings();
+
+    juce::Component::SafePointer<juce::Component> mainWindow(getTopLevelComponent());
+    juce::MessageManager::callAsync(
+        [mainWindow]
+        {
+            if (mainWindow == nullptr)
+                return;
+
+            mainWindow->setVisible(true);
+            mainWindow->toFront(true);
+            mainWindow->repaint();
+        });
 }
 
 void MainComponent::handleContentPathChangedFromSettings()

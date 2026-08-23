@@ -18,5 +18,6 @@ stuff
 .flatpak-builder/
 autobuild/
 dist
+build_win_pkg/
 reinstall_flatpak.sh
 AGENTS.md

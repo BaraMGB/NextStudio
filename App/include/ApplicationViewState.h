@@ -114,11 +114,7 @@ struct Favorite
 class ApplicationViewState
 {
 public:
-    static juce::File getDefaultSettingsFile()
-    {
-        return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-            .getChildFile("NextStudio/AppSettings.xml");
-    }
+    static juce::File getDefaultSettingsFile() { return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("NextStudio/AppSettings.xml"); }
 
     explicit ApplicationViewState(const juce::File &settingsFile = {})
         : m_settingsFile(settingsFile == juce::File() ? getDefaultSettingsFile() : settingsFile)

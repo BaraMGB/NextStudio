@@ -34,7 +34,7 @@ The logger emits one line through `juce::Logger::writeToLog(...)` with this shap
 <local timestamp> [<level>] [<category>] <message> (<source-file>:<line>)
 ```
 
-The active JUCE logger decides the final sink. Without a custom logger, JUCE uses its platform-default diagnostic output. Logging must never be used as the debug-shell response transport; shell responses remain on stdout and diagnostic output should be routed separately by launchers.
+The active JUCE logger decides the final sink. NextStudio does not install a permanent application-wide file logger; JUCE therefore uses its platform-default diagnostic output unless a diagnostic launcher supplies a custom sink. Logging must never be used as the debug-shell response transport; shell responses remain on stdout and diagnostic output should be routed separately by launchers.
 
 `debug` messages are compiled in but filtered unless the build defines `DEBUG`, `_DEBUG`, or `DEBUG_OR_RELWITHDEBINFO`. The project defines `DEBUG_OR_RELWITHDEBINFO` for Debug and RelWithDebInfo builds. `info`, `warn`, and `error` are emitted in all build types.
 

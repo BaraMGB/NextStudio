@@ -36,9 +36,10 @@ cd "$BUILD_DIR"
 # Clean cache if requested
 [[ "$CLEAN_CACHE" == true ]] && rm -rf CMakeCache.txt CMakeFiles/
 
-# Build
+# Build. --config is required by multi-configuration generators such as
+# Visual Studio; single-configuration generators accept it as well.
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE="$BUILD_TYPE" ../..
-cmake --build . -j "$JOBS"
+cmake --build . --config "$BUILD_TYPE" --parallel "$JOBS"
 
 
 # Move compile commands
