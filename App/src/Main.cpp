@@ -64,6 +64,10 @@ public:
     //==============================================================================
     void initialise(const juce::String &commandLine) override
     {
+        m_fileLogger.reset(juce::FileLogger::createDefaultAppLogger("NextStudio", "NextStudio.log", "NextStudio application log", 512 * 1024));
+        if (m_fileLogger != nullptr)
+            juce::Logger::setCurrentLogger(m_fileLogger.get());
+
         m_initialiseEntered = true;
         m_launchOptions = parseLaunchOptions(commandLine);
         NS_LOG_INFO(app, "Welcome to " + getApplicationName() + " v" + getApplicationVersion());
@@ -124,6 +128,10 @@ public:
             m_debugSessionDirectory.deleteRecursively();
             m_debugSessionDirectory = juce::File();
         }
+
+        if (juce::Logger::getCurrentLogger() == m_fileLogger.get())
+            juce::Logger::setCurrentLogger(nullptr);
+        m_fileLogger = nullptr;
     }
 
     void systemRequestedQuit() override
@@ -228,6 +236,7 @@ public:
     };
 
 private:
+    std::unique_ptr<juce::FileLogger> m_fileLogger;
     std::unique_ptr<ApplicationViewState> m_applicationState;
     juce::File m_debugSessionDirectory;
     LaunchOptions m_launchOptions;
