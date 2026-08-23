@@ -59,6 +59,7 @@ void WineRendererFallback::start()
         reasons.add("NEXTSTUDIO_FORCE_SOFTWARE_RENDERER");
 
     NS_LOG_INFO(app, "Forcing JUCE Software Renderer for desktop windows (" + reasons.joinIntoString(", ") + ")");
+    NS_LOG_INFO(app, "Renderer fallback startup completed without desktop access");
 }
 
 void WineRendererFallback::stop()
@@ -96,8 +97,11 @@ void WineRendererFallback::applyTo(juce::Component &component)
     if (!active)
         return;
 
+    NS_LOG_INFO(app, "Renderer fallback applying to window: " + component.getName());
+
     if (!listeningForFocusChanges)
     {
+        NS_LOG_INFO(app, "Registering renderer fallback focus monitoring");
         juce::Desktop::getInstance().addFocusChangeListener(this);
         listeningForFocusChanges = true;
         NS_LOG_INFO(app, "Renderer fallback focus monitoring started");
@@ -105,8 +109,12 @@ void WineRendererFallback::applyTo(juce::Component &component)
 
     auto *peer = component.getPeer();
     if (peer == nullptr)
+    {
+        NS_LOG_WARN(app, "Renderer fallback found no peer for window: " + component.getName());
         return;
+    }
 
+    NS_LOG_INFO(app, "Querying available renderers for window: " + component.getName());
     const auto engines = peer->getAvailableRenderingEngines();
 
     if (!availableRenderersLogged)
@@ -130,11 +138,19 @@ void WineRendererFallback::applyTo(juce::Component &component)
         return;
     }
 
-    if (peer->getCurrentRenderingEngine() != softwareRenderer)
+    const auto currentRenderer = peer->getCurrentRenderingEngine();
+    NS_LOG_INFO(app, "Current renderer index for " + component.getName() + ": " + juce::String(currentRenderer));
+
+    if (currentRenderer != softwareRenderer)
     {
+        NS_LOG_INFO(app, "Switching renderer for " + component.getName() + " to index " + juce::String(softwareRenderer));
         peer->setCurrentRenderingEngine(softwareRenderer);
         component.repaint();
         NS_LOG_INFO(app, "JUCE Software Renderer enabled for window: " + component.getName());
+    }
+    else
+    {
+        NS_LOG_INFO(app, "JUCE Software Renderer already active for window: " + component.getName());
     }
 }
 
