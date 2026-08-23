@@ -2,6 +2,10 @@
 
 #include "Logging.h"
 
+#if JUCE_WINDOWS
+#include <windows.h>
+#endif
+
 namespace NextStudio
 {
 namespace
