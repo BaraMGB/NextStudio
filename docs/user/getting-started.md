@@ -125,7 +125,7 @@ The lower range has tabs for:
 
 The active track follows the current track or clip selection. The MIDI Editor tab is enabled when a MIDI clip is selected.
 
-Drag the splitter above the lower range to resize the Piano Roll. Mixer and plug-in views currently use a fixed lower-range height.
+Drag the splitter down to the collapsed-bar position to close the lower range, or back up to the standard 350-pixel position to expand it. The panel snaps only after crossing the target position, and the direction can be reversed without releasing the mouse button. The collapsed bar provides buttons for Mixer, MidiEditor, and PluginChain; MidiEditor is disabled unless a MIDI clip is selected. The collapsed state is restored in the next application session. Dragging the expanded Piano Roll splitter upward increases its height. Mixer and plug-in views currently use a fixed lower-range height.
 
 ## Project workflow
 

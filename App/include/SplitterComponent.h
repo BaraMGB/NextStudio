@@ -41,5 +41,6 @@ public:
 private:
     bool m_isHovering{false};
     bool m_isHorizontal;
+    juce::Point<int> m_dragStartScreenPosition;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SplitterComponent)
 };

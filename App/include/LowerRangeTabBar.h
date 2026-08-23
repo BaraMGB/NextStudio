@@ -27,6 +27,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 class LowerRangeTabBar
     : public MenuBar
     , public juce::ValueTree::Listener
+    , private juce::ChangeListener
 {
 public:
     LowerRangeTabBar(EditViewState &evs);
@@ -37,6 +38,7 @@ public:
     std::function<void(LowerRangeView)> onTabSelected;
 
 private:
+    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
     void updateTabButtons();
     void updateButtonIcons();
 

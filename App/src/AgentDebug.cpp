@@ -209,6 +209,7 @@ juce::var createStateDump(const NextStudio::Debug::DebugHost &debugHost)
     auto *ui = new juce::DynamicObject();
     ui->setProperty("sidebarWidth", (int) appState.m_sidebarWidth);
     ui->setProperty("sidebarCollapsed", (bool) appState.m_sidebarCollapsed);
+    ui->setProperty("lowerRangeCollapsed", (bool) appState.m_lowerRangeCollapsed);
     ui->setProperty("setupComplete", (bool) appState.m_setupComplete);
     ui->setProperty("workDir", sanitiseStateString(appState.m_workDir.get()));
     root->setProperty("ui", ui);

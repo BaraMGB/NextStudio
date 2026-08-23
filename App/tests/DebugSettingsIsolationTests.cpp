@@ -29,6 +29,7 @@ void testExplicitSettingsFileIsUsedExclusively()
         ApplicationViewState state(settings);
         REQUIRE(state.getSettingsFile() == settings);
         state.m_setupComplete = true;
+        state.m_lowerRangeCollapsed = true;
         state.setRootFolder(temp.file.getChildFile("workspace"));
         state.saveState();
     }
@@ -40,6 +41,9 @@ void testExplicitSettingsFileIsUsedExclusively()
     REQUIRE(xml != nullptr);
     if (xml != nullptr)
         REQUIRE(xml->hasTagName("AppSettings"));
+
+    ApplicationViewState restoredState(settings);
+    REQUIRE((bool)restoredState.m_lowerRangeCollapsed);
 }
 } // namespace
 

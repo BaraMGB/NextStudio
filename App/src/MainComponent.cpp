@@ -173,13 +173,14 @@ void MainComponent::resized()
     area.reduce(10, 10);
 
     auto &evs = m_editComponent->getEditViewState();
-    auto lowerRangeHeight = 0;
-    if (evs.getLowerRangeView() == LowerRangeView::midiEditor)
-        lowerRangeHeight = evs.m_midiEditorHeight;
-    else if (evs.getLowerRangeView() == LowerRangeView::pluginRack)
-        lowerRangeHeight = 350;
-    else if (evs.getLowerRangeView() == LowerRangeView::mixer)
-        lowerRangeHeight = 350;
+    auto lowerRangeHeight = LowerRangeComponent::collapsedHeight;
+    if (!m_applicationState.m_lowerRangeCollapsed)
+    {
+        if (evs.getLowerRangeView() == LowerRangeView::midiEditor)
+            lowerRangeHeight = evs.m_midiEditorHeight;
+        else if (evs.getLowerRangeView() == LowerRangeView::pluginRack || evs.getLowerRangeView() == LowerRangeView::mixer)
+            lowerRangeHeight = LowerRangeComponent::defaultExpandedHeight;
+    }
 
     auto lowerRange = area.removeFromBottom(lowerRangeHeight);
     m_sideBarBrowser->setBounds(area.removeFromLeft(m_applicationState.m_sidebarWidth));
@@ -611,7 +612,7 @@ void MainComponent::valueTreePropertyChanged(juce::ValueTree &vt, const juce::Id
     if (property == te::IDs::looping)
         m_header->loopButtonClicked();
 
-    if (property == IDs::pianorollHeight || property == IDs::lowerRangeView)
+    if (property == IDs::pianorollHeight || property == IDs::lowerRangeView || property == IDs::LowerRangeCollapsed)
         markAndUpdate(m_updateView);
 
     if (property == te::IDs::source || property == te::IDs::state)

@@ -41,27 +41,20 @@ void SplitterComponent::mouseExit(const juce::MouseEvent &)
     repaint();
 }
 
-void SplitterComponent::mouseDown(const juce::MouseEvent &)
+void SplitterComponent::mouseDown(const juce::MouseEvent &event)
 {
+    m_dragStartScreenPosition = event.getScreenPosition();
     if (onMouseDown)
-    {
         onMouseDown();
-    }
 }
 
 void SplitterComponent::mouseDrag(const juce::MouseEvent &event)
 {
-    if (onDrag)
-    {
-        if (m_isHorizontal)
-        {
-            onDrag(event.getDistanceFromDragStartY());
-        }
-        else
-        {
-            onDrag(event.getDistanceFromDragStartX());
-        }
-    }
+    if (!onDrag)
+        return;
+
+    const auto screenDistance = event.getScreenPosition() - m_dragStartScreenPosition;
+    onDrag(m_isHorizontal ? screenDistance.y : screenDistance.x);
 }
 
 void SplitterComponent::mouseUp(const juce::MouseEvent &) {}

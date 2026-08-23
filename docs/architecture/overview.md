@@ -128,7 +128,7 @@ Selecting the same sidebar button again collapses or expands the sidebar. Its wi
 
 The active track follows the global selection manager. A selected track has priority; if a clip is selected, its owning track is used. If neither is available, the component may fall back to a track marked with `IDs::showLowerRange`.
 
-The MIDI Editor tab is enabled only when the first selected object is a MIDI clip. The lower range height is edit-local state for the Piano Roll and a fixed 350 pixels for the mixer and plug-in chain in the current layout.
+The MIDI Editor tab is enabled only when the first selected object is a MIDI clip. Dragging the lower-range splitter between the standard 350-pixel position and the collapsed-bar position snaps the panel closed or open. The two positions provide drag resistance and can be crossed repeatedly without releasing the mouse button. The collapsed bar provides horizontal Mixer, MidiEditor, and PluginChain buttons, with MidiEditor disabled when no MIDI clip is selected. The collapsed preference is stored in `ApplicationViewState` and restored on the next application session. The selected lower-range view and Piano Roll height remain edit-local state, while the mixer and plug-in chain use a fixed 350-pixel expanded height.
 
 ## Model boundaries
 

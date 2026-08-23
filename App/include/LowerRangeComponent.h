@@ -34,6 +34,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace te = tracktion_engine;
 
+class LowerRangeCollapsedButton;
+
 class LowerRangeComponent
     : public juce::Component
     , public te::ValueTreeAllEventListener
@@ -49,8 +51,12 @@ public:
 
     PianoRollEditor &getPianoRollEditor() { return m_pianoRollEditor; }
 
+    static constexpr int collapsedHeight = 38;
+    static constexpr int defaultExpandedHeight = 350;
+
 private:
     void updateView();
+    void updateCollapsedButtons();
     void syncActiveTrack(bool forceRefresh);
     te::Track::Ptr getTrackMarkedForLowerRange() const;
     te::Track::Ptr getSelectedTrackForLowerRange() const;
@@ -72,10 +78,16 @@ private:
     MixerComponent m_mixer;
     LowerRangeTabBar m_tabBar;
     SplitterComponent m_splitter;
+    std::unique_ptr<LowerRangeCollapsedButton> m_collapsedMixerButton;
+    std::unique_ptr<LowerRangeCollapsedButton> m_collapsedMidiEditorButton;
+    std::unique_ptr<LowerRangeCollapsedButton> m_collapsedPluginChainButton;
 
-    const float m_splitterHeight{10.f};
+    static constexpr int splitterHeight = 10;
+    static constexpr int collapsedBarHeight = collapsedHeight - splitterHeight;
+    static constexpr int menuBarWidth = 100;
 
     int m_pianorollHeightAtMousedown{};
+    bool m_wasCollapsedAtMouseDown{};
     double m_cachedPianoNoteNum{};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LowerRangeComponent)
