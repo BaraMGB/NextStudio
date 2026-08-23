@@ -23,9 +23,11 @@ The observed failures were:
 
 The current NextStudio workaround is:
 
-1. detect Wine at runtime;
+1. detect Wine and Windows Remote Desktop sessions at runtime;
 2. switch JUCE desktop windows to the **Software Renderer** instead of Direct2D;
 3. choose a real installed sans-serif font under Wine instead of JUCE's default Wine fallback family.
+
+Remote Desktop is included because JUCE's Direct2D presentation path may fail to present or update the main window in virtualized RDP environments even though simpler dialog windows remain visible.
 
 This logic is implemented entirely in NextStudio and does **not** require patching JUCE or requiring a custom Wine build.
 
@@ -116,7 +118,7 @@ This keeps the behavior:
 
 No compile-time fork is required.
 
-### 2. Force JUCE software rendering under Wine
+### 2. Force JUCE software rendering under Wine and Remote Desktop
 
 `WineRendererFallback` switches JUCE peers to the `Software Renderer`.
 
@@ -125,8 +127,11 @@ The class is started from application startup in `App/src/Main.cpp`.
 Current behavior:
 
 - `NextStudioApplication` creates and owns a `NextStudio::WineRendererFallback` instance;
-- `start()` enables the workaround only if Wine is detected;
+- `start()` enables the workaround when Wine or a Windows Remote Desktop session is detected;
+- Remote Desktop is detected with Windows `SM_REMOTESESSION`/`SM_REMOTECONTROL` system metrics;
+- setting `NEXTSTUDIO_FORCE_SOFTWARE_RENDERER=1` enables it manually for diagnosis;
 - the main `DocumentWindow` is switched before it is shown;
+- the setup wizard peer is switched before it enters modal state and becomes visible;
 - focus changes trigger asynchronous re-application so additional JUCE desktop windows are also corrected.
 
 This was intentionally done as a **runtime adaptation layer** instead of patching JUCE internals.

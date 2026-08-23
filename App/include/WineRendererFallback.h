@@ -4,9 +4,9 @@
 
 namespace NextStudio
 {
-/** Detects Wine on Windows and keeps JUCE desktop windows on the legacy
-    software renderer. JUCE 8 defaults to Direct2D, which currently requires
-    Direct2D/DirectComposition functionality that stock Wine does not provide.
+/** Keeps JUCE desktop windows on the legacy software renderer in Windows
+    environments where the Direct2D presentation path is unreliable, currently
+    Wine and Remote Desktop sessions.
 */
 class WineRendererFallback final
     : private juce::FocusChangeListener

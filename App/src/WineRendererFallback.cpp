@@ -19,16 +19,42 @@ bool isRunningUnderWine()
     return false;
 #endif
 }
+
+bool isRemoteDesktopSession()
+{
+#if JUCE_WINDOWS
+    return GetSystemMetrics(SM_REMOTESESSION) != 0 || GetSystemMetrics(SM_REMOTECONTROL) != 0;
+#else
+    return false;
+#endif
+}
+
+bool isSoftwareRendererForcedByEnvironment()
+{
+    const auto value = juce::SystemStats::getEnvironmentVariable("NEXTSTUDIO_FORCE_SOFTWARE_RENDERER", {}).trim();
+    return value == "1" || value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes");
+}
 } // namespace
 
 void WineRendererFallback::start()
 {
-    active = isRunningUnderWine();
+    const auto wine = isRunningUnderWine();
+    const auto remoteDesktop = isRemoteDesktopSession();
+    const auto forcedByEnvironment = isSoftwareRendererForcedByEnvironment();
+    active = wine || remoteDesktop || forcedByEnvironment;
 
     if (!active)
         return;
 
-    NS_LOG_INFO(app, "Wine detected; forcing JUCE Software Renderer for desktop windows");
+    juce::StringArray reasons;
+    if (wine)
+        reasons.add("Wine");
+    if (remoteDesktop)
+        reasons.add("Remote Desktop");
+    if (forcedByEnvironment)
+        reasons.add("NEXTSTUDIO_FORCE_SOFTWARE_RENDERER");
+
+    NS_LOG_INFO(app, "Forcing JUCE Software Renderer for desktop windows (" + reasons.joinIntoString(", ") + ")");
     juce::Desktop::getInstance().addFocusChangeListener(this);
     applyToDesktopComponents();
 }

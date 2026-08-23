@@ -729,7 +729,10 @@ void MainComponent::runSetupWizard()
     options.useNativeTitleBar = true;
     options.resizable = false;
 
-    const auto wizardResult = options.runModal();
+    auto *dialog = options.create();
+    m_wineRendererFallback.applyTo(*dialog);
+    dialog->enterModalState(true, nullptr, true);
+    const auto wizardResult = dialog->runModalLoop();
 
     if (wizardResult != 1)
     {
