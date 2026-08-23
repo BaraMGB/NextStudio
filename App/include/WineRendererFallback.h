@@ -11,6 +11,7 @@ namespace NextStudio
 class WineRendererFallback final
     : private juce::FocusChangeListener
     , private juce::AsyncUpdater
+    , private juce::Timer
 {
 public:
     void start();
@@ -24,9 +25,12 @@ public:
 private:
     void globalFocusChanged(juce::Component *focusedComponent) override;
     void handleAsyncUpdate() override;
+    void timerCallback() override;
     void applyToDesktopComponents();
+    void flushPendingSoftwareRepaints();
 
     bool active{false};
+    bool softwareRepaintTimerRequired{false};
     bool listeningForFocusChanges{false};
     bool missingSoftwareRendererLogged{false};
     bool availableRenderersLogged{false};

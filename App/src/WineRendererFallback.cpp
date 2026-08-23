@@ -115,8 +115,8 @@ void WineRendererFallback::start()
 #if JUCE_WINDOWS
     if (wine)
     {
-        const auto dxgiGuardInstalled = installWineDxgiFactoryGuard();
-        NS_LOG_INFO(app, dxgiGuardInstalled ? "Wine DXGI factory guard installed" : "Wine DXGI factory guard was not installed");
+        softwareRepaintTimerRequired = installWineDxgiFactoryGuard();
+        NS_LOG_INFO(app, softwareRepaintTimerRequired ? "Wine DXGI factory guard installed" : "Wine DXGI factory guard was not installed");
     }
 #endif
 
@@ -137,10 +137,13 @@ void WineRendererFallback::start()
 
 void WineRendererFallback::stop()
 {
+    stopTimer();
+
     if (listeningForFocusChanges)
         juce::Desktop::getInstance().removeFocusChangeListener(this);
 
     cancelPendingUpdate();
+    softwareRepaintTimerRequired = false;
     listeningForFocusChanges = false;
     active = false;
 }
@@ -171,6 +174,12 @@ void WineRendererFallback::applyTo(juce::Component &component)
         return;
 
     NS_LOG_INFO(app, "Renderer fallback applying to window: " + component.getName());
+
+    if (softwareRepaintTimerRequired && !isTimerRunning())
+    {
+        startTimerHz(60);
+        NS_LOG_INFO(app, "Wine software renderer repaint timer started");
+    }
 
     if (!listeningForFocusChanges)
     {
@@ -230,6 +239,22 @@ void WineRendererFallback::applyTo(juce::Component &component)
 void WineRendererFallback::globalFocusChanged(juce::Component *) { triggerAsyncUpdate(); }
 
 void WineRendererFallback::handleAsyncUpdate() { applyToDesktopComponents(); }
+
+void WineRendererFallback::timerCallback() { flushPendingSoftwareRepaints(); }
+
+void WineRendererFallback::flushPendingSoftwareRepaints()
+{
+    juce::Array<juce::Component::SafePointer<juce::Component>> components;
+    auto &desktop = juce::Desktop::getInstance();
+
+    for (int i = 0; i < desktop.getNumComponents(); ++i)
+        components.add(desktop.getComponent(i));
+
+    for (const auto &component : components)
+        if (component != nullptr)
+            if (auto *peer = component->getPeer())
+                peer->performAnyPendingRepaintsNow();
+}
 
 void WineRendererFallback::applyToDesktopComponents()
 {
