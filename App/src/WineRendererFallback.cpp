@@ -3,6 +3,7 @@
 #include "Logging.h"
 
 #if JUCE_WINDOWS
+#include <cstring>
 #include <windows.h>
 #endif
 
@@ -10,6 +11,70 @@ namespace NextStudio
 {
 namespace
 {
+#if JUCE_WINDOWS
+HRESULT WINAPI unavailableCreateDxgiFactory2(UINT, REFIID, void **factory)
+{
+    if (factory != nullptr)
+        *factory = nullptr;
+
+    return E_NOTIMPL;
+}
+
+bool installWineDxgiFactoryGuard()
+{
+    const auto module = GetModuleHandleW(nullptr);
+    if (module == nullptr)
+        return false;
+
+    auto *base = reinterpret_cast<unsigned char *>(module);
+    const auto *dosHeader = reinterpret_cast<const IMAGE_DOS_HEADER *>(base);
+    if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+        return false;
+
+    const auto *ntHeaders = reinterpret_cast<const IMAGE_NT_HEADERS *>(base + dosHeader->e_lfanew);
+    if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
+        return false;
+
+    const auto &importsDirectory = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (importsDirectory.VirtualAddress == 0)
+        return false;
+
+    auto *descriptor = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR *>(base + importsDirectory.VirtualAddress);
+    for (; descriptor->Name != 0; ++descriptor)
+    {
+        const auto *libraryName = reinterpret_cast<const char *>(base + descriptor->Name);
+        if (_stricmp(libraryName, "dxgi.dll") != 0 || descriptor->OriginalFirstThunk == 0)
+            continue;
+
+        auto *lookup = reinterpret_cast<IMAGE_THUNK_DATA *>(base + descriptor->OriginalFirstThunk);
+        auto *address = reinterpret_cast<IMAGE_THUNK_DATA *>(base + descriptor->FirstThunk);
+
+        for (; lookup->u1.AddressOfData != 0; ++lookup, ++address)
+        {
+            if (IMAGE_SNAP_BY_ORDINAL(lookup->u1.Ordinal))
+                continue;
+
+            const auto *import = reinterpret_cast<const IMAGE_IMPORT_BY_NAME *>(base + lookup->u1.AddressOfData);
+            if (std::strcmp(reinterpret_cast<const char *>(import->Name), "CreateDXGIFactory2") != 0)
+                continue;
+
+            DWORD oldProtection = 0;
+            if (VirtualProtect(&address->u1.Function, sizeof(address->u1.Function), PAGE_READWRITE, &oldProtection) == FALSE)
+                return false;
+
+            address->u1.Function = reinterpret_cast<ULONG_PTR>(&unavailableCreateDxgiFactory2);
+
+            DWORD ignored = 0;
+            VirtualProtect(&address->u1.Function, sizeof(address->u1.Function), oldProtection, &ignored);
+            FlushInstructionCache(GetCurrentProcess(), &address->u1.Function, sizeof(address->u1.Function));
+            return true;
+        }
+    }
+
+    return false;
+}
+#endif
+
 bool isRunningUnderWine()
 {
 #if JUCE_WINDOWS
@@ -46,6 +111,14 @@ void WineRendererFallback::start()
     const auto remoteDesktop = isRemoteDesktopSession();
     const auto forcedByEnvironment = isSoftwareRendererForcedByEnvironment();
     active = wine || remoteDesktop || forcedByEnvironment;
+
+#if JUCE_WINDOWS
+    if (wine)
+    {
+        const auto dxgiGuardInstalled = installWineDxgiFactoryGuard();
+        NS_LOG_INFO(app, dxgiGuardInstalled ? "Wine DXGI factory guard installed" : "Wine DXGI factory guard was not installed");
+    }
+#endif
 
     if (!active)
         return;
