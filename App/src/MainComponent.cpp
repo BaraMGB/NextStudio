@@ -56,8 +56,6 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
       m_sidebarSplitter(false),
       m_debugMode(debugMode)
 {
-    NS_LOG_INFO(app, "Main component constructor body entered; engine and UI members constructed");
-
     if (m_debugMode)
     {
         const auto debugTempDir = debugSessionDirectory == juce::File() ? NextStudio::Debug::SessionEnvironment::createDebugSessionTempDirectory() : debugSessionDirectory;
@@ -71,7 +69,6 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
         }
     }
 
-    NS_LOG_INFO(app, "Resolving content and setup state");
     const auto configuredWorkDir = juce::File(m_applicationState.m_workDir.get());
     const auto defaultWorkDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio");
     const bool configuredWorkDirExists = configuredWorkDir.exists() && configuredWorkDir.isDirectory();
@@ -81,19 +78,14 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     if (needsSetupWizard && !configuredWorkDirExists)
         m_applicationState.setRootFolder(defaultWorkDir);
 
-    NS_LOG_INFO(app, "Content and setup state resolved; setup wizard required=" + juce::String(needsSetupWizard ? "yes" : "no"));
-
     float scale = m_applicationState.m_appScale;
     scale = juce::jlimit(0.2f, 3.f, scale);
-    NS_LOG_INFO(app, "Applying global GUI scale " + juce::String(scale));
     juce::Desktop::getInstance().setGlobalScaleFactor(scale);
-    NS_LOG_INFO(app, "Global GUI scale applied");
 
     setWantsKeyboardFocus(true);
     juce::LookAndFeel::setDefaultLookAndFeel(&m_nextLookAndFeel);
     NextStudio::WineRendererFallback::configureFontFallback(m_nextLookAndFeel);
     updateTheme();
-    NS_LOG_INFO(app, "Look and feel and font fallback configured");
 
     if (!needsSetupWizard)
         ensureUserDirectoriesAndSamples();
@@ -110,7 +102,6 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
         }
     };
 
-    NS_LOG_INFO(app, "Registering built-in plugins");
     m_engine.getPluginManager().createBuiltInType<SimpleSynthPlugin>();
     m_engine.getPluginManager().createBuiltInType<ArpeggiatorPlugin>();
     m_engine.getPluginManager().createBuiltInType<SpectrumAnalyzerPlugin>();
@@ -121,11 +112,8 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     m_engine.getPluginManager().createBuiltInType<NextSaturationPlugin>();
     m_engine.getPluginManager().createBuiltInType<NextFilterPlugin>();
     m_engine.getPluginManager().createBuiltInType<SoundFontPlugin>();
-    NS_LOG_INFO(app, "Built-in plugins registered");
 
-    NS_LOG_INFO(app, "Opening initial edit");
     openValidStartEdit();
-    NS_LOG_INFO(app, "Initial edit opened");
 
     m_commandManager.registerAllCommandsForTarget(this);
     m_commandManager.registerAllCommandsForTarget(m_editComponent.get());
@@ -137,11 +125,9 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
 
     if (needsSetupWizard)
     {
-        NS_LOG_INFO(app, "Scheduling setup wizard");
+        NS_LOG_INFO(setup, "setup wizard scheduled");
         launchSetupWizardAsync();
     }
-
-    NS_LOG_INFO(app, "Main component construction completed");
 }
 
 MainComponent::~MainComponent()
@@ -773,7 +759,6 @@ void MainComponent::runSetupWizard()
             mainWindow->setVisible(true);
             mainWindow->toFront(true);
             mainWindow->repaint();
-            NS_LOG_INFO(app, "Main window reactivated after setup wizard");
         });
 }
 

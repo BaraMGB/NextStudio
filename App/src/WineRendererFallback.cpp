@@ -89,34 +89,41 @@ bool isRunningUnderWine()
 #endif
 }
 
-bool isRemoteDesktopSession()
+bool isEnabledEnvironmentValue(const juce::String &name)
 {
-#if JUCE_WINDOWS
-    return GetSystemMetrics(SM_REMOTESESSION) != 0 || GetSystemMetrics(SM_REMOTECONTROL) != 0;
-#else
-    return false;
-#endif
+    const auto value = juce::SystemStats::getEnvironmentVariable(name, {}).trim();
+    return value == "1" || value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes");
 }
 
 bool isSoftwareRendererForcedByEnvironment()
 {
-    const auto value = juce::SystemStats::getEnvironmentVariable("NEXTSTUDIO_FORCE_SOFTWARE_RENDERER", {}).trim();
-    return value == "1" || value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes");
+    return isEnabledEnvironmentValue("NEXTSTUDIO_FORCE_SOFTWARE_RENDERER");
+}
+
+bool isDefaultRendererForcedByEnvironment()
+{
+    return isEnabledEnvironmentValue("NEXTSTUDIO_FORCE_DEFAULT_RENDERER");
 }
 } // namespace
 
 void WineRendererFallback::start()
 {
     const auto wine = isRunningUnderWine();
-    const auto remoteDesktop = isRemoteDesktopSession();
     const auto forcedByEnvironment = isSoftwareRendererForcedByEnvironment();
-    active = wine || remoteDesktop || forcedByEnvironment;
+    const auto defaultRendererForced = isDefaultRendererForcedByEnvironment();
+    active = !defaultRendererForced && (wine || forcedByEnvironment);
+
+    if (defaultRendererForced)
+    {
+        NS_LOG_INFO(app, "Keeping JUCE default renderer (NEXTSTUDIO_FORCE_DEFAULT_RENDERER)");
+        return;
+    }
 
 #if JUCE_WINDOWS
     if (wine)
     {
         softwareRepaintTimerRequired = installWineDxgiFactoryGuard();
-        NS_LOG_INFO(app, softwareRepaintTimerRequired ? "Wine DXGI factory guard installed" : "Wine DXGI factory guard was not installed");
+        NS_LOG_DEBUG(app, softwareRepaintTimerRequired ? "Wine DXGI factory guard installed" : "Wine DXGI factory guard was not installed");
     }
 #endif
 
@@ -126,13 +133,10 @@ void WineRendererFallback::start()
     juce::StringArray reasons;
     if (wine)
         reasons.add("Wine");
-    if (remoteDesktop)
-        reasons.add("Remote Desktop");
     if (forcedByEnvironment)
         reasons.add("NEXTSTUDIO_FORCE_SOFTWARE_RENDERER");
 
     NS_LOG_INFO(app, "Forcing JUCE Software Renderer for desktop windows (" + reasons.joinIntoString(", ") + ")");
-    NS_LOG_INFO(app, "Renderer fallback startup completed without desktop access");
 }
 
 void WineRendererFallback::stop()
@@ -145,6 +149,8 @@ void WineRendererFallback::stop()
     cancelPendingUpdate();
     softwareRepaintTimerRequired = false;
     listeningForFocusChanges = false;
+    missingSoftwareRendererLogged = false;
+    softwareRendererEnabledLogged = false;
     active = false;
 }
 
@@ -173,40 +179,20 @@ void WineRendererFallback::applyTo(juce::Component &component)
     if (!active)
         return;
 
-    NS_LOG_INFO(app, "Renderer fallback applying to window: " + component.getName());
-
     if (softwareRepaintTimerRequired && !isTimerRunning())
-    {
         startTimerHz(60);
-        NS_LOG_INFO(app, "Wine software renderer repaint timer started");
-    }
 
     if (!listeningForFocusChanges)
     {
-        NS_LOG_INFO(app, "Registering renderer fallback focus monitoring");
         juce::Desktop::getInstance().addFocusChangeListener(this);
         listeningForFocusChanges = true;
-        NS_LOG_INFO(app, "Renderer fallback focus monitoring started");
     }
 
     auto *peer = component.getPeer();
     if (peer == nullptr)
-    {
-        NS_LOG_WARN(app, "Renderer fallback found no peer for window: " + component.getName());
         return;
-    }
 
-    NS_LOG_INFO(app, "Querying available renderers for window: " + component.getName());
     const auto engines = peer->getAvailableRenderingEngines();
-
-    if (!availableRenderersLogged)
-    {
-        availableRenderersLogged = true;
-        NS_LOG_INFO(app, "Available JUCE rendering engines:");
-
-        for (const auto &engine : engines)
-            NS_LOG_INFO(app, "  " + engine);
-    }
 
     const auto softwareRenderer = engines.indexOf("Software Renderer");
 
@@ -220,19 +206,16 @@ void WineRendererFallback::applyTo(juce::Component &component)
         return;
     }
 
-    const auto currentRenderer = peer->getCurrentRenderingEngine();
-    NS_LOG_INFO(app, "Current renderer index for " + component.getName() + ": " + juce::String(currentRenderer));
-
-    if (currentRenderer != softwareRenderer)
+    if (peer->getCurrentRenderingEngine() != softwareRenderer)
     {
-        NS_LOG_INFO(app, "Switching renderer for " + component.getName() + " to index " + juce::String(softwareRenderer));
         peer->setCurrentRenderingEngine(softwareRenderer);
         component.repaint();
-        NS_LOG_INFO(app, "JUCE Software Renderer enabled for window: " + component.getName());
     }
-    else
+
+    if (!softwareRendererEnabledLogged)
     {
-        NS_LOG_INFO(app, "JUCE Software Renderer already active for window: " + component.getName());
+        softwareRendererEnabledLogged = true;
+        NS_LOG_INFO(app, "JUCE Software Renderer enabled for desktop windows");
     }
 }
 

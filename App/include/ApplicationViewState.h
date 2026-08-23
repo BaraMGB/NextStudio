@@ -119,10 +119,8 @@ public:
     explicit ApplicationViewState(const juce::File &settingsFile = {})
         : m_settingsFile(settingsFile == juce::File() ? getDefaultSettingsFile() : settingsFile)
     {
-        NS_LOG_INFO(app, "Loading application settings from " + m_settingsFile.getFullPathName());
         juce::XmlDocument xmlDoc(m_settingsFile);
         auto xmlToRead = xmlDoc.getDocumentElement();
-        NS_LOG_INFO(app, "Application settings XML read completed");
         if (xmlToRead)
         {
             m_applicationStateValueTree = juce::ValueTree::fromXml(*xmlToRead);
@@ -215,7 +213,6 @@ public:
         behavior.setProperty(IDs::FolderTrackIndent, juce::var(m_folderTrackIndent), nullptr);
         behavior.setProperty(IDs::TimeStretchMode, juce::var(m_timeStretchMode), nullptr);
         behavior.setProperty(IDs::ScrollbarThickness, juce::var(m_scrollbarThickness), nullptr);
-        NS_LOG_INFO(app, "Application settings values initialized");
     }
     ~ApplicationViewState() { saveState(); }
 

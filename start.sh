@@ -47,10 +47,10 @@ fi
 
 # Build the project
 echo "=== Building project ==="
-BUILD_ARGS="$BUILD_TYPE"
-[[ "$CLEAN_CACHE" == true ]] && BUILD_ARGS="$BUILD_ARGS -clean"
+BUILD_ARGS=("$BUILD_TYPE")
+[[ "$CLEAN_CACHE" == true ]] && BUILD_ARGS+=("-clean")
 
-if ! ./build.sh $BUILD_ARGS; then
+if ! ./build.sh "${BUILD_ARGS[@]}"; then
     echo "Build failed!"
     exit 1
 fi
@@ -59,13 +59,24 @@ fi
 if [[ "$BUILD_ONLY" == false ]]; then
     echo "=== Starting application ==="
     
-    # Determine executable path
+    # Determine executable path. JUCE adds the configuration directory for
+    # both single- and multi-configuration generators.
     case $BUILD_TYPE in
-        d) EXEC_PATH="./autobuild/Debug/App/NextStudio_artefacts/Debug/NextStudio" ;;
-        r) EXEC_PATH="./autobuild/Release/App/NextStudio_artefacts/Release/NextStudio" ;;
-        rd) EXEC_PATH="./autobuild/RelWithDebInfo/App/NextStudio_artefacts/RelWithDebInfo/NextStudio" ;;
+        d) CONFIGURATION="Debug" ;;
+        r) CONFIGURATION="Release" ;;
+        rd) CONFIGURATION="RelWithDebInfo" ;;
     esac
-    
+
+    EXEC_PATH="./autobuild/${CONFIGURATION}/App/NextStudio_artefacts/${CONFIGURATION}/NextStudio"
+    if [[ "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* || "${OSTYPE:-}" == win32* ]]; then
+        EXEC_PATH="${EXEC_PATH}.exe"
+    fi
+
+    if [[ ! -e "$EXEC_PATH" ]]; then
+        echo "Executable not found: $EXEC_PATH" >&2
+        exit 1
+    fi
+
     # Run with or without debugger
     if [[ "$RUN_WITH_DEBUGGER" == true ]]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then

@@ -4,9 +4,8 @@
 
 namespace NextStudio
 {
-/** Keeps JUCE desktop windows on the legacy software renderer in Windows
-    environments where the Direct2D presentation path is unreliable, currently
-    Wine and Remote Desktop sessions.
+/** Keeps JUCE desktop windows on the legacy software renderer when running
+    under Wine, where the Direct2D presentation path is unreliable.
 */
 class WineRendererFallback final
     : private juce::FocusChangeListener
@@ -33,6 +32,6 @@ private:
     bool softwareRepaintTimerRequired{false};
     bool listeningForFocusChanges{false};
     bool missingSoftwareRendererLogged{false};
-    bool availableRenderersLogged{false};
+    bool softwareRendererEnabledLogged{false};
 };
 } // namespace NextStudio

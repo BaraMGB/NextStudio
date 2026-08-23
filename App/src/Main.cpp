@@ -47,7 +47,6 @@ public:
     struct LaunchOptions
     {
         bool debugShell{false};
-        bool rendererProbe{false};
         juce::String debugShellRequestId;
     };
 
@@ -65,45 +64,10 @@ public:
     //==============================================================================
     void initialise(const juce::String &commandLine) override
     {
-        m_fileLogger.reset(juce::FileLogger::createDefaultAppLogger("NextStudio", "NextStudio.log", "NextStudio application log", 512 * 1024));
-        if (m_fileLogger != nullptr)
-            juce::Logger::setCurrentLogger(m_fileLogger.get());
-
         m_initialiseEntered = true;
         m_launchOptions = parseLaunchOptions(commandLine);
         NS_LOG_INFO(app, "Welcome to " + getApplicationName() + " v" + getApplicationVersion());
         m_wineRendererFallback.start();
-
-        if (m_launchOptions.rendererProbe)
-        {
-            class RendererProbeWindow final : public juce::DocumentWindow
-            {
-            public:
-                RendererProbeWindow()
-                    : juce::DocumentWindow("NextStudio Renderer Probe", juce::Colours::darkgrey, juce::DocumentWindow::closeButton)
-                {
-                }
-
-                void closeButtonPressed() override { juce::JUCEApplication::getInstance()->quit(); }
-            };
-
-            NS_LOG_INFO(app, "Creating renderer probe window");
-            auto window = std::make_unique<RendererProbeWindow>();
-            auto label = std::make_unique<juce::Label>();
-            label->setText("NextStudio renderer probe is visible", juce::dontSendNotification);
-            label->setJustificationType(juce::Justification::centred);
-            window->setContentOwned(label.release(), false);
-            window->setBounds(100, 100, 800, 400);
-            NS_LOG_INFO(app, "Applying renderer fallback to renderer probe");
-            m_wineRendererFallback.applyTo(*window);
-            NS_LOG_INFO(app, "Showing renderer probe window");
-            window->setVisible(true);
-            window->toFront(true);
-            window->repaint();
-            m_rendererProbeWindow = std::move(window);
-            NS_LOG_INFO(app, "Renderer probe window shown");
-            return;
-        }
 
         if (m_launchOptions.debugShell)
         {
@@ -124,14 +88,10 @@ public:
         }
         else
         {
-            NS_LOG_INFO(app, "Creating application state");
             m_applicationState = std::make_unique<ApplicationViewState>();
-            NS_LOG_INFO(app, "Application state created");
         }
 
-        NS_LOG_INFO(app, "Creating main window");
         mainWindow.reset(new MainWindow(getApplicationName(), *m_applicationState, m_launchOptions.debugShell, m_debugSessionDirectory, m_wineRendererFallback));
-        NS_LOG_INFO(app, "Main window created");
 
         if (m_launchOptions.debugShell)
         {
@@ -156,7 +116,6 @@ public:
         m_debugShell = nullptr;
         m_debugHost = nullptr;
         m_wineRendererFallback.stop();
-        m_rendererProbeWindow = nullptr;
         mainWindow = nullptr;
         m_applicationState = nullptr;
 
@@ -165,10 +124,6 @@ public:
             m_debugSessionDirectory.deleteRecursively();
             m_debugSessionDirectory = juce::File();
         }
-
-        if (juce::Logger::getCurrentLogger() == m_fileLogger.get())
-            juce::Logger::setCurrentLogger(nullptr);
-        m_fileLogger = nullptr;
     }
 
     void systemRequestedQuit() override
@@ -200,8 +155,6 @@ public:
         {
             if (arg == "--debug-shell")
                 options.debugShell = true;
-            else if (arg == "--renderer-probe")
-                options.rendererProbe = true;
             else if (arg.startsWith("--debug-shell-request-id="))
                 options.debugShellRequestId = arg.fromFirstOccurrenceOf("=", false, false).trim();
         }
@@ -213,34 +166,26 @@ public:
     {
     public:
         MainWindow(juce::String name, ApplicationViewState &applicationSettings, bool debugShellEnabled, const juce::File &debugSessionDirectory, NextStudio::WineRendererFallback &wineRendererFallback)
-            : DocumentWindow(name, getWindowBackgroundColour(), DocumentWindow::allButtons),
+            : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId), DocumentWindow::allButtons),
               m_applicationState(applicationSettings),
               m_debugShellEnabled(debugShellEnabled),
               m_debugSessionDirectory(debugSessionDirectory)
         {
-            NS_LOG_INFO(app, "Main window base construction completed");
             setUsingNativeTitleBar(true);
-            NS_LOG_INFO(app, "Main window native title bar configured");
 
 #if JUCE_IOS || JUCE_ANDROID
             setFullScreen(true);
 #else
             const juce::Rectangle<int> savedBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             const auto visibleBounds = constrainToCurrentDisplays(savedBounds);
-            NS_LOG_INFO(app, "Main window bounds: saved=" + savedBounds.toString() + ", visible=" + visibleBounds.toString());
             setBounds(visibleBounds);
             setResizable(true, true);
 #endif
-            NS_LOG_INFO(app, "Creating main component");
             auto mc = new MainComponent(m_applicationState, wineRendererFallback, m_debugShellEnabled, m_debugSessionDirectory);
-            NS_LOG_INFO(app, "Main component created");
             mc->setSize(m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
             setContentOwned(mc, true);
-            NS_LOG_INFO(app, "Applying renderer fallback to main window");
             wineRendererFallback.applyTo(*this);
-            NS_LOG_INFO(app, "Showing main window");
             setVisible(true);
-            NS_LOG_INFO(app, "Main window shown");
         }
 
         MainComponent *getMainComponent() const { return dynamic_cast<MainComponent *>(getContentComponent()); }
@@ -254,19 +199,9 @@ public:
         }
 
     private:
-        static juce::Colour getWindowBackgroundColour()
-        {
-            NS_LOG_INFO(app, "Resolving default JUCE look and feel");
-            const auto colour = juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId);
-            NS_LOG_INFO(app, "Default JUCE look and feel resolved");
-            return colour;
-        }
-
         static juce::Rectangle<int> constrainToCurrentDisplays(juce::Rectangle<int> bounds)
         {
-            NS_LOG_INFO(app, "Querying JUCE displays for main window bounds");
             const auto &displays = juce::Desktop::getInstance().getDisplays();
-            NS_LOG_INFO(app, "JUCE displays queried; count=" + juce::String(displays.displays.size()));
             const auto *display = displays.getDisplayForRect(bounds);
 
             if (display == nullptr)
@@ -292,13 +227,11 @@ public:
     };
 
 private:
-    std::unique_ptr<juce::FileLogger> m_fileLogger;
     std::unique_ptr<ApplicationViewState> m_applicationState;
     juce::File m_debugSessionDirectory;
     LaunchOptions m_launchOptions;
     bool m_initialiseEntered{false};
     NextStudio::WineRendererFallback m_wineRendererFallback;
-    std::unique_ptr<juce::DocumentWindow> m_rendererProbeWindow;
     std::unique_ptr<MainWindow> mainWindow;
     std::unique_ptr<NextStudio::Debug::DebugHost> m_debugHost;
     std::unique_ptr<NextStudio::Debug::DebugShell> m_debugShell;
