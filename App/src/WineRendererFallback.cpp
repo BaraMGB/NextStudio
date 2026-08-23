@@ -106,7 +106,7 @@ void WineRendererFallback::applyTo(juce::Component &component)
     if (!availableRenderersLogged)
     {
         availableRenderersLogged = true;
-        NS_LOG_INFO(app, "Available JUCE rendering engines under Wine:");
+        NS_LOG_INFO(app, "Available JUCE rendering engines:");
 
         for (const auto &engine : engines)
             NS_LOG_INFO(app, "  " + engine);
@@ -119,7 +119,7 @@ void WineRendererFallback::applyTo(juce::Component &component)
         if (!missingSoftwareRendererLogged)
         {
             missingSoftwareRendererLogged = true;
-            NS_LOG_WARN(app, "Wine renderer fallback could not find JUCE Software Renderer");
+            NS_LOG_WARN(app, "Renderer fallback could not find JUCE Software Renderer");
         }
         return;
     }
@@ -127,6 +127,7 @@ void WineRendererFallback::applyTo(juce::Component &component)
     if (peer->getCurrentRenderingEngine() != softwareRenderer)
     {
         peer->setCurrentRenderingEngine(softwareRenderer);
+        component.repaint();
         NS_LOG_INFO(app, "JUCE Software Renderer enabled for window: " + component.getName());
     }
 }

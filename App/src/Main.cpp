@@ -176,8 +176,10 @@ public:
 #if JUCE_IOS || JUCE_ANDROID
             setFullScreen(true);
 #else
-
-            setBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
+            const juce::Rectangle<int> savedBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
+            const auto visibleBounds = constrainToCurrentDisplays(savedBounds);
+            NS_LOG_INFO(app, "Main window bounds: saved=" + savedBounds.toString() + ", visible=" + visibleBounds.toString());
+            setBounds(visibleBounds);
             setResizable(true, true);
 #endif
             auto mc = new MainComponent(m_applicationState, wineRendererFallback, m_debugShellEnabled, m_debugSessionDirectory);
@@ -198,6 +200,27 @@ public:
         }
 
     private:
+        static juce::Rectangle<int> constrainToCurrentDisplays(juce::Rectangle<int> bounds)
+        {
+            const auto &displays = juce::Desktop::getInstance().getDisplays();
+            const auto *display = displays.getDisplayForRect(bounds);
+
+            if (display == nullptr)
+                display = displays.getPrimaryDisplay();
+
+            if (display == nullptr || display->userArea.isEmpty())
+                return bounds;
+
+            const auto area = display->userArea;
+            bounds.setSize(juce::jmin(area.getWidth(), juce::jmax(640, bounds.getWidth())), juce::jmin(area.getHeight(), juce::jmax(480, bounds.getHeight())));
+
+            const auto visiblePart = area.getIntersection(bounds);
+            if (visiblePart.getWidth() < 100 || visiblePart.getHeight() < 100)
+                return bounds.withCentre(area.getCentre()).constrainedWithin(area);
+
+            return bounds.constrainedWithin(area);
+        }
+
         ApplicationViewState &m_applicationState;
         bool m_debugShellEnabled{false};
         juce::File m_debugSessionDirectory;

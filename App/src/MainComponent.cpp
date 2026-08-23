@@ -745,6 +745,19 @@ void MainComponent::runSetupWizard()
     }
 
     handleContentPathChangedFromSettings();
+
+    juce::Component::SafePointer<juce::Component> mainWindow(getTopLevelComponent());
+    juce::MessageManager::callAsync(
+        [mainWindow]
+        {
+            if (mainWindow == nullptr)
+                return;
+
+            mainWindow->setVisible(true);
+            mainWindow->toFront(true);
+            mainWindow->repaint();
+            NS_LOG_INFO(app, "Main window reactivated after setup wizard");
+        });
 }
 
 void MainComponent::handleContentPathChangedFromSettings()
