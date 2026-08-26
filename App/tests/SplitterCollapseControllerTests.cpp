@@ -49,7 +49,8 @@ void testZeroTransitionDistance()
 
 void testSidebarLayoutPolicy()
 {
-    require(SidebarLayout::getPreferredWidth(70) == 300, "invalid stored width uses default");
+    require(SidebarLayout::getPreferredWidth(70) == SidebarLayout::defaultExpandedWidth,
+            "invalid stored width uses default");
     require(SidebarLayout::getPreferredWidth(600) == 600, "valid stored width is preserved");
     require(SidebarLayout::getTransitionDistance(600, false) == 450, "expanded transition includes resize and resistance");
     require(SidebarLayout::getTransitionDistance(600, true) == 530, "collapsed transition reaches stored expanded width");
