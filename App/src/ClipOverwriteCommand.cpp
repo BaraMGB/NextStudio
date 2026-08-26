@@ -325,6 +325,7 @@ Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
 
     std::set<te::EditItemID> protectedIDs;
     std::set<te::EditItemID> movedSourceIDs;
+    bool movedMidiClipToAnotherTrack = false;
     std::map<te::ClipTrack *, std::vector<TimeRange>> masksByTrack;
     std::set<te::ClipTrack *> affectedTracks;
 
@@ -358,6 +359,10 @@ Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
                 return result;
             }
             protectedIDs.insert(placement.source->itemID);
+
+            if (placement.source->isMidi()
+                && placement.source->getClipTrack() != placement.destination)
+                movedMidiClipToAnotherTrack = true;
         }
         else if (placementIsCopy(placement))
         {
@@ -460,7 +465,8 @@ Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
     undoManager.beginNewTransaction(options.undoName);
 
     te::Edit::UndoTransactionInhibitor undoInhibitor(edit);
-    te::TransportControl::ReallocationInhibitor graphInhibitor(edit.getTransport());
+    auto graphInhibitor = std::make_unique<te::TransportControl::ReallocationInhibitor>(
+        edit.getTransport());
 
     auto rollback = [&](const juce::String &error)
     {
@@ -530,6 +536,15 @@ Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
     selectionManager.deselectAll();
     for (auto clip : result.clips)
         selectionManager.addToSelection(clip.get());
+
+    graphInhibitor.reset();
+
+    auto &transport = edit.getTransport();
+    if (movedMidiClipToAnotherTrack && transport.isPlaying())
+    {
+        transport.stop(false, true, false);
+        transport.play(false);
+    }
 
     result.succeeded = true;
     return result;
