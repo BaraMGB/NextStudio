@@ -547,13 +547,21 @@ void testArrangementRecordingMode()
     const auto deviceName = "ClipOverwriteRecordingTest-"
                             + juce::String(juce::Time::currentTimeMillis());
     REQUIRE(deviceManager.createVirtualMidiDevice(deviceName).wasOk());
-    juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
-    deviceManager.dispatchPendingUpdates();
-    auto devices = deviceManager.getMidiInDevices();
+
     std::shared_ptr<te::MidiInputDevice> device;
-    for (auto candidate : devices)
-        if (candidate->getName() == deviceName)
-            device = std::move(candidate);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (device == nullptr && std::chrono::steady_clock::now() < deadline)
+    {
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
+        deviceManager.dispatchPendingUpdates();
+
+        for (auto candidate : deviceManager.getMidiInDevices())
+            if (candidate->getName() == deviceName)
+            {
+                device = std::move(candidate);
+                break;
+            }
+    }
     REQUIRE(device != nullptr);
     if (device == nullptr)
         return;
