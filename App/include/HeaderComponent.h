@@ -127,6 +127,7 @@ private:
     juce::String getCountInModeText() const;
     void showCountInMenu();
     void showFollowMenu();
+    void showEmptyLoopRangeWarning();
     void updateCountInButton();
     void updateUndoRedoButtons(bool force = false);
     void updateCountInDisplay();
@@ -138,6 +139,7 @@ private:
     void addButtonsToFlexBox(juce::FlexBox &box, const juce::Array<juce::Component *> &buttons, int width = 0);
     juce::DrawableButton m_stopButton, m_recordButton, m_playButton, m_loopButton, m_clickButton, m_followPlayheadButton, m_undoButton, m_redoButton;
     PreRollCounterButton m_countInButton;
+    juce::BubbleMessageComponent m_loopRangeWarning;
     te::Edit &m_edit;
     ApplicationViewState &m_applicationState;
 

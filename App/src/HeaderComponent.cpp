@@ -63,6 +63,8 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
     m_undoButton.setTooltip(GUIHelpers::translate("Undo", m_editViewState.m_applicationState));
     m_redoButton.setTooltip(GUIHelpers::translate("Redo", m_editViewState.m_applicationState));
 
+    m_loopRangeWarning.setAllowedPlacement(juce::BubbleComponent::right);
+
     updateCountInButton();
     updateUndoRedoButtons(true);
     updateCountInDisplay();
@@ -339,7 +341,31 @@ void HeaderComponent::showFollowMenu()
                     });
 }
 
-void HeaderComponent::loopButtonClicked() { GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg, m_edit.getTransport().looping ? m_btn_col : juce::Colour(0xff666666)); }
+void HeaderComponent::loopButtonClicked()
+{
+    const auto isLooping = static_cast<bool>(m_edit.getTransport().looping);
+    GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg, isLooping ? m_btn_col : juce::Colour(0xff666666));
+
+    if (isLooping && m_edit.getTransport().getLoopRange().getLength().inSeconds() <= 0.0)
+        showEmptyLoopRangeWarning();
+}
+
+void HeaderComponent::showEmptyLoopRangeWarning()
+{
+    auto *topLevel = getTopLevelComponent();
+    if (topLevel == nullptr || topLevel == this)
+        return;
+
+    if (m_loopRangeWarning.getParentComponent() != topLevel)
+        topLevel->addChildComponent(&m_loopRangeWarning);
+
+    juce::AttributedString message(GUIHelpers::translate("Set a loop range before enabling loop playback.", m_editViewState.m_applicationState));
+    message.setJustification(juce::Justification::centred);
+    message.setColour(m_applicationState.getTextColour());
+
+    m_loopRangeWarning.showAt(&m_loopButton, message, 5000, false, false);
+    m_loopRangeWarning.toFront(false);
+}
 
 void HeaderComponent::updateCountInButton()
 {

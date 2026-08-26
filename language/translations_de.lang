@@ -14,6 +14,7 @@ countries: ch at de
 "Open settings dialog" = "Einstellungen"
 "Open plugin settings dialog" = "Plugin Einstellungen"
 "Toggle loop on/off" = "In Schleife abspielen Ein/Aus"
+"Set a loop range before enabling loop playback." = "Vor dem Aktivieren der Schleifenwiedergabe muss ein Schleifenbereich festgelegt werden."
 "Toggle metronome on/off" = "Metronom Ein/Aus"
 "View follows playhead on/off" = "Ansicht folgt der Songposition"
 "Find" = "Suche"
