@@ -522,6 +522,11 @@ void TrackHeaderComponent::valueTreePropertyChanged(juce::ValueTree &v, const ju
         {
             m_soloButton.setToggleState(m_track->isSolo(false), juce::dontSendNotification);
         }
+        else if (i == te::IDs::armed)
+        {
+            if (auto *audioTrack = dynamic_cast<te::AudioTrack *>(m_track.get()))
+                m_armButton.setToggleState(EngineHelpers::isTrackArmed(*audioTrack), juce::dontSendNotification);
+        }
     }
     if (v.hasType(te::IDs::INPUTDEVICES) || v.hasType(te::IDs::INPUTDEVICE) || v.hasType(te::IDs::INPUTDEVICEDESTINATION))
     {

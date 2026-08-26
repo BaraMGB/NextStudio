@@ -65,6 +65,8 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::T
     updateComponentsFromTrack();
 
     m_muteButton.setButtonText("M");
+    m_muteButton.setComponentID("mute");
+    m_muteButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);
     m_muteButton.onClick = [this]
     {
         if (m_isMasterTrack)
@@ -83,10 +85,14 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::T
     addAndMakeVisible(m_muteButton);
 
     m_soloButton.setButtonText("S");
+    m_soloButton.setComponentID("solo");
+    m_soloButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);
     m_soloButton.onClick = [this] { m_track->setSolo(!m_track->isSolo(false)); };
     addAndMakeVisible(m_soloButton);
 
-    m_armButton.setButtonText("R");
+    m_armButton.setButtonText("A");
+    m_armButton.setComponentID("arm");
+    m_armButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);
     m_armButton.onClick = [this]
     {
         if (auto at = dynamic_cast<te::AudioTrack *>(m_track.get()))
@@ -114,6 +120,22 @@ MixerChannelStripComponent::MixerChannelStripComponent(EditViewState &evs, te::T
 }
 
 MixerChannelStripComponent::~MixerChannelStripComponent() { m_track->state.removeListener(this); }
+
+void MixerChannelStripComponent::valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &property)
+{
+    if (tree != m_track->state)
+        return;
+
+    if (property == te::IDs::mute && !m_isMasterTrack)
+        m_muteButton.setToggleState(m_track->isMuted(false), juce::dontSendNotification);
+    else if (property == te::IDs::solo && !m_isMasterTrack)
+        m_soloButton.setToggleState(m_track->isSolo(false), juce::dontSendNotification);
+    else if (property == te::IDs::armed)
+    {
+        if (auto *audioTrack = dynamic_cast<te::AudioTrack *>(m_track.get()))
+            m_armButton.setToggleState(EngineHelpers::isTrackArmed(*audioTrack), juce::dontSendNotification);
+    }
+}
 
 void MixerChannelStripComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) { updateComponentsFromTrack(); }
 

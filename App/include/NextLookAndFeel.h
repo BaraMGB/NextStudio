@@ -153,10 +153,20 @@ public:
         const juce::Rectangle<int> area = button.getLocalBounds().reduced(1);
 
         auto buttonColour = m_appState.getButtonBackgroundColour();
-        if (button.isDown() || button.getToggleState())
+        if (button.getToggleState())
         {
-            buttonColour = buttonColour.darker(0.7f);
+            if (button.getComponentID() == "solo")
+                buttonColour = juce::Colours::lightgreen;
+            else if (button.getComponentID() == "mute")
+                buttonColour = juce::Colours::darkorange;
+            else if (button.getComponentID() == "arm")
+                buttonColour = juce::Colours::firebrick;
+            else
+                buttonColour = buttonColour.darker(0.7f);
         }
+
+        if (button.isDown())
+            buttonColour = buttonColour.darker(0.2f);
 
         auto cornerSize = 7.0f;
         if (button.getWidth() < 35)

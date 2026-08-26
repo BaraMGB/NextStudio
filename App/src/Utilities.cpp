@@ -2382,6 +2382,10 @@ void EngineHelpers::armTrack(te::AudioTrack &t, bool arm, int position)
             instance->setRecordingEnabled(t.itemID, arm);
         }
     }
+
+    // The armed state belongs to input destinations rather than the track itself.
+    // Notify track UI listeners so all views update from the shared engine state.
+    t.state.sendPropertyChangeMessage(te::IDs::armed);
 }
 
 bool EngineHelpers::isTrackArmed(te::AudioTrack &t, int position)
