@@ -40,6 +40,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "NextLookAndFeel.h"
 #include "PluginWindow.h"
 #include "SidebarComponent.h"
+#include "SplitterCollapseController.h"
 #include "ThemeHelpers.h"
 #include "Utilities.h"
 
@@ -115,6 +116,9 @@ private:
     void createTracksAndAssignInputs();
     void openValidStartEdit();
     void setupSideBrowser();
+    int getPreferredSidebarWidth() const;
+    void handleSidebarSplitterMouseDown();
+    void handleSidebarSplitterDrag(int dragDistance);
     void ensureUserDirectoriesAndSamples();
     void launchSetupWizardAsync();
     void runSetupWizard();
@@ -163,7 +167,8 @@ private:
     bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp{true};
 
-    int m_sidebarWidthAtMousedown;
+    SplitterCollapseController m_sidebarSplitterCollapseController;
+    int m_sidebarWidthAtMousedown{};
 
     juce::File m_tempDir;
     juce::Array<juce::KeyPress> m_pressedKeysForMidiKeyboard;

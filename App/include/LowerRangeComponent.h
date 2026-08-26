@@ -28,6 +28,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MixerComponent.h"
 #include "PianoRollEditor.h"
 #include "PluginChainView.h"
+#include "SplitterCollapseController.h"
 #include "SplitterComponent.h"
 #include "EditViewState.h"
 #include "Utilities.h"
@@ -86,8 +87,8 @@ private:
     static constexpr int collapsedBarHeight = collapsedHeight - splitterHeight;
     static constexpr int menuBarWidth = 100;
 
+    SplitterCollapseController m_splitterCollapseController;
     int m_pianorollHeightAtMousedown{};
-    bool m_wasCollapsedAtMouseDown{};
     double m_cachedPianoNoteNum{};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LowerRangeComponent)

@@ -80,6 +80,15 @@ if(BUILD_TESTING)
     add_test(NAME PluginChainLayout
             COMMAND PluginChainLayoutTests)
 
+    add_executable(SplitterCollapseControllerTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/SplitterCollapseControllerTests.cpp)
+
+    target_include_directories(SplitterCollapseControllerTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    add_test(NAME SplitterCollapseController
+            COMMAND SplitterCollapseControllerTests)
+
     juce_add_console_app(DebugProtocolTests
             PRODUCT_NAME "DebugProtocolTests")
     juce_generate_juce_header(DebugProtocolTests)

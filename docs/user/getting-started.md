@@ -113,7 +113,7 @@ The vertical sidebar switches between:
 - **Settings** — audio/MIDI, plug-in, appearance, and behavior settings;
 - **Render** — export/render controls.
 
-Clicking the currently active sidebar button toggles the sidebar between collapsed and expanded states. Drag the adjacent splitter to resize it.
+Drag the adjacent splitter to resize the sidebar. Its initial expanded width is 300 pixels and it can be reduced continuously to 250 pixels on every display. Dragging another 100 pixels toward the menu rail crosses the collapse resistance and snaps it closed. Clicking a sidebar menu button opens the selected view; clicking the active button again also collapses the sidebar.
 
 ### Lower range
 

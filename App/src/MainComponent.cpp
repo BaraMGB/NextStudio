@@ -91,16 +91,8 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
         ensureUserDirectoriesAndSamples();
 
     addAndMakeVisible(m_sidebarSplitter);
-    m_sidebarSplitter.onMouseDown = [this]() { m_sidebarWidthAtMousedown = m_applicationState.m_sidebarWidth; };
-
-    m_sidebarSplitter.onDrag = [this](int dragDistance)
-    {
-        if (m_applicationState.m_sidebarCollapsed == false)
-        {
-            m_applicationState.m_sidebarWidth = juce::jmax(m_applicationState.m_minSidebarWidth, m_sidebarWidthAtMousedown + dragDistance);
-            resized();
-        }
-    };
+    m_sidebarSplitter.onMouseDown = [this]() { handleSidebarSplitterMouseDown(); };
+    m_sidebarSplitter.onDrag = [this](int dragDistance) { handleSidebarSplitterDrag(dragDistance); };
 
     m_engine.getPluginManager().createBuiltInType<SimpleSynthPlugin>();
     m_engine.getPluginManager().createBuiltInType<ArpeggiatorPlugin>();
@@ -167,6 +159,43 @@ void MainComponent::paint(juce::Graphics &g)
     g.fillRect(getLocalBounds());
 }
 
+int MainComponent::getPreferredSidebarWidth() const
+{
+    return SidebarLayout::getPreferredWidth((int)m_applicationState.m_sidebarWidth);
+}
+
+void MainComponent::handleSidebarSplitterMouseDown()
+{
+    const bool collapsed = m_applicationState.m_sidebarCollapsed;
+    m_sidebarWidthAtMousedown = getPreferredSidebarWidth();
+
+    m_sidebarSplitterCollapseController.beginDrag(collapsed, SidebarLayout::getTransitionDistance(m_sidebarWidthAtMousedown, collapsed));
+}
+
+void MainComponent::handleSidebarSplitterDrag(int dragDistance)
+{
+    const bool collapsed = m_applicationState.m_sidebarCollapsed;
+    const bool requestedCollapsed = m_sidebarSplitterCollapseController.getCollapsedState(-dragDistance, collapsed);
+
+    if (requestedCollapsed != collapsed)
+    {
+        m_applicationState.m_sidebarWidth = requestedCollapsed ? SidebarLayout::minimumExpandedWidth : m_sidebarWidthAtMousedown;
+        m_applicationState.m_sidebarCollapsed = requestedCollapsed;
+        resized();
+        return;
+    }
+
+    if (m_sidebarSplitterCollapseController.startedCollapsed() || collapsed)
+        return;
+
+    const auto resizedWidth = SidebarLayout::getResizedWidth(m_sidebarWidthAtMousedown, dragDistance);
+    if (resizedWidth != (int)m_applicationState.m_sidebarWidth)
+    {
+        m_applicationState.m_sidebarWidth = resizedWidth;
+        resized();
+    }
+}
+
 void MainComponent::resized()
 {
     auto area = getLocalBounds();
@@ -183,7 +212,10 @@ void MainComponent::resized()
     }
 
     auto lowerRange = area.removeFromBottom(lowerRangeHeight);
-    m_sideBarBrowser->setBounds(area.removeFromLeft(m_applicationState.m_sidebarWidth));
+    const auto sidebarWidth = m_applicationState.m_sidebarCollapsed
+                                ? SidebarLayout::collapsedWidth
+                                : getPreferredSidebarWidth();
+    m_sideBarBrowser->setBounds(area.removeFromLeft(sidebarWidth));
     m_sidebarSplitter.setBounds(area.removeFromLeft(10));
     m_editorContainer->setBounds(area);
     m_lowerRange->setBounds(lowerRange);
@@ -612,7 +644,8 @@ void MainComponent::valueTreePropertyChanged(juce::ValueTree &vt, const juce::Id
     if (property == te::IDs::looping)
         m_header->loopButtonClicked();
 
-    if (property == IDs::pianorollHeight || property == IDs::lowerRangeView || property == IDs::LowerRangeCollapsed)
+    if (property == IDs::pianorollHeight || property == IDs::lowerRangeView || property == IDs::LowerRangeCollapsed
+        || property == IDs::SidebarWidth || property == IDs::SidebarCollapsed)
         markAndUpdate(m_updateView);
 
     if (property == te::IDs::source || property == te::IDs::state)

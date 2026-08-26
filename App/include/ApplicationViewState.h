@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Logging.h"
+#include "SidebarLayout.h"
 #include "juce_graphics/juce_graphics.h"
 
 namespace IDs
@@ -184,7 +185,7 @@ public:
 
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo(behavior, IDs::AutoSaveInterval, nullptr, 10000);
-        m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, 300);
+        m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, SidebarLayout::defaultExpandedWidth);
         m_previewSliderPos.referTo(behavior, IDs::PreviewSliderPos, nullptr, 1.f);
         m_appScale.referTo(behavior, IDs::AppScale, nullptr, 1.f);
         m_mouseCursorScale.referTo(behavior, IDs::MouseCursorScale, nullptr, 1.f);
@@ -437,6 +438,5 @@ public:
     juce::CachedValue<int> m_windowXpos, m_windowYpos, m_windowWidth, m_windowHeight, m_folderTrackIndent, m_autoSaveInterval, m_sidebarWidth, m_scrollbarThickness;
     juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos;
     juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_lowerRangeCollapsed, m_trackPresetPanelCollapsed, m_modifierPanelCollapsed, m_exclusiveMidiFocusEnabled, m_setupComplete;
-    const int m_minSidebarWidth{250};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ApplicationViewState)
 };

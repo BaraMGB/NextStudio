@@ -119,43 +119,28 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
 
 void LowerRangeComponent::handleSplitterMouseDown()
 {
-    m_wasCollapsedAtMouseDown = m_evs.m_applicationState.m_lowerRangeCollapsed;
     m_pianorollHeightAtMousedown = m_evs.m_midiEditorHeight;
     m_cachedPianoNoteNum = (double)m_evs.getViewYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
+
+    const auto expandedHeight = m_evs.getLowerRangeView() == LowerRangeView::midiEditor
+                                    ? m_pianorollHeightAtMousedown
+                                    : defaultExpandedHeight;
+    m_splitterCollapseController.beginDrag(m_evs.m_applicationState.m_lowerRangeCollapsed, expandedHeight - collapsedHeight);
 }
 
 void LowerRangeComponent::handleSplitterDrag(int dragDistance)
 {
-    const auto expandedHeight = m_evs.getLowerRangeView() == LowerRangeView::midiEditor
-                                    ? m_pianorollHeightAtMousedown
-                                    : defaultExpandedHeight;
-    const auto transitionDistance = juce::jmax(0, expandedHeight - collapsedHeight);
     const bool collapsed = m_evs.m_applicationState.m_lowerRangeCollapsed;
+    const bool requestedCollapsed = m_splitterCollapseController.getCollapsedState(dragDistance, collapsed);
 
-    // The two stable splitter positions are the collapsed bar and the standard
-    // 350 px Lower Range. Crossing the opposite position changes state. This
-    // also allows reversing the transition without releasing the mouse button.
-    if (m_wasCollapsedAtMouseDown)
+    if (requestedCollapsed != collapsed)
     {
-        if (collapsed && dragDistance <= -transitionDistance)
-            m_evs.m_applicationState.m_lowerRangeCollapsed = false;
-        else if (!collapsed && dragDistance >= 0)
-            m_evs.m_applicationState.m_lowerRangeCollapsed = true;
+        m_evs.m_applicationState.m_lowerRangeCollapsed = requestedCollapsed;
         return;
     }
 
-    if (!collapsed && dragDistance >= transitionDistance)
-    {
-        m_evs.m_applicationState.m_lowerRangeCollapsed = true;
+    if (m_splitterCollapseController.startedCollapsed() || collapsed)
         return;
-    }
-
-    if (collapsed)
-    {
-        if (dragDistance <= 0)
-            m_evs.m_applicationState.m_lowerRangeCollapsed = false;
-        return;
-    }
 
     // Preserve the existing Piano Roll resize behaviour while dragging upward.
     if (m_evs.getLowerRangeView() == LowerRangeView::midiEditor && dragDistance < 0)

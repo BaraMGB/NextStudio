@@ -116,7 +116,7 @@ It listens to the edit, selection manager, automation record manager, and transp
 - settings;
 - rendering.
 
-Selecting the same sidebar button again collapses or expands the sidebar. Its width and collapsed state are stored in `ApplicationViewState`.
+The sidebar splitter uses the same snap controller as the lower range. The default expanded width is a resolution-independent 300 pixels. Every expanded width can be reduced continuously to the 250-pixel minimum; a further 100-pixel drag provides collapse resistance before the panel snaps closed. Selecting a sidebar button opens its view, while selecting the active button again also collapses the sidebar. The preferred width and collapsed state are stored independently in `ApplicationViewState`.
 
 ### Lower range
 
