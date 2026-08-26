@@ -1600,21 +1600,15 @@ void PluginChainView::layoutSelectedRackItem()
 
 void PluginChainView::updateRackContentPosition() { m_contentComp->setTopLeftPosition(-m_contentScrollX, 0); }
 
-int PluginChainView::getLastPluginLeftEdgeX() const
+int PluginChainView::getMaxContentScrollX() const
 {
-    int leftEdge = 0;
-    for (auto *item : m_contentComp->m_rackItems)
-        leftEdge = juce::jmax(leftEdge, item->getX());
-
-    return leftEdge;
+    return juce::jmax(0, m_contentComp->getWidth() - m_pluginCanvas.getWidth());
 }
-
-int PluginChainView::getMaxContentScrollX() const { return juce::jmax(0, getLastPluginLeftEdgeX()); }
 
 void PluginChainView::updateHorizontalScrollBar()
 {
     const auto visibleWidth = juce::jmax(0, m_pluginCanvas.getWidth());
-    const auto totalWidth = juce::jmax(visibleWidth, getMaxContentScrollX() + visibleWidth);
+    const auto totalWidth = juce::jmax(visibleWidth, m_contentComp->getWidth());
 
     m_updatingHorizontalScrollBar = true;
     m_horizontalScrollBar.setRangeLimits({0.0, (double)totalWidth}, juce::dontSendNotification);

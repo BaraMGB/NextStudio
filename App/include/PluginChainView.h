@@ -104,7 +104,6 @@ private:
     void layoutSelectedRackItem();
     void updateRackContentPosition();
     void updateHorizontalScrollBar();
-    int getLastPluginLeftEdgeX() const;
     int getMaxContentScrollX() const;
     int getTargetScrollXForItem(const PluginChainItemView &item) const;
     void animateScrollToX(int targetX);
