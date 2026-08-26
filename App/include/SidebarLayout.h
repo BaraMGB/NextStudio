@@ -15,7 +15,7 @@ by the Free Software Foundation, either version 3 of the License, or
 namespace SidebarLayout
 {
 inline constexpr int collapsedWidth = 70;
-inline constexpr int defaultExpandedWidth = 300;
+inline constexpr int defaultExpandedWidth = 400;
 inline constexpr int minimumExpandedWidth = 250;
 inline constexpr int collapseDragResistance = 100;
 

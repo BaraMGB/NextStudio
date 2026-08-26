@@ -113,7 +113,7 @@ The vertical sidebar switches between:
 - **Settings** — audio/MIDI, plug-in, appearance, and behavior settings;
 - **Render** — export/render controls.
 
-Drag the adjacent splitter to resize the sidebar. Its initial expanded width is 300 pixels and it can be reduced continuously to 250 pixels on every display. Dragging another 100 pixels toward the menu rail crosses the collapse resistance and snaps it closed. Clicking a sidebar menu button opens the selected view; clicking the active button again also collapses the sidebar.
+The sidebar starts expanded on the **Projects** view. Drag the adjacent splitter to resize it. Its initial expanded width is 400 pixels and it can be reduced continuously to 250 pixels on every display. Dragging another 100 pixels toward the menu rail crosses the collapse resistance and snaps it closed. Clicking a sidebar menu button opens the selected view; clicking the active button again also collapses the sidebar.
 
 ### Lower range
 

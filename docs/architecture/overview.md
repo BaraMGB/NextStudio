@@ -116,7 +116,7 @@ It listens to the edit, selection manager, automation record manager, and transp
 - settings;
 - rendering.
 
-The sidebar splitter uses the same snap controller as the lower range. The default expanded width is a resolution-independent 300 pixels. Every expanded width can be reduced continuously to the 250-pixel minimum; a further 100-pixel drag provides collapse resistance before the panel snaps closed. Selecting a sidebar button opens its view, while selecting the active button again also collapses the sidebar. The preferred width and collapsed state are stored independently in `ApplicationViewState`.
+The sidebar splitter uses the same snap controller as the lower range. Every application launch starts expanded on the Projects view at a resolution-independent width of 400 pixels. The sidebar can be reduced continuously to the 250-pixel minimum; a further 100-pixel drag provides collapse resistance before the panel snaps closed. Selecting a sidebar button opens its view, while selecting the active button again also collapses the sidebar. Width and collapsed state are tracked independently in `ApplicationViewState` during the session.
 
 ### Lower range
 

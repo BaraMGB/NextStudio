@@ -105,6 +105,9 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     m_engine.getPluginManager().createBuiltInType<NextFilterPlugin>();
     m_engine.getPluginManager().createBuiltInType<SoundFontPlugin>();
 
+    // Always start with the Projects sidebar expanded at its default width.
+    m_applicationState.m_sidebarWidth = SidebarLayout::defaultExpandedWidth;
+    m_applicationState.m_sidebarCollapsed = false;
     openValidStartEdit();
 
     m_commandManager.registerAllCommandsForTarget(this);
