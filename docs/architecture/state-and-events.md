@@ -19,6 +19,8 @@ It stores settings that are not part of one musical project:
 - GUI and mouse-cursor scale;
 - autosave interval;
 - sidebar width and collapsed state;
+- lower-range collapsed state;
+- Track Chain preset-panel and modifier-panel collapsed states;
 - preview settings;
 - exclusive MIDI focus behavior;
 - time-stretch mode;
@@ -47,7 +49,7 @@ AppSettings
 └── Behavior
 ```
 
-Components that need live theme or behavior changes listen to `m_applicationStateValueTree` or a relevant child.
+Components that need live theme or behavior changes listen to `m_applicationStateValueTree` or a relevant child. The Track Chain's preset and modifier side panels use `Behavior/TrackPresetPanelCollapsed` and `Behavior/ModifierPanelCollapsed`; both default to collapsed and apply across tracks and projects.
 
 ### Project model: `tracktion_engine::Edit`
 
@@ -147,7 +149,7 @@ Examples:
 
 - `EditComponent` separately tracks structural track rebuilds, zoom changes, vertical layout, and note-off work;
 - `PianoRollEditor` tracks note repainting, velocity repainting, note-property refresh, clip-set changes, active-track removal, keyboard layout, theme changes, and scrollbar changes;
-- `PluginChainView` separates plug-in reconstruction from layout refresh.
+- `PluginChainView` separates plug-in reconstruction from layout refresh; rack-content layout, drag-and-drop, list rows, and panel-toggle rendering are implemented by focused companion components rather than one monolithic source file.
 
 ### Flag handling rule
 

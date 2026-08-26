@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Logging.h"
+#include "SidebarLayout.h"
 #include "juce_graphics/juce_graphics.h"
 
 namespace IDs
@@ -79,6 +80,9 @@ DECLARE_ID(SidebarWidth)
 DECLARE_ID(PreviewSliderPos)
 DECLARE_ID(PreviewLoop)
 DECLARE_ID(SidebarCollapsed)
+DECLARE_ID(LowerRangeCollapsed)
+DECLARE_ID(TrackPresetPanelCollapsed)
+DECLARE_ID(ModifierPanelCollapsed)
 DECLARE_ID(ExclusiveMidiFocusEnabled)
 DECLARE_ID(TimeStretchMode)
 DECLARE_ID(SetupComplete)
@@ -181,12 +185,15 @@ public:
 
         auto behavior = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Behavior, nullptr);
         m_autoSaveInterval.referTo(behavior, IDs::AutoSaveInterval, nullptr, 10000);
-        m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, 300);
+        m_sidebarWidth.referTo(behavior, IDs::SidebarWidth, nullptr, SidebarLayout::defaultExpandedWidth);
         m_previewSliderPos.referTo(behavior, IDs::PreviewSliderPos, nullptr, 1.f);
         m_appScale.referTo(behavior, IDs::AppScale, nullptr, 1.f);
         m_mouseCursorScale.referTo(behavior, IDs::MouseCursorScale, nullptr, 1.f);
         m_previewLoop.referTo(behavior, IDs::PreviewLoop, nullptr, false);
         m_sidebarCollapsed.referTo(behavior, IDs::SidebarCollapsed, nullptr, false);
+        m_lowerRangeCollapsed.referTo(behavior, IDs::LowerRangeCollapsed, nullptr, false);
+        m_trackPresetPanelCollapsed.referTo(behavior, IDs::TrackPresetPanelCollapsed, nullptr, true);
+        m_modifierPanelCollapsed.referTo(behavior, IDs::ModifierPanelCollapsed, nullptr, true);
         m_exclusiveMidiFocusEnabled.referTo(behavior, IDs::ExclusiveMidiFocusEnabled, nullptr, true);
         m_timeStretchMode.referTo(behavior, IDs::TimeStretchMode, nullptr, juce::String());
         m_setupComplete.referTo(behavior, IDs::SetupComplete, nullptr, false);
@@ -430,7 +437,6 @@ public:
     juce::CachedValue<juce::String> m_workDir, m_presetDir, m_clipsDir, m_samplesDir, m_renderDir, m_projectsDir, m_guiBackground1, m_mainFrameColour, m_primeColour, m_borderColour, m_buttonBackgroundColour, m_buttonTextColour, m_textColour, m_timeLine_strokeColour, m_timeLine_background, m_timeLine_shadowShade, m_timeLine_textColour, m_trackBackgroundColour, m_trackHeaderBackgroundColour, m_trackHeaderTextColour, m_guiBackground2, m_guiBackground3, m_timeStretchMode;
     juce::CachedValue<int> m_windowXpos, m_windowYpos, m_windowWidth, m_windowHeight, m_folderTrackIndent, m_autoSaveInterval, m_sidebarWidth, m_scrollbarThickness;
     juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos;
-    juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_exclusiveMidiFocusEnabled, m_setupComplete;
-    const int m_minSidebarWidth{250};
+    juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_lowerRangeCollapsed, m_trackPresetPanelCollapsed, m_modifierPanelCollapsed, m_exclusiveMidiFocusEnabled, m_setupComplete;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ApplicationViewState)
 };

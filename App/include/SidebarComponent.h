@@ -29,6 +29,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ProjectsBrowser.h"
 #include "SampleBrowser.h"
 #include "SidebarMenu.h"
+#include "SidebarLayout.h"
 #include "PreviewComponent.h"
 #include "ApplicationViewState.h"
 #include "EditViewState.h"
@@ -54,9 +55,9 @@ public:
     void refreshThemeFromAppState();
 
 private:
+    void showViewForButton(const juce::String &buttonName);
     void setAllVisibleOff();
-    int m_cachedSidebarWidth{0};
-    juce::String m_lastClickedButton;
+    juce::String m_activeButtonName{"Projects"};
     EditViewState &m_evs;
     ApplicationViewState &m_appState;
     te::Engine &m_engine;

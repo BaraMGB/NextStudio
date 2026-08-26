@@ -22,6 +22,56 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRangeComponent.h"
 #include "Utilities.h"
 
+class LowerRangeCollapsedButton final : public juce::Button
+{
+public:
+    LowerRangeCollapsedButton(const juce::String &label, const char *svgData, ApplicationViewState &appState)
+        : juce::Button(label),
+          m_svgData(svgData),
+          m_appState(appState)
+    {
+        setButtonText(label);
+        refreshIcon();
+    }
+
+    void refreshIcon()
+    {
+        m_icon = GUIHelpers::getDrawableFromSvg(m_svgData, m_appState.getButtonTextColour());
+        repaint();
+    }
+
+    void paintButton(juce::Graphics &g, bool isMouseOverButton, bool isButtonDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+        auto background = m_appState.getButtonBackgroundColour();
+
+        if (getToggleState())
+            background = m_appState.getPrimeColour().withAlpha(0.35f);
+        else if (isButtonDown)
+            background = background.darker(0.2f);
+        else if (isMouseOverButton)
+            background = background.brighter(0.12f);
+
+        const auto opacity = isEnabled() ? 1.0f : 0.35f;
+        g.setColour(background.withMultipliedAlpha(opacity));
+        g.fillRoundedRectangle(bounds, 3.0f);
+
+        auto content = getLocalBounds().reduced(8, 3);
+        auto iconArea = content.removeFromLeft(content.getHeight());
+        if (m_icon != nullptr)
+            m_icon->drawWithin(g, iconArea.toFloat(), juce::RectanglePlacement::centred, opacity);
+
+        content.removeFromLeft(6);
+        g.setColour(m_appState.getButtonTextColour().withMultipliedAlpha(opacity));
+        g.drawText(getButtonText(), content, juce::Justification::centredLeft, false);
+    }
+
+private:
+    const char *m_svgData;
+    ApplicationViewState &m_appState;
+    std::unique_ptr<juce::Drawable> m_icon;
+};
+
 //------------------------------------------------------------------------------
 LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     : m_evs(evs),
@@ -32,20 +82,38 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
       m_splitter()
 {
     m_evs.setLowerRangeView(LowerRangeView::mixer);
+    m_collapsedMixerButton = std::make_unique<LowerRangeCollapsedButton>("Mixer", BinaryData::headphonessettings_svg, m_evs.m_applicationState);
+    m_collapsedMidiEditorButton = std::make_unique<LowerRangeCollapsedButton>("MidiEditor", BinaryData::piano_svg, m_evs.m_applicationState);
+    m_collapsedPluginChainButton = std::make_unique<LowerRangeCollapsedButton>("PluginChain", BinaryData::powerplug_svg, m_evs.m_applicationState);
+
     addAndMakeVisible(m_tabBar);
     addAndMakeVisible(m_splitter);
+    addChildComponent(*m_collapsedMixerButton);
+    addChildComponent(*m_collapsedMidiEditorButton);
+    addChildComponent(*m_collapsedPluginChainButton);
     addChildComponent(m_pianoRollEditor);
     addAndMakeVisible(m_pluginChainView);
     addAndMakeVisible(m_mixer);
     m_evs.m_edit.state.addListener(this);
+    m_evs.m_applicationState.m_applicationStateValueTree.addListener(this);
     m_evs.m_selectionManager.addChangeListener(this);
 
     m_tabBar.onTabSelected = [this](LowerRangeView view) { m_evs.setLowerRangeView(view); };
+
+    const auto openCollapsedView = [this](LowerRangeView view)
+    {
+        m_evs.setLowerRangeView(view);
+        m_evs.m_applicationState.m_lowerRangeCollapsed = false;
+    };
+    m_collapsedMixerButton->onClick = [openCollapsedView] { openCollapsedView(LowerRangeView::mixer); };
+    m_collapsedMidiEditorButton->onClick = [openCollapsedView] { openCollapsedView(LowerRangeView::midiEditor); };
+    m_collapsedPluginChainButton->onClick = [openCollapsedView] { openCollapsedView(LowerRangeView::pluginRack); };
 
     m_splitter.onMouseDown = [this]() { handleSplitterMouseDown(); };
 
     m_splitter.onDrag = [this](int dragDistance) { handleSplitterDrag(dragDistance); };
 
+    updateCollapsedButtons();
     updateView();
 }
 
@@ -53,11 +121,29 @@ void LowerRangeComponent::handleSplitterMouseDown()
 {
     m_pianorollHeightAtMousedown = m_evs.m_midiEditorHeight;
     m_cachedPianoNoteNum = (double)m_evs.getViewYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
+
+    const auto expandedHeight = m_evs.getLowerRangeView() == LowerRangeView::midiEditor
+                                    ? m_pianorollHeightAtMousedown
+                                    : defaultExpandedHeight;
+    m_splitterCollapseController.beginDrag(m_evs.m_applicationState.m_lowerRangeCollapsed, expandedHeight - collapsedHeight);
 }
 
 void LowerRangeComponent::handleSplitterDrag(int dragDistance)
 {
-    if (m_evs.getLowerRangeView() == LowerRangeView::midiEditor)
+    const bool collapsed = m_evs.m_applicationState.m_lowerRangeCollapsed;
+    const bool requestedCollapsed = m_splitterCollapseController.getCollapsedState(dragDistance, collapsed);
+
+    if (requestedCollapsed != collapsed)
+    {
+        m_evs.m_applicationState.m_lowerRangeCollapsed = requestedCollapsed;
+        return;
+    }
+
+    if (m_splitterCollapseController.startedCollapsed() || collapsed)
+        return;
+
+    // Preserve the existing Piano Roll resize behaviour while dragging upward.
+    if (m_evs.getLowerRangeView() == LowerRangeView::midiEditor && dragDistance < 0)
     {
         auto newHeight = static_cast<int>(m_pianorollHeightAtMousedown - dragDistance);
         auto noteHeight = (double)m_evs.getViewYScale(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
@@ -71,6 +157,7 @@ void LowerRangeComponent::handleSplitterDrag(int dragDistance)
 LowerRangeComponent::~LowerRangeComponent()
 {
     m_evs.m_selectionManager.removeChangeListener(this);
+    m_evs.m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_evs.m_edit.state.removeListener(this);
 }
 
@@ -122,54 +209,105 @@ void LowerRangeComponent::syncActiveTrack(bool forceRefresh)
 
 void LowerRangeComponent::paint(juce::Graphics &g)
 {
-    auto rect = getLocalBounds();
+    auto area = getLocalBounds();
+    area.removeFromTop(splitterHeight);
+
     g.setColour(m_evs.m_applicationState.getBackgroundColour1());
-    g.fillRect(rect.removeFromBottom(getHeight() - (int)m_splitterHeight).toFloat());
+    g.fillRect(area);
+
+    if (m_evs.m_applicationState.m_lowerRangeCollapsed)
+    {
+        auto collapsedBar = area.removeFromTop(collapsedBarHeight);
+        g.setColour(m_evs.m_applicationState.getBorderColour());
+        g.drawHorizontalLine(collapsedBar.getBottom() - 1, collapsedBar.getX(), collapsedBar.getRight());
+    }
 }
 
 void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
 {
     auto area = getLocalBounds();
-    area.removeFromTop((int)m_splitterHeight);
+    area.removeFromTop(splitterHeight);
     GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_evs.m_applicationState.getMainFrameColour(), m_evs.m_applicationState.getBorderColour());
 }
 
 void LowerRangeComponent::resized()
 {
     auto area = getLocalBounds();
-    auto splitter = area.removeFromTop((int)m_splitterHeight);
+    auto splitter = area.removeFromTop(splitterHeight);
     splitter.reduce(10, 1);
-
     m_splitter.setBounds(splitter);
 
-    auto leftArea = area.removeFromLeft(100);
+    if (m_evs.m_applicationState.m_lowerRangeCollapsed)
+    {
+        auto collapsedBar = area.removeFromTop(collapsedBarHeight).reduced(4, 2);
+        constexpr int gap = 4;
+        const auto buttonWidth = juce::jmin(150, juce::jmax(1, (collapsedBar.getWidth() - (2 * gap)) / 3));
+
+        m_collapsedMixerButton->setBounds(collapsedBar.removeFromLeft(buttonWidth));
+        collapsedBar.removeFromLeft(gap);
+        m_collapsedMidiEditorButton->setBounds(collapsedBar.removeFromLeft(buttonWidth));
+        collapsedBar.removeFromLeft(gap);
+        m_collapsedPluginChainButton->setBounds(collapsedBar.removeFromLeft(buttonWidth));
+        return;
+    }
+
+    auto leftArea = area.removeFromLeft(menuBarWidth);
     m_tabBar.setBounds(leftArea.reduced(10, 0));
 
     m_pluginChainView.setBounds(area);
     m_mixer.setBounds(area);
-
-    if (m_pianoRollEditor.isVisible())
-    {
-        m_pianoRollEditor.setBounds(area);
-    }
+    m_pianoRollEditor.setBounds(area);
 }
 
 void LowerRangeComponent::updateView()
 {
-    auto currentView = m_evs.getLowerRangeView();
+    const auto currentView = m_evs.getLowerRangeView();
+    const bool expanded = !m_evs.m_applicationState.m_lowerRangeCollapsed;
 
-    m_pluginChainView.setVisible(currentView == LowerRangeView::pluginRack);
-    m_pianoRollEditor.setVisible(currentView == LowerRangeView::midiEditor);
-    m_mixer.setVisible(currentView == LowerRangeView::mixer);
+    m_tabBar.setVisible(expanded);
+    m_collapsedMixerButton->setVisible(!expanded);
+    m_collapsedMidiEditorButton->setVisible(!expanded);
+    m_collapsedPluginChainButton->setVisible(!expanded);
+    m_pluginChainView.setVisible(expanded && currentView == LowerRangeView::pluginRack);
+    m_pianoRollEditor.setVisible(expanded && currentView == LowerRangeView::midiEditor);
+    m_mixer.setVisible(expanded && currentView == LowerRangeView::mixer);
 
-    syncActiveTrack(true);
+    updateCollapsedButtons();
+    if (expanded)
+        syncActiveTrack(true);
 
     resized();
     repaint();
 }
 
+void LowerRangeComponent::updateCollapsedButtons()
+{
+    const auto currentView = m_evs.getLowerRangeView();
+    m_collapsedMixerButton->setToggleState(currentView == LowerRangeView::mixer, juce::dontSendNotification);
+    m_collapsedMidiEditorButton->setToggleState(currentView == LowerRangeView::midiEditor, juce::dontSendNotification);
+    m_collapsedPluginChainButton->setToggleState(currentView == LowerRangeView::pluginRack, juce::dontSendNotification);
+
+    bool midiEditorEnabled = false;
+    if (auto *clip = dynamic_cast<te::Clip *>(m_evs.m_selectionManager.getSelectedObject(0)))
+        midiEditorEnabled = clip->isMidi();
+    m_collapsedMidiEditorButton->setEnabled(midiEditorEnabled);
+}
+
 void LowerRangeComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
+    if (i == IDs::LowerRangeCollapsed)
+    {
+        updateView();
+        return;
+    }
+
+    if (v.hasType(IDs::ThemeState))
+    {
+        m_collapsedMixerButton->refreshIcon();
+        m_collapsedMidiEditorButton->refreshIcon();
+        m_collapsedPluginChainButton->refreshIcon();
+    }
+
     if (i == IDs::lowerRangeView)
     {
         updateView();
@@ -229,5 +367,8 @@ void LowerRangeComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int
 void LowerRangeComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
     if (source == &m_evs.m_selectionManager)
+    {
         syncActiveTrack(false);
+        updateCollapsedButtons();
+    }
 }

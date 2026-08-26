@@ -9,6 +9,7 @@ The current suites are:
 | CTest name | Executable/production area | Test source |
 |---|---|---|
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
+| `PluginChainLayout` | rack scroll limits and reorder destination indices | `App/tests/PluginChainLayoutTests.cpp` |
 | `DebugProtocol` | command/JSON Lines parsing and serialization | `App/tests/DebugProtocolTests.cpp` |
 | `DebugSnapshotWriter` | PNG success, decode validation, and failure paths | `App/tests/DebugSnapshotWriterTests.cpp` |
 | `DebugStateFilter` | binary-like state filtering and bounded strings | `App/tests/DebugStateFilterTests.cpp` |

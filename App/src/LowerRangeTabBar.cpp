@@ -64,11 +64,13 @@ LowerRangeTabBar::LowerRangeTabBar(EditViewState &evs)
 
     m_evs.m_state.addListener(this);
     m_evs.m_applicationState.m_applicationStateValueTree.addListener(this);
+    m_evs.m_selectionManager.addChangeListener(this);
     updateTabButtons();
 }
 
 LowerRangeTabBar::~LowerRangeTabBar()
 {
+    m_evs.m_selectionManager.removeChangeListener(this);
     m_evs.m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_evs.m_state.removeListener(this);
 }
@@ -79,6 +81,12 @@ void LowerRangeTabBar::valueTreePropertyChanged(juce::ValueTree &tree, const juc
         updateButtonIcons();
 
     if (i == IDs::lowerRangeView)
+        updateTabButtons();
+}
+
+void LowerRangeTabBar::changeListenerCallback(juce::ChangeBroadcaster *source)
+{
+    if (source == &m_evs.m_selectionManager)
         updateTabButtons();
 }
 

@@ -113,7 +113,7 @@ The vertical sidebar switches between:
 - **Settings** — audio/MIDI, plug-in, appearance, and behavior settings;
 - **Render** — export/render controls.
 
-Clicking the currently active sidebar button toggles the sidebar between collapsed and expanded states. Drag the adjacent splitter to resize it.
+Drag the adjacent splitter to resize the sidebar. Its initial expanded width is 300 pixels and it can be reduced continuously to 250 pixels on every display. Dragging another 100 pixels toward the menu rail crosses the collapse resistance and snaps it closed. Clicking a sidebar menu button opens the selected view; clicking the active button again also collapses the sidebar.
 
 ### Lower range
 
@@ -125,7 +125,7 @@ The lower range has tabs for:
 
 The active track follows the current track or clip selection. The MIDI Editor tab is enabled when a MIDI clip is selected.
 
-Drag the splitter above the lower range to resize the Piano Roll. Mixer and plug-in views currently use a fixed lower-range height.
+Drag the splitter down to the collapsed-bar position to close the lower range, or back up to the standard 350-pixel position to expand it. The panel snaps only after crossing the target position, and the direction can be reversed without releasing the mouse button. The collapsed bar provides buttons for Mixer, MidiEditor, and PluginChain; MidiEditor is disabled unless a MIDI clip is selected. The collapsed state is restored in the next application session. Dragging the expanded Piano Roll splitter upward increases its height. Mixer and plug-in views currently use a fixed lower-range height.
 
 ## Project workflow
 
@@ -213,7 +213,9 @@ See [Piano Roll](piano-roll.md) for note editing and [ClipPropertiesBar](../comp
 
 Select a track and open **Plugins** in the lower range. The chain view is organized around the selected track and supports instrument/effect insertion and built-in or external plug-in editors.
 
-Plug-in windows are designed to remain open across chain-view rebuilds. Closing a native editor hides it rather than necessarily destroying its internal UI state.
+Track Presets and Modifiers start collapsed to leave more width for plug-in editors. Use the arrow at the left of either panel header or its narrow collapsed rail to expand/collapse it. The two choices are independent and persist across application sessions. Collapsing Modifiers also temporarily hides an open modifier detail panel.
+
+The horizontal scrollbar remains visible and can reach the full rack content on narrow windows. Plug-in windows are designed to remain open across chain-view rebuilds. Closing a native editor hides it rather than necessarily destroying its internal UI state.
 
 ### Mixer
 

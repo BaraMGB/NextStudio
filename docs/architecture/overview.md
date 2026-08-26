@@ -116,7 +116,7 @@ It listens to the edit, selection manager, automation record manager, and transp
 - settings;
 - rendering.
 
-Selecting the same sidebar button again collapses or expands the sidebar. Its width and collapsed state are stored in `ApplicationViewState`.
+The sidebar splitter uses the same snap controller as the lower range. The default expanded width is a resolution-independent 300 pixels. Every expanded width can be reduced continuously to the 250-pixel minimum; a further 100-pixel drag provides collapse resistance before the panel snaps closed. Selecting a sidebar button opens its view, while selecting the active button again also collapses the sidebar. The preferred width and collapsed state are stored independently in `ApplicationViewState`.
 
 ### Lower range
 
@@ -128,7 +128,9 @@ Selecting the same sidebar button again collapses or expands the sidebar. Its wi
 
 The active track follows the global selection manager. A selected track has priority; if a clip is selected, its owning track is used. If neither is available, the component may fall back to a track marked with `IDs::showLowerRange`.
 
-The MIDI Editor tab is enabled only when the first selected object is a MIDI clip. The lower range height is edit-local state for the Piano Roll and a fixed 350 pixels for the mixer and plug-in chain in the current layout.
+The MIDI Editor tab is enabled only when the first selected object is a MIDI clip. Dragging the lower-range splitter between the standard 350-pixel position and the collapsed-bar position snaps the panel closed or open. The two positions provide drag resistance and can be crossed repeatedly without releasing the mouse button. The collapsed bar provides horizontal Mixer, MidiEditor, and PluginChain buttons, with MidiEditor disabled when no MIDI clip is selected. The collapsed preference is stored in `ApplicationViewState` and restored on the next application session. The selected lower-range view and Piano Roll height remain edit-local state, while the mixer and plug-in chain use a fixed 350-pixel expanded height.
+
+Inside `PluginChainView`, Track Presets and Modifiers are independently collapsible workspace panels. Their application-wide states default to collapsed and are stored in `ApplicationViewState`. The remaining width is assigned to the plug-in list and horizontally scrollable rack. Rack-content layout, drag-and-drop, list rows, and panel toggles are split into focused companion files; see [PluginChainView](../components/plugin-chain-view.md).
 
 ## Model boundaries
 
@@ -169,7 +171,7 @@ The Piano Roll's note selection is represented by `te::SelectedMidiEvents`, whic
 
 | State | Owner/lifetime | Persistence | Examples |
 |---|---|---|---|
-| Application settings | `ApplicationViewState` | `AppSettings.xml` | content paths, window bounds, theme, GUI scale, autosave interval |
+| Application settings | `ApplicationViewState` | `AppSettings.xml` | content paths, window bounds, theme, GUI scale, autosave interval, collapsed workspace panels |
 | Musical project | Tracktion `Edit` | `.tracktionedit` | tracks, clips, notes, plug-ins, tempo, automation |
 | Edit UI state | `EditViewState` children in edit state | with edit/recovery state | zoom, scroll, lower view, track heights, Piano Roll scale |
 | Transient component state | individual components | not intentionally persisted | hover flags, active drag, pending editor text |

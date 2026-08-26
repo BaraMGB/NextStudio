@@ -80,6 +80,15 @@ SidebarComponent::~SidebarComponent()
 void SidebarComponent::paint(juce::Graphics &g)
 {
     auto sideMenu = m_menu.getBounds();
+
+    g.setColour(m_appState.getBackgroundColour1());
+    g.fillRect(sideMenu);
+    g.setColour(m_appState.getBorderColour());
+    g.drawVerticalLine(sideMenu.getRight() - 1, 0, getHeight());
+
+    if (m_appState.m_sidebarCollapsed)
+        return;
+
     auto headerRect = getLocalBounds().removeFromTop(CONTENT_HEADER_HEIGHT).withLeft(sideMenu.getWidth());
     auto footerRect = getLocalBounds().removeFromBottom(CONTENT_HEADER_HEIGHT).withLeft(sideMenu.getWidth());
     auto colourBulbH = headerRect.removeFromRight(10);
@@ -88,13 +97,11 @@ void SidebarComponent::paint(juce::Graphics &g)
     g.setColour(m_appState.getBackgroundColour1());
     g.fillRect(headerRect);
     g.fillRect(footerRect);
-    g.fillRect(sideMenu);
     g.setColour(m_headerColour);
     g.fillRect(colourBulbH);
     g.fillRect(colourBulbF);
 
     g.setColour(m_appState.getBorderColour());
-    g.drawVerticalLine(sideMenu.getRight() - 1, 0, getHeight());
     g.drawHorizontalLine(CONTENT_HEADER_HEIGHT - 1, sideMenu.getRight(), getWidth());
     g.drawHorizontalLine(getHeight() - CONTENT_HEADER_HEIGHT, sideMenu.getRight(), getWidth());
 
@@ -126,7 +133,7 @@ void SidebarComponent::resized()
 {
     auto area = getLocalBounds();
 
-    m_menu.setBounds(area.removeFromLeft(70));
+    m_menu.setBounds(area.removeFromLeft(SidebarLayout::collapsedWidth));
 
     if (m_appState.m_sidebarCollapsed == false)
     {
@@ -195,77 +202,63 @@ void SidebarComponent::resized()
 }
 void SidebarComponent::buttonClicked(juce::Button *button)
 {
+    const auto buttonName = button->getName();
+    const bool shouldCollapse = !m_appState.m_sidebarCollapsed && buttonName == m_activeButtonName;
 
-    setAllVisibleOff();
-    auto parent = dynamic_cast<MainComponent *>(getParentComponent());
-    if (parent)
+    if (auto *drawableButton = dynamic_cast<juce::DrawableButton *>(button))
+        drawableButton->getNormalImage()->replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
+
+    if (shouldCollapse)
     {
-        if (auto db = dynamic_cast<juce::DrawableButton *>(button))
-        {
-            db->getNormalImage()->replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
-        }
-
-        if (m_lastClickedButton == button->getName())
-        {
-            if (!m_appState.m_sidebarCollapsed)
-                m_cachedSidebarWidth = m_appState.m_sidebarWidth;
-            m_appState.m_sidebarCollapsed = !m_appState.m_sidebarCollapsed;
-        }
-        else
-        {
-            m_appState.m_sidebarCollapsed = false;
-            if (m_cachedSidebarWidth == 0)
-                m_cachedSidebarWidth = m_appState.m_sidebarWidth;
-        }
-
-        if (m_appState.m_sidebarCollapsed)
-        {
-            m_appState.m_sidebarWidth = m_menu.getWidth();
-        }
-        else
-        {
-            m_appState.m_sidebarWidth = m_cachedSidebarWidth;
-            if (m_appState.m_sidebarWidth < m_appState.m_minSidebarWidth)
-            {
-                m_appState.m_sidebarWidth = m_appState.m_minSidebarWidth;
-            }
-
-            if (button->getName() == "Settings")
-            {
-                m_settingsView.setVisible(true);
-            }
-            else if (button->getName() == "Instruments")
-            {
-                m_instrumentList.setVisible(true);
-            }
-            else if (button->getName() == "Samples")
-            {
-                m_sampleBrowser.setVisible(true);
-                m_samplePreview.setVisible(true);
-            }
-            else if (button->getName() == "Projects")
-            {
-                m_projectsBrowser.setVisible(true);
-            }
-            else if (button->getName() == "Effects")
-            {
-                m_effectList.setVisible(true);
-            }
-            else if (button->getName() == "Render")
-            {
-                m_renderComponent = std::make_unique<RenderDialog>(m_evs);
-            }
-            else if (button->getName() == "Home")
-            {
-                m_fileListBrowser.setVisible(true);
-                m_samplePreview.setVisible(true);
-            }
-        }
-        parent->resized();
+        m_appState.m_sidebarCollapsed = true;
+    }
+    else
+    {
+        setAllVisibleOff();
+        m_activeButtonName = buttonName;
+        m_appState.m_sidebarWidth = SidebarLayout::getPreferredWidth((int)m_appState.m_sidebarWidth);
+        m_appState.m_sidebarCollapsed = false;
+        showViewForButton(buttonName);
     }
 
+    if (auto *parent = dynamic_cast<MainComponent *>(getParentComponent()))
+        parent->resized();
+
     resized();
-    m_lastClickedButton = button->getName();
+}
+
+void SidebarComponent::showViewForButton(const juce::String &buttonName)
+{
+    if (buttonName == "Settings")
+    {
+        m_settingsView.setVisible(true);
+    }
+    else if (buttonName == "Instruments")
+    {
+        m_instrumentList.setVisible(true);
+    }
+    else if (buttonName == "Samples")
+    {
+        m_sampleBrowser.setVisible(true);
+        m_samplePreview.setVisible(true);
+    }
+    else if (buttonName == "Projects")
+    {
+        m_projectsBrowser.setVisible(true);
+    }
+    else if (buttonName == "Effects")
+    {
+        m_effectList.setVisible(true);
+    }
+    else if (buttonName == "Render")
+    {
+        m_renderComponent = std::make_unique<RenderDialog>(m_evs);
+    }
+    else if (buttonName == "Home")
+    {
+        m_fileListBrowser.setVisible(true);
+        m_samplePreview.setVisible(true);
+    }
 }
 
 void SidebarComponent::updateParentsListener()

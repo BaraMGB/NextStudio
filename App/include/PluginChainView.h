@@ -34,6 +34,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 namespace te = tracktion_engine;
 
 class AddButton;
+class RackPanelToggleButton;
 class RackPluginListItem;
 
 class PluginChainView
@@ -61,17 +62,6 @@ public:
     void clearTrack();
     juce::String getCurrentTrackID();
 
-    juce::OwnedArray<AddButton> &getAddButtons();
-    juce::OwnedArray<PluginChainItemView> &getPluginComponents();
-    void insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted);
-    void insertSoundFontAtVisualIndex(const juce::File &file, int visualIndex, bool selectInserted);
-
-    void ensureRackOrderConsistency();
-    juce::StringArray getRackOrder() const;
-    void saveRackOrder(const juce::StringArray &order);
-    void moveItem(PluginChainItemView *item, int targetIndex);
-    int getPluginIndexForVisualIndex(int visualIndex) const;
-
     bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override;
     void itemDragMove(const SourceDetails &dragSourceDetails) override;
     void itemDragExit(const SourceDetails & /*dragSourceDetails*/) override;
@@ -83,9 +73,9 @@ public:
         repaint();
     }
 
-    EditViewState &getEditViewState() { return m_evs; }
-
 private:
+    friend class AddButton;
+
     void attachTrackListeners();
     void detachTrackListeners();
 
@@ -98,17 +88,28 @@ private:
     void handleAsyncUpdate() override;
 
     void rebuildView();
+    void insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted);
+    void insertSoundFontAtVisualIndex(const juce::File &file, int visualIndex, bool selectInserted);
+    void ensureRackOrderConsistency();
+    juce::StringArray getRackOrder() const;
+    void saveRackOrder(const juce::StringArray &order);
+    void moveItem(PluginChainItemView *item, int targetIndex);
+    int getPluginIndexForVisualIndex(int visualIndex) const;
+    int getVisualIndexForPluginOrdinal(int pluginOrdinal) const;
     void updateTrackPresetManager();
     void rebuildPluginList();
     void selectRackItemByIndex(int index);
     void layoutSelectedRackItem();
+    void layoutSidePanels(juce::Rectangle<int> &area);
+    void layoutPluginList(juce::Rectangle<int> &area);
+    void layoutRack(juce::Rectangle<int> area);
     void updateRackContentPosition();
     void updateHorizontalScrollBar();
-    int getLastPluginLeftEdgeX() const;
     int getMaxContentScrollX() const;
     int getTargetScrollXForItem(const PluginChainItemView &item) const;
     void animateScrollToX(int targetX);
     void addPluginAtCurrentPosition(EngineHelpers::PluginChainRole role, juce::Component *targetComponent);
+    void insertPluginAtEnd(te::Plugin::Ptr plugin, te::Track::Ptr targetTrack);
     void reorderPluginListItem(te::EditItemID sourceID, te::EditItemID targetID, bool placeAfter);
     int getRackItemIndexForID(te::EditItemID id) const;
     int getSelectedRackItemIndex() const;
@@ -134,6 +135,8 @@ private:
     std::unique_ptr<TrackPresetAdapterBase> m_trackPresetAdapter;
     std::unique_ptr<PresetManagerComponent> m_trackPresetManager;
     std::unique_ptr<MixerChannelStripComponent> m_channelStrip;
+    std::unique_ptr<RackPanelToggleButton> m_trackPresetPanelToggle;
+    std::unique_ptr<RackPanelToggleButton> m_modifierPanelToggle;
 
     juce::Component m_pluginListContent;
     juce::Viewport m_pluginListViewport;
@@ -153,9 +156,11 @@ private:
     const int HEADERWIDTH = 20;
     static constexpr int CHANNEL_STRIP_WIDTH = 95;
     static constexpr int PLUGIN_LIST_WIDTH = 220;
-    static constexpr int MODIFIER_STACK_WIDTH = 170;
+    static constexpr int SIDE_PANEL_WIDTH = 170;
+    static constexpr int MODIFIER_DETAIL_WIDTH = 300;
+    static constexpr int COLLAPSED_PANEL_WIDTH = 28;
+    static constexpr int PANEL_CONTENT_GAP = 20;
     static constexpr int PLUGIN_LIST_ROW_HEIGHT = 24;
-    static constexpr int CONTROL_ROW_HEIGHT = 28;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginChainView)
 };
 
@@ -171,15 +176,7 @@ public:
     }
     bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override;
     void itemDropped(const SourceDetails &dragSourceDetails) override;
-
-    void itemDragMove(const SourceDetails &dragSourceDetails) override
-    {
-        if (dragSourceDetails.description == "PluginComp" || dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Instrument or Effect" || dragSourceDetails.description == "FileBrowser")
-        {
-            isOver = true;
-        }
-        repaint();
-    }
+    void itemDragMove(const SourceDetails &dragSourceDetails) override;
 
     void itemDragExit(const SourceDetails & /*dragSourceDetails*/) override
     {

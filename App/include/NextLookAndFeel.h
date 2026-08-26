@@ -594,32 +594,11 @@ public:
 
     void drawScrollbar(juce::Graphics &g, juce::ScrollBar &, int x, int y, int width, int height, bool isScrollbarVertical, int thumbStartPosition, int thumbSize, bool isMouseOver, bool isMouseDown) override
     {
-        if (isScrollbarVertical)
-        {
-            if (isMouseDown)
-            {
-                g.setColour(juce::Colour(0x66ffffff));
-                g.fillRect(juce::Rectangle<int>(0, thumbStartPosition, width, thumbSize));
-            }
-            else if (isMouseOver)
-            {
-                g.setColour(juce::Colour(0x33ffffff));
-                g.fillRect(juce::Rectangle<int>(0, thumbStartPosition, width, thumbSize));
-            }
-        }
-        else
-        {
-            if (isMouseDown)
-            {
-                g.setColour(juce::Colour(0x66ffffff));
-                g.fillRect(juce::Rectangle<int>(thumbStartPosition, 0, thumbSize, height));
-            }
-            else if (isMouseOver)
-            {
-                g.setColour(juce::Colour(0x33ffffff));
-                g.fillRect(juce::Rectangle<int>(thumbStartPosition, 0, thumbSize, height));
-            }
-        }
+        const auto alpha = isMouseDown ? 0.55f : (isMouseOver ? 0.35f : 0.2f);
+        g.setColour(m_appState.getTextColour().withAlpha(alpha));
+
+        const auto thumbBounds = isScrollbarVertical ? juce::Rectangle<int>(x, thumbStartPosition, width, thumbSize) : juce::Rectangle<int>(thumbStartPosition, y, thumbSize, height);
+        g.fillRect(thumbBounds);
     }
     // void drawPopupMenuBackground(juce::Graphics& g, int w, int h) override
     // {

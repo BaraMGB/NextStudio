@@ -108,8 +108,14 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 - `PluginBrowser.*`
 - `PluginScanner.*`
 - `PluginWindow.*`
-- `PluginChainView.*`
-- `PluginChainItemView.*`
+- `PluginChainView.*` — Track Chain orchestration, state listeners, ordering, selection, layout stages, and scrolling
+- `PluginChainRackContent.*` — rack section sizing and component placement
+- `PluginChainDragDrop.cpp` — drag-source classification and drop handling
+- `PluginChainSections.h` — shared MIDI/audio section definitions
+- `PluginChainLayout.h` — pure scroll and reorder calculations
+- `PluginChainItemView.*` — individual plug-in editor wrapper
+- `RackPluginListItem.*` — plug-in-list rows and row interactions
+- `RackPanelToggleButton.*` — expanded/collapsed side-panel control
 - `PluginComponent.*`
 - `PluginMenu.*`
 - `PluginViewComponent.*`
@@ -165,7 +171,7 @@ Application `.cpp` files are globbed from `App/src/*.cpp` during configuration. 
 
 Headers are not explicitly listed in the application target. They are resolved through `target_include_directories(${TargetName} PRIVATE include)`.
 
-Test targets list their sources explicitly. New tests require a CMake edit.
+Test targets list their sources explicitly. New tests require a CMake edit. For example, `PluginChainLayoutTests` directly exercises the header-only `PluginChainLayout` calculations without constructing the full GUI or Tracktion engine.
 
 ## Resources
 
