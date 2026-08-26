@@ -13,6 +13,17 @@ The Track Chain is displayed in the Lower Zone when the Plugins tab is active. I
 | Plugin Chain | Center | Horizontally arranged plugins |
 | Channel Strip | Right | Volume/pan controls and mute/solo/record buttons |
 
+### Collapsible side panels
+
+Track Presets and Modifiers are collapsed by default so the plug-in canvas receives most of the available width. Each collapsed panel remains available as a narrow labeled rail.
+
+- Use the arrow at the left of an expanded panel header to collapse it.
+- Click the arrow or the collapsed rail to expand the panel again.
+- The controls use the same arrow symbols as track headers.
+- Track Presets and Modifiers can be collapsed independently.
+- Collapsing Modifiers also hides an open modifier detail panel. The selected modifier is retained and its detail returns when the panel is expanded.
+- Both states are application-wide preferences and are restored in the next NextStudio session.
+
 ## Modifier Stack
 
 Modifiers allow parameters to be controlled automatically. They are displayed in a stack on the left.
@@ -68,7 +79,7 @@ For **MIDI tracks**, the chain is divided into three sections:
 
 ### Plugin List
 
-The left panel shows all plugins organized by section. Clicking a plugin in the list scrolls its GUI into view and selects it.
+The left panel shows all plugins organized by section. Clicking a plugin in the list scrolls its GUI into view and selects it. The horizontal scrollbar remains visible and reaches the complete rack content, including the end of a wide final plug-in GUI on narrow windows.
 
 ### Managing Effects
 

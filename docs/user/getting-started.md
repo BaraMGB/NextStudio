@@ -213,7 +213,9 @@ See [Piano Roll](piano-roll.md) for note editing and [ClipPropertiesBar](../comp
 
 Select a track and open **Plugins** in the lower range. The chain view is organized around the selected track and supports instrument/effect insertion and built-in or external plug-in editors.
 
-Plug-in windows are designed to remain open across chain-view rebuilds. Closing a native editor hides it rather than necessarily destroying its internal UI state.
+Track Presets and Modifiers start collapsed to leave more width for plug-in editors. Use the arrow at the left of either panel header or its narrow collapsed rail to expand/collapse it. The two choices are independent and persist across application sessions. Collapsing Modifiers also temporarily hides an open modifier detail panel.
+
+The horizontal scrollbar remains visible and can reach the full rack content on narrow windows. Plug-in windows are designed to remain open across chain-view rebuilds. Closing a native editor hides it rather than necessarily destroying its internal UI state.
 
 ### Mixer
 

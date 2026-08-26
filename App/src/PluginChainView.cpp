@@ -20,26 +20,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "PluginChainView.h"
-#include "SimpleSynthPluginComponent.h"
-#include "Browser_Base.h"
-#include "InstrumentEffectChooser.h"
 #include "PluginInsertFeedback.h"
+#include "PluginChainLayout.h"
+#include "PluginChainRackContent.h"
+#include "PluginChainSections.h"
 #include "PluginMenu.h"
+#include "RackPanelToggleButton.h"
+#include "RackPluginListItem.h"
 #include "Utilities.h"
 #include <map>
-#include <vector>
 
 namespace
 {
 bool pluginTreeItemMatchesRole(const PluginTreeItem &item, EngineHelpers::PluginChainRole role) { return EngineHelpers::getPluginChainRole(item.desc, item.xmlType) == role; }
-
-juce::File getDraggedBrowserFile(const juce::DragAndDropTarget::SourceDetails &details)
-{
-    if (auto *browser = dynamic_cast<BrowserListBox *>(details.sourceComponent.get()))
-        return browser->getSelectedFile();
-
-    return {};
-}
 
 bool appendFilteredMenuItems(PluginTreeGroup &group, juce::PopupMenu &menu, EngineHelpers::PluginChainRole role, int &nextItemId, std::map<int, PluginTreeItem *> &itemLookup)
 {
@@ -104,558 +97,7 @@ te::Plugin::Ptr showMenuAndCreatePluginForRole(te::Edit &edit, EngineHelpers::Pl
     return {};
 }
 
-struct ChainSectionSpec
-{
-    EngineHelpers::PluginChainRole role;
-    juce::String title;
-};
-
-std::vector<ChainSectionSpec> getSectionSpecsForTrack(const te::Track *track)
-{
-    if (track != nullptr && EngineHelpers::isMidiTrack(*track))
-    {
-        return {{EngineHelpers::PluginChainRole::midiEffect, "MIDI Plugins"}, {EngineHelpers::PluginChainRole::instrument, "Instrument"}, {EngineHelpers::PluginChainRole::audioEffect, "Audio Effects"}};
-    }
-
-    return {{EngineHelpers::PluginChainRole::audioEffect, "Audio Effects"}};
-}
-
 } // namespace
-
-class RackPanelToggleButton final : public juce::Button
-{
-public:
-    RackPanelToggleButton(juce::String title, ApplicationViewState &appState)
-        : juce::Button("Toggle " + title),
-          m_title(std::move(title)),
-          m_appState(appState)
-    {
-    }
-
-    void setAppearance(bool collapsed, juce::Colour headerColour)
-    {
-        if (m_collapsed == collapsed && m_headerColour == headerColour)
-            return;
-
-        m_collapsed = collapsed;
-        m_headerColour = headerColour;
-        setTooltip((m_collapsed ? "Expand " : "Collapse ") + m_title);
-        repaint();
-    }
-
-    void paintButton(juce::Graphics &g, bool isMouseOverButton, bool isButtonDown) override
-    {
-        auto bounds = getLocalBounds().toFloat();
-
-        if (m_collapsed)
-        {
-            auto railBounds = bounds.reduced(1.0f);
-            g.setColour(m_headerColour);
-            g.fillRoundedRectangle(railBounds, 7.0f);
-            g.setColour(m_appState.getBorderColour());
-            g.drawRoundedRectangle(railBounds, 7.0f, 1.0f);
-
-            auto titleArea = railBounds;
-            titleArea.removeFromTop(22.0f);
-            const auto titleColour = m_headerColour.getBrightness() > 0.8f ? juce::Colours::black : juce::Colours::white;
-            g.setColour(titleColour);
-            g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
-
-            juce::Graphics::ScopedSaveState saveState(g);
-            const auto centre = titleArea.getCentre();
-            g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, centre.x, centre.y));
-            const auto textRect = juce::Rectangle<float>(centre.x - titleArea.getHeight() * 0.5f, centre.y - titleArea.getWidth() * 0.5f, titleArea.getHeight(), titleArea.getWidth());
-            g.drawFittedText(m_title, textRect.toNearestInt(), juce::Justification::centred, 1);
-        }
-
-        if (isMouseOverButton || isButtonDown)
-        {
-            g.setColour(juce::Colours::white.withAlpha(isButtonDown ? 0.22f : 0.12f));
-            g.fillRoundedRectangle(bounds.reduced(2.0f), 4.0f);
-        }
-
-        const auto iconBounds = m_collapsed ? juce::Rectangle<float>(3.0f, 3.0f, 18.0f, 18.0f) : bounds;
-        GUIHelpers::drawFromSvg(g, m_collapsed ? BinaryData::arrowdown18_svg : BinaryData::arrowright18_svg, juce::Colour(0xff000000), iconBounds);
-    }
-
-private:
-    juce::String m_title;
-    ApplicationViewState &m_appState;
-    juce::Colour m_headerColour;
-    bool m_collapsed = false;
-};
-
-//==============================================================================
-class PluginChainView::RackContentComponent : public juce::Component
-{
-public:
-    struct RoleBuckets
-    {
-        std::vector<PluginChainItemView *> midiItems;
-        std::vector<PluginChainItemView *> instrumentItems;
-        std::vector<PluginChainItemView *> audioItems;
-
-        const std::vector<PluginChainItemView *> &forRole(EngineHelpers::PluginChainRole role) const
-        {
-            if (role == EngineHelpers::PluginChainRole::midiEffect)
-                return midiItems;
-            if (role == EngineHelpers::PluginChainRole::instrument)
-                return instrumentItems;
-            return audioItems;
-        }
-    };
-
-    RackContentComponent(PluginChainView &v)
-        : m_owner(v)
-    {
-    }
-
-    void paint(juce::Graphics &g) override
-    {
-        g.fillAll(m_owner.m_evs.m_applicationState.getBackgroundColour2().withAlpha(0.3f));
-
-        g.setFont(13.0f);
-        for (const auto &section : m_sections)
-        {
-            g.setColour(m_owner.m_evs.m_applicationState.getBorderColour().withAlpha(0.45f));
-            g.drawRoundedRectangle(section.bounds.toFloat(), 5.0f, 1.0f);
-
-            auto sectionBounds = section.bounds;
-            auto titleArea = sectionBounds.removeFromTop(18);
-            g.setColour(m_owner.m_evs.m_applicationState.getTextColour().withAlpha(0.9f));
-            g.drawText(section.title, titleArea.reduced(6, 0), juce::Justification::centredLeft, false);
-        }
-    }
-
-    void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override { m_owner.mouseWheelMove(event, wheel); }
-
-    void createAddButton(EngineHelpers::PluginChainRole role, int targetPluginOrdinal, const juce::String &label, int x, int y, int w, int h)
-    {
-        auto adder = std::make_unique<AddButton>(m_owner.m_track, m_owner.m_evs.m_applicationState);
-        adder->setSectionRole(role);
-        adder->setTargetPluginOrdinal(targetPluginOrdinal);
-        adder->setButtonText(label);
-        addAndMakeVisible(adder.get());
-        adder->addListener(&m_owner);
-        adder->setBounds(x, y, w, h);
-        m_addButtons.add(std::move(adder));
-    }
-
-    RoleBuckets collectRoleBuckets() const
-    {
-        RoleBuckets buckets;
-
-        for (auto *item : m_rackItems)
-        {
-            if (item == nullptr)
-                continue;
-
-            auto plugin = item->getPlugin();
-            if (plugin == nullptr)
-                continue;
-
-            switch (EngineHelpers::getPluginChainRole(*plugin))
-            {
-            case EngineHelpers::PluginChainRole::midiEffect:
-                buckets.midiItems.push_back(item);
-                break;
-            case EngineHelpers::PluginChainRole::instrument:
-                buckets.instrumentItems.push_back(item);
-                break;
-            case EngineHelpers::PluginChainRole::audioEffect:
-                buckets.audioItems.push_back(item);
-                break;
-            }
-        }
-
-        return buckets;
-    }
-
-    int calculateSectionWidth(EngineHelpers::PluginChainRole role, const std::vector<PluginChainItemView *> &roleItems, int contentHeight, int sectionMinWidth) const
-    {
-        const int addButtonWidth = (role != EngineHelpers::PluginChainRole::instrument) ? 18 : 0;
-        int requiredWidth = 14;
-        if (role != EngineHelpers::PluginChainRole::instrument)
-            requiredWidth += addButtonWidth + 8;
-
-        for (auto *rackItem : roleItems)
-        {
-            int itemWidth = rackItem->isCollapsed() ? rackItem->getHeaderWidth() : (contentHeight * rackItem->getNeededWidthFactor()) / 2;
-            if (role != EngineHelpers::PluginChainRole::instrument)
-                requiredWidth += itemWidth + 6 + addButtonWidth + 6;
-            else
-                requiredWidth += itemWidth + 6;
-        }
-
-        if (role == EngineHelpers::PluginChainRole::instrument && roleItems.empty())
-            requiredWidth = juce::jmax(requiredWidth, 156);
-
-        return juce::jmax(sectionMinWidth, requiredWidth);
-    }
-
-    void layoutSection(const ChainSectionSpec &sectionSpec, const std::vector<PluginChainItemView *> &roleItems, int sectionStartX, int sectionWidth, int contentTop, int contentHeight, int sectionButtonHeight, int &visiblePluginOrdinal)
-    {
-        const auto role = sectionSpec.role;
-        const int addButtonWidth = (role != EngineHelpers::PluginChainRole::instrument) ? 18 : 0;
-        int cursorX = sectionStartX + 8;
-
-        if (role != EngineHelpers::PluginChainRole::instrument)
-        {
-            createAddButton(role, visiblePluginOrdinal, "+", cursorX, contentTop + 6, addButtonWidth, sectionButtonHeight);
-            cursorX += addButtonWidth + 8;
-        }
-
-        for (auto *rackItem : roleItems)
-        {
-            int itemWidth = rackItem->isCollapsed() ? rackItem->getHeaderWidth() : (contentHeight * rackItem->getNeededWidthFactor()) / 2;
-            rackItem->setBounds(cursorX, contentTop, itemWidth, contentHeight);
-            cursorX += itemWidth + 6;
-            ++visiblePluginOrdinal;
-
-            if (role != EngineHelpers::PluginChainRole::instrument)
-            {
-                createAddButton(role, visiblePluginOrdinal, "+", cursorX, contentTop + 6, addButtonWidth, sectionButtonHeight);
-                cursorX += addButtonWidth + 6;
-            }
-        }
-
-        if (role == EngineHelpers::PluginChainRole::instrument && roleItems.empty())
-        {
-            const int buttonWidth = juce::jmax(120, sectionWidth - 20);
-            const int buttonX = sectionStartX + (sectionWidth - buttonWidth) / 2;
-            createAddButton(role, visiblePluginOrdinal, "Add Instrument", buttonX, contentTop + 6, buttonWidth, sectionButtonHeight);
-        }
-    }
-
-    void refreshButtonsAndLayout()
-    {
-        m_addButtons.clear();
-        m_sections.clear();
-
-        int height = getHeight();
-        if (height <= 0)
-            return;
-
-        int sectionX = 8;
-        const int sectionGap = 10;
-        const int contentTop = 20;
-        const int contentHeight = juce::jmax(1, height - contentTop - 4);
-        const int sectionMinWidth = 170;
-
-        if (m_owner.m_track != nullptr)
-        {
-            const auto sectionSpecs = getSectionSpecsForTrack(m_owner.m_track.get());
-            const auto roleBuckets = collectRoleBuckets();
-
-            int visiblePluginOrdinal = 0;
-            for (const auto &sectionSpec : sectionSpecs)
-            {
-                const auto role = sectionSpec.role;
-                const int sectionButtonHeight = juce::jmax(18, contentHeight - 12);
-                const auto &roleItems = roleBuckets.forRole(role);
-
-                const int sectionWidth = calculateSectionWidth(role, roleItems, contentHeight, sectionMinWidth);
-                const int sectionStartX = sectionX;
-                layoutSection(sectionSpec, roleItems, sectionStartX, sectionWidth, contentTop, contentHeight, sectionButtonHeight, visiblePluginOrdinal);
-
-                m_sections.push_back({sectionSpec.title, juce::Rectangle<int>(sectionStartX, 0, sectionWidth, height - 2)});
-                sectionX += sectionWidth + sectionGap;
-            }
-        }
-
-        setSize(sectionX, height);
-    }
-
-    struct SectionVisual
-    {
-        juce::String title;
-        juce::Rectangle<int> bounds;
-    };
-
-    juce::OwnedArray<PluginChainItemView> m_rackItems;
-    juce::OwnedArray<AddButton> m_addButtons;
-    std::vector<SectionVisual> m_sections;
-    PluginChainView &m_owner;
-};
-
-class PluginChainView::PluginListPanelComponent : public juce::Component
-{
-public:
-    explicit PluginListPanelComponent(PluginChainView &owner)
-        : m_owner(owner)
-    {
-    }
-
-    void paint(juce::Graphics &g) override
-    {
-        auto headerColour = m_owner.m_track != nullptr ? m_owner.m_track->getColour() : m_owner.m_evs.m_applicationState.getPrimeColour();
-        GUIHelpers::drawHeaderBox(g, getLocalBounds().toFloat(), headerColour, m_owner.m_evs.m_applicationState.getBorderColour(), m_owner.m_evs.m_applicationState.getBackgroundColour2(), 20.0f, GUIHelpers::HeaderPosition::top, "Plugins");
-    }
-
-private:
-    PluginChainView &m_owner;
-};
-
-class RackPluginListItem
-    : public juce::Component
-    , public juce::DragAndDropTarget
-{
-public:
-    explicit RackPluginListItem(EditViewState &evs, te::Track::Ptr t, juce::String sectionLabel, EngineHelpers::PluginChainRole sectionRole, bool showAddButton)
-        : m_evs(evs),
-          m_track(t),
-          m_label(std::move(sectionLabel)),
-          m_isSectionHeader(true),
-          m_sectionRole(sectionRole)
-    {
-        if (showAddButton)
-        {
-            addAndMakeVisible(m_headerAddButton);
-            m_headerAddButton.setButtonText("+");
-            m_headerAddButton.onClick = [this]
-            {
-                if (onAdd)
-                    onAdd(m_sectionRole, &m_headerAddButton);
-            };
-        }
-    }
-
-    RackPluginListItem(EditViewState &evs, te::Track::Ptr t, te::Plugin::Ptr plugin, te::EditItemID id, juce::String labelText)
-        : m_evs(evs),
-          m_track(t),
-          m_plugin(std::move(plugin)),
-          m_itemID(id),
-          m_label(std::move(labelText))
-    {
-    }
-
-    static void drawEyeIcon(juce::Graphics &g, juce::Rectangle<float> area, juce::Colour colour, bool enabled)
-    {
-        g.setColour(colour);
-        g.drawEllipse(area, 1.4f);
-        g.fillEllipse(area.getCentreX() - 1.6f, area.getCentreY() - 1.6f, 3.2f, 3.2f);
-
-        if (!enabled)
-            g.drawLine(area.getX(), area.getY(), area.getRight(), area.getBottom(), 1.2f);
-    }
-
-    static juce::Image createEyeMenuIcon(juce::Colour colour, bool enabled)
-    {
-        juce::Image icon(juce::Image::ARGB, 16, 16, true);
-        juce::Graphics g(icon);
-        drawEyeIcon(g, {1.0f, 4.0f, 14.0f, 8.0f}, colour, enabled);
-        return icon;
-    }
-
-    static juce::Image createTrashMenuIcon(juce::Colour colour)
-    {
-        juce::Image icon(juce::Image::ARGB, 16, 16, true);
-        juce::Graphics g(icon);
-        GUIHelpers::drawFromSvg(g, BinaryData::trashcan_svg, colour, {1.0f, 1.0f, 14.0f, 14.0f});
-        return icon;
-    }
-
-    bool isInterestedInDragSource(const SourceDetails &details) override
-    {
-        if (m_isSectionHeader)
-            return false;
-
-        return details.description == "RackPluginListItem";
-    }
-
-    void itemDragMove(const SourceDetails &details) override
-    {
-        m_dragOver = true;
-        m_dropAfter = details.localPosition.getY() > (float)getHeight() * 0.5f;
-        repaint();
-    }
-
-    void itemDragExit(const SourceDetails &) override
-    {
-        m_dragOver = false;
-        repaint();
-    }
-
-    void itemDropped(const SourceDetails &details) override
-    {
-        m_dragOver = false;
-        repaint();
-
-        auto *source = dynamic_cast<RackPluginListItem *>(details.sourceComponent.get());
-        if (source == nullptr || source == this || !source->m_itemID.isValid() || !m_itemID.isValid() || onReorder == nullptr)
-            return;
-
-        const bool placeAfter = details.localPosition.getY() > (float)getHeight() * 0.5f;
-        onReorder(source->m_itemID, m_itemID, placeAfter);
-    }
-
-    void setSelected(bool shouldBeSelected)
-    {
-        if (m_isSectionHeader)
-            shouldBeSelected = false;
-
-        if (m_selected == shouldBeSelected)
-            return;
-
-        m_selected = shouldBeSelected;
-        repaint();
-    }
-
-    te::EditItemID getItemID() const { return m_itemID; }
-
-    void resized() override
-    {
-        if (!m_isSectionHeader || !m_headerAddButton.isVisible())
-            return;
-
-        auto area = getLocalBounds().reduced(4, 2);
-        m_headerAddButton.setBounds(area.removeFromRight(22));
-    }
-
-    void paint(juce::Graphics &g) override
-    {
-        if (m_isSectionHeader)
-        {
-            g.fillAll(m_evs.m_applicationState.getBackgroundColour2().withAlpha(0.55f));
-            g.setColour(m_evs.m_applicationState.getTextColour().withAlpha(0.95f));
-            g.setFont(juce::Font(13.0f, juce::Font::bold));
-            auto area = getLocalBounds().reduced(6, 0);
-            if (m_headerAddButton.isVisible())
-                area.removeFromRight(26);
-            g.drawText(m_label, area, juce::Justification::centredLeft, false);
-            g.setColour(m_evs.m_applicationState.getBorderColour().withAlpha(0.5f));
-            g.drawRect(getLocalBounds(), 1);
-            return;
-        }
-
-        g.fillAll(m_evs.m_applicationState.getBackgroundColour1());
-
-        if (m_selected)
-        {
-            auto trackColour = m_track != nullptr ? m_track->getColour() : m_evs.m_applicationState.getPrimeColour();
-            g.fillAll(trackColour.withAlpha(0.2f));
-        }
-
-        g.setColour(m_evs.m_applicationState.getTextColour());
-        g.setFont(14.0f);
-        auto textArea = getLocalBounds().reduced(6, 0);
-        constexpr int iconSize = 14;
-        constexpr int iconGap = 4;
-        auto iconArea = textArea.removeFromRight((iconSize * 2) + iconGap);
-        const int iconY = (getHeight() - iconSize) / 2;
-        m_eyeBounds = juce::Rectangle<int>(iconArea.getX(), iconY, iconSize, iconSize).reduced(1);
-        m_trashBounds = juce::Rectangle<int>(iconArea.getX() + iconSize + iconGap, iconY, iconSize, iconSize).reduced(1);
-
-        auto iconColour = juce::Colours::lightgrey;
-        drawEyeIcon(g, m_eyeBounds.toFloat(), iconColour, m_plugin != nullptr ? m_plugin->isEnabled() : true);
-        GUIHelpers::drawFromSvg(g, BinaryData::trashcan_svg, iconColour, m_trashBounds.toFloat());
-
-        g.drawText(m_label, textArea, juce::Justification::centredLeft, true);
-
-        g.setColour(juce::Colours::grey.withAlpha(0.3f));
-        g.drawRect(getLocalBounds(), 1);
-
-        if (m_dragOver)
-        {
-            g.setColour(m_evs.m_applicationState.getPrimeColour().withAlpha(0.9f));
-            auto marker = getLocalBounds().reduced(2, 0);
-            marker.setHeight(2);
-            if (m_dropAfter)
-                marker.setY(getHeight() - 2);
-            g.fillRect(marker);
-        }
-    }
-
-    void mouseDown(const juce::MouseEvent &e) override
-    {
-        juce::ignoreUnused(e);
-        m_didDrag = false;
-    }
-
-    void mouseDrag(const juce::MouseEvent &e) override
-    {
-        if (m_isSectionHeader)
-            return;
-
-        if (m_didDrag || e.getDistanceFromDragStart() < 4)
-            return;
-
-        if (auto *container = juce::DragAndDropContainer::findParentDragContainerFor(this))
-        {
-            m_didDrag = true;
-            auto dragImage = createComponentSnapshot(getLocalBounds());
-            container->startDragging("RackPluginListItem", this, juce::ScaledImage(dragImage), true);
-        }
-    }
-
-    void mouseUp(const juce::MouseEvent &e) override
-    {
-        if (m_isSectionHeader)
-            return;
-
-        if (e.mods.isPopupMenu())
-        {
-            juce::PopupMenu menu;
-            const auto iconColour = juce::Colours::lightgrey;
-            const bool pluginEnabled = (m_plugin != nullptr ? m_plugin->isEnabled() : true);
-
-            menu.addItem(1, "Delete Plugin", true, false, createTrashMenuIcon(iconColour));
-            menu.addItem(2, pluginEnabled ? "Disable Plugin" : "Enable Plugin", true, false, createEyeMenuIcon(iconColour, pluginEnabled));
-
-            const int result = menu.show();
-            if (result == 1)
-            {
-                if (onDelete)
-                    onDelete();
-            }
-            else if (result == 2)
-            {
-                if (onToggleEnabled)
-                    onToggleEnabled();
-            }
-            return;
-        }
-
-        if (m_eyeBounds.contains(e.getPosition()))
-        {
-            if (onToggleEnabled)
-                onToggleEnabled();
-            return;
-        }
-
-        if (m_trashBounds.contains(e.getPosition()))
-        {
-            if (onDelete)
-                onDelete();
-            return;
-        }
-
-        if (!m_didDrag && !e.mods.isPopupMenu() && onClick)
-            onClick();
-    }
-
-    std::function<void()> onClick;
-    std::function<void(te::EditItemID, te::EditItemID, bool)> onReorder;
-    std::function<void()> onDelete;
-    std::function<void()> onToggleEnabled;
-    std::function<void(EngineHelpers::PluginChainRole, juce::Component *)> onAdd;
-
-private:
-    EditViewState &m_evs;
-    te::Track::Ptr m_track;
-    te::Plugin::Ptr m_plugin;
-    te::EditItemID m_itemID;
-    juce::String m_label;
-    juce::Rectangle<int> m_eyeBounds;
-    juce::Rectangle<int> m_trashBounds;
-    bool m_selected{false};
-    bool m_dragOver{false};
-    bool m_dropAfter{false};
-    bool m_didDrag{false};
-    bool m_isSectionHeader{false};
-    EngineHelpers::PluginChainRole m_sectionRole{EngineHelpers::PluginChainRole::audioEffect};
-    juce::TextButton m_headerAddButton;
-};
 
 //==============================================================================
 PluginChainView::PluginChainView(EditViewState &evs)
@@ -924,6 +366,13 @@ void PluginChainView::resized()
     area.removeFromLeft(HEADERWIDTH);
     area = area.reduced(5);
 
+    layoutSidePanels(area);
+    layoutPluginList(area);
+    layoutRack(area);
+}
+
+void PluginChainView::layoutSidePanels(juce::Rectangle<int> &area)
+{
     const auto panelHeaderColour = m_track != nullptr ? m_track->getColour() : m_evs.m_applicationState.getPrimeColour();
     const bool trackPresetPanelCollapsed = m_evs.m_applicationState.m_trackPresetPanelCollapsed;
     const bool modifierPanelCollapsed = m_evs.m_applicationState.m_modifierPanelCollapsed;
@@ -933,7 +382,7 @@ void PluginChainView::resized()
 
     if (m_trackPresetManager)
     {
-        auto presetArea = area.removeFromLeft(trackPresetPanelCollapsed ? COLLAPSED_PANEL_WIDTH : MODIFIER_STACK_WIDTH);
+        auto presetArea = area.removeFromLeft(trackPresetPanelCollapsed ? COLLAPSED_PANEL_WIDTH : SIDE_PANEL_WIDTH);
         m_trackPresetManager->setVisible(!trackPresetPanelCollapsed);
 
         if (trackPresetPanelCollapsed)
@@ -953,7 +402,7 @@ void PluginChainView::resized()
         m_trackPresetPanelToggle->setVisible(false);
     }
 
-    auto modifierArea = area.removeFromLeft(modifierPanelCollapsed ? COLLAPSED_PANEL_WIDTH : MODIFIER_STACK_WIDTH);
+    auto modifierArea = area.removeFromLeft(modifierPanelCollapsed ? COLLAPSED_PANEL_WIDTH : SIDE_PANEL_WIDTH);
     m_modifierSidebar.setVisible(!modifierPanelCollapsed);
     if (modifierPanelCollapsed)
     {
@@ -968,57 +417,47 @@ void PluginChainView::resized()
     m_modifierPanelToggle->setVisible(true);
 
     const bool shouldShowModifierDetail = !modifierPanelCollapsed && m_track != nullptr && m_evs.getTrackSelectedModifier(m_track->itemID).isValid();
+    m_modifierDetailPanel.setVisible(shouldShowModifierDetail);
     if (shouldShowModifierDetail)
-    {
-        m_modifierDetailPanel.setBounds(area.removeFromLeft(300));
-        m_modifierDetailPanel.setVisible(true);
-    }
-    else
-    {
-        m_modifierDetailPanel.setVisible(false);
-    }
+        m_modifierDetailPanel.setBounds(area.removeFromLeft(MODIFIER_DETAIL_WIDTH));
 
     m_trackPresetPanelToggle->toFront(false);
     m_modifierPanelToggle->toFront(false);
+    area.removeFromLeft(PANEL_CONTENT_GAP);
+}
 
-    area.removeFromLeft(20);
-
+void PluginChainView::layoutPluginList(juce::Rectangle<int> &area)
+{
     if (m_channelStrip != nullptr)
         m_channelStrip->setBounds(area.removeFromRight(CHANNEL_STRIP_WIDTH));
 
-    auto listArea = area.removeFromLeft(PLUGIN_LIST_WIDTH);
-    m_pluginPanel->setBounds(listArea.reduced(2));
+    m_pluginPanel->setBounds(area.removeFromLeft(PLUGIN_LIST_WIDTH).reduced(2));
 
     auto listContentArea = m_pluginPanel->getLocalBounds();
-    listContentArea.removeFromTop(20);
-
-    listContentArea.removeFromTop(2);
-
+    listContentArea.removeFromTop(22);
     listContentArea.reduce(2, 2);
     m_pluginListViewport.setBounds(listContentArea);
 
+    const int totalHeight = m_pluginListButtons.size() * PLUGIN_LIST_ROW_HEIGHT;
+    const bool needsScrollbar = totalHeight > m_pluginListViewport.getHeight();
+    const int scrollbarWidth = needsScrollbar ? m_pluginListViewport.getScrollBarThickness() : 0;
+    const int contentWidth = juce::jmax(0, m_pluginListViewport.getWidth() - scrollbarWidth);
+
     int y = 0;
     for (auto *button : m_pluginListButtons)
-        y += PLUGIN_LIST_ROW_HEIGHT;
-
-    const bool needsPluginListScrollbar = y > m_pluginListViewport.getHeight();
-    const int pluginListScrollbarWidth = needsPluginListScrollbar ? m_pluginListViewport.getScrollBarThickness() : 0;
-    const int pluginListContentWidth = juce::jmax(0, m_pluginListViewport.getWidth() - pluginListScrollbarWidth);
-
-    y = 0;
-    for (auto *button : m_pluginListButtons)
     {
-        button->setBounds(0, y, pluginListContentWidth, PLUGIN_LIST_ROW_HEIGHT);
+        button->setBounds(0, y, contentWidth, PLUGIN_LIST_ROW_HEIGHT);
         y += PLUGIN_LIST_ROW_HEIGHT;
     }
-    m_pluginListContent.setSize(pluginListContentWidth, juce::jmax(m_pluginListViewport.getHeight(), y));
+    m_pluginListContent.setSize(contentWidth, juce::jmax(m_pluginListViewport.getHeight(), totalHeight));
+}
 
-    auto scrollbarArea = area.removeFromBottom(m_evs.m_applicationState.getScrollbarThickness());
-    m_horizontalScrollBar.setBounds(scrollbarArea);
+void PluginChainView::layoutRack(juce::Rectangle<int> area)
+{
+    m_horizontalScrollBar.setBounds(area.removeFromBottom(m_evs.m_applicationState.getScrollbarThickness()));
     m_pluginCanvas.setBounds(area);
 
-    int contentHeight = juce::jmax(0, m_pluginCanvas.getHeight());
-    m_contentComp->setSize(juce::jmax(0, m_contentComp->getWidth()), contentHeight);
+    m_contentComp->setSize(juce::jmax(0, m_contentComp->getWidth()), juce::jmax(0, m_pluginCanvas.getHeight()));
     layoutSelectedRackItem();
     m_contentScrollX = juce::jlimit(0, getMaxContentScrollX(), m_contentScrollX);
     m_targetContentScrollX = (double)m_contentScrollX;
@@ -1028,6 +467,9 @@ void PluginChainView::resized()
 
 juce::StringArray PluginChainView::getRackOrder() const
 {
+    if (m_track == nullptr)
+        return {};
+
     auto state = m_evs.getTrackPluginChainViewState(m_track->itemID);
     juce::String orderString = state.getProperty("rackItemOrder").toString();
     juce::StringArray order;
@@ -1037,6 +479,9 @@ juce::StringArray PluginChainView::getRackOrder() const
 
 void PluginChainView::saveRackOrder(const juce::StringArray &order)
 {
+    if (m_track == nullptr)
+        return;
+
     auto state = m_evs.getTrackPluginChainViewState(m_track->itemID);
     state.setProperty("rackItemOrder", order.joinIntoString(","), nullptr);
 }
@@ -1137,6 +582,14 @@ static int getVisualIndexForPluginOrdinal(const juce::StringArray &order, te::Tr
     return order.size();
 }
 
+int PluginChainView::getVisualIndexForPluginOrdinal(int pluginOrdinal) const
+{
+    if (m_track == nullptr)
+        return 0;
+
+    return ::getVisualIndexForPluginOrdinal(getRackOrder(), *m_track, pluginOrdinal);
+}
+
 void PluginChainView::ensureRackOrderConsistency()
 {
     auto currentOrder = getRackOrder();
@@ -1195,7 +648,7 @@ void PluginChainView::moveItem(PluginChainItemView *item, int targetIndex)
             if (EngineHelpers::movePluginWithChainRules(m_track, item->getPlugin(), targetTrackPluginIndex))
             {
                 const int pluginOrdinal = getVisiblePluginOrdinalForID(*m_track, id);
-                const int visualIndex = getVisualIndexForPluginOrdinal(order, *m_track, pluginOrdinal);
+                const int visualIndex = ::getVisualIndexForPluginOrdinal(order, *m_track, pluginOrdinal);
                 order.insert(visualIndex, id.toString());
             }
             else
@@ -1227,7 +680,7 @@ void PluginChainView::buttonClicked(juce::Button *button)
             if (auto plugin = showMenuAndCreatePluginForRole(m_track->edit, b->getSectionRole(), button))
             {
                 const auto order = getRackOrder();
-                const int visualIndex = getVisualIndexForPluginOrdinal(order, *m_track, b->getTargetPluginOrdinal());
+                const int visualIndex = ::getVisualIndexForPluginOrdinal(order, *m_track, b->getTargetPluginOrdinal());
                 insertPluginAtVisualIndex(plugin, visualIndex, true);
             }
 
@@ -1372,10 +825,6 @@ void PluginChainView::updateTrackPresetManager()
 
 juce::String PluginChainView::getCurrentTrackID() { return m_trackID; }
 
-juce::OwnedArray<AddButton> &PluginChainView::getAddButtons() { return m_contentComp->m_addButtons; }
-
-juce::OwnedArray<PluginChainItemView> &PluginChainView::getPluginComponents() { return m_contentComp->m_rackItems; }
-
 void PluginChainView::insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visualIndex, bool selectInserted)
 {
     if (m_track == nullptr || plugin == nullptr)
@@ -1399,7 +848,7 @@ void PluginChainView::insertPluginAtVisualIndex(te::Plugin::Ptr plugin, int visu
     if (pluginOrdinal >= 0)
     {
         order.removeString(plugin->itemID.toString());
-        const int actualVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, pluginOrdinal);
+        const int actualVisualIndex = ::getVisualIndexForPluginOrdinal(order, *m_track, pluginOrdinal);
         order.insert(actualVisualIndex, plugin->itemID.toString());
         saveRackOrder(order);
     }
@@ -1621,7 +1070,7 @@ void PluginChainView::rebuildPluginList()
 
     if (m_track != nullptr)
     {
-        const auto sectionSpecs = getSectionSpecsForTrack(m_track.get());
+        const auto sectionSpecs = getPluginChainSectionSpecs(m_track.get());
         for (const auto &sectionSpec : sectionSpecs)
         {
             const bool showAddButton = sectionSpec.role != EngineHelpers::PluginChainRole::instrument || !EngineHelpers::trackHasInstrumentPlugin(*m_track);
@@ -1656,11 +1105,9 @@ void PluginChainView::reorderPluginListItem(te::EditItemID sourceID, te::EditIte
     if (sourceIndex == targetIndex)
         return;
 
-    int destinationIndex = targetIndex + (placeAfter ? 1 : 0);
-    if (sourceIndex < destinationIndex)
-        --destinationIndex;
-
-    destinationIndex = juce::jlimit(0, m_contentComp->m_rackItems.size() - 1, destinationIndex);
+    const int destinationIndex = PluginChainLayout::getReorderDestinationIndex(sourceIndex, targetIndex, placeAfter, m_contentComp->m_rackItems.size());
+    if (destinationIndex < 0)
+        return;
 
     if (auto *item = m_contentComp->m_rackItems[sourceIndex])
     {
@@ -1718,7 +1165,7 @@ void PluginChainView::updateRackContentPosition() { m_contentComp->setTopLeftPos
 
 int PluginChainView::getMaxContentScrollX() const
 {
-    return juce::jmax(0, m_contentComp->getWidth() - m_pluginCanvas.getWidth());
+    return PluginChainLayout::getMaxScrollX(m_contentComp->getWidth(), m_pluginCanvas.getWidth());
 }
 
 void PluginChainView::updateHorizontalScrollBar()
@@ -1806,190 +1253,7 @@ void PluginChainView::addPluginAtCurrentPosition(EngineHelpers::PluginChainRole 
 
         const auto order = getRackOrder();
         const int requestedOrdinal = selectedRoleInsertOrdinal >= 0 ? selectedRoleInsertOrdinal : m_contentComp->m_rackItems.size();
-        const int insertVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, requestedOrdinal);
+        const int insertVisualIndex = ::getVisualIndexForPluginOrdinal(order, *m_track, requestedOrdinal);
         insertPluginAtVisualIndex(plugin, insertVisualIndex, true);
     }
-}
-
-bool PluginChainView::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
-{
-    if (dragSourceDetails.description == "FileBrowser" && EngineHelpers::isSoundFontFile(getDraggedBrowserFile(dragSourceDetails)))
-        return true;
-
-    if (dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Instrument or Effect" || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
-    {
-        return true;
-    }
-    return false;
-}
-
-void PluginChainView::itemDragMove(const SourceDetails &dragSourceDetails)
-{
-    if (dragSourceDetails.description == "PluginComp" || dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Instrument or Effect" || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
-
-    {
-        m_isOver = true;
-    }
-
-    if (dragSourceDetails.description == "FileBrowser" && EngineHelpers::isSoundFontFile(getDraggedBrowserFile(dragSourceDetails)))
-        m_isOver = true;
-
-    if (dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
-    {
-        m_dragSource = dragSourceDetails.sourceComponent.get();
-    }
-    repaint();
-}
-
-void PluginChainView::itemDragExit(const SourceDetails &details)
-{
-    m_isOver = false;
-
-    if (details.description != te::AutomationDragDropTarget::automatableDragString)
-        m_dragSource = nullptr;
-
-    repaint();
-}
-
-void PluginChainView::itemDropped(const juce::DragAndDropTarget::SourceDetails &details)
-{
-    m_dragSource = nullptr;
-
-    te::Track::Ptr track = m_track;
-    if (track == nullptr && details.description != "FileBrowser")
-        track = EngineHelpers::addAudioTrack(true, m_evs.m_applicationState.getRandomTrackColour(), m_evs);
-
-    if (details.description == "PluginListEntry")
-        if (auto listbox = dynamic_cast<PluginListbox *>(details.sourceComponent.get()))
-            if (auto plugin = listbox->getSelectedPlugin(m_evs.m_edit))
-            {
-                if (track == m_track)
-                {
-                    const int endVisualIndex = getRackOrder().size();
-                    insertPluginAtVisualIndex(plugin, endVisualIndex, true);
-                }
-                else
-                {
-                    m_selectedRackItemID = plugin->itemID;
-                    m_scrollToSelectedAfterRebuild = true;
-                    const auto insertResult = EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
-                    if (insertResult != EngineHelpers::PluginInsertResult::inserted)
-                        UIHelpers::showPluginInsertBlockedDialog(insertResult);
-                }
-            }
-    if (details.description == "Instrument or Effect")
-        if (auto lb = dynamic_cast<InstrumentEffectTable *>(details.sourceComponent.get()))
-            if (auto plugin = lb->getSelectedPlugin(m_evs.m_edit))
-            {
-                if (track == m_track)
-                {
-                    const int endVisualIndex = getRackOrder().size();
-                    insertPluginAtVisualIndex(plugin, endVisualIndex, true);
-                }
-                else
-                {
-                    m_selectedRackItemID = plugin->itemID;
-                    m_scrollToSelectedAfterRebuild = true;
-                    const auto insertResult = EngineHelpers::insertPluginWithPreset(m_evs, track, plugin);
-                    if (insertResult != EngineHelpers::PluginInsertResult::inserted)
-                        UIHelpers::showPluginInsertBlockedDialog(insertResult);
-                }
-            }
-
-    if (details.description == "FileBrowser")
-    {
-        const auto draggedFile = getDraggedBrowserFile(details);
-        if (EngineHelpers::isSoundFontFile(draggedFile))
-        {
-            if (m_track != nullptr)
-            {
-                const int endVisualIndex = getRackOrder().size();
-                insertSoundFontAtVisualIndex(draggedFile, endVisualIndex, true);
-            }
-            else
-            {
-                EngineHelpers::addSoundFontTrack(m_evs, draggedFile, m_evs.m_applicationState.getRandomTrackColour());
-            }
-        }
-    }
-
-    m_isOver = false;
-    repaint();
-}
-
-bool AddButton::isInterestedInDragSource(const SourceDetails &dragSourceDetails)
-{
-    if (dragSourceDetails.description == "FileBrowser" && EngineHelpers::isSoundFontFile(getDraggedBrowserFile(dragSourceDetails)))
-        return true;
-
-    return dragSourceDetails.description == "PluginComp" || dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Instrument or Effect" || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString;
-}
-
-void AddButton::itemDropped(const SourceDetails &dragSourceDetails)
-{
-    if (dragSourceDetails.description == "PluginListEntry")
-    {
-        if (auto listbox = dynamic_cast<juce::ListBox *>(dragSourceDetails.sourceComponent.get()))
-        {
-            if (auto lbm = dynamic_cast<PluginListbox *>(listbox->getListBoxModel()))
-            {
-                // Resolve owning rack view from the AddButton hierarchy.
-                auto pluginRackComp = findParentComponentOfClass<PluginChainView>();
-                if (pluginRackComp)
-                {
-                    auto plugin = lbm->getSelectedPlugin(m_track->edit);
-                    if (plugin)
-                    {
-                        const auto order = pluginRackComp->getRackOrder();
-                        const int targetVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, getTargetPluginOrdinal());
-                        pluginRackComp->insertPluginAtVisualIndex(plugin, targetVisualIndex, true);
-                    }
-                }
-            }
-        }
-    }
-
-    if (dragSourceDetails.description == "Instrument or Effect")
-    {
-        if (auto *pluginRackComp = findParentComponentOfClass<PluginChainView>())
-            if (auto *lb = dynamic_cast<InstrumentEffectTable *>(dragSourceDetails.sourceComponent.get()))
-                if (auto plugin = lb->getSelectedPlugin(m_track->edit))
-                {
-                    const auto order = pluginRackComp->getRackOrder();
-                    const int targetVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, getTargetPluginOrdinal());
-                    pluginRackComp->insertPluginAtVisualIndex(plugin, targetVisualIndex, true);
-                }
-    }
-
-    if (dragSourceDetails.description == "FileBrowser")
-    {
-        if (auto *pluginRackComp = findParentComponentOfClass<PluginChainView>())
-        {
-            const auto draggedFile = getDraggedBrowserFile(dragSourceDetails);
-            if (EngineHelpers::isSoundFontFile(draggedFile))
-            {
-                const auto order = pluginRackComp->getRackOrder();
-                const int targetVisualIndex = getVisualIndexForPluginOrdinal(order, *m_track, getTargetPluginOrdinal());
-                pluginRackComp->insertSoundFontAtVisualIndex(draggedFile, targetVisualIndex, true);
-            }
-        }
-    }
-
-    if (dragSourceDetails.description == "PluginComp" || dragSourceDetails.description == te::AutomationDragDropTarget::automatableDragString)
-    {
-        auto pluginRackComp = findParentComponentOfClass<PluginChainView>();
-        if (pluginRackComp)
-        {
-            auto *view = dynamic_cast<PluginChainItemView *>(dragSourceDetails.sourceComponent.get());
-            if (view)
-            {
-                const auto order = pluginRackComp->getRackOrder();
-                const int targetIndex = getVisualIndexForPluginOrdinal(order, *m_track, getTargetPluginOrdinal());
-                pluginRackComp->moveItem(view, targetIndex);
-            }
-        }
-    }
-
-    isOver = false;
-    repaint();
 }

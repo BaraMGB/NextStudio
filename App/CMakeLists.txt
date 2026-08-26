@@ -71,6 +71,15 @@ if(BUILD_TESTING)
     add_test(NAME PositionDisplayHelpers
             COMMAND NextStudioTests)
 
+    add_executable(PluginChainLayoutTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PluginChainLayoutTests.cpp)
+
+    target_include_directories(PluginChainLayoutTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    add_test(NAME PluginChainLayout
+            COMMAND PluginChainLayoutTests)
+
     juce_add_console_app(DebugProtocolTests
             PRODUCT_NAME "DebugProtocolTests")
     juce_generate_juce_header(DebugProtocolTests)
