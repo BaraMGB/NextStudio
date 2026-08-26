@@ -34,6 +34,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 namespace te = tracktion_engine;
 
 class AddButton;
+class RackPanelToggleButton;
 class RackPluginListItem;
 
 class PluginChainView
@@ -133,6 +134,8 @@ private:
     std::unique_ptr<TrackPresetAdapterBase> m_trackPresetAdapter;
     std::unique_ptr<PresetManagerComponent> m_trackPresetManager;
     std::unique_ptr<MixerChannelStripComponent> m_channelStrip;
+    std::unique_ptr<RackPanelToggleButton> m_trackPresetPanelToggle;
+    std::unique_ptr<RackPanelToggleButton> m_modifierPanelToggle;
 
     juce::Component m_pluginListContent;
     juce::Viewport m_pluginListViewport;
@@ -153,6 +156,7 @@ private:
     static constexpr int CHANNEL_STRIP_WIDTH = 95;
     static constexpr int PLUGIN_LIST_WIDTH = 220;
     static constexpr int MODIFIER_STACK_WIDTH = 170;
+    static constexpr int COLLAPSED_PANEL_WIDTH = 28;
     static constexpr int PLUGIN_LIST_ROW_HEIGHT = 24;
     static constexpr int CONTROL_ROW_HEIGHT = 28;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginChainView)

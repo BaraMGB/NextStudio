@@ -210,6 +210,8 @@ juce::var createStateDump(const NextStudio::Debug::DebugHost &debugHost)
     ui->setProperty("sidebarWidth", (int) appState.m_sidebarWidth);
     ui->setProperty("sidebarCollapsed", (bool) appState.m_sidebarCollapsed);
     ui->setProperty("lowerRangeCollapsed", (bool) appState.m_lowerRangeCollapsed);
+    ui->setProperty("trackPresetPanelCollapsed", (bool) appState.m_trackPresetPanelCollapsed);
+    ui->setProperty("modifierPanelCollapsed", (bool) appState.m_modifierPanelCollapsed);
     ui->setProperty("setupComplete", (bool) appState.m_setupComplete);
     ui->setProperty("workDir", sanitiseStateString(appState.m_workDir.get()));
     root->setProperty("ui", ui);

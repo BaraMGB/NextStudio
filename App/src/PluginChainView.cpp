@@ -122,6 +122,69 @@ std::vector<ChainSectionSpec> getSectionSpecsForTrack(const te::Track *track)
 
 } // namespace
 
+class RackPanelToggleButton final : public juce::Button
+{
+public:
+    RackPanelToggleButton(juce::String title, ApplicationViewState &appState)
+        : juce::Button("Toggle " + title),
+          m_title(std::move(title)),
+          m_appState(appState)
+    {
+    }
+
+    void setAppearance(bool collapsed, juce::Colour headerColour)
+    {
+        if (m_collapsed == collapsed && m_headerColour == headerColour)
+            return;
+
+        m_collapsed = collapsed;
+        m_headerColour = headerColour;
+        setTooltip((m_collapsed ? "Expand " : "Collapse ") + m_title);
+        repaint();
+    }
+
+    void paintButton(juce::Graphics &g, bool isMouseOverButton, bool isButtonDown) override
+    {
+        auto bounds = getLocalBounds().toFloat();
+
+        if (m_collapsed)
+        {
+            auto railBounds = bounds.reduced(1.0f);
+            g.setColour(m_headerColour);
+            g.fillRoundedRectangle(railBounds, 7.0f);
+            g.setColour(m_appState.getBorderColour());
+            g.drawRoundedRectangle(railBounds, 7.0f, 1.0f);
+
+            auto titleArea = railBounds;
+            titleArea.removeFromTop(22.0f);
+            const auto titleColour = m_headerColour.getBrightness() > 0.8f ? juce::Colours::black : juce::Colours::white;
+            g.setColour(titleColour);
+            g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+
+            juce::Graphics::ScopedSaveState saveState(g);
+            const auto centre = titleArea.getCentre();
+            g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, centre.x, centre.y));
+            const auto textRect = juce::Rectangle<float>(centre.x - titleArea.getHeight() * 0.5f, centre.y - titleArea.getWidth() * 0.5f, titleArea.getHeight(), titleArea.getWidth());
+            g.drawFittedText(m_title, textRect.toNearestInt(), juce::Justification::centred, 1);
+        }
+
+        if (isMouseOverButton || isButtonDown)
+        {
+            g.setColour(juce::Colours::white.withAlpha(isButtonDown ? 0.22f : 0.12f));
+            g.fillRoundedRectangle(bounds.reduced(2.0f), 4.0f);
+        }
+
+        const auto iconBounds = m_collapsed ? juce::Rectangle<float>(3.0f, 3.0f, 18.0f, 18.0f) : bounds;
+        GUIHelpers::drawFromSvg(g, m_collapsed ? BinaryData::arrowdown18_svg : BinaryData::arrowright18_svg, juce::Colour(0xff000000), iconBounds);
+    }
+
+private:
+    juce::String m_title;
+    ApplicationViewState &m_appState;
+    juce::Colour m_headerColour;
+    bool m_collapsed = false;
+};
+
 //==============================================================================
 class PluginChainView::RackContentComponent : public juce::Component
 {
@@ -610,6 +673,22 @@ PluginChainView::PluginChainView(EditViewState &evs)
     m_pluginPanel = std::make_unique<PluginListPanelComponent>(*this);
     addAndMakeVisible(*m_pluginPanel);
 
+    m_trackPresetPanelToggle = std::make_unique<RackPanelToggleButton>("Track Presets", m_evs.m_applicationState);
+    m_modifierPanelToggle = std::make_unique<RackPanelToggleButton>("Modifiers", m_evs.m_applicationState);
+    addAndMakeVisible(*m_trackPresetPanelToggle);
+    addAndMakeVisible(*m_modifierPanelToggle);
+
+    m_trackPresetPanelToggle->onClick = [this]
+    {
+        m_evs.m_applicationState.m_trackPresetPanelCollapsed = !(bool)m_evs.m_applicationState.m_trackPresetPanelCollapsed;
+        resized();
+    };
+    m_modifierPanelToggle->onClick = [this]
+    {
+        m_evs.m_applicationState.m_modifierPanelCollapsed = !(bool)m_evs.m_applicationState.m_modifierPanelCollapsed;
+        resized();
+    };
+
     addAndMakeVisible(m_horizontalScrollBar);
     m_horizontalScrollBar.setSingleStepSize(30.0);
     m_horizontalScrollBar.addListener(this);
@@ -845,16 +924,50 @@ void PluginChainView::resized()
     area.removeFromLeft(HEADERWIDTH);
     area = area.reduced(5);
 
+    const auto panelHeaderColour = m_track != nullptr ? m_track->getColour() : m_evs.m_applicationState.getPrimeColour();
+    const bool trackPresetPanelCollapsed = m_evs.m_applicationState.m_trackPresetPanelCollapsed;
+    const bool modifierPanelCollapsed = m_evs.m_applicationState.m_modifierPanelCollapsed;
+
+    m_trackPresetPanelToggle->setAppearance(trackPresetPanelCollapsed, panelHeaderColour);
+    m_modifierPanelToggle->setAppearance(modifierPanelCollapsed, panelHeaderColour);
+
     if (m_trackPresetManager)
     {
-        auto presetArea = area.removeFromLeft(MODIFIER_STACK_WIDTH);
-        m_trackPresetManager->setBounds(presetArea.reduced(2));
+        auto presetArea = area.removeFromLeft(trackPresetPanelCollapsed ? COLLAPSED_PANEL_WIDTH : MODIFIER_STACK_WIDTH);
+        m_trackPresetManager->setVisible(!trackPresetPanelCollapsed);
+
+        if (trackPresetPanelCollapsed)
+        {
+            m_trackPresetPanelToggle->setBounds(presetArea.reduced(2));
+        }
+        else
+        {
+            const auto presetBounds = presetArea.reduced(2);
+            m_trackPresetManager->setBounds(presetBounds);
+            m_trackPresetPanelToggle->setBounds(presetBounds.getX() + 2, presetBounds.getY() + 2, 18, 18);
+        }
+        m_trackPresetPanelToggle->setVisible(true);
+    }
+    else
+    {
+        m_trackPresetPanelToggle->setVisible(false);
     }
 
-    auto modifierArea = area.removeFromLeft(MODIFIER_STACK_WIDTH);
-    m_modifierSidebar.setBounds(modifierArea.reduced(2));
+    auto modifierArea = area.removeFromLeft(modifierPanelCollapsed ? COLLAPSED_PANEL_WIDTH : MODIFIER_STACK_WIDTH);
+    m_modifierSidebar.setVisible(!modifierPanelCollapsed);
+    if (modifierPanelCollapsed)
+    {
+        m_modifierPanelToggle->setBounds(modifierArea.reduced(2));
+    }
+    else
+    {
+        const auto modifierBounds = modifierArea.reduced(2);
+        m_modifierSidebar.setBounds(modifierBounds);
+        m_modifierPanelToggle->setBounds(modifierBounds.getX() + 2, modifierBounds.getY() + 2, 18, 18);
+    }
+    m_modifierPanelToggle->setVisible(true);
 
-    const bool shouldShowModifierDetail = (m_track != nullptr && m_evs.getTrackSelectedModifier(m_track->itemID).isValid());
+    const bool shouldShowModifierDetail = !modifierPanelCollapsed && m_track != nullptr && m_evs.getTrackSelectedModifier(m_track->itemID).isValid();
     if (shouldShowModifierDetail)
     {
         m_modifierDetailPanel.setBounds(area.removeFromLeft(300));
@@ -864,6 +977,9 @@ void PluginChainView::resized()
     {
         m_modifierDetailPanel.setVisible(false);
     }
+
+    m_trackPresetPanelToggle->toFront(false);
+    m_modifierPanelToggle->toFront(false);
 
     area.removeFromLeft(20);
 
