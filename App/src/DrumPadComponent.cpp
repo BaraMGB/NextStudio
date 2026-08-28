@@ -391,10 +391,7 @@ juce::String DrumPadGridComponent::getMidiNoteNameForPad(int padIndex)
 {
     int midiNote = getMidiNoteForPad(padIndex);
     if (midiNote >= 0)
-    {
-        // Use octave 4 as base to show C3 for MIDI note 48 (standard drum notation)
-        return juce::MidiMessage::getMidiNoteName(midiNote, true, true, 4);
-    }
+        return GUIHelpers::getMidiNoteName(midiNote);
     return "?";
 }
 

@@ -20,7 +20,7 @@ The bar displays the selection count and five editable properties:
 | `START` | global project start | bars, beats, ticks; e.g. `6.2.240` | `+1/16`, `-120 ticks` |
 | `END` | global project end | bars, beats, ticks | `+1/16`, `-120 ticks` |
 | `DURATION` | note length | note fraction or ticks | `+1/16`, `-120 ticks` |
-| `PITCH` | MIDI note number/name | `60`, `C3`, `G#4`, `Bb2` | `+1 st`, `-12 st` |
+| `PITCH` | MIDI note number/name | `60`, `C4`, `G#5`, `Bb3` | `+1 st`, `-12 st` |
 | `VELOCITY` | MIDI velocity | integer | `+5`, `-10` |
 
 The left side displays `SELECTED NOTES:` and the number of valid selected note/clip pairs. Two combo boxes immediately after the Velocity field configure new-note behavior:
@@ -281,7 +281,7 @@ The octave mapping is:
 MIDI note = (octave + 2) × 12 + pitch class
 ```
 
-Therefore `C3` maps to MIDI note 60 in the current display convention.
+Therefore `C4` maps to MIDI note 60 in the current display convention.
 
 Relative pitch requires a signed integer and the suffix `st`, for example `+1 st` or `-12 st`.
 

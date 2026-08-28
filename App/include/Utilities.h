@@ -145,7 +145,10 @@ void drawFromSvg(juce::Graphics &g, const char *svgbinary, juce::Colour newColou
 void setDrawableOnButton(juce::DrawableButton &button, const char *svgbinary, juce::Colour colour);
 juce::Image drawableToImage(const juce::Drawable &drawable, float targetWidth, float targetHeight);
 
+inline constexpr int midiDisplayMiddleCOctave = 4;
+
 float getZoomScaleFactor(int delta, float unitDistance);
+juce::String getMidiNoteName(int noteNumber, bool includeOctaveNumber = true, bool useSharps = true);
 
 template <typename T> void log(T message)
 {

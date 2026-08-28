@@ -87,6 +87,8 @@ DECLARE_ID(ExclusiveMidiFocusEnabled)
 DECLARE_ID(TimeStretchMode)
 DECLARE_ID(SetupComplete)
 DECLARE_ID(ScrollbarThickness)
+DECLARE_ID(ComputerMidiKeyboard)
+DECLARE_ID(UpperCAliasKey)
 #undef DECLARE_ID
 } // namespace IDs
 

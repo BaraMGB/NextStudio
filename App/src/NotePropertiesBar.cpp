@@ -551,7 +551,7 @@ void NotePropertiesBar::refreshFromSelection(bool discardActiveEdit)
         [this](double value) { return formatDuration(value); });
     const auto pitchText = commonValue(
         [](const auto &item) { return item.second->getNoteNumber(); },
-        [](int value) { return juce::MidiMessage::getMidiNoteName(value, true, true, 3); });
+        [](int value) { return GUIHelpers::getMidiNoteName(value); });
     const auto velocityText = commonValue(
         [](const auto &item) { return item.second->getVelocity(); },
         [](int value) { return juce::String(value); });
@@ -969,7 +969,7 @@ void NotePropertiesBar::showPlan(const juce::Array<MidiNotePropertyEdit> &plan)
         [this](double value) { return formatDuration(value); });
     const auto pitchText = commonValue(
         [](const auto &edit) { return edit.noteNumber; },
-        [](int value) { return juce::MidiMessage::getMidiNoteName(value, true, true, 3); });
+        [](int value) { return GUIHelpers::getMidiNoteName(value); });
     const auto velocityText = commonValue(
         [](const auto &edit) { return edit.velocity; },
         [](int value) { return juce::String(value); });

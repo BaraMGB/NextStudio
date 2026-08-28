@@ -12,6 +12,7 @@ This refactor removes the previous command-based note-on/note-off reconstruction
 |---|---|
 | Computer-keyboard layout and legacy aliases | `App/include/ComputerMidiKeyboardLayout.h`, `App/src/ComputerMidiKeyboardLayout.cpp` |
 | Global computer-MIDI input controller | `App/include/ComputerMidiKeyboardController.h`, `App/src/ComputerMidiKeyboardController.cpp` |
+| Configurable computer-keyboard settings UI | `App/include/KeyboardSettingsComponent.h`, `App/src/KeyboardSettingsComponent.cpp`, `App/include/AudioMidiSettings.h` |
 | Main-window binding to the virtual MIDI input | `App/include/MainComponent.h`, `App/src/MainComponent.cpp` |
 | Plugin-window participation in the same key listener chain | `App/include/ExtendedUIBehavior.h`, `App/include/PluginWindow.h`, `App/src/PluginWindow.cpp` |
 | Piano Roll keyboard display and mouse audition | `App/include/KeyboardView.h`, `App/src/KeyboardView.cpp` |
@@ -50,7 +51,10 @@ The new controller removes all MIDI note commands from `MainComponent` and keeps
 
 ## Layout and aliases
 
-The default computer-keyboard layout still starts at MIDI note 48 and keeps the historical mapping:
+The default computer-keyboard layout still starts at MIDI note 48 and keeps the historical mapping.
+
+NextStudio's note-name displays now follow Tracktion's middle-C convention (`middle C = C4`), so MIDI note 48 is shown as `C3`, 60 as `C4`, and 72 as `C5`.
+
 
 ```text
 Lower row: Y S X D C V G B H N J M
@@ -59,11 +63,13 @@ Upper row: Q 2 W 3 E R 5 T 6 Z 7 U I
 
 `Q` and `,` remain aliases for the same upper C. JUCE's `MidiKeyboardComponent` only supports one `KeyPress` per note offset in its built-in map, so the alias pair is handled explicitly by `ComputerMidiKeyboardController` while the remaining 24 keys are configured through `ComputerMidiKeyboardLayout::applyTo()`.
 
-These performance keys are no longer exposed through the generic Settings → Keys command editor because they are not application commands anymore.
+These performance keys are no longer exposed as application commands. Instead, Settings → Keys now contains a dedicated virtual-keyboard section that persists the 25 primary note keys plus the optional upper-C alias in `AppSettings.xml`.
 
 ## Lifetime and focus behaviour
 
 `MainComponent` owns one `ComputerMidiKeyboardController` for the whole application session.
+
+The controller loads its mapping from application settings at startup and hot-reloads changes written by the Settings → Keys panel.
 
 - The controller attaches as a key listener to the main component.
 - `ExtendedUIBehaviour` passes the same controller into each `PluginWindow`, so plug-in editors participate in the same held-note state handling.
@@ -87,9 +93,12 @@ That keeps mouse audition and computer-keyboard performance on the same live-MID
 
 `App/tests/ComputerMidiKeyboardLayoutTests.cpp` verifies that:
 
-- the dedicated layout contains the expected 24 primary JUCE mappings;
-- the historical `Q` and `,` aliases are still recognised as performance keys;
+- the dedicated layout contains the expected 25 primary note mappings;
+- the visible note labels follow Tracktion's middle-C convention (`48 = C3`, `60 = C4`, `72 = C5`);
+- the historical upper-C comma alias is still recognised by the controller path;
 - the helper clears JUCE's default QWERTY mappings before applying NextStudio's own layout;
+- custom mappings persist through `AppSettings.xml`;
+- duplicate key assignments are rejected;
 - the layout still uses MIDI channel 1 and the expected note offsets.
 
 The project validation command remains:

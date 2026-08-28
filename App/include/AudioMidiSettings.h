@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PluginBrowser.h"
 #include "ApplicationViewState.h"
 #include "InitialContentSetup.h"
+#include "KeyboardSettingsComponent.h"
 #include "Utilities.h"
 #include "juce_core/juce_core.h"
 #include <functional>
@@ -737,7 +738,7 @@ public:
           m_midiSettings(engine, appState),
           m_generalSettings(engine, appState),
           m_audioSettings(engine.getDeviceManager().deviceManager, 0, 512, 1, 512, false, false, false, false),
-          m_keyMappingEditor(*m_commandManager.getKeyMappings(), true),
+          m_keyboardSettings(appState, *m_commandManager.getKeyMappings()),
           m_pluginBrowser(engine, appState)
     {
         setOutline(0);
@@ -745,7 +746,7 @@ public:
         addTab("MIDI", appState.getBackgroundColour2(), &m_midiSettings, true);
         addTab("Plugins", appState.getBackgroundColour2(), &m_pluginBrowser, true);
         addTab("General", appState.getBackgroundColour2(), &m_generalSettings, true);
-        addTab("Keys", appState.getBackgroundColour2(), &m_keyMappingEditor, true);
+        addTab("Keys", appState.getBackgroundColour2(), &m_keyboardSettings, true);
         applyThemeToTabs();
         m_generalSettings.getColourSettings()->addChangeListener(this);
         m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState).addListener(this);
@@ -784,7 +785,7 @@ private:
         getTabbedButtonBar().setColour(juce::TabbedButtonBar::tabTextColourId, m_appState.getTextColour());
         getTabbedButtonBar().setColour(juce::TabbedButtonBar::frontTextColourId, m_appState.getPrimeColour());
 
-        m_keyMappingEditor.setColours(m_appState.getBackgroundColour2(), m_appState.getTextColour());
+        m_keyboardSettings.refreshThemeFromAppState();
 
         for (int i = 0; i < getNumTabs(); ++i)
         {
@@ -807,7 +808,7 @@ private:
     MidiSettings m_midiSettings;
     GeneralSettings m_generalSettings;
     juce::AudioDeviceSelectorComponent m_audioSettings;
-    juce::KeyMappingEditorComponent m_keyMappingEditor;
+    KeyboardSettingsComponent m_keyboardSettings;
     PluginSettings m_pluginBrowser;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsView)
 };

@@ -60,11 +60,13 @@ Reference of default keyboard shortcuts. `Cmd` means `Ctrl` on Windows/Linux and
 
 | Octave | Keys |
 |---|---|
-| Upper Octave (C5) | `Q, 2, W, 3, E, R, 5, T, 6, Z, 7, U` |
-| Lower Octave (C4) | `Y, S, X, D, C, V, G, B, H, N, J, M` |
-| Highest C (C6) | `I` |
+| Upper Octave (C4) | `Q, 2, W, 3, E, R, 5, T, 6, Z, 7, U` |
+| Lower Octave (C3) | `Y, S, X, D, C, V, G, B, H, N, J, M` |
+| Highest C (C5) | `I` |
 
-`Q` and `,` are aliases for the same upper C. These performance keys are handled by the dedicated computer MIDI keyboard rather than the application-command mappings, so they are not edited in Settings → Keys. The exact physical key positions depend on the keyboard layout.
+These are the defaults. You can reassign them in Settings → Keys.
+
+`Q` and `,` are aliases for the same upper C in the default layout. These performance keys are handled by the dedicated computer MIDI keyboard and can be customized in Settings → Keys. The exact physical key positions depend on the keyboard layout.
 
 ## Related documents
 

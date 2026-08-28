@@ -171,7 +171,7 @@ The Piano Roll's note selection is represented by `te::SelectedMidiEvents`, whic
 
 | State | Owner/lifetime | Persistence | Examples |
 |---|---|---|---|
-| Application settings | `ApplicationViewState` | `AppSettings.xml` | content paths, window bounds, theme, GUI scale, autosave interval, collapsed workspace panels |
+| Application settings | `ApplicationViewState` | `AppSettings.xml` | content paths, window bounds, theme, GUI scale, autosave interval, collapsed workspace panels, custom computer MIDI keyboard mapping |
 | Musical project | Tracktion `Edit` | `.tracktionedit` | tracks, clips, notes, plug-ins, tempo, automation |
 | Edit UI state | `EditViewState` children in edit state | with edit/recovery state | zoom, scroll, lower view, track heights, Piano Roll scale |
 | Transient component state | individual components | not intentionally persisted | hover flags, active drag, pending editor text |

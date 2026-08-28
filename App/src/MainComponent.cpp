@@ -83,6 +83,7 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     juce::Desktop::getInstance().setGlobalScaleFactor(scale);
 
     setWantsKeyboardFocus(true);
+    m_computerMidiKeyboard.setLayout(ComputerMidiKeyboardLayout::loadFrom(m_applicationState));
     m_computerMidiKeyboard.attachTo(*this);
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
         uiBehaviour->setComputerMidiKeyboardController(&m_computerMidiKeyboard);
@@ -409,6 +410,9 @@ void MainComponent::valueTreePropertyChanged(juce::ValueTree &vt, const juce::Id
 
     if (vt.hasType(IDs::ThemeState))
         markAndUpdate(m_updateTheme);
+
+    if (vt.hasType(IDs::ComputerMidiKeyboard))
+        m_computerMidiKeyboard.setLayout(ComputerMidiKeyboardLayout::loadFrom(m_applicationState));
 
     if (property == te::IDs::lastSignificantChange)
         markAndUpdate(m_saveTemp);

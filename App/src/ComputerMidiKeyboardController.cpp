@@ -64,8 +64,20 @@ void ComputerMidiKeyboardController::setKeyboardState(juce::MidiKeyboardState *k
     {
         m_keyboard = std::make_unique<juce::MidiKeyboardComponent>(*m_keyboardState,
                                                                    juce::MidiKeyboardComponent::horizontalKeyboard);
-        ComputerMidiKeyboardLayout::applyTo(*m_keyboard);
+        ComputerMidiKeyboardLayout::applyTo(*m_keyboard, m_layout);
     }
+}
+
+void ComputerMidiKeyboardController::setLayout(const ComputerMidiKeyboardLayout::State &layout)
+{
+    if (ComputerMidiKeyboardLayout::validate(layout).isNotEmpty())
+        return;
+
+    releaseAllNotes();
+    m_layout = layout;
+
+    if (m_keyboard != nullptr)
+        ComputerMidiKeyboardLayout::applyTo(*m_keyboard, m_layout);
 }
 
 void ComputerMidiKeyboardController::releaseAllNotes()
@@ -73,12 +85,12 @@ void ComputerMidiKeyboardController::releaseAllNotes()
     if (m_keyboard != nullptr)
         m_keyboard->focusLost(juce::Component::focusChangedDirectly);
 
-    if (m_upperCDown && m_keyboardState != nullptr)
+    if (m_upperCAliasDown && m_keyboardState != nullptr)
         m_keyboardState->noteOff(ComputerMidiKeyboardLayout::midiChannel,
                                  ComputerMidiKeyboardLayout::upperCMidiNote,
                                  0.0f);
 
-    m_upperCDown = false;
+    m_upperCAliasDown = false;
 }
 
 bool ComputerMidiKeyboardController::keyPressed(const juce::KeyPress &key, juce::Component *)
@@ -86,7 +98,7 @@ bool ComputerMidiKeyboardController::keyPressed(const juce::KeyPress &key, juce:
     if (m_keyboard == nullptr)
         return false;
 
-    return ComputerMidiKeyboardLayout::isMappedPerformanceKey(key) || m_keyboard->keyPressed(key);
+    return ComputerMidiKeyboardLayout::isMappedPerformanceKey(key, m_layout) || m_keyboard->keyPressed(key);
 }
 
 bool ComputerMidiKeyboardController::keyStateChanged(bool isKeyDown, juce::Component *)
@@ -97,13 +109,14 @@ bool ComputerMidiKeyboardController::keyStateChanged(bool isKeyDown, juce::Compo
         return false;
 
     bool used = m_keyboard->keyStateChanged(isKeyDown);
-    const bool upperCIsDown = m_upperCKey.isCurrentlyDown() || m_upperCAlternateKey.isCurrentlyDown();
+    const auto upperCAliasKey = ComputerMidiKeyboardLayout::getUpperCAliasKey(m_layout);
+    const bool upperCAliasIsDown = upperCAliasKey.isValid() && upperCAliasKey.isCurrentlyDown();
 
-    if (upperCIsDown != m_upperCDown)
+    if (upperCAliasIsDown != m_upperCAliasDown)
     {
-        m_upperCDown = upperCIsDown;
+        m_upperCAliasDown = upperCAliasIsDown;
 
-        if (m_upperCDown)
+        if (m_upperCAliasDown)
             m_keyboardState->noteOn(ComputerMidiKeyboardLayout::midiChannel,
                                     ComputerMidiKeyboardLayout::upperCMidiNote,
                                     ComputerMidiKeyboardLayout::velocity);

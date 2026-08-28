@@ -15,21 +15,41 @@ by the Free Software Foundation, either version 3 of the License, or
 #include "../JuceLibraryCode/JuceHeader.h"
 #include <array>
 
+class ApplicationViewState;
+
 namespace ComputerMidiKeyboardLayout
 {
 struct Mapping
 {
-    const char *description;
+    const char *noteName;
+    const char *defaultDescription;
     int noteOffset;
 };
 
 inline constexpr int midiChannel = 1;
 inline constexpr int baseMidiNote = 48;
+inline constexpr int noteCount = 25;
+inline constexpr int upperCIndex = 12;
 inline constexpr int upperCMidiNote = baseMidiNote + 12;
 inline constexpr float velocity = 0.8f;
 
-const std::array<Mapping, 24> &getPrimaryMappings();
-const std::array<juce::KeyPress, 2> &getUpperCAliases();
-void applyTo(juce::MidiKeyboardComponent &keyboard);
-bool isMappedPerformanceKey(const juce::KeyPress &key);
+struct State
+{
+    std::array<juce::String, noteCount> primaryKeyDescriptions;
+    juce::String upperCAliasDescription;
+};
+
+const std::array<Mapping, noteCount> &getDefaultMappings();
+State createDefaultState();
+State loadFrom(const ApplicationViewState &appState);
+void saveTo(ApplicationViewState &appState, const State &state);
+
+juce::String normaliseKeyDescription(const juce::String &description);
+juce::KeyPress keyPressFromDescription(const juce::String &description);
+juce::String getDisplayTextForDescription(const juce::String &description);
+juce::String validate(const State &state);
+
+void applyTo(juce::MidiKeyboardComponent &keyboard, const State &state);
+bool isMappedPerformanceKey(const juce::KeyPress &key, const State &state);
+juce::KeyPress getUpperCAliasKey(const State &state);
 } // namespace ComputerMidiKeyboardLayout

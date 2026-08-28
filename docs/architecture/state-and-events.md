@@ -46,10 +46,11 @@ AppSettings
 ├── FavoriteTypes
 ├── WindowState
 ├── ThemeState
-└── Behavior
+├── Behavior
+└── ComputerMidiKeyboard
 ```
 
-Components that need live theme or behavior changes listen to `m_applicationStateValueTree` or a relevant child. The Track Chain's preset and modifier side panels use `Behavior/TrackPresetPanelCollapsed` and `Behavior/ModifierPanelCollapsed`; both default to collapsed and apply across tracks and projects.
+Components that need live theme or behavior changes listen to `m_applicationStateValueTree` or a relevant child. The Track Chain's preset and modifier side panels use `Behavior/TrackPresetPanelCollapsed` and `Behavior/ModifierPanelCollapsed`; both default to collapsed and apply across tracks and projects. The computer MIDI keyboard layout is persisted under `ComputerMidiKeyboard` and hot-reloaded by `MainComponent` into the global `ComputerMidiKeyboardController`.
 
 ### Project model: `tracktion_engine::Edit`
 

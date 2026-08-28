@@ -296,7 +296,7 @@ void MidiViewport::drawPendingPasteNotes(juce::Graphics &g)
 void MidiViewport::drawKeyNum(juce::Graphics &g, const tracktion_engine::MidiNote *n, juce::Rectangle<float> &noteRect) const
 {
     if (m_evs.getViewYScale(m_timeLine.getTimeLineID()) > 13)
-        g.drawText(juce::MidiMessage::getMidiNoteName(n->getNoteNumber(), true, true, 3), noteRect, juce::Justification::centredLeft);
+        g.drawText(GUIHelpers::getMidiNoteName(n->getNoteNumber()), noteRect, juce::Justification::centredLeft);
 }
 
 juce::Colour MidiViewport::getNoteColour(tracktion_engine::MidiClip *const &midiClip, tracktion_engine::MidiNote *n)

@@ -34,6 +34,7 @@ public:
     void detachFrom(juce::Component &root);
 
     void setKeyboardState(juce::MidiKeyboardState *keyboardState);
+    void setLayout(const ComputerMidiKeyboardLayout::State &layout);
     void releaseAllNotes();
 
     bool keyPressed(const juce::KeyPress &key, juce::Component *originatingComponent) override;
@@ -45,13 +46,9 @@ private:
 
     std::unique_ptr<juce::MidiKeyboardComponent> m_keyboard;
     juce::MidiKeyboardState *m_keyboardState{};
+    ComputerMidiKeyboardLayout::State m_layout{ComputerMidiKeyboardLayout::createDefaultState()};
     std::vector<juce::Component::SafePointer<juce::Component>> m_attachedRoots;
-
-    // JUCE permits one KeyPress per note offset. Q and comma are both legacy
-    // aliases for middle C, so this one note is handled explicitly.
-    const juce::KeyPress m_upperCKey{juce::KeyPress::createFromDescription("q")};
-    const juce::KeyPress m_upperCAlternateKey{juce::KeyPress::createFromDescription(",")};
-    bool m_upperCDown{false};
+    bool m_upperCAliasDown{false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ComputerMidiKeyboardController)
 };

@@ -263,7 +263,7 @@ Lower row: Y S X D C V G B H N J M
 Upper row: Q 2 W 3 E R 5 T 6 Z 7 U I
 ```
 
-`Q` and `,` are aliases for the same upper C. The mapping is handled by the dedicated computer MIDI keyboard controller rather than the command editor in Settings → Keys. The exact physical key positions depend on the keyboard layout. Select an appropriate MIDI/instrument track so exclusive MIDI focus routes notes as expected.
+`Q` and `,` are aliases for the same upper C in the default layout. The mapping is handled by the dedicated computer MIDI keyboard controller and can be customized in Settings → Keys. Note names follow Tracktion's middle-C convention, so the default range is `C3` to `C5` (`48 = C3`, `60 = C4`, `72 = C5`). The exact physical key positions depend on the keyboard layout. Select an appropriate MIDI/instrument track so exclusive MIDI focus routes notes as expected.
 
 ## Settings and persistence
 
@@ -273,7 +273,7 @@ Application settings are saved to JUCE's user application-data directory under:
 NextStudio/AppSettings.xml
 ```
 
-They include window bounds, content paths, theme, GUI scale, sidebar state, autosave interval, and behavior options.
+They include window bounds, content paths, theme, GUI scale, sidebar state, autosave interval, behavior options, and the custom computer MIDI keyboard mapping.
 
 Edit-specific view state—such as timeline zoom, scroll position, lower-range selection, and Piano Roll dimensions—is stored with the edit state and is not intended to create undo steps.
 

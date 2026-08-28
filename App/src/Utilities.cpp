@@ -2785,6 +2785,11 @@ bool EngineHelpers::movePluginWithChainRules(te::Track::Ptr track, te::Plugin::P
 // }
 
 float GUIHelpers::getZoomScaleFactor(int delta, float unitDistance) { return std::pow(2, (float)delta / unitDistance); }
+
+juce::String GUIHelpers::getMidiNoteName(int noteNumber, bool includeOctaveNumber, bool useSharps)
+{
+    return juce::MidiMessage::getMidiNoteName(noteNumber, useSharps, includeOctaveNumber, midiDisplayMiddleCOctave);
+}
 juce::Rectangle<float> GUIHelpers::getSensibleArea(juce::Point<float> p, float w) { return {p.x - (w / 2), p.y - (w / 2), w, w}; }
 
 void GUIHelpers::centerMidiEditorToClip(EditViewState &evs, te::Clip::Ptr c, juce::String timeLineID, int width)
@@ -2804,7 +2809,7 @@ void GUIHelpers::centerMidiEditorToClip(EditViewState &evs, te::Clip::Ptr c, juc
 
     evs.setNewStartAndZoom(timeLineID, startBeat, newBeatsPerPixel);
 
-    // Vertical Position (C3 / 60)
+    // Vertical Position (C4 / 60)
     double keyWidth = evs.getViewYScale(timeLineID);
     if (keyWidth <= 1)
     {

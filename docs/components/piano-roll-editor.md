@@ -352,7 +352,7 @@ In the copy path, source notes are intentionally not excluded, so a destination 
 
 The footer note-name display is driven by `MidiViewport`, where mouse coordinates are already local to the note grid. The viewport stores the last mouse position and the last reported MIDI note. `NoteUnderMouseHandler` is called only when the pointer crosses a pitch boundary, not on every pixel of mouse movement.
 
-`refreshNoteUnderMouse()` recomputes the pitch after vertical scroll, vertical scale/view changes, or a resize while preserving the same change-only callback rule. `mouseExit()` reports `std::nullopt`, which clears the footer. Reported pitches are clamped to the MIDI range `0..127`. `PianoRollEditor` formats changed values with `juce::MidiMessage::getMidiNoteName()` and repaints only the footer region.
+`refreshNoteUnderMouse()` recomputes the pitch after vertical scroll, vertical scale/view changes, or a resize while preserving the same change-only callback rule. `mouseExit()` reports `std::nullopt`, which clears the footer. Reported pitches are clamped to the MIDI range `0..127`. `PianoRollEditor` formats changed values through NextStudio's shared MIDI note-name helper, which follows Tracktion's middle-C convention (`60 = C4`), and repaints only the footer region.
 
 ## Clip cache
 

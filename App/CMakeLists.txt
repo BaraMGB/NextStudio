@@ -292,6 +292,7 @@ if(BUILD_TESTING)
 
     target_sources(ComputerMidiKeyboardLayoutTests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ComputerMidiKeyboardLayout.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Logging.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/ComputerMidiKeyboardLayoutTests.cpp)
 
     target_include_directories(ComputerMidiKeyboardLayoutTests PRIVATE

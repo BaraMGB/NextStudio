@@ -59,9 +59,9 @@ public:
         g.fillRect(area);
         g.setColour(juce::Colours::black);
         g.drawHorizontalLine(0, area.getX(), area.getRight());
-        if (juce::MidiMessage::getMidiNoteName(midiNoteNumberm, true, false, 3) == "C")
+        if (GUIHelpers::getMidiNoteName(midiNoteNumberm, false) == "C")
         {
-            auto name = juce::MidiMessage::getMidiNoteName(midiNoteNumberm, true, true, 3);
+            auto name = GUIHelpers::getMidiNoteName(midiNoteNumberm);
 
             g.drawText(name, area, juce::Justification::right);
         }

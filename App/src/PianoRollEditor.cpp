@@ -530,7 +530,7 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
     m_pianoRollViewPort->setNoteUnderMouseHandler([this](std::optional<int> note)
     {
         m_NoteDescUnderCursor = note.has_value()
-                                    ? juce::MidiMessage::getMidiNoteName(*note, true, true, 3)
+                                    ? GUIHelpers::getMidiNoteName(*note)
                                     : juce::String{};
         repaint(getFooterRect());
     });

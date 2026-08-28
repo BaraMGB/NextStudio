@@ -213,7 +213,7 @@ Invalid active input is shown in red.
 |---|---|
 | Start/end | `6.2.240`, `6.2`, `6`, `+1/16`, `-120 ticks` |
 | Duration | `1/4`, `1/16`, `960 ticks`, `+1/16` |
-| Pitch | `60`, `C3`, `G#4`, `Bb2`, `+1 st`, `-12 st` |
+| Pitch | `60`, `C4`, `G#5`, `Bb3`, `+1 st`, `-12 st` |
 | Velocity | `100`, `+5`, `-10` |
 
 Detailed parsing and validation behavior is documented in [NotePropertiesBar](../components/note-properties-bar.md).

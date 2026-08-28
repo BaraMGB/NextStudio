@@ -63,7 +63,8 @@ Plugin list management. Scan for new plugins, clear the list, or manage individu
 | Theme Colors | Color buttons to customize UI colors |
 
 #### Keys
-Keyboard shortcut configuration.
+- Virtual MIDI keyboard mapping for the computer keyboard, including the optional upper-C alias.
+- Application shortcut configuration.
 
 ### Render
 
