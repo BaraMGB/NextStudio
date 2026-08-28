@@ -118,6 +118,7 @@ private:
     void openValidStartEdit();
     void setupSideBrowser();
     int getPreferredSidebarWidth() const;
+    int getMaximumLowerRangeHeight() const;
     void handleSidebarSplitterMouseDown();
     void handleSidebarSplitterDrag(int dragDistance);
     void ensureUserDirectoriesAndSamples();

@@ -65,6 +65,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Note properties bar and position display](changes/note-properties-bar-and-position-display.md)
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
+- [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
 
 ## Documentation conventions
 
@@ -83,7 +84,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 | Edit-local UI state | `App/include/EditViewState.h`, `App/src/EditViewState.cpp` |
 | Arrangement editor | `App/include/EditComponent.h`, `App/src/EditComponent.cpp` |
 | Arrangement clip properties | `App/include/ClipPropertiesBar.h`, `App/src/ClipPropertiesBar.cpp` |
-| Lower editor area | `App/include/LowerRangeComponent.h`, `App/src/LowerRangeComponent.cpp` |
+| Lower editor area | `App/include/LowerRangeComponent.h`, `App/src/LowerRangeComponent.cpp`, `App/include/LowerRangeLayout.h` |
 | Piano Roll | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp`, `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
 | MIDI note properties | `App/include/NotePropertiesBar.h`, `App/src/NotePropertiesBar.cpp` |
 | Position formatting | `App/include/PositionDisplayHelpers.h`, `App/src/PositionDisplayHelpers.cpp` |

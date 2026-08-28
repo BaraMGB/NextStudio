@@ -240,7 +240,14 @@ struct TimeCodeStrings
 
 namespace EngineHelpers
 {
+[[nodiscard]] constexpr bool shouldOpenMidiEditorForArrangementClip(bool isMidiClip, bool isDoubleClick, bool midiEditorIsCurrentView)
+{
+    return isMidiClip && (isDoubleClick || midiEditorIsCurrentView);
+}
+
+void openLowerRangeView(EditViewState &evs, int lowerRangeView, bool expandLowerRange);
 void setLowerRangeTrack(EditViewState &evs, te::Track *track, int lowerRangeView);
+void openMidiEditorForTrack(EditViewState &evs, te::Track *track, bool expandLowerRange);
 
 enum class PluginChainRole
 {

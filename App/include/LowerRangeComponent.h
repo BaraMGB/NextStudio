@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
+#include "LowerRangeLayout.h"
 #include "LowerRangeTabBar.h"
 #include "MixerComponent.h"
 #include "PianoRollEditor.h"
@@ -52,8 +53,8 @@ public:
 
     PianoRollEditor &getPianoRollEditor() { return m_pianoRollEditor; }
 
-    static constexpr int collapsedHeight = 38;
-    static constexpr int defaultExpandedHeight = 350;
+    static constexpr int collapsedHeight = LowerRangeLayout::collapsedHeight;
+    static constexpr int defaultExpandedHeight = LowerRangeLayout::defaultExpandedHeight;
 
 private:
     void updateView();
@@ -71,6 +72,7 @@ private:
 
     void handleSplitterMouseDown();
     void handleSplitterDrag(int dragDistance);
+    int getMaximumExpandedHeight() const;
 
     EditViewState &m_evs;
 

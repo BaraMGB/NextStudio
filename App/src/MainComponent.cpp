@@ -178,6 +178,14 @@ int MainComponent::getPreferredSidebarWidth() const
     return SidebarLayout::getPreferredWidth((int)m_applicationState.m_sidebarWidth);
 }
 
+int MainComponent::getMaximumLowerRangeHeight() const
+{
+    if (m_editViewState == nullptr)
+        return LowerRangeLayout::defaultExpandedHeight;
+
+    return LowerRangeLayout::getMaximumExpandedHeight(getHeight(), (int)m_editViewState->m_timeLineHeight);
+}
+
 void MainComponent::handleSidebarSplitterMouseDown()
 {
     const bool collapsed = m_applicationState.m_sidebarCollapsed;
@@ -220,7 +228,7 @@ void MainComponent::resized()
     if (!m_applicationState.m_lowerRangeCollapsed)
     {
         if (evs.getLowerRangeView() == LowerRangeView::midiEditor)
-            lowerRangeHeight = evs.m_midiEditorHeight;
+            lowerRangeHeight = LowerRangeLayout::clampExpandedHeight((int)evs.m_midiEditorHeight, getMaximumLowerRangeHeight());
         else if (evs.getLowerRangeView() == LowerRangeView::pluginRack || evs.getLowerRangeView() == LowerRangeView::mixer)
             lowerRangeHeight = LowerRangeComponent::defaultExpandedHeight;
     }

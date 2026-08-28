@@ -216,12 +216,15 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
                 return;
             }
 
-            // Double Click -> Piano Roll
-            if ((e.getNumberOfClicks() > 1 || m_editViewState.getLowerRangeView() == LowerRangeView::midiEditor) && m_hoveredClip->isMidi())
-            {
-                EngineHelpers::setLowerRangeTrack(m_editViewState, m_track.get(), static_cast<int>(LowerRangeView::midiEditor));
+            const bool isDoubleClick = e.getNumberOfClicks() > 1;
 
-                if (e.getNumberOfClicks() > 1 && m_track->itemID.isValid())
+            // Double Click -> Piano Roll
+            if (EngineHelpers::shouldOpenMidiEditorForArrangementClip(m_hoveredClip->isMidi(), isDoubleClick,
+                                                                      m_editViewState.getLowerRangeView() == LowerRangeView::midiEditor))
+            {
+                EngineHelpers::openMidiEditorForTrack(m_editViewState, m_track.get(), isDoubleClick);
+
+                if (isDoubleClick && m_track->itemID.isValid())
                 {
                     auto trackTimeLineID = "ID" + m_track->itemID.toString().removeCharacters("{}-)");
                     GUIHelpers::centerMidiEditorToClip(m_editViewState, m_hoveredClip, trackTimeLineID, getWidth());

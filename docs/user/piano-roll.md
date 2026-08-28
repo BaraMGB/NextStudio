@@ -9,8 +9,8 @@ The MIDI Editor tab in the lower range becomes available when a MIDI clip is sel
 ## Open the Piano Roll
 
 1. Select a MIDI clip in the arrangement.
-2. Open **MIDI Editor** in the lower range.
-3. Resize the lower range by dragging its upper splitter if needed.
+2. Open **MIDI Editor** in the lower range, or double-click the MIDI clip in the arrangement. If the lower range is collapsed, a double-click expands it automatically.
+3. Resize the lower range by dragging its upper splitter if needed. Drag upward to enlarge the Piano Roll, or drag downward to shrink it back toward the standard height before collapsing the lower range. The maximum height stops at the bottom edge of the Song Editor timeline.
 
 The editor follows the selected clip's track. It may display and edit MIDI material from multiple clips on that track. Keyboard-wide pitch selection specifically operates on selected MIDI clips belonging to the active track.
 

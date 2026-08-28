@@ -123,9 +123,9 @@ The lower range has tabs for:
 - **MIDI Editor**;
 - **Plugins**.
 
-The active track follows the current track or clip selection. The MIDI Editor tab is enabled when a MIDI clip is selected.
+The active track follows the current track or clip selection. The MIDI Editor tab is enabled when a MIDI clip is selected. Double-clicking a MIDI clip in the arrangement opens the MIDI Editor for that track; if the lower range is collapsed, the double-click also expands it.
 
-Drag the splitter down to the collapsed-bar position to close the lower range, or back up to the standard 350-pixel position to expand it. The panel snaps only after crossing the target position, and the direction can be reversed without releasing the mouse button. The collapsed bar provides buttons for Mixer, MidiEditor, and PluginChain; MidiEditor is disabled unless a MIDI clip is selected. The collapsed state is restored in the next application session. Dragging the expanded Piano Roll splitter upward increases its height. Mixer and plug-in views currently use a fixed lower-range height.
+Drag the splitter down to close the lower range, or back up to expand it. When the Piano Roll is visible, upward drags enlarge it freely and downward drags shrink it continuously back to the standard 350-pixel height before the collapse snap zone begins. The maximum Piano Roll height stops at the bottom edge of the Song Editor timeline. The panel snaps only after crossing the active transition target, and the direction can be reversed without releasing the mouse button. The collapsed bar provides buttons for Mixer, MidiEditor, and PluginChain; MidiEditor is disabled unless a MIDI clip is selected. The collapsed state is restored in the next application session. Mixer and plug-in views currently use a fixed lower-range height.
 
 ## Project workflow
 

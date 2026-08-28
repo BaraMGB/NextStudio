@@ -1218,9 +1218,17 @@ void EngineHelpers::renderEditToFile(EditViewState &evs, juce::File renderFile, 
     te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, tracksToDo);
 }
 
-void EngineHelpers::setLowerRangeTrack(EditViewState &evs, te::Track *track, int lowerRangeView)
+void EngineHelpers::openLowerRangeView(EditViewState &evs, int lowerRangeView, bool expandLowerRange)
 {
     evs.setLowerRangeView(static_cast<LowerRangeView>(lowerRangeView));
+
+    if (expandLowerRange)
+        evs.m_applicationState.m_lowerRangeCollapsed = false;
+}
+
+void EngineHelpers::setLowerRangeTrack(EditViewState &evs, te::Track *track, int lowerRangeView)
+{
+    openLowerRangeView(evs, lowerRangeView, false);
 
     for (auto *t : te::getAllTracks(evs.m_edit))
     {
@@ -1232,6 +1240,14 @@ void EngineHelpers::setLowerRangeTrack(EditViewState &evs, te::Track *track, int
 
     if (auto *masterTrack = evs.m_edit.getMasterTrack())
         masterTrack->state.setProperty(IDs::showLowerRange, track != nullptr && track->isMasterTrack(), nullptr);
+}
+
+void EngineHelpers::openMidiEditorForTrack(EditViewState &evs, te::Track *track, bool expandLowerRange)
+{
+    setLowerRangeTrack(evs, track, static_cast<int>(LowerRangeView::midiEditor));
+
+    if (expandLowerRange)
+        evs.m_applicationState.m_lowerRangeCollapsed = false;
 }
 
 void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)

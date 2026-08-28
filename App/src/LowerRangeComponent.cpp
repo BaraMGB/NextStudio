@@ -102,8 +102,7 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
 
     const auto openCollapsedView = [this](LowerRangeView view)
     {
-        m_evs.setLowerRangeView(view);
-        m_evs.m_applicationState.m_lowerRangeCollapsed = false;
+        EngineHelpers::openLowerRangeView(m_evs, static_cast<int>(view), true);
     };
     m_collapsedMixerButton->onClick = [openCollapsedView] { openCollapsedView(LowerRangeView::mixer); };
     m_collapsedMidiEditorButton->onClick = [openCollapsedView] { openCollapsedView(LowerRangeView::midiEditor); };
@@ -117,15 +116,25 @@ LowerRangeComponent::LowerRangeComponent(EditViewState &evs)
     updateView();
 }
 
+int LowerRangeComponent::getMaximumExpandedHeight() const
+{
+    if (auto *parent = getParentComponent())
+        return LowerRangeLayout::getMaximumExpandedHeight(parent->getHeight(), (int)m_evs.m_timeLineHeight);
+
+    return LowerRangeLayout::defaultExpandedHeight;
+}
+
 void LowerRangeComponent::handleSplitterMouseDown()
 {
-    m_pianorollHeightAtMousedown = m_evs.m_midiEditorHeight;
+    m_pianorollHeightAtMousedown = LowerRangeLayout::clampExpandedHeight((int)m_evs.m_midiEditorHeight, getMaximumExpandedHeight());
     m_cachedPianoNoteNum = (double)m_evs.getViewYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
 
     const auto expandedHeight = m_evs.getLowerRangeView() == LowerRangeView::midiEditor
                                     ? m_pianorollHeightAtMousedown
                                     : defaultExpandedHeight;
-    m_splitterCollapseController.beginDrag(m_evs.m_applicationState.m_lowerRangeCollapsed, expandedHeight - collapsedHeight);
+    m_splitterCollapseController.beginDrag(m_evs.m_applicationState.m_lowerRangeCollapsed,
+                                           LowerRangeLayout::getTransitionDistance(expandedHeight,
+                                                                                   (bool)m_evs.m_applicationState.m_lowerRangeCollapsed));
 }
 
 void LowerRangeComponent::handleSplitterDrag(int dragDistance)
@@ -142,15 +151,17 @@ void LowerRangeComponent::handleSplitterDrag(int dragDistance)
     if (m_splitterCollapseController.startedCollapsed() || collapsed)
         return;
 
-    // Preserve the existing Piano Roll resize behaviour while dragging upward.
-    if (m_evs.getLowerRangeView() == LowerRangeView::midiEditor && dragDistance < 0)
+    if (m_evs.getLowerRangeView() == LowerRangeView::midiEditor)
     {
-        auto newHeight = static_cast<int>(m_pianorollHeightAtMousedown - dragDistance);
+        const auto maximumExpandedHeight = getMaximumExpandedHeight();
+        const auto newHeight = LowerRangeLayout::getResizedHeight(m_pianorollHeightAtMousedown, dragDistance, maximumExpandedHeight);
+        const auto appliedDragDistance = LowerRangeLayout::getAppliedDragDistance(m_pianorollHeightAtMousedown, dragDistance, maximumExpandedHeight);
         auto noteHeight = (double)m_evs.getViewYScale(m_pianoRollEditor.getTimeLineComponent().getTimeLineID());
-        auto noteDist = dragDistance / noteHeight;
+        auto noteDist = appliedDragDistance / noteHeight;
 
-        m_evs.setYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID(), juce::jlimit(0.0, 127.0 - (getHeight() / noteHeight), m_cachedPianoNoteNum + noteDist));
-        m_evs.m_midiEditorHeight = std::max(20, newHeight);
+        m_evs.setYScroll(m_pianoRollEditor.getTimeLineComponent().getTimeLineID(),
+                         juce::jlimit(0.0, 127.0 - (newHeight / noteHeight), m_cachedPianoNoteNum + noteDist));
+        m_evs.m_midiEditorHeight = newHeight;
     }
 }
 

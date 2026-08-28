@@ -59,7 +59,7 @@ Shows clips and automation data on tracks along the timeline.
 
 ### Clips
 
-Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes.
+Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes. Double-clicking a MIDI clip opens the Piano Roll for its track and expands the lower range first if that area is currently collapsed.
 
 ### Toolbar
 
