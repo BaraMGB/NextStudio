@@ -64,6 +64,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 
 - [Note properties bar and position display](changes/note-properties-bar-and-position-display.md)
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
+- [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
 
 ## Documentation conventions
 

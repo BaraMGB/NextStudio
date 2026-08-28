@@ -263,7 +263,7 @@ Lower row: Y S X D C V G B H N J M
 Upper row: Q 2 W 3 E R 5 T 6 Z 7 U I
 ```
 
-The exact physical key positions depend on keyboard layout because the mapping uses the configured key descriptions. Select an appropriate MIDI/instrument track so exclusive MIDI focus routes notes as expected.
+`Q` and `,` are aliases for the same upper C. The mapping is handled by the dedicated computer MIDI keyboard controller rather than the command editor in Settings → Keys. The exact physical key positions depend on the keyboard layout. Select an appropriate MIDI/instrument track so exclusive MIDI focus routes notes as expected.
 
 ## Settings and persistence
 

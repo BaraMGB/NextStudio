@@ -295,7 +295,7 @@ Physical or virtual MidiInputDevice receives a note change
 → PianoRollEditor receives the destination track and note arrays
 → callback is ignored unless the destination is the displayed track
 → KeyboardView applies note-ons followed by note-offs
-→ VirtualKeyboardComponent updates transient active-note bits
+→ PianoKeyboardDisplay updates transient active-note bits
 → affected key rectangles repaint with ApplicationViewState PrimeColour
 ```
 

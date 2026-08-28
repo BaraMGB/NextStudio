@@ -286,6 +286,27 @@ if(BUILD_TESTING)
     add_test(NAME PianoRollNoteLength
             COMMAND PianoRollNoteLengthTests)
 
+    juce_add_console_app(ComputerMidiKeyboardLayoutTests
+            PRODUCT_NAME "ComputerMidiKeyboardLayoutTests")
+    juce_generate_juce_header(ComputerMidiKeyboardLayoutTests)
+
+    target_sources(ComputerMidiKeyboardLayoutTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ComputerMidiKeyboardLayout.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/ComputerMidiKeyboardLayoutTests.cpp)
+
+    target_include_directories(ComputerMidiKeyboardLayoutTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(ComputerMidiKeyboardLayoutTests PRIVATE
+            juce::juce_audio_utils)
+
+    target_compile_definitions(ComputerMidiKeyboardLayoutTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME ComputerMidiKeyboardLayout
+            COMMAND ComputerMidiKeyboardLayoutTests)
+
     juce_add_console_app(ClipOverwriteCommandTests
             PRODUCT_NAME "ClipOverwriteCommandTests")
     juce_generate_juce_header(ClipOverwriteCommandTests)

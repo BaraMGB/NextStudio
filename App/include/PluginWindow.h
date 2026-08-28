@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "ComputerMidiKeyboardController.h"
 
 namespace te = tracktion_engine;
 
@@ -97,10 +98,10 @@ struct AudioProcessorEditorContentComp : public te::Plugin::EditorComponent
 class PluginWindow : public juce::DocumentWindow
 {
 public:
-    PluginWindow(te::Plugin &);
+    PluginWindow(te::Plugin &, ComputerMidiKeyboardController *);
     ~PluginWindow() override;
 
-    static std::unique_ptr<Component> create(te::Plugin &);
+    static std::unique_ptr<Component> create(te::Plugin &, ComputerMidiKeyboardController *);
 
     void show();
 
@@ -120,6 +121,7 @@ private:
 
     te::Plugin &plugin;
     te::PluginWindowState &windowState;
+    ComputerMidiKeyboardController *m_computerMidiKeyboard{};
     bool updateStoredBounds = false;
 };
 

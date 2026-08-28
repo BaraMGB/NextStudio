@@ -64,7 +64,7 @@ Reference of default keyboard shortcuts. `Cmd` means `Ctrl` on Windows/Linux and
 | Lower Octave (C4) | `Y, S, X, D, C, V, G, B, H, N, J, M` |
 | Highest C (C6) | `I` |
 
-Mapping can be customized in Settings → Keys. The exact physical key positions depend on keyboard layout because the mapping uses configured key descriptions.
+`Q` and `,` are aliases for the same upper C. These performance keys are handled by the dedicated computer MIDI keyboard rather than the application-command mappings, so they are not edited in Settings → Keys. The exact physical key positions depend on the keyboard layout.
 
 ## Related documents
 

@@ -23,6 +23,19 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "KeyboardView.h"
 #include "Utilities.h"
 
+KeyboardView::~KeyboardView()
+{
+    releaseAuditionNote();
+}
+
+void KeyboardView::releaseAuditionNote()
+{
+    if (m_auditionedNote >= 0 && m_virtualMidiInput != nullptr)
+        m_virtualMidiInput->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, m_auditionedNote), 0);
+
+    m_auditionedNote = -1;
+}
+
 void KeyboardView::setMidiNotesDown(const juce::Array<int> &notesOn, const juce::Array<int> &notesOff)
 {
     // The dispatcher batches rapid drag events, so notes may occur in both arrays.
@@ -43,8 +56,12 @@ void KeyboardView::mouseDown(const juce::MouseEvent &e)
         if (m_onKeyClicked)
             m_onKeyClicked(clickedKey, e.mods.isShiftDown());
 
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState.m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, clickedKey, .8f), 0);
+        releaseAuditionNote();
+        if (m_virtualMidiInput != nullptr)
+        {
+            m_virtualMidiInput->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, clickedKey, .8f), 0);
+            m_auditionedNote = clickedKey;
+        }
     }
 
     m_keyWidthCached = m_editViewState.getViewYScale(m_timeLineID);
@@ -57,13 +74,16 @@ void KeyboardView::mouseDrag(const juce::MouseEvent &e)
     {
         auto keyLenght = m_keyboard.getRectangleForKey((int)getKey(e.y)).getWidth();
         auto KeyboardX = m_keyboard.getX();
-        if (((int)getKey(e.y) != (int)m_clickedKey) && (e.x < KeyboardX + keyLenght))
+        const int newKey = juce::jlimit(0, 127, static_cast<int>(getKey(e.y)));
+        if (newKey != static_cast<int>(m_clickedKey) && e.x < KeyboardX + keyLenght)
         {
-            if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState.m_edit))
+            releaseAuditionNote();
+            m_clickedKey = static_cast<float>(newKey);
+
+            if (m_virtualMidiInput != nullptr)
             {
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, m_clickedKey), 0);
-                m_clickedKey = getKey(e.y);
-                virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, m_clickedKey, .8f), 0);
+                m_virtualMidiInput->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, newKey, .8f), 0);
+                m_auditionedNote = newKey;
             }
         }
     }
@@ -86,8 +106,8 @@ void KeyboardView::mouseDrag(const juce::MouseEvent &e)
 }
 void KeyboardView::mouseUp(const juce::MouseEvent &e)
 {
-    if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState.m_edit))
-        virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, m_clickedKey), 0);
+    juce::ignoreUnused(e);
+    releaseAuditionNote();
 }
 
 void KeyboardView::resized()

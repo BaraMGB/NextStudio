@@ -83,6 +83,10 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     juce::Desktop::getInstance().setGlobalScaleFactor(scale);
 
     setWantsKeyboardFocus(true);
+    m_computerMidiKeyboard.attachTo(*this);
+    if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
+        uiBehaviour->setComputerMidiKeyboardController(&m_computerMidiKeyboard);
+
     juce::LookAndFeel::setDefaultLookAndFeel(&m_nextLookAndFeel);
     NextStudio::WineRendererFallback::configureFontFallback(m_nextLookAndFeel);
     updateTheme();
@@ -127,8 +131,13 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
 
 MainComponent::~MainComponent()
 {
+    m_computerMidiKeyboard.setKeyboardState(nullptr);
+
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
+    {
         uiBehaviour->setFocusedEdit(nullptr);
+        uiBehaviour->setComputerMidiKeyboardController(nullptr);
+    }
 
     m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_selectionManager.removeChangeListener(this);
@@ -153,6 +162,7 @@ MainComponent::~MainComponent()
     saveSettings();
     if (!m_debugMode)
         m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
+    m_computerMidiKeyboard.detachFrom(*this);
     setLookAndFeel(nullptr);
 }
 
@@ -224,34 +234,9 @@ void MainComponent::resized()
     m_lowerRange->setBounds(lowerRange);
 }
 
-bool MainComponent::keyStateChanged(bool isKeyDown)
-
-{
-    juce::ignoreUnused(isKeyDown);
-
-    int rootNote = 48;
-    int gap = 0;
-
-    for (auto kp : m_pressedKeysForMidiKeyboard)
-        if (!kp.isCurrentlyDown())
-        {
-            m_pressedKeysForMidiKeyboard.removeFirstMatchingValue(kp);
-            // send noteOff
-            auto command = m_commandManager.getKeyMappings()->findCommandForKeyPress(kp);
-            if (command >= KeyPressCommandIDs::midiNoteC && command <= KeyPressCommandIDs::midiNoteTopC)
-                gap = (int)command - 1;
-
-            if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(m_editViewState->m_edit))
-                EngineHelpers::getVirtualMidiInputDevice(*m_edit)->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, rootNote + gap), 0);
-        }
-    return true;
-}
-
 void MainComponent::getAllCommands(juce::Array<juce::CommandID> &commands)
 {
-    juce::Array<juce::CommandID> ids{KeyPressCommandIDs::midiNoteC, KeyPressCommandIDs::midiNoteCsharp, KeyPressCommandIDs::midiNoteD, KeyPressCommandIDs::midiNoteDsharp, KeyPressCommandIDs::midiNoteE, KeyPressCommandIDs::midiNoteF, KeyPressCommandIDs::midiNoteFsharp, KeyPressCommandIDs::midiNoteG, KeyPressCommandIDs::midiNoteGsharp, KeyPressCommandIDs::midiNoteA, KeyPressCommandIDs::midiNoteAsharp, KeyPressCommandIDs::midiNoteB, KeyPressCommandIDs::midiNoteUpperC, KeyPressCommandIDs::midiNoteUpperCsharp, KeyPressCommandIDs::midiNoteUpperD, KeyPressCommandIDs::midiNoteUpperDsharp, KeyPressCommandIDs::midiNoteUpperE, KeyPressCommandIDs::midiNoteUpperF, KeyPressCommandIDs::midiNoteUpperFsharp, KeyPressCommandIDs::midiNoteUpperG, KeyPressCommandIDs::midiNoteUpperGsharp, KeyPressCommandIDs::midiNoteUpperA, KeyPressCommandIDs::midiNoteUpperAsharp, KeyPressCommandIDs::midiNoteUpperB, KeyPressCommandIDs::midiNoteTopC,
-
-                                     KeyPressCommandIDs::togglePlay, KeyPressCommandIDs::toggleRecord, KeyPressCommandIDs::play, KeyPressCommandIDs::stop,
+    juce::Array<juce::CommandID> ids{KeyPressCommandIDs::togglePlay, KeyPressCommandIDs::toggleRecord, KeyPressCommandIDs::play, KeyPressCommandIDs::stop,
 
                                      KeyPressCommandIDs::loopAroundSelection,
                                      // KeyPressCommandIDs::loopOn,
@@ -277,107 +262,6 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 {
     switch (commandID)
     {
-    case KeyPressCommandIDs::midiNoteC:
-        result.setInfo("note C", "set MIDI note C", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("y").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteCsharp:
-        result.setInfo("note C#", "set MIDI note C#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("s").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteD:
-        result.setInfo("note D", "set MIDI note D", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("x").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteDsharp:
-        result.setInfo("note D#", "set MIDI note D#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("d").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteE:
-        result.setInfo("note E", "set MIDI note E", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("c").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteF:
-        result.setInfo("note F", "set MIDI note F", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("v").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteFsharp:
-        result.setInfo("note F#", "set MIDI note F#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("g").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteG:
-        result.setInfo("note G", "set MIDI note G", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("b").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteGsharp:
-        result.setInfo("note G#", "set MIDI note G#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("h").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteA:
-        result.setInfo("note A", "set MIDI note A", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("n").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteAsharp:
-        result.setInfo("note A#", "set MIDI note A#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("j").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteB:
-        result.setInfo("note B", "set MIDI note B", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("m").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperC:
-        result.setInfo("noteUpper C", "set MIDI noteUpper C", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("q").getKeyCode(), 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription(",").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperCsharp:
-        result.setInfo("noteUpper C#", "set MIDI noteUpper C#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("2").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperD:
-        result.setInfo("noteUpper D", "set MIDI noteUpper D", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("w").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperDsharp:
-        result.setInfo("noteUpper D#", "set MIDI noteUpper D#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("3").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperE:
-        result.setInfo("noteUpper E", "set MIDI noteUpper E", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("e").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperF:
-        result.setInfo("noteUpper F", "set MIDI noteUpper F", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("r").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperFsharp:
-        result.setInfo("noteUpper F#", "set MIDI noteUpper F#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("5").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperG:
-        result.setInfo("noteUpper G", "set MIDI noteUpper G", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("t").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperGsharp:
-        result.setInfo("noteUpper G#", "set MIDI noteUpper G#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("6").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperA:
-        result.setInfo("noteUpper A", "set MIDI noteUpper A", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("z").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperAsharp:
-        result.setInfo("noteUpper A#", "set MIDI noteUpper A#", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("7").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperB:
-        result.setInfo("noteUpper B", "set MIDI noteUpper B", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("u").getKeyCode(), 0);
-        break;
-    case KeyPressCommandIDs::midiNoteTopC:
-        result.setInfo("noteUpper C", "set MIDI noteUpper C", "virtual Midi keyboard", 0);
-        result.addDefaultKeypress(juce::KeyPress::createFromDescription("i").getKeyCode(), 0);
-        break;
     case KeyPressCommandIDs::togglePlay:
         result.setInfo("Play/Pause", "Toggle play", "Transport", 0);
         result.addDefaultKeypress(juce::KeyPress::spaceKey, 0);
@@ -436,139 +320,8 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
     NS_LOG_DEBUG(workflow, "command invoked: id=" + juce::String(static_cast<int>(info.commandID)));
-    int rootNote = 48;
     switch (info.commandID)
     {
-    // send NoteOn
-    case KeyPressCommandIDs::midiNoteC:
-
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-        {
-            NS_LOG_DEBUG(engine, "virtual MIDI note-on routed to device=" + virMidiIn->getName());
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-            m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        }
-        break;
-    case KeyPressCommandIDs::midiNoteCsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteD:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteDsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteE:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteF:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteFsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteG:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteGsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteA:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteAsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteB:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperC:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperCsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperD:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperDsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperE:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperF:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperFsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperG:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperGsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperA:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperAsharp:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteUpperB:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
-    case KeyPressCommandIDs::midiNoteTopC:
-        if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*m_edit))
-            virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, rootNote + info.commandID - 1, .8f), 0);
-        m_pressedKeysForMidiKeyboard.addIfNotAlreadyThere(info.keyPress);
-        break;
     case KeyPressCommandIDs::togglePlay:
         EngineHelpers::togglePlay(m_editComponent->getEditViewState());
         break;
@@ -871,6 +624,8 @@ void MainComponent::setupEdit(juce::File editFile)
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
         uiBehaviour->setFocusedEdit(nullptr);
 
+    m_computerMidiKeyboard.setKeyboardState(nullptr);
+
     if (m_edit)
     {
         m_edit->state.removeListener(this);
@@ -917,6 +672,8 @@ void MainComponent::setupEdit(juce::File editFile)
     m_edit->getTransport().addChangeListener(this);
 
     createTracksAndAssignInputs();
+
+    bindComputerMidiKeyboard(m_edit.get());
 
     if (!editFile.existsAsFile())
         te::EditFileOperations(*m_edit).writeToFile(editFile, true);
@@ -990,6 +747,40 @@ bool MainComponent::handleUnsavedEdit()
         }
     }
     return true;
+}
+
+void MainComponent::bindComputerMidiKeyboard(te::Edit *expectedEdit, int attemptsRemaining)
+{
+    if (expectedEdit == nullptr || m_edit.get() != expectedEdit)
+        return;
+
+    if (auto *virtualMidiInput = EngineHelpers::getVirtualMidiInputDevice(*expectedEdit))
+    {
+        m_computerMidiKeyboard.setKeyboardState(&virtualMidiInput->keyboardState);
+        return;
+    }
+
+    m_engine.getDeviceManager().dispatchPendingUpdates();
+    expectedEdit->dispatchPendingUpdatesSynchronously();
+
+    if (auto *virtualMidiInput = EngineHelpers::getVirtualMidiInputDevice(*expectedEdit))
+    {
+        m_computerMidiKeyboard.setKeyboardState(&virtualMidiInput->keyboardState);
+        return;
+    }
+
+    if (attemptsRemaining <= 0)
+    {
+        NS_LOG_ERROR(engine, "virtual MIDI input did not become available for the computer keyboard");
+        return;
+    }
+
+    juce::Timer::callAfterDelay(50,
+                                [safeThis = juce::Component::SafePointer<MainComponent>(this), expectedEdit, attemptsRemaining]
+                                {
+                                    if (safeThis != nullptr)
+                                        safeThis->bindComputerMidiKeyboard(expectedEdit, attemptsRemaining - 1);
+                                });
 }
 
 void MainComponent::createTracksAndAssignInputs()

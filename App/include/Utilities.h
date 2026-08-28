@@ -45,33 +45,9 @@ enum class Tool
 };
 enum KeyPressCommandIDs
 {
-    midiNoteC = 1,
-    midiNoteCsharp,
-    midiNoteD,
-    midiNoteDsharp,
-    midiNoteE,
-    midiNoteF,
-    midiNoteFsharp,
-    midiNoteG,
-    midiNoteGsharp,
-    midiNoteA,
-    midiNoteAsharp,
-    midiNoteB,
-    midiNoteUpperC,
-    midiNoteUpperCsharp,
-    midiNoteUpperD,
-    midiNoteUpperDsharp,
-    midiNoteUpperE,
-    midiNoteUpperF,
-    midiNoteUpperFsharp,
-    midiNoteUpperG,
-    midiNoteUpperGsharp,
-    midiNoteUpperA,
-    midiNoteUpperAsharp,
-    midiNoteUpperB,
-    midiNoteTopC,
-
-    togglePlay,
+    // IDs 1..25 belonged to the removed virtual-MIDI note commands. Start at
+    // the previous transport-command value so all remaining IDs stay stable.
+    togglePlay = 26,
     toggleRecord,
     play,
     stop,

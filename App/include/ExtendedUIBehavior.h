@@ -34,6 +34,7 @@ public:
     ExtendedUIBehaviour() = default;
 
     void setFocusedEdit(te::Edit *edit) { m_focusedEdit = edit; }
+    void setComputerMidiKeyboardController(ComputerMidiKeyboardController *controller) { m_computerMidiKeyboard = controller; }
 
     te::Edit *getCurrentlyFocusedEdit() override { return m_focusedEdit; }
     te::Edit *getLastFocusedEdit() override { return m_focusedEdit; }
@@ -41,7 +42,7 @@ public:
     std::unique_ptr<juce::Component> createPluginWindow(te::PluginWindowState &pws) override
     {
         if (auto ws = dynamic_cast<te::Plugin::WindowState *>(&pws))
-            return PluginWindow::create(ws->plugin);
+            return PluginWindow::create(ws->plugin, m_computerMidiKeyboard);
 
         return {};
     }
@@ -74,6 +75,7 @@ public:
 
 private:
     te::Edit *m_focusedEdit = nullptr;
+    ComputerMidiKeyboardController *m_computerMidiKeyboard = nullptr;
 
     struct TaskRunner : public juce::Thread
     {

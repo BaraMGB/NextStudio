@@ -131,11 +131,11 @@ int getYForKey(double key); // MIDI note number -> pixel
 
 The piano keyboard also renders routed live-MIDI state. `PianoRollEditor` listens to Tracktion's shared `MidiInputDevice::MidiKeyChangeDispatcher` and filters every callback by the `AudioTrack` currently owned by `MidiViewport`. Events routed to other tracks are ignored.
 
-`KeyboardView` forwards the reported note-on and note-off arrays to `VirtualKeyboardComponent`. Active pitches are stored as bits in a `juce::BigInteger`. State changes repaint only the affected key rectangle rather than the complete keyboard.
+`KeyboardView` forwards the reported note-on and note-off arrays to `PianoKeyboardDisplay`. Active pitches are stored as bits in a `juce::BigInteger`. State changes repaint only the affected key rectangle rather than the complete keyboard.
 
 Tracktion batches rapid key changes. During a fast mouse drag, a pitch can occur in both the note-on and note-off arrays because it was pressed and released within one batch. Note-ons are therefore applied first and note-offs last, preventing released keys from remaining lit.
 
-Active white keys use `ApplicationViewState::getPrimeColour()`. Active black keys use a darker variant of the same PrimeColour. The application state is passed from `EditViewState` into `KeyboardView` and then into `VirtualKeyboardComponent`; colors are resolved while painting rather than copied into separate persistent state.
+Active white keys use `ApplicationViewState::getPrimeColour()`. Active black keys use a darker variant of the same PrimeColour. The application state is passed from `EditViewState` into `KeyboardView` and then into `PianoKeyboardDisplay`; colors are resolved while painting rather than copied into separate persistent state.
 
 The dispatcher listener is registered once for the lifetime of `PianoRollEditor` and removed in its destructor. `KeyboardView` remains track-specific and is created or destroyed by `setTrack()`/`clearTrack()`. Callbacks are ignored while no track-specific keyboard exists.
 

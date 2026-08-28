@@ -32,6 +32,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "ComputerMidiKeyboardController.h"
 #include "EditComponent.h"
 #include "EditViewState.h"
 #include "ExtendedUIBehavior.h"
@@ -93,7 +94,6 @@ public:
     void paint(juce::Graphics &g) override;
     void resized() override;
 
-    bool keyStateChanged(bool isKeyDown) override;
     ApplicationCommandTarget *getNextCommandTarget() override { return nullptr; }
     void getAllCommands(juce::Array<juce::CommandID> &commands) override;
 
@@ -114,6 +114,7 @@ private:
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
     void saveSettings();
     void createTracksAndAssignInputs();
+    void bindComputerMidiKeyboard(te::Edit *expectedEdit, int attemptsRemaining = 100);
     void openValidStartEdit();
     void setupSideBrowser();
     int getPreferredSidebarWidth() const;
@@ -161,6 +162,7 @@ private:
     std::unique_ptr<LowerRangeComponent> m_lowerRange;
     std::unique_ptr<SidebarComponent> m_sideBarBrowser;
     SplitterComponent m_sidebarSplitter;
+    ComputerMidiKeyboardController m_computerMidiKeyboard;
 
     [[maybe_unused]] bool m_settingsLoaded{false};
     bool m_debugMode{false};
@@ -171,7 +173,6 @@ private:
     int m_sidebarWidthAtMousedown{};
 
     juce::File m_tempDir;
-    juce::Array<juce::KeyPress> m_pressedKeysForMidiKeyboard;
     juce::TooltipWindow tooltipWindow{this, 500};
 
     friend class NextStudio::Debug::MainComponentDebugHost;

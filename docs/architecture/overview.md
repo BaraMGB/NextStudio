@@ -183,7 +183,8 @@ See [State and Event Model](state-and-events.md) for details.
 
 NextStudio uses `juce::ApplicationCommandManager` and `ApplicationCommandTarget` implementations at several levels:
 
-- `MainComponent` handles transport, global undo/redo, save, and virtual MIDI keyboard commands;
+- `MainComponent` handles transport, global undo/redo, and save commands;
+- `ComputerMidiKeyboardController` handles sustained computer-keyboard MIDI input independently of the command system;
 - `EditComponent` handles arrangement and track commands;
 - `TrackListView` handles track-list-specific commands;
 - `PianoRollEditor` handles MIDI-note deletion, duplication, and nudging.

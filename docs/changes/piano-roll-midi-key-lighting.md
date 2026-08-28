@@ -39,7 +39,7 @@ The velocity array is intentionally unused. Lighting currently represents the bi
 
 ## Active-note state
 
-`VirtualKeyboardComponent` stores active MIDI notes in a `juce::BigInteger`, with bit positions `0..127` corresponding directly to MIDI note numbers.
+`PianoKeyboardDisplay` stores active MIDI notes in a `juce::BigInteger`, with bit positions `0..127` corresponding directly to MIDI note numbers.
 
 `setNoteDown(note, isDown)`:
 
@@ -65,7 +65,7 @@ Applying note-offs last ensures that keys already released during a rapid drag d
 
 ## Rendering and theme integration
 
-`VirtualKeyboardComponent` receives `ApplicationViewState&` from `KeyboardView` through `EditViewState::m_applicationState`.
+`PianoKeyboardDisplay` receives `ApplicationViewState&` from `KeyboardView` through `EditViewState::m_applicationState`.
 
 The active colors are resolved during painting:
 
@@ -85,7 +85,7 @@ Physical or virtual MIDI input
 → PianoRollEditor::midiKeyStateChanged()
 → destination track is compared with the displayed Piano Roll track
 → KeyboardView::setMidiNotesDown()
-→ VirtualKeyboardComponent::setNoteDown()
+→ PianoKeyboardDisplay::setNoteDown()
 → active-note bit changes
 → only the affected key rectangle is repainted
 → drawWhiteKey()/drawBlackKey() uses ApplicationViewState PrimeColour

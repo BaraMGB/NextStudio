@@ -27,10 +27,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include <functional>
 
-class VirtualKeyboardComponent : public juce::KeyboardComponentBase
+class PianoKeyboardDisplay : public juce::KeyboardComponentBase
 {
 public:
-    explicit VirtualKeyboardComponent(ApplicationViewState &applicationState)
+    explicit PianoKeyboardDisplay(ApplicationViewState &applicationState)
         : juce::KeyboardComponentBase(juce::MidiKeyboardComponent::Orientation::verticalKeyboardFacingRight),
           m_applicationState(applicationState)
     {
@@ -41,7 +41,7 @@ public:
         setInterceptsMouseClicks(false, false);
     }
 
-    ~VirtualKeyboardComponent() = default;
+    ~PianoKeyboardDisplay() = default;
 
     void setNoteDown(int midiNoteNumber, bool isDown)
     {
@@ -83,11 +83,12 @@ public:
     explicit KeyboardView(EditViewState &evs, juce::String timeLineID)
         : m_editViewState(evs),
           m_keyboard(evs.m_applicationState),
-          m_timeLineID(timeLineID)
+          m_timeLineID(timeLineID),
+          m_virtualMidiInput(EngineHelpers::getVirtualMidiInputDevice(evs.m_edit))
     {
         addAndMakeVisible(&m_keyboard);
     }
-    ~KeyboardView() = default;
+    ~KeyboardView() override;
 
     void setOnKeyClicked(std::function<void(int midiNoteNumber, bool addToSelection)> callback) { m_onKeyClicked = std::move(callback); }
     void setMidiNotesDown(const juce::Array<int> &notesOn, const juce::Array<int> &notesOff);
@@ -99,12 +100,15 @@ public:
 
 private:
     float getKey(int y);
+    void releaseAuditionNote();
 
     EditViewState &m_editViewState;
-    VirtualKeyboardComponent m_keyboard;
+    PianoKeyboardDisplay m_keyboard;
     std::function<void(int midiNoteNumber, bool addToSelection)> m_onKeyClicked;
 
-    float m_clickedKey;
-    double m_keyWidthCached;
+    float m_clickedKey{0.0f};
+    double m_keyWidthCached{0.0};
     juce::String m_timeLineID;
+    te::MidiInputDevice *m_virtualMidiInput{};
+    int m_auditionedNote{-1};
 };

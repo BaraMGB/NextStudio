@@ -28,11 +28,15 @@ constexpr bool shouldAddPluginWindowToDesktop = false;
 constexpr bool shouldAddPluginWindowToDesktop = true;
 #endif
 
-PluginWindow::PluginWindow(te::Plugin &plug)
+PluginWindow::PluginWindow(te::Plugin &plug, ComputerMidiKeyboardController *computerMidiKeyboard)
     : DocumentWindow(plug.getName(), juce::Colours::black, DocumentWindow::closeButton, shouldAddPluginWindowToDesktop),
       plugin(plug),
-      windowState(*plug.windowState)
+      windowState(*plug.windowState),
+      m_computerMidiKeyboard(computerMidiKeyboard)
 {
+    if (m_computerMidiKeyboard != nullptr)
+        m_computerMidiKeyboard->attachTo(*this);
+
     getConstrainer()->setMinimumOnscreenAmounts(0x10000, 50, 30, 50);
     setResizeLimits(100, 50, 4000, 4000);
 
@@ -49,6 +53,9 @@ PluginWindow::PluginWindow(te::Plugin &plug)
 
 PluginWindow::~PluginWindow()
 {
+    if (m_computerMidiKeyboard != nullptr)
+        m_computerMidiKeyboard->detachFrom(*this);
+
     updateStoredBounds = false;
     plugin.edit.flushPluginStateIfNeeded(plugin);
     setEditor(nullptr);
@@ -81,7 +88,7 @@ void PluginWindow::setEditor(std::unique_ptr<te::Plugin::EditorComponent> newEdi
     }
 }
 
-std::unique_ptr<juce::Component> PluginWindow::create(te::Plugin &plugin)
+std::unique_ptr<juce::Component> PluginWindow::create(te::Plugin &plugin, ComputerMidiKeyboardController *computerMidiKeyboard)
 {
     if (auto externalPlugin = dynamic_cast<te::ExternalPlugin *>(&plugin))
         if (externalPlugin->getAudioPluginInstance() == nullptr)
@@ -93,12 +100,12 @@ std::unique_ptr<juce::Component> PluginWindow::create(te::Plugin &plugin)
     if (!isDPIAware(plugin))
     {
         juce::ScopedDPIAwarenessDisabler disableDPIAwareness;
-        w = std::make_unique<PluginWindow>(plugin);
+        w = std::make_unique<PluginWindow>(plugin, computerMidiKeyboard);
     }
     else
 #endif
     {
-        w = std::make_unique<PluginWindow>(plugin);
+        w = std::make_unique<PluginWindow>(plugin, computerMidiKeyboard);
     }
 
     if (w == nullptr || w->getEditor() == nullptr)
