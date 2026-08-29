@@ -60,20 +60,29 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ComputerMidiKeyboardSettingsComponent)
 };
 
-class KeyboardSettingsComponent : public juce::Component
+class KeyboardSettingsComponent
+    : public juce::Component
+    , private juce::Timer
 {
 public:
     KeyboardSettingsComponent(ApplicationViewState &appState, juce::KeyPressMappingSet &keyMappings);
+    ~KeyboardSettingsComponent() override;
 
     void resized() override;
     void refreshThemeFromAppState();
 
 private:
+    void timerCallback() override;
+    int getKeyMappingEditorPreferredHeight();
+
     ApplicationViewState &m_appState;
+    juce::Viewport m_viewport;
+    juce::Component m_content;
     juce::Label m_computerMidiHeader;
     ComputerMidiKeyboardSettingsComponent m_computerMidiKeyboardSettings;
     juce::Label m_commandHeader;
     juce::KeyMappingEditorComponent m_keyMappingEditor;
+    int m_keyMappingEditorHeight = 28;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(KeyboardSettingsComponent)
 };

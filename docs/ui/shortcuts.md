@@ -68,6 +68,19 @@ These are the defaults. You can reassign them in Settings → Keys.
 
 `Q` and `,` are aliases for the same upper C in the default layout. These performance keys are handled by the dedicated computer MIDI keyboard and can be customized in Settings → Keys. The exact physical key positions depend on the keyboard layout.
 
+## Settings → Keys panel
+
+The Keys panel contains two sections:
+
+1. **Virtual MIDI keyboard keys** for assigning the computer-keyboard performance keys.
+2. **Application shortcuts** for assigning shortcuts to application commands.
+
+Both sections belong to one vertically scrollable page. The scrollbar at the right moves the complete page, so the virtual-keyboard settings can be scrolled out of the way to expose the application shortcuts. The shortcut list does not display a separate scrollbar.
+
+Shortcut categories remain expandable. Expanding or collapsing a category updates the page height while preserving the shared scrolling model.
+
+The layout is implemented by `KeyboardSettingsComponent` in `App/include/KeyboardSettingsComponent.h` and `App/src/KeyboardSettingsComponent.cpp`. Its outer `juce::Viewport` owns the visible scrollbar, while the embedded `juce::KeyMappingEditorComponent` is sized to the full height of its tree content.
+
 ## Related documents
 
 - [Getting Started](../user/getting-started.md)

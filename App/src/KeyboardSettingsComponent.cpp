@@ -22,6 +22,18 @@ juce::Colour withAlpha(juce::Colour colour, float alpha)
 {
     return colour.withAlpha(alpha);
 }
+
+juce::TreeView *findTreeView(juce::Component &component)
+{
+    for (int i = 0; i < component.getNumChildComponents(); ++i)
+    {
+        auto *child = component.getChildComponent(i);
+        if (auto *tree = dynamic_cast<juce::TreeView *>(child))
+            return tree;
+    }
+
+    return nullptr;
+}
 } // namespace
 
 ComputerMidiKeyboardSettingsComponent::ComputerMidiKeyboardSettingsComponent(ApplicationViewState &appState)
@@ -281,32 +293,76 @@ KeyboardSettingsComponent::KeyboardSettingsComponent(ApplicationViewState &appSt
       m_computerMidiKeyboardSettings(appState),
       m_keyMappingEditor(keyMappings, true)
 {
+    addAndMakeVisible(m_viewport);
+    m_viewport.setViewedComponent(&m_content, false);
+    m_viewport.setScrollBarThickness(m_appState.getScrollbarThickness());
+    m_viewport.setScrollBarsShown(true, false, true, false);
+
     m_computerMidiHeader.setText("Virtual MIDI keyboard keys", juce::dontSendNotification);
     m_computerMidiHeader.setJustificationType(juce::Justification::centredLeft);
-    addAndMakeVisible(m_computerMidiHeader);
+    m_content.addAndMakeVisible(m_computerMidiHeader);
 
-    addAndMakeVisible(m_computerMidiKeyboardSettings);
+    m_content.addAndMakeVisible(m_computerMidiKeyboardSettings);
 
     m_commandHeader.setText("Application shortcuts", juce::dontSendNotification);
     m_commandHeader.setJustificationType(juce::Justification::centredLeft);
-    addAndMakeVisible(m_commandHeader);
+    m_content.addAndMakeVisible(m_commandHeader);
 
-    addAndMakeVisible(m_keyMappingEditor);
+    m_content.addAndMakeVisible(m_keyMappingEditor);
+    if (auto *tree = findTreeView(m_keyMappingEditor))
+        tree->getViewport()->setScrollBarsShown(false, false, false, false);
 
     refreshThemeFromAppState();
+    startTimer(100);
+}
+
+KeyboardSettingsComponent::~KeyboardSettingsComponent()
+{
+    stopTimer();
+    m_viewport.setViewedComponent(nullptr, false);
 }
 
 void KeyboardSettingsComponent::resized()
 {
-    auto area = getLocalBounds().reduced(sectionPadding);
+    m_viewport.setBounds(getLocalBounds());
+
+    // Reserve the scrollbar width so changing the content height cannot alter the
+    // keyboard grid's column count and cause the layout to oscillate.
+    const auto contentWidth = juce::jmax(1, m_viewport.getWidth() - m_viewport.getScrollBarThickness());
+    const auto innerWidth = juce::jmax(1, contentWidth - sectionPadding * 2);
+    const auto keyboardHeight = m_computerMidiKeyboardSettings.getPreferredHeight(innerWidth);
+    const auto contentHeight = sectionPadding * 2 + 24 + keyboardHeight + 8 + 24 + 4 + m_keyMappingEditorHeight;
+
+    m_content.setSize(contentWidth, juce::jmax(m_viewport.getHeight(), contentHeight));
+    auto area = m_content.getLocalBounds().reduced(sectionPadding);
 
     m_computerMidiHeader.setBounds(area.removeFromTop(24));
-    const auto keyboardHeight = m_computerMidiKeyboardSettings.getPreferredHeight(area.getWidth());
     m_computerMidiKeyboardSettings.setBounds(area.removeFromTop(keyboardHeight));
     area.removeFromTop(8);
     m_commandHeader.setBounds(area.removeFromTop(24));
     area.removeFromTop(4);
-    m_keyMappingEditor.setBounds(area);
+    m_keyMappingEditor.setBounds(area.removeFromTop(m_keyMappingEditorHeight));
+}
+
+void KeyboardSettingsComponent::timerCallback()
+{
+    const auto preferredHeight = getKeyMappingEditorPreferredHeight();
+    if (preferredHeight != m_keyMappingEditorHeight)
+    {
+        m_keyMappingEditorHeight = preferredHeight;
+        resized();
+    }
+}
+
+int KeyboardSettingsComponent::getKeyMappingEditorPreferredHeight()
+{
+    constexpr int resetButtonAreaHeight = 28;
+
+    if (auto *tree = findTreeView(m_keyMappingEditor))
+        if (auto *treeContent = tree->getViewport()->getViewedComponent())
+            return juce::jmax(resetButtonAreaHeight, treeContent->getHeight() + resetButtonAreaHeight);
+
+    return resetButtonAreaHeight;
 }
 
 void KeyboardSettingsComponent::refreshThemeFromAppState()

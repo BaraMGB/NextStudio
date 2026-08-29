@@ -15,7 +15,7 @@ This directory contains the user and developer documentation for NextStudio.
 - [Song Editor](ui/song-editor.md) — track list, arrangement area, toolbar, clip properties bar, footer bar, navigation.
 - [Mixer](ui/mixer.md) — channel strips, master channel, level meters, navigation.
 - [Track Chain](ui/track-chain.md) — modifier stack, plugin chain sections, channel strip, MIDI learn, automation lanes.
-- [Keyboard Shortcuts](ui/shortcuts.md) — transport, global editing, song editor, track list, MIDI editor, virtual MIDI keyboard.
+- [Keyboard Shortcuts](ui/shortcuts.md) — transport, global editing, song editor, track list, MIDI editor, virtual MIDI keyboard, and the shared scrolling behavior of the Keys settings panel.
 
 ## Plugin documentation
 
