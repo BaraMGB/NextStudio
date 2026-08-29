@@ -249,13 +249,13 @@ public:
 
         m_activeSelector = index;
         m_selectors[index]->setVisible(true);
+        resized();
 
-        if (auto parent = getParentComponent())
-        {
-            resized();
-            parent->resized();
-        }
+        if (m_onPreferredHeightChanged)
+            m_onPreferredHeightChanged();
     }
+
+    void setOnPreferredHeightChanged(std::function<void()> callback) { m_onPreferredHeightChanged = std::move(callback); }
 
 private:
     ApplicationViewState &m_appState;
@@ -263,6 +263,7 @@ private:
     juce::OwnedArray<ColourButton> m_colourButtons;
     juce::OwnedArray<juce::ColourSelector> m_selectors;
     int m_activeSelector;
+    std::function<void()> m_onPreferredHeightChanged;
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override
     {
@@ -301,7 +302,7 @@ public:
           m_appState(appState)
     {
         m_scaleLabel.setText("Scaling Factor:", juce::dontSendNotification);
-        addAndMakeVisible(m_scaleLabel);
+        m_content.addAndMakeVisible(m_scaleLabel);
 
         m_scaleSlider.setSliderStyle(juce::Slider::LinearHorizontal);
         m_scaleSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 22);
@@ -311,73 +312,79 @@ public:
         m_scaleSlider.setSliderSnapsToMousePosition(false);
         m_scaleSlider.setMouseDragSensitivity(800);
         m_scaleSlider.setValue(juce::jlimit(0.2f, 3.0f, (float)m_appState.m_appScale.get()), juce::dontSendNotification);
-        addAndMakeVisible(m_scaleSlider);
+        m_content.addAndMakeVisible(m_scaleSlider);
         m_scaleSlider.onValueChange = [this]() { updateScale(); };
 
         m_mouseScaleLabel.setText("Mouse Cursor Scaling:", juce::dontSendNotification);
-        addAndMakeVisible(m_mouseScaleLabel);
+        m_content.addAndMakeVisible(m_mouseScaleLabel);
 
         m_mouseScaleEditor.setMultiLine(false);
         m_mouseScaleEditor.setJustification(juce::Justification::centredLeft);
         m_mouseScaleEditor.setText(juce::String(m_appState.m_mouseCursorScale), juce::dontSendNotification);
-        addAndMakeVisible(m_mouseScaleEditor);
+        m_content.addAndMakeVisible(m_mouseScaleEditor);
 
         m_mouseScaleEditor.onFocusLost = [this]() { updateMouseScale(); };
         m_mouseScaleEditor.onReturnKey = [this]() { updateMouseScale(); };
 
         m_timeStretchLabel.setText("Time-Stretch Algorithm:", juce::dontSendNotification);
-        addAndMakeVisible(m_timeStretchLabel);
+        m_content.addAndMakeVisible(m_timeStretchLabel);
 
         m_timeStretchCombo.setTextWhenNothingSelected("No algorithm available");
         m_timeStretchCombo.onChange = [this] { updateTimeStretchMode(); };
-        addAndMakeVisible(m_timeStretchCombo);
+        m_content.addAndMakeVisible(m_timeStretchCombo);
         refreshTimeStretchModes();
 
         m_contentPathLabel.setText("Content Folder:", juce::dontSendNotification);
-        addAndMakeVisible(m_contentPathLabel);
+        m_content.addAndMakeVisible(m_contentPathLabel);
 
         m_changeContentPathButton.onClick = [this]() { chooseContentPath(); };
-        addAndMakeVisible(m_changeContentPathButton);
+        m_content.addAndMakeVisible(m_changeContentPathButton);
 
         m_contentPathValue.setJustificationType(juce::Justification::centredLeft);
-        addAndMakeVisible(m_contentPathValue);
+        m_content.addAndMakeVisible(m_contentPathValue);
         updateContentPathLabel();
 
         m_versionLabel.setText("Version:", juce::dontSendNotification);
-        addAndMakeVisible(m_versionLabel);
+        m_content.addAndMakeVisible(m_versionLabel);
 
         if (auto *app = juce::JUCEApplication::getInstance())
             m_versionValue.setText(app->getApplicationVersion(), juce::dontSendNotification);
         else
             m_versionValue.setText("unknown", juce::dontSendNotification);
         m_versionValue.setJustificationType(juce::Justification::centredLeft);
-        addAndMakeVisible(m_versionValue);
+        m_content.addAndMakeVisible(m_versionValue);
 
         m_themeLabel.setText("Theme Colors:", juce::dontSendNotification);
-        addAndMakeVisible(m_themeLabel);
+        m_content.addAndMakeVisible(m_themeLabel);
 
         m_themePresetsLabel.setText("Theme Presets:", juce::dontSendNotification);
-        addAndMakeVisible(m_themePresetsLabel);
+        m_content.addAndMakeVisible(m_themePresetsLabel);
 
         m_themeCombo.setTextWhenNothingSelected("Select Theme");
         m_themeCombo.onChange = [this] { loadThemeFromCombo(); };
-        addAndMakeVisible(m_themeCombo);
+        m_content.addAndMakeVisible(m_themeCombo);
 
         m_saveThemeButton.onClick = [this] { saveTheme(); };
-        addAndMakeVisible(m_saveThemeButton);
+        m_content.addAndMakeVisible(m_saveThemeButton);
 
         m_loadThemeButton.onClick = [this] { loadTheme(); };
-        addAndMakeVisible(m_loadThemeButton);
+        m_content.addAndMakeVisible(m_loadThemeButton);
 
         refreshThemeList();
 
         m_viewport = std::make_unique<juce::Viewport>();
         addAndMakeVisible(m_viewport.get());
+        m_viewport->setViewedComponent(&m_content, false);
+        m_viewport->setScrollBarThickness(m_appState.getScrollbarThickness());
+        m_viewport->setScrollBarsShown(true, false, true, false);
 
         m_colourSettingsPanel = std::make_unique<ColourSettingsPanel>(appState);
+        m_colourSettingsPanel->setOnPreferredHeightChanged([this] { resized(); });
+        m_content.addAndMakeVisible(m_colourSettingsPanel.get());
         m_colourSettingsPanel->showColourSelector(0);
-        m_viewport->setViewedComponent(m_colourSettingsPanel.get(), false);
     }
+
+    ~GeneralSettings() override { m_viewport->setViewedComponent(nullptr, false); }
 
     void setOnContentPathChanged(std::function<void()> callback) { m_onContentPathChanged = std::move(callback); }
     void refreshThemeFromAppState()
@@ -399,11 +406,19 @@ public:
 
     void resized() override
     {
-        auto bounds = getLocalBounds();
+        m_viewport->setBounds(getLocalBounds());
+
         const int rowHeight = 24;
         const int padding = 10;
-        const int scrollbarWidth = m_viewport->getScrollBarThickness();
+        const int contentWidth = juce::jmax(1, m_viewport->getWidth() - m_viewport->getScrollBarThickness());
 
+        // Give the colour panel its final width before asking for its responsive height.
+        m_colourSettingsPanel->setSize(contentWidth, 1);
+        const int panelHeight = m_colourSettingsPanel->getPreferredHeight();
+        const int controlsHeight = rowHeight * 9 + padding * 3 / 2;
+        m_content.setSize(contentWidth, juce::jmax(m_viewport->getHeight(), controlsHeight + panelHeight));
+
+        auto bounds = m_content.getLocalBounds();
         auto scaleRow = bounds.removeFromTop(rowHeight);
         m_scaleLabel.setBounds(scaleRow.removeFromLeft(140));
         m_scaleSlider.setBounds(scaleRow.reduced(2));
@@ -441,11 +456,7 @@ public:
         m_themeLabel.setBounds(bounds.removeFromTop(rowHeight));
 
         bounds.removeFromTop(padding / 2);
-        m_viewport->setBounds(bounds);
-
-        const int panelWidth = bounds.getWidth() - scrollbarWidth;
-        const int panelHeight = m_colourSettingsPanel->getPreferredHeight();
-        m_colourSettingsPanel->setSize(panelWidth, panelHeight);
+        m_colourSettingsPanel->setBounds(bounds.removeFromTop(panelHeight));
     }
 
     ColourSettingsPanel *getColourSettings() { return m_colourSettingsPanel.get(); }
@@ -469,6 +480,7 @@ private:
     juce::ComboBox m_themeCombo;
     juce::TextButton m_saveThemeButton{"Save Theme"};
     juce::TextButton m_loadThemeButton{"Load Theme"};
+    juce::Component m_content;
     std::unique_ptr<juce::Viewport> m_viewport;
     std::unique_ptr<ColourSettingsPanel> m_colourSettingsPanel;
     std::function<void()> m_onContentPathChanged;
