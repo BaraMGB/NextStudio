@@ -53,6 +53,7 @@ DECLARE_ID(WindowX)
 DECLARE_ID(WindowY)
 DECLARE_ID(WindowWidth)
 DECLARE_ID(WindowHeight)
+DECLARE_ID(WindowGeometry)
 DECLARE_ID(FolderTrackIndent)
 DECLARE_ID(ThemeState)
 DECLARE_ID(PrimeColour)
@@ -162,6 +163,7 @@ public:
         m_windowYpos.referTo(windowState, IDs::WindowY, nullptr, 50);
         m_windowWidth.referTo(windowState, IDs::WindowWidth, nullptr, 1600);
         m_windowHeight.referTo(windowState, IDs::WindowHeight, nullptr, 1000);
+        m_windowGeometry.referTo(windowState, IDs::WindowGeometry, nullptr, juce::String());
 
         auto themeState = m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
         m_folderTrackIndent.referTo(themeState, IDs::FolderTrackIndent, nullptr, 10);
@@ -322,6 +324,12 @@ public:
         m_windowHeight = bounds.getHeight();
     }
 
+    void setWindowGeometry(const juce::String &geometry, juce::Rectangle<int> fallbackBounds)
+    {
+        m_windowGeometry = geometry;
+        setBounds(fallbackBounds);
+    }
+
     void setRootFolder(const juce::File &newRoot)
     {
         m_workDir = newRoot.getFullPathName();
@@ -438,6 +446,7 @@ public:
 
     juce::CachedValue<juce::String> m_workDir, m_presetDir, m_clipsDir, m_samplesDir, m_renderDir, m_projectsDir, m_guiBackground1, m_mainFrameColour, m_primeColour, m_borderColour, m_buttonBackgroundColour, m_buttonTextColour, m_textColour, m_timeLine_strokeColour, m_timeLine_background, m_timeLine_shadowShade, m_timeLine_textColour, m_trackBackgroundColour, m_trackHeaderBackgroundColour, m_trackHeaderTextColour, m_guiBackground2, m_guiBackground3, m_timeStretchMode;
     juce::CachedValue<int> m_windowXpos, m_windowYpos, m_windowWidth, m_windowHeight, m_folderTrackIndent, m_autoSaveInterval, m_sidebarWidth, m_scrollbarThickness;
+    juce::CachedValue<juce::String> m_windowGeometry;
     juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos;
     juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_lowerRangeCollapsed, m_trackPresetPanelCollapsed, m_modifierPanelCollapsed, m_exclusiveMidiFocusEnabled, m_setupComplete;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ApplicationViewState)

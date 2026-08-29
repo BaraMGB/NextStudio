@@ -78,10 +78,6 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     if (needsSetupWizard && !configuredWorkDirExists)
         m_applicationState.setRootFolder(defaultWorkDir);
 
-    float scale = m_applicationState.m_appScale;
-    scale = juce::jlimit(0.2f, 3.f, scale);
-    juce::Desktop::getInstance().setGlobalScaleFactor(scale);
-
     setWantsKeyboardFocus(true);
     m_computerMidiKeyboard.setLayout(ComputerMidiKeyboardLayout::loadFrom(m_applicationState));
     m_computerMidiKeyboard.attachTo(*this);
@@ -715,7 +711,11 @@ void MainComponent::setupEdit(juce::File editFile)
 
 void MainComponent::saveSettings()
 {
-    m_applicationState.setBounds(getScreenBounds());
+    if (auto *window = dynamic_cast<juce::ResizableWindow *>(getTopLevelComponent()))
+        m_applicationState.setWindowGeometry(window->getWindowStateAsString(), window->getBounds());
+    else
+        m_applicationState.setBounds(getScreenBounds());
+
     m_applicationState.saveState();
 }
 

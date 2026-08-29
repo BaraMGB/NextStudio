@@ -91,6 +91,9 @@ public:
             m_applicationState = std::make_unique<ApplicationViewState>();
         }
 
+        const auto scale = juce::jlimit(0.2f, 3.0f, (float)m_applicationState->m_appScale.get());
+        juce::Desktop::getInstance().setGlobalScaleFactor(scale);
+
         mainWindow.reset(new MainWindow(getApplicationName(), *m_applicationState, m_launchOptions.debugShell, m_debugSessionDirectory, m_wineRendererFallback));
 
         if (m_launchOptions.debugShell)
@@ -173,19 +176,34 @@ public:
         {
             setUsingNativeTitleBar(true);
 
+            auto *mc = new MainComponent(m_applicationState, wineRendererFallback, m_debugShellEnabled, m_debugSessionDirectory);
+            setContentOwned(mc, false);
+
 #if JUCE_IOS || JUCE_ANDROID
             setFullScreen(true);
 #else
-            const juce::Rectangle<int> savedBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
-            const auto visibleBounds = constrainToCurrentDisplays(savedBounds);
-            setBounds(visibleBounds);
             setResizable(true, true);
+
+            const juce::Rectangle<int> savedBounds(m_applicationState.m_windowXpos, m_applicationState.m_windowYpos, m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
+            if (juce::String(m_applicationState.m_windowGeometry).isEmpty() || !restoreWindowStateFromString(m_applicationState.m_windowGeometry))
+                setBounds(constrainToCurrentDisplays(savedBounds));
+            else if (!isFullScreen())
+                setBounds(constrainToCurrentDisplays(getBounds()));
 #endif
-            auto mc = new MainComponent(m_applicationState, wineRendererFallback, m_debugShellEnabled, m_debugSessionDirectory);
-            mc->setSize(m_applicationState.m_windowWidth, m_applicationState.m_windowHeight);
-            setContentOwned(mc, true);
             wineRendererFallback.applyTo(*this);
             setVisible(true);
+
+#if !JUCE_IOS && !JUCE_ANDROID
+            // X11 window-manager decorations may only be available after mapping the
+            // native window. Recheck once all platforms know their final frame size.
+            juce::Component::SafePointer<MainWindow> safeThis(this);
+            juce::MessageManager::callAsync(
+                [safeThis]
+                {
+                    if (safeThis != nullptr && !safeThis->isFullScreen())
+                        safeThis->setBounds(safeThis->constrainToCurrentDisplays(safeThis->getBounds()));
+                });
+#endif
         }
 
         MainComponent *getMainComponent() const { return dynamic_cast<MainComponent *>(getContentComponent()); }
@@ -199,10 +217,19 @@ public:
         }
 
     private:
-        static juce::Rectangle<int> constrainToCurrentDisplays(juce::Rectangle<int> bounds)
+        juce::Rectangle<int> constrainToCurrentDisplays(juce::Rectangle<int> bounds) const
         {
+            auto framedBounds = bounds;
+            juce::ComponentPeer::OptionalBorderSize frameSize;
+
+            if (auto *peer = getPeer())
+                frameSize = peer->getFrameSizeIfPresent();
+
+            if (frameSize)
+                frameSize->addTo(framedBounds);
+
             const auto &displays = juce::Desktop::getInstance().getDisplays();
-            const auto *display = displays.getDisplayForRect(bounds);
+            const auto *display = displays.getDisplayForRect(framedBounds);
 
             if (display == nullptr)
                 display = displays.getPrimaryDisplay();
@@ -211,13 +238,14 @@ public:
                 return bounds;
 
             const auto area = display->userArea;
-            bounds.setSize(juce::jmin(area.getWidth(), juce::jmax(640, bounds.getWidth())), juce::jmin(area.getHeight(), juce::jmax(480, bounds.getHeight())));
+            framedBounds.setSize(juce::jmin(area.getWidth(), juce::jmax(640, framedBounds.getWidth())),
+                                 juce::jmin(area.getHeight(), juce::jmax(480, framedBounds.getHeight())));
+            framedBounds = framedBounds.constrainedWithin(area);
 
-            const auto visiblePart = area.getIntersection(bounds);
-            if (visiblePart.getWidth() < 100 || visiblePart.getHeight() < 100)
-                return bounds.withCentre(area.getCentre()).constrainedWithin(area);
+            if (frameSize)
+                frameSize->subtractFrom(framedBounds);
 
-            return bounds.constrainedWithin(area);
+            return framedBounds;
         }
 
         ApplicationViewState &m_applicationState;
