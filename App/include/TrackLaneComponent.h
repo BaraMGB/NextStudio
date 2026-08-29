@@ -47,6 +47,7 @@ public:
     void mouseDrag(const juce::MouseEvent &) override;
     void mouseUp(const juce::MouseEvent &) override;
     void mouseExit(const juce::MouseEvent &) override;
+    void modifierKeysChanged(const juce::ModifierKeys &) override;
 
     te::Track::Ptr getTrack() const { return m_track; }
     bool isClipAt(juce::Point<float> point) { return getClipHoverState(point, false).clip != nullptr; }
@@ -74,6 +75,8 @@ private:
     float timeToX(tracktion::TimePosition time);
     tracktion::TimePosition xtoTime(int x);
     tracktion::TimePosition getSnappedTime(tracktion::TimePosition time, bool downwards = false);
+    tracktion::TimePosition getKnifeSplitTime(int x, juce::ModifierKeys mods);
+    void updateKnifeSplitPosition(int x, juce::ModifierKeys mods);
     juce::Rectangle<float> getClipRect(te::Clip::Ptr clip);
     ClipHoverState getClipHoverState(juce::Point<float> point, bool allowFadeHandles);
     FadeHitZone getFadeHitZone(te::Clip::Ptr clip, juce::Point<float> point);
@@ -94,6 +97,8 @@ private:
     bool m_leftBorderHovered{false};
     bool m_rightBorderHovered{false};
     FadeHitZone m_hoveredFadeZone{FadeHitZone::none};
+    tracktion::TimePosition m_knifeSplitPosition;
+    bool m_hasKnifeSplitPosition{false};
     te::Clip::Ptr m_pendingCtrlToggleClip{nullptr};
 
     // Note: Dragging state is now managed centrally by SongEditorView via DragState

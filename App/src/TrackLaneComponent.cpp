@@ -68,6 +68,18 @@ void TrackLaneComponent::paint(juce::Graphics &g)
         g.fillRect(area);
         GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, area);
     }
+
+    if (m_songEditor.getToolMode() == Tool::knife && m_hoveredClip != nullptr && m_hasKnifeSplitPosition)
+    {
+        const auto clipRect = getClipRect(m_hoveredClip);
+        const auto splitX = timeToX(m_knifeSplitPosition);
+
+        g.saveState();
+        g.reduceClipRegion(clipRect.toNearestInt());
+        g.setColour(m_editViewState.m_applicationState.getTextColour());
+        g.drawLine(splitX, clipRect.getY(), splitX, clipRect.getBottom(), 1.5f);
+        g.restoreState();
+    }
 }
 
 void TrackLaneComponent::resized()
@@ -152,6 +164,17 @@ void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
     m_rightBorderHovered = hoverState.rightBorder;
     m_hoveredFadeZone = hoverState.fadeZone;
 
+    if (toolMode == Tool::knife && m_hoveredClip != nullptr)
+    {
+        updateKnifeSplitPosition(e.x, e.mods);
+        needsRepaint = true;
+    }
+    else if (m_hasKnifeSplitPosition)
+    {
+        m_hasKnifeSplitPosition = false;
+        needsRepaint = true;
+    }
+
     updateCursor(e.mods);
 
     if (needsRepaint)
@@ -160,12 +183,13 @@ void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
 
 void TrackLaneComponent::mouseExit(const juce::MouseEvent &e)
 {
-    if (m_hoveredClip != nullptr)
+    if (m_hoveredClip != nullptr || m_hasKnifeSplitPosition)
     {
         m_hoveredClip = nullptr;
         m_leftBorderHovered = false;
         m_rightBorderHovered = false;
         m_hoveredFadeZone = FadeHitZone::none;
+        m_hasKnifeSplitPosition = false;
         repaint();
     }
     setMouseCursor(juce::MouseCursor::NormalCursor);
@@ -257,7 +281,11 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
         }
         else if (toolMode == Tool::knife)
         {
-            te::splitClips({m_hoveredClip}, xtoTime(e.x));
+            const auto splitTime = getKnifeSplitTime(e.x, e.mods);
+            m_knifeSplitPosition = splitTime;
+            m_hasKnifeSplitPosition = true;
+            te::splitClips({m_hoveredClip}, splitTime);
+            repaint();
             return;
         }
     }
@@ -440,6 +468,17 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
     repaint();
 }
 
+void TrackLaneComponent::modifierKeysChanged(const juce::ModifierKeys &mods)
+{
+    if (m_songEditor.getToolMode() == Tool::knife && m_hoveredClip != nullptr)
+    {
+        updateKnifeSplitPosition(getMouseXYRelative().x, mods);
+        repaint();
+    }
+
+    updateCursor(mods);
+}
+
 //==============================================================================
 // Helpers
 //==============================================================================
@@ -451,6 +490,18 @@ tracktion::TimePosition TrackLaneComponent::xtoTime(int x) { return TimeUtils::x
 tracktion::TimePosition TrackLaneComponent::getSnappedTime(tracktion::TimePosition time, bool downwards)
 {
     return m_songEditor.snapTime(time, downwards);
+}
+
+tracktion::TimePosition TrackLaneComponent::getKnifeSplitTime(int x, juce::ModifierKeys mods)
+{
+    const auto time = xtoTime(x);
+    return mods.isShiftDown() ? time : getSnappedTime(time);
+}
+
+void TrackLaneComponent::updateKnifeSplitPosition(int x, juce::ModifierKeys mods)
+{
+    m_knifeSplitPosition = getKnifeSplitTime(x, mods);
+    m_hasKnifeSplitPosition = true;
 }
 
 TrackLaneComponent::ClipHoverState TrackLaneComponent::getClipHoverState(juce::Point<float> point, bool allowFadeHandles)
@@ -625,7 +676,7 @@ void TrackLaneComponent::updateCursor(juce::ModifierKeys modifierKeys)
     }
     else if (m_hoveredClip != nullptr && toolMode == Tool::knife)
     {
-        setMouseCursor(juce::MouseCursor::IBeamCursor);
+        setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Split, m_editViewState.m_applicationState.m_mouseCursorScale));
     }
     else
     {
