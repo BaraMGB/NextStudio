@@ -292,6 +292,20 @@ void EditComponent::mouseUp(const juce::MouseEvent &event)
     if (event.mouseWasDraggedSinceMouseDown())
         return;
 
+    if (auto *eventComponent = event.eventComponent)
+    {
+        auto *trackLane = dynamic_cast<TrackLaneComponent *>(eventComponent);
+        if (trackLane == nullptr)
+            trackLane = eventComponent->findParentComponentOfClass<TrackLaneComponent>();
+
+        if (trackLane != nullptr)
+        {
+            const auto laneEvent = event.getEventRelativeTo(trackLane);
+            if (trackLane->isClipAt(laneEvent.position))
+                return;
+        }
+    }
+
     const auto songEditorEvent = event.getEventRelativeTo(&m_songEditor);
     auto position = m_timeLine.snapTime(m_timeLine.xToTimePos(songEditorEvent.x));
     position = juce::jmax(tracktion::TimePosition(), position);

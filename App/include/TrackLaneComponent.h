@@ -49,6 +49,7 @@ public:
     void mouseExit(const juce::MouseEvent &) override;
 
     te::Track::Ptr getTrack() const { return m_track; }
+    bool isClipAt(juce::Point<float> point) { return getClipHoverState(point, false).clip != nullptr; }
 
     void buildAutomationLanes();
     AutomationLaneComponent *getAutomationLane(tracktion::AutomatableParameter::Ptr ap);

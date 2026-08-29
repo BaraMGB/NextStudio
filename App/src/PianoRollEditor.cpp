@@ -131,6 +131,9 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
 }
 PianoRollEditor::~PianoRollEditor()
 {
+    if (m_pianoRollViewPort != nullptr)
+        m_pianoRollViewPort->removeMouseListener(this);
+
     m_midiKeyChangeDispatcher->listeners.remove(this);
     m_splitBtn.removeListener(this);
     m_erasorBtn.removeListener(this);
@@ -143,6 +146,36 @@ PianoRollEditor::~PianoRollEditor()
     m_editViewState.m_applicationState.m_applicationStateValueTree.removeListener(this);
     m_editViewState.m_edit.state.removeListener(this);
 }
+
+void PianoRollEditor::mouseDown(const juce::MouseEvent &event)
+{
+    auto *eventComponent = event.eventComponent;
+    m_pianoRollPlayheadClickPending = event.mods.isLeftButtonDown()
+                                      && m_pianoRollViewPort != nullptr
+                                      && eventComponent != nullptr
+                                      && (eventComponent == m_pianoRollViewPort.get() || m_pianoRollViewPort->isParentOf(eventComponent));
+}
+
+void PianoRollEditor::mouseUp(const juce::MouseEvent &event)
+{
+    if (!m_pianoRollPlayheadClickPending)
+        return;
+
+    m_pianoRollPlayheadClickPending = false;
+    if (event.mouseWasDraggedSinceMouseDown() || m_pianoRollViewPort == nullptr)
+        return;
+
+    const auto viewportEvent = event.getEventRelativeTo(m_pianoRollViewPort.get());
+    if (m_pianoRollViewPort->getNoteByPos(viewportEvent.position) != nullptr)
+        return;
+
+    auto position = m_timeLine.snapTime(m_timeLine.xToTimePos(viewportEvent.x));
+    position = juce::jmax(tracktion::TimePosition(), position);
+
+    m_editViewState.m_playHeadStartTime = position.inSeconds();
+    m_editViewState.m_edit.getTransport().setPosition(position);
+}
+
 void PianoRollEditor::paint(juce::Graphics &g)
 {
     g.setColour(m_editViewState.m_applicationState.getBackgroundColour1());
@@ -536,6 +569,7 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
     });
     addAndMakeVisible(*m_pianoRollViewPort);
     m_pianoRollViewPort->addChangeListener(this);
+    m_pianoRollViewPort->addMouseListener(this, true);
     m_horizontalScrollBar.setVisible(true);
 
     m_timelineOverlay = std::make_unique<TimelineOverlayComponent>(m_editViewState, track, m_timeLine);
@@ -555,6 +589,7 @@ void PianoRollEditor::clearTrack()
     m_editViewState.m_selectionManager.deselect(&m_pianoRollViewPort->getSelectedEvents());
     m_timelineOverlay.reset(nullptr);
     m_pianoRollViewPort->removeChangeListener(this);
+    m_pianoRollViewPort->removeMouseListener(this);
     m_pianoRollViewPort.reset(nullptr);
     m_NoteDescUnderCursor.clear();
     repaint(getFooterRect());
