@@ -7,18 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.05-alpha] - 2026-08-29
+
 ### Added
 
+- **Configurable computer MIDI keyboard** — The computer MIDI keyboard is now fully configurable. A new settings panel lets you assign QWERTY keys to MIDI notes, set the base octave, and adjust velocity. The implementation uses JUCE's `MidiKeyboardState` controller with a BigInteger-based key map, replacing the previous command-based approach that was susceptible to OS key-repeat artifacts.
+- **Collapsible plugin rack side panels** — The plugin chain view now has collapsible side panels for the plugin browser and rack list, giving more horizontal space for the chain itself. Toggle buttons control each panel independently.
+- **Collapsible lower range** — The piano roll lower range (velocity editor, controller lanes) can now be collapsed to give more vertical space to the note grid.
 - **Arrangement knife preview** — Hovering a clip with the Knife tool now shows a vertical split preview that follows the arrangement snap setting. The preview and actual split bypass snapping while `Shift` is held.
 - **Timeline loop interaction hints** — The loop lane now shows contextual hints and cursors for drawing, moving, and resizing the start or end of a loop range.
+- **Song editor toolbar sync** — The song editor toolbar now highlights the currently active tool and stays in sync when the tool changes via keyboard shortcuts or other means.
+- **Application logging system** — A structured logging system has been added, replacing scattered `juce::Logger` calls. Logs are written to a diagnostics file for troubleshooting.
+- **Agent debug shell** — A debug shell interface allows external agents to inspect and control NextStudio's transport, take screenshots, and dump application state. Includes a Pi extension for remote debugging.
+- **Windows startup diagnostics** — Comprehensive startup diagnostics for Windows, including renderer selection, Wine detection, and RDP session handling. Diagnostics are written to a log file for support.
+- **Wine renderer fallback** — NextStudio now falls back to JUCE's software renderer under Wine, bypassing DXGI startup that could cause blank windows. A software renderer repaint path drives updates without DXGI.
+- **RDP session support** — The main window stays visible across Remote Desktop connect/disconnect cycles. Software renderer is automatically selected for RDP sessions.
+- **UI and plugin documentation** — Comprehensive documentation added for all UI components (header bar, side browser, song editor, mixer, track chain, shortcuts) and all built-in plugins.
 
 ### Changed
 
+- **Plugin chain view refactored** — The plugin chain view has been split into focused components (rack content, drag-and-drop handler, layout, sections), improving maintainability and scroll behavior on small displays.
 - **Visible timeline loop lane** — The lower loop-editing lane is identified by a 30%-opaque black overlay. Loop ranges use 50% opacity while looping is enabled and 20% opacity while it is disabled.
+- **Collapsible sidebar splitter** — The sidebar splitter behavior has been improved with better collapse handling and default width.
+- **Scrollbar visibility** — Scrollbar thumbs are now always visible instead of auto-hiding, improving discoverability.
+- **Expanded Projects sidebar on startup** — The Projects sidebar starts expanded by default for better first-run orientation.
+- **Computer MIDI keyboard architecture** — Replaced the command-based `ApplicationCommandManager` approach with a direct `MidiKeyboardState` controller, eliminating stuck notes from OS key-repeat.
 
 ### Fixed
 
+- **Playhead clicks** — Clicking the playhead no longer triggers unexpected playback jumps in both the song editor and piano roll.
+- **Main window geometry restoration** — Window position and size are now correctly restored across platforms (Windows, macOS, Linux) after restart.
+- **Settings panel scrolling** — The General and Keys settings panels now scroll correctly when content exceeds the visible area.
+- **Piano roll lower-range resize** — Resizing and reopening the piano roll lower range no longer causes layout glitches or incorrect heights.
+- **Hanging notes on MIDI clip move** — Moving MIDI clips no longer leaves stuck notes playing. (#51)
+- **Mixer channel button states** — Mixer channel buttons (mute, solo, etc.) now reflect the correct state when switching tracks.
+- **Plugin rack scroll range** — The plugin rack now scrolls correctly on small displays without clipping content.
+- **Position display readability** — The position display remains readable in narrow layouts without overlapping or truncation.
+- **Wine font selection** — An available UI font is now selected under Wine instead of falling back to a default that might not exist.
+- **Wine window creation** — The renderer fallback is now applied before showing any window, preventing brief blank windows on startup.
+- **Setup wizard restoration** — The default setup wizard window is restored correctly after the Wine renderer fallback.
 - **Stable loop draw cursor** — The loop lane reuses its pencil cursor instead of resetting and recreating it on every pointer movement, preventing cursor flicker.
+
+### Developer / Build
+
+- **Debug agent system** — Full debug shell with transport control, screenshot capture, state introspection, and snapshot writing. Includes a JavaScript client (`tools/debug-shell-client.js`) and Pi extension.
+- **Test coverage expanded** — New tests for clip overwrite commands, computer MIDI keyboard layout, debug protocol/controller/snapshot, MIDI note overlap, pending paste, piano roll note length, plugin chain layout, position display, and splitter collapse controller.
+- **Documentation** — Architecture docs (overview, state/events, project lifecycle, clip overwrite, playback graph), component docs (piano roll, note/clip properties, plugin chain), development docs (building, source layout, testing, Wine/Bottles), and change records for major features.
 
 ## [v0.04-alpha] - 2026-08-21
 
