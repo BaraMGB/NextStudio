@@ -91,7 +91,7 @@ public:
 
     void updateTrackHeights(EditViewState &evs);
 
-    void setTool(Tool tool) { m_toolMode = tool; }
+    void setTool(Tool tool);
     Tool getToolMode() const { return m_toolMode; }
 
     void duplicateSelectedClipsOrTimeRange();
@@ -195,6 +195,7 @@ private:
     void setPianoRoll(te::Track *track);
 
     void buildRecordingClips(te::Track::Ptr track);
+    void syncToolButtonsFromState();
 
     struct DragFileItemInfo
     {

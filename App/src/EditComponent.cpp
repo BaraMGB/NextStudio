@@ -194,15 +194,19 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_selectButton.addListener(this);
     m_selectButton.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
 
+    m_lassoSelectButton.setName("lasso");
     m_lassoSelectButton.addListener(this);
     m_lassoSelectButton.setTooltip(GUIHelpers::translate("lasso select clips or automation points", m_editViewState.m_applicationState));
 
+    m_timeRangeSelectButton.setName("range");
     m_timeRangeSelectButton.addListener(this);
     m_timeRangeSelectButton.setTooltip(GUIHelpers::translate("select clips or automation points within a time range", m_editViewState.m_applicationState));
 
+    m_splitClipButton.setName("knife");
     m_splitClipButton.addListener(this);
     m_splitClipButton.setTooltip(GUIHelpers::translate("split selected clip at the cursor position", m_editViewState.m_applicationState));
 
+    m_timeStretchButton.setName("timestretch");
     m_timeStretchButton.addListener(this);
     m_timeStretchButton.setTooltip(GUIHelpers::translate("apply time stretching to the selected clip", m_editViewState.m_applicationState));
 
@@ -218,6 +222,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_toolBar.addButton(&m_deleteClipButton);
     m_toolBar.addButton(&m_reverseClipButton);
 
+    m_songEditor.setTool(m_songEditor.getToolMode());
     m_toolBar.setButtonGap(4, 30);
 
     markAndUpdate(m_updateTracks);

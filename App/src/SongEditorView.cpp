@@ -57,6 +57,12 @@ SongEditorView::~SongEditorView()
     m_editViewState.m_selectionManager.removeChangeListener(this);
 }
 
+void SongEditorView::setTool(Tool tool)
+{
+    m_toolMode = tool;
+    syncToolButtonsFromState();
+}
+
 void SongEditorView::paintOverChildren(juce::Graphics &g)
 {
     using namespace juce::Colours;
@@ -594,11 +600,7 @@ void SongEditorView::stopLasso()
 
     // Switch back to pointer mode after TimeRange selection
     if (m_isSelectingTimeRange || m_toolMode == Tool::range || m_toolMode == Tool::lasso)
-    {
-        for (auto b : m_toolBar.getButtons())
-            if (b->getName() == "select")
-                b->setToggleState(true, juce::sendNotification);
-    }
+        setTool(Tool::pointer);
 
     m_isSelectingTimeRange = false;
 }
@@ -1003,6 +1005,20 @@ void SongEditorView::renderSelectedTimeRangeToNewTrack()
 void SongEditorView::renderSelectedClipsToNewTrack()
 {
     EngineHelpers::renderSelectedClipsToNewTrack(m_editViewState);
+}
+
+void SongEditorView::syncToolButtonsFromState()
+{
+    for (auto *button : m_toolBar.getButtons())
+    {
+        const auto name = button->getName();
+        const bool shouldBeSelected = (name == "select" && m_toolMode == Tool::pointer)
+                                      || (name == "lasso" && m_toolMode == Tool::lasso)
+                                      || (name == "range" && m_toolMode == Tool::range)
+                                      || (name == "timestretch" && m_toolMode == Tool::timestretch)
+                                      || (name == "knife" && m_toolMode == Tool::knife);
+        button->setToggleState(shouldBeSelected, juce::dontSendNotification);
+    }
 }
 
 void SongEditorView::buildRecordingClips(te::Track::Ptr track)
