@@ -53,7 +53,11 @@ Shows clips and automation data on tracks along the timeline.
 ### Timeline
 
 - Shows bars and beats.
-- **Loop Range:** The lower part of the timeline shows the loop range. Click and drag in the lower area to set the loop. Drag on the edges or in the middle of the loop marker to adjust.
+- **Loop lane:** The lower fifth of the timeline is the loop-editing lane. A black overlay at 30% opacity distinguishes it from the rest of the timeline even when the loop range has zero length.
+- **Draw loop range:** Hover an unused part of the loop lane to show the pencil cursor and the `draw loop range` hint. Click and drag to create a range. Enabled snapping applies while drawing; hold `Shift` to draw without snapping.
+- **Move loop range:** Hover the body of an existing range to show the hand cursor and the `move loop range` hint, then drag it horizontally.
+- **Resize loop range:** Hover the first or last 10 pixels to show the corresponding resize cursor and the `set loop range start` or `set loop range end` hint. Drag to resize; hold `Shift` to bypass snapping.
+- **Loop state:** The range uses the theme's prime colour at 50% opacity while loop playback is enabled and 20% opacity while it is disabled.
 - **Playhead Position:** Double-click on the timeline sets the playhead to the mouse position. Click or drag the playhead to set the playback position.
 - **Zoom:** Click and drag vertically in the timeline to zoom the horizontal view.
 
@@ -80,6 +84,13 @@ Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, M
 - **Resize (Clips):** Drag edges.
 - **Time Stretch (Audio):** Drag right edge with Time Stretch Tool. Alternatively `Cmd/Ctrl`+drag on right edge.
 - **Automation:** Click on line = new point. Drag point = move. Right-click on point = delete. `Ctrl/Cmd`+drag on segment = change curve shape.
+
+### Editing (Knife Tool)
+
+- Hovering a clip shows the split cursor and a vertical preview line across that clip.
+- The preview line follows the arrangement **SNAP** setting. Clicking splits the clip at exactly the previewed position.
+- Hold `Shift` while hovering or clicking to bypass enabled snapping for both the preview and the actual split.
+- No preview line is drawn over empty track space.
 
 ### Clip Properties Bar
 

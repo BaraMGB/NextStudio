@@ -93,6 +93,10 @@ The same row provides independent arrangement controls:
 - **SNAP** — Off, Adaptive, or a fixed value from `1/1` through `1/128`;
 - **INSERT LENGTH** — Adaptive or a fixed value used when creating MIDI clips.
 
+With the Knife tool active, hovering a clip displays a vertical split preview at the current arrangement snap position. Clicking cuts at that exact position; hold `Shift` to preview and cut without snapping.
+
+The lower fifth of the arrangement timeline is a darkened loop lane. Hovering its free area shows a pencil cursor and a draw hint. Existing ranges provide separate move, start, and end hints. The loop range is dimmed while loop playback is disabled.
+
 Track controls above the list can add:
 
 - audio tracks;

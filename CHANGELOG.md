@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Arrangement knife preview** — Hovering a clip with the Knife tool now shows a vertical split preview that follows the arrangement snap setting. The preview and actual split bypass snapping while `Shift` is held.
+- **Timeline loop interaction hints** — The loop lane now shows contextual hints and cursors for drawing, moving, and resizing the start or end of a loop range.
+
+### Changed
+
+- **Visible timeline loop lane** — The lower loop-editing lane is identified by a 30%-opaque black overlay. Loop ranges use 50% opacity while looping is enabled and 20% opacity while it is disabled.
+
+### Fixed
+
+- **Stable loop draw cursor** — The loop lane reuses its pencil cursor instead of resetting and recreating it on every pointer movement, preventing cursor flicker.
+
 ## [v0.04-alpha] - 2026-08-21
 
 ### Added

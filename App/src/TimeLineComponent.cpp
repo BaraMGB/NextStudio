@@ -38,6 +38,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 TimeLineComponent::TimeLineComponent(EditViewState &evs, juce::String timeLineID, bool usePianoRollSnapSettings)
     : m_evs(evs),
+      m_drawLoopCursor(GUIHelpers::createCustomMouseCursor(
+          GUIHelpers::CustomMouseCursor::Draw,
+          evs.m_applicationState.m_mouseCursorScale)),
       m_usePianoRollSnapSettings(usePianoRollSnapSettings),
       m_isMouseDown(false)
 {
@@ -56,6 +59,9 @@ void TimeLineComponent::paint(juce::Graphics &g)
 
     GUIHelpers::drawBarsAndBeatLines(g, m_evs, x1beats, x2beats, getLocalBounds().toFloat(), true);
 
+    g.setColour(juce::Colours::black.withAlpha(0.3f));
+    g.fillRect(getLocalBounds().removeFromBottom(getHeight() / 5));
+
     if (m_isMouseDown)
     {
         auto mouseDown = m_evs.beatsToX(m_cachedBeat, getWidth(), x1beats, x2beats);
@@ -68,43 +74,58 @@ void TimeLineComponent::paint(juce::Graphics &g)
         }
     }
 
-    if (m_evs.m_edit.getTransport().looping)
-        g.setColour(juce::Colour(0x99FFFFFF));
-    else
-        g.setColour(juce::Colour(0x44FFFFFF));
-
     drawLoopRange(g);
 }
 
 void TimeLineComponent::mouseMove(const juce::MouseEvent &e)
 {
-    setMouseCursor(juce::MouseCursor::NormalCursor);
+    m_leftResized = false;
+    m_rightResized = false;
 
-    auto loopRange = m_evs.m_edit.getTransport().getLoopRange();
-    auto loopRangeRect = getTimeRangeRect(loopRange);
+    const auto loopRange = m_evs.m_edit.getTransport().getLoopRange();
+    const auto loopRangeRect = getTimeRangeRect(loopRange);
+    const auto loopZone = getLocalBounds().removeFromBottom(getHeight() / 5);
 
-    if (loopRangeRect.contains(e.getPosition()))
+    if (!loopRange.isEmpty() && loopRangeRect.contains(e.getPosition()))
     {
         m_changeLoopRange = false;
         if (e.x > loopRangeRect.getHorizontalRange().getStart() && e.x < loopRangeRect.getHorizontalRange().getStart() + 10)
         {
             setMouseCursor(juce::MouseCursor::LeftEdgeResizeCursor);
+            setTooltip(GUIHelpers::translate("set loop range start", m_evs.m_applicationState));
             m_leftResized = true;
-            m_rightResized = false;
         }
         else if (e.x > loopRangeRect.getHorizontalRange().getEnd() - 10 && e.x < loopRangeRect.getHorizontalRange().getEnd())
         {
             setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
+            setTooltip(GUIHelpers::translate("set loop range end", m_evs.m_applicationState));
             m_rightResized = true;
-            m_leftResized = false;
         }
         else
         {
             setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-            m_leftResized = false;
-            m_rightResized = false;
+            setTooltip(GUIHelpers::translate("move loop range", m_evs.m_applicationState));
         }
     }
+    else if (loopZone.contains(e.getPosition()))
+    {
+        setMouseCursor(m_drawLoopCursor);
+        setTooltip(GUIHelpers::translate("draw loop range", m_evs.m_applicationState));
+    }
+    else
+    {
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+        setTooltip({});
+    }
+}
+
+void TimeLineComponent::mouseExit(const juce::MouseEvent &e)
+{
+    juce::ignoreUnused(e);
+    setMouseCursor(juce::MouseCursor::NormalCursor);
+    setTooltip({});
+    m_leftResized = false;
+    m_rightResized = false;
 }
 
 void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
@@ -270,25 +291,18 @@ int TimeLineComponent::timeToX(double time)
 
 void TimeLineComponent::drawLoopRange(juce::Graphics &g)
 {
-    juce::Rectangle<int> loopRect;
+    tracktion::TimeRange loopRange;
 
     if (m_draggedTime != tracktion::TimeDuration())
-    {
-        loopRect = getTimeRangeRect(getLoopRangeToBeMovedOrResized());
-    }
+        loopRange = getLoopRangeToBeMovedOrResized();
     else if (m_changeLoopRange)
-    {
-        loopRect = getTimeRangeRect(m_newLoopRange);
-    }
+        loopRange = m_newLoopRange;
     else
-    {
-        auto loopRange = m_evs.m_edit.getTransport().getLoopRange();
-        loopRect = getTimeRangeRect(loopRange);
-    }
+        loopRange = m_evs.m_edit.getTransport().getLoopRange();
 
-    loopRect = loopRect.getIntersection(getLocalBounds());
-
-    g.setColour(m_evs.m_applicationState.getPrimeColour().withAlpha(0.5f));
+    const auto loopRect = getTimeRangeRect(loopRange).getIntersection(getLocalBounds());
+    const auto alpha = m_evs.m_edit.getTransport().looping ? 0.5f : 0.2f;
+    g.setColour(m_evs.m_applicationState.getPrimeColour().withAlpha(alpha));
     g.fillRect(loopRect);
 }
 

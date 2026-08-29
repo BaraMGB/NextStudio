@@ -26,7 +26,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "EditViewState.h"
 
-class TimeLineComponent : public juce::Component
+class TimeLineComponent
+    : public juce::Component
+    , public juce::SettableTooltipClient
 {
 public:
     TimeLineComponent(EditViewState &, juce::String timeLineID, bool usePianoRollSnapSettings = false);
@@ -35,6 +37,7 @@ public:
     void paint(juce::Graphics &g) override;
 
     void mouseMove(const juce::MouseEvent &e) override;
+    void mouseExit(const juce::MouseEvent &e) override;
     void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &e) override;
     void mouseUp(const juce::MouseEvent &event) override;
@@ -83,6 +86,7 @@ private:
     juce::String m_timeLineID;
 
     EditViewState &m_evs;
+    juce::MouseCursor m_drawLoopCursor;
     const bool m_usePianoRollSnapSettings;
     juce::ValueTree m_tree;
     double m_cachedBeat{};
