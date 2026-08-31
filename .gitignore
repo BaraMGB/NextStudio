@@ -20,4 +20,5 @@ autobuild/
 dist
 build_win_pkg/
 reinstall_flatpak.sh
+build_and_copy_shared.sh
 AGENTS.md
