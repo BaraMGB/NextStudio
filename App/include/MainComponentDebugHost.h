@@ -26,6 +26,7 @@ public:
     juce::File captureSnapshot(int maxWidth) const override;
     bool play() override;
     bool stop() override;
+    bool showProjectSaveAs() override;
     tracktion_engine::AudioTrack *createAudioTrack(bool midi, const juce::String &name) override;
     void requestQuit() override;
 

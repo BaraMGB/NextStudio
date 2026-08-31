@@ -30,12 +30,50 @@ bool shouldProceedAfterUnsavedChoice(UnsavedChoice choice, SaveResult saveResult
 
 juce::File withProjectExtension(const juce::File &file)
 {
-    return file.withFileExtension(".tracktionedit");
+    if (file == juce::File())
+        return {};
+
+    const auto baseName = projectNameWithoutExtension(file.getFileNameWithoutExtension());
+    return file.getSiblingFile(baseName + ".tracktionedit");
+}
+
+juce::String projectNameWithoutExtension(const juce::String &name)
+{
+    auto result = name.trim();
+    constexpr auto extension = ".tracktionedit";
+    while (result.endsWithIgnoreCase(extension))
+        result = result.dropLastCharacters(juce::String(extension).length()).trimEnd();
+    return result;
+}
+
+bool isValidProjectName(const juce::String &name)
+{
+    const auto normalised = projectNameWithoutExtension(name);
+    if (normalised.isEmpty() || normalised == "." || normalised == ".."
+        || normalised.endsWithChar('.') || normalised.endsWithChar(' '))
+        return false;
+
+    for (const auto character : normalised)
+        if (character < 32 || juce::String("<>:\"/\\|?*").containsChar(character))
+            return false;
+
+    return true;
 }
 
 bool isPersistentProjectFile(const juce::File &file)
 {
     return file.getFileExtension().equalsIgnoreCase(".tracktionedit");
+}
+
+bool isValidProjectTarget(const juce::File &file)
+{
+    if (file == juce::File() || file.isDirectory() || !isPersistentProjectFile(file)
+        || !isValidProjectName(file.getFileNameWithoutExtension()))
+        return false;
+
+    const auto parent = file.getParentDirectory();
+    return parent.isDirectory() && parent.hasWriteAccess()
+           && (!file.existsAsFile() || file.hasWriteAccess());
 }
 
 bool shouldChooseSaveTarget(const juce::File &currentFile, bool forceSaveAs)
@@ -76,10 +114,10 @@ void ProjectRequestState::clear()
 
 void ProjectRequestState::requestNewProject()
 {
-    request = {ProjectAction::newProject, {}};
+    request = {ProjectAction::newProject, {}, false};
 }
 
-bool ProjectRequestState::requestLoadProject(const juce::File &file)
+bool ProjectRequestState::requestLoadProject(const juce::File &file, bool unsavedChangesHandled)
 {
     if (!file.existsAsFile() || !isPersistentProjectFile(file))
     {
@@ -87,7 +125,7 @@ bool ProjectRequestState::requestLoadProject(const juce::File &file)
         return false;
     }
 
-    request = {ProjectAction::loadProject, file};
+    request = {ProjectAction::loadProject, file, unsavedChangesHandled};
     return true;
 }
 

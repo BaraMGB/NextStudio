@@ -645,41 +645,13 @@ juce::Image GUIHelpers::drawableToImage(const juce::Drawable &drawable, float ta
 
 //--------------------------------------
 
-GUIHelpers::ProjectSaveResult GUIHelpers::saveEdit(EditViewState &evs, const juce::File &workDir, bool forceSaveAs)
+GUIHelpers::ProjectSaveResult GUIHelpers::saveEditToFile(EditViewState &evs, const juce::File &requestedTargetFile)
 {
+    const auto targetFile = ProjectLifecycle::withProjectExtension(requestedTargetFile);
+    if (!ProjectLifecycle::isValidProjectTarget(targetFile))
+        return ProjectSaveResult::failed;
+
     const auto currentFile = evs.m_edit.editFileRetriever ? evs.m_edit.editFileRetriever() : juce::File{};
-    auto targetFile = currentFile;
-
-    if (ProjectLifecycle::shouldChooseSaveTarget(currentFile, forceSaveAs))
-    {
-        juce::WildcardFileFilter wildcardFilter("*.tracktionedit", juce::String(), "Next Studio Project File");
-        const auto chooserStart = forceSaveAs && ProjectLifecycle::isPersistentProjectFile(currentFile) ? currentFile : workDir;
-        juce::FileBrowserComponent browser(juce::FileBrowserComponent::saveMode + juce::FileBrowserComponent::canSelectFiles, chooserStart, &wildcardFilter, nullptr);
-
-        // Overwrite checking is performed below, after the required extension has been added.
-        juce::FileChooserDialogBox dialogBox(forceSaveAs ? "Save project as" : "Save the project", "Please choose a project file to save...", browser, false, browser.getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
-        if (!dialogBox.show())
-            return ProjectSaveResult::cancelled;
-
-        targetFile = ProjectLifecycle::withProjectExtension(browser.getSelectedFile(0));
-        if (targetFile == juce::File() || targetFile.isDirectory())
-            return ProjectSaveResult::failed;
-
-        if (targetFile.existsAsFile())
-        {
-            const auto overwrite = juce::AlertWindow::showOkCancelBox(
-                juce::AlertWindow::WarningIcon,
-                "File already exists",
-                "The project already exists:\n\n" + targetFile.getFullPathName() + "\n\nDo you want to overwrite it?",
-                "Overwrite",
-                "Cancel");
-
-            if (!overwrite)
-                return ProjectSaveResult::cancelled;
-        }
-    }
-
     const auto oldName = evs.m_editName.get();
     const bool isSaveAs = targetFile != currentFile;
 
@@ -695,10 +667,6 @@ GUIHelpers::ProjectSaveResult GUIHelpers::saveEdit(EditViewState &evs, const juc
             EngineHelpers::refreshRelativePathsToNewEditFile(evs, currentFile);
 
         evs.m_editName = oldName;
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon,
-            "Project could not be saved",
-            "NextStudio could not write the project to:\n\n" + targetFile.getFullPathName());
         return ProjectSaveResult::failed;
     }
 

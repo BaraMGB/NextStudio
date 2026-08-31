@@ -56,6 +56,30 @@ namespace NextStudio::Debug
 class MainComponentDebugHost;
 }
 
+class ProjectSaveInteractionBlocker : public juce::Component
+{
+public:
+    ProjectSaveInteractionBlocker()
+    {
+        setName("Project Save As interaction blocker");
+        setInterceptsMouseClicks(true, true);
+        setWantsKeyboardFocus(false);
+    }
+
+    void paint(juce::Graphics &g) override
+    {
+        g.fillAll(juce::Colours::black.withAlpha(0.58f));
+    }
+
+    void mouseDown(const juce::MouseEvent &) override
+    {
+        if (onClickOutside != nullptr)
+            onClickOutside();
+    }
+
+    std::function<void()> onClickOutside;
+};
+
 class EditorContainer : public juce::Component
 {
 public:
@@ -104,9 +128,12 @@ public:
     void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
     void valueTreeChanged() override {}
 
-    void setupEdit(juce::File = {});
+    bool setupEdit(juce::File = {}, bool unsavedChangesHandled = false, juce::String *errorMessage = nullptr);
     bool handleUnsavedEdit();
     GUIHelpers::ProjectSaveResult saveCurrentProject(bool saveAs = false);
+    GUIHelpers::ProjectSaveResult saveCurrentProjectTo(const juce::File &targetFile);
+    void setProjectBrowserWorkingMode(bool enabled);
+    void setProjectSaveAsInteractionBlocked(bool blocked);
     void handleContentPathChangedFromSettings();
 
 private:
@@ -163,15 +190,19 @@ private:
     std::unique_ptr<LowerRangeComponent> m_lowerRange;
     std::unique_ptr<SidebarComponent> m_sideBarBrowser;
     SplitterComponent m_sidebarSplitter;
+    ProjectSaveInteractionBlocker m_projectSaveInteractionBlocker;
     ComputerMidiKeyboardController m_computerMidiKeyboard;
 
     [[maybe_unused]] bool m_settingsLoaded{false};
     bool m_debugMode{false};
+    bool m_projectSaveAsInteractionBlocked{false};
     bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp{true};
 
     SplitterCollapseController m_sidebarSplitterCollapseController;
     int m_sidebarWidthAtMousedown{};
+    int m_sidebarWidthBeforeProjectBrowser{-1};
+    bool m_projectBrowserExpandedSidebar{false};
 
     juce::File m_tempDir;
     juce::TooltipWindow tooltipWindow{this, 500};

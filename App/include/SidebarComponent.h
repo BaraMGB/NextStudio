@@ -48,11 +48,16 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
 
     void resized() override;
+    void mouseDown(const juce::MouseEvent &event) override;
     void buttonClicked(juce::Button *button) override;
 
     void updateParentsListener();
     void refreshBrowsersFromAppState();
     void refreshThemeFromAppState();
+    void beginProjectSaveAs();
+    void dismissProjectSaveAs();
+    void projectWasSaved(const juce::File &file);
+    void showProjectError(const juce::String &message, const juce::File &file = {});
 
 private:
     void showViewForButton(const juce::String &buttonName);

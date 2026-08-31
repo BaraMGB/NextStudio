@@ -67,9 +67,9 @@ SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandM
 
 SidebarComponent::~SidebarComponent()
 {
-
     if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
     {
+        parent->setProjectSaveAsInteractionBlocked(false);
         m_fileListBrowser.removeChangeListener(parent);
         m_projectsBrowser.removeChangeListener(parent);
     }
@@ -127,7 +127,20 @@ void SidebarComponent::paint(juce::Graphics &g)
     else if (m_renderComponent != nullptr)
         GUIHelpers::drawFromSvg(g, BinaryData::renderButton_svg, m_headerColour, iconRect.toFloat());
 }
-void SidebarComponent::paintOverChildren(juce::Graphics &g) { GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(), m_appState.getBorderColour()); }
+void SidebarComponent::paintOverChildren(juce::Graphics &g)
+{
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(), m_appState.getBorderColour());
+
+    if (!m_projectsBrowser.isSaveAsWorkflowActive())
+        return;
+
+    g.setColour(juce::Colours::black.withAlpha(0.58f));
+    g.fillRect(m_menu.getBounds());
+
+    auto shell = getLocalBounds().withLeft(m_menu.getRight());
+    g.fillRect(shell.removeFromTop(CONTENT_HEADER_HEIGHT));
+    g.fillRect(shell.removeFromBottom(CONTENT_HEADER_HEIGHT));
+}
 
 void SidebarComponent::resized()
 {
@@ -200,8 +213,20 @@ void SidebarComponent::resized()
     }
     repaint();
 }
+void SidebarComponent::mouseDown(const juce::MouseEvent &)
+{
+    if (m_projectsBrowser.isSaveAsWorkflowActive())
+        dismissProjectSaveAs();
+}
+
 void SidebarComponent::buttonClicked(juce::Button *button)
 {
+    if (m_projectsBrowser.isSaveAsWorkflowActive())
+    {
+        dismissProjectSaveAs();
+        return;
+    }
+
     const auto buttonName = button->getName();
     const bool shouldCollapse = !m_appState.m_sidebarCollapsed && buttonName == m_activeButtonName;
 
@@ -285,6 +310,42 @@ void SidebarComponent::refreshThemeFromAppState()
 {
     m_settingsView.refreshThemeFromAppState();
     repaint();
+}
+
+void SidebarComponent::beginProjectSaveAs()
+{
+    if (!m_projectsBrowser.isVisible())
+    {
+        setAllVisibleOff();
+        m_activeButtonName = "Projects";
+        m_projectsBrowser.setVisible(true);
+        m_appState.m_sidebarCollapsed = false;
+    }
+    m_projectsBrowser.beginSaveProjectAs();
+    resized();
+}
+
+void SidebarComponent::dismissProjectSaveAs()
+{
+    m_projectsBrowser.dismissSaveProjectAs();
+}
+
+void SidebarComponent::projectWasSaved(const juce::File &file)
+{
+    m_projectsBrowser.projectWasSaved(file);
+}
+
+void SidebarComponent::showProjectError(const juce::String &message, const juce::File &file)
+{
+    if (!m_projectsBrowser.isVisible())
+    {
+        setAllVisibleOff();
+        m_activeButtonName = "Projects";
+        m_projectsBrowser.setVisible(true);
+        m_appState.m_sidebarCollapsed = false;
+    }
+    m_projectsBrowser.showOperationError(message, file);
+    resized();
 }
 
 void SidebarComponent::setAllVisibleOff()

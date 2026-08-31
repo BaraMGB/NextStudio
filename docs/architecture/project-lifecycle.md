@@ -61,11 +61,11 @@ The request has one of three actions:
 
 `MainComponent::changeListenerCallback()` consumes the request with `take()` and posts `setupEdit()` through `MessageManager::callAsync()`.
 
-### Why requests are cleared before opening a chooser
+### Embedded browser requests
 
-The load button calls `m_projectRequest.clear()` before showing the file chooser. If the user cancels, no previous load request can accidentally be replayed by a later change notification.
+The Load button clears `m_projectRequest` before entering the embedded directory browser. Cancelling therefore cannot replay a stale request through a later change notification.
 
-`requestLoadProject()` also rejects files that do not exist or do not have the persistent project extension.
+`requestLoadProject()` rejects files that do not exist or do not have the persistent project extension. Its `unsavedChangesHandled` flag records that the embedded browser has already established a clean edit or obtained an explicit inline discard decision, preventing a duplicate modal prompt in `setupEdit()`.
 
 ## Load validation
 
@@ -88,17 +88,15 @@ Possible statuses are:
 
 ## Unsaved-change decision
 
-Before switching away from an existing edit, `handleUnsavedEdit()` checks `Edit::hasChangedSinceSaved()`.
+Before a browser-originated Load replaces an existing dirty edit, `ProjectsBrowserComponent` shows an inline decision:
 
-The dialog offers:
+- **Save & Open** — save and continue only if saving succeeds;
+- **Discard & Open** — explicitly authorize replacement;
+- **Back** — keep the current project and selection.
 
-- **Yes** — save and continue only if saving succeeds;
-- **No** — discard and continue;
-- **Cancel** — keep the current project and stop the action.
+If Save requires a target, the pending Load survives the embedded Save-As workflow and resumes only after a successful write.
 
-The pure helper `shouldProceedAfterUnsavedChoice()` encodes this decision matrix. A cancelled or failed save never proceeds with project replacement.
-
-The same guard is used when the operating system requests application shutdown.
+`handleUnsavedEdit()` and the pure `shouldProceedAfterUnsavedChoice()` decision matrix remain available for project-replacement paths outside the embedded browser and for shutdown handling. A cancelled or failed save never proceeds with replacement.
 
 ## Safe project replacement
 
@@ -171,20 +169,23 @@ Initial setup should not be user-undoable, so undo history is cleared and the ed
 
 The Projects sidebar exposes **Save** and **Save As**. `Ctrl/Cmd+S` is registered as the normal save command.
 
-`MainComponent::saveCurrentProject(bool saveAs)` delegates to `GUIHelpers::saveEdit()` with the configured projects directory.
+`MainComponent::saveCurrentProject(bool saveAs)` decides whether a target is already available:
 
-A save chooser is required when:
+- an existing persistent `.tracktionedit` path is saved directly;
+- explicit Save As enters the embedded sidebar browser;
+- Save for a new `.nextTemp` edit also enters the embedded Save-As browser.
 
-- Save As is explicitly requested; or
-- the current edit file is not a persistent `.tracktionedit` file, which includes a new project currently backed by `.nextTemp`.
+Selection and execution are separated. `ProjectsBrowserComponent` owns directory navigation, filename validation, and inline overwrite confirmation. `MainComponent::saveCurrentProjectTo()` delegates the confirmed path to `GUIHelpers::saveEditToFile()`, which never creates a file dialog.
+
+Save As is modal in behavior without a JUCE modal loop: the main content is dimmed and mouse/command input is blocked, while the sidebar splitter remains usable. Clicking outside Save As cancels it and removes the blocker. Load does not use this blocker.
 
 On success:
 
 1. `EditComponent::projectSaved()` stops/invalidates autosave work and removes recovery snapshots;
 2. the window title is updated from the persistent project filename;
-3. sidebar browsers are refreshed so the saved project appears.
+3. the project is added to the normal Projects list when it belongs to the configured project root.
 
-Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper.
+Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper. Save failures are displayed inline with the affected path.
 
 ## Autosave
 
@@ -255,7 +256,7 @@ The GUI orchestration, Tracktion edit construction, and asynchronous autosave wo
 
 Contributors changing project handling should preserve these invariants:
 
-1. Cancelling a chooser never changes the current project.
+1. Cancelling the embedded browser never changes the current project.
 2. Invalid input never destroys the current project.
 3. Cancelling or failing an unsaved-project save never proceeds.
 4. The replacement edit is constructed before the current edit is destroyed.
@@ -265,6 +266,8 @@ Contributors changing project handling should preserve these invariants:
 8. A normal successful save removes obsolete recovery files.
 9. View/setup bookkeeping does not pollute initial undo history.
 10. Clean shutdown removes temporary recovery data; crashes leave recoverable data.
+11. Project Load and Save As do not create a top-level file chooser or enter a modal loop.
+12. Save As blocks the rest of the main UI while preserving splitter resizing and outside-click cancellation.
 
 ## Related documents
 

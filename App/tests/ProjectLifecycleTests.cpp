@@ -61,6 +61,16 @@ void testProjectExtensionHandling()
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.txt")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.tracktionedit")).getFileName(), juce::String("Song.tracktionedit"));
+    REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.tracktionedit.tracktionedit")).getFileName(), juce::String("Song.tracktionedit"));
+    REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.TRACKTIONEDIT")).getFileName(), juce::String("Song.tracktionedit"));
+    REQUIRE_EQ(projectNameWithoutExtension(" Song.tracktionedit.TRACKTIONEDIT "), juce::String("Song"));
+    REQUIRE(isValidProjectName("Song"));
+    REQUIRE(isValidProjectName("My Song.tracktionedit"));
+    REQUIRE(!isValidProjectName(""));
+    REQUIRE(!isValidProjectName("  "));
+    REQUIRE(!isValidProjectName("../Song"));
+    REQUIRE(!isValidProjectName("Song?"));
+    REQUIRE(!isValidProjectName("Song."));
     const auto persistentProject = root.getChildFile("Song.TRACKTIONEDIT");
     const auto temporaryProject = root.getChildFile("Song.nextTemp");
     REQUIRE(isPersistentProjectFile(persistentProject));
@@ -68,6 +78,12 @@ void testProjectExtensionHandling()
     REQUIRE(!shouldChooseSaveTarget(persistentProject, false));
     REQUIRE(shouldChooseSaveTarget(persistentProject, true));
     REQUIRE(shouldChooseSaveTarget(temporaryProject, false));
+
+    ScopedTestDirectory testDirectory;
+    const auto validTarget = withProjectExtension(testDirectory.file("New Song"));
+    REQUIRE(isValidProjectTarget(validTarget));
+    REQUIRE(!isValidProjectTarget(testDirectory.file("New Song.txt")));
+    REQUIRE(!isValidProjectTarget(testDirectory.file("Bad?.tracktionedit")));
 }
 
 void testProjectRequestState()
@@ -84,9 +100,10 @@ void testProjectRequestState()
     REQUIRE_EQ(state.take().action, ProjectAction::newProject);
     REQUIRE_EQ(state.peek().action, ProjectAction::none);
 
-    REQUIRE(state.requestLoadProject(project));
+    REQUIRE(state.requestLoadProject(project, true));
     REQUIRE_EQ(state.peek().action, ProjectAction::loadProject);
     REQUIRE_EQ(state.peek().file, project);
+    REQUIRE(state.peek().unsavedChangesHandled);
 
     // This is the chooser-cancel path: clearing must remove a previously selected target.
     state.clear();

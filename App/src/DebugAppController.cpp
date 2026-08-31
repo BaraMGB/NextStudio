@@ -92,6 +92,8 @@ Result DebugAppController::execute(const Command &command)
         return handleStop();
     case CommandType::screenshot:
         return handleScreenshot(command);
+    case CommandType::projectSaveAs:
+        return handleProjectSaveAs();
     case CommandType::ensureTrack:
         return handleEnsureTrack(command);
     case CommandType::selectTrack:
@@ -114,7 +116,7 @@ Result DebugAppController::execute(const Command &command)
 Result DebugAppController::handleHelp() const
 {
     auto result = Result::success();
-    result.fields.set("commands", "help ping system-state transport-state state-dump play stop screenshot ensure-track select-track ensure-midi-clip ensure-midi-note set-plugin-parameter quit");
+    result.fields.set("commands", "help ping system-state transport-state state-dump play stop screenshot project-save-as ensure-track select-track ensure-midi-clip ensure-midi-note set-plugin-parameter quit");
     return result;
 }
 
@@ -229,6 +231,16 @@ Result DebugAppController::handleScreenshot(const Command &command) const
 
     auto result = Result::success();
     result.fields.set("path", file.getFullPathName());
+    return result;
+}
+
+Result DebugAppController::handleProjectSaveAs() const
+{
+    if (!m_debugHost.showProjectSaveAs())
+        return Result::failure("not-ready", "Project browser is unavailable");
+
+    auto result = Result::success();
+    result.fields.set("projectBrowserMode", "saveProjectAs");
     return result;
 }
 

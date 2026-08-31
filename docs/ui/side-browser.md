@@ -8,10 +8,20 @@ The Side Browser is the vertical panel on the left side of the main window. It p
 
 ### Projects
 
-- Lists project files (`.tracktionedit`) in the project directory.
-- **Buttons:** New (create project), Load (open file chooser), Save (save current project).
-- Sort and search functions.
-- Double-click a file to load it.
+The normal view lists `.tracktionedit` files under the configured Projects directory and provides:
+
+- **New** — create a project;
+- **Load** — replace the normal list with an embedded folder/project browser;
+- **Save** — write directly to an existing persistent path, or enter Save As for a new project;
+- **Save As** — choose a directory and name inside the sidebar;
+- sorting and search;
+- double-click loading from the normal project list.
+
+Load remains non-modal. Save As dims and blocks the rest of the main window while its sidebar controls remain active. The sidebar splitter stays usable so the browser can be widened. Clicking outside Save As, pressing `Escape`, or pressing **Cancel** closes it without changing the project.
+
+Existing targets require an inline **Overwrite** confirmation. Invalid names, unreadable projects, unavailable paths, and write failures are reported inside the Projects sidebar rather than in a project-specific alert window.
+
+See [Embedded Project File Browser and Save-As Interaction Boundary](../changes/embedded-project-file-browser.md) for the complete behavior and implementation.
 
 ### Instruments
 

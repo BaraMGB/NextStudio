@@ -44,7 +44,7 @@ public:
     void resized() override;
 
     void setDir(juce::File file);
-    juce::File getCurrentPath();
+    juce::File getCurrentPath() const;
 
 private:
     juce::TextEditor m_currentPathField;

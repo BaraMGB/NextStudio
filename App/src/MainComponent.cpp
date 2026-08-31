@@ -92,6 +92,12 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
         ensureUserDirectoriesAndSamples();
 
     addAndMakeVisible(m_sidebarSplitter);
+    addChildComponent(m_projectSaveInteractionBlocker);
+    m_projectSaveInteractionBlocker.onClickOutside = [this]
+    {
+        if (m_sideBarBrowser)
+            m_sideBarBrowser->dismissProjectSaveAs();
+    };
     m_sidebarSplitter.onMouseDown = [this]() { handleSidebarSplitterMouseDown(); };
     m_sidebarSplitter.onDrag = [this](int dragDistance) { handleSidebarSplitterDrag(dragDistance); };
 
@@ -193,6 +199,18 @@ void MainComponent::handleSidebarSplitterMouseDown()
 void MainComponent::handleSidebarSplitterDrag(int dragDistance)
 {
     const bool collapsed = m_applicationState.m_sidebarCollapsed;
+
+    if (m_projectSaveAsInteractionBlocked)
+    {
+        const auto resizedWidth = SidebarLayout::getResizedWidth(m_sidebarWidthAtMousedown, dragDistance);
+        if (resizedWidth != (int)m_applicationState.m_sidebarWidth)
+        {
+            m_applicationState.m_sidebarWidth = resizedWidth;
+            resized();
+        }
+        return;
+    }
+
     const bool requestedCollapsed = m_sidebarSplitterCollapseController.getCollapsedState(-dragDistance, collapsed);
 
     if (requestedCollapsed != collapsed)
@@ -237,6 +255,14 @@ void MainComponent::resized()
     m_sidebarSplitter.setBounds(area.removeFromLeft(10));
     m_editorContainer->setBounds(area);
     m_lowerRange->setBounds(lowerRange);
+
+    m_projectSaveInteractionBlocker.setBounds(getLocalBounds());
+    if (m_projectSaveAsInteractionBlocked)
+    {
+        m_projectSaveInteractionBlocker.toFront(false);
+        m_sidebarSplitter.toFront(false);
+        m_sideBarBrowser->toFront(false);
+    }
 }
 
 void MainComponent::getAllCommands(juce::Array<juce::CommandID> &commands)
@@ -324,6 +350,9 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 
 bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
+    if (m_projectSaveAsInteractionBlocked)
+        return false;
+
     NS_LOG_DEBUG(workflow, "command invoked: id=" + juce::String(static_cast<int>(info.commandID)));
     switch (info.commandID)
     {
@@ -442,11 +471,17 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
         juce::Component::SafePointer<MainComponent> safeThis(this);
         if (request.action == ProjectLifecycle::ProjectAction::loadProject)
         {
+            juce::Component::SafePointer<ProjectsBrowserComponent> safeProjectBrowser(dynamic_cast<ProjectsBrowserComponent *>(browser));
             juce::MessageManager::callAsync(
-                [safeThis, editFile = request.file]
+                [safeThis, safeProjectBrowser, editFile = request.file, unsavedChangesHandled = request.unsavedChangesHandled]
                 {
-                    if (safeThis != nullptr)
-                        safeThis->setupEdit(editFile);
+                    if (safeThis == nullptr)
+                        return;
+
+                    juce::String errorMessage;
+                    const bool loaded = safeThis->setupEdit(editFile, unsavedChangesHandled, &errorMessage);
+                    if (!loaded && safeProjectBrowser != nullptr)
+                        safeProjectBrowser->completeLoadOperation(false, errorMessage);
                 });
         }
         else if (request.action == ProjectLifecycle::ProjectAction::newProject)
@@ -568,8 +603,15 @@ void MainComponent::handleContentPathChangedFromSettings()
     resized();
 }
 
-void MainComponent::setupEdit(juce::File editFile)
+bool MainComponent::setupEdit(juce::File editFile, bool unsavedChangesHandled, juce::String *errorMessage)
 {
+    const auto fail = [errorMessage](const juce::String &message)
+    {
+        if (errorMessage != nullptr)
+            *errorMessage = message;
+        NS_LOG_ERROR(project, message);
+        return false;
+    };
     m_tempDir.createDirectory();
 
     const bool isNewEdit = (editFile == juce::File());
@@ -599,13 +641,12 @@ void MainComponent::setupEdit(juce::File editFile)
                 break;
             }
 
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Project could not be loaded", reason + "\n\n" + editFile.getFullPathName());
-            return;
+            return fail(reason + "\n" + editFile.getFullPathName());
         }
     }
 
-    if (m_edit && !handleUnsavedEdit())
-        return;
+    if (m_edit && !unsavedChangesHandled && !handleUnsavedEdit())
+        return fail("Opening the project was cancelled because the current project has unsaved changes.");
 
     if (isNewEdit)
         editFile = m_tempDir.getNonexistentChildFile("autosave", ".nextTemp", false);
@@ -622,10 +663,11 @@ void MainComponent::setupEdit(juce::File editFile)
     }
 
     if (!replacementEdit)
-    {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Project could not be loaded", "NextStudio could not read the selected project:\n\n" + editFile.getFullPathName());
-        return;
-    }
+        return fail("NextStudio could not read the selected project.\n" + editFile.getFullPathName());
+
+    // Restore a temporarily enlarged sidebar before its old component hierarchy is replaced.
+    if (m_projectBrowserExpandedSidebar)
+        setProjectBrowserWorkingMode(false);
 
     m_selectionManager.deselectAll();
 
@@ -707,6 +749,7 @@ void MainComponent::setupEdit(juce::File editFile)
     // Startup housekeeping should not appear in the user's undo history.
     m_edit->getUndoManager().clearUndoHistory();
     m_edit->resetChangedStatus();
+    return true;
 }
 
 void MainComponent::saveSettings()
@@ -724,21 +767,92 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs)
     if (!m_editViewState)
         return GUIHelpers::ProjectSaveResult::failed;
 
-    const auto result = GUIHelpers::saveEdit(*m_editViewState, juce::File(m_applicationState.m_projectsDir.get()), saveAs);
-    if (result == GUIHelpers::ProjectSaveResult::saved)
+    const auto currentFile = m_edit->editFileRetriever ? m_edit->editFileRetriever() : juce::File{};
+    if (ProjectLifecycle::shouldChooseSaveTarget(currentFile, saveAs))
     {
-        if (m_editComponent)
-            m_editComponent->projectSaved();
-
-        const auto projectFile = m_edit->editFileRetriever ? m_edit->editFileRetriever() : juce::File{};
-        if (auto *w = dynamic_cast<juce::DocumentWindow *>(getParentComponent()))
-            w->setName(projectFile.getFileNameWithoutExtension());
-
         if (m_sideBarBrowser)
-            m_sideBarBrowser->refreshBrowsersFromAppState();
+            m_sideBarBrowser->beginProjectSaveAs();
+        return GUIHelpers::ProjectSaveResult::cancelled;
     }
 
+    const auto result = saveCurrentProjectTo(currentFile);
+    if (result == GUIHelpers::ProjectSaveResult::failed && m_sideBarBrowser)
+        m_sideBarBrowser->showProjectError("NextStudio could not save the project.", currentFile);
     return result;
+}
+
+GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::File &targetFile)
+{
+    if (!m_editViewState)
+        return GUIHelpers::ProjectSaveResult::failed;
+
+    const auto result = GUIHelpers::saveEditToFile(*m_editViewState, targetFile);
+    if (result != GUIHelpers::ProjectSaveResult::saved)
+        return result;
+
+    if (m_editComponent)
+        m_editComponent->projectSaved();
+
+    const auto projectFile = m_edit->editFileRetriever ? m_edit->editFileRetriever() : juce::File{};
+    if (auto *window = dynamic_cast<juce::DocumentWindow *>(getParentComponent()))
+        window->setName(projectFile.getFileNameWithoutExtension());
+
+    if (m_sideBarBrowser)
+        m_sideBarBrowser->projectWasSaved(projectFile);
+    return result;
+}
+
+void MainComponent::setProjectSaveAsInteractionBlocked(bool blocked)
+{
+    if (m_projectSaveAsInteractionBlocked == blocked)
+        return;
+
+    m_projectSaveAsInteractionBlocked = blocked;
+    if (blocked)
+        m_computerMidiKeyboard.detachFrom(*this);
+    else
+        m_computerMidiKeyboard.attachTo(*this);
+
+    m_projectSaveInteractionBlocker.setVisible(blocked);
+    if (blocked)
+    {
+        m_projectSaveInteractionBlocker.setBounds(getLocalBounds());
+        m_projectSaveInteractionBlocker.toFront(false);
+        m_sidebarSplitter.toFront(false);
+        if (m_sideBarBrowser)
+            m_sideBarBrowser->toFront(false);
+    }
+
+    if (m_sideBarBrowser)
+        m_sideBarBrowser->repaint();
+}
+
+void MainComponent::setProjectBrowserWorkingMode(bool enabled)
+{
+    constexpr int workingWidth = SidebarLayout::defaultExpandedWidth;
+    if (enabled)
+    {
+        if (m_projectBrowserExpandedSidebar)
+            return;
+        m_sidebarWidthBeforeProjectBrowser = getPreferredSidebarWidth();
+        if (m_sidebarWidthBeforeProjectBrowser < workingWidth)
+        {
+            m_applicationState.m_sidebarWidth = workingWidth;
+            m_projectBrowserExpandedSidebar = true;
+            resized();
+        }
+        return;
+    }
+
+    if (!m_projectBrowserExpandedSidebar)
+        return;
+
+    // Restore only if the user has not resized the sidebar during the operation.
+    if ((int)m_applicationState.m_sidebarWidth == workingWidth && m_sidebarWidthBeforeProjectBrowser > 0)
+        m_applicationState.m_sidebarWidth = m_sidebarWidthBeforeProjectBrowser;
+    m_projectBrowserExpandedSidebar = false;
+    m_sidebarWidthBeforeProjectBrowser = -1;
+    resized();
 }
 
 bool MainComponent::handleUnsavedEdit()

@@ -66,7 +66,7 @@ void PathComponent::setDir(juce::File file)
     sendChangeMessage();
 }
 
-juce::File PathComponent::getCurrentPath() { return m_currentPath; }
+juce::File PathComponent::getCurrentPath() const { return m_currentPath; }
 
 // ----------------------------------------------------------------------------------------------------
 //
@@ -75,8 +75,10 @@ juce::File PathComponent::getCurrentPath() { return m_currentPath; }
 
 juce::File BrowserListBox::getSelectedFile()
 {
-    auto row = getSelectedRows()[0];
-    return m_browser.getContentList()[row];
+    const auto row = getSelectedRow();
+    return juce::isPositiveAndBelow(row, m_browser.getContentList().size())
+             ? m_browser.getContentList()[row]
+             : juce::File{};
 }
 BrowserBaseComponent::BrowserBaseComponent(ApplicationViewState &appState)
     : m_applicationViewState(appState),

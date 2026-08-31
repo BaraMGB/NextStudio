@@ -270,6 +270,7 @@ It simply wraps the existing NextStudio debug shell and forwards command lines i
 - `play`
 - `stop`
 - `screenshot`
+- `project-save-as`
 - `ensure-track`
 - `select-track`
 - `ensure-midi-clip`
@@ -454,6 +455,7 @@ Diagnostic and transport commands support the legacy command-name form. Except f
 | `play` | none | `playing` | `not-ready`, `invalid-argument` | — |
 | `stop` | none | `playing` | `not-ready`, `invalid-argument` | — |
 | `screenshot` | optional integer `maxWidth` from `1` to `8192`; default `640` | `path` | `invalid-argument`, `io-error` | — |
+| `project-save-as` | none | `projectBrowserMode` | `not-ready`, `invalid-argument` | — |
 | `quit` | none | `quitting` | `invalid-argument` | `exit` |
 
 Editing requests use a JSON request object so names and numeric values do not need a second custom escaping grammar:

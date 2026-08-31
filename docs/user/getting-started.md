@@ -143,8 +143,10 @@ A new project starts with a temporary recovery file and the window title `Untitl
 
 Use either:
 
-- **Load** in the Projects sidebar and choose a `.tracktionedit` file; or
+- **Load** in the Projects sidebar and choose a `.tracktionedit` file in the embedded browser; or
 - double-click a project in the project list.
+
+Load does not open another window and does not block the rest of NextStudio. Folders and supported project files are shown directly in the sidebar.
 
 Before loading, NextStudio validates that the file:
 
@@ -162,21 +164,19 @@ Use **Save** in the Projects sidebar or:
 - Windows/Linux: `Ctrl+S`;
 - macOS: `Command+S`.
 
-A project that has never been persistently saved opens a file chooser. Saved projects use the existing path.
+A project that has never been persistently saved enters Save As in the Projects sidebar. Saved projects use the existing path directly.
 
 ### Save As
 
-Use **Save As** to select a new target while preserving the original project file. The project browser refreshes after a successful save.
+Use **Save As** to select a folder and new project name while preserving the original project file. `.tracktionedit` is added automatically. Existing files require inline overwrite confirmation.
+
+While Save As is active, the rest of the main window is dimmed and blocked. The sidebar splitter remains usable for widening the browser. Click outside Save As, press `Escape`, or press **Cancel** to close it without changing the project.
 
 ### Unsaved changes
 
-When creating/loading another project or quitting, NextStudio may show:
+When loading another project with unsaved changes, the Projects sidebar offers **Save & Open**, **Discard & Open**, and **Back**. A pending load continues only after a successful save.
 
-- **Yes** — save, then continue only if saving succeeds;
-- **No** — discard changes and continue;
-- **Cancel** — keep the current project and stop the action.
-
-Cancelling a Save dialog also stops the pending project switch or quit.
+Other replacement or shutdown paths may show the corresponding save, discard, and cancel decision. Cancelling Save As also stops a pending project switch.
 
 ## Autosave and crash recovery
 

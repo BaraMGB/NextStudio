@@ -33,6 +33,7 @@ public:
     virtual juce::File captureSnapshot(int maxWidth) const = 0;
     virtual bool play() = 0;
     virtual bool stop() = 0;
+    virtual bool showProjectSaveAs() { return false; }
     virtual tracktion_engine::AudioTrack *createAudioTrack(bool midi, const juce::String &name) = 0;
     virtual void requestQuit() = 0;
 };

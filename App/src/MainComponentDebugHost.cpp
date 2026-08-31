@@ -68,6 +68,15 @@ bool MainComponentDebugHost::stop()
     return true;
 }
 
+bool MainComponentDebugHost::showProjectSaveAs()
+{
+    if (m_mainComponent.m_sideBarBrowser == nullptr)
+        return false;
+    m_mainComponent.m_sideBarBrowser->beginProjectSaveAs();
+    m_mainComponent.resized();
+    return true;
+}
+
 te::AudioTrack *MainComponentDebugHost::createAudioTrack(bool midi, const juce::String &name)
 {
     if (m_mainComponent.m_editViewState == nullptr)

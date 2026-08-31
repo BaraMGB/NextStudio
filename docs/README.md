@@ -66,6 +66,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
 - [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
+- [Embedded project file browser](changes/embedded-project-file-browser.md) — inline Load and Save As, Save-As interaction blocking, splitter exception, outside-click dismissal, validation, state transitions, and debug-shell coverage.
 
 ## Documentation conventions
 
