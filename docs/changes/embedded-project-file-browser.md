@@ -17,7 +17,7 @@ This avoids the Linux/X11 failure mode in which a modal `FileChooserDialogBox` c
 |---|---|
 | Embedded project-browser modes and controls | `App/include/ProjectsBrowser.h`, `App/src/ProjectsBrowser.cpp` |
 | Sidebar placement, shell dimming, and outside-click dismissal | `App/include/SidebarComponent.h`, `App/src/SidebarComponent.cpp` |
-| Main-window interaction blocker and splitter exception | `App/include/MainComponent.h`, `App/src/MainComponent.cpp` |
+| Project workflow interaction/engine lock and splitter exception | `App/include/MainComponent.h`, `App/src/MainComponent.cpp` |
 | Project request and file-validation helpers | `App/include/ProjectLifecycle.h`, `App/src/ProjectLifecycle.cpp` |
 | Explicit save-to-file operation | `App/include/Utilities.h`, `App/src/Utilities.cpp` |
 | Persisted Load and Save directories | `App/include/ApplicationViewState.h` |
@@ -123,17 +123,18 @@ The `.tracktionedit` extension is added automatically. Entering the extension ma
 
 Save As is modal in behavior without using `runModalLoop()`, `enterModalState()`, or a top-level modal window.
 
-While Save As, its overwrite confirmation, or a Save-As error is active:
+While Save As, its overwrite confirmation, a Save-As error, or a committed project replacement is active:
 
-- `ProjectSaveInteractionBlocker` covers the main component;
-- the blocker paints a translucent black layer;
-- mouse events over the arrangement, transport, lower range, and other main content are intercepted;
-- global application commands are rejected by `MainComponent::perform()`;
-- the computer-MIDI keyboard controller is detached from the main window and held notes are released;
-- sidebar section buttons and the sidebar header/footer are dimmed and do not switch views;
-- the embedded Save-As content remains above the blocker and fully usable.
+- `ProjectWorkflowOverlay` paints a translucent black layer and consumes covered mouse input;
+- `EditorContainer` and `LowerRangeComponent` are disabled recursively;
+- all registered `PluginWindow` instances are disabled;
+- application commands are marked inactive;
+- computer-MIDI keyboard listeners are detached from the main and plugin windows;
+- the transport is stopped, MIDI panic is sent, and the edit playback context is freed;
+- sidebar section commands are rejected while the interaction lock is active;
+- the embedded workflow content remains above the overlay and fully usable.
 
-This is an interaction lock, not a JUCE modal loop. The message thread continues normally.
+The overlay is visual feedback and a click catcher, not the enforcement boundary. Disabled component trees, plugin-window registration, command state, MIDI detachment, and playback-context suspension enforce the lock. The message thread continues normally.
 
 ### Splitter exception
 
@@ -142,7 +143,7 @@ The sidebar splitter is brought above the blocker between the blocker and the si
 ```text
 Projects sidebar
 Sidebar splitter
-Save-As interaction blocker
+Project workflow overlay
 Arrangement and lower-range content
 ```
 
@@ -154,11 +155,11 @@ If the browser temporarily enlarged a narrow sidebar, the previous width is rest
 
 ### Click-outside dismissal
 
-A mouse press outside the embedded Save-As content cancels Save As and immediately removes the blocker.
+A mouse press outside the embedded Save-As content cancels Save As and immediately removes the lock. Saving and committed replacement states cannot be cancelled this way.
 
 The dismissal paths are:
 
-- a click on `ProjectSaveInteractionBlocker` in the main content;
+- a click on `ProjectWorkflowOverlay` in the main content;
 - a click on a dimmed sidebar section button;
 - a click on the sidebar shell outside the project content;
 - the explicit **Cancel** button;
@@ -183,23 +184,23 @@ No alert window is created. **Back** returns to Save As with the directory and n
 
 The Save-As blocker remains active throughout confirmation.
 
-## Unsaved changes before Load
+## Unsaved changes before replacement
 
-Load preserves the existing data-loss guard, but browser-originated requests avoid opening a second modal prompt.
+Load, New Project, drag-and-drop project opening, Home-browser opening, and Quit share the same inline data-loss guard.
 
-When a load target is selected while the current edit is dirty, the sidebar shows an inline choice:
+When the current edit is dirty, the sidebar shows:
 
-- **Save & Open**;
-- **Discard & Open**;
+- **Save & Continue**;
+- **Discard & Continue**;
 - **Back**.
 
-If the current edit has no persistent path, **Save & Open** temporarily enters Save As while retaining the pending load target. After a successful save, loading continues. Cancelling or failing Save As keeps the current edit active.
+`ProjectWorkflow::Controller` retains a typed pending operation. If the current edit has no persistent path, Save and Continue enters Save As without losing that intent. A successful save transitions to `committing` and continues the operation. Cancellation clears it.
 
-`ProjectRequest::unsavedChangesHandled` tells `MainComponent` that the browser has already established a clean edit or obtained an explicit discard decision. This prevents `setupEdit()` from opening the legacy unsaved-project dialog for the same browser request.
+There is no boolean unsaved-decision snapshot. The editor and engine are locked before an operation is posted asynchronously, so the decision cannot become stale before `setupEdit()` replaces the edit.
 
 ## Browser state model
 
-`ProjectsBrowserComponent::Mode` defines these states:
+`ProjectWorkflow::State` defines these states:
 
 | Mode | Purpose |
 |---|---|
@@ -207,8 +208,10 @@ If the current edit has no persistent path, **Save & Open** temporarily enters S
 | `loadProject` | Embedded directory navigation and load selection |
 | `saveProjectAs` | Embedded directory navigation and project-name entry |
 | `confirmOverwrite` | Inline authorization to replace an existing target |
+| `saving` | Locked direct-save execution |
+| `committing` | Locked execution of New, Load, or Quit |
 | `operationError` | Inline load/save failure with path and return action |
-| `confirmUnsavedChanges` | Inline save/discard/back decision before loading |
+| `confirmUnsavedChanges` | Inline save/discard/back decision before a pending operation |
 
 The principal transitions are:
 
@@ -225,8 +228,8 @@ loadProject
 
 confirmUnsavedChanges
   ├─ Back ───────────────→ loadProject
-  ├─ Discard & Open ─────→ load request
-  └─ Save & Open ────────→ direct Save or saveProjectAs
+  ├─ Discard & Continue ─→ committing pending operation
+  └─ Save & Continue ────→ direct Save or saveProjectAs
 
 saveProjectAs
   ├─ outside click / Cancel / Escape → normal
@@ -361,7 +364,7 @@ Correctable state is retained. Returning from an error restores the originating 
 - `Enter` invokes the currently valid primary action: Open, Save, or Overwrite.
 - `Escape` cancels the active embedded mode.
 - The text editor owns text-editing keys, so Backspace does not trigger folder navigation.
-- The Save-As interaction blocker rejects global commands while active.
+- The workflow lock marks global commands inactive and disables editor/plugin component trees while active.
 - The computer-MIDI keyboard listener is detached from the main window during Save As so typing a project name cannot trigger performance notes.
 - Closing Save As reattaches the listener.
 
@@ -433,7 +436,7 @@ Future changes should preserve these rules:
 8. Save-target normalization occurs before existence checking.
 9. A failed Save As restores the previous edit name, edit path context, and relative paths.
 10. A failed load never destroys the current edit.
-11. Browser-originated unsaved-change decisions are not followed by a second modal prompt.
+11. New, Load, drag-and-drop, Home-browser Load, and Quit share one typed inline unsaved-change workflow.
 12. Direct Save to an existing persistent path does not open Save As.
 
 ## Related documents

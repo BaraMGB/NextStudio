@@ -63,6 +63,9 @@ void testProjectExtensionHandling()
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.tracktionedit")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.tracktionedit.tracktionedit")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.TRACKTIONEDIT")).getFileName(), juce::String("Song.tracktionedit"));
+    const auto upperCaseProject = root.getChildFile("Song.TRACKTIONEDIT");
+    REQUIRE_EQ(normaliseSaveTarget(upperCaseProject, upperCaseProject), upperCaseProject);
+    REQUIRE_EQ(normaliseSaveTarget(root.getChildFile("New Song"), upperCaseProject).getFileName(), juce::String("New Song.tracktionedit"));
     REQUIRE_EQ(projectNameWithoutExtension(" Song.tracktionedit.TRACKTIONEDIT "), juce::String("Song"));
     REQUIRE(isValidProjectName("Song"));
     REQUIRE(isValidProjectName("My Song.tracktionedit"));
@@ -100,10 +103,9 @@ void testProjectRequestState()
     REQUIRE_EQ(state.take().action, ProjectAction::newProject);
     REQUIRE_EQ(state.peek().action, ProjectAction::none);
 
-    REQUIRE(state.requestLoadProject(project, true));
+    REQUIRE(state.requestLoadProject(project));
     REQUIRE_EQ(state.peek().action, ProjectAction::loadProject);
     REQUIRE_EQ(state.peek().file, project);
-    REQUIRE(state.peek().unsavedChangesHandled);
 
     // This is the chooser-cancel path: clearing must remove a previously selected target.
     state.clear();

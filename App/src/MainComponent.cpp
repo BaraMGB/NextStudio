@@ -92,8 +92,8 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
         ensureUserDirectoriesAndSamples();
 
     addAndMakeVisible(m_sidebarSplitter);
-    addChildComponent(m_projectSaveInteractionBlocker);
-    m_projectSaveInteractionBlocker.onClickOutside = [this]
+    addChildComponent(m_projectWorkflowOverlay);
+    m_projectWorkflowOverlay.onClickOutside = [this]
     {
         if (m_sideBarBrowser)
             m_sideBarBrowser->dismissProjectSaveAs();
@@ -134,6 +134,7 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
 
 MainComponent::~MainComponent()
 {
+    setProjectWorkflowActive(false, false);
     m_computerMidiKeyboard.setKeyboardState(nullptr);
 
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
@@ -200,7 +201,7 @@ void MainComponent::handleSidebarSplitterDrag(int dragDistance)
 {
     const bool collapsed = m_applicationState.m_sidebarCollapsed;
 
-    if (m_projectSaveAsInteractionBlocked)
+    if (m_projectWorkflowActive)
     {
         const auto resizedWidth = SidebarLayout::getResizedWidth(m_sidebarWidthAtMousedown, dragDistance);
         if (resizedWidth != (int)m_applicationState.m_sidebarWidth)
@@ -256,10 +257,10 @@ void MainComponent::resized()
     m_editorContainer->setBounds(area);
     m_lowerRange->setBounds(lowerRange);
 
-    m_projectSaveInteractionBlocker.setBounds(getLocalBounds());
-    if (m_projectSaveAsInteractionBlocked)
+    m_projectWorkflowOverlay.setBounds(getLocalBounds());
+    if (m_projectWorkflowActive)
     {
-        m_projectSaveInteractionBlocker.toFront(false);
+        m_projectWorkflowOverlay.toFront(false);
         m_sidebarSplitter.toFront(false);
         m_sideBarBrowser->toFront(false);
     }
@@ -346,11 +347,14 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
     default:
         break;
     }
+
+    if (m_projectWorkflowActive)
+        result.setActive(false);
 }
 
 bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
-    if (m_projectSaveAsInteractionBlocked)
+    if (m_projectWorkflowActive)
         return false;
 
     NS_LOG_DEBUG(workflow, "command invoked: id=" + juce::String(static_cast<int>(info.commandID)));
@@ -467,32 +471,10 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
     if (auto *browser = dynamic_cast<BrowserBaseComponent *>(source))
     {
         const auto request = browser->m_projectRequest.take();
-
-        juce::Component::SafePointer<MainComponent> safeThis(this);
         if (request.action == ProjectLifecycle::ProjectAction::loadProject)
-        {
-            juce::Component::SafePointer<ProjectsBrowserComponent> safeProjectBrowser(dynamic_cast<ProjectsBrowserComponent *>(browser));
-            juce::MessageManager::callAsync(
-                [safeThis, safeProjectBrowser, editFile = request.file, unsavedChangesHandled = request.unsavedChangesHandled]
-                {
-                    if (safeThis == nullptr)
-                        return;
-
-                    juce::String errorMessage;
-                    const bool loaded = safeThis->setupEdit(editFile, unsavedChangesHandled, &errorMessage);
-                    if (!loaded && safeProjectBrowser != nullptr)
-                        safeProjectBrowser->completeLoadOperation(false, errorMessage);
-                });
-        }
+            requestProjectOperation({ProjectWorkflow::OperationType::load, request.file});
         else if (request.action == ProjectLifecycle::ProjectAction::newProject)
-        {
-            juce::MessageManager::callAsync(
-                [safeThis]
-                {
-                    if (safeThis != nullptr)
-                        safeThis->setupEdit(juce::File());
-                });
-        }
+            requestProjectOperation({ProjectWorkflow::OperationType::createNew, {}});
     }
 
     if (source == &m_selectionManager && m_editViewState)
@@ -603,7 +585,7 @@ void MainComponent::handleContentPathChangedFromSettings()
     resized();
 }
 
-bool MainComponent::setupEdit(juce::File editFile, bool unsavedChangesHandled, juce::String *errorMessage)
+bool MainComponent::setupEdit(juce::File editFile, juce::String *errorMessage)
 {
     const auto fail = [errorMessage](const juce::String &message)
     {
@@ -645,9 +627,6 @@ bool MainComponent::setupEdit(juce::File editFile, bool unsavedChangesHandled, j
         }
     }
 
-    if (m_edit && !unsavedChangesHandled && !handleUnsavedEdit())
-        return fail("Opening the project was cancelled because the current project has unsaved changes.");
-
     if (isNewEdit)
         editFile = m_tempDir.getNonexistentChildFile("autosave", ".nextTemp", false);
 
@@ -665,9 +644,10 @@ bool MainComponent::setupEdit(juce::File editFile, bool unsavedChangesHandled, j
     if (!replacementEdit)
         return fail("NextStudio could not read the selected project.\n" + editFile.getFullPathName());
 
-    // Restore a temporarily enlarged sidebar before its old component hierarchy is replaced.
+    // Restore workflow-owned UI and engine state before replacing the old hierarchy.
     if (m_projectBrowserExpandedSidebar)
         setProjectBrowserWorkingMode(false);
+    setProjectWorkflowActive(false, false);
 
     m_selectionManager.deselectAll();
 
@@ -762,7 +742,7 @@ void MainComponent::saveSettings()
     m_applicationState.saveState();
 }
 
-GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs)
+GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs, bool preservePendingOperation)
 {
     if (!m_editViewState)
         return GUIHelpers::ProjectSaveResult::failed;
@@ -771,7 +751,7 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs)
     if (ProjectLifecycle::shouldChooseSaveTarget(currentFile, saveAs))
     {
         if (m_sideBarBrowser)
-            m_sideBarBrowser->beginProjectSaveAs();
+            m_sideBarBrowser->beginProjectSaveAs(preservePendingOperation);
         return GUIHelpers::ProjectSaveResult::cancelled;
     }
 
@@ -786,9 +766,17 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::Fi
     if (!m_editViewState)
         return GUIHelpers::ProjectSaveResult::failed;
 
+    const bool acquiredWorkflowLock = !m_projectWorkflowActive;
+    if (acquiredWorkflowLock)
+        setProjectWorkflowActive(true);
+
     const auto result = GUIHelpers::saveEditToFile(*m_editViewState, targetFile);
     if (result != GUIHelpers::ProjectSaveResult::saved)
+    {
+        if (acquiredWorkflowLock)
+            setProjectWorkflowActive(false);
         return result;
+    }
 
     if (m_editComponent)
         m_editComponent->projectSaved();
@@ -799,30 +787,121 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::Fi
 
     if (m_sideBarBrowser)
         m_sideBarBrowser->projectWasSaved(projectFile);
+
+    if (acquiredWorkflowLock)
+        setProjectWorkflowActive(false);
     return result;
 }
 
-void MainComponent::setProjectSaveAsInteractionBlocked(bool blocked)
+void MainComponent::requestProjectOperation(ProjectWorkflow::Operation operation)
 {
-    if (m_projectSaveAsInteractionBlocked == blocked)
+    if (!operation.isValid() || m_sideBarBrowser == nullptr || m_projectWorkflowActive)
         return;
 
-    m_projectSaveAsInteractionBlocked = blocked;
-    if (blocked)
-        m_computerMidiKeyboard.detachFrom(*this);
-    else
-        m_computerMidiKeyboard.attachTo(*this);
+    m_sideBarBrowser->beginProjectOperation(std::move(operation));
+}
 
-    m_projectSaveInteractionBlocker.setVisible(blocked);
-    if (blocked)
+void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution)
+{
+    if (!operation.isValid() || !m_projectWorkflowActive || m_edit == nullptr)
+        return;
+
+    const auto *expectedEdit = m_edit.get();
+    const auto expectedChange = m_edit->state.getProperty(te::IDs::lastSignificantChange);
+    juce::Component::SafePointer<MainComponent> safeThis(this);
+    juce::MessageManager::callAsync(
+        [safeThis, operation, expectedEdit, expectedChange]
+        {
+            if (safeThis == nullptr || !safeThis->m_projectWorkflowActive)
+                return;
+
+            if (safeThis->m_edit.get() != expectedEdit
+                || safeThis->m_edit->state.getProperty(te::IDs::lastSignificantChange) != expectedChange)
+            {
+                if (safeThis->m_sideBarBrowser != nullptr)
+                    safeThis->m_sideBarBrowser->completeProjectOperation(false, "The current project changed before the operation could complete.", operation.file);
+                return;
+            }
+
+            if (operation.type == ProjectWorkflow::OperationType::quit)
+            {
+                if (auto *app = juce::JUCEApplication::getInstance())
+                    app->quit();
+                return;
+            }
+
+            juce::String errorMessage;
+            const auto file = operation.type == ProjectWorkflow::OperationType::load ? operation.file : juce::File{};
+            if (!safeThis->setupEdit(file, &errorMessage) && safeThis->m_sideBarBrowser != nullptr)
+                safeThis->m_sideBarBrowser->completeProjectOperation(false, errorMessage, operation.file);
+        });
+}
+
+void MainComponent::requestApplicationQuit()
+{
+    requestProjectOperation({ProjectWorkflow::OperationType::quit, {}});
+}
+
+void MainComponent::setProjectWorkflowActive(bool active, bool resumePlayback)
+{
+    if (m_projectWorkflowActive == active)
+        return;
+
+    m_projectWorkflowActive = active;
+    if (active)
     {
-        m_projectSaveInteractionBlocker.setBounds(getLocalBounds());
-        m_projectSaveInteractionBlocker.toFront(false);
+        if (m_edit != nullptr)
+        {
+            auto &transport = m_edit->getTransport();
+            m_resumePlaybackAfterProjectWorkflow = transport.isPlaying() && !transport.isRecording();
+            m_projectWorkflowTransportPosition = transport.getPosition();
+            transport.stop(false, false);
+            te::midiPanic(*m_edit, false);
+            transport.freePlaybackContext();
+            m_projectPlaybackContextReleased = true;
+        }
+
+        if (m_editorContainer)
+            m_editorContainer->setEnabled(false);
+        if (m_lowerRange)
+            m_lowerRange->setEnabled(false);
+        PluginWindow::setAllInteractionEnabled(false);
+        m_computerMidiKeyboard.detachFrom(*this);
+    }
+    else
+    {
+        if (m_edit != nullptr && m_projectPlaybackContextReleased)
+        {
+            auto &transport = m_edit->getTransport();
+            transport.ensureContextAllocated();
+            if (resumePlayback && m_resumePlaybackAfterProjectWorkflow)
+            {
+                transport.setPosition(m_projectWorkflowTransportPosition);
+                transport.play(true);
+            }
+        }
+        m_projectPlaybackContextReleased = false;
+        m_resumePlaybackAfterProjectWorkflow = false;
+
+        if (m_editorContainer)
+            m_editorContainer->setEnabled(true);
+        if (m_lowerRange)
+            m_lowerRange->setEnabled(true);
+        PluginWindow::setAllInteractionEnabled(true);
+        m_computerMidiKeyboard.attachTo(*this);
+    }
+
+    m_projectWorkflowOverlay.setVisible(active);
+    if (active)
+    {
+        m_projectWorkflowOverlay.setBounds(getLocalBounds());
+        m_projectWorkflowOverlay.toFront(false);
         m_sidebarSplitter.toFront(false);
         if (m_sideBarBrowser)
             m_sideBarBrowser->toFront(false);
     }
 
+    m_commandManager.commandStatusChanged();
     if (m_sideBarBrowser)
         m_sideBarBrowser->repaint();
 }
@@ -853,26 +932,6 @@ void MainComponent::setProjectBrowserWorkingMode(bool enabled)
     m_projectBrowserExpandedSidebar = false;
     m_sidebarWidthBeforeProjectBrowser = -1;
     resized();
-}
-
-bool MainComponent::handleUnsavedEdit()
-{
-    if (m_edit->hasChangedSinceSaved())
-    {
-        const auto result = juce::AlertWindow::showYesNoCancelBox(juce::AlertWindow::QuestionIcon, "Unsaved Project", "Do you want to save the project?", "Yes", "No", "Cancel");
-
-        switch (result)
-        {
-        case 1:
-            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(ProjectLifecycle::UnsavedChoice::save, saveCurrentProject());
-        case 2:
-            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(ProjectLifecycle::UnsavedChoice::discard, GUIHelpers::ProjectSaveResult::cancelled);
-        case 3:
-        default:
-            return ProjectLifecycle::shouldProceedAfterUnsavedChoice(ProjectLifecycle::UnsavedChoice::cancel, GUIHelpers::ProjectSaveResult::cancelled);
-        }
-    }
-    return true;
 }
 
 void MainComponent::bindComputerMidiKeyboard(te::Edit *expectedEdit, int attemptsRemaining)

@@ -49,23 +49,13 @@ Resolve/create engine temp directory
 
 An empty `juce::File` argument means “create a new project.” It is converted into a new `.nextTemp` target before the Tracktion edit is created.
 
-## Project requests from the browser
+## Project operation requests
 
-`ProjectsBrowserComponent` does not replace the edit directly. It writes a request into `ProjectLifecycle::ProjectRequestState` and emits a change message.
+`ProjectsBrowserComponent` does not replace the edit directly. `ProjectWorkflow::Controller` stores a typed pending operation for New, Load, or Quit. A configured operation callback invokes `MainComponent::executeProjectOperation()`, which posts replacement through `MessageManager::callAsync()`.
 
-The request has one of three actions:
+The older `ProjectLifecycle::ProjectRequestState` remains only as an adapter for project files opened from the generic Home browser. `MainComponent::changeListenerCallback()` immediately converts such requests into the same typed workflow.
 
-- `none`;
-- `newProject`;
-- `loadProject` with a file.
-
-`MainComponent::changeListenerCallback()` consumes the request with `take()` and posts `setupEdit()` through `MessageManager::callAsync()`.
-
-### Embedded browser requests
-
-The Load button clears `m_projectRequest` before entering the embedded directory browser. Cancelling therefore cannot replay a stale request through a later change notification.
-
-`requestLoadProject()` rejects files that do not exist or do not have the persistent project extension. Its `unsavedChangesHandled` flag records that the embedded browser has already established a clean edit or obtained an explicit inline discard decision, preventing a duplicate modal prompt in `setupEdit()`.
+The workflow enters `committing` and activates the interaction/engine lock before asynchronous execution. Consequently the edit cannot become dirty after an unsaved-change decision and before replacement.
 
 ## Load validation
 
@@ -88,15 +78,13 @@ Possible statuses are:
 
 ## Unsaved-change decision
 
-Before a browser-originated Load replaces an existing dirty edit, `ProjectsBrowserComponent` shows an inline decision:
+Before New, Load, or Quit replaces or closes an existing dirty edit, `ProjectsBrowserComponent` shows an inline decision:
 
-- **Save & Open** — save and continue only if saving succeeds;
-- **Discard & Open** — explicitly authorize replacement;
-- **Back** — keep the current project and selection.
+- **Save & Continue** — save and continue only if saving succeeds;
+- **Discard & Continue** — explicitly authorize the pending operation;
+- **Back** — keep the current project.
 
-If Save requires a target, the pending Load survives the embedded Save-As workflow and resumes only after a successful write.
-
-`handleUnsavedEdit()` and the pure `shouldProceedAfterUnsavedChoice()` decision matrix remain available for project-replacement paths outside the embedded browser and for shutdown handling. A cancelled or failed save never proceeds with replacement.
+If Save requires a target, the typed pending operation survives the embedded Save-As workflow and resumes only after a successful write. Home-browser loading and drag-and-drop are routed through the same flow. `setupEdit()` no longer opens a modal unsaved-project alert.
 
 ## Safe project replacement
 
@@ -177,7 +165,7 @@ The Projects sidebar exposes **Save** and **Save As**. `Ctrl/Cmd+S` is registere
 
 Selection and execution are separated. `ProjectsBrowserComponent` owns directory navigation, filename validation, and inline overwrite confirmation. `MainComponent::saveCurrentProjectTo()` delegates the confirmed path to `GUIHelpers::saveEditToFile()`, which never creates a file dialog.
 
-Save As is modal in behavior without a JUCE modal loop: the main content is dimmed and mouse/command input is blocked, while the sidebar splitter remains usable. Clicking outside Save As cancels it and removes the blocker. Load does not use this blocker.
+Save As is modal in behavior without a JUCE modal loop. `MainComponent::setProjectWorkflowActive()` stops transport, sends MIDI panic, frees the playback context, disables editor/lower-range and plugin-window component trees, detaches keyboard MIDI, and marks commands inactive. The overlay provides dimming and consumes outside clicks; it is not the enforcement boundary. Load browsing remains non-modal, but the lock is activated for the committed replacement.
 
 On success:
 

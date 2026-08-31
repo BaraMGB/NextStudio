@@ -37,6 +37,13 @@ juce::File withProjectExtension(const juce::File &file)
     return file.getSiblingFile(baseName + ".tracktionedit");
 }
 
+juce::File normaliseSaveTarget(const juce::File &requestedFile, const juce::File &currentFile)
+{
+    if (requestedFile == currentFile && isPersistentProjectFile(currentFile))
+        return currentFile;
+    return withProjectExtension(requestedFile);
+}
+
 juce::String projectNameWithoutExtension(const juce::String &name)
 {
     auto result = name.trim();
@@ -114,10 +121,10 @@ void ProjectRequestState::clear()
 
 void ProjectRequestState::requestNewProject()
 {
-    request = {ProjectAction::newProject, {}, false};
+    request = {ProjectAction::newProject, {}};
 }
 
-bool ProjectRequestState::requestLoadProject(const juce::File &file, bool unsavedChangesHandled)
+bool ProjectRequestState::requestLoadProject(const juce::File &file)
 {
     if (!file.existsAsFile() || !isPersistentProjectFile(file))
     {
@@ -125,7 +132,7 @@ bool ProjectRequestState::requestLoadProject(const juce::File &file, bool unsave
         return false;
     }
 
-    request = {ProjectAction::loadProject, file, unsavedChangesHandled};
+    request = {ProjectAction::loadProject, file};
     return true;
 }
 

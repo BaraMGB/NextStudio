@@ -647,11 +647,13 @@ juce::Image GUIHelpers::drawableToImage(const juce::Drawable &drawable, float ta
 
 GUIHelpers::ProjectSaveResult GUIHelpers::saveEditToFile(EditViewState &evs, const juce::File &requestedTargetFile)
 {
-    const auto targetFile = ProjectLifecycle::withProjectExtension(requestedTargetFile);
+    const auto currentFile = evs.m_edit.editFileRetriever ? evs.m_edit.editFileRetriever() : juce::File{};
+    // A direct save must preserve the exact existing path. On case-sensitive file systems,
+    // normalising Song.TRACKTIONEDIT would otherwise create Song.tracktionedit beside it.
+    const auto targetFile = ProjectLifecycle::normaliseSaveTarget(requestedTargetFile, currentFile);
     if (!ProjectLifecycle::isValidProjectTarget(targetFile))
         return ProjectSaveResult::failed;
 
-    const auto currentFile = evs.m_edit.editFileRetriever ? evs.m_edit.editFileRetriever() : juce::File{};
     const auto oldName = evs.m_editName.get();
     const bool isSaveAs = targetFile != currentFile;
 

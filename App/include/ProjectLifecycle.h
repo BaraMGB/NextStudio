@@ -34,6 +34,7 @@ enum class UnsavedChoice
 bool shouldProceedAfterUnsavedChoice(UnsavedChoice choice, SaveResult saveResult);
 
 juce::File withProjectExtension(const juce::File &file);
+juce::File normaliseSaveTarget(const juce::File &requestedFile, const juce::File &currentFile = {});
 juce::String projectNameWithoutExtension(const juce::String &name);
 bool isValidProjectName(const juce::String &name);
 bool isPersistentProjectFile(const juce::File &file);
@@ -62,7 +63,6 @@ struct ProjectRequest
 {
     ProjectAction action{ProjectAction::none};
     juce::File file;
-    bool unsavedChangesHandled{false};
 };
 
 class ProjectRequestState
@@ -70,7 +70,7 @@ class ProjectRequestState
 public:
     void clear();
     void requestNewProject();
-    bool requestLoadProject(const juce::File &file, bool unsavedChangesHandled = false);
+    bool requestLoadProject(const juce::File &file);
     ProjectRequest take();
     ProjectRequest peek() const;
 

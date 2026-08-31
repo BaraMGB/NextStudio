@@ -69,9 +69,8 @@ SidebarComponent::~SidebarComponent()
 {
     if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
     {
-        parent->setProjectSaveAsInteractionBlocked(false);
+        parent->setProjectWorkflowActive(false);
         m_fileListBrowser.removeChangeListener(parent);
-        m_projectsBrowser.removeChangeListener(parent);
     }
     for (auto b : m_menu.getButtons())
         b->removeListener(this);
@@ -131,7 +130,7 @@ void SidebarComponent::paintOverChildren(juce::Graphics &g)
 {
     GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(), m_appState.getBorderColour());
 
-    if (!m_projectsBrowser.isSaveAsWorkflowActive())
+    if (!m_projectsBrowser.isInteractionLocked())
         return;
 
     g.setColour(juce::Colours::black.withAlpha(0.58f));
@@ -221,9 +220,10 @@ void SidebarComponent::mouseDown(const juce::MouseEvent &)
 
 void SidebarComponent::buttonClicked(juce::Button *button)
 {
-    if (m_projectsBrowser.isSaveAsWorkflowActive())
+    if (m_projectsBrowser.isInteractionLocked())
     {
-        dismissProjectSaveAs();
+        if (m_projectsBrowser.isSaveAsWorkflowActive())
+            dismissProjectSaveAs();
         return;
     }
 
@@ -291,7 +291,37 @@ void SidebarComponent::updateParentsListener()
     if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
     {
         m_fileListBrowser.addChangeListener(parent);
-        m_projectsBrowser.addChangeListener(parent);
+        juce::Component::SafePointer<MainComponent> safeMain(parent);
+        m_projectsBrowser.setHostCallbacks(
+            {
+                [safeMain](const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution resolution)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->executeProjectOperation(operation, resolution);
+                },
+                [safeMain](bool saveAs, bool preservePendingOperation)
+                {
+                    return safeMain != nullptr
+                             ? safeMain->saveCurrentProject(saveAs, preservePendingOperation)
+                             : GUIHelpers::ProjectSaveResult::failed;
+                },
+                [safeMain](const juce::File &target)
+                {
+                    return safeMain != nullptr
+                             ? safeMain->saveCurrentProjectTo(target)
+                             : GUIHelpers::ProjectSaveResult::failed;
+                },
+                [safeMain](bool locked)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->setProjectWorkflowActive(locked);
+                },
+                [safeMain](bool workingWidth)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->setProjectBrowserWorkingMode(workingWidth);
+                }
+            });
     }
 }
 
@@ -312,7 +342,7 @@ void SidebarComponent::refreshThemeFromAppState()
     repaint();
 }
 
-void SidebarComponent::beginProjectSaveAs()
+void SidebarComponent::beginProjectOperation(ProjectWorkflow::Operation operation)
 {
     if (!m_projectsBrowser.isVisible())
     {
@@ -321,13 +351,31 @@ void SidebarComponent::beginProjectSaveAs()
         m_projectsBrowser.setVisible(true);
         m_appState.m_sidebarCollapsed = false;
     }
-    m_projectsBrowser.beginSaveProjectAs();
+    m_projectsBrowser.beginProjectOperation(std::move(operation));
+    resized();
+}
+
+void SidebarComponent::beginProjectSaveAs(bool preservePendingOperation)
+{
+    if (!m_projectsBrowser.isVisible())
+    {
+        setAllVisibleOff();
+        m_activeButtonName = "Projects";
+        m_projectsBrowser.setVisible(true);
+        m_appState.m_sidebarCollapsed = false;
+    }
+    m_projectsBrowser.beginSaveProjectAs(preservePendingOperation);
     resized();
 }
 
 void SidebarComponent::dismissProjectSaveAs()
 {
     m_projectsBrowser.dismissSaveProjectAs();
+}
+
+void SidebarComponent::completeProjectOperation(bool succeeded, const juce::String &errorMessage, const juce::File &file)
+{
+    m_projectsBrowser.completeProjectOperation(succeeded, errorMessage, file);
 }
 
 void SidebarComponent::projectWasSaved(const juce::File &file)

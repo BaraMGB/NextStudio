@@ -17,20 +17,23 @@ by the Free Software Foundation, either version 3 of the License, or
 #include "EditViewState.h"
 #include "MenuBar.h"
 #include "ProjectLifecycle.h"
+#include "ProjectWorkflow.h"
 
 namespace te = tracktion_engine;
 
 class ProjectsBrowserComponent : public BrowserBaseComponent
 {
 public:
-    enum class Mode
+    using Mode = ProjectWorkflow::State;
+    using OperationHandler = std::function<void(const ProjectWorkflow::Operation &, ProjectWorkflow::UnsavedResolution)>;
+
+    struct HostCallbacks
     {
-        normal,
-        loadProject,
-        saveProjectAs,
-        confirmOverwrite,
-        operationError,
-        confirmUnsavedChanges
+        OperationHandler executeOperation;
+        std::function<GUIHelpers::ProjectSaveResult(bool saveAs, bool preservePendingOperation)> saveCurrentProject;
+        std::function<GUIHelpers::ProjectSaveResult(const juce::File &)> saveProjectTo;
+        std::function<void(bool)> setInteractionLocked;
+        std::function<void(bool)> setWorkingWidth;
     };
 
     ProjectsBrowserComponent(EditViewState &evs, ApplicationViewState &avs);
@@ -48,13 +51,16 @@ public:
 
     void setFileList(const juce::Array<juce::File> &fileList);
     void projectWasSaved(const juce::File &file);
+    void setHostCallbacks(HostCallbacks callbacks) { m_hostCallbacks = std::move(callbacks); }
     void beginLoadProject();
-    void beginSaveProjectAs();
+    void beginProjectOperation(ProjectWorkflow::Operation operation);
+    void beginSaveProjectAs(bool preservePendingOperation = false);
     void dismissSaveProjectAs();
     void showOperationError(const juce::String &message, const juce::File &file = {});
-    void completeLoadOperation(bool succeeded, const juce::String &errorMessage = {});
-    Mode getMode() const noexcept { return m_mode; }
-    bool isSaveAsWorkflowActive() const noexcept { return isSaveMode(); }
+    void completeProjectOperation(bool succeeded, const juce::String &errorMessage = {}, const juce::File &file = {});
+    Mode getMode() const noexcept { return m_workflow.getState(); }
+    bool isSaveAsWorkflowActive() const noexcept { return m_workflow.isSavePath(); }
+    bool isInteractionLocked() const noexcept { return m_workflow.locksMainInteraction(); }
 
 private:
     void sortList(int selectedID) override;
@@ -69,16 +75,17 @@ private:
     void navigateForward();
     void updateSelectionAndValidation();
     void updateTargetPreview();
-    void requestOpen(const juce::File &file, bool discardUnsavedChanges = false);
+    void requestOpen(const juce::File &file);
     void performPrimaryAction();
     void performSave(const juce::File &target, bool overwriteConfirmed);
-    void showUnsavedConfirmation(const juce::File &file);
-    void saveBeforePendingLoad();
+    void showUnsavedConfirmation(ProjectWorkflow::Operation operation);
+    void saveBeforePendingOperation();
+    void executePendingOperation(ProjectWorkflow::UnsavedResolution resolution);
     juce::File getSelectedBrowserFile() const;
     juce::File getSaveTarget() const;
     juce::File getInitialDirectory(bool forSave) const;
-    bool isBrowserMode() const noexcept { return m_mode != Mode::normal; }
-    bool isSaveMode() const noexcept;
+    bool isBrowserMode() const noexcept;
+    bool isSaveMode() const noexcept { return m_workflow.isSavePath(); }
     void setWorkingWidth(bool enabled);
 
     juce::DrawableButton m_loadProjectButton, m_saveProjectButton, m_saveAsProjectButton, m_newProjectButton;
@@ -99,17 +106,15 @@ private:
     ApplicationViewState &m_avs;
     juce::TimeSliceThread m_directoryThread{"Project directory scanner"};
     juce::DirectoryContentsList m_directoryContents{nullptr, m_directoryThread};
-    Mode m_mode{Mode::normal};
-    Mode m_modeBeforeError{Mode::normal};
+    ProjectWorkflow::Controller m_workflow;
+    HostCallbacks m_hostCallbacks;
     juce::Array<juce::File> m_normalProjectFiles;
     juce::Array<juce::File> m_navigationHistory;
     int m_navigationIndex{-1};
     juce::File m_selectedFile;
     juce::File m_displayedDirectory;
-    juce::File m_pendingLoadFile;
     juce::File m_overwriteTarget;
     bool m_operationInProgress{false};
-    bool m_resumeLoadAfterSave{false};
     bool m_workingWidthRequested{false};
 
     struct CompareNameForward

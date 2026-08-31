@@ -17,7 +17,7 @@ The normal view lists `.tracktionedit` files under the configured Projects direc
 - sorting and search;
 - double-click loading from the normal project list.
 
-Load remains non-modal. Save As dims and blocks the rest of the main window while its sidebar controls remain active. The sidebar splitter stays usable so the browser can be widened. Clicking outside Save As, pressing `Escape`, or pressing **Cancel** closes it without changing the project.
+Load browsing remains non-modal. Save As dims and disables the editor, lower range, application commands, MIDI keyboard routing, and plugin windows while its sidebar controls remain active; transport/audio processing for the edit is suspended. The sidebar splitter stays usable so the browser can be widened. Clicking outside Save As, pressing `Escape`, or pressing **Cancel** closes it without changing the project. Previously active playback resumes after cancellation or saving, but recording does not.
 
 Existing targets require an inline **Overwrite** confirmation. Invalid names, unreadable projects, unavailable paths, and write failures are reported inside the Projects sidebar rather than in a project-specific alert window.
 

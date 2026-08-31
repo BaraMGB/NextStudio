@@ -40,6 +40,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRangeComponent.h"
 #include "NextLookAndFeel.h"
 #include "PluginWindow.h"
+#include "ProjectWorkflow.h"
 #include "SidebarComponent.h"
 #include "SplitterCollapseController.h"
 #include "ThemeHelpers.h"
@@ -56,12 +57,12 @@ namespace NextStudio::Debug
 class MainComponentDebugHost;
 }
 
-class ProjectSaveInteractionBlocker : public juce::Component
+class ProjectWorkflowOverlay : public juce::Component
 {
 public:
-    ProjectSaveInteractionBlocker()
+    ProjectWorkflowOverlay()
     {
-        setName("Project Save As interaction blocker");
+        setName("Project workflow overlay");
         setInterceptsMouseClicks(true, true);
         setWantsKeyboardFocus(false);
     }
@@ -128,16 +129,18 @@ public:
     void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
     void valueTreeChanged() override {}
 
-    bool setupEdit(juce::File = {}, bool unsavedChangesHandled = false, juce::String *errorMessage = nullptr);
-    bool handleUnsavedEdit();
-    GUIHelpers::ProjectSaveResult saveCurrentProject(bool saveAs = false);
+    GUIHelpers::ProjectSaveResult saveCurrentProject(bool saveAs = false, bool preservePendingOperation = false);
     GUIHelpers::ProjectSaveResult saveCurrentProjectTo(const juce::File &targetFile);
+    void requestProjectOperation(ProjectWorkflow::Operation operation);
+    void executeProjectOperation(const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution resolution);
+    void requestApplicationQuit();
     void setProjectBrowserWorkingMode(bool enabled);
-    void setProjectSaveAsInteractionBlocked(bool blocked);
+    void setProjectWorkflowActive(bool active, bool resumePlayback = true);
     void handleContentPathChangedFromSettings();
 
 private:
     void handleAsyncUpdate() override;
+    bool setupEdit(juce::File = {}, juce::String *errorMessage = nullptr);
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
     void saveSettings();
     void createTracksAndAssignInputs();
@@ -190,12 +193,15 @@ private:
     std::unique_ptr<LowerRangeComponent> m_lowerRange;
     std::unique_ptr<SidebarComponent> m_sideBarBrowser;
     SplitterComponent m_sidebarSplitter;
-    ProjectSaveInteractionBlocker m_projectSaveInteractionBlocker;
+    ProjectWorkflowOverlay m_projectWorkflowOverlay;
     ComputerMidiKeyboardController m_computerMidiKeyboard;
 
     [[maybe_unused]] bool m_settingsLoaded{false};
     bool m_debugMode{false};
-    bool m_projectSaveAsInteractionBlocked{false};
+    bool m_projectWorkflowActive{false};
+    bool m_projectPlaybackContextReleased{false};
+    bool m_resumePlaybackAfterProjectWorkflow{false};
+    tracktion::TimePosition m_projectWorkflowTransportPosition{};
     bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp{true};
 

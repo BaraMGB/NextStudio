@@ -223,6 +223,27 @@ if(BUILD_TESTING)
     add_test(NAME ProjectLifecycle
             COMMAND ProjectLifecycleTests)
 
+    juce_add_console_app(ProjectWorkflowTests
+            PRODUCT_NAME "ProjectWorkflowTests")
+    juce_generate_juce_header(ProjectWorkflowTests)
+
+    target_sources(ProjectWorkflowTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ProjectWorkflow.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/ProjectWorkflowTests.cpp)
+
+    target_include_directories(ProjectWorkflowTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(ProjectWorkflowTests PRIVATE
+            juce::juce_core)
+
+    target_compile_definitions(ProjectWorkflowTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME ProjectWorkflow
+            COMMAND ProjectWorkflowTests)
+
     juce_add_console_app(MidiNoteOverlapTests
             PRODUCT_NAME "MidiNoteOverlapTests")
     juce_generate_juce_header(MidiNoteOverlapTests)

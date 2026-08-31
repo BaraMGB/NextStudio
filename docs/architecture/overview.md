@@ -24,7 +24,7 @@ The architecture is model-driven: UI components generally mutate Tracktion objec
 
 `App/src/Main.cpp` defines the JUCE application object. During `initialise()` it creates one `MainWindow`. During `shutdown()` it releases that window.
 
-The application also routes the operating system's quit request through `MainComponent::handleUnsavedEdit()`. Quitting can therefore be cancelled if the user cancels the unsaved-project dialog or if a requested save does not complete successfully.
+The application routes the operating system's quit request through the typed project workflow. Dirty edits receive the same inline Save and Continue, Discard and Continue, or Back decision as New and Load. A required Save As retains the pending quit operation and continues only after a successful save.
 
 ### `MainWindow`
 

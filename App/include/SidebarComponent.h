@@ -54,8 +54,10 @@ public:
     void updateParentsListener();
     void refreshBrowsersFromAppState();
     void refreshThemeFromAppState();
-    void beginProjectSaveAs();
+    void beginProjectOperation(ProjectWorkflow::Operation operation);
+    void beginProjectSaveAs(bool preservePendingOperation = false);
     void dismissProjectSaveAs();
+    void completeProjectOperation(bool succeeded, const juce::String &errorMessage = {}, const juce::File &file = {});
     void projectWasSaved(const juce::File &file);
     void showProjectError(const juce::String &message, const juce::File &file = {});
 

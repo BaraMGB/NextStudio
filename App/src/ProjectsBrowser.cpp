@@ -11,7 +11,6 @@ by the Free Software Foundation, either version 3 of the License, or
 */
 
 #include "ProjectsBrowser.h"
-#include "MainComponent.h"
 #include "Utilities.h"
 
 #include <array>
@@ -73,14 +72,13 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
 
     m_newProjectButton.onClick = [this]
     {
-        m_projectRequest.requestNewProject();
-        sendChangeMessage();
+        beginProjectOperation({ProjectWorkflow::OperationType::createNew, {}});
     };
     m_loadProjectButton.onClick = [this] { beginLoadProject(); };
     m_saveProjectButton.onClick = [this]
     {
-        if (auto *main = findParentComponentOfClass<MainComponent>())
-            main->saveCurrentProject();
+        if (m_hostCallbacks.saveCurrentProject != nullptr)
+            m_hostCallbacks.saveCurrentProject(false, false);
     };
     m_saveAsProjectButton.onClick = [this] { beginSaveProjectAs(); };
 
@@ -114,19 +112,30 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     m_primaryButton.onClick = [this] { performPrimaryAction(); };
     m_secondaryButton.onClick = [this]
     {
-        if (m_mode == Mode::confirmOverwrite)
+        if (getMode() == Mode::confirmOverwrite)
             setMode(Mode::saveProjectAs);
-        else if (m_mode == Mode::operationError)
+        else if (getMode() == Mode::operationError)
             cancelCurrentMode();
-        else if (m_mode == Mode::confirmUnsavedChanges)
-            setMode(Mode::loadProject);
+        else if (getMode() == Mode::confirmUnsavedChanges)
+        {
+            const auto pending = m_workflow.getPendingOperation();
+            cancelCurrentMode();
+            if (pending.type == ProjectWorkflow::OperationType::load)
+            {
+                beginLoadProject();
+                if (pending.file.getParentDirectory().isDirectory())
+                    navigateTo(pending.file.getParentDirectory());
+                m_selectedFile = pending.file;
+                updateSelectionAndValidation();
+            }
+        }
         else
             cancelCurrentMode();
     };
     m_tertiaryButton.onClick = [this]
     {
-        if (m_mode == Mode::confirmUnsavedChanges)
-            requestOpen(m_pendingLoadFile, true);
+        if (getMode() == Mode::confirmUnsavedChanges)
+            executePendingOperation(ProjectWorkflow::UnsavedResolution::discarded);
         else
             goBackFromError();
     };
@@ -161,7 +170,7 @@ ProjectsBrowserComponent::~ProjectsBrowserComponent()
 void ProjectsBrowserComponent::setFileList(const juce::Array<juce::File> &fileList)
 {
     m_normalProjectFiles = fileList;
-    if (m_mode == Mode::normal)
+    if (getMode() == Mode::normal)
         BrowserBaseComponent::setFileList(fileList);
 }
 
@@ -172,7 +181,7 @@ void ProjectsBrowserComponent::projectWasSaved(const juce::File &file)
         return;
 
     m_normalProjectFiles.addIfNotAlreadyThere(file);
-    if (m_mode == Mode::normal)
+    if (getMode() == Mode::normal)
         BrowserBaseComponent::setFileList(m_normalProjectFiles);
 }
 
@@ -182,13 +191,27 @@ void ProjectsBrowserComponent::beginLoadProject()
     m_navigationHistory.clear();
     m_navigationIndex = -1;
     m_selectedFile = juce::File{};
-    m_pendingLoadFile = juce::File{};
     m_operationInProgress = false;
+    m_workflow.beginLoadBrowser();
     setMode(Mode::loadProject);
     navigateTo(getInitialDirectory(false));
 }
 
-void ProjectsBrowserComponent::beginSaveProjectAs()
+void ProjectsBrowserComponent::beginProjectOperation(ProjectWorkflow::Operation operation)
+{
+    if (!operation.isValid())
+        return;
+
+    if (!m_workflow.stageOperation(operation, m_evs.m_edit.hasChangedSinceSaved()))
+    {
+        showUnsavedConfirmation(std::move(operation));
+        return;
+    }
+
+    executePendingOperation(ProjectWorkflow::UnsavedResolution::clean);
+}
+
+void ProjectsBrowserComponent::beginSaveProjectAs(bool preservePendingOperation)
 {
     m_projectRequest.clear();
     m_navigationHistory.clear();
@@ -205,6 +228,7 @@ void ProjectsBrowserComponent::beginSaveProjectAs()
         suggestedName = "Untitled";
 
     m_projectNameEditor.setText(ProjectLifecycle::projectNameWithoutExtension(suggestedName), false);
+    m_workflow.beginSaveAs(preservePendingOperation);
     setMode(Mode::saveProjectAs);
     navigateTo(getInitialDirectory(true));
     updateTargetPreview();
@@ -222,14 +246,14 @@ void ProjectsBrowserComponent::beginSaveProjectAs()
 
 void ProjectsBrowserComponent::dismissSaveProjectAs()
 {
-    if (isSaveAsWorkflowActive())
+    if (isSaveAsWorkflowActive() && getMode() != Mode::saving)
         cancelCurrentMode();
 }
 
 void ProjectsBrowserComponent::paint(juce::Graphics &g)
 {
     BrowserBaseComponent::paint(g);
-    if (m_mode == Mode::normal)
+    if (getMode() == Mode::normal)
     {
         const auto bottom = m_projectsMenu.getBottom();
         g.setColour(m_avs.getBorderColour());
@@ -240,7 +264,7 @@ void ProjectsBrowserComponent::paint(juce::Graphics &g)
 void ProjectsBrowserComponent::resized()
 {
     auto area = getLocalBounds().reduced(4);
-    if (m_mode == Mode::normal)
+    if (getMode() == Mode::normal)
     {
         auto projectButtons = area.removeFromTop(66);
         auto sort = area.removeFromTop(30).reduced(2);
@@ -257,7 +281,7 @@ void ProjectsBrowserComponent::resized()
 
     m_modeTitle.setBounds(area.removeFromTop(30));
 
-    if (m_mode == Mode::confirmUnsavedChanges)
+    if (getMode() == Mode::confirmUnsavedChanges)
     {
         area.removeFromTop(8);
         m_statusLabel.setBounds(area.removeFromTop(100));
@@ -297,8 +321,10 @@ void ProjectsBrowserComponent::resized()
 
 bool ProjectsBrowserComponent::keyPressed(const juce::KeyPress &key)
 {
-    if (m_mode == Mode::normal)
+    if (getMode() == Mode::normal)
         return false;
+    if (getMode() == Mode::committing || getMode() == Mode::saving)
+        return true;
 
     if (key == juce::KeyPress::escapeKey)
     {
@@ -315,7 +341,7 @@ bool ProjectsBrowserComponent::keyPressed(const juce::KeyPress &key)
 
 juce::var ProjectsBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
 {
-    return m_mode == Mode::normal ? juce::var("ProjectsBrowser") : juce::var{};
+    return getMode() == Mode::normal ? juce::var("ProjectsBrowser") : juce::var{};
 }
 
 void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
@@ -337,7 +363,7 @@ void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, i
     juce::String text;
     if (file.isDirectory())
         text = "[Folder] " + file.getFileName();
-    else if (m_mode == Mode::normal)
+    else if (getMode() == Mode::normal)
         text = file.getFileNameWithoutExtension();
     else
         text = file.getFileName();
@@ -361,14 +387,14 @@ void ProjectsBrowserComponent::listBoxItemClicked(int row, const juce::MouseEven
 
     if (file.existsAsFile() && ProjectLifecycle::isPersistentProjectFile(file))
     {
-        if (m_mode == Mode::saveProjectAs)
+        if (getMode() == Mode::saveProjectAs)
         {
             m_projectNameEditor.setText(file.getFileNameWithoutExtension());
             updateTargetPreview();
         }
         else
         {
-            if (m_mode == Mode::normal)
+            if (getMode() == Mode::normal)
             {
                 beginLoadProject();
                 navigateTo(file.getParentDirectory());
@@ -421,10 +447,10 @@ void ProjectsBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *s
 
 void ProjectsBrowserComponent::setMode(Mode mode)
 {
-    m_mode = mode;
+    m_workflow.transitionTo(mode);
     setWorkingWidth(mode != Mode::normal);
-    if (auto *main = findParentComponentOfClass<MainComponent>())
-        main->setProjectSaveAsInteractionBlocked(isSaveMode());
+    if (m_hostCallbacks.setInteractionLocked != nullptr)
+        m_hostCallbacks.setInteractionLocked(m_workflow.locksMainInteraction());
     configureMode();
     resized();
     repaint();
@@ -432,10 +458,12 @@ void ProjectsBrowserComponent::setMode(Mode mode)
 
 void ProjectsBrowserComponent::configureMode()
 {
-    const bool normal = m_mode == Mode::normal;
-    const bool unsaved = m_mode == Mode::confirmUnsavedChanges;
-    const bool showBrowser = !normal && !unsaved;
-    const bool save = isSaveMode();
+    const bool normal = getMode() == Mode::normal;
+    const bool unsaved = getMode() == Mode::confirmUnsavedChanges;
+    const bool committing = getMode() == Mode::committing;
+    const bool saving = getMode() == Mode::saving;
+    const bool showBrowser = !normal && !unsaved && !committing && !saving;
+    const bool save = isSaveMode() && !saving;
 
     m_projectsMenu.setVisible(normal);
     m_sortLabel.setVisible(normal);
@@ -446,23 +474,23 @@ void ProjectsBrowserComponent::configureMode()
     m_backButton.setVisible(showBrowser);
     m_forwardButton.setVisible(showBrowser);
     m_listBox.setVisible(normal || showBrowser);
-    m_selectedPathLabel.setVisible(m_mode == Mode::loadProject);
+    m_selectedPathLabel.setVisible(getMode() == Mode::loadProject);
     m_projectNameLabel.setVisible(save);
     m_projectNameEditor.setVisible(save);
     m_targetPathLabel.setVisible(save);
     m_statusLabel.setVisible(!normal);
     m_primaryButton.setVisible(!normal);
     m_secondaryButton.setVisible(!normal);
-    m_tertiaryButton.setVisible(unsaved || m_mode == Mode::operationError);
+    m_tertiaryButton.setVisible(unsaved || getMode() == Mode::operationError);
 
-    if (m_mode != Mode::operationError)
+    if (getMode() != Mode::operationError)
         m_statusLabel.setColour(juce::Label::textColourId, m_avs.getTextColour());
 
-    m_listBox.setEnabled(!m_operationInProgress && m_mode != Mode::confirmOverwrite && m_mode != Mode::operationError);
+    m_listBox.setEnabled(!m_operationInProgress && getMode() != Mode::confirmOverwrite && getMode() != Mode::operationError);
     m_currentPathField.setEnabled(m_listBox.isEnabled());
-    m_projectNameEditor.setEnabled(!m_operationInProgress && m_mode == Mode::saveProjectAs);
+    m_projectNameEditor.setEnabled(!m_operationInProgress && getMode() == Mode::saveProjectAs);
 
-    switch (m_mode)
+    switch (getMode())
     {
     case Mode::normal:
         m_statusLabel.setText({}, juce::dontSendNotification);
@@ -486,6 +514,18 @@ void ProjectsBrowserComponent::configureMode()
         m_secondaryButton.setButtonText("Back");
         m_statusLabel.setText("Warning: Overwrite the existing project?\n" + m_overwriteTarget.getFullPathName(), juce::dontSendNotification);
         break;
+    case Mode::saving:
+        m_modeTitle.setText("Saving Project", juce::dontSendNotification);
+        m_primaryButton.setButtonText("Saving...");
+        m_secondaryButton.setButtonText("Cancel");
+        m_statusLabel.setText("Saving the current project...", juce::dontSendNotification);
+        break;
+    case Mode::committing:
+        m_modeTitle.setText("Project Operation", juce::dontSendNotification);
+        m_primaryButton.setButtonText("Working...");
+        m_secondaryButton.setButtonText("Cancel");
+        m_statusLabel.setText("Completing the project operation...", juce::dontSendNotification);
+        break;
     case Mode::operationError:
         m_modeTitle.setText("Project Operation Failed", juce::dontSendNotification);
         m_primaryButton.setButtonText("Back");
@@ -493,12 +533,20 @@ void ProjectsBrowserComponent::configureMode()
         m_tertiaryButton.setVisible(false);
         break;
     case Mode::confirmUnsavedChanges:
+    {
+        const auto &pending = m_workflow.getPendingOperation();
+        const auto action = pending.type == ProjectWorkflow::OperationType::load
+                              ? "opening:\n" + pending.file.getFullPathName()
+                              : pending.type == ProjectWorkflow::OperationType::createNew
+                                  ? juce::String("creating a new project.")
+                                  : juce::String("quitting NextStudio.");
         m_modeTitle.setText("Unsaved Project", juce::dontSendNotification);
-        m_primaryButton.setButtonText("Save && Open");
-        m_tertiaryButton.setButtonText("Discard && Open");
+        m_primaryButton.setButtonText("Save && Continue");
+        m_tertiaryButton.setButtonText("Discard && Continue");
         m_secondaryButton.setButtonText("Back");
-        m_statusLabel.setText("The current project has unsaved changes. Save them before opening:\n" + m_pendingLoadFile.getFullPathName(), juce::dontSendNotification);
+        m_statusLabel.setText("The current project has unsaved changes. Save them before " + action, juce::dontSendNotification);
         break;
+    }
     }
 
     m_backButton.setEnabled(m_navigationIndex > 0 && !m_operationInProgress);
@@ -510,17 +558,14 @@ void ProjectsBrowserComponent::cancelCurrentMode()
 {
     m_projectRequest.clear();
     m_operationInProgress = false;
-    m_pendingLoadFile = juce::File{};
-    m_resumeLoadAfterSave = false;
+    m_workflow.cancel();
     setMode(Mode::normal);
 }
 
 void ProjectsBrowserComponent::goBackFromError()
 {
-    const auto previous = m_modeBeforeError == Mode::operationError || m_modeBeforeError == Mode::normal
-                            ? Mode::normal
-                            : m_modeBeforeError;
-    setMode(previous);
+    m_workflow.goBackFromError();
+    setMode(m_workflow.getState());
 }
 
 void ProjectsBrowserComponent::refreshDirectory()
@@ -586,25 +631,33 @@ void ProjectsBrowserComponent::navigateForward()
 
 void ProjectsBrowserComponent::updateSelectionAndValidation()
 {
-    if (m_mode == Mode::loadProject)
+    if (getMode() == Mode::loadProject)
     {
         const bool valid = m_selectedFile.existsAsFile() && ProjectLifecycle::isPersistentProjectFile(m_selectedFile);
         m_selectedPathLabel.setText(valid ? m_selectedFile.getFullPathName() : "No project selected", juce::dontSendNotification);
         m_selectedPathLabel.setTooltip(valid ? m_selectedFile.getFullPathName() : juce::String{});
         m_primaryButton.setEnabled(valid && !m_operationInProgress);
     }
-    else if (m_mode == Mode::saveProjectAs)
+    else if (getMode() == Mode::saveProjectAs)
     {
         m_primaryButton.setEnabled(ProjectLifecycle::isValidProjectTarget(getSaveTarget()) && !m_operationInProgress);
     }
-    else if (m_mode == Mode::confirmOverwrite || m_mode == Mode::confirmUnsavedChanges)
+    else if (getMode() == Mode::confirmOverwrite || getMode() == Mode::confirmUnsavedChanges)
     {
         m_primaryButton.setEnabled(!m_operationInProgress);
     }
-    else if (m_mode == Mode::operationError)
+    else if (getMode() == Mode::operationError)
     {
         m_primaryButton.setEnabled(true);
     }
+    else if (getMode() == Mode::saving || getMode() == Mode::committing)
+    {
+        m_primaryButton.setEnabled(false);
+        m_secondaryButton.setEnabled(false);
+    }
+
+    if (getMode() != Mode::saving && getMode() != Mode::committing)
+        m_secondaryButton.setEnabled(true);
 }
 
 void ProjectsBrowserComponent::updateTargetPreview()
@@ -616,7 +669,7 @@ void ProjectsBrowserComponent::updateTargetPreview()
     const auto validName = ProjectLifecycle::isValidProjectName(m_projectNameEditor.getText());
     m_targetPathLabel.setText(target == juce::File() ? "Invalid project name" : target.getFullPathName(), juce::dontSendNotification);
     m_targetPathLabel.setTooltip(target == juce::File() ? juce::String{} : target.getFullPathName());
-    if (m_mode == Mode::saveProjectAs)
+    if (getMode() == Mode::saveProjectAs)
     {
         m_statusLabel.setText(validName ? "The .tracktionedit extension is added automatically."
                                         : "Enter a non-empty name without < > : \" / \\ | ? *.",
@@ -626,7 +679,7 @@ void ProjectsBrowserComponent::updateTargetPreview()
     updateSelectionAndValidation();
 }
 
-void ProjectsBrowserComponent::requestOpen(const juce::File &file, bool discardUnsavedChanges)
+void ProjectsBrowserComponent::requestOpen(const juce::File &file)
 {
     if (!file.existsAsFile() || !ProjectLifecycle::isPersistentProjectFile(file))
     {
@@ -634,30 +687,12 @@ void ProjectsBrowserComponent::requestOpen(const juce::File &file, bool discardU
         return;
     }
 
-    if (!discardUnsavedChanges && m_evs.m_edit.hasChangedSinceSaved())
-    {
-        showUnsavedConfirmation(file);
-        return;
-    }
-
-    // The browser has either established that the edit is clean or obtained an explicit
-    // inline discard decision, so MainComponent must not open a modal unsaved prompt.
-    if (!m_projectRequest.requestLoadProject(file, true))
-    {
-        showOperationError("The selected project is no longer available.", file);
-        return;
-    }
-
-    m_pendingLoadFile = file;
-    m_operationInProgress = true;
-    m_statusLabel.setText("Opening project...\n" + file.getFullPathName(), juce::dontSendNotification);
-    configureMode();
-    sendChangeMessage();
+    beginProjectOperation({ProjectWorkflow::OperationType::load, file});
 }
 
 void ProjectsBrowserComponent::performPrimaryAction()
 {
-    switch (m_mode)
+    switch (getMode())
     {
     case Mode::loadProject:
         requestOpen(m_selectedFile);
@@ -688,8 +723,10 @@ void ProjectsBrowserComponent::performPrimaryAction()
         goBackFromError();
         break;
     case Mode::confirmUnsavedChanges:
-        saveBeforePendingLoad();
+        saveBeforePendingOperation();
         break;
+    case Mode::saving:
+    case Mode::committing:
     case Mode::normal:
         break;
     }
@@ -704,58 +741,98 @@ void ProjectsBrowserComponent::performSave(const juce::File &target, bool overwr
         return;
     }
 
+    const auto returnStateOnFailure = getMode();
     m_operationInProgress = true;
-    m_statusLabel.setText("Saving project...\n" + target.getFullPathName(), juce::dontSendNotification);
-    configureMode();
+    m_workflow.markSaving();
+    setMode(Mode::saving);
 
     auto result = GUIHelpers::ProjectSaveResult::failed;
-    if (auto *main = findParentComponentOfClass<MainComponent>())
-        result = main->saveCurrentProjectTo(target);
+    if (m_hostCallbacks.saveProjectTo != nullptr)
+        result = m_hostCallbacks.saveProjectTo(target);
 
     m_operationInProgress = false;
     if (result != GUIHelpers::ProjectSaveResult::saved)
     {
+        m_workflow.transitionTo(returnStateOnFailure);
         showOperationError("NextStudio could not save the project.", target);
         return;
     }
 
     m_avs.m_projectSaveDir = target.getParentDirectory().getFullPathName();
-    if (m_resumeLoadAfterSave && m_pendingLoadFile.existsAsFile())
+    const auto continuation = m_workflow.completeSave();
+    if (continuation.isValid())
     {
-        m_resumeLoadAfterSave = false;
-        setMode(Mode::loadProject);
-        navigateTo(m_pendingLoadFile.getParentDirectory());
-        m_selectedFile = m_pendingLoadFile;
-        requestOpen(m_pendingLoadFile);
+        executePendingOperation(ProjectWorkflow::UnsavedResolution::saved);
         return;
     }
 
     setMode(Mode::normal);
 }
 
-void ProjectsBrowserComponent::showUnsavedConfirmation(const juce::File &file)
+void ProjectsBrowserComponent::showUnsavedConfirmation(ProjectWorkflow::Operation)
 {
-    m_pendingLoadFile = file;
     setMode(Mode::confirmUnsavedChanges);
 }
 
-void ProjectsBrowserComponent::saveBeforePendingLoad()
+void ProjectsBrowserComponent::saveBeforePendingOperation()
 {
-    m_resumeLoadAfterSave = true;
-    if (auto *main = findParentComponentOfClass<MainComponent>())
+    const auto currentFile = m_evs.m_edit.editFileRetriever ? m_evs.m_edit.editFileRetriever() : juce::File{};
+    const bool saveTargetRequired = ProjectLifecycle::shouldChooseSaveTarget(currentFile, false);
+    m_workflow.beginSaveBeforePending(saveTargetRequired);
+    if (!saveTargetRequired)
+        setMode(Mode::saving);
+
+    auto result = GUIHelpers::ProjectSaveResult::failed;
+    if (saveTargetRequired && m_hostCallbacks.saveCurrentProject != nullptr)
+        result = m_hostCallbacks.saveCurrentProject(false, true);
+    else if (!saveTargetRequired && m_hostCallbacks.saveProjectTo != nullptr)
+        result = m_hostCallbacks.saveProjectTo(currentFile);
+
+    if (result == GUIHelpers::ProjectSaveResult::saved)
     {
-        const auto result = main->saveCurrentProject();
-        if (result == GUIHelpers::ProjectSaveResult::saved)
-        {
-            m_resumeLoadAfterSave = false;
-            requestOpen(m_pendingLoadFile);
-        }
-        else if (result == GUIHelpers::ProjectSaveResult::failed)
-        {
-            m_resumeLoadAfterSave = false;
-        }
-        // cancelled means Save As was opened inline; keep the pending load.
+        m_workflow.completeSave();
+        executePendingOperation(ProjectWorkflow::UnsavedResolution::saved);
     }
+    else if (result == GUIHelpers::ProjectSaveResult::failed)
+    {
+        m_workflow.transitionTo(Mode::confirmUnsavedChanges);
+        showOperationError("NextStudio could not save the current project.", currentFile);
+    }
+    // cancelled means the embedded Save As workflow owns the continuation.
+}
+
+void ProjectsBrowserComponent::executePendingOperation(ProjectWorkflow::UnsavedResolution resolution)
+{
+    ProjectWorkflow::Operation operation;
+    if (resolution == ProjectWorkflow::UnsavedResolution::discarded)
+        operation = m_workflow.confirmDiscard();
+    else
+        operation = m_workflow.getPendingOperation();
+
+    if (!operation.isValid())
+        return;
+
+    m_workflow.markCommitting();
+    m_operationInProgress = true;
+    setMode(Mode::committing);
+
+    // Stopping an active recording at the workflow boundary can itself make the
+    // edit dirty. Never treat the pre-lock clean decision as permission to drop it.
+    if (resolution == ProjectWorkflow::UnsavedResolution::clean && m_evs.m_edit.hasChangedSinceSaved())
+    {
+        m_operationInProgress = false;
+        m_workflow.transitionTo(Mode::confirmUnsavedChanges);
+        setMode(Mode::confirmUnsavedChanges);
+        return;
+    }
+
+    if (m_hostCallbacks.executeOperation != nullptr)
+    {
+        m_hostCallbacks.executeOperation(operation, resolution);
+        return;
+    }
+
+    showOperationError("The project operation handler is unavailable.", operation.file);
 }
 
 juce::File ProjectsBrowserComponent::getSelectedBrowserFile() const
@@ -788,17 +865,16 @@ juce::File ProjectsBrowserComponent::getInitialDirectory(bool forSave) const
     return juce::File(m_avs.m_workDir.get());
 }
 
-bool ProjectsBrowserComponent::isSaveMode() const noexcept
+bool ProjectsBrowserComponent::isBrowserMode() const noexcept
 {
-    return m_mode == Mode::saveProjectAs || m_mode == Mode::confirmOverwrite
-           || (m_mode == Mode::operationError
-               && (m_modeBeforeError == Mode::saveProjectAs || m_modeBeforeError == Mode::confirmOverwrite));
+    const auto mode = getMode();
+    return mode == Mode::loadProject || mode == Mode::saveProjectAs
+           || mode == Mode::confirmOverwrite || mode == Mode::operationError;
 }
 
 void ProjectsBrowserComponent::showOperationError(const juce::String &message, const juce::File &file)
 {
-    if (m_mode != Mode::operationError)
-        m_modeBeforeError = m_mode;
+    m_workflow.showError();
     m_operationInProgress = false;
     auto text = message;
     if (file != juce::File())
@@ -806,17 +882,24 @@ void ProjectsBrowserComponent::showOperationError(const juce::String &message, c
     m_statusLabel.setText(text, juce::dontSendNotification);
     m_statusLabel.setTooltip(text);
     m_statusLabel.setColour(juce::Label::textColourId, juce::Colours::orange);
-    setMode(Mode::operationError);
+    setMode(m_workflow.getState());
     m_statusLabel.setText(text, juce::dontSendNotification);
 }
 
-void ProjectsBrowserComponent::completeLoadOperation(bool succeeded, const juce::String &errorMessage)
+void ProjectsBrowserComponent::completeProjectOperation(bool succeeded, const juce::String &errorMessage, const juce::File &file)
 {
     m_operationInProgress = false;
+    const auto pending = m_workflow.getPendingOperation();
     if (succeeded)
+    {
+        m_workflow.completeOperation();
         setMode(Mode::normal);
-    else
-        showOperationError(errorMessage.isNotEmpty() ? errorMessage : "NextStudio could not load the selected project.", m_pendingLoadFile);
+        return;
+    }
+
+    m_workflow.transitionTo(pending.type == ProjectWorkflow::OperationType::load ? Mode::loadProject : Mode::normal);
+    showOperationError(errorMessage.isNotEmpty() ? errorMessage : "NextStudio could not complete the project operation.",
+                       file != juce::File() ? file : pending.file);
 }
 
 void ProjectsBrowserComponent::sortList(int selectedID)
@@ -845,6 +928,6 @@ void ProjectsBrowserComponent::setWorkingWidth(bool enabled)
     if (enabled == m_workingWidthRequested)
         return;
     m_workingWidthRequested = enabled;
-    if (auto *main = findParentComponentOfClass<MainComponent>())
-        main->setProjectBrowserWorkingMode(enabled);
+    if (m_hostCallbacks.setWorkingWidth != nullptr)
+        m_hostCallbacks.setWorkingWidth(enabled);
 }

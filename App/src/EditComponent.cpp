@@ -1072,7 +1072,7 @@ void EditComponent::itemDropped(const SourceDetails &dragSourceDetails)
     {
         if (auto mc = dynamic_cast<MainComponent *>(getParentComponent()->getParentComponent()))
         {
-            mc->setupEdit(f);
+            mc->requestProjectOperation({ProjectWorkflow::OperationType::load, f});
             return;
         }
     }
