@@ -78,7 +78,7 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
 
         juce::FileBrowserComponent browser(juce::FileBrowserComponent::openMode + juce::FileBrowserComponent::canSelectFiles, juce::File(m_avs.m_projectsDir), &wildcardFilter, nullptr);
 
-        juce::FileChooserDialogBox dialogBox("Load a project", "Please choose some kind of file that you want to load...", browser, true, juce::Colours::red);
+        juce::FileChooserDialogBox dialogBox("Load a project", "Please choose some kind of file that you want to load...", browser, true, browser.getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 
         if (dialogBox.show())
         {

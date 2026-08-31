@@ -657,7 +657,7 @@ GUIHelpers::ProjectSaveResult GUIHelpers::saveEdit(EditViewState &evs, const juc
         juce::FileBrowserComponent browser(juce::FileBrowserComponent::saveMode + juce::FileBrowserComponent::canSelectFiles, chooserStart, &wildcardFilter, nullptr);
 
         // Overwrite checking is performed below, after the required extension has been added.
-        juce::FileChooserDialogBox dialogBox(forceSaveAs ? "Save project as" : "Save the project", "Please choose a project file to save...", browser, false, juce::Colours::black);
+        juce::FileChooserDialogBox dialogBox(forceSaveAs ? "Save project as" : "Save the project", "Please choose a project file to save...", browser, false, browser.getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 
         if (!dialogBox.show())
             return ProjectSaveResult::cancelled;
