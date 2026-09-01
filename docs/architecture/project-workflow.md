@@ -48,7 +48,7 @@ The browser invokes a typed operation callback rather than sending an untyped lo
 
 ## Interaction and engine boundary
 
-`ProjectWorkflow::Controller::locksMainInteraction()` is true during Save As, overwrite/save errors belonging to Save As, `saving`, and `committing`.
+`ProjectWorkflow::Controller::locksMainInteraction()` is true during unsaved-change confirmation, Save As, errors belonging to either modal path, `saving`, and `committing`.
 
 `MainComponent::setProjectWorkflowActive()` is the enforcement boundary. On entry it:
 

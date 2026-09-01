@@ -27,6 +27,7 @@ void testDiscardContinuation()
 
     REQUIRE(!workflow.stageOperation(createNew, true));
     REQUIRE(workflow.getState() == ProjectWorkflow::State::confirmUnsavedChanges);
+    REQUIRE(workflow.locksMainInteraction());
     REQUIRE(workflow.confirmDiscard() == createNew);
     REQUIRE(workflow.getState() == ProjectWorkflow::State::committing);
 }
@@ -90,6 +91,21 @@ void testErrorReturnsToCorrectState()
     REQUIRE(workflow.getState() == ProjectWorkflow::State::saveProjectAs);
 }
 
+void testUnsavedConfirmationErrorRemainsModal()
+{
+    ProjectWorkflow::Controller workflow;
+    workflow.stageOperation({ProjectWorkflow::OperationType::createNew, {}}, true);
+    workflow.showError();
+
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::operationError);
+    REQUIRE(workflow.getStateBeforeError() == ProjectWorkflow::State::confirmUnsavedChanges);
+    REQUIRE(workflow.locksMainInteraction());
+
+    workflow.goBackFromError();
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::confirmUnsavedChanges);
+    REQUIRE(workflow.locksMainInteraction());
+}
+
 void testTransientErrorsCannotReturnToBusyStates()
 {
     ProjectWorkflow::Controller workflow;
@@ -140,6 +156,7 @@ int main()
     testStandaloneSaveAsCompletesNormally();
     testCancelClearsIntent();
     testErrorReturnsToCorrectState();
+    testUnsavedConfirmationErrorRemainsModal();
     testTransientErrorsCannotReturnToBusyStates();
     testDiscardClearsSaveContinuation();
     testCompletingOperationClearsPendingIntent();

@@ -124,7 +124,11 @@ bool Controller::isSavePath() const noexcept
 
 bool Controller::locksMainInteraction() const noexcept
 {
-    return isSavePath() || state == State::committing;
+    if (isSavePath() || state == State::confirmUnsavedChanges || state == State::committing)
+        return true;
+
+    return state == State::operationError
+           && stateBeforeError == State::confirmUnsavedChanges;
 }
 
 void Controller::clearPending()
