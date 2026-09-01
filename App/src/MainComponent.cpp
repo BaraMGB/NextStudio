@@ -468,15 +468,6 @@ void MainComponent::handleAsyncUpdate()
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (auto *browser = dynamic_cast<BrowserBaseComponent *>(source))
-    {
-        const auto request = browser->m_projectRequest.take();
-        if (request.action == ProjectLifecycle::ProjectAction::loadProject)
-            requestProjectOperation({ProjectWorkflow::OperationType::load, request.file});
-        else if (request.action == ProjectLifecycle::ProjectAction::newProject)
-            requestProjectOperation({ProjectWorkflow::OperationType::createNew, {}});
-    }
-
     if (source == &m_selectionManager && m_editViewState)
     {
         if (m_editViewState->m_applicationState.m_exclusiveMidiFocusEnabled)
@@ -911,15 +902,20 @@ void MainComponent::setProjectBrowserWorkingMode(bool enabled)
     constexpr int workingWidth = SidebarLayout::defaultExpandedWidth;
     if (enabled)
     {
+        m_applicationState.m_sidebarCollapsed = false;
         if (m_projectBrowserExpandedSidebar)
+        {
+            resized();
             return;
+        }
+
         m_sidebarWidthBeforeProjectBrowser = getPreferredSidebarWidth();
         if (m_sidebarWidthBeforeProjectBrowser < workingWidth)
         {
             m_applicationState.m_sidebarWidth = workingWidth;
             m_projectBrowserExpandedSidebar = true;
-            resized();
         }
+        resized();
         return;
     }
 

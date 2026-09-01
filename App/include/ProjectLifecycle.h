@@ -24,20 +24,12 @@ enum class SaveResult
     failed
 };
 
-enum class UnsavedChoice
-{
-    save,
-    discard,
-    cancel
-};
-
-bool shouldProceedAfterUnsavedChoice(UnsavedChoice choice, SaveResult saveResult);
-
 juce::File withProjectExtension(const juce::File &file);
 juce::File normaliseSaveTarget(const juce::File &requestedFile, const juce::File &currentFile = {});
 juce::String projectNameWithoutExtension(const juce::String &name);
 bool isValidProjectName(const juce::String &name);
 bool isPersistentProjectFile(const juce::File &file);
+bool isProjectBrowserEntry(const juce::File &file);
 bool isValidProjectTarget(const juce::File &file);
 bool shouldChooseSaveTarget(const juce::File &currentFile, bool forceSaveAs);
 
@@ -51,30 +43,4 @@ enum class LoadFileStatus
 };
 
 LoadFileStatus inspectLoadFile(const juce::File &file, bool allowRecoveryFile);
-
-enum class ProjectAction
-{
-    none,
-    newProject,
-    loadProject
-};
-
-struct ProjectRequest
-{
-    ProjectAction action{ProjectAction::none};
-    juce::File file;
-};
-
-class ProjectRequestState
-{
-public:
-    void clear();
-    void requestNewProject();
-    bool requestLoadProject(const juce::File &file);
-    ProjectRequest take();
-    ProjectRequest peek() const;
-
-private:
-    ProjectRequest request;
-};
 } // namespace ProjectLifecycle

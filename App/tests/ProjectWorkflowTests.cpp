@@ -14,7 +14,6 @@ void testCleanLoadExecutesImmediately()
     ProjectWorkflow::Controller workflow;
     const ProjectWorkflow::Operation load{ProjectWorkflow::OperationType::load, juce::File("/tmp/Song.tracktionedit")};
 
-    workflow.beginLoadBrowser();
     REQUIRE(workflow.stageOperation(load, false));
     REQUIRE(workflow.getState() == ProjectWorkflow::State::committing);
     REQUIRE(workflow.locksMainInteraction());
@@ -34,18 +33,35 @@ void testDiscardContinuation()
 
 void testSaveAsContinuation()
 {
+    const ProjectWorkflow::Operation operations[]{
+        {ProjectWorkflow::OperationType::createNew, {}},
+        {ProjectWorkflow::OperationType::load, juce::File("/tmp/Song.tracktionedit")},
+        {ProjectWorkflow::OperationType::quit, {}}};
+
+    for (const auto &operation : operations)
+    {
+        ProjectWorkflow::Controller workflow;
+        REQUIRE(!workflow.stageOperation(operation, true));
+        workflow.beginSaveBeforePending(true);
+        REQUIRE(workflow.getState() == ProjectWorkflow::State::saveProjectAs);
+        REQUIRE(workflow.shouldContinueAfterSave());
+        REQUIRE(workflow.locksMainInteraction());
+
+        REQUIRE(workflow.completeSave() == operation);
+        REQUIRE(workflow.getState() == ProjectWorkflow::State::committing);
+        REQUIRE(!workflow.shouldContinueAfterSave());
+    }
+}
+
+void testStandaloneSaveAsCompletesNormally()
+{
     ProjectWorkflow::Controller workflow;
-    const ProjectWorkflow::Operation quit{ProjectWorkflow::OperationType::quit, {}};
+    workflow.beginSaveAs();
+    workflow.markSaving();
 
-    REQUIRE(!workflow.stageOperation(quit, true));
-    workflow.beginSaveBeforePending(true);
-    REQUIRE(workflow.getState() == ProjectWorkflow::State::saveProjectAs);
-    REQUIRE(workflow.shouldContinueAfterSave());
-    REQUIRE(workflow.locksMainInteraction());
-
-    REQUIRE(workflow.completeSave() == quit);
-    REQUIRE(workflow.getState() == ProjectWorkflow::State::committing);
-    REQUIRE(!workflow.shouldContinueAfterSave());
+    REQUIRE(workflow.completeSave() == ProjectWorkflow::Operation{});
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::normal);
+    REQUIRE(!workflow.hasPendingOperation());
 }
 
 void testCancelClearsIntent()
@@ -73,6 +89,47 @@ void testErrorReturnsToCorrectState()
     workflow.goBackFromError();
     REQUIRE(workflow.getState() == ProjectWorkflow::State::saveProjectAs);
 }
+
+void testTransientErrorsCannotReturnToBusyStates()
+{
+    ProjectWorkflow::Controller workflow;
+    workflow.stageOperation({ProjectWorkflow::OperationType::load, juce::File("/tmp/Song.tracktionedit")}, false);
+    workflow.showError();
+    workflow.goBackFromError();
+
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::normal);
+    REQUIRE(!workflow.hasPendingOperation());
+    REQUIRE(!workflow.locksMainInteraction());
+
+    workflow.beginSaveAs();
+    workflow.markSaving();
+    workflow.showError();
+    workflow.goBackFromError();
+
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::normal);
+    REQUIRE(!workflow.locksMainInteraction());
+}
+
+void testDiscardClearsSaveContinuation()
+{
+    ProjectWorkflow::Controller workflow;
+    workflow.stageOperation({ProjectWorkflow::OperationType::quit, {}}, true);
+    workflow.beginSaveBeforePending(true);
+    workflow.transitionTo(ProjectWorkflow::State::confirmUnsavedChanges);
+    REQUIRE(workflow.confirmDiscard().type == ProjectWorkflow::OperationType::quit);
+    REQUIRE(!workflow.shouldContinueAfterSave());
+}
+
+void testCompletingOperationClearsPendingIntent()
+{
+    ProjectWorkflow::Controller workflow;
+    workflow.stageOperation({ProjectWorkflow::OperationType::load, juce::File("/tmp/Song.tracktionedit")}, false);
+    workflow.completeOperation();
+
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::normal);
+    REQUIRE(!workflow.hasPendingOperation());
+    REQUIRE(!workflow.locksMainInteraction());
+}
 } // namespace
 
 int main()
@@ -80,8 +137,12 @@ int main()
     testCleanLoadExecutesImmediately();
     testDiscardContinuation();
     testSaveAsContinuation();
+    testStandaloneSaveAsCompletesNormally();
     testCancelClearsIntent();
     testErrorReturnsToCorrectState();
+    testTransientErrorsCannotReturnToBusyStates();
+    testDiscardClearsSaveContinuation();
+    testCompletingOperationClearsPendingIntent();
 
     if (failures != 0)
     {

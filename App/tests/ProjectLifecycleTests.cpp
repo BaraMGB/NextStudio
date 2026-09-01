@@ -42,17 +42,6 @@ private:
     juce::File directory;
 };
 
-void testUnsavedDecisionMatrix()
-{
-    using namespace ProjectLifecycle;
-
-    REQUIRE(shouldProceedAfterUnsavedChoice(UnsavedChoice::save, SaveResult::saved));
-    REQUIRE(!shouldProceedAfterUnsavedChoice(UnsavedChoice::save, SaveResult::cancelled));
-    REQUIRE(!shouldProceedAfterUnsavedChoice(UnsavedChoice::save, SaveResult::failed));
-    REQUIRE(shouldProceedAfterUnsavedChoice(UnsavedChoice::discard, SaveResult::cancelled));
-    REQUIRE(!shouldProceedAfterUnsavedChoice(UnsavedChoice::cancel, SaveResult::saved));
-}
-
 void testProjectExtensionHandling()
 {
     using namespace ProjectLifecycle;
@@ -87,37 +76,12 @@ void testProjectExtensionHandling()
     REQUIRE(isValidProjectTarget(validTarget));
     REQUIRE(!isValidProjectTarget(testDirectory.file("New Song.txt")));
     REQUIRE(!isValidProjectTarget(testDirectory.file("Bad?.tracktionedit")));
-}
 
-void testProjectRequestState()
-{
-    using namespace ProjectLifecycle;
-    ScopedTestDirectory testDirectory;
-    const auto project = testDirectory.file("Song.tracktionedit");
-    REQUIRE(project.replaceWithText("project"));
-
-    ProjectRequestState state;
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
-
-    state.requestNewProject();
-    REQUIRE_EQ(state.take().action, ProjectAction::newProject);
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
-
-    REQUIRE(state.requestLoadProject(project));
-    REQUIRE_EQ(state.peek().action, ProjectAction::loadProject);
-    REQUIRE_EQ(state.peek().file, project);
-
-    // This is the chooser-cancel path: clearing must remove a previously selected target.
-    state.clear();
-    REQUIRE_EQ(state.take().action, ProjectAction::none);
-
-    const auto unsupported = testDirectory.file("Song.txt");
-    REQUIRE(unsupported.replaceWithText("project"));
-    REQUIRE(!state.requestLoadProject(unsupported));
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
-
-    REQUIRE(!state.requestLoadProject(testDirectory.file("Missing.tracktionedit")));
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
+    const auto browserDirectory = testDirectory.file("Subfolder");
+    REQUIRE(browserDirectory.createDirectory());
+    REQUIRE(isProjectBrowserEntry(browserDirectory));
+    REQUIRE(isProjectBrowserEntry(testDirectory.file("Song.TRACKTIONEDIT")));
+    REQUIRE(!isProjectBrowserEntry(testDirectory.file("Song.wav")));
 }
 
 void testLoadFileInspection()
@@ -170,9 +134,7 @@ void testLoadFileInspection()
 
 int main()
 {
-    testUnsavedDecisionMatrix();
     testProjectExtensionHandling();
-    testProjectRequestState();
     testLoadFileInspection();
 
     if (failures != 0)

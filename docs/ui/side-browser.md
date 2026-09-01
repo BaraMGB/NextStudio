@@ -8,16 +8,15 @@ The Side Browser is the vertical panel on the left side of the main window. It p
 
 ### Projects
 
-The normal view lists `.tracktionedit` files under the configured Projects directory and provides:
+The Projects view is a directory browser rooted initially at the configured Projects directory. It always shows folders and filters files to `.tracktionedit` projects. It provides:
 
 - **New** — create a project;
-- **Load** — replace the normal list with an embedded folder/project browser;
 - **Save** — write directly to an existing persistent path, or enter Save As for a new project;
-- **Save As** — choose a directory and name inside the sidebar;
-- sorting and search;
-- double-click loading from the normal project list.
+- **Save As** — save under a new name in the currently displayed directory;
+- folder navigation, sorting and search;
+- double-click loading through the guarded project workflow.
 
-Load browsing remains non-modal. Save As dims and disables the editor, lower range, application commands, MIDI keyboard routing, and plugin windows while its sidebar controls remain active; transport/audio processing for the edit is suspended. The sidebar splitter stays usable so the browser can be widened. Clicking outside Save As, pressing `Escape`, or pressing **Cancel** closes it without changing the project. Previously active playback resumes after cancellation or saving, but recording does not.
+Browsing remains non-modal; there is no separate Load mode or Load button. Save As dims and disables the editor, lower range, application commands, MIDI keyboard routing, and plugin windows while its sidebar controls remain active; transport/audio processing for the edit is suspended. The sidebar splitter stays usable so the browser can be widened. Clicking outside Save As, pressing `Escape`, or pressing **Cancel** closes it without changing the project. Previously active playback resumes after cancellation or saving, but recording does not.
 
 Existing targets require an inline **Overwrite** confirmation. Invalid names, unreadable projects, unavailable paths, and write failures are reported inside the Projects sidebar rather than in a project-specific alert window.
 
@@ -45,7 +44,8 @@ See [Embedded Project File Browser and Save-As Interaction Boundary](../changes/
 ### Home
 
 - General file browser starting in the configured working directory.
-- Folder navigation.
+- Uses the same asynchronous directory-navigation component as Projects, without a project-file filter.
+- Selection is forwarded to the edit-aware sample preview; the browser itself has no Engine or Edit dependency.
 - Supports sample preview and drag-and-drop of audio files.
 
 ### Settings

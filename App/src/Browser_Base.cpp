@@ -29,7 +29,10 @@ PathComponent::PathComponent(juce::File dir, ApplicationViewState &appState)
 {
     addAndMakeVisible(m_currentPathField);
     m_currentPathField.setText(m_currentPath.getFullPathName());
-    m_currentPathField.onReturnKey = [this] { setDir(juce::File(m_currentPathField.getText())); };
+    m_currentPathField.onReturnKey = [this]
+    {
+        setDir(juce::File(m_currentPathField.getText()));
+    };
     addAndMakeVisible(m_button);
     m_button.onClick = [this]
     {
@@ -56,10 +59,16 @@ void PathComponent::resized()
 void PathComponent::setDir(juce::File file)
 {
     if (!file.exists() || !file.isDirectory())
+    {
+        m_currentPathField.setText(m_currentPath.getFullPathName());
         return;
+    }
 
     if (file == m_currentPath)
+    {
+        m_currentPathField.setText(m_currentPath.getFullPathName());
         return;
+    }
 
     m_currentPath = file;
     m_currentPathField.setText(m_currentPath.getFullPathName());
@@ -108,9 +117,7 @@ BrowserBaseComponent::~BrowserBaseComponent()
 
 void BrowserBaseComponent::setFileList(const juce::Array<juce::File> &fileList)
 {
-    m_listBox.deselectAllRows();
     m_fileList = fileList;
-
     updateContentList();
 }
 
@@ -126,21 +133,39 @@ void BrowserBaseComponent::comboBoxChanged(juce::ComboBox *box)
 {
     if (box == &m_sortingBox)
     {
-        auto selectedId = m_sortingBox.getSelectedId();
-        sortList(selectedId);
+        const auto selectedFile = getSelectedContentFile();
+        sortList(m_sortingBox.getSelectedId());
+        restoreSelectedFile(selectedFile);
     }
     m_listBox.grabKeyboardFocus();
 }
+
 void BrowserBaseComponent::updateContentList()
 {
+    const auto selectedFile = getSelectedContentFile();
     m_contentList.clear();
 
     for (const auto &entry : m_fileList)
         if (entry.getFileNameWithoutExtension().containsIgnoreCase(m_searchTerm))
             m_contentList.add(entry);
 
-    auto selectedId = m_sortingBox.getSelectedId();
-    sortList(selectedId);
+    sortList(m_sortingBox.getSelectedId());
     m_listBox.updateContent();
+    restoreSelectedFile(selectedFile);
     repaint();
+}
+
+juce::File BrowserBaseComponent::getSelectedContentFile() const
+{
+    const auto row = m_listBox.getSelectedRow();
+    return juce::isPositiveAndBelow(row, m_contentList.size()) ? m_contentList[row] : juce::File{};
+}
+
+void BrowserBaseComponent::restoreSelectedFile(const juce::File &file)
+{
+    const auto row = file == juce::File() ? -1 : m_contentList.indexOf(file);
+    if (row >= 0)
+        m_listBox.selectRow(row);
+    else
+        m_listBox.deselectAllRows();
 }

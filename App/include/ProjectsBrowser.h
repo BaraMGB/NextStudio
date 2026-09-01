@@ -11,9 +11,8 @@ by the Free Software Foundation, either version 3 of the License, or
 */
 #pragma once
 
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
-#include "Browser_Base.h"
+#include "DirectoryBrowser.h"
 #include "EditViewState.h"
 #include "MenuBar.h"
 #include "ProjectLifecycle.h"
@@ -21,7 +20,8 @@ by the Free Software Foundation, either version 3 of the License, or
 
 namespace te = tracktion_engine;
 
-class ProjectsBrowserComponent : public BrowserBaseComponent
+/** Project actions and lifecycle workflow around a reusable directory browser. */
+class ProjectsBrowserComponent : public juce::Component
 {
 public:
     using Mode = ProjectWorkflow::State;
@@ -42,17 +42,10 @@ public:
     void paint(juce::Graphics &g) override;
     void resized() override;
     bool keyPressed(const juce::KeyPress &key) override;
-    juce::var getDragSourceDescription(const juce::SparseSet<int> &rowsToDescribe) override;
 
-    void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
-    void listBoxItemClicked(int row, const juce::MouseEvent &e) override;
-    void selectedRowsChanged(int lastRowSelected) override;
-    void changeListenerCallback(juce::ChangeBroadcaster *source) override;
-
-    void setFileList(const juce::Array<juce::File> &fileList);
+    void setProjectsDirectory(const juce::File &directory);
     void projectWasSaved(const juce::File &file);
     void setHostCallbacks(HostCallbacks callbacks) { m_hostCallbacks = std::move(callbacks); }
-    void beginLoadProject();
     void beginProjectOperation(ProjectWorkflow::Operation operation);
     void beginSaveProjectAs(bool preservePendingOperation = false);
     void dismissSaveProjectAs();
@@ -63,69 +56,42 @@ public:
     bool isInteractionLocked() const noexcept { return m_workflow.locksMainInteraction(); }
 
 private:
-    void sortList(int selectedID) override;
-    void sortByName(juce::Array<juce::File> &list, bool forward);
     void setMode(Mode mode);
     void configureMode();
     void cancelCurrentMode();
     void goBackFromError();
-    void refreshDirectory();
-    void navigateTo(const juce::File &directory, bool addToHistory = true);
-    void navigateBack();
-    void navigateForward();
-    void updateSelectionAndValidation();
     void updateTargetPreview();
+    void updateActionValidation();
     void requestOpen(const juce::File &file);
     void performPrimaryAction();
     void performSave(const juce::File &target, bool overwriteConfirmed);
-    void showUnsavedConfirmation(ProjectWorkflow::Operation operation);
     void saveBeforePendingOperation();
     void executePendingOperation(ProjectWorkflow::UnsavedResolution resolution);
-    juce::File getSelectedBrowserFile() const;
     juce::File getSaveTarget() const;
-    juce::File getInitialDirectory(bool forSave) const;
-    bool isBrowserMode() const noexcept;
+    juce::File getInitialDirectory() const;
     bool isSaveMode() const noexcept { return m_workflow.isSavePath(); }
     void setWorkingWidth(bool enabled);
 
-    juce::DrawableButton m_loadProjectButton, m_saveProjectButton, m_saveAsProjectButton, m_newProjectButton;
+    juce::DrawableButton m_saveProjectButton, m_saveAsProjectButton, m_newProjectButton;
     MenuBar m_projectsMenu;
+    DirectoryBrowserComponent m_directoryBrowser;
 
     juce::Label m_modeTitle;
-    juce::TextButton m_backButton{"<"}, m_forwardButton{">"};
-    juce::Label m_selectedPathLabel;
     juce::Label m_projectNameLabel;
     juce::TextEditor m_projectNameEditor;
     juce::Label m_targetPathLabel;
     juce::Label m_statusLabel;
-    juce::TextButton m_primaryButton{"Open"};
+    juce::TextButton m_primaryButton{"Save"};
     juce::TextButton m_secondaryButton{"Cancel"};
-    juce::TextButton m_tertiaryButton{"Back"};
+    juce::TextButton m_tertiaryButton{"Discard && Continue"};
 
     EditViewState &m_evs;
     ApplicationViewState &m_avs;
-    juce::TimeSliceThread m_directoryThread{"Project directory scanner"};
-    juce::DirectoryContentsList m_directoryContents{nullptr, m_directoryThread};
     ProjectWorkflow::Controller m_workflow;
     HostCallbacks m_hostCallbacks;
-    juce::Array<juce::File> m_normalProjectFiles;
-    juce::Array<juce::File> m_navigationHistory;
-    int m_navigationIndex{-1};
-    juce::File m_selectedFile;
-    juce::File m_displayedDirectory;
     juce::File m_overwriteTarget;
     bool m_operationInProgress{false};
     bool m_workingWidthRequested{false};
-
-    struct CompareNameForward
-    {
-        static int compareElements(const juce::File &first, const juce::File &second);
-    };
-
-    struct CompareNameBackwards
-    {
-        static int compareElements(const juce::File &first, const juce::File &second);
-    };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ProjectsBrowserComponent)
 };

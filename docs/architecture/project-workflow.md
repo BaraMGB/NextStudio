@@ -16,7 +16,6 @@ Primary files:
 `ProjectWorkflow::State` contains:
 
 - `normal`
-- `loadProject`
 - `saveProjectAs`
 - `confirmOverwrite`
 - `saving`
@@ -39,7 +38,7 @@ All user-facing replacement operations enter through `MainComponent::requestProj
 This includes:
 
 - New Project;
-- loading from the embedded Projects browser;
+- loading by activating a project in the normal Projects directory browser;
 - loading from Home or drag-and-drop;
 - application quit.
 
@@ -64,13 +63,15 @@ The browser invokes a typed operation callback rather than sending an untyped lo
 
 On exit it allocates the playback context again, enables the component trees and plugin windows, restores keyboard routing, and hides the overlay. Playback that was active before a cancelled or completed save resumes at the captured position. Recording never resumes automatically, and successful edit replacement suppresses playback restoration for the old edit.
 
-`ProjectWorkflowOverlay` is not the security boundary. It supplies visual dimming and prevents an outside click from reaching the covered control. Effective component disabling, command status, plugin-window registration, MIDI detachment, and playback-context lifetime provide the lock.
+`ProjectWorkflowOverlay` is not the security boundary. It supplies visual dimming and prevents an outside click from reaching the covered control. Effective component disabling, command status, plugin-window registration, MIDI detachment, and playback-context lifetime provide the lock. The debug shell observes the same runtime boundary: read-only diagnostics, screenshots, `stop`, and harness shutdown remain available, while transport-start and model-mutating commands return `busy`.
 
 The Projects sidebar and splitter remain above the overlay. Sidebar command handling rejects navigation while interaction is locked. During cancellable Save As, an outside click cancels; during `saving` or `committing`, cancellation controls are disabled.
 
 ## Load behavior
 
-Directory browsing in `loadProject` remains non-modal and does not stop the engine. The lock begins only after Open, Save and Continue, or Discard and Continue commits to replacing the edit. This closes the previous race in which a boolean unsaved-change decision could become stale before asynchronous setup.
+The normal Projects view is always a filtered directory browser, so loading needs neither a Load button nor a separate browser state. Directory browsing remains non-modal and does not stop the engine. Double-clicking a project stages a typed load operation. The lock begins only when the operation commits after the clean, Save and Continue, or Discard and Continue decision. This closes the previous race in which a boolean unsaved-change decision could become stale before asynchronous setup.
+
+The Projects and Home views use `DirectoryBrowserComponent` for asynchronous scanning, navigation, sorting and filtering. Domain behavior is callback-based: Projects activates only persistent project files, while Home forwards audio selections to `SamplePreviewComponent`. The directory browser itself has no Engine, Edit or preview dependency.
 
 `MainComponent::setupEdit()` no longer opens a modal unsaved-project alert. It assumes every runtime replacement has passed through the workflow controller. The replacement edit is still inspected and constructed before the current edit is destroyed.
 

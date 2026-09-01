@@ -20,12 +20,6 @@ bool Operation::isValid() const noexcept
            && (type != OperationType::load || file != juce::File());
 }
 
-void Controller::beginLoadBrowser()
-{
-    clearPending();
-    state = State::loadProject;
-}
-
 void Controller::beginSaveAs(bool preservePendingOperation)
 {
     if (!preservePendingOperation)
@@ -46,6 +40,7 @@ Operation Controller::confirmDiscard()
     if (state != State::confirmUnsavedChanges || !pendingOperation.isValid())
         return {};
 
+    continueAfterSave = false;
     state = State::committing;
     return pendingOperation;
 }
@@ -104,6 +99,13 @@ void Controller::showError()
 
 void Controller::goBackFromError()
 {
+    if (stateBeforeError == State::saving || stateBeforeError == State::committing)
+    {
+        clearPending();
+        state = State::normal;
+        return;
+    }
+
     state = stateBeforeError == State::operationError || stateBeforeError == State::normal
               ? State::normal
               : stateBeforeError;

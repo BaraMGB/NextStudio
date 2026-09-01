@@ -12,6 +12,7 @@ public:
     explicit MainComponentDebugHost(MainComponent &mainComponent);
 
     bool isDebugMode() const override;
+    bool isProjectWorkflowActive() const override;
     const ApplicationViewState &getApplicationState() const override;
     tracktion_engine::Edit *getCurrentEdit() const override;
     EditViewState *getEditViewState() const override;

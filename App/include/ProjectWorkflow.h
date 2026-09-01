@@ -18,7 +18,6 @@ namespace ProjectWorkflow
 enum class State
 {
     normal,
-    loadProject,
     saveProjectAs,
     confirmOverwrite,
     saving,
@@ -65,7 +64,6 @@ public:
     bool hasPendingOperation() const noexcept { return pendingOperation.isValid(); }
     bool shouldContinueAfterSave() const noexcept { return continueAfterSave; }
 
-    void beginLoadBrowser();
     void beginSaveAs(bool preservePendingOperation = false);
     void transitionTo(State newState) noexcept { state = newState; }
 

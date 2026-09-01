@@ -14,20 +14,6 @@ by the Free Software Foundation, either version 3 of the License, or
 
 namespace ProjectLifecycle
 {
-bool shouldProceedAfterUnsavedChoice(UnsavedChoice choice, SaveResult saveResult)
-{
-    switch (choice)
-    {
-    case UnsavedChoice::save:
-        return saveResult == SaveResult::saved;
-    case UnsavedChoice::discard:
-        return true;
-    case UnsavedChoice::cancel:
-    default:
-        return false;
-    }
-}
-
 juce::File withProjectExtension(const juce::File &file)
 {
     if (file == juce::File())
@@ -72,6 +58,11 @@ bool isPersistentProjectFile(const juce::File &file)
     return file.getFileExtension().equalsIgnoreCase(".tracktionedit");
 }
 
+bool isProjectBrowserEntry(const juce::File &file)
+{
+    return file.isDirectory() || isPersistentProjectFile(file);
+}
+
 bool isValidProjectTarget(const juce::File &file)
 {
     if (file == juce::File() || file.isDirectory() || !isPersistentProjectFile(file)
@@ -114,37 +105,4 @@ LoadFileStatus inspectLoadFile(const juce::File &file, bool allowRecoveryFile)
     return LoadFileStatus::invalidData;
 }
 
-void ProjectRequestState::clear()
-{
-    request = {};
-}
-
-void ProjectRequestState::requestNewProject()
-{
-    request = {ProjectAction::newProject, {}};
-}
-
-bool ProjectRequestState::requestLoadProject(const juce::File &file)
-{
-    if (!file.existsAsFile() || !isPersistentProjectFile(file))
-    {
-        clear();
-        return false;
-    }
-
-    request = {ProjectAction::loadProject, file};
-    return true;
-}
-
-ProjectRequest ProjectRequestState::take()
-{
-    const auto result = request;
-    clear();
-    return result;
-}
-
-ProjectRequest ProjectRequestState::peek() const
-{
-    return request;
-}
 } // namespace ProjectLifecycle

@@ -17,36 +17,14 @@ by the Free Software Foundation, either version 3 of the License, or
 
 namespace
 {
-constexpr auto projectWildcard = "*.tracktionedit";
 const juce::DrawableButton::ButtonStyle buttonStyle{juce::DrawableButton::ButtonStyle::ImageAboveTextLabel};
-
-void configurePathLabel(juce::Label &label)
-{
-    label.setMinimumHorizontalScale(0.6f);
-    label.setJustificationType(juce::Justification::centredLeft);
-}
-} // namespace
-
-int ProjectsBrowserComponent::CompareNameForward::compareElements(const juce::File &first, const juce::File &second)
-{
-    if (first.isDirectory() != second.isDirectory())
-        return first.isDirectory() ? -1 : 1;
-    return first.getFileName().compareNatural(second.getFileName());
-}
-
-int ProjectsBrowserComponent::CompareNameBackwards::compareElements(const juce::File &first, const juce::File &second)
-{
-    if (first.isDirectory() != second.isDirectory())
-        return first.isDirectory() ? -1 : 1;
-    return second.getFileName().compareNatural(first.getFileName());
 }
 
 ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, ApplicationViewState &avs)
-    : BrowserBaseComponent(avs),
-      m_newProjectButton("New", buttonStyle),
-      m_loadProjectButton("Load", buttonStyle),
-      m_saveProjectButton("Save", buttonStyle),
+    : m_saveProjectButton("Save", buttonStyle),
       m_saveAsProjectButton("Save As", buttonStyle),
+      m_newProjectButton("New", buttonStyle),
+      m_directoryBrowser(avs),
       m_evs(evs),
       m_avs(avs)
 {
@@ -54,19 +32,16 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
 
     addAndMakeVisible(m_projectsMenu);
     m_projectsMenu.addButton(&m_newProjectButton);
-    m_projectsMenu.addButton(&m_loadProjectButton);
     m_projectsMenu.addButton(&m_saveProjectButton);
     m_projectsMenu.addButton(&m_saveAsProjectButton);
 
     GUIHelpers::setDrawableOnButton(m_newProjectButton, BinaryData::newProjectButton_svg, avs.getProjectsColour());
-    GUIHelpers::setDrawableOnButton(m_loadProjectButton, BinaryData::filedownload_svg, juce::Colours::lightcyan);
     GUIHelpers::setDrawableOnButton(m_saveProjectButton, BinaryData::contentsaveedit_svg, juce::Colours::seagreen);
     GUIHelpers::setDrawableOnButton(m_saveAsProjectButton, BinaryData::contentsaveedit_svg, juce::Colours::cornflowerblue);
 
-    for (auto *button : {&m_newProjectButton, &m_loadProjectButton, &m_saveProjectButton, &m_saveAsProjectButton})
+    for (auto *button : {&m_newProjectButton, &m_saveProjectButton, &m_saveAsProjectButton})
         button->setEdgeIndent(margin);
     m_newProjectButton.setTooltip("Create a new project");
-    m_loadProjectButton.setTooltip("Open a project in the sidebar");
     m_saveProjectButton.setTooltip("Save project");
     m_saveAsProjectButton.setTooltip("Save project as a new file in the sidebar");
 
@@ -74,7 +49,6 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     {
         beginProjectOperation({ProjectWorkflow::OperationType::createNew, {}});
     };
-    m_loadProjectButton.onClick = [this] { beginLoadProject(); };
     m_saveProjectButton.onClick = [this]
     {
         if (m_hostCallbacks.saveCurrentProject != nullptr)
@@ -82,9 +56,31 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     };
     m_saveAsProjectButton.onClick = [this] { beginSaveProjectAs(); };
 
-    const std::array<juce::Component *, 11> workflowComponents{
-        &m_modeTitle, &m_backButton, &m_forwardButton, &m_selectedPathLabel,
-        &m_projectNameLabel, &m_projectNameEditor, &m_targetPathLabel,
+    addAndMakeVisible(m_directoryBrowser);
+    m_directoryBrowser.setName("ProjectDirectoryBrowser");
+    m_directoryBrowser.setDragSourceDescription("ProjectsBrowser");
+    m_directoryBrowser.setFilePredicate(ProjectLifecycle::isProjectBrowserEntry);
+    m_directoryBrowser.setFileActivatedCallback(
+        [this](const juce::File &file)
+        {
+            if (getMode() == Mode::saveProjectAs)
+            {
+                m_projectNameEditor.setText(ProjectLifecycle::projectNameWithoutExtension(file.getFileName()));
+                return;
+            }
+
+            if (getMode() == Mode::normal)
+                requestOpen(file);
+        });
+    m_directoryBrowser.setDirectoryChangedCallback(
+        [this](const juce::File &directory)
+        {
+            m_avs.m_projectLoadDir = directory.getFullPathName();
+            updateTargetPreview();
+        });
+
+    const std::array<juce::Component *, 8> workflowComponents{
+        &m_modeTitle, &m_projectNameLabel, &m_projectNameEditor, &m_targetPathLabel,
         &m_statusLabel, &m_primaryButton, &m_secondaryButton, &m_tertiaryButton};
     for (auto *component : workflowComponents)
         addChildComponent(component);
@@ -92,43 +88,20 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     m_modeTitle.setFont(juce::Font(18.0f, juce::Font::bold));
     m_modeTitle.setJustificationType(juce::Justification::centredLeft);
     m_projectNameLabel.setText("Project name", juce::dontSendNotification);
-    configurePathLabel(m_selectedPathLabel);
-    configurePathLabel(m_targetPathLabel);
+    m_targetPathLabel.setMinimumHorizontalScale(0.6f);
+    m_targetPathLabel.setJustificationType(juce::Justification::centredLeft);
     m_statusLabel.setJustificationType(juce::Justification::centredLeft);
     m_statusLabel.setMinimumHorizontalScale(0.65f);
     m_statusLabel.setColour(juce::Label::textColourId, m_avs.getTextColour());
-
-    m_backButton.setTooltip("Previous folder");
-    m_forwardButton.setTooltip("Next folder");
-    m_primaryButton.setTooltip("Perform the selected project action");
-    m_secondaryButton.setTooltip("Cancel or go back");
-    m_tertiaryButton.setTooltip("Alternative project action");
     m_projectNameEditor.setTooltip("Project name; .tracktionedit is added automatically");
     m_projectNameEditor.setColour(juce::TextEditor::outlineColourId, m_avs.getBorderColour());
     m_projectNameEditor.setColour(juce::TextEditor::focusedOutlineColourId, m_avs.getPrimeColour());
 
-    m_backButton.onClick = [this] { navigateBack(); };
-    m_forwardButton.onClick = [this] { navigateForward(); };
     m_primaryButton.onClick = [this] { performPrimaryAction(); };
     m_secondaryButton.onClick = [this]
     {
         if (getMode() == Mode::confirmOverwrite)
             setMode(Mode::saveProjectAs);
-        else if (getMode() == Mode::operationError)
-            cancelCurrentMode();
-        else if (getMode() == Mode::confirmUnsavedChanges)
-        {
-            const auto pending = m_workflow.getPendingOperation();
-            cancelCurrentMode();
-            if (pending.type == ProjectWorkflow::OperationType::load)
-            {
-                beginLoadProject();
-                if (pending.file.getParentDirectory().isDirectory())
-                    navigateTo(pending.file.getParentDirectory());
-                m_selectedFile = pending.file;
-                updateSelectionAndValidation();
-            }
-        }
         else
             cancelCurrentMode();
     };
@@ -136,10 +109,7 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     {
         if (getMode() == Mode::confirmUnsavedChanges)
             executePendingOperation(ProjectWorkflow::UnsavedResolution::discarded);
-        else
-            goBackFromError();
     };
-
     m_projectNameEditor.onTextChange = [this] { updateTargetPreview(); };
     m_projectNameEditor.onReturnKey = [this]
     {
@@ -148,143 +118,45 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     };
     m_projectNameEditor.onEscapeKey = [this] { cancelCurrentMode(); };
 
-    m_directoryContents.addChangeListener(this);
-    m_directoryThread.startThread(juce::Thread::Priority::low);
-
     setName("ProjectBrowser");
     setWantsKeyboardFocus(true);
-    m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
-    m_sortingBox.addItem(GUIHelpers::translate("by Name (z - a)", m_applicationViewState), 2);
-    m_sortingBox.setSelectedId(1, juce::dontSendNotification);
+    m_directoryBrowser.setDirectory(getInitialDirectory());
     configureMode();
 }
 
 ProjectsBrowserComponent::~ProjectsBrowserComponent()
 {
-    m_directoryContents.removeChangeListener(this);
-    m_directoryThread.stopThread(2000);
     if (m_workingWidthRequested)
         setWorkingWidth(false);
 }
 
-void ProjectsBrowserComponent::setFileList(const juce::Array<juce::File> &fileList)
-{
-    m_normalProjectFiles = fileList;
-    if (getMode() == Mode::normal)
-        BrowserBaseComponent::setFileList(fileList);
-}
-
-void ProjectsBrowserComponent::projectWasSaved(const juce::File &file)
-{
-    const auto projectsRoot = juce::File(m_avs.m_projectsDir.get());
-    if (!file.existsAsFile() || !(file.getParentDirectory() == projectsRoot || file.isAChildOf(projectsRoot)))
-        return;
-
-    m_normalProjectFiles.addIfNotAlreadyThere(file);
-    if (getMode() == Mode::normal)
-        BrowserBaseComponent::setFileList(m_normalProjectFiles);
-}
-
-void ProjectsBrowserComponent::beginLoadProject()
-{
-    m_projectRequest.clear();
-    m_navigationHistory.clear();
-    m_navigationIndex = -1;
-    m_selectedFile = juce::File{};
-    m_operationInProgress = false;
-    m_workflow.beginLoadBrowser();
-    setMode(Mode::loadProject);
-    navigateTo(getInitialDirectory(false));
-}
-
-void ProjectsBrowserComponent::beginProjectOperation(ProjectWorkflow::Operation operation)
-{
-    if (!operation.isValid())
-        return;
-
-    if (!m_workflow.stageOperation(operation, m_evs.m_edit.hasChangedSinceSaved()))
-    {
-        showUnsavedConfirmation(std::move(operation));
-        return;
-    }
-
-    executePendingOperation(ProjectWorkflow::UnsavedResolution::clean);
-}
-
-void ProjectsBrowserComponent::beginSaveProjectAs(bool preservePendingOperation)
-{
-    m_projectRequest.clear();
-    m_navigationHistory.clear();
-    m_navigationIndex = -1;
-    m_selectedFile = juce::File{};
-    m_overwriteTarget = juce::File{};
-    m_operationInProgress = false;
-
-    auto suggestedName = m_evs.m_editName.get().trim();
-    const auto currentFile = m_evs.m_edit.editFileRetriever ? m_evs.m_edit.editFileRetriever() : juce::File{};
-    if (ProjectLifecycle::isPersistentProjectFile(currentFile))
-        suggestedName = currentFile.getFileNameWithoutExtension();
-    if (suggestedName.isEmpty() || suggestedName.equalsIgnoreCase("unknown"))
-        suggestedName = "Untitled";
-
-    m_projectNameEditor.setText(ProjectLifecycle::projectNameWithoutExtension(suggestedName), false);
-    m_workflow.beginSaveAs(preservePendingOperation);
-    setMode(Mode::saveProjectAs);
-    navigateTo(getInitialDirectory(true));
-    updateTargetPreview();
-
-    juce::MessageManager::callAsync(
-        [safeThis = juce::Component::SafePointer<ProjectsBrowserComponent>(this)]
-        {
-            if (safeThis != nullptr)
-            {
-                safeThis->m_projectNameEditor.grabKeyboardFocus();
-                safeThis->m_projectNameEditor.selectAll();
-            }
-        });
-}
-
-void ProjectsBrowserComponent::dismissSaveProjectAs()
-{
-    if (isSaveAsWorkflowActive() && getMode() != Mode::saving)
-        cancelCurrentMode();
-}
-
 void ProjectsBrowserComponent::paint(juce::Graphics &g)
 {
-    BrowserBaseComponent::paint(g);
+    g.fillAll(m_avs.getBackgroundColour2());
     if (getMode() == Mode::normal)
     {
-        const auto bottom = m_projectsMenu.getBottom();
         g.setColour(m_avs.getBorderColour());
-        g.drawHorizontalLine(bottom, 0, getWidth());
+        g.drawHorizontalLine(m_projectsMenu.getBottom(), 0, getWidth());
     }
 }
 
 void ProjectsBrowserComponent::resized()
 {
     auto area = getLocalBounds().reduced(4);
-    if (getMode() == Mode::normal)
-    {
-        auto projectButtons = area.removeFromTop(66);
-        auto sort = area.removeFromTop(30).reduced(2);
-        auto sortLabel = sort.removeFromLeft(50);
-        auto search = area.removeFromBottom(30);
+    const auto mode = getMode();
 
-        m_projectsMenu.setBounds(projectButtons);
-        m_sortLabel.setBounds(sortLabel);
-        m_sortingBox.setBounds(sort);
-        m_searchField.setBounds(search);
-        m_listBox.setBounds(area);
+    if (mode == Mode::normal)
+    {
+        m_projectsMenu.setBounds(area.removeFromTop(66));
+        m_directoryBrowser.setBounds(area);
         return;
     }
 
     m_modeTitle.setBounds(area.removeFromTop(30));
-
-    if (getMode() == Mode::confirmUnsavedChanges)
+    if (mode == Mode::confirmUnsavedChanges)
     {
         area.removeFromTop(8);
-        m_statusLabel.setBounds(area.removeFromTop(100));
+        m_statusLabel.setBounds(area.removeFromTop(110));
         auto buttons = area.removeFromBottom(34);
         const auto third = buttons.getWidth() / 3;
         m_primaryButton.setBounds(buttons.removeFromLeft(third).reduced(2));
@@ -293,30 +165,21 @@ void ProjectsBrowserComponent::resized()
         return;
     }
 
-    auto navigation = area.removeFromTop(32);
-    m_backButton.setBounds(navigation.removeFromLeft(34).reduced(2));
-    m_forwardButton.setBounds(navigation.removeFromLeft(34).reduced(2));
-    m_currentPathField.setBounds(navigation);
-
     auto buttons = area.removeFromBottom(34);
     m_secondaryButton.setBounds(buttons.removeFromRight(90).reduced(2));
     m_primaryButton.setBounds(buttons.removeFromRight(100).reduced(2));
-    if (m_tertiaryButton.isVisible())
-        m_tertiaryButton.setBounds(buttons.removeFromRight(80).reduced(2));
+    m_statusLabel.setBounds(area.removeFromBottom(42));
 
-    m_statusLabel.setBounds(area.removeFromBottom(38));
-    if (isSaveMode())
+    if (isSaveMode() && mode != Mode::saving)
     {
         m_targetPathLabel.setBounds(area.removeFromBottom(34));
         auto name = area.removeFromBottom(34);
         m_projectNameLabel.setBounds(name.removeFromLeft(95));
         m_projectNameEditor.setBounds(name.reduced(2));
     }
-    else
-    {
-        m_selectedPathLabel.setBounds(area.removeFromBottom(38));
-    }
-    m_listBox.setBounds(area);
+
+    if (m_directoryBrowser.isVisible())
+        m_directoryBrowser.setBounds(area);
 }
 
 bool ProjectsBrowserComponent::keyPressed(const juce::KeyPress &key)
@@ -339,116 +202,70 @@ bool ProjectsBrowserComponent::keyPressed(const juce::KeyPress &key)
     return false;
 }
 
-juce::var ProjectsBrowserComponent::getDragSourceDescription(const juce::SparseSet<int> &)
+void ProjectsBrowserComponent::setProjectsDirectory(const juce::File &directory)
 {
-    return getMode() == Mode::normal ? juce::var("ProjectsBrowser") : juce::var{};
+    if (directory.isDirectory())
+        m_directoryBrowser.setDirectory(directory);
 }
 
-void ProjectsBrowserComponent::paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected)
+void ProjectsBrowserComponent::projectWasSaved(const juce::File &file)
 {
-    if (!juce::isPositiveAndBelow(rowNum, m_contentList.size()))
-        return;
-
-    const juce::Rectangle<int> bounds(0, 0, width, height);
-    g.setColour(rowNum % 2 == 0 ? m_avs.getBackgroundColour2() : m_avs.getBackgroundColour2().brighter(0.05f));
-    g.fillRect(bounds);
-    if (rowIsSelected)
-    {
-        g.setColour(m_avs.getPrimeColour());
-        g.fillRect(bounds);
-    }
-    g.setColour(rowIsSelected ? m_avs.getPrimeColour().contrasting(0.7f) : m_avs.getTextColour());
-
-    const auto &file = m_contentList.getReference(rowNum);
-    juce::String text;
-    if (file.isDirectory())
-        text = "[Folder] " + file.getFileName();
-    else if (getMode() == Mode::normal)
-        text = file.getFileNameWithoutExtension();
-    else
-        text = file.getFileName();
-    g.drawFittedText(text, bounds.reduced(5, 0), juce::Justification::centredLeft, 1, 0.75f);
+    if (file.existsAsFile() && file.getParentDirectory() == m_directoryBrowser.getCurrentDirectory())
+        m_directoryBrowser.refresh();
 }
 
-void ProjectsBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent &event)
+void ProjectsBrowserComponent::beginProjectOperation(ProjectWorkflow::Operation operation)
 {
-    if (!juce::isPositiveAndBelow(row, m_contentList.size()))
+    if (!operation.isValid() || m_operationInProgress)
         return;
 
-    const auto file = m_contentList[row];
-    if (event.getNumberOfClicks() <= 1)
-        return;
-
-    if (isBrowserMode() && file.isDirectory())
+    if (!m_workflow.stageOperation(operation, m_evs.m_edit.hasChangedSinceSaved()))
     {
-        navigateTo(file);
+        setMode(Mode::confirmUnsavedChanges);
         return;
     }
 
-    if (file.existsAsFile() && ProjectLifecycle::isPersistentProjectFile(file))
-    {
-        if (getMode() == Mode::saveProjectAs)
+    executePendingOperation(ProjectWorkflow::UnsavedResolution::clean);
+}
+
+void ProjectsBrowserComponent::beginSaveProjectAs(bool preservePendingOperation)
+{
+    m_overwriteTarget = juce::File{};
+    m_operationInProgress = false;
+
+    auto suggestedName = m_evs.m_editName.get().trim();
+    const auto currentFile = m_evs.m_edit.editFileRetriever ? m_evs.m_edit.editFileRetriever() : juce::File{};
+    if (ProjectLifecycle::isPersistentProjectFile(currentFile))
+        suggestedName = currentFile.getFileNameWithoutExtension();
+    if (suggestedName.isEmpty() || suggestedName.equalsIgnoreCase("unknown"))
+        suggestedName = "Untitled";
+
+    m_projectNameEditor.setText(ProjectLifecycle::projectNameWithoutExtension(suggestedName), false);
+    m_workflow.beginSaveAs(preservePendingOperation);
+    setMode(Mode::saveProjectAs);
+    updateTargetPreview();
+
+    juce::MessageManager::callAsync(
+        [safeThis = juce::Component::SafePointer<ProjectsBrowserComponent>(this)]
         {
-            m_projectNameEditor.setText(file.getFileNameWithoutExtension());
-            updateTargetPreview();
-        }
-        else
-        {
-            if (getMode() == Mode::normal)
+            if (safeThis != nullptr)
             {
-                beginLoadProject();
-                navigateTo(file.getParentDirectory());
-                m_selectedFile = file;
+                safeThis->m_projectNameEditor.grabKeyboardFocus();
+                safeThis->m_projectNameEditor.selectAll();
             }
-            requestOpen(file);
-        }
-    }
+        });
 }
 
-void ProjectsBrowserComponent::selectedRowsChanged(int row)
+void ProjectsBrowserComponent::dismissSaveProjectAs()
 {
-    m_selectedFile = juce::isPositiveAndBelow(row, m_contentList.size()) ? m_contentList[row] : juce::File{};
-    updateSelectionAndValidation();
-}
-
-void ProjectsBrowserComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
-{
-    if (source == &m_directoryContents && isBrowserMode())
-    {
-        juce::Array<juce::File> entries;
-        for (int index = 0; index < m_directoryContents.getNumFiles(); ++index)
-        {
-            const auto entry = m_directoryContents.getFile(index);
-            if (entry.isDirectory() || ProjectLifecycle::isPersistentProjectFile(entry))
-                entries.add(entry);
-        }
-        BrowserBaseComponent::setFileList(entries);
-        configureMode();
-        return;
-    }
-
-    if (source == &m_currentPathField && isBrowserMode())
-    {
-        const auto directory = m_currentPathField.getCurrentPath();
-        if (directory != m_displayedDirectory)
-        {
-            m_displayedDirectory = directory;
-            if (m_navigationIndex + 1 < m_navigationHistory.size())
-                m_navigationHistory.removeRange(m_navigationIndex + 1, m_navigationHistory.size() - m_navigationIndex - 1);
-            m_navigationHistory.add(directory);
-            m_navigationIndex = m_navigationHistory.size() - 1;
-        }
-        refreshDirectory();
-        return;
-    }
-
-    BrowserBaseComponent::changeListenerCallback(source);
+    if (isSaveAsWorkflowActive() && getMode() != Mode::saving)
+        cancelCurrentMode();
 }
 
 void ProjectsBrowserComponent::setMode(Mode mode)
 {
     m_workflow.transitionTo(mode);
-    setWorkingWidth(mode != Mode::normal);
+    setWorkingWidth(m_workflow.isSavePath());
     if (m_hostCallbacks.setInteractionLocked != nullptr)
         m_hostCallbacks.setInteractionLocked(m_workflow.locksMainInteraction());
     configureMode();
@@ -458,55 +275,39 @@ void ProjectsBrowserComponent::setMode(Mode mode)
 
 void ProjectsBrowserComponent::configureMode()
 {
-    const bool normal = getMode() == Mode::normal;
-    const bool unsaved = getMode() == Mode::confirmUnsavedChanges;
-    const bool committing = getMode() == Mode::committing;
-    const bool saving = getMode() == Mode::saving;
-    const bool showBrowser = !normal && !unsaved && !committing && !saving;
-    const bool save = isSaveMode() && !saving;
+    const auto mode = getMode();
+    const bool normal = mode == Mode::normal;
+    const bool unsaved = mode == Mode::confirmUnsavedChanges;
+    const bool busy = mode == Mode::saving || mode == Mode::committing;
+    const bool showDirectory = normal || mode == Mode::saveProjectAs || mode == Mode::confirmOverwrite || mode == Mode::operationError;
+    const bool showSaveFields = isSaveMode() && mode != Mode::saving;
 
     m_projectsMenu.setVisible(normal);
-    m_sortLabel.setVisible(normal);
-    m_sortingBox.setVisible(normal);
-    m_searchField.setVisible(normal);
+    m_directoryBrowser.setVisible(showDirectory);
+    m_directoryBrowser.setBrowserEnabled(normal || mode == Mode::saveProjectAs);
     m_modeTitle.setVisible(!normal);
-    m_currentPathField.setVisible(showBrowser);
-    m_backButton.setVisible(showBrowser);
-    m_forwardButton.setVisible(showBrowser);
-    m_listBox.setVisible(normal || showBrowser);
-    m_selectedPathLabel.setVisible(getMode() == Mode::loadProject);
-    m_projectNameLabel.setVisible(save);
-    m_projectNameEditor.setVisible(save);
-    m_targetPathLabel.setVisible(save);
+    m_projectNameLabel.setVisible(showSaveFields);
+    m_projectNameEditor.setVisible(showSaveFields);
+    m_projectNameEditor.setEnabled(mode == Mode::saveProjectAs && !m_operationInProgress);
+    m_targetPathLabel.setVisible(showSaveFields);
     m_statusLabel.setVisible(!normal);
     m_primaryButton.setVisible(!normal);
     m_secondaryButton.setVisible(!normal);
-    m_tertiaryButton.setVisible(unsaved || getMode() == Mode::operationError);
+    m_tertiaryButton.setVisible(unsaved);
 
-    if (getMode() != Mode::operationError)
+    if (mode != Mode::operationError)
         m_statusLabel.setColour(juce::Label::textColourId, m_avs.getTextColour());
 
-    m_listBox.setEnabled(!m_operationInProgress && getMode() != Mode::confirmOverwrite && getMode() != Mode::operationError);
-    m_currentPathField.setEnabled(m_listBox.isEnabled());
-    m_projectNameEditor.setEnabled(!m_operationInProgress && getMode() == Mode::saveProjectAs);
-
-    switch (getMode())
+    switch (mode)
     {
     case Mode::normal:
         m_statusLabel.setText({}, juce::dontSendNotification);
-        BrowserBaseComponent::setFileList(m_normalProjectFiles);
-        break;
-    case Mode::loadProject:
-        m_modeTitle.setText("Open Project", juce::dontSendNotification);
-        m_primaryButton.setButtonText("Open");
-        m_secondaryButton.setButtonText("Cancel");
-        m_statusLabel.setText(m_operationInProgress ? "Opening project..." : "Select a readable NextStudio project.", juce::dontSendNotification);
         break;
     case Mode::saveProjectAs:
         m_modeTitle.setText("Save Project As", juce::dontSendNotification);
         m_primaryButton.setButtonText("Save");
         m_secondaryButton.setButtonText("Cancel");
-        m_statusLabel.setText(m_operationInProgress ? "Saving project..." : "Choose a folder and project name.", juce::dontSendNotification);
+        updateTargetPreview();
         break;
     case Mode::confirmOverwrite:
         m_modeTitle.setText("File Already Exists", juce::dontSendNotification);
@@ -530,7 +331,6 @@ void ProjectsBrowserComponent::configureMode()
         m_modeTitle.setText("Project Operation Failed", juce::dontSendNotification);
         m_primaryButton.setButtonText("Back");
         m_secondaryButton.setButtonText("Close");
-        m_tertiaryButton.setVisible(false);
         break;
     case Mode::confirmUnsavedChanges:
     {
@@ -549,14 +349,13 @@ void ProjectsBrowserComponent::configureMode()
     }
     }
 
-    m_backButton.setEnabled(m_navigationIndex > 0 && !m_operationInProgress);
-    m_forwardButton.setEnabled(m_navigationIndex >= 0 && m_navigationIndex + 1 < m_navigationHistory.size() && !m_operationInProgress);
-    updateSelectionAndValidation();
+    m_primaryButton.setEnabled(!busy);
+    m_secondaryButton.setEnabled(!busy);
+    updateActionValidation();
 }
 
 void ProjectsBrowserComponent::cancelCurrentMode()
 {
-    m_projectRequest.clear();
     m_operationInProgress = false;
     m_workflow.cancel();
     setMode(Mode::normal);
@@ -566,98 +365,6 @@ void ProjectsBrowserComponent::goBackFromError()
 {
     m_workflow.goBackFromError();
     setMode(m_workflow.getState());
-}
-
-void ProjectsBrowserComponent::refreshDirectory()
-{
-    const auto directory = m_currentPathField.getCurrentPath();
-    if (!directory.isDirectory())
-    {
-        showOperationError("The selected folder is not available.", directory);
-        return;
-    }
-
-    m_displayedDirectory = directory;
-    if (m_directoryContents.getDirectory() != directory)
-    {
-        m_selectedFile = juce::File{};
-        BrowserBaseComponent::setFileList({});
-        m_directoryContents.setDirectory(directory, true, true);
-    }
-
-    if (isSaveMode())
-        m_avs.m_projectSaveDir = directory.getFullPathName();
-    else
-        m_avs.m_projectLoadDir = directory.getFullPathName();
-    updateTargetPreview();
-    configureMode();
-}
-
-void ProjectsBrowserComponent::navigateTo(const juce::File &directory, bool addToHistory)
-{
-    if (!directory.isDirectory())
-        return;
-
-    if (addToHistory && (m_navigationIndex < 0 || m_navigationHistory[m_navigationIndex] != directory))
-    {
-        if (m_navigationIndex + 1 < m_navigationHistory.size())
-            m_navigationHistory.removeRange(m_navigationIndex + 1, m_navigationHistory.size() - m_navigationIndex - 1);
-        m_navigationHistory.add(directory);
-        m_navigationIndex = m_navigationHistory.size() - 1;
-    }
-
-    m_displayedDirectory = directory;
-    m_currentPathField.setDir(directory);
-    refreshDirectory();
-}
-
-void ProjectsBrowserComponent::navigateBack()
-{
-    if (m_navigationIndex > 0)
-    {
-        --m_navigationIndex;
-        navigateTo(m_navigationHistory[m_navigationIndex], false);
-    }
-}
-
-void ProjectsBrowserComponent::navigateForward()
-{
-    if (m_navigationIndex + 1 < m_navigationHistory.size())
-    {
-        ++m_navigationIndex;
-        navigateTo(m_navigationHistory[m_navigationIndex], false);
-    }
-}
-
-void ProjectsBrowserComponent::updateSelectionAndValidation()
-{
-    if (getMode() == Mode::loadProject)
-    {
-        const bool valid = m_selectedFile.existsAsFile() && ProjectLifecycle::isPersistentProjectFile(m_selectedFile);
-        m_selectedPathLabel.setText(valid ? m_selectedFile.getFullPathName() : "No project selected", juce::dontSendNotification);
-        m_selectedPathLabel.setTooltip(valid ? m_selectedFile.getFullPathName() : juce::String{});
-        m_primaryButton.setEnabled(valid && !m_operationInProgress);
-    }
-    else if (getMode() == Mode::saveProjectAs)
-    {
-        m_primaryButton.setEnabled(ProjectLifecycle::isValidProjectTarget(getSaveTarget()) && !m_operationInProgress);
-    }
-    else if (getMode() == Mode::confirmOverwrite || getMode() == Mode::confirmUnsavedChanges)
-    {
-        m_primaryButton.setEnabled(!m_operationInProgress);
-    }
-    else if (getMode() == Mode::operationError)
-    {
-        m_primaryButton.setEnabled(true);
-    }
-    else if (getMode() == Mode::saving || getMode() == Mode::committing)
-    {
-        m_primaryButton.setEnabled(false);
-        m_secondaryButton.setEnabled(false);
-    }
-
-    if (getMode() != Mode::saving && getMode() != Mode::committing)
-        m_secondaryButton.setEnabled(true);
 }
 
 void ProjectsBrowserComponent::updateTargetPreview()
@@ -676,7 +383,21 @@ void ProjectsBrowserComponent::updateTargetPreview()
                               juce::dontSendNotification);
         m_statusLabel.setColour(juce::Label::textColourId, validName ? m_avs.getTextColour() : juce::Colours::orange);
     }
-    updateSelectionAndValidation();
+    updateActionValidation();
+}
+
+void ProjectsBrowserComponent::updateActionValidation()
+{
+    const auto mode = getMode();
+    if (mode == Mode::saveProjectAs)
+        m_primaryButton.setEnabled(ProjectLifecycle::isValidProjectTarget(getSaveTarget()) && !m_operationInProgress);
+    else if (mode == Mode::confirmOverwrite || mode == Mode::confirmUnsavedChanges || mode == Mode::operationError)
+        m_primaryButton.setEnabled(!m_operationInProgress);
+    else if (mode == Mode::saving || mode == Mode::committing)
+    {
+        m_primaryButton.setEnabled(false);
+        m_secondaryButton.setEnabled(false);
+    }
 }
 
 void ProjectsBrowserComponent::requestOpen(const juce::File &file)
@@ -694,9 +415,6 @@ void ProjectsBrowserComponent::performPrimaryAction()
 {
     switch (getMode())
     {
-    case Mode::loadProject:
-        requestOpen(m_selectedFile);
-        break;
     case Mode::saveProjectAs:
     {
         const auto target = getSaveTarget();
@@ -758,7 +476,6 @@ void ProjectsBrowserComponent::performSave(const juce::File &target, bool overwr
         return;
     }
 
-    m_avs.m_projectSaveDir = target.getParentDirectory().getFullPathName();
     const auto continuation = m_workflow.completeSave();
     if (continuation.isValid())
     {
@@ -767,11 +484,6 @@ void ProjectsBrowserComponent::performSave(const juce::File &target, bool overwr
     }
 
     setMode(Mode::normal);
-}
-
-void ProjectsBrowserComponent::showUnsavedConfirmation(ProjectWorkflow::Operation)
-{
-    setMode(Mode::confirmUnsavedChanges);
 }
 
 void ProjectsBrowserComponent::saveBeforePendingOperation()
@@ -816,8 +528,6 @@ void ProjectsBrowserComponent::executePendingOperation(ProjectWorkflow::UnsavedR
     m_operationInProgress = true;
     setMode(Mode::committing);
 
-    // Stopping an active recording at the workflow boundary can itself make the
-    // edit dirty. Never treat the pre-lock clean decision as permission to drop it.
     if (resolution == ProjectWorkflow::UnsavedResolution::clean && m_evs.m_edit.hasChangedSinceSaved())
     {
         m_operationInProgress = false;
@@ -832,13 +542,8 @@ void ProjectsBrowserComponent::executePendingOperation(ProjectWorkflow::UnsavedR
         return;
     }
 
+    m_workflow.completeOperation();
     showOperationError("The project operation handler is unavailable.", operation.file);
-}
-
-juce::File ProjectsBrowserComponent::getSelectedBrowserFile() const
-{
-    const auto row = m_listBox.getSelectedRow();
-    return juce::isPositiveAndBelow(row, m_contentList.size()) ? m_contentList[row] : juce::File{};
 }
 
 juce::File ProjectsBrowserComponent::getSaveTarget() const
@@ -846,16 +551,12 @@ juce::File ProjectsBrowserComponent::getSaveTarget() const
     const auto name = ProjectLifecycle::projectNameWithoutExtension(m_projectNameEditor.getText());
     if (!ProjectLifecycle::isValidProjectName(name))
         return {};
-    return m_currentPathField.getCurrentPath().getChildFile(name + ".tracktionedit");
+    return m_directoryBrowser.getCurrentDirectory().getChildFile(name + ".tracktionedit");
 }
 
-juce::File ProjectsBrowserComponent::getInitialDirectory(bool forSave) const
+juce::File ProjectsBrowserComponent::getInitialDirectory() const
 {
-    const auto currentFile = m_evs.m_edit.editFileRetriever ? m_evs.m_edit.editFileRetriever() : juce::File{};
-    if (forSave && ProjectLifecycle::isPersistentProjectFile(currentFile) && currentFile.getParentDirectory().isDirectory())
-        return currentFile.getParentDirectory();
-
-    const auto remembered = juce::File(forSave ? m_avs.m_projectSaveDir.get() : m_avs.m_projectLoadDir.get());
+    const auto remembered = juce::File(m_avs.m_projectLoadDir.get());
     if (remembered.isDirectory())
         return remembered;
 
@@ -863,13 +564,6 @@ juce::File ProjectsBrowserComponent::getInitialDirectory(bool forSave) const
     if (projects.isDirectory())
         return projects;
     return juce::File(m_avs.m_workDir.get());
-}
-
-bool ProjectsBrowserComponent::isBrowserMode() const noexcept
-{
-    const auto mode = getMode();
-    return mode == Mode::loadProject || mode == Mode::saveProjectAs
-           || mode == Mode::confirmOverwrite || mode == Mode::operationError;
 }
 
 void ProjectsBrowserComponent::showOperationError(const juce::String &message, const juce::File &file)
@@ -897,30 +591,9 @@ void ProjectsBrowserComponent::completeProjectOperation(bool succeeded, const ju
         return;
     }
 
-    m_workflow.transitionTo(pending.type == ProjectWorkflow::OperationType::load ? Mode::loadProject : Mode::normal);
+    m_workflow.completeOperation();
     showOperationError(errorMessage.isNotEmpty() ? errorMessage : "NextStudio could not complete the project operation.",
                        file != juce::File() ? file : pending.file);
-}
-
-void ProjectsBrowserComponent::sortList(int selectedID)
-{
-    if (m_contentList.size() > 1)
-        sortByName(m_contentList, selectedID == 1);
-    m_listBox.updateContent();
-}
-
-void ProjectsBrowserComponent::sortByName(juce::Array<juce::File> &list, bool forward)
-{
-    if (forward)
-    {
-        CompareNameForward compare;
-        list.sort(compare);
-    }
-    else
-    {
-        CompareNameBackwards compare;
-        list.sort(compare);
-    }
 }
 
 void ProjectsBrowserComponent::setWorkingWidth(bool enabled)

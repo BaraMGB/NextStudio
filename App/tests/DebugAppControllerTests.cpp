@@ -31,6 +31,7 @@ public:
     }
 
     bool isDebugMode() const override { return true; }
+    bool isProjectWorkflowActive() const override { return projectWorkflowActive; }
     const ApplicationViewState &getApplicationState() const override { return state; }
     tracktion_engine::Edit *getCurrentEdit() const override { return nullptr; }
     EditViewState *getEditViewState() const override { return nullptr; }
@@ -49,6 +50,11 @@ public:
     }
     bool play() override { return playResult; }
     bool stop() override { return stopResult; }
+    bool showProjectSaveAs() override
+    {
+        projectSaveAsRequested = true;
+        return projectSaveAsResult;
+    }
     tracktion_engine::AudioTrack *createAudioTrack(bool, const juce::String &) override { return nullptr; }
     void requestQuit() override { quitRequested = true; }
 
@@ -57,8 +63,11 @@ public:
     mutable juce::File stateDumpResult;
     mutable juce::File screenshotResult;
     mutable int lastSnapshotWidth = 0;
+    bool projectWorkflowActive = false;
     bool playResult = false;
     bool stopResult = false;
+    bool projectSaveAsResult = false;
+    bool projectSaveAsRequested = false;
     bool quitRequested = false;
 };
 
@@ -105,10 +114,32 @@ void testArtifactSuccessAndFailure()
     REQUIRE(execute(host, "state-dump").ok);
 }
 
+void testWorkflowCommandGuard()
+{
+    const TempDirectory temp;
+    FakeHost host(temp.file);
+    host.projectSaveAsResult = true;
+    REQUIRE(execute(host, "project-save-as").ok);
+    REQUIRE(host.projectSaveAsRequested);
+
+    host.projectSaveAsRequested = false;
+    host.projectWorkflowActive = true;
+    host.playResult = true;
+    host.stopResult = true;
+
+    REQUIRE(execute(host, "play").code == "busy");
+    REQUIRE(execute(host, "project-save-as").code == "busy");
+    REQUIRE(execute(host, R"({"command":"ensure-track","arguments":{"type":"audio","name":"Blocked"}})").code == "busy");
+    REQUIRE(!host.projectSaveAsRequested);
+    REQUIRE(execute(host, "stop").ok);
+    REQUIRE(execute(host, "system-state").fields["projectWorkflowActive"] == "true");
+}
+
 void testQuitAndJsonResponse()
 {
     const TempDirectory temp;
     FakeHost host(temp.file);
+    host.projectWorkflowActive = true;
     const auto result = execute(host, "quit");
     REQUIRE(result.ok);
     REQUIRE(host.quitRequested);
@@ -122,6 +153,7 @@ int main()
 {
     testValidationAndErrors();
     testArtifactSuccessAndFailure();
+    testWorkflowCommandGuard();
     testQuitAndJsonResponse();
 
     if (failures != 0)

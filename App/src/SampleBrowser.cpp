@@ -24,9 +24,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SearchFieldComponent.h"
 #include "Utilities.h"
 
-SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs, SamplePreviewComponent &spc)
-    : BrowserBaseComponent(avs),
-      m_samplePreviewComponent(spc)
+SampleBrowserComponent::SampleBrowserComponent(ApplicationViewState &avs)
+    : BrowserBaseComponent(avs)
 {
     setName("SampleBrowser");
     m_sortingBox.addItem(GUIHelpers::translate("by Name (a - z)", m_applicationViewState), 1);
@@ -130,15 +129,11 @@ void SampleBrowserComponent::listBoxItemClicked(int row, const juce::MouseEvent 
     }
 }
 
-void SampleBrowserComponent::selectedRowsChanged(int) { previewSampleFile(m_contentList[m_listBox.getSelectedRow()]); }
-
-void SampleBrowserComponent::previewSampleFile(const juce::File &file)
+void SampleBrowserComponent::selectedRowsChanged(int)
 {
-    if (m_samplePreviewComponent.setFile(file))
-    {
-        m_samplePreviewComponent.rewind();
-        m_samplePreviewComponent.play();
-    }
+    const auto row = m_listBox.getSelectedRow();
+    if (m_selectionChanged != nullptr && juce::isPositiveAndBelow(row, m_contentList.size()))
+        m_selectionChanged(m_contentList[row]);
 }
 
 void SampleBrowserComponent::sortList(int selectedID)

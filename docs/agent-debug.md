@@ -283,7 +283,7 @@ This separation is important:
 - NextStudio owns the command semantics
 - the pi extension owns persistent process/session handling inside pi
 
-`system-state` is useful for readiness checks.
+`system-state` is useful for readiness checks. It also reports `projectWorkflowActive`; while that field is `true`, state-changing debug commands return `busy`. Read-only diagnostics, screenshots, `stop`, and the harness-level `quit` command remain available.
 
 `transport-state` is especially useful for validation because it exposes a compact transport snapshot without relying only on logs or visual inspection.
 
@@ -449,13 +449,13 @@ Diagnostic and transport commands support the legacy command-name form. Except f
 | --- | --- | --- | --- | --- |
 | `help` | none | `commands` | `invalid-argument` | — |
 | `ping` | none | `app`, `version`, `mode` | `invalid-argument` | — |
-| `system-state` | none | paths, component readiness, and transport summary | `invalid-argument` | `system_state` |
+| `system-state` | none | paths, component readiness, project-workflow state, and transport summary | `invalid-argument` | `system_state` |
 | `transport-state` | none | `playing`, `recording`, `looping`, `positionSeconds` | `not-ready`, `invalid-argument` | `transport_state` |
 | `state-dump` | none | `path` | `invalid-argument`, `io-error` | `state_dump` |
-| `play` | none | `playing` | `not-ready`, `invalid-argument` | — |
+| `play` | none | `playing` | `not-ready`, `invalid-argument`, `busy` | — |
 | `stop` | none | `playing` | `not-ready`, `invalid-argument` | — |
 | `screenshot` | optional integer `maxWidth` from `1` to `8192`; default `640` | `path` | `invalid-argument`, `io-error` | — |
-| `project-save-as` | none | `projectBrowserMode` | `not-ready`, `invalid-argument` | — |
+| `project-save-as` | none | `projectBrowserMode` | `not-ready`, `invalid-argument`, `busy` | — |
 | `quit` | none | `quitting` | `invalid-argument` | `exit` |
 
 Editing requests use a JSON request object so names and numeric values do not need a second custom escaping grammar:
@@ -476,7 +476,7 @@ Editing requests use a JSON request object so names and numeric values do not ne
 | `ensure-midi-note` | `clipId`, MIDI `noteNumber`, `startBeats`, `lengthBeats`, `velocity` | Reuses the pitch/start/length tuple and sets its velocity | `clipId`, `noteKey`, `created`, `velocity` |
 | `set-plugin-parameter` | `pluginId`, `parameterId`, native-range numeric `value` | Sets a specific stable plugin/parameter ID | IDs, native and normalised values |
 
-Malformed JSON requests return `invalid-request`. Type/range errors return `invalid-argument`; missing IDs return `not-found`; wrong track types return `wrong-type`; engine mutation failures return `edit-error`. Unknown command names return `unknown-command`. Empty lines are ignored and do not produce a response.
+Malformed JSON requests return `invalid-request`. Type/range errors return `invalid-argument`; missing IDs return `not-found`; wrong track types return `wrong-type`; engine mutation failures return `edit-error`. Editing requests return `busy` while a project workflow is active. Unknown command names return `unknown-command`. Empty lines are ignored and do not produce a response.
 
 ### Response model
 

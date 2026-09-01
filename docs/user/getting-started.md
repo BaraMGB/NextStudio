@@ -141,12 +141,9 @@ A new project starts with a temporary recovery file and the window title `Untitl
 
 ### Load a project
 
-Use either:
+Open the Projects sidebar, navigate to the desired folder and double-click a `.tracktionedit` file. The Projects view is permanently a filtered directory browser, so no separate Load action is required. Projects can also be opened from Home or by drag-and-drop.
 
-- **Load** in the Projects sidebar and choose a `.tracktionedit` file in the embedded browser; or
-- double-click a project in the project list.
-
-Load does not open another window and does not block the rest of NextStudio. Folders and supported project files are shown directly in the sidebar.
+Browsing does not open another window and does not block the rest of NextStudio. Folders and supported project files are shown directly in the sidebar.
 
 Before loading, NextStudio validates that the file:
 

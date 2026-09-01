@@ -22,16 +22,17 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Browser_Base.h"
 #include "SearchFieldComponent.h"
-#include "PreviewComponent.h"
 #include "ApplicationViewState.h"
-#include "EditViewState.h"
 #include "Utilities.h"
+
+#include <functional>
 
 namespace te = tracktion_engine;
 class SampleBrowserComponent : public BrowserBaseComponent
 {
 public:
-    SampleBrowserComponent(ApplicationViewState &avs, SamplePreviewComponent &spc);
+    explicit SampleBrowserComponent(ApplicationViewState &avs);
+    void setSelectionChangedCallback(std::function<void(const juce::File &)> callback) { m_selectionChanged = std::move(callback); }
     void resized() override;
     void paintListBoxItem(int rowNum, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
 
@@ -39,8 +40,6 @@ public:
 
     void listBoxItemClicked(int row, const juce::MouseEvent &e) override;
     void selectedRowsChanged(int /*lastRowSelected*/) override;
-
-    void previewSampleFile(const juce::File &file);
 
 private:
     void sortList(int selectedID) override;
@@ -56,7 +55,7 @@ private:
     };
     void sortByName(juce::Array<juce::File> &list, bool forward);
     void shuffleFileArray(juce::Array<juce::File> &fileList);
-    SamplePreviewComponent &m_samplePreviewComponent;
+    std::function<void(const juce::File &)> m_selectionChanged;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SampleBrowserComponent)
 };

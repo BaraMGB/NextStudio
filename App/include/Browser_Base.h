@@ -21,11 +21,8 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SearchFieldComponent.h"
-#include "PreviewComponent.h"
 #include "ApplicationViewState.h"
-#include "EditViewState.h"
 #include "Utilities.h"
-#include "ProjectLifecycle.h"
 
 class PathComponent
     : public juce::Component
@@ -108,11 +105,11 @@ public:
 
     juce::ListBox &getListBox() { return m_listBox; }
 
-    ProjectLifecycle::ProjectRequestState m_projectRequest;
-
 protected:
     virtual void sortList(int selectedID) = 0;
     void updateContentList();
+    juce::File getSelectedContentFile() const;
+    void restoreSelectedFile(const juce::File &file);
     BrowserListBox m_listBox;
     juce::Array<juce::File> m_fileList;
     juce::Array<juce::File> m_contentList;

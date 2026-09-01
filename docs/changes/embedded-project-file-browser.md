@@ -1,448 +1,144 @@
-# Embedded Project File Browser and Save-As Interaction Boundary
+# Gemeinsamer eingebetteter Projekt-Dateibrowser
 
-## Summary
+## Zusammenfassung
 
-Project **Load** and **Save As** no longer create a `juce::FileChooserDialogBox` or any other project-specific top-level file window. Both workflows run inside `ProjectsBrowserComponent`, which already occupies the Projects section of the left sidebar.
-
-The implementation has two deliberately different interaction policies:
-
-- **Load** remains non-modal. The rest of NextStudio stays usable while the user browses for a project.
-- **Save As** is application-modal in behavior, but not implemented with a JUCE modal loop or a new window. The rest of the main window is dimmed and blocked while the embedded Save-As browser remains active. The sidebar splitter is the sole exception so the user can widen the browser.
-
-This avoids the Linux/X11 failure mode in which a modal `FileChooserDialogBox` could remain invisible while still blocking the application. It also keeps project paths, validation, overwrite confirmation, and errors inside the normal NextStudio component hierarchy.
-
-## Source map
-
-| Responsibility | Files |
-|---|---|
-| Embedded project-browser modes and controls | `App/include/ProjectsBrowser.h`, `App/src/ProjectsBrowser.cpp` |
-| Sidebar placement, shell dimming, and outside-click dismissal | `App/include/SidebarComponent.h`, `App/src/SidebarComponent.cpp` |
-| Project workflow interaction/engine lock and splitter exception | `App/include/MainComponent.h`, `App/src/MainComponent.cpp` |
-| Project request and file-validation helpers | `App/include/ProjectLifecycle.h`, `App/src/ProjectLifecycle.cpp` |
-| Explicit save-to-file operation | `App/include/Utilities.h`, `App/src/Utilities.cpp` |
-| Persisted Load and Save directories | `App/include/ApplicationViewState.h` |
-| Debug-shell entry point | `App/include/DebugCommand.h`, `App/src/DebugProtocol.cpp`, `App/src/DebugAppController.cpp`, `App/src/MainComponentDebugHost.cpp` |
-| Focused lifecycle tests | `App/tests/ProjectLifecycleTests.cpp`, `App/tests/DebugProtocolTests.cpp` |
+Projekt Load und Save As erzeugen keine modalen Top-Level-Dateidialoge. Der Projects-Tab zeigt dauerhaft einen gefilterten Verzeichnisbrowser. Home und Projects verwenden dieselbe `DirectoryBrowserComponent`; projektspezifische Lifecycle-Entscheidungen bleiben in `ProjectsBrowserComponent`.
 
 ## Motivation
 
-The previous Load and Save-As implementations constructed a `juce::FileBrowserComponent`, placed it in a `juce::FileChooserDialogBox`, and synchronously called `show()`. On affected Linux/Cinnamon sessions, the dialog could fail to become visible while its modal state continued to block the main window.
+Die frühere Lösung besaß drei überlappende Darstellungen:
 
-That design also introduced broader constraints:
+- den navigierbaren Home-Dateibrowser;
+- eine flache rekursive Projektliste;
+- einen separaten eingebetteten Load-/Save-As-Browser.
 
-- an additional top-level window had to participate in focus and stacking;
-- multi-monitor placement depended on the window manager;
-- project workflow colors and controls did not naturally use the sidebar layout;
-- selection, overwrite confirmation, and write errors were split across unrelated dialogs;
-- save execution was coupled to target selection in `GUIHelpers::saveEdit()`.
+Der Load-Button wechselte nur zwischen zwei Projektlisten. Zusätzlich waren Sample Preview und Projektanfragen direkt in Browserklassen gekoppelt. Die neue Struktur trennt Verzeichnisnavigation, Dateiauswahl und Projektworkflow.
 
-The embedded browser removes the project file chooser entirely. Other unrelated file choosers, such as sample, preset, theme, and setup paths, are outside this change.
+## Architektur
 
-## User-visible workflows
+### DirectoryBrowserComponent
 
-## Normal Projects mode
+`App/include/DirectoryBrowser.h` und `App/src/DirectoryBrowser.cpp` enthalten die gemeinsame Navigation:
 
-The normal Projects view retains:
+- asynchroner Directory-Scanner;
+- Pfadfeld und Aufwärtsnavigation;
+- Vor-/Zurück-Verlauf;
+- Sortierung;
+- Suche;
+- Datei-Filtercallback;
+- Auswahl-, Aktivierungs- und Verzeichniscallbacks;
+- konfigurierbare Drag-Source-Beschreibung.
 
-- **New**;
-- **Load**;
-- **Save**;
-- **Save As**;
-- project sorting;
-- project search;
-- the recursive list of projects under the configured Projects directory.
+Die Komponente hat keine Abhängigkeit von Engine, Edit, Sample Preview oder Project Workflow.
 
-A double-click on a project enters the same guarded load path as selecting it in the embedded Load browser.
+### Home
 
-## Load
+`FileBrowserComponent` ist eine dünne Home-Konfiguration des gemeinsamen Browsers. `SidebarComponent` verbindet die Dateiauswahl mit `SamplePreviewComponent`. Damit verbleiben Audioformatprüfung, Preview Edit und BPM-Synchronisation in der editgebundenen Preview-Komponente.
 
-Pressing **Load** changes only the Projects sidebar content.
+Doppelklick auf eine persistente Projektdatei ruft direkt `MainComponent::requestProjectOperation()` auf. Der frühere `ProjectRequestState`-/`ChangeBroadcaster`-Adapter entfällt.
 
-The view contains:
+### Projects
 
-1. an `Open Project` title;
-2. back, forward, and parent-folder navigation;
-3. an editable current-path field;
-4. an asynchronously populated directory list;
-5. the complete selected project path;
-6. an inline status or error message;
-7. **Open** and **Cancel** buttons.
+`ProjectsBrowserComponent` komponiert den gemeinsamen Browser und ergänzt:
 
-Directories and `.tracktionedit` files are shown. Unsupported files are omitted. Extension matching is case-insensitive.
+- New;
+- Save;
+- Save As;
+- Dirty-State-Entscheidung;
+- Overwrite-Bestätigung;
+- Saving/Committing;
+- Inline-Fehler;
+- Pending New/Load/Quit;
+- Interaction Lock.
 
-**Open** is enabled only for an existing `.tracktionedit` file. A double-click on a directory navigates into it; a double-click on a valid project requests loading.
+Verzeichnisse bleiben sichtbar. Dateien werden über `ProjectLifecycle::isPersistentProjectFile()` gefiltert, einschließlich abweichender Groß-/Kleinschreibung der Endung.
 
-Load is intentionally non-modal:
+## Bedienung
 
-- the arrangement, transport, lower range, and other sidebar sections are not covered by the Save-As blocker;
-- `Escape` returns to normal Projects mode;
-- a successful load replaces the edit and reconstructs the edit-bound UI;
-- a failed load leaves the current edit and browser selection intact and shows an inline error.
+### Laden
 
-## Save
+Es gibt keinen Load-Button und keinen Load-Modus. Der Projects-Tab ist bereits ein vollständiger Verzeichnisbrowser. Ein Doppelklick auf eine Projektdatei erzeugt eine typisierte Load-Operation.
 
-A normal **Save** does not enter browser mode when the current edit already has a persistent `.tracktionedit` path.
+Das Browsen selbst bleibt nicht-modal. Erst wenn eine konkrete Operation nach Clean-, Save- oder Discard-Entscheidung ausgeführt wird, beginnt der Lock.
 
-The current path is passed directly to `MainComponent::saveCurrentProjectTo()`. On success:
+### Save
 
-- Tracktion writes the edit;
-- changed status is reset;
-- autosave state is cleared;
-- obsolete recovery snapshots are cleaned through `EditComponent::projectSaved()`;
-- the window title is updated;
-- a newly created project file is added to the normal Projects list when it is inside the configured Projects directory.
+Hat das aktuelle Edit einen persistenten Pfad, wird dieser exakt erhalten. Insbesondere wird `Song.TRACKTIONEDIT` nicht in `Song.tracktionedit` umgeschrieben.
 
-If the current edit is still backed by a temporary `.nextTemp` file, **Save** enters the embedded Save-As workflow.
+Ein temporäres Projekt wechselt zu Save As.
 
-A direct-save failure switches to the Projects sidebar and displays the failing path inline.
+### Save As
 
-## Save As
+Der Projects-Tab behält den Verzeichnisbrowser sichtbar und ergänzt:
 
-Pressing **Save As** opens the embedded `Save Project As` view. No operating-system or JUCE file dialog is created.
+- Projektname;
+- normalisierten vollständigen Zielpfad;
+- Save und Cancel;
+- Overwrite-Bestätigung;
+- Inline-Fehler.
 
-The view contains:
+Der aktuelle Browserpfad bestimmt den Zielordner. Neue Ziele erhalten genau eine kanonische `.tracktionedit`-Endung.
 
-1. a title;
-2. back, forward, and parent-folder navigation;
-3. the current target directory;
-4. folders and existing project files;
-5. a `Project name` editor;
-6. a preview of the complete normalized target path;
-7. validation or operation status;
-8. **Save** and **Cancel** buttons.
+## Workflow
 
-The suggested name is selected automatically and comes from, in order:
+`ProjectWorkflow::Controller` besitzt die Zustände:
 
-1. the current persistent project filename;
-2. the edit name;
-3. `Untitled` when no useful name exists.
+- `normal`;
+- `saveProjectAs`;
+- `confirmOverwrite`;
+- `saving`;
+- `committing`;
+- `operationError`;
+- `confirmUnsavedChanges`.
 
-The `.tracktionedit` extension is added automatically. Entering the extension manually does not duplicate it.
+Load bleibt als `OperationType::load` erhalten, ist aber kein UI-Zustand mehr.
 
-### Save-As interaction boundary
+Pending Operations unterscheiden:
 
-Save As is modal in behavior without using `runModalLoop()`, `enterModalState()`, or a top-level modal window.
+- `createNew`;
+- `load`;
+- `quit`.
 
-While Save As, its overwrite confirmation, a Save-As error, or a committed project replacement is active:
+Sie überleben einen erforderlichen Save-As-Vorgang und werden ausschließlich nach erfolgreichem Schreiben fortgesetzt.
 
-- `ProjectWorkflowOverlay` paints a translucent black layer and consumes covered mouse input;
-- `EditorContainer` and `LowerRangeComponent` are disabled recursively;
-- all registered `PluginWindow` instances are disabled;
-- application commands are marked inactive;
-- computer-MIDI keyboard listeners are detached from the main and plugin windows;
-- the transport is stopped, MIDI panic is sent, and the edit playback context is freed;
-- sidebar section commands are rejected while the interaction lock is active;
-- the embedded workflow content remains above the overlay and fully usable.
+## Dirty-State-Sicherheit
 
-The overlay is visual feedback and a click catcher, not the enforcement boundary. Disabled component trees, plugin-window registration, command state, MIDI detachment, and playback-context suspension enforce the lock. The message thread continues normally.
+Beim Commit wird die Interaktion gesperrt. Das stoppt Transport und MIDI, gibt den Playback Context frei, deaktiviert Editor, Lower Range, Pluginfenster und Kommandos und trennt das Computer-MIDI-Keyboard.
 
-### Splitter exception
+Ein vor dem Lock als clean erkanntes Edit wird nach dem Lock erneut geprüft. `MainComponent::executeProjectOperation()` erfasst zusätzlich Edit-Identität und `lastSignificantChange` und vergleicht beides unmittelbar vor der asynchronen Ausführung.
 
-The sidebar splitter is brought above the blocker between the blocker and the sidebar in component Z order:
+## Fehlerbehandlung
 
-```text
-Projects sidebar
-Sidebar splitter
-Project workflow overlay
-Arrangement and lower-range content
-```
+- Ungültige oder verschwundene Projektdateien lassen das aktuelle Edit aktiv.
+- Fehler erscheinen inline im Projects-Tab.
+- Save-Fehler führen Pending Operations nicht aus.
+- Save As rollt Editname und relative Medienpfade zurück.
+- Cancel löscht Pending Operation und Lock.
 
-The splitter remains draggable so long paths and names can be given more horizontal space.
+## Persistenz
 
-During Save As, splitter dragging only resizes the expanded sidebar. It cannot collapse the sidebar, because collapsing it would hide the only active Save-As controls. The usual collapse behavior resumes after Save As closes.
+Der zuletzt angezeigte Projektbrowserpfad wird in `m_projectLoadDir` weiterverwendet, damit bestehende Einstellungen kompatibel bleiben. Der frühere separate Save-Ordnerzustand entfällt; der sichtbare Browserpfad ist die einzige Quelle für Load und Save As. Ein Wechsel des Content Root setzt ihn auf das neue Projects-Verzeichnis.
 
-If the browser temporarily enlarged a narrow sidebar, the previous width is restored only when the user did not resize it manually. A user-selected width is preserved.
+## Relevante Dateien
 
-### Click-outside dismissal
+- `App/include/DirectoryBrowser.h`
+- `App/src/DirectoryBrowser.cpp`
+- `App/include/FileBrowser.h`
+- `App/src/FileBrowser.cpp`
+- `App/include/ProjectsBrowser.h`
+- `App/src/ProjectsBrowser.cpp`
+- `App/include/ProjectWorkflow.h`
+- `App/src/ProjectWorkflow.cpp`
+- `App/src/SidebarComponent.cpp`
+- `App/src/MainComponent.cpp`
 
-A mouse press outside the embedded Save-As content cancels Save As and immediately removes the lock. Saving and committed replacement states cannot be cancelled this way.
+## Validierung
 
-The dismissal paths are:
+- `ProjectLifecycleTests` prüfen Filter- und Endungsregeln.
+- `ProjectWorkflowTests` prüfen Commit, Discard, Save-As-Fortsetzung, Cancel und Fehlerzustände.
+- Der vollständige Build und alle CTests müssen erfolgreich sein.
+- Debug-Shell-Screenshots prüfen normale Projects-Ansicht und Save-As-Darstellung visuell.
 
-- a click on `ProjectWorkflowOverlay` in the main content;
-- a click on a dimmed sidebar section button;
-- a click on the sidebar shell outside the project content;
-- the explicit **Cancel** button;
-- `Escape` while no nested text edit has higher priority.
+## Ergebnis
 
-The click that dismisses the blocker is consumed. It does not also activate the covered arrangement or transport control. Clicking or dragging the sidebar splitter is not treated as an outside click.
-
-Cancellation changes neither the edit, its dirty flag, nor its current persistent path.
-
-## Overwrite confirmation
-
-Existence is checked after the project extension has been normalized. Consequently, `Song` and `Song.tracktionedit` resolve to the same target.
-
-If the target exists, the Projects sidebar changes to an inline confirmation state containing:
-
-- a warning;
-- the complete target path;
-- **Overwrite**;
-- **Back**.
-
-No alert window is created. **Back** returns to Save As with the directory and name unchanged. Only **Overwrite** authorizes writing to the existing path.
-
-The Save-As blocker remains active throughout confirmation.
-
-## Unsaved changes before replacement
-
-Load, New Project, drag-and-drop project opening, Home-browser opening, and Quit share the same inline data-loss guard.
-
-When the current edit is dirty, the sidebar shows:
-
-- **Save & Continue**;
-- **Discard & Continue**;
-- **Back**.
-
-`ProjectWorkflow::Controller` retains a typed pending operation. If the current edit has no persistent path, Save and Continue enters Save As without losing that intent. A successful save transitions to `committing` and continues the operation. Cancellation clears it.
-
-There is no boolean unsaved-decision snapshot. The editor and engine are locked before an operation is posted asynchronously, so the decision cannot become stale before `setupEdit()` replaces the edit.
-
-## Browser state model
-
-`ProjectWorkflow::State` defines these states:
-
-| Mode | Purpose |
-|---|---|
-| `normal` | Project actions, sorting, search, and recursive project list |
-| `loadProject` | Embedded directory navigation and load selection |
-| `saveProjectAs` | Embedded directory navigation and project-name entry |
-| `confirmOverwrite` | Inline authorization to replace an existing target |
-| `saving` | Locked direct-save execution |
-| `committing` | Locked execution of New, Load, or Quit |
-| `operationError` | Inline load/save failure with path and return action |
-| `confirmUnsavedChanges` | Inline save/discard/back decision before a pending operation |
-
-The principal transitions are:
-
-```text
-normal
-  ├─ Load ───────────────→ loadProject
-  └─ Save As / unsaved Save → saveProjectAs
-
-loadProject
-  ├─ Cancel / Escape ────→ normal
-  ├─ dirty edit ─────────→ confirmUnsavedChanges
-  ├─ successful load ────→ replacement UI / normal
-  └─ load failure ───────→ operationError
-
-confirmUnsavedChanges
-  ├─ Back ───────────────→ loadProject
-  ├─ Discard & Continue ─→ committing pending operation
-  └─ Save & Continue ────→ direct Save or saveProjectAs
-
-saveProjectAs
-  ├─ outside click / Cancel / Escape → normal
-  ├─ existing target ─────→ confirmOverwrite
-  ├─ successful save ─────→ normal or pending load
-  └─ save failure ─────────→ operationError
-
-confirmOverwrite
-  ├─ Back ───────────────→ saveProjectAs
-  ├─ Overwrite success ──→ normal or pending load
-  └─ overwrite failure ──→ operationError
-
-operationError
-  ├─ Back ───────────────→ originating mode
-  └─ Close ──────────────→ normal
-```
-
-`isSaveAsWorkflowActive()` is true for Save As and all states that belong to its confirmation/error path. `MainComponent` and `SidebarComponent` use that query to maintain the interaction boundary.
-
-## Filesystem rules
-
-## Project names
-
-`ProjectLifecycle::projectNameWithoutExtension()` trims the name and repeatedly removes a case-insensitive `.tracktionedit` suffix.
-
-`ProjectLifecycle::isValidProjectName()` rejects:
-
-- an empty or whitespace-only name;
-- `.` and `..`;
-- trailing dots or spaces;
-- control characters;
-- `< > : " / \\ | ? *`.
-
-These rules provide one portable baseline across Linux, Windows, and macOS.
-
-## Save targets
-
-`ProjectLifecycle::isValidProjectTarget()` requires:
-
-- a non-empty file;
-- the persistent project extension;
-- a valid filename;
-- an existing parent directory with write access;
-- write access to an existing target.
-
-The UI performs this validation before enabling **Save**. `GUIHelpers::saveEditToFile()` validates again at the execution boundary.
-
-## Load targets
-
-`ProjectLifecycle::inspectLoadFile()` validates existence, extension, non-zero size, and an `EDIT` root/type for XML or binary `ValueTree` data. Recovery files are allowed only in an explicit recovery context.
-
-## Last directories
-
-`ApplicationViewState` persists separate paths:
-
-- `ProjectLoadDIR` through `m_projectLoadDir`;
-- `ProjectSaveDIR` through `m_projectSaveDir`.
-
-Load and Save As therefore resume independently. Changing the application content root resets both paths to the new Projects directory.
-
-## Asynchronous directory scanning
-
-Embedded directory contents are read through:
-
-- `juce::TimeSliceThread` named `Project directory scanner`;
-- `juce::DirectoryContentsList`;
-- change notifications back to `ProjectsBrowserComponent`.
-
-The scanner enumerates the selected directory away from the message thread. The component filters the resulting entries to directories and supported project files before updating the `ListBox`.
-
-Navigation itself never recursively descends into child directories, so symbolic-link cycles cannot create a recursive scan loop. A user may still navigate through links according to `juce::File` behavior.
-
-## Separation of selection and execution
-
-The old `GUIHelpers::saveEdit()` selected a path, asked for overwrite confirmation, changed relative paths, and wrote the edit in one function.
-
-The new boundary is:
-
-```cpp
-ProjectSaveResult saveEditToFile(EditViewState&, const juce::File& targetFile);
-```
-
-Selection, filename entry, validation feedback, and overwrite confirmation belong to `ProjectsBrowserComponent`. Save execution belongs to `MainComponent` and `GUIHelpers::saveEditToFile()`.
-
-This separation ensures that the low-level save function cannot accidentally create a file dialog.
-
-## Save-As rollback and data safety
-
-Before writing a new target, `saveEditToFile()` records the old edit name and current edit file.
-
-For Save As:
-
-1. relative paths are adjusted to the proposed target immediately before writing;
-2. the edit name is changed to the normalized target name;
-3. Tracktion writes the file;
-4. on failure, relative paths are restored to the previous edit file and the old edit name is restored;
-5. on success, changed status and autosave state are reset and source-file observers are notified.
-
-An unconfirmed existing file is never intentionally passed to the save operation by the browser. Cancelling before the write has no model side effects.
-
-## Load request and result flow
-
-`ProjectsBrowserComponent` stores a typed `ProjectRequest` in `ProjectRequestState` and sends a change notification.
-
-`MainComponent::changeListenerCallback()`:
-
-1. consumes the request with `take()`;
-2. captures safe pointers to the main component and source project browser;
-3. posts the load through `MessageManager::callAsync()`;
-4. calls `setupEdit()` with an error-message output;
-5. reports a failure back to the still-existing browser.
-
-On success, `setupEdit()` replaces the edit-bound component hierarchy, including the source browser itself. A `SafePointer` prevents any callback into the destroyed browser.
-
-The replacement edit is still validated and constructed before the current edit is destroyed. The embedded UI changes target selection, not the defensive replacement order.
-
-## Error presentation
-
-Project load/save errors are shown in `operationError` mode rather than an `AlertWindow`.
-
-Messages include:
-
-- the failed action;
-- a human-readable reason when known;
-- the complete affected path.
-
-Correctable state is retained. Returning from an error restores the originating Load, Save As, or overwrite-confirmation mode.
-
-## Keyboard and focus
-
-- Save As focuses the project-name editor asynchronously and selects the suggested name.
-- `Enter` invokes the currently valid primary action: Open, Save, or Overwrite.
-- `Escape` cancels the active embedded mode.
-- The text editor owns text-editing keys, so Backspace does not trigger folder navigation.
-- The workflow lock marks global commands inactive and disables editor/plugin component trees while active.
-- The computer-MIDI keyboard listener is detached from the main window during Save As so typing a project name cannot trigger performance notes.
-- Closing Save As reattaches the listener.
-
-## Debug-shell support
-
-The debug shell provides:
-
-```text
-project-save-as
-```
-
-The command enters the embedded Save-As state through `MainComponentDebugHost` and returns:
-
-```json
-{"projectBrowserMode":"saveProjectAs"}
-```
-
-It is intended for deterministic UI-state setup before a `screenshot` command. The debug command does not save a file.
-
-Relevant files:
-
-- `App/include/DebugCommand.h`;
-- `App/src/DebugProtocol.cpp`;
-- `App/src/DebugAppController.cpp`;
-- `App/include/DebugHost.h`;
-- `App/include/MainComponentDebugHost.h`;
-- `App/src/MainComponentDebugHost.cpp`.
-
-## Tests and validation
-
-`App/tests/ProjectLifecycleTests.cpp` covers:
-
-- extension normalization;
-- repeated extension removal;
-- case-insensitive persistent-project recognition;
-- valid and invalid project names;
-- writable target validation;
-- persistent versus temporary save-target decisions;
-- request clearing and typed unsaved-change handling;
-- load inspection for missing, unsupported, empty, corrupt, XML, binary, and recovery files.
-
-`App/tests/DebugProtocolTests.cpp` verifies parsing of `project-save-as`.
-
-The implementation was validated with:
-
-```bash
-BUILD_JOBS=12 ./build.sh rd
-ctest --test-dir autobuild/RelWithDebInfo --output-on-failure
-```
-
-The visual Save-As state was also opened through the debug shell and captured with `screenshot`. The snapshot verifies that:
-
-- Save As remains bright and usable in the sidebar;
-- the sidebar navigation and main content are dimmed;
-- the splitter remains above the dimming layer;
-- no additional top-level project file window is visible.
-
-## Invariants
-
-Future changes should preserve these rules:
-
-1. Project Load and Save As do not construct `FileChooserDialogBox`.
-2. No project file-selection path enters a JUCE modal loop.
-3. Load remains non-modal.
-4. Save As blocks main-window interaction without blocking the message thread.
-5. The sidebar splitter remains usable during Save As and cannot collapse the active browser.
-6. An outside click cancels Save As but does not activate the covered control.
-7. Existing project files require explicit inline overwrite confirmation.
-8. Save-target normalization occurs before existence checking.
-9. A failed Save As restores the previous edit name, edit path context, and relative paths.
-10. A failed load never destroys the current edit.
-11. New, Load, drag-and-drop, Home-browser Load, and Quit share one typed inline unsaved-change workflow.
-12. Direct Save to an existing persistent path does not open Save As.
-
-## Related documents
-
-- [Project lifecycle](../architecture/project-lifecycle.md)
-- [Side Browser](../ui/side-browser.md)
-- [State and event model](../architecture/state-and-events.md)
-- [Agent debug system](../agent-debug.md)
-- [Testing](../development/testing.md)
+Der Projects-Tab enthält nur noch die fachlich notwendige Workflow-Schicht. Navigation und Dateidarstellung werden mit Home geteilt. Dadurch entfallen Load-Button, separater Load-Modus, rekursive Normalprojektliste und doppelte Scanner-/Navigationslogik.

@@ -18,6 +18,7 @@ public:
     virtual ~DebugHost() = default;
 
     virtual bool isDebugMode() const = 0;
+    virtual bool isProjectWorkflowActive() const { return false; }
     virtual const ApplicationViewState &getApplicationState() const = 0;
     virtual tracktion_engine::Edit *getCurrentEdit() const = 0;
     virtual EditViewState *getEditViewState() const = 0;

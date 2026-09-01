@@ -10,6 +10,8 @@ This document describes creation, loading, saving, save-as, unsaved-change handl
 - `App/src/MainComponent.cpp`
 - `App/include/EditComponent.h`
 - `App/src/EditComponent.cpp`
+- `App/include/DirectoryBrowser.h`
+- `App/src/DirectoryBrowser.cpp`
 - `App/src/ProjectsBrowser.cpp`
 
 ## File types
@@ -53,7 +55,7 @@ An empty `juce::File` argument means “create a new project.” It is converted
 
 `ProjectsBrowserComponent` does not replace the edit directly. `ProjectWorkflow::Controller` stores a typed pending operation for New, Load, or Quit. A configured operation callback invokes `MainComponent::executeProjectOperation()`, which posts replacement through `MessageManager::callAsync()`.
 
-The older `ProjectLifecycle::ProjectRequestState` remains only as an adapter for project files opened from the generic Home browser. `MainComponent::changeListenerCallback()` immediately converts such requests into the same typed workflow.
+The Projects and Home directory browsers invoke typed callbacks directly. Home project activation calls `MainComponent::requestProjectOperation()` without an intermediate `ChangeBroadcaster` request state.
 
 The workflow enters `committing` and activates the interaction/engine lock before asynchronous execution. Consequently the edit cannot become dirty after an unsaved-change decision and before replacement.
 
@@ -163,15 +165,15 @@ The Projects sidebar exposes **Save** and **Save As**. `Ctrl/Cmd+S` is registere
 - explicit Save As enters the embedded sidebar browser;
 - Save for a new `.nextTemp` edit also enters the embedded Save-As browser.
 
-Selection and execution are separated. `ProjectsBrowserComponent` owns directory navigation, filename validation, and inline overwrite confirmation. `MainComponent::saveCurrentProjectTo()` delegates the confirmed path to `GUIHelpers::saveEditToFile()`, which never creates a file dialog.
+Selection and execution are separated. `DirectoryBrowserComponent` owns reusable asynchronous directory navigation, while `ProjectsBrowserComponent` owns project filtering, filename validation and inline overwrite confirmation. `MainComponent::saveCurrentProjectTo()` delegates the confirmed path to `GUIHelpers::saveEditToFile()`, which never creates a file dialog.
 
-Save As is modal in behavior without a JUCE modal loop. `MainComponent::setProjectWorkflowActive()` stops transport, sends MIDI panic, frees the playback context, disables editor/lower-range and plugin-window component trees, detaches keyboard MIDI, and marks commands inactive. The overlay provides dimming and consumes outside clicks; it is not the enforcement boundary. Load browsing remains non-modal, but the lock is activated for the committed replacement.
+Save As is modal in behavior without a JUCE modal loop. `MainComponent::setProjectWorkflowActive()` stops transport, sends MIDI panic, frees the playback context, disables editor/lower-range and plugin-window component trees, detaches keyboard MIDI, and marks commands inactive. The overlay provides dimming and consumes outside clicks; it is not the enforcement boundary. Normal project browsing remains non-modal, but the lock is activated for the committed replacement.
 
 On success:
 
 1. `EditComponent::projectSaved()` stops/invalidates autosave work and removes recovery snapshots;
 2. the window title is updated from the persistent project filename;
-3. the project is added to the normal Projects list when it belongs to the configured project root.
+3. the filtered Projects directory browser is refreshed when the saved file belongs to its displayed directory.
 
 Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper. Save failures are displayed inline with the affected path.
 
@@ -231,11 +233,9 @@ If the process crashes, normal shutdown cleanup does not run, leaving a `.nextTe
 
 `App/tests/ProjectLifecycleTests.cpp` covers the pure lifecycle rules:
 
-- unsaved-choice decision matrix;
 - extension normalization and persistent/recovery distinction;
 - save-target selection;
-- request-state consumption and cancellation;
-- rejection of missing and unsupported load requests;
+- project-browser filtering, including case-insensitive extensions;
 - load inspection for missing, unsupported, empty, corrupt, wrong-root, XML, binary, and recovery files.
 
 The GUI orchestration, Tracktion edit construction, and asynchronous autosave worker are not currently integration-tested.
