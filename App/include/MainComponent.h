@@ -41,6 +41,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "NextLookAndFeel.h"
 #include "PluginWindow.h"
 #include "ProjectWorkflow.h"
+#include "MainInteractionState.h"
 #include "SidebarComponent.h"
 #include "SplitterCollapseController.h"
 #include "ThemeHelpers.h"
@@ -51,6 +52,8 @@ namespace NextStudio
 {
 class WineRendererFallback;
 }
+
+class SetupWizard;
 
 namespace NextStudio::Debug
 {
@@ -145,15 +148,20 @@ private:
     void saveSettings();
     void createTracksAndAssignInputs();
     void bindComputerMidiKeyboard(te::Edit *expectedEdit, int attemptsRemaining = 100);
-    void openValidStartEdit();
+    void openValidStartEdit(bool deferRecoveryPrompt = false);
+    void resolveDeferredRecovery();
     void setupSideBrowser();
     int getPreferredSidebarWidth() const;
     int getMaximumLowerRangeHeight() const;
     void handleSidebarSplitterMouseDown();
     void handleSidebarSplitterDrag(int dragDistance);
     void ensureUserDirectoriesAndSamples();
-    void launchSetupWizardAsync();
-    void runSetupWizard();
+    void showSetupWizard();
+    void completeSetupWizard();
+    void setSetupWizardActive(bool active);
+    void updateMainInteractionLock(bool resumePlayback = true);
+    void updateInteractionLayerOrder();
+    bool isMainInteractionLocked() const noexcept { return m_interactionState.isLocked(); }
 
     void clearAudioTracks()
     {
@@ -178,7 +186,6 @@ private:
     }
 
     ApplicationViewState &m_applicationState;
-    NextStudio::WineRendererFallback &m_wineRendererFallback;
     NextLookAndFeel m_nextLookAndFeel;
 
     tracktion_engine::Engine m_engine{ProjectInfo::projectName, std::make_unique<ExtendedUIBehaviour>(), nullptr};
@@ -194,11 +201,14 @@ private:
     std::unique_ptr<SidebarComponent> m_sideBarBrowser;
     SplitterComponent m_sidebarSplitter;
     ProjectWorkflowOverlay m_projectWorkflowOverlay;
+    std::unique_ptr<SetupWizard> m_setupWizard;
+    juce::Viewport m_setupWizardViewport;
     ComputerMidiKeyboardController m_computerMidiKeyboard;
 
     [[maybe_unused]] bool m_settingsLoaded{false};
     bool m_debugMode{false};
-    bool m_projectWorkflowActive{false};
+    MainInteractionState m_interactionState;
+    bool m_mainInteractionLocked{false};
     bool m_projectPlaybackContextReleased{false};
     bool m_resumePlaybackAfterProjectWorkflow{false};
     tracktion::TimePosition m_projectWorkflowTransportPosition{};
@@ -211,6 +221,7 @@ private:
     bool m_projectBrowserExpandedSidebar{false};
 
     juce::File m_tempDir;
+    juce::File m_deferredRecoveryFile;
     juce::TooltipWindow tooltipWindow{this, 500};
 
     friend class NextStudio::Debug::MainComponentDebugHost;

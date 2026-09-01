@@ -50,7 +50,7 @@ The browser invokes a typed operation callback rather than sending an untyped lo
 
 `ProjectWorkflow::Controller::locksMainInteraction()` is true during unsaved-change confirmation, Save As, errors belonging to either modal path, `saving`, and `committing`.
 
-`MainComponent::setProjectWorkflowActive()` is the enforcement boundary. On entry it:
+`MainComponent::setProjectWorkflowActive()` updates the project source in `MainInteractionState`; `MainComponent::updateMainInteractionLock()` is the shared project/setup enforcement boundary. On entry it:
 
 1. stops the current transport;
 2. sends Tracktion MIDI panic;
@@ -63,7 +63,7 @@ The browser invokes a typed operation callback rather than sending an untyped lo
 
 On exit it allocates the playback context again, enables the component trees and plugin windows, restores keyboard routing, and hides the overlay. Playback that was active before a cancelled or completed save resumes at the captured position. Recording never resumes automatically, and successful edit replacement suppresses playback restoration for the old edit.
 
-`ProjectWorkflowOverlay` is not the security boundary. It supplies visual dimming and prevents an outside click from reaching the covered control. Effective component disabling, command status, plugin-window registration, MIDI detachment, and playback-context lifetime provide the lock. The debug shell observes the same runtime boundary: read-only diagnostics, screenshots, `stop`, and harness shutdown remain available, while transport-start and model-mutating commands return `busy`.
+`ProjectWorkflowOverlay` is not the security boundary. It is shared with the embedded startup wizard, supplies visual dimming, and prevents an outside click from reaching covered controls. Effective component disabling, command status, plugin-window registration, MIDI detachment, and playback-context lifetime provide the lock. The debug shell observes the project-workflow source of the same runtime boundary: read-only diagnostics, screenshots, `stop`, and harness shutdown remain available, while transport-start and model-mutating commands return `busy`.
 
 The Projects sidebar and splitter remain above the overlay. Sidebar command handling rejects navigation while interaction is locked. During cancellable Save As, an outside click cancels; during `saving` or `committing`, cancellation controls are disabled.
 

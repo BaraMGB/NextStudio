@@ -49,9 +49,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include "WineRendererFallback.h"
 
-MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRendererFallback &wineRendererFallback, bool debugMode, const juce::File &debugSessionDirectory)
+MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRendererFallback &, bool debugMode, const juce::File &debugSessionDirectory)
     : m_applicationState(state),
-      m_wineRendererFallback(wineRendererFallback),
       m_nextLookAndFeel(state),
       m_sidebarSplitter(false),
       m_debugMode(debugMode)
@@ -93,6 +92,10 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
 
     addAndMakeVisible(m_sidebarSplitter);
     addChildComponent(m_projectWorkflowOverlay);
+    addChildComponent(m_setupWizardViewport);
+    m_setupWizardViewport.setScrollBarsShown(true, false);
+    m_setupWizardViewport.setScrollOnDragMode(juce::Viewport::ScrollOnDragMode::all);
+    m_setupWizardViewport.setName("Embedded setup wizard");
     m_projectWorkflowOverlay.onClickOutside = [this]
     {
         if (m_sideBarBrowser)
@@ -115,7 +118,7 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     // Always start with the Projects sidebar expanded at its default width.
     m_applicationState.m_sidebarWidth = SidebarLayout::defaultExpandedWidth;
     m_applicationState.m_sidebarCollapsed = false;
-    openValidStartEdit();
+    openValidStartEdit(needsSetupWizard);
 
     m_commandManager.registerAllCommandsForTarget(this);
     m_commandManager.registerAllCommandsForTarget(m_editComponent.get());
@@ -127,14 +130,17 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
 
     if (needsSetupWizard)
     {
-        NS_LOG_INFO(setup, "setup wizard scheduled");
-        launchSetupWizardAsync();
+        NS_LOG_INFO(setup, "embedded setup wizard shown");
+        showSetupWizard();
     }
 }
 
 MainComponent::~MainComponent()
 {
+    setSetupWizardActive(false);
     setProjectWorkflowActive(false, false);
+    m_setupWizardViewport.setViewedComponent(nullptr, false);
+    m_setupWizard = nullptr;
     m_computerMidiKeyboard.setKeyboardState(nullptr);
 
     if (auto *uiBehaviour = dynamic_cast<ExtendedUIBehaviour *>(&m_engine.getUIBehaviour()))
@@ -201,7 +207,7 @@ void MainComponent::handleSidebarSplitterDrag(int dragDistance)
 {
     const bool collapsed = m_applicationState.m_sidebarCollapsed;
 
-    if (m_projectWorkflowActive)
+    if (m_interactionState.isProjectWorkflowActive())
     {
         const auto resizedWidth = SidebarLayout::getResizedWidth(m_sidebarWidthAtMousedown, dragDistance);
         if (resizedWidth != (int)m_applicationState.m_sidebarWidth)
@@ -235,6 +241,9 @@ void MainComponent::handleSidebarSplitterDrag(int dragDistance)
 
 void MainComponent::resized()
 {
+    if (m_editComponent == nullptr || m_sideBarBrowser == nullptr || m_editorContainer == nullptr || m_lowerRange == nullptr)
+        return;
+
     auto area = getLocalBounds();
     area.reduce(10, 10);
 
@@ -258,12 +267,17 @@ void MainComponent::resized()
     m_lowerRange->setBounds(lowerRange);
 
     m_projectWorkflowOverlay.setBounds(getLocalBounds());
-    if (m_projectWorkflowActive)
+
+    if (m_setupWizard != nullptr)
     {
-        m_projectWorkflowOverlay.toFront(false);
-        m_sidebarSplitter.toFront(false);
-        m_sideBarBrowser->toFront(false);
+        const auto wizardBounds = getLocalArea(m_editComponent.get(), m_editComponent->getLocalBounds());
+        m_setupWizardViewport.setBounds(wizardBounds);
+        const auto contentWidth = juce::jmax(1, wizardBounds.getWidth() - m_setupWizardViewport.getScrollBarThickness());
+        const auto contentHeight = contentWidth < 900 ? 1450 : 1000;
+        m_setupWizard->setSize(contentWidth, juce::jmax(wizardBounds.getHeight(), contentHeight));
     }
+
+    updateInteractionLayerOrder();
 }
 
 void MainComponent::getAllCommands(juce::Array<juce::CommandID> &commands)
@@ -348,13 +362,13 @@ void MainComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
         break;
     }
 
-    if (m_projectWorkflowActive)
+    if (isMainInteractionLocked())
         result.setActive(false);
 }
 
 bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
 {
-    if (m_projectWorkflowActive)
+    if (isMainInteractionLocked())
         return false;
 
     NS_LOG_DEBUG(workflow, "command invoked: id=" + juce::String(static_cast<int>(info.commandID)));
@@ -478,29 +492,59 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
     }
 }
 
-void MainComponent::openValidStartEdit()
+void MainComponent::openValidStartEdit(bool deferRecoveryPrompt)
 {
     m_tempDir = m_engine.getTemporaryFileManager().getTempDirectory();
     m_tempDir.createDirectory();
 
-    auto f = Helpers::findRecentEdit(m_tempDir);
-    if (f.existsAsFile())
+    const auto recoveryFile = Helpers::findRecentEdit(m_tempDir);
+    if (recoveryFile.existsAsFile())
     {
-        NS_LOG_WARN(autosave, "recovery file found: " + f.getFullPathName());
-        auto result = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon, "Restore crashed project?", "It seems, NextStudio is crashed last time. Do you want to restore the last session?", "Yes", "No");
-        if (result)
+        NS_LOG_WARN(autosave, "recovery file found: " + recoveryFile.getFullPathName());
+        if (deferRecoveryPrompt)
         {
-            setupEdit(f);
-            return;
+            if (setupEdit(recoveryFile))
+            {
+                m_deferredRecoveryFile = recoveryFile;
+                return;
+            }
         }
         else
         {
-            m_tempDir.deleteRecursively();
-            m_tempDir.createDirectory();
+            const auto restore = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+                                                                    "Restore crashed project?",
+                                                                    "It seems NextStudio crashed last time. Do you want to restore the last session?",
+                                                                    "Yes", "No");
+            if (restore && setupEdit(recoveryFile))
+                return;
         }
+
+        m_tempDir.deleteRecursively();
+        m_tempDir.createDirectory();
     }
 
     setupEdit(juce::File());
+}
+
+void MainComponent::resolveDeferredRecovery()
+{
+    if (!m_deferredRecoveryFile.existsAsFile())
+    {
+        m_deferredRecoveryFile = juce::File{};
+        return;
+    }
+
+    const auto restore = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+                                                            "Restore crashed project?",
+                                                            "It seems NextStudio crashed last time. Do you want to restore the last session?",
+                                                            "Yes", "No");
+    m_deferredRecoveryFile = juce::File{};
+    if (!restore)
+    {
+        m_tempDir.deleteRecursively();
+        m_tempDir.createDirectory();
+        setupEdit(juce::File());
+    }
 }
 
 void MainComponent::setupSideBrowser()
@@ -512,60 +556,44 @@ void MainComponent::setupSideBrowser()
 
 void MainComponent::ensureUserDirectoriesAndSamples() { InitialContentSetup::populateBundledContent(juce::File(m_applicationState.m_workDir.get())); }
 
-void MainComponent::launchSetupWizardAsync()
+void MainComponent::showSetupWizard()
 {
-    juce::Component::SafePointer<MainComponent> safeThis(this);
+    if (m_setupWizard != nullptr)
+        return;
 
-    juce::MessageManager::callAsync(
-        [safeThis]
-        {
-            if (safeThis != nullptr)
-                safeThis->runSetupWizard();
-        });
+    m_setupWizard = std::make_unique<SetupWizard>(m_applicationState, m_engine);
+    m_setupWizard->onFinished = [safeThis = juce::Component::SafePointer<MainComponent>(this)]
+    {
+        juce::MessageManager::callAsync(
+            [safeThis]
+            {
+                if (safeThis != nullptr)
+                    safeThis->completeSetupWizard();
+            });
+    };
+
+    m_setupWizardViewport.setViewedComponent(m_setupWizard.get(), false);
+    m_setupWizardViewport.setViewPosition(0, 0);
+    m_setupWizardViewport.setVisible(true);
+    setSetupWizardActive(true);
+    resized();
 }
 
-void MainComponent::runSetupWizard()
+void MainComponent::completeSetupWizard()
 {
-    auto wizard = std::make_unique<SetupWizard>(m_applicationState, m_engine);
-    wizard->setSize(1400, 1000);
+    if (m_setupWizard == nullptr || !m_setupWizard->isFinished())
+        return;
 
-    juce::DialogWindow::LaunchOptions options;
-    options.content.setOwned(wizard.release());
-    options.componentToCentreAround = this;
-    options.dialogTitle = "NextStudio Setup Wizard";
-    options.dialogBackgroundColour = m_applicationState.getBackgroundColour1();
-    options.escapeKeyTriggersCloseButton = false;
-    options.useNativeTitleBar = true;
-    options.resizable = false;
-
-    auto *dialog = options.create();
-    m_wineRendererFallback.applyTo(*dialog);
-    dialog->enterModalState(true, nullptr, true);
-    const auto wizardResult = dialog->runModalLoop();
-
-    if (wizardResult != 1)
-    {
-        // Aborting setup falls back to ~/NextStudio by product decision.
-        const auto defaultWorkDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio");
-        m_applicationState.setRootFolder(defaultWorkDir);
-        ThemeHelpers::applyBuiltInTheme(m_applicationState, ThemeHelpers::getDefaultBuiltInThemeName());
-        m_applicationState.m_setupComplete = true;
-        m_applicationState.saveState();
-    }
+    m_setupWizardViewport.setVisible(false);
+    m_setupWizardViewport.setViewedComponent(nullptr, false);
+    m_setupWizard = nullptr;
 
     handleContentPathChangedFromSettings();
-
-    juce::Component::SafePointer<juce::Component> mainWindow(getTopLevelComponent());
-    juce::MessageManager::callAsync(
-        [mainWindow]
-        {
-            if (mainWindow == nullptr)
-                return;
-
-            mainWindow->setVisible(true);
-            mainWindow->toFront(true);
-            mainWindow->repaint();
-        });
+    updateTheme();
+    resolveDeferredRecovery();
+    setSetupWizardActive(false);
+    resized();
+    grabKeyboardFocus();
 }
 
 void MainComponent::handleContentPathChangedFromSettings()
@@ -757,7 +785,7 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::Fi
     if (!m_editViewState)
         return GUIHelpers::ProjectSaveResult::failed;
 
-    const bool acquiredWorkflowLock = !m_projectWorkflowActive;
+    const bool acquiredWorkflowLock = !m_interactionState.isProjectWorkflowActive();
     if (acquiredWorkflowLock)
         setProjectWorkflowActive(true);
 
@@ -786,7 +814,7 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::Fi
 
 void MainComponent::requestProjectOperation(ProjectWorkflow::Operation operation)
 {
-    if (!operation.isValid() || m_sideBarBrowser == nullptr || m_projectWorkflowActive)
+    if (!operation.isValid() || m_sideBarBrowser == nullptr || isMainInteractionLocked())
         return;
 
     m_sideBarBrowser->beginProjectOperation(std::move(operation));
@@ -794,7 +822,7 @@ void MainComponent::requestProjectOperation(ProjectWorkflow::Operation operation
 
 void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution)
 {
-    if (!operation.isValid() || !m_projectWorkflowActive || m_edit == nullptr)
+    if (!operation.isValid() || !m_interactionState.isProjectWorkflowActive() || m_edit == nullptr)
         return;
 
     const auto *expectedEdit = m_edit.get();
@@ -803,7 +831,7 @@ void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &op
     juce::MessageManager::callAsync(
         [safeThis, operation, expectedEdit, expectedChange]
         {
-            if (safeThis == nullptr || !safeThis->m_projectWorkflowActive)
+            if (safeThis == nullptr || !safeThis->m_interactionState.isProjectWorkflowActive())
                 return;
 
             if (safeThis->m_edit.get() != expectedEdit
@@ -830,16 +858,41 @@ void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &op
 
 void MainComponent::requestApplicationQuit()
 {
+    if (m_interactionState.isSetupWizardActive())
+    {
+        if (auto *app = juce::JUCEApplication::getInstance())
+            app->quit();
+        return;
+    }
+
     requestProjectOperation({ProjectWorkflow::OperationType::quit, {}});
 }
 
 void MainComponent::setProjectWorkflowActive(bool active, bool resumePlayback)
 {
-    if (m_projectWorkflowActive == active)
+    if (m_interactionState.isProjectWorkflowActive() == active)
         return;
 
-    m_projectWorkflowActive = active;
-    if (active)
+    m_interactionState.setProjectWorkflowActive(active);
+    updateMainInteractionLock(resumePlayback);
+}
+
+void MainComponent::setSetupWizardActive(bool active)
+{
+    if (m_interactionState.isSetupWizardActive() == active)
+        return;
+
+    m_interactionState.setSetupWizardActive(active);
+    updateMainInteractionLock(false);
+}
+
+void MainComponent::updateMainInteractionLock(bool resumePlayback)
+{
+    const auto shouldLock = isMainInteractionLocked();
+    const auto lockChanged = m_mainInteractionLocked != shouldLock;
+    m_mainInteractionLocked = shouldLock;
+
+    if (lockChanged && shouldLock)
     {
         if (m_edit != nullptr)
         {
@@ -852,14 +905,10 @@ void MainComponent::setProjectWorkflowActive(bool active, bool resumePlayback)
             m_projectPlaybackContextReleased = true;
         }
 
-        if (m_editorContainer)
-            m_editorContainer->setEnabled(false);
-        if (m_lowerRange)
-            m_lowerRange->setEnabled(false);
         PluginWindow::setAllInteractionEnabled(false);
         m_computerMidiKeyboard.detachFrom(*this);
     }
-    else
+    else if (lockChanged && !shouldLock)
     {
         if (m_edit != nullptr && m_projectPlaybackContextReleased)
         {
@@ -874,27 +923,44 @@ void MainComponent::setProjectWorkflowActive(bool active, bool resumePlayback)
         m_projectPlaybackContextReleased = false;
         m_resumePlaybackAfterProjectWorkflow = false;
 
-        if (m_editorContainer)
-            m_editorContainer->setEnabled(true);
-        if (m_lowerRange)
-            m_lowerRange->setEnabled(true);
         PluginWindow::setAllInteractionEnabled(true);
         m_computerMidiKeyboard.attachTo(*this);
     }
 
-    m_projectWorkflowOverlay.setVisible(active);
-    if (active)
-    {
+    if (m_editorContainer)
+        m_editorContainer->setEnabled(!shouldLock);
+    if (m_lowerRange)
+        m_lowerRange->setEnabled(!shouldLock);
+    if (m_sideBarBrowser)
+        m_sideBarBrowser->setEnabled(!m_interactionState.isSetupWizardActive());
+    m_sidebarSplitter.setEnabled(!m_interactionState.isSetupWizardActive());
+
+    m_projectWorkflowOverlay.setVisible(shouldLock);
+    if (shouldLock)
         m_projectWorkflowOverlay.setBounds(getLocalBounds());
-        m_projectWorkflowOverlay.toFront(false);
-        m_sidebarSplitter.toFront(false);
-        if (m_sideBarBrowser)
-            m_sideBarBrowser->toFront(false);
-    }
+    updateInteractionLayerOrder();
 
     m_commandManager.commandStatusChanged();
     if (m_sideBarBrowser)
         m_sideBarBrowser->repaint();
+}
+
+void MainComponent::updateInteractionLayerOrder()
+{
+    if (!isMainInteractionLocked())
+        return;
+
+    m_projectWorkflowOverlay.toFront(false);
+    if (m_interactionState.getForeground() == MainInteractionState::Foreground::setupWizard)
+    {
+        if (m_setupWizardViewport.isVisible())
+            m_setupWizardViewport.toFront(false);
+        return;
+    }
+
+    m_sidebarSplitter.toFront(false);
+    if (m_sideBarBrowser)
+        m_sideBarBrowser->toFront(false);
 }
 
 void MainComponent::setProjectBrowserWorkingMode(bool enabled)

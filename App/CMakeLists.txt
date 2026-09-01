@@ -89,6 +89,15 @@ if(BUILD_TESTING)
     add_test(NAME SplitterCollapseController
             COMMAND SplitterCollapseControllerTests)
 
+    add_executable(MainInteractionStateTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/MainInteractionStateTests.cpp)
+
+    target_include_directories(MainInteractionStateTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    add_test(NAME MainInteractionState
+            COMMAND MainInteractionStateTests)
+
     juce_add_console_app(DebugProtocolTests
             PRODUCT_NAME "DebugProtocolTests")
     juce_generate_juce_header(DebugProtocolTests)

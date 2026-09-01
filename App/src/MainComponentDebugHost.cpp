@@ -16,7 +16,7 @@ MainComponentDebugHost::MainComponentDebugHost(MainComponent &mainComponent)
 
 bool MainComponentDebugHost::isDebugMode() const { return m_mainComponent.m_debugMode; }
 
-bool MainComponentDebugHost::isProjectWorkflowActive() const { return m_mainComponent.m_projectWorkflowActive; }
+bool MainComponentDebugHost::isProjectWorkflowActive() const { return m_mainComponent.m_interactionState.isProjectWorkflowActive(); }
 
 const ApplicationViewState &MainComponentDebugHost::getApplicationState() const { return m_mainComponent.m_applicationState; }
 
@@ -56,7 +56,7 @@ juce::File MainComponentDebugHost::captureSnapshot(int maxWidth) const
 
 bool MainComponentDebugHost::play()
 {
-    if (m_mainComponent.m_projectWorkflowActive || m_mainComponent.m_editComponent == nullptr)
+    if (m_mainComponent.isMainInteractionLocked() || m_mainComponent.m_editComponent == nullptr)
         return false;
     EngineHelpers::play(m_mainComponent.m_editComponent->getEditViewState());
     return true;
@@ -72,7 +72,7 @@ bool MainComponentDebugHost::stop()
 
 bool MainComponentDebugHost::showProjectSaveAs()
 {
-    if (m_mainComponent.m_projectWorkflowActive || m_mainComponent.m_sideBarBrowser == nullptr)
+    if (m_mainComponent.isMainInteractionLocked() || m_mainComponent.m_sideBarBrowser == nullptr)
         return false;
     m_mainComponent.m_sideBarBrowser->beginProjectSaveAs();
     m_mainComponent.resized();
@@ -81,7 +81,7 @@ bool MainComponentDebugHost::showProjectSaveAs()
 
 te::AudioTrack *MainComponentDebugHost::createAudioTrack(bool midi, const juce::String &name)
 {
-    if (m_mainComponent.m_projectWorkflowActive || m_mainComponent.m_editViewState == nullptr)
+    if (m_mainComponent.isMainInteractionLocked() || m_mainComponent.m_editViewState == nullptr)
         return nullptr;
     auto track = EngineHelpers::addAudioTrack(midi, juce::Colour(0xff4f81bd), *m_mainComponent.m_editViewState);
     if (track != nullptr)

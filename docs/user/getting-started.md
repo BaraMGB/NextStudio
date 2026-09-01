@@ -8,7 +8,7 @@ NextStudio is under active development. Features, project compatibility, and UI 
 
 ## First launch
 
-On first launch, or when the configured content root no longer exists, NextStudio opens the Setup Wizard.
+On first launch, or when the configured content root no longer exists, NextStudio embeds the Setup Wizard in the arrangement-editor area of the main window. It does not open a separate modal window. The header, sidebar, lower range, transport, plug-in windows, and keyboard commands remain dimmed and inactive until setup is complete. The wizard scrolls vertically when the editor area is too small to show every section at once.
 
 The wizard configures:
 
@@ -39,7 +39,7 @@ Choosing another root creates or uses this folder structure:
 
 NextStudio validates that the root can be prepared before accepting it. Bundled content such as the included drum samples is populated into the selected content area.
 
-If setup is closed without completion, the current fallback behavior selects `~/NextStudio`, applies the default built-in theme, and marks setup complete.
+Closing NextStudio before pressing **Start NextStudio** leaves setup incomplete, so the embedded wizard appears again on the next launch. Folder validation errors are shown inside the wizard, and the folder chooser runs asynchronously without a nested application modal loop.
 
 ### GUI scale
 

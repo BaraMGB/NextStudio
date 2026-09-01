@@ -49,6 +49,7 @@ This directory contains the user and developer documentation for NextStudio.
 - [Central clip overwrite command](architecture/clip-overwrite-command.md) — incoming-wins planning, selective victim trimming, atomic commit, undo, and entry points.
 - [Project lifecycle](architecture/project-lifecycle.md) — new/load/save/save-as, unsaved changes, autosave, recovery, validation, and teardown order.
 - [Project workflow controller](architecture/project-workflow.md) — typed continuations, state transitions, editor/plugin interaction locking, and engine suspension.
+- [Embedded startup wizard](architecture/startup-wizard.md) — in-editor placement, shared overlay locking, asynchronous completion, and recovery ordering.
 
 ## Development
 
@@ -92,5 +93,6 @@ Change documents explain a coherent implementation diff rather than acting as re
 | Position formatting | `App/include/PositionDisplayHelpers.h`, `App/src/PositionDisplayHelpers.cpp` |
 | Project lifecycle helpers | `App/include/ProjectLifecycle.h`, `App/src/ProjectLifecycle.cpp` |
 | Project workflow controller | `App/include/ProjectWorkflow.h`, `App/src/ProjectWorkflow.cpp` |
+| Startup wizard | `App/include/SetupWizard.h`, `App/src/SetupWizard.cpp`, `App/include/MainInteractionState.h` |
 | Agent debug system | `App/include/Debug*.h`, `App/src/Debug*.cpp`, `.pi/extensions/nextstudio-debug.ts`, `tools/debug-shell-client.js` |
 | Tests | `App/tests/` |

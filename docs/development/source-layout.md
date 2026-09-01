@@ -57,6 +57,7 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 
 - `Main.cpp`
 - `MainComponent.*`
+- `MainInteractionState.h`
 - `ApplicationViewState.h`
 - `EditViewState.*`
 - `ProjectLifecycle.*`

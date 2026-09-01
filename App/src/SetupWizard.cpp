@@ -4,7 +4,19 @@
 
 bool SetupWizard::validateAndPrepareContentRoot(const juce::File &root, juce::String &errorMessage) const { return InitialContentSetup::validateAndPrepareRoot(root, errorMessage); }
 
-void SetupWizard::showValidationError(const juce::String &message) const { juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Invalid Content Folder", message); }
+void SetupWizard::showValidationError(const juce::String &message)
+{
+    m_validationLabel.setText(message, juce::dontSendNotification);
+    m_validationLabel.setTooltip(message);
+    m_validationLabel.setVisible(true);
+}
+
+void SetupWizard::clearValidationError()
+{
+    m_validationLabel.setText({}, juce::dontSendNotification);
+    m_validationLabel.setTooltip({});
+    m_validationLabel.setVisible(false);
+}
 
 SetupWizard::SetupWizard(ApplicationViewState &avs, tracktion::Engine &engine)
     : m_avs(avs),
@@ -43,21 +55,31 @@ SetupWizard::SetupWizard(ApplicationViewState &avs, tracktion::Engine &engine)
     m_selectPathButton.setButtonText("Change Folder...");
     m_selectPathButton.onClick = [this]
     {
-        juce::FileChooser chooser("Select NextStudio User Folder...", juce::File(m_avs.m_workDir.get()), "*");
-
-        if (chooser.browseForDirectory())
-        {
-            const auto selectedRoot = chooser.getResult();
-            juce::String validationError;
-            if (!validateAndPrepareContentRoot(selectedRoot, validationError))
+        m_selectPathButton.setEnabled(false);
+        m_fileChooser = std::make_unique<juce::FileChooser>("Select NextStudio User Folder...", juce::File(m_avs.m_workDir.get()), "*");
+        m_fileChooser->launchAsync(
+            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+            [safeThis = juce::Component::SafePointer<SetupWizard>(this)](const juce::FileChooser &chooser)
             {
-                showValidationError(validationError);
-                return;
-            }
+                if (safeThis == nullptr)
+                    return;
 
-            m_avs.setRootFolder(selectedRoot);
-            updatePathLabel();
-        }
+                safeThis->m_selectPathButton.setEnabled(true);
+                const auto selectedRoot = chooser.getResult();
+                if (selectedRoot == juce::File())
+                    return;
+
+                juce::String validationError;
+                if (!safeThis->validateAndPrepareContentRoot(selectedRoot, validationError))
+                {
+                    safeThis->showValidationError(validationError);
+                    return;
+                }
+
+                safeThis->clearValidationError();
+                safeThis->m_avs.setRootFolder(selectedRoot);
+                safeThis->updatePathLabel();
+            });
     };
 
     // Interface Group
@@ -105,6 +127,11 @@ SetupWizard::SetupWizard(ApplicationViewState &avs, tracktion::Engine &engine)
     m_audioViewport->setScrollBarsShown(true, false);
     addAndMakeVisible(*m_audioViewport);
 
+    addChildComponent(m_validationLabel);
+    m_validationLabel.setColour(juce::Label::textColourId, juce::Colours::orange);
+    m_validationLabel.setJustificationType(juce::Justification::centred);
+    m_validationLabel.setMinimumHorizontalScale(0.7f);
+
     // Finish Button
     addAndMakeVisible(m_finishButton);
     m_finishButton.setButtonText("Start NextStudio");
@@ -120,15 +147,18 @@ SetupWizard::SetupWizard(ApplicationViewState &avs, tracktion::Engine &engine)
             return;
         }
 
+        clearValidationError();
         m_avs.setRootFolder(selectedRoot);
         InitialContentSetup::populateBundledContent(selectedRoot);
         applySelectedTheme();
         m_avs.m_setupComplete = true;
         m_avs.saveState();
         m_finished = true;
+        m_finishButton.setEnabled(false);
+        m_selectPathButton.setEnabled(false);
 
-        if (auto *dw = findParentComponentOfClass<juce::DialogWindow>())
-            dw->exitModalState(1);
+        if (onFinished != nullptr)
+            onFinished();
     };
 }
 
@@ -176,6 +206,7 @@ void SetupWizard::resized()
     auto logoArea = area.removeFromTop(80);
     m_logoBounds = logoArea.withSizeKeepingCentre(220, 70);
     m_instructionLabel.setBounds(area.removeFromTop(30));
+    auto validationArea = area.removeFromTop(28);
     area.removeFromTop(sectionSpacing);
 
     auto warningArea = area.removeFromTop(120);
@@ -184,30 +215,46 @@ void SetupWizard::resized()
     auto finishArea = area.removeFromBottom(40);
     area.removeFromBottom(10);
 
-    auto pluginArea = area.removeFromBottom(juce::jmax(260, area.getHeight() / 2));
-    area.removeFromBottom(sectionSpacing);
+    juce::Rectangle<int> pathArea;
+    juce::Rectangle<int> interfaceArea;
+    juce::Rectangle<int> audioArea;
+    juce::Rectangle<int> pluginArea;
 
-    auto contentArea = area;
-    auto leftColumn = contentArea.removeFromLeft((contentArea.getWidth() - columnGap) / 2);
-    contentArea.removeFromLeft(columnGap);
-    auto rightColumn = contentArea;
+    if (getWidth() < 900)
+    {
+        pathArea = area.removeFromTop(110);
+        area.removeFromTop(sectionSpacing);
+        interfaceArea = area.removeFromTop(120);
+        area.removeFromTop(sectionSpacing);
+        audioArea = area.removeFromTop(360);
+        area.removeFromTop(sectionSpacing);
+        pluginArea = area.removeFromTop(300);
+    }
+    else
+    {
+        pluginArea = area.removeFromBottom(juce::jmax(260, area.getHeight() / 2));
+        area.removeFromBottom(sectionSpacing);
+
+        auto contentArea = area;
+        auto leftColumn = contentArea.removeFromLeft((contentArea.getWidth() - columnGap) / 2);
+        contentArea.removeFromLeft(columnGap);
+        pathArea = leftColumn.removeFromTop(110);
+        leftColumn.removeFromTop(sectionSpacing);
+        interfaceArea = leftColumn.removeFromTop(120);
+        audioArea = contentArea;
+    }
 
     m_alphaWarningGroup.setBounds(warningArea);
     auto warningContent = warningArea.reduced(10, 20);
     warningContent.removeFromTop(10);
     m_alphaWarningLabel.setBounds(warningContent);
 
-    // Left column: non-audio setup sections.
-    auto pathArea = leftColumn.removeFromTop(110);
     m_pathGroup.setBounds(pathArea);
     auto pathContent = pathArea.reduced(10, 20);
     pathContent.removeFromTop(10); // Group title space
     m_currentPathLabel.setBounds(pathContent.removeFromTop(30));
     m_selectPathButton.setBounds(pathContent.removeFromLeft(150).withHeight(30));
 
-    leftColumn.removeFromTop(sectionSpacing);
-
-    auto interfaceArea = leftColumn.removeFromTop(120);
     m_interfaceGroup.setBounds(interfaceArea);
     auto interfaceContent = interfaceArea.reduced(10, 20);
     interfaceContent.removeFromTop(10);
@@ -226,9 +273,8 @@ void SetupWizard::resized()
     pluginContent.removeFromTop(10);
     m_pluginSettings.setBounds(pluginContent);
 
-    // Right column: audio settings.
-    m_audioGroup.setBounds(rightColumn);
-    auto audioContent = rightColumn.reduced(10, 20);
+    m_audioGroup.setBounds(audioArea);
+    auto audioContent = audioArea.reduced(10, 20);
     audioContent.removeFromTop(10);
     m_audioViewport->setBounds(audioContent);
 
@@ -237,5 +283,6 @@ void SetupWizard::resized()
     m_audioSelector->setTopLeftPosition(0, 0);
     m_audioSelector->setSize(contentWidth, juce::jmax(1, contentHeight));
 
+    m_validationLabel.setBounds(validationArea);
     m_finishButton.setBounds(finishArea.withSizeKeepingCentre(200, 40));
 }
