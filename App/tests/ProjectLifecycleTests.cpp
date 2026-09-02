@@ -84,6 +84,42 @@ void testProjectExtensionHandling()
     REQUIRE(!isProjectBrowserEntry(testDirectory.file("Song.wav")));
 }
 
+void testPropertyRollbackRestoresExactValues()
+{
+    const juce::Identifier source("source");
+    const juce::Identifier soundFontPath("soundFontPath");
+    juce::ValueTree clip("CLIP");
+    juce::ValueTree plugin("PLUGIN");
+    juce::ValueTree initiallyMissing("MISSING");
+    clip.setProperty(source, "../Audio/Kick.wav", nullptr);
+    plugin.setProperty(soundFontPath, "/library/Piano.sf2", nullptr);
+
+    {
+        ProjectLifecycle::PropertyRollback failedSave;
+        failedSave.capture(clip, source);
+        failedSave.capture(plugin, soundFontPath);
+        failedSave.capture(initiallyMissing, source);
+        failedSave.capture(clip, source); // Duplicate captures must not replace the original snapshot.
+
+        clip.setProperty(source, "../../NewLocation/Kick.wav", nullptr);
+        plugin.setProperty(soundFontPath, "../Piano.sf2", nullptr);
+        initiallyMissing.setProperty(source, "temporary.wav", nullptr);
+        // No dismiss: leaving a failed save scope restores the snapshots.
+    }
+
+    REQUIRE_EQ(clip.getProperty(source).toString(), juce::String("../Audio/Kick.wav"));
+    REQUIRE_EQ(plugin.getProperty(soundFontPath).toString(), juce::String("/library/Piano.sf2"));
+    REQUIRE(!initiallyMissing.hasProperty(source));
+
+    {
+        ProjectLifecycle::PropertyRollback successfulSave;
+        successfulSave.capture(clip, source);
+        clip.setProperty(source, "../Committed/Kick.wav", nullptr);
+        successfulSave.dismiss();
+    }
+    REQUIRE_EQ(clip.getProperty(source).toString(), juce::String("../Committed/Kick.wav"));
+}
+
 void testLoadFileInspection()
 {
     using namespace ProjectLifecycle;
@@ -135,6 +171,7 @@ void testLoadFileInspection()
 int main()
 {
     testProjectExtensionHandling();
+    testPropertyRollbackRestoresExactValues();
     testLoadFileInspection();
 
     if (failures != 0)

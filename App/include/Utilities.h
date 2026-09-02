@@ -318,7 +318,8 @@ te::WaveAudioClip::Ptr loadAudioFileOnNewTrack(EditViewState &evs, const juce::F
 
 te::WaveAudioClip::Ptr loadAudioFileToTrack(EditViewState &evs, const juce::File &file, te::AudioTrack::Ptr track, te::ClipPosition pos);
 
-void refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile);
+void refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile,
+                                       ProjectLifecycle::PropertyRollback *rollback = nullptr);
 
 void insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
 

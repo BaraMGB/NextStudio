@@ -118,7 +118,9 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     // Always start with the Projects sidebar expanded at its default width.
     m_applicationState.m_sidebarWidth = SidebarLayout::defaultExpandedWidth;
     m_applicationState.m_sidebarCollapsed = false;
-    openValidStartEdit(needsSetupWizard);
+    // Recovery must be offered before setup: closing an unfinished wizard performs
+    // normal temp cleanup and must never delete a snapshot that was not offered.
+    openValidStartEdit();
 
     m_commandManager.registerAllCommandsForTarget(this);
     m_commandManager.registerAllCommandsForTarget(m_editComponent.get());
@@ -492,7 +494,7 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
     }
 }
 
-void MainComponent::openValidStartEdit(bool deferRecoveryPrompt)
+void MainComponent::openValidStartEdit()
 {
     m_tempDir = m_engine.getTemporaryFileManager().getTempDirectory();
     m_tempDir.createDirectory();
@@ -501,50 +503,18 @@ void MainComponent::openValidStartEdit(bool deferRecoveryPrompt)
     if (recoveryFile.existsAsFile())
     {
         NS_LOG_WARN(autosave, "recovery file found: " + recoveryFile.getFullPathName());
-        if (deferRecoveryPrompt)
-        {
-            if (setupEdit(recoveryFile))
-            {
-                m_deferredRecoveryFile = recoveryFile;
-                return;
-            }
-        }
-        else
-        {
-            const auto restore = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                                                                    "Restore crashed project?",
-                                                                    "It seems NextStudio crashed last time. Do you want to restore the last session?",
-                                                                    "Yes", "No");
-            if (restore && setupEdit(recoveryFile))
-                return;
-        }
+        const auto restore = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+                                                                "Restore crashed project?",
+                                                                "It seems NextStudio crashed last time. Do you want to restore the last session?",
+                                                                "Yes", "No");
+        if (restore && setupEdit(recoveryFile))
+            return;
 
         m_tempDir.deleteRecursively();
         m_tempDir.createDirectory();
     }
 
     setupEdit(juce::File());
-}
-
-void MainComponent::resolveDeferredRecovery()
-{
-    if (!m_deferredRecoveryFile.existsAsFile())
-    {
-        m_deferredRecoveryFile = juce::File{};
-        return;
-    }
-
-    const auto restore = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                                                            "Restore crashed project?",
-                                                            "It seems NextStudio crashed last time. Do you want to restore the last session?",
-                                                            "Yes", "No");
-    m_deferredRecoveryFile = juce::File{};
-    if (!restore)
-    {
-        m_tempDir.deleteRecursively();
-        m_tempDir.createDirectory();
-        setupEdit(juce::File());
-    }
 }
 
 void MainComponent::setupSideBrowser()
@@ -590,7 +560,6 @@ void MainComponent::completeSetupWizard()
 
     handleContentPathChangedFromSettings();
     updateTheme();
-    resolveDeferredRecovery();
     setSetupWizardActive(false);
     resized();
     grabKeyboardFocus();
@@ -825,17 +794,17 @@ void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &op
     if (!operation.isValid() || !m_interactionState.isProjectWorkflowActive() || m_edit == nullptr)
         return;
 
-    const auto *expectedEdit = m_edit.get();
-    const auto expectedChange = m_edit->state.getProperty(te::IDs::lastSignificantChange);
+    const ProjectWorkflow::ExecutionGuard executionGuard(
+        m_edit.get(), m_edit->state.getProperty(te::IDs::lastSignificantChange));
     juce::Component::SafePointer<MainComponent> safeThis(this);
     juce::MessageManager::callAsync(
-        [safeThis, operation, expectedEdit, expectedChange]
+        [safeThis, operation, executionGuard]
         {
             if (safeThis == nullptr || !safeThis->m_interactionState.isProjectWorkflowActive())
                 return;
 
-            if (safeThis->m_edit.get() != expectedEdit
-                || safeThis->m_edit->state.getProperty(te::IDs::lastSignificantChange) != expectedChange)
+            if (safeThis->m_edit == nullptr
+                || !executionGuard.matches(safeThis->m_edit.get(), safeThis->m_edit->state.getProperty(te::IDs::lastSignificantChange)))
             {
                 if (safeThis->m_sideBarBrowser != nullptr)
                     safeThis->m_sideBarBrowser->completeProjectOperation(false, "The current project changed before the operation could complete.", operation.file);

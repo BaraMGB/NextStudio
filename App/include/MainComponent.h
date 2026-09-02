@@ -148,8 +148,7 @@ private:
     void saveSettings();
     void createTracksAndAssignInputs();
     void bindComputerMidiKeyboard(te::Edit *expectedEdit, int attemptsRemaining = 100);
-    void openValidStartEdit(bool deferRecoveryPrompt = false);
-    void resolveDeferredRecovery();
+    void openValidStartEdit();
     void setupSideBrowser();
     int getPreferredSidebarWidth() const;
     int getMaximumLowerRangeHeight() const;
@@ -221,7 +220,6 @@ private:
     bool m_projectBrowserExpandedSidebar{false};
 
     juce::File m_tempDir;
-    juce::File m_deferredRecoveryFile;
     juce::TooltipWindow tooltipWindow{this, 500};
 
     friend class NextStudio::Debug::MainComponentDebugHost;

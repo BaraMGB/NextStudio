@@ -36,7 +36,7 @@ Setup additionally disables the sidebar and its splitter. Project workflows keep
 
 `SetupWizard` persists the selected root, theme, scale, plug-in configuration, and audio/MIDI settings, then invokes `onFinished`. The callback posts `MainComponent::completeSetupWizard()` asynchronously so the wizard is not destroyed from inside its own button callback.
 
-Completion removes the viewport content, refreshes content directories and browsers, reapplies theme-dependent UI state, resolves any deferred crash-recovery choice, and finally releases the startup interaction lock.
+Completion removes the viewport content, refreshes content directories and browsers, reapplies theme-dependent UI state, and finally releases the startup interaction lock.
 
 Closing the main window before completion quits directly and leaves `m_setupComplete` false. The wizard therefore appears again on the next launch.
 
@@ -46,7 +46,7 @@ Folder selection uses `FileChooser::launchAsync()`. Invalid or unwritable roots 
 
 ## Recovery ordering
 
-When first-run setup and a recovery file coincide, the recovery edit is loaded behind the startup overlay without prompting. The restore/discard question is deferred until setup completes, preventing a recovery alert from appearing before the embedded wizard.
+Crash recovery is resolved before the embedded Setup Wizard is shown. This ordering is intentional: a recovery snapshot must always be offered on the first launch after a crash, even when setup is incomplete or the configured content root disappeared. Deferring the choice until wizard completion is unsafe because closing the application during setup performs normal shutdown cleanup and could otherwise remove a snapshot that was never offered.
 
 ## Tests
 

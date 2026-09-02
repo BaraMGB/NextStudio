@@ -13,6 +13,8 @@ by the Free Software Foundation, either version 3 of the License, or
 
 #include <juce_core/juce_core.h>
 
+#include <utility>
+
 namespace ProjectWorkflow
 {
 enum class State
@@ -50,6 +52,23 @@ struct Operation
     bool operator==(const Operation &) const = default;
 };
 
+/** Captures the edit identity and significant-change marker for deferred execution. */
+class ExecutionGuard
+{
+public:
+    ExecutionGuard(const void *editIdentity, juce::var significantChange)
+        : expectedEditIdentity(editIdentity),
+          expectedSignificantChange(std::move(significantChange))
+    {
+    }
+
+    bool matches(const void *editIdentity, const juce::var &significantChange) const noexcept;
+
+private:
+    const void *expectedEditIdentity{};
+    juce::var expectedSignificantChange;
+};
+
 /** Pure project-workflow state model.
 
     The controller owns pending intent and continuation state. It deliberately
@@ -80,6 +99,8 @@ public:
 
     void markCommitting();
     void completeOperation();
+    /** Clears queued intent after a failed write and selects the safe retry state. */
+    void failSave(State retryState);
     void cancel();
     void showError();
     void goBackFromError();

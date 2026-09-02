@@ -29,7 +29,7 @@ The controller also stores one typed `ProjectWorkflow::Operation`:
 - `load`, with a project file
 - `quit`
 
-This pending operation survives a required Save As. A successful save transitions to `committing` and returns the operation to execute. Cancel clears both the state and pending operation. There is no `unsavedChangesHandled` snapshot and no separate `resumeLoadAfterSave` flag.
+This pending operation survives a required Save As. A successful save transitions to `committing` and returns the operation to execute. Cancel and failed writes clear both pending intent and continuation. After a failed Save As, returning to the filename form permits a standalone retry but can no longer execute the abandoned New, Load, or Quit operation. There is no `unsavedChangesHandled` snapshot and no separate `resumeLoadAfterSave` flag.
 
 ## Operation flow
 
@@ -44,7 +44,7 @@ This includes:
 
 If the edit is dirty, the sidebar presents Save and Continue, Discard and Continue, and Back. Save without a persistent path enters Save As while retaining the typed pending operation. After a successful direct save or Save As, the pending operation continues automatically.
 
-The browser invokes a typed operation callback rather than sending an untyped load request through `ChangeBroadcaster`. Actual replacement remains asynchronous so the browser callback may return before its edit-bound component hierarchy is destroyed.
+The browser invokes a typed operation callback rather than sending an untyped load request through `ChangeBroadcaster`. Actual replacement remains asynchronous so the browser callback may return before its edit-bound component hierarchy is destroyed. `ExecutionGuard` captures edit identity and `lastSignificantChange`; either changing before the deferred callback rejects replacement.
 
 ## Interaction and engine boundary
 
@@ -92,7 +92,9 @@ New targets continue to receive one canonical `.tracktionedit` extension before 
 - immediate clean-operation commit;
 - discard continuation;
 - Save-As continuation;
-- cancellation clearing pending intent;
+- cancellation and failed writes clearing pending intent;
+- standalone retry after a failed Save As;
+- stale edit identity or significant-change rejection;
 - error return state and interaction-lock behavior.
 
 `ProjectLifecycleTests` additionally verifies that direct save target normalization preserves an existing upper-case extension path.

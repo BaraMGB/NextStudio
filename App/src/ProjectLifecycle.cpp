@@ -14,6 +14,30 @@ by the Free Software Foundation, either version 3 of the License, or
 
 namespace ProjectLifecycle
 {
+void PropertyRollback::capture(const juce::ValueTree &tree, const juce::Identifier &property)
+{
+    if (!tree.isValid())
+        return;
+
+    for (const auto &snapshot : snapshots)
+        if (snapshot.tree == tree && snapshot.property == property)
+            return;
+
+    snapshots.push_back({tree, property, tree.getProperty(property), tree.hasProperty(property)});
+}
+
+void PropertyRollback::restore()
+{
+    for (auto snapshot = snapshots.rbegin(); snapshot != snapshots.rend(); ++snapshot)
+    {
+        if (snapshot->existed)
+            snapshot->tree.setProperty(snapshot->property, snapshot->value, nullptr);
+        else
+            snapshot->tree.removeProperty(snapshot->property, nullptr);
+    }
+    snapshots.clear();
+}
+
 juce::File withProjectExtension(const juce::File &file)
 {
     if (file == juce::File())

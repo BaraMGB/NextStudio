@@ -10,6 +10,8 @@ NextStudio is under active development. Features, project compatibility, and UI 
 
 On first launch, or when the configured content root no longer exists, NextStudio embeds the Setup Wizard in the arrangement-editor area of the main window. It does not open a separate modal window. The header, sidebar, lower range, transport, plug-in windows, and keyboard commands remain dimmed and inactive until setup is complete. The wizard scrolls vertically when the editor area is too small to show every section at once.
 
+If a crash-recovery snapshot exists, NextStudio asks whether to restore it before showing the Setup Wizard. This guarantees that closing setup cannot remove recovery data that was never offered.
+
 The wizard configures:
 
 - the user content folder;

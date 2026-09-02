@@ -471,7 +471,9 @@ void ProjectsBrowserComponent::performSave(const juce::File &target, bool overwr
     m_operationInProgress = false;
     if (result != GUIHelpers::ProjectSaveResult::saved)
     {
-        m_workflow.transitionTo(returnStateOnFailure);
+        // A failed write must never leave New/Load/Quit armed. Returning to the
+        // Save As form allows a standalone retry without continuing old intent.
+        m_workflow.failSave(returnStateOnFailure);
         showOperationError("NextStudio could not save the project.", target);
         return;
     }
@@ -507,7 +509,7 @@ void ProjectsBrowserComponent::saveBeforePendingOperation()
     }
     else if (result == GUIHelpers::ProjectSaveResult::failed)
     {
-        m_workflow.transitionTo(Mode::confirmUnsavedChanges);
+        m_workflow.failSave(Mode::normal);
         showOperationError("NextStudio could not save the current project.", currentFile);
     }
     // cancelled means the embedded Save As workflow owns the continuation.

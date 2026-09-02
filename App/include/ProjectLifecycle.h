@@ -15,6 +15,8 @@ by the Free Software Foundation, either version 3 of the License, or
 #include <juce_core/juce_core.h>
 #include <juce_data_structures/juce_data_structures.h>
 
+#include <vector>
+
 namespace ProjectLifecycle
 {
 enum class SaveResult
@@ -22,6 +24,35 @@ enum class SaveResult
     saved,
     cancelled,
     failed
+};
+
+/** Exact snapshots of ValueTree properties changed temporarily during Save As.
+    Snapshots restore on scope exit unless dismiss() commits the changes.
+*/
+class PropertyRollback
+{
+public:
+    PropertyRollback() = default;
+    ~PropertyRollback() { restore(); }
+
+    PropertyRollback(const PropertyRollback &) = delete;
+    PropertyRollback &operator=(const PropertyRollback &) = delete;
+
+    void capture(const juce::ValueTree &tree, const juce::Identifier &property);
+    void restore();
+    void dismiss() noexcept { snapshots.clear(); }
+    bool isEmpty() const noexcept { return snapshots.empty(); }
+
+private:
+    struct Snapshot
+    {
+        juce::ValueTree tree;
+        juce::Identifier property;
+        juce::var value;
+        bool existed{false};
+    };
+
+    std::vector<Snapshot> snapshots;
 };
 
 juce::File withProjectExtension(const juce::File &file);

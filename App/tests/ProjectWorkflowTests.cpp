@@ -126,6 +126,52 @@ void testTransientErrorsCannotReturnToBusyStates()
     REQUIRE(!workflow.locksMainInteraction());
 }
 
+void testSaveAsFailureAbortsContinuationBeforeRetry()
+{
+    ProjectWorkflow::Controller workflow;
+    workflow.stageOperation({ProjectWorkflow::OperationType::quit, {}}, true);
+    workflow.beginSaveBeforePending(true);
+    REQUIRE(workflow.shouldContinueAfterSave());
+
+    workflow.markSaving();
+    workflow.failSave(ProjectWorkflow::State::saveProjectAs);
+    workflow.showError();
+
+    REQUIRE(!workflow.hasPendingOperation());
+    REQUIRE(!workflow.shouldContinueAfterSave());
+    workflow.goBackFromError();
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::saveProjectAs);
+
+    workflow.markSaving();
+    REQUIRE(workflow.completeSave() == ProjectWorkflow::Operation{});
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::normal);
+}
+
+void testDirectSaveFailureAbortsContinuation()
+{
+    ProjectWorkflow::Controller workflow;
+    workflow.stageOperation({ProjectWorkflow::OperationType::load, juce::File("/tmp/Song.tracktionedit")}, true);
+    workflow.beginSaveBeforePending(false);
+    workflow.failSave(ProjectWorkflow::State::normal);
+    workflow.showError();
+
+    REQUIRE(!workflow.hasPendingOperation());
+    REQUIRE(!workflow.shouldContinueAfterSave());
+    REQUIRE(!workflow.locksMainInteraction());
+}
+
+void testExecutionGuardRejectsStaleEditOrChange()
+{
+    int firstEdit = 0;
+    int replacementEdit = 0;
+    const ProjectWorkflow::ExecutionGuard guard(&firstEdit, juce::var("change-1"));
+
+    REQUIRE(guard.matches(&firstEdit, juce::var("change-1")));
+    REQUIRE(!guard.matches(&replacementEdit, juce::var("change-1")));
+    REQUIRE(!guard.matches(&firstEdit, juce::var("change-2")));
+    REQUIRE(!guard.matches(nullptr, juce::var("change-1")));
+}
+
 void testDiscardClearsSaveContinuation()
 {
     ProjectWorkflow::Controller workflow;
@@ -158,6 +204,9 @@ int main()
     testErrorReturnsToCorrectState();
     testUnsavedConfirmationErrorRemainsModal();
     testTransientErrorsCannotReturnToBusyStates();
+    testSaveAsFailureAbortsContinuationBeforeRetry();
+    testDirectSaveFailureAbortsContinuation();
+    testExecutionGuardRejectsStaleEditOrChange();
     testDiscardClearsSaveContinuation();
     testCompletingOperationClearsPendingIntent();
 

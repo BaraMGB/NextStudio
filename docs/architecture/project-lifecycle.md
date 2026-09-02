@@ -38,7 +38,7 @@ They are stored in Tracktion Engine's temporary directory and are intentionally 
 
 ## Startup flow
 
-`MainComponent` initializes engine services and built-in plug-ins, then calls `openValidStartEdit()`.
+`MainComponent` initializes engine services and built-in plug-ins, then calls `openValidStartEdit()`. Recovery is resolved before a required Setup Wizard is shown, so closing the wizard cannot delete an unoffered snapshot during normal shutdown.
 
 ```text
 Resolve/create engine temp directory
@@ -86,7 +86,7 @@ Before New, Load, or Quit replaces or closes an existing dirty edit, `ProjectsBr
 - **Discard & Continue** — explicitly authorize the pending operation;
 - **Back** — keep the current project.
 
-If Save requires a target, the typed pending operation survives the embedded Save-As workflow and resumes only after a successful write. Home-browser loading and drag-and-drop are routed through the same flow. `setupEdit()` no longer opens a modal unsaved-project alert.
+If Save requires a target, the typed pending operation survives the embedded Save-As workflow and resumes only after a successful write. Cancel or a failed write discards that operation. Returning to Save As after an error can retry saving, but the retry is standalone and cannot execute the abandoned New, Load, or Quit intent. Home-browser loading and drag-and-drop are routed through the same flow. `setupEdit()` no longer opens a modal unsaved-project alert.
 
 ## Safe project replacement
 
@@ -175,7 +175,7 @@ On success:
 2. the window title is updated from the persistent project filename;
 3. the filtered Projects directory browser is refreshed when the saved file belongs to its displayed directory.
 
-Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper. Save failures are displayed inline with the affected path.
+Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper. Before Save As mutates clip-source and SoundFont-path properties, `ProjectLifecycle::PropertyRollback` snapshots their exact values and whether each property existed. The scope guard restores snapshots unless a successful write explicitly dismisses it. A failed write also restores the previous edit-file retriever and edit name instead of attempting a potentially lossy reverse path conversion. Save failures are displayed inline with the affected path and clear pending continuation intent.
 
 ## Autosave
 
@@ -235,10 +235,11 @@ If the process crashes, normal shutdown cleanup does not run, leaving a `.nextTe
 
 - extension normalization and persistent/recovery distinction;
 - save-target selection;
+- exact ValueTree property rollback, including properties that did not previously exist;
 - project-browser filtering, including case-insensitive extensions;
 - load inspection for missing, unsupported, empty, corrupt, wrong-root, XML, binary, and recovery files.
 
-The GUI orchestration, Tracktion edit construction, and asynchronous autosave worker are not currently integration-tested.
+`ProjectWorkflowTests` cover failed-save continuation cleanup and deferred-execution guards. Full GUI orchestration, Tracktion edit construction, and the asynchronous autosave worker are not currently integration-tested.
 
 ## Invariants
 
@@ -254,8 +255,9 @@ Contributors changing project handling should preserve these invariants:
 8. A normal successful save removes obsolete recovery files.
 9. View/setup bookkeeping does not pollute initial undo history.
 10. Clean shutdown removes temporary recovery data; crashes leave recoverable data.
-11. Project Load and Save As do not create a top-level file chooser or enter a modal loop.
-12. Save As blocks the rest of the main UI while preserving splitter resizing and outside-click cancellation.
+11. A discovered crash snapshot is offered before setup UI or normal shutdown can remove it.
+12. Project Load and Save As do not create a top-level file chooser or enter a modal loop.
+13. Save As blocks the rest of the main UI while preserving splitter resizing and outside-click cancellation.
 
 ## Related documents
 

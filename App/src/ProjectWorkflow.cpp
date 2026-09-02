@@ -20,6 +20,13 @@ bool Operation::isValid() const noexcept
            && (type != OperationType::load || file != juce::File());
 }
 
+bool ExecutionGuard::matches(const void *editIdentity, const juce::var &significantChange) const noexcept
+{
+    return editIdentity != nullptr
+           && editIdentity == expectedEditIdentity
+           && significantChange == expectedSignificantChange;
+}
+
 void Controller::beginSaveAs(bool preservePendingOperation)
 {
     if (!preservePendingOperation)
@@ -82,6 +89,12 @@ void Controller::completeOperation()
 {
     clearPending();
     state = State::normal;
+}
+
+void Controller::failSave(State retryState)
+{
+    clearPending();
+    state = retryState;
 }
 
 void Controller::cancel()

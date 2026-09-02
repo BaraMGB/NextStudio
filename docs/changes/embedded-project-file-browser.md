@@ -99,7 +99,7 @@ Pending Operations unterscheiden:
 - `load`;
 - `quit`.
 
-Sie überleben einen erforderlichen Save-As-Vorgang und werden ausschließlich nach erfolgreichem Schreiben fortgesetzt.
+Sie überleben einen erforderlichen Save-As-Vorgang und werden ausschließlich nach erfolgreichem Schreiben fortgesetzt. Ein Schreibfehler verwirft Operation und Fortsetzungszustand; ein anschließender Save-As-Retry speichert nur und führt kein altes New, Load oder Quit mehr aus.
 
 ## Dirty-State-Sicherheit
 
@@ -111,13 +111,15 @@ Ein vor dem Lock als clean erkanntes Edit wird nach dem Lock erneut geprüft. `M
 
 - Ungültige oder verschwundene Projektdateien lassen das aktuelle Edit aktiv.
 - Fehler erscheinen inline im Projects-Tab.
-- Save-Fehler führen Pending Operations nicht aus.
-- Save As rollt Editname und relative Medienpfade zurück.
+- Save-Fehler verwerfen Pending Operation und Fortsetzungszustand.
+- Save As sichert und restauriert bei Fehlern Editname, Editpfad und die exakten Clip-/SoundFont-Pfadwerte.
 - Cancel löscht Pending Operation und Lock.
 
-## Persistenz
+## Persistenz und Crash Recovery
 
 Der zuletzt angezeigte Projektbrowserpfad wird in `m_projectLoadDir` weiterverwendet, damit bestehende Einstellungen kompatibel bleiben. Der frühere separate Save-Ordnerzustand entfällt; der sichtbare Browserpfad ist die einzige Quelle für Load und Save As. Ein Wechsel des Content Root setzt ihn auf das neue Projects-Verzeichnis.
+
+Eine vorhandene Crash-Recovery-Datei wird vor einem gegebenenfalls erforderlichen Setup-Wizard angeboten. Sie wird nicht hinter dem Wizard geladen oder bis zu dessen Abschluss zurückgestellt, damit ein Beenden während des Setups keine noch nicht angebotene Recovery-Datei löscht.
 
 ## Relevante Dateien
 
@@ -135,7 +137,8 @@ Der zuletzt angezeigte Projektbrowserpfad wird in `m_projectLoadDir` weiterverwe
 ## Validierung
 
 - `ProjectLifecycleTests` prüfen Filter- und Endungsregeln.
-- `ProjectWorkflowTests` prüfen Commit, Discard, Save-As-Fortsetzung, Cancel und Fehlerzustände.
+- `ProjectWorkflowTests` prüfen Commit, Discard, Save-As-Fortsetzung, Abbruch nach Schreibfehlern, asynchrone Execution Guards, Cancel und Fehlerzustände.
+- `ProjectLifecycleTests` prüfen zusätzlich die exakte Wiederherstellung temporär veränderter Pfad-Properties.
 - Der vollständige Build und alle CTests müssen erfolgreich sein.
 - Debug-Shell-Screenshots prüfen normale Projects-Ansicht und Save-As-Darstellung visuell.
 
