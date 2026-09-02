@@ -181,11 +181,11 @@ Other replacement or shutdown paths may show the corresponding save, discard, an
 
 NextStudio writes recovery snapshots to Tracktion Engine's temporary directory. Autosave is skipped while recording and while specific model operations hold a save lock.
 
-A normal successful save removes obsolete recovery snapshots. A clean application shutdown removes the temporary directory.
+A normal successful save removes obsolete recovery snapshots. A clean application shutdown removes the temporary directory unless it contains a restored project that has not yet been saved or explicitly discarded.
 
 If NextStudio terminates unexpectedly and a recovery snapshot remains, the next launch opens the Projects sidebar and asks whether to restore the crashed project. Choose:
 
-- **Restore Project** to keep the recovery edit;
+- **Restore Project** to keep the recovery edit. It remains unsaved until written to a persistent project file and is offered again after shutdown if necessary;
 - **Discard Recovery** to remove recovery data and start a new project.
 
 This decision is embedded in the main window and does not open a modal dialog.

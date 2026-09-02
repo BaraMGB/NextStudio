@@ -51,7 +51,7 @@ Resolve/create engine temp directory
 → if no valid recovery exists: setupEdit(empty file argument)
 ```
 
-The recovery choice uses the same embedded Projects workflow surface and interaction lock as unsaved-project decisions. It does not create an `AlertWindow` or enter a modal loop.
+The recovery choice uses the same embedded Projects workflow surface and interaction lock as unsaved-project decisions. It does not create an `AlertWindow` or enter a modal loop. A restored edit is marked dirty because its `.nextTemp` source is not a persistent project. The loaded snapshot is retained across shutdown until the user successfully saves, explicitly discards, or replaces it.
 
 An empty `juce::File` argument means “create a new project.” It is converted into a new `.nextTemp` target before the Tracktion edit is created.
 
@@ -229,9 +229,9 @@ On clean `MainComponent` destruction:
 
 - edit-bound UI and edit objects are destroyed in dependency order;
 - application settings are saved;
-- the engine temporary directory is removed.
+- the engine temporary directory is removed unless it still contains the active, unpersisted crash recovery.
 
-If the process crashes, normal shutdown cleanup does not run, leaving a `.nextTemp` file that `openValidStartEdit()` can discover on the next launch.
+A restored crash snapshot survives shutdown until it is saved, explicitly discarded, or successfully replaced. If the process crashes, normal shutdown cleanup does not run, likewise leaving a `.nextTemp` file that `openValidStartEdit()` can discover on the next launch.
 
 ## Tests
 
@@ -258,7 +258,7 @@ Contributors changing project handling should preserve these invariants:
 7. Background autosave cannot clear dirty state for a newer generation.
 8. A normal successful save removes obsolete recovery files.
 9. View/setup bookkeeping does not pollute initial undo history.
-10. Clean shutdown removes temporary recovery data; crashes leave recoverable data.
+10. Clean shutdown removes obsolete temporary recovery data but preserves an active, unpersisted restored snapshot.
 11. A discovered crash snapshot is offered in the Projects sidebar before setup UI or normal shutdown can remove it.
 12. Recovery, Project Load, and Save As do not create a top-level dialog or enter a modal loop.
 13. Save As blocks the rest of the main UI while preserving splitter resizing and outside-click cancellation.

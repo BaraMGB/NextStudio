@@ -216,6 +216,7 @@ private:
     bool m_hasUnsavedTemp{true};
     bool m_setupWizardRequired{false};
     bool m_recoveryPromptActive{false};
+    bool m_preserveRecoveryOnShutdown{false};
 
     SplitterCollapseController m_sidebarSplitterCollapseController;
     int m_sidebarWidthAtMousedown{};

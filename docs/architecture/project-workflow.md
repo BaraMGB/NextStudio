@@ -45,7 +45,7 @@ This includes:
 
 If the edit is dirty, the sidebar presents Save and Continue, Discard and Continue, and Back. Save without a persistent path enters Save As while retaining the typed pending operation. After a successful direct save or Save As, the pending operation continues automatically.
 
-At startup, a valid crash snapshot is loaded and `confirmRecovery` presents Restore Project and Discard Recovery in the same Projects sidebar. This state locks all other main interaction and cannot be dismissed with Escape or an outside click. Resolution is posted asynchronously because discarding reconstructs the edit-bound sidebar. A required Setup Wizard is shown only after this choice.
+At startup, a valid crash snapshot is loaded and `confirmRecovery` presents Restore Project and Discard Recovery in the same Projects sidebar. This state locks all other main interaction and cannot be dismissed with Escape or an outside click. Resolution is posted asynchronously because discarding reconstructs the edit-bound sidebar. Restoring marks the edit dirty and retains its snapshot across shutdown until the user saves, explicitly discards, or replaces it. A required Setup Wizard is shown only after this choice.
 
 The browser invokes a typed operation callback rather than sending an untyped load request through `ChangeBroadcaster`. Actual replacement remains asynchronous so the browser callback may return before its edit-bound component hierarchy is destroyed. `ExecutionGuard` captures edit identity and `lastSignificantChange`; either changing before the deferred callback rejects replacement.
 

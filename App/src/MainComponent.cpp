@@ -172,8 +172,10 @@ MainComponent::~MainComponent()
     m_edit = nullptr;
 
     saveSettings();
-    if (!m_debugMode)
+    if (!m_debugMode && !m_preserveRecoveryOnShutdown)
         m_engine.getTemporaryFileManager().getTempDirectory().deleteRecursively();
+    else if (m_preserveRecoveryOnShutdown)
+        NS_LOG_INFO(autosave, "preserving restored crash snapshot for the next launch");
     m_computerMidiKeyboard.detachFrom(*this);
     setLookAndFeel(nullptr);
 }
@@ -670,6 +672,9 @@ bool MainComponent::setupEdit(juce::File editFile, juce::String *errorMessage)
     m_tempDir.createDirectory();
 
     m_edit = std::move(replacementEdit);
+    // Keep a loaded crash snapshot until the user either saves it, explicitly
+    // discards it, or successfully replaces it with another project.
+    m_preserveRecoveryOnShutdown = isRecoveryEdit;
 
     for (auto *track : te::getAudioTracks(*m_edit))
         if (ClipEditing::hasOverlaps(*track))
@@ -768,6 +773,7 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::Fi
 
     if (m_editComponent)
         m_editComponent->projectSaved();
+    m_preserveRecoveryOnShutdown = false;
 
     const auto projectFile = m_edit->editFileRetriever ? m_edit->editFileRetriever() : juce::File{};
     if (auto *window = dynamic_cast<juce::DocumentWindow *>(getParentComponent()))
@@ -789,7 +795,7 @@ void MainComponent::requestProjectOperation(ProjectWorkflow::Operation operation
     m_sideBarBrowser->beginProjectOperation(std::move(operation));
 }
 
-void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution)
+void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution resolution)
 {
     if (!operation.isValid() || !m_interactionState.isProjectWorkflowActive() || m_edit == nullptr)
         return;
@@ -798,7 +804,7 @@ void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &op
         m_edit.get(), m_edit->state.getProperty(te::IDs::lastSignificantChange));
     juce::Component::SafePointer<MainComponent> safeThis(this);
     juce::MessageManager::callAsync(
-        [safeThis, operation, executionGuard]
+        [safeThis, operation, resolution, executionGuard]
         {
             if (safeThis == nullptr || !safeThis->m_interactionState.isProjectWorkflowActive())
                 return;
@@ -813,6 +819,8 @@ void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &op
 
             if (operation.type == ProjectWorkflow::OperationType::quit)
             {
+                if (resolution == ProjectWorkflow::UnsavedResolution::discarded)
+                    safeThis->m_preserveRecoveryOnShutdown = false;
                 if (auto *app = juce::JUCEApplication::getInstance())
                     app->quit();
                 return;
@@ -838,6 +846,11 @@ void MainComponent::resolveRecovery(bool restore)
 
             if (restore)
             {
+                // A recovered snapshot has no persistent project file. Treat it
+                // as dirty so normal quit/new/load flows require an explicit save
+                // or discard decision instead of silently deleting the snapshot.
+                if (safeThis->m_edit != nullptr)
+                    safeThis->m_edit->markAsChanged();
                 safeThis->m_recoveryPromptActive = false;
                 if (safeThis->m_sideBarBrowser != nullptr)
                     safeThis->m_sideBarBrowser->completeProjectOperation(true);
