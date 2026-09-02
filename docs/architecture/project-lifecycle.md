@@ -43,11 +43,15 @@ They are stored in Tracktion Engine's temporary directory and are intentionally 
 ```text
 Resolve/create engine temp directory
 → find most recent recovery edit
-→ if recovery exists, ask whether to restore
-   ├── Yes: setupEdit(recovery file)
-   └── No: delete recovery temp directory and recreate it
-→ if no restore: setupEdit(empty file argument)
+→ if recovery is valid, setupEdit(recovery file)
+→ show Restore Project / Discard Recovery in the Projects sidebar
+   ├── Restore: keep the loaded recovery edit
+   └── Discard: setupEdit(empty file argument), removing old recovery data
+→ after the choice, show the Setup Wizard if required
+→ if no valid recovery exists: setupEdit(empty file argument)
 ```
+
+The recovery choice uses the same embedded Projects workflow surface and interaction lock as unsaved-project decisions. It does not create an `AlertWindow` or enter a modal loop.
 
 An empty `juce::File` argument means “create a new project.” It is converted into a new `.nextTemp` target before the Tracktion edit is created.
 
@@ -239,7 +243,7 @@ If the process crashes, normal shutdown cleanup does not run, leaving a `.nextTe
 - project-browser filtering, including case-insensitive extensions;
 - load inspection for missing, unsupported, empty, corrupt, wrong-root, XML, binary, and recovery files.
 
-`ProjectWorkflowTests` cover failed-save continuation cleanup and deferred-execution guards. Full GUI orchestration, Tracktion edit construction, and the asynchronous autosave worker are not currently integration-tested.
+`ProjectWorkflowTests` cover failed-save continuation cleanup, recovery-confirmation locking, and deferred-execution guards. Full GUI orchestration, Tracktion edit construction, and the asynchronous autosave worker are not currently integration-tested.
 
 ## Invariants
 
@@ -255,8 +259,8 @@ Contributors changing project handling should preserve these invariants:
 8. A normal successful save removes obsolete recovery files.
 9. View/setup bookkeeping does not pollute initial undo history.
 10. Clean shutdown removes temporary recovery data; crashes leave recoverable data.
-11. A discovered crash snapshot is offered before setup UI or normal shutdown can remove it.
-12. Project Load and Save As do not create a top-level file chooser or enter a modal loop.
+11. A discovered crash snapshot is offered in the Projects sidebar before setup UI or normal shutdown can remove it.
+12. Recovery, Project Load, and Save As do not create a top-level dialog or enter a modal loop.
 13. Save As blocks the rest of the main UI while preserving splitter resizing and outside-click cancellation.
 
 ## Related documents

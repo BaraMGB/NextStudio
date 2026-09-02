@@ -17,7 +17,7 @@ The current suites are:
 | `DebugSettingsIsolation` | explicit sandbox settings persistence | `App/tests/DebugSettingsIsolationTests.cpp` |
 | `DebugAppController` | fake-host validation, readiness, artifacts, errors, and quit | `App/tests/DebugAppControllerTests.cpp` |
 | `ProjectLifecycle` | extensions, validation, direct-save targets, load inspection, and exact save rollback snapshots | `App/tests/ProjectLifecycleTests.cpp` |
-| `ProjectWorkflow` | pending operations, save-error cleanup, deferred-execution guards, cancellation, errors, and interaction-lock states | `App/tests/ProjectWorkflowTests.cpp` |
+| `ProjectWorkflow` | pending operations, save-error cleanup, recovery confirmation, deferred-execution guards, cancellation, errors, and interaction-lock states | `App/tests/ProjectWorkflowTests.cpp` |
 | `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
 | `PianoRollNoteLength` | inserted-note length modes, note values, fallbacks, and draw minimum | `App/tests/PianoRollNoteLengthTests.cpp` |

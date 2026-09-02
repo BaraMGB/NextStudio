@@ -55,6 +55,7 @@ public:
     void refreshBrowsersFromAppState();
     void refreshThemeFromAppState();
     void beginProjectOperation(ProjectWorkflow::Operation operation);
+    void beginProjectRecovery(const juce::String &errorMessage = {});
     void beginProjectSaveAs(bool preservePendingOperation = false);
     void dismissProjectSaveAs();
     void completeProjectOperation(bool succeeded, const juce::String &errorMessage = {}, const juce::File &file = {});

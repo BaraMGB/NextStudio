@@ -136,6 +136,7 @@ public:
     GUIHelpers::ProjectSaveResult saveCurrentProjectTo(const juce::File &targetFile);
     void requestProjectOperation(ProjectWorkflow::Operation operation);
     void executeProjectOperation(const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution resolution);
+    void resolveRecovery(bool restore);
     void requestApplicationQuit();
     void setProjectBrowserWorkingMode(bool enabled);
     void setProjectWorkflowActive(bool active, bool resumePlayback = true);
@@ -213,6 +214,8 @@ private:
     tracktion::TimePosition m_projectWorkflowTransportPosition{};
     bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp{true};
+    bool m_setupWizardRequired{false};
+    bool m_recoveryPromptActive{false};
 
     SplitterCollapseController m_sidebarSplitterCollapseController;
     int m_sidebarWidthAtMousedown{};

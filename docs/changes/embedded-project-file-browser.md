@@ -119,7 +119,7 @@ Ein vor dem Lock als clean erkanntes Edit wird nach dem Lock erneut geprüft. `M
 
 Der zuletzt angezeigte Projektbrowserpfad wird in `m_projectLoadDir` weiterverwendet, damit bestehende Einstellungen kompatibel bleiben. Der frühere separate Save-Ordnerzustand entfällt; der sichtbare Browserpfad ist die einzige Quelle für Load und Save As. Ein Wechsel des Content Root setzt ihn auf das neue Projects-Verzeichnis.
 
-Eine vorhandene Crash-Recovery-Datei wird vor einem gegebenenfalls erforderlichen Setup-Wizard angeboten. Sie wird nicht hinter dem Wizard geladen oder bis zu dessen Abschluss zurückgestellt, damit ein Beenden während des Setups keine noch nicht angebotene Recovery-Datei löscht.
+Eine vorhandene Crash-Recovery-Datei wird vor einem gegebenenfalls erforderlichen Setup-Wizard direkt in der Projects-Sidebar angeboten. **Restore Project** behält das geladene Recovery-Edit, **Discard Recovery** ersetzt es durch ein leeres Edit. Der Ablauf verwendet kein modales `AlertWindow`. Die Entscheidung wird nicht bis zum Abschluss des Wizards zurückgestellt, damit ein Beenden während des Setups keine noch nicht angebotene Recovery-Datei löscht.
 
 ## Relevante Dateien
 

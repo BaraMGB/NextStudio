@@ -25,7 +25,8 @@ enum class State
     saving,
     committing,
     operationError,
-    confirmUnsavedChanges
+    confirmUnsavedChanges,
+    confirmRecovery
 };
 
 enum class OperationType
@@ -84,6 +85,7 @@ public:
     bool shouldContinueAfterSave() const noexcept { return continueAfterSave; }
 
     void beginSaveAs(bool preservePendingOperation = false);
+    void beginRecovery();
     void transitionTo(State newState) noexcept { state = newState; }
 
     /** Stages an operation. Returns true when it can execute immediately. */

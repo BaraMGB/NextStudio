@@ -30,6 +30,7 @@ public:
     struct HostCallbacks
     {
         OperationHandler executeOperation;
+        std::function<void(bool restore)> resolveRecovery;
         std::function<GUIHelpers::ProjectSaveResult(bool saveAs, bool preservePendingOperation)> saveCurrentProject;
         std::function<GUIHelpers::ProjectSaveResult(const juce::File &)> saveProjectTo;
         std::function<void(bool)> setInteractionLocked;
@@ -47,6 +48,7 @@ public:
     void projectWasSaved(const juce::File &file);
     void setHostCallbacks(HostCallbacks callbacks) { m_hostCallbacks = std::move(callbacks); }
     void beginProjectOperation(ProjectWorkflow::Operation operation);
+    void beginRecovery(const juce::String &errorMessage = {});
     void beginSaveProjectAs(bool preservePendingOperation = false);
     void dismissSaveProjectAs();
     void showOperationError(const juce::String &message, const juce::File &file = {});
@@ -67,6 +69,7 @@ private:
     void performSave(const juce::File &target, bool overwriteConfirmed);
     void saveBeforePendingOperation();
     void executePendingOperation(ProjectWorkflow::UnsavedResolution resolution);
+    void resolveRecovery(bool restore);
     juce::File getSaveTarget() const;
     juce::File getInitialDirectory() const;
     bool isSaveMode() const noexcept { return m_workflow.isSavePath(); }

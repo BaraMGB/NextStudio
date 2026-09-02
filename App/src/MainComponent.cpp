@@ -71,10 +71,10 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     const auto configuredWorkDir = juce::File(m_applicationState.m_workDir.get());
     const auto defaultWorkDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio");
     const bool configuredWorkDirExists = configuredWorkDir.exists() && configuredWorkDir.isDirectory();
-    const bool needsSetupWizard = !m_applicationState.m_setupComplete || !configuredWorkDirExists;
+    m_setupWizardRequired = !m_applicationState.m_setupComplete || !configuredWorkDirExists;
 
     // Keep the current UX goal: preselect the fallback path, but don't create it until setup is resolved.
-    if (needsSetupWizard && !configuredWorkDirExists)
+    if (m_setupWizardRequired && !configuredWorkDirExists)
         m_applicationState.setRootFolder(defaultWorkDir);
 
     setWantsKeyboardFocus(true);
@@ -87,7 +87,7 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     NextStudio::WineRendererFallback::configureFontFallback(m_nextLookAndFeel);
     updateTheme();
 
-    if (!needsSetupWizard)
+    if (!m_setupWizardRequired)
         ensureUserDirectoriesAndSamples();
 
     addAndMakeVisible(m_sidebarSplitter);
@@ -118,8 +118,8 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     // Always start with the Projects sidebar expanded at its default width.
     m_applicationState.m_sidebarWidth = SidebarLayout::defaultExpandedWidth;
     m_applicationState.m_sidebarCollapsed = false;
-    // Recovery must be offered before setup: closing an unfinished wizard performs
-    // normal temp cleanup and must never delete a snapshot that was not offered.
+    // Recovery must be resolved in the Projects sidebar before setup: closing an
+    // unfinished wizard must never delete a snapshot that was not offered.
     openValidStartEdit();
 
     m_commandManager.registerAllCommandsForTarget(this);
@@ -130,7 +130,7 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     m_selectionManager.addChangeListener(this);
     m_applicationState.m_applicationStateValueTree.addListener(this);
 
-    if (needsSetupWizard)
+    if (m_setupWizardRequired && !m_recoveryPromptActive)
     {
         NS_LOG_INFO(setup, "embedded setup wizard shown");
         showSetupWizard();
@@ -503,12 +503,12 @@ void MainComponent::openValidStartEdit()
     if (recoveryFile.existsAsFile())
     {
         NS_LOG_WARN(autosave, "recovery file found: " + recoveryFile.getFullPathName());
-        const auto restore = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                                                                "Restore crashed project?",
-                                                                "It seems NextStudio crashed last time. Do you want to restore the last session?",
-                                                                "Yes", "No");
-        if (restore && setupEdit(recoveryFile))
+        if (setupEdit(recoveryFile) && m_sideBarBrowser != nullptr)
+        {
+            m_recoveryPromptActive = true;
+            m_sideBarBrowser->beginProjectRecovery();
             return;
+        }
 
         m_tempDir.deleteRecursively();
         m_tempDir.createDirectory();
@@ -822,6 +822,43 @@ void MainComponent::executeProjectOperation(const ProjectWorkflow::Operation &op
             const auto file = operation.type == ProjectWorkflow::OperationType::load ? operation.file : juce::File{};
             if (!safeThis->setupEdit(file, &errorMessage) && safeThis->m_sideBarBrowser != nullptr)
                 safeThis->m_sideBarBrowser->completeProjectOperation(false, errorMessage, operation.file);
+        });
+}
+
+void MainComponent::resolveRecovery(bool restore)
+{
+    if (!m_recoveryPromptActive)
+        return;
+
+    juce::MessageManager::callAsync(
+        [safeThis = juce::Component::SafePointer<MainComponent>(this), restore]
+        {
+            if (safeThis == nullptr || !safeThis->m_recoveryPromptActive)
+                return;
+
+            if (restore)
+            {
+                safeThis->m_recoveryPromptActive = false;
+                if (safeThis->m_sideBarBrowser != nullptr)
+                    safeThis->m_sideBarBrowser->completeProjectOperation(true);
+            }
+            else
+            {
+                juce::String errorMessage;
+                if (!safeThis->setupEdit(juce::File(), &errorMessage))
+                {
+                    if (safeThis->m_sideBarBrowser != nullptr)
+                        safeThis->m_sideBarBrowser->beginProjectRecovery(errorMessage);
+                    return;
+                }
+                safeThis->m_recoveryPromptActive = false;
+            }
+
+            if (safeThis->m_setupWizardRequired)
+            {
+                NS_LOG_INFO(setup, "embedded setup wizard shown after recovery choice");
+                safeThis->showSetupWizard();
+            }
         });
 }
 

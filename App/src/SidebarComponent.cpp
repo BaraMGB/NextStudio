@@ -312,6 +312,11 @@ void SidebarComponent::updateParentsListener()
                     if (safeMain != nullptr)
                         safeMain->executeProjectOperation(operation, resolution);
                 },
+                [safeMain](bool restore)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->resolveRecovery(restore);
+                },
                 [safeMain](bool saveAs, bool preservePendingOperation)
                 {
                     return safeMain != nullptr
@@ -376,6 +381,13 @@ void SidebarComponent::beginProjectOperation(ProjectWorkflow::Operation operatio
 {
     prepareProjectsWorkflow();
     m_projectsBrowser.beginProjectOperation(std::move(operation));
+    resized();
+}
+
+void SidebarComponent::beginProjectRecovery(const juce::String &errorMessage)
+{
+    prepareProjectsWorkflow();
+    m_projectsBrowser.beginRecovery(errorMessage);
     resized();
 }
 

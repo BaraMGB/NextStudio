@@ -22,6 +22,7 @@ Primary files:
 - `committing`
 - `operationError`
 - `confirmUnsavedChanges`
+- `confirmRecovery`
 
 The controller also stores one typed `ProjectWorkflow::Operation`:
 
@@ -44,11 +45,13 @@ This includes:
 
 If the edit is dirty, the sidebar presents Save and Continue, Discard and Continue, and Back. Save without a persistent path enters Save As while retaining the typed pending operation. After a successful direct save or Save As, the pending operation continues automatically.
 
+At startup, a valid crash snapshot is loaded and `confirmRecovery` presents Restore Project and Discard Recovery in the same Projects sidebar. This state locks all other main interaction and cannot be dismissed with Escape or an outside click. Resolution is posted asynchronously because discarding reconstructs the edit-bound sidebar. A required Setup Wizard is shown only after this choice.
+
 The browser invokes a typed operation callback rather than sending an untyped load request through `ChangeBroadcaster`. Actual replacement remains asynchronous so the browser callback may return before its edit-bound component hierarchy is destroyed. `ExecutionGuard` captures edit identity and `lastSignificantChange`; either changing before the deferred callback rejects replacement.
 
 ## Interaction and engine boundary
 
-`ProjectWorkflow::Controller::locksMainInteraction()` is true during unsaved-change confirmation, Save As, errors belonging to either modal path, `saving`, and `committing`.
+`ProjectWorkflow::Controller::locksMainInteraction()` is true during unsaved-change or recovery confirmation, Save As, errors belonging to these embedded workflow paths, `saving`, and `committing`.
 
 `MainComponent::setProjectWorkflowActive()` updates the project source in `MainInteractionState`; `MainComponent::updateMainInteractionLock()` is the shared project/setup enforcement boundary. On entry it:
 
@@ -95,6 +98,7 @@ New targets continue to receive one canonical `.tracktionedit` extension before 
 - cancellation and failed writes clearing pending intent;
 - standalone retry after a failed Save As;
 - stale edit identity or significant-change rejection;
+- recovery-confirmation interaction locking;
 - error return state and interaction-lock behavior.
 
 `ProjectLifecycleTests` additionally verifies that direct save target normalization preserves an existing upper-case extension path.

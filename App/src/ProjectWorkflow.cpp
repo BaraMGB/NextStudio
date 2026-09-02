@@ -34,6 +34,12 @@ void Controller::beginSaveAs(bool preservePendingOperation)
     state = State::saveProjectAs;
 }
 
+void Controller::beginRecovery()
+{
+    clearPending();
+    state = State::confirmRecovery;
+}
+
 bool Controller::stageOperation(Operation operation, bool hasUnsavedChanges)
 {
     pendingOperation = std::move(operation);
@@ -137,11 +143,12 @@ bool Controller::isSavePath() const noexcept
 
 bool Controller::locksMainInteraction() const noexcept
 {
-    if (isSavePath() || state == State::confirmUnsavedChanges || state == State::committing)
+    if (isSavePath() || state == State::confirmUnsavedChanges || state == State::confirmRecovery || state == State::committing)
         return true;
 
     return state == State::operationError
-           && stateBeforeError == State::confirmUnsavedChanges;
+           && (stateBeforeError == State::confirmUnsavedChanges
+               || stateBeforeError == State::confirmRecovery);
 }
 
 void Controller::clearPending()

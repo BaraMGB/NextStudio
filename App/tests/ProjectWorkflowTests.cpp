@@ -160,6 +160,24 @@ void testDirectSaveFailureAbortsContinuation()
     REQUIRE(!workflow.locksMainInteraction());
 }
 
+void testRecoveryConfirmationLocksInteraction()
+{
+    ProjectWorkflow::Controller workflow;
+    workflow.beginRecovery();
+
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::confirmRecovery);
+    REQUIRE(workflow.locksMainInteraction());
+    REQUIRE(!workflow.hasPendingOperation());
+
+    workflow.markCommitting();
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::committing);
+    REQUIRE(workflow.locksMainInteraction());
+
+    workflow.completeOperation();
+    REQUIRE(workflow.getState() == ProjectWorkflow::State::normal);
+    REQUIRE(!workflow.locksMainInteraction());
+}
+
 void testExecutionGuardRejectsStaleEditOrChange()
 {
     int firstEdit = 0;
@@ -206,6 +224,7 @@ int main()
     testTransientErrorsCannotReturnToBusyStates();
     testSaveAsFailureAbortsContinuationBeforeRetry();
     testDirectSaveFailureAbortsContinuation();
+    testRecoveryConfirmationLocksInteraction();
     testExecutionGuardRejectsStaleEditOrChange();
     testDiscardClearsSaveContinuation();
     testCompletingOperationClearsPendingIntent();

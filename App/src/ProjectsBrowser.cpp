@@ -109,6 +109,8 @@ ProjectsBrowserComponent::ProjectsBrowserComponent(EditViewState &evs, Applicati
     {
         if (getMode() == Mode::confirmUnsavedChanges)
             executePendingOperation(ProjectWorkflow::UnsavedResolution::discarded);
+        else if (getMode() == Mode::confirmRecovery)
+            resolveRecovery(false);
     };
     m_projectNameEditor.onTextChange = [this] { updateTargetPreview(); };
     m_projectNameEditor.onReturnKey = [this]
@@ -153,15 +155,24 @@ void ProjectsBrowserComponent::resized()
     }
 
     m_modeTitle.setBounds(area.removeFromTop(30));
-    if (mode == Mode::confirmUnsavedChanges)
+    if (mode == Mode::confirmUnsavedChanges || mode == Mode::confirmRecovery)
     {
         area.removeFromTop(8);
         m_statusLabel.setBounds(area.removeFromTop(110));
         auto buttons = area.removeFromBottom(34);
-        const auto third = buttons.getWidth() / 3;
-        m_primaryButton.setBounds(buttons.removeFromLeft(third).reduced(2));
-        m_tertiaryButton.setBounds(buttons.removeFromLeft(third).reduced(2));
-        m_secondaryButton.setBounds(buttons.reduced(2));
+        if (mode == Mode::confirmRecovery)
+        {
+            const auto half = buttons.getWidth() / 2;
+            m_primaryButton.setBounds(buttons.removeFromLeft(half).reduced(2));
+            m_tertiaryButton.setBounds(buttons.reduced(2));
+        }
+        else
+        {
+            const auto third = buttons.getWidth() / 3;
+            m_primaryButton.setBounds(buttons.removeFromLeft(third).reduced(2));
+            m_tertiaryButton.setBounds(buttons.removeFromLeft(third).reduced(2));
+            m_secondaryButton.setBounds(buttons.reduced(2));
+        }
         return;
     }
 
@@ -191,7 +202,8 @@ bool ProjectsBrowserComponent::keyPressed(const juce::KeyPress &key)
 
     if (key == juce::KeyPress::escapeKey)
     {
-        cancelCurrentMode();
+        if (getMode() != Mode::confirmRecovery)
+            cancelCurrentMode();
         return true;
     }
     if (key == juce::KeyPress::returnKey && m_primaryButton.isEnabled())
@@ -226,6 +238,21 @@ void ProjectsBrowserComponent::beginProjectOperation(ProjectWorkflow::Operation 
     }
 
     executePendingOperation(ProjectWorkflow::UnsavedResolution::clean);
+}
+
+void ProjectsBrowserComponent::beginRecovery(const juce::String &errorMessage)
+{
+    m_operationInProgress = false;
+    m_workflow.beginRecovery();
+    setMode(Mode::confirmRecovery);
+
+    if (errorMessage.isNotEmpty())
+    {
+        const auto text = "NextStudio could not discard the recovery project.\n" + errorMessage;
+        m_statusLabel.setText(text, juce::dontSendNotification);
+        m_statusLabel.setTooltip(text);
+        m_statusLabel.setColour(juce::Label::textColourId, juce::Colours::orange);
+    }
 }
 
 void ProjectsBrowserComponent::beginSaveProjectAs(bool preservePendingOperation)
@@ -278,6 +305,7 @@ void ProjectsBrowserComponent::configureMode()
     const auto mode = getMode();
     const bool normal = mode == Mode::normal;
     const bool unsaved = mode == Mode::confirmUnsavedChanges;
+    const bool recovery = mode == Mode::confirmRecovery;
     const bool busy = mode == Mode::saving || mode == Mode::committing;
     const bool showDirectory = normal || mode == Mode::saveProjectAs || mode == Mode::confirmOverwrite || mode == Mode::operationError;
     const bool showSaveFields = isSaveMode() && mode != Mode::saving;
@@ -292,8 +320,8 @@ void ProjectsBrowserComponent::configureMode()
     m_targetPathLabel.setVisible(showSaveFields);
     m_statusLabel.setVisible(!normal);
     m_primaryButton.setVisible(!normal);
-    m_secondaryButton.setVisible(!normal);
-    m_tertiaryButton.setVisible(unsaved);
+    m_secondaryButton.setVisible(!normal && !recovery);
+    m_tertiaryButton.setVisible(unsaved || recovery);
 
     if (mode != Mode::operationError)
         m_statusLabel.setColour(juce::Label::textColourId, m_avs.getTextColour());
@@ -347,6 +375,12 @@ void ProjectsBrowserComponent::configureMode()
         m_statusLabel.setText("The current project has unsaved changes. Save them before " + action, juce::dontSendNotification);
         break;
     }
+    case Mode::confirmRecovery:
+        m_modeTitle.setText("Recover Project", juce::dontSendNotification);
+        m_primaryButton.setButtonText("Restore Project");
+        m_tertiaryButton.setButtonText("Discard Recovery");
+        m_statusLabel.setText("NextStudio did not shut down correctly. Restore the last session?", juce::dontSendNotification);
+        break;
     }
 
     m_primaryButton.setEnabled(!busy);
@@ -391,7 +425,7 @@ void ProjectsBrowserComponent::updateActionValidation()
     const auto mode = getMode();
     if (mode == Mode::saveProjectAs)
         m_primaryButton.setEnabled(ProjectLifecycle::isValidProjectTarget(getSaveTarget()) && !m_operationInProgress);
-    else if (mode == Mode::confirmOverwrite || mode == Mode::confirmUnsavedChanges || mode == Mode::operationError)
+    else if (mode == Mode::confirmOverwrite || mode == Mode::confirmUnsavedChanges || mode == Mode::confirmRecovery || mode == Mode::operationError)
         m_primaryButton.setEnabled(!m_operationInProgress);
     else if (mode == Mode::saving || mode == Mode::committing)
     {
@@ -442,6 +476,9 @@ void ProjectsBrowserComponent::performPrimaryAction()
         break;
     case Mode::confirmUnsavedChanges:
         saveBeforePendingOperation();
+        break;
+    case Mode::confirmRecovery:
+        resolveRecovery(true);
         break;
     case Mode::saving:
     case Mode::committing:
@@ -513,6 +550,26 @@ void ProjectsBrowserComponent::saveBeforePendingOperation()
         showOperationError("NextStudio could not save the current project.", currentFile);
     }
     // cancelled means the embedded Save As workflow owns the continuation.
+}
+
+void ProjectsBrowserComponent::resolveRecovery(bool restore)
+{
+    if (getMode() != Mode::confirmRecovery || m_operationInProgress)
+        return;
+
+    m_operationInProgress = true;
+    m_workflow.markCommitting();
+    setMode(Mode::committing);
+
+    if (m_hostCallbacks.resolveRecovery != nullptr)
+    {
+        m_hostCallbacks.resolveRecovery(restore);
+        return;
+    }
+
+    m_operationInProgress = false;
+    m_workflow.beginRecovery();
+    showOperationError("The recovery handler is unavailable.");
 }
 
 void ProjectsBrowserComponent::executePendingOperation(ProjectWorkflow::UnsavedResolution resolution)

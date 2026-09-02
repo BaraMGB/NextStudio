@@ -46,7 +46,7 @@ Folder selection uses `FileChooser::launchAsync()`. Invalid or unwritable roots 
 
 ## Recovery ordering
 
-Crash recovery is resolved before the embedded Setup Wizard is shown. This ordering is intentional: a recovery snapshot must always be offered on the first launch after a crash, even when setup is incomplete or the configured content root disappeared. Deferring the choice until wizard completion is unsafe because closing the application during setup performs normal shutdown cleanup and could otherwise remove a snapshot that was never offered.
+Crash recovery is resolved in the Projects sidebar before the embedded Setup Wizard is shown. The choice uses Restore Project and Discard Recovery buttons rather than a modal `AlertWindow`. This ordering is intentional: a recovery snapshot must always be offered on the first launch after a crash, even when setup is incomplete or the configured content root disappeared. Deferring the choice until wizard completion is unsafe because closing the application during setup performs normal shutdown cleanup and could otherwise remove a snapshot that was never offered.
 
 ## Tests
 

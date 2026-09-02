@@ -10,7 +10,7 @@ NextStudio is under active development. Features, project compatibility, and UI 
 
 On first launch, or when the configured content root no longer exists, NextStudio embeds the Setup Wizard in the arrangement-editor area of the main window. It does not open a separate modal window. The header, sidebar, lower range, transport, plug-in windows, and keyboard commands remain dimmed and inactive until setup is complete. The wizard scrolls vertically when the editor area is too small to show every section at once.
 
-If a crash-recovery snapshot exists, NextStudio asks whether to restore it before showing the Setup Wizard. This guarantees that closing setup cannot remove recovery data that was never offered.
+If a crash-recovery snapshot exists, NextStudio asks whether to restore it in the Projects sidebar before showing the Setup Wizard. This guarantees that closing setup cannot remove recovery data that was never offered.
 
 The wizard configures:
 
@@ -183,10 +183,12 @@ NextStudio writes recovery snapshots to Tracktion Engine's temporary directory. 
 
 A normal successful save removes obsolete recovery snapshots. A clean application shutdown removes the temporary directory.
 
-If NextStudio terminates unexpectedly and a recovery snapshot remains, the next launch asks whether to restore the crashed project. Choose:
+If NextStudio terminates unexpectedly and a recovery snapshot remains, the next launch opens the Projects sidebar and asks whether to restore the crashed project. Choose:
 
-- **Yes** to open the recovery edit;
-- **No** to discard recovery data and start a new project.
+- **Restore Project** to keep the recovery edit;
+- **Discard Recovery** to remove recovery data and start a new project.
+
+This decision is embedded in the main window and does not open a modal dialog.
 
 Recovery is a safety net, not a replacement for persistent saves and external backups.
 
