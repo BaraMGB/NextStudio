@@ -128,6 +128,7 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
     m_commandManager.registerAllCommandsForTarget(&m_lowerRange->getPianoRollEditor());
 
     m_selectionManager.addChangeListener(this);
+    m_engine.getDeviceManager().addChangeListener(this);
     m_applicationState.m_applicationStateValueTree.addListener(this);
 
     if (m_setupWizardRequired && !m_recoveryPromptActive)
@@ -152,6 +153,7 @@ MainComponent::~MainComponent()
     }
 
     m_applicationState.m_applicationStateValueTree.removeListener(this);
+    m_engine.getDeviceManager().removeChangeListener(this);
     m_selectionManager.removeChangeListener(this);
     if (m_edit)
         m_edit->state.removeListener(this);
@@ -469,6 +471,14 @@ void MainComponent::valueTreePropertyChanged(juce::ValueTree &vt, const juce::Id
     if (vt.hasType(IDs::ComputerMidiKeyboard))
         m_computerMidiKeyboard.setLayout(ComputerMidiKeyboardLayout::loadFrom(m_applicationState));
 
+    if (property == IDs::ExclusiveMidiFocusEnabled && m_editViewState != nullptr)
+    {
+        // The setting controls the default hardware input only. The virtual PC
+        // keyboard follows the selected MIDI track in both states.
+        if (EngineHelpers::updateMidiInputFocusToSelection(*m_editViewState))
+            m_editViewState->m_edit.restartPlayback();
+    }
+
     if (property == te::IDs::lastSignificantChange)
         markAndUpdate(m_saveTemp);
 }
@@ -486,14 +496,21 @@ void MainComponent::handleAsyncUpdate()
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
-    if (source == &m_selectionManager && m_editViewState)
-    {
-        if (m_editViewState->m_applicationState.m_exclusiveMidiFocusEnabled)
-        {
-            NS_LOG_DEBUG(selection, "selection changed; updating exclusive MIDI focus");
-            EngineHelpers::setMidiInputFocusToSelection(*m_editViewState);
-        }
-    }
+    if (m_editViewState == nullptr)
+        return;
+
+    const bool selectionChanged = source == &m_selectionManager;
+    const bool midiDevicesChanged = source == &m_engine.getDeviceManager();
+    if (!selectionChanged && !midiDevicesChanged)
+        return;
+
+    NS_LOG_DEBUG(selection, selectionChanged
+                                ? "selection changed; updating MIDI input focus"
+                                : "MIDI devices changed; reconciling MIDI input focus");
+    const bool routingChanged = EngineHelpers::updateMidiInputFocusToSelection(*m_editViewState);
+
+    if (routingChanged)
+        m_editViewState->m_edit.restartPlayback();
 }
 
 void MainComponent::openValidStartEdit()
@@ -702,6 +719,9 @@ bool MainComponent::setupEdit(juce::File editFile, juce::String *errorMessage)
         te::EditFileOperations(*m_edit).writeToFile(editFile, true);
 
     m_editViewState = std::make_unique<EditViewState>(*m_edit, m_selectionManager, m_applicationState);
+    if (EngineHelpers::initialiseMidiInputRouting(*m_editViewState))
+        m_edit->restartPlayback();
+
     m_editComponent = std::make_unique<EditComponent>(*m_edit, *m_editViewState, m_applicationState, m_selectionManager, m_commandManager);
     m_lowerRange = std::make_unique<LowerRangeComponent>(*m_editViewState);
     m_editViewState->setLowerRangeView(LowerRangeView::mixer);

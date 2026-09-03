@@ -362,6 +362,31 @@ if(BUILD_TESTING)
 
     add_test(NAME ClipOverwriteCommand
             COMMAND ClipOverwriteCommandTests)
+
+    juce_add_console_app(MidiInputRoutingTests
+            PRODUCT_NAME "MidiInputRoutingTests")
+    juce_generate_juce_header(MidiInputRoutingTests)
+
+    target_sources(MidiInputRoutingTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/MidiInputRouting.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/MidiInputRoutingTests.cpp)
+
+    target_include_directories(MidiInputRoutingTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(MidiInputRoutingTests PRIVATE
+            tracktion::tracktion_engine
+            tracktion::tracktion_core
+            juce::juce_gui_basics)
+
+    target_compile_definitions(MidiInputRoutingTests PRIVATE
+            TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME MidiInputRouting
+            COMMAND MidiInputRoutingTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

@@ -55,7 +55,9 @@ Configuration of audio hardware: drivers, inputs/outputs, latency (sample rate, 
 
 #### MIDI
 - Default MIDI input device selection.
-- **Exclusive MIDI Focus** toggle — when enabled, only the focused track receives MIDI input.
+- **Exclusive MIDI Focus** toggle — when enabled, the default input follows exactly one selected MIDI track. A selected MIDI clip keeps focus on its track. Changing the default or toggling focus reconciles the routing immediately.
+- The virtual PC-keyboard MIDI input always follows the selected MIDI track, independently of this toggle.
+- Inputs selected manually from a track header remain permanently assigned and are independent of focus. An automatic default route yields to a manual input on the focused track to prevent duplicate delivery through aggregate defaults such as **All MIDI Ins**.
 
 #### Plugins
 Plugin list management. Scan for new plugins, clear the list, or manage individual plugins.
@@ -93,4 +95,5 @@ Visible when the Samples or Home browser is active.
 
 - [Header Bar](header-bar.md)
 - [Song Editor](song-editor.md)
+- [MIDI Input Routing and Exclusive Focus](../architecture/midi-input-routing.md)
 - [Getting Started](../user/getting-started.md)

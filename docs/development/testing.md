@@ -22,6 +22,7 @@ The current suites are:
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
 | `PianoRollNoteLength` | inserted-note length modes, note values, fallbacks, and draw minimum | `App/tests/PianoRollNoteLengthTests.cpp` |
 | `ClipOverwriteCommand` | incoming-wins clip placement, trimming, identity, selection, and undo | `App/tests/ClipOverwriteCommandTests.cpp` |
+| `MidiInputRouting` | automatic default focus, default-route deduplication, always-focused virtual PC keyboard, persistent manual targets, pinning, migration, and atomic routing undo/redo | `App/tests/MidiInputRoutingTests.cpp` |
 
 ## Run all tests
 

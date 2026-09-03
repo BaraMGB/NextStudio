@@ -22,6 +22,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 
 #include "ClipOverwriteCommand.h"
+#include "MidiInputRouting.h"
 #include "BinaryData.h"
 #include "PresetHelpers.h"
 #include "ArpeggiatorPlugin.h"
@@ -1222,141 +1223,78 @@ void EngineHelpers::openMidiEditorForTrack(EditViewState &evs, te::Track *track,
         evs.m_applicationState.m_lowerRangeCollapsed = false;
 }
 
-void EngineHelpers::setMidiInputFocusToSelection(EditViewState &evs)
+namespace
 {
-    auto &dm = evs.m_edit.engine.getDeviceManager();
-    auto defaultMidi = dm.getDefaultMidiInDevice();
-    auto virtualMidi = getVirtualMidiInputDevice(evs.m_edit);
+juce::Array<te::InputDevice *> getAutomaticMidiFocusDevices(te::Edit &edit, bool includeDefaultInput)
+{
+    juce::Array<te::InputDevice *> devices;
+    auto &deviceManager = edit.engine.getDeviceManager();
 
-    if (!defaultMidi && !virtualMidi)
-        return;
+    if (includeDefaultInput)
+        if (auto *defaultMidi = deviceManager.getDefaultMidiInDevice())
+            devices.addIfNotAlreadyThere(defaultMidi);
 
-    juce::Array<te::InputDeviceInstance *> midiInputsToModify;
-    for (auto instance : evs.m_edit.getAllInputDevices())
-    {
-        if ((defaultMidi && &instance->getInputDevice() == defaultMidi) || (virtualMidi && &instance->getInputDevice() == virtualMidi))
-        {
-            midiInputsToModify.add(instance);
-        }
-    }
+    if (auto *virtualMidi = EngineHelpers::getVirtualMidiInputDevice(edit))
+        devices.addIfNotAlreadyThere(virtualMidi);
 
-    // Identify target tracks from selection
-    juce::Array<te::Track *> targetMidiTracks;
-    for (auto *track : evs.m_selectionManager.getItemsOfType<te::Track>())
-    {
-        if (track->isAudioTrack() && track->state.getProperty(IDs::isMidiTrack))
-            targetMidiTracks.add(track);
-    }
-
-    // If no tracks selected, check for clips
-    if (targetMidiTracks.isEmpty())
-    {
-        for (auto *clip : evs.m_selectionManager.getItemsOfType<te::Clip>())
-        {
-            if (auto *track = clip->getTrack())
-                if (track->isAudioTrack() && track->state.getProperty(IDs::isMidiTrack))
-                    targetMidiTracks.addIfNotAlreadyThere(track);
-        }
-    }
-
-    // CRITICAL: If no new targets identified, we keep the OLD ones to avoid dropouts
-    if (targetMidiTracks.isEmpty())
-        return;
-
-    auto buildDesiredTargetsForInstance = [&](te::InputDeviceInstance *instance)
-    {
-        juce::Array<te::EditItemID> desiredTargets;
-
-        for (auto *track : targetMidiTracks)
-        {
-            if (track == nullptr)
-                continue;
-
-            // Prevent double-triggering on "All MIDI Ins": if a specific physical MIDI input
-            // already targets this track, don't add the default input for it.
-            if (defaultMidi && &instance->getInputDevice() == defaultMidi)
-            {
-                bool hasSpecificInput = false;
-
-                for (auto *otherInst : evs.m_edit.getAllInputDevices())
-                {
-                    if (otherInst == instance)
-                        continue;
-
-                    if (virtualMidi && &otherInst->getInputDevice() == virtualMidi)
-                        continue;
-
-                    if (otherInst->getTargets().contains(track->itemID))
-                    {
-                        hasSpecificInput = true;
-                        break;
-                    }
-                }
-
-                if (hasSpecificInput)
-                    continue;
-            }
-
-            desiredTargets.addIfNotAlreadyThere(track->itemID);
-        }
-
-        return desiredTargets;
-    };
-
-    bool contextReallocNeeded = false;
-
-    // Apply only deltas so that simple track selection doesn't force needless graph restarts.
-    for (auto *instance : midiInputsToModify)
-    {
-        auto currentTargets = instance->getTargets();
-        auto desiredTargets = buildDesiredTargetsForInstance(instance);
-
-        juce::Array<te::EditItemID> targetsToRemove;
-        for (auto targetID : currentTargets)
-            if (!desiredTargets.contains(targetID))
-                targetsToRemove.add(targetID);
-
-        juce::Array<te::EditItemID> targetsToAdd;
-        for (auto targetID : desiredTargets)
-            if (!currentTargets.contains(targetID))
-                targetsToAdd.add(targetID);
-
-        if (targetsToRemove.isEmpty() && targetsToAdd.isEmpty())
-            continue;
-
-        // Ensure monitoring is ON for MIDI devices if there is any real rerouting.
-        instance->getInputDevice().setMonitorMode(te::InputDevice::MonitorMode::on);
-
-        for (auto targetID : targetsToRemove)
-            if (instance->removeTarget(targetID, &evs.m_edit.getUndoManager()).wasOk())
-                contextReallocNeeded = true;
-
-        for (auto targetID : targetsToAdd)
-            if (instance->setTarget(targetID, false, &evs.m_edit.getUndoManager(), 0).has_value())
-                contextReallocNeeded = true;
-    }
-
-    if (contextReallocNeeded)
-    {
-        NS_LOG_INFO(selection, "MIDI input targets updated from selection; restarting playback");
-        evs.m_edit.restartPlayback();
-    }
+    return devices;
 }
+
+bool reportMidiRoutingResult(const MidiInputRouting::UpdateResult &result)
+{
+    if (result.error.isNotEmpty())
+        NS_LOG_ERROR(engine, "MIDI input routing failed: " + result.error);
+
+    return result.routingChanged;
+}
+} // namespace
+
+bool EngineHelpers::initialiseMidiInputRouting(EditViewState &evs)
+{
+    // Migration must consider the old default route even when Exclusive MIDI
+    // Focus is currently disabled. The virtual keyboard is always included.
+    auto devices = getAutomaticMidiFocusDevices(evs.m_edit, true);
+    auto result = MidiInputRouting::migrateLegacyFocusTargets(evs.m_edit, devices);
+    result.merge(MidiInputRouting::clearAutomaticFocus(evs.m_edit));
+    return reportMidiRoutingResult(result);
+}
+
+bool EngineHelpers::updateMidiInputFocusToSelection(EditViewState &evs, juce::UndoManager *undoManager)
+{
+    const auto focusedTrackID = MidiInputRouting::findMidiFocusTarget(
+        evs.m_selectionManager.getItemsOfType<te::Track>(),
+        evs.m_selectionManager.getItemsOfType<te::Clip>(),
+        IDs::isMidiTrack);
+
+    // The computer-keyboard virtual input always follows the focused MIDI
+    // track. The user setting controls only whether the default hardware input
+    // joins that focus-device set. The automatic default route yields to an
+    // explicitly assigned input to prevent aggregate/default input duplication.
+    const bool includeDefaultInput = evs.m_applicationState.m_exclusiveMidiFocusEnabled;
+    const auto focusDevices = getAutomaticMidiFocusDevices(evs.m_edit, includeDefaultInput);
+    juce::Array<te::InputDevice *> devicesYieldingToManualTargets;
+
+    if (includeDefaultInput)
+        if (auto *defaultMidi = evs.m_edit.engine.getDeviceManager().getDefaultMidiInDevice())
+            devicesYieldingToManualTargets.add(defaultMidi);
+
+    return reportMidiRoutingResult(MidiInputRouting::reconcileAutomaticFocus(
+        evs.m_edit, focusDevices, focusedTrackID, devicesYieldingToManualTargets, undoManager));
+}
+
 te::MidiInputDevice *EngineHelpers::getVirtualMidiInputDevice(te::Edit &edit)
 {
     auto &dm = edit.engine.getDeviceManager();
-    auto name = "virtualMidiIn";
-
-    dm.createVirtualMidiDevice(name);
+    constexpr auto name = "virtualMidiIn";
 
     for (const auto instance : edit.getAllInputDevices())
-    {
-        NS_LOG_DEBUG(engine, "available MIDI input device: " + instance->getInputDevice().getName());
-
-        if (instance->getInputDevice().getDeviceType() == te::InputDevice::virtualMidiDevice && instance->getInputDevice().getName() == name)
+        if (instance->getInputDevice().getDeviceType() == te::InputDevice::virtualMidiDevice
+            && instance->getInputDevice().getName() == name)
             return dynamic_cast<te::MidiInputDevice *>(&instance->getInputDevice());
-    }
 
+    // Creation is asynchronous. Callers which require the keyboard device retry
+    // after the DeviceManager has rebuilt the edit's device list.
+    [[maybe_unused]] const auto creationResult = dm.createVirtualMidiDevice(name);
     return nullptr;
 }
 tracktion::core::TimePosition EngineHelpers::getTimePos(double t) { return tracktion::core::TimePosition::fromSeconds(t); }

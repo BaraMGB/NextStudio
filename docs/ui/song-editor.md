@@ -25,7 +25,7 @@ Shows the headers of all tracks arranged vertically.
 
 - Delete track.
 - Enable/disable input monitoring (if an input is assigned).
-- Select/deselect audio/MIDI inputs.
+- Select/deselect audio/MIDI inputs. MIDI checkmarks represent persistent manual assignments only; the automatic default input used by Exclusive MIDI Focus is not checked. Multiple permanent MIDI inputs can be assigned to a track.
 
 ### Track Operations
 
@@ -125,4 +125,5 @@ Shows information about the current grid/snap type.
 - [Mixer](mixer.md)
 - [Track Chain](track-chain.md)
 - [Clip Properties Bar](../components/clip-properties-bar.md)
+- [MIDI Input Routing and Exclusive Focus](../architecture/midi-input-routing.md)
 - [Getting Started](../user/getting-started.md)

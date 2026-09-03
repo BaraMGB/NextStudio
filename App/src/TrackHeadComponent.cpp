@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditComponent.h"
 #include "PluginInsertFeedback.h"
 #include "EditViewState.h"
+#include "MidiInputRouting.h"
 #include "Utilities.h"
 #include "juce_graphics/juce_graphics.h"
 
@@ -624,9 +625,10 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
         {
             if (instance->getInputDevice().getDeviceType() == te::InputDevice::physicalMidiDevice)
             {
-                bool ticked = instance->getTargets().contains(at->itemID);
-                bool isEnabled = true; // MIDI inputs can have multiple targets - always enabled
-                inputMenu.addItem(id++, instance->getInputDevice().getName(), isEnabled, ticked);
+                // Automatic default-focus routing is intentionally hidden here.
+                // Checkmarks represent only persistent user assignments.
+                const bool ticked = MidiInputRouting::isManualTarget(*instance, at->itemID);
+                inputMenu.addItem(id++, instance->getInputDevice().getName(), true, ticked);
             }
         }
         m.addSubMenu("MIDI Input", inputMenu);
@@ -731,19 +733,29 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
                 {
                     if (id == result)
                     {
-                        if (instance->getTargets().contains(at->itemID))
+                        const bool shouldBeManual = !MidiInputRouting::isManualTarget(*instance, at->itemID);
+                        auto &undoManager = at->edit.getUndoManager();
+                        undoManager.beginNewTransaction("Change MIDI Input Routing");
+
+                        auto update = MidiInputRouting::setManualTarget(*instance,
+                                                                       at->itemID,
+                                                                       shouldBeManual,
+                                                                       &undoManager);
+
+                        if (update.error.isNotEmpty())
+                            at->edit.engine.getUIBehaviour().showWarningMessage(update.error);
+
+                        bool routingChanged = update.routingChanged;
+                        routingChanged = EngineHelpers::updateMidiInputFocusToSelection(m_editViewState, &undoManager)
+                                         || routingChanged;
+
+                        if (routingChanged)
                         {
-                            [[maybe_unused]] auto result = instance->removeTarget(at->itemID, &at->edit.getUndoManager());
-                        }
-                        else
-                        {
-                            // MIDI inputs can have multiple targets - don't remove existing ones
-                            [[maybe_unused]] auto result = instance->setTarget(at->itemID, false, &at->edit.getUndoManager(), 0);
+                            at->edit.getTransport().ensureContextAllocated();
+                            at->edit.restartPlayback();
                         }
 
-                        // Restart playback to apply MIDI input changes
-                        at->edit.getTransport().ensureContextAllocated();
-                        at->edit.restartPlayback();
+                        break;
                     }
                     id++;
                 }

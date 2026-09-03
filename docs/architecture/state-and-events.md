@@ -302,6 +302,23 @@ Physical or virtual MidiInputDevice receives a note change
 
 The listener is attached to the long-lived `PianoRollEditor` and removed symmetrically in its destructor. The track-specific `KeyboardView` does not own the global subscription and may be safely replaced by `setTrack()`/`clearTrack()`.
 
+### Selecting a MIDI track with MIDI input focus
+
+```text
+SelectionManager reports selected Track or Clip objects
+→ MainComponent filters for one selected MIDI track
+→ otherwise it falls back to the selected MIDI clip's track
+→ virtual computer-keyboard input always enters the focus-device set
+→ current default input joins only when Exclusive MIDI Focus is enabled
+→ the automatic default route yields to another enabled manual input
+→ MidiInputRouting removes stale marked automatic destinations
+→ persistent unmarked manual destinations remain untouched
+→ missing automatic destinations are created and marked
+→ playback restarts only when destination topology changed
+```
+
+See [MIDI Input Routing and Exclusive Focus](midi-input-routing.md) for ownership markers, menu behavior, migration, and tests.
+
 ### Changing the theme
 
 ```text
@@ -331,5 +348,6 @@ When introducing state or a new event path, answer these questions:
 
 - [Architecture Overview](overview.md)
 - [Project Lifecycle](project-lifecycle.md)
+- [MIDI Input Routing and Exclusive Focus](midi-input-routing.md)
 - [NotePropertiesBar](../components/note-properties-bar.md)
 - [Testing](../development/testing.md)

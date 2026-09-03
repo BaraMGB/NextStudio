@@ -46,6 +46,7 @@ This directory contains the user and developer documentation for NextStudio.
 - [Architecture overview](architecture/overview.md) — process lifetime, ownership, major UI areas, model boundaries, and external libraries.
 - [State and event model](architecture/state-and-events.md) — application state, edit-local view state, Tracktion model state, selection, listeners, and asynchronous refreshes.
 - [Playback graph reallocation inhibition](architecture/playback-graph-reallocation.md) — Tracktion's `ReallocationInhibitor`, delayed graph rebuilds, lifetime rules, limitations, and NextStudio's bulk clip-edit usage.
+- [MIDI input routing and exclusive focus](architecture/midi-input-routing.md) — automatic default routing, persistent manual assignments, ownership markers, reconciliation, migration, errors, and regression tests.
 - [Central clip overwrite command](architecture/clip-overwrite-command.md) — incoming-wins planning, selective victim trimming, atomic commit, undo, and entry points.
 - [Project lifecycle](architecture/project-lifecycle.md) — new/load/save/save-as, unsaved changes, autosave, recovery, validation, and teardown order.
 - [Project workflow controller](architecture/project-workflow.md) — typed continuations, state transitions, editor/plugin interaction locking, and engine suspension.
