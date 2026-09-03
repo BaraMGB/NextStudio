@@ -1668,7 +1668,7 @@ void EngineHelpers::moveAutomationOrCopy(const juce::Array<tracktion::TrackAutom
 
                 auto &srcCurve = activeParam.curve;
 
-                auto idx1 = srcCurve.indexBefore(newEnd + errorMargin);
+                auto idx1 = srcCurve.indexBefore(end + errorMargin);
                 auto endCurve = idx1 < 0 ? 0 : srcCurve.getPointCurve(idx1);
 
                 auto idx2 = srcCurve.indexBefore(start - errorMargin);

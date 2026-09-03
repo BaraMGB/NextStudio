@@ -978,7 +978,7 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
     case KeyPressCommandIDs::deleteSelectedClips:
     {
         NS_LOG_DEBUG(edit, "delete selection requested");
-        if (m_songEditor.getTracksWithSelectedTimeRange().size() > 0)
+        if (m_songEditor.hasSelectedTimeRange())
         {
             NS_LOG_INFO(edit, "deleting selected time range");
             m_songEditor.deleteSelectedTimeRange();
@@ -996,7 +996,7 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         break;
     }
     case KeyPressCommandIDs::duplicateSelectedClips:
-        if (m_songEditor.getTracksWithSelectedTimeRange().size() > 0 || hasSelectedClips())
+        if (m_songEditor.hasSelectedTimeRange() || hasSelectedClips())
         {
             m_songEditor.duplicateSelectedClipsOrTimeRange();
         }

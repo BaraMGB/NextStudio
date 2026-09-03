@@ -165,6 +165,7 @@ private:
     int m_hoveredPoint = -1;
     juce::Rectangle<float> m_hoveredRect;
     bool m_isDragging = false;
+    bool m_isLassoInteraction = false;
     bool m_needsRepaint = false;
 
     SongEditorView &m_songEditor;

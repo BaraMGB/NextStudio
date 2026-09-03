@@ -408,12 +408,10 @@ void SongEditorView::setClipPropertyPreview(const juce::Array<ClipPropertyEdit> 
 
 juce::Rectangle<float> SongEditorView::getAutomationRect(te::AutomatableParameter::Ptr ap)
 {
-    int scrollY = -(m_editViewState.getViewYScroll(m_timeLine.getTimeLineID()));
-    float x = static_cast<float>(getLocalBounds().getX());
-    float y = static_cast<float>(m_editViewState.m_trackHeightManager->getYForAutomatableParameter(ap->getTrack(), ap, scrollY));
-    float w = static_cast<float>(getWidth());
-    float h = static_cast<float>(m_editViewState.m_trackHeightManager->getAutomationHeight(ap));
-    return {x, y, w, h};
+    if (auto *automationLane = getAutomationLane(ap))
+        return getLocalArea(automationLane, automationLane->getLocalBounds()).toFloat();
+
+    return {};
 }
 
 bool SongEditorView::hitTestTimeRange(int x, te::Track *track, bool &outLeftEdge, bool &outRightEdge) const
@@ -502,33 +500,43 @@ void SongEditorView::startTimeRangeDrag()
 
 void SongEditorView::updateTimeRangeDragMove(tracktion::TimeDuration delta)
 {
-    // Moving the entire range
-    m_isDraggingSelectedTimeRange = true;
-    m_draggedTimeDelta = delta;
+    const auto minimumDelta = tracktion::TimePosition() - m_selectedRange.getStart();
+    const auto maximumDelta = te::Edit::getMaximumEditEnd() - m_selectedRange.getEnd();
+    m_draggedTimeDelta = juce::jlimit(minimumDelta, maximumDelta, delta);
+    m_isDraggingSelectedTimeRange = std::abs(m_draggedTimeDelta.inSeconds()) > 1.0e-9;
     repaint();
 }
 
-void SongEditorView::updateTimeRangeDragResizeLeft(tracktion::TimePosition newEdgeTime)
+void SongEditorView::updateTimeRangeDragResizeLeft(tracktion::TimePosition newEdgeTime, bool snap)
 {
-    newEdgeTime = juce::jmax(tracktion::TimePosition::fromSeconds(0.0), newEdgeTime);
-    // Ensure left edge doesn't pass right edge
+    if (snap)
+        newEdgeTime = getSnappedTime(newEdgeTime, true);
+
+    newEdgeTime = juce::jmax(tracktion::TimePosition(), newEdgeTime);
     if (newEdgeTime >= m_selectedRange.getEnd())
-        newEdgeTime = m_selectedRange.getEnd() - tracktion::TimeDuration::fromSeconds(0.01);
-    setSelectedTimeRange({newEdgeTime, m_selectedRange.getEnd()}, true, false);
+        return;
+
+    m_selectedRange.timeRange = {newEdgeTime, m_selectedRange.getEnd()};
     repaint();
 }
 
-void SongEditorView::updateTimeRangeDragResizeRight(tracktion::TimePosition newEdgeTime)
+void SongEditorView::updateTimeRangeDragResizeRight(tracktion::TimePosition newEdgeTime, bool snap)
 {
-    // Ensure right edge doesn't pass left edge
-    newEdgeTime = juce::jmax(m_selectedRange.getStart() + tracktion::TimeDuration::fromSeconds(0.01), newEdgeTime);
-    setSelectedTimeRange({m_selectedRange.getStart(), newEdgeTime}, false, false);
+    if (snap)
+        newEdgeTime = getSnappedTime(newEdgeTime);
+
+    newEdgeTime = juce::jmin(te::Edit::getMaximumEditEnd(), newEdgeTime);
+    if (newEdgeTime <= m_selectedRange.getStart())
+        return;
+
+    m_selectedRange.timeRange = {m_selectedRange.getStart(), newEdgeTime};
     repaint();
 }
 
 void SongEditorView::finishTimeRangeDrag(bool copy)
 {
     if (m_isDraggingSelectedTimeRange
+        && std::abs(m_draggedTimeDelta.inSeconds()) > 1.0e-9
         && moveSelectedTimeRanges(m_draggedTimeDelta, copy))
     {
         auto newStart = m_selectedRange.getStart() + m_draggedTimeDelta;
@@ -591,7 +599,9 @@ void SongEditorView::stopLasso()
     {
         auto start = m_lassoComponent.getLassoRect().m_timeRange.getStart();
         auto end = m_lassoComponent.getLassoRect().m_timeRange.getEnd();
-        m_selectedRange.timeRange = {getSnappedTime(start, true), getSnappedTime(end, false)};
+        setSelectedTimeRange({start, end}, true, false);
+        if (m_selectedRange.timeRange.isEmpty())
+            clearSelectedTimeRange();
     }
 
     setMouseCursor(juce::MouseCursor::NormalCursor);
@@ -609,7 +619,7 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
 {
     // This function handles duplication of either selected clips or a time range.
     // The editor allows selection of either individual clips OR a time range, but not both simultaneously.
-    auto isTimeRangeSelected = m_selectedRange.selectedTracks.size() != 0;
+    auto isTimeRangeSelected = hasSelectedTimeRange();
 
     if (isTimeRangeSelected)
     {
@@ -718,15 +728,17 @@ void SongEditorView::updateRangeSelection()
             m_selectedRange.selectedTracks.add(t);
     }
 
-    for (auto &ap : m_editViewState.m_edit.getAllAutomatableParams(true))
+    for (auto *ap : m_editViewState.m_edit.getAllAutomatableParams(true))
     {
-        if (m_editViewState.m_trackHeightManager->isAutomationVisible(*ap))
-        {
-            auto rect = getAutomationRect(ap);
-            juce::Range<int> vRange = juce::Range<int>(rect.getY(), rect.getBottom());
-            if (vRange.intersects(lassoRangeY))
-                m_selectedRange.selectedAutomations.addIfNotAlreadyThere(ap);
-        }
+        auto *automationLane = getAutomationLane(ap);
+        if (automationLane == nullptr || !automationLane->isShowing())
+            continue;
+
+        const auto rect = getAutomationRect(ap);
+        const juce::Range<int> automationRangeY(rect.getY(), rect.getBottom());
+
+        if (automationRangeY.intersects(lassoRangeY))
+            m_selectedRange.selectedAutomations.addIfNotAlreadyThere(ap);
     }
 
     setSelectedTimeRange(range, true, false);
@@ -750,12 +762,22 @@ void SongEditorView::deleteSelectedTimeRange()
 }
 void SongEditorView::setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd)
 {
-    auto start = tr.getStart();
-    auto end = tr.getEnd();
-    m_selectedRange.timeRange = {getSnappedTime(start, snapDownAtStart), getSnappedTime(end, snapDownAtEnd)};
+    const auto minimumTime = tracktion::TimePosition();
+    const auto maximumTime = te::Edit::getMaximumEditEnd();
+    auto start = juce::jlimit(minimumTime, maximumTime, getSnappedTime(tr.getStart(), snapDownAtStart));
+    auto end = juce::jlimit(minimumTime, maximumTime, getSnappedTime(tr.getEnd(), snapDownAtEnd));
+    m_selectedRange.timeRange = end > start ? tracktion::TimeRange(start, end)
+                                            : tracktion::TimeRange();
 }
 
 juce::Array<te::Track *> SongEditorView::getTracksWithSelectedTimeRange() { return m_selectedRange.selectedTracks; }
+
+bool SongEditorView::hasSelectedTimeRange() const
+{
+    return !m_selectedRange.timeRange.isEmpty()
+           && (!m_selectedRange.selectedTracks.isEmpty()
+               || !m_selectedRange.selectedAutomations.isEmpty());
+}
 
 tracktion::TimeRange SongEditorView::getSelectedTimeRange() { return m_selectedRange.timeRange; }
 
@@ -1134,6 +1156,9 @@ SongEditorView::TimeRangeOverlayComponent::TimeRangeOverlayComponent(SongEditorV
 
 bool SongEditorView::TimeRangeOverlayComponent::hitTest(int x, int y)
 {
+    if (m_owner.getToolMode() == Tool::range)
+        return true;
+
     if (m_owner.getToolMode() != Tool::pointer)
         return false;
 
@@ -1319,6 +1344,12 @@ void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics &g)
 
 void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent &e)
 {
+    if (m_owner.getToolMode() == Tool::range)
+    {
+        setMouseCursor(juce::MouseCursor::IBeamCursor);
+        return;
+    }
+
     bool left = false, right = false;
     if (auto track = m_owner.getTrackAt(e.y); track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
     {
@@ -1363,14 +1394,31 @@ void SongEditorView::TimeRangeOverlayComponent::mouseExit(const juce::MouseEvent
 
 void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
+    if (m_owner.getToolMode() == Tool::range)
+    {
+        if (e.mods.isLeftButtonDown())
+            m_owner.startLasso(e, false, true);
+        return;
+    }
+
     if (e.mods.isLeftButtonDown())
     {
         bool left = false, right = false;
-        te::Track *track = nullptr;
-        if (m_owner.m_selectedRange.selectedTracks.size() > 0)
-            track = m_owner.m_selectedRange.selectedTracks.getFirst();
+        bool hit = false;
 
-        if (track && m_owner.hitTestTimeRange(e.x, track, left, right))
+        if (auto track = m_owner.getTrackAt(e.y);
+            track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
+            hit = m_owner.hitTestTimeRange(e.x, track, left, right);
+
+        if (!hit)
+            for (auto automation : m_owner.m_selectedRange.selectedAutomations)
+                if (m_owner.getAutomationRect(automation).contains(static_cast<float>(e.x), static_cast<float>(e.y)))
+                {
+                    hit = m_owner.hitTestTimeRange(e.x, automation, left, right);
+                    break;
+                }
+
+        if (hit)
         {
             DragType dragType = left ? DragType::TimeRangeLeft : (right ? DragType::TimeRangeRight : DragType::TimeRangeMove);
             m_owner.startDrag(dragType, m_owner.xtoTime(e.x), e.getPosition());
@@ -1383,24 +1431,31 @@ void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent
 
 void SongEditorView::TimeRangeOverlayComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    if (m_owner.m_isSelectingTimeRange)
+    {
+        m_owner.updateLasso(e);
+        return;
+    }
+
     auto &dragState = m_owner.getDragState();
     if (dragState.isTimeRangeDrag())
     {
-        auto currentTime = m_owner.xtoTime(e.x);
-        if (!e.mods.isShiftDown())
-            currentTime = m_owner.getSnappedTime(currentTime);
+        const auto currentTime = m_owner.xtoTime(e.x);
+        const bool snap = !e.mods.isShiftDown();
 
         if (dragState.isLeftEdge)
-            m_owner.updateTimeRangeDragResizeLeft(currentTime);
+            m_owner.updateTimeRangeDragResizeLeft(currentTime, snap);
         else if (dragState.isRightEdge)
-            m_owner.updateTimeRangeDragResizeRight(currentTime);
+            m_owner.updateTimeRangeDragResizeRight(currentTime, snap);
         else
         {
-            auto snappedStart = dragState.startTime;
-            if (!e.mods.isShiftDown())
-                snappedStart = m_owner.getSnappedTime(dragState.startTime, true);
+            auto draggedDuration = currentTime - dragState.startTime;
+            if (snap)
+            {
+                const auto targetStart = m_owner.getSnappedTime(m_owner.m_selectedRange.getStart() + draggedDuration);
+                draggedDuration = targetStart - m_owner.m_selectedRange.getStart();
+            }
 
-            auto draggedDuration = currentTime - snappedStart;
             m_owner.updateTimeRangeDragMove(draggedDuration);
         }
     }
@@ -1408,10 +1463,19 @@ void SongEditorView::TimeRangeOverlayComponent::mouseDrag(const juce::MouseEvent
 
 void SongEditorView::TimeRangeOverlayComponent::mouseUp(const juce::MouseEvent &e)
 {
+    if (m_owner.m_isSelectingTimeRange)
+    {
+        const bool selectedByDragging = e.mouseWasDraggedSinceMouseDown();
+        m_owner.stopLasso();
+        if (!selectedByDragging)
+            m_owner.clearSelectedTimeRange();
+        return;
+    }
+
     if (m_owner.getDragState().isTimeRangeDrag())
     {
         if (e.mouseWasDraggedSinceMouseDown())
-            m_owner.finishTimeRangeDrag(e.mods.isCtrlDown());
+            m_owner.finishTimeRangeDrag(e.mods.isCommandDown() || e.mods.isCtrlDown());
         else
         {
             m_owner.cancelTimeRangeDrag();

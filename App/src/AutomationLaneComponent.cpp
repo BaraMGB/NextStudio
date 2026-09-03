@@ -149,6 +149,15 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     bool rightButton = e.mods.isRightButtonDown();
     bool clickedOnPoint = m_hoveredPoint != -1;
     bool clickedOnCurve = m_hoveredCurve != -1;
+    m_isLassoInteraction = false;
+
+    if (leftButton && m_songEditor.getToolMode() == Tool::range)
+    {
+        auto eventInSEV = e.getEventRelativeTo(&m_songEditor);
+        m_songEditor.startLasso(eventInSEV, true, true);
+        m_isLassoInteraction = true;
+        return;
+    }
 
     // Double Click on Empty Space -> Create Point
     if (!clickedOnPoint && !clickedOnCurve && leftButton && e.getNumberOfClicks() > 1)
@@ -238,12 +247,19 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         // Call startLasso on SongEditorView directly, indicating it starts from automation
         // We need to convert the event to SongEditorView coordinates
         auto eventInSEV = e.getEventRelativeTo(&m_songEditor);
-        m_songEditor.startLasso(eventInSEV, true, m_songEditor.getToolMode() == Tool::range);
+        m_songEditor.startLasso(eventInSEV, true, false);
+        m_isLassoInteraction = true;
     }
 }
 
 void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    if (m_isLassoInteraction)
+    {
+        m_songEditor.updateLasso(e.getEventRelativeTo(&m_songEditor));
+        return;
+    }
+
     auto &dragState = m_songEditor.getDragState();
 
     auto snap = !e.mods.isShiftDown();
@@ -322,11 +338,11 @@ void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
     m_isDragging = false;
     m_selPointsAtMousedown.clear();
 
-    // Lasso finish?
-    if (m_hoveredPoint == -1 && m_hoveredCurve == -1 && !e.mods.isCtrlDown())
+    if (m_isLassoInteraction)
     {
         m_songEditor.stopLasso();
         m_songEditor.repaint();
+        m_isLassoInteraction = false;
     }
 
     repaint();

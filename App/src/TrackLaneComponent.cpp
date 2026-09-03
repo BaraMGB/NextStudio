@@ -296,7 +296,7 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     if (leftButton && (!isClipClicked || toolMode == Tool::range))
     {
         // Double Click -> Create MIDI Clip (only on actual empty space)
-        if (!isClipClicked && e.getNumberOfClicks() > 1)
+        if (!isClipClicked && e.getNumberOfClicks() > 1 && toolMode != Tool::range)
         {
             auto beat = e.mods.isShiftDown() ? m_editViewState.timeToBeat(xtoTime(e.x).inSeconds()) : m_songEditor.xToSnapedBeat(e.getEventRelativeTo(&m_songEditor).x, true);
 

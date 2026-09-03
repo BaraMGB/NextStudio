@@ -102,6 +102,7 @@ public:
     void transposeSelectedClips(float pitchChange);
     void reverseSelectedClips();
     juce::Array<te::Track *> getTracksWithSelectedTimeRange();
+    bool hasSelectedTimeRange() const;
 
     juce::Rectangle<float> getAutomationRect(te::AutomatableParameter::Ptr ap);
 
@@ -116,8 +117,8 @@ public:
     void startTimeRangeDrag();
     /** For move: delta is the time offset. For resize: newEdgeTime is the absolute time for the new edge position. */
     void updateTimeRangeDragMove(tracktion::TimeDuration delta);
-    void updateTimeRangeDragResizeLeft(tracktion::TimePosition newEdgeTime);
-    void updateTimeRangeDragResizeRight(tracktion::TimePosition newEdgeTime);
+    void updateTimeRangeDragResizeLeft(tracktion::TimePosition newEdgeTime, bool snap = true);
+    void updateTimeRangeDragResizeRight(tracktion::TimePosition newEdgeTime, bool snap = true);
     void finishTimeRangeDrag(bool copy);
     void cancelTimeRangeDrag();
 
@@ -154,10 +155,11 @@ private:
     {
         if (ap == nullptr)
             return nullptr;
-        for (auto tl : m_trackLanes)
-            if (tl->getTrack().get() == ap->getTrack())
-                return tl->getAutomationLane(ap);
-        //
+
+        for (auto *trackLane : m_trackLanes)
+            if (auto *automationLane = trackLane->getAutomationLane(ap))
+                return automationLane;
+
         return nullptr;
     }
 

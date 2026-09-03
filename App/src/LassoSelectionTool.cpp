@@ -67,6 +67,8 @@ void LassoSelectionTool::updateLasso(const juce::Point<int> mousePos, int yScrol
 
     double top = juce::jmin(oldY, mousePos.y);
     double bottom = juce::jmax(oldY, mousePos.y);
+    if (bottom <= top)
+        bottom = top + 1.0;
 
     auto currentTime = xToTime(mousePos.x);
     auto start = tracktion::TimePosition::fromSeconds(juce::jmin(currentTime, m_clickedTime));
