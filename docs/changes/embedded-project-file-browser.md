@@ -89,7 +89,8 @@ Der aktuelle Browserpfad bestimmt den Zielordner. Neue Ziele erhalten genau eine
 - `saving`;
 - `committing`;
 - `operationError`;
-- `confirmUnsavedChanges`.
+- `confirmUnsavedChanges`;
+- `confirmRecovery`.
 
 Load bleibt als `OperationType::load` erhalten, ist aber kein UI-Zustand mehr.
 
@@ -137,7 +138,7 @@ Eine vorhandene Crash-Recovery-Datei wird vor einem gegebenenfalls erforderliche
 ## Validierung
 
 - `ProjectLifecycleTests` prüfen Filter- und Endungsregeln.
-- `ProjectWorkflowTests` prüfen Commit, Discard, Save-As-Fortsetzung, Abbruch nach Schreibfehlern, asynchrone Execution Guards, Cancel und Fehlerzustände.
+- `ProjectWorkflowTests` prüfen Commit, Discard, Save-As-Fortsetzung, Abbruch nach Schreibfehlern, asynchrone Execution Guards, Recovery-Bestätigung, Cancel und Fehlerzustände.
 - `ProjectLifecycleTests` prüfen zusätzlich die exakte Wiederherstellung temporär veränderter Pfad-Properties.
 - Der vollständige Build und alle CTests müssen erfolgreich sein.
 - Debug-Shell-Screenshots prüfen normale Projects-Ansicht und Save-As-Darstellung visuell.
