@@ -40,6 +40,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LowerRangeComponent.h"
 #include "NextLookAndFeel.h"
 #include "PluginWindow.h"
+#include "ProjectWorkflow.h"
+#include "MainInteractionState.h"
 #include "SidebarComponent.h"
 #include "SplitterCollapseController.h"
 #include "ThemeHelpers.h"
@@ -51,10 +53,36 @@ namespace NextStudio
 class WineRendererFallback;
 }
 
+class SetupWizard;
+
 namespace NextStudio::Debug
 {
 class MainComponentDebugHost;
 }
+
+class ProjectWorkflowOverlay : public juce::Component
+{
+public:
+    ProjectWorkflowOverlay()
+    {
+        setName("Project workflow overlay");
+        setInterceptsMouseClicks(true, true);
+        setWantsKeyboardFocus(false);
+    }
+
+    void paint(juce::Graphics &g) override
+    {
+        g.fillAll(juce::Colours::black.withAlpha(0.58f));
+    }
+
+    void mouseDown(const juce::MouseEvent &) override
+    {
+        if (onClickOutside != nullptr)
+            onClickOutside();
+    }
+
+    std::function<void()> onClickOutside;
+};
 
 class EditorContainer : public juce::Component
 {
@@ -104,13 +132,19 @@ public:
     void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
     void valueTreeChanged() override {}
 
-    void setupEdit(juce::File = {});
-    bool handleUnsavedEdit();
-    GUIHelpers::ProjectSaveResult saveCurrentProject(bool saveAs = false);
+    GUIHelpers::ProjectSaveResult saveCurrentProject(bool saveAs = false, bool preservePendingOperation = false);
+    GUIHelpers::ProjectSaveResult saveCurrentProjectTo(const juce::File &targetFile);
+    void requestProjectOperation(ProjectWorkflow::Operation operation);
+    void executeProjectOperation(const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution resolution);
+    void resolveRecovery(bool restore);
+    void requestApplicationQuit();
+    void setProjectBrowserWorkingMode(bool enabled);
+    void setProjectWorkflowActive(bool active, bool resumePlayback = true);
     void handleContentPathChangedFromSettings();
 
 private:
     void handleAsyncUpdate() override;
+    bool setupEdit(juce::File = {}, juce::String *errorMessage = nullptr);
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
     void saveSettings();
     void createTracksAndAssignInputs();
@@ -122,8 +156,12 @@ private:
     void handleSidebarSplitterMouseDown();
     void handleSidebarSplitterDrag(int dragDistance);
     void ensureUserDirectoriesAndSamples();
-    void launchSetupWizardAsync();
-    void runSetupWizard();
+    void showSetupWizard();
+    void completeSetupWizard();
+    void setSetupWizardActive(bool active);
+    void updateMainInteractionLock(bool resumePlayback = true);
+    void updateInteractionLayerOrder();
+    bool isMainInteractionLocked() const noexcept { return m_interactionState.isLocked(); }
 
     void clearAudioTracks()
     {
@@ -148,7 +186,6 @@ private:
     }
 
     ApplicationViewState &m_applicationState;
-    NextStudio::WineRendererFallback &m_wineRendererFallback;
     NextLookAndFeel m_nextLookAndFeel;
 
     tracktion_engine::Engine m_engine{ProjectInfo::projectName, std::make_unique<ExtendedUIBehaviour>(), nullptr};
@@ -163,15 +200,28 @@ private:
     std::unique_ptr<LowerRangeComponent> m_lowerRange;
     std::unique_ptr<SidebarComponent> m_sideBarBrowser;
     SplitterComponent m_sidebarSplitter;
+    ProjectWorkflowOverlay m_projectWorkflowOverlay;
+    std::unique_ptr<SetupWizard> m_setupWizard;
+    juce::Viewport m_setupWizardViewport;
     ComputerMidiKeyboardController m_computerMidiKeyboard;
 
     [[maybe_unused]] bool m_settingsLoaded{false};
     bool m_debugMode{false};
+    MainInteractionState m_interactionState;
+    bool m_mainInteractionLocked{false};
+    bool m_projectPlaybackContextReleased{false};
+    bool m_resumePlaybackAfterProjectWorkflow{false};
+    tracktion::TimePosition m_projectWorkflowTransportPosition{};
     bool m_saveTemp{false}, m_updateView{false}, m_updateSource{false}, m_updateTheme{false};
     bool m_hasUnsavedTemp{true};
+    bool m_setupWizardRequired{false};
+    bool m_recoveryPromptActive{false};
+    bool m_preserveRecoveryOnShutdown{false};
 
     SplitterCollapseController m_sidebarSplitterCollapseController;
     int m_sidebarWidthAtMousedown{};
+    int m_sidebarWidthBeforeProjectBrowser{-1};
+    bool m_projectBrowserExpandedSidebar{false};
 
     juce::File m_tempDir;
     juce::TooltipWindow tooltipWindow{this, 500};

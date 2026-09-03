@@ -22,6 +22,7 @@ private:
     Result handlePlay() const;
     Result handleStop() const;
     Result handleScreenshot(const Command &command) const;
+    Result handleProjectSaveAs() const;
     Result handleEnsureTrack(const Command &command) const;
     Result handleSelectTrack(const Command &command) const;
     Result handleEnsureMidiClip(const Command &command) const;

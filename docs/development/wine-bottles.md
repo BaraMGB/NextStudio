@@ -131,7 +131,7 @@ Current behavior:
 - setting `NEXTSTUDIO_FORCE_SOFTWARE_RENDERER=1` enables it manually for diagnosis;
 - setting `NEXTSTUDIO_FORCE_DEFAULT_RENDERER=1` bypasses the fallback for comparison testing under Wine;
 - the main `DocumentWindow` is switched before it is shown;
-- the setup wizard peer is switched before it enters modal state and becomes visible;
+- the setup wizard is embedded in the software-rendered main-window peer and creates no separate modal peer;
 - focus changes trigger asynchronous re-application so additional JUCE desktop windows are also corrected.
 
 This was intentionally done as a **runtime adaptation layer** instead of patching JUCE internals.

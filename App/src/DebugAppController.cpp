@@ -50,6 +50,23 @@ bool isMidiTrack(const te::Track &track)
 {
     return track.isAudioTrack() && static_cast<bool>(track.state.getProperty(IDs::isMidiTrack, false));
 }
+
+bool isBlockedByProjectWorkflow(CommandType type)
+{
+    switch (type)
+    {
+    case CommandType::play:
+    case CommandType::projectSaveAs:
+    case CommandType::ensureTrack:
+    case CommandType::selectTrack:
+    case CommandType::ensureMidiClip:
+    case CommandType::ensureMidiNote:
+    case CommandType::setPluginParameter:
+        return true;
+    default:
+        return false;
+    }
+}
 } // namespace
 
 DebugAppController::DebugAppController(DebugHost &debugHost)
@@ -74,6 +91,9 @@ Result DebugAppController::execute(const Command &command)
         && command.arguments.getDynamicObject()->getProperties().size() > 0 && !acceptsJsonArguments)
         return Result::failure("invalid-argument", "command does not accept JSON arguments");
 
+    if (m_debugHost.isProjectWorkflowActive() && isBlockedByProjectWorkflow(command.type))
+        return Result::failure("busy", "A project workflow is active");
+
     switch (command.type)
     {
     case CommandType::help:
@@ -92,6 +112,8 @@ Result DebugAppController::execute(const Command &command)
         return handleStop();
     case CommandType::screenshot:
         return handleScreenshot(command);
+    case CommandType::projectSaveAs:
+        return handleProjectSaveAs();
     case CommandType::ensureTrack:
         return handleEnsureTrack(command);
     case CommandType::selectTrack:
@@ -114,7 +136,7 @@ Result DebugAppController::execute(const Command &command)
 Result DebugAppController::handleHelp() const
 {
     auto result = Result::success();
-    result.fields.set("commands", "help ping system-state transport-state state-dump play stop screenshot ensure-track select-track ensure-midi-clip ensure-midi-note set-plugin-parameter quit");
+    result.fields.set("commands", "help ping system-state transport-state state-dump play stop screenshot project-save-as ensure-track select-track ensure-midi-clip ensure-midi-note set-plugin-parameter quit");
     return result;
 }
 
@@ -134,10 +156,12 @@ Result DebugAppController::handleSystemState() const
     const auto hasEditComponent = m_debugHost.hasEditComponent();
     const auto hasHeader = m_debugHost.hasHeaderComponent();
     const auto hasLowerRange = m_debugHost.hasLowerRangeComponent();
-    const auto readyForPlayback = hasEdit && hasEditViewState && hasEditComponent;
+    const auto projectWorkflowActive = m_debugHost.isProjectWorkflowActive();
+    const auto readyForPlayback = hasEdit && hasEditViewState && hasEditComponent && !projectWorkflowActive;
 
     auto result = Result::success();
     result.fields.set("debugMode", m_debugHost.isDebugMode() ? "true" : "false");
+    result.fields.set("projectWorkflowActive", projectWorkflowActive ? "true" : "false");
     result.fields.set("settingsPath", m_debugHost.getApplicationState().getSettingsFile().getFullPathName());
     result.fields.set("debugArtifactsPath", m_debugHost.getDebugArtifactsDirectory().getFullPathName());
     result.fields.set("currentEditAvailable", hasEdit ? "true" : "false");
@@ -229,6 +253,16 @@ Result DebugAppController::handleScreenshot(const Command &command) const
 
     auto result = Result::success();
     result.fields.set("path", file.getFullPathName());
+    return result;
+}
+
+Result DebugAppController::handleProjectSaveAs() const
+{
+    if (!m_debugHost.showProjectSaveAs())
+        return Result::failure("not-ready", "Project browser is unavailable");
+
+    auto result = Result::success();
+    result.fields.set("projectBrowserMode", "saveProjectAs");
     return result;
 }
 

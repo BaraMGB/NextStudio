@@ -48,14 +48,23 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
 
     void resized() override;
+    void mouseDown(const juce::MouseEvent &event) override;
     void buttonClicked(juce::Button *button) override;
 
     void updateParentsListener();
     void refreshBrowsersFromAppState();
     void refreshThemeFromAppState();
+    void beginProjectOperation(ProjectWorkflow::Operation operation);
+    void beginProjectRecovery(const juce::String &errorMessage = {});
+    void beginProjectSaveAs(bool preservePendingOperation = false);
+    void dismissProjectSaveAs();
+    void completeProjectOperation(bool succeeded, const juce::String &errorMessage = {}, const juce::File &file = {});
+    void projectWasSaved(const juce::File &file);
+    void showProjectError(const juce::String &message, const juce::File &file = {});
 
 private:
     void showViewForButton(const juce::String &buttonName);
+    void prepareProjectsWorkflow();
     void setAllVisibleOff();
     juce::String m_activeButtonName{"Projects"};
     EditViewState &m_evs;
@@ -69,10 +78,9 @@ private:
     InstrumentEffectChooser m_effectList;
     std::unique_ptr<juce::Component> m_renderComponent;
 
-    FileBrowserComponent m_fileListBrowser;
-
     SamplePreviewComponent m_samplePreview;
     SampleBrowserComponent m_sampleBrowser;
+    FileBrowserComponent m_fileListBrowser;
     ProjectsBrowserComponent m_projectsBrowser;
     const int CONTENT_HEADER_HEIGHT{30};
     juce::String m_headerName;

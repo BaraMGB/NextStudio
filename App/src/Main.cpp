@@ -134,8 +134,10 @@ public:
         if (mainWindow != nullptr)
         {
             if (auto *mc = dynamic_cast<MainComponent *>(mainWindow->getContentComponent()))
-                if (!mc->handleUnsavedEdit())
-                    return;
+            {
+                mc->requestApplicationQuit();
+                return;
+            }
         }
 
         quit();

@@ -14,6 +14,7 @@ CommandType commandTypeForName(const juce::String &name)
     if (name == "play") return CommandType::play;
     if (name == "stop") return CommandType::stop;
     if (name == "screenshot") return CommandType::screenshot;
+    if (name == "project-save-as") return CommandType::projectSaveAs;
     if (name == "ensure-track") return CommandType::ensureTrack;
     if (name == "select-track") return CommandType::selectTrack;
     if (name == "ensure-midi-clip") return CommandType::ensureMidiClip;

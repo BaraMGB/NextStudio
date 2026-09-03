@@ -645,63 +645,35 @@ juce::Image GUIHelpers::drawableToImage(const juce::Drawable &drawable, float ta
 
 //--------------------------------------
 
-GUIHelpers::ProjectSaveResult GUIHelpers::saveEdit(EditViewState &evs, const juce::File &workDir, bool forceSaveAs)
+GUIHelpers::ProjectSaveResult GUIHelpers::saveEditToFile(EditViewState &evs, const juce::File &requestedTargetFile)
 {
     const auto currentFile = evs.m_edit.editFileRetriever ? evs.m_edit.editFileRetriever() : juce::File{};
-    auto targetFile = currentFile;
-
-    if (ProjectLifecycle::shouldChooseSaveTarget(currentFile, forceSaveAs))
-    {
-        juce::WildcardFileFilter wildcardFilter("*.tracktionedit", juce::String(), "Next Studio Project File");
-        const auto chooserStart = forceSaveAs && ProjectLifecycle::isPersistentProjectFile(currentFile) ? currentFile : workDir;
-        juce::FileBrowserComponent browser(juce::FileBrowserComponent::saveMode + juce::FileBrowserComponent::canSelectFiles, chooserStart, &wildcardFilter, nullptr);
-
-        // Overwrite checking is performed below, after the required extension has been added.
-        juce::FileChooserDialogBox dialogBox(forceSaveAs ? "Save project as" : "Save the project", "Please choose a project file to save...", browser, false, browser.getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
-        if (!dialogBox.show())
-            return ProjectSaveResult::cancelled;
-
-        targetFile = ProjectLifecycle::withProjectExtension(browser.getSelectedFile(0));
-        if (targetFile == juce::File() || targetFile.isDirectory())
-            return ProjectSaveResult::failed;
-
-        if (targetFile.existsAsFile())
-        {
-            const auto overwrite = juce::AlertWindow::showOkCancelBox(
-                juce::AlertWindow::WarningIcon,
-                "File already exists",
-                "The project already exists:\n\n" + targetFile.getFullPathName() + "\n\nDo you want to overwrite it?",
-                "Overwrite",
-                "Cancel");
-
-            if (!overwrite)
-                return ProjectSaveResult::cancelled;
-        }
-    }
+    // A direct save must preserve the exact existing path. On case-sensitive file systems,
+    // normalising Song.TRACKTIONEDIT would otherwise create Song.tracktionedit beside it.
+    const auto targetFile = ProjectLifecycle::normaliseSaveTarget(requestedTargetFile, currentFile);
+    if (!ProjectLifecycle::isValidProjectTarget(targetFile))
+        return ProjectSaveResult::failed;
 
     const auto oldName = evs.m_editName.get();
     const bool isSaveAs = targetFile != currentFile;
+    ProjectLifecycle::PropertyRollback pathRollback;
 
     if (isSaveAs)
-        EngineHelpers::refreshRelativePathsToNewEditFile(evs, targetFile);
+        EngineHelpers::refreshRelativePathsToNewEditFile(evs, targetFile, &pathRollback);
 
     evs.m_editName = targetFile.getFileNameWithoutExtension();
     const bool wasWritten = te::EditFileOperations(evs.m_edit).writeToFile(targetFile, false);
 
     if (!wasWritten)
     {
+        pathRollback.restore();
         if (isSaveAs)
-            EngineHelpers::refreshRelativePathsToNewEditFile(evs, currentFile);
-
+            evs.m_edit.editFileRetriever = [currentFile] { return currentFile; };
         evs.m_editName = oldName;
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon,
-            "Project could not be saved",
-            "NextStudio could not write the project to:\n\n" + targetFile.getFullPathName());
         return ProjectSaveResult::failed;
     }
 
+    pathRollback.dismiss();
     evs.m_edit.resetChangedStatus();
     evs.m_needAutoSave = false;
     evs.m_edit.sendSourceFileUpdate();
@@ -2205,7 +2177,8 @@ tracktion_engine::WaveAudioClip::Ptr EngineHelpers::loadAudioFileToTrack(EditVie
     }
     return newClip;
 }
-void EngineHelpers::refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile)
+void EngineHelpers::refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile,
+                                                      ProjectLifecycle::PropertyRollback *rollback)
 {
     for (auto t : te::getAudioTracks(evs.m_edit))
     {
@@ -2213,6 +2186,9 @@ void EngineHelpers::refreshRelativePathsToNewEditFile(EditViewState &evs, const 
         {
             if (c->state.getProperty(te::IDs::source) != "")
             {
+                if (rollback != nullptr)
+                    rollback->capture(c->state, te::IDs::source);
+
                 auto source = evs.m_edit.filePathResolver(c->state.getProperty(te::IDs::source));
                 auto relPath = source.getRelativePathFrom(newFile.getParentDirectory());
 
@@ -2224,13 +2200,17 @@ void EngineHelpers::refreshRelativePathsToNewEditFile(EditViewState &evs, const 
         {
             if (auto *soundFontPlugin = dynamic_cast<SoundFontPlugin *>(plugin))
             {
-                const auto storedPath = soundFontPlugin->state.getProperty("soundFontPath").toString();
+                const juce::Identifier soundFontPath("soundFontPath");
+                const auto storedPath = soundFontPlugin->state.getProperty(soundFontPath).toString();
                 if (storedPath.isEmpty())
                     continue;
 
+                if (rollback != nullptr)
+                    rollback->capture(soundFontPlugin->state, soundFontPath);
+
                 const auto resolvedFile = evs.m_edit.filePathResolver != nullptr ? evs.m_edit.filePathResolver(storedPath) : juce::File(storedPath);
                 const auto updatedPath = juce::File::isAbsolutePath(resolvedFile.getFullPathName()) ? resolvedFile.getRelativePathFrom(newFile.getParentDirectory()) : resolvedFile.getFullPathName();
-                soundFontPlugin->state.setProperty("soundFontPath", updatedPath, nullptr);
+                soundFontPlugin->state.setProperty(soundFontPath, updatedPath, nullptr);
             }
         }
     }

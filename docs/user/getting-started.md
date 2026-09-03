@@ -8,7 +8,9 @@ NextStudio is under active development. Features, project compatibility, and UI 
 
 ## First launch
 
-On first launch, or when the configured content root no longer exists, NextStudio opens the Setup Wizard.
+On first launch, or when the configured content root no longer exists, NextStudio embeds the Setup Wizard in the arrangement-editor area of the main window. It does not open a separate modal window. The header, sidebar, lower range, transport, plug-in windows, and keyboard commands remain dimmed and inactive until setup is complete. The wizard scrolls vertically when the editor area is too small to show every section at once.
+
+If a crash-recovery snapshot exists, NextStudio asks whether to restore it in the Projects sidebar before showing the Setup Wizard. This guarantees that closing setup cannot remove recovery data that was never offered.
 
 The wizard configures:
 
@@ -39,7 +41,7 @@ Choosing another root creates or uses this folder structure:
 
 NextStudio validates that the root can be prepared before accepting it. Bundled content such as the included drum samples is populated into the selected content area.
 
-If setup is closed without completion, the current fallback behavior selects `~/NextStudio`, applies the default built-in theme, and marks setup complete.
+Closing NextStudio before pressing **Start NextStudio** leaves setup incomplete, so the embedded wizard appears again on the next launch. Folder validation errors are shown inside the wizard, and the folder chooser runs asynchronously without a nested application modal loop.
 
 ### GUI scale
 
@@ -141,10 +143,9 @@ A new project starts with a temporary recovery file and the window title `Untitl
 
 ### Load a project
 
-Use either:
+Open the Projects sidebar, navigate to the desired folder and double-click a `.tracktionedit` file. The Projects view is permanently a filtered directory browser, so no separate Load action is required. Projects can also be opened from Home or by drag-and-drop.
 
-- **Load** in the Projects sidebar and choose a `.tracktionedit` file; or
-- double-click a project in the project list.
+Browsing does not open another window and does not block the rest of NextStudio. Folders and supported project files are shown directly in the sidebar.
 
 Before loading, NextStudio validates that the file:
 
@@ -162,32 +163,32 @@ Use **Save** in the Projects sidebar or:
 - Windows/Linux: `Ctrl+S`;
 - macOS: `Command+S`.
 
-A project that has never been persistently saved opens a file chooser. Saved projects use the existing path.
+A project that has never been persistently saved enters Save As in the Projects sidebar. Saved projects use the existing path directly.
 
 ### Save As
 
-Use **Save As** to select a new target while preserving the original project file. The project browser refreshes after a successful save.
+Use **Save As** to select a folder and new project name while preserving the original project file. `.tracktionedit` is added automatically. Existing files require inline overwrite confirmation.
+
+While Save As is active, the rest of the main window is dimmed and blocked. The sidebar splitter remains usable for widening the browser. Click outside Save As, press `Escape`, or press **Cancel** to close it without changing the project.
 
 ### Unsaved changes
 
-When creating/loading another project or quitting, NextStudio may show:
+When New, Load, or Quit encounters unsaved changes, the Projects sidebar offers **Save & Continue**, **Discard & Continue**, and **Back**. Home-browser and drag-and-drop project loading use the same flow. A pending operation continues only after a successful save.
 
-- **Yes** — save, then continue only if saving succeeds;
-- **No** — discard changes and continue;
-- **Cancel** — keep the current project and stop the action.
-
-Cancelling a Save dialog also stops the pending project switch or quit.
+Other replacement or shutdown paths may show the corresponding save, discard, and cancel decision. Cancelling Save As also stops a pending project switch.
 
 ## Autosave and crash recovery
 
 NextStudio writes recovery snapshots to Tracktion Engine's temporary directory. Autosave is skipped while recording and while specific model operations hold a save lock.
 
-A normal successful save removes obsolete recovery snapshots. A clean application shutdown removes the temporary directory.
+A normal successful save removes obsolete recovery snapshots. A clean application shutdown removes the temporary directory unless it contains a restored project that has not yet been saved or explicitly discarded.
 
-If NextStudio terminates unexpectedly and a recovery snapshot remains, the next launch asks whether to restore the crashed project. Choose:
+If NextStudio terminates unexpectedly and a recovery snapshot remains, the next launch opens the Projects sidebar and asks whether to restore the crashed project. Choose:
 
-- **Yes** to open the recovery edit;
-- **No** to discard recovery data and start a new project.
+- **Restore Project** to keep the recovery edit. It remains unsaved until written to a persistent project file and is offered again after shutdown if necessary;
+- **Discard Recovery** to remove recovery data and start a new project.
+
+This decision is embedded in the main window and does not open a modal dialog.
 
 Recovery is a safety net, not a replacement for persistent saves and external backups.
 

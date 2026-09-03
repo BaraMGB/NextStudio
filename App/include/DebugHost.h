@@ -18,6 +18,7 @@ public:
     virtual ~DebugHost() = default;
 
     virtual bool isDebugMode() const = 0;
+    virtual bool isProjectWorkflowActive() const { return false; }
     virtual const ApplicationViewState &getApplicationState() const = 0;
     virtual tracktion_engine::Edit *getCurrentEdit() const = 0;
     virtual EditViewState *getEditViewState() const = 0;
@@ -33,6 +34,7 @@ public:
     virtual juce::File captureSnapshot(int maxWidth) const = 0;
     virtual bool play() = 0;
     virtual bool stop() = 0;
+    virtual bool showProjectSaveAs() { return false; }
     virtual tracktion_engine::AudioTrack *createAudioTrack(bool midi, const juce::String &name) = 0;
     virtual void requestQuit() = 0;
 };

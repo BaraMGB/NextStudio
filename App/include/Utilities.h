@@ -178,7 +178,7 @@ void drawRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<float> area, flo
 
 using ProjectSaveResult = ProjectLifecycle::SaveResult;
 
-ProjectSaveResult saveEdit(EditViewState &evs, const juce::File &workDir, bool forceSaveAs = false);
+ProjectSaveResult saveEditToFile(EditViewState &evs, const juce::File &targetFile);
 
 void drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<float> boundingRect, bool printDescription = false);
 
@@ -318,7 +318,8 @@ te::WaveAudioClip::Ptr loadAudioFileOnNewTrack(EditViewState &evs, const juce::F
 
 te::WaveAudioClip::Ptr loadAudioFileToTrack(EditViewState &evs, const juce::File &file, te::AudioTrack::Ptr track, te::ClipPosition pos);
 
-void refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile);
+void refreshRelativePathsToNewEditFile(EditViewState &evs, const juce::File &newFile,
+                                       ProjectLifecycle::PropertyRollback *rollback = nullptr);
 
 void insertPlugin(te::Track::Ptr track, te::Plugin::Ptr plugin, int index = -1);
 

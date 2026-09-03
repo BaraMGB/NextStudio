@@ -37,8 +37,8 @@ SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandM
       m_instrumentList(m_engine, true, m_appState),
       m_effectList(m_engine, false, m_appState),
       m_samplePreview(m_engine, m_edit, m_appState),
-      m_sampleBrowser(m_appState, m_samplePreview),
-      m_fileListBrowser(m_appState, m_engine, m_samplePreview),
+      m_sampleBrowser(m_appState),
+      m_fileListBrowser(m_appState),
       m_projectsBrowser(m_evs, m_appState)
 {
     addAndMakeVisible(m_menu);
@@ -51,6 +51,17 @@ SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandM
     addChildComponent(m_projectsBrowser);
     for (auto b : m_menu.getButtons())
         b->addListener(this);
+
+    const auto previewSelection = [this](const juce::File &file)
+    {
+        if (m_samplePreview.setFile(file))
+        {
+            m_samplePreview.rewind();
+            m_samplePreview.play();
+        }
+    };
+    m_sampleBrowser.setSelectionChangedCallback(previewSelection);
+    m_fileListBrowser.setSelectionChangedCallback(previewSelection);
 
     m_settingsView.setIndent(10);
     m_settingsView.setOnContentPathChanged(
@@ -67,12 +78,8 @@ SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandM
 
 SidebarComponent::~SidebarComponent()
 {
-
     if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
-    {
-        m_fileListBrowser.removeChangeListener(parent);
-        m_projectsBrowser.removeChangeListener(parent);
-    }
+        parent->setProjectWorkflowActive(false);
     for (auto b : m_menu.getButtons())
         b->removeListener(this);
 }
@@ -127,7 +134,20 @@ void SidebarComponent::paint(juce::Graphics &g)
     else if (m_renderComponent != nullptr)
         GUIHelpers::drawFromSvg(g, BinaryData::renderButton_svg, m_headerColour, iconRect.toFloat());
 }
-void SidebarComponent::paintOverChildren(juce::Graphics &g) { GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(), m_appState.getBorderColour()); }
+void SidebarComponent::paintOverChildren(juce::Graphics &g)
+{
+    GUIHelpers::drawFakeRoundCorners(g, getLocalBounds().toFloat(), m_appState.getMainFrameColour(), m_appState.getBorderColour());
+
+    if (!m_projectsBrowser.isInteractionLocked())
+        return;
+
+    g.setColour(juce::Colours::black.withAlpha(0.58f));
+    g.fillRect(m_menu.getBounds());
+
+    auto shell = getLocalBounds().withLeft(m_menu.getRight());
+    g.fillRect(shell.removeFromTop(CONTENT_HEADER_HEIGHT));
+    g.fillRect(shell.removeFromBottom(CONTENT_HEADER_HEIGHT));
+}
 
 void SidebarComponent::resized()
 {
@@ -200,8 +220,21 @@ void SidebarComponent::resized()
     }
     repaint();
 }
+void SidebarComponent::mouseDown(const juce::MouseEvent &)
+{
+    if (m_projectsBrowser.isSaveAsWorkflowActive())
+        dismissProjectSaveAs();
+}
+
 void SidebarComponent::buttonClicked(juce::Button *button)
 {
+    if (m_projectsBrowser.isInteractionLocked())
+    {
+        if (m_projectsBrowser.isSaveAsWorkflowActive())
+            dismissProjectSaveAs();
+        return;
+    }
+
     const auto buttonName = button->getName();
     const bool shouldCollapse = !m_appState.m_sidebarCollapsed && buttonName == m_activeButtonName;
 
@@ -265,26 +298,132 @@ void SidebarComponent::updateParentsListener()
 {
     if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
     {
-        m_fileListBrowser.addChangeListener(parent);
-        m_projectsBrowser.addChangeListener(parent);
+        juce::Component::SafePointer<MainComponent> safeMain(parent);
+        m_fileListBrowser.setFileActivatedCallback(
+            [safeMain](const juce::File &file)
+            {
+                if (safeMain != nullptr && file.existsAsFile() && ProjectLifecycle::isPersistentProjectFile(file))
+                    safeMain->requestProjectOperation({ProjectWorkflow::OperationType::load, file});
+            });
+        m_projectsBrowser.setHostCallbacks(
+            {
+                [safeMain](const ProjectWorkflow::Operation &operation, ProjectWorkflow::UnsavedResolution resolution)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->executeProjectOperation(operation, resolution);
+                },
+                [safeMain](bool restore)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->resolveRecovery(restore);
+                },
+                [safeMain](bool saveAs, bool preservePendingOperation)
+                {
+                    return safeMain != nullptr
+                             ? safeMain->saveCurrentProject(saveAs, preservePendingOperation)
+                             : GUIHelpers::ProjectSaveResult::failed;
+                },
+                [safeMain](const juce::File &target)
+                {
+                    return safeMain != nullptr
+                             ? safeMain->saveCurrentProjectTo(target)
+                             : GUIHelpers::ProjectSaveResult::failed;
+                },
+                [safeMain](bool locked)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->setProjectWorkflowActive(locked);
+                },
+                [safeMain](bool workingWidth)
+                {
+                    if (safeMain != nullptr)
+                        safeMain->setProjectBrowserWorkingMode(workingWidth);
+                }
+            });
     }
 }
 
 void SidebarComponent::refreshBrowsersFromAppState()
 {
     const auto samplesRoot = juce::File(m_appState.m_samplesDir.get());
-    const auto projectsRoot = juce::File(m_appState.m_projectsDir.get());
+    const auto projectBrowserRoot = juce::File(m_appState.m_projectLoadDir.get());
     const auto workRoot = juce::File(m_appState.m_workDir.get());
 
     m_sampleBrowser.setFileList(samplesRoot.findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.wav;*.WAV;*.mp3;*.MP3;*.aiff;*.AIFF;*.flac;*.FLAC"));
-    m_projectsBrowser.setFileList(projectsRoot.findChildFiles(juce::File::TypesOfFileToFind::findFiles, true, "*.tracktionedit"));
-    m_fileListBrowser.setDirecory(workRoot);
+    m_projectsBrowser.setProjectsDirectory(projectBrowserRoot);
+    m_fileListBrowser.setDirectory(workRoot);
 }
 
 void SidebarComponent::refreshThemeFromAppState()
 {
     m_settingsView.refreshThemeFromAppState();
     repaint();
+}
+
+void SidebarComponent::prepareProjectsWorkflow()
+{
+    if (!m_projectsBrowser.isVisible())
+    {
+        setAllVisibleOff();
+        m_projectsBrowser.setVisible(true);
+    }
+
+    m_activeButtonName = "Projects";
+    m_appState.m_sidebarCollapsed = false;
+
+    if (auto *parent = dynamic_cast<MainComponent *>(getParentComponent()))
+        parent->resized();
+    else
+        resized();
+}
+
+void SidebarComponent::beginProjectOperation(ProjectWorkflow::Operation operation)
+{
+    prepareProjectsWorkflow();
+    m_projectsBrowser.beginProjectOperation(std::move(operation));
+    resized();
+}
+
+void SidebarComponent::beginProjectRecovery(const juce::String &errorMessage)
+{
+    prepareProjectsWorkflow();
+    m_projectsBrowser.beginRecovery(errorMessage);
+    resized();
+}
+
+void SidebarComponent::beginProjectSaveAs(bool preservePendingOperation)
+{
+    prepareProjectsWorkflow();
+    m_projectsBrowser.beginSaveProjectAs(preservePendingOperation);
+    resized();
+}
+
+void SidebarComponent::dismissProjectSaveAs()
+{
+    m_projectsBrowser.dismissSaveProjectAs();
+}
+
+void SidebarComponent::completeProjectOperation(bool succeeded, const juce::String &errorMessage, const juce::File &file)
+{
+    m_projectsBrowser.completeProjectOperation(succeeded, errorMessage, file);
+}
+
+void SidebarComponent::projectWasSaved(const juce::File &file)
+{
+    m_projectsBrowser.projectWasSaved(file);
+}
+
+void SidebarComponent::showProjectError(const juce::String &message, const juce::File &file)
+{
+    if (!m_projectsBrowser.isVisible())
+    {
+        setAllVisibleOff();
+        m_activeButtonName = "Projects";
+        m_projectsBrowser.setVisible(true);
+        m_appState.m_sidebarCollapsed = false;
+    }
+    m_projectsBrowser.showOperationError(message, file);
+    resized();
 }
 
 void SidebarComponent::setAllVisibleOff()

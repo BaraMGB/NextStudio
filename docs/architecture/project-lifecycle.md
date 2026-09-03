@@ -10,6 +10,8 @@ This document describes creation, loading, saving, save-as, unsaved-change handl
 - `App/src/MainComponent.cpp`
 - `App/include/EditComponent.h`
 - `App/src/EditComponent.cpp`
+- `App/include/DirectoryBrowser.h`
+- `App/src/DirectoryBrowser.cpp`
 - `App/src/ProjectsBrowser.cpp`
 
 ## File types
@@ -36,36 +38,30 @@ They are stored in Tracktion Engine's temporary directory and are intentionally 
 
 ## Startup flow
 
-`MainComponent` initializes engine services and built-in plug-ins, then calls `openValidStartEdit()`.
+`MainComponent` initializes engine services and built-in plug-ins, then calls `openValidStartEdit()`. Recovery is resolved before a required Setup Wizard is shown, so closing the wizard cannot delete an unoffered snapshot during normal shutdown.
 
 ```text
 Resolve/create engine temp directory
 → find most recent recovery edit
-→ if recovery exists, ask whether to restore
-   ├── Yes: setupEdit(recovery file)
-   └── No: delete recovery temp directory and recreate it
-→ if no restore: setupEdit(empty file argument)
+→ if recovery is valid, setupEdit(recovery file)
+→ show Restore Project / Discard Recovery in the Projects sidebar
+   ├── Restore: keep the loaded recovery edit
+   └── Discard: setupEdit(empty file argument), removing old recovery data
+→ after the choice, show the Setup Wizard if required
+→ if no valid recovery exists: setupEdit(empty file argument)
 ```
+
+The recovery choice uses the same embedded Projects workflow surface and interaction lock as unsaved-project decisions. It does not create an `AlertWindow` or enter a modal loop. A restored edit is marked dirty because its `.nextTemp` source is not a persistent project. The loaded snapshot is retained across shutdown until the user successfully saves, explicitly discards, or replaces it.
 
 An empty `juce::File` argument means “create a new project.” It is converted into a new `.nextTemp` target before the Tracktion edit is created.
 
-## Project requests from the browser
+## Project operation requests
 
-`ProjectsBrowserComponent` does not replace the edit directly. It writes a request into `ProjectLifecycle::ProjectRequestState` and emits a change message.
+`ProjectsBrowserComponent` does not replace the edit directly. `ProjectWorkflow::Controller` stores a typed pending operation for New, Load, or Quit. A configured operation callback invokes `MainComponent::executeProjectOperation()`, which posts replacement through `MessageManager::callAsync()`.
 
-The request has one of three actions:
+The Projects and Home directory browsers invoke typed callbacks directly. Home project activation calls `MainComponent::requestProjectOperation()` without an intermediate `ChangeBroadcaster` request state.
 
-- `none`;
-- `newProject`;
-- `loadProject` with a file.
-
-`MainComponent::changeListenerCallback()` consumes the request with `take()` and posts `setupEdit()` through `MessageManager::callAsync()`.
-
-### Why requests are cleared before opening a chooser
-
-The load button calls `m_projectRequest.clear()` before showing the file chooser. If the user cancels, no previous load request can accidentally be replayed by a later change notification.
-
-`requestLoadProject()` also rejects files that do not exist or do not have the persistent project extension.
+The workflow enters `committing` and activates the interaction/engine lock before asynchronous execution. Consequently the edit cannot become dirty after an unsaved-change decision and before replacement.
 
 ## Load validation
 
@@ -88,17 +84,13 @@ Possible statuses are:
 
 ## Unsaved-change decision
 
-Before switching away from an existing edit, `handleUnsavedEdit()` checks `Edit::hasChangedSinceSaved()`.
+Before New, Load, or Quit replaces or closes an existing dirty edit, `ProjectsBrowserComponent` shows an inline decision:
 
-The dialog offers:
+- **Save & Continue** — save and continue only if saving succeeds;
+- **Discard & Continue** — explicitly authorize the pending operation;
+- **Back** — keep the current project.
 
-- **Yes** — save and continue only if saving succeeds;
-- **No** — discard and continue;
-- **Cancel** — keep the current project and stop the action.
-
-The pure helper `shouldProceedAfterUnsavedChoice()` encodes this decision matrix. A cancelled or failed save never proceeds with project replacement.
-
-The same guard is used when the operating system requests application shutdown.
+If Save requires a target, the typed pending operation survives the embedded Save-As workflow and resumes only after a successful write. Cancel or a failed write discards that operation. Returning to Save As after an error can retry saving, but the retry is standalone and cannot execute the abandoned New, Load, or Quit intent. Home-browser loading and drag-and-drop are routed through the same flow. `setupEdit()` no longer opens a modal unsaved-project alert.
 
 ## Safe project replacement
 
@@ -171,20 +163,23 @@ Initial setup should not be user-undoable, so undo history is cleared and the ed
 
 The Projects sidebar exposes **Save** and **Save As**. `Ctrl/Cmd+S` is registered as the normal save command.
 
-`MainComponent::saveCurrentProject(bool saveAs)` delegates to `GUIHelpers::saveEdit()` with the configured projects directory.
+`MainComponent::saveCurrentProject(bool saveAs)` decides whether a target is already available:
 
-A save chooser is required when:
+- an existing persistent `.tracktionedit` path is saved directly;
+- explicit Save As enters the embedded sidebar browser;
+- Save for a new `.nextTemp` edit also enters the embedded Save-As browser.
 
-- Save As is explicitly requested; or
-- the current edit file is not a persistent `.tracktionedit` file, which includes a new project currently backed by `.nextTemp`.
+Selection and execution are separated. `DirectoryBrowserComponent` owns reusable asynchronous directory navigation, while `ProjectsBrowserComponent` owns project filtering, filename validation and inline overwrite confirmation. `MainComponent::saveCurrentProjectTo()` delegates the confirmed path to `GUIHelpers::saveEditToFile()`, which never creates a file dialog.
+
+Save As is modal in behavior without a JUCE modal loop. `MainComponent::setProjectWorkflowActive()` stops transport, sends MIDI panic, frees the playback context, disables editor/lower-range and plugin-window component trees, detaches keyboard MIDI, and marks commands inactive. The overlay provides dimming and consumes outside clicks; it is not the enforcement boundary. Normal project browsing remains non-modal, but the lock is activated for the committed replacement.
 
 On success:
 
 1. `EditComponent::projectSaved()` stops/invalidates autosave work and removes recovery snapshots;
 2. the window title is updated from the persistent project filename;
-3. sidebar browsers are refreshed so the saved project appears.
+3. the filtered Projects directory browser is refreshed when the saved file belongs to its displayed directory.
 
-Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper.
+Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper. Before Save As mutates clip-source and SoundFont-path properties, `ProjectLifecycle::PropertyRollback` snapshots their exact values and whether each property existed. The scope guard restores snapshots unless a successful write explicitly dismisses it. A failed write also restores the previous edit-file retriever and edit name instead of attempting a potentially lossy reverse path conversion. Save failures are displayed inline with the affected path and clear pending continuation intent.
 
 ## Autosave
 
@@ -234,28 +229,27 @@ On clean `MainComponent` destruction:
 
 - edit-bound UI and edit objects are destroyed in dependency order;
 - application settings are saved;
-- the engine temporary directory is removed.
+- the engine temporary directory is removed unless it still contains the active, unpersisted crash recovery.
 
-If the process crashes, normal shutdown cleanup does not run, leaving a `.nextTemp` file that `openValidStartEdit()` can discover on the next launch.
+A restored crash snapshot survives shutdown until it is saved, explicitly discarded, or successfully replaced. If the process crashes, normal shutdown cleanup does not run, likewise leaving a `.nextTemp` file that `openValidStartEdit()` can discover on the next launch.
 
 ## Tests
 
 `App/tests/ProjectLifecycleTests.cpp` covers the pure lifecycle rules:
 
-- unsaved-choice decision matrix;
 - extension normalization and persistent/recovery distinction;
 - save-target selection;
-- request-state consumption and cancellation;
-- rejection of missing and unsupported load requests;
+- exact ValueTree property rollback, including properties that did not previously exist;
+- project-browser filtering, including case-insensitive extensions;
 - load inspection for missing, unsupported, empty, corrupt, wrong-root, XML, binary, and recovery files.
 
-The GUI orchestration, Tracktion edit construction, and asynchronous autosave worker are not currently integration-tested.
+`ProjectWorkflowTests` cover failed-save continuation cleanup, recovery-confirmation locking, and deferred-execution guards. Full GUI orchestration, Tracktion edit construction, and the asynchronous autosave worker are not currently integration-tested.
 
 ## Invariants
 
 Contributors changing project handling should preserve these invariants:
 
-1. Cancelling a chooser never changes the current project.
+1. Cancelling the embedded browser never changes the current project.
 2. Invalid input never destroys the current project.
 3. Cancelling or failing an unsaved-project save never proceeds.
 4. The replacement edit is constructed before the current edit is destroyed.
@@ -264,7 +258,10 @@ Contributors changing project handling should preserve these invariants:
 7. Background autosave cannot clear dirty state for a newer generation.
 8. A normal successful save removes obsolete recovery files.
 9. View/setup bookkeeping does not pollute initial undo history.
-10. Clean shutdown removes temporary recovery data; crashes leave recoverable data.
+10. Clean shutdown removes obsolete temporary recovery data but preserves an active, unpersisted restored snapshot.
+11. A discovered crash snapshot is offered in the Projects sidebar before setup UI or normal shutdown can remove it.
+12. Recovery, Project Load, and Save As do not create a top-level dialog or enter a modal loop.
+13. Save As blocks the rest of the main UI while preserving splitter resizing and outside-click cancellation.
 
 ## Related documents
 

@@ -12,6 +12,7 @@ public:
     explicit MainComponentDebugHost(MainComponent &mainComponent);
 
     bool isDebugMode() const override;
+    bool isProjectWorkflowActive() const override;
     const ApplicationViewState &getApplicationState() const override;
     tracktion_engine::Edit *getCurrentEdit() const override;
     EditViewState *getEditViewState() const override;
@@ -26,6 +27,7 @@ public:
     juce::File captureSnapshot(int maxWidth) const override;
     bool play() override;
     bool stop() override;
+    bool showProjectSaveAs() override;
     tracktion_engine::AudioTrack *createAudioTrack(bool midi, const juce::String &name) override;
     void requestQuit() override;
 

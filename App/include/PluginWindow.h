@@ -102,8 +102,10 @@ public:
     ~PluginWindow() override;
 
     static std::unique_ptr<Component> create(te::Plugin &, ComputerMidiKeyboardController *);
+    static void setAllInteractionEnabled(bool enabled);
 
     void show();
+    void setWorkflowInteractionEnabled(bool enabled);
 
     void setEditor(std::unique_ptr<te::Plugin::EditorComponent>);
     te::Plugin::EditorComponent *getEditor() const { return editor.get(); }
@@ -122,7 +124,11 @@ private:
     te::Plugin &plugin;
     te::PluginWindowState &windowState;
     ComputerMidiKeyboardController *m_computerMidiKeyboard{};
+    bool m_midiKeyboardAttached{false};
     bool updateStoredBounds = false;
+
+    static juce::Array<PluginWindow *> s_openWindows;
+    static bool s_interactionEnabled;
 };
 
 //==============================================================================

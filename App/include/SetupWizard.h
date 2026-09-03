@@ -18,9 +18,12 @@ public:
 
     bool isFinished() const { return m_finished; }
 
+    std::function<void()> onFinished;
+
 private:
     bool validateAndPrepareContentRoot(const juce::File &root, juce::String &errorMessage) const;
-    void showValidationError(const juce::String &message) const;
+    void showValidationError(const juce::String &message);
+    void clearValidationError();
     void updatePathLabel();
     void updateGuiScale();
     void applySelectedTheme();
@@ -42,6 +45,7 @@ private:
     juce::GroupComponent m_pathGroup;
     juce::Label m_currentPathLabel;
     juce::TextButton m_selectPathButton;
+    std::unique_ptr<juce::FileChooser> m_fileChooser;
 
     // Interface setup
     juce::GroupComponent m_interfaceGroup;
@@ -59,6 +63,7 @@ private:
     std::unique_ptr<juce::AudioDeviceSelectorComponent> m_audioSelector;
     std::unique_ptr<juce::Viewport> m_audioViewport;
 
+    juce::Label m_validationLabel;
     juce::TextButton m_finishButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SetupWizard)

@@ -14,6 +14,7 @@ enum class CommandType
     play,
     stop,
     screenshot,
+    projectSaveAs,
     ensureTrack,
     selectTrack,
     ensureMidiClip,

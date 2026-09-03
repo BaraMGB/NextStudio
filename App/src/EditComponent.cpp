@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditComponent.h"
 #include "MainComponent.h"
 #include "AutomationWriteGuard.h"
+#include "ProjectLifecycle.h"
 #include "Utilities.h"
 
 namespace
@@ -1029,11 +1030,8 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
 
 bool EditComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails)
 {
-    if (auto b = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
-    {
-        if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
-            return true;
-    }
+    if (auto *browser = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
+        return ProjectLifecycle::isPersistentProjectFile(browser->getSelectedFile());
     return false;
 }
 
@@ -1068,11 +1066,11 @@ void EditComponent::itemDropped(const SourceDetails &dragSourceDetails)
     if (auto b = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
         f = b->getSelectedFile();
 
-    if (f.existsAsFile())
+    if (f.existsAsFile() && ProjectLifecycle::isPersistentProjectFile(f))
     {
         if (auto mc = dynamic_cast<MainComponent *>(getParentComponent()->getParentComponent()))
         {
-            mc->setupEdit(f);
+            mc->requestProjectOperation({ProjectWorkflow::OperationType::load, f});
             return;
         }
     }

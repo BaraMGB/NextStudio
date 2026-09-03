@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "Browser_Base.h"
+#include "ProjectLifecycle.h"
 #include "TrackHeadComponent.h"
 #include "EditViewState.h"
 
@@ -47,11 +48,9 @@ public:
     inline bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override
     {
 
-        if (auto b = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
-        {
-            if (b->getSelectedFile().getFileName().endsWith(".tracktionedit"))
+        if (auto *browser = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
+            if (ProjectLifecycle::isPersistentProjectFile(browser->getSelectedFile()))
                 return false;
-        }
         return true;
     }
     void itemDragMove(const SourceDetails &dragSourceDetails) override {}

@@ -17,6 +17,7 @@ void testCommandParsing()
     REQUIRE(parseCommandLine("ping").type == CommandType::ping);
     REQUIRE(parseCommandLine(" SYSTEM_STATE ").type == CommandType::systemState);
     REQUIRE(parseCommandLine("transport_state").type == CommandType::transportState);
+    REQUIRE(parseCommandLine("project-save-as").type == CommandType::projectSaveAs);
     REQUIRE(parseCommandLine("exit").type == CommandType::quit);
 
     const auto screenshot = parseCommandLine("screenshot\t 800 ");

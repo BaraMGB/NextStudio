@@ -42,17 +42,6 @@ private:
     juce::File directory;
 };
 
-void testUnsavedDecisionMatrix()
-{
-    using namespace ProjectLifecycle;
-
-    REQUIRE(shouldProceedAfterUnsavedChoice(UnsavedChoice::save, SaveResult::saved));
-    REQUIRE(!shouldProceedAfterUnsavedChoice(UnsavedChoice::save, SaveResult::cancelled));
-    REQUIRE(!shouldProceedAfterUnsavedChoice(UnsavedChoice::save, SaveResult::failed));
-    REQUIRE(shouldProceedAfterUnsavedChoice(UnsavedChoice::discard, SaveResult::cancelled));
-    REQUIRE(!shouldProceedAfterUnsavedChoice(UnsavedChoice::cancel, SaveResult::saved));
-}
-
 void testProjectExtensionHandling()
 {
     using namespace ProjectLifecycle;
@@ -61,6 +50,19 @@ void testProjectExtensionHandling()
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.txt")).getFileName(), juce::String("Song.tracktionedit"));
     REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.tracktionedit")).getFileName(), juce::String("Song.tracktionedit"));
+    REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.tracktionedit.tracktionedit")).getFileName(), juce::String("Song.tracktionedit"));
+    REQUIRE_EQ(withProjectExtension(root.getChildFile("Song.TRACKTIONEDIT")).getFileName(), juce::String("Song.tracktionedit"));
+    const auto upperCaseProject = root.getChildFile("Song.TRACKTIONEDIT");
+    REQUIRE_EQ(normaliseSaveTarget(upperCaseProject, upperCaseProject), upperCaseProject);
+    REQUIRE_EQ(normaliseSaveTarget(root.getChildFile("New Song"), upperCaseProject).getFileName(), juce::String("New Song.tracktionedit"));
+    REQUIRE_EQ(projectNameWithoutExtension(" Song.tracktionedit.TRACKTIONEDIT "), juce::String("Song"));
+    REQUIRE(isValidProjectName("Song"));
+    REQUIRE(isValidProjectName("My Song.tracktionedit"));
+    REQUIRE(!isValidProjectName(""));
+    REQUIRE(!isValidProjectName("  "));
+    REQUIRE(!isValidProjectName("../Song"));
+    REQUIRE(!isValidProjectName("Song?"));
+    REQUIRE(!isValidProjectName("Song."));
     const auto persistentProject = root.getChildFile("Song.TRACKTIONEDIT");
     const auto temporaryProject = root.getChildFile("Song.nextTemp");
     REQUIRE(isPersistentProjectFile(persistentProject));
@@ -68,37 +70,54 @@ void testProjectExtensionHandling()
     REQUIRE(!shouldChooseSaveTarget(persistentProject, false));
     REQUIRE(shouldChooseSaveTarget(persistentProject, true));
     REQUIRE(shouldChooseSaveTarget(temporaryProject, false));
+
+    ScopedTestDirectory testDirectory;
+    const auto validTarget = withProjectExtension(testDirectory.file("New Song"));
+    REQUIRE(isValidProjectTarget(validTarget));
+    REQUIRE(!isValidProjectTarget(testDirectory.file("New Song.txt")));
+    REQUIRE(!isValidProjectTarget(testDirectory.file("Bad?.tracktionedit")));
+
+    const auto browserDirectory = testDirectory.file("Subfolder");
+    REQUIRE(browserDirectory.createDirectory());
+    REQUIRE(isProjectBrowserEntry(browserDirectory));
+    REQUIRE(isProjectBrowserEntry(testDirectory.file("Song.TRACKTIONEDIT")));
+    REQUIRE(!isProjectBrowserEntry(testDirectory.file("Song.wav")));
 }
 
-void testProjectRequestState()
+void testPropertyRollbackRestoresExactValues()
 {
-    using namespace ProjectLifecycle;
-    ScopedTestDirectory testDirectory;
-    const auto project = testDirectory.file("Song.tracktionedit");
-    REQUIRE(project.replaceWithText("project"));
+    const juce::Identifier source("source");
+    const juce::Identifier soundFontPath("soundFontPath");
+    juce::ValueTree clip("CLIP");
+    juce::ValueTree plugin("PLUGIN");
+    juce::ValueTree initiallyMissing("MISSING");
+    clip.setProperty(source, "../Audio/Kick.wav", nullptr);
+    plugin.setProperty(soundFontPath, "/library/Piano.sf2", nullptr);
 
-    ProjectRequestState state;
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
+    {
+        ProjectLifecycle::PropertyRollback failedSave;
+        failedSave.capture(clip, source);
+        failedSave.capture(plugin, soundFontPath);
+        failedSave.capture(initiallyMissing, source);
+        failedSave.capture(clip, source); // Duplicate captures must not replace the original snapshot.
 
-    state.requestNewProject();
-    REQUIRE_EQ(state.take().action, ProjectAction::newProject);
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
+        clip.setProperty(source, "../../NewLocation/Kick.wav", nullptr);
+        plugin.setProperty(soundFontPath, "../Piano.sf2", nullptr);
+        initiallyMissing.setProperty(source, "temporary.wav", nullptr);
+        // No dismiss: leaving a failed save scope restores the snapshots.
+    }
 
-    REQUIRE(state.requestLoadProject(project));
-    REQUIRE_EQ(state.peek().action, ProjectAction::loadProject);
-    REQUIRE_EQ(state.peek().file, project);
+    REQUIRE_EQ(clip.getProperty(source).toString(), juce::String("../Audio/Kick.wav"));
+    REQUIRE_EQ(plugin.getProperty(soundFontPath).toString(), juce::String("/library/Piano.sf2"));
+    REQUIRE(!initiallyMissing.hasProperty(source));
 
-    // This is the chooser-cancel path: clearing must remove a previously selected target.
-    state.clear();
-    REQUIRE_EQ(state.take().action, ProjectAction::none);
-
-    const auto unsupported = testDirectory.file("Song.txt");
-    REQUIRE(unsupported.replaceWithText("project"));
-    REQUIRE(!state.requestLoadProject(unsupported));
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
-
-    REQUIRE(!state.requestLoadProject(testDirectory.file("Missing.tracktionedit")));
-    REQUIRE_EQ(state.peek().action, ProjectAction::none);
+    {
+        ProjectLifecycle::PropertyRollback successfulSave;
+        successfulSave.capture(clip, source);
+        clip.setProperty(source, "../Committed/Kick.wav", nullptr);
+        successfulSave.dismiss();
+    }
+    REQUIRE_EQ(clip.getProperty(source).toString(), juce::String("../Committed/Kick.wav"));
 }
 
 void testLoadFileInspection()
@@ -151,9 +170,8 @@ void testLoadFileInspection()
 
 int main()
 {
-    testUnsavedDecisionMatrix();
     testProjectExtensionHandling();
-    testProjectRequestState();
+    testPropertyRollbackRestoresExactValues();
     testLoadFileInspection();
 
     if (failures != 0)

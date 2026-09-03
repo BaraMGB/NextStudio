@@ -28,14 +28,17 @@ constexpr bool shouldAddPluginWindowToDesktop = false;
 constexpr bool shouldAddPluginWindowToDesktop = true;
 #endif
 
+juce::Array<PluginWindow *> PluginWindow::s_openWindows;
+bool PluginWindow::s_interactionEnabled = true;
+
 PluginWindow::PluginWindow(te::Plugin &plug, ComputerMidiKeyboardController *computerMidiKeyboard)
     : DocumentWindow(plug.getName(), juce::Colours::black, DocumentWindow::closeButton, shouldAddPluginWindowToDesktop),
       plugin(plug),
       windowState(*plug.windowState),
       m_computerMidiKeyboard(computerMidiKeyboard)
 {
-    if (m_computerMidiKeyboard != nullptr)
-        m_computerMidiKeyboard->attachTo(*this);
+    s_openWindows.add(this);
+    setWorkflowInteractionEnabled(s_interactionEnabled);
 
     getConstrainer()->setMinimumOnscreenAmounts(0x10000, 50, 30, 50);
     setResizeLimits(100, 50, 4000, 4000);
@@ -53,12 +56,34 @@ PluginWindow::PluginWindow(te::Plugin &plug, ComputerMidiKeyboardController *com
 
 PluginWindow::~PluginWindow()
 {
-    if (m_computerMidiKeyboard != nullptr)
+    s_openWindows.removeFirstMatchingValue(this);
+    if (m_computerMidiKeyboard != nullptr && m_midiKeyboardAttached)
         m_computerMidiKeyboard->detachFrom(*this);
 
     updateStoredBounds = false;
     plugin.edit.flushPluginStateIfNeeded(plugin);
     setEditor(nullptr);
+}
+
+void PluginWindow::setAllInteractionEnabled(bool enabled)
+{
+    s_interactionEnabled = enabled;
+    for (auto *window : s_openWindows)
+        if (window != nullptr)
+            window->setWorkflowInteractionEnabled(enabled);
+}
+
+void PluginWindow::setWorkflowInteractionEnabled(bool enabled)
+{
+    setEnabled(enabled);
+    if (m_computerMidiKeyboard == nullptr || enabled == m_midiKeyboardAttached)
+        return;
+
+    if (enabled)
+        m_computerMidiKeyboard->attachTo(*this);
+    else
+        m_computerMidiKeyboard->detachFrom(*this);
+    m_midiKeyboardAttached = enabled;
 }
 
 void PluginWindow::show()

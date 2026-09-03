@@ -48,6 +48,8 @@ This directory contains the user and developer documentation for NextStudio.
 - [Playback graph reallocation inhibition](architecture/playback-graph-reallocation.md) — Tracktion's `ReallocationInhibitor`, delayed graph rebuilds, lifetime rules, limitations, and NextStudio's bulk clip-edit usage.
 - [Central clip overwrite command](architecture/clip-overwrite-command.md) — incoming-wins planning, selective victim trimming, atomic commit, undo, and entry points.
 - [Project lifecycle](architecture/project-lifecycle.md) — new/load/save/save-as, unsaved changes, autosave, recovery, validation, and teardown order.
+- [Project workflow controller](architecture/project-workflow.md) — typed continuations, state transitions, editor/plugin interaction locking, and engine suspension.
+- [Embedded startup wizard](architecture/startup-wizard.md) — in-editor placement, shared overlay locking, asynchronous completion, and recovery ordering.
 
 ## Development
 
@@ -66,6 +68,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
 - [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
+- [Embedded project file browser](changes/embedded-project-file-browser.md) — shared Home/Projects directory browser, filtered project activation, inline Save As, interaction blocking, validation, state transitions, and debug-shell coverage.
 
 ## Documentation conventions
 
@@ -89,5 +92,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 | MIDI note properties | `App/include/NotePropertiesBar.h`, `App/src/NotePropertiesBar.cpp` |
 | Position formatting | `App/include/PositionDisplayHelpers.h`, `App/src/PositionDisplayHelpers.cpp` |
 | Project lifecycle helpers | `App/include/ProjectLifecycle.h`, `App/src/ProjectLifecycle.cpp` |
+| Project workflow controller | `App/include/ProjectWorkflow.h`, `App/src/ProjectWorkflow.cpp` |
+| Startup wizard | `App/include/SetupWizard.h`, `App/src/SetupWizard.cpp`, `App/include/MainInteractionState.h` |
 | Agent debug system | `App/include/Debug*.h`, `App/src/Debug*.cpp`, `.pi/extensions/nextstudio-debug.ts`, `tools/debug-shell-client.js` |
 | Tests | `App/tests/` |

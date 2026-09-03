@@ -14,28 +14,88 @@ by the Free Software Foundation, either version 3 of the License, or
 
 namespace ProjectLifecycle
 {
-bool shouldProceedAfterUnsavedChoice(UnsavedChoice choice, SaveResult saveResult)
+void PropertyRollback::capture(const juce::ValueTree &tree, const juce::Identifier &property)
 {
-    switch (choice)
+    if (!tree.isValid())
+        return;
+
+    for (const auto &snapshot : snapshots)
+        if (snapshot.tree == tree && snapshot.property == property)
+            return;
+
+    snapshots.push_back({tree, property, tree.getProperty(property), tree.hasProperty(property)});
+}
+
+void PropertyRollback::restore()
+{
+    for (auto snapshot = snapshots.rbegin(); snapshot != snapshots.rend(); ++snapshot)
     {
-    case UnsavedChoice::save:
-        return saveResult == SaveResult::saved;
-    case UnsavedChoice::discard:
-        return true;
-    case UnsavedChoice::cancel:
-    default:
-        return false;
+        if (snapshot->existed)
+            snapshot->tree.setProperty(snapshot->property, snapshot->value, nullptr);
+        else
+            snapshot->tree.removeProperty(snapshot->property, nullptr);
     }
+    snapshots.clear();
 }
 
 juce::File withProjectExtension(const juce::File &file)
 {
-    return file.withFileExtension(".tracktionedit");
+    if (file == juce::File())
+        return {};
+
+    const auto baseName = projectNameWithoutExtension(file.getFileNameWithoutExtension());
+    return file.getSiblingFile(baseName + ".tracktionedit");
+}
+
+juce::File normaliseSaveTarget(const juce::File &requestedFile, const juce::File &currentFile)
+{
+    if (requestedFile == currentFile && isPersistentProjectFile(currentFile))
+        return currentFile;
+    return withProjectExtension(requestedFile);
+}
+
+juce::String projectNameWithoutExtension(const juce::String &name)
+{
+    auto result = name.trim();
+    constexpr auto extension = ".tracktionedit";
+    while (result.endsWithIgnoreCase(extension))
+        result = result.dropLastCharacters(juce::String(extension).length()).trimEnd();
+    return result;
+}
+
+bool isValidProjectName(const juce::String &name)
+{
+    const auto normalised = projectNameWithoutExtension(name);
+    if (normalised.isEmpty() || normalised == "." || normalised == ".."
+        || normalised.endsWithChar('.') || normalised.endsWithChar(' '))
+        return false;
+
+    for (const auto character : normalised)
+        if (character < 32 || juce::String("<>:\"/\\|?*").containsChar(character))
+            return false;
+
+    return true;
 }
 
 bool isPersistentProjectFile(const juce::File &file)
 {
     return file.getFileExtension().equalsIgnoreCase(".tracktionedit");
+}
+
+bool isProjectBrowserEntry(const juce::File &file)
+{
+    return file.isDirectory() || isPersistentProjectFile(file);
+}
+
+bool isValidProjectTarget(const juce::File &file)
+{
+    if (file == juce::File() || file.isDirectory() || !isPersistentProjectFile(file)
+        || !isValidProjectName(file.getFileNameWithoutExtension()))
+        return false;
+
+    const auto parent = file.getParentDirectory();
+    return parent.isDirectory() && parent.hasWriteAccess()
+           && (!file.existsAsFile() || file.hasWriteAccess());
 }
 
 bool shouldChooseSaveTarget(const juce::File &currentFile, bool forceSaveAs)
@@ -69,37 +129,4 @@ LoadFileStatus inspectLoadFile(const juce::File &file, bool allowRecoveryFile)
     return LoadFileStatus::invalidData;
 }
 
-void ProjectRequestState::clear()
-{
-    request = {};
-}
-
-void ProjectRequestState::requestNewProject()
-{
-    request = {ProjectAction::newProject, {}};
-}
-
-bool ProjectRequestState::requestLoadProject(const juce::File &file)
-{
-    if (!file.existsAsFile() || !isPersistentProjectFile(file))
-    {
-        clear();
-        return false;
-    }
-
-    request = {ProjectAction::loadProject, file};
-    return true;
-}
-
-ProjectRequest ProjectRequestState::take()
-{
-    const auto result = request;
-    clear();
-    return result;
-}
-
-ProjectRequest ProjectRequestState::peek() const
-{
-    return request;
-}
 } // namespace ProjectLifecycle
