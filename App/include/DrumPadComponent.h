@@ -104,6 +104,8 @@ public:
     int getSoundIndexForPad(int padIndex);
     juce::String getMidiNoteNameForPad(int padIndex);
     std::function<void(int)> onPadClicked;
+    std::function<void(int)> onPadTriggered;
+    std::function<void(int)> onPadReleased;
 
     ApplicationViewState &m_appViewState;
     static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)

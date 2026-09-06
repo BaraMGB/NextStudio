@@ -45,7 +45,7 @@ SoundEditorPanel::SoundEditorPanel(te::SamplerPlugin &plugin, te::Edit &edit, Ap
     gainValue.addListener(this);
     panValue.addListener(this);
 
-    m_thumbnail = std::make_unique<SampleDisplay>(m_edit.getTransport(), m_appViewState);
+    m_thumbnail = std::make_unique<TriggeredSampleDisplay>(m_edit, m_appViewState);
     addAndMakeVisible(*m_thumbnail);
 
     // Set up callback for marker position changes
@@ -53,6 +53,7 @@ SoundEditorPanel::SoundEditorPanel(te::SamplerPlugin &plugin, te::Edit &edit, Ap
     {
         if (soundIndex != -1)
         {
+            m_thumbnail->stopPlayback();
             double length = end - start;
             m_samplerPlugin.setSoundExcerpt(soundIndex, start, length);
         }
@@ -167,6 +168,7 @@ void SoundEditorPanel::setSound(int index)
 {
     if (m_thumbnail != nullptr)
     {
+        m_thumbnail->stopPlayback();
         if (index >= 0 && index < m_samplerPlugin.getNumSounds())
         {
             soundIndex = index;
@@ -209,6 +211,24 @@ void SoundEditorPanel::setSound(int index)
     }
     resized();
     repaint();
+}
+
+void SoundEditorPanel::soundTriggered(int index)
+{
+    if (m_thumbnail == nullptr || index != soundIndex || index < 0 || index >= m_samplerPlugin.getNumSounds())
+        return;
+
+    const auto audioFile = m_samplerPlugin.getSoundFile(index);
+    if (!audioFile.isValid())
+        return;
+
+    m_thumbnail->trigger(m_samplerPlugin.getSoundStartTime(index), m_samplerPlugin.getSoundLength(index));
+}
+
+void SoundEditorPanel::soundReleased(int index)
+{
+    if (m_thumbnail != nullptr && index == soundIndex && index >= 0 && index < m_samplerPlugin.getNumSounds())
+        m_thumbnail->release(m_samplerPlugin.isSoundOpenEnded(index));
 }
 
 void SoundEditorPanel::valueChanged(juce::Value &value)

@@ -42,6 +42,8 @@ public:
     void resized() override;
 
     void setSound(int soundIndex);
+    void soundTriggered(int soundIndex);
+    void soundReleased(int soundIndex);
 
     void buttonClicked(juce::Button *button) override;
     void valueChanged(juce::Value &value) override;
@@ -61,5 +63,5 @@ private:
     juce::Label openEndedLabel;
 
     std::unique_ptr<te::AudioFile> m_audioFile;
-    std::unique_ptr<SampleDisplay> m_thumbnail;
+    std::unique_ptr<TriggeredSampleDisplay> m_thumbnail;
 };

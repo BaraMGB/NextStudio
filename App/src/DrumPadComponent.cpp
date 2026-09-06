@@ -83,6 +83,9 @@ void PadComponent::mouseUp(const juce::MouseEvent &e)
             NS_LOG_DEBUG(engine, "drum pad mouse-up sends fixed MIDI note " + juce::String(midiNote) + " for pad " + juce::String(padIndex));
 
             virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOff(1, midiNote, .8f), 0);
+
+            if (owner->onPadReleased)
+                owner->onPadReleased(owner->getSoundIndexForPad(padIndex));
         }
     }
 }
@@ -242,7 +245,12 @@ void DrumPadGridComponent::buttonDown(int padIndex)
                 NS_LOG_DEBUG(engine, "drum pad uses fixed MIDI note " + juce::String(midiNote) + " for pad " + juce::String(padIndex));
 
                 if (auto virMidiIn = EngineHelpers::getVirtualMidiInputDevice(*getEdit()))
+                {
                     virMidiIn->handleIncomingMidiMessage(juce::MidiMessage::noteOn(1, midiNote, .8f), 0);
+
+                    if (onPadTriggered)
+                        onPadTriggered(soundIndex);
+                }
                 NS_LOG_INFO(engine, "drum pad triggered note " + juce::String(midiNote));
             }
             else
@@ -808,6 +816,9 @@ void DrumPadGridComponent::processMidiForPadLighting(const juce::MidiMessage &me
         if (padIndex >= 0 && padIndex < m_pads.size())
         {
             illuminatePadForNote(noteNumber, velocity);
+
+            if (onPadTriggered)
+                onPadTriggered(getSoundIndexForPad(padIndex));
         }
     }
     else if (message.isNoteOff())
@@ -818,6 +829,9 @@ void DrumPadGridComponent::processMidiForPadLighting(const juce::MidiMessage &me
         if (padIndex >= 0 && padIndex < m_pads.size())
         {
             turnOffPadForNote(noteNumber);
+
+            if (onPadReleased)
+                onPadReleased(getSoundIndexForPad(padIndex));
         }
     }
 }

@@ -87,12 +87,12 @@ private:
 
 class ApplicationViewState;
 
-class SampleDisplay : public juce::Component
+class SampleDisplayBase : public juce::Component
 {
 public:
     static constexpr int CURSOR_UPDATE_FPS = 15;
 
-    SampleDisplay(te::TransportControl &tc, ApplicationViewState &appViewState);
+    SampleDisplayBase(te::Edit &edit, ApplicationViewState &appViewState);
 
     void resized() override;
 
@@ -102,16 +102,23 @@ public:
     void setFile(const te::AudioFile &file);
     void setColour(juce::Colour colour);
 
-    // New methods for start/end markers
     void setStartEndPositions(double start, double end);
     void clearStartEndMarkers();
-    void refreshMarkers(); // Public method to force marker update
+    void refreshMarkers();
 
-    // Callback for marker position changes
     std::function<void(double start, double end)> onMarkerPositionChanged;
 
+protected:
+    virtual std::optional<double> getPlaybackPosition() = 0;
+    virtual bool canScrub() const { return false; }
+    virtual void beginScrub() {}
+    virtual void seek(double) {}
+    virtual void endScrub() {}
+
+    void updateCursorPosition();
+    double getSampleLength() const { return m_totalLength; }
+
 private:
-    te::TransportControl &transport;
     ApplicationViewState &m_appViewState;
     juce::DrawableRectangle cursor;
     MarkerComponent m_startMarker;
@@ -123,7 +130,41 @@ private:
     double m_endPosition = -1.0;
     double m_totalLength = 0.0;
 
-    void updateCursorPosition();
     void updateStartEndMarkers();
     double positionToTime(const juce::Point<float> &position) const;
+};
+
+class TransportSampleDisplay final : public SampleDisplayBase
+{
+public:
+    TransportSampleDisplay(te::TransportControl &transport, ApplicationViewState &appViewState);
+
+protected:
+    std::optional<double> getPlaybackPosition() override;
+    bool canScrub() const override { return true; }
+    void beginScrub() override;
+    void seek(double sampleTime) override;
+    void endScrub() override;
+
+private:
+    te::TransportControl &m_transport;
+};
+
+class TriggeredSampleDisplay final : public SampleDisplayBase
+{
+public:
+    TriggeredSampleDisplay(te::Edit &edit, ApplicationViewState &appViewState);
+
+    void trigger(double excerptStart, double excerptLength);
+    void release(bool openEnded);
+    void stopPlayback();
+
+protected:
+    std::optional<double> getPlaybackPosition() override;
+
+private:
+    double m_triggerTimeMs = 0.0;
+    double m_excerptStart = 0.0;
+    double m_excerptLength = 0.0;
+    bool m_isPlaying = false;
 };

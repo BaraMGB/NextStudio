@@ -34,6 +34,8 @@ DrumSamplerView::DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler)
         if (m_viewState.isValid())
             m_viewState.setProperty("selectedDrumPad", padIndex, nullptr);
     };
+    m_drumPadComponent.onPadTriggered = [this](int soundIndex) { m_soundEditorPanel.soundTriggered(soundIndex); };
+    m_drumPadComponent.onPadReleased = [this](int soundIndex) { m_soundEditorPanel.soundReleased(soundIndex); };
 
     if (m_sampler.getNumSounds() > 0)
     {

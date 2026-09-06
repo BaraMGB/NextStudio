@@ -154,15 +154,14 @@ double MarkerComponent::timeFromPosition(const juce::Point<float> &position) con
 }
 
 //==============================================================================
-// SampleDisplay Implementation
+// SampleDisplay Implementations
 //==============================================================================
 
-SampleDisplay::SampleDisplay(te::TransportControl &tc, ApplicationViewState &appViewState)
-    : transport(tc),
-      m_appViewState(appViewState),
-      m_sampleView(tc.edit),
+SampleDisplayBase::SampleDisplayBase(te::Edit &edit, ApplicationViewState &appViewState)
+    : m_appViewState(appViewState),
       m_startMarker(MarkerComponent::Start, appViewState.getPrimeColour()),
-      m_endMarker(MarkerComponent::End, appViewState.getPrimeColour())
+      m_endMarker(MarkerComponent::End, appViewState.getPrimeColour()),
+      m_sampleView(edit)
 {
     addAndMakeVisible(m_sampleView);
     cursorUpdater.setCallback(
@@ -175,15 +174,14 @@ SampleDisplay::SampleDisplay(te::TransportControl &tc, ApplicationViewState &app
         });
     cursor.setFill(findColour(juce::Label::textColourId));
     addAndMakeVisible(cursor);
+    cursor.setVisible(false);
 
     addAndMakeVisible(m_startMarker);
     addAndMakeVisible(m_endMarker);
 
-    // Set up callbacks for marker position changes
     m_startMarker.onPositionChanged = [this](double newTime)
     {
         m_startPosition = newTime;
-        // Ensure start <= end
         if (m_endPosition >= 0.0 && m_startPosition > m_endPosition)
         {
             m_startPosition = m_endPosition;
@@ -196,7 +194,6 @@ SampleDisplay::SampleDisplay(te::TransportControl &tc, ApplicationViewState &app
     m_endMarker.onPositionChanged = [this](double newTime)
     {
         m_endPosition = newTime;
-        // Ensure end >= start
         if (m_startPosition >= 0.0 && m_endPosition < m_startPosition)
         {
             m_endPosition = m_startPosition;
@@ -206,106 +203,110 @@ SampleDisplay::SampleDisplay(te::TransportControl &tc, ApplicationViewState &app
             onMarkerPositionChanged(m_startPosition, m_endPosition);
     };
 }
-void SampleDisplay::resized()
+
+void SampleDisplayBase::resized()
 {
     m_sampleView.setBounds(getLocalBounds());
-
-    // Update marker positions when resized
     updateStartEndMarkers();
+    updateCursorPosition();
 }
-void SampleDisplay::setFile(const tracktion_engine::AudioFile &file)
+
+void SampleDisplayBase::setFile(const tracktion_engine::AudioFile &file)
 {
     m_sampleView.setFile(file);
 
-    // Update total length for marker calculations
     if (file.isValid() && file.getSampleRate() > 0.0)
+    {
         m_totalLength = file.getLengthInSamples() / file.getSampleRate();
+        cursorUpdater.startTimerHz(CURSOR_UPDATE_FPS);
+    }
     else
     {
         m_totalLength = 0.0;
+        cursorUpdater.stopTimer();
+        cursor.setVisible(false);
         clearStartEndMarkers();
     }
 
-    cursorUpdater.startTimerHz(CURSOR_UPDATE_FPS);
-
-    // Update markers with new total length
     updateStartEndMarkers();
-
+    updateCursorPosition();
     repaint();
 }
-void SampleDisplay::setColour(juce::Colour colour) { m_sampleView.setColour(colour); }
-void SampleDisplay::updateCursorPosition()
-{
-    const double loopLength = transport.getLoopRange().getLength().inSeconds();
-    const double proportion = loopLength == 0.0 ? 0.0 : transport.getPosition().inSeconds() / loopLength;
 
+void SampleDisplayBase::setColour(juce::Colour colour) { m_sampleView.setColour(colour); }
+
+void SampleDisplayBase::updateCursorPosition()
+{
+    const auto playbackPosition = getPlaybackPosition();
+    if (!playbackPosition.has_value() || m_totalLength <= 0.0 || getWidth() <= 0)
+    {
+        cursor.setVisible(false);
+        return;
+    }
+
+    const double proportion = juce::jlimit(0.0, 1.0, *playbackPosition / m_totalLength);
     auto r = getLocalBounds().toFloat();
-    const float x = r.getWidth() * float(proportion);
-    cursor.setRectangle(r.withWidth(2.0f).withX(x));
+    const float cursorWidth = 2.0f;
+    const float x = juce::jlimit(0.0f, juce::jmax(0.0f, r.getWidth() - cursorWidth), r.getWidth() * float(proportion));
+    cursor.setRectangle(r.withWidth(cursorWidth).withX(x));
+    cursor.setVisible(true);
 }
-void SampleDisplay::mouseDown(const juce::MouseEvent &e)
+
+void SampleDisplayBase::mouseDown(const juce::MouseEvent &e)
 {
-    // Let marker components handle their own interaction
-    if (m_startMarker.isOverPosition(e.position))
-        return;
-    if (m_endMarker.isOverPosition(e.position))
+    if (m_startMarker.isOverPosition(e.position) || m_endMarker.isOverPosition(e.position) || !canScrub())
         return;
 
-    // Otherwise handle transport control as before
-    transport.setUserDragging(true);
+    beginScrub();
     mouseDrag(e);
 }
 
-void SampleDisplay::mouseDrag(const juce::MouseEvent &e)
+void SampleDisplayBase::mouseDrag(const juce::MouseEvent &e)
 {
-    // Marker components handle their own dragging
-    // Just handle transport control as before
-    jassert(getWidth() > 0);
-    const float proportion = (float)e.position.x / (float)getWidth();
-    transport.position = tracktion::TimePosition::fromSeconds(transport.getLoopRange().getLength().inSeconds() * proportion);
+    if (!canScrub() || getWidth() <= 0)
+        return;
+
+    seek(positionToTime(e.position));
 }
 
-void SampleDisplay::mouseUp(const juce::MouseEvent &) { transport.setUserDragging(false); }
-
-// New methods for start/end markers
-void SampleDisplay::setStartEndPositions(double start, double end)
+void SampleDisplayBase::mouseUp(const juce::MouseEvent &)
 {
-    // Validate input
+    if (canScrub())
+        endScrub();
+}
+
+void SampleDisplayBase::setStartEndPositions(double start, double end)
+{
     if (start < 0.0 || end < 0.0 || m_totalLength <= 0.0)
     {
         clearStartEndMarkers();
         return;
     }
 
-    // Ensure start <= end
     if (start > end)
         std::swap(start, end);
 
-    // Clamp to valid range
     start = juce::jlimit(0.0, m_totalLength, start);
     end = juce::jlimit(0.0, m_totalLength, end);
 
     m_startPosition = start;
     m_endPosition = end;
 
-    // Update marker components with constraints
     m_startMarker.setPosition(m_startPosition, m_totalLength, (float)getWidth(), 0.0, m_endPosition);
     m_endMarker.setPosition(m_endPosition, m_totalLength, (float)getWidth(), m_startPosition, m_totalLength);
 }
 
-void SampleDisplay::clearStartEndMarkers()
+void SampleDisplayBase::clearStartEndMarkers()
 {
     m_startPosition = -1.0;
     m_endPosition = -1.0;
-
     updateStartEndMarkers();
 }
 
-void SampleDisplay::refreshMarkers() { updateStartEndMarkers(); }
+void SampleDisplayBase::refreshMarkers() { updateStartEndMarkers(); }
 
-void SampleDisplay::updateStartEndMarkers()
+void SampleDisplayBase::updateStartEndMarkers()
 {
-    // Update start marker
     if (m_startPosition >= 0.0 && m_totalLength > 0.0)
     {
         m_startMarker.setPosition(m_startPosition, m_totalLength, (float)getWidth(), 0.0, (m_endPosition >= 0.0) ? m_endPosition : m_totalLength);
@@ -316,7 +317,6 @@ void SampleDisplay::updateStartEndMarkers()
         m_startMarker.setVisible(false);
     }
 
-    // Update end marker
     if (m_endPosition >= 0.0 && m_totalLength > 0.0)
     {
         m_endMarker.setPosition(m_endPosition, m_totalLength, (float)getWidth(), (m_startPosition >= 0.0) ? m_startPosition : 0.0, m_totalLength);
@@ -328,13 +328,83 @@ void SampleDisplay::updateStartEndMarkers()
     }
 }
 
-double SampleDisplay::positionToTime(const juce::Point<float> &position) const
+double SampleDisplayBase::positionToTime(const juce::Point<float> &position) const
 {
     if (m_totalLength <= 0.0 || getWidth() <= 0)
         return 0.0;
 
-    float proportion = juce::jlimit(0.0f, 1.0f, position.x / (float)getWidth());
+    const float proportion = juce::jlimit(0.0f, 1.0f, position.x / (float)getWidth());
     return proportion * m_totalLength;
+}
+
+TransportSampleDisplay::TransportSampleDisplay(te::TransportControl &transport, ApplicationViewState &appViewState)
+    : SampleDisplayBase(transport.edit, appViewState),
+      m_transport(transport)
+{
+}
+
+std::optional<double> TransportSampleDisplay::getPlaybackPosition()
+{
+    if (!m_transport.isPlaying())
+        return std::nullopt;
+
+    const auto loopRange = m_transport.getLoopRange();
+    const double sampleTime = (m_transport.getPosition() - loopRange.getStart()).inSeconds();
+    if (sampleTime > getSampleLength())
+        return std::nullopt;
+
+    return juce::jmax(0.0, sampleTime);
+}
+
+void TransportSampleDisplay::beginScrub() { m_transport.setUserDragging(true); }
+
+void TransportSampleDisplay::seek(double sampleTime)
+{
+    const auto loopStart = m_transport.getLoopRange().getStart();
+    m_transport.position = loopStart + tracktion::TimeDuration::fromSeconds(sampleTime);
+}
+
+void TransportSampleDisplay::endScrub() { m_transport.setUserDragging(false); }
+
+TriggeredSampleDisplay::TriggeredSampleDisplay(te::Edit &edit, ApplicationViewState &appViewState)
+    : SampleDisplayBase(edit, appViewState)
+{
+}
+
+void TriggeredSampleDisplay::trigger(double excerptStart, double excerptLength)
+{
+    m_excerptStart = juce::jmax(0.0, excerptStart);
+    m_excerptLength = juce::jmax(0.0, excerptLength);
+    m_triggerTimeMs = juce::Time::getMillisecondCounterHiRes();
+    m_isPlaying = m_excerptLength > 0.0;
+    updateCursorPosition();
+}
+
+void TriggeredSampleDisplay::release(bool openEnded)
+{
+    if (!openEnded)
+        stopPlayback();
+}
+
+void TriggeredSampleDisplay::stopPlayback()
+{
+    m_isPlaying = false;
+    updateCursorPosition();
+}
+
+std::optional<double> TriggeredSampleDisplay::getPlaybackPosition()
+{
+    if (!m_isPlaying)
+        return std::nullopt;
+
+    const double elapsedSeconds = (juce::Time::getMillisecondCounterHiRes() - m_triggerTimeMs) / 1000.0;
+    if (elapsedSeconds >= m_excerptLength)
+    {
+        m_isPlaying = false;
+        return std::nullopt;
+    }
+
+    return m_excerptStart + elapsedSeconds;
 }
 
 SampleView::SampleView(te::Edit &edit)
