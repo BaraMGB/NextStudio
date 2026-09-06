@@ -143,13 +143,48 @@ void MixerChannelStripComponent::valueTreeChildRemoved(juce::ValueTree &, juce::
 
 void MixerChannelStripComponent::valueTreeChildOrderChanged(juce::ValueTree &, int, int) { updateComponentsFromTrack(); }
 
+te::LevelMeasurer *MixerChannelStripComponent::getLevelMeasurer() const
+{
+    if (m_track == nullptr)
+        return nullptr;
+
+    if (m_isMasterTrack)
+    {
+        if (auto *playbackContext = m_track->edit.getTransport().getCurrentPlaybackContext())
+            return &playbackContext->masterLevels;
+
+        return nullptr;
+    }
+
+    if (auto *audioTrack = dynamic_cast<te::AudioTrack *>(m_track.get()))
+        if (auto *levelPlugin = audioTrack->getLevelMeterPlugin())
+            return &levelPlugin->measurer;
+
+    if (auto *folderTrack = dynamic_cast<te::FolderTrack *>(m_track.get()))
+        if (auto *levelPlugin = findLevelMeterPlugin(*folderTrack))
+            return &levelPlugin->measurer;
+
+    return nullptr;
+}
+
 void MixerChannelStripComponent::updateComponentsFromTrack()
 {
     if (m_track == nullptr)
         return;
 
-    m_levelMeterLeft.reset();
-    m_levelMeterRight.reset();
+    if (m_levelMeterLeft == nullptr)
+    {
+        m_levelMeterLeft = std::make_unique<LevelMeterComponent>(
+            [this] { return getLevelMeasurer(); }, LevelMeterComponent::ChannelType::Left);
+        addAndMakeVisible(*m_levelMeterLeft);
+    }
+
+    if (m_levelMeterRight == nullptr)
+    {
+        m_levelMeterRight = std::make_unique<LevelMeterComponent>(
+            [this] { return getLevelMeasurer(); }, LevelMeterComponent::ChannelType::Right);
+        addAndMakeVisible(*m_levelMeterRight);
+    }
 
     // Re-bind sliders
     if (m_isMasterTrack)
@@ -159,27 +194,6 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
 
         if (auto masterVol = m_track->edit.getMasterVolumePlugin())
             m_muteButton.setToggleState(masterVol->getSliderPos() <= 0.0f, juce::dontSendNotification);
-
-        m_levelMeterLeft = std::make_unique<LevelMeterComponent>(
-            [this]() -> te::LevelMeasurer *
-            {
-                if (auto epc = m_track->edit.getTransport().getCurrentPlaybackContext())
-                    return &epc->masterLevels;
-
-                return nullptr;
-            },
-            LevelMeterComponent::ChannelType::Left);
-        m_levelMeterRight = std::make_unique<LevelMeterComponent>(
-            [this]() -> te::LevelMeasurer *
-            {
-                if (auto epc = m_track->edit.getTransport().getCurrentPlaybackContext())
-                    return &epc->masterLevels;
-
-                return nullptr;
-            },
-            LevelMeterComponent::ChannelType::Right);
-        addAndMakeVisible(*m_levelMeterLeft);
-        addAndMakeVisible(*m_levelMeterRight);
     }
     else if (auto at = dynamic_cast<te::AudioTrack *>(m_track.get()))
     {
@@ -187,15 +201,6 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
         {
             m_volumeSlider.setParameter(volPlugin->getAutomatableParameterByID("volume"));
             m_panSlider.setParameter(volPlugin->getAutomatableParameterByID("pan"));
-        }
-
-        if (auto levelPlugin = at->getLevelMeterPlugin())
-        {
-            m_levelMeterLeft = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Left);
-            m_levelMeterRight = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Right);
-
-            addAndMakeVisible(*m_levelMeterLeft);
-            addAndMakeVisible(*m_levelMeterRight);
         }
 
         m_muteButton.setToggleState(m_track->isMuted(false), juce::dontSendNotification);
@@ -208,15 +213,6 @@ void MixerChannelStripComponent::updateComponentsFromTrack()
         {
             m_volumeSlider.setParameter(volPlugin->getAutomatableParameterByID("volume"));
             m_panSlider.setParameter(volPlugin->getAutomatableParameterByID("pan"));
-        }
-
-        if (auto levelPlugin = findLevelMeterPlugin(*ft))
-        {
-            m_levelMeterLeft = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Left);
-            m_levelMeterRight = std::make_unique<LevelMeterComponent>(levelPlugin->measurer, LevelMeterComponent::ChannelType::Right);
-
-            addAndMakeVisible(*m_levelMeterLeft);
-            addAndMakeVisible(*m_levelMeterRight);
         }
 
         m_muteButton.setToggleState(m_track->isMuted(false), juce::dontSendNotification);

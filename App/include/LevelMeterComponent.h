@@ -49,18 +49,19 @@ private:
     void timerCallback() override;
     void refreshLevelMeasurerSource();
     void attachToLevelMeasurer(te::LevelMeasurer *nextLevelMeasurer);
+    void resetDisplayedLevels();
 
-    const double RANGEMAXdB{3.0};
-    const double RANGEMINdB{-30.0};
+    static constexpr double silenceLevelDb = -100.0;
 
-    double m_currentLeveldBLeft{0.0};
-    double m_prevLeveldBLeft{0.0};
-    double m_currentLeveldBRight{0.0};
-    double m_prevLeveldBRight{0.0};
+    double m_currentLeveldBLeft{silenceLevelDb};
+    double m_prevLeveldBLeft{silenceLevelDb};
+    double m_currentLeveldBRight{silenceLevelDb};
+    double m_prevLeveldBRight{silenceLevelDb};
 
     ChannelType m_channelType;
     juce::WeakReference<te::LevelMeasurer> m_levelMeasurer;
     te::LevelMeasurer::Client m_levelClient;
+    bool m_isAttachedToLevelMeasurer{false};
     std::function<te::LevelMeasurer *()> m_levelMeasurerProvider;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterComponent)
 };

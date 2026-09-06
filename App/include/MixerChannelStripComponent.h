@@ -51,6 +51,8 @@ public:
     void valueTreeParentChanged(juce::ValueTree &) override {}
 
 private:
+    te::LevelMeasurer *getLevelMeasurer() const;
+
     EditViewState &m_evs;
     te::Track::Ptr m_track;
     bool m_isMasterTrack = false;

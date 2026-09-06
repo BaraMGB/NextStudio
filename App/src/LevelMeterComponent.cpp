@@ -48,16 +48,31 @@ LevelMeterComponent::~LevelMeterComponent()
 void LevelMeterComponent::attachToLevelMeasurer(te::LevelMeasurer *nextLevelMeasurer)
 {
     auto *currentLevelMeasurer = m_levelMeasurer.get();
-    if (nextLevelMeasurer == currentLevelMeasurer)
+    if (nextLevelMeasurer == currentLevelMeasurer && (nextLevelMeasurer != nullptr || !m_isAttachedToLevelMeasurer))
         return;
 
     if (currentLevelMeasurer != nullptr)
         currentLevelMeasurer->removeClient(m_levelClient);
 
+    m_isAttachedToLevelMeasurer = false;
     m_levelMeasurer = nextLevelMeasurer;
+    m_levelClient.reset();
+    resetDisplayedLevels();
 
     if (nextLevelMeasurer != nullptr)
+    {
         nextLevelMeasurer->addClient(m_levelClient);
+        m_isAttachedToLevelMeasurer = true;
+    }
+}
+
+void LevelMeterComponent::resetDisplayedLevels()
+{
+    m_currentLeveldBLeft = silenceLevelDb;
+    m_prevLeveldBLeft = silenceLevelDb;
+    m_currentLeveldBRight = silenceLevelDb;
+    m_prevLeveldBRight = silenceLevelDb;
+    repaint();
 }
 
 void LevelMeterComponent::refreshLevelMeasurerSource()
@@ -142,8 +157,8 @@ void LevelMeterComponent::timerCallback()
 
     if (m_levelMeasurer.get() == nullptr)
     {
-        m_currentLeveldBLeft = -100.0;
-        m_currentLeveldBRight = -100.0;
+        m_currentLeveldBLeft = silenceLevelDb;
+        m_currentLeveldBRight = silenceLevelDb;
     }
     else
     {
@@ -169,7 +184,7 @@ void LevelMeterComponent::timerCallback()
     }
 
     // the test below may save some unnecessary paints
-    if (m_currentLeveldBLeft != m_prevLeveldBLeft || m_currentLeveldBRight != prevLevelRight)
+    if (m_currentLeveldBLeft != m_prevLeveldBLeft || m_currentLeveldBRight != m_prevLeveldBRight)
     {
         repaint();
     }
