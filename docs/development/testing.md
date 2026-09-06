@@ -23,6 +23,7 @@ The current suites are:
 | `PianoRollNoteLength` | inserted-note length modes, note values, fallbacks, and draw minimum | `App/tests/PianoRollNoteLengthTests.cpp` |
 | `ClipOverwriteCommand` | incoming-wins clip placement, trimming, identity, selection, and undo | `App/tests/ClipOverwriteCommandTests.cpp` |
 | `MidiInputRouting` | automatic default focus, default-route deduplication, always-focused virtual PC keyboard, persistent manual targets, pinning, migration, and atomic routing undo/redo | `App/tests/MidiInputRoutingTests.cpp` |
+| `MetronomeSampleManager` | WAV validation, settings-relative managed copies, source independence, and role-specific cleanup | `App/tests/MetronomeSampleManagerTests.cpp` |
 
 ## Run all tests
 

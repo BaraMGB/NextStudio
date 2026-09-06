@@ -24,6 +24,7 @@ It stores settings that are not part of one musical project:
 - preview settings;
 - exclusive MIDI focus behavior;
 - time-stretch mode;
+- global metronome level;
 - setup completion;
 - scrollbar thickness.
 
@@ -33,7 +34,7 @@ The state is represented by `m_applicationStateValueTree` and `juce::CachedValue
 <user application data>/NextStudio/AppSettings.xml
 ```
 
-The exact base directory is provided by JUCE and is platform-dependent.
+The exact base directory is provided by JUCE and is platform-dependent. Imported metronome WAV files are kept in a managed `Metronome` directory beside this file; only their active paths are stored by Tracktion's property storage.
 
 #### Settings tree
 
@@ -47,6 +48,7 @@ AppSettings
 ├── WindowState
 ├── ThemeState
 ├── Behavior
+├── Metronome
 └── ComputerMidiKeyboard
 ```
 

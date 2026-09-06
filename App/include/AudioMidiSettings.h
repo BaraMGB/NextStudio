@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 #include "PluginBrowser.h"
 #include "ApplicationViewState.h"
+#include "AudioSettingsComponent.h"
 #include "InitialContentSetup.h"
 #include "KeyboardSettingsComponent.h"
 #include "Utilities.h"
@@ -743,13 +744,13 @@ class SettingsView
     , private juce::ValueTree::Listener
 {
 public:
-    SettingsView(te::Engine &engine, juce::ApplicationCommandManager &commandManager, ApplicationViewState &appState)
+    SettingsView(te::Engine &engine, te::Edit &edit, juce::ApplicationCommandManager &commandManager, ApplicationViewState &appState)
         : juce::TabbedComponent(juce::TabbedButtonBar::Orientation::TabsAtTop),
           m_appState(appState),
           m_commandManager(commandManager),
           m_midiSettings(engine, appState),
           m_generalSettings(engine, appState),
-          m_audioSettings(engine.getDeviceManager().deviceManager, 0, 512, 1, 512, false, false, false, false),
+          m_audioSettings(engine, edit, appState),
           m_keyboardSettings(appState, *m_commandManager.getKeyMappings()),
           m_pluginBrowser(engine, appState)
     {
@@ -819,7 +820,7 @@ private:
     juce::ApplicationCommandManager &m_commandManager;
     MidiSettings m_midiSettings;
     GeneralSettings m_generalSettings;
-    juce::AudioDeviceSelectorComponent m_audioSettings;
+    AudioSettingsComponent m_audioSettings;
     KeyboardSettingsComponent m_keyboardSettings;
     PluginSettings m_pluginBrowser;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsView)

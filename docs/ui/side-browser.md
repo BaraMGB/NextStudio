@@ -51,7 +51,10 @@ See [Embedded Project File Browser and Save-As Interaction Boundary](../changes/
 ### Settings
 
 #### Audio
-Configuration of audio hardware: drivers, inputs/outputs, latency (sample rate, buffer size).
+
+- Configuration of audio hardware: drivers, inputs/outputs, latency (sample rate, buffer size).
+- The **Metronome** section sets the common click volume and selects separate WAV samples for accented bar starts and regular beats.
+- Selected samples are copied to NextStudio's application-data `Metronome` directory before use, so moving or deleting the original file does not break the click. **Default** restores the corresponding embedded Tracktion sample.
 
 #### MIDI
 - Default MIDI input device selection.

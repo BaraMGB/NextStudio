@@ -89,6 +89,8 @@ DECLARE_ID(ExclusiveMidiFocusEnabled)
 DECLARE_ID(TimeStretchMode)
 DECLARE_ID(SetupComplete)
 DECLARE_ID(ScrollbarThickness)
+DECLARE_ID(Metronome)
+DECLARE_ID(MetronomeVolume)
 DECLARE_ID(ComputerMidiKeyboard)
 DECLARE_ID(UpperCAliasKey)
 #undef DECLARE_ID
@@ -204,6 +206,9 @@ public:
         m_timeStretchMode.referTo(behavior, IDs::TimeStretchMode, nullptr, juce::String());
         m_setupComplete.referTo(behavior, IDs::SetupComplete, nullptr, false);
         m_scrollbarThickness.referTo(behavior, IDs::ScrollbarThickness, nullptr, 20);
+
+        auto metronome = m_applicationStateValueTree.getOrCreateChildWithName(IDs::Metronome, nullptr);
+        m_metronomeVolume.referTo(metronome, IDs::MetronomeVolume, nullptr, 0.6f);
 
         themeState.setProperty(IDs::PrimeColour, juce::var(m_primeColour), nullptr);
         themeState.setProperty(IDs::BorderColour, juce::var(m_borderColour), nullptr);
@@ -450,7 +455,7 @@ public:
     juce::CachedValue<juce::String> m_workDir, m_presetDir, m_clipsDir, m_samplesDir, m_renderDir, m_projectsDir, m_projectLoadDir, m_guiBackground1, m_mainFrameColour, m_primeColour, m_borderColour, m_buttonBackgroundColour, m_buttonTextColour, m_textColour, m_timeLine_strokeColour, m_timeLine_background, m_timeLine_shadowShade, m_timeLine_textColour, m_trackBackgroundColour, m_trackHeaderBackgroundColour, m_trackHeaderTextColour, m_guiBackground2, m_guiBackground3, m_timeStretchMode;
     juce::CachedValue<int> m_windowXpos, m_windowYpos, m_windowWidth, m_windowHeight, m_folderTrackIndent, m_autoSaveInterval, m_sidebarWidth, m_scrollbarThickness;
     juce::CachedValue<juce::String> m_windowGeometry;
-    juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos;
+    juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos, m_metronomeVolume;
     juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_lowerRangeCollapsed, m_trackPresetPanelCollapsed, m_modifierPanelCollapsed, m_exclusiveMidiFocusEnabled, m_setupComplete;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ApplicationViewState)
 };

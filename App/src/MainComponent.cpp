@@ -651,6 +651,11 @@ bool MainComponent::setupEdit(juce::File editFile, juce::String *errorMessage)
     if (!replacementEdit)
         return fail("NextStudio could not read the selected project.\n" + editFile.getFullPathName());
 
+    if (replacementEdit->clickTrackEmphasiseBars.isUsingDefault())
+        replacementEdit->clickTrackEmphasiseBars = true;
+
+    replacementEdit->setClickTrackVolume(juce::jlimit(0.2f, 1.0f, m_applicationState.m_metronomeVolume.get()));
+
     // Restore workflow-owned UI and engine state before replacing the old hierarchy.
     if (m_projectBrowserExpandedSidebar)
         setProjectBrowserWorkingMode(false);

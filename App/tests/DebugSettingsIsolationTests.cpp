@@ -1,5 +1,6 @@
 #include "ApplicationViewState.h"
 
+#include <cmath>
 #include <iostream>
 
 namespace
@@ -34,6 +35,7 @@ void testExplicitSettingsFileIsUsedExclusively()
         state.m_lowerRangeCollapsed = true;
         state.m_trackPresetPanelCollapsed = false;
         state.m_modifierPanelCollapsed = false;
+        state.m_metronomeVolume = 0.73f;
         state.setRootFolder(temp.file.getChildFile("workspace"));
         state.saveState();
     }
@@ -50,6 +52,7 @@ void testExplicitSettingsFileIsUsedExclusively()
     REQUIRE((bool)restoredState.m_lowerRangeCollapsed);
     REQUIRE(!(bool)restoredState.m_trackPresetPanelCollapsed);
     REQUIRE(!(bool)restoredState.m_modifierPanelCollapsed);
+    REQUIRE(std::abs((float)restoredState.m_metronomeVolume - 0.73f) < 0.001f);
 }
 } // namespace
 

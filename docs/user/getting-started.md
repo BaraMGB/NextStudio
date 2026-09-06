@@ -278,7 +278,9 @@ Application settings are saved to JUCE's user application-data directory under:
 NextStudio/AppSettings.xml
 ```
 
-They include window bounds, content paths, theme, GUI scale, sidebar state, autosave interval, behavior options, and the custom computer MIDI keyboard mapping.
+They include window bounds, content paths, theme, GUI scale, sidebar state, autosave interval, behavior options, metronome volume, and the custom computer MIDI keyboard mapping.
+
+Under **Settings → Audio → Metronome**, the common click volume and separate accent/regular WAV samples can be selected. NextStudio copies custom samples to the `Metronome` directory beside `AppSettings.xml`; the original files can then be moved or removed safely. The **Default** buttons restore Tracktion's embedded click sounds.
 
 Edit-specific view state—such as timeline zoom, scroll position, lower-range selection, and Piano Roll dimensions—is stored with the edit state and is not intended to create undo steps.
 

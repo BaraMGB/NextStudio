@@ -387,6 +387,27 @@ if(BUILD_TESTING)
 
     add_test(NAME MidiInputRouting
             COMMAND MidiInputRoutingTests)
+
+    juce_add_console_app(MetronomeSampleManagerTests
+            PRODUCT_NAME "MetronomeSampleManagerTests")
+    juce_generate_juce_header(MetronomeSampleManagerTests)
+
+    target_sources(MetronomeSampleManagerTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/MetronomeSampleManager.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/MetronomeSampleManagerTests.cpp)
+
+    target_include_directories(MetronomeSampleManagerTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(MetronomeSampleManagerTests PRIVATE
+            juce::juce_audio_formats)
+
+    target_compile_definitions(MetronomeSampleManagerTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME MetronomeSampleManager
+            COMMAND MetronomeSampleManagerTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

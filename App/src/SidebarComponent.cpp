@@ -33,7 +33,7 @@ SidebarComponent::SidebarComponent(EditViewState &evs, juce::ApplicationCommandM
       m_edit(evs.m_edit),
       m_commandManager(commandManager),
       m_menu(m_appState),
-      m_settingsView(m_engine, m_commandManager, m_appState),
+      m_settingsView(m_engine, m_edit, m_commandManager, m_appState),
       m_instrumentList(m_engine, true, m_appState),
       m_effectList(m_engine, false, m_appState),
       m_samplePreview(m_engine, m_edit, m_appState),

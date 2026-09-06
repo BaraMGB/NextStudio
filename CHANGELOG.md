@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Metronome audio settings** — The Audio settings tab now provides a common click-volume control and separate custom WAV selection for accented and regular beats. Imported samples are copied into NextStudio's application-data directory so the originals are no longer required.
+
+### Fixed
+
+- **Metronome bar accents** — Edits without an explicit Tracktion emphasis setting now accent the first beat of every bar.
+
 ## [v0.05-alpha] - 2026-08-29
 
 ### Added
