@@ -614,6 +614,9 @@ void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropert
         markAndUpdate(m_updateHorizontalScrollbar);
     }
 
+    if (treeWhosePropertyHasChanged.hasType(te::IDs::TIMESIG))
+        scheduleTimeSignatureRefresh();
+
     if (property == IDs::pianoRollSnapMode || property == IDs::pianoRollSnapDenominator)
         repaint(getFooterRect());
 
@@ -624,11 +627,17 @@ void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropert
 }
 void PianoRollEditor::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &property)
 {
+    if (property.hasType(te::IDs::TIMESIG))
+        scheduleTimeSignatureRefresh();
+
     if (te::Clip::isClipState(property))
         markAndUpdate(m_updateClips);
 }
 void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &property, int)
 {
+    if (property.hasType(te::IDs::TIMESIG))
+        scheduleTimeSignatureRefresh();
+
     if (te::Clip::isClipState(property))
         markAndUpdate(m_updateClips);
 
@@ -638,6 +647,14 @@ void PianoRollEditor::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &
     if (m_pianoRollViewPort != nullptr && property == m_pianoRollViewPort->getTrack()->state)
         markAndUpdate(m_updateTracks);
 }
+void PianoRollEditor::scheduleTimeSignatureRefresh()
+{
+    markAndUpdate(m_updateNoteEditor);
+    markAndUpdate(m_updateVelocity);
+    markAndUpdate(m_updateNoteProperties);
+    markAndUpdate(m_updateHorizontalScrollbar);
+}
+
 void PianoRollEditor::handleAsyncUpdate()
 {
     if (compareAndReset(m_updateButtonColour))

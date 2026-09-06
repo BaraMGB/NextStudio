@@ -102,6 +102,7 @@ private:
     void valueTreeChildAdded(juce::ValueTree &tree, juce::ValueTree &property) override;
     void valueTreeChildRemoved(juce::ValueTree &tree, juce::ValueTree &property, int) override;
     void handleKeyboardKeyClick(int midiNoteNumber, bool addToSelection);
+    void scheduleTimeSignatureRefresh();
     juce::Array<te::MidiClip *> getSelectedMidiClipsOnTrack() const;
     bool hasSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents) const;
     void removeSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents);

@@ -662,7 +662,8 @@ void EditComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Ide
     if (te::Clip::isClipState(v))
         m_clipPropertiesBar.refreshFromSelection();
 
-    if (i == te::IDs::loopPoint1 || i == te::IDs::loopPoint2 || i == te::IDs::looping)
+    if (i == te::IDs::loopPoint1 || i == te::IDs::loopPoint2 || i == te::IDs::looping
+        || v.hasType(te::IDs::TIMESIG))
         markAndUpdate(m_updateZoom);
 
     if (i == te::IDs::height || i == IDs::isTrackMinimized || i == IDs::viewY)
@@ -696,6 +697,9 @@ void EditComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Ide
 
 void EditComponent::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree &c)
 {
+    if (c.hasType(te::IDs::TIMESIG))
+        markAndUpdate(m_updateZoom);
+
     if (te::MidiClip::isClipState(c))
     {
         // markAndUpdate (m_updateZoom);
@@ -722,6 +726,9 @@ void EditComponent::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree
 
 void EditComponent::valueTreeChildRemoved(juce::ValueTree &parent, juce::ValueTree &c, int)
 {
+    if (c.hasType(te::IDs::TIMESIG))
+        markAndUpdate(m_updateZoom);
+
     if (te::MidiClip::isClipState(c))
     {
         markAndUpdate(m_updateZoom);
