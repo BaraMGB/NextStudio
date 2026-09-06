@@ -1137,8 +1137,7 @@ void PositionDisplayComponent::updateDrag(FieldId field, int segmentIndex, int s
 
             if (segmentIndex == 0)
             {
-                const auto stepSize = modifiers.isShiftDown() ? 1 : 4;
-                numerator = juce::jlimit(1, 64, numerator + (stepDelta * stepSize));
+                numerator = juce::jlimit(1, 64, numerator + stepDelta);
             }
             else
             {
