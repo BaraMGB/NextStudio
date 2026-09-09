@@ -19,7 +19,7 @@ std::vector<ThemePresetModel::Preset> ThemePresetModel::getPresets() const
 
     for (const auto &file : files)
     {
-        auto state = readThemeState(file);
+        auto state = loadThemeState(file);
         if (!state.isValid())
             continue;
 
@@ -97,26 +97,6 @@ juce::Result ThemePresetModel::savePreset(const juce::String &name, const juce::
     return juce::Result::ok();
 }
 
-juce::Result ThemePresetModel::importPreset(const juce::File &source, Preset *importedPreset) const
-{
-    if (!source.existsAsFile() || !source.hasFileExtension(".nxttheme"))
-        return juce::Result::fail("Only .nxttheme files can be imported.");
-
-    const auto state = readThemeState(source);
-    if (!state.isValid())
-        return juce::Result::fail("The dropped file is not a valid NextStudio theme.");
-
-    auto baseName = juce::File::createLegalFileName(source.getFileNameWithoutExtension()).trim();
-    if (baseName.isEmpty() || isBuiltInName(baseName))
-        baseName = "Imported Theme";
-
-    auto candidate = baseName;
-    for (int suffix = 2; findFileForName(candidate) != juce::File() || isBuiltInName(candidate); ++suffix)
-        candidate = baseName + " " + juce::String(suffix);
-
-    return savePreset(candidate, state, false, importedPreset);
-}
-
 juce::Result ThemePresetModel::validateName(const juce::String &name)
 {
     const auto trimmed = name.trim();
@@ -166,7 +146,7 @@ juce::File ThemePresetModel::findFileForName(const juce::String &name) const
     return {};
 }
 
-juce::ValueTree ThemePresetModel::readThemeState(const juce::File &file)
+juce::ValueTree ThemePresetModel::loadThemeState(const juce::File &file)
 {
     if (auto xml = juce::XmlDocument::parse(file))
     {

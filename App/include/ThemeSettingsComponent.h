@@ -22,7 +22,6 @@ by the Free Software Foundation, either version 3 of the License, or
 
 class ThemeSettingsComponent
     : public juce::Component
-    , public juce::FileDragAndDropTarget
     , private juce::ValueTree::Listener
     , private juce::AsyncUpdater
 {
@@ -38,11 +37,6 @@ public:
     void resized() override;
     void mouseDown(const juce::MouseEvent &event) override;
     bool keyPressed(const juce::KeyPress &key) override;
-
-    bool isInterestedInFileDrag(const juce::StringArray &files) override;
-    void fileDragEnter(const juce::StringArray &, int, int) override;
-    void fileDragExit(const juce::StringArray &) override;
-    void filesDropped(const juce::StringArray &files, int, int) override;
 
 private:
     struct ColourDefinition
@@ -86,7 +80,6 @@ private:
     juce::ValueTree m_referenceTheme;
     int m_selectedColourIndex = 0;
     bool m_updatingState = false;
-    bool m_dragActive = false;
     juce::String m_pendingOverwriteName;
 
     ThemePresetBrowser m_presetBrowser;
@@ -100,7 +93,6 @@ private:
     InlineColourEditor m_colourEditor;
 
     juce::Rectangle<int> m_presetTitleBounds;
-    juce::Rectangle<int> m_dropHintBounds;
     juce::Rectangle<int> m_colourTitleBounds;
     std::vector<std::pair<juce::String, juce::Rectangle<int>>> m_groupBounds;
     std::vector<juce::Rectangle<int>> m_colourRowBounds;

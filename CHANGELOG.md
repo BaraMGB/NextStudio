@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Inline sidebar theme editor** — General settings now provides a custom, responsive HSV/hex color editor, grouped theme colors, live preview, built-in quick themes, a searchable virtualized preset browser, non-modal custom-preset management, and drag-and-drop `.nxttheme` import.
+- **Inline sidebar theme editor** — General settings now provides a custom, responsive HSV/hex color editor, grouped theme colors, live preview, built-in quick themes, a searchable virtualized preset browser, non-modal custom-preset management and direct theme activation by double-clicking files in the Home browser.
 - **Metronome audio settings** — The Audio settings tab now provides a common click-volume control and separate custom WAV selection for accented and regular beats. Imported samples are copied into NextStudio's application-data directory so the originals are no longer required.
 
 ### Removed

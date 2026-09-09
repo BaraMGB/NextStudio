@@ -51,7 +51,7 @@ The wizard allows a scale from `0.2x` to `3.0x`. The change is applied immediate
 
 Choose one of the embedded `.nxttheme` presets. Theme colors affect the main frame, editor areas, track colors, buttons, text, timeline, and supported component icons.
 
-The General settings tab contains an inline theme editor tailored to the sidebar. Built-in themes have quick buttons, while the fixed-height browser lists and filters all installed themes without lengthening the form. Colors are grouped by purpose and edited with the embedded saturation/value area, hue strip, or `#RRGGBB` field. Theme colors are always opaque. Changes are previewed immediately. Custom themes can be saved without dialogs; drop a `.nxttheme` file onto the theme section to import it.
+The General settings tab contains an inline theme editor tailored to the sidebar. Built-in themes have quick buttons, while the fixed-height browser lists and filters all installed themes without lengthening the form. Colors are grouped by purpose and edited with the embedded saturation/value area, hue strip, or `#RRGGBB` field. Theme colors are always opaque. Changes are previewed immediately. Custom themes can be saved without dialogs. A theme file elsewhere on disk can be applied directly by double-clicking it in the Home browser and then added to the preset list with **Save As**.
 
 ### Plug-ins
 

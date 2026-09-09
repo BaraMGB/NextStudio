@@ -192,18 +192,17 @@ void testPresetLifecycle()
     require(presets.front().state[IDs::PrimeColour].toString() == "ff445566", "saved theme colors are normalised to opaque ARGB");
     require(!presets.front().state.hasProperty(juce::Identifier("BackgroundColour3")), "obsolete panel background is removed from saved themes");
 
-    const auto importSource = directory.getSiblingFile("My Theme.nxttheme");
-    importSource.deleteFile();
-    auto importXml = std::unique_ptr<juce::XmlElement>(secondState.createXml());
-    require(importXml != nullptr && importXml->writeTo(importSource, {}), "import fixture is written");
+    const auto browserSource = directory.getSiblingFile("My Theme.nxttheme");
+    browserSource.deleteFile();
+    auto browserXml = std::unique_ptr<juce::XmlElement>(secondState.createXml());
+    require(browserXml != nullptr && browserXml->writeTo(browserSource, {}), "Home-browser theme fixture is written");
 
-    ThemePresetModel::Preset imported;
-    require(model.importPreset(importSource, &imported).wasOk(), "valid theme can be imported");
-    require(imported.name == "My Theme 2", "import name collision receives a suffix");
-    require(imported.file.existsAsFile(), "imported preset file exists");
-    require(!imported.state.hasProperty(juce::Identifier("BackgroundColour3")), "obsolete panel background is removed during import");
+    const auto loadedState = ThemePresetModel::loadThemeState(browserSource);
+    require(loadedState.isValid(), "theme state can be loaded directly for browser activation");
+    require(loadedState[IDs::PrimeColour].toString() == "ff445566", "browser-loaded theme colors are normalized");
+    require(!loadedState.hasProperty(juce::Identifier("BackgroundColour3")), "browser-loaded themes discard obsolete properties");
 
-    importSource.deleteFile();
+    browserSource.deleteFile();
     directory.deleteRecursively();
 }
 } // namespace

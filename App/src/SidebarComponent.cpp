@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "BinaryData.h"
 #include "MainComponent.h"
 #include "RenderDialog.h"
+#include "ThemePresetModel.h"
 #include "EditViewState.h"
 #include "Utilities.h"
 
@@ -299,11 +300,25 @@ void SidebarComponent::updateParentsListener()
     if (auto parent = dynamic_cast<MainComponent *>(getParentComponent()))
     {
         juce::Component::SafePointer<MainComponent> safeMain(parent);
+        juce::Component::SafePointer<SidebarComponent> safeSidebar(this);
         m_fileListBrowser.setFileActivatedCallback(
-            [safeMain](const juce::File &file)
+            [safeMain, safeSidebar](const juce::File &file)
             {
-                if (safeMain != nullptr && file.existsAsFile() && ProjectLifecycle::isPersistentProjectFile(file))
+                if (!file.existsAsFile())
+                    return;
+
+                if (safeMain != nullptr && ProjectLifecycle::isPersistentProjectFile(file))
+                {
                     safeMain->requestProjectOperation({ProjectWorkflow::OperationType::load, file});
+                    return;
+                }
+
+                if (safeSidebar != nullptr && file.hasFileExtension(".nxttheme"))
+                {
+                    const auto state = ThemePresetModel::loadThemeState(file);
+                    if (!state.isValid() || !safeSidebar->m_appState.applyThemeState(state))
+                        NS_LOG_WARN(ui, "failed to apply theme from Home browser: " + file.getFullPathName());
+                }
             });
         m_projectsBrowser.setHostCallbacks(
             {

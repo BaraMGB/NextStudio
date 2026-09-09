@@ -47,6 +47,7 @@ See [Embedded Project File Browser and Save-As Interaction Boundary](../changes/
 - Uses the same asynchronous directory-navigation component as Projects, without a project-file filter.
 - Selection is forwarded to the edit-aware sample preview; the browser itself has no Engine or Edit dependency.
 - Supports sample preview and drag-and-drop of audio files.
+- Double-clicking a valid `.nxttheme` file applies it immediately without importing or moving the file.
 
 ### Settings
 
@@ -74,7 +75,7 @@ Plugin list management. Scan for new plugins, clear the list, or manage individu
 | Time-Stretch Algorithm | Select algorithm for time-stretching audio clips |
 | Content Folder | Default folder for projects and samples |
 | Version | Current NextStudio version |
-| Theme Presets | Built-in quick buttons and a fixed-height searchable browser for all themes, with non-modal Save, Save As, and drag-and-drop import |
+| Theme Presets | Built-in quick buttons and a fixed-height searchable browser for all themes, with non-modal Save and Save As |
 | Theme Colors | Grouped color rows with an embedded saturation/value picker, hue strip, hex editor, live preview, and per-color reset |
 
 The theme editor is designed for the narrow sidebar. Its virtualized preset browser keeps the form compact even when the theme folder contains many files. Selecting a color expands its editor directly below the row, and the General viewport keeps it visible. Theme colors are always opaque. No `ColourSelector`, popup, or file chooser is used for theme operations. Mouse-wheel input anywhere over the picker or hex editor continues scrolling the General settings viewport and never changes a color.

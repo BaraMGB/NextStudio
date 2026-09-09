@@ -8,10 +8,10 @@ The General settings tab contains a theme editor designed for the narrow sidebar
 
 | Component | Responsibility |
 |---|---|
-| `ThemeSettingsComponent` | Quick presets, grouped color rows, inline operations, drag-and-drop import, and `ThemeState` synchronization |
+| `ThemeSettingsComponent` | Quick presets, grouped color rows, inline save operations, and `ThemeState` synchronization |
 | `ThemePresetBrowser` | Searchable, fixed-height, virtualized list of built-in and custom presets |
 | `InlineColourEditor` | Saturation/value selection, hue, `#RRGGBB` input, current/reference previews, and per-color reset |
-| `ThemePresetModel` | Preset discovery, validation, comparison, atomic saving, import-name conflict handling, and built-in overwrite protection |
+| `ThemePresetModel` | Preset discovery, validation, comparison, direct file loading, atomic saving, and built-in overwrite protection |
 
 `GeneralSettings` owns `ThemeSettingsComponent`. Its viewport scrolls the complete form, while the fixed-height preset browser scrolls only its virtualized result list.
 
@@ -33,11 +33,7 @@ Color rows can be traversed with the arrow keys. The inline color area supports 
 
 Built-in themes remain available as quick buttons. All valid `.nxttheme` files appear in a searchable, fixed-height browser grouped into built-in and custom themes. The list is virtualized, so the form height stays constant even with many presets. Clicking a preset applies it immediately. Built-in presets cannot be overwritten.
 
-Custom presets support:
-
-- direct Save;
-- inline Save As with inline overwrite confirmation;
-- drag-and-drop import, with a numeric suffix added on name conflicts.
+Custom presets support direct Save and inline Save As with inline overwrite confirmation. A `.nxttheme` file elsewhere on disk can be applied by double-clicking it in the Home browser and then stored in the preset list with Save As.
 
 `ThemePresetModel` writes through `juce::TemporaryFile`, ensuring that an interrupted save does not leave a partially written preset.
 

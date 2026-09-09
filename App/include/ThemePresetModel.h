@@ -34,15 +34,14 @@ public:
     void setDirectory(juce::File directory) { m_directory = std::move(directory); }
     std::vector<Preset> getPresets() const;
     juce::Result savePreset(const juce::String &name, const juce::ValueTree &state, bool overwrite, Preset *savedPreset = nullptr) const;
-    juce::Result importPreset(const juce::File &source, Preset *importedPreset = nullptr) const;
 
     static juce::Result validateName(const juce::String &name);
+    static juce::ValueTree loadThemeState(const juce::File &file);
     static bool areStatesEquivalent(const juce::ValueTree &a, const juce::ValueTree &b);
 
 private:
     bool isBuiltInName(const juce::String &name) const;
     juce::File findFileForName(const juce::String &name) const;
-    static juce::ValueTree readThemeState(const juce::File &file);
 
     juce::File m_directory;
     juce::StringArray m_builtInNames;

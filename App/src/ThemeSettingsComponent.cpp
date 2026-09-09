@@ -135,10 +135,6 @@ void ThemeSettingsComponent::paint(juce::Graphics &g)
     g.drawText("Theme Presets", m_presetTitleBounds, juce::Justification::centredLeft);
     g.drawText("Theme Colors", m_colourTitleBounds, juce::Justification::centredLeft);
 
-    g.setFont(juce::FontOptions(11.0f));
-    g.setColour(text.withAlpha(0.72f));
-    g.drawText("Drop a .nxttheme file here to import it", m_dropHintBounds, juce::Justification::centredLeft);
-
     g.setFont(juce::FontOptions(11.0f, juce::Font::bold));
     for (const auto &[name, bounds] : m_groupBounds)
     {
@@ -177,13 +173,6 @@ void ThemeSettingsComponent::paint(juce::Graphics &g)
         g.drawFittedText(definitions[i].name, content, juce::Justification::centredLeft, 1);
     }
 
-    if (m_dragActive)
-    {
-        g.setColour(accent.withAlpha(0.16f));
-        g.fillRoundedRectangle(getLocalBounds().toFloat().reduced(2.0f), 6.0f);
-        g.setColour(accent);
-        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(2.0f), 6.0f, 2.0f);
-    }
 }
 
 void ThemeSettingsComponent::resized()
@@ -217,7 +206,6 @@ void ThemeSettingsComponent::resized()
         m_saveNameEditor.setBounds(saveRow.reduced(1));
     }
 
-    m_dropHintBounds = bounds.removeFromTop(titleHeight);
     m_colourTitleBounds = bounds.removeFromTop(titleHeight);
     m_groupBounds.clear();
     m_colourRowBounds.clear();
@@ -270,63 +258,6 @@ bool ThemeSettingsComponent::keyPressed(const juce::KeyPress &key)
     }
 
     return false;
-}
-
-bool ThemeSettingsComponent::isInterestedInFileDrag(const juce::StringArray &files)
-{
-    return std::any_of(files.begin(), files.end(), [](const juce::String &path)
-                       { return juce::File(path).hasFileExtension(".nxttheme"); });
-}
-
-void ThemeSettingsComponent::fileDragEnter(const juce::StringArray &, int, int)
-{
-    m_dragActive = true;
-    repaint();
-}
-
-void ThemeSettingsComponent::fileDragExit(const juce::StringArray &)
-{
-    m_dragActive = false;
-    repaint();
-}
-
-void ThemeSettingsComponent::filesDropped(const juce::StringArray &files, int, int)
-{
-    m_dragActive = false;
-    int imported = 0;
-    juce::String lastError;
-    ThemePresetModel::Preset lastPreset;
-
-    for (const auto &path : files)
-    {
-        if (!juce::File(path).hasFileExtension(".nxttheme"))
-            continue;
-
-        ThemePresetModel::Preset importedPreset;
-        const auto result = m_presetModel.importPreset(juce::File(path), &importedPreset);
-        if (result.wasOk())
-        {
-            ++imported;
-            lastPreset = std::move(importedPreset);
-        }
-        else
-        {
-            lastError = result.getErrorMessage();
-        }
-    }
-
-    if (imported > 0)
-    {
-        rebuildPresets();
-        applyPreset(lastPreset.name);
-        setStatus(imported == 1 ? "Imported and applied “" + lastPreset.name + "”." : juce::String(imported) + " themes imported; “" + lastPreset.name + "” applied.");
-    }
-    else
-    {
-        setStatus(lastError.isNotEmpty() ? lastError : "No valid theme file was dropped.", true);
-    }
-
-    repaint();
 }
 
 const std::vector<ThemeSettingsComponent::ColourDefinition> &ThemeSettingsComponent::getColourDefinitions()
