@@ -283,20 +283,21 @@ void ClipPropertiesBar::setTimingStepProvider(TimingStepProvider provider)
 
 void ClipPropertiesBar::updateColours()
 {
-    const auto text = m_evs.m_applicationState.getButtonTextColour();
+    const auto labelColour = m_evs.m_applicationState.getTextColour();
+    const auto valueColour = m_evs.m_applicationState.getButtonTextColour();
     for (auto &field : m_fields)
     {
-        field.label.setColour(juce::Label::textColourId, text.withAlpha(0.85f));
-        field.editor.setColour(juce::TextEditor::textColourId, field.invalid ? juce::Colours::red : text);
+        field.label.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
+        field.editor.setColour(juce::TextEditor::textColourId, field.invalid ? juce::Colours::red : valueColour);
     }
     for (auto *label : {&m_snapLabel, &m_insertLengthLabel})
-        label->setColour(juce::Label::textColourId, text.withAlpha(0.85f));
+        label->setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
     for (auto *box : {&m_snapBox, &m_insertLengthBox})
     {
-        box->setColour(juce::ComboBox::textColourId, text);
+        box->setColour(juce::ComboBox::textColourId, valueColour);
         box->setColour(juce::ComboBox::backgroundColourId, m_evs.m_applicationState.getBackgroundColour1());
         box->setColour(juce::ComboBox::outlineColourId, m_evs.m_applicationState.getBorderColour());
-        box->setColour(juce::ComboBox::arrowColourId, text);
+        box->setColour(juce::ComboBox::arrowColourId, valueColour);
     }
     repaint();
 }
@@ -694,15 +695,16 @@ void ClipPropertiesBar::setInvalid(Field &field, bool invalid)
 
 void ClipPropertiesBar::paint(juce::Graphics &g)
 {
-    const auto text = m_evs.m_applicationState.getButtonTextColour();
+    const auto labelColour = m_evs.m_applicationState.getTextColour();
+    const auto valueColour = m_evs.m_applicationState.getButtonTextColour();
     auto selectionArea = m_selectionCountBounds.reduced(fieldPadding, 0);
     g.setFont(juce::Font(juce::FontOptions(titleFontHeight)));
-    g.setColour(text.withAlpha(m_selection.isEmpty() ? 0.4f : 0.85f));
+    g.setColour(labelColour.withAlpha(m_selection.isEmpty() ? 0.4f : 0.85f));
     const auto titleWidth = juce::roundToInt(measureTextWidth(g.getCurrentFont(), "SELECTED CLIPS:")) + 4;
     g.drawFittedText("SELECTED CLIPS:", selectionArea.removeFromLeft(titleWidth), juce::Justification::centredLeft, 1);
     selectionArea.removeFromLeft(labelGap);
     g.setFont(juce::Font(juce::FontOptions(valueFontHeight)));
-    g.setColour(text.withAlpha(m_selection.isEmpty() ? 0.5f : 1.0f));
+    g.setColour(valueColour.withAlpha(m_selection.isEmpty() ? 0.5f : 1.0f));
     g.drawFittedText(juce::String(m_selection.size()), selectionArea, juce::Justification::centredLeft, 1);
 
     g.setColour(m_evs.m_applicationState.getBorderColour());
@@ -714,7 +716,7 @@ void ClipPropertiesBar::paint(juce::Graphics &g)
     for (const auto &field : m_fields)
         if (!field.editor.isReadOnly() && field.editor.hasKeyboardFocus(true))
         {
-            g.setColour(field.invalid ? juce::Colours::red : text.withAlpha(0.7f));
+            g.setColour(field.invalid ? juce::Colours::red : valueColour.withAlpha(0.7f));
             g.drawRoundedRectangle(field.editor.getBounds().toFloat().reduced(0.5f), 4.0f, 1.0f);
         }
 }

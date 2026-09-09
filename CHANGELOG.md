@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Theme text-color consistency** — Mixer scale markings and clip/note property labels now use the configured Menu Text color.
 - **Theme-editor wheel scrolling** — Mouse-wheel input over theme color fields and controls now scrolls General settings without modifying color values.
 - **Metronome bar accents** — Edits without an explicit Tracktion emphasis setting now accent the first beat of every bar.
 

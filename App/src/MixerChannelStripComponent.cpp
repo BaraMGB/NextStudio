@@ -246,7 +246,7 @@ void MixerChannelStripComponent::paint(juce::Graphics &g)
         float trackBottom = sliderBounds.getBottom() - thumbPadding;
         float trackHeight = trackBottom - trackTop;
 
-        g.setColour(juce::Colours::grey);
+        g.setColour(m_evs.m_applicationState.getTextColour());
         g.setFont(juce::FontOptions(10.0f));
 
         static const float dbValues[] = {6.0f, 3.0f, 0.0f, -6.0f, -12.0f, -24.0f, -36.0f, -60.0f};

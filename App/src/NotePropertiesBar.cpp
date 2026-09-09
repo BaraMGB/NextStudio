@@ -341,23 +341,24 @@ NotePropertiesBar::NotePropertiesBar(EditViewState &evs)
 
 void NotePropertiesBar::updateColours()
 {
-    const auto textColour = m_evs.m_applicationState.getButtonTextColour();
+    const auto labelColour = m_evs.m_applicationState.getTextColour();
+    const auto valueColour = m_evs.m_applicationState.getButtonTextColour();
     for (auto &field : m_fields)
     {
-        field.label.setColour(juce::Label::textColourId, textColour.withAlpha(0.85f));
+        field.label.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
         field.editor.setColour(juce::TextEditor::textColourId,
-                               field.invalid ? juce::Colours::red : textColour);
+                               field.invalid ? juce::Colours::red : valueColour);
     }
-    m_snapLabel.setColour(juce::Label::textColourId, textColour.withAlpha(0.85f));
-    m_snapBox.setColour(juce::ComboBox::textColourId, textColour);
+    m_snapLabel.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
+    m_snapBox.setColour(juce::ComboBox::textColourId, valueColour);
     m_snapBox.setColour(juce::ComboBox::backgroundColourId, m_evs.m_applicationState.getBackgroundColour1());
     m_snapBox.setColour(juce::ComboBox::outlineColourId, m_evs.m_applicationState.getBorderColour());
-    m_snapBox.setColour(juce::ComboBox::arrowColourId, textColour);
-    m_noteLengthLabel.setColour(juce::Label::textColourId, textColour.withAlpha(0.85f));
-    m_noteLengthBox.setColour(juce::ComboBox::textColourId, textColour);
+    m_snapBox.setColour(juce::ComboBox::arrowColourId, valueColour);
+    m_noteLengthLabel.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
+    m_noteLengthBox.setColour(juce::ComboBox::textColourId, valueColour);
     m_noteLengthBox.setColour(juce::ComboBox::backgroundColourId, m_evs.m_applicationState.getBackgroundColour1());
     m_noteLengthBox.setColour(juce::ComboBox::outlineColourId, m_evs.m_applicationState.getBorderColour());
-    m_noteLengthBox.setColour(juce::ComboBox::arrowColourId, textColour);
+    m_noteLengthBox.setColour(juce::ComboBox::arrowColourId, valueColour);
     repaint();
 }
 
@@ -1110,18 +1111,19 @@ double NotePropertiesBar::getInternalStart(const te::MidiClip &clip, double glob
 
 void NotePropertiesBar::paint(juce::Graphics &g)
 {
-    const auto textColour = m_evs.m_applicationState.getButtonTextColour();
+    const auto labelColour = m_evs.m_applicationState.getTextColour();
+    const auto valueColour = m_evs.m_applicationState.getButtonTextColour();
     auto selectionContent = m_selectionCountBounds.reduced(fieldPadding, 0);
 
     g.setFont(m_fields.front().label.getFont());
-    g.setColour(textColour.withAlpha(m_selection.isEmpty() ? 0.4f : 0.85f));
+    g.setColour(labelColour.withAlpha(m_selection.isEmpty() ? 0.4f : 0.85f));
     const auto selectionTitleWidth = juce::roundToInt(measureTextWidth(g.getCurrentFont(), "SELECTED NOTES:")) + 4;
     g.drawFittedText("SELECTED NOTES:", selectionContent.removeFromLeft(selectionTitleWidth),
                      juce::Justification::centredLeft, 1);
     selectionContent.removeFromLeft(juce::jmin(labelGap, selectionContent.getWidth()));
 
     g.setFont(m_fields.front().editor.getFont());
-    g.setColour(textColour.withAlpha(m_selection.isEmpty() ? 0.5f : 1.0f));
+    g.setColour(valueColour.withAlpha(m_selection.isEmpty() ? 0.5f : 1.0f));
     g.drawFittedText(juce::String(m_selection.size()), selectionContent,
                      juce::Justification::centredLeft, 1);
 
@@ -1141,7 +1143,7 @@ void NotePropertiesBar::paint(juce::Graphics &g)
         if (field.editor.isReadOnly() || !field.editor.hasKeyboardFocus(true))
             continue;
 
-        g.setColour(field.invalid ? juce::Colours::red : textColour.withAlpha(0.7f));
+        g.setColour(field.invalid ? juce::Colours::red : valueColour.withAlpha(0.7f));
         g.drawRoundedRectangle(field.editor.getBounds().toFloat().reduced(0.5f), 4.0f, 1.0f);
     }
 }
