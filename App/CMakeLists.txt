@@ -408,6 +408,30 @@ if(BUILD_TESTING)
 
     add_test(NAME MetronomeSampleManager
             COMMAND MetronomeSampleManagerTests)
+
+    juce_add_console_app(ThemePresetModelTests
+            PRODUCT_NAME "ThemePresetModelTests")
+    juce_generate_juce_header(ThemePresetModelTests)
+
+    target_sources(ThemePresetModelTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/InlineColourEditor.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ThemePresetBrowser.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ThemePresetModel.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/ThemePresetModelTests.cpp)
+
+    target_include_directories(ThemePresetModelTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(ThemePresetModelTests PRIVATE
+            juce::juce_gui_basics
+            juce::juce_data_structures)
+
+    target_compile_definitions(ThemePresetModelTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME ThemePresetModel
+            COMMAND ThemePresetModelTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

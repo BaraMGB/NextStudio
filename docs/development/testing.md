@@ -24,6 +24,7 @@ The current suites are:
 | `ClipOverwriteCommand` | incoming-wins clip placement, trimming, identity, selection, and undo | `App/tests/ClipOverwriteCommandTests.cpp` |
 | `MidiInputRouting` | automatic default focus, default-route deduplication, always-focused virtual PC keyboard, persistent manual targets, pinning, migration, and atomic routing undo/redo | `App/tests/MidiInputRoutingTests.cpp` |
 | `MetronomeSampleManager` | WAV validation, settings-relative managed copies, source independence, and role-specific cleanup | `App/tests/MetronomeSampleManagerTests.cpp` |
+| `ThemePresetModel` | preset validation/lifecycle, color conversion, scalable preset-browser filtering, and mouse-wheel forwarding from the inline hex editor | `App/tests/ThemePresetModelTests.cpp` |
 
 ## Run all tests
 

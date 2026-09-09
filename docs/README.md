@@ -40,6 +40,7 @@ This directory contains the user and developer documentation for NextStudio.
 - [NotePropertiesBar](components/note-properties-bar.md) — behavior, input formats, validation, selection handling, undo, and Piano Roll integration.
 - [ClipPropertiesBar](components/clip-properties-bar.md) — arrangement clip fields, preview/commit flow, snapping, insertion length, and selection integration.
 - [Metronome settings](components/metronome-settings.md) — global click level, managed custom WAV samples, persistence, Tracktion integration, and tests.
+- [Theme settings](components/theme-settings.md) — responsive inline color editing, non-modal preset management, wheel forwarding, persistence, and tests.
 - [PluginChainView](components/plugin-chain-view.md) — component structure, panel persistence, rack layout, ordering, scrolling, drag-and-drop, and refresh model.
 
 ## Architecture

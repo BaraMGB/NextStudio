@@ -170,6 +170,7 @@ public:
         m_windowGeometry.referTo(windowState, IDs::WindowGeometry, nullptr, juce::String());
 
         auto themeState = m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
+        makeThemeColoursOpaque(themeState);
         m_folderTrackIndent.referTo(themeState, IDs::FolderTrackIndent, nullptr, 10);
 
         m_primeColour.referTo(themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffe5cf03).toString());
@@ -183,7 +184,7 @@ public:
         m_textColour.referTo(themeState, IDs::MenuTextColour, nullptr, juce::Colour(0xffb4b4b4).toString());
 
         m_timeLine_strokeColour.referTo(themeState, IDs::timeLineStrokeColour, nullptr, juce::Colour(0xffffffff).toString());
-        m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr, juce::Colour(0x541f2700).toString());
+        m_timeLine_shadowShade.referTo(themeState, IDs::timeLineShadowShade, nullptr, juce::Colour(0xff1f2700).toString());
         m_timeLine_textColour.referTo(themeState, IDs::timeLineTextColour, nullptr, juce::Colour(0xffffffff).toString());
         m_timeLine_background.referTo(themeState, IDs::timeLineBackgroundColour, nullptr, juce::Colour(0xff2d3934).toString());
 
@@ -279,13 +280,42 @@ public:
         }
     }
 
+    static void makeThemeColoursOpaque(juce::ValueTree themeState)
+    {
+        if (!themeState.isValid() || !themeState.hasType(IDs::ThemeState))
+            return;
+
+        const juce::Identifier colourProperties[]{IDs::PrimeColour,
+                                                   IDs::BorderColour,
+                                                   IDs::MainFrameColour,
+                                                   IDs::BackgroundColour1,
+                                                   IDs::BackgroundColour2,
+                                                   IDs::BackgroundColour3,
+                                                   IDs::MenuTextColour,
+                                                   IDs::timeLineStrokeColour,
+                                                   IDs::timeLineShadowShade,
+                                                   IDs::timeLineTextColour,
+                                                   IDs::timeLineBackgroundColour,
+                                                   IDs::ButtonBackgroundColour,
+                                                   IDs::ButtonTextColour,
+                                                   IDs::trackBackgroundColour,
+                                                   IDs::trackHeaderBackgroundColour,
+                                                   IDs::trackHeaderTextColour};
+
+        for (const auto &property : colourProperties)
+            if (themeState.hasProperty(property))
+                themeState.setProperty(property, juce::Colour::fromString(themeState[property].toString()).withAlpha(1.0f).toString(), nullptr);
+    }
+
     bool applyThemeState(const juce::ValueTree &themeState)
     {
         if (!themeState.isValid() || !themeState.hasType(IDs::ThemeState))
             return false;
 
+        auto opaqueThemeState = themeState.createCopy();
+        makeThemeColoursOpaque(opaqueThemeState);
         auto currentThemeState = m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
-        currentThemeState.copyPropertiesFrom(themeState, nullptr);
+        currentThemeState.copyPropertiesFrom(opaqueThemeState, nullptr);
         refreshThemeCache();
         return true;
     }

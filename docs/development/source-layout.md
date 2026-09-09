@@ -159,6 +159,10 @@ DSP/model classes and their UI components are separate where appropriate. Exampl
 - `Utilities.*`
 - `PositionDisplayHelpers.*`
 - `ThemeHelpers.*`
+- `ThemePresetModel.*`
+- `ThemePresetBrowser.*`
+- `ThemeSettingsComponent.*`
+- `InlineColourEditor.*`
 - `AutomatableSlider.*`
 - `AutomatableToggle.*`
 - `AutomatableComboBox.*`

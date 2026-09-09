@@ -74,8 +74,10 @@ Plugin list management. Scan for new plugins, clear the list, or manage individu
 | Time-Stretch Algorithm | Select algorithm for time-stretching audio clips |
 | Content Folder | Default folder for projects and samples |
 | Version | Current NextStudio version |
-| Theme Presets | Dropdown for saved color themes; save/load custom themes |
-| Theme Colors | Color buttons to customize UI colors |
+| Theme Presets | Built-in quick buttons and a fixed-height searchable browser for all themes, with non-modal Save, Save As, and drag-and-drop import |
+| Theme Colors | Grouped color rows with an embedded saturation/value picker, hue strip, hex editor, live preview, and per-color reset |
+
+The theme editor is designed for the narrow sidebar. Its virtualized preset browser keeps the form compact even when the theme folder contains many files. Selecting a color expands its editor directly below the row, and the General viewport keeps it visible. Theme colors are always opaque. No `ColourSelector`, popup, or file chooser is used for theme operations. Mouse-wheel input anywhere over the picker or hex editor continues scrolling the General settings viewport and never changes a color.
 
 #### Keys
 - Virtual MIDI keyboard mapping for the computer keyboard, including the optional upper-C alias.

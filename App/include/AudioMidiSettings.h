@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "AudioSettingsComponent.h"
 #include "InitialContentSetup.h"
 #include "KeyboardSettingsComponent.h"
+#include "ThemeSettingsComponent.h"
 #include "Utilities.h"
 #include "juce_core/juce_core.h"
 #include <functional>
@@ -57,250 +58,13 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiSettings)
 };
 
-class ColourSettingsPanel
-    : public juce::Component
-    , private juce::ChangeListener
-    , public juce::ChangeBroadcaster
-{
-public:
-    class ColourButton : public juce::TextButton
-    {
-    public:
-        ColourButton(const juce::String &name = "ColourButton")
-            : juce::TextButton(name)
-        {
-            setButtonText(name);
-        }
-
-        void setCurrentColour(const juce::Colour &colour)
-        {
-            m_currentColour = colour;
-            repaint();
-        }
-
-        juce::Colour getCurrentColour() const { return m_currentColour; }
-
-        void paintButton(juce::Graphics &g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
-        {
-            auto bounds = getLocalBounds().toFloat();
-
-            g.setColour(m_currentColour);
-            g.fillRoundedRectangle(bounds, 4.0f);
-
-            // Draw text
-            g.setColour(m_currentColour.contrasting());
-            g.setFont(10.0f);
-            g.drawFittedText(getButtonText(), getLocalBounds().reduced(2), juce::Justification::centred, 2);
-
-            g.setColour(findColour(juce::TextButton::buttonColourId).contrasting());
-            g.drawRoundedRectangle(bounds.reduced(0.5f), 4.0f, 1.0f);
-
-            if (shouldDrawButtonAsDown)
-            {
-                g.setColour(juce::Colours::black.withAlpha(0.2f));
-                g.fillRoundedRectangle(bounds, 4.0f);
-            }
-            else if (shouldDrawButtonAsHighlighted)
-            {
-                g.setColour(juce::Colours::white.withAlpha(0.1f));
-                g.fillRoundedRectangle(bounds, 4.0f);
-            }
-        }
-
-    private:
-        juce::Colour m_currentColour{juce::Colours::grey};
-
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ColourButton)
-    };
-
-    struct ColourSetting
-    {
-        juce::Identifier id;
-        juce::String colour;
-    };
-
-    ColourSettingsPanel(ApplicationViewState &appState)
-        : m_appState(appState),
-          m_activeSelector(-1)
-    {
-        m_colourSettings.add(new ColourSetting{IDs::PrimeColour, appState.m_primeColour});
-        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour1, appState.m_guiBackground1});
-        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour2, appState.m_guiBackground2});
-        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour3, appState.m_guiBackground3});
-        m_colourSettings.add(new ColourSetting{IDs::MenuTextColour, appState.m_textColour});
-        m_colourSettings.add(new ColourSetting{IDs::MainFrameColour, appState.m_mainFrameColour});
-        m_colourSettings.add(new ColourSetting{IDs::BorderColour, appState.m_borderColour});
-        m_colourSettings.add(new ColourSetting{IDs::ButtonBackgroundColour, appState.m_buttonBackgroundColour});
-        m_colourSettings.add(new ColourSetting{IDs::ButtonTextColour, appState.m_buttonTextColour});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineStrokeColour, appState.m_timeLine_strokeColour});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineShadowShade, appState.m_timeLine_shadowShade});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineTextColour, appState.m_timeLine_textColour});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineBackgroundColour, appState.m_timeLine_background});
-        m_colourSettings.add(new ColourSetting{IDs::trackBackgroundColour, appState.m_trackBackgroundColour});
-        m_colourSettings.add(new ColourSetting{IDs::trackHeaderBackgroundColour, appState.m_trackHeaderBackgroundColour});
-        m_colourSettings.add(new ColourSetting{IDs::trackHeaderTextColour, appState.m_trackHeaderTextColour});
-
-        for (int i = 0; i < m_colourSettings.size(); i++)
-        {
-            auto setting = m_colourSettings[i];
-
-            auto button = std::make_unique<ColourButton>(setting->id.toString());
-            button->setCurrentColour(juce::Colour::fromString(juce::String(setting->colour)));
-            button->onClick = [this, i]() { showColourSelector(i); };
-            addAndMakeVisible(button.get());
-            m_colourButtons.add(std::move(button));
-
-            auto selector = std::make_unique<juce::ColourSelector>(juce::ColourSelector::showAlphaChannel | juce::ColourSelector::showColourspace | juce::ColourSelector::showSliders);
-            selector->setColour(juce::ColourSelector::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());
-            selector->setColour(juce::ColourSelector::ColourIds::labelTextColourId, m_appState.getTextColour());
-            selector->setCurrentColour(juce::Colour::fromString(setting->colour), juce::dontSendNotification);
-            selector->setName(setting->id.toString());
-            selector->addChangeListener(this);
-            selector->setVisible(false);
-            addAndMakeVisible(selector.get());
-            m_selectors.add(std::move(selector));
-        }
-    }
-
-    void refreshColors()
-    {
-        m_colourSettings.clear();
-        m_colourSettings.add(new ColourSetting{IDs::PrimeColour, m_appState.m_primeColour});
-        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour1, m_appState.m_guiBackground1});
-        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour2, m_appState.m_guiBackground2});
-        m_colourSettings.add(new ColourSetting{IDs::BackgroundColour3, m_appState.m_guiBackground3});
-        m_colourSettings.add(new ColourSetting{IDs::MenuTextColour, m_appState.m_textColour});
-        m_colourSettings.add(new ColourSetting{IDs::MainFrameColour, m_appState.m_mainFrameColour});
-        m_colourSettings.add(new ColourSetting{IDs::BorderColour, m_appState.m_borderColour});
-        m_colourSettings.add(new ColourSetting{IDs::ButtonBackgroundColour, m_appState.m_buttonBackgroundColour});
-        m_colourSettings.add(new ColourSetting{IDs::ButtonTextColour, m_appState.m_buttonTextColour});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineStrokeColour, m_appState.m_timeLine_strokeColour});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineShadowShade, m_appState.m_timeLine_shadowShade});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineTextColour, m_appState.m_timeLine_textColour});
-        m_colourSettings.add(new ColourSetting{IDs::timeLineBackgroundColour, m_appState.m_timeLine_background});
-        m_colourSettings.add(new ColourSetting{IDs::trackBackgroundColour, m_appState.m_trackBackgroundColour});
-        m_colourSettings.add(new ColourSetting{IDs::trackHeaderBackgroundColour, m_appState.m_trackHeaderBackgroundColour});
-        m_colourSettings.add(new ColourSetting{IDs::trackHeaderTextColour, m_appState.m_trackHeaderTextColour});
-
-        for (int i = 0; i < m_colourSettings.size(); i++)
-        {
-            auto setting = m_colourSettings[i];
-            m_colourButtons[i]->setCurrentColour(juce::Colour::fromString(juce::String(setting->colour)));
-            m_selectors[i]->setColour(juce::ColourSelector::ColourIds::backgroundColourId, m_appState.getBackgroundColour1());
-            m_selectors[i]->setColour(juce::ColourSelector::ColourIds::labelTextColourId, m_appState.getTextColour());
-            m_selectors[i]->setCurrentColour(juce::Colour::fromString(setting->colour), juce::dontSendNotification);
-            m_selectors[i]->sendLookAndFeelChange();
-            m_selectors[i]->repaint();
-        }
-        repaint();
-    }
-
-    ~ColourSettingsPanel() override
-    {
-        for (auto *selector : m_selectors)
-        {
-            selector->removeChangeListener(this);
-        }
-    }
-
-    int getPreferredHeight() const
-    {
-        const int tileSize = 80;
-        const int selectorHeight = 250;
-        const int columns = juce::jmax(1, getWidth() / tileSize);
-        const int rows = (m_colourButtons.size() + columns - 1) / columns;
-        const int baseHeight = rows * tileSize + 20;
-
-        return baseHeight + (m_activeSelector >= 0 ? selectorHeight : 0);
-    }
-
-    void resized() override
-    {
-        auto bounds = getLocalBounds();
-        const int selectorHeight = 250;
-        const int tileSize = 80;
-
-        if (m_activeSelector >= 0)
-        {
-            m_selectors[m_activeSelector]->setBounds(bounds.removeFromTop(selectorHeight).reduced(2));
-        }
-
-        bounds.removeFromTop(10); // padding
-
-        const int columns = juce::jmax(1, bounds.getWidth() / tileSize);
-        const int actualTileWidth = bounds.getWidth() / columns;
-        const int actualTileHeight = tileSize;
-
-        for (int i = 0; i < m_colourButtons.size(); i++)
-        {
-            const int row = i / columns;
-            const int col = i % columns;
-
-            auto tileBounds = juce::Rectangle<int>(col * actualTileWidth, bounds.getY() + row * actualTileHeight, actualTileWidth, actualTileHeight).reduced(2);
-            m_colourButtons[i]->setBounds(tileBounds);
-        }
-    }
-
-    void showColourSelector(int index)
-    {
-        if (m_activeSelector >= 0 && m_activeSelector < m_selectors.size())
-        {
-            m_selectors[m_activeSelector]->setVisible(false);
-        }
-
-        m_activeSelector = index;
-        m_selectors[index]->setVisible(true);
-        resized();
-
-        if (m_onPreferredHeightChanged)
-            m_onPreferredHeightChanged();
-    }
-
-    void setOnPreferredHeightChanged(std::function<void()> callback) { m_onPreferredHeightChanged = std::move(callback); }
-
-private:
-    ApplicationViewState &m_appState;
-    juce::OwnedArray<ColourSetting> m_colourSettings;
-    juce::OwnedArray<ColourButton> m_colourButtons;
-    juce::OwnedArray<juce::ColourSelector> m_selectors;
-    int m_activeSelector;
-    std::function<void()> m_onPreferredHeightChanged;
-
-    void changeListenerCallback(juce::ChangeBroadcaster *source) override
-    {
-        if (auto selector = dynamic_cast<juce::ColourSelector *>(source))
-        {
-            int index = m_selectors.indexOf(selector);
-            if (index >= 0)
-            {
-                colourChanged(index);
-                sendChangeMessage();
-            }
-        }
-    }
-
-    void colourChanged(int index)
-    {
-        juce::Colour newColour = m_selectors[index]->getCurrentColour();
-        m_colourSettings[index]->colour = newColour.toString();
-        m_colourButtons[index]->setCurrentColour(newColour);
-
-        auto themeState = m_appState.m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
-
-        themeState.setProperty(m_colourSettings[index]->id, newColour.toString(), nullptr);
-
-        juce::LookAndFeel::getDefaultLookAndFeel().setColour(juce::Label::textColourId, m_appState.getTextColour());
-
-        m_colourButtons[index]->repaint();
-    }
-};
-
 class GeneralSettings : public juce::Component
 {
 public:
     explicit GeneralSettings(te::Engine &engine, ApplicationViewState &appState)
         : m_engine(engine),
-          m_appState(appState)
+          m_appState(appState),
+          m_themeSettings(appState)
     {
         m_scaleLabel.setText("Scaling Factor:", juce::dontSendNotification);
         m_content.addAndMakeVisible(m_scaleLabel);
@@ -313,8 +77,9 @@ public:
         m_scaleSlider.setSliderSnapsToMousePosition(false);
         m_scaleSlider.setMouseDragSensitivity(800);
         m_scaleSlider.setValue(juce::jlimit(0.2f, 3.0f, (float)m_appState.m_appScale.get()), juce::dontSendNotification);
-        m_content.addAndMakeVisible(m_scaleSlider);
+        m_scaleSlider.setScrollWheelEnabled(false);
         m_scaleSlider.onValueChange = [this]() { updateScale(); };
+        m_content.addAndMakeVisible(m_scaleSlider);
 
         m_mouseScaleLabel.setText("Mouse Cursor Scaling:", juce::dontSendNotification);
         m_content.addAndMakeVisible(m_mouseScaleLabel);
@@ -322,10 +87,9 @@ public:
         m_mouseScaleEditor.setMultiLine(false);
         m_mouseScaleEditor.setJustification(juce::Justification::centredLeft);
         m_mouseScaleEditor.setText(juce::String(m_appState.m_mouseCursorScale), juce::dontSendNotification);
-        m_content.addAndMakeVisible(m_mouseScaleEditor);
-
         m_mouseScaleEditor.onFocusLost = [this]() { updateMouseScale(); };
         m_mouseScaleEditor.onReturnKey = [this]() { updateMouseScale(); };
+        m_content.addAndMakeVisible(m_mouseScaleEditor);
 
         m_timeStretchLabel.setText("Time-Stretch Algorithm:", juce::dontSendNotification);
         m_content.addAndMakeVisible(m_timeStretchLabel);
@@ -355,34 +119,14 @@ public:
         m_versionValue.setJustificationType(juce::Justification::centredLeft);
         m_content.addAndMakeVisible(m_versionValue);
 
-        m_themeLabel.setText("Theme Colors:", juce::dontSendNotification);
-        m_content.addAndMakeVisible(m_themeLabel);
-
-        m_themePresetsLabel.setText("Theme Presets:", juce::dontSendNotification);
-        m_content.addAndMakeVisible(m_themePresetsLabel);
-
-        m_themeCombo.setTextWhenNothingSelected("Select Theme");
-        m_themeCombo.onChange = [this] { loadThemeFromCombo(); };
-        m_content.addAndMakeVisible(m_themeCombo);
-
-        m_saveThemeButton.onClick = [this] { saveTheme(); };
-        m_content.addAndMakeVisible(m_saveThemeButton);
-
-        m_loadThemeButton.onClick = [this] { loadTheme(); };
-        m_content.addAndMakeVisible(m_loadThemeButton);
-
-        refreshThemeList();
+        m_themeSettings.setOnPreferredHeightChanged([this] { resized(); });
+        m_content.addAndMakeVisible(m_themeSettings);
 
         m_viewport = std::make_unique<juce::Viewport>();
         addAndMakeVisible(m_viewport.get());
         m_viewport->setViewedComponent(&m_content, false);
         m_viewport->setScrollBarThickness(m_appState.getScrollbarThickness());
         m_viewport->setScrollBarsShown(true, false, true, false);
-
-        m_colourSettingsPanel = std::make_unique<ColourSettingsPanel>(appState);
-        m_colourSettingsPanel->setOnPreferredHeightChanged([this] { resized(); });
-        m_content.addAndMakeVisible(m_colourSettingsPanel.get());
-        m_colourSettingsPanel->showColourSelector(0);
     }
 
     ~GeneralSettings() override { m_viewport->setViewedComponent(nullptr, false); }
@@ -390,9 +134,7 @@ public:
     void setOnContentPathChanged(std::function<void()> callback) { m_onContentPathChanged = std::move(callback); }
     void refreshThemeFromAppState()
     {
-        refreshThemeList();
-        if (m_colourSettingsPanel != nullptr)
-            m_colourSettingsPanel->refreshColors();
+        m_themeSettings.refresh();
         repaint();
     }
 
@@ -401,7 +143,7 @@ public:
         if (isVisible())
         {
             refreshTimeStretchModes();
-            refreshThemeList();
+            m_themeSettings.refresh();
         }
     }
 
@@ -409,15 +151,12 @@ public:
     {
         m_viewport->setBounds(getLocalBounds());
 
-        const int rowHeight = 24;
-        const int padding = 10;
+        constexpr int rowHeight = 24;
+        constexpr int padding = 10;
         const int contentWidth = juce::jmax(1, m_viewport->getWidth() - m_viewport->getScrollBarThickness());
-
-        // Give the colour panel its final width before asking for its responsive height.
-        m_colourSettingsPanel->setSize(contentWidth, 1);
-        const int panelHeight = m_colourSettingsPanel->getPreferredHeight();
-        const int controlsHeight = rowHeight * 9 + padding * 3 / 2;
-        m_content.setSize(contentWidth, juce::jmax(m_viewport->getHeight(), controlsHeight + panelHeight));
+        const int controlsHeight = rowHeight * 6 + padding;
+        const int themeHeight = m_themeSettings.getPreferredHeight();
+        m_content.setSize(contentWidth, juce::jmax(m_viewport->getHeight(), controlsHeight + themeHeight));
 
         auto bounds = m_content.getLocalBounds();
         auto scaleRow = bounds.removeFromTop(rowHeight);
@@ -444,23 +183,9 @@ public:
         m_versionLabel.setBounds(versionRow.removeFromLeft(140));
         m_versionValue.setBounds(versionRow.reduced(2));
 
-        bounds.removeFromTop(padding / 2);
-        auto themePresetRow1 = bounds.removeFromTop(rowHeight);
-        m_themePresetsLabel.setBounds(themePresetRow1.removeFromLeft(120));
-        m_themeCombo.setBounds(themePresetRow1.reduced(2));
-
-        auto themePresetRow2 = bounds.removeFromTop(rowHeight);
-        m_saveThemeButton.setBounds(themePresetRow2.removeFromLeft(themePresetRow2.getWidth() / 2).reduced(2));
-        m_loadThemeButton.setBounds(themePresetRow2.reduced(2));
-
-        bounds.removeFromTop(padding / 2);
-        m_themeLabel.setBounds(bounds.removeFromTop(rowHeight));
-
-        bounds.removeFromTop(padding / 2);
-        m_colourSettingsPanel->setBounds(bounds.removeFromTop(panelHeight));
+        bounds.removeFromTop(padding);
+        m_themeSettings.setBounds(bounds.removeFromTop(themeHeight));
     }
-
-    ColourSettingsPanel *getColourSettings() { return m_colourSettingsPanel.get(); }
 
 private:
     te::Engine &m_engine;
@@ -476,39 +201,16 @@ private:
     juce::Label m_versionLabel;
     juce::Label m_versionValue;
     juce::TextButton m_changeContentPathButton{"Change..."};
-    juce::Label m_themeLabel;
-    juce::Label m_themePresetsLabel;
-    juce::ComboBox m_themeCombo;
-    juce::TextButton m_saveThemeButton{"Save Theme"};
-    juce::TextButton m_loadThemeButton{"Load Theme"};
     juce::Component m_content;
     std::unique_ptr<juce::Viewport> m_viewport;
-    std::unique_ptr<ColourSettingsPanel> m_colourSettingsPanel;
+    ThemeSettingsComponent m_themeSettings;
     std::function<void()> m_onContentPathChanged;
-
-    void refreshThemeList()
-    {
-        m_themeCombo.clear();
-
-        auto themeDir = getThemeDirectory();
-        InitialContentSetup::populateBundledContent(juce::File(m_appState.m_workDir.get()));
-
-        juce::Array<juce::File> themeFiles;
-        themeDir.findChildFiles(themeFiles, juce::File::findFiles, false, "*.nxttheme");
-        themeFiles.sort();
-
-        for (int i = 0; i < themeFiles.size(); ++i)
-            m_themeCombo.addItem(themeFiles[i].getFileNameWithoutExtension(), i + 1);
-
-        syncThemeComboToCurrentTheme();
-    }
 
     void refreshTimeStretchModes()
     {
         m_timeStretchCombo.clear(juce::dontSendNotification);
 
         const auto modeNames = te::TimeStretcher::getPossibleModes(m_engine, true);
-
         for (int i = 0; i < modeNames.size(); ++i)
             m_timeStretchCombo.addItem(modeNames[i], i + 1);
 
@@ -526,155 +228,9 @@ private:
     void updateTimeStretchMode()
     {
         const auto selectedText = m_timeStretchCombo.getText();
-
         if (selectedText.isNotEmpty())
             m_appState.m_timeStretchMode = selectedText;
     }
-
-    void loadThemeFromCombo()
-    {
-        int selectedId = m_themeCombo.getSelectedId();
-        if (selectedId <= 0)
-            return;
-
-        auto themeDir = getThemeDirectory();
-        juce::Array<juce::File> themeFiles;
-        themeDir.findChildFiles(themeFiles, juce::File::findFiles, false, "*.nxttheme");
-        themeFiles.sort();
-
-        int index = selectedId - 1;
-        if (index >= 0 && index < themeFiles.size())
-        {
-            loadThemeFromFile(themeFiles[index]);
-        }
-    }
-
-    void saveTheme()
-    {
-        auto themeDir = getThemeDirectory();
-        if (!themeDir.exists())
-            themeDir.createDirectory();
-
-        juce::FileChooser fc("Save Theme", themeDir, "*.nxttheme");
-        if (fc.browseForFileToSave(true))
-        {
-            auto file = fc.getResult();
-            if (!file.hasFileExtension(".nxttheme"))
-                file = file.withFileExtension(".nxttheme");
-
-            auto themeState = m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState);
-            if (themeState.isValid())
-            {
-                if (auto xml = std::unique_ptr<juce::XmlElement>(themeState.createXml()))
-                {
-                    xml->writeTo(file, {});
-                    refreshThemeList();
-
-                    for (int i = 0; i < m_themeCombo.getNumItems(); ++i)
-                    {
-                        if (m_themeCombo.getItemText(i) == file.getFileNameWithoutExtension())
-                        {
-                            m_themeCombo.setSelectedId(i + 1, juce::dontSendNotification);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    void loadTheme()
-    {
-        auto themeDir = getThemeDirectory();
-        juce::FileChooser fc("Load Theme", themeDir, "*.nxttheme");
-        if (fc.browseForFileToOpen())
-        {
-            loadThemeFromFile(fc.getResult());
-        }
-    }
-
-    void loadThemeFromFile(const juce::File &file)
-    {
-        if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(file)))
-        {
-            if (m_appState.applyThemeState(juce::ValueTree::fromXml(*xml)))
-            {
-                if (m_colourSettingsPanel != nullptr)
-                {
-                    m_colourSettingsPanel->refreshColors();
-                    m_colourSettingsPanel->sendChangeMessage();
-                }
-
-                resized();
-
-                if (file.getParentDirectory() == getThemeDirectory())
-                {
-                    for (int i = 0; i < m_themeCombo.getNumItems(); ++i)
-                    {
-                        if (m_themeCombo.getItemText(i) == file.getFileNameWithoutExtension())
-                        {
-                            m_themeCombo.setSelectedId(i + 1, juce::dontSendNotification);
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    m_themeCombo.setSelectedId(0, juce::dontSendNotification);
-                }
-            }
-        }
-    }
-
-    bool isThemeStateEquivalent(const juce::ValueTree &a, const juce::ValueTree &b) const
-    {
-        if (!a.isValid() || !b.isValid() || !a.hasType(IDs::ThemeState) || !b.hasType(IDs::ThemeState))
-            return false;
-
-        if (a.getNumProperties() != b.getNumProperties())
-            return false;
-
-        for (int i = 0; i < a.getNumProperties(); ++i)
-        {
-            const auto property = a.getPropertyName(i);
-            if (a[property] != b[property])
-                return false;
-        }
-
-        return true;
-    }
-
-    void syncThemeComboToCurrentTheme()
-    {
-        const auto currentThemeState = m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState);
-        if (!currentThemeState.isValid())
-        {
-            m_themeCombo.setSelectedId(0, juce::dontSendNotification);
-            return;
-        }
-
-        auto themeDir = getThemeDirectory();
-        juce::Array<juce::File> themeFiles;
-        themeDir.findChildFiles(themeFiles, juce::File::findFiles, false, "*.nxttheme");
-        themeFiles.sort();
-
-        for (int i = 0; i < themeFiles.size(); ++i)
-        {
-            if (auto xml = std::unique_ptr<juce::XmlElement>(juce::XmlDocument::parse(themeFiles[i])))
-            {
-                const auto fileThemeState = juce::ValueTree::fromXml(*xml);
-                if (isThemeStateEquivalent(currentThemeState, fileThemeState))
-                {
-                    m_themeCombo.setSelectedId(i + 1, juce::dontSendNotification);
-                    return;
-                }
-            }
-        }
-
-        m_themeCombo.setSelectedId(0, juce::dontSendNotification);
-    }
-
-    juce::File getThemeDirectory() { return juce::File(m_appState.m_presetDir.get()).getChildFile("Themes"); }
 
     void showError(const juce::String &message) { juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Content Folder", message); }
 
@@ -704,7 +260,7 @@ private:
         }
 
         m_appState.setRootFolder(newRoot);
-        refreshThemeList();
+        m_themeSettings.refresh();
         m_appState.m_setupComplete = true;
         m_appState.saveState();
         updateContentPathLabel();
@@ -722,15 +278,11 @@ private:
 
     void updateMouseScale()
     {
-        float newMouseScale = m_mouseScaleEditor.getText().getFloatValue();
-        if (newMouseScale >= 0.2 && newMouseScale <= 3.0f)
-        {
+        const float newMouseScale = m_mouseScaleEditor.getText().getFloatValue();
+        if (newMouseScale >= 0.2f && newMouseScale <= 3.0f)
             m_appState.m_mouseCursorScale = newMouseScale;
-        }
         else
-        {
             m_mouseScaleEditor.setText(juce::String(m_appState.m_mouseCursorScale));
-        }
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GeneralSettings)
@@ -740,7 +292,6 @@ private:
 
 class SettingsView
     : public juce::TabbedComponent
-    , public juce::ChangeListener
     , private juce::ValueTree::Listener
 {
 public:
@@ -761,13 +312,11 @@ public:
         addTab("General", appState.getBackgroundColour2(), &m_generalSettings, true);
         addTab("Keys", appState.getBackgroundColour2(), &m_keyboardSettings, true);
         applyThemeToTabs();
-        m_generalSettings.getColourSettings()->addChangeListener(this);
         m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState).addListener(this);
     }
     ~SettingsView() override
     {
         m_appState.m_applicationStateValueTree.getChildWithName(IDs::ThemeState).removeListener(this);
-        m_generalSettings.getColourSettings()->removeChangeListener(this);
     }
     void setOnContentPathChanged(std::function<void()> callback) { m_generalSettings.setOnContentPathChanged(std::move(callback)); }
     void refreshThemeFromAppState()
@@ -776,7 +325,6 @@ public:
         m_pluginBrowser.refreshThemeFromAppState();
         applyThemeToTabs();
     }
-    void changeListenerCallback(juce::ChangeBroadcaster *) override { applyThemeToTabs(); }
 
 private:
     void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &) override
