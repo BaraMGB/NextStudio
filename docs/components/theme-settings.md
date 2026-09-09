@@ -19,7 +19,7 @@ The General settings tab contains a theme editor designed for the narrow sidebar
 
 The color definitions map the existing `ThemeState` property identifiers to user-facing names and four groups: General, Controls, Timeline, and Tracks. Selecting a row places the editor directly below it. The parent viewport is adjusted only when necessary to keep the editor visible.
 
-The editor keeps hue, saturation, and brightness separately while interacting. The hex field uses conventional `#RRGGBB`. Theme colors are forced to full opacity when settings or presets are loaded and when values are saved. Storage remains JUCE's ARGB string returned by `Colour::toString()`, with `ff` as the alpha byte, so existing `.nxttheme` files remain compatible and older translucent values are migrated safely.
+The editor keeps hue, saturation, and brightness separately while interacting. The hex field uses conventional `#RRGGBB`. Theme colors are forced to full opacity when settings or presets are loaded and when values are saved. Storage remains JUCE's ARGB string returned by `Colour::toString()`, with `ff` as the alpha byte, so existing `.nxttheme` files remain compatible and older translucent values are migrated safely. The obsolete, unused `BackgroundColour3` property is discarded when settings and presets are loaded.
 
 Changes are written directly to `ApplicationViewState::ThemeState` and are reflected immediately throughout the application. A coalesced asynchronous listener updates the editor and preset dirty state without recursive callbacks.
 

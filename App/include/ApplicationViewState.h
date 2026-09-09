@@ -66,7 +66,6 @@ DECLARE_ID(trackBackgroundColour)
 DECLARE_ID(trackHeaderBackgroundColour)
 DECLARE_ID(trackHeaderTextColour)
 DECLARE_ID(BackgroundColour2)
-DECLARE_ID(BackgroundColour3)
 
 DECLARE_ID(timeLineStrokeColour)
 DECLARE_ID(timeLineShadowShade)
@@ -170,14 +169,13 @@ public:
         m_windowGeometry.referTo(windowState, IDs::WindowGeometry, nullptr, juce::String());
 
         auto themeState = m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
-        makeThemeColoursOpaque(themeState);
+        normaliseThemeState(themeState);
         m_folderTrackIndent.referTo(themeState, IDs::FolderTrackIndent, nullptr, 10);
 
         m_primeColour.referTo(themeState, IDs::PrimeColour, nullptr, juce::Colour(0xffe5cf03).toString());
         m_borderColour.referTo(themeState, IDs::BorderColour, nullptr, juce::Colour(0xff000000).toString());
         m_guiBackground1.referTo(themeState, IDs::BackgroundColour1, nullptr, juce::Colour(0xff191e1c).toString());
         m_guiBackground2.referTo(themeState, IDs::BackgroundColour2, nullptr, juce::Colour(0xff2f3030).toString());
-        m_guiBackground3.referTo(themeState, IDs::BackgroundColour3, nullptr, juce::Colour(0xff162123).toString());
         m_mainFrameColour.referTo(themeState, IDs::MainFrameColour, nullptr, juce::Colour(0xff2b322d).toString());
         m_buttonBackgroundColour.referTo(themeState, IDs::ButtonBackgroundColour, nullptr, juce::Colour(0xff394440).toString());
         m_buttonTextColour.referTo(themeState, IDs::ButtonTextColour, nullptr, juce::Colour(0xffffffff).toString());
@@ -216,7 +214,6 @@ public:
         themeState.setProperty(IDs::MainFrameColour, juce::var(m_mainFrameColour), nullptr);
         themeState.setProperty(IDs::BackgroundColour1, juce::var(m_guiBackground1), nullptr);
         themeState.setProperty(IDs::BackgroundColour2, juce::var(m_guiBackground2), nullptr);
-        themeState.setProperty(IDs::BackgroundColour3, juce::var(m_guiBackground3), nullptr);
         themeState.setProperty(IDs::MenuTextColour, juce::var(m_textColour), nullptr);
         themeState.setProperty(IDs::timeLineStrokeColour, juce::var(m_timeLine_strokeColour), nullptr);
         themeState.setProperty(IDs::timeLineShadowShade, juce::var(m_timeLine_shadowShade), nullptr);
@@ -241,7 +238,6 @@ public:
     juce::Colour getPrimeColour() { return juce::Colour::fromString(juce::String(m_primeColour)); }
     juce::Colour getBackgroundColour1() { return juce::Colour::fromString(juce::String(m_guiBackground1)); }
     juce::Colour getBackgroundColour2() { return juce::Colour::fromString(juce::String(m_guiBackground2)); }
-    juce::Colour getBackgroundColour3() { return juce::Colour::fromString(juce::String(m_guiBackground3)); }
     juce::Colour getMainFrameColour() { return juce::Colour::fromString(juce::String(m_mainFrameColour)); }
     juce::Colour getTextColour() { return juce::Colour::fromString(juce::String(m_textColour)); }
     juce::Colour getButtonTextColour() { return juce::Colour::fromString(juce::String(m_buttonTextColour)); }
@@ -265,7 +261,6 @@ public:
             m_borderColour.forceUpdateOfCachedValue();
             m_guiBackground1.forceUpdateOfCachedValue();
             m_guiBackground2.forceUpdateOfCachedValue();
-            m_guiBackground3.forceUpdateOfCachedValue();
             m_mainFrameColour.forceUpdateOfCachedValue();
             m_buttonBackgroundColour.forceUpdateOfCachedValue();
             m_buttonTextColour.forceUpdateOfCachedValue();
@@ -280,17 +275,20 @@ public:
         }
     }
 
-    static void makeThemeColoursOpaque(juce::ValueTree themeState)
+    static void normaliseThemeState(juce::ValueTree themeState)
     {
         if (!themeState.isValid() || !themeState.hasType(IDs::ThemeState))
             return;
+
+        // BackgroundColour3 was never used by the UI. Remove it while loading
+        // older settings and presets instead of keeping an unused theme slot.
+        themeState.removeProperty(juce::Identifier("BackgroundColour3"), nullptr);
 
         const juce::Identifier colourProperties[]{IDs::PrimeColour,
                                                    IDs::BorderColour,
                                                    IDs::MainFrameColour,
                                                    IDs::BackgroundColour1,
                                                    IDs::BackgroundColour2,
-                                                   IDs::BackgroundColour3,
                                                    IDs::MenuTextColour,
                                                    IDs::timeLineStrokeColour,
                                                    IDs::timeLineShadowShade,
@@ -312,10 +310,10 @@ public:
         if (!themeState.isValid() || !themeState.hasType(IDs::ThemeState))
             return false;
 
-        auto opaqueThemeState = themeState.createCopy();
-        makeThemeColoursOpaque(opaqueThemeState);
+        auto normalisedThemeState = themeState.createCopy();
+        normaliseThemeState(normalisedThemeState);
         auto currentThemeState = m_applicationStateValueTree.getOrCreateChildWithName(IDs::ThemeState, nullptr);
-        currentThemeState.copyPropertiesFrom(opaqueThemeState, nullptr);
+        currentThemeState.copyPropertiesFrom(normalisedThemeState, nullptr);
         refreshThemeCache();
         return true;
     }
@@ -482,7 +480,7 @@ public:
     juce::OwnedArray<Favorite> m_favorites;
     juce::Array<juce::Colour> m_trackColours{juce::Colour(0xff1dd13d), juce::Colour(0xff008CDC), juce::Colour(0xffFFAD00), juce::Colour(0xffFF3E5A), juce::Colour(0xffC766FF), juce::Colour(0xff356800), juce::Colour(0xff054D77), juce::Colour(0xff9A6C0B), juce::Colour(0xff862835), juce::Colour(0xff5A1582), juce::Colour(0xffFFF800), juce::Colour(0xff84E185), juce::Colour(0xffEC610F), juce::Colour(0xffD6438A), juce::Colour(0xff0053FF), juce::Colour(0xffD3CF4F), juce::Colour(0xff5D937F), juce::Colour(0xffA27956), juce::Colour(0xffAA7A99), juce::Colour(0xff3A5BA1)};
 
-    juce::CachedValue<juce::String> m_workDir, m_presetDir, m_clipsDir, m_samplesDir, m_renderDir, m_projectsDir, m_projectLoadDir, m_guiBackground1, m_mainFrameColour, m_primeColour, m_borderColour, m_buttonBackgroundColour, m_buttonTextColour, m_textColour, m_timeLine_strokeColour, m_timeLine_background, m_timeLine_shadowShade, m_timeLine_textColour, m_trackBackgroundColour, m_trackHeaderBackgroundColour, m_trackHeaderTextColour, m_guiBackground2, m_guiBackground3, m_timeStretchMode;
+    juce::CachedValue<juce::String> m_workDir, m_presetDir, m_clipsDir, m_samplesDir, m_renderDir, m_projectsDir, m_projectLoadDir, m_guiBackground1, m_mainFrameColour, m_primeColour, m_borderColour, m_buttonBackgroundColour, m_buttonTextColour, m_textColour, m_timeLine_strokeColour, m_timeLine_background, m_timeLine_shadowShade, m_timeLine_textColour, m_trackBackgroundColour, m_trackHeaderBackgroundColour, m_trackHeaderTextColour, m_guiBackground2, m_timeStretchMode;
     juce::CachedValue<int> m_windowXpos, m_windowYpos, m_windowWidth, m_windowHeight, m_folderTrackIndent, m_autoSaveInterval, m_sidebarWidth, m_scrollbarThickness;
     juce::CachedValue<juce::String> m_windowGeometry;
     juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos, m_metronomeVolume;

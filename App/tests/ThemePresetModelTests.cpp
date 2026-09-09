@@ -182,13 +182,15 @@ void testPresetLifecycle()
     require(model.savePreset("My Theme", firstState, false).failed(), "existing preset needs overwrite confirmation");
     require(model.savePreset("Dark", firstState, true).failed(), "built-in preset cannot be overwritten");
 
-    const auto secondState = makeTheme("80445566");
+    auto secondState = makeTheme("80445566");
+    secondState.setProperty(juce::Identifier("BackgroundColour3"), "7fabcdef", nullptr);
     require(model.savePreset("My Theme", secondState, true).wasOk(), "custom preset can be overwritten");
 
     auto presets = model.getPresets();
     require(presets.size() == 1, "one custom preset is listed");
     require(presets.front().name == "My Theme", "preset keeps its display name");
     require(presets.front().state[IDs::PrimeColour].toString() == "ff445566", "saved theme colors are normalised to opaque ARGB");
+    require(!presets.front().state.hasProperty(juce::Identifier("BackgroundColour3")), "obsolete panel background is removed from saved themes");
 
     const auto importSource = directory.getSiblingFile("My Theme.nxttheme");
     importSource.deleteFile();
@@ -199,6 +201,7 @@ void testPresetLifecycle()
     require(model.importPreset(importSource, &imported).wasOk(), "valid theme can be imported");
     require(imported.name == "My Theme 2", "import name collision receives a suffix");
     require(imported.file.existsAsFile(), "imported preset file exists");
+    require(!imported.state.hasProperty(juce::Identifier("BackgroundColour3")), "obsolete panel background is removed during import");
 
     importSource.deleteFile();
     directory.deleteRecursively();

@@ -68,9 +68,9 @@ juce::Result ThemePresetModel::savePreset(const juce::String &name, const juce::
     else if (!overwrite)
         return juce::Result::fail("A theme with this name already exists.");
 
-    auto opaqueState = state.createCopy();
-    ApplicationViewState::makeThemeColoursOpaque(opaqueState);
-    auto xml = std::unique_ptr<juce::XmlElement>(opaqueState.createXml());
+    auto normalisedState = state.createCopy();
+    ApplicationViewState::normaliseThemeState(normalisedState);
+    auto xml = std::unique_ptr<juce::XmlElement>(normalisedState.createXml());
     if (xml == nullptr)
         return juce::Result::fail("The theme could not be serialised.");
 
@@ -92,7 +92,7 @@ juce::Result ThemePresetModel::savePreset(const juce::String &name, const juce::
         return juce::Result::fail("The theme file could not be replaced.");
 
     if (savedPreset != nullptr)
-        *savedPreset = {target.getFileNameWithoutExtension(), target, opaqueState, false};
+        *savedPreset = {target.getFileNameWithoutExtension(), target, normalisedState, false};
 
     return juce::Result::ok();
 }
@@ -173,7 +173,7 @@ juce::ValueTree ThemePresetModel::readThemeState(const juce::File &file)
         auto state = juce::ValueTree::fromXml(*xml);
         if (state.isValid() && state.hasType(IDs::ThemeState))
         {
-            ApplicationViewState::makeThemeColoursOpaque(state);
+            ApplicationViewState::normaliseThemeState(state);
             return state;
         }
     }

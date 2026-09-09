@@ -335,7 +335,6 @@ const std::vector<ThemeSettingsComponent::ColourDefinition> &ThemeSettingsCompon
         {IDs::PrimeColour, "Accent", "General"},
         {IDs::BackgroundColour1, "Main background", "General"},
         {IDs::BackgroundColour2, "Secondary background", "General"},
-        {IDs::BackgroundColour3, "Panel background", "General"},
         {IDs::MainFrameColour, "Main frame", "General"},
         {IDs::BorderColour, "Border", "General"},
         {IDs::MenuTextColour, "Menu text", "Controls"},

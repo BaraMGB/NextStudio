@@ -39,7 +39,6 @@ public:
     juce::Colour getPrimeColour() const { return m_appState.getPrimeColour(); }
     juce::Colour getBackgroundColour1() const { return m_appState.getBackgroundColour1(); }
     juce::Colour getBackgroundColour2() const { return m_appState.getBackgroundColour2(); }
-    juce::Colour getBackgroundColour3() const { return m_appState.getBackgroundColour3(); }
     juce::Colour getBorderColour() const { return m_appState.getBorderColour(); }
     juce::Colour getMainFrameColour() const { return m_appState.getMainFrameColour(); }
     juce::Colour getTextColour() const { return m_appState.getTextColour(); }
