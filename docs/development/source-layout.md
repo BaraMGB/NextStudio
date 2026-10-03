@@ -139,6 +139,7 @@ DSP/model classes and their UI components are separate where appropriate. Exampl
 - `NextSaturationPlugin.*` / `SaturationPluginComponent.*`
 - `SpectrumAnalyzerPlugin.*` / `SpectrumAnalyzerPluginComponent.*`
 - `ArpeggiatorPlugin.*` / `ArpeggiatorPluginComponent.*`
+- `EqPluginComponent.*` / `EqBandReset.*` — interactive EQ graph and atomic whole-band factory reset
 
 #### Browsers and settings
 

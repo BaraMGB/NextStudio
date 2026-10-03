@@ -27,5 +27,7 @@ Each of the four bands (Low, Mid 1, Mid 2, High) exposes the same three paramete
 |-------------|--------|
 | Drag | Move frequency (horizontal) and gain (vertical) of nearest band |
 | Mouse wheel | Adjust Q of nearest band |
+| Double-click | Reset the nearest band's frequency, gain, and Q to factory defaults |
+| Right-click | Open a menu containing **reset values** for the nearest band |
 
-The interactive frequency response curve updates in real time as parameters change.
+Both reset interactions update the graph and audio parameters immediately. The complete band reset is one undoable action. The interactive frequency response curve updates in real time as parameters change.

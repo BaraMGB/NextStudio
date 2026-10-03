@@ -10,6 +10,7 @@
 
 #include "EqPluginComponent.h"
 
+#include "EqBandReset.h"
 #include "PresetHelpers.h"
 #include "Utilities.h"
 
@@ -268,9 +269,45 @@ void EqResponseGraphComponent::paint(juce::Graphics &g)
 
 void EqResponseGraphComponent::mouseDown(const juce::MouseEvent &e)
 {
-    m_dragBandIndex = getBandIndexAtPosition(e.position);
-    m_hoverBandIndex = m_dragBandIndex;
+    const auto bandIndex = getBandIndexAtPosition(e.position);
+
+    if (e.mods.isRightButtonDown())
+    {
+        m_dragBandIndex = -1;
+        m_hoverBandIndex = bandIndex;
+        repaint();
+
+        if (bandIndex >= 0)
+        {
+            juce::PopupMenu menu;
+            menu.addItem(1, "reset values");
+            if (menu.show() == 1)
+                resetBandToFactoryDefaults(bandIndex);
+        }
+
+        return;
+    }
+
+    if (!e.mods.isLeftButtonDown())
+        return;
+
+    m_dragBandIndex = bandIndex;
+    m_hoverBandIndex = bandIndex;
     repaint();
+}
+
+void EqResponseGraphComponent::mouseDoubleClick(const juce::MouseEvent &e)
+{
+    if (!e.mods.isLeftButtonDown())
+        return;
+
+    const auto bandIndex = getBandIndexAtPosition(e.position);
+    if (resetBandToFactoryDefaults(bandIndex))
+    {
+        m_dragBandIndex = -1;
+        m_hoverBandIndex = bandIndex;
+        repaint();
+    }
 }
 
 void EqResponseGraphComponent::mouseDrag(const juce::MouseEvent &e)
@@ -368,6 +405,21 @@ float EqResponseGraphComponent::gainDbForY(const juce::Rectangle<float> &area, f
 {
     const auto norm = juce::jlimit(0.0f, 1.0f, (area.getBottom() - y) / juce::jmax(1.0f, area.getHeight()));
     return juce::jlimit(-20.0f, 20.0f, minGraphDb + norm * (maxGraphDb - minGraphDb));
+}
+
+bool EqResponseGraphComponent::resetBandToFactoryDefaults(int bandIndex)
+{
+    if (bandIndex < 0 || bandIndex >= (int)m_bands.size() || m_plugin == nullptr)
+        return false;
+
+    const auto &band = m_bands[(size_t)bandIndex];
+    const auto transactionName = "Reset EQ Band " + juce::String(bandIndex + 1);
+    if (band.freq == nullptr)
+        return false;
+
+    return resetEqBandToFactoryDefaults({band.freq, band.gain, band.q},
+                                        band.freq->getEdit().getUndoManager(),
+                                        transactionName);
 }
 
 int EqResponseGraphComponent::getBandIndexAtPosition(juce::Point<float> point) const

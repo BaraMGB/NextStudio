@@ -432,6 +432,31 @@ if(BUILD_TESTING)
 
     add_test(NAME ThemePresetModel
             COMMAND ThemePresetModelTests)
+
+    juce_add_console_app(EqBandResetTests
+            PRODUCT_NAME "EqBandResetTests")
+    juce_generate_juce_header(EqBandResetTests)
+
+    target_sources(EqBandResetTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/EqBandReset.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/EqBandResetTests.cpp)
+
+    target_include_directories(EqBandResetTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(EqBandResetTests PRIVATE
+            tracktion::tracktion_engine
+            tracktion::tracktion_core
+            juce::juce_gui_basics)
+
+    target_compile_definitions(EqBandResetTests PRIVATE
+            TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME EqBandReset
+            COMMAND EqBandResetTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

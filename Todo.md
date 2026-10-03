@@ -40,11 +40,19 @@ Status markers:
   - [x] Update technical documentation, user documentation, the change record, and the changelog.
   - [x] Build with `BUILD_JOBS=12 ./build.sh rd`; run all 19 tests successfully; create the shared artifact.
   - [x] Receive user validation and approval to commit the completed implementation.
-- [ ] **#64 — Theme hex fields block General Settings scrolling**
+- [x] **#64 — Theme hex fields block General Settings scrolling**
   - [x] Identify the existing wheel forwarding and the changelog entry on current `main`.
-  - [ ] Verify all acceptance criteria at runtime.
-  - [ ] Treat as already implemented and close only after validation.
-- [ ] **#66 — EQ bands do not reset on double-click**
+  - [x] Verify all acceptance criteria with the focused runtime regression test.
+  - [x] Treat as already implemented and close after validation.
+- [x] **#66 — EQ bands do not reset on double-click**
+  - [x] Reproduce from the graph event path: `EqResponseGraphComponent` handles down/drag/up/move/wheel but has no double-click handler.
+  - [x] Confirm the factory defaults from Tracktion's attached parameter values: Low `80 Hz / 0 dB / 0.5`, Mid 1 `3000 Hz / 0 dB / 0.5`, Mid 2 `5000 Hz / 0 dB / 0.5`, High `17000 Hz / 0 dB / 0.5`.
+  - [x] Prepare the solution proposal: reset all three parameters of the hit band from `getDefaultValue()`, send synchronous notifications, and group the changes into one named undo transaction.
+  - [x] Obtain maintainer approval for the whole-band reset semantics, extended with a right-click **reset values** menu action.
+  - [x] Add focused regression coverage for all four bands, factory-default sourcing, immediate values, and single-step undo/redo.
+  - [x] Implement the approved graph double-click and right-click reset actions; update EQ documentation and changelog.
+  - [x] Build successfully, run all 20 tests, and create the shared artifact.
+  - [x] Receive maintainer UI validation for double-click, the **reset values** menu, and undo/redo; close #66.
 - [ ] **#67 — Reverb header text overlaps at narrow widths**
 - [ ] **#68 — Compressor and Delay controls are too small**
 - [ ] **#70 — Pitch Shifter layout uses excessive space**

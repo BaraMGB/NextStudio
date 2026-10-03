@@ -25,6 +25,7 @@ public:
 
     void paint(juce::Graphics &) override;
     void mouseDown(const juce::MouseEvent &) override;
+    void mouseDoubleClick(const juce::MouseEvent &) override;
     void mouseDrag(const juce::MouseEvent &) override;
     void mouseUp(const juce::MouseEvent &) override;
     void mouseMove(const juce::MouseEvent &) override;
@@ -45,6 +46,7 @@ private:
     float gainDbForY(const juce::Rectangle<float> &, float y) const;
     juce::Rectangle<float> getPlotArea() const;
     int getBandIndexAtPosition(juce::Point<float>) const;
+    bool resetBandToFactoryDefaults(int bandIndex);
 
     te::Plugin::Ptr m_plugin;
     ApplicationViewState &m_appState;
