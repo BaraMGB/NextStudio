@@ -21,6 +21,8 @@ The color definitions map the existing `ThemeState` property identifiers to user
 
 The editor keeps hue, saturation, and brightness separately while interacting. The hex field uses conventional `#RRGGBB`. Theme colors are forced to full opacity when settings or presets are loaded and when values are saved. Storage remains JUCE's ARGB string returned by `Colour::toString()`, with `ff` as the alpha byte, so existing `.nxttheme` files remain compatible and older translucent values are migrated safely. The obsolete, unused `BackgroundColour3` property is discarded when settings and presets are loaded.
 
+Opacity owned by a rendering effect is deliberately separate from persisted theme opacity. In particular, `timeLineShadowShade` stores an opaque RGB tint, while `TimelineGridColours::makeBandOverlay()` applies the fixed 30% opacity used for alternating timeline bands. This preserves content below the grid without exposing an alpha channel in the theme editor. Other hardcoded translucent previews and selection overlays follow the same distinction: they are rendering behavior, not translucent theme values.
+
 Changes are written directly to `ApplicationViewState::ThemeState` and are reflected immediately throughout the application. A coalesced asynchronous listener updates the editor and preset dirty state without recursive callbacks.
 
 ## Mouse wheel and keyboard behavior
@@ -40,6 +42,7 @@ Custom presets support direct Save and inline Save As with inline overwrite conf
 ## Relevant files
 
 - `App/include/ThemeSettingsComponent.h`
+- `App/include/TimelineGridColours.h`
 - `App/src/ThemeSettingsComponent.cpp`
 - `App/include/ThemePresetBrowser.h`
 - `App/src/ThemePresetBrowser.cpp`

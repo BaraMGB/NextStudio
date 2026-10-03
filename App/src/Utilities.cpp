@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MidiInputRouting.h"
 #include "BinaryData.h"
 #include "PresetHelpers.h"
+#include "TimelineGridColours.h"
 #include "ArpeggiatorPlugin.h"
 #include "NextChorusPlugin.h"
 #include "NextDelayPlugin.h"
@@ -735,7 +736,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.25f);
     const auto fracColour = avs.getTimeLineStrokeColour().withAlpha(0.1f);
     const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.05f);
-    const auto shadowShade = avs.getTimeLineShadowShade();
+    const auto shadowShade = TimelineGridColours::makeBandOverlay(avs.getTimeLineShadowShade());
     const auto textColour = avs.getTimeLineTextColour();
     const auto numBeatsPerBar = static_cast<int>(evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
 

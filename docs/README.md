@@ -70,6 +70,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Note properties bar and position display](changes/note-properties-bar-and-position-display.md)
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
+- [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.
 - [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
 - [Embedded project file browser](changes/embedded-project-file-browser.md) — shared Home/Projects directory browser, filtered project activation, inline Save As, interaction blocking, validation, state transitions, and debug-shell coverage.
 

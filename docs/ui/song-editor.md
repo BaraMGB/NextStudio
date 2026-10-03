@@ -52,7 +52,7 @@ Shows clips and automation data on tracks along the timeline.
 
 ### Timeline
 
-- Shows bars and beats.
+- Shows bars and beats. Alternating bands use the theme's timeline shadow tint at a subtle editor-controlled intensity, so clips, automation, and lane backgrounds remain visible.
 - **Loop lane:** The lower fifth of the timeline is the loop-editing lane. A black overlay at 30% opacity distinguishes it from the rest of the timeline even when the loop range has zero length.
 - **Draw loop range:** Hover an unused part of the loop lane to show the pencil cursor and the `draw loop range` hint. Click and drag to create a range. Enabled snapping applies while drawing; hold `Shift` to draw without snapping.
 - **Move loop range:** Hover the body of an existing range to show the hand cursor and the `move loop range` hint, then drag it horizontally.

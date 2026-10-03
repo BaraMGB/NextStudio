@@ -240,6 +240,8 @@ Theme values live in `ApplicationViewState::ThemeState`. `MainComponent` listens
 
 `ThemeSettingsComponent` edits this tree directly and keeps the sidebar controls synchronized through a coalesced asynchronous listener. `ThemePresetBrowser` provides the fixed-height, searchable preset list, while `InlineColourEditor` provides the embedded HSV and hex controls without JUCE's modal-oriented `ColourSelector`. `ThemePresetModel` owns validation and atomic `.nxttheme` file operations. Theme normalization keeps colors opaque and removes the obsolete, unused `BackgroundColour3` property from older settings and presets.
 
+Persisted opacity and rendering opacity are separate concerns. Components may derive translucent draw colors from opaque theme RGB values when an overlay must preserve content below it. The shared timeline grid does this through `TimelineGridColours::makeBandOverlay()`: `timeLineShadowShade` remains opaque in `ThemeState`, and the renderer applies the fixed band opacity immediately before painting.
+
 Some components also listen directly because they own cached drawables or colors. For example, `PianoRollEditor` schedules an icon/color update and forwards current text colors to `NotePropertiesBar`.
 
 When adding a themed component:

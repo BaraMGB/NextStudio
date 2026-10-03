@@ -2,6 +2,7 @@
 #include "InlineColourEditor.h"
 #include "ThemePresetBrowser.h"
 #include "ThemePresetModel.h"
+#include "TimelineGridColours.h"
 
 #include <iostream>
 
@@ -45,6 +46,17 @@ void testColourConversion()
     require(parsed.isOpaque(), "hex parsing always creates an opaque color");
     require(!InlineColourEditor::parseHexColour("#12345", parsed), "short hex color is rejected");
     require(!InlineColourEditor::parseHexColour("#12GG34", parsed), "non-hex characters are rejected");
+}
+
+void testTimelineBandOverlay()
+{
+    const auto tint = juce::Colour(0xff123456);
+    const auto overlay = TimelineGridColours::makeBandOverlay(tint);
+
+    require(overlay.getRed() == tint.getRed() && overlay.getGreen() == tint.getGreen() && overlay.getBlue() == tint.getBlue(),
+            "timeline band overlay preserves the configured RGB tint");
+    require(overlay.getAlpha() == static_cast<juce::uint8>(TimelineGridColours::bandOverlayAlpha * 255.0f),
+            "timeline band overlay applies the renderer-owned opacity");
 }
 
 void testStateComparison()
@@ -213,6 +225,7 @@ int main()
 
     testNameValidation();
     testColourConversion();
+    testTimelineBandOverlay();
     testStateComparison();
     testWheelForwarding();
     testPresetBrowserScales();

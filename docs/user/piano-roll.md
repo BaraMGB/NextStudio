@@ -27,7 +27,7 @@ From top to bottom:
 5. **Velocity editor** — velocity stems/handles for notes.
 6. **Horizontal scrollbar and footer** — horizontal position and note name under the pointer.
 
-The playhead overlays the timeline/grid region.
+The playhead overlays the timeline/grid region. Alternating timeline bands provide orientation without hiding piano-key rows, clip-range shading, notes, or editing previews. The band tint follows the selected theme while its subtle intensity is controlled by the editor.
 
 ## Note selection
 

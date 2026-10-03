@@ -123,6 +123,8 @@ int getYForKey(double key); // MIDI note number -> pixel
 4. for each cached clip: the clip range (`drawClipRange`) and every note (`drawNote`);
 5. tool-specific overlays: dragged-note previews (`PointerTool`), the in-progress draw rectangle (`DrawTool`), and the knife split line (`KnifeTool`).
 
+The alternating timeline bands use the opaque `timeLineShadowShade` theme value as an RGB tint. `TimelineGridColours::makeBandOverlay()` assigns the renderer-owned 30% opacity before `GUIHelpers::drawBarBeatsShadow()` fills the alternating ranges. Theme files therefore remain fully opaque while piano-key striping, clip-range tinting, previews, and other content already painted below the grid remain visible.
+
 `drawNote()` clips the note rectangle to the viewport and, when `m_evs.m_editNotesOutsideClipRange` is false, to the owning clip. Note color is derived from the track color, darkened by velocity; hovered notes are brightened, and notes outside the clip range are grey. Selected notes get a white outline. The note name is drawn inside the note when the vertical scale is large enough.
 
 `paintOverChildren()` draws the lasso rectangle via `LassoSelectionTool::drawLasso()`.
