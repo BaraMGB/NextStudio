@@ -23,3 +23,7 @@
 | Ping Pong Amount | — | Intensity of ping-pong behaviour in Ping Pong mode |
 | HP Cutoff | — | Highpass filter in the feedback path |
 | LP Cutoff | — | Lowpass filter in the feedback path |
+
+## Layout
+
+The delay-space graph is placed to the left of a compact Mode, Sync, and Division row and two equally sized knob rows. The choice fields use weighted widths and the full width of their cells, while the graph remains at least 150 pixels wide whenever space permits. The graph header shows only **DELAY SPACE** because mode and timing values are already visible in their controls. This keeps the layout balanced and readable across supported Track Chain widths.

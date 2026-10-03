@@ -70,6 +70,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Note properties bar and position display](changes/note-properties-bar-and-position-display.md)
 - [EQ band reset interactions](changes/eq-band-reset.md)
 - [Reverb header simplification](changes/reverb-header-simplification.md) — title-only chamber header behavior and validation.
+- [Compressor and Delay control layouts](changes/compressor-delay-control-layouts.md) — responsive side-by-side graph and control geometry.
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
 - [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.

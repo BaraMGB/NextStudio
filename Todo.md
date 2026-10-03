@@ -53,15 +53,25 @@ Status markers:
   - [x] Implement the approved graph double-click and right-click reset actions; update EQ documentation and changelog.
   - [x] Build successfully, run all 20 tests, and create the shared artifact.
   - [x] Receive maintainer UI validation for double-click, the **reset values** menu, and undo/redo; close #66.
-- [~] **#67 — Reverb header text overlaps at narrow widths**
+- [x] **#67 — Reverb header text overlaps at narrow widths**
   - [x] Confirm the rendering failure: the title and status are independently drawn into the same full-width header rectangle, so JUCE fits each string without reserving space for the other.
   - [x] Prepare the solution proposal and revise it after review: remove the redundant Wet/Dry/Freeze status from the header entirely and reserve the header for the title.
   - [x] Obtain maintainer approval for the title-only header behavior.
   - [x] Confirm that no focused unit test is warranted: the fix removes one paint-only text operation and introduces no layout logic; retain focused visual validation at the minimum supported width.
   - [x] Implement the approved title-only header and update the Reverb documentation, technical change record, documentation index, and changelog.
   - [x] Build successfully, run all 20 tests, and create the shared artifact.
-  - [ ] Receive maintainer visual validation at a narrow Track Chain width and close #67.
-- [ ] **#68 — Compressor and Delay controls are too small**
+  - [x] Receive maintainer approval, commit and push `e654677`, and close #67.
+- [x] **#68 — Compressor and Delay controls are too small**
+  - [x] Confirm the root cause: both editors request only width factor 2 and stack a large graph above dense control rows; fixed 20 px title and 15 px value labels leave as little as 14–16 px for rotary sliders, whose renderer then has almost no drawable radius.
+  - [x] Prepare the solution proposal: request width factor 3, place each graph beside rather than above its controls, arrange Compressor knobs as two rows of three above a full-width sidechain footer, and arrange Delay controls as one choice row plus two knob rows.
+  - [x] Obtain maintainer approval for the wider side-by-side editor layouts.
+  - [x] Extract and test the responsive rectangle calculations at narrow, default, and wide supported sizes, including non-overlap and minimum control-cell dimensions.
+  - [x] Implement both layouts without changing parameter, automation, MIDI-learn, or sidechain behavior; update plug-in documentation, technical documentation, test documentation, and changelog.
+  - [x] Address the first visual review: provide the Sidechain Trigger button name required by the custom toggle renderer, reserve additional Delay control width, and weight the choice row toward Mode.
+  - [x] Address the second visual review: suppress the generic toggle checkmark through a component ID and widen the Delay Sync choice while preserving the weighted Mode/Sync/Division row.
+  - [x] Review the Delay screenshot and refine its visual balance: use a compact 64–68 px choice row, split the remaining height equally between knob rows, keep a 150 px graph where possible, use full-width choice boxes, and spell out Feedback.
+  - [x] Rebuild successfully, run all 21 tests, and refresh the shared artifact after the screenshot-driven refinement.
+  - [x] Receive maintainer visual revalidation for the refined Delay editor and close #68.
 - [ ] **#70 — Pitch Shifter layout uses excessive space**
 - [ ] **#65 — Bypassed plugins are not fully decolorized**
 - [ ] **#71 — Plugin selection menus are not sorted alphabetically**

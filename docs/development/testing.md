@@ -10,6 +10,7 @@ The current suites are:
 |---|---|---|
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
 | `PluginChainLayout` | rack scroll limits and reorder destination indices | `App/tests/PluginChainLayoutTests.cpp` |
+| `EffectEditorLayout` | responsive Compressor and Delay graph/control rectangles, minimum cell sizes, and non-overlap | `App/tests/EffectEditorLayoutTests.cpp` |
 | `MainInteractionState` | setup/project lock composition and foreground priority | `App/tests/MainInteractionStateTests.cpp` |
 | `DebugProtocol` | command/JSON Lines parsing and serialization | `App/tests/DebugProtocolTests.cpp` |
 | `DebugSnapshotWriter` | PNG success, decode validation, and failure paths | `App/tests/DebugSnapshotWriterTests.cpp` |

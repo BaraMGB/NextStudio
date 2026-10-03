@@ -9,10 +9,16 @@
 */
 
 #include "DelayPluginComponent.h"
+#include "EffectEditorLayout.h"
 #include "PresetHelpers.h"
 #include "Utilities.h"
 
 #include <cmath>
+
+namespace
+{
+juce::Rectangle<int> toJuceRectangle(EffectEditorLayout::Rectangle area) { return {area.x, area.y, area.width, area.height}; }
+}
 
 class DelayPluginComponent::DelayStageGraphComponent : public juce::Component
 {
@@ -48,13 +54,6 @@ public:
         g.drawFittedText("DELAY SPACE", header.toNearestInt().reduced(8, 0), juce::Justification::centredLeft, 1);
 
         const juce::String modeText = m_mode != nullptr ? m_mode->getCurrentValueAsString() : "Mono";
-        juce::String rightText;
-        if (m_sync != nullptr && m_sync->getCurrentValue() >= 0.5f)
-            rightText = "Sync " + (m_division != nullptr ? m_division->getCurrentValueAsString() : juce::String("1/8"));
-        else
-            rightText = m_timeMs != nullptr ? m_timeMs->getCurrentValueAsString() : juce::String("250 ms");
-
-        g.drawFittedText(modeText + "  |  " + rightText, header.toNearestInt().reduced(8, 0), juce::Justification::centredRight, 1);
 
         auto graph = panel.reduced(8.0f, 6.0f);
         g.setColour(juce::Colour(0xff1a212b));
@@ -218,7 +217,7 @@ DelayPluginComponent::DelayPluginComponent(EditViewState &evs, te::Plugin::Ptr p
         m_syncDivision = std::make_unique<AutomatableChoiceComponent>(m_plugin->getAutomatableParameterByID("syncDivision"), "Division");
 
         m_time = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("timeMs"), "Time");
-        m_fbParCom = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("feedback"), "FB");
+        m_fbParCom = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("feedback"), "Feedback");
         m_mix = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("mix"), "Mix");
         m_stereoOffset = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("stereoOffsetMs"), "Offset");
         m_pingPongAmount = std::make_unique<AutomatableParameterComponent>(m_plugin->getAutomatableParameterByID("pingPongAmount"), "PingPong");
@@ -269,30 +268,20 @@ void DelayPluginComponent::resized()
 
     if (isNextDelay())
     {
-        auto graphArea = bounds.removeFromTop((int)(bounds.getHeight() * 0.42f));
-        m_graph->setBounds(graphArea);
+        const auto layout = EffectEditorLayout::delay(getWidth(), getHeight());
+        m_graph->setBounds(toJuceRectangle(layout.graph));
 
-        bounds.removeFromTop(4);
-        const int rowHeight = juce::jmax(28, bounds.getHeight() / 3);
+        m_mode->setBounds(toJuceRectangle(layout.choices[0]));
+        m_syncEnabled->setBounds(toJuceRectangle(layout.choices[1]));
+        m_syncDivision->setBounds(toJuceRectangle(layout.choices[2]));
 
-        auto row = bounds.removeFromTop(rowHeight);
-        auto colW = row.getWidth() / 3;
-        m_mode->setBounds(row.removeFromLeft(colW).reduced(2));
-        m_syncEnabled->setBounds(row.removeFromLeft(colW).reduced(2));
-        m_syncDivision->setBounds(row.reduced(2));
-
-        row = bounds.removeFromTop(rowHeight);
-        colW = row.getWidth() / 3;
-        m_time->setBounds(row.removeFromLeft(colW).reduced(2));
-        m_fbParCom->setBounds(row.removeFromLeft(colW).reduced(2));
-        m_mix->setBounds(row.reduced(2));
-
-        row = bounds.removeFromTop(rowHeight);
-        colW = row.getWidth() / 4;
-        m_stereoOffset->setBounds(row.removeFromLeft(colW).reduced(2));
-        m_pingPongAmount->setBounds(row.removeFromLeft(colW).reduced(2));
-        m_hpCutoff->setBounds(row.removeFromLeft(colW).reduced(2));
-        m_lpCutoff->setBounds(row.reduced(2));
+        m_time->setBounds(toJuceRectangle(layout.parameters[0]));
+        m_fbParCom->setBounds(toJuceRectangle(layout.parameters[1]));
+        m_mix->setBounds(toJuceRectangle(layout.parameters[2]));
+        m_stereoOffset->setBounds(toJuceRectangle(layout.parameters[3]));
+        m_pingPongAmount->setBounds(toJuceRectangle(layout.parameters[4]));
+        m_hpCutoff->setBounds(toJuceRectangle(layout.parameters[5]));
+        m_lpCutoff->setBounds(toJuceRectangle(layout.parameters[6]));
     }
     else
     {

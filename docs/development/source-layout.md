@@ -133,6 +133,7 @@ DSP/model classes and their UI components are separate where appropriate. Exampl
 - `SoundFontPlugin.*` / `SoundFontPluginComponent.*`
 - `PeakLimiterPlugin.*` / `PeakLimiterPluginComponent.*`
 - `NextDelayPlugin.*` / `DelayPluginComponent.*`
+- `EffectEditorLayout.h` — pure responsive rectangle calculations shared by the Compressor and Delay editors
 - `NextChorusPlugin.*` / `ChorusPluginComponent.*`
 - `NextPhaserPlugin.*` / `PhaserPluginComponent.*`
 - `NextFilterPlugin.*` / `FilterPluginComponent.*`
@@ -178,7 +179,7 @@ Application `.cpp` files are globbed from `App/src/*.cpp` during configuration. 
 
 Headers are not explicitly listed in the application target. They are resolved through `target_include_directories(${TargetName} PRIVATE include)`.
 
-Test targets list their sources explicitly. New tests require a CMake edit. For example, `PluginChainLayoutTests` directly exercises the header-only `PluginChainLayout` calculations without constructing the full GUI or Tracktion engine.
+Test targets list their sources explicitly. New tests require a CMake edit. For example, `PluginChainLayoutTests` and `EffectEditorLayoutTests` directly exercise header-only layout calculations without constructing the full GUI or Tracktion engine.
 
 ## Resources
 

@@ -10,6 +10,7 @@
 
 #include "CompressorPluginComponent.h"
 
+#include "EffectEditorLayout.h"
 #include "PresetHelpers.h"
 #include "Utilities.h"
 
@@ -17,6 +18,8 @@
 
 namespace
 {
+juce::Rectangle<int> toJuceRectangle(EffectEditorLayout::Rectangle area) { return {area.x, area.y, area.width, area.height}; }
+
 float gainToDb(float gain) { return juce::Decibels::gainToDecibels(gain, -100.0f); }
 
 float mapDbToX(float db, const juce::Rectangle<float> &area, float minDb, float maxDb)
@@ -146,7 +149,9 @@ CompressorPluginComponent::CompressorPluginComponent(EditViewState &evs, te::Plu
     m_sidechainSourceLabel.setText("Sidechain Source", juce::dontSendNotification);
     m_sidechainSourceLabel.setJustificationType(juce::Justification::centredLeft);
 
+    m_sidechainTriggerButton.setName("Sidechain Trigger");
     m_sidechainTriggerButton.setButtonText("Sidechain Trigger");
+    m_sidechainTriggerButton.setComponentID("sidechainTrigger");
     m_sidechainTriggerButton.onClick = [this] { m_plugin->state.setProperty(te::IDs::sidechainTrigger, m_sidechainTriggerButton.getToggleState(), &m_editViewState.m_edit.getUndoManager()); };
 
     m_sidechainSourceCombo.onChange = [this]
@@ -196,33 +201,19 @@ void CompressorPluginComponent::paint(juce::Graphics &g)
 
 void CompressorPluginComponent::resized()
 {
-    auto area = getLocalBounds().reduced(6);
+    const auto layout = EffectEditorLayout::compressor(getWidth(), getHeight());
+    m_transferGraph.setBounds(toJuceRectangle(layout.graph));
 
-    auto graphArea = area.removeFromTop((int)(area.getHeight() * 0.48f));
-    m_transferGraph.setBounds(graphArea);
+    m_thresholdComp->setBounds(toJuceRectangle(layout.parameters[0]));
+    m_ratioComp->setBounds(toJuceRectangle(layout.parameters[1]));
+    m_attackComp->setBounds(toJuceRectangle(layout.parameters[2]));
+    m_releaseComp->setBounds(toJuceRectangle(layout.parameters[3]));
+    m_outputComp->setBounds(toJuceRectangle(layout.parameters[4]));
+    m_sidechainGainComp->setBounds(toJuceRectangle(layout.parameters[5]));
 
-    area.removeFromTop(4);
-
-    auto row1 = area.removeFromTop((int)(area.getHeight() * 0.46f));
-    auto sidechainRow = area.removeFromTop(26);
-    auto row2 = area;
-
-    auto colW1 = row1.getWidth() / 4;
-    m_thresholdComp->setBounds(row1.removeFromLeft(colW1).reduced(2));
-    m_ratioComp->setBounds(row1.removeFromLeft(colW1).reduced(2));
-    m_attackComp->setBounds(row1.removeFromLeft(colW1).reduced(2));
-    m_releaseComp->setBounds(row1.reduced(2));
-
-    auto sourceLabelArea = sidechainRow.removeFromLeft((int)(sidechainRow.getWidth() * 0.27f));
-    m_sidechainSourceLabel.setBounds(sourceLabelArea.reduced(2, 0));
-
-    auto triggerArea = sidechainRow.removeFromRight((int)(sidechainRow.getWidth() * 0.34f));
-    m_sidechainTriggerButton.setBounds(triggerArea.reduced(2, 0));
-    m_sidechainSourceCombo.setBounds(sidechainRow.reduced(2, 0));
-
-    auto halfWidth = row2.getWidth() / 2;
-    m_outputComp->setBounds(row2.removeFromLeft(halfWidth).reduced(2));
-    m_sidechainGainComp->setBounds(row2.reduced(2));
+    m_sidechainSourceLabel.setBounds(toJuceRectangle(layout.sidechainLabel));
+    m_sidechainSourceCombo.setBounds(toJuceRectangle(layout.sidechainSource));
+    m_sidechainTriggerButton.setBounds(toJuceRectangle(layout.sidechainTrigger));
 }
 
 void CompressorPluginComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &i)

@@ -80,6 +80,15 @@ if(BUILD_TESTING)
     add_test(NAME PluginChainLayout
             COMMAND PluginChainLayoutTests)
 
+    add_executable(EffectEditorLayoutTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/EffectEditorLayoutTests.cpp)
+
+    target_include_directories(EffectEditorLayoutTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    add_test(NAME EffectEditorLayout
+            COMMAND EffectEditorLayoutTests)
+
     add_executable(SplitterCollapseControllerTests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/SplitterCollapseControllerTests.cpp)
 

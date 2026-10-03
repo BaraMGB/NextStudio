@@ -31,7 +31,7 @@ public:
 
     void paint(juce::Graphics &g) override;
     void resized() override;
-    int getNeededWidth() override { return 2; }
+    int getNeededWidth() override { return isNextDelay() ? 3 : 2; }
 
     juce::ValueTree getPluginState() override;
     juce::ValueTree getFactoryDefaultState() override;

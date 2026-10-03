@@ -151,5 +151,5 @@ void AutomatableChoiceComponent::resized()
 
     // Position ComboBox
     auto comboArea = area.removeFromTop(30);
-    m_combo->setBounds(comboArea.withSizeKeepingCentre(area.getWidth() - 10, 30));
+    m_combo->setBounds(comboArea);
 }

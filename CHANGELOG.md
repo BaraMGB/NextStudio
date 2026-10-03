@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Unused panel-background theme color** — Removed the unused `BackgroundColour3` setting; older settings and presets are normalized automatically when loaded.
 
+### Changed
+
+- **Compressor and Delay control layouts** — Dense effect editors now use wider side-by-side graph and control layouts, providing substantially larger knobs and unclipped labels while preserving existing parameter and automation behavior.
+
 ### Fixed
 
 - **Reverb header readability** — Removed the redundant Wet/Dry/Freeze status from the chamber header so its title no longer overlaps at narrow plug-in widths; current values remain visible on their controls.
