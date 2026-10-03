@@ -58,9 +58,6 @@ public:
         g.drawFittedText("REVERB CHAMBER", header.toNearestInt().reduced(8, 0), juce::Justification::centredLeft, 1);
 
         const float wet = m_wet != nullptr ? juce::jlimit(0.0f, 1.0f, m_wet->getCurrentValue()) : 0.33f;
-        const float dry = m_dry != nullptr ? juce::jlimit(0.0f, 1.0f, m_dry->getCurrentValue()) : 0.5f;
-        const juce::String modeText = m_mode != nullptr ? m_mode->getCurrentValueAsString() : "Off";
-        g.drawFittedText("Wet " + juce::String((int)std::round(wet * 100.0f)) + "%  Dry " + juce::String((int)std::round(dry * 100.0f)) + "%  Freeze " + modeText, header.toNearestInt().reduced(8, 0), juce::Justification::centredRight, 1);
 
         auto chamber = panel.reduced(chamberInset, chamberInset).toNearestInt();
         g.setColour(juce::Colour(0xff18202a));

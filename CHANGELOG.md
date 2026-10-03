@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Reverb header readability** — Removed the redundant Wet/Dry/Freeze status from the chamber header so its title no longer overlaps at narrow plug-in widths; current values remain visible on their controls.
 - **EQ band reset** — Double-clicking an EQ graph handle, or choosing **reset values** from its right-click menu, now restores that band's frequency, gain, and Q factory defaults as one undoable action.
 - **Editor grid rendering with opaque themes** — Alternating timeline bands now derive a subtle render-time overlay from the opaque theme tint, keeping piano-key rows, clip shading, notes, and automation visible in the Song Editor and Piano Roll.
 - **Theme text-color consistency** — Mixer scale markings and clip/note property labels now use the configured Menu Text color.

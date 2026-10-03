@@ -53,7 +53,14 @@ Status markers:
   - [x] Implement the approved graph double-click and right-click reset actions; update EQ documentation and changelog.
   - [x] Build successfully, run all 20 tests, and create the shared artifact.
   - [x] Receive maintainer UI validation for double-click, the **reset values** menu, and undo/redo; close #66.
-- [ ] **#67 — Reverb header text overlaps at narrow widths**
+- [~] **#67 — Reverb header text overlaps at narrow widths**
+  - [x] Confirm the rendering failure: the title and status are independently drawn into the same full-width header rectangle, so JUCE fits each string without reserving space for the other.
+  - [x] Prepare the solution proposal and revise it after review: remove the redundant Wet/Dry/Freeze status from the header entirely and reserve the header for the title.
+  - [x] Obtain maintainer approval for the title-only header behavior.
+  - [x] Confirm that no focused unit test is warranted: the fix removes one paint-only text operation and introduces no layout logic; retain focused visual validation at the minimum supported width.
+  - [x] Implement the approved title-only header and update the Reverb documentation, technical change record, documentation index, and changelog.
+  - [x] Build successfully, run all 20 tests, and create the shared artifact.
+  - [ ] Receive maintainer visual validation at a narrow Track Chain width and close #67.
 - [ ] **#68 — Compressor and Delay controls are too small**
 - [ ] **#70 — Pitch Shifter layout uses excessive space**
 - [ ] **#65 — Bypassed plugins are not fully decolorized**
