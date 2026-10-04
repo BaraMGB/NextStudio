@@ -25,14 +25,14 @@ See [Embedded Project File Browser and Save-As Interaction Boundary](../changes/
 ### Instruments
 
 - Lists all detected instrument plugins (VST, AU, etc.) and internal instruments.
-- Opens with the Name column sorted ascending; click Name or Format to change the active order.
+- Opens with the Format column sorted ascending and plug-in names alphabetized inside each format group; click Name or Format to change the active order.
 - Search results and plug-in-list refreshes retain the active sort.
 - Plugins can be dragged from here to a track header or to the Track Chain instrument slot.
 
 ### Effects
 
 - Lists all detected effect plugins and internal effects.
-- Uses the same ascending-name default, sortable columns, and search behavior as the Instruments Browser.
+- Uses the same ascending-format/name default, sortable columns, and search behavior as the Instruments Browser.
 - Drag to a `[+]` slot in the Track Chain or directly into the chain.
 
 ### Samples

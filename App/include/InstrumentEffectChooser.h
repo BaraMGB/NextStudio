@@ -84,7 +84,7 @@ private:
     juce::Array<juce::PluginDescription> m_instruments;
     juce::Array<juce::PluginDescription> m_effects;
     bool m_isInstrumentList;
-    std::tuple<column, bool> m_order{nameCol, true};
+    std::tuple<column, bool> m_order{typeCol, true};
 
     juce::String m_searchTerm;
 

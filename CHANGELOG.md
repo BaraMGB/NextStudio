@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Alphabetical plug-in selection menus** — Plug-in categories and entries in the Track Chain add menus now use one stable, case-insensitive natural order for MIDI effects, instruments, and audio effects.
-- **Sidebar plug-in default sorting** — The Instruments and Effects browsers now open in ascending name order, matching their visible Name-column indicator; search refreshes and plug-in-list changes retain the active sort.
+- **Sidebar plug-in default sorting** — The Instruments and Effects browsers now open grouped by ascending format with names alphabetized inside each format, matching the visible Format-column indicator; search refreshes and plug-in-list changes retain the active sort.
 - **Complete plug-in bypass appearance** — Bypassed effects, MIDI plug-ins, and instruments now show their complete embedded GUI in grayscale with a contrasting BYPASSED badge, while retaining usable controls and restoring original colours when re-enabled.
 - **Reverb header readability** — Removed the redundant Wet/Dry/Freeze status from the chamber header so its title no longer overlaps at narrow plug-in widths; current values remain visible on their controls.
 - **EQ band reset** — Double-clicking an EQ graph handle, or choosing **reset values** from its right-click menu, now restores that band's frequency, gain, and Q factory defaults as one undoable action.

@@ -377,22 +377,30 @@ std::unique_ptr<juce::KnownPluginList::PluginTree> createPluginTree(te::Engine &
 
 struct CompareNameForward
 {
-    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return first.name.compareNatural(second.name); }
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return first.name.compareNatural(second.name, false); }
 };
 
 struct CompareNameBackwards
 {
-    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return second.name.compareNatural(first.name); }
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return second.name.compareNatural(first.name, false); }
 };
 
 struct CompareFormatForward
 {
-    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return first.pluginFormatName.compareNatural(second.pluginFormatName); }
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second)
+    {
+        const auto formatOrder = first.pluginFormatName.compareNatural(second.pluginFormatName, false);
+        return formatOrder != 0 ? formatOrder : first.name.compareNatural(second.name, false);
+    }
 };
 
 struct CompareFormatBackward
 {
-    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second) { return second.pluginFormatName.compareNatural(first.pluginFormatName); }
+    static int compareElements(const juce::PluginDescription &first, const juce::PluginDescription &second)
+    {
+        const auto formatOrder = second.pluginFormatName.compareNatural(first.pluginFormatName, false);
+        return formatOrder != 0 ? formatOrder : second.name.compareNatural(first.name, false);
+    }
 };
 
 void sortByFormatName(juce::Array<juce::PluginDescription> &list, bool forward);

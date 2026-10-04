@@ -1,4 +1,5 @@
 #include "PluginMenu.h"
+#include "Utilities.h"
 
 #include <iostream>
 #include <vector>
@@ -147,6 +148,41 @@ void testFilteredMenusRetainUnfilteredOrder()
     REQUIRE(filtered == midiSubsequence);
 }
 
+juce::PluginDescription makeDescription(const juce::String &format, const juce::String &name, const juce::String &id)
+{
+    juce::PluginDescription description;
+    description.pluginFormatName = format;
+    description.name = name;
+    description.fileOrIdentifier = id;
+    return description;
+}
+
+void testSidebarFormatThenNameOrdering()
+{
+    juce::Array<juce::PluginDescription> descriptions{
+        makeDescription("VST 10", "zeta", "vst-z"),
+        makeDescription("audioUnit", "Beta", "au-b"),
+        makeDescription("VST 2", "alpha", "vst-a-first"),
+        makeDescription("AudioUnit", "alpha", "au-a"),
+        makeDescription("vst 2", "Alpha", "vst-a-second")};
+
+    EngineHelpers::CompareFormatForward forward;
+    descriptions.sort(forward, true);
+    REQUIRE(descriptions[0].fileOrIdentifier == "au-a");
+    REQUIRE(descriptions[1].fileOrIdentifier == "au-b");
+    REQUIRE(descriptions[2].fileOrIdentifier == "vst-a-first");
+    REQUIRE(descriptions[3].fileOrIdentifier == "vst-a-second");
+    REQUIRE(descriptions[4].fileOrIdentifier == "vst-z");
+
+    EngineHelpers::CompareFormatBackward backward;
+    descriptions.sort(backward, true);
+    REQUIRE(descriptions[0].fileOrIdentifier == "vst-z");
+    REQUIRE(descriptions[1].fileOrIdentifier == "vst-a-first");
+    REQUIRE(descriptions[2].fileOrIdentifier == "vst-a-second");
+    REQUIRE(descriptions[3].fileOrIdentifier == "au-b");
+    REQUIRE(descriptions[4].fileOrIdentifier == "au-a");
+}
+
 } // namespace
 
 int main()
@@ -154,6 +190,7 @@ int main()
     testCaseInsensitiveNaturalStableOrdering();
     testCategoriesAndEntriesRemainNestedAndSorted();
     testFilteredMenusRetainUnfilteredOrder();
+    testSidebarFormatThenNameOrdering();
 
     if (failures != 0)
         std::cerr << failures << " plugin menu ordering test(s) failed\n";

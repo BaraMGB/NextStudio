@@ -267,8 +267,8 @@ InstrumentEffectChooser::InstrumentEffectChooser(tracktion::Engine &engine, bool
     m_listbox.setRowHeight(20);
     juce::TableHeaderComponent &header = m_listbox.getHeader();
 
-    header.addColumn(TRANS("Format"), 1, formatWidth, formatWidth, formatWidth, juce::TableHeaderComponent::notResizable);
-    header.addColumn(TRANS("Name"), 2, juce::jmax(1, getWidth() - formatWidth + 1), 80, 30000, juce::TableHeaderComponent::defaultFlags | juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::notResizable);
+    header.addColumn(TRANS("Format"), 1, formatWidth, formatWidth, formatWidth, juce::TableHeaderComponent::notResizable | juce::TableHeaderComponent::sortedForwards);
+    header.addColumn(TRANS("Name"), 2, juce::jmax(1, getWidth() - formatWidth + 1), 80, 30000, juce::TableHeaderComponent::notResizable);
 
     addAndMakeVisible(m_searchField);
     m_searchField.addChangeListener(this);

@@ -2821,12 +2821,12 @@ void EngineHelpers::sortByName(juce::Array<juce::PluginDescription> &list, bool 
     if (forward)
     {
         CompareNameForward cf;
-        list.sort(cf);
+        list.sort(cf, true);
     }
     else
     {
         CompareNameBackwards cb;
-        list.sort(cb);
+        list.sort(cb, true);
     }
 }
 void EngineHelpers::sortByFormatName(juce::Array<juce::PluginDescription> &list, bool forward)
@@ -2834,12 +2834,12 @@ void EngineHelpers::sortByFormatName(juce::Array<juce::PluginDescription> &list,
     if (forward)
     {
         CompareFormatForward cf;
-        list.sort(cf);
+        list.sort(cf, true);
     }
     else
     {
         CompareFormatBackward cb;
-        list.sort(cb);
+        list.sort(cb, true);
     }
 }
 
