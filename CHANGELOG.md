@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Compact Pitch Shifter editor** — The built-in Pitch Shifter now uses one third of its former rack width, with a continuous Semitones knob and a Pitch Map that follows automation and supports undoable whole-semitone dragging of its output point; the native parameter range and audio behavior remain unchanged.
 - **Compressor and Delay control layouts** — Dense effect editors now use wider side-by-side graph and control layouts, providing substantially larger knobs and unclipped labels while preserving existing parameter and automation behavior.
 
 ### Fixed

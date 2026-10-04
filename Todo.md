@@ -9,24 +9,28 @@ Status markers:
 - `[ ]` pending
 - `[!]` blocked by a product or platform decision
 
-## Process applied to every implementation batch
+## Mandatory workflow for every implementation batch
 
-- [x] Load the current open issues and milestones from GitHub with `gh`.
+The following sequence is binding and repeats for every batch. It is not a global completion checklist. Track actual progress with checkboxes under the affected issue; completed issues remain completed when a new batch starts.
+
+1. Refresh the current open issues and milestones from GitHub with `gh`; review the repository state, release state, changelog, source layout, and existing tests. Confirm release priority and dependencies.
+2. Reproduce or verify each issue against current `main` before changing code.
+3. Document the root-cause analysis and present a concrete solution proposal before implementation.
+4. Obtain the maintainer's approval for the proposed solution; discuss and revise it where necessary. Do not implement before approval.
+5. Add or update automated regression coverage where the behavior can be isolated; otherwise document why focused runtime or visual validation is appropriate.
+6. Implement only the approved, smallest coherent change with undo, persistence, and platform behavior considered where applicable.
+7. Update technical documentation under `docs/components/`, `docs/architecture/`, or `docs/development/` and user documentation under `docs/user/` or `docs/ui/` as appropriate. Update `CHANGELOG.md` for user-visible changes.
+8. Build with `BUILD_JOBS=12 ./build.sh rd`.
+9. Run `./test.sh rd`.
+10. Perform focused UI/runtime validation, using the debug shell where practical.
+11. Produce the shared test artifact with `./build_and_copy_shared.sh` and let the maintainer test the software. Repeat the relevant validation and artifact steps after any resulting changes.
+12. Receive maintainer validation and re-check the affected GitHub issue acceptance criteria before marking the item complete. Commit or push only when explicitly requested.
+
+## Completed initial planning
+
+- [x] Load the open issues and milestones from GitHub with `gh`.
 - [x] Review the repository state, release state, changelog, source layout, and existing tests.
 - [x] Group issues by release priority, subsystem, and implementation dependency.
-- [~] Reproduce or verify each issue against current `main` before changing code.
-- [ ] Document the root-cause analysis and present a concrete solution proposal before implementation.
-- [ ] Obtain the maintainer's approval for the proposed solution; discuss and revise it where necessary.
-- [ ] Add or update automated regression coverage where the behavior can be isolated.
-- [ ] Implement only the approved, smallest coherent change with undo, persistence, and platform behavior considered where applicable.
-- [ ] Update technical documentation under `docs/components/`, `docs/architecture/`, or `docs/development/` as appropriate.
-- [ ] Update user documentation under `docs/user/` or `docs/ui/` as appropriate.
-- [ ] Update `CHANGELOG.md` for user-visible changes.
-- [ ] Build with `BUILD_JOBS=12 ./build.sh rd` after each relevant batch.
-- [ ] Run `./test.sh rd` after each relevant batch.
-- [ ] Perform focused UI/runtime validation, using the debug shell where practical.
-- [ ] Produce the shared test artifact with `./build_and_copy_shared.sh` after a batch is ready for user testing.
-- [ ] Re-check the affected GitHub issue acceptance criteria before marking the item complete.
 
 ## Phase 1 — Triage and v0.06 release blockers
 
@@ -72,7 +76,30 @@ Status markers:
   - [x] Review the Delay screenshot and refine its visual balance: use a compact 64–68 px choice row, split the remaining height equally between knob rows, keep a 150 px graph where possible, use full-width choice boxes, and spell out Feedback.
   - [x] Rebuild successfully, run all 21 tests, and refresh the shared artifact after the screenshot-driven refinement.
   - [x] Receive maintainer visual revalidation for the refined Delay editor and close #68.
-- [ ] **#70 — Pitch Shifter layout uses excessive space**
+- [x] **#70 — Pitch Shifter layout uses excessive space** — completed; maintainer validated the compact editor and snapped graph input and approved commit, push, and issue closure.
+  - [x] Refresh issue details and repository state; confirm priority and dependencies. #70 is open in v0.06 alpha; current branch is `main`, with no production-code changes in the working tree. No implementation dependency blocks this layout-only change.
+  - [x] Verify and analyze the layout problem in the current source. `PitchShiftPlugin` exposes one automatable parameter, Semitones. `PluginChainItemView` has no dedicated Pitch Shifter branch, so it falls back to `VstPluginComponent`: width factor 3, a 30 px last-changed-parameter row, and a viewport containing another 30 px row for the same parameter. The remaining height is unused. This is source verification, not visual runtime validation.
+  - [x] Document the root cause and present a concrete layout proposal, revised after the maintainer requested a more distinctive GUI. Review `DelayPluginComponent`, `ChorusPluginComponent`, `PhaserPluginComponent`, `FilterPluginComponent`, and `EffectEditorLayout`: dedicated `PluginViewComponent` editors combine reusable automatable controls with a separate parameter-driven graph, track-coloured panel headers, and explicit responsive bounds. Proposed Pitch Shifter editor: retain width factor 1, but place a compact, read-only **PITCH MAP** above a single standard Semitones knob with its existing value label. The map uses a vertical interval scale from -24 to +24 semitones, labelled at octave intervals; a subdued reference at 0 and a track-coloured output marker/connecting arrow show the shift's direction and magnitude, with fractional shifts positioned continuously. At zero the markers coincide. This represents the configured transposition, not measured input/output notes or an audio analyser. React to effective parameter changes, including automation; no independent animation timer or audio analysis is needed. Reuse `GUIHelpers::drawHeaderBox`, theme backgrounds, and `AutomatableParameterComponent`; keep the graph non-interactive to preserve the standard knob's input, MIDI-learn, and undo behavior. Bound the graph and knob sizes so neither grows disproportionately, with tested bounds and readable labels at narrow/default/wide sizes. Rack-item width becomes one third of its previous allocation at the same rack height; the shared rack height, existing parameter range/formatting, fractional precision, DSP, and automation remain unchanged. The maintainer approved this revised proposal.
+  - [x] Obtain maintainer approval before implementation.
+  - [x] Add regression coverage: extend `EffectEditorLayoutTests` with compact width policy, narrow/default/wide layout bounds, graph/knob size caps, centering, tiny-size safety, octave positions, zero alignment, clamping, and fractional shift precision. The standalone test run passes.
+  - [x] Implement the initially approved layout change: dedicated `PitchShiftPluginComponent`, initially read-only parameter-listener-driven Pitch Map, and a single standard Semitones control; retain the existing engine and input behavior.
+  - [x] Update technical and user documentation and `CHANGELOG.md`.
+  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`.
+  - [x] Run `BUILD_JOBS=12 ./test.sh rd`; all 21 tests pass.
+  - [x] Perform focused UI/runtime validation in an isolated debug-shell session on a temporary X display. Review the header, all five scale labels, the knob/value, and marker positions at 0, +12, -12, +0.5, and +24 semitones; verify fractional knob dragging through state dumps. Compare against the previous shared build to confirm removal of the duplicated control and width reduction. Layout tests cover narrow/default/wide and tiny sizes; runtime screenshots validate the normal rack allocation.
+  - [x] Check the observed undo behavior against the previous shared build: in both headless sessions, the toolbar undo attempt after a pitch-knob drag left the native parameter at the changed value. This is not a newly introduced display behavior; successful pitch undo/redo is not claimed as validated by this batch.
+  - [x] Create the shared artifact with `./build_and_copy_shared.sh`: `/home/ai/Gemeinsam/NextStudio`.
+  - [x] Address maintainer feedback and revalidate: add whole-semitone input through the Pitch Map while keeping the knob and native automation parameter continuous.
+    - [x] Analyze the request: the continuous native range must not be quantized globally; add a separate marker-only input path using the existing scale geometry and parameter notifications.
+    - [x] Obtain approval: the maintainer explicitly requested vertically dragging the coloured point with whole-semitone snapping.
+    - [x] Add regression coverage: test relative drag mapping and all 49 integer values; add `PitchShiftDragTests` for live/persisted values, notifications, balanced gestures, exact fractional undo/redo, no-op/cancel/destruction, and preservation of the continuous native range.
+    - [x] Implement marker hit testing, hover/cursor/tooltip feedback, relative snapped dragging, clamping, Escape cancellation, and one graph-specific undo action per gesture. Suppress intermediate CachedValue undo recording only during graph updates; keep the parameter binding and standard knob unchanged.
+    - [x] Update technical and user documentation, test documentation, and `CHANGELOG.md`.
+    - [x] Build with `BUILD_JOBS=12 ./build.sh rd`; run `BUILD_JOBS=12 ./test.sh rd` successfully (22 tests).
+    - [x] Validate in the debug shell: upward drag to +10, one-step undo to 0 and redo to +10, downward drag to -12, limits at +/-24, Escape restoring the fractional start, and continuous knob dragging to -11.232 confirmed by state dumps.
+    - [x] Refresh the shared artifact with `./build_and_copy_shared.sh` for maintainer revalidation: `/home/ai/Gemeinsam/NextStudio`.
+    - [x] Receive maintainer revalidation and explicit approval of the final implementation and issue closure. No further feedback remains; continuous knob/automation behavior is retained.
+  - [x] Receive maintainer validation and re-check acceptance criteria: remove duplicate controls and excess width, preserve readable controls/values, match compact rack sizing, and retain the native parameter range and automation behavior. Maintainer approved commit, push, and marking #70 fixed.
 - [ ] **#65 — Bypassed plugins are not fully decolorized**
 - [ ] **#71 — Plugin selection menus are not sorted alphabetically**
   - [ ] Use one stable, case-insensitive sorting policy for filtered and unfiltered menus.

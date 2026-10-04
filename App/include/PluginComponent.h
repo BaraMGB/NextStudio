@@ -29,6 +29,7 @@
 #include "FilterPluginComponent.h"
 #include "PeakLimiterPluginComponent.h"
 #include "PhaserPluginComponent.h"
+#include "PitchShiftPluginComponent.h"
 #include "ReverbPluginComponent.h"
 #include "SaturationPluginComponent.h"
 #include "SoundFontPluginComponent.h"

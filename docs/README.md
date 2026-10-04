@@ -29,6 +29,7 @@ This directory contains the user and developer documentation for NextStudio.
 - [Compressor](plugins/compressor.md) — dynamic compressor with sidechain support and transfer curve.
 - [Filter](plugins/filter.md) — state-variable filter with lowpass/highpass and selectable slope.
 - [Delay](plugins/delay.md) — versatile delay with sync, multiple modes, and feedback filters.
+- [Pitch Shifter](plugins/pitch-shifter.md) — compact semitone control with a parameter-driven interval map.
 - [Reverb](plugins/reverb.md) — algorithmic reverb based on JUCE reverb engine.
 - [Chorus](plugins/chorus.md) — stereo chorus with modulated delay line.
 - [Phaser](plugins/phaser.md) — stereo phaser with adjustable feedback and sweep graph.
@@ -71,6 +72,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [EQ band reset interactions](changes/eq-band-reset.md)
 - [Reverb header simplification](changes/reverb-header-simplification.md) — title-only chamber header behavior and validation.
 - [Compressor and Delay control layouts](changes/compressor-delay-control-layouts.md) — responsive side-by-side graph and control geometry.
+- [Compact Pitch Shifter editor](changes/pitch-shifter-compact-map.md) — dedicated compact editor, Pitch Map, parameter listeners, and layout regression coverage.
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
 - [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.

@@ -76,6 +76,10 @@ The current horizontal offset, animated scroll target, selected rack item, drag 
 
 Expanded side panels use named constants rather than local numeric widths. A collapsed side panel occupies only `COLLAPSED_PANEL_WIDTH`, returning the remaining space to the plug-in list and canvas.
 
+### Compact Pitch Shifter editor
+
+`PluginChainItemView` selects `PitchShiftPluginComponent` for `pitchShifter` instead of the generic VST parameter list. It requests width factor 1 and displays an interval map above one standard Semitones control. Dragging the map's output point selects whole semitones in one undoable gesture; the standard knob and automation remain continuous. `EffectEditorLayout::pitchShifter()` bounds the map/control dimensions; the shared rack height is unchanged. See [Compact Pitch Shifter editor](../changes/pitch-shifter-compact-map.md) for parameter-listener ownership and regression coverage, and [Pitch Shifter](../plugins/pitch-shifter.md) for user behavior.
+
 ## Rack sections and ordering
 
 MIDI tracks expose these sections in signal-flow order:

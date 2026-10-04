@@ -26,6 +26,7 @@
 #include "PeakLimiterPluginComponent.h"
 #include "NextPhaserPlugin.h"
 #include "PhaserPluginComponent.h"
+#include "PitchShiftPluginComponent.h"
 #include "ReverbPluginComponent.h"
 #include "NextSaturationPlugin.h"
 #include "SaturationPluginComponent.h"
@@ -103,6 +104,10 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     else if (m_plugin->getPluginType() == PeakLimiterPlugin::xmlTypeName)
     {
         m_pluginComponent = std::make_unique<PeakLimiterPluginComponent>(evs, p);
+    }
+    else if (m_plugin->getPluginType() == te::PitchShiftPlugin::xmlTypeName)
+    {
+        m_pluginComponent = std::make_unique<PitchShiftPluginComponent>(evs, p);
     }
     else if (m_plugin->getPluginType() == te::ReverbPlugin::xmlTypeName)
     {

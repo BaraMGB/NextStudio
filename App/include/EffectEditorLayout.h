@@ -29,6 +29,14 @@ struct Rectangle
     [[nodiscard]] constexpr int bottom() const { return y + height; }
 };
 
+inline constexpr int pitchShifterWidthFactor = 1;
+
+struct PitchShifterLayout
+{
+    Rectangle graph;
+    Rectangle parameter;
+};
+
 struct CompressorLayout
 {
     Rectangle graph;
@@ -92,6 +100,28 @@ struct DelayLayout
 
     const auto preferred = std::clamp((contentWidth * 42) / 100, minimumGraphWidth, maximumGraphWidth);
     return std::clamp(preferred, 0, std::max(0, contentWidth - sectionGap - preferredControlsWidth));
+}
+
+[[nodiscard]] constexpr PitchShifterLayout pitchShifter(int width, int height)
+{
+    constexpr int outerMargin = 4;
+    constexpr int sectionGap = 4;
+    constexpr int maximumContentWidth = 160;
+    constexpr int maximumGraphHeight = 150;
+
+    auto content = inset({0, 0, std::max(0, width), std::max(0, height)}, outerMargin, outerMargin);
+    const auto contentWidth = std::min(content.width, maximumContentWidth);
+    content.x += (content.width - contentWidth) / 2;
+    content.width = contentWidth;
+
+    // The standard control reserves 20 px for its title and 15 px for its value.
+    const auto parameterHeight = std::min(content.height, std::clamp(content.width + 35, 95, 135));
+    const auto gap = std::min(sectionGap, content.height - parameterHeight);
+    const auto graphHeight = std::min(maximumGraphHeight, content.height - parameterHeight - gap);
+    const auto top = content.y + (content.height - graphHeight - gap - parameterHeight) / 2;
+
+    return {{content.x, top, content.width, graphHeight},
+            {content.x, top + graphHeight + gap, content.width, parameterHeight}};
 }
 
 [[nodiscard]] constexpr CompressorLayout compressor(int width, int height)
