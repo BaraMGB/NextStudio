@@ -491,6 +491,29 @@ if(BUILD_TESTING)
 
     add_test(NAME PitchShiftDrag
             COMMAND PitchShiftDragTests)
+
+    juce_add_console_app(PluginBypassPresentationTests
+            PRODUCT_NAME "PluginBypassPresentationTests")
+    juce_generate_juce_header(PluginBypassPresentationTests)
+
+    target_sources(PluginBypassPresentationTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginBypassPresentation.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PluginBypassPresentationTests.cpp)
+
+    target_include_directories(PluginBypassPresentationTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(PluginBypassPresentationTests PRIVATE
+            juce::juce_gui_basics
+            juce::juce_data_structures)
+
+    target_compile_definitions(PluginBypassPresentationTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0
+            JUCE_MODAL_LOOPS_PERMITTED=1)
+
+    add_test(NAME PluginBypassPresentation
+            COMMAND PluginBypassPresentationTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

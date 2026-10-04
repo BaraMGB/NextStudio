@@ -39,6 +39,7 @@ The Track Presets and Modifiers panels are collapsed by default. Each keeps a na
 | `App/include/RackPluginListItem.h`, `App/src/RackPluginListItem.cpp` | plug-in-list rows, hit testing, menus, row reordering, and cached icons |
 | `App/include/RackPanelToggleButton.h`, `App/src/RackPanelToggleButton.cpp` | expanded-header and collapsed-rail controls |
 | `App/include/PluginChainSections.h` | MIDI/audio section definitions |
+| `App/include/PluginBypassPresentation.h`, `App/src/PluginBypassPresentation.cpp` | renderer-only whole-item grayscale, enabled-state listener, and contrasting vertical bypass badge |
 | `App/include/PluginChainLayout.h` | pure scroll-range and reorder-index calculations |
 
 ## State ownership
@@ -79,6 +80,12 @@ Expanded side panels use named constants rather than local numeric widths. A col
 ### Compact Pitch Shifter editor
 
 `PluginChainItemView` selects `PitchShiftPluginComponent` for `pitchShifter` instead of the generic VST parameter list. It requests width factor 1 and displays an interval map above one standard Semitones control. Dragging the map's output point selects whole semitones in one undoable gesture; the standard knob and automation remain continuous. `EffectEditorLayout::pitchShifter()` bounds the map/control dimensions; the shared rack height is unchanged. See [Compact Pitch Shifter editor](../changes/pitch-shifter-compact-map.md) for parameter-listener ownership and regression coverage, and [Pitch Shifter](../plugins/pitch-shifter.md) for user behavior.
+
+### Whole-item bypass presentation
+
+Each plug-in `PluginChainItemView` owns a `PluginBypassPresentation` observing its `enabled` state. While bypassed, a component image effect desaturates the entire item and its children, including preset controls. A dedicated **BYPASSED** badge occupies the lower vertical rail without covering or moving editor controls. Active/re-enabled items have no filter; modifier items are unchanged. The view detaches the observer/effect before destruction.
+
+Controls remain enabled and interactive; the presentation neither edits engine state nor changes audio processing. See [Complete bypass presentation](../changes/complete-bypass-presentation.md) for rendering ownership, alpha handling, tests, and screenshot verification.
 
 ## Rack sections and ordering
 

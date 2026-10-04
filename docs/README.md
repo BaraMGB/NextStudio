@@ -73,6 +73,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Reverb header simplification](changes/reverb-header-simplification.md) — title-only chamber header behavior and validation.
 - [Compressor and Delay control layouts](changes/compressor-delay-control-layouts.md) — responsive side-by-side graph and control geometry.
 - [Compact Pitch Shifter editor](changes/pitch-shifter-compact-map.md) — dedicated compact editor, Pitch Map, parameter listeners, and layout regression coverage.
+- [Complete bypass presentation](changes/complete-bypass-presentation.md) — whole-item grayscale, explicit bypass status, preserved interaction, and screenshot/regression verification.
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
 - [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.

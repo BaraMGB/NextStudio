@@ -88,6 +88,14 @@ The left panel shows all plugins organized by section. Clicking a plugin in the 
 - **Delete:** Click the trash can to remove a plugin.
 - **Move:** Drag plugin title bar to a [+] in the desired section.
 
+### Bypass appearance
+
+A bypassed plug-in's complete embedded rack editor is shown in **grayscale**, including its header, graphs, knobs, and instrument preset panel. Its vertical rail displays a contrasting **BYPASSED** badge, also when collapsed; the plug-in list retains the crossed-out eye indicator.
+
+Bypass stops the plug-in's processing, not editing. Controls, parameter values, presets, opening the editor, moving, deleting, and re-enabling remain available. Changing settings does not automatically re-enable the plug-in. Click the eye again to restore normal processing and the original colours immediately.
+
+This treatment applies to embedded effect, MIDI-plug-in, and instrument editors. Separately opened native plug-in windows and modifiers are not recoloured.
+
 ### Signal Flow
 
 The section structure ensures correct signal flow — MIDI plugins always process before the instrument, and audio effects always process after. You cannot accidentally place a reverb before your instrument.

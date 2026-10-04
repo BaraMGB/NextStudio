@@ -19,6 +19,8 @@
 
 namespace te = tracktion_engine;
 
+class PluginBypassPresentation;
+
 class BorderlessButton : public juce::DrawableButton
 {
 public:
@@ -85,6 +87,7 @@ private:
     std::unique_ptr<ModifierViewComponent> m_modifierComponent;
 
     std::unique_ptr<PresetManagerComponent> m_presetManager;
+    std::unique_ptr<PluginBypassPresentation> m_bypassPresentation;
     BorderlessButton m_showPluginBtn;
     bool m_clickOnHeader{false};
     bool m_collapsed{false};

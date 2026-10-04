@@ -11,6 +11,7 @@
 #include "PluginChainItemView.h"
 #include "PluginChainView.h"
 #include "PluginPresetInterface.h"
+#include "PluginBypassPresentation.h"
 #include "ArpeggiatorPlugin.h"
 #include "ArpeggiatorPluginComponent.h"
 #include "ChorusPluginComponent.h"
@@ -170,6 +171,8 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
             addAndMakeVisible(*m_presetManager);
         }
     }
+
+    m_bypassPresentation = std::make_unique<PluginBypassPresentation>(*this, m_plugin->state);
 }
 
 PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, te::Modifier::Ptr m)
@@ -205,24 +208,27 @@ PluginChainItemView::PluginChainItemView(EditViewState &evs, te::Track::Ptr t, t
     addAndMakeVisible(*m_modifierComponent);
 }
 
-PluginChainItemView::~PluginChainItemView() = default;
+PluginChainItemView::~PluginChainItemView()
+{
+    // Detach the state listener and filter before children or the Component die.
+    m_bypassPresentation.reset();
+}
 
 void PluginChainItemView::paint(juce::Graphics &g)
 {
     auto area = getLocalBounds();
     area.reduce(0, 1);
 
-    juce::Colour trackCol;
-    if (m_plugin)
-        trackCol = m_plugin->isEnabled() ? getTrackColour() : getTrackColour().darker(0.7f);
-    else
-        trackCol = getTrackColour(); // Modifiers are always enabled effectively or handle it internally
+    const auto trackCol = getTrackColour();
+    const bool bypassed = m_bypassPresentation != nullptr && m_bypassPresentation->isBypassed();
 
     auto labelingCol = trackCol.getBrightness() > 0.8f ? juce::Colour(0xff000000) : juce::Colour(0xffffffff);
 
     auto title = m_plugin ? m_plugin->getName() : (m_modifier ? m_modifier->getName() : juce::String(""));
 
-    GUIHelpers::drawHeaderBox(g, area.toFloat(), trackCol, m_evs.m_applicationState.getBorderColour(), m_evs.m_applicationState.getBackgroundColour2(), (float)m_headerWidth, GUIHelpers::HeaderPosition::left, title);
+    GUIHelpers::drawHeaderBox(g, area.toFloat(), trackCol, m_evs.m_applicationState.getBorderColour(), m_evs.m_applicationState.getBackgroundColour2(), (float)m_headerWidth, GUIHelpers::HeaderPosition::left, bypassed ? juce::String() : title);
+    if (bypassed)
+        PluginBypassPresentation::paintHeader(g, area.withWidth(m_headerWidth), title, labelingCol);
 
     GUIHelpers::setDrawableOnButton(m_showPluginBtn, BinaryData::expandPluginPlain18_svg, labelingCol);
 
