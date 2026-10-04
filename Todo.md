@@ -123,6 +123,13 @@ The following sequence is binding and repeats for every batch. It is not a globa
   - [x] Implement the approved smallest change by sorting the completed shared plug-in tree recursively; update plug-in-chain technical/user documentation, test documentation, and `CHANGELOG.md`.
   - [x] Build with `BUILD_JOBS=12 ./build.sh rd`, run all 24 tests successfully with `BUILD_JOBS=12 ./test.sh rd`, verify clean debug-shell startup/readiness, and create the shared artifact at `/home/ai/Gemeinsam/NextStudio`.
   - [x] Receive maintainer validation of the plug-in selection menu ordering. The separately rendered Instruments/Effects sidebar tables retain their own sortable-table behavior and are tracked as a separate fix; close #71.
+- [~] **#89 — Instruments and Effects sidebar browsers do not default to alphabetical sorting**
+  - [x] Reproduce and analyze the mismatch: both table headers display Name ascending, but `InstrumentEffectListModel::m_order` value-initializes to column 0, so the constructor's first `updatePluginLists()` preserves external registration order followed by internal registration order.
+  - [x] Obtain maintainer approval to track and commit this independently from #71.
+  - [x] Implement the smallest correction by initializing the existing sort state to `nameCol, true`. The existing refresh path now applies the same case-insensitive natural name ordering on startup and after searches or plug-in-list changes; explicit Name/Format header choices remain unchanged.
+  - [x] Confirm that a new isolated test is not proportionate: the correction is a declarative default for the existing table-model sort path, while constructing the model requires a full Tracktion engine and the acceptance criterion is the visible agreement between header indicator and rows. Retain full-suite coverage and focused visual validation for both tabs.
+  - [x] Update Side Browser user documentation and `CHANGELOG.md`; build successfully, run all 24 tests, and refresh `/home/ai/Gemeinsam/NextStudio`.
+  - [ ] Receive maintainer visual validation for the initial Instruments and Effects ordering; then close #89.
 
 ## Phase 2 — Editing correctness and regression hardening
 
