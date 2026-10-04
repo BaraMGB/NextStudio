@@ -85,6 +85,7 @@ PluginTreeGroup::PluginTreeGroup(te::Edit &edit, juce::KnownPluginList::PluginTr
     }
 
     populateFrom(tree);
+    sortSubItemsRecursively();
 }
 
 PluginTreeGroup::PluginTreeGroup(juce::String s)

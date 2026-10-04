@@ -514,6 +514,29 @@ if(BUILD_TESTING)
 
     add_test(NAME PluginBypassPresentation
             COMMAND PluginBypassPresentationTests)
+
+    juce_add_console_app(PluginMenuOrderingTests
+            PRODUCT_NAME "PluginMenuOrderingTests")
+    juce_generate_juce_header(PluginMenuOrderingTests)
+
+    target_sources(PluginMenuOrderingTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PluginMenuOrderingTests.cpp)
+
+    target_include_directories(PluginMenuOrderingTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(PluginMenuOrderingTests PRIVATE
+            tracktion::tracktion_engine
+            juce::juce_gui_basics)
+
+    target_compile_definitions(PluginMenuOrderingTests PRIVATE
+            TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME PluginMenuOrdering
+            COMMAND PluginMenuOrderingTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

@@ -114,9 +114,15 @@ The following sequence is binding and repeats for every batch. It is not a globa
   - [x] Validate screenshots for active/bypassed/re-enabled Delay, Arpeggiator, SoundFont Player (including presets), and the visible Simple Synth editor, plus its trailing controls after horizontal scrolling. Inspected opaque interiors are fully gray while bypassed and pixel-identical to their original colours after re-enabling; transparent antialiased corners preserve the rack background. Review the badge in expanded and collapsed rails. Confirm an actual Delay Feedback drag while bypassed changes 0.35 to approximately 0.388 without enabling the plug-in. Large-instrument rendering, scrolling, and state transitions remain responsive; no formal frame-time benchmark is claimed. Screenshot artifacts are preserved under `/tmp/NextStudio-bypass-validation/`, including `NextStudio-bypass-review.png`.
   - [x] Create the shared artifact with `./build_and_copy_shared.sh`: `/home/ai/Gemeinsam/NextStudio`; provide the active/bypassed/re-enabled screenshot contact sheet at `/home/ai/Gemeinsam/NextStudio-bypass-review.png`.
   - [x] Receive maintainer validation and re-check acceptance criteria: consistent full-component bypass appearance for effects, MIDI plug-ins, and instruments; original colours restored on re-enable; required controls remain available; rendering does not alter plug-in state. Maintainer explicitly approved commit, push, and marking #65 fixed.
-- [ ] **#71 — Plugin selection menus are not sorted alphabetically**
-  - [ ] Use one stable, case-insensitive sorting policy for filtered and unfiltered menus.
-  - [ ] Add unit coverage for categories and entries.
+- [x] **#71 — Plugin selection menus are not sorted alphabetically**
+  - [x] Refresh the issue and milestone state after closing #88. #71 is the only open v0.06-alpha issue; `main` is synchronized with `origin/main`, and no implementation dependency blocks the change.
+  - [x] Verify the failure against current `main` from the menu construction paths. `EngineHelpers::createPluginTree()` requests Tracktion's manufacturer ordering; `PluginTreeGroup::createBuiltInItems()` appends built-ins in registration order; and both the unfiltered `PluginMenu` and role-filtered `appendFilteredMenuItems()` emit groups and entries in stored order without an alphabetical step. The built-in sequence (Volume and Pan, Equaliser, Reverb, Peak Limiter, Delay, ...) directly demonstrates the failure.
+  - [x] Document the root cause and solution proposal. Sort each `PluginTreeGroup` recursively once after the complete built-in/external tree is assembled, using each group's name and each entry's displayed `desc.name`. Use JUCE's case-insensitive natural comparison and explicitly retain insertion order for equivalent names. This keeps category hierarchy intact and makes the existing filtered and unfiltered menu builders consume the same deterministic order without changing IDs, plug-in creation, role classification, or registration data. Add a focused `PluginMenuOrderingTests` suite covering mixed-case and natural ordering, stable equal names, nested category/entry ordering, category preservation, and filtered-order equivalence. Validate the MIDI Plugins, Instrument, and Audio Effects plus-button menus at runtime.
+  - [x] Obtain maintainer approval for the shared recursive sorting policy before implementation.
+  - [x] Add the focused `PluginMenuOrderingTests` regression suite for stable mixed-case/natural ordering, nested categories and entries, category preservation, and filtered-order equivalence.
+  - [x] Implement the approved smallest change by sorting the completed shared plug-in tree recursively; update plug-in-chain technical/user documentation, test documentation, and `CHANGELOG.md`.
+  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`, run all 24 tests successfully with `BUILD_JOBS=12 ./test.sh rd`, verify clean debug-shell startup/readiness, and create the shared artifact at `/home/ai/Gemeinsam/NextStudio`.
+  - [x] Receive maintainer validation of the plug-in selection menu ordering. The separately rendered Instruments/Effects sidebar tables retain their own sortable-table behavior and are tracked as a separate fix; close #71.
 
 ## Phase 2 — Editing correctness and regression hardening
 
@@ -181,6 +187,6 @@ The following sequence is binding and repeats for every batch. It is not a globa
 ## Issue metadata cleanup
 
 - [ ] Add appropriate feature/enhancement labels to #81, #82, and #83.
-- [ ] Place #88 in the v0.06 milestone as a release blocker.
+- [x] Place #88 in the v0.06 milestone as a release blocker; close it after maintainer validation.
 - [ ] Clarify #75 reproduction details and #82 merge semantics before implementation.
 - [ ] Record the decision required for #59.

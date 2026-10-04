@@ -34,10 +34,24 @@ class PluginTreeBase
 public:
     virtual ~PluginTreeBase() = default;
     [[nodiscard]] virtual juce::String getUniqueName() const = 0;
+    [[nodiscard]] virtual juce::String getDisplayName() const = 0;
 
     void addSubItem(PluginTreeBase *itm) { subitems.add(itm); }
-    int getNumSubItems() { return subitems.size(); }
-    PluginTreeBase *getSubItem(int idx) { return subitems[idx]; }
+    int getNumSubItems() const { return subitems.size(); }
+    PluginTreeBase *getSubItem(int idx) const { return subitems[idx]; }
+
+    void sortSubItemsRecursively()
+    {
+        for (auto *item : subitems)
+            item->sortSubItemsRecursively();
+
+        struct DisplayNameComparator
+        {
+            static int compareElements(const PluginTreeBase *first, const PluginTreeBase *second) { return first->getDisplayName().compareNatural(second->getDisplayName(), false); }
+        } comparator;
+
+        subitems.sort(comparator, true);
+    }
 
 private:
     juce::OwnedArray<PluginTreeBase> subitems;
@@ -60,6 +74,8 @@ public:
         return desc.createIdentifierString();
     }
 
+    [[nodiscard]] juce::String getDisplayName() const override { return desc.name; }
+
     juce::PluginDescription desc;
     juce::String xmlType;
     bool isPlugin = true;
@@ -75,6 +91,7 @@ public:
     explicit PluginTreeGroup(juce::String);
 
     [[nodiscard]] juce::String getUniqueName() const override { return name; }
+    [[nodiscard]] juce::String getDisplayName() const override { return name; }
 
     juce::String name;
 

@@ -41,6 +41,7 @@ The Track Presets and Modifiers panels are collapsed by default. Each keeps a na
 | `App/include/PluginChainSections.h` | MIDI/audio section definitions |
 | `App/include/PluginBypassPresentation.h`, `App/src/PluginBypassPresentation.cpp` | renderer-only whole-item grayscale, enabled-state listener, and contrasting vertical bypass badge |
 | `App/include/PluginChainLayout.h` | pure scroll-range and reorder-index calculations |
+| `App/include/PluginMenu.h`, `App/src/PluginMenu.cpp` | shared plug-in tree construction and deterministic menu ordering |
 
 ## State ownership
 
@@ -99,6 +100,10 @@ Audio tracks expose Audio Effects only. `PluginChainSections.h` is the shared so
 
 The persisted rack order contains stable item IDs. Hidden channel-strip tail plug-ins are excluded from the visible order. Conversion between visible plug-in ordinals, visual rack indices, and Tracktion plug-in-list indices is kept explicit because modifiers and hidden plug-ins occupy different domains.
 
+## Plug-in selection menu ordering
+
+After built-in and external plug-ins have been assembled, `PluginTreeBase::sortSubItemsRecursively()` sorts every group by its displayed name. The comparison is case-insensitive and natural, and equivalent names retain registration order. Sorting the shared tree once preserves the category hierarchy and gives both the unfiltered `PluginMenu` and the role-filtered Track Chain add menus the same deterministic category and entry order. Plug-in identifiers, role classification, and creation remain unchanged.
+
 ## Scrolling
 
 The plug-in canvas uses a horizontal content offset and explicit scrollbar. The maximum offset is based on full content width:
@@ -132,7 +137,7 @@ Callbacks that may outlive a synchronous rebuild use `juce::Component::SafePoint
 
 ## Tests
 
-`PluginChainLayoutTests` covers the pure scroll-range and reorder-destination calculations. `DebugSettingsIsolationTests` covers defaults and persistence for the two side-panel settings. Full component rendering, drag-and-drop, and Tracktion plug-in insertion still require integration or visual testing.
+`PluginChainLayoutTests` covers the pure scroll-range and reorder-destination calculations. `PluginMenuOrderingTests` covers recursive category/entry ordering, case-insensitive natural comparison, stable equivalent names, category preservation, and filtered-order equivalence. `DebugSettingsIsolationTests` covers defaults and persistence for the two side-panel settings. Full component rendering, drag-and-drop, and Tracktion plug-in insertion still require integration or visual testing.
 
 ## Related documents
 

@@ -10,6 +10,7 @@ The current suites are:
 |---|---|---|
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
 | `PluginChainLayout` | rack scroll limits and reorder destination indices | `App/tests/PluginChainLayoutTests.cpp` |
+| `PluginMenuOrdering` | recursive stable, case-insensitive natural ordering of plug-in categories and entries, including filtered-menu equivalence | `App/tests/PluginMenuOrderingTests.cpp` |
 | `PluginBypassPresentation` | whole-subtree grayscale, RGB/ARGB alpha and source preservation, initial/default bypass states, undo/redo colour restoration, teardown, unchanged control enablement/hit testing and state, and status badge bounds/contrast | `App/tests/PluginBypassPresentationTests.cpp` |
 | `PitchShiftDrag` | whole-semitone graph edits, persistence, single-step undo/redo with exact fractional restoration, balanced gestures, no-op/cancel/destruction, and unchanged continuous native range | `App/tests/PitchShiftDragTests.cpp` |
 | `EffectEditorLayout` | responsive Compressor, Delay, and Pitch Shifter graph/control rectangles, minimum sizes, non-overlap, compact pitch width/size caps, and interval-map positions including fractional shifts and whole-semitone drag mapping | `App/tests/EffectEditorLayoutTests.cpp` |
