@@ -227,6 +227,23 @@ juce::var createStateDump(const NextStudio::Debug::DebugHost &debugHost)
         edit->setProperty("needsAutosave", (bool) evs->m_needAutoSave);
         edit->setProperty("selection", buildSelectionSummary(*evs));
 
+        juce::Array<juce::var> timelines;
+        for (const auto &node : evs->m_viewDataTree)
+        {
+            auto *view = new juce::DynamicObject();
+            const auto id = node.getType().toString();
+            const auto context = evs->getTimelineViewport(id);
+            const double b = double(node.getProperty(IDs::beatsPerPixel, 0.1));
+            view->setProperty("id", id);
+            view->setProperty("startBeat", node.getProperty(IDs::viewX, 0.0));
+            view->setProperty("beatsPerPixel", b);
+            view->setProperty("width", context.width);
+            view->setProperty("rasterScale", context.rasterScale);
+            view->setProperty("visualGridLevel", TimelineViewGeometry::gridLevel(b, context.beatsPerBar));
+            timelines.add(view);
+        }
+        edit->setProperty("timelines", timelines);
+
         auto &transport = evs->m_edit.getTransport();
         auto *transportState = new juce::DynamicObject();
         transportState->setProperty("playing", transport.isPlaying());

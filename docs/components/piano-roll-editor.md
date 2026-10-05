@@ -99,6 +99,8 @@ The timeline owns the horizontal mapping:
 - `m_timeLine.xToTimePos(x)` — pixel to edit time;
 - `m_evs.beatsToX(beats, timeLineID, width)` — beat to pixel for a given view width.
 
+Horizontal scale is normalized by the shared [timeline view transform](timeline-view-transform.md), so equal-rank visual grid intervals occupy integer physical-pixel distances. Ruler, grid, clips, notes, velocity, automation, and playhead keep one unrounded linear mapping; note bounds and clip-overlay previews retain float x-coordinates. The existing extra right-edge draw pixel is padding, not an alteration of a note's end beat. Zoom gestures preserve their anchor and retain unnormalized intent across small movements. Pure panning does not change the scale. Clip fits are finalized with the editor's post-layout viewport, including when reopening a previously visited track after a resize. Fits may exceed the interactive zoom limit to keep the content visible; at extreme extents beyond the interval table's pixel resolution, the exact linear fit takes precedence over integer raster spacing.
+
 ### Vertical
 
 Pitch mapping uses the edit-local vertical scroll and scale:

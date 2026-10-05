@@ -45,12 +45,12 @@ private:
     std::vector<te::MidiClip *> getMidiClipsOfTrack();
     tracktion_engine::MidiClip *getMidiClipAtPoint(juce::Point<int> point);
 
-    int timeToX(double time);
-    double xToBeats(int x);
+    float timeToX(double time);
+    double xToBeats(float x);
     double getSnappedTime(double time);
     void updateClipRects();
     void moveSelectedClips(bool copy, bool snap);
-    juce::Rectangle<int> getClipRect(te::Clip::Ptr);
+    juce::Rectangle<float> getClipRect(te::Clip::Ptr);
     EditViewState &m_evs;
     tracktion_engine::Track::Ptr m_track;
     [[maybe_unused]] double m_loop1AtMousedown{}, m_loop2AtMousedown{};
@@ -61,9 +61,9 @@ private:
     te::ClipPosition m_cachedPos;
     te::MidiClip *m_cachedClip{};
     TimeLineComponent &m_timelineComponent;
-    juce::Array<juce::Rectangle<int>> m_clipRects;
+    juce::Array<juce::Rectangle<float>> m_clipRects;
     juce::Array<te::MidiClip *> m_clipsForRects;
-    juce::Rectangle<int> m_draggedClipRect;
+    juce::Rectangle<float> m_draggedClipRect;
     double m_draggedTimeDelta;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimelineOverlayComponent)
 };

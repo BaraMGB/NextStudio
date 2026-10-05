@@ -59,11 +59,14 @@ Shows clips and automation data on tracks along the timeline.
 - **Resize loop range:** Hover the first or last 10 pixels to show the corresponding resize cursor and the `set loop range start` or `set loop range end` hint. Drag to resize; hold `Shift` to bypass snapping.
 - **Loop state:** The range uses the theme's prime colour at 50% opacity while loop playback is enabled and 20% opacity while it is disabled.
 - **Playhead Position:** Double-click on the timeline sets the playhead to the mouse position. Click or drag the playhead to set the playback position.
-- **Zoom:** Click and drag vertically in the timeline to zoom the horizontal view.
+- **Zoom:** Click and drag vertically in the timeline, or use `Ctrl`/`Command` + mouse wheel, to zoom the horizontal view. Zoom uses nearby discrete scales with evenly rasterized grid subdivisions. The pointer's beat remains anchored unless the view reaches beat zero; small drag movements accumulate rather than being discarded.
+- **Grid alignment:** Grid, clips, notes, automation, and playhead use the same horizontal mapping. Panning moves the complete scene together without rounding individual musical positions. The visible grid remains adaptive even with fixed or disabled tool snapping; its display interval no longer depends on the current transport tempo.
 
 ### Clips
 
 Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes. Double-clicking a MIDI clip opens the Piano Roll for its track and expands the lower range first if that area is currently collapsed.
+
+Clip fills and normal/selected frames share the same unrounded time edges. Adjoining clips are not independently rounded to pixels; antialiasing remains possible at fractional screen positions, and the existing frame widths and selection colours are retained.
 
 ### Toolbar
 

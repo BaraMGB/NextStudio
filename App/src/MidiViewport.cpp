@@ -328,7 +328,7 @@ juce::Rectangle<float> MidiViewport::getNoteRect(te::MidiClip *const &midiClip, 
     return getNoteRect(n->getNoteNumber(), x1, x2);
 }
 
-juce::Rectangle<float> MidiViewport::getNoteRect(const int noteNum, int x1, int x2) const
+juce::Rectangle<float> MidiViewport::getNoteRect(const int noteNum, float x1, float x2) const
 {
     auto yOffset = (float)noteNum - getStartKey() + 1;
     auto noteY = (float)getHeight() - (yOffset * getKeyWidth());
@@ -931,17 +931,8 @@ void MidiViewport::mouseWheelMove(const juce::MouseEvent &event, const juce::Mou
             wheel.deltaY * -(m_evs.getTimeLineZoomUnit());
 #endif
 
-        const auto startBeat = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getStart().inBeats();
-        const auto endBeat = m_evs.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getEnd().inBeats();
-        const auto xPos = event.getPosition().getX();
-        const auto mouseBeat = m_timeLine.xToBeatPos(xPos).inBeats();
-        const auto scaleFactor = wheelDelta > 0 ? 1.1 : 0.9;
-        const auto newVisibleLengthBeats = juce::jlimit(0.05, 100240.0, (endBeat - startBeat) * scaleFactor);
-        const auto newBeatsPerPixel = newVisibleLengthBeats / m_timeLine.getWidth();
-        const auto viewCorrect = (xPos * m_timeLine.getBeatsPerPixel()) - (xPos * newBeatsPerPixel);
-        const auto newStartPos = startBeat + viewCorrect;
-
-        m_evs.setNewStartAndZoom(m_timeLine.getTimeLineID(), newStartPos, newBeatsPerPixel);
+        if (wheelDelta != 0)
+            m_timeLine.zoomByFactor(wheelDelta > 0 ? 1.1 : 0.9, event.getPosition().getX());
     }
     else
     {

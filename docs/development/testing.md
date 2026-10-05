@@ -10,6 +10,9 @@ The current suites are:
 |---|---|---|
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
 | `PluginChainLayout` | rack scroll limits and reorder destination indices | `App/tests/PluginChainLayoutTests.cpp` |
+| `ClipFrameDrawing` | production normal/selected clip frames against independent float edge-band raster reference; adjoining fractional widths/origins, offscreen clips, both paint orders, all selection pairs, 100/125/150/200% scaling, legacy-rounding control and unchanged integer-coordinate appearance | `App/tests/ClipFrameDrawingTests.cpp` |
+| `TimelineViewGeometry` | normalized shared zoom, interval transitions, anchor/fit policy, long/panned ranges, fractional raster scales, accumulated intent, and JUCE line-coverage images | `App/tests/TimelineViewGeometryTests.cpp` |
+| `TimelineViewState` | production view setters/conversions with real Tracktion clips/notes, coordinate coincidence, deferred fit, restore/resize, independent views, variable tempo, unchanged musical state and undo isolation | `App/tests/TimelineViewStateTests.cpp` |
 | `PluginMenuOrdering` | recursive stable, case-insensitive natural ordering of plug-in categories and entries, filtered-menu equivalence, and sidebar format/name ordering | `App/tests/PluginMenuOrderingTests.cpp` |
 | `PluginBypassPresentation` | whole-subtree grayscale, RGB/ARGB alpha and source preservation, initial/default bypass states, undo/redo colour restoration, teardown, unchanged control enablement/hit testing and state, and status badge bounds/contrast | `App/tests/PluginBypassPresentationTests.cpp` |
 | `PitchShiftDrag` | whole-semitone graph edits, persistence, single-step undo/redo with exact fractional restoration, balanced gestures, no-op/cancel/destruction, and unchanged continuous native range | `App/tests/PitchShiftDragTests.cpp` |
@@ -86,6 +89,14 @@ ctest --test-dir autobuild/RelWithDebInfo -V
 # Repeat until failure when investigating intermittent behavior
 ctest --test-dir autobuild/RelWithDebInfo --repeat until-fail:20 --output-on-failure
 ```
+
+## Timeline grid tests
+
+The two timeline suites exercise the shared [view transform](../components/timeline-view-transform.md). Geometry tests sweep both nearest and conservative-fit policies through every rendered interval transition and the full interactive zoom range at several widths, meters, and raster scales. They also cover fits beyond the interactive upper limit and the extreme subpixel fallback. State regressions cover stale cached contexts on reopening, latest-fit replacement, pan/zoom cancellation, passive resize after a settled fit, and large range/clip fits surviving asynchronous context refresh and restore. State tests compile the production `EditViewState`, not a second copy of its coordinate formulas, and create real Tracktion clips/notes. `ClipFrameDrawingTests` additionally exercises the production outline helper over 960 adjoining-clip cases, comparing interior scanlines against independently derived float edge bands. Bands are rasterized as a union to avoid a separate rectangle fast path's different 8-bit coverage rounding. Complete clip body/content/frame compositing, gesture routing, drag previews and hit-testing still need focused runtime validation.
+
+For visual regression checks, capture Song Editor and Piano Roll with snapped starts/ends and unsnapped examples, and record slow pan/zoom sequences. Compare same-rank grid lines rather than differently emphasized beat/bar lines. At fractional UI/display scaling, use a native desktop capture for physical-pixel comparisons; logical-resolution agent screenshots can have a different raster phase. `state-dump` includes `edit.timelines` for checking actual view scales and anchors.
+
+Include exactly adjoining fractional-length clips, not just whole-beat examples: independent rounding of x and width can otherwise escape visual checks. Compare unselected, left-selected, right-selected, and both-selected pairs in the complete application, including a partly offscreen first clip. Preserve selection/geometry across before/after captures and confirm musical clip/note data remain unchanged after slow pan/zoom and UI-scale changes. A float outline removes the separate frame-coordinate rounding; it does not promise constant raw RGB samples across different underlying content/bands or eliminate antialiasing.
 
 ## Debug-system tests
 

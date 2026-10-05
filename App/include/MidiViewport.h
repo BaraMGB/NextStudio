@@ -146,7 +146,7 @@ private:
     float getStartKey() const;
     float getKeyWidth() const;
 
-    juce::Rectangle<float> getNoteRect(int noteNum, int x1, int x2) const;
+    juce::Rectangle<float> getNoteRect(int noteNum, float x1, float x2) const;
 
     juce::Colour getNoteColour(tracktion_engine::MidiClip *const &midiClip, tracktion_engine::MidiNote *n);
 

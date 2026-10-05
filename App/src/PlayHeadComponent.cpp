@@ -32,8 +32,8 @@ PlayheadComponent::PlayheadComponent(te::Edit &e, EditViewState &evs, TimeLineCo
 
 void PlayheadComponent::paint(juce::Graphics &g)
 {
-    auto rect = juce::Rectangle<int>(m_xPosition, 0, 2, getHeight());
-    auto bounds = getLocalBounds();
+    auto rect = juce::Rectangle<float>(m_xPosition, 0, 2, float(getHeight()));
+    auto bounds = getLocalBounds().toFloat();
     if (!bounds.contains(rect))
         return;
 
@@ -93,11 +93,13 @@ void PlayheadComponent::timerCallback()
 
     auto x1 = m_timeLine.getCurrentBeatRange().getStart().inBeats();
     auto x2 = m_timeLine.getCurrentBeatRange().getEnd().inBeats();
-    int newX = m_editViewState.timeToX(m_edit.getTransport().getPosition().inSeconds(), getWidth(), x1, x2);
+    float newX = m_editViewState.timeToX(m_edit.getTransport().getPosition().inSeconds(), getWidth(), x1, x2);
 
     if (newX != m_xPosition)
     {
-        repaint(juce::jmin(newX, m_xPosition) - 1, 0, juce::jmax(newX, m_xPosition) - juce::jmin(newX, m_xPosition) + 3, getHeight());
+        const int left = static_cast<int>(std::floor(juce::jmin(newX, m_xPosition))) - 2;
+        const int right = static_cast<int>(std::ceil(juce::jmax(newX, m_xPosition))) + 4;
+        repaint(left, 0, right - left, getHeight());
         m_xPosition = newX;
     }
 }

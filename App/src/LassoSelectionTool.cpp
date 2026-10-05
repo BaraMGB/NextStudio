@@ -23,14 +23,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "LassoSelectionTool.h"
 #include "MidiViewport.h"
 
-juce::Rectangle<int> LassoSelectionTool::LassoRect::getRect(EditViewState &evs, double viewX1, double viewX2, int viewWidth) const
+juce::Rectangle<float> LassoSelectionTool::LassoRect::getRect(EditViewState &evs, double viewX1, double viewX2, int viewWidth) const
 {
-    int x = evs.timeToX(m_startTime, viewWidth, viewX1, viewX2);
-    auto y = (int)m_top;
-    int w = evs.timeToX(m_endTime, viewWidth, viewX1, viewX2) - x;
-    auto h = (int)m_bottom - (int)m_top;
-
-    return {x, y, w, h};
+    const float x = evs.timeToX(m_startTime, viewWidth, viewX1, viewX2);
+    const float w = evs.timeToX(m_endTime, viewWidth, viewX1, viewX2) - x;
+    return {x, float(m_top), w, float(m_bottom - m_top)};
 }
 
 void LassoSelectionTool::drawLasso(juce::Graphics &g)

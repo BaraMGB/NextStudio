@@ -45,7 +45,7 @@ public:
         {
         }
 
-        juce::Rectangle<int> getRect(EditViewState &evs, double viewX1, double viewX2, int viewWidth) const;
+        juce::Rectangle<float> getRect(EditViewState &evs, double viewX1, double viewX2, int viewWidth) const;
         tracktion::core::TimeRange m_timeRange;
         juce::Range<int> m_verticalRange{0, 0};
         juce::Rectangle<int> m_rect;

@@ -21,22 +21,23 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "Utilities.h"
 
-#include "ClipOverwriteCommand.h"
-#include "MidiInputRouting.h"
-#include "BinaryData.h"
-#include "PresetHelpers.h"
-#include "TimelineGridColours.h"
 #include "ArpeggiatorPlugin.h"
+#include "BinaryData.h"
+#include "ClipFrameDrawing.h"
+#include "ClipOverwriteCommand.h"
+#include "EditViewState.h"
+#include "MidiInputRouting.h"
 #include "NextChorusPlugin.h"
 #include "NextDelayPlugin.h"
 #include "NextFilterPlugin.h"
-#include "PeakLimiterPlugin.h"
 #include "NextPhaserPlugin.h"
 #include "NextSaturationPlugin.h"
+#include "PeakLimiterPlugin.h"
+#include "PresetHelpers.h"
 #include "SimpleSynthPlugin.h"
 #include "SoundFontPlugin.h"
 #include "SpectrumAnalyzerPlugin.h"
-#include "EditViewState.h"
+#include "TimelineGridColours.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_graphics/native/juce_EventTracing.h"
 #include "tracktion_core/utilities/tracktion_Time.h"
@@ -194,14 +195,7 @@ void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewSt
     {
         g.reduceClipRegion(displayedRect.toNearestInt());
 
-        g.setColour(evs.m_applicationState.getTimeLineStrokeColour());
-        g.drawRect(clipRect.toNearestInt());
-
-        if (isSelected)
-        {
-            g.setColour(evs.m_applicationState.getPrimeColour());
-            g.drawRect(clipRect.toNearestInt(), 2);
-        }
+        ClipFrameDrawing::draw(g, clipRect, evs.m_applicationState.getTimeLineStrokeColour(), evs.m_applicationState.getPrimeColour(), isSelected);
     }
     g.restoreState();
 }
@@ -682,55 +676,12 @@ GUIHelpers::ProjectSaveResult GUIHelpers::saveEditToFile(EditViewState &evs, con
     return ProjectSaveResult::saved;
 }
 
-double GUIHelpers::getIntervalBeatsOfSnap(int snapLevel, int numBeatsPerBar)
-{
-    switch (snapLevel)
-    {
-    case 0:
-        return 1.0 / 960.0;
-    case 1:
-        return 2.0 / 960.0;
-    case 2:
-        return 5.0 / 960.0;
-    case 3:
-        return 1.0 / 64.0;
-    case 4:
-        return 1.0 / 32.0;
-    case 5:
-        return 1.0 / 16.0;
-    case 6:
-        return 1.0 / 8.0;
-    case 7:
-        return 1.0 / 4.0;
-    case 8:
-        return 1.0 / 2.0;
-    case 9:
-        return 1.0;
-    case 10:
-        return numBeatsPerBar * 1.0;
-    case 11:
-        return numBeatsPerBar * 2.0;
-    case 12:
-        return numBeatsPerBar * 4.0;
-    case 13:
-        return numBeatsPerBar * 8.0;
-    case 14:
-        return numBeatsPerBar * 16.0;
-    case 15:
-        return numBeatsPerBar * 64.0;
-    case 16:
-        return numBeatsPerBar * 128.0;
-    case 17:
-        return numBeatsPerBar * 256.0;
-    case 18:
-        return numBeatsPerBar * 1024.0;
-    default:
-        return 1.0;
-    }
-}
+double GUIHelpers::getIntervalBeatsOfSnap(int snapLevel, int numBeatsPerBar) { return TimelineViewGeometry::intervalBeats(snapLevel, numBeatsPerBar); }
 
 void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, double x1beats, double x2beats, juce::Rectangle<float> boundingRect, bool printDescription)
 {
+    if (boundingRect.getWidth() <= 0 || x2beats <= x1beats)
+        return;
     auto &avs = evs.m_applicationState;
     const auto barColour = avs.getTimeLineStrokeColour().withAlpha(0.4f);
     const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.25f);
@@ -743,16 +694,11 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     if (!printDescription)
         drawBarBeatsShadow(g, evs, x1beats, x2beats, boundingRect, shadowShade);
 
-    int snapLevel = juce::jmax(3, evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth()).getLevel());
+    const int snapLevel = TimelineViewGeometry::gridLevel((x2beats - x1beats) / boundingRect.getWidth(), numBeatsPerBar);
     // At 1/16 and finer grids, emphasize quarter-beat landmarks for orientation.
     const bool emphasizeQuarterBeatLines = snapLevel <= 5;
     const auto quarterBeatColour = emphasizeQuarterBeatLines ? avs.getTimeLineStrokeColour().withAlpha(0.2f) : fracColour;
     const auto subDivisionColour = emphasizeQuarterBeatLines ? avs.getTimeLineStrokeColour().withAlpha(0.08f) : fracColour.withAlpha(0.2f);
-
-    double intervalBeats = getIntervalBeatsOfSnap(snapLevel, numBeatsPerBar);
-
-    double startBeat = std::floor(x1beats / intervalBeats) * intervalBeats;
-    double endBeat = std::ceil(x2beats / intervalBeats) * intervalBeats;
 
     double epsilon = 1e-3;
 
@@ -764,12 +710,10 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     else
         labelDetailLevel = 2;
 
-    for (double beat = startBeat; beat <= endBeat; beat += intervalBeats)
+    for (const auto &line : TimelineViewGeometry::lines(x1beats, x2beats, boundingRect.getWidth(), boundingRect.getX(), snapLevel, numBeatsPerBar))
     {
-        float x = boundingRect.getX() + evs.beatsToX(beat, boundingRect.getWidth(), x1beats, x2beats);
-
-        if (x < boundingRect.getX() || x > boundingRect.getRight())
-            continue;
+        const double beat = line.beat;
+        const float x = static_cast<float>(line.x);
 
         juce::Colour lineColour;
         bool isBarLine = false;
@@ -894,13 +838,15 @@ void GUIHelpers::drawSnapLines(juce::Graphics &g, const EditViewState &evs, doub
 }
 void GUIHelpers::drawBarBeatsShadow(juce::Graphics &g, const EditViewState &evs, double x1beats, double x2beats, const juce::Rectangle<float> &boundingRect, const juce::Colour &shade)
 {
-    const te::TimecodeSnapType &snapType = evs.getBestSnapType(x1beats, x2beats, boundingRect.getWidth());
+    if (boundingRect.getWidth() <= 0 || x2beats <= x1beats)
+        return;
     int num = evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator;
+    const int level = TimelineViewGeometry::gridLevel((x2beats - x1beats) / boundingRect.getWidth(), num);
     int shadowBeatDelta = num * 4;
 
-    if (snapType.getLevel() <= 9)
+    if (level <= 9)
         shadowBeatDelta = num;
-    if (snapType.getLevel() <= 6)
+    if (level <= 6)
         shadowBeatDelta = 1;
 
     auto beatIter = static_cast<int>(x1beats);
@@ -2729,20 +2675,8 @@ juce::Rectangle<float> GUIHelpers::getSensibleArea(juce::Point<float> p, float w
 
 void GUIHelpers::centerMidiEditorToClip(EditViewState &evs, te::Clip::Ptr c, juce::String timeLineID, int width)
 {
-    // Horizontal Zoom & Position
-    auto clipLen = c->getLengthInBeats().inBeats();
-    auto effectiveWidth = (double)juce::jmax(100, width);
-
-    // Fit clip in 80% of width
-    double newBeatsPerPixel = clipLen / (effectiveWidth * 0.8);
-
-    // Center the clip
-    auto clipStart = c->getStartBeat().inBeats();
-    auto viewWidthInBeats = newBeatsPerPixel * effectiveWidth;
-    auto startBeat = clipStart - (viewWidthInBeats - clipLen) / 2.0;
-    startBeat = juce::jmax(0.0, startBeat);
-
-    evs.setNewStartAndZoom(timeLineID, startBeat, newBeatsPerPixel);
+    // Normalize the shared view scale, preserving clip centre and conservative fit.
+    evs.fitTimelineToClip(timeLineID, c->getStartBeat().inBeats(), c->getLengthInBeats().inBeats(), juce::jmax(100, width));
 
     // Vertical Position (C4 / 60)
     double keyWidth = evs.getViewYScale(timeLineID);

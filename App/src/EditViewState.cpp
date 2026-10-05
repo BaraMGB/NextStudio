@@ -119,25 +119,23 @@ te::EditItemID EditViewState::getTrackSelectedModifier(te::EditItemID trackID)
     return te::EditItemID::fromVar(state.getProperty(IDs::selectedModifier));
 }
 
-float EditViewState::beatsToX(double beats, int width, double x1beats, double x2beats) const { return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats)); }
-
-double EditViewState::xToBeats(float x, int width, double x1beats, double x2beats) const
+float EditViewState::beatsToX(double beats, double width, double x1beats, double x2beats) const
 {
-    double beats = (static_cast<double>(x) / width) * (x2beats - x1beats) + x1beats;
-    return beats;
+    if (width <= 0 || x2beats <= x1beats)
+        return 0;
+    return static_cast<float>(TimelineViewGeometry::beatToX(beats, x1beats, (x2beats - x1beats) / width));
 }
 
-float EditViewState::timeToX(double time, int width, double x1beats, double x2beats) const
+double EditViewState::xToBeats(float x, double width, double x1beats, double x2beats) const
 {
-    double beats = timeToBeat(time);
-    return static_cast<float>(((beats - x1beats) * width) / (x2beats - x1beats));
+    if (width <= 0)
+        return x1beats;
+    return TimelineViewGeometry::xToBeat(x, x1beats, (x2beats - x1beats) / width);
 }
 
-double EditViewState::xToTime(float x, int width, double x1beats, double x2beats) const
-{
-    double beats = (static_cast<double>(x) / width) * (x2beats - x1beats) + x1beats;
-    return beatToTime(beats);
-}
+float EditViewState::timeToX(double time, double width, double x1beats, double x2beats) const { return beatsToX(timeToBeat(time), width, x1beats, x2beats); }
+
+double EditViewState::xToTime(float x, double width, double x1beats, double x2beats) const { return beatToTime(xToBeats(x, width, x1beats, x2beats)); }
 
 float EditViewState::beatsToX(double beats, const juce::String &timeLineID, int width)
 {
@@ -145,7 +143,7 @@ float EditViewState::beatsToX(double beats, const juce::String &timeLineID, int 
     return beatsToX(beats, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
 }
 
-double EditViewState::xToBeats(int x, const juce::String &timeLineID, int width)
+double EditViewState::xToBeats(float x, const juce::String &timeLineID, int width)
 {
     auto visibleBeats = getVisibleBeatRange(timeLineID, width);
     return xToBeats(x, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
@@ -157,7 +155,7 @@ float EditViewState::timeToX(double time, const juce::String &timeLineID, int wi
     return timeToX(time, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
 }
 
-double EditViewState::xToTime(int x, const juce::String &timeLineID, int width)
+double EditViewState::xToTime(float x, const juce::String &timeLineID, int width)
 {
     auto visibleBeats = getVisibleBeatRange(timeLineID, width);
     return xToTime(x, width, visibleBeats.getStart().inBeats(), visibleBeats.getEnd().inBeats());
@@ -177,57 +175,114 @@ double EditViewState::timeToBeat(double t) const
     return ts.toBeats(tp).inBeats();
 }
 
-void EditViewState::setNewStartAndZoom(juce::String timeLineID, double startBeat, double beatsPerPixel)
+TimelineViewGeometry::ViewportContext EditViewState::getTimelineViewport(const juce::String &id) const
 {
-    startBeat = juce::jmax(0.0, startBeat);
+    auto found = m_timelineContexts.find(id);
+    auto context = found == m_timelineContexts.end() ? TimelineViewGeometry::ViewportContext{} : found->second;
+    context.beatsPerBar = m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition()).numerator;
+    return context;
+}
 
-    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
-    if (node.isValid())
+uint64_t EditViewState::getTimelineRevision(const juce::String &id) const
+{
+    auto found = m_timelineRevisions.find(id);
+    return found == m_timelineRevisions.end() ? 0 : found->second;
+}
+
+void EditViewState::writeTimelineView(const juce::String &id, double start, double b)
+{
+    if (!std::isfinite(start) || !std::isfinite(b) || b <= 0)
+        return;
+    auto node = m_viewDataTree.getOrCreateChildWithName(id, nullptr);
+    start = juce::jmax(0.0, start);
+    if (double(node.getProperty(IDs::viewX, -1.0)) == start && double(node.getProperty(IDs::beatsPerPixel, -1.0)) == b)
+        return;
+    ++m_timelineRevisions[id];
+    // View listeners coalesce these notifications via AsyncUpdater; no edit undo.
+    node.setProperty(IDs::beatsPerPixel, b, nullptr);
+    node.setProperty(IDs::viewX, start, nullptr);
+}
+
+void EditViewState::configureTimelineViewport(const juce::String &id, double width, double rasterScale)
+{
+    if (!std::isfinite(width) || width <= 0 || !std::isfinite(rasterScale) || rasterScale <= 0)
+        return;
+    m_timelineContexts[id] = {width, rasterScale, getTimelineViewport(id).beatsPerBar};
+    if (auto fit = m_pendingTimelineFits.find(id); fit != m_pendingTimelineFits.end())
     {
-        if (beatsPerPixel != -1)
-            node.setProperty(IDs::beatsPerPixel, beatsPerPixel, nullptr);
-        node.setProperty(IDs::viewX, startBeat, nullptr);
+        const auto pending = fit->second;
+        m_pendingTimelineFits.erase(fit);
+        applyTimelineZoom(id, {pending.length / (width * 0.8), pending.start + pending.length / 2, width / 2, TimelineViewGeometry::ZoomPolicy::fit});
+        return;
+    }
+    auto node = m_viewDataTree.getOrCreateChildWithName(id, nullptr);
+    auto b = double(node.getProperty(IDs::beatsPerPixel, 0.1));
+    if (!std::isfinite(b) || b <= 0)
+        b = 0.1;
+    auto start = double(node.getProperty(IDs::viewX, 0.0));
+    if (!std::isfinite(start))
+        start = 0;
+    // Large fitted views must survive passive refresh/restore. Interactive
+    // zoom still uses the bounded nearest policy when the user next zooms.
+    const auto policy = b > TimelineViewGeometry::maximumVisibleBeats / width ? TimelineViewGeometry::ZoomPolicy::fit : TimelineViewGeometry::ZoomPolicy::nearest;
+    applyTimelineZoom(id, {b, start, 0, policy});
+}
+
+void EditViewState::applyTimelineZoom(const juce::String &id, TimelineViewGeometry::ZoomRequest request)
+{
+    if (!std::isfinite(request.beatsPerPixel) || request.beatsPerPixel <= 0 || !std::isfinite(request.anchorBeat) || !std::isfinite(request.anchorX))
+        return;
+    m_pendingTimelineFits.erase(id);
+    auto context = getTimelineViewport(id);
+    if (context.width <= 0)
+    {
+        // An owner may request a view before layout. Normalize once its context exists.
+        writeTimelineView(id, request.anchorBeat - request.anchorX * request.beatsPerPixel, request.beatsPerPixel);
+        return;
+    }
+    if (auto view = TimelineViewGeometry::normalize(context, request))
+        writeTimelineView(id, view->startBeat, view->beatsPerPixel);
+}
+
+void EditViewState::setNewStartAndZoom(juce::String id, double start, double b)
+{
+    if (b != -1)
+        applyTimelineZoom(id, {b, start, 0});
+    else
+    {
+        if (!std::isfinite(start))
+            return;
+        m_pendingTimelineFits.erase(id);
+        auto node = m_viewDataTree.getOrCreateChildWithName(id, nullptr);
+        writeTimelineView(id, start, double(node.getProperty(IDs::beatsPerPixel, 0.1)));
     }
 }
 
-void EditViewState::setNewBeatRange(juce::String timeLineID, tracktion::BeatRange beatRange, float width)
+void EditViewState::setNewBeatRange(juce::String id, tracktion::BeatRange range, float width)
 {
-    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
-    if (node.isValid())
-    {
-        auto startBeat = beatRange.getStart().inBeats();
-        auto endBeat = beatRange.getEnd().inBeats();
-        auto beatsPerPixel = (endBeat - startBeat) / width;
-
-        if (startBeat < 0)
-        {
-            startBeat = 0;
-            endBeat = startBeat + (beatsPerPixel * width);
-        }
-
-        node.setProperty(IDs::viewX, startBeat, nullptr);
-        node.setProperty(IDs::beatsPerPixel, beatsPerPixel, nullptr);
-    }
+    if (!std::isfinite(width) || width <= 0 || range.getLength().inBeats() <= 0)
+        return;
+    auto context = getTimelineViewport(id);
+    m_timelineContexts[id] = {width, context.rasterScale, context.beatsPerBar};
+    applyTimelineZoom(id, {range.getLength().inBeats() / width, range.getCentre().inBeats(), width / 2.0, TimelineViewGeometry::ZoomPolicy::fit});
 }
 
-void EditViewState::setNewTimeRange(juce::String timeLineID, tracktion::TimeRange timeRange, float width)
+void EditViewState::setNewTimeRange(juce::String id, tracktion::TimeRange range, float width) { setNewBeatRange(id, {tracktion::BeatPosition::fromBeats(timeToBeat(range.getStart().inSeconds())), tracktion::BeatPosition::fromBeats(timeToBeat(range.getEnd().inSeconds()))}, width); }
+
+void EditViewState::fitTimelineToClip(const juce::String &id, double start, double length, double width)
 {
-    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
-    if (node.isValid())
-    {
-        auto startBeat = timeToBeat(timeRange.getStart().inSeconds());
-        auto endBeat = timeToBeat(timeRange.getEnd().inSeconds());
-        auto beatsPerPixel = (endBeat - startBeat) / width;
-
-        if (startBeat < 0)
-        {
-            startBeat = 0;
-            endBeat = startBeat + (beatsPerPixel * width);
-        }
-
-        node.setProperty(IDs::viewX, startBeat, nullptr);
-        node.setProperty(IDs::beatsPerPixel, beatsPerPixel, nullptr);
-    }
+    if (!std::isfinite(width) || width <= 0 || !std::isfinite(start) || !std::isfinite(length) || length <= 0)
+        return;
+    auto context = getTimelineViewport(id);
+    if (context.width > 0)
+        width = context.width;
+    else
+        m_timelineContexts[id] = {width, context.rasterScale, context.beatsPerBar};
+    applyTimelineZoom(id, {length / (width * 0.8), start + length / 2, width / 2, TimelineViewGeometry::ZoomPolicy::fit});
+    // Cached contexts also belong to inactive tracks and can be stale. Always
+    // finish the latest fit once the owner supplies its post-layout context.
+    // Explicit pan/zoom cancels this pending request via the shared setters.
+    m_pendingTimelineFits[id] = {start, length};
 }
 
 tracktion::BeatRange EditViewState::getVisibleBeatRange(juce::String id, int width)

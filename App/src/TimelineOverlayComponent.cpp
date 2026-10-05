@@ -45,14 +45,14 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
         auto cr = m_clipRects.getUnchecked(i);
         auto *clip = m_clipsForRects.getUnchecked(i);
         g.setColour(colour);
-        GUIHelpers::drawRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
+        GUIHelpers::drawRoundedRectWithSide(g, cr, 10, true, true, false, false);
         g.setColour(m_evs.m_selectionManager.isSelected(clip) ? selectedStrokeColour : strokeColour);
-        GUIHelpers::strokeRoundedRectWithSide(g, cr.toFloat(), 10, true, true, false, false);
+        GUIHelpers::strokeRoundedRectWithSide(g, cr, 10, true, true, false, false);
     }
     if (m_drawDraggedClip)
     {
         g.setColour(colour.withAlpha(.3f));
-        GUIHelpers::drawRoundedRectWithSide(g, m_draggedClipRect.withBottom(getHeight()).toFloat(), 10, true, true, false, false);
+        GUIHelpers::drawRoundedRectWithSide(g, m_draggedClipRect.withBottom(float(getHeight())), 10, true, true, false, false);
     }
 }
 
@@ -199,18 +199,18 @@ tracktion_engine::MidiClip *TimelineOverlayComponent::getMidiClipAtPoint(juce::P
 {
     updateClipRects();
     for (auto i = 0; i < m_clipRects.size(); ++i)
-        if (m_clipRects.getUnchecked(i).contains(point))
+        if (m_clipRects.getUnchecked(i).contains(point.toFloat()))
             return m_clipsForRects.getUnchecked(i);
     return {};
 }
 void TimelineOverlayComponent::moveSelectedClips(bool copy, bool snap) { EngineHelpers::moveSelectedClips(copy, -m_draggedTimeDelta, 0, m_evs); }
-int TimelineOverlayComponent::timeToX(double time)
+float TimelineOverlayComponent::timeToX(double time)
 {
     auto br = m_timelineComponent.getCurrentBeatRange();
     return m_evs.timeToX(time, getWidth(), br.getStart().inBeats(), br.getEnd().inBeats());
 }
 
-double TimelineOverlayComponent::xToBeats(int x)
+double TimelineOverlayComponent::xToBeats(float x)
 {
     auto br = m_timelineComponent.getCurrentBeatRange();
     return m_evs.xToBeats(x, getWidth(), br.getStart().inBeats(), br.getEnd().inBeats());
@@ -226,11 +226,11 @@ void TimelineOverlayComponent::updateClipRects()
         m_clipsForRects.add(clip);
     }
 }
-juce::Rectangle<int> TimelineOverlayComponent::getClipRect(te::Clip::Ptr c)
+juce::Rectangle<float> TimelineOverlayComponent::getClipRect(te::Clip::Ptr c)
 {
     auto startX = timeToX(c->getPosition().getStart().inSeconds());
     auto endX = timeToX(c->getPosition().getEnd().inSeconds()) + 1;
     auto tlr = m_timelineComponent.getBounds();
-    juce::Rectangle<int> clipRect = {startX, tlr.getHeight() - (tlr.getHeight() / 3), endX - startX, (tlr.getHeight() / 3)};
+    juce::Rectangle<float> clipRect = {startX, float(tlr.getHeight() - (tlr.getHeight() / 3)), endX - startX, float(tlr.getHeight() / 3)};
     return clipRect;
 }

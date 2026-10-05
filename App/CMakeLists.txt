@@ -537,6 +537,34 @@ if(BUILD_TESTING)
 
     add_test(NAME PluginMenuOrdering
             COMMAND PluginMenuOrderingTests)
+
+    juce_add_console_app(ClipFrameDrawingTests PRODUCT_NAME "ClipFrameDrawingTests")
+    target_sources(ClipFrameDrawingTests PRIVATE tests/ClipFrameDrawingTests.cpp)
+    target_include_directories(ClipFrameDrawingTests PRIVATE include)
+    target_link_libraries(ClipFrameDrawingTests PRIVATE juce::juce_graphics)
+    target_compile_definitions(ClipFrameDrawingTests PRIVATE JUCE_USE_CURL=0)
+    add_test(NAME ClipFrameDrawing COMMAND ClipFrameDrawingTests)
+
+    juce_add_console_app(TimelineViewGeometryTests PRODUCT_NAME "TimelineViewGeometryTests")
+    target_sources(TimelineViewGeometryTests PRIVATE
+            src/TimelineViewGeometry.cpp tests/TimelineViewGeometryTests.cpp)
+    target_include_directories(TimelineViewGeometryTests PRIVATE include)
+    target_compile_features(TimelineViewGeometryTests PRIVATE cxx_std_20)
+    target_link_libraries(TimelineViewGeometryTests PRIVATE juce::juce_gui_basics)
+    target_compile_definitions(TimelineViewGeometryTests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    add_test(NAME TimelineViewGeometry COMMAND TimelineViewGeometryTests)
+
+    juce_add_console_app(TimelineViewStateTests PRODUCT_NAME "TimelineViewStateTests")
+    juce_generate_juce_header(TimelineViewStateTests)
+    target_sources(TimelineViewStateTests PRIVATE
+            src/EditViewState.cpp src/TimelineViewGeometry.cpp src/TrackHeightManager.cpp
+            src/ThumbNailManager.cpp src/Logging.cpp tests/TimelineViewStateTests.cpp)
+    target_include_directories(TimelineViewStateTests PRIVATE include)
+    target_compile_features(TimelineViewStateTests PRIVATE cxx_std_20)
+    target_link_libraries(TimelineViewStateTests PRIVATE tracktion::tracktion_engine juce::juce_gui_basics)
+    target_compile_definitions(TimelineViewStateTests PRIVATE TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    add_test(NAME TimelineViewState COMMAND TimelineViewStateTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

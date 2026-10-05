@@ -37,6 +37,7 @@ This directory contains the user and developer documentation for NextStudio.
 
 ## Component documentation
 
+- [Timeline view transform](components/timeline-view-transform.md) — shared zoom normalization, visual grid intervals, anchors, raster scaling, object alignment, persistence, and regression coverage.
 - [Piano Roll Editor](components/piano-roll-editor.md) — component hierarchy, data model, coordinate conversion, rendering, hit testing, tool architecture, and note-editing operations.
 - [NotePropertiesBar](components/note-properties-bar.md) — behavior, input formats, validation, selection handling, undo, and Piano Roll integration.
 - [ClipPropertiesBar](components/clip-properties-bar.md) — arrangement clip fields, preview/commit flow, snapping, insertion length, and selection integration.
@@ -76,6 +77,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Complete bypass presentation](changes/complete-bypass-presentation.md) — whole-item grayscale, explicit bypass status, preserved interaction, and screenshot/regression verification.
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
+- [Uneven timeline grid implementation plan](changes/uneven-timeline-grid-plan.md) — approved scope, source analysis, implementation sequence, and acceptance criteria for #75.
 - [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.
 - [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
 - [Embedded project file browser](changes/embedded-project-file-browser.md) — shared Home/Projects directory browser, filtered project activation, inline Save As, interaction blocking, validation, state transitions, and debug-shell coverage.

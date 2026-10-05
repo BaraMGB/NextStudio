@@ -29,12 +29,18 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 class TimeLineComponent
     : public juce::Component
     , public juce::SettableTooltipClient
+    , private juce::AsyncUpdater
+    , private juce::ValueTree::Listener
 {
 public:
     TimeLineComponent(EditViewState &, juce::String timeLineID, bool usePianoRollSnapSettings = false);
     ~TimeLineComponent() override;
 
     void paint(juce::Graphics &g) override;
+    void resized() override;
+    void moved() override;
+    void parentHierarchyChanged() override;
+    void zoomByFactor(double factor, double anchorX);
 
     void mouseMove(const juce::MouseEvent &e) override;
     void mouseExit(const juce::MouseEvent &e) override;
@@ -49,12 +55,12 @@ public:
     tracktion::TimeRange getCurrentTimeRange();
     double getBeatsPerPixel();
 
-    int timeToX(double time);
-    int beatsToX(double beats);
-    tracktion::TimeDuration xToTimeDuration(int x);
+    float timeToX(double time);
+    float beatsToX(double beats);
+    tracktion::TimeDuration xToTimeDuration(float x);
     tracktion::TimePosition beatToTime(tracktion::BeatPosition beats);
-    tracktion::TimePosition xToTimePos(int x);
-    tracktion::BeatPosition xToBeatPos(int x);
+    tracktion::TimePosition xToTimePos(float x);
+    tracktion::BeatPosition xToBeatPos(float x);
 
     juce::String getTimeLineID() { return m_timeLineID; }
     void setTimeLineID(juce::String timeLineID);
@@ -77,11 +83,16 @@ public:
     double getSnappedTime(double time);
 
 private:
+    void handleAsyncUpdate() override;
+    void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
+    void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
+    void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
+    void updateViewportContext();
     void drawLoopRange(juce::Graphics &g);
     tracktion::TimeRange getLoopRangeToBeMovedOrResized();
     void updateViewRange(const juce::MouseEvent &e);
 
-    juce::Rectangle<int> getTimeRangeRect(tracktion::TimeRange tr);
+    juce::Rectangle<float> getTimeRangeRect(tracktion::TimeRange tr);
 
     juce::String m_timeLineID;
 
@@ -98,6 +109,14 @@ private:
     int m_oldDragDistanceY, m_oldDragDistanceX;
     bool m_cachedFollowPlayhead;
     bool m_playheadClickPending{false};
+    juce::NativeScaleFactorNotifier m_scaleNotifier;
+    TimelineViewGeometry::ZoomIntent m_zoomIntent;
+    uint64_t m_zoomRevision = 0;
+    double m_zoomStart = -1;
+    double m_dragRequestedZoom = 0;
+    TimelineViewGeometry::ViewportContext m_dragViewport;
+    uint64_t m_dragRevision = 0;
+    double m_dragViewStart = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimeLineComponent)
 };

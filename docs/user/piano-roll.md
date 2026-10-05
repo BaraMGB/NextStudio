@@ -245,7 +245,11 @@ In the note grid:
 - `Command` modifier + mouse wheel zooms horizontally around the pointer position (`Ctrl` on Windows/Linux, `Command` on macOS through JUCE's command modifier);
 - plain mouse wheel scrolls vertically through pitches.
 
-Horizontal zoom is limited to a broad safe range to prevent invalid or unusably extreme view lengths.
+Interactive horizontal zoom is limited to a broad safe range to prevent invalid or unusably extreme view lengths. Nearby discrete zoom scales give equal-rank grid subdivisions uniform pixel coverage, including fractional UI scaling. Small ruler-drag movements accumulate; the pointer's beat remains anchored except when the view is clamped at beat zero.
+
+Opening a clip fits it using the Piano Roll's current layout, also when reopening a previously visited track after resizing the window. Very long clips can require a fitted view wider than the interactive zoom limit; fitting prioritizes complete content visibility. At extreme extents where grid intervals become subpixel, uniform pixel coverage is not guaranteed.
+
+Panning moves grid, notes, clips, velocity, automation, and playhead through the same mapping. No note/clip position or length is rounded to screen pixels. The visible grid stays adaptive regardless of the selected SNAP mode, and its display spacing is independent of transport tempo. Fixed snapping can still place notes between visible grid lines.
 
 ### Vertical keyboard zoom
 

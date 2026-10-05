@@ -422,17 +422,8 @@ void EditComponent::mouseWheelMove(const juce::MouseEvent &event, const juce::Mo
             wheel.deltaY * -(m_editViewState.getTimeLineZoomUnit());
 #endif
 
-        const auto startBeat = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getStart().inBeats();
-        const auto endBeat = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getEnd().inBeats();
-        const auto xPos = event.getPosition().getX() - getTrackListRect().getWidth();
-        const auto mouseBeat = m_timeLine.xToBeatPos(xPos).inBeats();
-        const auto scaleFactor = wheelDelta > 0 ? 1.1 : 0.9;
-        const auto newVisibleLengthBeats = juce::jlimit(0.05, 100240.0, (endBeat - startBeat) * scaleFactor);
-        const auto newBeatsPerPixel = newVisibleLengthBeats / m_timeLine.getWidth();
-        const auto viewCorrect = (xPos * m_timeLine.getBeatsPerPixel()) - (xPos * newBeatsPerPixel);
-        const auto newStartPos = startBeat + viewCorrect;
-
-        m_editViewState.setNewStartAndZoom(m_timeLine.getTimeLineID(), newStartPos, newBeatsPerPixel);
+        if (wheelDelta != 0)
+            m_timeLine.zoomByFactor(wheelDelta > 0 ? 1.1 : 0.9, event.getPosition().getX() - getTrackListRect().getWidth());
     }
     else
     {

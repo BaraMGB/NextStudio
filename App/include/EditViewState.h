@@ -24,8 +24,10 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
 #include "PianoRollNoteLength.h"
+#include "TimelineViewGeometry.h"
 #include "TrackHeightManager.h"
 #include "Utilities.h"
+#include <map>
 
 namespace te = tracktion_engine;
 
@@ -221,19 +223,24 @@ public:
 
     juce::String getZoomMode() { return m_zoomMode; }
 
-    [[nodiscard]] float beatsToX(double beats, int width, double x1beats, double x2beats) const;
-    [[nodiscard]] double xToBeats(float x, int width, double x1beats, double x2beats) const;
-    [[nodiscard]] float timeToX(double time, int width, double x1beats, double x2beats) const;
-    [[nodiscard]] double xToTime(float x, int width, double x1beats, double x2beats) const;
+    [[nodiscard]] float beatsToX(double beats, double width, double x1beats, double x2beats) const;
+    [[nodiscard]] double xToBeats(float x, double width, double x1beats, double x2beats) const;
+    [[nodiscard]] float timeToX(double time, double width, double x1beats, double x2beats) const;
+    [[nodiscard]] double xToTime(float x, double width, double x1beats, double x2beats) const;
 
     [[nodiscard]] float beatsToX(double beats, const juce::String &timeLineID, int width);
-    [[nodiscard]] double xToBeats(int x, const juce::String &timeLineID, int width);
+    [[nodiscard]] double xToBeats(float x, const juce::String &timeLineID, int width);
     [[nodiscard]] float timeToX(double time, const juce::String &timeLineID, int width);
-    [[nodiscard]] double xToTime(int x, const juce::String &timeLineID, int width);
+    [[nodiscard]] double xToTime(float x, const juce::String &timeLineID, int width);
 
     [[nodiscard]] double beatToTime(double b) const;
     [[nodiscard]] double timeToBeat(double t) const;
 
+    void configureTimelineViewport(const juce::String &timeLineID, double width, double rasterScale);
+    TimelineViewGeometry::ViewportContext getTimelineViewport(const juce::String &timeLineID) const;
+    void applyTimelineZoom(const juce::String &timeLineID, TimelineViewGeometry::ZoomRequest request);
+    void fitTimelineToClip(const juce::String &timeLineID, double clipStart, double clipLength, double width);
+    uint64_t getTimelineRevision(const juce::String &timeLineID) const;
     void setNewStartAndZoom(juce::String timeLineID, double startBeat, double beatsPerPixel = -1);
     void setNewBeatRange(juce::String timeLineID, tracktion::BeatRange beatRange, float width);
     void setNewTimeRange(juce::String timeLineID, tracktion::TimeRange timeRange, float width);
@@ -298,6 +305,15 @@ public:
     ApplicationViewState &m_applicationState;
 
 private:
+    void writeTimelineView(const juce::String &id, double start, double beatsPerPixel);
+    std::map<juce::String, TimelineViewGeometry::ViewportContext> m_timelineContexts;
+    std::map<juce::String, uint64_t> m_timelineRevisions;
+    struct PendingTimelineFit
+    {
+        double start, length;
+    };
+    std::map<juce::String, PendingTimelineFit> m_pendingTimelineFits;
+
     struct RecordCountInState
     {
         bool active = false;
