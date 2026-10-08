@@ -77,6 +77,7 @@ private:
     tracktion::TimePosition xtoTime(float x);
     tracktion::TimePosition getSnappedTime(tracktion::TimePosition time, bool downwards = false);
     tracktion::TimePosition getKnifeSplitTime(float x, juce::ModifierKeys mods);
+    void refreshMouseSnapContext();
     void updateKnifeSplitPosition(float x, juce::ModifierKeys mods);
     juce::Rectangle<float> getClipRect(te::Clip::Ptr clip);
     ClipHoverState getClipHoverState(juce::Point<float> point, bool allowFadeHandles);

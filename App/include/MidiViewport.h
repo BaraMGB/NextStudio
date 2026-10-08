@@ -86,6 +86,9 @@ public:
     void setTool(Tool tool);
     ToolStrategy *getCurrentTool() { return m_currentTool.get(); }
     bool cancelActiveDraw();
+    bool cancelActiveInteraction();
+    void refreshMouseSnapContext();
+    bool isRefreshingMouseSnapContext() const { return m_refreshingSnapContext; }
     void modifierKeysChanged(const juce::ModifierKeys&) override;
     Tool getCurrentToolType() { return m_currentTool->getToolId(); }
     void setSnap(bool snap) { m_snap = snap; }
@@ -109,6 +112,16 @@ public:
     bool finishPendingPasteOnDeselect();
     bool cancelPendingPaste();
 
+    class InteractionCommitScope
+    {
+    public:
+        explicit InteractionCommitScope(MidiViewport& viewport) : flag(viewport.m_committingInteraction, true) {}
+    private:
+        juce::ScopedValueSetter<bool> flag;
+    };
+    void publishNoteInteractionPreview(NoteTimingPreview, const TimelineSnapResult&, juce::Range<float>, float markerY,
+                                       juce::ValueTree source);
+    void clearNoteInteractionPreview();
     void setNotePropertyPreview(const juce::Array<MidiNotePropertyEdit> &);
     void commitNotePropertyEdit(const juce::Array<MidiNotePropertyEdit> &, bool resolveOverlaps);
 
@@ -128,6 +141,7 @@ public:
     void playGuideNote(const te::MidiClip *clip, const int noteNumb, int vel = 100);
     double getKeyForY(int y);
     int getYForKey(double key);
+    juce::Range<float> getNoteLane(int pitch) const { return getNoteRect(pitch, 0, 1).getVerticalRange(); }
     void startLasso(const juce::MouseEvent &e, bool isRangeTool = false);
     void updateLasso(const juce::MouseEvent &e);
     void stopLasso();
@@ -202,6 +216,8 @@ private:
     MidiClipboard m_pendingPasteNotes;
     juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
 
+    bool m_noteInteractionActive = false, m_committingInteraction = false, m_refreshingSnapContext = false;
+    juce::ValueTree m_noteInteractionSource;
     bool m_expandLeft{false}, m_expandRight{false}, m_noteAdding{false};
 
     // Cached clips for performance optimization

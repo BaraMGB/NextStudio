@@ -13,6 +13,8 @@ bool PianoRollDrawGesture::begin(double start, double length, double pointerX,
     if (!bypass)
         m_endBeat = resolver.endAtOrAfter(m_endBeat, start + PianoRollNoteLength::minimumLengthBeats);
     m_endGesture.begin(m_endBeat, pointerX, resolver);
+    m_endGesture.update(pointerX, resolver, bypass);
+    m_endGesture.setDisplayedBeat(m_endBeat);
     return active();
 }
 void PianoRollDrawGesture::update(double pointerX, const TimelineSnapResolver& resolver, bool bypass, bool horizontalDrag)
@@ -20,8 +22,8 @@ void PianoRollDrawGesture::update(double pointerX, const TimelineSnapResolver& r
     if (!active())
         return;
     m_dragged = m_dragged || horizontalDrag;
-    if (!m_dragged)
-        return;
-    m_endBeat = PianoRollNoteLength::constrainEnd(m_startBeat, m_endGesture.update(pointerX, resolver, bypass));
+    const auto candidate = m_endGesture.update(pointerX, resolver, bypass);
+    if (m_dragged)
+        m_endBeat = PianoRollNoteLength::constrainEnd(m_startBeat, candidate);
     m_endGesture.setDisplayedBeat(m_endBeat);
 }

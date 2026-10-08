@@ -41,6 +41,9 @@ void setSelectionProvider(SelectionProvider);
 void refreshFromSelection(bool discardActiveEdit = false);
 void clearSelection();
 void updateColours();
+void finishActiveEdit();
+void setInteractionPreview(std::optional<NoteTimingPreview>);
+void setSnapFeedback(std::optional<TimelineInteractionFeedback>);
 ```
 
 ### `SelectionProvider`
@@ -65,6 +68,37 @@ Clears cached pairs, replaces all values with an em dash (`—`), returns editor
 ### `updateColours()`
 
 Reads current theme colors from `ApplicationViewState`, applies label/text colors, preserves red invalid-state text, and repaints.
+
+## Live canvas values
+
+`MidiViewport` publishes pointer-free primary values from Pointer's feasible
+`previewTiming()` or the provisional Draw gesture through its timeline's
+`onNoteInteractionPreview` callback. `PianoRollEditor` connects this to
+`setInteractionPreview()`; it is not the bar's numeric-edit/commit handler.
+Start/End use global beats including clip offsets; Duration, Pitch and Velocity
+follow the same reference as the ghost. Draw needs no dummy model note and keeps
+the actual selection count rather than adding one provisionally.
+
+During a multi-note canvas gesture, `NOTES (REF):` identifies the grabbed note and
+keeps the real count. The reference is fixed through move/copy/resize. Numeric group
+editing and idle common-value/em-dash display remain unchanged. Creation is not
+labelled as a selected reference, even if several older notes remain selected.
+
+A subtle theme-derived font tint is the only provisional-value indication; there
+is no Preview badge, label or underline. Active snapshots take precedence over
+model/selection refreshes, prevent competing field edits and preserve normal text
+contrast. Colors are applied to existing glyphs, not only TextEditor color defaults.
+Before a canvas gesture, `finishActiveEdit()` synchronously runs the normal
+focus-loss commit/reject policy for every writable field, even when JUCE has
+already transferred focus and its notification is still queued. The completed
+field is read-only, so that delayed notification cannot discard pending input or
+commit Draw's display text. Clearing after commit/cancel restores normal color
+and reads the resulting selection.
+Commit scopes suppress cancellation on the intentional removal/recreation of notes;
+external removal of the source or a genuine selection invalidation cancels the
+interaction safely. Callbacks are synchronous and disconnect at owner teardown.
+The compact held/free/Shift/off/limit status belongs to the originating Piano Roll
+snap context and uses fixed space under SNAP.
 
 ## Internal structure
 

@@ -185,6 +185,19 @@ The following sequence is binding and repeats for every batch. It is not a globa
 
 ## Phase 3 — Focused workflow improvements
 
+- [x] **Snap feedback and live gesture values in clip/note headers**
+  - [x] Analyze the current resolver, gesture previews and property-bar refresh/scrub paths. Prepare `docs/changes/snap-feedback-and-live-header-plan.md` without changing production code.
+  - [x] Incorporate maintainer feedback on live header values: only a subtly different, readable font color; no Preview label, badge or underline. Restore normal color after commit/cancel.
+  - [x] Obtain approval of the remaining snap visual language, reference-object policy for multi-selection and implementation plan: “setze das um”.
+  - [x] Add display-only editor-local snapshots and live Start/End/Duration (and note Pitch) using the same feasible timing as ghosts/commit. Cover provisional Draw and preserve numeric edits, model state and undo.
+  - [x] Report actual held/free/bypass/limited snap state from the resolver/gesture, then add a target guide, manipulated-edge marker and compact status without changing snap profiles or mapping.
+  - [x] Integrate remaining snap consumers and clip-overlay routing. Add kernel/resolver/renderer, shared preview-range and tempo-replay regressions; perform focused native checks for cancellation/removal, stationary Shift, multi-selection and font restoration. See the validation report for helper versus native coverage and remaining platform/automation/stretch cases.
+  - [x] Update documentation/changelog, build/test (29/29), perform focused native visual checks and regenerate `~/Gemeinsam/NextStudio` (0755; identical built/shared SHA-256). Record coverage and evidence in `docs/changes/snap-feedback-and-live-header-validation.md`.
+  - [x] Verify maintainer follow-up: Piano Roll clip headers cover the ruler's snap line/diamond. The ruler paints before its later-added sibling `TimelineOverlayComponent`; its opaque header occupies the bottom third containing the diamond. Record the foreground-pass proposal in section 9 of the plan.
+  - [x] Obtain approval for the foreground ruler-feedback pass: “ja, ich dachte, es wird ohnehin in einem overlayer oder im paintOverChildren gezeichnet.”
+  - [x] Add JUCE sibling/header foreground raster coverage at four scales and three fractional phases, with held/cleared states and explicit old-order failure detection. Defer the Piano Roll ruler cue to `paintOverChildren()` after children/borders; clip overlay body feedback below it, and repaint the parent on changes/clear. Native note/Draw/overlay/Knife checks confirm visibility above headers and stationary Shift restoration. Build/test (29/29) and refresh the matching shared artifact; evidence in the validation report.
+  - [x] Resolve code-review findings: synchronously finish pending header text edits, suppress post-Escape ruler drags, and share whole-group move/copy destination validation with commit. Add focus/destination regressions and native checks; see the validation report.
+  - [x] Receive maintainer approval to commit and push the feature: “wir committen das feature und pushen es”. Validation coverage and remaining platform limits are recorded in the report.
 - [ ] **#87 — Visible feedback after saving**
   - [ ] Cover Save and Save As without a modal interruption.
 - [ ] **#73 — Right-click erases notes in MIDI Draw Mode**

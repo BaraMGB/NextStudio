@@ -29,6 +29,21 @@ From top to bottom:
 
 The playhead overlays the timeline/grid region. Alternating timeline bands provide orientation without hiding piano-key rows, clip-range shading, notes, or editing previews. The band tint follows the selected theme while its subtle intensity is controlled by the editor.
 
+## Live timing and snap feedback
+
+Start, End and Duration follow the note being moved/copied/resized, and Pitch
+follows vertical movement. Draw shows the new note's values from mouse-down without
+adding it to the selection count. During dragging only the text color changes
+subtly; there is no extra Preview label. Release/cancel restores normal color and
+the current selection display. `NOTES (REF):` identifies the grabbed reference in
+a multi-note gesture while retaining the real selection count.
+
+A held snap target shows a thin guide and outlined diamond at the manipulated
+start/end edge, with status below SNAP. Between targets the held guide disappears;
+Shift/Off removes it immediately even without pointer movement. Duration/start
+limits are not snap targets. Knife accents its existing split line. These signals
+do not change the grid setting, magnetic strength or keyboard/numeric snap policy.
+
 ## Note selection
 
 ### Pointer selection

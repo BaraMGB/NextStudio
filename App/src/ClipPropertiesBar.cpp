@@ -281,6 +281,48 @@ void ClipPropertiesBar::setTimingStepProvider(TimingStepProvider provider)
     m_timingStepProvider = std::move(provider);
 }
 
+void ClipPropertiesBar::finishActiveEdit()
+{
+    for (auto& field : m_fields)
+        TimelineInteractionPreview::finishTextEdit(field.editor);
+}
+
+void ClipPropertiesBar::setSnapFeedback(std::optional<TimelineInteractionFeedback> feedback)
+{
+    m_snapLabel.setText(TimelineInteractionPreview::snapLabel(feedback), juce::dontSendNotification);
+}
+
+void ClipPropertiesBar::setInteractionPreview(std::optional<ClipTimingPreview> preview)
+{
+    if (preview && (!std::isfinite(preview->range.getStart().inSeconds())
+        || !std::isfinite(preview->range.getEnd().inSeconds()) || preview->range.isEmpty()))
+        preview.reset();
+    if (preview && !m_interactionPreview)
+        cancelScrub();
+    m_interactionPreview = preview;
+    m_handlingEditorCallback = true;
+    for (auto& field : m_fields)
+    {
+        field.editor.setReadOnly(true);
+        field.editor.setWantsKeyboardFocus(!preview);
+        field.editor.setInterceptsMouseClicks(!preview, !preview);
+        if (preview)
+        {
+            field.editor.giveAwayKeyboardFocus();
+            field.editor.setEnabled(true);
+            field.label.setEnabled(true);
+            setInvalid(field, false);
+        }
+    }
+    m_handlingEditorCallback = false;
+    if (preview)
+        showValues({formatPosition(preview->range.getStart()), formatPosition(preview->range.getEnd()),
+                    formatDuration(preview->range)});
+    else
+        refreshFromSelection(true);
+    updateColours();
+}
+
 void ClipPropertiesBar::updateColours()
 {
     const auto labelColour = m_evs.m_applicationState.getTextColour();
@@ -288,7 +330,8 @@ void ClipPropertiesBar::updateColours()
     for (auto &field : m_fields)
     {
         field.label.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
-        field.editor.setColour(juce::TextEditor::textColourId, field.invalid ? juce::Colours::red : valueColour);
+        field.editor.applyColourToAllText(field.invalid ? juce::Colours::red : (m_interactionPreview
+            ? TimelineInteractionPreview::textColour(valueColour, m_evs.m_applicationState.getPrimeColour()) : valueColour));
     }
     for (auto *label : {&m_snapLabel, &m_insertLengthLabel})
         label->setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
@@ -304,6 +347,8 @@ void ClipPropertiesBar::updateColours()
 
 void ClipPropertiesBar::clearSelection()
 {
+    if (m_interactionPreview)
+        return;
     cancelScrub();
     m_selection.clearQuick();
     m_handlingEditorCallback = true;
@@ -322,6 +367,8 @@ void ClipPropertiesBar::clearSelection()
 
 void ClipPropertiesBar::refreshFromSelection(bool discardActiveEdit)
 {
+    if (m_interactionPreview)
+        return;
     auto selection = m_evs.m_selectionManager.getItemsOfType<te::Clip>();
     if (selection.isEmpty())
         return clearSelection();
@@ -396,6 +443,8 @@ void ClipPropertiesBar::beginEditing(Field &field)
 
 void ClipPropertiesBar::commit(Field &field)
 {
+    if (m_interactionPreview || m_handlingEditorCallback)
+        return;
     if (!apply(field.property, field.editor.getText()))
         return setInvalid(field, true);
     m_handlingEditorCallback = true;
@@ -427,6 +476,8 @@ void ClipPropertiesBar::focusAdjacent(Field &field, bool backwards)
 
 void ClipPropertiesBar::beginScrub(Field &field)
 {
+    if (m_interactionPreview)
+        return;
     cancelScrub();
     m_scrubSelection = m_evs.m_selectionManager.getItemsOfType<te::Clip>();
     for (auto *clip : m_scrubSelection)
@@ -442,7 +493,7 @@ void ClipPropertiesBar::beginScrub(Field &field)
 
 void ClipPropertiesBar::scrub(Field &field, int steps, bool fromDrag)
 {
-    if (!field.editor.isEnabled() || steps == 0)
+    if (m_interactionPreview || !field.editor.isEnabled() || steps == 0)
         return;
 
     steps = juce::jlimit(-32, 32, steps);
@@ -619,9 +670,15 @@ void ClipPropertiesBar::showPlan(const juce::Array<ClipPropertyEdit> &plan)
                    return formatDuration({tracktion::TimePosition(), m_evs.m_edit.tempoSequence.toTime(
                        tracktion::BeatPosition::fromBeats(value))});
                })}};
+    showValues(values);
+}
+
+void ClipPropertiesBar::showValues(const std::array<juce::String, 3>& values)
+{
     m_handlingEditorCallback = true;
     for (size_t i = 0; i < m_fields.size(); ++i)
-        m_fields[i].editor.setText(values[i], false);
+        if (m_fields[i].editor.getText() != values[i])
+            m_fields[i].editor.setText(values[i], false);
     m_handlingEditorCallback = false;
 }
 
@@ -701,11 +758,12 @@ void ClipPropertiesBar::paint(juce::Graphics &g)
     g.setFont(juce::Font(juce::FontOptions(titleFontHeight)));
     g.setColour(labelColour.withAlpha(m_selection.isEmpty() ? 0.4f : 0.85f));
     const auto titleWidth = juce::roundToInt(measureTextWidth(g.getCurrentFont(), "SELECTED CLIPS:")) + 4;
-    g.drawFittedText("SELECTED CLIPS:", selectionArea.removeFromLeft(titleWidth), juce::Justification::centredLeft, 1);
+    g.drawFittedText(m_interactionPreview && m_interactionPreview->selectionCount > 1 ? "CLIPS (REF):" : "SELECTED CLIPS:",
+                     selectionArea.removeFromLeft(titleWidth), juce::Justification::centredLeft, 1);
     selectionArea.removeFromLeft(labelGap);
     g.setFont(juce::Font(juce::FontOptions(valueFontHeight)));
     g.setColour(valueColour.withAlpha(m_selection.isEmpty() ? 0.5f : 1.0f));
-    g.drawFittedText(juce::String(m_selection.size()), selectionArea, juce::Justification::centredLeft, 1);
+    g.drawFittedText(juce::String(m_interactionPreview ? m_interactionPreview->selectionCount : m_selection.size()), selectionArea, juce::Justification::centredLeft, 1);
 
     g.setColour(m_evs.m_applicationState.getBorderColour());
     for (const auto &field : m_fields)
@@ -736,7 +794,7 @@ void ClipPropertiesBar::resized()
     m_insertLengthControlBounds = lengthArea;
 
     snapArea = snapArea.reduced(fieldPadding, 2);
-    const auto snapLabelWidth = juce::roundToInt(measureTextWidth(titleFont, m_snapLabel.getText())) + 4;
+    const auto snapLabelWidth = juce::roundToInt(measureTextWidth(titleFont, "invalid")) + 4;
     m_snapLabel.setBounds(snapArea.removeFromLeft(juce::jmin(snapLabelWidth, snapArea.getWidth())));
     snapArea.removeFromLeft(juce::jmin(labelGap, snapArea.getWidth()));
     m_snapBox.setBounds(snapArea);
@@ -754,7 +812,7 @@ void ClipPropertiesBar::resized()
     m_selectionCountBounds = area.removeFromLeft(juce::jmin(selectionWidth, area.getWidth()));
     area.removeFromLeft(juce::jmin(fieldGap, area.getWidth()));
 
-    const std::array<juce::String, 3> stableValues{{"88.8.888", "88.8.888", "888 ticks"}};
+    const std::array<juce::String, 3> stableValues{{"88.8.888", "88.8.888", "888888 ticks"}};
     std::array<int, 3> preferred{};
     int total = 0;
     for (size_t i = 0; i < m_fields.size(); ++i)

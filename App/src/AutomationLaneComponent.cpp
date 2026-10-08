@@ -263,6 +263,15 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     }
 }
 
+void AutomationLaneComponent::refreshMouseSnapContext()
+{
+    if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()); event && event->mouseWasDraggedSinceMouseDown())
+    {
+        juce::ScopedValueSetter<bool> replay(m_refreshingSnapContext, true);
+        mouseDrag(*event);
+    }
+}
+
 void AutomationLaneComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
 {
     if (m_timeGesture.active())
@@ -339,13 +348,32 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
             double startY = juce::jmap(p->value, valueRangeStart, valueRangeEnd, pixelRangeEnd, pixelRangeStart);
             double newY = startY + e.getDistanceFromDragStartY();
 
-            double newValue = juce::jmap(newY, pixelRangeStart, pixelRangeEnd, valueRangeEnd, valueRangeStart);
+            double newValue = m_refreshingSnapContext ? param.getCurve().getPointValue(p->index)
+                : juce::jmap(newY, pixelRangeStart, pixelRangeEnd, valueRangeEnd, valueRangeStart);
 
             auto newTime = p->time + draggedTime;
 
             auto newIndex = param.getCurve().movePoint(p->index, newTime, newValue, false);
             p->index = newIndex;
         }
+        const auto rect = m_songEditor.getLocalArea(this, getLocalBounds()).toFloat();
+        float markerY = rect.getY() + float(e.y);
+        for (const auto* point : ordered)
+            if (point->param == m_parameter && point->time == oldPos)
+            {
+                const auto& curve = m_parameter->getCurve();
+                m_timeGesture.setDisplayedBeat(resolver.timeToBeat(curve.getPointTime(point->index).inSeconds()));
+                const float margin = rect.getHeight() <= 50 ? 2.0f : 4.0f;
+                markerY = rect.getY() + juce::jmap(float(curve.getPointValue(point->index)),
+                    float(m_parameter->valueRange.start), float(m_parameter->valueRange.end), rect.getHeight() - margin, margin);
+                break;
+            }
+        if (lockTime)
+            m_songEditor.clearMouseFeedback();
+        else
+            m_songEditor.setMouseFeedback(m_timeGesture.feedback(), rect.getVerticalRange(), markerY,
+                [safe = juce::Component::SafePointer<AutomationLaneComponent>(this)]
+                { if (safe) safe->refreshMouseSnapContext(); });
         repaint();
     }
     else
@@ -363,6 +391,7 @@ void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
     m_isDragging = false;
     m_timeGesture.reset();
     m_mouseInput.reset();
+    m_songEditor.clearMouseFeedback();
     m_selPointsAtMousedown.clear();
 
     if (m_isLassoInteraction)

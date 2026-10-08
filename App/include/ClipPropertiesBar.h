@@ -38,6 +38,9 @@ public:
     void refreshFromSelection(bool discardActiveEdit = false);
     void clearSelection();
     void updateColours();
+    void finishActiveEdit();
+    void setInteractionPreview(std::optional<ClipTimingPreview>);
+    void setSnapFeedback(std::optional<TimelineInteractionFeedback>);
 
     void paint(juce::Graphics &) override;
     void resized() override;
@@ -90,6 +93,7 @@ private:
         const juce::Array<ClipPropertyEdit> *base = nullptr) const;
     void applyPlan(const juce::Array<ClipPropertyEdit> &);
     void showPlan(const juce::Array<ClipPropertyEdit> &);
+    void showValues(const std::array<juce::String, 3>&);
     bool planChangesClips(const juce::Array<ClipPropertyEdit> &) const;
     void setInvalid(Field &, bool);
 
@@ -115,6 +119,7 @@ private:
     int m_scrubSteps{0};
     bool m_scrubActive{false};
     bool m_handlingEditorCallback{false};
+    std::optional<ClipTimingPreview> m_interactionPreview;
     juce::Label m_snapLabel;
     juce::ComboBox m_snapBox;
     juce::Label m_insertLengthLabel;

@@ -26,6 +26,12 @@ std::optional<double> validSplitBeat(double start, double end, double proposed)
     return proposed;
 }
 
+double edgeTime(const Item& item, Kind kind)
+{
+    return time(item, base(item) + (kind == Kind::resizeRight ? item.note->getEndBeat().inBeats()
+                                                               : item.note->getStartBeat().inBeats()));
+}
+
 double constrain(const juce::Array<Item>& items, Kind kind, double requested)
 {
     if (!std::isfinite(requested))

@@ -32,9 +32,13 @@ class TimelineOverlayComponent : public juce::Component
 {
 public:
     TimelineOverlayComponent(EditViewState &evs, te::Track::Ptr track, TimeLineComponent &tlc);
+    ~TimelineOverlayComponent() override;
     void paint(juce::Graphics &g) override;
+    bool keyPressed(const juce::KeyPress&) override;
 
 private:
+    void cancelInteraction();
+    void refreshMouseSnapContext();
     bool hitTest(int, int) override;
     void mouseMove(const juce::MouseEvent &e) override;
     void mouseExit(const juce::MouseEvent &e) override;

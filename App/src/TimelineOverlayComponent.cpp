@@ -32,7 +32,32 @@ TimelineOverlayComponent::TimelineOverlayComponent(EditViewState &evs, tracktion
       m_track(std::move(track)),
       m_timelineComponent(tlc)
 {
-    // setInterceptsMouseClicks (false, true);
+    setWantsKeyboardFocus(true);
+}
+
+TimelineOverlayComponent::~TimelineOverlayComponent() { cancelInteraction(); }
+
+void TimelineOverlayComponent::cancelInteraction()
+{
+    if (m_drawDraggedClip && m_evs.clipInteractionPreviewChanged)
+        m_evs.clipInteractionPreviewChanged({});
+    m_drawDraggedClip = false;
+    m_cachedClip = nullptr;
+    m_draggedTimeDelta = 0;
+    m_mouseGesture.reset();
+    m_mouseInput.reset();
+    m_timelineComponent.clearMouseFeedback(TimelineFeedbackOwner::overlay);
+    repaint();
+}
+
+bool TimelineOverlayComponent::keyPressed(const juce::KeyPress& key)
+{
+    if (key.getKeyCode() == juce::KeyPress::escapeKey && m_mouseGesture.active())
+    {
+        cancelInteraction();
+        return true;
+    }
+    return false;
 }
 
 void TimelineOverlayComponent::paint(juce::Graphics &g)
@@ -55,6 +80,11 @@ void TimelineOverlayComponent::paint(juce::Graphics &g)
         g.setColour(colour.withAlpha(.3f));
         GUIHelpers::drawRoundedRectWithSide(g, m_draggedClipRect.withBottom(float(getHeight())), 10, true, true, false, false);
     }
+    // The ruler signal is owned by PianoRollEditor::paintOverChildren().
+    // Keep this body pass below it so the translucent line is not doubled.
+    juce::Graphics::ScopedSaveState save(g);
+    g.reduceClipRegion(getLocalBounds().withTrimmedTop(juce::jmin(getHeight(), m_timelineComponent.getHeight())));
+    m_timelineComponent.drawMouseFeedback(g, TimelineFeedbackOwner::overlay);
 }
 
 bool TimelineOverlayComponent::hitTest(int x, int y)
@@ -104,9 +134,10 @@ void TimelineOverlayComponent::mouseExit(const juce::MouseEvent & /*e*/) { setMo
 
 void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
-    m_cachedClip = nullptr;
-    m_draggedTimeDelta = 0;
-    m_mouseGesture.reset();
+    cancelInteraction();
+    if (m_evs.clipInteractionBeginning)
+        m_evs.clipInteractionBeginning();
+    grabKeyboardFocus();
     m_mouseInput.remember(e);
     mouseMove(e); // resolve the grabbed edge from this event, not stale hover flags
     if (auto mc = getMidiClipAtPoint(e.getPosition()))
@@ -123,6 +154,17 @@ void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
     }
 }
 
+void TimelineOverlayComponent::refreshMouseSnapContext()
+{
+    if (!isShowing())
+    {
+        cancelInteraction();
+        return;
+    }
+    if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()))
+        mouseDrag(*event);
+}
+
 void TimelineOverlayComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
 {
     if (auto event = m_mouseInput.withModifiers(mods); event && m_mouseGesture.active())
@@ -134,28 +176,34 @@ void TimelineOverlayComponent::mouseDrag(const juce::MouseEvent &e)
     m_mouseInput.remember(e);
     if (!e.mouseWasDraggedSinceMouseDown() || m_cachedClip == nullptr)
         return;
-    if (!m_cachedClip->state.getParent().isValid())
+    if (!m_cachedClip->state.isAChildOf(m_evs.m_edit.state))
     {
-        m_cachedClip = nullptr;
-        m_drawDraggedClip = false;
-        m_mouseGesture.reset();
+        cancelInteraction();
         return;
     }
     const auto resolver = m_timelineComponent.getMouseSnapResolver();
     const auto candidate = m_mouseGesture.update(e.position.x, resolver, e.mods.isShiftDown());
     const auto kind = m_leftResized ? ClipGestureLimits::Kind::resizeLeft
                     : m_rightResized ? ClipGestureLimits::Kind::resizeRight : ClipGestureLimits::Kind::move;
+    const auto sourceEdgeTime = ClipGestureLimits::edgeTime(m_cachedPos, kind);
     const auto delta = ClipGestureLimits::constrain(m_evs.m_selectionManager.getItemsOfType<te::Clip>(), kind,
-        resolver.beatToTime(candidate) - resolver.beatToTime(m_originalEdgeBeat));
-    m_mouseGesture.setDisplayedBeat(resolver.timeToBeat(resolver.beatToTime(m_originalEdgeBeat) + delta));
+        resolver.beatToTime(candidate) - sourceEdgeTime);
+    m_mouseGesture.setDisplayedBeat(resolver.timeToBeat(sourceEdgeTime + delta));
     m_draggedTimeDelta = delta;
-    const auto duration = tracktion::TimeDuration::fromSeconds(delta);
-    const auto start = m_cachedPos.getStart() + (m_rightResized ? tracktion::TimeDuration() : duration);
-    const auto end = m_cachedPos.getEnd() + (m_leftResized ? tracktion::TimeDuration() : duration);
+    const auto preview = ClipGestureLimits::previewRange(m_cachedPos, kind, delta);
+    const auto start = preview.getStart();
+    const auto end = preview.getEnd();
     m_draggedClipRect = getClipRect(m_cachedClip);
     m_draggedClipRect.setLeft(timeToX(start.inSeconds()));
     m_draggedClipRect.setRight(timeToX(end.inSeconds()));
     m_drawDraggedClip = true;
+    if (m_evs.clipInteractionPreviewChanged)
+        m_evs.clipInteractionPreviewChanged(ClipTimingPreview{preview,
+            m_evs.m_selectionManager.getItemsOfType<te::Clip>().size()});
+    m_timelineComponent.setMouseFeedback(TimelineInteractionFeedback{m_mouseGesture.feedback(), TimelineFeedbackOwner::overlay,
+        {0.0f, float(getHeight())}, float(getHeight()) * 0.5f},
+        [safe = juce::Component::SafePointer<TimelineOverlayComponent>(this)]
+        { if (safe) safe->refreshMouseSnapContext(); });
     repaint();
 }
 void TimelineOverlayComponent::mouseUp(const juce::MouseEvent &e)
@@ -169,12 +217,7 @@ void TimelineOverlayComponent::mouseUp(const juce::MouseEvent &e)
         else if (m_move)
             moveSelectedClips(e.mods.isCtrlDown());
     }
-    m_drawDraggedClip = false;
-    m_draggedTimeDelta = 0;
-    m_cachedClip = nullptr;
-    m_mouseGesture.reset();
-    m_mouseInput.reset();
-    repaint();
+    cancelInteraction();
 }
 
 std::vector<tracktion_engine::MidiClip *> TimelineOverlayComponent::getMidiClipsOfTrack()

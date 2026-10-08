@@ -41,8 +41,10 @@ TimeLineComponent::TimeLineComponent(EditViewState &evs, juce::String timeLineID
       m_drawLoopCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, evs.m_applicationState.m_mouseCursorScale)),
       m_usePianoRollSnapSettings(usePianoRollSnapSettings),
       m_isMouseDown(false),
+      m_feedbackMovementWatcher(*this),
       m_scaleNotifier(this, [this](float) { triggerAsyncUpdate(); })
 {
+    setWantsKeyboardFocus(true);
     setTimeLineID(timeLineID);
     m_evs.m_edit.state.addListener(this);
 }
@@ -53,13 +55,16 @@ TimeLineComponent::~TimeLineComponent()
     m_evs.m_edit.state.removeListener(this);
 }
 
-void TimeLineComponent::resized() { triggerAsyncUpdate(); }
-void TimeLineComponent::moved() { triggerAsyncUpdate(); }
+void TimeLineComponent::resized() { mouseFeedbackGeometryChanged(); }
+void TimeLineComponent::moved() { mouseFeedbackGeometryChanged(); }
 void TimeLineComponent::valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &property)
 {
     if (tree.hasType(te::IDs::TEMPO) || tree.hasType(te::IDs::TIMESIG))
         ++m_musicalSnapRevision;
-    if (tree.hasType(te::IDs::TIMESIG) || (tree == m_tree && (property == IDs::beatsPerPixel || property == IDs::viewX)))
+    const bool snapChanged = property == (m_usePianoRollSnapSettings ? IDs::pianoRollSnapMode : IDs::clipSnapMode)
+                          || property == (m_usePianoRollSnapSettings ? IDs::pianoRollSnapDenominator : IDs::clipSnapDenominator);
+    if (snapChanged || tree.hasType(te::IDs::TEMPO) || tree.hasType(te::IDs::TIMESIG)
+        || (tree == m_tree && (property == IDs::beatsPerPixel || property == IDs::viewX)))
         triggerAsyncUpdate();
 }
 void TimeLineComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &child)
@@ -77,7 +82,21 @@ void TimeLineComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree
         triggerAsyncUpdate();
 }
 void TimeLineComponent::parentHierarchyChanged() { triggerAsyncUpdate(); }
-void TimeLineComponent::handleAsyncUpdate() { updateViewportContext(); }
+void TimeLineComponent::handleAsyncUpdate()
+{
+    updateViewportContext();
+    const bool geometryChanged = std::exchange(m_feedbackGeometryDirty, false);
+    if (m_mouseFeedback && m_feedbackContext && (geometryChanged || !(*m_feedbackContext == getMouseSnapResolver().context())))
+    {
+        if (m_mouseFeedback->owner == TimelineFeedbackOwner::loop)
+        {
+            if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()))
+                mouseDrag(*event);
+        }
+        else if (auto refresh = m_refreshMouseFeedback)
+            refresh(); // copy: replay may replace/clear the stored callback
+    }
+}
 void TimeLineComponent::updateViewportContext()
 {
     const double platformScale = getPeer() != nullptr ? getPeer()->getPlatformScaleFactor() : 1.0;
@@ -126,6 +145,38 @@ void TimeLineComponent::paint(juce::Graphics &g)
     }
 
     drawLoopRange(g);
+    if (!TimelineInteractionPreview::rulerFeedbackUsesForeground(m_usePianoRollSnapSettings))
+        drawRulerMouseFeedback(g, getLocalBounds().toFloat());
+}
+
+void TimeLineComponent::drawRulerMouseFeedback(juce::Graphics& g, juce::Rectangle<float> rulerBounds)
+{
+    if (m_mouseFeedback && m_mouseFeedback->snap.held())
+        TimelineInteractionPreview::drawRulerGuide(g, m_mouseFeedback, beatsToX(*m_mouseFeedback->snap.targetBeat),
+            rulerBounds, m_evs.m_applicationState.getPrimeColour(), m_evs.m_applicationState.getTextColour(),
+            getMouseSnapResolver().context().rasterScale);
+}
+
+void TimeLineComponent::setMouseFeedback(std::optional<TimelineInteractionFeedback> feedback, std::function<void()> refresh)
+{
+    m_mouseFeedback = std::move(feedback);
+    m_refreshMouseFeedback = std::move(refresh);
+    m_feedbackContext = m_mouseFeedback ? std::optional{getMouseSnapResolver().context()} : std::nullopt;
+    if (onMouseFeedback)
+        onMouseFeedback(m_mouseFeedback);
+    repaint();
+}
+void TimeLineComponent::clearMouseFeedback(TimelineFeedbackOwner owner)
+{
+    if (m_mouseFeedback && m_mouseFeedback->owner == owner)
+        setMouseFeedback({});
+}
+void TimeLineComponent::drawMouseFeedback(juce::Graphics& g, TimelineFeedbackOwner owner)
+{
+    if (m_mouseFeedback && m_mouseFeedback->owner == owner && m_mouseFeedback->snap.held())
+        TimelineInteractionPreview::drawGuide(g, beatsToX(*m_mouseFeedback->snap.targetBeat),
+            m_mouseFeedback->verticalRange, m_mouseFeedback->markerY, m_evs.m_applicationState.getPrimeColour(),
+            m_evs.m_applicationState.getTextColour(), getMouseSnapResolver().context().rasterScale);
 }
 
 void TimeLineComponent::mouseMove(const juce::MouseEvent &e)
@@ -183,10 +234,13 @@ void TimeLineComponent::mouseExit(const juce::MouseEvent &e)
 
 void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
 {
+    grabKeyboardFocus();
     // init
+    m_pointerInteractionActive = true;
     m_mouseInput.remember(e);
     mouseMove(e);
     m_loopGesture.reset();
+    setMouseFeedback({});
     m_cachedFollowPlayhead = m_evs.m_followPlayhead;
     m_evs.followsPlayhead(false);
     m_changeLoopRange = false;
@@ -246,6 +300,10 @@ void TimeLineComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
 
 void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    // Escape ends the entire pointer interaction, not just the loop sub-mode.
+    // Ignore its remaining drag events until a new mouseDown begins.
+    if (!m_pointerInteractionActive)
+        return;
     m_mouseInput.remember(e);
     m_isSnapping = isSnappingEnabled() && !e.mods.isShiftDown();
 
@@ -265,6 +323,7 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
             m_newLoopRange = m_cachedLoopRange.movedToStartAt(edge);
         }
         m_loopGesture.setDisplayedBeat(resolver.timeToBeat(edge.inSeconds()));
+        setMouseFeedback(TimelineInteractionFeedback{m_loopGesture.feedback(), TimelineFeedbackOwner::loop, {}, 0});
         repaint();
     }
     else if (m_changeLoopRange)
@@ -274,6 +333,9 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
         if (m_isSnapping)
             t2 = snapTimeForMouse(t2);
         t2 = juce::jlimit(tracktion::TimePosition(), te::Edit::getMaximumEditEnd(), t2);
+        const auto resolver = getMouseSnapResolver();
+        setMouseFeedback(TimelineInteractionFeedback{resolver.resolveForMouse(xToBeatPos(e.position.x).inBeats(), e.mods.isShiftDown())
+            .withEffectiveBeat(resolver.timeToBeat(t2.inSeconds())), TimelineFeedbackOwner::loop, {}, 0});
 
         if (t1 < t2)
             m_newLoopRange = {t1, t2};
@@ -314,15 +376,36 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent &event)
     m_leftResized = false;
     m_rightResized = false;
     m_loopRangeClicked = false;
+    m_pointerInteractionActive = false;
     m_isMouseDown = false;
     m_changeLoopRange = false;
     m_playheadClickPending = false;
     m_newLoopRange = {};
     m_isSnapping = true;
+    clearMouseFeedback(TimelineFeedbackOwner::loop);
 
     setMouseCursor(juce::MouseCursor::NormalCursor);
     repaint();
 }
+bool TimeLineComponent::keyPressed(const juce::KeyPress& key)
+{
+    if (key.getKeyCode() == juce::KeyPress::escapeKey && (m_loopRangeClicked || m_changeLoopRange))
+    {
+        m_loopRangeClicked = m_changeLoopRange = m_leftResized = m_rightResized = false;
+        m_pointerInteractionActive = m_isMouseDown = m_playheadClickPending = false;
+        m_isSnapping = true;
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+        m_loopGesture.reset();
+        m_mouseInput.reset();
+        m_newLoopRange = {};
+        m_evs.followsPlayhead(m_cachedFollowPlayhead);
+        clearMouseFeedback(TimelineFeedbackOwner::loop);
+        repaint();
+        return true;
+    }
+    return false;
+}
+
 void TimeLineComponent::updateViewRange(const juce::MouseEvent &e)
 {
     if (getWidth() <= 0)
@@ -443,6 +526,7 @@ double TimeLineComponent::getBeatsPerPixel()
 }
 void TimeLineComponent::setTimeLineID(juce::String timeLineID)
 {
+    setMouseFeedback({});
     m_timeLineID = timeLineID;
     m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
     m_zoomIntent.reset();
@@ -617,7 +701,7 @@ TimelineSnapResolver TimeLineComponent::getMouseSnapResolver() const
     return {m_evs.m_edit.tempoSequence,
             {isSnappingEnabled(), isUsingFixedSnap() ? getSnapIntervalBeats() : 0.0,
              getBestSnapType(), getWidth() > 0 ? range.getLength().inBeats() / getWidth() : 0.0,
-             viewport.rasterScale, m_evs.getTimelineRevision(m_timeLineID), m_musicalSnapRevision,
+             viewport.rasterScale, m_evs.getTimelineRevision(m_timeLineID) * 0x9e3779b97f4a7c15ULL + m_feedbackGeometryRevision, m_musicalSnapRevision,
              TimelineSoftSnap::profileForEditor(m_usePianoRollSnapSettings)}};
 }
 

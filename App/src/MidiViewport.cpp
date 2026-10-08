@@ -38,6 +38,7 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
       m_timeLine(timeLine),
       m_lassoTool(evs, m_timeLine.getTimeLineID())
 {
+    setWantsKeyboardFocus(true);
     m_currentTool = ToolFactory::createTool(Tool::pointer, m_evs);
     addChildComponent(m_lassoTool);
     updateSelectedEvents();
@@ -49,6 +50,7 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
 
 MidiViewport::~MidiViewport()
 {
+    clearNoteInteractionPreview();
     if (m_selectedEvents != nullptr)
         m_selectedEvents->removeChangeListener(this);
 
@@ -59,10 +61,44 @@ MidiViewport::~MidiViewport()
 void MidiViewport::changeListenerCallback(juce::ChangeBroadcaster *source)
 {
     if (source == m_selectedEvents.get())
+    {
+        if (m_noteInteractionActive && !m_committingInteraction && m_clickedNote != nullptr
+            && (!m_noteInteractionSource.isAChildOf(m_track->state)
+                || !m_selectedEvents->isSelected(m_clickedNote)))
+            m_currentTool->toolDeactivated(*this);
         sendChangeMessage();
+    }
 }
 
-void MidiViewport::paintOverChildren(juce::Graphics &g) { m_lassoTool.drawLasso(g); }
+void MidiViewport::paintOverChildren(juce::Graphics &g)
+{
+    m_lassoTool.drawLasso(g);
+    m_timeLine.drawMouseFeedback(g, TimelineFeedbackOwner::notes);
+}
+
+void MidiViewport::publishNoteInteractionPreview(NoteTimingPreview preview, const TimelineSnapResult& snap,
+                                                juce::Range<float> vertical, float markerY, juce::ValueTree source)
+{
+    m_noteInteractionActive = true;
+    m_noteInteractionSource = source;
+    if (m_timeLine.onNoteInteractionPreview)
+        m_timeLine.onNoteInteractionPreview(preview);
+    m_timeLine.setMouseFeedback(TimelineInteractionFeedback{snap, TimelineFeedbackOwner::notes, vertical, markerY},
+        [safe = juce::Component::SafePointer<MidiViewport>(this)]
+        { if (safe) safe->refreshMouseSnapContext(); });
+}
+
+void MidiViewport::clearNoteInteractionPreview()
+{
+    if (m_noteInteractionActive)
+    {
+        m_noteInteractionActive = false;
+        m_noteInteractionSource = {};
+        if (m_timeLine.onNoteInteractionPreview)
+            m_timeLine.onNoteInteractionPreview({});
+    }
+    m_timeLine.clearMouseFeedback(TimelineFeedbackOwner::notes);
+}
 
 void MidiViewport::paint(juce::Graphics &g)
 {
@@ -147,6 +183,7 @@ void MidiViewport::resized()
     auto area = getLocalBounds();
     m_lassoTool.setBounds(area);
     updateNoteUnderMouse();
+    m_timeLine.mouseFeedbackGeometryChanged();
 }
 
 void MidiViewport::drawNote(juce::Graphics &g, tracktion_engine::MidiClip *const &midiClip, tracktion_engine::MidiNote *n)
@@ -365,6 +402,39 @@ bool MidiViewport::cancelActiveDraw()
     return false;
 }
 
+bool MidiViewport::cancelActiveInteraction()
+{
+    if (cancelActiveDraw())
+        return true;
+    if (auto* pointer = dynamic_cast<PointerTool*>(m_currentTool.get()); pointer && pointer->isDragging())
+    {
+        pointer->toolDeactivated(*this);
+        m_mouseInput.reset();
+        return true;
+    }
+    return false;
+}
+
+void MidiViewport::refreshMouseSnapContext()
+{
+    if (!isShowing())
+    {
+        cancelActiveInteraction();
+        return;
+    }
+    if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()); event && m_currentTool)
+    {
+        m_mouseInput.remember(*event);
+        juce::ScopedValueSetter<bool> replay(m_refreshingSnapContext, true);
+        auto* pointer = dynamic_cast<PointerTool*>(m_currentTool.get());
+        auto* draw = dynamic_cast<DrawTool*>(m_currentTool.get());
+        if ((pointer && pointer->isDragging()) || (draw && draw->isDrawing()))
+            m_currentTool->mouseDrag(*event, *this);
+        else if (m_currentTool->getToolId() == Tool::knife)
+            m_currentTool->mouseMove(*event, *this);
+    }
+}
+
 void MidiViewport::modifierKeysChanged(const juce::ModifierKeys& mods)
 {
     if (auto event = m_mouseInput.withModifiers(mods); event && m_currentTool)
@@ -381,6 +451,8 @@ void MidiViewport::modifierKeysChanged(const juce::ModifierKeys& mods)
 void MidiViewport::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseInput.remember(e);
+    if (m_timeLine.onNoteInteractionBeginning)
+        m_timeLine.onNoteInteractionBeginning();
     finishPendingPasteOnDeselect();
 
     if (m_currentTool)
@@ -420,6 +492,13 @@ void MidiViewport::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree 
 
 void MidiViewport::valueTreeChildRemoved(juce::ValueTree &parent, juce::ValueTree &child, int)
 {
+    if (m_noteInteractionActive && !m_committingInteraction
+        && (child == m_noteInteractionSource || m_noteInteractionSource.isAChildOf(child)))
+    {
+        // Engine list listeners may already have destroyed the removed note.
+        m_hoveredNote = m_clickedNote = nullptr;
+        m_currentTool->toolDeactivated(*this);
+    }
     // Only invalidate cache if a clip was removed
     if (parent.getType() == te::IDs::TRACK && child.hasType(te::IDs::MIDICLIP))
     {
@@ -446,6 +525,8 @@ void MidiViewport::cleanUpFlags()
 void MidiViewport::mouseExit(const juce::MouseEvent &)
 {
     m_mouseInside = false;
+    if (!m_noteInteractionActive)
+        m_timeLine.clearMouseFeedback(TimelineFeedbackOwner::notes);
     updateNoteUnderMouse();
 
     // Clear hover state when mouse leaves the component

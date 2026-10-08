@@ -174,6 +174,7 @@ void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
     }
     else if (m_hasKnifeSplitPosition)
     {
+        m_songEditor.clearMouseFeedback();
         m_hasKnifeSplitPosition = false;
         needsRepaint = true;
     }
@@ -199,12 +200,17 @@ void TrackLaneComponent::mouseExit(const juce::MouseEvent &e)
 
     // Reset throttler when mouse leaves
     m_mouseThrottler.reset();
+    if (m_songEditor.getToolMode() == Tool::knife)
+        m_songEditor.clearMouseFeedback();
 }
 
 void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseInput.remember(e);
     ScopedSaveLock saveLock(m_editViewState);
+    if (m_editViewState.clipInteractionBeginning)
+        m_editViewState.clipInteractionBeginning();
+    m_songEditor.grabKeyboardFocus();
     auto &sm = m_editViewState.m_selectionManager;
     const auto toolMode = m_songEditor.getToolMode();
     const bool allowFadeHandles = toolMode == Tool::pointer || toolMode == Tool::timestretch;
@@ -280,6 +286,8 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
             dragState.isRightEdge = m_rightBorderHovered;
             dragState.isTimeStretching = dragState.isRightEdge && !m_hoveredClip->isMidi() && (toolMode == Tool::timestretch || e.mods.isCommandDown());
             m_songEditor.beginClipMouseGesture(e.position.x);
+            dragState.refreshPreview = [safe = juce::Component::SafePointer<TrackLaneComponent>(this)]
+            { if (safe) safe->refreshMouseSnapContext(); };
 
             repaint();
             return;
@@ -374,7 +382,7 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
             return;
         }
 
-        if (!dragState.draggedClip->state.getParent().isValid())
+        if (!dragState.draggedClip->state.isAChildOf(m_editViewState.m_edit.state))
         {
             m_songEditor.endDrag();
             m_songEditor.updateDragGhost(nullptr, {}, 0);
@@ -475,6 +483,15 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
     repaint();
 }
 
+void TrackLaneComponent::refreshMouseSnapContext()
+{
+    if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()))
+    {
+        m_mouseInput.remember(*event);
+        modifierKeysChanged(event->mods);
+    }
+}
+
 void TrackLaneComponent::modifierKeysChanged(const juce::ModifierKeys &mods)
 {
     if (m_songEditor.getDragState().isClipDrag())
@@ -514,6 +531,16 @@ void TrackLaneComponent::updateKnifeSplitPosition(float x, juce::ModifierKeys mo
 {
     m_knifeSplitPosition = getKnifeSplitTime(x, mods);
     m_hasKnifeSplitPosition = true;
+    const auto resolver = m_songEditor.getMouseSnapResolver();
+    const auto raw = resolver.timeToBeat(xtoTime(x).inSeconds());
+    const bool valid = m_hoveredClip && m_knifeSplitPosition > m_hoveredClip->getPosition().getStart()
+                                   && m_knifeSplitPosition < m_hoveredClip->getPosition().getEnd();
+    const float y = float(m_songEditor.getYForTrack(m_track));
+    const float h = float(m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false));
+    m_songEditor.setMouseFeedback(resolver.resolveForMouse(raw, mods.isShiftDown())
+        .withEffectiveBeat(resolver.timeToBeat(m_knifeSplitPosition.inSeconds()), valid), {y, y + h}, y + h * 0.5f,
+        [safe = juce::Component::SafePointer<TrackLaneComponent>(this)]
+        { if (safe) safe->refreshMouseSnapContext(); });
 }
 
 TrackLaneComponent::ClipHoverState TrackLaneComponent::getClipHoverState(juce::Point<float> point, bool allowFadeHandles)

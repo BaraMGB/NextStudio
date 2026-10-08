@@ -50,6 +50,18 @@ PianoRollEditor
 
 The track-specific children (`MidiViewport`, `TimelineOverlayComponent`, `VelocityEditor`, `KeyboardView`) are created in `PianoRollEditor::setTrack()` and destroyed in `clearTrack()`. `clearTrack()` deselects the old `SelectedMidiEvents` object, removes listeners, and resets the unique pointers before the track reference is dropped.
 
+### Foreground snap cues
+
+`TimelineOverlayComponent` is a later-painted sibling of the timeline and fills
+clip headers in the ruler's bottom third. Ruler feedback must therefore not be
+painted in `TimeLineComponent::paint()` for this editor. The editor's final
+`paintOverChildren()` pass calls `drawRulerMouseFeedback()` after all children and
+separator borders, translated/clipped to the actual timeline bounds. Feedback
+changes also repaint this parent region, including stationary Shift and clearing.
+The overlay's own body guide is clipped below the ruler, avoiding double strokes.
+Component z-order, header hit testing, timeline mapping and magnetic profiles are
+unchanged. The arrangement still renders its ruler feedback in its normal pass.
+
 ## Data model
 
 The editor does not keep its own note model. It operates on Tracktion Engine objects:

@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ApplicationViewState.h"
 #include "PianoRollNoteLength.h"
 #include "TimelineViewGeometry.h"
+#include "TimelineInteractionPreview.h"
 #include "TrackHeightManager.h"
 #include "Utilities.h"
 #include <map>
@@ -163,6 +164,10 @@ class EditViewState
 public:
     EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationViewState &avs);
     ~EditViewState();
+    // Explicit edit-local UI routing for clip ghosts (including Piano Roll overlay).
+    // Never serialized or sent as selection/model changes; owner disconnects at teardown.
+    ClipTimingPreviewHandler clipInteractionPreviewChanged;
+    std::function<void()> clipInteractionBeginning;
 
     void setLowerRangeView(LowerRangeView newView) { m_lowerRangeView = static_cast<int>(newView); }
 

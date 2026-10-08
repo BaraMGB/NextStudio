@@ -61,6 +61,7 @@ public:
     void mouseUp(const juce::MouseEvent &e) override;
     void mouseExit(const juce::MouseEvent &e) override;
     void modifierKeysChanged(const juce::ModifierKeys&) override;
+    void refreshMouseSnapContext();
 
     void selectPointsInLasso(juce::Rectangle<int> lassoRect, bool addToSelection);
 
@@ -135,6 +136,7 @@ private:
     juce::OwnedArray<SelectableAutomationPoint> m_selectedAutomationPoints;
     tracktion::TimePosition m_timeOfHoveredAutomationPoint;
     TimelineMouseGesture m_timeGesture;
+    bool m_refreshingSnapContext = false;
     MouseGestureInput m_mouseInput;
     double m_curveSteepAtMousedown{0.0};
 

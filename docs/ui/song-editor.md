@@ -54,6 +54,8 @@ Shows clips and automation data on tracks along the timeline.
 
 With Off/Fixed/Adaptive settings in the arrangement SNAP control, clip movement/resizing/stretching, Knife previews, range/loop endpoints, automation time movement, and audio-file drag/drop share magnetic positioning. An edited edge locks exactly near a target; keep moving to pull it free and reach any position between targets. Both editors use at most 18 physical pixels of attraction per side. Song Editor retains its 40% adjacent-interval cap (at least 20% free travel); MIDI Editor retains its separate 30% cap. The OS pointer is not warped. Shift/Snap Off bypass attraction.
 
+An actively held edge shows a thin target guide and outlined diamond; the SNAP label reports held/free/Shift/off/limit without changing the grid choice. Pulling free or bypassing removes the held guide immediately. Limits and invalid placements are not shown as snap detents. Knife highlights its existing cut line.
+
 Grabbed off-grid edges do not jump at mouse-down. Preview and release use the same resolved position, including positive-duration, source-offset, selected-clip collision, and automation-neighbour limits. Ranges are not hard-quantized again on release. Ctrl still locks automation time, and automation retains its existing live-edit undo behavior.
 
 Keyboard nudging, explicit quantization, numeric property steps, ordinary geometric lasso, MIDI-clip click insertion, and playhead clicks retain their discrete behavior. See [Timeline snapping](../components/timeline-snapping.md) for implementation details.
@@ -104,6 +106,8 @@ Clip fills and normal/selected frames share the same unrounded time edges. Adjoi
 - No preview line is drawn over empty track space.
 
 ### Clip Properties Bar
+
+Start, End and Duration follow the visible clip while moving, copying, resizing or stretching, before release. Only a subtly different text color is used during dragging; normal color returns on release or cancellation. With several selected clips, `CLIPS (REF):` means the values belong to the grabbed clip and the count still covers the real selection. Outside the gesture, the existing common-value/mixed display returns. Piano Roll clip-overlay gestures update these clip values too, but use the Piano Roll snap status.
 
 When one or more clips are selected, a properties bar appears above the toolbar.
 

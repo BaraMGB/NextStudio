@@ -67,6 +67,7 @@ private:
 
     DragMode m_currentDragMode = DragMode::none;
     TimelineMouseGesture m_timeGesture;
+    int m_pitchAnchorKey = 0, m_pitchAnchorDelta = 0;
     te::MidiClip::Ptr m_dragClip;
     double m_originalEdgeBeat = 0;
     MidiNoteGesture::Kind gestureKind() const;

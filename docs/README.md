@@ -78,9 +78,11 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
 - [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
 - [Uneven timeline grid implementation plan](changes/uneven-timeline-grid-plan.md) — approved scope, source analysis, implementation sequence, and acceptance criteria for #75.
-- [Soft timeline snapping implementation plan](changes/soft-timeline-snapping-plan.md) — approved magnetic mouse policy, #77 draw semantics, consumer migration, tests, and validation gates; maintainer validation pending.
+- [Soft timeline snapping implementation plan](changes/soft-timeline-snapping-plan.md) — approved magnetic mouse policy, #77 draw semantics, consumer migration, tests, and validation gates; implementation accepted and committed.
 - [Shared timeline snapping](components/timeline-snapping.md) — hard versus mouse APIs, magnetic curve, grid targets, inverse gesture anchors, constraints, and note defaults.
 - [Soft snapping validation](changes/soft-timeline-snapping-validation.md) — regression coverage, isolated 100/125% runtime results, delivery checksum, and remaining maintainer checks.
+- [Snap feedback and live header values plan](changes/snap-feedback-and-live-header-plan.md) — approved held-target guides, display-only gesture snapshots, live clip/note fields, lifecycle rules, implementation batches and acceptance criteria.
+- [Snap feedback and live header validation](changes/snap-feedback-and-live-header-validation.md) — implementation, automated/native evidence, delivery artifact and remaining visual/platform acceptance limits.
 - [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.
 - [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
 - [Embedded project file browser](changes/embedded-project-file-browser.md) — shared Home/Projects directory browser, filtered project activation, inline Save As, interaction blocking, validation, state transitions, and debug-shell coverage.

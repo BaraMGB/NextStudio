@@ -47,6 +47,12 @@ void run()
                 {
                     const double x = origin + width * i / 10000.0;
                     const double y = TimelineSoftSnap::map(x, interval, profile);
+                    const auto detailed = TimelineSoftSnap::mapDetailed(x, interval, profile);
+                    near(detailed.position, y);
+                    require(detailed.target.has_value() == (x <= interval.lower + radius || x >= interval.upper - radius),
+                            "plateau feedback disagrees with kernel boundaries");
+                    if (detailed.target)
+                        near(*detailed.target, y);
                     require(y >= previous - 1.0e-9, "non-monotonic curve");
                     require(std::abs(y - x) <= radius + 1.0e-8, "unbounded attraction");
                     require(y - previous <= width / 10000.0 * maxGain + 1.0e-8, "unbounded slope");

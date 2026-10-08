@@ -43,6 +43,16 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
     evs.m_selectionManager.addChangeListener(this);
     m_midiKeyChangeDispatcher->listeners.add(this);
 
+    m_timeLine.onNoteInteractionBeginning = [this] { m_notePropertiesBar.finishActiveEdit(); };
+    m_timeLine.onNoteInteractionPreview = [this](std::optional<NoteTimingPreview> preview)
+    {
+        m_notePropertiesBar.setInteractionPreview(preview);
+    };
+    m_timeLine.onMouseFeedback = [this](std::optional<TimelineInteractionFeedback> feedback)
+    {
+        m_notePropertiesBar.setSnapFeedback(feedback);
+        repaint(m_timeLine.getBounds());
+    };
     m_notePropertiesBar.setSelectionProvider([this]
     {
         juce::Array<std::pair<te::MidiClip *, te::MidiNote *>> selection;
@@ -131,6 +141,9 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
 }
 PianoRollEditor::~PianoRollEditor()
 {
+    m_timeLine.onNoteInteractionBeginning = {};
+    m_timeLine.onNoteInteractionPreview = {};
+    m_timeLine.onMouseFeedback = {};
     if (m_pianoRollViewPort != nullptr)
         m_pianoRollViewPort->removeMouseListener(this);
 
@@ -235,6 +248,11 @@ void PianoRollEditor::paintOverChildren(juce::Graphics &g)
     g.fillRect(getHorizontalScrollbarRect().removeFromTop(1));
     g.fillRect(getFooterRect().removeFromTop(1));
     g.fillRect(getParameterToolbarRect().removeFromRight(1));
+
+    // Clip headers are siblings above the ruler; paint its signal after all
+    // children and separators, not under their opaque fills.
+    if (TimelineInteractionPreview::rulerFeedbackUsesForeground(true))
+        m_timeLine.drawRulerMouseFeedback(g, m_timeLine.getBounds().toFloat());
 }
 void PianoRollEditor::resized()
 {
@@ -303,7 +321,7 @@ juce::Rectangle<int> PianoRollEditor::getPlayHeadRect()
 bool PianoRollEditor::keyPressed(const juce::KeyPress &key)
 {
     if (key.getKeyCode() == juce::KeyPress::escapeKey && m_pianoRollViewPort != nullptr
-        && m_pianoRollViewPort->cancelActiveDraw())
+        && m_pianoRollViewPort->cancelActiveInteraction())
         return true;
     if (m_pianoRollViewPort != nullptr && m_pianoRollViewPort->hasPendingPaste())
     {
@@ -445,7 +463,7 @@ bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationIn
     }
     case KeyPressCommandIDs::cancelPendingPaste:
     {
-        if (m_pianoRollViewPort != nullptr && !m_pianoRollViewPort->cancelActiveDraw())
+        if (m_pianoRollViewPort != nullptr && !m_pianoRollViewPort->cancelActiveInteraction())
             m_pianoRollViewPort->cancelPendingPaste();
         break;
     }
@@ -613,6 +631,7 @@ void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropert
 
     if (treeWhosePropertyHasChanged.hasType(m_timeLine.getTimeLineID()))
     {
+        m_timeLine.mouseFeedbackGeometryChanged();
         markAndUpdate(m_updateKeyboard);
         markAndUpdate(m_updateHorizontalScrollbar);
     }

@@ -47,6 +47,9 @@ public:
     void refreshFromSelection(bool discardActiveEdit = false);
     void clearSelection();
     void updateColours();
+    void finishActiveEdit();
+    void setInteractionPreview(std::optional<NoteTimingPreview>);
+    void setSnapFeedback(std::optional<TimelineInteractionFeedback>);
 
     void paint(juce::Graphics &) override;
     void resized() override;
@@ -103,6 +106,7 @@ private:
         const juce::Array<MidiNotePropertyEdit> *base = nullptr) const;
     void applyPlan(const juce::Array<MidiNotePropertyEdit> &);
     void showPlan(const juce::Array<MidiNotePropertyEdit> &);
+    void showValues(const std::array<juce::String, 5>&);
     bool planChangesNotes(const juce::Array<MidiNotePropertyEdit> &) const;
     void setInvalid(Field &, bool);
 
@@ -133,6 +137,7 @@ private:
     Property m_scrubProperty{Property::start};
     int m_scrubSteps{0};
     bool m_scrubActive{false};
+    std::optional<NoteTimingPreview> m_interactionPreview;
     juce::Label m_snapLabel;
     juce::ComboBox m_snapBox;
     juce::Label m_noteLengthLabel;

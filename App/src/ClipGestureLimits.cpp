@@ -4,6 +4,39 @@
 
 namespace ClipGestureLimits
 {
+bool validMoveDestinations(const juce::Array<tracktion_engine::Clip*>& clips,
+                           const juce::Array<tracktion_engine::Track*>& tracks, int verticalOffset,
+                           const std::function<bool(const tracktion_engine::Clip*, const tracktion_engine::Track*)>& accepts)
+{
+    if (clips.isEmpty())
+        return false;
+    for (const auto* clip : clips)
+    {
+        if (clip == nullptr)
+            return false;
+        const int sourceIndex = tracks.indexOf(clip->getTrack());
+        const auto targetIndex = int64_t(sourceIndex) + verticalOffset;
+        if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= tracks.size())
+            return false;
+        const auto* target = dynamic_cast<tracktion_engine::ClipTrack*>(tracks[int(targetIndex)]);
+        if (target == nullptr || !accepts(clip, target))
+            return false;
+    }
+    return true;
+}
+
+double edgeTime(const tracktion_engine::ClipPosition& position, Kind kind)
+{
+    return (kind == Kind::resizeRight || kind == Kind::stretch ? position.getEnd() : position.getStart()).inSeconds();
+}
+
+tracktion::TimeRange previewRange(const tracktion_engine::ClipPosition& position, Kind kind, double seconds)
+{
+    const auto delta = tracktion::TimeDuration::fromSeconds(seconds);
+    return {position.getStart() + (kind == Kind::resizeRight || kind == Kind::stretch ? tracktion::TimeDuration() : delta),
+            position.getEnd() + (kind == Kind::resizeLeft ? tracktion::TimeDuration() : delta)};
+}
+
 double constrain(const juce::Array<tracktion_engine::Clip*>& selection, Kind kind, double requested)
 {
     if (!std::isfinite(requested))

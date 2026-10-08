@@ -1395,6 +1395,13 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
     if (selectedClips.isEmpty())
         return;
 
+    if (!ClipGestureLimits::validMoveDestinations(selectedClips, getSortedTrackList(evs.m_edit), verticalOffset,
+        [](const te::Clip* clip, const te::Track* target) { return trackWantsClip(clip, target); }))
+    {
+        GUIHelpers::log("Clip move cancelled: invalid destination track");
+        return;
+    }
+
     const auto effectiveDelta = tracktion::TimeDuration::fromSeconds(
         ClipGestureLimits::constrain(selectedClips, ClipGestureLimits::Kind::move, timeDelta));
 

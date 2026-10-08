@@ -3,6 +3,20 @@
 #include <cmath>
 #include <limits>
 
+TimelineSnapResult TimelineSnapResult::withEffectiveBeat(double effective, bool destinationValid) const
+{
+    auto result = *this;
+    const auto tolerance = std::max(1.0e-10, 16 * std::numeric_limits<double>::epsilon() * std::abs(beat));
+    if (state == State::invalid || !destinationValid || !std::isfinite(effective))
+        result.state = State::invalid;
+    else if (std::abs(effective - beat) > tolerance)
+        result.state = State::limited;
+    result.beat = effective;
+    if (!result.held())
+        result.targetBeat.reset();
+    return result;
+}
+
 bool TimelineSnapResolver::Context::operator==(const Context& other) const
 {
     return enabled == other.enabled && fixedInterval == other.fixedInterval
@@ -103,19 +117,34 @@ TimelineSoftSnap::Interval TimelineSnapResolver::adjacentTargets(double beat) co
     }
     return {lower, upper};
 }
-double TimelineSnapResolver::snapBeatForMouse(double beat) const
+TimelineSnapResult TimelineSnapResolver::resolveForMouse(double beat, bool bypass) const
 {
-    if (!m_context.enabled || !valid() || !std::isfinite(beat))
-        return beat;
+    TimelineSnapResult result{beat, beat, {}, TimelineSnapResult::State::invalid};
+    if (!valid() || !std::isfinite(beat))
+        return result;
+    if (!m_context.enabled || bypass)
+    {
+        result.state = !m_context.enabled ? TimelineSnapResult::State::disabled : TimelineSnapResult::State::bypassed;
+        return result;
+    }
     const auto targets = adjacentTargets(beat);
     if (!std::isfinite(targets.lower) || !std::isfinite(targets.upper) || targets.upper <= targets.lower)
-        return beat;
+        return result;
     const double physicalPixelsPerBeat = m_context.rasterScale / m_context.beatsPerPixel;
     if (!std::isfinite(physicalPixelsPerBeat) || physicalPixelsPerBeat <= 0)
-        return beat;
+        return result;
     // Translate before scaling to retain precision on long/panned timelines.
-    return targets.lower + TimelineSoftSnap::map((beat - targets.lower) * physicalPixelsPerBeat,
-                  {0, (targets.upper - targets.lower) * physicalPixelsPerBeat}, m_context.attraction) / physicalPixelsPerBeat;
+    const auto mapping = TimelineSoftSnap::mapDetailed((beat - targets.lower) * physicalPixelsPerBeat,
+        {0, (targets.upper - targets.lower) * physicalPixelsPerBeat}, m_context.attraction);
+    result.beat = targets.lower + mapping.position / physicalPixelsPerBeat;
+    if (mapping.target)
+        result.targetBeat = *mapping.target == 0 ? targets.lower : targets.upper;
+    result.state = result.targetBeat ? TimelineSnapResult::State::held : TimelineSnapResult::State::free;
+    return result;
+}
+double TimelineSnapResolver::snapBeatForMouse(double beat) const
+{
+    return resolveForMouse(beat).beat;
 }
 double TimelineSnapResolver::rawAnchorForMouse(double beat) const
 {
@@ -160,6 +189,7 @@ void TimelineMouseGesture::begin(double beat, double pointerX, const TimelineSna
     m_originBeat = m_displayedBeat = beat;
     m_rawAnchor = resolver.rawAnchorForMouse(beat);
     m_pointerAnchor = pointerX;
+    m_feedback = resolver.resolveForMouse(m_rawAnchor).withEffectiveBeat(beat);
 }
 double TimelineMouseGesture::update(double pointerX, const TimelineSnapResolver& resolver, bool bypass)
 {
@@ -190,8 +220,9 @@ double TimelineMouseGesture::update(double pointerX, const TimelineSnapResolver&
         }
     }
     const double displacement = (pointerX - m_pointerAnchor) * context.beatsPerPixel;
-    const double candidate = (bypass || !context.enabled) ? m_originBeat + displacement
-                                                        : resolver.snapBeatForMouse(m_rawAnchor + displacement);
+    m_feedback = resolver.resolveForMouse((bypass || !context.enabled) ? m_originBeat + displacement
+                                                                     : m_rawAnchor + displacement, bypass);
+    const double candidate = m_feedback.beat;
     if (std::isfinite(candidate))
         m_displayedBeat = candidate;
     return m_displayedBeat;
@@ -199,5 +230,8 @@ double TimelineMouseGesture::update(double pointerX, const TimelineSnapResolver&
 void TimelineMouseGesture::setDisplayedBeat(double beat)
 {
     if (std::isfinite(beat))
+    {
+        m_feedback = m_feedback.withEffectiveBeat(beat);
         m_displayedBeat = beat;
+    }
 }

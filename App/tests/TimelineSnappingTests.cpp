@@ -9,9 +9,11 @@
 #include "KnifeTool.h"
 #include "TimelineViewGeometry.h"
 #include "TimeUtils.h"
+#include "TimelineInteractionPreview.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -391,6 +393,17 @@ void testClipLimits(te::Edit& edit)
     near(ClipGestureLimits::constrain(clips, ClipGestureLimits::Kind::resizeLeft, -20), -.5);
     near(ClipGestureLimits::constrain(clips, ClipGestureLimits::Kind::stretch, 1), 0); // MIDI is not stretchable
     near(ClipGestureLimits::constrain(clips, ClipGestureLimits::Kind::move, NAN), 0);
+    const auto position = first->getPosition();
+    for (auto kind : {ClipGestureLimits::Kind::move, ClipGestureLimits::Kind::resizeLeft,
+                      ClipGestureLimits::Kind::resizeRight, ClipGestureLimits::Kind::stretch})
+    {
+        const auto preview = ClipGestureLimits::previewRange(position, kind, .137);
+        near(preview.getStart().inSeconds(), position.getStart().inSeconds()
+            + (kind == ClipGestureLimits::Kind::resizeRight || kind == ClipGestureLimits::Kind::stretch ? 0 : .137));
+        near(preview.getEnd().inSeconds(), position.getEnd().inSeconds() + (kind == ClipGestureLimits::Kind::resizeLeft ? 0 : .137));
+    }
+    const auto snapshot = ClipTimingPreview{ClipGestureLimits::previewRange(position, ClipGestureLimits::Kind::move, .137), 2};
+    require(snapshot.selectionCount == 2 && first->state.isEquivalentTo(before), "display snapshot mutated source");
 }
 void testAutomationLimits(te::Edit& edit)
 {
@@ -421,6 +434,266 @@ void testSplitLimits()
     require(!MidiNoteGesture::validSplitBeat(5, 3, 4), "reversed split accepted");
     require(!MidiNoteGesture::validSplitBeat(3, 5, std::numeric_limits<double>::quiet_NaN()), "nonfinite split accepted");
 }
+void testPendingTextEdit()
+{
+    struct Editor : juce::TextEditor { using juce::TextEditor::focusLost; };
+    for (bool valid : {true, false})
+    {
+        Editor editor;
+        editor.setReadOnly(false);
+        editor.setText(valid ? "2400 ticks" : "invalid", false);
+        juce::String committed = "1200 ticks";
+        int applications = 0;
+        editor.onFocusLost = [&]
+        {
+            if (editor.isReadOnly())
+                return;
+            ++applications;
+            if (valid)
+                committed = editor.getText();
+            else
+                editor.setText(committed, false);
+            editor.setReadOnly(true);
+        };
+        // JUCE transfers focus before canvas mouseDown but posts its notification.
+        editor.focusLost(juce::Component::focusChangedByMouseClick);
+        require(applications == 0 && !editor.hasKeyboardFocus(true), "focus loss was not queued");
+        TimelineInteractionPreview::finishTextEdit(editor);
+        require(applications == 1 && editor.isReadOnly(), "unfocused pending edit was not finished");
+        require(committed == (valid ? "2400 ticks" : "1200 ticks"), "focus-loss policy changed");
+        require(editor.getText() == committed, "invalid input was not restored");
+        editor.setText("live canvas value", false);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
+        TimelineInteractionPreview::finishTextEdit(editor);
+        require(applications == 1 && committed != "live canvas value", "queued callback committed preview text");
+    }
+}
+
+void testGroupMoveDestinations(te::Engine& engine)
+{
+    auto edit = te::Edit::createSingleTrackEdit(engine);
+    edit->ensureNumberOfAudioTracks(3);
+    const auto audioTracks = te::getAudioTracks(*edit);
+    juce::Array<te::Track*> tracks;
+    for (auto* track : audioTracks)
+        tracks.add(track);
+    auto first = audioTracks[0]->insertMIDIClip("primary", {time(0), time(2)}, nullptr);
+    auto second = audioTracks[1]->insertMIDIClip("secondary", {time(0), time(2)}, nullptr);
+    const juce::Array<te::Clip*> clips{first.get(), second.get()};
+    // First two lanes accept MIDI; the third rejects it (audio-only policy).
+    const auto accepts = [&](const te::Clip*, const te::Track* destination) { return destination != tracks[2]; };
+    require(ClipGestureLimits::validMoveDestinations({first.get()}, tracks, 1, accepts), "valid primary rejected");
+    require(!ClipGestureLimits::validMoveDestinations(clips, tracks, 1, accepts), "invalid secondary accepted");
+    require(ClipGestureLimits::validMoveDestinations(clips, tracks, 0, accepts), "valid group rejected");
+    require(!ClipGestureLimits::validMoveDestinations(clips, tracks, -1, accepts), "out-of-range group accepted");
+    require(!ClipGestureLimits::validMoveDestinations(clips, tracks, std::numeric_limits<int>::max(), accepts), "overflowing offset accepted");
+    require(!ClipGestureLimits::validMoveDestinations({}, tracks, 0, accepts), "empty group accepted");
+    require(!ClipGestureLimits::validMoveDestinations({nullptr}, tracks, 0, accepts), "null clip accepted");
+    const auto held = fixed(edit->tempoSequence).resolveForMouse(2);
+    const auto invalid = held.withEffectiveBeat(held.beat,
+        ClipGestureLimits::validMoveDestinations(clips, tracks, 1, accepts));
+    require(invalid.state == TimelineSnapResult::State::invalid && !invalid.held() && !invalid.targetBeat,
+            "invalid group advertised a held destination");
+}
+
+void testInteractionFeedback(const te::TempoSequence& tempo)
+{
+    using State = TimelineSnapResult::State;
+    for (bool pianoRoll : {true, false})
+        for (double scale : {1.0, 1.25, 1.5, 2.0})
+            for (double interval : {.001, .25, 1.0, 10.0})
+            {
+                auto context = fixed(tempo, interval, scale).context();
+                context.attraction = TimelineSoftSnap::profileForEditor(pianoRoll);
+                const TimelineSnapResolver resolver(tempo, context);
+                const auto radius = std::min(context.attraction.radiusPixels * context.beatsPerPixel / scale,
+                                             interval * context.attraction.intervalFraction);
+                for (int i = -100; i <= 100; ++i)
+                {
+                    const auto raw = interval * i / 50.0;
+                    const auto result = resolver.resolveForMouse(raw);
+                    near(result.beat, resolver.snapBeatForMouse(raw));
+                    require(result.held() == result.targetBeat.has_value(), "invalid held feedback");
+                    if (result.held()) near(result.beat, *result.targetBeat);
+                    require(!resolver.resolveForMouse(raw, true).held(), "Shift reported as held");
+                }
+                require(resolver.resolveForMouse(interval + radius * .99).held(), "detent not reported");
+                require(!resolver.resolveForMouse(interval + radius * 1.01).held(), "escaped detent still reported");
+                auto held = resolver.resolveForMouse(interval);
+                require(held.held(), "exact target not held");
+                require(held.withEffectiveBeat(interval + .000001).state == State::limited, "limit masquerades as snap");
+                require(!held.withEffectiveBeat(interval + .000001).targetBeat, "limited result retained guide");
+                require(held.withEffectiveBeat(interval, false).state == State::invalid, "invalid placement held");
+                require(!held.withEffectiveBeat(NAN).held(), "nonfinite edge held");
+                context.enabled = false;
+                const TimelineSnapResolver off(tempo, context);
+                require(off.resolveForMouse(interval).state == State::disabled, "Off reported as held");
+                TimelineMouseGesture gesture;
+                gesture.begin(interval * .47, 10, resolver);
+                require(!gesture.feedback().held(), "off-grid grab reported held");
+                gesture.begin(interval, 10, resolver);
+                require(gesture.feedback().held(), "initialized target not held");
+                gesture.update(10, resolver, true);
+                require(gesture.feedback().state == State::bypassed, "stationary Shift not reported");
+                gesture.update(10, resolver, false);
+                require(gesture.feedback().held(), "stationary restoration not reported");
+                gesture.setDisplayedBeat(interval + .000001);
+                require(gesture.feedback().state == State::limited, "gesture limit retained hold");
+                gesture.reset();
+                require(!gesture.feedback().held(), "reset retained guide");
+                PianoRollDrawGesture draw;
+                require(draw.begin(interval, interval, 10, resolver, false), "Draw init failed");
+                require(draw.feedback().held(), "Draw initial end not held");
+                const auto initialEnd = draw.endBeat();
+                draw.update(10, resolver, true, false);
+                require(draw.feedback().state == State::bypassed, "Draw stationary Shift stale");
+                near(draw.endBeat(), initialEnd);
+            }
+
+    for (const auto normal : {juce::Colours::white, juce::Colours::black})
+    {
+        const auto tinted = TimelineInteractionPreview::textColour(normal, juce::Colours::orange);
+        require(tinted != normal && tinted.getAlpha() == normal.getAlpha(), "preview font not subtly distinct");
+        require(std::abs(tinted.getPerceivedBrightness() - normal.getPerceivedBrightness()) < .23f, "preview font overly dimmed");
+        require(TimelineInteractionPreview::textColour(normal, normal) != normal, "equal accent hid preview tint");
+    }
+    require(TimelineInteractionPreview::snapLabel({}) == "SNAP", "idle feedback not cleared");
+    for (float scale : {1.0f, 1.25f, 1.5f, 2.0f})
+        for (float phase : {.137f, .5f, .83f})
+        {
+            juce::Image image(juce::Image::ARGB, 80, 80, true);
+            juce::Graphics graphics(image);
+            graphics.addTransform(juce::AffineTransform::scale(scale));
+            const float x = 20 + phase;
+            TimelineInteractionPreview::drawGuide(graphics, x, {5, 30}, 15, juce::Colours::orange, juce::Colours::white, scale);
+            bool painted = false;
+            for (int y = 0; y < image.getHeight(); ++y)
+                for (int column = 0; column < image.getWidth(); ++column)
+                    if (image.getPixelAt(column, y).getAlpha())
+                    {
+                        painted = true;
+                        require(column >= int((x - 5) * scale) && column <= int((x + 5) * scale), "guide escaped horizontal clip");
+                        require(y >= int(5 * scale) && y <= int(30 * scale) + 1, "guide escaped lane");
+                    }
+            require(painted, "guide not rendered");
+        }
+}
+
+void testRulerFeedbackLayers()
+{
+    const auto rulerBounds = juce::Rectangle<int>(9, 6, 64, 25);
+    const auto headerBounds = rulerBounds.withTrimmedTop(17);
+    const auto background = juce::Colour(0xff202020), header = juce::Colour(0xff416b8f);
+    struct PaintedChild : juce::Component
+    {
+        std::function<void(juce::Graphics&)> draw;
+        void paint(juce::Graphics& g) override { draw(g); }
+    };
+    struct Scene : juce::Component
+    {
+        PaintedChild ruler, header;
+        std::function<void(juce::Graphics&)> foreground;
+        void paint(juce::Graphics& g) override { g.fillAll(juce::Colour(0xff202020)); }
+        void paintOverChildren(juce::Graphics& g) override { foreground(g); }
+    };
+    for (float scale : {1.0f, 1.25f, 1.5f, 2.0f})
+        for (float phase : {.137f, .5f, .83f})
+            for (auto state : {TimelineSnapResult::State::held, TimelineSnapResult::State::bypassed,
+                               TimelineSnapResult::State::free, TimelineSnapResult::State::limited})
+            {
+                TimelineInteractionFeedback feedback{};
+                feedback.snap.state = state;
+                feedback.snap.targetBeat = 4;
+                const float x = 20 + phase;
+                const auto draw = [&](juce::Graphics& g, juce::Rectangle<float> bounds)
+                {
+                    TimelineInteractionPreview::drawRulerGuide(g, feedback, x, bounds, juce::Colours::orange, juce::Colours::white, scale);
+                };
+                const auto render = [&](bool foreground)
+                {
+                    Scene scene;
+                    scene.setSize(84, 42);
+                    scene.ruler.setBounds(rulerBounds); scene.header.setBounds(headerBounds);
+                    scene.addAndMakeVisible(scene.ruler); scene.addAndMakeVisible(scene.header);
+                    scene.ruler.draw = [&](juce::Graphics& g)
+                    {
+                        g.fillAll(background);
+                        if (!foreground)
+                            draw(g, scene.ruler.getLocalBounds().toFloat());
+                    };
+                    scene.header.draw = [&](juce::Graphics& g) { g.fillAll(header); };
+                    scene.foreground = [&](juce::Graphics& g)
+                    {
+                        if (foreground)
+                            draw(g, rulerBounds.toFloat());
+                    };
+                    juce::Image image(juce::Image::ARGB, int(84 * scale), int(42 * scale), true);
+                    juce::Graphics g(image); g.addTransform(juce::AffineTransform::scale(scale));
+                    scene.paintEntireComponent(g, true);
+                    return image;
+                };
+                // Same JUCE child clipping in the reference, including fractional
+                // device edges; only the intended foreground order is prescribed.
+                const auto actual = render(TimelineInteractionPreview::rulerFeedbackUsesForeground(true));
+                const auto expected = render(true);
+                const auto oldOrder = render(false);
+                bool headerCoveredCue = false;
+                for (int row = 0; row < actual.getHeight(); ++row)
+                    for (int column = 0; column < actual.getWidth(); ++column)
+                    {
+                        headerCoveredCue |= oldOrder.getPixelAt(column, row) != expected.getPixelAt(column, row);
+                        require(actual.getPixelAt(column, row) == expected.getPixelAt(column, row),
+                                "clip header covered ruler feedback or guide was drawn twice");
+                    }
+                require(headerCoveredCue == (state == TimelineSnapResult::State::held),
+                        "overlapping header did not exercise held/cleared paint order");
+            }
+    require(!TimelineInteractionPreview::rulerFeedbackUsesForeground(false), "arrangement ruler layer changed");
+}
+
+void testInteractionTempoChange(te::Engine& engine)
+{
+    auto edit = te::Edit::createSingleTrackEdit(engine);
+    auto* track = te::getAudioTracks(*edit)[0];
+    auto clip = track->insertMIDIClip("tempo replay", {time(1), time(4)}, nullptr);
+    auto* note = clip->getSequence().addNote(60, beat(2), tracktion::BeatDuration::fromBeats(1), 96, 0, nullptr);
+    const MidiNoteGesture::Item item{clip.get(), note};
+    const auto source = note->state.createCopy();
+    const auto resolver = fixed(edit->tempoSequence);
+    const auto oldEdgeBeat = resolver.timeToBeat(MidiNoteGesture::edgeTime(item, MidiNoteGesture::Kind::move));
+    near(oldEdgeBeat, 4);
+    TimelineMouseGesture gesture;
+    gesture.begin(oldEdgeBeat, 10, resolver);
+    edit->tempoSequence.getTempo(0)->setBpm(60);
+    clip->setPosition({{time(1), time(4)}, {} });
+    auto context = resolver.context();
+    context.revision = 1;
+    const TimelineSnapResolver changed(edit->tempoSequence, context);
+    const auto candidate = gesture.update(10, changed, false);
+    const auto sourceEdge = MidiNoteGesture::edgeTime(item, MidiNoteGesture::Kind::move);
+    juce::Array<MidiNoteGesture::Item> notes; notes.add(item);
+    const auto delta = MidiNoteGesture::constrain(notes, MidiNoteGesture::Kind::move, changed.beatToTime(candidate) - sourceEdge);
+    const auto preview = MidiNoteGesture::resolve(item, MidiNoteGesture::Kind::move, delta);
+    const auto global = clip->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats() + preview.startBeat;
+    near(global, candidate);
+    gesture.setDisplayedBeat(global);
+    require(gesture.feedback().held(), "tempo replay lost the feasible detent");
+    const auto oldPreview = MidiNoteGesture::resolve(item, MidiNoteGesture::Kind::move,
+        changed.beatToTime(candidate) - changed.beatToTime(oldEdgeBeat));
+    require(std::abs(oldPreview.startBeat - preview.startBeat) > .1, "saved beat tempo conversion regression not exercised");
+    near(ClipGestureLimits::edgeTime(clip->getPosition(), ClipGestureLimits::Kind::move), 1);
+    near(ClipGestureLimits::edgeTime(clip->getPosition(), ClipGestureLimits::Kind::resizeRight), 4);
+    for (auto kind : {ClipGestureLimits::Kind::move, ClipGestureLimits::Kind::resizeLeft,
+                      ClipGestureLimits::Kind::resizeRight, ClipGestureLimits::Kind::stretch})
+    {
+        const auto range = ClipGestureLimits::previewRange(clip->getPosition(), kind,
+            changed.beatToTime(2) - ClipGestureLimits::edgeTime(clip->getPosition(), kind));
+        near(changed.timeToBeat((kind == ClipGestureLimits::Kind::resizeRight || kind == ClipGestureLimits::Kind::stretch
+            ? range.getEnd() : range.getStart()).inSeconds()), 2);
+    }
+    require(note->state.isEquivalentTo(source), "tempo replay preview wrote a note");
+}
+
 void testModifierInput()
 {
     juce::Component component;
@@ -437,15 +710,34 @@ void testModifierInput()
     near(shifted->pressure, .75); require(shifted->mouseDownTime == downTime && shifted->mouseWasDraggedSinceMouseDown(), "modifier update lost gesture origin");
     const auto released = input.withModifiers({});
     require(released && !released->mods.isShiftDown() && released->mods.isLeftButtonDown(), "modifier offset accumulated");
-    input.reset(); require(!input.withModifiers({}), "finished gesture replayed");
+    const auto physicalDown = component.localPointToGlobal(event.mouseDownPosition);
+    component.setBounds(35, 17, 200, 100);
+    component.setTransform(juce::AffineTransform::scale(1.25f));
+    const auto transformed = input.forContext(component, {juce::ModifierKeys::shiftModifier});
+    require(transformed && transformed->mods.isLeftButtonDown(), "context replay lost buttons");
+    const auto actual = component.getLocalPoint(nullptr, source.getScreenPosition());
+    near(transformed->position.x, actual.x); near(transformed->position.y, actual.y);
+    const auto down = component.getLocalPoint(nullptr, physicalDown);
+    near(transformed->mouseDownPosition.x, down.x); near(transformed->mouseDownPosition.y, down.y);
+    near(transformed->pressure, event.pressure); near(transformed->tiltX, event.tiltX);
+    require(transformed->mouseDownTime == downTime, "context replay lost gesture origin");
+    input.remember(*transformed);
+    const auto stationary = input.withModifiers({});
+    near(stationary->position.x, transformed->position.x);
+    input.reset(); require(!input.withModifiers({}) && !input.forContext(component, {}), "finished gesture replayed");
 }
 void run()
 {
     te::Engine engine("NextStudioTimelineSnappingTests");
     auto edit = te::Edit::createSingleTrackEdit(engine);
     testModifierInput();
+    testPendingTextEdit();
+    testGroupMoveDestinations(engine);
+    testInteractionTempoChange(engine);
+    testRulerFeedbackLayers();
     testSplitLimits();
     testFixedGrid(edit->tempoSequence);
+    testInteractionFeedback(edit->tempoSequence);
     testKnifePreviewRaster(edit->tempoSequence);
     testEditorProfiles(edit->tempoSequence);
     testGesture(edit->tempoSequence);

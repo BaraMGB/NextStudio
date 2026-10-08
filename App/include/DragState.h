@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include <tracktion_engine/tracktion_engine.h>
 #include "TimelineSnapResolver.h"
+#include <functional>
 
 namespace te = tracktion_engine;
 
@@ -42,6 +43,7 @@ enum class DragType
 
 struct DragState
 {
+    std::function<void()> refreshPreview;
     DragType type = DragType::None;
     tracktion::TimePosition startTime{tracktion::TimePosition::fromSeconds(0.0)};
     tracktion::TimePosition currentTime{tracktion::TimePosition::fromSeconds(0.0)};
@@ -86,6 +88,7 @@ struct DragState
         isFadeOut = false;
         playheadWasMoved = false;
         mouseGesture.reset();
+        refreshPreview = {};
         originalEdgeBeat = 0;
     }
 

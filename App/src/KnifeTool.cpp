@@ -67,7 +67,9 @@ void KnifeTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
 
 void KnifeTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    // No special action needed on mouse up
+    viewport.getTimeLine()->clearMouseFeedback(TimelineFeedbackOwner::notes);
+    m_shouldDrawSplitLine = false;
+    viewport.repaint();
 }
 
 void KnifeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
@@ -76,12 +78,20 @@ void KnifeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 
     m_shouldDrawSplitLine = false;
     m_hoveredNote = nullptr;
+    viewport.getTimeLine()->clearMouseFeedback(TimelineFeedbackOwner::notes);
     if (auto* note = viewport.getNoteByPos(event.position))
         if (const auto split = resolveSplitBeat(event, viewport, note))
         {
             m_shouldDrawSplitLine = true;
             m_hoveredNote = note;
-            m_splitLineX = viewport.getTimeLine()->beatsToX(*split);
+            auto& timeline = *viewport.getTimeLine();
+            m_splitLineX = timeline.beatsToX(*split);
+            const auto lane = viewport.getNoteLane(note->getNoteNumber());
+            timeline.setMouseFeedback(TimelineInteractionFeedback{
+                timeline.getMouseSnapResolver().resolveForMouse(timeline.xToBeatPos(event.position.x).inBeats(), event.mods.isShiftDown())
+                    .withEffectiveBeat(*split), TimelineFeedbackOwner::notes, lane, lane.getStart() + lane.getLength() * 0.5f},
+                [safe = juce::Component::SafePointer<MidiViewport>(&viewport)]
+                { if (safe) safe->refreshMouseSnapContext(); });
         }
 
     viewport.repaint();
@@ -99,6 +109,7 @@ void KnifeTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(
 void KnifeTool::toolDeactivated(MidiViewport &viewport)
 {
     m_shouldDrawSplitLine = false;
+    viewport.getTimeLine()->clearMouseFeedback(TimelineFeedbackOwner::notes);
     viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
     viewport.repaint();
 }

@@ -25,7 +25,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 bool DrawTool::clipIsValid(MidiViewport& viewport) const
 {
     return m_clickedClip != nullptr && viewport.getCachedMidiClips().contains(m_clickedClip.get())
-        && m_clickedClip->state.isAChildOf(viewport.getTimeLine()->getEditViewState().m_edit.state);
+        && m_clickedClip->state.isAChildOf(viewport.getTimeLine()->getEditViewState().m_edit.state)
+        && m_gesture.startBeat() >= m_clickedClip->getStartBeat().inBeats() - m_clickedClip->getOffsetInBeats().inBeats();
 }
 
 void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
@@ -46,7 +47,7 @@ void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
     start = std::max(start, m_clickedClip->getStartBeat().inBeats() - m_clickedClip->getOffsetInBeats().inBeats());
     m_gesture.begin(start, timeline.getNoteInsertLength(), event.position.x, timeline.getMouseSnapResolver(), bypass);
     m_drawNoteNumber = viewport.getNoteNumber(event.y);
-    viewport.repaint();
+    mouseDrag(event, viewport);
 }
 
 void DrawTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
@@ -62,6 +63,10 @@ void DrawTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
     }
     m_gesture.update(event.position.x, viewport.getTimeLine()->getMouseSnapResolver(), event.mods.isShiftDown(),
                      event.mouseWasDraggedSinceMouseDown() && event.position.x != event.getMouseDownPosition().x);
+    const auto lane = viewport.getNoteLane(m_drawNoteNumber);
+    viewport.publishNoteInteractionPreview({m_gesture.startBeat(), m_gesture.endBeat() - m_gesture.startBeat(),
+        m_drawNoteNumber, m_evs.m_lastVelocity, viewport.getSelectedNotes().size(), true}, m_gesture.feedback(),
+        lane, lane.getStart() + lane.getLength() * 0.5f, m_clickedClip->state);
     viewport.repaint();
 }
 
@@ -75,6 +80,7 @@ void DrawTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
         cancel(viewport);
         return;
     }
+    MidiViewport::InteractionCommitScope commitScope(viewport);
     const double base = m_clickedClip->getStartBeat().inBeats() - m_clickedClip->getOffsetInBeats().inBeats();
     if (auto* note = viewport.addNewNote(m_drawNoteNumber, m_clickedClip, m_gesture.startBeat() - base,
                                         m_gesture.endBeat() - m_gesture.startBeat()))
@@ -114,6 +120,7 @@ void DrawTool::cancel(MidiViewport& viewport)
     m_gesture.reset();
     m_clickedClip = nullptr;
     m_drawNoteNumber = 0;
+    viewport.clearNoteInteractionPreview();
     viewport.repaint();
 }
 

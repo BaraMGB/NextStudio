@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "RecordingClipComponent.h"
 #include "TimeLineComponent.h"
 #include "ClipPropertyEdit.h"
+#include "ClipGestureLimits.h"
 #include "TrackLaneComponent.h"
 #include "LassoSelectionTool.h"
 #include "MenuBar.h"
@@ -51,6 +52,7 @@ public:
         void mouseDrag(const juce::MouseEvent &e) override;
         void mouseUp(const juce::MouseEvent &e) override;
         void modifierKeysChanged(const juce::ModifierKeys&) override;
+        void refreshMouseSnapContext();
 
     private:
         SongEditorView &m_owner;
@@ -66,11 +68,13 @@ public:
 
     void paintOverChildren(juce::Graphics &g) override;
     void resized() override;
+    bool keyPressed(const juce::KeyPress&) override;
 
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
     bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override;
     void modifierKeysChanged(const juce::ModifierKeys&) override;
+    void refreshMouseSnapContext();
     void itemDragEnter(const SourceDetails &dragSourceDetails) override;
     void itemDragMove(const SourceDetails &dragSourceDetails) override;
     void itemDragExit(const SourceDetails &dragSourceDetails) override;
@@ -91,6 +95,9 @@ public:
         return m_timeLine.snapTime(time, downwards);
     }
 
+    void setMouseFeedback(const TimelineSnapResult&, juce::Range<float> vertical, float markerY, std::function<void()> refresh = {});
+    void clearMouseFeedback();
+    void cancelDrag();
     TimelineSnapResolver getMouseSnapResolver() const { return m_timeLine.getMouseSnapResolver(); }
     tracktion::TimePosition snapTimeForMouse(tracktion::TimePosition time) const { return m_timeLine.snapTimeForMouse(time); }
     void beginClipMouseGesture(double pointerX);
@@ -159,6 +166,8 @@ public:
     }
 
 private:
+    ClipGestureLimits::Kind clipGestureKind() const;
+    bool m_clipInteractionActive = false;
     tracktion::TimeRange getSelectedTimeRange();
     AutomationLaneComponent *getAutomationLane(tracktion::engine::AutomatableParameter::Ptr ap)
     {

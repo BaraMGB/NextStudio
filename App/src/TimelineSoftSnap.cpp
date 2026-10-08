@@ -17,17 +17,21 @@ bool isValid(Profile profile)
     return std::isfinite(profile.radiusPixels) && profile.radiusPixels >= 0
         && std::isfinite(profile.intervalFraction) && profile.intervalFraction >= 0 && profile.intervalFraction < 0.5;
 }
-double map(double rawPosition, Interval interval, Profile profile)
+Mapping mapDetailed(double rawPosition, Interval interval, Profile profile)
 {
     if (!valid(rawPosition, interval) || !isValid(profile))
-        return rawPosition;
+        return {rawPosition, {}};
     const auto width = interval.upper - interval.lower;
     const auto radius = std::min(profile.radiusPixels, profile.intervalFraction * width);
     if (rawPosition <= interval.lower + radius)
-        return interval.lower;
+        return {interval.lower, interval.lower};
     if (rawPosition >= interval.upper - radius)
-        return interval.upper;
-    return interval.lower + (rawPosition - interval.lower - radius) * width / (width - 2 * radius);
+        return {interval.upper, interval.upper};
+    return {interval.lower + (rawPosition - interval.lower - radius) * width / (width - 2 * radius), {}};
+}
+double map(double rawPosition, Interval interval, Profile profile)
+{
+    return mapDetailed(rawPosition, interval, profile).position;
 }
 double inverseAnchor(double displayedPosition, Interval interval, Profile profile)
 {

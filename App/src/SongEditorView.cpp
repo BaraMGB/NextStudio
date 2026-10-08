@@ -60,6 +60,8 @@ SongEditorView::~SongEditorView()
 
 void SongEditorView::setTool(Tool tool)
 {
+    if (tool != m_toolMode)
+        cancelDrag();
     m_toolMode = tool;
     syncToolButtonsFromState();
 }
@@ -79,8 +81,9 @@ void SongEditorView::paintOverChildren(juce::Graphics &g)
                 if (m_dragState.isTimeStretching && dynamic_cast<te::WaveAudioClip*>(selectedClip) == nullptr)
                     continue;
                 const auto position = selectedClip->getPosition();
-                const auto start = position.getStart() + (m_dragState.isRightEdge ? tracktion::TimeDuration() : m_draggedTimeDelta);
-                const auto end = position.getEnd() + (m_dragState.isLeftEdge ? tracktion::TimeDuration() : m_draggedTimeDelta);
+                const auto preview = ClipGestureLimits::previewRange(position, clipGestureKind(), m_draggedTimeDelta.inSeconds());
+                const auto start = preview.getStart();
+                const auto end = preview.getEnd();
                 const float targetX = timeToX(start);
                 const float targetY = static_cast<float>(getYForTrack(targetTrack));
                 const float targetW = timeToX(end) - targetX;
@@ -150,6 +153,18 @@ void SongEditorView::paintOverChildren(juce::Graphics &g)
         }
     }
     m_lassoComponent.drawLasso(g);
+    m_timeLine.drawMouseFeedback(g, TimelineFeedbackOwner::arrangement);
+}
+
+void SongEditorView::setMouseFeedback(const TimelineSnapResult& snap, juce::Range<float> vertical, float markerY, std::function<void()> refresh)
+{
+    m_timeLine.setMouseFeedback(TimelineInteractionFeedback{snap, TimelineFeedbackOwner::arrangement, vertical, markerY}, std::move(refresh));
+    repaint();
+}
+void SongEditorView::clearMouseFeedback()
+{
+    m_timeLine.clearMouseFeedback(TimelineFeedbackOwner::arrangement);
+    repaint();
 }
 
 void SongEditorView::resized()
@@ -184,6 +199,9 @@ void SongEditorView::changeListenerCallback(juce::ChangeBroadcaster *source)
     }
     else if (source == &m_editViewState.m_selectionManager)
     {
+        if (m_draggedClip && (!m_draggedClip->state.isAChildOf(m_editViewState.m_edit.state)
+            || !m_editViewState.m_selectionManager.isSelected(m_draggedClip)))
+            cancelDrag();
     }
     else if (source == m_editViewState.m_trackHeightManager.get())
     {
@@ -221,6 +239,16 @@ bool SongEditorView::isInterestedInDragSource(const SourceDetails &dragSourceDet
     return false;
 }
 
+void SongEditorView::refreshMouseSnapContext()
+{
+    if (m_lastFileDrag)
+    {
+        auto details = *m_lastFileDrag;
+        details.localPosition = getMouseXYRelative();
+        itemDragMove(details);
+    }
+}
+
 void SongEditorView::modifierKeysChanged(const juce::ModifierKeys&)
 {
     if (m_lastFileDrag)
@@ -235,6 +263,7 @@ void SongEditorView::itemDragEnter(const SourceDetails &dragSourceDetails) { m_l
 void SongEditorView::itemDragMove(const SourceDetails &dragSourceDetails)
 {
     m_lastFileDrag.emplace(dragSourceDetails);
+    clearMouseFeedback();
     auto pos = dragSourceDetails.localPosition;
     bool isShiftDown = juce::ModifierKeys::getCurrentModifiers().isShiftDown();
     auto dropTime = isShiftDown ? xtoTime(pos.x) : snapTimeForMouse(xtoTime(pos.x));
@@ -300,6 +329,12 @@ void SongEditorView::itemDragMove(const SourceDetails &dragSourceDetails)
         m_dragItemRect.colour = m_editViewState.m_applicationState.getPrimeColour();
     }
 
+    const auto resolver = getMouseSnapResolver();
+    setMouseFeedback(resolver.resolveForMouse(resolver.timeToBeat(xtoTime(pos.x).inSeconds()), isShiftDown)
+        .withEffectiveBeat(resolver.timeToBeat(dropTime.inSeconds()), m_dragItemRect.valid && audioFile.isValid()),
+        m_dragItemRect.drawRect.getVerticalRange(), m_dragItemRect.drawRect.getCentreY(),
+        [safe = juce::Component::SafePointer<SongEditorView>(this)]
+        { if (safe) safe->refreshMouseSnapContext(); });
     repaint();
 }
 
@@ -307,6 +342,7 @@ void SongEditorView::itemDragExit(const SourceDetails &dragSourceDetails)
 {
     m_lastFileDrag.reset();
     m_dragItemRect.visible = false;
+    clearMouseFeedback();
     repaint();
 }
 
@@ -343,6 +379,7 @@ void SongEditorView::itemDropped(const SourceDetails &dragSourceDetails)
         }
     }
     m_dragItemRect.visible = false;
+    clearMouseFeedback();
     repaint();
 }
 
@@ -407,17 +444,23 @@ void SongEditorView::beginClipMouseGesture(double pointerX)
     }
 }
 
+ClipGestureLimits::Kind SongEditorView::clipGestureKind() const
+{
+    return m_dragState.isTimeStretching ? ClipGestureLimits::Kind::stretch
+         : m_dragState.isLeftEdge ? ClipGestureLimits::Kind::resizeLeft
+         : m_dragState.isRightEdge ? ClipGestureLimits::Kind::resizeRight : ClipGestureLimits::Kind::move;
+}
+
 void SongEditorView::updateClipMouseGesture(double pointerX, bool bypass)
 {
     const auto resolver = getMouseSnapResolver();
     const auto candidate = m_dragState.mouseGesture.update(pointerX, resolver, bypass);
-    const auto kind = m_dragState.isTimeStretching ? ClipGestureLimits::Kind::stretch
-                    : m_dragState.isLeftEdge ? ClipGestureLimits::Kind::resizeLeft
-                    : m_dragState.isRightEdge ? ClipGestureLimits::Kind::resizeRight : ClipGestureLimits::Kind::move;
+    const auto kind = clipGestureKind();
+    const auto sourceEdgeTime = ClipGestureLimits::edgeTime(m_dragState.draggedClip->getPosition(), kind);
     const auto delta = ClipGestureLimits::constrain(m_editViewState.m_selectionManager.getItemsOfType<te::Clip>(), kind,
-        resolver.beatToTime(candidate) - resolver.beatToTime(m_dragState.originalEdgeBeat));
+        resolver.beatToTime(candidate) - sourceEdgeTime);
     m_dragState.timeDelta = tracktion::TimeDuration::fromSeconds(delta);
-    m_dragState.mouseGesture.setDisplayedBeat(resolver.timeToBeat(resolver.beatToTime(m_dragState.originalEdgeBeat) + delta));
+    m_dragState.mouseGesture.setDisplayedBeat(resolver.timeToBeat(sourceEdgeTime + delta));
 }
 
 void SongEditorView::updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration delta, int verticalOffset)
@@ -425,6 +468,31 @@ void SongEditorView::updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration
     m_draggedClip = clip;
     m_draggedTimeDelta = delta;
     m_draggedVerticalOffset = verticalOffset;
+    if (clip && m_dragState.mouseGesture.active())
+    {
+        const auto preview = ClipGestureLimits::previewRange(clip->getPosition(), clipGestureKind(), delta.inSeconds());
+        m_clipInteractionActive = true;
+        if (m_editViewState.clipInteractionPreviewChanged)
+            m_editViewState.clipInteractionPreviewChanged(ClipTimingPreview{preview,
+                m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size()});
+        const bool moving = clipGestureKind() == ClipGestureLimits::Kind::move;
+        const auto target = moving ? EngineHelpers::getTargetTrack(clip->getTrack(), verticalOffset) : clip->getTrack();
+        const bool valid = !moving || ClipGestureLimits::validMoveDestinations(
+            m_editViewState.m_selectionManager.getItemsOfType<te::Clip>(),
+            EngineHelpers::getSortedTrackList(m_editViewState.m_edit), verticalOffset,
+            [](const te::Clip* item, const te::Track* destination) { return EngineHelpers::trackWantsClip(item, destination); });
+        const float y = target ? float(getYForTrack(target)) : 0;
+        const float h = target ? float(m_editViewState.m_trackHeightManager->getTrackHeight(target, false)) : 0;
+        setMouseFeedback(m_dragState.mouseGesture.feedback().withEffectiveBeat(m_dragState.mouseGesture.displayedBeat(), valid),
+                         {y, y + h}, y + h * 0.5f, m_dragState.refreshPreview);
+    }
+    else if (!clip)
+    {
+        if (m_clipInteractionActive && m_editViewState.clipInteractionPreviewChanged)
+            m_editViewState.clipInteractionPreviewChanged({});
+        m_clipInteractionActive = false;
+        clearMouseFeedback();
+    }
     repaint();
 }
 
@@ -640,6 +708,7 @@ void SongEditorView::stopLasso()
     setMouseCursor(juce::MouseCursor::NormalCursor);
     m_lassoComponent.stopLasso();
     m_isLassoStartedInAutomation = false;
+    clearMouseFeedback();
 
     // Switch back to pointer mode after TimeRange selection
     if (m_isSelectingTimeRange || m_toolMode == Tool::range || m_toolMode == Tool::lasso)
@@ -775,6 +844,13 @@ void SongEditorView::updateRangeSelection(const juce::MouseEvent& e)
 
     const auto end = e.mods.isShiftDown() ? xtoTime(e.position.x) : snapTimeForMouse(xtoTime(e.position.x));
     setSelectedTimeRangeRaw({std::min(m_rangeCreationAnchor, end), std::max(m_rangeCreationAnchor, end)});
+    const auto resolver = getMouseSnapResolver();
+    const auto effective = end < m_rangeCreationAnchor ? m_selectedRange.getStart() : m_selectedRange.getEnd();
+    setMouseFeedback(resolver.resolveForMouse(resolver.timeToBeat(xtoTime(e.position.x).inSeconds()), e.mods.isShiftDown())
+        .withEffectiveBeat(resolver.timeToBeat(effective.inSeconds())),
+        {0.0f, float(getHeight())}, float(e.y),
+        [safe = juce::Component::SafePointer<SongEditorView>(this)]
+        { if (safe) safe->m_timeRangeOverlay.refreshMouseSnapContext(); });
 }
 
 void SongEditorView::clearSelectedTimeRange()
@@ -1176,9 +1252,28 @@ void SongEditorView::endDrag()
         finishTimeRangeDrag(false);
     }
 
+    cancelDrag();
+}
+
+bool SongEditorView::keyPressed(const juce::KeyPress& key)
+{
+    if (key.getKeyCode() == juce::KeyPress::escapeKey && (m_dragState.isActive() || m_isSelectingTimeRange))
+    {
+        m_isSelectingTimeRange = false;
+        m_lassoComponent.stopLasso();
+        cancelDrag();
+        return true;
+    }
+    return false;
+}
+
+void SongEditorView::cancelDrag()
+{
+    cancelTimeRangeDrag();
     m_dragState.reset();
     m_isDragging = false;
     m_isDraggingSelectedTimeRange = false;
+    updateDragGhost(nullptr, {}, 0);
 }
 
 //==============================================================================
@@ -1426,6 +1521,7 @@ void SongEditorView::TimeRangeOverlayComponent::mouseExit(const juce::MouseEvent
 void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
     m_mouseInput.remember(e);
+    m_owner.grabKeyboardFocus();
     if (m_owner.getToolMode() == Tool::range)
     {
         if (e.mods.isLeftButtonDown())
@@ -1465,6 +1561,13 @@ void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent
     }
 }
 
+void SongEditorView::TimeRangeOverlayComponent::refreshMouseSnapContext()
+{
+    if (m_owner.m_isSelectingTimeRange || m_owner.getDragState().isTimeRangeDrag())
+        if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()); event && event->mouseWasDraggedSinceMouseDown())
+            mouseDrag(*event);
+}
+
 void SongEditorView::TimeRangeOverlayComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
 {
     if (m_owner.m_isSelectingTimeRange || m_owner.getDragState().isTimeRangeDrag())
@@ -1497,6 +1600,9 @@ void SongEditorView::TimeRangeOverlayComponent::mouseDrag(const juce::MouseEvent
                              : dragState.isRightEdge ? m_owner.m_selectedRange.getEnd()
                              : m_originalRange.getStart() + m_owner.m_draggedTimeDelta;
         m_mouseGesture.setDisplayedBeat(resolver.timeToBeat(displayed.inSeconds()));
+        m_owner.setMouseFeedback(m_mouseGesture.feedback(), {0.0f, float(getHeight())}, float(e.y),
+            [safe = juce::Component::SafePointer<TimeRangeOverlayComponent>(this)]
+            { if (safe) safe->refreshMouseSnapContext(); });
     }
 }
 

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Snap hold feedback** — Active magnetic detents show a target guide and a diamond on the manipulated edge, with held/free/Shift/off/limit status beside the unchanged snap grid choice. Knife accents its existing line; feasibility limits and invalid destinations do not appear as held targets.
+- **Live clip and note header values** — Start, End and Duration follow canvas move/copy/resize previews; note Pitch follows vertical movement and Draw displays its new note immediately. Only a subtle font tint distinguishes values during dragging, without a Preview badge. Multi-selection shows the grabbed reference and real count; commit/cancel restores the normal selection display and text color without preview-only model or undo changes.
 - **Inline sidebar theme editor** — General settings now provides a custom, responsive HSV/hex color editor, grouped theme colors, live preview, built-in quick themes, a searchable virtualized preset browser, non-modal custom-preset management and direct theme activation by double-clicking files in the Home browser.
 - **Metronome audio settings** — The Audio settings tab now provides a common click-volume control and separate custom WAV selection for accented and regular beats. Imported samples are copied into NextStudio's application-data directory so the originals are no longer required.
 
@@ -24,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Gesture lifecycle review fixes** — Pending clip/note text edits complete before canvas gestures even with queued JUCE focus loss; Escape suppresses continued ruler dragging instead of entering pan/zoom; move/copy snap feedback validates every selected clip destination and clears held cues for invalid groups.
+- **Piano Roll snap cue layering** — Ruler guides and diamonds now paint above clip headers, including stationary Shift/cancel refresh; clip-overlay body guides do not double the ruler stroke. Hit testing and snapping are unchanged.
 - **Live loop previews** — Moving or resizing an existing loop now paints the already resolved range during the gesture instead of retaining the old transport range until release.
 - **Creation anchors at meter changes** — Mouse-created notes, clips, ranges and loops use the resolver's corrected downward targets; adaptive bar snapping can no longer start a new note ahead of the mouse position after a meter change. Discrete commands remain unchanged.
 - **Tempo-aware range and audio-drop previews** — Preview positions and widths are projected from their actual time endpoints, including moved clip slices and automation points, rather than using an average seconds-per-pixel shift or a fixed width.

@@ -55,6 +55,8 @@ void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewpor
                 m_currentDragMode = DragMode::moveNotes;
 
             m_dragClip = clip;
+            m_pitchAnchorKey = viewport.getNoteNumber(event.y);
+            m_pitchAnchorDelta = 0;
             m_originalEdgeBeat = clip->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats()
                 + (m_currentDragMode == DragMode::resizeRight ? note->getEndBeat().inBeats() : note->getStartBeat().inBeats());
             m_timeGesture.begin(m_originalEdgeBeat, event.position.x, viewport.getTimeLine()->getMouseSnapResolver());
@@ -117,9 +119,9 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
         for (auto* note : viewport.getSelectedNotes())
             if (auto* clip = viewport.getSelectedEvents().clipForEvent(note))
                 items.add({clip, note});
-        const double delta = MidiNoteGesture::constrain(items, gestureKind(),
-            resolver.beatToTime(newBeat) - resolver.beatToTime(m_originalEdgeBeat));
-        m_timeGesture.setDisplayedBeat(resolver.timeToBeat(resolver.beatToTime(m_originalEdgeBeat) + delta));
+        const double sourceEdgeTime = MidiNoteGesture::edgeTime({m_dragClip.get(), clickedNote}, gestureKind());
+        const double delta = MidiNoteGesture::constrain(items, gestureKind(), resolver.beatToTime(newBeat) - sourceEdgeTime);
+        m_timeGesture.setDisplayedBeat(resolver.timeToBeat(sourceEdgeTime + delta));
         m_draggedTimeDelta = m_leftTimeDelta = m_rightTimeDelta = 0;
         if (m_currentDragMode == DragMode::resizeLeft)
             m_leftTimeDelta = delta;
@@ -128,7 +130,13 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
         else if (m_currentDragMode == DragMode::moveNotes)
         {
             m_draggedTimeDelta = delta;
-            m_draggedNoteDelta = viewport.getNoteNumber(event.y) - clickedNote->getNoteNumber();
+            if (viewport.isRefreshingMouseSnapContext())
+            {
+                m_pitchAnchorKey = viewport.getNoteNumber(event.y);
+                m_pitchAnchorDelta = m_draggedNoteDelta;
+            }
+            else
+                m_draggedNoteDelta = m_pitchAnchorDelta + viewport.getNoteNumber(event.y) - m_pitchAnchorKey;
             for (const auto& item : items)
                 m_draggedNoteDelta = juce::jlimit(-item.note->getNoteNumber(), 127 - item.note->getNoteNumber(), m_draggedNoteDelta);
             if (!m_hasPlayedDragGuideNote || m_draggedNoteDelta != m_lastGuideNoteDelta)
@@ -141,6 +149,11 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
                 m_lastGuideNoteDelta = m_draggedNoteDelta;
             }
         }
+        const auto timing = previewTiming(m_dragClip, clickedNote);
+        const auto lane = viewport.getNoteLane(clickedNote->getNoteNumber() + m_draggedNoteDelta);
+        viewport.publishNoteInteractionPreview({timing.startBeat + m_dragClip->getStartBeat().inBeats()
+            - m_dragClip->getOffsetInBeats().inBeats(), timing.lengthBeats, clickedNote->getNoteNumber() + m_draggedNoteDelta,
+            clickedNote->getVelocity(), items.size()}, m_timeGesture.feedback(), lane, lane.getStart() + lane.getLength() * 0.5f, clickedNote->state);
         viewport.repaint();
     }
 
@@ -179,6 +192,7 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 
         if (viewport.getSelectedEvents().getNumSelected() > 0)
         {
+            MidiViewport::InteractionCommitScope commitScope(viewport);
             auto &um = m_evs.m_edit.getUndoManager();
             const bool copy = event.mods.isCtrlDown();
             um.beginNewTransaction(copy ? "Copy MIDI Notes" : "Move MIDI Notes");
@@ -253,6 +267,7 @@ void PointerTool::resetDrag(MidiViewport& viewport)
     m_lastGuideNoteDelta = 0;
     m_timeGesture.reset();
     m_dragClip = nullptr;
+    viewport.clearNoteInteractionPreview();
     viewport.cleanUpFlags();
     viewport.repaint();
 }

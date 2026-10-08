@@ -89,6 +89,15 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_edit.getTransport().addChangeListener(this);
     m_songEditor.addMouseListener(this, true);
 
+    m_editViewState.clipInteractionBeginning = [this] { m_clipPropertiesBar.finishActiveEdit(); };
+    m_editViewState.clipInteractionPreviewChanged = [this](std::optional<ClipTimingPreview> preview)
+    {
+        m_clipPropertiesBar.setInteractionPreview(preview);
+    };
+    m_timeLine.onMouseFeedback = [this](std::optional<TimelineInteractionFeedback> feedback)
+    {
+        m_clipPropertiesBar.setSnapFeedback(feedback);
+    };
     m_clipPropertiesBar.setEditHandlers(
         [this](const juce::Array<ClipPropertyEdit> &preview)
         {
@@ -273,6 +282,9 @@ EditComponent::~EditComponent()
     m_addAudioTrackBtn.removeListener(this);
     m_scrollbar_h.removeListener(this);
     m_scrollbar_v.removeListener(this);
+    m_editViewState.clipInteractionBeginning = {};
+    m_editViewState.clipInteractionPreviewChanged = {};
+    m_timeLine.onMouseFeedback = {};
     m_clipPropertiesBar.setEditHandlers({}, {});
     m_songEditor.removeMouseListener(this);
     m_edit.getTransport().removeChangeListener(this);

@@ -116,6 +116,56 @@ Knife preview X remains floating-point through rendering, with the same stroke
 width as the grid. Arrangement Knife hover is not throttled: dropping the final
 1–2 px pointer movement can otherwise leave a stale preview outside a detent.
 
+## Snap feedback and live values
+
+`TimelineSoftSnap::mapDetailed()` and `TimelineSnapResolver::resolveForMouse()`
+return the same position as their scalar wrappers, plus actual plateau/target
+state. `TimelineMouseGesture::feedback()` tracks inverse-anchored raw intent;
+`setDisplayedBeat()` finalizes feedback after feasibility constraints. A limit,
+invalid destination or Shift/Off at an exact grid beat must not count as held.
+Numerical beat/time conversion tolerance is not a one-tick or one-pixel snap test.
+Arrangement move/copy validates every selected clip's destination through
+`ClipGestureLimits::validMoveDestinations()`, shared with the commit path. A valid
+primary lane cannot advertise a held destination if another clip would invalidate
+the group. Resize/stretch feedback uses the source lane, as those commits do not
+move clips vertically. Escape cancels the whole ruler pointer interaction;
+subsequent drag events are ignored until a new mouse-down, rather than falling
+through from loop editing into pan/zoom.
+
+`TimeLineComponent` owns transient `TimelineInteractionFeedback`. A held result
+paints a fractional-X target guide and physical-sized outlined diamond in the
+originating lane/viewport and ruler. Piano Roll ruler feedback is deferred to
+`PianoRollEditor::paintOverChildren()` after clip headers and borders; arrangement
+ruler feedback stays in the timeline's own paint pass. The translated/clipped
+`drawRulerGuide()` helper renders each ruler cue once. Overlay body feedback clips
+below the ruler to avoid double translucent strokes. Feedback changes/clear repaint
+the parent foreground region. No sibling z-order or hit-test changes are needed.
+Knife accents its existing line. The compact
+SNAP label stacks the active status beneath SNAP, reserving fixed width so neither
+status updates nor live numbers move the controls. Its grid combo is unchanged.
+Context changes replay input through lifetime-safe callbacks. Geometry replay reads
+the actual pointer and physical mouse-down origin through the new transform; a JUCE
+movement watcher catches ancestor translation, with a transient geometry revision
+for re-anchoring. Pitch/current automation values do not change merely because the
+view changes. Primary deltas use actual source edge time under the current tempo,
+not a saved beat converted using the new tempo. Clearing
+the interaction removes the callback, guide and status together. No new timer,
+hysteresis, snap preference or project-format field is introduced.
+
+`TimelineInteractionPreview.h` defines pointer-free primary clip/note display
+snapshots. `SongEditorView`, `PointerTool`, Draw and the MIDI clip overlay publish
+values from the same feasible timing helpers used by ghosts/commit. Property bars
+ignore model refreshes while a snapshot is active, then refresh the actual resulting
+selection after commit/cancel. Text uses only a subtle theme-derived tint, with no
+Preview label/badge. A multi-selection canvas gesture identifies the grabbed
+reference and keeps its count; normal common-value/mixed display returns afterward.
+Provisional Draw does not increment the selected-note count. Overlay clip timing
+routes explicitly through an edit-local UI callback, while snap status remains
+owned by the Piano Roll grid. This channel is not serialized or a model notification.
+
+See [implementation and validation](../changes/snap-feedback-and-live-header-validation.md)
+for evidence and GUI/platform coverage limits.
+
 ## Preview geometry
 
 Existing loop move/resize and loop creation paint the cached `m_newLoopRange`

@@ -10,6 +10,7 @@ public:
     void update(double pointerX, const TimelineSnapResolver&, bool bypass, bool horizontalDrag);
     void reset() { m_endGesture.reset(); m_dragged = false; }
     bool active() const { return m_endGesture.active(); }
+    const TimelineSnapResult& feedback() const { return m_endGesture.feedback(); }
     double startBeat() const { return m_startBeat; }
     double endBeat() const { return m_endBeat; }
 private:

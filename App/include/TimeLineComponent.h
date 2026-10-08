@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "EditViewState.h"
 #include "TimelineSnapResolver.h"
+#include "TimelineInteractionPreview.h"
 #include "MouseGestureInput.h"
 
 class TimeLineComponent
@@ -41,6 +42,7 @@ public:
     void paint(juce::Graphics &g) override;
     void resized() override;
     void moved() override;
+    bool keyPressed(const juce::KeyPress&) override;
     void parentHierarchyChanged() override;
     void zoomByFactor(double factor, double anchorX);
 
@@ -85,6 +87,15 @@ public:
     tracktion::TimePosition snapTime(tracktion::TimePosition time, bool down = false) const;
     double getSnappedTime(double time);
     TimelineSnapResolver getMouseSnapResolver() const;
+    void setMouseFeedback(std::optional<TimelineInteractionFeedback>, std::function<void()> refresh = {});
+    void clearMouseFeedback(TimelineFeedbackOwner);
+    void drawMouseFeedback(juce::Graphics&, TimelineFeedbackOwner);
+    void drawRulerMouseFeedback(juce::Graphics&, juce::Rectangle<float> rulerBounds);
+    const std::optional<TimelineInteractionFeedback>& mouseFeedback() const { return m_mouseFeedback; }
+    void mouseFeedbackGeometryChanged() { ++m_feedbackGeometryRevision; m_feedbackGeometryDirty = true; triggerAsyncUpdate(); }
+    std::function<void(std::optional<TimelineInteractionFeedback>)> onMouseFeedback;
+    NoteTimingPreviewHandler onNoteInteractionPreview;
+    std::function<void()> onNoteInteractionBeginning;
     double snapBeatForMouse(double globalBeat) const;
     tracktion::TimePosition snapTimeForMouse(tracktion::TimePosition) const;
 
@@ -106,10 +117,27 @@ private:
     const bool m_usePianoRollSnapSettings;
     juce::ValueTree m_tree;
     double m_cachedBeat{};
+    bool m_pointerInteractionActive = false;
     bool m_isMouseDown{false}, m_isSnapping{true}, m_leftResized{false}, m_rightResized{false}, m_changeLoopRange{false}, m_loopRangeClicked{false};
 
     tracktion::TimeRange m_cachedLoopRange;
     tracktion::TimeRange m_newLoopRange;
+    std::optional<TimelineInteractionFeedback> m_mouseFeedback;
+    bool m_feedbackGeometryDirty = false;
+    uint64_t m_feedbackGeometryRevision = 0;
+    class FeedbackMovementWatcher : public juce::ComponentMovementWatcher
+    {
+    public:
+        explicit FeedbackMovementWatcher(TimeLineComponent& owner) : ComponentMovementWatcher(&owner), m_owner(owner) {}
+        void componentMovedOrResized(bool, bool) override { m_owner.mouseFeedbackGeometryChanged(); }
+        void componentPeerChanged() override { m_owner.mouseFeedbackGeometryChanged(); }
+        void componentVisibilityChanged() override { m_owner.mouseFeedbackGeometryChanged(); }
+    private:
+        TimeLineComponent& m_owner;
+    };
+    FeedbackMovementWatcher m_feedbackMovementWatcher;
+    std::optional<TimelineSnapResolver::Context> m_feedbackContext;
+    std::function<void()> m_refreshMouseFeedback;
     TimelineMouseGesture m_loopGesture;
     MouseGestureInput m_mouseInput;
     double m_loopCreationStartBeat = 0;

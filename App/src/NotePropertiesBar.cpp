@@ -339,6 +339,48 @@ NotePropertiesBar::NotePropertiesBar(EditViewState &evs)
     clearSelection();
 }
 
+void NotePropertiesBar::finishActiveEdit()
+{
+    for (auto& field : m_fields)
+        TimelineInteractionPreview::finishTextEdit(field.editor);
+}
+
+void NotePropertiesBar::setSnapFeedback(std::optional<TimelineInteractionFeedback> feedback)
+{
+    m_snapLabel.setText(TimelineInteractionPreview::snapLabel(feedback), juce::dontSendNotification);
+}
+
+void NotePropertiesBar::setInteractionPreview(std::optional<NoteTimingPreview> preview)
+{
+    if (preview && (!std::isfinite(preview->globalStartBeat) || !std::isfinite(preview->lengthBeats)
+        || preview->lengthBeats <= 0))
+        preview.reset();
+    if (preview && !m_interactionPreview)
+        cancelScrub();
+    m_interactionPreview = preview;
+    m_handlingEditorCallback = true;
+    for (auto& field : m_fields)
+    {
+        field.editor.setReadOnly(true);
+        field.editor.setWantsKeyboardFocus(!preview);
+        field.editor.setInterceptsMouseClicks(!preview, !preview);
+        if (preview)
+        {
+            field.editor.giveAwayKeyboardFocus();
+            field.editor.setEnabled(true);
+            field.label.setEnabled(true);
+            setInvalid(field, false);
+        }
+    }
+    m_handlingEditorCallback = false;
+    if (preview)
+        showValues({formatPosition(preview->globalStartBeat), formatPosition(preview->globalStartBeat + preview->lengthBeats),
+            formatDuration(preview->lengthBeats), GUIHelpers::getMidiNoteName(preview->pitch), juce::String(preview->velocity)});
+    else
+        refreshFromSelection(true);
+    updateColours();
+}
+
 void NotePropertiesBar::updateColours()
 {
     const auto labelColour = m_evs.m_applicationState.getTextColour();
@@ -346,8 +388,8 @@ void NotePropertiesBar::updateColours()
     for (auto &field : m_fields)
     {
         field.label.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
-        field.editor.setColour(juce::TextEditor::textColourId,
-                               field.invalid ? juce::Colours::red : valueColour);
+        field.editor.applyColourToAllText(field.invalid ? juce::Colours::red : (m_interactionPreview
+            ? TimelineInteractionPreview::textColour(valueColour, m_evs.m_applicationState.getPrimeColour()) : valueColour));
     }
     m_snapLabel.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
     m_snapBox.setColour(juce::ComboBox::textColourId, valueColour);
@@ -468,6 +510,8 @@ void NotePropertiesBar::setTimingStepProvider(TimingStepProvider provider)
 
 void NotePropertiesBar::clearSelection()
 {
+    if (m_interactionPreview)
+        return;
     cancelScrub();
     m_selection.clear();
     m_handlingEditorCallback = true;
@@ -487,6 +531,8 @@ void NotePropertiesBar::clearSelection()
 
 void NotePropertiesBar::refreshFromSelection(bool discardActiveEdit)
 {
+    if (m_interactionPreview)
+        return;
     auto newSelection = m_selectionProvider ? m_selectionProvider() : juce::Array<std::pair<te::MidiClip *, te::MidiNote *>>{};
     newSelection.removeIf([](const auto &item) { return item.first == nullptr || item.second == nullptr; });
 
@@ -575,7 +621,7 @@ void NotePropertiesBar::refreshFromSelection(bool discardActiveEdit)
 
 void NotePropertiesBar::beginEditing(Field &field)
 {
-    if (!field.editor.isEnabled())
+    if (m_interactionPreview || !field.editor.isEnabled())
         return;
 
     if (field.editor.getText() == juce::String::fromUTF8("\xe2\x80\x94"))
@@ -588,7 +634,7 @@ void NotePropertiesBar::beginEditing(Field &field)
 
 void NotePropertiesBar::commit(Field &field)
 {
-    if (m_handlingEditorCallback || !field.editor.isEnabled())
+    if (m_interactionPreview || m_handlingEditorCallback || !field.editor.isEnabled())
         return;
 
     if (!apply(field.property, field.editor.getText()))
@@ -630,7 +676,7 @@ void NotePropertiesBar::focusAdjacent(Field &field, bool backwards)
 
 void NotePropertiesBar::scrub(Field &field, int stepDelta, bool shouldBeginUndoTransaction)
 {
-    if (!field.editor.isEnabled() || stepDelta == 0)
+    if (m_interactionPreview || !field.editor.isEnabled() || stepDelta == 0)
         return;
 
     if (m_scrubActive && !shouldBeginUndoTransaction)
@@ -684,6 +730,8 @@ void NotePropertiesBar::scrub(Field &field, int stepDelta, bool shouldBeginUndoT
 
 void NotePropertiesBar::beginScrub(Field &field)
 {
+    if (m_interactionPreview)
+        return;
     cancelScrub();
     m_scrubSelection = m_selectionProvider ? m_selectionProvider() : decltype(m_scrubSelection){};
     m_scrubSelection.removeIf([](const auto &item) { return item.first == nullptr || item.second == nullptr; });
@@ -976,9 +1024,15 @@ void NotePropertiesBar::showPlan(const juce::Array<MidiNotePropertyEdit> &plan)
         [](int value) { return juce::String(value); });
 
     const std::array<juce::String, 5> texts{{startText, endText, durationText, pitchText, velocityText}};
+    showValues(texts);
+}
+
+void NotePropertiesBar::showValues(const std::array<juce::String, 5>& texts)
+{
     m_handlingEditorCallback = true;
     for (size_t i = 0; i < m_fields.size(); ++i)
-        m_fields[i].editor.setText(texts[i], false);
+        if (m_fields[i].editor.getText() != texts[i])
+            m_fields[i].editor.setText(texts[i], false);
     m_handlingEditorCallback = false;
 }
 
@@ -1118,13 +1172,14 @@ void NotePropertiesBar::paint(juce::Graphics &g)
     g.setFont(m_fields.front().label.getFont());
     g.setColour(labelColour.withAlpha(m_selection.isEmpty() ? 0.4f : 0.85f));
     const auto selectionTitleWidth = juce::roundToInt(measureTextWidth(g.getCurrentFont(), "SELECTED NOTES:")) + 4;
-    g.drawFittedText("SELECTED NOTES:", selectionContent.removeFromLeft(selectionTitleWidth),
+    g.drawFittedText(m_interactionPreview && !m_interactionPreview->creation && m_interactionPreview->selectionCount > 1 ? "NOTES (REF):" : "SELECTED NOTES:",
+                     selectionContent.removeFromLeft(selectionTitleWidth),
                      juce::Justification::centredLeft, 1);
     selectionContent.removeFromLeft(juce::jmin(labelGap, selectionContent.getWidth()));
 
     g.setFont(m_fields.front().editor.getFont());
     g.setColour(valueColour.withAlpha(m_selection.isEmpty() ? 0.5f : 1.0f));
-    g.drawFittedText(juce::String(m_selection.size()), selectionContent,
+    g.drawFittedText(juce::String(m_interactionPreview ? m_interactionPreview->selectionCount : m_selection.size()), selectionContent,
                      juce::Justification::centredLeft, 1);
 
     g.setColour(m_evs.m_applicationState.getBorderColour());
@@ -1152,7 +1207,7 @@ void NotePropertiesBar::resized()
 {
     const auto titleFont = juce::Font(juce::FontOptions(titleFontHeight));
     const auto valueFont = juce::Font(juce::FontOptions(valueFontHeight));
-    const std::array<juce::String, 5> stableValues{{"88.8.888", "88.8.888", "888 ticks", "G#10", "888"}};
+    const std::array<juce::String, 5> stableValues{{"88.8.888", "88.8.888", "888888 ticks", "G#10", "888"}};
 
     const auto selectionTitleWidth = juce::roundToInt(measureTextWidth(titleFont, "SELECTED NOTES:")) + 4;
     const auto selectionValueWidth = juce::roundToInt(measureTextWidth(valueFont, "8888")) + 4;
@@ -1188,7 +1243,7 @@ void NotePropertiesBar::resized()
     m_noteLengthControlBounds = noteLengthArea;
 
     snapArea = snapArea.reduced(fieldPadding, 2);
-    const auto snapLabelWidth = juce::roundToInt(measureTextWidth(titleFont, m_snapLabel.getText())) + 4;
+    const auto snapLabelWidth = juce::roundToInt(measureTextWidth(titleFont, "invalid")) + 4;
     m_snapLabel.setBounds(snapArea.removeFromLeft(juce::jmin(snapLabelWidth, snapArea.getWidth())));
     snapArea.removeFromLeft(juce::jmin(labelGap, snapArea.getWidth()));
     m_snapBox.setBounds(snapArea);

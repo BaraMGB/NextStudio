@@ -80,6 +80,33 @@ Text and wheel edits commit immediately. Start changes delegate to `EngineHelper
 
 Existing arrangement overwrite and playback-graph safeguards remain in the underlying move/resize commands.
 
+## Live canvas values
+
+`setInteractionPreview(std::optional<ClipTimingPreview>)` is display-only. The
+snapshot has the grabbed reference's actual time range and real selection count,
+with no model pointers. `SongEditorView` and the Piano Roll clip overlay route it
+through `EditViewState::clipInteractionPreviewChanged`; `EditComponent` installs
+and disconnects the callback. `ClipGestureLimits::previewRange()` is also used by
+the ghost so Start/End/Duration agree, including seconds-length moves under tempo
+changes. Multi-selection canvas dragging shows `CLIPS (REF):`; ordinary selection
+and numeric group edits retain existing common-value/em-dash behavior.
+
+While dragging, values receive only a subtle font tint. No Preview label, badge or
+underline is added. The display path does not invoke edit/commit callbacks. Existing
+text edits finish synchronously through their normal focus-loss commit/reject
+policy before reading the canvas gesture origin, even if JUCE has already moved
+focus and queued the notification. The later notification sees a read-only field
+and cannot commit again or apply preview text;
+fields cannot start a competing text/wheel/scrub edit while its snapshot is active.
+Snap controls remain available. Model refreshes cannot overwrite the live snapshot.
+Commit/cancel clears it and refreshes model values/color; theme updates apply the
+color to existing TextEditor glyphs as well as future text. Duration layout reserves
+room for six-digit tick counts instead of silently clipping ordinary four-digit values.
+
+`setSnapFeedback()` changes only the compact status under SNAP, not its combo choice.
+It uses the originating arrangement timeline; Piano Roll overlay feedback stays in
+the Piano Roll header even though clip values appear here.
+
 ## Selection and refresh
 
 `ClipPropertiesBar` reads clips directly from the shared `SelectionManager`. `EditComponent` refreshes it when:
