@@ -21,7 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "MidiViewport.h"
-#include "PianoRollNoteLength.h"
+#include "PianoRollDrawGesture.h"
 #include "ToolStrategy.h"
 
 namespace te = tracktion_engine;
@@ -52,19 +52,16 @@ public:
     Tool getToolId() override { return Tool::draw; }
 
     // Public getters for MidiViewport's paint method
-    bool isDrawing() const { return m_isDrawingNote; }
-    int getDrawStartPos() const { return m_drawStartPos; }
-    int getDrawCurrentPos() const { return m_drawCurrentPos; }
+    bool isDrawing() const { return m_gesture.active(); }
+    double getDrawStartBeat() const { return m_gesture.startBeat(); }
+    double getDrawEndBeat() const { return m_gesture.endBeat(); }
     int getDrawNoteNumber() const { return m_drawNoteNumber; }
-    te::MidiClip *getClickedClip() const { return m_clickedClip; }
-    double getInsertLengthBeats() const { return m_insertLengthBeats; }
+    te::MidiClip *getClickedClip() const { return m_clickedClip.get(); }
+    void cancel(MidiViewport&);
 
 private:
-    bool m_isDrawingNote{false};
-    int m_drawStartPos{0};
-    int m_drawCurrentPos{0};
-    int m_intervalX{0};
-    double m_insertLengthBeats{PianoRollNoteLength::defaultLengthBeats};
+    PianoRollDrawGesture m_gesture;
     int m_drawNoteNumber{0};
-    te::MidiClip *m_clickedClip{nullptr};
+    te::MidiClip::Ptr m_clickedClip;
+    bool clipIsValid(MidiViewport&) const;
 };

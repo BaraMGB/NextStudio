@@ -163,14 +163,14 @@ template <typename T> void log(const juce::String &d, T message)
 
 juce::Rectangle<float> getSensibleArea(juce::Point<float> p, float w);
 
-void drawTrack(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging = false);
-void drawClip(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> rect, te::Clip *clip, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
+void drawTrack(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging = false, tracktion::TimeDuration previewDelta = {});
+void drawClip(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> rect, te::Clip *clip, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat, const te::ClipPosition *previewPosition = nullptr);
 
 void drawClipBody(juce::Graphics &g, EditViewState &evs, juce::String name, juce::Rectangle<float> clipRect, bool isSelected, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
 
-void drawMidiClip(juce::Graphics &g, EditViewState &evs, te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat);
+void drawMidiClip(juce::Graphics &g, EditViewState &evs, te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat, const te::ClipPosition *previewPosition = nullptr);
 
-void drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &c, SimpleThumbnail &thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat);
+void drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &c, SimpleThumbnail &thumb, juce::Colour colour, juce::Rectangle<float>, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat, const te::ClipPosition *previewPosition = nullptr);
 void drawChannels(juce::Graphics &g, SimpleThumbnail &thumb, juce::Rectangle<float> area, bool useHighRes, tracktion::core::TimeRange time, bool useLeft, bool useRight, float leftGain, float rightGain);
 
 void strokeRoundedRectWithSide(juce::Graphics &g, juce::Rectangle<float> area, float cornerSize, bool topLeft, bool topRight, bool bottomLeft, bool bottomRight);

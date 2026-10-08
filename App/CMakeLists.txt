@@ -565,6 +565,27 @@ if(BUILD_TESTING)
     target_compile_definitions(TimelineViewStateTests PRIVATE TRACKTION_JUCE7=1
             JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
     add_test(NAME TimelineViewState COMMAND TimelineViewStateTests)
+
+    juce_add_console_app(TimelineSoftSnapTests PRODUCT_NAME "TimelineSoftSnapTests")
+    target_sources(TimelineSoftSnapTests PRIVATE src/TimelineSoftSnap.cpp tests/TimelineSoftSnapTests.cpp)
+    target_include_directories(TimelineSoftSnapTests PRIVATE include)
+    target_compile_features(TimelineSoftSnapTests PRIVATE cxx_std_20)
+    target_link_libraries(TimelineSoftSnapTests PRIVATE juce::juce_core)
+    target_compile_definitions(TimelineSoftSnapTests PRIVATE JUCE_USE_CURL=0)
+    add_test(NAME TimelineSoftSnap COMMAND TimelineSoftSnapTests)
+
+    juce_add_console_app(TimelineSnappingTests PRODUCT_NAME "TimelineSnappingTests")
+    juce_generate_juce_header(TimelineSnappingTests)
+    target_sources(TimelineSnappingTests PRIVATE
+            src/TimelineSoftSnap.cpp src/TimelineSnapResolver.cpp src/TimelineViewGeometry.cpp src/PianoRollDrawGesture.cpp
+            src/PianoRollNoteLength.cpp src/MidiNoteGesture.cpp src/MidiNoteCreation.cpp src/MidiNoteOverlap.cpp
+            src/ClipGestureLimits.cpp src/AutomationGestureLimits.cpp tests/TimelineSnappingTests.cpp)
+    target_include_directories(TimelineSnappingTests PRIVATE include)
+    target_compile_features(TimelineSnappingTests PRIVATE cxx_std_20)
+    target_link_libraries(TimelineSnappingTests PRIVATE tracktion::tracktion_engine juce::juce_gui_basics)
+    target_compile_definitions(TimelineSnappingTests PRIVATE TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    add_test(NAME TimelineSnapping COMMAND TimelineSnappingTests)
 endif()
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_20)

@@ -50,6 +50,14 @@ The last track in the Track List is always the Master Track. It controls overall
 
 Shows clips and automation data on tracks along the timeline.
 
+### Magnetic mouse snapping
+
+With Off/Fixed/Adaptive settings in the arrangement SNAP control, clip movement/resizing/stretching, Knife previews, range/loop endpoints, automation time movement, and audio-file drag/drop share magnetic positioning. An edited edge locks exactly near a target; keep moving to pull it free and reach any position between targets. Both editors use at most 18 physical pixels of attraction per side. Song Editor retains its 40% adjacent-interval cap (at least 20% free travel); MIDI Editor retains its separate 30% cap. The OS pointer is not warped. Shift/Snap Off bypass attraction.
+
+Grabbed off-grid edges do not jump at mouse-down. Preview and release use the same resolved position, including positive-duration, source-offset, selected-clip collision, and automation-neighbour limits. Ranges are not hard-quantized again on release. Ctrl still locks automation time, and automation retains its existing live-edit undo behavior.
+
+Keyboard nudging, explicit quantization, numeric property steps, ordinary geometric lasso, MIDI-clip click insertion, and playhead clicks retain their discrete behavior. See [Timeline snapping](../components/timeline-snapping.md) for implementation details.
+
 ### Timeline
 
 - Shows bars and beats. Alternating bands use the theme's timeline shadow tint at a subtle editor-controlled intensity, so clips, automation, and lane backgrounds remain visible.

@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "TimeLineComponent.h"
+#include "MouseGestureInput.h"
 #include "MidiPendingPaste.h"
 #include "MidiNotePropertyEdit.h"
 #include "ToolStrategy.h"
@@ -78,12 +79,14 @@ public:
 
     float getCursorScale() { return m_evs.m_applicationState.m_mouseCursorScale; }
 
-    tracktion::MidiClip *getClipAt(int x);
+    tracktion::MidiClip *getClipAt(float x);
     te::MidiNote *getNoteByPos(juce::Point<float> pos);
     int getNoteNumber(int y);
 
     void setTool(Tool tool);
     ToolStrategy *getCurrentTool() { return m_currentTool.get(); }
+    bool cancelActiveDraw();
+    void modifierKeysChanged(const juce::ModifierKeys&) override;
     Tool getCurrentToolType() { return m_currentTool->getToolId(); }
     void setSnap(bool snap) { m_snap = snap; }
     bool isSnapping() { return m_snap; }
@@ -130,6 +133,7 @@ public:
     void stopLasso();
 
 private:
+    MouseGestureInput m_mouseInput;
     void changeListenerCallback(juce::ChangeBroadcaster *) override;
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
@@ -153,7 +157,7 @@ private:
     void removeNote(te::MidiClip *clip, te::MidiNote *note);
     static float getVelocity(const tracktion_engine::MidiNote *note);
 
-    te::MidiClip *getMidiClipAt(int x);
+    te::MidiClip *getMidiClipAt(float x);
     te::MidiClip *getNearestClipAfter(int x);
     te::MidiClip *getNearestClipBefore(int x);
     juce::Rectangle<float> getClipRect(te::Clip *clip);

@@ -57,16 +57,22 @@ void TimeLineComponent::resized() { triggerAsyncUpdate(); }
 void TimeLineComponent::moved() { triggerAsyncUpdate(); }
 void TimeLineComponent::valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &property)
 {
+    if (tree.hasType(te::IDs::TEMPO) || tree.hasType(te::IDs::TIMESIG))
+        ++m_musicalSnapRevision;
     if (tree.hasType(te::IDs::TIMESIG) || (tree == m_tree && (property == IDs::beatsPerPixel || property == IDs::viewX)))
         triggerAsyncUpdate();
 }
 void TimeLineComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &child)
 {
+    if (child.hasType(te::IDs::TEMPO) || child.hasType(te::IDs::TIMESIG) || child.hasType(te::IDs::TEMPOSEQUENCE))
+        ++m_musicalSnapRevision;
     if (child.hasType(te::IDs::TIMESIG))
         triggerAsyncUpdate();
 }
 void TimeLineComponent::valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &child, int)
 {
+    if (child.hasType(te::IDs::TEMPO) || child.hasType(te::IDs::TIMESIG) || child.hasType(te::IDs::TEMPOSEQUENCE))
+        ++m_musicalSnapRevision;
     if (child.hasType(te::IDs::TIMESIG))
         triggerAsyncUpdate();
 }
@@ -167,6 +173,8 @@ void TimeLineComponent::mouseMove(const juce::MouseEvent &e)
 void TimeLineComponent::mouseExit(const juce::MouseEvent &e)
 {
     juce::ignoreUnused(e);
+    if (m_loopGesture.active())
+        return;
     setMouseCursor(juce::MouseCursor::NormalCursor);
     setTooltip({});
     m_leftResized = false;
@@ -176,12 +184,16 @@ void TimeLineComponent::mouseExit(const juce::MouseEvent &e)
 void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
 {
     // init
+    m_mouseInput.remember(e);
+    mouseMove(e);
+    m_loopGesture.reset();
     m_cachedFollowPlayhead = m_evs.m_followPlayhead;
     m_evs.followsPlayhead(false);
     m_changeLoopRange = false;
     m_loopRangeClicked = false;
     m_isSnapping = isSnappingEnabled() && !e.mods.isShiftDown();
     m_cachedLoopRange = m_evs.m_edit.getTransport().getLoopRange();
+    m_newLoopRange = m_cachedLoopRange;
     m_oldDragDistanceX = 0;
     m_oldDragDistanceY = 0;
     updateViewportContext();
@@ -201,6 +213,9 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
     {
         m_changeLoopRange = false;
         m_loopRangeClicked = true;
+        const auto resolver = getMouseSnapResolver();
+        m_loopGesture.begin(resolver.timeToBeat((m_rightResized ? loopRange.getEnd() : loopRange.getStart()).inSeconds()),
+                            e.position.x, resolver);
     }
     else if (!m_changeLoopRange)
     {
@@ -213,30 +228,52 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
         m_playheadClickPending = e.mods.isLeftButtonDown();
         m_cachedBeat = m_evs.xToBeats(e.getMouseDownPosition().getX(), getWidth(), x1beats, x2beats);
     }
+    if (m_changeLoopRange)
+    {
+        m_loopCreationStartBeat = xToBeatPos(e.position.x).inBeats();
+        if (m_isSnapping)
+            m_loopCreationStartBeat = getMouseSnapResolver().startAtOrBefore(m_loopCreationStartBeat);
+        m_loopCreationStartBeat = std::max(0.0, m_loopCreationStartBeat);
+    }
+}
+
+void TimeLineComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
+{
+    if (m_loopRangeClicked || m_changeLoopRange)
+        if (auto event = m_mouseInput.withModifiers(mods); event && event->mouseWasDraggedSinceMouseDown())
+            mouseDrag(*event);
 }
 
 void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
 {
-    m_draggedTime = tracktion::TimeDuration();
+    m_mouseInput.remember(e);
     m_isSnapping = isSnappingEnabled() && !e.mods.isShiftDown();
 
     if (m_loopRangeClicked)
     {
-        auto scroll = beatsToX(0) * -1;
-
-        m_draggedTime = xToTimeDuration(e.getDistanceFromDragStartX() - scroll);
+        const auto resolver = getMouseSnapResolver();
+        auto edge = tracktion::TimePosition::fromSeconds(resolver.beatToTime(
+            m_loopGesture.update(e.position.x, resolver, e.mods.isShiftDown())));
+        edge = juce::jlimit(tracktion::TimePosition(), te::Edit::getMaximumEditEnd(), edge);
+        if (m_leftResized)
+            m_newLoopRange = {std::min(edge, m_cachedLoopRange.getEnd()), std::max(edge, m_cachedLoopRange.getEnd())};
+        else if (m_rightResized)
+            m_newLoopRange = {std::min(m_cachedLoopRange.getStart(), edge), std::max(m_cachedLoopRange.getStart(), edge)};
+        else
+        {
+            edge = std::min(edge, te::Edit::getMaximumEditEnd() - m_cachedLoopRange.getLength());
+            m_newLoopRange = m_cachedLoopRange.movedToStartAt(edge);
+        }
+        m_loopGesture.setDisplayedBeat(resolver.timeToBeat(edge.inSeconds()));
         repaint();
     }
     else if (m_changeLoopRange)
     {
-        auto t1 = xToTimePos(e.getMouseDownX());
-        auto t2 = xToTimePos(e.x);
-
+        auto t1 = beatToTime(tracktion::BeatPosition::fromBeats(m_loopCreationStartBeat));
+        auto t2 = xToTimePos(e.position.x);
         if (m_isSnapping)
-        {
-            t1 = snapTime(t1, true);
-            t2 = snapTime(t2, true);
-        }
+            t2 = snapTimeForMouse(t2);
+        t2 = juce::jlimit(tracktion::TimePosition(), te::Edit::getMaximumEditEnd(), t2);
 
         if (t1 < t2)
             m_newLoopRange = {t1, t2};
@@ -253,12 +290,17 @@ void TimeLineComponent::mouseDrag(const juce::MouseEvent &e)
 
 void TimeLineComponent::mouseUp(const juce::MouseEvent &event)
 {
+    if (event.mouseWasDraggedSinceMouseDown() && (m_loopRangeClicked || m_changeLoopRange))
+        mouseDrag(event);
+    m_loopGesture.reset();
+    m_mouseInput.reset();
     m_evs.followsPlayhead(m_cachedFollowPlayhead);
     auto &t = m_evs.m_edit.getTransport();
-    if (m_loopRangeClicked)
-        t.setLoopRange(getLoopRangeToBeMovedOrResized());
-    else if (m_changeLoopRange)
-        t.setLoopRange(m_newLoopRange);
+    if (m_loopRangeClicked || m_changeLoopRange)
+    {
+        if (event.mouseWasDraggedSinceMouseDown() && !m_newLoopRange.isEmpty())
+            t.setLoopRange(m_newLoopRange);
+    }
     else if (m_playheadClickPending && !event.mouseWasDraggedSinceMouseDown())
     {
         auto position = snapTime(beatToTime(tracktion::BeatPosition::fromBeats(m_cachedBeat)));
@@ -269,7 +311,6 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent &event)
 
     m_oldDragDistanceX = 0;
     m_oldDragDistanceY = 0;
-    m_draggedTime = tracktion::TimeDuration();
     m_leftResized = false;
     m_rightResized = false;
     m_loopRangeClicked = false;
@@ -341,14 +382,8 @@ float TimeLineComponent::timeToX(double time)
 
 void TimeLineComponent::drawLoopRange(juce::Graphics &g)
 {
-    tracktion::TimeRange loopRange;
-
-    if (m_draggedTime != tracktion::TimeDuration())
-        loopRange = getLoopRangeToBeMovedOrResized();
-    else if (m_changeLoopRange)
-        loopRange = m_newLoopRange;
-    else
-        loopRange = m_evs.m_edit.getTransport().getLoopRange();
+    const auto loopRange = (m_loopRangeClicked || m_changeLoopRange)
+                             ? m_newLoopRange : m_evs.m_edit.getTransport().getLoopRange();
 
     const auto loopRect = getTimeRangeRect(loopRange).getIntersection(getLocalBounds().toFloat());
     const auto alpha = m_evs.m_edit.getTransport().looping ? 0.5f : 0.2f;
@@ -363,39 +398,6 @@ juce::Rectangle<float> TimeLineComponent::getTimeRangeRect(tracktion::TimeRange 
     auto h = getHeight() / 5;
 
     return {x, float(getHeight() - h), w, float(h)};
-}
-
-tracktion::TimeRange TimeLineComponent::getLoopRangeToBeMovedOrResized()
-{
-    auto draggedLoopRange = m_cachedLoopRange;
-
-    if (m_leftResized)
-    {
-        auto newStart = m_isSnapping ? snapTime(draggedLoopRange.getStart() + m_draggedTime, true) : draggedLoopRange.getStart() + m_draggedTime;
-
-        if (newStart > draggedLoopRange.getEnd())
-            draggedLoopRange = {draggedLoopRange.getEnd(), newStart};
-        else
-            draggedLoopRange = {newStart, draggedLoopRange.getEnd()};
-    }
-    else if (m_rightResized)
-    {
-        auto newEnd = m_isSnapping ? snapTime(draggedLoopRange.getEnd() + m_draggedTime, true) : draggedLoopRange.getEnd() + m_draggedTime;
-
-        if (newEnd < draggedLoopRange.getStart())
-            draggedLoopRange = {newEnd, draggedLoopRange.getStart()};
-        else
-            draggedLoopRange = {draggedLoopRange.getStart(), newEnd};
-    }
-    else
-    {
-        auto newStart = m_isSnapping ? snapTime(draggedLoopRange.getStart() + m_draggedTime, true) : draggedLoopRange.getStart() + m_draggedTime;
-        newStart = juce::jmax(tracktion::TimePosition::fromSeconds(0.0), newStart);
-
-        draggedLoopRange = draggedLoopRange.movedToStartAt(newStart);
-    }
-
-    return draggedLoopRange;
 }
 
 tracktion::TimeDuration TimeLineComponent::xToTimeDuration(float x)
@@ -480,9 +482,8 @@ double TimeLineComponent::getClipInsertLength() const
 
 double TimeLineComponent::getQuantisedNoteBeat(double beat, const te::MidiClip *c, bool down) const
 {
-    auto editBeat = c->getStartBeat().inBeats() + beat;
-
-    return getQuantisedBeat(editBeat, down) - c->getStartBeat().inBeats();
+    const auto base = c->getStartBeat().inBeats() - c->getOffsetInBeats().inBeats();
+    return getQuantisedBeat(base + beat, down) - base;
 }
 
 double TimeLineComponent::getQuantisedBeat(double beat, bool down) const
@@ -607,4 +608,26 @@ tracktion::TimePosition TimeLineComponent::snapTime(tracktion::TimePosition time
 double TimeLineComponent::getSnappedTime(double time)
 {
     return snapTime(tracktion::TimePosition::fromSeconds(time), false).inSeconds();
+}
+
+TimelineSnapResolver TimeLineComponent::getMouseSnapResolver() const
+{
+    const auto range = m_evs.getVisibleBeatRange(m_timeLineID, getWidth());
+    const auto viewport = m_evs.getTimelineViewport(m_timeLineID);
+    return {m_evs.m_edit.tempoSequence,
+            {isSnappingEnabled(), isUsingFixedSnap() ? getSnapIntervalBeats() : 0.0,
+             getBestSnapType(), getWidth() > 0 ? range.getLength().inBeats() / getWidth() : 0.0,
+             viewport.rasterScale, m_evs.getTimelineRevision(m_timeLineID), m_musicalSnapRevision,
+             TimelineSoftSnap::profileForEditor(m_usePianoRollSnapSettings)}};
+}
+
+double TimeLineComponent::snapBeatForMouse(double beat) const
+{
+    return getMouseSnapResolver().snapBeatForMouse(beat);
+}
+
+tracktion::TimePosition TimeLineComponent::snapTimeForMouse(tracktion::TimePosition time) const
+{
+    const auto resolver = getMouseSnapResolver();
+    return tracktion::TimePosition::fromSeconds(resolver.beatToTime(resolver.snapBeatForMouse(resolver.timeToBeat(time.inSeconds()))));
 }

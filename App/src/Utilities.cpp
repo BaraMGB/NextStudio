@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "Utilities.h"
+#include "ClipGestureLimits.h"
 
 #include "ArpeggiatorPlugin.h"
 #include "BinaryData.h"
@@ -75,9 +76,9 @@ bool canDrawAudioClipFades(const juce::Component &parent, const EditViewState &e
     return parent.getHeight() > minimizedHeight && clipRect.getHeight() > minimizedHeight;
 }
 
-void drawAudioClipFades(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, double x1Beat, double x2Beat, juce::Colour clipColour)
+void drawAudioClipFades(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, double x1Beat, double x2Beat, juce::Colour clipColour, const te::ClipPosition *previewPosition)
 {
-    const auto clipPos = clip.getPosition();
+    const auto clipPos = previewPosition != nullptr ? *previewPosition : clip.getPosition();
     const auto clipLength = clipPos.getLength();
     if (clipLength <= tracktion::TimeDuration())
         return;
@@ -119,10 +120,11 @@ void drawAudioClipFades(juce::Graphics &g, EditViewState &evs, te::AudioClipBase
 }
 } // namespace
 
-void GUIHelpers::drawTrack(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging)
+void GUIHelpers::drawTrack(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> displayedRect, te::ClipTrack::Ptr clipTrack, tracktion::TimeRange etr, bool forDragging, tracktion::TimeDuration previewDelta)
 {
-    double x1beats = evs.timeToBeat(etr.getStart().inSeconds());
-    double x2beats = evs.timeToBeat(etr.getEnd().inSeconds());
+    const auto displayedRange = etr + previewDelta;
+    double x1beats = evs.timeToBeat(displayedRange.getStart().inSeconds());
+    double x2beats = evs.timeToBeat(displayedRange.getEnd().inSeconds());
 
     g.setColour(evs.m_applicationState.getTrackBackgroundColour());
     g.fillRect(displayedRect);
@@ -146,9 +148,17 @@ void GUIHelpers::drawTrack(juce::Graphics &g, juce::Component &parent, EditViewS
         if (clip == nullptr || !clip->getPosition().time.intersects(etr))
             continue;
 
-        float x = displayedRect.getX() + evs.timeToX(clip->getPosition().getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
+        auto position = clip->getPosition();
+        if (forDragging)
+        {
+            // Match the range commit's slice, source offset and destination.
+            const auto segment = position.time.getIntersectionWith(etr);
+            position.offset = position.offset + (segment.getStart() - position.getStart());
+            position.time = segment + previewDelta;
+        }
+        float x = displayedRect.getX() + evs.timeToX(position.getStart().inSeconds(), displayedRect.getWidth(), x1beats, x2beats);
         float y = displayedRect.getY();
-        float w = (displayedRect.getX() + evs.timeToX(clip->getPosition().getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
+        float w = (displayedRect.getX() + evs.timeToX(position.getEnd().inSeconds(), displayedRect.getWidth(), x1beats, x2beats)) - x;
         float h = displayedRect.getHeight();
 
         juce::Rectangle<float> clipRect(x, y, w, h);
@@ -158,13 +168,13 @@ void GUIHelpers::drawTrack(juce::Graphics &g, juce::Component &parent, EditViewS
         if (forDragging)
             color = color.withAlpha(0.7f);
 
-        drawClip(g, parent, evs, clipRect, clip, color, displayedRect, x1beats, x2beats);
+        drawClip(g, parent, evs, clipRect, clip, color, displayedRect, x1beats, x2beats, forDragging ? &position : nullptr);
     }
 
     g.setColour(juce::Colour(0x60ffffff));
     g.drawLine(displayedRect.getX(), displayedRect.getBottom(), displayedRect.getRight(), displayedRect.getBottom(), 1.0f);
 }
-void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> clipRect, te::Clip *clip, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
+void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewState &evs, juce::Rectangle<float> clipRect, te::Clip *clip, juce::Colour color, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat, const te::ClipPosition *previewPosition)
 {
     auto isSelected = evs.m_selectionManager.isSelected(clip);
     drawClipBody(g, evs, clip->getName(), clipRect, isSelected, color, displayedRect, x1Beat, x2beat);
@@ -178,17 +188,17 @@ void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewSt
         waveformArea.reduce(1, 2);
         if (auto thumb = evs.getOrCreateThumbnail(wac))
             // evs.m_thumbNailManager->drawThumbnail(wac, g, waveformArea, evs.beatToTime(x1Beat), evs.beatToTime(x2beat));
-            GUIHelpers::drawWaveform(g, evs, *wac, *thumb, color, contentRect, displayedRect, x1Beat, x2beat);
+            GUIHelpers::drawWaveform(g, evs, *wac, *thumb, color, contentRect, displayedRect, x1Beat, x2beat, previewPosition);
     }
     else if (auto mc = dynamic_cast<te::MidiClip *>(clip))
     {
-        drawMidiClip(g, evs, mc, contentRect, displayedRect, color, x1Beat, x2beat);
+        drawMidiClip(g, evs, mc, contentRect, displayedRect, color, x1Beat, x2beat, previewPosition);
     }
 
     if (auto audioClip = dynamic_cast<te::AudioClipBase *>(clip))
     {
         if (canDrawAudioClipFades(parent, evs, clipRect))
-            drawAudioClipFades(g, evs, *audioClip, clipRect, displayedRect, x1Beat, x2beat, color);
+            drawAudioClipFades(g, evs, *audioClip, clipRect, displayedRect, x1Beat, x2beat, color, previewPosition);
     }
 
     g.saveState();
@@ -200,24 +210,24 @@ void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewSt
     g.restoreState();
 }
 
-void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &c, SimpleThumbnail &thumb, juce::Colour colour, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat)
+void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioClipBase &c, SimpleThumbnail &thumb, juce::Colour colour, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, double x1Beat, double x2beat, const te::ClipPosition *previewPosition)
 {
     if (evs.m_drawWaveforms == false)
         return;
 
-    auto getTimeRangeForDrawing = [](EditViewState &evs, const te::AudioClipBase &clip, const juce::Rectangle<float> clRect, const juce::Rectangle<float> displRect, double x1Beats, double x2Beats) -> tracktion::core::TimeRange
+    auto getTimeRangeForDrawing = [](EditViewState &evs, const te::ClipPosition& position, const juce::Rectangle<float> clRect, const juce::Rectangle<float> displRect, double x1Beats, double x2Beats) -> tracktion::core::TimeRange
     {
         auto t1 = EngineHelpers::getTimePos(0.0);
-        auto t2 = t1 + clip.getPosition().getLength();
+        auto t2 = t1 + position.getLength();
 
         double displStart = evs.beatToTime(x1Beats);
         double displEnd = evs.beatToTime(x2Beats);
 
         if (clRect.getX() < displRect.getX())
-            t1 = t1 + tracktion::TimeDuration::fromSeconds(displStart - clip.getPosition().getStart().inSeconds());
+            t1 = t1 + tracktion::TimeDuration::fromSeconds(displStart - position.getStart().inSeconds());
 
         if (clRect.getRight() > displRect.getRight())
-            t2 = t2 - tracktion::TimeDuration::fromSeconds(clip.getPosition().getEnd().inSeconds() - displEnd);
+            t2 = t2 - tracktion::TimeDuration::fromSeconds(position.getEnd().inSeconds() - displEnd);
 
         return {t1, t2};
     };
@@ -237,7 +247,7 @@ void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioCl
 
     const bool usesTimeStretchedProxy = c.usesTimeStretchedProxy();
 
-    const auto clipPos = c.getPosition();
+    const auto clipPos = previewPosition != nullptr ? *previewPosition : c.getPosition();
     auto offset = clipPos.getOffset();
     auto speedRatio = c.getSpeedRatio();
 
@@ -250,12 +260,15 @@ void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioCl
 
         // if (!thumb.isOutOfDate())
         {
-            drawChannels(g, thumb, area, false, getTimeRangeForDrawing(evs, c, clipRect, displayedRect, x1Beat, x2beat), c.isLeftChannelActive() && showBothChannels, c.isRightChannelActive(), gainL, gainR);
+            // A provisional slice still uses the original clip's proxy.
+            const auto proxyRange = getTimeRangeForDrawing(evs, clipPos, clipRect, displayedRect, x1Beat, x2beat)
+                                      + (clipPos.getOffset() - c.getPosition().getOffset());
+            drawChannels(g, thumb, area, false, proxyRange, c.isLeftChannelActive() && showBothChannels, c.isRightChannelActive(), gainL, gainR);
         }
     }
     else if (c.getLoopLength().inSeconds() == 0)
     {
-        auto region = getTimeRangeForDrawing(evs, c, clipRect, displayedRect, x1Beat, x2beat);
+        auto region = getTimeRangeForDrawing(evs, clipPos, clipRect, displayedRect, x1Beat, x2beat);
 
         auto t1 = EngineHelpers::getTimePos((region.getStart().inSeconds() + offset.inSeconds()) * speedRatio);
         auto t2 = EngineHelpers::getTimePos((region.getEnd().inSeconds() + offset.inSeconds()) * speedRatio);
@@ -395,7 +408,7 @@ void GUIHelpers::drawClipBody(juce::Graphics &g, EditViewState &evs, juce::Strin
     g.restoreState();
 }
 
-void GUIHelpers::drawMidiClip(juce::Graphics &g, EditViewState &evs, te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat)
+void GUIHelpers::drawMidiClip(juce::Graphics &g, EditViewState &evs, te::MidiClip::Ptr clip, juce::Rectangle<float> clipRect, juce::Rectangle<float> displayedRect, juce::Colour color, double x1Beat, double x2beat, const te::ClipPosition *previewPosition)
 {
     auto area = clipRect;
 
@@ -412,10 +425,13 @@ void GUIHelpers::drawMidiClip(juce::Graphics &g, EditViewState &evs, te::MidiCli
     auto noteHeight = juce::jmax(1.0f, ((clipRect.getHeight()) / 20.0f));
     auto noteColor = color.withLightness(0.6f);
 
+    const double offsetBeats = previewPosition != nullptr
+                                 ? previewPosition->getOffset().inSeconds() * evs.m_edit.tempoSequence.getBeatsPerSecondAt(previewPosition->getStart())
+                                 : clip->getOffsetInBeats().inBeats();
     for (auto n : seq.getNotes())
     {
-        double sBeat = n->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats();
-        double eBeat = n->getEndBeat().inBeats() - clip->getOffsetInBeats().inBeats();
+        double sBeat = n->getStartBeat().inBeats() - offsetBeats;
+        double eBeat = n->getEndBeat().inBeats() - offsetBeats;
         float y = clipRect.getCentreY();
 
         if (!range.isEmpty())
@@ -1379,12 +1395,8 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
     if (selectedClips.isEmpty())
         return;
 
-    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(timeDelta);
-    auto earliestStart = selectedClips.getFirst()->getPosition().getStart();
-    for (auto *clip : selectedClips)
-        earliestStart = std::min(earliestStart, clip->getPosition().getStart());
-    if (earliestStart + effectiveDelta < tracktion::TimePosition())
-        effectiveDelta = tracktion::TimePosition() - earliestStart;
+    const auto effectiveDelta = tracktion::TimeDuration::fromSeconds(
+        ClipGestureLimits::constrain(selectedClips, ClipGestureLimits::Kind::move, timeDelta));
 
     std::vector<ClipEditing::Placement> placements;
     placements.reserve(static_cast<size_t>(selectedClips.size()));
@@ -1751,41 +1763,9 @@ void EngineHelpers::resizeSelectedClips(bool fromLeftEdge, double delta, EditVie
     if (selectedClips.isEmpty())
         return;
 
-    constexpr auto minimumLength = tracktion::TimeDuration::fromSeconds(0.000001);
-    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(delta);
-
-    for (auto *clip : selectedClips)
-    {
-        const auto position = clip->getPosition();
-        if (fromLeftEdge)
-        {
-            const auto lowerBound = std::max(tracktion::TimePosition(), position.getStart() - position.getOffset());
-            effectiveDelta = std::max(effectiveDelta, lowerBound - position.getStart());
-            effectiveDelta = std::min(effectiveDelta, position.getLength() - minimumLength);
-        }
-        else
-        {
-            effectiveDelta = std::max(effectiveDelta, minimumLength - position.getLength());
-        }
-    }
-
-    // Selected clips are all winners. Limit an expanding resize so they can never
-    // overwrite one another; unselected clips remain overwrite victims.
-    for (auto *clip : selectedClips)
-        for (auto *other : selectedClips)
-        {
-            if (clip == other || clip->getClipTrack() != other->getClipTrack())
-                continue;
-
-            const auto position = clip->getPosition();
-            const auto otherPosition = other->getPosition();
-            if (fromLeftEdge && effectiveDelta < tracktion::TimeDuration()
-                && otherPosition.getEnd() <= position.getStart())
-                effectiveDelta = std::max(effectiveDelta, otherPosition.getEnd() - position.getStart());
-            else if (!fromLeftEdge && effectiveDelta > tracktion::TimeDuration()
-                     && otherPosition.getStart() >= position.getEnd())
-                effectiveDelta = std::min(effectiveDelta, otherPosition.getStart() - position.getEnd());
-        }
+    const auto effectiveDelta = tracktion::TimeDuration::fromSeconds(
+        ClipGestureLimits::constrain(selectedClips, fromLeftEdge ? ClipGestureLimits::Kind::resizeLeft
+                                                                : ClipGestureLimits::Kind::resizeRight, delta));
 
     if (effectiveDelta == tracktion::TimeDuration())
         return;
@@ -1828,18 +1808,8 @@ void EngineHelpers::timeStretchSelectedClips(double delta, EditViewState &evs)
     if (waveClips.isEmpty())
         return;
 
-    constexpr auto minimumLength = tracktion::TimeDuration::fromSeconds(0.000001);
-    auto effectiveDelta = tracktion::TimeDuration::fromSeconds(delta);
-    for (auto *clip : waveClips)
-        effectiveDelta = std::max(effectiveDelta, minimumLength - clip->getPosition().getLength());
-
-    for (auto *clip : waveClips)
-        for (auto *other : waveClips)
-            if (clip != other && clip->getClipTrack() == other->getClipTrack()
-                && effectiveDelta > tracktion::TimeDuration()
-                && other->getPosition().getStart() >= clip->getPosition().getEnd())
-                effectiveDelta = std::min(effectiveDelta,
-                                          other->getPosition().getStart() - clip->getPosition().getEnd());
+    const auto effectiveDelta = tracktion::TimeDuration::fromSeconds(
+        ClipGestureLimits::constrain(selectedClips, ClipGestureLimits::Kind::stretch, delta));
 
     if (effectiveDelta == tracktion::TimeDuration())
         return;

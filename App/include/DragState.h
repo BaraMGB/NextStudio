@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include <tracktion_engine/tracktion_engine.h>
+#include "TimelineSnapResolver.h"
 
 namespace te = tracktion_engine;
 
@@ -56,6 +57,8 @@ struct DragState
     bool isFadeIn{false};
     bool isFadeOut{false};
     bool playheadWasMoved{false};
+    TimelineMouseGesture mouseGesture;
+    double originalEdgeBeat = 0;
 
     bool isActive() const { return type != DragType::None; }
 
@@ -82,6 +85,8 @@ struct DragState
         isFadeIn = false;
         isFadeOut = false;
         playheadWasMoved = false;
+        mouseGesture.reset();
+        originalEdgeBeat = 0;
     }
 
     void startDrag(DragType dragType, tracktion::TimePosition time, juce::Point<int> pos)

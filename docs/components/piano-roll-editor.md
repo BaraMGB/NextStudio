@@ -195,17 +195,17 @@ enum class Tool { pointer, draw, range, eraser, knife, lasso, timestretch };
 
 Two paths create notes:
 
-1. **Draw tool** (`DrawTool`): `mouseDown` records the start pixel, note number, and minimum width from `TimeLineComponent::getNoteInsertLength()`. `mouseDrag` can extend the note. `mouseUp` converts start/end pixels to clip-relative beats, applies position snapping when enabled, enforces the independently selected minimum length, and calls `MidiViewport::addNewNote()`.
+1. **Draw tool** (`DrawTool`): `mouseDown` initializes `PianoRollDrawGesture` in global beats with a fixed start/pitch, selected duration, and a default end at or after the requested duration on the enabled grid. Dragging moves the initial endpoint relatively through shared soft snapping and can shorten below insert/snap length. Only the one-tick floor remains. Painting and mouse-up consume the same resolved range; commit uses the offset-aware internal-beat conversion and `MidiViewport::addNewNote()`. Escape/tool changes cancel, removed clips invalidate safely, and double-click dispatch does not commit twice for one gesture.
 2. **Pointer double-click** (`PointerTool::insertNoteAtPosition`): clears the previous note selection, calls `MidiViewport::addNewNoteAt()`, then exclusively selects the new note. The insertion derives note number and beat from the click position and uses the selected inserted-note length.
 
-`PianoRollNoteLength` isolates note-value conversion, mode resolution, fallback behavior, and draw minimum enforcement. The length mode is Adaptive, Last Inserted, or a fixed denominator (`1/1`–`1/128`). Adaptive length always uses the zoom-dependent best snap interval and does not depend on the selected position-snap mode.
+`PianoRollNoteLength` isolates note-value conversion, finite fallback behavior, mode resolution, and the tick-only duration floor. `PianoRollDrawGesture` owns provisional timing; [shared timeline snapping](timeline-snapping.md) owns magnetic mapping, targets, and inverse mouse anchors. The length mode is Adaptive, Last Inserted, or a fixed denominator (`1/1`–`1/128`). Adaptive length always uses the zoom-dependent best snap interval and does not depend on the selected position-snap mode.
 
 `MidiViewport::addNewNote()`:
 
 1. resolves an omitted length through `TimeLineComponent::getNoteInsertLength()`;
-2. calls `cleanUnderNote()` to clear conflicting same-pitch material;
-3. calls `clip->getSequence().addNote(...)` with `m_evs.m_lastVelocity` as velocity;
-4. stores the successfully inserted duration as the timeline's Last Inserted length.
+2. delegates to `MidiNoteCreation::add()`, which groups the existing overlap cleanup and insertion into one `Add MIDI Note` transaction;
+3. uses `m_evs.m_lastVelocity` as velocity and preserves retained overlap-piece properties;
+4. stores the actual successfully inserted duration as the timeline's Last Inserted length through the production callback.
 
 The new note becomes selected. Resizing an existing note does not update Last Inserted.
 
@@ -237,7 +237,7 @@ During the drag, `PointerTool` only computes deltas:
 - `m_draggedNoteDelta` — vertical pitch delta;
 - `m_leftTimeDelta` / `m_rightTimeDelta` — edge resize deltas shared by every selected note.
 
-`MidiViewport::drawDraggedNotes()` renders a preview from these deltas without mutating the model. Resizing either edge applies the same time delta to all selected notes in both the preview and the committed result. A left-edge resize changes each selected note's start and inversely changes its duration; a right-edge resize changes each duration while preserving its start. Guide notes audition pitch changes.
+`MidiViewport::drawDraggedNotes()` and Pointer commit both use `MidiNoteGesture::resolve()` from the same original notes and constrained delta. `TimelineMouseGesture` provides an inverse anchor so grabbing an off-grid edge does not jump. Absolute start/end times are converted through the actual TempoSequence, including clip offsets; durations are never passed to an absolute time-to-beat conversion. The preview does not mutate the model. Resizing either edge applies the same time delta to all selected notes in both the preview and the committed result. A left-edge resize changes each selected note's start and inversely changes its duration; a right-edge resize changes each duration while preserving its start. Guide notes audition pitch changes.
 
 `mouseUp` commits the operation in three phases:
 

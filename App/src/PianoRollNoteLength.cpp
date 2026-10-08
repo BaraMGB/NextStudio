@@ -13,6 +13,7 @@ by the Free Software Foundation, either version 3 of the License, or
 #include "PianoRollNoteLength.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace PianoRollNoteLength
 {
@@ -20,7 +21,7 @@ namespace
 {
 double validOrDefault(double length)
 {
-    return length > 0.0 ? length : defaultLengthBeats;
+    return std::isfinite(length) && length > 0.0 ? length : defaultLengthBeats;
 }
 } // namespace
 
@@ -47,8 +48,9 @@ double resolve(PianoRollNoteLengthMode mode,
     return defaultLengthBeats;
 }
 
-double applyMinimum(double startBeat, double attemptedEndBeat, double minimumLengthBeats)
+double constrainEnd(double startBeat, double attemptedEndBeat)
 {
-    return std::max(attemptedEndBeat, startBeat + validOrDefault(minimumLengthBeats));
+    return std::isfinite(attemptedEndBeat) ? std::max(attemptedEndBeat, startBeat + minimumLengthBeats)
+                                         : startBeat + minimumLengthBeats;
 }
 } // namespace PianoRollNoteLength

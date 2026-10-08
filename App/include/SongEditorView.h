@@ -50,11 +50,15 @@ public:
         void mouseDown(const juce::MouseEvent &e) override;
         void mouseDrag(const juce::MouseEvent &e) override;
         void mouseUp(const juce::MouseEvent &e) override;
+        void modifierKeysChanged(const juce::ModifierKeys&) override;
 
     private:
         SongEditorView &m_owner;
         bool m_hoveredHandleLeft{false};
         bool m_hoveredHandleRight{false};
+        tracktion::TimeRange m_originalRange;
+        TimelineMouseGesture m_mouseGesture;
+        MouseGestureInput m_mouseInput;
     };
 
     SongEditorView(EditViewState &evs, MenuBar &toolBar, TimeLineComponent &timeLine);
@@ -66,6 +70,7 @@ public:
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
     bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override;
+    void modifierKeysChanged(const juce::ModifierKeys&) override;
     void itemDragEnter(const SourceDetails &dragSourceDetails) override;
     void itemDragMove(const SourceDetails &dragSourceDetails) override;
     void itemDragExit(const SourceDetails &dragSourceDetails) override;
@@ -86,6 +91,10 @@ public:
         return m_timeLine.snapTime(time, downwards);
     }
 
+    TimelineSnapResolver getMouseSnapResolver() const { return m_timeLine.getMouseSnapResolver(); }
+    tracktion::TimePosition snapTimeForMouse(tracktion::TimePosition time) const { return m_timeLine.snapTimeForMouse(time); }
+    void beginClipMouseGesture(double pointerX);
+    void updateClipMouseGesture(double pointerX, bool bypass);
     void updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration delta, int verticalOffset);
     void setClipPropertyPreview(const juce::Array<ClipPropertyEdit> &);
 
@@ -167,8 +176,8 @@ private:
     float timeToX(tracktion::TimePosition time);
     float beatToX(tracktion::BeatPosition beat);
     tracktion::BeatPosition xToBeatPosition(int x);
-    tracktion::TimePosition xtoTime(int x);
-    float timeDurationToPixel(tracktion::TimeDuration duration);
+    tracktion::TimePosition xtoTime(float x);
+    juce::Range<float> timeRangeToX(tracktion::TimeRange range);
     tracktion::TimeDuration distanceToTime(int distance);
 
     tracktion::BeatPosition getSnapedBeat(tracktion::BeatPosition beat, bool downwards = false);
@@ -180,8 +189,9 @@ private:
     void updateClipSelection(bool add);
     void updateClipCache();
     void updateAutomationSelection(bool add);
-    void updateRangeSelection();
+    void updateRangeSelection(const juce::MouseEvent&);
     void setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd);
+    void setSelectedTimeRangeRaw(tracktion::TimeRange);
     void selectClipsInLasso(const tracktion_engine::Track *track);
 
     bool moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy);
@@ -221,6 +231,7 @@ private:
     bool m_isDragging{false};
     bool m_isLassoStartedInAutomation{false};
     bool m_isSelectingTimeRange{false};
+    tracktion::TimePosition m_rangeCreationAnchor;
     bool m_isDraggingSelectedTimeRange{false};
 
     Tool m_toolMode{Tool::pointer};
@@ -239,6 +250,7 @@ private:
     int m_draggedVerticalOffset{0};
 
     DragFileItemInfo m_dragItemRect;
+    std::optional<SourceDetails> m_lastFileDrag;
 
     te::Track::Ptr m_hoveredTrack{nullptr};
     tracktion::TimePosition m_timeAtMouseCursor;

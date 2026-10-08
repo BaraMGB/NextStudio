@@ -75,6 +75,9 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 - `TrackHeightManager.*`
 - `TimeLineComponent.*`
 - `TimelineOverlayComponent.*`
+- `TimelineSoftSnap.*` / `TimelineSnapResolver.*` — pure magnetic curve, engine grid adapter, and inverse-anchored mouse state
+- `MouseGestureInput.h` — modifier-only replay of the unchanged raw pointer/down coordinates
+- `ClipGestureLimits.*` / `AutomationGestureLimits.*` — shared preview/commit feasibility
 - `PlayHeadComponent.*`
 - `RecordingClipComponent.*`
 - `AutomationLaneComponent.*`
@@ -98,6 +101,8 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 - `ToolFactory.cpp`
 - `PointerTool.*`
 - `DrawTool.*`
+- `PianoRollDrawGesture.*` / `PianoRollNoteLength.*` — provisional creation, default ranges, and tick-only duration floor
+- `MidiNoteGesture.*` / `MidiNoteCreation.*` — endpoint timing, split validity, overlap cleanup, and grouped insertion undo
 - `EraserTool.*`
 - `KnifeTool.*`
 - `LassoTool.*`

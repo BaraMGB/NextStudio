@@ -22,6 +22,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "MidiViewport.h"
 #include "ToolStrategy.h"
+#include "MidiNoteGesture.h"
+#include "TimelineSnapResolver.h"
 
 /**
  * Pointer tool for selecting and moving notes.
@@ -45,6 +47,8 @@ public:
     juce::MouseCursor getCursor(MidiViewport &viewport) const override;
 
     Tool getToolId() override { return Tool::pointer; }
+    void toolDeactivated(MidiViewport&) override;
+    MidiNoteGesture::Timing previewTiming(te::MidiClip*, te::MidiNote*) const;
     // Public getters for MidiViewport's paint method
     bool isDragging() const { return m_isDragging; }
     double getDraggedTimeDelta() const { return m_draggedTimeDelta; }
@@ -62,6 +66,11 @@ private:
     };
 
     DragMode m_currentDragMode = DragMode::none;
+    TimelineMouseGesture m_timeGesture;
+    te::MidiClip::Ptr m_dragClip;
+    double m_originalEdgeBeat = 0;
+    MidiNoteGesture::Kind gestureKind() const;
+    void resetDrag(MidiViewport&);
     juce::Point<int> m_dragStartPos;
     juce::Point<int> m_lastDragPos;
     bool m_isDragging = false;

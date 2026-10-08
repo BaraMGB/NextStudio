@@ -26,6 +26,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
+    resetDrag(viewport);
+    m_pendingLassoStart = false;
     m_dragStartPos = event.getPosition();
     m_lastDragPos = m_dragStartPos;
     m_isDragging = false;
@@ -52,6 +54,11 @@ void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewpor
             else
                 m_currentDragMode = DragMode::moveNotes;
 
+            m_dragClip = clip;
+            m_originalEdgeBeat = clip->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats()
+                + (m_currentDragMode == DragMode::resizeRight ? note->getEndBeat().inBeats() : note->getStartBeat().inBeats());
+            m_timeGesture.begin(m_originalEdgeBeat, event.position.x, viewport.getTimeLine()->getMouseSnapResolver());
+
             if (!event.mods.isShiftDown() && !viewport.isSelected(note))
                 viewport.unselectAll();
 
@@ -70,7 +77,7 @@ void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewpor
 
 void PointerTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    viewport.setClickedClip(viewport.getClipAt(event.x));
+    viewport.setClickedClip(viewport.getClipAt(event.position.x));
     insertNoteAtPosition(event, viewport);
 }
 
@@ -96,65 +103,43 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
 
         viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
 
-        switch (m_currentDragMode)
+        auto* clickedNote = viewport.getClickedNote();
+        if (m_dragClip == nullptr || !viewport.getCachedMidiClips().contains(m_dragClip.get())
+            || !m_dragClip->state.isAChildOf(m_evs.m_edit.state)
+            || !m_dragClip->getSequence().getNotes().contains(clickedNote))
         {
-        case DragMode::moveNotes:
-            if (auto *clickedNote = viewport.getClickedNote())
+            resetDrag(viewport);
+            return;
+        }
+        const auto resolver = viewport.getTimeLine()->getMouseSnapResolver();
+        const double newBeat = m_timeGesture.update(event.position.x, resolver, event.mods.isShiftDown());
+        juce::Array<MidiNoteGesture::Item> items;
+        for (auto* note : viewport.getSelectedNotes())
+            if (auto* clip = viewport.getSelectedEvents().clipForEvent(note))
+                items.add({clip, note});
+        const double delta = MidiNoteGesture::constrain(items, gestureKind(),
+            resolver.beatToTime(newBeat) - resolver.beatToTime(m_originalEdgeBeat));
+        m_timeGesture.setDisplayedBeat(resolver.timeToBeat(resolver.beatToTime(m_originalEdgeBeat) + delta));
+        m_draggedTimeDelta = m_leftTimeDelta = m_rightTimeDelta = 0;
+        if (m_currentDragMode == DragMode::resizeLeft)
+            m_leftTimeDelta = delta;
+        else if (m_currentDragMode == DragMode::resizeRight)
+            m_rightTimeDelta = delta;
+        else if (m_currentDragMode == DragMode::moveNotes)
+        {
+            m_draggedTimeDelta = delta;
+            m_draggedNoteDelta = viewport.getNoteNumber(event.y) - clickedNote->getNoteNumber();
+            for (const auto& item : items)
+                m_draggedNoteDelta = juce::jlimit(-item.note->getNoteNumber(), 127 - item.note->getNoteNumber(), m_draggedNoteDelta);
+            if (!m_hasPlayedDragGuideNote || m_draggedNoteDelta != m_lastGuideNoteDelta)
             {
-                auto oldTime = clickedNote->getEditStartTime(*viewport.getClickedClip()).inSeconds();
-                auto scroll = viewport.getTimeLine()->getCurrentTimeRange().getStart().inSeconds();
-                auto newTime = oldTime + viewport.getTimeLine()->xToTimePos(event.getDistanceFromDragStartX()).inSeconds() - scroll;
-                if (viewport.isSnapping())
-                    newTime = viewport.getTimeLine()->getSnappedTime(newTime);
-
-                m_draggedTimeDelta = newTime - oldTime;
-                m_draggedNoteDelta = viewport.getNoteNumber(event.y) - clickedNote->getNoteNumber();
-
-                const bool shouldPlayGuideNotes = !m_hasPlayedDragGuideNote || (m_draggedNoteDelta != m_lastGuideNoteDelta);
-
-                if (shouldPlayGuideNotes)
-                {
-                    viewport.getClickedClip()->getAudioTrack()->turnOffGuideNotes();
-
-                    for (auto n : viewport.getSelectedNotes())
-                        viewport.playGuideNote(viewport.getSelectedEvents().clipForEvent(n), n->getNoteNumber() + m_draggedNoteDelta, n->getVelocity());
-
-                    m_hasPlayedDragGuideNote = true;
-                    m_lastGuideNoteDelta = m_draggedNoteDelta;
-                }
+                if (auto* track = m_dragClip->getAudioTrack())
+                    track->turnOffGuideNotes();
+                for (const auto& item : items)
+                    viewport.playGuideNote(item.clip, item.note->getNoteNumber() + m_draggedNoteDelta, item.note->getVelocity());
+                m_hasPlayedDragGuideNote = true;
+                m_lastGuideNoteDelta = m_draggedNoteDelta;
             }
-            break;
-
-        case DragMode::resizeLeft:
-            if (auto *clickedNote = viewport.getClickedNote())
-            {
-                auto oldTime = clickedNote->getEditStartTime(*viewport.getClickedClip()).inSeconds();
-                auto scroll = viewport.getTimeLine()->getCurrentTimeRange().getStart().inSeconds();
-                auto newTime = oldTime + viewport.getTimeLine()->xToTimePos(event.getDistanceFromDragStartX()).inSeconds() - scroll;
-                if (viewport.isSnapping())
-                    newTime = viewport.getTimeLine()->getSnappedTime(newTime);
-
-                m_leftTimeDelta = newTime - oldTime;
-                m_draggedTimeDelta = 0;
-            }
-            break;
-
-        case DragMode::resizeRight:
-            if (auto *clickedNote = viewport.getClickedNote())
-            {
-                auto oldTime = clickedNote->getEditEndTime(*viewport.getClickedClip()).inSeconds();
-                auto scroll = viewport.getTimeLine()->getCurrentTimeRange().getStart().inSeconds();
-                auto newTime = oldTime + viewport.getTimeLine()->xToTimePos(event.getDistanceFromDragStartX()).inSeconds() - scroll;
-                if (viewport.isSnapping())
-                    newTime = viewport.getTimeLine()->getSnappedTime(newTime);
-
-                m_rightTimeDelta = newTime - oldTime;
-                m_draggedTimeDelta = 0;
-            }
-            break;
-
-        case DragMode::none:
-            break;
         }
         viewport.repaint();
     }
@@ -164,6 +149,8 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
 
 void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
+    if (m_isDragging)
+        mouseDrag(event, viewport);
     if (!m_isDragging)
     {
         // Click without dragging - might be a single click on empty space
@@ -198,10 +185,6 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 
             juce::Array<NoteOperationInfo> plannedNotes;
             auto selectedNotes = viewport.getSelectedNotes();
-            auto &tempoSequence = m_evs.m_edit.tempoSequence;
-
-            const bool isResize = (m_currentDragMode == DragMode::resizeLeft ||
-                                   m_currentDragMode == DragMode::resizeRight);
 
             // --- PHASE 1: Collect Info & Prepare ---
             for (auto *note : selectedNotes)
@@ -210,20 +193,10 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
                 if (clip == nullptr)
                     continue;
 
-                // Keep the committed result consistent with the drag preview: resizing
-                // one edge applies the same delta to every selected note.
-                const double leftDelta  = isResize ? m_evs.timeToBeat(m_leftTimeDelta)  : 0.0;
-                const double rightDelta = isResize ? m_evs.timeToBeat(m_rightTimeDelta) : 0.0;
-
-                auto originalNoteStartTime = tempoSequence.toTime(note->getStartBeat());
-                auto newNoteStartTime = originalNoteStartTime + tracktion::TimeDuration::fromSeconds(m_draggedTimeDelta);
-                auto newNoteStartBeat = tempoSequence.toBeats(newNoteStartTime);
-                auto beatDelta = newNoteStartBeat - note->getStartBeat();
-                auto lengthDelta = leftDelta * (-1) + rightDelta;
-
+                const auto timing = previewTiming(clip, note);
                 plannedNotes.add({clip,
-                                  note->getStartBeat() + beatDelta + tracktion::BeatDuration::fromBeats(leftDelta),
-                                  note->getLengthBeats() + tracktion::BeatDuration::fromBeats(lengthDelta),
+                                  tracktion::BeatPosition::fromBeats(timing.startBeat),
+                                  tracktion::BeatDuration::fromBeats(timing.lengthBeats),
                                   note->getNoteNumber() + m_draggedNoteDelta,
                                   note->state.createCopy()});
 
@@ -256,17 +229,38 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
         }
     }
 
+    resetDrag(viewport);
+}
+
+MidiNoteGesture::Kind PointerTool::gestureKind() const
+{
+    return m_currentDragMode == DragMode::resizeLeft ? MidiNoteGesture::Kind::resizeLeft
+         : m_currentDragMode == DragMode::resizeRight ? MidiNoteGesture::Kind::resizeRight : MidiNoteGesture::Kind::move;
+}
+
+MidiNoteGesture::Timing PointerTool::previewTiming(te::MidiClip* clip, te::MidiNote* note) const
+{
+    return MidiNoteGesture::resolve({clip, note}, gestureKind(), m_draggedTimeDelta + m_leftTimeDelta + m_rightTimeDelta);
+}
+
+void PointerTool::resetDrag(MidiViewport& viewport)
+{
     m_currentDragMode = DragMode::none;
     m_isDragging = false;
-    m_draggedTimeDelta = 0.0;
+    m_draggedTimeDelta = m_leftTimeDelta = m_rightTimeDelta = 0;
     m_draggedNoteDelta = 0;
-    m_leftTimeDelta = 0.0;
-    m_rightTimeDelta = 0.0;
     m_hasPlayedDragGuideNote = false;
     m_lastGuideNoteDelta = 0;
-
+    m_timeGesture.reset();
+    m_dragClip = nullptr;
     viewport.cleanUpFlags();
     viewport.repaint();
+}
+
+void PointerTool::toolDeactivated(MidiViewport& viewport)
+{
+    resetDrag(viewport);
+    m_pendingLassoStart = false;
 }
 
 void PointerTool::insertNoteAtPosition(const juce::MouseEvent &event, MidiViewport &viewport)

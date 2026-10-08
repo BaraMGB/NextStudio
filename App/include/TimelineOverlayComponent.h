@@ -41,15 +41,14 @@ private:
     void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &e) override;
     void mouseUp(const juce::MouseEvent &e) override;
+    void modifierKeysChanged(const juce::ModifierKeys&) override;
 
     std::vector<te::MidiClip *> getMidiClipsOfTrack();
     tracktion_engine::MidiClip *getMidiClipAtPoint(juce::Point<int> point);
 
     float timeToX(double time);
-    double xToBeats(float x);
-    double getSnappedTime(double time);
     void updateClipRects();
-    void moveSelectedClips(bool copy, bool snap);
+    void moveSelectedClips(bool copy);
     juce::Rectangle<float> getClipRect(te::Clip::Ptr);
     EditViewState &m_evs;
     tracktion_engine::Track::Ptr m_track;
@@ -59,11 +58,14 @@ private:
     bool m_move{false};
     bool m_drawDraggedClip{false};
     te::ClipPosition m_cachedPos;
-    te::MidiClip *m_cachedClip{};
+    te::MidiClip::Ptr m_cachedClip;
+    TimelineMouseGesture m_mouseGesture;
+    MouseGestureInput m_mouseInput;
+    double m_originalEdgeBeat = 0;
     TimeLineComponent &m_timelineComponent;
     juce::Array<juce::Rectangle<float>> m_clipRects;
     juce::Array<te::MidiClip *> m_clipsForRects;
     juce::Rectangle<float> m_draggedClipRect;
-    double m_draggedTimeDelta;
+    double m_draggedTimeDelta = 0;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimelineOverlayComponent)
 };

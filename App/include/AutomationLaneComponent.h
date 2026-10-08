@@ -28,6 +28,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MouseEventThrottler.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "TimelineSnapResolver.h"
+#include "MouseGestureInput.h"
 
 namespace te = tracktion_engine;
 
@@ -58,6 +60,7 @@ public:
     void mouseDrag(const juce::MouseEvent &e) override;
     void mouseUp(const juce::MouseEvent &e) override;
     void mouseExit(const juce::MouseEvent &e) override;
+    void modifierKeysChanged(const juce::ModifierKeys&) override;
 
     void selectPointsInLasso(juce::Rectangle<int> lassoRect, bool addToSelection);
 
@@ -84,7 +87,7 @@ public:
         m_needsRepaint = true;
     }
 
-    void drawAutomationLane(juce::Graphics &g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect);
+    void drawAutomationLane(juce::Graphics &g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect, tracktion::TimeDuration previewDelta = {});
     juce::Point<float> getPointOnAutomationRect(tracktion::TimePosition t, double v, int w, double x1b, double x2b);
     int getAutomationPointWidth();
     int getYPos(double value);
@@ -125,13 +128,14 @@ private:
 
     // Helpers
     float timeToX(tracktion::TimePosition time);
-    tracktion::TimePosition xtoTime(int x);
-    tracktion::TimePosition getSnappedTime(tracktion::TimePosition time, bool downwards = false);
+    tracktion::TimePosition xtoTime(float x);
 
     // Selection/Drag State
     juce::OwnedArray<CurvePoint> m_selPointsAtMousedown;
     juce::OwnedArray<SelectableAutomationPoint> m_selectedAutomationPoints;
     tracktion::TimePosition m_timeOfHoveredAutomationPoint;
+    TimelineMouseGesture m_timeGesture;
+    MouseGestureInput m_mouseInput;
     double m_curveSteepAtMousedown{0.0};
 
     void selectAutomationPoint(int index, bool add);

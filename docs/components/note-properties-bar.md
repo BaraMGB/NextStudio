@@ -30,6 +30,8 @@ The left side displays `SELECTED NOTES:` and the number of valid selected note/c
 
 Adaptive length uses the zoom-dependent interval independently of the current SNAP choice. Both modes persist in edit-local UI state, with Last Inserted as the default length mode.
 
+The selected duration is a creation default, not a drag minimum. Enabled snapping initializes the note end at the first target at or after the requested duration; this also defines fractional Last Inserted ceiling behavior. Draw can then shorten below both insert and snap lengths with the tick-only floor. Mouse positioning uses [shared soft snapping](timeline-snapping.md); the exact numeric fields and their discrete wheel/scrub steps remain unchanged.
+
 ## Public interface
 
 ```cpp

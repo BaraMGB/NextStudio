@@ -20,6 +20,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "AutomationLaneComponent.h"
+#include "AutomationGestureLimits.h"
+#include <algorithm>
+#include <vector>
 #include "SongEditorView.h"
 #include "ScopedSaveLock.h"
 #include "TimeUtils.h"
@@ -113,7 +116,7 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
     int hoveredPoint = findPointUnderMouse(hoveredRectOnLane, x1, x2, getWidth());
     int hoveredCurve = -1;
 
-    auto mousePosTime = xtoTime(e.x);
+    auto mousePosTime = xtoTime(e.position.x);
     auto valueAtMouseTime = curve.getValueAt(mousePosTime);
     auto curvePointAtMouseTime = juce::Point<float>((float)e.x, (float)getYPos(valueAtMouseTime));
 
@@ -141,8 +144,10 @@ void AutomationLaneComponent::mouseExit(const juce::MouseEvent &e)
 
 void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
+    m_mouseInput.remember(e);
     ScopedSaveLock saveLock(m_editViewState);
     m_isDragging = false;
+    m_timeGesture.reset();
     m_selPointsAtMousedown.clear();
 
     bool leftButton = e.mods.isLeftButtonDown();
@@ -162,7 +167,7 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     // Double Click on Empty Space -> Create Point
     if (!clickedOnPoint && !clickedOnCurve && leftButton && e.getNumberOfClicks() > 1)
     {
-        auto mouseTime = xtoTime(e.x);
+        auto mouseTime = xtoTime(e.position.x);
         auto value = getValue(e.y);
 
         auto p = m_parameter->getCurve().addPoint(mouseTime, value, 0.f);
@@ -180,6 +185,8 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         }
 
         m_timeOfHoveredAutomationPoint = mouseTime;
+        m_timeGesture.begin(m_songEditor.getMouseSnapResolver().timeToBeat(mouseTime.inSeconds()),
+                            e.position.x, m_songEditor.getMouseSnapResolver());
         m_isDragging = true;
 
         updateCurveCache(m_parameter->getCurve());
@@ -195,6 +202,8 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 
         m_timeOfHoveredAutomationPoint = m_parameter->getCurve().getPointTime(m_hoveredPoint);
         m_selPointsAtMousedown = getSelectedPoints();
+        m_timeGesture.begin(m_songEditor.getMouseSnapResolver().timeToBeat(m_timeOfHoveredAutomationPoint.inSeconds()),
+                            e.position.x, m_songEditor.getMouseSnapResolver());
         return;
     }
 
@@ -216,7 +225,7 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         }
         else
         {
-            auto mouseTime = xtoTime(e.x);
+            auto mouseTime = xtoTime(e.position.x);
             addAutomationPointAt(mouseTime);
 
             m_selPointsAtMousedown = getSelectedPoints();
@@ -230,6 +239,8 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
             }
 
             m_timeOfHoveredAutomationPoint = m_parameter->getCurve().getPointTime(m_hoveredPoint);
+            m_timeGesture.begin(m_songEditor.getMouseSnapResolver().timeToBeat(m_timeOfHoveredAutomationPoint.inSeconds()),
+                                e.position.x, m_songEditor.getMouseSnapResolver());
         }
         return;
     }
@@ -252,17 +263,22 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     }
 }
 
+void AutomationLaneComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
+{
+    if (m_timeGesture.active())
+        if (auto event = m_mouseInput.withModifiers(mods); event && event->mouseWasDraggedSinceMouseDown())
+            mouseDrag(*event);
+}
+
 void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    m_mouseInput.remember(e);
     if (m_isLassoInteraction)
     {
         m_songEditor.updateLasso(e.getEventRelativeTo(&m_songEditor));
         return;
     }
 
-    auto &dragState = m_songEditor.getDragState();
-
-    auto snap = !e.mods.isShiftDown();
 
     // Check for curve steepness change FIRST (before regular point dragging)
     // This handles Ctrl+Drag on curve segments
@@ -288,19 +304,26 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
         m_isDragging = true;
         auto lockTime = e.mods.isCtrlDown();
 
-        auto oldPos = m_timeOfHoveredAutomationPoint;
-        auto newPos = xtoTime(e.x);
-
-        auto draggedTime = newPos - oldPos;
-
-        if (lockTime)
-            newPos = oldPos;
-        else if (snap)
-            newPos = getSnappedTime(xtoTime(e.x));
-
-        draggedTime = newPos - oldPos;
-
-        for (auto *p : m_selPointsAtMousedown)
+        const auto oldPos = m_timeOfHoveredAutomationPoint;
+        const auto resolver = m_songEditor.getMouseSnapResolver();
+        const auto newBeat = m_timeGesture.update(e.position.x, resolver, e.mods.isShiftDown());
+        juce::Array<AutomationGestureLimits::Point> points;
+        std::vector<CurvePoint*> ordered;
+        for (auto* p : m_selPointsAtMousedown)
+            if (p != nullptr && p->param != nullptr && juce::isPositiveAndBelow(p->index, p->param->getCurve().getNumPoints()))
+            {
+                points.add({p->param.get(), p->index, p->time});
+                ordered.push_back(p);
+            }
+        const double seconds = AutomationGestureLimits::constrain(points, lockTime ? 0.0 : resolver.beatToTime(newBeat) - oldPos.inSeconds());
+        const auto draggedTime = tracktion::TimeDuration::fromSeconds(seconds);
+        m_timeGesture.setDisplayedBeat(resolver.timeToBeat((oldPos + draggedTime).inSeconds()));
+        // Move outward points first, otherwise Tracktion clamps each point to
+        // its still-unmoved selected neighbour and collapses group spacing.
+        const double currentDelta = ordered.empty() ? 0.0 : (ordered.front()->param->getCurve().getPointTime(ordered.front()->index) - ordered.front()->time).inSeconds();
+        std::sort(ordered.begin(), ordered.end(), [seconds, currentDelta](auto* a, auto* b)
+        { return seconds > currentDelta ? a->time > b->time : a->time < b->time; });
+        for (auto *p : ordered)
         {
             if (p == nullptr || p->param == nullptr)
                 continue;
@@ -335,7 +358,11 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 
 void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
 {
+    if (m_timeGesture.active() && e.mouseWasDraggedSinceMouseDown())
+        mouseDrag(e);
     m_isDragging = false;
+    m_timeGesture.reset();
+    m_mouseInput.reset();
     m_selPointsAtMousedown.clear();
 
     if (m_isLassoInteraction)
@@ -381,9 +408,8 @@ void AutomationLaneComponent::selectPointsInLasso(juce::Rectangle<int> lassoRect
 
 float AutomationLaneComponent::timeToX(tracktion::TimePosition time) { return TimeUtils::timeToX(time, m_editViewState, m_timeLineID, getWidth()); }
 
-tracktion::TimePosition AutomationLaneComponent::xtoTime(int x) { return TimeUtils::xToTime(x, m_editViewState, m_timeLineID, getWidth()); }
+tracktion::TimePosition AutomationLaneComponent::xtoTime(float x) { return TimeUtils::xToTime(x, m_editViewState, m_timeLineID, getWidth()); }
 
-tracktion::TimePosition AutomationLaneComponent::getSnappedTime(tracktion::TimePosition time, bool downwards) { return TimeUtils::getSnappedTime(time, m_editViewState, m_timeLineID, getWidth(), downwards); }
 
 void AutomationLaneComponent::addAutomationPointAt(tracktion::TimePosition pos)
 {
@@ -434,7 +460,7 @@ juce::OwnedArray<AutomationLaneComponent::CurvePoint> AutomationLaneComponent::g
 
 // ... Keep existing drawing/caching methods ...
 
-void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect)
+void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::TimeRange drawRange, juce::Rectangle<float> drawRect, tracktion::TimeDuration previewDelta)
 {
     if (drawRect.getWidth() <= 0 || drawRect.getHeight() <= 0)
         return;
@@ -452,8 +478,13 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
     g.saveState();
     g.reduceClipRegion(drawRect.toNearestIntEdges());
 
-    double startBeat = m_editViewState.timeToBeat(drawRange.getStart().inSeconds());
-    double endBeat = m_editViewState.timeToBeat(drawRange.getEnd().inSeconds());
+    double startBeat = m_editViewState.timeToBeat((drawRange.getStart() + previewDelta).inSeconds());
+    double endBeat = m_editViewState.timeToBeat((drawRange.getEnd() + previewDelta).inSeconds());
+    const auto pointX = [&](tracktion::TimePosition t)
+    {
+        return drawRect.getX() + m_editViewState.timeToX((t + previewDelta).inSeconds(), drawRect.getWidth(), startBeat, endBeat);
+    };
+    const auto pointY = [&](double value) { return drawRect.getY() + static_cast<float>(getYPos(value)); };
 
     // Only draw background when visible
     if (drawRect.getHeight() > 2)
@@ -506,8 +537,8 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
     {
         // Single point
         const auto &point = curve.getPoint(0);
-        const float x = static_cast<float>(m_editViewState.timeToX(point.time.inSeconds(), drawRect.getWidth(), startBeat, endBeat));
-        const float y = static_cast<float>(getYPos(point.value));
+        const float x = pointX(point.time);
+        const float y = pointY(point.value);
 
         curvePath.startNewSubPath(startX, y);
         curvePath.lineTo(endX, y);
@@ -524,20 +555,20 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
     {
         // Draw curve
         const auto &firstPoint = curve.getPoint(startIdx);
-        float lastX = static_cast<float>(m_editViewState.timeToX(firstPoint.time.inSeconds(), drawRect.getWidth(), startBeat, endBeat));
-        float lastY = static_cast<float>(getYPos(firstPoint.value));
+        float lastX = pointX(firstPoint.time);
+        float lastY = pointY(firstPoint.value);
 
         if (startIdx == 0 || firstPoint.time >= drawRange.getStart())
             curvePath.startNewSubPath(lastX, lastY);
         else
-            curvePath.startNewSubPath(startX, static_cast<float>(getYPos(curve.getValueAt(drawRange.getStart()))));
+            curvePath.startNewSubPath(startX, pointY(curve.getValueAt(drawRange.getStart())));
 
         // Collect points
         for (int i = startIdx + 1; i <= endIdx; ++i)
         {
             const auto &point = curve.getPoint(i);
-            const float x = static_cast<float>(m_editViewState.timeToX(point.time.inSeconds(), drawRect.getWidth(), startBeat, endBeat));
-            const float y = static_cast<float>(getYPos(point.value));
+            const float x = pointX(point.time);
+            const float y = pointY(point.value);
 
             if (i > 0)
             {
@@ -578,7 +609,7 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
 
         // Extend to the end
         if (endIdx >= 0 && curve.getPoint(endIdx).time < drawRange.getEnd())
-            curvePath.lineTo(endX, static_cast<float>(getYPos(curve.getValueAt(drawRange.getEnd()))));
+            curvePath.lineTo(endX, pointY(curve.getValueAt(drawRange.getEnd())));
     }
 
     // Fill only for larger lanes
@@ -607,10 +638,10 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
     }
 
     // Draw hover dot on curve (only when hovering over curve segment)
-    if (m_hoveredCurve != -1 && !m_hoveredRect.isEmpty() && !m_isDragging)
+    if (m_hoveredCurve != -1 && !m_hoveredRect.isEmpty() && !m_isDragging && previewDelta == tracktion::TimeDuration())
     {
         // Calculate dot position on curve at mouse position
-        float mouseX = m_hoveredRect.getCentreX();
+        float mouseX = drawRect.getX() + m_hoveredRect.getCentreX();
 
         // Convert mouse X to time using the same transformation as timeToX
         double visibleRange = endBeat - startBeat;
@@ -619,7 +650,7 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
 
         // Get curve value at this time
         float curveValue = curve.getValueAt(tracktion::TimePosition::fromSeconds(mouseTime));
-        float curveY = static_cast<float>(getYPos(curveValue));
+        float curveY = pointY(curveValue);
 
         // Draw the hover dot
         g.setColour(m_editViewState.m_applicationState.getPrimeColour().withLightness(1.0f));

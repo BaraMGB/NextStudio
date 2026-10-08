@@ -20,6 +20,22 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "KnifeTool.h"
+#include "MidiNoteGesture.h"
+
+namespace
+{
+std::optional<double> resolveSplitBeat(const juce::MouseEvent& event, MidiViewport& viewport, te::MidiNote* note)
+{
+    auto* clip = viewport.getSelectedEvents().clipForEvent(note);
+    if (!clip)
+        return {};
+    auto& timeline = *viewport.getTimeLine();
+    const double raw = timeline.xToBeatPos(event.position.x).inBeats();
+    const double proposed = event.mods.isShiftDown() ? raw : timeline.snapBeatForMouse(raw);
+    const double base = clip->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats();
+    return MidiNoteGesture::validSplitBeat(note->getStartBeat().inBeats() + base, note->getEndBeat().inBeats() + base, proposed);
+}
+}
 
 void KnifeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
@@ -27,29 +43,18 @@ void KnifeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
     {
         if (auto *clip = viewport.getSelectedEvents().clipForEvent(note))
         {
-            auto &um = m_evs.m_edit.getUndoManager();
-            um.beginNewTransaction("Split MIDI Note");
-
-            auto time = viewport.getTimeLine()->xToTimePos(event.x).inSeconds();
-            if (viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown())
-                time = viewport.getTimeLine()->getSnappedTime(time);
-
-            auto splitBeat = m_evs.timeToBeat(time);
-            auto noteStartBeat = note->getStartBeat().inBeats() + clip->getStartBeat().inBeats();
-            auto noteEndBeat = note->getEndBeat().inBeats() + clip->getStartBeat().inBeats();
-
-            if (splitBeat > noteStartBeat && splitBeat < noteEndBeat)
+            if (const auto split = resolveSplitBeat(event, viewport, note))
             {
-                auto originalEndBeat = noteEndBeat; // Absolute Endbeat-Position verwenden
-
-                // 1. Truncate the original note
-                note->setStartAndLength(note->getStartBeat(), tracktion::BeatDuration::fromBeats(splitBeat - noteStartBeat), &um);
-
-                // 2. Create the new note for the second part
-                clip->getSequence().addNote(note->getNoteNumber(),
-                                            tracktion::BeatPosition::fromBeats(splitBeat - clip->getStartBeat().inBeats()), // Relative Position zum Clip
-                                            tracktion::BeatDuration::fromBeats(originalEndBeat - splitBeat),                // Korrekte Länge berechnen
-                                            note->getVelocity(), note->getColour(), &um);
+                const double base = clip->getStartBeat().inBeats() - clip->getOffsetInBeats().inBeats();
+                const double start = note->getStartBeat().inBeats() + base;
+                const double end = note->getEndBeat().inBeats() + base;
+                te::MidiNote second(note->state.createCopy());
+                second.setStartAndLength(tracktion::BeatPosition::fromBeats(*split - base),
+                                         tracktion::BeatDuration::fromBeats(end - *split), nullptr);
+                auto& um = m_evs.m_edit.getUndoManager();
+                um.beginNewTransaction("Split MIDI Note");
+                note->setStartAndLength(note->getStartBeat(), tracktion::BeatDuration::fromBeats(*split - start), &um);
+                clip->getSequence().addNote(second, &um);
             }
         }
     }
@@ -69,25 +74,15 @@ void KnifeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     viewport.setMouseCursor(getCursor(viewport));
 
-    // Check if hovering over a note and update split line position
-    if (auto *note = viewport.getNoteByPos(event.position.toFloat()))
-    {
-        m_shouldDrawSplitLine = true;
-        m_hoveredNote = note;
-
-        // Calculate snapped position for the line
-        auto time = viewport.getTimeLine()->xToTimePos(event.x).inSeconds();
-        if (viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown())
-            time = viewport.getTimeLine()->getSnappedTime(time);
-
-        auto splitBeat = m_evs.timeToBeat(time);
-        m_splitLineX = viewport.getTimeLine()->beatsToX(splitBeat);
-    }
-    else
-    {
-        m_shouldDrawSplitLine = false;
-        m_hoveredNote = nullptr;
-    }
+    m_shouldDrawSplitLine = false;
+    m_hoveredNote = nullptr;
+    if (auto* note = viewport.getNoteByPos(event.position))
+        if (const auto split = resolveSplitBeat(event, viewport, note))
+        {
+            m_shouldDrawSplitLine = true;
+            m_hoveredNote = note;
+            m_splitLineX = viewport.getTimeLine()->beatsToX(*split);
+        }
 
     viewport.repaint();
 }

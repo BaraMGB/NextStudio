@@ -22,22 +22,30 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "DrawTool.h"
 #include "Utilities.h"
 
+bool DrawTool::clipIsValid(MidiViewport& viewport) const
+{
+    return m_clickedClip != nullptr && viewport.getCachedMidiClips().contains(m_clickedClip.get())
+        && m_clickedClip->state.isAChildOf(viewport.getTimeLine()->getEditViewState().m_edit.state);
+}
+
 void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    m_clickedClip = viewport.getClipAt(event.x);
+    cancel(viewport);
+    if (!event.mods.isLeftButtonDown())
+        return;
+    m_clickedClip = viewport.getClipAt(event.position.x);
     if (m_clickedClip == nullptr)
         return;
-
-    viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
-
-    m_insertLengthBeats = viewport.getTimeLine()->getNoteInsertLength();
-    m_intervalX = juce::jmax(1, juce::roundToInt(m_insertLengthBeats / viewport.getTimeLine()->getBeatsPerPixel()));
-
-    m_isDrawingNote = true;
-    m_drawStartPos = event.getPosition().x;
-    m_drawCurrentPos = m_drawStartPos + m_intervalX;
+    auto& timeline = *viewport.getTimeLine();
+    const bool bypass = event.mods.isShiftDown();
+    viewport.setSnap(timeline.isSnappingEnabled() && !bypass);
+    double start = timeline.xToBeatPos(event.position.x).inBeats();
+    if (viewport.isSnapping())
+        start = timeline.getMouseSnapResolver().startAtOrBefore(start);
+    // The engine stores nonnegative internal MIDI positions.
+    start = std::max(start, m_clickedClip->getStartBeat().inBeats() - m_clickedClip->getOffsetInBeats().inBeats());
+    m_gesture.begin(start, timeline.getNoteInsertLength(), event.position.x, timeline.getMouseSnapResolver(), bypass);
     m_drawNoteNumber = viewport.getNoteNumber(event.y);
-
     viewport.repaint();
 }
 
@@ -45,49 +53,42 @@ void DrawTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
 
-    if (!m_isDrawingNote)
+    if (!isDrawing())
         return;
-
-    m_drawCurrentPos = juce::jmax(event.getPosition().x, m_drawStartPos + m_intervalX);
+    if (!clipIsValid(viewport))
+    {
+        cancel(viewport);
+        return;
+    }
+    m_gesture.update(event.position.x, viewport.getTimeLine()->getMouseSnapResolver(), event.mods.isShiftDown(),
+                     event.mouseWasDraggedSinceMouseDown() && event.position.x != event.getMouseDownPosition().x);
     viewport.repaint();
 }
 
 void DrawTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    if (!m_isDrawingNote)
+    if (!isDrawing())
         return;
-
-    auto startBeat = viewport.getTimeLine()->xToBeatPos(m_drawStartPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
-    if (viewport.isSnapping())
-        startBeat = viewport.getTimeLine()->getQuantisedNoteBeat(startBeat, m_clickedClip);
-
-    auto endBeat = viewport.getTimeLine()->xToBeatPos(m_drawCurrentPos).inBeats() - m_clickedClip->getStartBeat().inBeats();
-    if (viewport.isSnapping())
-        endBeat = viewport.getTimeLine()->getQuantisedNoteBeat(endBeat, m_clickedClip);
-    endBeat = PianoRollNoteLength::applyMinimum(startBeat, endBeat, m_insertLengthBeats);
-
-    const auto length = endBeat - startBeat;
-    auto newNote = viewport.addNewNote(m_drawNoteNumber, m_clickedClip, startBeat, length);
-
-    viewport.unselectAll();
-    viewport.setNoteSelected(newNote, false);
-
-    // Reset state
-    m_clickedClip = nullptr;
-    m_isDrawingNote = false;
-    m_drawStartPos = 0;
-    m_drawCurrentPos = 0;
-    m_drawNoteNumber = 0;
-    m_intervalX = 0;
-    m_insertLengthBeats = PianoRollNoteLength::defaultLengthBeats;
-
-    viewport.repaint();
+    mouseDrag(event, viewport); // final position/modifiers use the same preview calculation
+    if (!isDrawing() || !clipIsValid(viewport))
+    {
+        cancel(viewport);
+        return;
+    }
+    const double base = m_clickedClip->getStartBeat().inBeats() - m_clickedClip->getOffsetInBeats().inBeats();
+    if (auto* note = viewport.addNewNote(m_drawNoteNumber, m_clickedClip, m_gesture.startBeat() - base,
+                                        m_gesture.endBeat() - m_gesture.startBeat()))
+    {
+        viewport.unselectAll();
+        viewport.setNoteSelected(note, false);
+    }
+    cancel(viewport);
 }
 
 void DrawTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // Update cursor based on context
-    if (viewport.getClipAt(event.x))
+    if (viewport.getClipAt(event.position.x))
     {
         viewport.setMouseCursor(getCursor(viewport));
     }
@@ -99,26 +100,25 @@ void DrawTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 
 void DrawTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    // A double-click could create a note with a default length.
-    mouseDown(event, viewport);
-    mouseUp(event, viewport);
+    // MidiViewport already forwards mouseDown for this event. The normal
+    // mouseUp commits that gesture once; do not insert a second note here.
+    juce::ignoreUnused(event, viewport);
 }
 
 juce::MouseCursor DrawTool::getCursor(MidiViewport &viewport) const { return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, viewport.getCursorScale()); }
 
 void DrawTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void DrawTool::toolDeactivated(MidiViewport &viewport)
+void DrawTool::cancel(MidiViewport& viewport)
 {
-    // Ensure any pending drawing operation is cancelled
-    m_isDrawingNote = false;
+    m_gesture.reset();
     m_clickedClip = nullptr;
     m_drawNoteNumber = 0;
-    m_drawCurrentPos = 0;
-    m_drawNoteNumber = 0;
-    m_intervalX = 0;
-    m_insertLengthBeats = PianoRollNoteLength::defaultLengthBeats;
-
     viewport.repaint();
+}
+
+void DrawTool::toolDeactivated(MidiViewport &viewport)
+{
+    cancel(viewport);
     viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
 }

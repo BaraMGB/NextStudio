@@ -22,11 +22,12 @@ enum class PianoRollNoteLengthMode
 namespace PianoRollNoteLength
 {
 constexpr double defaultLengthBeats = 0.25;
+constexpr double minimumLengthBeats = 1.0 / 960.0;
 
 double noteValueToBeats(int denominator);
 double resolve(PianoRollNoteLengthMode mode,
                int denominator,
                double lastInsertedBeats,
                double adaptiveBeats);
-double applyMinimum(double startBeat, double attemptedEndBeat, double minimumLengthBeats);
+double constrainEnd(double startBeat, double attemptedEndBeat);
 } // namespace PianoRollNoteLength

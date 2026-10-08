@@ -52,11 +52,12 @@ public:
 
     // Public getters for visual feedback
     bool shouldDrawSplitLine() const { return m_shouldDrawSplitLine; }
-    int getSplitLineX() const { return m_splitLineX; }
+    float getSplitLineX() const { return m_splitLineX; }
     te::MidiNote *getHoveredNote() const { return m_hoveredNote; }
 
 private:
     bool m_shouldDrawSplitLine{false};
-    int m_splitLineX{0};
+    // Keep the same subpixel coordinate as the timeline grid until rendering.
+    float m_splitLineX{0};
     te::MidiNote *m_hoveredNote{nullptr};
 };

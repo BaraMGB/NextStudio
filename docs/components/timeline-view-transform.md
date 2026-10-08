@@ -1,5 +1,7 @@
 # Shared timeline view transform
 
+Musical mouse positioning is documented separately in [Timeline snapping](timeline-snapping.md). Its physical-pixel attraction uses this view's published raster context without changing normalization, rendering grid selection, fit behavior, or persisted view fields.
+
 ## Ownership
 
 `EditViewState` owns each timeline's persisted `viewX` (start beat) and

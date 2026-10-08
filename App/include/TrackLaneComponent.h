@@ -25,6 +25,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "AutomationLaneComponent.h"
 #include "MouseEventThrottler.h"
+#include "MouseGestureInput.h"
 #include "EditViewState.h"
 #include "Utilities.h"
 
@@ -73,10 +74,10 @@ private:
 
     // Helpers
     float timeToX(tracktion::TimePosition time);
-    tracktion::TimePosition xtoTime(int x);
+    tracktion::TimePosition xtoTime(float x);
     tracktion::TimePosition getSnappedTime(tracktion::TimePosition time, bool downwards = false);
-    tracktion::TimePosition getKnifeSplitTime(int x, juce::ModifierKeys mods);
-    void updateKnifeSplitPosition(int x, juce::ModifierKeys mods);
+    tracktion::TimePosition getKnifeSplitTime(float x, juce::ModifierKeys mods);
+    void updateKnifeSplitPosition(float x, juce::ModifierKeys mods);
     juce::Rectangle<float> getClipRect(te::Clip::Ptr clip);
     ClipHoverState getClipHoverState(juce::Point<float> point, bool allowFadeHandles);
     FadeHitZone getFadeHitZone(te::Clip::Ptr clip, juce::Point<float> point);
@@ -100,6 +101,7 @@ private:
     tracktion::TimePosition m_knifeSplitPosition;
     bool m_hasKnifeSplitPosition{false};
     te::Clip::Ptr m_pendingCtrlToggleClip{nullptr};
+    MouseGestureInput m_mouseInput;
 
     // Note: Dragging state is now managed centrally by SongEditorView via DragState
 

@@ -88,6 +88,8 @@ The header contains transport and global project controls, including playback, r
 
 ### Arrangement editor
 
+Mouse timeline editing uses magnetic snap detents: nearby grid points attract the edited edge, but continued movement pulls it free and allows between-grid positions. Hold Shift or choose Snap Off for raw positioning. Numeric edits, keyboard nudging, and explicit quantization retain exact/discrete behavior; see [Song Editor](../ui/song-editor.md) and [Piano Roll](piano-roll.md).
+
 The arrangement editor shows tracks, clips, timeline, playhead, automation controls, and editing tools. Track headers are on the left and lanes on the right.
 
 A clip-properties row above the timeline displays the number of selected clips and exact `START`, `END`, and `DURATION` values. Mixed values appear as `—`. Double-click a field to type a bars/beats/ticks position, note fraction, or tick duration. Mouse-wheel stepping and vertical drag scrubbing use the current arrangement snap interval; drag scrubbing previews the resulting clip positions before committing on release.

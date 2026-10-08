@@ -302,6 +302,9 @@ juce::Rectangle<int> PianoRollEditor::getPlayHeadRect()
 }
 bool PianoRollEditor::keyPressed(const juce::KeyPress &key)
 {
+    if (key.getKeyCode() == juce::KeyPress::escapeKey && m_pianoRollViewPort != nullptr
+        && m_pianoRollViewPort->cancelActiveDraw())
+        return true;
     if (m_pianoRollViewPort != nullptr && m_pianoRollViewPort->hasPendingPaste())
     {
         if (key.getKeyCode() == juce::KeyPress::returnKey)
@@ -442,7 +445,7 @@ bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationIn
     }
     case KeyPressCommandIDs::cancelPendingPaste:
     {
-        if (m_pianoRollViewPort != nullptr)
+        if (m_pianoRollViewPort != nullptr && !m_pianoRollViewPort->cancelActiveDraw())
             m_pianoRollViewPort->cancelPendingPaste();
         break;
     }

@@ -125,16 +125,18 @@ Move/copy/create operations clear conflicting note material of the same pitch in
 
 ### Draw
 
-The draw tool creates a note by dragging from its start to end.
+The draw tool creates a note over an existing MIDI clip.
 
-- drawing is possible only over an existing MIDI clip;
-- the initial minimum width follows the value selected by **INSERT LENGHT**;
-- dragging right extends the note;
-- `Shift` temporarily disables position snapping;
-- the resulting inserted length becomes the remembered **Last Inserted** length;
-- the new note becomes selected.
+- clicking shows the selected **INSERT LENGHT** default immediately;
+- with snapping enabled, the start aligns downward and the default end aligns to the first snap point at or after that duration. A coarser snap therefore immediately gives the note an end at the next snap point;
+- dragging changes this initial end relatively: right extends, left shortens, including below both the insert length and snap interval;
+- nearby snap points are magnetic detents. Continue moving to pull the end free and reach any intermediate position;
+- the start and pitch stay fixed during drawing; the minimum duration is one tick (`1/960` beat);
+- `Shift` bypasses magnetic snapping. Holding it at mouse-down also bypasses initial alignment;
+- Escape or changing tools cancels the provisional draw;
+- the actual inserted duration becomes **Last Inserted**, and the new note becomes selected.
 
-Double-click performs a minimal draw operation using the selected inserted-note length.
+Double-click uses the same default-range rule. Draw remains a creation tool with overlap cleanup; use Pointer edges to resize an existing note in place.
 
 ### Range
 
@@ -152,7 +154,7 @@ The cursor indicates eraser mode. Hover deletion highlighting is currently limit
 
 Click inside a note to split it at the cursor.
 
-- the split follows the grid;
+- the split position is magnetically attracted to nearby snap points but can lie between them;
 - hold `Shift` to bypass snapping;
 - the split must lie strictly inside the note;
 - the original note becomes the first segment and a second segment is added with the same pitch, velocity, and color;
@@ -168,7 +170,9 @@ Drag to select notes in a rectangular area. Releasing switches back to the point
 
 Use the **SNAP** selector in the note-properties bar to choose **Off**, a fixed note value from **1/1** through **1/128**, or **Adaptive**. Adaptive snapping derives its resolution from the timeline zoom and is the default.
 
-Hold `Shift` during pointer move/resize, drawing, or knife splitting to bypass enabled snapping temporarily.
+Mouse move/resize, drawing, and knife preview use **soft snapping**: the edited position stays exactly on a nearby snap point until you pull it out of the magnetic region, then moves continuously toward the next point. The mouse pointer itself is not warped. Attraction spans up to six physical pixels on either side, capped on narrow grids.
+
+Hold `Shift` to bypass enabled snapping temporarily. Changing the modifier can produce a small bounded position change, without accumulating offsets. Keyboard nudging, explicit quantization, exact property edits, and playhead clicks retain discrete behavior.
 
 ## Inserted-note length
 
@@ -178,7 +182,7 @@ Use the independent **INSERT LENGHT** selector next to **SNAP** to choose:
 - **Last Inserted** — the actual duration of the most recently created note on the active track timeline;
 - a fixed note value from **1/1** through **1/128**.
 
-The selected length is the default and minimum duration for click/double-click drawing. Dragging farther creates a longer note. Creating a note updates **Last Inserted**; resizing an existing note does not. The default mode is **Last Inserted**.
+The selected length is a click default, **not a drag minimum**. With snapping enabled, the default end rounds upward to the next valid snap point, including fractional Last Inserted durations; Off/Shift keeps the raw duration. Drawing can shorten below this default. Creating a note updates **Last Inserted** with the actual committed duration; resizing an existing note does not. The default mode is **Last Inserted**.
 
 View, snap, and inserted-note-length state are stored in edit-local UI state and do not create musical undo steps.
 

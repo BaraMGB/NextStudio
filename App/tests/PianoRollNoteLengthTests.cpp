@@ -64,11 +64,13 @@ void testInvalidLengthsUseDefault()
                         PianoRollNoteLength::defaultLengthBeats));
 }
 
-void testDrawLengthCannotShrinkBelowSelection()
+void testDrawLengthHasOnlyTickFloor()
 {
-    REQUIRE(nearlyEqual(PianoRollNoteLength::applyMinimum(2.0, 2.125, 0.25), 2.25));
-    REQUIRE(nearlyEqual(PianoRollNoteLength::applyMinimum(2.0, 3.0, 0.25), 3.0));
-    REQUIRE(nearlyEqual(PianoRollNoteLength::applyMinimum(2.0, 1.0, 0.0), 2.25));
+    REQUIRE(nearlyEqual(PianoRollNoteLength::constrainEnd(2.0, 2.125), 2.125));
+    REQUIRE(nearlyEqual(PianoRollNoteLength::constrainEnd(2.0, 3.0), 3.0));
+    REQUIRE(nearlyEqual(PianoRollNoteLength::constrainEnd(2.0, 1.0), 2.0 + 1.0 / 960.0));
+    REQUIRE(nearlyEqual(PianoRollNoteLength::constrainEnd(2.0, NAN), 2.0 + 1.0 / 960.0));
+    REQUIRE(nearlyEqual(PianoRollNoteLength::resolve(PianoRollNoteLengthMode::lastInserted, 16, INFINITY, 1.0), 0.25));
 }
 } // namespace
 
@@ -77,7 +79,7 @@ int main()
     testNoteValuesConvertToBeats();
     testModesResolveTheirOwnSource();
     testInvalidLengthsUseDefault();
-    testDrawLengthCannotShrinkBelowSelection();
+    testDrawLengthHasOnlyTickFloor();
 
     if (g_failures != 0)
     {

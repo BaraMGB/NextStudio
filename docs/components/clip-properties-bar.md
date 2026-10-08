@@ -33,6 +33,8 @@ Arrangement settings are independent from the equivalent Piano Roll settings. Th
 
 ## Interaction
 
+Arrangement clip move/copy/resize/stretch uses [shared magnetic mouse snapping](timeline-snapping.md): nearby targets lock exactly, but continued movement reaches between-grid positions. `ClipGestureLimits` supplies the same effective delta for preview and commit. Shift/Snap Off bypass attraction. The property fields below keep their existing exact/discrete parsing and wheel/scrub steps; MIDI-clip click insertion defaults are unchanged.
+
 A property field normally remains read-only and uses an up/down cursor.
 
 - Double-click, or press `Enter`/`F2` while focused, to enter text mode.

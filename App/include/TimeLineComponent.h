@@ -25,6 +25,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "EditViewState.h"
+#include "TimelineSnapResolver.h"
+#include "MouseGestureInput.h"
 
 class TimeLineComponent
     : public juce::Component
@@ -47,6 +49,7 @@ public:
     void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &e) override;
     void mouseUp(const juce::MouseEvent &event) override;
+    void modifierKeysChanged(const juce::ModifierKeys&) override;
 
     te::TimecodeSnapType getBestSnapType();
     EditViewState &getEditViewState();
@@ -81,6 +84,9 @@ public:
     double getNudgeDeltaBeats(double beat, int direction) const;
     tracktion::TimePosition snapTime(tracktion::TimePosition time, bool down = false) const;
     double getSnappedTime(double time);
+    TimelineSnapResolver getMouseSnapResolver() const;
+    double snapBeatForMouse(double globalBeat) const;
+    tracktion::TimePosition snapTimeForMouse(tracktion::TimePosition) const;
 
 private:
     void handleAsyncUpdate() override;
@@ -89,7 +95,6 @@ private:
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
     void updateViewportContext();
     void drawLoopRange(juce::Graphics &g);
-    tracktion::TimeRange getLoopRangeToBeMovedOrResized();
     void updateViewRange(const juce::MouseEvent &e);
 
     juce::Rectangle<float> getTimeRangeRect(tracktion::TimeRange tr);
@@ -101,17 +106,20 @@ private:
     const bool m_usePianoRollSnapSettings;
     juce::ValueTree m_tree;
     double m_cachedBeat{};
-    bool m_isMouseDown, m_isSnapping{true}, m_leftResized, m_rightResized, m_changeLoopRange{false}, m_loopRangeClicked;
+    bool m_isMouseDown{false}, m_isSnapping{true}, m_leftResized{false}, m_rightResized{false}, m_changeLoopRange{false}, m_loopRangeClicked{false};
 
     tracktion::TimeRange m_cachedLoopRange;
     tracktion::TimeRange m_newLoopRange;
-    tracktion::TimeDuration m_draggedTime;
+    TimelineMouseGesture m_loopGesture;
+    MouseGestureInput m_mouseInput;
+    double m_loopCreationStartBeat = 0;
     int m_oldDragDistanceY, m_oldDragDistanceX;
     bool m_cachedFollowPlayhead;
     bool m_playheadClickPending{false};
     juce::NativeScaleFactorNotifier m_scaleNotifier;
     TimelineViewGeometry::ZoomIntent m_zoomIntent;
     uint64_t m_zoomRevision = 0;
+    uint64_t m_musicalSnapRevision = 0;
     double m_zoomStart = -1;
     double m_dragRequestedZoom = 0;
     TimelineViewGeometry::ViewportContext m_dragViewport;

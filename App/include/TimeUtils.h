@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
+#include "TimelineViewGeometry.h"
 
 namespace te = tracktion_engine;
 
@@ -54,6 +55,23 @@ public:
         return editViewState.timeToX(time.inSeconds(), width, x1, x2);
     }
 
+    // Project both endpoints; a seconds duration has no location-independent
+    // pixel width on a beat-linear timeline with tempo changes or ramps.
+    static juce::Range<float> timeRangeToX(tracktion::TimeRange range, const te::TempoSequence& tempo,
+                                         double startBeat, double endBeat, int width)
+    {
+        if (width <= 0 || !(endBeat > startBeat))
+            return {};
+        const double beatsPerPixel = (endBeat - startBeat) / width;
+        return {static_cast<float>(TimelineViewGeometry::beatToX(tempo.toBeats(range.getStart()).inBeats(), startBeat, beatsPerPixel)),
+                static_cast<float>(TimelineViewGeometry::beatToX(tempo.toBeats(range.getEnd()).inBeats(), startBeat, beatsPerPixel))};
+    }
+    static juce::Range<float> timeRangeToX(tracktion::TimeRange range, EditViewState& state, const juce::String& id, int width)
+    {
+        const auto view = state.getVisibleBeatRange(id, width);
+        return timeRangeToX(range, state.m_edit.tempoSequence, view.getStart().inBeats(), view.getEnd().inBeats(), width);
+    }
+
     /**
      * Converts a screen X coordinate to time position.
      *
@@ -63,7 +81,7 @@ public:
      * @param width The width of the component in pixels
      * @return The time position
      */
-    static tracktion::TimePosition xToTime(int x, EditViewState &editViewState, const juce::String &timeLineID, int width)
+    static tracktion::TimePosition xToTime(float x, EditViewState &editViewState, const juce::String &timeLineID, int width)
     {
         auto x1 = editViewState.getVisibleBeatRange(timeLineID, width).getStart().inBeats();
         auto x2 = editViewState.getVisibleBeatRange(timeLineID, width).getEnd().inBeats();
