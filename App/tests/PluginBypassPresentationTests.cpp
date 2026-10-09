@@ -8,6 +8,18 @@ int failures = 0;
 #define REQUIRE(condition) \
     do { if (!(condition)) { std::cerr << "FAIL: " << #condition << " (line " << __LINE__ << ")\n"; ++failures; } } while (false)
 
+void requireAlpha(juce::Colour pixel, int minimum, int maximum, juce::Image::PixelFormat format, float opacity)
+{
+    const int alpha = pixel.getAlpha();
+    if (alpha < minimum || alpha > maximum)
+    {
+        std::cerr << "FAIL: alpha=" << alpha << " expected=[" << minimum << ',' << maximum
+                  << "] pixel=" << pixel.toDisplayString(true) << " format=" << int(format)
+                  << " opacity=" << opacity << '\n';
+        ++failures;
+    }
+}
+
 bool isGray(juce::Colour colour)
 {
     return colour.getRed() == colour.getGreen() && colour.getGreen() == colour.getBlue();
@@ -39,18 +51,31 @@ void testFilterPreservesSourceAndAlpha()
         }
         REQUIRE(isGray(output.getPixelAt(1, 1)));
         REQUIRE(isGray(output.getPixelAt(2, 1)));
-        REQUIRE(output.getPixelAt(1, 1).getAlpha() == original.getAlpha());
-        REQUIRE(output.getPixelAt(2, 1).getAlpha() == translucent.getAlpha());
+        requireAlpha(output.getPixelAt(1, 1), original.getAlpha(), original.getAlpha(), format, 1.0f);
+        requireAlpha(output.getPixelAt(2, 1), translucent.getAlpha(), translucent.getAlpha(), format, 1.0f);
         REQUIRE(source.getPixelAt(1, 1) == original);
         REQUIRE(source.getPixelAt(2, 1) == translucent);
         if (format == juce::Image::ARGB)
             REQUIRE(output.getPixelAt(0, 0).getAlpha() == 0);
 
         juce::Image faded(juce::Image::ARGB, 4, 4, true);
-        juce::Graphics g(faded);
-        effect.applyEffect(source, g, 1.0f, 0.5f);
-        REQUIRE(faded.getPixelAt(1, 1).getAlpha() >= 127 && faded.getPixelAt(1, 1).getAlpha() <= 128);
+        {
+            // Direct2D completes the drawing frame when the Graphics context dies.
+            juce::Graphics g(faded);
+            effect.applyEffect(source, g, 1.0f, 0.5f);
+        }
+        // Approximately half opacity, not one rasterizer's exact 8-bit rounding.
+        // These bounds still reject a missing fade, near-transparent output and
+        // accidentally applying the half-opacity fade twice.
+        requireAlpha(faded.getPixelAt(1, 1), 96, 160, format, 0.5f);
+        requireAlpha(faded.getPixelAt(2, 1), translucent.getAlpha() * 3 / 8,
+                     translucent.getAlpha() * 5 / 8, format, 0.5f);
+        REQUIRE(isGray(faded.getPixelAt(1, 1)));
+        REQUIRE(isGray(faded.getPixelAt(2, 1)));
+        if (format == juce::Image::ARGB)
+            requireAlpha(faded.getPixelAt(0, 0), 0, 0, format, 0.5f);
         REQUIRE(source.getPixelAt(1, 1) == original);
+        REQUIRE(source.getPixelAt(2, 1) == translucent);
     }
 }
 
