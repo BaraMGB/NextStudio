@@ -562,10 +562,12 @@ void testInteractionFeedback(const te::TempoSequence& tempo)
         for (float phase : {.137f, .5f, .83f})
         {
             juce::Image image(juce::Image::ARGB, 80, 80, true);
-            juce::Graphics graphics(image);
-            graphics.addTransform(juce::AffineTransform::scale(scale));
             const float x = 20 + phase;
-            TimelineInteractionPreview::drawGuide(graphics, x, {5, 30}, 15, juce::Colours::orange, juce::Colours::white, scale);
+            {
+                juce::Graphics graphics(image);
+                graphics.addTransform(juce::AffineTransform::scale(scale));
+                TimelineInteractionPreview::drawGuide(graphics, x, {5, 30}, 15, juce::Colours::orange, juce::Colours::white, scale);
+            } // Direct2D finishes the drawing frame when the Graphics context dies.
             bool painted = false;
             for (int y = 0; y < image.getHeight(); ++y)
                 for (int column = 0; column < image.getWidth(); ++column)
