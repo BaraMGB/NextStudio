@@ -88,8 +88,7 @@ private:
     void updateCursor(const juce::MouseEvent &event, MidiViewport &viewport);
     void insertNoteAtPosition(const juce::MouseEvent &event, MidiViewport &viewport);
 
-    // When clicking on empty space we defer starting the Lasso until the user drags.
-    // This flag indicates that a mouseDown on empty space occurred and a subsequent
-    // mouseDrag should start the LassoTool. It must persist across mouse events.
+    // Empty-space mouseDown captures the original anchor/selection. Only a drag
+    // paints the rectangle, leaving double-click insertion on this same strategy.
     bool m_pendingLassoStart{false};
 };

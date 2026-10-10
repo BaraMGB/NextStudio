@@ -208,6 +208,7 @@ void TrackLaneComponent::mouseExit(const juce::MouseEvent &e)
 
 void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
+    m_songEditor.beginSelectionInput();
     m_mouseInput.remember(e);
     ScopedSaveLock saveLock(m_editViewState);
     if (m_editViewState.clipInteractionBeginning)
@@ -308,7 +309,7 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     // 2. Empty Space Interaction
     // The range tool must be able to draw a time range no matter what is under the
     // cursor, so an active range tool also enters this branch even when a clip was hit.
-    if (leftButton && (!isClipClicked || toolMode == Tool::range))
+    if (leftButton && (!isClipClicked || toolMode == Tool::range || toolMode == Tool::lasso))
     {
         // Double Click -> Create MIDI Clip (only on actual empty space)
         if (!isClipClicked && e.getNumberOfClicks() > 1 && toolMode != Tool::range)
@@ -343,13 +344,15 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
         {
             // Start Lasso
             auto globalEvent = e.getEventRelativeTo(&m_songEditor);
-            m_songEditor.startLasso(globalEvent, false, toolMode == Tool::range);
+            if (toolMode == Tool::range) m_songEditor.startTimeRangeSelection(globalEvent);
+            else m_songEditor.startLasso(globalEvent, false);
         }
     }
 }
 
 void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    if (!m_mouseInput.belongsToGesture(e)) return;
     m_mouseInput.remember(e);
     auto toolMode = m_songEditor.getToolMode();
     auto &dragState = m_songEditor.getDragState();
@@ -401,7 +404,8 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
     {
         // Lasso Drag
         auto globalEvent = e.getEventRelativeTo(&m_songEditor);
-        m_songEditor.updateLasso(globalEvent);
+        if (m_songEditor.isSelectingTimeRange()) m_songEditor.updateTimeRangeSelection(globalEvent);
+        else m_songEditor.updateLasso(globalEvent);
     }
 
     repaint();
@@ -409,6 +413,12 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
 
 void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
 {
+    if (!m_mouseInput.belongsToGesture(e)) return;
+    if (m_songEditor.takeCancelledSelection(e))
+    {
+        m_mouseInput.reset();
+        return;
+    }
     if (e.mouseWasDraggedSinceMouseDown())
         mouseDrag(e);
     auto &dragState = m_songEditor.getDragState();
@@ -466,12 +476,13 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
         m_pendingCtrlToggleClip = nullptr;
 
         // Finish Lasso
-        m_songEditor.stopLasso();
+        if (m_songEditor.isSelectingTimeRange()) m_songEditor.stopTimeRangeSelection();
+        else m_songEditor.stopLasso();
 
         auto &sm = m_editViewState.m_selectionManager;
         auto toolMode = m_songEditor.getToolMode();
 
-        if (!dragState.draggedClip && !e.mouseWasDraggedSinceMouseDown() && !e.mods.isShiftDown() && !e.mods.isCommandDown() && e.getNumberOfClicks() == 1 && toolMode != Tool::knife)
+        if (!dragState.draggedClip && e.mods.isLeftButtonDown() && !e.mouseWasDraggedSinceMouseDown() && !e.mods.isShiftDown() && !e.mods.isCommandDown() && e.getNumberOfClicks() == 1 && toolMode != Tool::knife)
         {
             sm.deselectAll();
             m_songEditor.clearSelectedTimeRange();
@@ -496,6 +507,7 @@ void TrackLaneComponent::refreshMouseSnapContext()
 
 void TrackLaneComponent::modifierKeysChanged(const juce::ModifierKeys &mods)
 {
+    m_songEditor.modifierKeysChanged(mods);
     if (m_songEditor.getDragState().isClipDrag())
         if (auto event = m_mouseInput.withModifiers(mods); event && event->mouseWasDraggedSinceMouseDown())
             mouseDrag(*event);

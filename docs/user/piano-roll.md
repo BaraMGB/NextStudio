@@ -63,11 +63,11 @@ The note selection is represented by a Tracktion `SelectedMidiEvents` object and
 
 ### Lasso selection
 
-Choose the lasso tool or drag empty space with the pointer tool. Drag a rectangle over notes and release. The dedicated lasso tool returns to the pointer tool after completion.
+Choose the lasso tool or drag empty space with the pointer tool. Drag a rectangle over notes and release. Normal dragging replaces the selection; hold `Shift` to add or `Ctrl/Command` to toggle enclosed notes. Changing modifiers or shrinking the rectangle recomputes from the original selection. Escape or changing tools cancels and restores that selection. The musical start stays anchored while navigating the view. The dedicated lasso tool returns to Pointer; an empty-space Pointer gesture stays on Pointer.
 
 ### Range selection
 
-The range tool uses a time-range-style lasso. It remains the active tool after release.
+The range tool independently selects a musical time/pitch interval and displays a translucent preview. It remains active after release. Escape cancels the gesture and restores the previous note selection.
 
 ### Select notes by piano key
 
@@ -159,7 +159,7 @@ Double-click uses the same default-range rule. Draw remains a creation tool with
 
 ### Range
 
-Drag to select a time/pitch range. This tool delegates to the Piano Roll's range-aware lasso implementation.
+Drag to select a time/pitch interval using the independent Range gesture. Its bounds are not magnetically snapped, and it does not use object-lasso modifier rules.
 
 ### Eraser
 

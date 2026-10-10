@@ -50,6 +50,7 @@ Current references describe the repository revision containing them. Historical 
 
 - [Timeline view transform](components/timeline-view-transform.md) — normalized zoom, fits, float geometry and band rendering.
 - [Timeline snapping](components/timeline-snapping.md) — discrete/mouse APIs, profiles, inverse anchors, constraints, replay and feedback.
+- [Lasso and TimeRange selection](components/selection-gestures.md) — independent gestures, musical anchors, source hit testing and selection lifecycle.
 - [Song Editor implementation](components/song-editor.md) — arrangement integration and stationary cursor ownership.
 - [Piano Roll Editor](components/piano-roll-editor.md) — ownership, model, tools, MIDI cursors, operations and refresh.
 - [Property-field input](components/property-field-input.md) — shared numeric formats, focus/Tab/wheel/scrub conventions and parser differences.

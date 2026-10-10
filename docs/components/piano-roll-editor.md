@@ -25,7 +25,8 @@ This document describes the implementation: component ownership, the Tracktion d
 | Knife tool | `App/include/KnifeTool.h`, `App/src/KnifeTool.cpp` |
 | Lasso tool | `App/include/LassoTool.h`, `App/src/LassoTool.cpp` |
 | Range tool | `App/include/RangeTool.h`, `App/src/RangeTool.cpp` |
-| Lasso rectangle | `App/include/LassoSelectionTool.h`, `App/src/LassoSelectionTool.cpp` |
+| Lasso display and independent range gesture | `App/include/LassoSelectionComponent.h`, `App/src/LassoSelectionComponent.cpp`, `App/include/SelectionGestures.h` |
+| Validated note and shared-manager selection snapshots | `App/include/MidiSelectionSnapshot.h`, `App/include/SharedSelectionSnapshot.h`, `App/include/SelectionIdentity.h` |
 | Velocity lane | `App/include/VelocityEditor.h`, `App/src/VelocityEditor.cpp` |
 | Exact note properties | `App/include/NotePropertiesBar.h`, `App/src/NotePropertiesBar.cpp` |
 | Piano keyboard | `App/include/KeyboardView.h`, `App/src/KeyboardView.cpp` |
@@ -43,7 +44,7 @@ PianoRollEditor
 ├── TimelineOverlayComponent
 ├── MidiViewport
 │   ├── ToolStrategy (current tool)
-│   └── LassoSelectionTool
+│   └── LassoSelectionComponent (foreground drawer, not a JUCE child)
 ├── VelocityEditor
 ├── KeyboardView
 ├── PlayheadComponent
@@ -145,7 +146,7 @@ Alternating bands use the shared [timeline band renderer](timeline-view-transfor
 
 `drawNote()` clips the note rectangle to the viewport and, when `m_evs.m_editNotesOutsideClipRange` is false, to the owning clip. Note color is derived from the track color, darkened by velocity; hovered notes are brightened, and notes outside the clip range are grey. Selected notes get a white outline. The note name is drawn inside the note when the vertical scale is large enough.
 
-`paintOverChildren()` draws the lasso rectangle via `LassoSelectionTool::drawLasso()`.
+`paintOverChildren()` draws the lasso rectangle via `LassoSelectionComponent::drawLasso()` and an independent MIDI time/pitch-range preview. [Selection gestures](selection-gestures.md) owns their musical anchors, policies and lifetime contracts.
 
 ### Live MIDI key lighting
 
@@ -248,7 +249,8 @@ The new note becomes selected. Resizing an existing note does not update Last In
 Selection paths:
 
 - **Pointer click** — `PointerTool::mouseDown` hit-tests a note, clears the selection unless `Shift` is held or the note is already selected, then selects the note.
-- **Lasso** — `LassoTool`/`RangeTool` drive `LassoSelectionTool`; `MidiViewport::updateLassoSelection()` selects every note whose pitch range and edit time range intersect the lasso rectangle.
+- **Lasso** — `LassoTool` and Pointer empty-space gestures drive `LassoSelectionComponent`; `MidiViewport::updateLassoSelection()` tests painted note rectangles and batch-applies validated selection identities. Pointer retains its original strategy/down anchor; Shift adds and Ctrl/Command toggles against the original snapshot.
+- **Range** — `RangeTool` drives a separate `TimeRangeGesture`; `updateRangeNoteSelection()` selects notes intersecting its musical time/pitch interval. It is not a lasso mode.
 - **Piano key** — `PianoRollEditor::handleKeyboardKeyClick()` selects all notes of a pitch in the selected MIDI clips on the active track. `Shift` toggles the pitch.
 
 `MidiViewport::unselectAll()` deselects the `SelectedMidiEvents` object and reselects the track if it is not already selected.

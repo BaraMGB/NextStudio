@@ -68,6 +68,18 @@ juce::var buildPluginSummary(const te::Plugin &plugin)
         parameterObject->setProperty("name", sanitiseStateString(parameter->getParameterName()));
         parameterObject->setProperty("value", parameter->getCurrentValue());
         parameterObject->setProperty("normalisedValue", parameter->getCurrentNormalisedValue());
+        juce::Array<juce::var> points;
+        const auto& curve = parameter->getCurve();
+        for (int i = 0; i < curve.getNumPoints(); ++i)
+        {
+            const auto point = curve.getPoint(i);
+            auto* entry = new juce::DynamicObject();
+            entry->setProperty("timeSeconds", point.time.inSeconds());
+            entry->setProperty("value", point.value);
+            entry->setProperty("curve", point.curve);
+            points.add(entry);
+        }
+        parameterObject->setProperty("automationPoints", points);
         parameters.add(parameterObject);
     }
     object->setProperty("parameters", parameters);
@@ -165,6 +177,25 @@ juce::var buildSelectionSummary(const EditViewState &evs)
         clipSummaries.add(clipObject);
     }
     object->setProperty("selectedClips", clipSummaries);
+
+    juce::Array<juce::var> midiNotes;
+    if (auto* events = evs.m_selectionManager.getFirstItemOfType<te::SelectedMidiEvents>())
+        for (auto* track : te::getAllTracks(evs.m_edit))
+            if (auto* clipTrack = dynamic_cast<te::ClipTrack*>(track))
+                for (auto* clip : clipTrack->getClips())
+                    if (auto* midi = dynamic_cast<te::MidiClip*>(clip))
+                        for (auto* note : midi->getSequence().getNotes())
+                            if (events->isSelected(note))
+                            {
+                                auto* entry = new juce::DynamicObject();
+                                entry->setProperty("clipId", midi->itemID.toString());
+                                entry->setProperty("noteNumber", note->getNoteNumber());
+                                entry->setProperty("startBeats", note->getStartBeat().inBeats());
+                                midiNotes.add(entry);
+                            }
+    object->setProperty("selectedMidiNoteCount", midiNotes.size());
+    object->setProperty("selectedMidiNotes", midiNotes);
+    object->setProperty("selectedAutomationPointCount", evs.m_selectionManager.getNumObjectsSelectedOfType<SelectableAutomationPoint>());
 
     return object;
 }

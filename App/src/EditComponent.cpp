@@ -783,6 +783,7 @@ void EditComponent::handleAsyncUpdate()
     if (compareAndReset(m_updateZoom))
     {
         refreshSnapTypeDesc();
+        m_songEditor.refreshMouseSnapContext();
 
         m_timeLine.repaint();
         m_songEditor.repaint();

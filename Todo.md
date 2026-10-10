@@ -2,9 +2,12 @@
 
 GitHub issues own status, discussion and acceptance. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
+The 18 issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
+
 ## Next — editing correctness
 
-- [ ] [#84 — Velocity lollipops cannot be selected with a lasso](https://github.com/BaraMGB/NextStudio/issues/84) — reproduce, analyze and obtain proposal approval before implementation; velocity-lane-local lasso, replace/add modifiers and selected-marker feedback.
+- [ ] [Separate Lasso and TimeRange](docs/plans/lasso-time-range-separation.md) — approved prerequisite for #84; foundation implemented; selection-cancel routing and edit completion corrected after drag feedback, awaiting maintainer retest before velocity-source work. Overwrite policy is unchanged.
+- [ ] [#84 — Velocity lollipops cannot be selected with a lasso](https://github.com/BaraMGB/NextStudio/issues/84) — reproduced and analyzed; add the velocity source and selected-marker feedback after the selection foundation is tested.
 
 ## Focused workflow improvements
 
@@ -35,7 +38,6 @@ GitHub issues own status, discussion and acceptance. This queue preserves the ag
 ## Deferred and metadata
 
 - [ ] [#21 — Detachable/fullscreen Piano Roll](https://github.com/BaraMGB/NextStudio/issues/21) — Post v1.0.
-- [ ] Review feature/enhancement labels for #81, #82 and #83.
 - [ ] Record the #82 merge semantics and #59 platform decision in their issues before implementing.
 
 ## History

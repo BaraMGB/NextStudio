@@ -7,14 +7,31 @@
 class MouseGestureInput
 {
 public:
+    struct Identity
+    {
+        juce::Time mouseDownTime;
+        int sourceIndex;
+        bool matches(const juce::MouseEvent& event) const
+        { return mouseDownTime == event.mouseDownTime && sourceIndex == event.source.getIndex(); }
+    };
     void remember(const juce::MouseEvent& event)
     {
-        if (!m_event || event.mouseDownTime != m_event->mouseDownTime)
+        if (!belongsToGesture(event))
             m_downScreenPosition = event.eventComponent ? event.eventComponent->localPointToGlobal(event.mouseDownPosition)
                                                          : event.mouseDownPosition;
         m_event.emplace(event);
     }
     void reset() { m_event.reset(); }
+    bool belongsToGesture(const juce::MouseEvent& event) const
+    {
+        const auto key = identity();
+        return key && key->matches(event);
+    }
+    std::optional<Identity> identity() const
+    {
+        if (!m_event) return {};
+        return Identity{m_event->mouseDownTime, m_event->source.getIndex()};
+    }
     std::optional<juce::MouseEvent> withModifiers(juce::ModifierKeys mods) const
     {
         if (!m_event)
@@ -41,4 +58,22 @@ public:
 private:
     juce::Point<float> m_downScreenPosition;
     std::optional<juce::MouseEvent> m_event;
+};
+
+// A canceled selection can suppress only its own release, never the next edit.
+class MouseGestureCancellation
+{
+public:
+    void cancel(const MouseGestureInput& input)
+    {
+        if (auto key = input.identity()) m_identity = key;
+    }
+    bool consume(const juce::MouseEvent& event)
+    {
+        if (!m_identity || !m_identity->matches(event)) return false;
+        m_identity.reset();
+        return true;
+    }
+private:
+    std::optional<MouseGestureInput::Identity> m_identity;
 };

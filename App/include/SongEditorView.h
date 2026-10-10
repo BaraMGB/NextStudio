@@ -27,11 +27,13 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ClipPropertyEdit.h"
 #include "ClipGestureLimits.h"
 #include "TrackLaneComponent.h"
-#include "LassoSelectionTool.h"
+#include "LassoSelectionComponent.h"
+#include "SharedSelectionSnapshot.h"
 #include "MenuBar.h"
 #include "DragState.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include <utility>
 
 class SongEditorView
     : public juce::Component
@@ -82,9 +84,16 @@ public:
     void itemDropped(const SourceDetails &dragSourceDetails) override;
     bool shouldDrawDragImageWhenOver() override { return false; };
 
-    void startLasso(const juce::MouseEvent &e, bool fromAutomation, bool selectRange);
+    void startLasso(const juce::MouseEvent &e, bool fromAutomation);
     void updateLasso(const juce::MouseEvent &e);
     void stopLasso();
+    void startTimeRangeSelection(const juce::MouseEvent &e);
+    void updateTimeRangeSelection(const juce::MouseEvent &e);
+    void stopTimeRangeSelection();
+    bool isSelectingTimeRange() const { return m_timeRangeGesture.active(); }
+    void cancelSelectionGestures(bool restore = true);
+    bool takeCancelledSelection(const juce::MouseEvent& event) { return m_cancelledSelection.consume(event); }
+    void beginSelectionInput() { cancelSelectionGestures(); }
     void clearSelectedTimeRange();
 
     int getYForTrack(te::Track *track);
@@ -98,7 +107,7 @@ public:
 
     void setMouseFeedback(const TimelineSnapResult&, juce::Range<float> vertical, float markerY, std::function<void()> refresh = {});
     void clearMouseFeedback();
-    void cancelDrag();
+    void cancelDrag(bool restoreSelection = true);
     TimelineSnapResolver getMouseSnapResolver() const { return m_timeLine.getMouseSnapResolver(); }
     tracktion::TimePosition snapTimeForMouse(tracktion::TimePosition time) const { return m_timeLine.snapTimeForMouse(time); }
     void beginClipMouseGesture(double pointerX);
@@ -147,14 +156,13 @@ public:
 
     void updateViews()
     {
+        cancelSelectionGestures(false);
         removeAllChildren();
 
         for (auto v : m_trackLanes)
             addAndMakeVisible(v);
 
-        addChildComponent(m_lassoComponent);
         addAndMakeVisible(m_timeRangeOverlay);
-        m_lassoComponent.setAlwaysOnTop(true);
         m_timeRangeOverlay.setAlwaysOnTop(true);
 
         resized();
@@ -162,6 +170,7 @@ public:
 
     void clear()
     {
+        cancelDrag(false);
         m_trackLanes.clear(true);
         resized();
     }
@@ -195,14 +204,17 @@ private:
 
     te::Track::Ptr getTrackAt(int y);
 
-    // LassoSelectionTool
-    void updateClipSelection(bool add);
-    void updateClipCache();
-    void updateAutomationSelection(bool add);
+    double viewYToLane(double y);
+    float laneToViewY(double lane);
+    juce::Array<juce::ValueTree> captureObjectSelection();
+    void applyObjectSelection(const juce::Array<juce::ValueTree>&);
+    void updateClipSelection(juce::ModifierKeys);
+    void updateAutomationSelection(juce::ModifierKeys);
+    void restoreSelectedRange(const GUIHelpers::SelectedTimeRange&);
+    void retainRangeSources();
     void updateRangeSelection(const juce::MouseEvent&);
     void setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd);
     void setSelectedTimeRangeRaw(tracktion::TimeRange);
-    void selectClipsInLasso(const tracktion_engine::Track *track);
 
     bool moveSelectedTimeRanges(tracktion::TimeDuration td, bool copy);
 
@@ -235,19 +247,22 @@ private:
     juce::OwnedArray<TrackLaneComponent> m_trackLanes;
     MenuBar &m_toolBar;
     TimeLineComponent &m_timeLine;
-    LassoSelectionTool m_lassoComponent;
+    LassoSelectionComponent m_lassoComponent;
+    TimeRangeGesture m_timeRangeGesture;
+    MouseGestureInput m_selectionMouseInput;
+    juce::Array<juce::ValueTree> m_lassoOriginalSelection;
+    SharedSelectionSnapshot m_sharedOriginalSelection;
+    GUIHelpers::SelectedTimeRange m_rangeBeforeLasso, m_rangeBeforeSelection;
+    juce::Array<te::Track::Ptr> m_rangeTrackGuards;
+    juce::Array<te::AutomatableParameter::Ptr> m_rangeParameterGuards;
+    MouseGestureCancellation m_cancelledSelection;
 
     // flags
     bool m_isDragging{false};
     bool m_isLassoStartedInAutomation{false};
-    bool m_isSelectingTimeRange{false};
-    tracktion::TimePosition m_rangeCreationAnchor;
     bool m_isDraggingSelectedTimeRange{false};
 
     Tool m_toolMode{Tool::pointer};
-
-    // caches
-    juce::Array<te::Clip *> m_cachedSelectedClips;
 
     GUIHelpers::SelectedTimeRange m_selectedRange;
     juce::Image m_timeRangeImage;

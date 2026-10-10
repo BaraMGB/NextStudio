@@ -29,6 +29,10 @@ The authoritative [snapping contract](timeline-snapping.md) classifies hard/disc
 
 Arrangement placement/overwrites retain the [central clip overwrite command](../architecture/clip-overwrite-command.md) and its atomic undo/model safeguards. Automation retains its existing live-mutation lifecycle; clip ghost and live-header previews must not be interpreted as approval for a new automation transaction model.
 
+## Object lasso and TimeRange
+
+The [shared selection contract](selection-gestures.md) separates object lasso from range creation. `SongEditorView` projects beat/lane anchors, delegates automation marker hits to their lanes, and applies a snapshot-based replace/add/toggle set through the existing selection manager. Ordinary lasso never creates a hidden TimeRange on release. Range has independent begin/update/end/cancel APIs and retains the existing snapped interval, selected-track/automation and overlay editing behavior. Escape/tool changes restore valid original selection and suppress late release events.
+
 ## Cursor working areas and stationary changes
 
 - Knife uses the split cursor throughout clip-capable lanes, including clip gaps, without requiring an individual clip hit. Non-clip lanes such as Master use the normal pointer. The cut line still needs a valid clip/split hit.

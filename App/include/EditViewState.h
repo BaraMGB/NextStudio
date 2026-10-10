@@ -29,24 +29,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "TrackHeightManager.h"
 #include "Utilities.h"
 #include <map>
+#include "SelectableAutomationPoint.h"
 
 namespace te = tracktion_engine;
-
-struct SelectableAutomationPoint : public te::Selectable
-{
-    SelectableAutomationPoint(int i, te::AutomationCurve &c)
-        : index(i),
-          m_curve(c)
-    {
-    }
-    ~SelectableAutomationPoint() override { notifyListenersOfDeletion(); }
-
-    juce::String getSelectableDescription() override { return juce::String("AutomationPoint"); }
-
-    int index = 0;
-    te::AutomationCurve &m_curve;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SelectableAutomationPoint)
-};
 
 // sheetcheat for snapTypes
 // SnapTypeNumber 0 : 1 tick

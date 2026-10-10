@@ -30,6 +30,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "Utilities.h"
 #include "TimelineSnapResolver.h"
 #include "MouseGestureInput.h"
+#include "SelectionIdentity.h"
 
 namespace te = tracktion_engine;
 
@@ -63,7 +64,8 @@ public:
     void modifierKeysChanged(const juce::ModifierKeys&) override;
     void refreshMouseSnapContext();
 
-    void selectPointsInLasso(juce::Rectangle<int> lassoRect, bool addToSelection);
+    juce::Array<juce::ValueTree> findPointsInLasso(juce::Rectangle<float>);
+    void appendLassoSelection(const SelectionTreeSet&, te::SelectableList&);
 
     te::AutomatableParameter::Ptr getAutomatableParameter() const { return m_parameter; }
 
@@ -133,7 +135,7 @@ private:
 
     // Selection/Drag State
     juce::OwnedArray<CurvePoint> m_selPointsAtMousedown;
-    juce::OwnedArray<SelectableAutomationPoint> m_selectedAutomationPoints;
+    juce::ReferenceCountedArray<SelectableAutomationPoint> m_selectedAutomationPoints;
     tracktion::TimePosition m_timeOfHoveredAutomationPoint;
     TimelineMouseGesture m_timeGesture;
     bool m_refreshingSnapContext = false;

@@ -94,6 +94,12 @@ Clip fills and normal/selected frames share the same unrounded time edges. Adjoi
 | Delete (Trash) | Delete selected. Shortcut: `Backspace`, `Delete`, `Cmd/Ctrl+X`. |
 | Reverse (Back Arrow) | Reverse audio. Shortcut: `Cmd/Ctrl+B`. |
 
+### Lasso and Range selection
+
+Lasso selects clips by their displayed rectangles, or automation points when started in an automation lane. Normal dragging replaces selection; hold `Shift` to add or `Ctrl/Command` to toggle hits relative to the original selection. Shrinking the frame removes transient hits. Escape/tool changes cancel and restore the previous valid selection. The dedicated Lasso returns to Pointer after release and does not create a TimeRange.
+
+Range independently selects a musical interval over tracks/automation lanes, including empty space. Its existing snapping, move/copy/resize/delete operations remain separate from object selection. It returns to Pointer after completion; Escape restores the previous range/selection.
+
 ### Editing (Pointer Tool)
 
 - **Select:** Click on clip/automation point. `Shift`+click for multiple selection. `Ctrl/Cmd`+click to add/remove.

@@ -593,10 +593,10 @@ The dump currently includes:
 - current lower range view
 - autosave flag
 - transport state
-- selection summary
+- selection summary, including selected MIDI-note details and automation-point count
 - track IDs, types, selection, and clip summaries
 - clip IDs, ranges, and MIDI-note summaries
-- plugin IDs, compact state counts, and parameter IDs/current values per track
+- plugin IDs, compact state counts, and parameter IDs/current values/automation-point summaries per track
 
 ### Filtering strategy
 

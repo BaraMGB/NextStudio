@@ -20,7 +20,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "PointerTool.h"
-#include "LassoTool.h"
 
 #include <map>
 
@@ -70,39 +69,37 @@ void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewpor
     }
     else
     {
-        // Empty space - don't immediately switch to LassoTool. Defer starting lasso until
-        // the user drags the mouse to allow double-clicks to be detected by PointerTool.
-        viewport.unselectAll();
-        m_pendingLassoStart = true;
+        // Capture the anchor/selection now; only display the frame after the
+        // drag threshold. Keep this strategy alive for double-click insertion.
+        if (event.mods.isLeftButtonDown())
+        {
+            viewport.startLasso(event);
+            m_pendingLassoStart = true;
+        }
     }
 }
 
 void PointerTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
+    viewport.stopLasso();
+    m_pendingLassoStart = false;
     viewport.setClickedClip(viewport.getClipAt(event.position.x));
     insertNoteAtPosition(event, viewport);
 }
 
 void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
 {
+    if (m_pendingLassoStart)
+    {
+        if (event.getDistanceFromDragStart() > 5)
+            viewport.updateLasso(event);
+        return;
+    }
     if (!m_isDragging && event.getDistanceFromDragStart() > 5)
         m_isDragging = true;
 
     if (m_isDragging)
     {
-        // If we had a pending lasso start (clicked empty space before dragging), start the lasso now.
-        if (m_pendingLassoStart)
-        {
-            m_pendingLassoStart = false;
-            viewport.setTool(Tool::lasso);
-            if (auto *lassoTool = dynamic_cast<LassoTool *>(viewport.getCurrentTool()))
-            {
-                lassoTool->mouseDown(event, viewport);
-                lassoTool->mouseDrag(event, viewport);
-                return; // LassoTool now handles dragging
-            }
-        }
-
         viewport.setSnap(viewport.getTimeLine()->isSnappingEnabled() && !event.mods.isShiftDown());
 
         auto* clickedNote = viewport.getClickedNote();
@@ -162,6 +159,13 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
 
 void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
+    if (m_pendingLassoStart)
+    {
+        if (event.getDistanceFromDragStart() > 5) viewport.updateLasso(event);
+        viewport.stopLasso();
+        m_pendingLassoStart = false;
+        return;
+    }
     if (m_isDragging)
         mouseDrag(event, viewport);
     if (!m_isDragging)
@@ -175,7 +179,7 @@ void PointerTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
             }
         }
 
-        // If we had a pending lasso start but the user didn't drag (i.e. just clicked), clear it.
+        // The empty-space pending-lasso branch above has already returned.
         m_pendingLassoStart = false;
     }
     else
@@ -274,6 +278,7 @@ void PointerTool::resetDrag(MidiViewport& viewport)
 
 void PointerTool::toolDeactivated(MidiViewport& viewport)
 {
+    viewport.cancelSelectionGesture();
     resetDrag(viewport);
     m_pendingLassoStart = false;
 }

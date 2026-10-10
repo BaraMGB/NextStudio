@@ -33,6 +33,7 @@ The current suites are:
 | `ProjectWorkflow` | pending operations, save-error cleanup, recovery confirmation, deferred-execution guards, cancellation, errors, and interaction-lock states | `App/tests/ProjectWorkflowTests.cpp` |
 | `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
+| `SelectionGestures` | independent Lasso/TimeRange state, floating musical anchor projection, reverse/empty rectangles, inclusive marker boundaries, snapshot-based replace/add/toggle/shrink policy, real Tracktion note identity resolution and selection-only model/undo isolation | `App/tests/SelectionGestureTests.cpp` |
 | `PianoRollNoteLength` | inserted-note length modes, note values, finite fallbacks, and tick-only draw floor | `App/tests/PianoRollNoteLengthTests.cpp` |
 | `TimelineSoftSnap` | continuous/monotonic physical-pixel curve, MIDI/Song attraction profiles and default MIDI profile selection, exact detents and detailed plateau classification, dense sweeps, narrow/unequal/long intervals, inverse anchors, bounded slope/displacement, invalid profiles, and non-idempotence | `App/tests/TimelineSoftSnapTests.cpp` |
 | `TimelineSnapping` | production fixed/adaptive resolver, tempo ramps/meter/triplet boundaries (including engine bar-rounding failures), 100/125/150/200% physical scaling, MIDI Knife preview coordinate-type and grid raster-coverage regression, corrected downward creation anchors, production time-range/drop endpoint projection through tempo changes/ramps at four scales and panned/off-screen views, raw bypass/context transitions, relative Draw state, real offset-clip creation/overlap, fractional persistence and one-step undo/redo, note/clip/automation group constraints, held/free/bypass/limit/invalid feedback and reset, stationary Draw Shift reporting, queued JUCE TextEditor focus-loss completion/rejection and idempotence, whole-group move destinations including invalid secondary lanes and extreme offsets, shared clip preview ranges, theme-derived font tint and fractional lane-clipped guide/diamond raster rendering and JUCE sibling/header versus foreground ruler-cue ordering at four scales | `App/tests/TimelineSnappingTests.cpp` |
@@ -130,6 +131,41 @@ xvfb-run -a --server-args='-screen 0 1600x1000x24' \
 A nonzero exit indicates failed cursor/model checks or invalid prerequisites/fixture. Reference images must be visible and distinguish tool/body/edge states, preventing an all-normal-cursor fixture from passing. Against the retained pre-correction binary the working-area procedure detects the original 12 failures; the current binary passes. This does not create new cross-platform or fractional-scale certification.
 
 Additional focused manual/runtime checks still cover active drag cursors, release/cancellation, stationary MIDI tool changes and pan, real Draw/Knife/Eraser actions and undo/redo. These are **not** automated by the two maintained suites. Native higher scaling, monitor transitions, other platforms and exhaustive automation/overlay cases require separately scoped runs. The [historical #90 record](../archive/changes/tool-cursor-working-areas.md) preserves the original 100/125% evidence and follow-up limits.
+
+## Selection gesture validation
+
+The [selection contract](../components/selection-gestures.md) owns independent Lasso/TimeRange state, musical anchors, source hit tests, snapshots and cancellation. `SelectionGestureTests` exercises the production geometry/policy helpers and real Tracktion MIDI selection adapter, including deleted/recreated note identity and changed clip sets, plus mouse-down ownership, replay identity and cancellation not consuming a subsequent edit release. Shared-manager tests restore multiple MIDI owners, controller membership and external clips, retain automation proxies, reject deleted point/event-owner and detached clip identities, and check model/undo isolation. Indexed policy tests preserve distinct equal-content/propertyless identities, rebuild after property-storage changes, and print 2,000/20,000-identical-content-object update timings without machine-dependent pass thresholds. It is not a substitute for mouse dispatch or rendered selection checks.
+
+After building, use the same private X11/debug-shell prerequisites and undecorated 1600×1000, 100%-scale fixture as the cursor procedure:
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-selection-regression.py \
+  --output "./artifacts/selection-$(date +%Y%m%d-%H%M%S)"
+```
+
+The maintained procedure verifies MIDI Pointer down-anchor preservation, lasso expand/shrink, Shift addition, Ctrl toggling, Escape/restoration/late events, a new MIDI press without tool reset after cancellation, independent MIDI Range, stationary-pointer zoom, arrangement object/range separation, and automation selection with the same snapshot policies. Shift/Ctrl are pressed and released after drag initiation without pointer movement in all three sources. Cross-editor Lasso/Range cancellation compares the complete shared selection before/after, including automation proxy restoration after asynchronous cleanup. It creates its automation lane/points through the real control/menu and mouse handlers, not through a second selector. Musical note/clip records and automation-point summaries must remain unchanged during selection. State dumps include MIDI membership and automation selection count; screenshots cover rectangle/range appearance. Retain relevant output as issue/CI evidence; local output alone is not durable certification.
+
+`--binary`, `--display` and `--delay` control the isolated fixture. The output directory must not exist. The procedure imports the existing cursor test's maintained session/bridge and inherits its dependency and safety checks. Fixed UI coordinates depend on default layout/theme; fixture changes must be reviewed, not treated as selection-policy changes.
+
+Separately validate active tool/track changes, source deletion/reordering, multiple automation lanes, vertical pan and fractional UI/display scaling. Native tests do not inject superseded-source mouse events directly into the production viewport; helper tests and explicit press-ownership dispatch guards cover that rejection contract. Unit/model coverage checks some of these identities/projections but does not prove full native routing. Other native platforms and physical displays require scoped runs. Velocity-lane lasso belongs to the subsequent #84 batch and is not claimed by this foundation.
+
+## Arrangement drag commit validation
+
+Selection tests do not certify the subsequent move/copy commit. `tools/native-arrangement-drag-regression.py` uses the same private X11/debug-shell fixture and prerequisites as the cursor procedure. Run native sessions sequentially, with no competing NextStudio instance.
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-arrangement-drag-regression.py \
+  --output "./artifacts/drag-clean-$(date +%Y%m%d-%H%M%S)"
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-arrangement-drag-regression.py --existing-overlaps \
+  --output "./artifacts/drag-overlaps-$(date +%Y%m%d-%H%M%S)"
+```
+
+Both variants expect committed clip/range moves and copies, stable MIDI contents and untouched legacy material. Checks use actual post-release model dumps, not just visible previews. The default variant uses clean tracks. The default variant also cancels a lasso before clip editing and cancels a replacement range before editing the restored interval. The second variant is a separate legacy-data diagnostic: it seeds an unrelated overlapping pair through the engine fixture helper to represent existing/imported project state. It still returns failure under the unchanged [global overwrite contract](../architecture/clip-overwrite-command.md). That diagnostic is not an established reproduction of the maintainer's universal drag regression and does not authorize changing the overwrite policy. Do not treat it as passing acceptance.
+
+`--binary`, `--display`, `--delay` and the non-existing output directory follow the cursor procedure. Fixed coordinates assume default 100% layout/theme. Audio, vertical/group dragging, physical displays, native fractional scaling and Windows/macOS require separate scoped coverage.
 
 ## Live MIDI input and key lighting
 

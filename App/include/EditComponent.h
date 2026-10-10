@@ -33,7 +33,6 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "TrackHeadComponent.h"
 #include "TrackLaneComponent.h"
 #include "TrackListView.h"
-#include "LassoSelectionTool.h"
 #include "MenuBar.h"
 #include "EditViewState.h"
 #include "Utilities.h"

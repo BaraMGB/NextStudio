@@ -21,16 +21,21 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "LassoTool.h"
 
-void LassoTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.startLasso(event, false); }
+void LassoTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.startLasso(event); }
 
 void LassoTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.updateLasso(event); }
 
 void LassoTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 {
+    if (!viewport.isLassoActive()) return;
+    if (event.mouseWasDraggedSinceMouseDown()) viewport.updateLasso(event);
     viewport.stopLasso();
-
-    // Switch back to PointerTool after lasso selection is complete
-    viewport.setTool(Tool::pointer);
+    // Defer replacement until the strategy's current call has returned.
+    juce::MessageManager::callAsync([safe = juce::Component::SafePointer<MidiViewport>(&viewport)]
+    {
+        if (safe && safe->getCurrentToolType() == Tool::lasso && !safe->isLassoActive())
+            safe->setTool(Tool::pointer);
+    });
 }
 
 void LassoTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
@@ -44,4 +49,8 @@ juce::MouseCursor LassoTool::getCursor(MidiViewport &viewport) const { return GU
 
 void LassoTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void LassoTool::toolDeactivated(MidiViewport &viewport) { viewport.setMouseCursor(juce::MouseCursor::NormalCursor); }
+void LassoTool::toolDeactivated(MidiViewport &viewport)
+{
+    viewport.cancelSelectionGesture();
+    viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
+}

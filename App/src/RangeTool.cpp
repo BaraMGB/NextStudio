@@ -21,11 +21,15 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "RangeTool.h"
 
-void RangeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.startLasso(event, true); }
+void RangeTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.startTimeRangeSelection(event); }
 
-void RangeTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.updateLasso(event); }
+void RangeTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.updateTimeRangeSelection(event); }
 
-void RangeTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.stopLasso(); }
+void RangeTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
+{
+    if (event.mouseWasDraggedSinceMouseDown()) viewport.updateTimeRangeSelection(event);
+    viewport.stopTimeRangeSelection();
+}
 
 void RangeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
@@ -38,4 +42,8 @@ juce::MouseCursor RangeTool::getCursor(MidiViewport &viewport) const { return GU
 
 void RangeTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
-void RangeTool::toolDeactivated(MidiViewport &viewport) { viewport.setMouseCursor(juce::MouseCursor::NormalCursor); }
+void RangeTool::toolDeactivated(MidiViewport &viewport)
+{
+    viewport.cancelSelectionGesture();
+    viewport.setMouseCursor(juce::MouseCursor::NormalCursor);
+}

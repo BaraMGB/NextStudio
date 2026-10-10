@@ -108,7 +108,9 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 - `KnifeTool.*`
 - `LassoTool.*`
 - `RangeTool.*`
-- `LassoSelectionTool.*`
+- `LassoSelectionComponent.*` — rectangle display/projection, independent of Range
+- `SelectionGestures.h` / `MidiSelectionSnapshot.h` — separate anchored gestures, selection policy and live note identity resolution
+- `SelectionIdentity.h` / `SharedSelectionSnapshot.h` / `SelectableAutomationPoint.h` — per-update lookup indices, shared-editor cancellation and retained automation identities
 
 #### Plug-in hosting and chain UI
 

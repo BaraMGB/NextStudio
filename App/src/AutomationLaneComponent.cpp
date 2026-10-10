@@ -23,6 +23,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "AutomationGestureLimits.h"
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 #include "SongEditorView.h"
 #include "ScopedSaveLock.h"
 #include "TimeUtils.h"
@@ -49,10 +50,15 @@ void AutomationLaneComponent::changeListenerCallback(juce::ChangeBroadcaster *so
 {
     if (source == &m_editViewState.m_selectionManager)
     {
+        const auto indices = indexSelectionChildren(m_parameter->getCurve().state);
+        const auto& selection = m_editViewState.m_selectionManager.getSelectedObjects();
+        const std::unordered_set<te::Selectable*> selected(selection.begin(), selection.end());
         for (int i = m_selectedAutomationPoints.size(); --i >= 0;)
         {
-            auto *p = m_selectedAutomationPoints.getUnchecked(i);
-            if (!m_editViewState.m_selectionManager.isSelected(p))
+            auto *p = m_selectedAutomationPoints.getUnchecked(i).get();
+            const auto found = indices.find(p->pointState);
+            p->index = found == indices.end() ? -1 : found->second;
+            if (p->index < 0 || (!selected.contains(p) && p->getReferenceCount() == 1))
                 m_selectedAutomationPoints.remove(i);
         }
         repaint();
@@ -61,6 +67,7 @@ void AutomationLaneComponent::changeListenerCallback(juce::ChangeBroadcaster *so
 
 void AutomationLaneComponent::handleAsyncUpdate()
 {
+    changeListenerCallback(&m_editViewState.m_selectionManager);
     invalidateCurveCache();
     updateCurveCache(m_parameter->getCurve());
     repaint();
@@ -144,6 +151,7 @@ void AutomationLaneComponent::mouseExit(const juce::MouseEvent &e)
 
 void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
+    m_songEditor.beginSelectionInput();
     m_mouseInput.remember(e);
     ScopedSaveLock saveLock(m_editViewState);
     m_isDragging = false;
@@ -159,7 +167,14 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
     if (leftButton && m_songEditor.getToolMode() == Tool::range)
     {
         auto eventInSEV = e.getEventRelativeTo(&m_songEditor);
-        m_songEditor.startLasso(eventInSEV, true, true);
+        m_songEditor.startTimeRangeSelection(eventInSEV);
+        m_isLassoInteraction = true;
+        return;
+    }
+
+    if (leftButton && m_songEditor.getToolMode() == Tool::lasso)
+    {
+        m_songEditor.startLasso(e.getEventRelativeTo(&m_songEditor), true);
         m_isLassoInteraction = true;
         return;
     }
@@ -258,7 +273,7 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         // Call startLasso on SongEditorView directly, indicating it starts from automation
         // We need to convert the event to SongEditorView coordinates
         auto eventInSEV = e.getEventRelativeTo(&m_songEditor);
-        m_songEditor.startLasso(eventInSEV, true, false);
+        m_songEditor.startLasso(eventInSEV, true);
         m_isLassoInteraction = true;
     }
 }
@@ -274,6 +289,7 @@ void AutomationLaneComponent::refreshMouseSnapContext()
 
 void AutomationLaneComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
 {
+    m_songEditor.modifierKeysChanged(mods);
     if (m_timeGesture.active())
         if (auto event = m_mouseInput.withModifiers(mods); event && event->mouseWasDraggedSinceMouseDown())
             mouseDrag(*event);
@@ -281,10 +297,13 @@ void AutomationLaneComponent::modifierKeysChanged(const juce::ModifierKeys& mods
 
 void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
+    if (!m_mouseInput.belongsToGesture(e)) return;
     m_mouseInput.remember(e);
     if (m_isLassoInteraction)
     {
-        m_songEditor.updateLasso(e.getEventRelativeTo(&m_songEditor));
+        const auto event = e.getEventRelativeTo(&m_songEditor);
+        if (m_songEditor.isSelectingTimeRange()) m_songEditor.updateTimeRangeSelection(event);
+        else m_songEditor.updateLasso(event);
         return;
     }
 
@@ -386,7 +405,14 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 
 void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
 {
-    if (m_timeGesture.active() && e.mouseWasDraggedSinceMouseDown())
+    if (!m_mouseInput.belongsToGesture(e)) return;
+    if (m_songEditor.takeCancelledSelection(e))
+    {
+        m_isLassoInteraction = false;
+        m_mouseInput.reset();
+        return;
+    }
+    if ((m_timeGesture.active() || m_isLassoInteraction) && e.mouseWasDraggedSinceMouseDown())
         mouseDrag(e);
     m_isDragging = false;
     m_timeGesture.reset();
@@ -396,7 +422,8 @@ void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
 
     if (m_isLassoInteraction)
     {
-        m_songEditor.stopLasso();
+        if (m_songEditor.isSelectingTimeRange()) m_songEditor.stopTimeRangeSelection();
+        else m_songEditor.stopLasso();
         m_songEditor.repaint();
         m_isLassoInteraction = false;
     }
@@ -404,30 +431,41 @@ void AutomationLaneComponent::mouseUp(const juce::MouseEvent &e)
     repaint();
 }
 
-void AutomationLaneComponent::selectPointsInLasso(juce::Rectangle<int> lassoRect, bool addToSelection)
+juce::Array<juce::ValueTree> AutomationLaneComponent::findPointsInLasso(juce::Rectangle<float> rect)
 {
-    auto visibleRange = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth());
-    auto x1 = visibleRange.getStart().inBeats();
-    auto x2 = visibleRange.getEnd().inBeats();
-
-    // Get parent relative position (TrackLane -> SongEditorView)
-    auto parent = getParentComponent();
-    if (!parent)
-        return;
-
-    auto lanePosInSEV = getBoundsInParent().translated(parent->getX(), parent->getY());
-
-    for (int i = 0; i < m_parameter->getCurve().getNumPoints(); ++i)
+    juce::Array<juce::ValueTree> hits;
+    if (!isShowing()) return hits;
+    const auto beats = m_editViewState.getVisibleBeatRange(m_timeLineID, getWidth());
+    const auto& curve = m_parameter->getCurve();
+    for (int i = 0; i < curve.getNumPoints(); ++i)
     {
-        auto point = m_parameter->getCurve().getPoint(i);
-        auto pointPosLocal = getPointOnAutomationRect(point.time, point.value, getWidth(), x1, x2);
+        const auto point = curve.getPoint(i);
+        const auto local = getPointOnAutomationRect(point.time, point.value, getWidth(), beats.getStart().inBeats(), beats.getEnd().inBeats());
+        const auto position = m_songEditor.getLocalPoint(this, local);
+        if (LassoGesture::containsCentre(rect, position)) hits.add(curve.state.getChild(i));
+    }
+    return hits;
+}
 
-        auto pointPosInSEV = pointPosLocal.translated(lanePosInSEV.getX(), lanePosInSEV.getY());
-
-        if (lassoRect.contains(pointPosInSEV.toInt()))
+void AutomationLaneComponent::appendLassoSelection(const SelectionTreeSet& wanted, te::SelectableList& selected)
+{
+    const auto& curve = m_parameter->getCurve();
+    std::unordered_map<juce::ValueTree, SelectableAutomationPoint*, SelectionIdentityHash<juce::ValueTree>> proxies;
+    proxies.reserve(size_t(m_selectedAutomationPoints.size()));
+    for (auto* candidate : m_selectedAutomationPoints) proxies.emplace(candidate->pointState, candidate);
+    for (int i = 0; i < curve.getNumPoints(); ++i)
+    {
+        const auto state = curve.state.getChild(i);
+        if (!wanted.contains(state)) continue;
+        const auto found = proxies.find(state);
+        auto* proxy = found == proxies.end() ? nullptr : found->second;
+        if (proxy == nullptr)
         {
-            selectAutomationPoint(i, true);
+            proxy = new SelectableAutomationPoint(i, m_parameter->getCurve());
+            m_selectedAutomationPoints.add(proxy);
         }
+        proxy->index = i;
+        selected.add(proxy);
     }
 }
 
@@ -462,24 +500,31 @@ void AutomationLaneComponent::selectAutomationPoint(int index, bool add)
 {
     if (index >= 0 && index < m_parameter->getCurve().getNumPoints())
     {
-        auto selectablePoint = std::make_unique<SelectableAutomationPoint>(index, m_parameter->getCurve());
-        m_editViewState.m_selectionManager.select(selectablePoint.get(), add);
-        m_selectedAutomationPoints.add(std::move(selectablePoint));
+        te::SelectableList points;
+        appendLassoSelection({m_parameter->getCurve().state.getChild(index)}, points);
+        if (!points.isEmpty()) m_editViewState.m_selectionManager.select(points.getFirst(), add);
     }
 }
 
 void AutomationLaneComponent::deselectAutomationPoint(int index)
 {
     for (auto p : m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>())
-        if (p->m_curve.getOwnerParameter() == m_parameter->getCurve().getOwnerParameter() && p->index == index)
+        if (p->m_curve.getOwnerParameter() == m_parameter->getCurve().getOwnerParameter()
+            && p->pointState == m_parameter->getCurve().state.getChild(index))
             p->deselect();
 }
 
 juce::OwnedArray<AutomationLaneComponent::CurvePoint> AutomationLaneComponent::getSelectedPoints()
 {
     juce::OwnedArray<CurvePoint> points;
+    std::unordered_map<te::AutomationCurve*, SelectionTreeIndex> curves;
     for (auto p : m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>())
     {
+        auto [curve, inserted] = curves.try_emplace(&p->m_curve);
+        if (inserted) curve->second = indexSelectionChildren(p->m_curve.state);
+        const auto found = curve->second.find(p->pointState);
+        p->index = found == curve->second.end() ? -1 : found->second;
+        if (p->index < 0) continue;
         auto cp = std::make_unique<CurvePoint>(p->m_curve.getPointTime(p->index), p->m_curve.getPointValue(p->index), p->index, p->m_curve.getOwnerParameter());
 
         points.add(std::move(cp));
@@ -778,7 +823,8 @@ int AutomationLaneComponent::getAutomationPointWidth()
 bool AutomationLaneComponent::isAutomationPointSelected(int index)
 {
     for (auto p : m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>())
-        if (p->m_curve.getOwnerParameter() == m_parameter->getCurve().getOwnerParameter() && p->index == index)
+        if (p->m_curve.getOwnerParameter() == m_parameter->getCurve().getOwnerParameter()
+            && p->pointState == m_parameter->getCurve().state.getChild(index))
             return true;
 
     return false;

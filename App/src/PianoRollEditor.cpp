@@ -689,6 +689,7 @@ void PianoRollEditor::handleAsyncUpdate()
     if (m_pianoRollViewPort != nullptr && compareAndReset(m_updateNoteEditor))
     {
         m_pianoRollViewPort->refreshNoteUnderMouse();
+        m_pianoRollViewPort->refreshMouseSnapContext();
         m_pianoRollViewPort->repaint();
         m_timeLine.repaint();
         repaint(getFooterRect());

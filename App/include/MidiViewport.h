@@ -27,7 +27,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MidiPendingPaste.h"
 #include "MidiNotePropertyEdit.h"
 #include "ToolStrategy.h"
-#include "LassoSelectionTool.h"
+#include "LassoSelectionComponent.h"
+#include "MidiSelectionSnapshot.h"
+#include "SharedSelectionSnapshot.h"
 #include "EditViewState.h"
 #include "Utilities.h"
 
@@ -143,12 +145,18 @@ public:
     double getKeyForY(int y);
     int getYForKey(double key);
     juce::Range<float> getNoteLane(int pitch) const { return getNoteRect(pitch, 0, 1).getVerticalRange(); }
-    void startLasso(const juce::MouseEvent &e, bool isRangeTool = false);
+    void startLasso(const juce::MouseEvent &e);
     void updateLasso(const juce::MouseEvent &e);
     void stopLasso();
+    void startTimeRangeSelection(const juce::MouseEvent &e);
+    void updateTimeRangeSelection(const juce::MouseEvent &e);
+    void stopTimeRangeSelection();
+    bool cancelSelectionGesture(bool restore = true);
+    bool isLassoActive() const { return m_lassoComponent.active(); }
 
 private:
     MouseGestureInput m_mouseInput;
+    MouseGestureInput m_pressInput;
     void updateToolCursor();
     void changeListenerCallback(juce::ChangeBroadcaster *) override;
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
@@ -182,9 +190,9 @@ private:
     void scrollPianoRoll(float delta);
     void updateNoteUnderMouse();
 
-    void updateLassoSelection();
-    juce::Range<double> getLassoVerticalKeyRange();
-    bool isInLassoRange(const te::MidiClip *clip, const tracktion_engine::MidiNote *midiNote);
+    void replaceSelection(const MidiSelectionSnapshot::Items&);
+    void updateLassoSelection(juce::ModifierKeys);
+    void updateRangeNoteSelection();
 
     bool isHovered(te::MidiNote *note);
     void setHovered(te::MidiNote *note, bool hovered);
@@ -201,7 +209,10 @@ private:
 
     te::Track::Ptr m_track;
     TimeLineComponent &m_timeLine;
-    LassoSelectionTool m_lassoTool;
+    LassoSelectionComponent m_lassoComponent;
+    TimeRangeGesture m_timeRangeGesture;
+    MidiSelectionSnapshot::Items m_selectionAtGestureStart;
+    SharedSelectionSnapshot m_sharedOriginalSelection;
 
     // states
     te::MidiNote *m_clickedNote{nullptr};
