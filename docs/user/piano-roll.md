@@ -245,7 +245,7 @@ Use MIDI numbers for unambiguous absolute pitch entry. The current name parser d
 
 The velocity lane draws one vertical stem and handle for each visible note. Selected handles keep a white outline.
 
-Use Lasso in this lane, or drag empty space with Pointer, to select notes by their circular handle centres (time and velocity), not by stems or pitch. The selection is shared with the note grid. Shift adds; Ctrl/Command toggles; shrinking and live modifier changes recompute from the original selection. Escape or changing tools cancels and restores it. Explicit Lasso returns to Pointer on release. Clicking a handle alone does not select it; direct handle dragging outside Lasso retains velocity editing:
+Use Lasso in this lane, or drag empty space with Pointer, to select notes by their circular handle centres (time and velocity), not by stems or pitch. The selection is shared with the note grid. Shift adds; Ctrl/Command toggles; shrinking and live modifier changes recompute from the original selection. Escape or changing tools cancels and restores it. Explicit Lasso returns to Pointer on release. Outside Lasso, clicking a handle selects its note on release: a normal click replaces the selection, Shift adds, and Ctrl/Command toggles. Clicking does not change velocity. Direct handle dragging retains its previous behavior without changing selection:
 
 - move over a handle to mark its note as hovered;
 - drag a handle vertically to change velocity;

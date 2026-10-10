@@ -166,6 +166,9 @@ console/native procedures and coverage boundaries. The velocity lane is a lasso
 source for [#84](https://github.com/BaraMGB/NextStudio/issues/84), awaiting maintainer
 testing. Explicit Lasso selects even when pressed on a head; Pointer on empty
 space selects, while a direct head drag still edits the existing selected group
-or just the unselected note. A head click alone does not change membership.
-Selected heads retain a white outline after hover exits. The [approved plan](../plans/lasso-time-range-separation.md)
+or just the unselected note. Outside explicit Lasso, a head click selects its note
+on non-drag release: normal click replaces membership, Shift adds, and Ctrl/Command
+toggles. Selection is deferred so a drag never changes its original group; live
+ValueTree resolution rejects removed/recreated press targets. Clicks do not edit
+velocity or create undo transactions. Selected heads retain a white outline after hover exits. The [approved plan](../plans/lasso-time-range-separation.md)
 remains active until both implementation stages are accepted.

@@ -80,6 +80,8 @@ private:
     juce::Array<DragVelocityState> m_dragVelocityStates;
     juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
     te::MidiNote *m_dragReferenceNote{nullptr};
+    juce::ValueTree m_pressedMarker;
+    bool m_markerDragged{false};
     juce::String m_timeLineID;
     juce::Component::SafePointer<MidiViewport> m_viewport;
 };

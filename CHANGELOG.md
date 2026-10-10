@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Velocity-marker click selection** — Clicking a lollipop outside explicit Lasso now selects its note; Shift adds and Ctrl/Command toggles. Selection occurs only on a non-drag release, preserving selected-group and unselected-single-note velocity dragging without model/undo changes from clicks.
 - **Note-property completion before velocity gestures** — Valid typed properties now commit on leaving the field for velocity selection or marker dragging, matching the note grid. Invalid text is rejected, Escape discards text, and delayed focus notifications cannot reapply the edit to a new selection.
 - **Piano-key selection after a lasso** — Clicking a piano key again selects all matching notes after grid/velocity lassos, Range selection or clearing notes. The explicit target clip scope survives note-only selection; selecting different clips updates it without including unrelated clips or restoring arrangement clip selection.
 - **Velocity-lane lasso selection (#84)** — Lasso and Pointer empty-space drags now select notes by circular velocity-marker heads through the shared MIDI selection system. Shift adds, Ctrl/Command toggles, Escape/tool changes restore the original selection, and selected heads remain highlighted. Direct selected-group and unselected-single-note velocity dragging are preserved.

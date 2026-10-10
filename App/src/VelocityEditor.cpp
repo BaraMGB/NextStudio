@@ -72,6 +72,8 @@ void VelocityEditor::mouseDown(const juce::MouseEvent &e)
 {
     m_dragVelocityStates.clear();
     m_dragReferenceNote = nullptr;
+    m_pressedMarker = {};
+    m_markerDragged = false;
     m_pressInput.reset();
     if (!m_viewport || !e.mods.isLeftButtonDown())
         return;
@@ -108,6 +110,7 @@ void VelocityEditor::mouseDown(const juce::MouseEvent &e)
     if (hoveredNote != nullptr)
     {
         m_dragReferenceNote = hoveredNote;
+        m_pressedMarker = hoveredNote->state;
 
         if (auto *selectedEvents = m_editViewState.m_selectionManager.getFirstItemOfType<te::SelectedMidiEvents>(); selectedEvents != nullptr && selectedEvents->isSelected(hoveredNote))
         {
@@ -132,6 +135,9 @@ void VelocityEditor::mouseDrag(const juce::MouseEvent &e)
     if (m_dragVelocityStates.isEmpty())
         return;
 
+    // Even a sub-threshold motion may edit velocity. Never treat that release
+    // as a selection click, or change the group midway through a marker drag.
+    m_markerDragged = m_markerDragged || e.getDistanceFromDragStart() > 0;
     const int velocityDelta = -e.getDistanceFromDragStartY();
     int lastVelocity = m_editViewState.m_lastVelocity;
     bool updatedReferenceVelocity = false;
@@ -189,6 +195,22 @@ void VelocityEditor::mouseUp(const juce::MouseEvent &e)
         if (oneShot)
             m_viewport->setTool(Tool::pointer);
     }
+    else if (m_viewport && m_pressedMarker.isValid() && !m_markerDragged && !e.mouseWasDraggedSinceMouseDown())
+    {
+        // Resolve the press identity against live clips, never dereference a
+        // note that may have been deleted/recreated since mouseDown.
+        const auto &clips = m_viewport->getCachedMidiClips();
+        const MidiSelectionSnapshot::Items hit{m_pressedMarker};
+        if (!MidiSelectionSnapshot::resolve(hit, clips).isEmpty())
+        {
+            auto &selected = m_viewport->getSelectedEvents();
+            const auto original = MidiSelectionSnapshot::capture(selected, clips);
+            MidiSelectionSnapshot::apply(combineLassoSelection(original, hit, lassoSelectionMode(e.mods)),
+                                         selected, m_editViewState.m_selectionManager, clips);
+        }
+    }
+    m_pressedMarker = {};
+    m_markerDragged = false;
     m_pressInput.reset();
     m_dragVelocityStates.clear();
     m_dragReferenceNote = nullptr;

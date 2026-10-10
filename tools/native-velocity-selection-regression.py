@@ -234,6 +234,44 @@ def run(args, output):
         musical_model("property-marker-drag-origin", committed)  # 80 + 10, not 90 + 10.
         selection("property-marker-drag-membership", [55])
 
+        # Click selection is deferred until release, so existing unselected-
+        # single and selected-group velocity drags above retain their membership.
+        s.x("mousemove", 502, 923, "mousedown", 1)
+        selection("marker-click-before-release", [55])
+        release()
+        selection("marker-click-replace", [53])
+        s.click(774, 896)
+        selection("marker-click-other-note", [55])
+        s.x("keydown", "shift")
+        s.click(502, 923)
+        s.x("keyup", "shift")
+        selection("marker-click-shift-add", [53, 55])
+        s.x("keydown", "shift")
+        s.click(502, 923)
+        s.x("keyup", "shift")
+        selection("marker-click-shift-selected", [53, 55])
+        s.x("keydown", "ctrl")
+        s.click(502, 923)
+        s.x("keyup", "ctrl")
+        selection("marker-click-ctrl-remove", [55])
+        s.x("keydown", "ctrl")
+        s.click(1046, 879)
+        s.x("keyup", "ctrl")
+        selection("marker-click-ctrl-add", [55, 57])
+        s.click(774, 896)
+        selection("marker-click-selected-replace", [55])
+        s.x("keydown", "ctrl")
+        s.click(774, 896)
+        s.x("keyup", "ctrl")
+        selection("marker-click-toggle-empty", [])
+        s.click(502, 923)
+        selection("marker-click-from-empty", [53])
+        s.x("mousemove", 774, 896, "click", 3)
+        selection("marker-right-click-unchanged", [53])
+        musical_model("marker-clicks-model-unchanged", committed)
+        s.x("mousemove", 1200, 955)
+        s.shell("screenshot 1600", "marker-click-selected-head.png")
+
         (output / "results.json").write_text(json.dumps({
             "binary": str(args.binary), "binarySha256": fixture.file_hash(args.binary),
             "fixture": "private Linux/X11 1600x1000, 100% scale", "checks": checks,
