@@ -84,7 +84,7 @@ Text/wheel changes apply per effective edit; a scrub has one transaction at rele
 
 During a multi-note canvas gesture, `NOTES (REF):` identifies the grabbed note and retains the real count. Draw adds no dummy note/count and is not labeled as an existing selected reference. Idle mixed values/numeric group semantics return after the gesture.
 
-[Shared feedback](timeline-snapping.md#snap-feedback-and-live-values) owns preview precedence, subtle tint, field-edit completion and cleanup. The bar's `finishActiveEdit()` invokes synchronous completion for writable fields, including already-queued focus loss. Owner commit scopes distinguish intentional note recreation from external deletion; callbacks disconnect during teardown. Snap status belongs to the originating Piano Roll context.
+[Shared feedback](timeline-snapping.md#snap-feedback-and-live-values) owns preview precedence, subtle tint, field-edit completion and cleanup. The bar's `finishActiveEdit()` invokes synchronous completion for writable fields, including already-queued focus loss. Both grid and velocity-lane presses call `onNoteInteractionBeginning` before changing selection or reading marker/drag origins; valid text commits to the old selection, invalid text is rejected, and Escape remains cancellation. The [focus-loss contract](property-field-input.md#focus-loss-policy-and-canvas-transitions) records the rule and exceptions for other field types. Owner commit scopes distinguish intentional note recreation from external deletion; callbacks disconnect during teardown. Snap status belongs to the originating Piano Roll context.
 
 ## Refresh, layout and theme
 

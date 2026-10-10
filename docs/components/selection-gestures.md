@@ -23,7 +23,8 @@ state. The former combined `LassoSelectionTool` no longer exists.
 ## Anchors and view refresh
 
 The horizontal anchor is an unsnapped project beat, not a mouse-down pixel or
-clip-relative note beat. MIDI vertical anchors are continuous pitch coordinates;
+clip-relative note beat. MIDI vertical anchors are continuous pitch coordinates in the grid
+and velocity coordinates in the velocity lane;
 arrangement vertical anchors are normalized positions within the visible track
 layout. The source supplies the mapping, so drawing and hit testing use the same
 current view rectangle.
@@ -45,7 +46,11 @@ its unsnapped time/pitch selection semantics and has a translucent preview.
 `MidiViewport` hit-tests painted note rectangles (including clip clipping).
 `SongEditorView` hit-tests clip rectangles. `AutomationLaneComponent` returns
 curve-child identities for marker centres inside the projected rectangle, with
-inclusive centre boundaries. Finding hits never mutates the model or selection.
+inclusive centre boundaries. `VelocityEditor` supplies beat/velocity mapping and
+painted circular-head centre hits, not stems, note duration or pitch. It uses the
+viewport's `LassoSource` adapter: one gesture, snapshot and selection owner; only
+coordinate conversion, hit testing and drawing location change. Finding hits
+never mutates the model or selection.
 
 `combineLassoSelection()` combines each current hit set with the original gesture
 snapshot, not with the preceding frame's result:
@@ -103,6 +108,12 @@ which can relocate storage. No pointer key is persisted or dereferenced. These
 replace application-level nested linear searches; Tracktion's own batch-selection
 internals are unchanged.
 
+Piano-key pitch selection retains the editor's explicit clip targeting context
+through `MidiKeyboardClipScope`, independently of shared object membership.
+Replacing selected clips with MIDI events does not disable subsequent key clicks
+or expand their scope to unrelated clips. Live identity resolution filters removed
+or recreated sources; changing tracks clears the targeting context.
+
 Selection changes and rectangle/range previews are transient UI operations. They
 create no notes, clips, automation points, musical ValueTree flags, edit undo
 transactions or persisted gesture settings. Existing note/clip/automation edit
@@ -145,11 +156,16 @@ lasso snapshots are independent, as are their begin/update/end APIs.
 - `App/src/LassoTool.cpp`, `App/src/RangeTool.cpp`, `App/src/PointerTool.cpp`
 - `App/src/SongEditorView.cpp`, `App/src/TrackLaneComponent.cpp`, `App/src/AutomationLaneComponent.cpp`
 - `App/include/MouseGestureInput.h` — input ownership and gesture-scoped cancellation
+- `App/include/VelocityMarkerGeometry.h`, `App/src/VelocityEditor.cpp`
+- `tools/native-velocity-selection-regression.py`
 - `App/tests/SelectionGestureTests.cpp`
 - `tools/native-selection-regression.py`, `tools/native-arrangement-drag-regression.py`
 
 [Testing](../development/testing.md#selection-gesture-validation) owns repeatable
-console/native procedures and coverage boundaries. The velocity lane is not yet
-a lasso source; [#84](https://github.com/BaraMGB/NextStudio/issues/84) follows this
-foundation after maintainer testing. The [approved plan](../plans/lasso-time-range-separation.md)
+console/native procedures and coverage boundaries. The velocity lane is a lasso
+source for [#84](https://github.com/BaraMGB/NextStudio/issues/84), awaiting maintainer
+testing. Explicit Lasso selects even when pressed on a head; Pointer on empty
+space selects, while a direct head drag still edits the existing selected group
+or just the unselected note. A head click alone does not change membership.
+Selected heads retain a white outline after hover exits. The [approved plan](../plans/lasso-time-range-separation.md)
 remains active until both implementation stages are accepted.

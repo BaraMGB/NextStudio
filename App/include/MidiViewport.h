@@ -145,7 +145,18 @@ public:
     double getKeyForY(int y);
     int getYForKey(double key);
     juce::Range<float> getNoteLane(int pitch) const { return getNoteRect(pitch, 0, 1).getVerticalRange(); }
+    // All MIDI sources share gesture ownership, snapshots and batch selection.
+    struct LassoSource
+    {
+        juce::Component::SafePointer<juce::Component> component;
+        std::function<juce::Point<double>(juce::Point<float>)> toContent;
+        LassoSelectionComponent::Projection project;
+        std::function<MidiSelectionSnapshot::Items(juce::Rectangle<float>)> hits;
+    };
     void startLasso(const juce::MouseEvent &e);
+    void startLasso(const juce::MouseEvent &e, LassoSource source);
+    bool ownsLasso(const juce::Component &source) const;
+    void drawLasso(juce::Graphics &, const juce::Component &source);
     void updateLasso(const juce::MouseEvent &e);
     void stopLasso();
     void startTimeRangeSelection(const juce::MouseEvent &e);
@@ -210,6 +221,8 @@ private:
     te::Track::Ptr m_track;
     TimeLineComponent &m_timeLine;
     LassoSelectionComponent m_lassoComponent;
+    LassoSource m_lassoSource;
+    void clearLassoSource();
     TimeRangeGesture m_timeRangeGesture;
     MidiSelectionSnapshot::Items m_selectionAtGestureStart;
     SharedSelectionSnapshot m_sharedOriginalSelection;

@@ -2,7 +2,7 @@
 
 - Type: proposal
 - Audience: contributors and maintainer
-- Status: approved architecture; first batch awaits maintainer retest after drag-lifecycle correction
+- Status: approved architecture; foundation and velocity source implemented, maintainer testing pending
 - Related issue: [#84](https://github.com/BaraMGB/NextStudio/issues/84)
 - Scope: replace the combined Lasso/Range mechanism before adding velocity-lane selection
 
@@ -74,8 +74,9 @@ Maintainer feedback reports clip and TimeRange move/copy snapping back. Normal e
 
 ### 2. Velocity source (#84)
 
-Only after testing the foundation, attach the velocity lane as a new lasso source
-using the same gesture and selection policies. Its hit test uses marker centres,
+Following the maintainer's request to proceed with #84, the velocity lane is now
+attached through the viewport's `LassoSource` adapter using the same gesture and
+selection policies. Its hit test uses marker centres,
 not stems, pitch or duration. Add persistent selected-marker feedback; keep direct
 velocity dragging intact. Add source-specific regressions and repeat the
 build/test/runtime/shared-artifact gates. #84 remains open until its own acceptance

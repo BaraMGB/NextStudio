@@ -23,15 +23,16 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "EditViewState.h"
 #include "KeyboardView.h"
+#include "MenuBar.h"
+#include "MidiKeyboardClipScope.h"
 #include "MidiViewport.h"
 #include "NotePropertiesBar.h"
-#include "VelocityEditor.h"
 #include "PlayHeadComponent.h"
 #include "TimeLineComponent.h"
 #include "TimelineOverlayComponent.h"
-#include "MenuBar.h"
-#include "EditViewState.h"
+#include "VelocityEditor.h"
 #include <utility>
 
 namespace te = tracktion_engine;
@@ -67,8 +68,16 @@ public:
     void buttonClicked(juce::Button *button) override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override
     {
+        if (m_velocityEditor != nullptr)
+        {
+            m_velocityEditor->updateToolCursor();
+            m_velocityEditor->repaint();
+        }
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->repaint();
         if (source == &m_editViewState.m_selectionManager)
         {
+            refreshKeyboardClipScope();
             m_notePropertiesBar.refreshFromSelection(true);
         }
         else if (source == m_pianoRollViewPort.get())
@@ -104,6 +113,7 @@ private:
     void handleKeyboardKeyClick(int midiNoteNumber, bool addToSelection);
     void scheduleTimeSignatureRefresh();
     juce::Array<te::MidiClip *> getSelectedMidiClipsOnTrack() const;
+    void refreshKeyboardClipScope();
     bool hasSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents) const;
     void removeSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents);
     std::pair<te::MidiClip *, te::MidiNote *> selectNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, bool addToSelection);
@@ -127,6 +137,7 @@ private:
 
     juce::String m_NoteDescUnderCursor;
     MidiViewport::MidiClipboard m_midiClipboard;
+    MidiKeyboardClipScope m_keyboardClipScope;
     void handleAsyncUpdate() override;
 
     bool m_updateKeyboard{false}, m_updateVelocity{false}, m_updateNoteEditor{false}, m_updateNoteProperties{false}, m_updateClips{false}, m_updateTracks{false}, m_updateButtonColour{false}, m_updateHorizontalScrollbar{false};

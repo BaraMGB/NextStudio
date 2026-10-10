@@ -33,7 +33,7 @@ The current suites are:
 | `ProjectWorkflow` | pending operations, save-error cleanup, recovery confirmation, deferred-execution guards, cancellation, errors, and interaction-lock states | `App/tests/ProjectWorkflowTests.cpp` |
 | `MidiNoteOverlap` | Piano Roll overlap clearing | `App/tests/MidiNoteOverlapTests.cpp` |
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
-| `SelectionGestures` | independent Lasso/TimeRange state, floating musical anchor projection, reverse/empty rectangles, inclusive marker boundaries, snapshot-based replace/add/toggle/shrink policy, real Tracktion note identity resolution and selection-only model/undo isolation | `App/tests/SelectionGestureTests.cpp` |
+| `SelectionGestures` | independent Lasso/TimeRange state, floating musical anchor projection, velocity head mapping/resize/stem exclusion, retained keyboard clip scope/identity/teardown, reverse/empty rectangles, inclusive marker boundaries, snapshot-based replace/add/toggle/shrink policy, real Tracktion note identity resolution and selection-only model/undo isolation | `App/tests/SelectionGestureTests.cpp` |
 | `PianoRollNoteLength` | inserted-note length modes, note values, finite fallbacks, and tick-only draw floor | `App/tests/PianoRollNoteLengthTests.cpp` |
 | `TimelineSoftSnap` | continuous/monotonic physical-pixel curve, MIDI/Song attraction profiles and default MIDI profile selection, exact detents and detailed plateau classification, dense sweeps, narrow/unequal/long intervals, inverse anchors, bounded slope/displacement, invalid profiles, and non-idempotence | `App/tests/TimelineSoftSnapTests.cpp` |
 | `TimelineSnapping` | production fixed/adaptive resolver, tempo ramps/meter/triplet boundaries (including engine bar-rounding failures), 100/125/150/200% physical scaling, MIDI Knife preview coordinate-type and grid raster-coverage regression, corrected downward creation anchors, production time-range/drop endpoint projection through tempo changes/ramps at four scales and panned/off-screen views, raw bypass/context transitions, relative Draw state, real offset-clip creation/overlap, fractional persistence and one-step undo/redo, note/clip/automation group constraints, held/free/bypass/limit/invalid feedback and reset, stationary Draw Shift reporting, queued JUCE TextEditor focus-loss completion/rejection and idempotence, whole-group move destinations including invalid secondary lanes and extreme offsets, shared clip preview ranges, theme-derived font tint and fractional lane-clipped guide/diamond raster rendering and JUCE sibling/header versus foreground ruler-cue ordering at four scales | `App/tests/TimelineSnappingTests.cpp` |
@@ -148,7 +148,27 @@ The maintained procedure verifies MIDI Pointer down-anchor preservation, lasso e
 
 `--binary`, `--display` and `--delay` control the isolated fixture. The output directory must not exist. The procedure imports the existing cursor test's maintained session/bridge and inherits its dependency and safety checks. Fixed UI coordinates depend on default layout/theme; fixture changes must be reviewed, not treated as selection-policy changes.
 
-Separately validate active tool/track changes, source deletion/reordering, multiple automation lanes, vertical pan and fractional UI/display scaling. Native tests do not inject superseded-source mouse events directly into the production viewport; helper tests and explicit press-ownership dispatch guards cover that rejection contract. Unit/model coverage checks some of these identities/projections but does not prove full native routing. Other native platforms and physical displays require scoped runs. Velocity-lane lasso belongs to the subsequent #84 batch and is not claimed by this foundation.
+Separately validate active tool/track changes, source deletion/reordering, multiple automation lanes, vertical pan and fractional UI/display scaling. Native tests do not inject superseded-source mouse events directly into the production viewport; helper tests and explicit press-ownership dispatch guards cover that rejection contract. Unit/model coverage checks some of these identities/projections but does not prove full native routing. Other native platforms and physical displays require scoped runs.
+
+### Velocity-lane source (#84)
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-velocity-selection-regression.py \
+  --output "./artifacts/velocity-selection-$(date +%Y%m%d-%H%M%S)"
+```
+
+The same isolated session supports `--binary`, `--display` and `--delay`. Checks cover lane expansion/shrinking, live Shift/Ctrl transitions, toggling an initially selected note, Escape/shared restoration and late events, a subsequent press, reverse Pointer selection, head-versus-stem hits, explicit Lasso on a head, stationary-pointer zoom and unchanged complete musical records during selection. Subsequent selected-group and unselected-single-marker drags compare actual model changes and selection membership. Note-field text typed without Enter must commit to the original selection before Pointer/Lasso lane presses; complete model comparisons cover delayed callback idempotence, one-step undo/redo, retention after lasso cancellation, invalid-focus rejection, text Escape and marker hit/drag origins after completion. The pre-correction binary fails at `property-pointer-focus-commit`. Screenshots record the lane rectangle and persistent selected-head outline; these are visual evidence, not automated pixel assertions. Unit tests additionally cover velocity projection at small/zero and multiple lane heights. Physical/fractional displays, other platforms, active source deletion and multi-clip combinations still need scoped native runs.
+
+### Piano-key selection after note selection
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-keyboard-selection-regression.py \
+  --output "./artifacts/keyboard-selection-$(date +%Y%m%d-%H%M%S)"
+```
+
+The same isolated session checks exact note identities after grid/velocity lassos, Range, empty membership and an unmatched pitch; repeated piano-key clicks and Shift pitch addition/removal must work without reselecting arrangement clips. An unrelated sibling is excluded until explicitly selected. Single- and multi-clip targets update on real arrangement clicks and survive subsequent note selection. Complete musical records remain unchanged. The delivered pre-fix binary fails at `keyboard-after-grid-lasso`. `SelectionGestureTests` additionally validates retained clip scope, explicit replacement, duplicate filtering, deleted/recreated identity rejection, track-scope filtering, teardown and model/undo isolation. Native clip deletion/track teardown, audio audition, physical/fractional displays and other platforms are not certified by this procedure.
 
 ## Arrangement drag commit validation
 

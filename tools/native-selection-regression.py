@@ -311,7 +311,7 @@ def run(args, output):
         (output / "results.json").write_text(json.dumps({
             "binary": str(args.binary), "binarySha256": fixture.file_hash(args.binary),
             "fixture": "private Linux/X11 1600x1000, 100% application scale",
-            "checks": checks, "untested": ["native non-X11 platforms", "higher UI/display scales", "velocity lasso (#84 follow-up)"],
+            "checks": checks, "untested": ["native non-X11 platforms", "higher UI/display scales", "velocity source (covered by native-velocity-selection-regression.py)"],
         }, indent=2) + "\n")
     print(f"PASS: {len(checks)} checks; evidence in {output}")
 

@@ -573,7 +573,10 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
     }
 
     if (!forceRefresh && m_pianoRollViewPort != nullptr && m_pianoRollViewPort->getTrack() == track)
+    {
+        refreshKeyboardClipScope();
         return;
+    }
 
     if (m_pianoRollViewPort != nullptr)
         clearTrack();
@@ -581,6 +584,7 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
     auto sanitizedID = "ID" + track->itemID.toString().removeCharacters("{}-");
     m_timeLine.setTimeLineID(sanitizedID);
     m_pianoRollViewPort = std::make_unique<MidiViewport>(m_editViewState, track, m_timeLine);
+    refreshKeyboardClipScope();
     m_pianoRollViewPort->setNoteUnderMouseHandler([this](std::optional<int> note)
     {
         m_NoteDescUnderCursor = note.has_value()
@@ -596,7 +600,7 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
     m_timelineOverlay = std::make_unique<TimelineOverlayComponent>(m_editViewState, track, m_timeLine);
     addAndMakeVisible(*m_timelineOverlay);
 
-    m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track, m_timeLine.getTimeLineID());
+    m_velocityEditor = std::make_unique<VelocityEditor>(m_editViewState, track, m_timeLine.getTimeLineID(), *m_pianoRollViewPort);
     addAndMakeVisible(*m_velocityEditor);
 
     m_keyboard = std::make_unique<KeyboardView>(m_editViewState, m_timeLine.getTimeLineID());
@@ -606,6 +610,9 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
 }
 void PianoRollEditor::clearTrack()
 {
+    m_keyboardClipScope.clear();
+    m_pianoRollViewPort->cancelSelectionGesture(false);
+    m_velocityEditor.reset();
     m_pianoRollViewPort->finishPendingPasteOnDeselect();
     m_editViewState.m_selectionManager.deselect(&m_pianoRollViewPort->getSelectedEvents());
     m_timelineOverlay.reset(nullptr);
@@ -614,7 +621,6 @@ void PianoRollEditor::clearTrack()
     m_pianoRollViewPort.reset(nullptr);
     m_NoteDescUnderCursor.clear();
     repaint(getFooterRect());
-    m_velocityEditor.reset(nullptr);
     m_keyboard.reset(nullptr);
     m_horizontalScrollBar.setVisible(false);
     m_notePropertiesBar.clearSelection();
@@ -716,6 +722,7 @@ void PianoRollEditor::handleKeyboardKeyClick(int midiNoteNumber, bool addToSelec
     if (m_pianoRollViewPort == nullptr)
         return;
 
+    m_pianoRollViewPort->cancelSelectionGesture();
     m_pianoRollViewPort->finishPendingPasteOnDeselect();
     selectNotesOfKeyInCurrentClip(midiNoteNumber, addToSelection);
 }
@@ -746,6 +753,8 @@ juce::Array<te::MidiClip *> PianoRollEditor::getSelectedMidiClipsOnTrack() const
 
     return clips;
 }
+
+void PianoRollEditor::refreshKeyboardClipScope() { m_keyboardClipScope.remember(getSelectedMidiClipsOnTrack()); }
 
 bool PianoRollEditor::hasSelectedNotesOfKey(const juce::Array<te::MidiClip *> &clips, int midiNoteNumber, te::SelectedMidiEvents &selectedEvents) const
 {
@@ -811,7 +820,8 @@ void PianoRollEditor::selectNotesOfKeyInCurrentClip(int midiNoteNumber, bool add
     if (m_pianoRollViewPort == nullptr)
         return;
 
-    const auto clips = getSelectedMidiClipsOnTrack();
+    refreshKeyboardClipScope();
+    const auto clips = m_keyboardClipScope.resolve(m_pianoRollViewPort->getCachedMidiClips());
     if (clips.isEmpty())
         return;
 

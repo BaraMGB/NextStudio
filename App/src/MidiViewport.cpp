@@ -39,11 +39,6 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
 {
     setWantsKeyboardFocus(true);
     m_currentTool = ToolFactory::createTool(Tool::pointer, m_evs);
-    m_lassoComponent.setProjection([this](juce::Point<double> point)
-    {
-        return juce::Point<float>{m_timeLine.beatsToX(point.x),
-            float(getHeight() - (point.y - getStartKey()) * getKeyWidth())};
-    });
     updateSelectedEvents();
 
     // Register as listener for ValueTree changes to invalidate clip cache when needed
@@ -53,6 +48,7 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
 
 MidiViewport::~MidiViewport()
 {
+    cancelSelectionGesture(false);
     clearNoteInteractionPreview();
     if (m_selectedEvents != nullptr)
         m_selectedEvents->removeChangeListener(this);
@@ -75,7 +71,7 @@ void MidiViewport::changeListenerCallback(juce::ChangeBroadcaster *source)
 
 void MidiViewport::paintOverChildren(juce::Graphics &g)
 {
-    m_lassoComponent.drawLasso(g);
+    drawLasso(g, *this);
     if (m_timeRangeGesture.active())
     {
         const auto beats = m_timeRangeGesture.interval();
@@ -194,7 +190,8 @@ void MidiViewport::drawKeyLines(juce::Graphics &g) const
 void MidiViewport::resized()
 {
     auto area = getLocalBounds();
-    m_lassoComponent.setViewBounds(area);
+    if (ownsLasso(*this))
+        m_lassoComponent.setViewBounds(area);
     refreshMouseSnapContext();
     updateNoteUnderMouse();
     m_timeLine.mouseFeedbackGeometryChanged();
@@ -466,7 +463,18 @@ void MidiViewport::refreshMouseSnapContext()
         cancelActiveInteraction();
         return;
     }
-    if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()); event && m_currentTool)
+    if (m_lassoComponent.active() && !m_lassoSource.component)
+    {
+        cancelSelectionGesture(false);
+        return;
+    }
+    auto &context = m_lassoComponent.active() ? *m_lassoSource.component : static_cast<juce::Component &>(*this);
+    if (!context.isShowing() || context.getWidth() == 0 || context.getHeight() == 0)
+    {
+        cancelSelectionGesture();
+        return;
+    }
+    if (auto event = m_mouseInput.forContext(context, juce::ModifierKeys::getCurrentModifiers()); event && m_currentTool)
     {
         m_mouseInput.remember(*event);
         juce::ScopedValueSetter<bool> replay(m_refreshingSnapContext, true);
@@ -521,6 +529,7 @@ void MidiViewport::mouseDown(const juce::MouseEvent &e)
 }
 void MidiViewport::mouseDrag(const juce::MouseEvent &e)
 {
+    if (m_lassoComponent.active() && !ownsLasso(*this)) return;
     if (!m_pressInput.belongsToGesture(e)) return;
     m_mouseInput.remember(e);
     if (m_currentTool)
@@ -530,6 +539,7 @@ void MidiViewport::mouseDrag(const juce::MouseEvent &e)
 }
 void MidiViewport::mouseUp(const juce::MouseEvent &e)
 {
+    if (m_lassoComponent.active() && !ownsLasso(*this)) return;
     if (!m_pressInput.belongsToGesture(e)) return;
     if (m_currentTool)
         m_currentTool->mouseUp(e, *this);
@@ -543,6 +553,7 @@ void MidiViewport::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree 
     // Only invalidate cache if a clip was added
     if (parent.getType() == te::IDs::TRACK && child.hasType(te::IDs::MIDICLIP))
     {
+        cancelSelectionGesture(false);
         invalidateClipCache();
         repaint();
     }
@@ -560,6 +571,7 @@ void MidiViewport::valueTreeChildRemoved(juce::ValueTree &parent, juce::ValueTre
     // Only invalidate cache if a clip was removed
     if (parent.getType() == te::IDs::TRACK && child.hasType(te::IDs::MIDICLIP))
     {
+        cancelSelectionGesture(false);
         invalidateClipCache();
         repaint();
     }
@@ -637,13 +649,54 @@ float MidiViewport::getStartKey() const { return (float)m_evs.getViewYScroll(m_t
 
 void MidiViewport::startLasso(const juce::MouseEvent &e)
 {
-    if (!e.mods.isLeftButtonDown()) return;
+    startLasso(e, {this, [this](juce::Point<float> p) { return juce::Point<double>{m_timeLine.xToBeatPos(p.x).inBeats(), getStartKey() + (getHeight() - p.y) / getKeyWidth()}; }, [this](juce::Point<double> p) { return juce::Point<float>{m_timeLine.beatsToX(p.x), float(getHeight() - (p.y - getStartKey()) * getKeyWidth())}; },
+                   [this](juce::Rectangle<float> rect)
+                   {
+                       MidiSelectionSnapshot::Items hits;
+                       for (auto *clip : getCachedMidiClips())
+                           for (auto *note : clip->getSequence().getNotes())
+                           {
+                               auto noteRect = getNoteRect(clip, note);
+                               if (!m_evs.m_editNotesOutsideClipRange)
+                                   noteRect = noteRect.getIntersection(getClipRect(clip));
+                               if (rect.intersects(noteRect))
+                                   hits.add(note->state);
+                           }
+                       return hits;
+                   }});
+}
+
+void MidiViewport::startLasso(const juce::MouseEvent &e, LassoSource source)
+{
+    if (!e.mods.isLeftButtonDown() || !source.component || source.component->getWidth() == 0 || source.component->getHeight() == 0)
+        return;
+    cancelSelectionGesture();
+    m_pressInput.remember(e);
+    m_mouseInput.remember(e);
+    m_lassoSource = std::move(source);
+    m_lassoComponent.setProjection(m_lassoSource.project);
+    m_lassoComponent.setViewBounds(m_lassoSource.component->getLocalBounds());
     m_sharedOriginalSelection.capture(m_evs.m_selectionManager);
     m_selectionAtGestureStart = MidiSelectionSnapshot::capture(getSelectedEvents(), getCachedMidiClips());
-    const auto start = e.mouseDownPosition;
-    m_lassoComponent.begin({m_timeLine.xToBeatPos(start.x).inBeats(),
-        getStartKey() + (getHeight() - start.y) / getKeyWidth()});
+    m_lassoComponent.begin(m_lassoSource.toContent(e.mouseDownPosition));
     replaceSelection(combineLassoSelection(m_selectionAtGestureStart, MidiSelectionSnapshot::Items{}, lassoSelectionMode(e.mods)));
+    m_lassoSource.component->repaint();
+}
+
+bool MidiViewport::ownsLasso(const juce::Component &source) const { return m_lassoComponent.active() && m_lassoSource.component.getComponent() == &source; }
+
+void MidiViewport::drawLasso(juce::Graphics &g, const juce::Component &source)
+{
+    if (ownsLasso(source))
+        m_lassoComponent.drawLasso(g);
+}
+
+void MidiViewport::clearLassoSource()
+{
+    if (m_lassoSource.component)
+        m_lassoSource.component->repaint();
+    m_lassoSource = {};
+    m_lassoComponent.setProjection({});
 }
 
 void MidiViewport::setNoteSelected(tracktion_engine::MidiNote *n, bool addToSelection)
@@ -657,16 +710,21 @@ void MidiViewport::setNoteSelected(tracktion_engine::MidiNote *n, bool addToSele
 
 void MidiViewport::updateLasso(const juce::MouseEvent &e)
 {
-    if (!m_lassoComponent.active() || !m_pressInput.belongsToGesture(e)) return;
-    m_lassoComponent.update({m_timeLine.xToBeatPos(e.position.x).inBeats(),
-        getStartKey() + (getHeight() - e.position.y) / getKeyWidth()});
+    if (!m_lassoComponent.active() || !m_lassoSource.component || e.eventComponent != m_lassoSource.component.getComponent() || !m_pressInput.belongsToGesture(e))
+        return;
+    m_mouseInput.remember(e);
+    m_lassoComponent.setViewBounds(m_lassoSource.component->getLocalBounds());
+    m_lassoComponent.update(m_lassoSource.toContent(e.position));
     updateLassoSelection(e.mods);
-    repaint();
+    m_lassoSource.component->repaint();
 }
 
 void MidiViewport::stopLasso()
 {
     m_lassoComponent.end();
+    clearLassoSource();
+    m_pressInput.reset();
+    m_mouseInput.reset();
     m_selectionAtGestureStart.clear();
     m_sharedOriginalSelection.clear();
     repaint();
@@ -703,6 +761,7 @@ bool MidiViewport::cancelSelectionGesture(bool restore)
 {
     if (!m_lassoComponent.active() && !m_timeRangeGesture.active()) return false;
     m_lassoComponent.end();
+    clearLassoSource();
     m_timeRangeGesture.end();
     if (restore) m_sharedOriginalSelection.restore(m_evs.m_edit, m_evs.m_selectionManager);
     m_selectionAtGestureStart.clear();
@@ -1263,16 +1322,7 @@ void MidiViewport::replaceSelection(const MidiSelectionSnapshot::Items& items)
 
 void MidiViewport::updateLassoSelection(juce::ModifierKeys modifiers)
 {
-    MidiSelectionSnapshot::Items hits;
-    const auto rect = m_lassoComponent.viewBounds();
-    for (auto* clip : getCachedMidiClips())
-        for (auto* note : clip->getSequence().getNotes())
-        {
-            auto noteRect = getNoteRect(clip, note);
-            if (!m_evs.m_editNotesOutsideClipRange)
-                noteRect = noteRect.getIntersection(getClipRect(clip));
-            if (rect.intersects(noteRect)) hits.add(note->state);
-        }
+    const auto hits = m_lassoSource.hits(m_lassoComponent.viewBounds());
     replaceSelection(combineLassoSelection(m_selectionAtGestureStart, hits, lassoSelectionMode(modifiers)));
 }
 
@@ -1444,6 +1494,7 @@ te::SelectedMidiEvents &MidiViewport::getSelectedEvents()
 
 void MidiViewport::setTool(Tool tool)
 {
+    cancelSelectionGesture();
     finishPendingPasteOnDeselect();
 
     if (m_currentTool)

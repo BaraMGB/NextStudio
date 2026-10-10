@@ -1,8 +1,10 @@
-#include "SelectionGestures.h"
 #include "LassoSelectionComponent.h"
+#include "MidiKeyboardClipScope.h"
 #include "MidiSelectionSnapshot.h"
 #include "MouseGestureInput.h"
+#include "SelectionGestures.h"
 #include "SharedSelectionSnapshot.h"
+#include "VelocityMarkerGeometry.h"
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -68,6 +70,30 @@ void geometry()
     near(rect.getRight(),250);
     component.end();
     require(!component.active(), "component did not end");
+}
+
+void velocityGeometry()
+{
+    using namespace VelocityMarkerGeometry;
+    for (int height : {0, 8, 60, 100, 125, 150, 200})
+        for (int velocity : {0, 32, 80, 112, 127})
+        {
+            const auto y = markerY(velocity, height);
+            near(projectVelocity(velocityAt(y, height), height), y);
+            near(markerY(0, height), height - 4);
+            near(markerY(127, height), height - 4 - span(height));
+        }
+    LassoGesture lasso;
+    lasso.begin({5.25, 112.5});
+    lasso.update({1.25, 31.5});
+    int height = 100;
+    auto project = [&](juce::Point<double> p) { return juce::Point<float>{float(p.x * 100), projectVelocity(p.y, height)}; };
+    require(LassoGesture::containsCentre(lasso.viewBounds(project), {300, markerY(80, height)}), "velocity head missed");
+    require(!LassoGesture::containsCentre(lasso.viewBounds(project), {300, markerY(10, height)}), "stem selected without head");
+    height = 200;
+    require(LassoGesture::containsCentre(lasso.viewBounds(project), {300, markerY(80, height)}), "velocity resize lost anchor");
+    lasso.update({1.5, 100});
+    require(!LassoGesture::containsCentre(lasso.viewBounds(project), {300, markerY(80, height)}), "velocity shrink retained head");
 }
 
 void selectionPolicy()
@@ -177,6 +203,46 @@ void realSelection()
     MidiSelectionSnapshot::apply({bState}, selected, manager, {clip.get()});
     require(selected.getSelectedNotes().isEmpty(), "removed clip survived resolution");
     selected.deselect();
+}
+
+void keyboardClipScope()
+{
+    te::Engine engine("NextStudioKeyboardClipScopeTests");
+    auto edit = te::Edit::createSingleTrackEdit(engine);
+    te::SelectionManager manager(engine);
+    auto *track = te::getAudioTracks(*edit)[0];
+    auto first = track->insertMIDIClip("First", {tracktion::TimePosition::fromSeconds(2), tracktion::TimePosition::fromSeconds(6)}, nullptr);
+    auto second = track->insertMIDIClip("Second", {tracktion::TimePosition::fromSeconds(8), tracktion::TimePosition::fromSeconds(10)}, nullptr);
+    auto *note = first->getSequence().addNote(53, tracktion::BeatPosition::fromBeats(1), tracktion::BeatDuration::fromBeats(1), 80, 0, nullptr);
+    const juce::Array<te::MidiClip *> live{first.get(), second.get()};
+    MidiKeyboardClipScope scope;
+    require(scope.resolve(live).isEmpty(), "keyboard invented an explicit clip target");
+    scope.remember({first.get()});
+    te::SelectedMidiEvents selected(live);
+    auto model = track->state.createCopy();
+    edit->getUndoManager().clearUndoHistory();
+    manager.selectOnly(first.get());
+    MidiSelectionSnapshot::apply({note->state}, selected, manager, live);
+    require(manager.getItemsOfType<te::MidiClip>().isEmpty(), "fixture retained shared clip selection");
+    scope.remember({});
+    require(scope.resolve(live) == juce::Array<te::MidiClip *>{first.get()}, "note selection lost keyboard scope or expanded to siblings");
+    MidiSelectionSnapshot::apply({}, selected, manager, live);
+    scope.remember({});
+    require(scope.resolve(live) == juce::Array<te::MidiClip *>{first.get()}, "empty membership lost keyboard scope");
+    scope.remember({second.get()});
+    require(scope.resolve(live) == juce::Array<te::MidiClip *>{second.get()}, "explicit clip did not replace keyboard scope");
+    scope.remember({first.get(), second.get(), first.get()});
+    require(scope.resolve(live) == live, "multi-clip keyboard scope duplicated or omitted a clip");
+    require(scope.resolve({second.get()}) == juce::Array<te::MidiClip *>{second.get()}, "keyboard retained detached/wrong-track clip");
+    require(track->state.isEquivalentTo(model) && !edit->getUndoManager().canUndo(), "keyboard scope changed model/undo");
+    selected.deselect();
+    scope.remember({first.get()});
+    first->removeFromParent();
+    auto replacement = track->insertMIDIClip("First", {tracktion::TimePosition::fromSeconds(2), tracktion::TimePosition::fromSeconds(6)}, nullptr);
+    require(scope.resolve({replacement.get(), second.get()}).isEmpty(), "keyboard targeted a recreated clip");
+    scope.remember({second.get()});
+    scope.clear();
+    require(scope.resolve({second.get()}).isEmpty(), "track teardown retained keyboard scope");
 }
 
 void sharedSelection()
@@ -302,6 +368,18 @@ void indexedSelection()
 int main()
 {
     juce::ScopedJuceInitialiser_GUI init;
-    try { geometry(); selectionPolicy(); inputOwnership(); realSelection(); sharedSelection(); indexedSelection(); std::cout << "Selection gesture regressions passed\n"; return 0; }
+    try
+    {
+        geometry();
+        velocityGeometry();
+        selectionPolicy();
+        inputOwnership();
+        realSelection();
+        keyboardClipScope();
+        sharedSelection();
+        indexedSelection();
+        std::cout << "Selection gesture regressions passed\n";
+        return 0;
+    }
     catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

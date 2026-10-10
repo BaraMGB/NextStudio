@@ -6,8 +6,8 @@ The 18 issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/m
 
 ## Next — editing correctness
 
-- [ ] [Separate Lasso and TimeRange](docs/plans/lasso-time-range-separation.md) — approved prerequisite for #84; foundation implemented; selection-cancel routing and edit completion corrected after drag feedback, awaiting maintainer retest before velocity-source work. Overwrite policy is unchanged.
-- [ ] [#84 — Velocity lollipops cannot be selected with a lasso](https://github.com/BaraMGB/NextStudio/issues/84) — reproduced and analyzed; add the velocity source and selected-marker feedback after the selection foundation is tested.
+- [ ] [Separate Lasso and TimeRange](docs/plans/lasso-time-range-separation.md) — approved prerequisite for #84; foundation and velocity source implemented, awaiting maintainer testing. Overwrite policy is unchanged.
+- [ ] [#84 — Velocity lollipops cannot be selected with a lasso](https://github.com/BaraMGB/NextStudio/issues/84) — velocity source and persistent selected-marker feedback implemented; awaiting maintainer testing.
 
 ## Focused workflow improvements
 

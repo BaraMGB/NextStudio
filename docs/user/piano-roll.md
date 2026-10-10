@@ -16,7 +16,7 @@ The MIDI Editor tab in the lower range becomes available when a MIDI clip is sel
 2. Open **MIDI Editor** in the lower range, or double-click the MIDI clip in the arrangement. If the lower range is collapsed, a double-click expands it automatically.
 3. Resize the lower range by dragging its upper splitter if needed. Drag upward to enlarge the Piano Roll, or drag downward to shrink it back toward the standard height before collapsing the lower range. The maximum height stops at the bottom edge of the Song Editor timeline.
 
-The editor follows the selected clip's track. It may display and edit MIDI material from multiple clips on that track. Keyboard-wide pitch selection specifically operates on selected MIDI clips belonging to the active track.
+The editor follows the selected clip's track. It may display and edit MIDI material from multiple clips on that track. Keyboard-wide pitch selection uses the explicitly selected MIDI clips belonging to the active track and retains that clip scope during note selection.
 
 If no active track is available, the grid displays a prompt to select a MIDI clip.
 
@@ -71,7 +71,7 @@ The range tool independently selects a musical time/pitch interval and displays 
 
 ### Select notes by piano key
 
-Clicking a key in the left keyboard selects notes of that pitch in the selected MIDI clips on the active track and auditions the pitch.
+Clicking a key in the left keyboard selects notes of that pitch in the targeted MIDI clips on the active track and auditions the pitch. The last explicit clip selection remains the keyboard's target after grid/velocity lassos, Range selection or clearing notes. Selecting different clips updates that target; it does not automatically expand to every clip on the track.
 
 - normal click replaces the note selection with all matching notes;
 - `Shift`-click toggles that pitch: if any matching notes are selected, all matching notes are removed; otherwise they are added.
@@ -222,13 +222,13 @@ If selected notes have different values, the field displays `—`. Entering a va
 
 - double-click to type;
 - or focus the read-only field and press `Enter`/`F2`;
-- press `Enter` to commit;
+- press `Enter` to commit; leaving the field also commits valid input, including clicks into the note grid or velocity lane;
 - press `Escape` to cancel;
 - use `Tab` or `Shift+Tab` to commit and move between fields;
 - use the mouse wheel for one-step changes;
 - drag vertically for continuous scrubbing.
 
-Invalid active input is shown in red.
+Invalid active input is shown in red. Invalid Enter/Tab keeps the field open for correction; leaving the field discards invalid text and restores its displayed value.
 
 ### Supported values
 
@@ -243,7 +243,9 @@ Use MIDI numbers for unambiguous absolute pitch entry. The current name parser d
 
 ## Velocity editor
 
-The velocity lane draws one vertical stem and handle for each visible note.
+The velocity lane draws one vertical stem and handle for each visible note. Selected handles keep a white outline.
+
+Use Lasso in this lane, or drag empty space with Pointer, to select notes by their circular handle centres (time and velocity), not by stems or pitch. The selection is shared with the note grid. Shift adds; Ctrl/Command toggles; shrinking and live modifier changes recompute from the original selection. Escape or changing tools cancels and restores it. Explicit Lasso returns to Pointer on release. Clicking a handle alone does not select it; direct handle dragging outside Lasso retains velocity editing:
 
 - move over a handle to mark its note as hovered;
 - drag a handle vertically to change velocity;

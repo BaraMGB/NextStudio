@@ -27,9 +27,9 @@ This document describes the implementation: component ownership, the Tracktion d
 | Range tool | `App/include/RangeTool.h`, `App/src/RangeTool.cpp` |
 | Lasso display and independent range gesture | `App/include/LassoSelectionComponent.h`, `App/src/LassoSelectionComponent.cpp`, `App/include/SelectionGestures.h` |
 | Validated note and shared-manager selection snapshots | `App/include/MidiSelectionSnapshot.h`, `App/include/SharedSelectionSnapshot.h`, `App/include/SelectionIdentity.h` |
-| Velocity lane | `App/include/VelocityEditor.h`, `App/src/VelocityEditor.cpp` |
+| Velocity lane | `App/include/VelocityEditor.h`, `App/src/VelocityEditor.cpp`, `App/include/VelocityMarkerGeometry.h` |
 | Exact note properties | `App/include/NotePropertiesBar.h`, `App/src/NotePropertiesBar.cpp` |
-| Piano keyboard | `App/include/KeyboardView.h`, `App/src/KeyboardView.cpp` |
+| Piano keyboard | `App/include/KeyboardView.h`, `App/src/KeyboardView.cpp`, `App/include/MidiKeyboardClipScope.h` |
 | Time axis | `App/include/TimeLineComponent.h`, `App/src/TimeLineComponent.cpp` |
 
 ## Component hierarchy and ownership
@@ -251,7 +251,7 @@ Selection paths:
 - **Pointer click** — `PointerTool::mouseDown` hit-tests a note, clears the selection unless `Shift` is held or the note is already selected, then selects the note.
 - **Lasso** — `LassoTool` and Pointer empty-space gestures drive `LassoSelectionComponent`; `MidiViewport::updateLassoSelection()` tests painted note rectangles and batch-applies validated selection identities. Pointer retains its original strategy/down anchor; Shift adds and Ctrl/Command toggles against the original snapshot.
 - **Range** — `RangeTool` drives a separate `TimeRangeGesture`; `updateRangeNoteSelection()` selects notes intersecting its musical time/pitch interval. It is not a lasso mode.
-- **Piano key** — `PianoRollEditor::handleKeyboardKeyClick()` selects all notes of a pitch in the selected MIDI clips on the active track. `Shift` toggles the pitch.
+- **Piano key** — `PianoRollEditor::handleKeyboardKeyClick()` selects all notes of a pitch in the explicit clip scope on the active track. `MidiKeyboardClipScope` remembers clip ValueTree identities when the editor opens or an explicit clip selection changes. Note-only selection may replace shared-manager clip membership without losing this targeting context. Each click resolves identities against current track clips, excluding removed/recreated clips and unrelated siblings. Track teardown clears the scope; no clips are reinserted into shared selection and no musical state/undo is changed. `Shift` toggles the pitch.
 
 `MidiViewport::unselectAll()` deselects the `SelectedMidiEvents` object and reselects the track if it is not already selected.
 
@@ -344,7 +344,9 @@ Clearing all destinations first prevents one duplicate from erasing another when
 
 ### Velocity
 
-`VelocityEditor` draws one vertical stem and handle per note. `mouseDown` records the hovered note and, if it belongs to the current `SelectedMidiEvents`, all selected notes with their starting velocities. `mouseDrag` applies the same vertical delta to each note via `setVelocity()`, clamped to `0..127`, and updates `m_evs.m_lastVelocity`.
+`VelocityEditor` draws one vertical stem and handle per note. Selected handles have a persistent white outline. Explicit Lasso, or Pointer pressed on empty lane space, delegates to the viewport's source-based lasso API with beat/velocity anchors and painted head-centre hits. The viewport owns the gesture, original snapshots, replace/add/toggle policy, shared selection and cancellation; the lane draws its rectangle. Modifier-only and stationary-pointer view refresh use lane coordinates. Escape/tool changes restore selection; teardown discards it before children disappear.
+
+A direct marker press outside explicit Lasso point-hit-tests the current head, records that note and, if it belongs to the current `SelectedMidiEvents`, all selected notes with their starting velocities. `mouseDrag` applies the same vertical delta to each note via `setVelocity()`, clamped to `0..127`, and updates `m_evs.m_lastVelocity`.
 
 `NotePropertiesBar` scrub previews are also forwarded to `VelocityEditor`. It resolves a note's displayed velocity from the provisional `MidiNotePropertyEdit` when present, so the velocity stem follows property-bar scrubbing before the model is committed. Clearing the preview returns rendering to `MidiNote::getVelocity()`, and direct commits explicitly repaint the lane.
 

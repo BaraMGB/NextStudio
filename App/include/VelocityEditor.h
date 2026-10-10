@@ -27,18 +27,25 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "MidiNotePropertyEdit.h"
+#include "MidiViewport.h"
 #include "Utilities.h"
+#include "VelocityMarkerGeometry.h"
 
 class VelocityEditor : public juce::Component
 {
 public:
-    VelocityEditor(EditViewState &evs, te::Track::Ptr t, juce::String timeLineID)
+    VelocityEditor(EditViewState &evs, te::Track::Ptr t, juce::String timeLineID, MidiViewport &viewport)
         : m_editViewState(evs),
           m_track(t),
-          m_timeLineID(timeLineID)
+          m_timeLineID(timeLineID),
+          m_viewport(&viewport)
     {
+        setWantsKeyboardFocus(true);
     }
-    ~VelocityEditor() override {}
+    ~VelocityEditor() override;
+    void resized() override;
+    void modifierKeysChanged(const juce::ModifierKeys &) override;
+    void updateToolCursor();
 
     void paint(juce::Graphics &g) override;
     void setNotePropertyPreview(const juce::Array<MidiNotePropertyEdit> &);
@@ -67,11 +74,12 @@ private:
     int getDisplayedVelocity(const te::MidiNote *n) const;
 
     void drawVelocityRuler(juce::Graphics &graphics, tracktion_engine::MidiClip *&midiClip, tracktion_engine::MidiNote *n);
-    int getVelocity(int y);
+    juce::Point<float> getMarkerCentre(te::MidiClip *const &, const te::MidiNote *) const;
     void clearNotesFlags();
-    te::MidiNote *getHoveredNote();
+    MouseGestureInput m_pressInput;
     juce::Array<DragVelocityState> m_dragVelocityStates;
     juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
     te::MidiNote *m_dragReferenceNote{nullptr};
     juce::String m_timeLineID;
+    juce::Component::SafePointer<MidiViewport> m_viewport;
 };

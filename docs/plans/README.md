@@ -4,7 +4,7 @@
 - Audience: contributors and maintainer
 - Scope: approved or draft work not yet fully completed
 
-- [Separate Lasso and TimeRange](lasso-time-range-separation.md) — approved selection foundation before [#84](https://github.com/BaraMGB/NextStudio/issues/84); first batch awaits maintainer testing, velocity-source work follows.
+- [Separate Lasso and TimeRange](lasso-time-range-separation.md) — approved selection foundation before [#84](https://github.com/BaraMGB/NextStudio/issues/84); foundation and velocity source implemented; maintainer testing pending.
 
 The completed documentation reorganization and migration map are indexed in [history](../archive/README.md#documentation-migration).
 

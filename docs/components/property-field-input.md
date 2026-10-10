@@ -24,6 +24,38 @@ Timing wheel/scrub steps use the relevant editor's Fixed or Adaptive interval, o
 
 [Timeline feedback](timeline-snapping.md#snap-feedback-and-live-values) owns the common canvas-preview precedence/cleanup and queued-focus-loss completion contract. Property-bar pages describe their wiring rather than redefining that lifecycle.
 
+## Focus-loss policy and canvas transitions
+
+The rule for **note/clip property fields** is commit-on-leave, not Enter-only:
+valid text is applied on Enter, Tab or focus loss; Escape discards it. Invalid
+Enter/Tab keeps the editor active for correction, while invalid focus loss
+restores the last model-derived value without mutation. This is the existing
+policy in `NotePropertiesBar::configureField()` and
+`ClipPropertiesBar::configureField()`, not a new global TextEditor default.
+
+Before a user-initiated canvas gesture changes selection, performs a hit test or
+captures an edit origin, its owner must synchronously finish writable property
+text through the existing interaction-begin callback. In the Piano Roll this
+includes both grid and velocity-lane Pointer/Lasso gestures and direct velocity
+marker drags. Apply to the **old selection** first, then read the resulting model
+and begin the gesture. `TimelineInteractionPreview::finishTextEdit()` uses the
+normal focus-loss callback even when JUCE has already moved focus and queued its
+notification. The field becomes read-only, so the delayed callback cannot apply
+again or consume new selection/preview values. Canceling the subsequent gesture
+does not undo an already completed property edit. External deletion/selection
+refresh may still discard stale input as described by each bar's lifetime rules.
+
+Other field types deliberately have different policies; do not change them to
+match the property bars implicitly:
+
+| Context | Existing behavior / source |
+|---|---|
+| Note/clip properties | Enter/Tab/focus loss applies valid text; Escape discards (`NotePropertiesBar.cpp`, `ClipPropertiesBar.cpp`) |
+| Inline colour hex | Enter/focus loss attempts to apply; Escape restores the colour (`InlineColourEditor.cpp`) |
+| Mouse cursor scale setting | Enter/focus loss invokes validation/update (`AudioMidiSettings.h`) |
+| Transport/loop position display | Enter confirms; Escape/focus loss discards (`PositionDisplayComponent.cpp`, `beginEditing()`) |
+| Project/theme Save As | Enter or the action button performs saving; focus loss alone does not save (`ProjectsBrowser.cpp`, `ThemeSettingsComponent.cpp`) |
+
 ## Positions and durations
 
 | Input | Meaning / example |
@@ -57,5 +89,7 @@ Transport/loop display consumers use the same bars/beats/ticks helpers. `Positio
 ## Validation and limitations
 
 `App/tests/PositionDisplayTests.cpp` covers the production shared position-display helpers. `TimelineSnappingTests` covers the production queued TextEditor completion helper with a test callback, not every full property-bar parser/commit path. There is no dedicated NotePropertiesBar/ClipPropertiesBar end-to-end target.
+
+`tools/native-velocity-selection-regression.py` additionally exercises real note-field focus loss into Pointer/Lasso selection and marker dragging, including invalid input, Escape, gesture cancellation and undo/redo. This is scoped Linux/X11 integration coverage, not a complete property-bar suite.
 
 Focused validation should include mixed selections, offset clips, invalid input, no-op scrub, queued focus changes and undo/redo. Future isolated parser/planner tests should call production code, not copy these rules into a parallel implementation. Accessibility, extreme widths, integer overflow and the pitch-name mismatch remain limitations, not fixed by rewriting documentation.
