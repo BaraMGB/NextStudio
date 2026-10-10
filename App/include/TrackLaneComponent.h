@@ -43,6 +43,7 @@ public:
     void paint(juce::Graphics &g) override;
     void resized() override;
 
+    void mouseEnter(const juce::MouseEvent &) override;
     void mouseMove(const juce::MouseEvent &) override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseDrag(const juce::MouseEvent &) override;
@@ -53,6 +54,7 @@ public:
     te::Track::Ptr getTrack() const { return m_track; }
     bool isClipAt(juce::Point<float> point) { return getClipHoverState(point, false).clip != nullptr; }
 
+    void refreshCursor(juce::ModifierKeys mods);
     void buildAutomationLanes();
     AutomationLaneComponent *getAutomationLane(tracktion::AutomatableParameter::Ptr ap);
 

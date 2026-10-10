@@ -140,7 +140,7 @@ Move/copy/create operations clear conflicting note material of the same pitch in
 
 ### Draw
 
-The draw tool creates a note over an existing MIDI clip.
+The draw tool creates a note over an existing MIDI clip. Its pencil cursor is shown over clip time ranges; outside clips and in clip gaps, the normal pointer remains visible. Clicking there does not create a note or clip. An ongoing draw retains the pencil while crossing a clip boundary.
 
 - clicking shows the selected **INSERT LENGHT** default immediately;
 - with snapping enabled, the start aligns downward and the default end aligns to the first snap point at or after that duration. A coarser snap therefore immediately gives the note an end at the next snap point;
@@ -163,7 +163,7 @@ Drag to select a time/pitch range. This tool delegates to the Piano Roll's range
 - drag across notes to collect and delete them as one named undo transaction;
 - double-click a note to delete all notes in the same clip whose start beat matches within a small tolerance.
 
-The cursor indicates eraser mode. Hover deletion highlighting is currently limited; the custom cursor is the primary feedback.
+The eraser cursor remains visible throughout MIDI clip time ranges, including between notes. Outside clips and in clip gaps it becomes the normal pointer, like Draw and Knife. Hover deletion highlighting is currently limited.
 
 ### Knife
 
@@ -175,11 +175,11 @@ Click inside a note to split it at the cursor.
 - the original note becomes the first segment and a second segment is added with the same pitch, velocity, and color;
 - the operation is grouped as `Split MIDI Note` in undo history.
 
-A vertical split preview is drawn while hovering over a note.
+The Knife cursor stays visible throughout MIDI clip time ranges, including between notes; outside clips and in clip gaps it becomes the normal pointer. A vertical split preview is drawn only over a note at a valid split position; a missing note within a clip does not change the tool cursor.
 
 ### Lasso
 
-Drag to select notes in a rectangular area. Releasing switches back to the pointer tool.
+Drag to select notes in a rectangular area. Releasing switches back to the pointer tool. Lasso and Range show their selection cursors over empty space too, since a selection can begin there. Pointer retains its normal cursor in empty space and move/resize feedback over notes. Ongoing drags retain the cursor of their current action.
 
 ## Snapping
 

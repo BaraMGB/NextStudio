@@ -64,6 +64,26 @@ void SongEditorView::setTool(Tool tool)
         cancelDrag();
     m_toolMode = tool;
     syncToolButtonsFromState();
+    const auto mods = juce::ModifierKeys::getCurrentModifiers();
+    for (auto* lane : m_trackLanes)
+        lane->refreshCursor(mods);
+
+    const auto mouse = juce::Desktop::getInstance().getMainMouseSource();
+    auto* cursorOwner = mouse.getComponentUnderMouse();
+    // Master is an external lane, not a member of m_trackLanes.
+    if (auto* lane = dynamic_cast<TrackLaneComponent*>(cursorOwner); lane && !m_trackLanes.contains(lane))
+        lane->refreshCursor(mods);
+
+    const auto point = getLocalPoint(nullptr, mouse.getScreenPosition()).toInt();
+    if (getLocalBounds().contains(point))
+    {
+        if (m_timeRangeOverlay.hitTest(point.x, point.y))
+            m_timeRangeOverlay.updateCursor(point);
+        // JUCE retains the old cursor owner until the pointer moves. Resolve
+        // the new hit target directly, including Pointer's selected-range edges.
+        if (auto* target = getComponentAt(point); target && cursorOwner && (cursorOwner == this || isParentOf(cursorOwner)))
+            cursorOwner->setMouseCursor(target->getMouseCursor());
+    }
 }
 
 void SongEditorView::paintOverChildren(juce::Graphics &g)
@@ -1470,6 +1490,11 @@ void SongEditorView::TimeRangeOverlayComponent::paint(juce::Graphics &g)
 
 void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent &e)
 {
+    updateCursor(e.getPosition());
+}
+
+void SongEditorView::TimeRangeOverlayComponent::updateCursor(juce::Point<int> position)
+{
     if (m_owner.getToolMode() == Tool::range)
     {
         setMouseCursor(juce::MouseCursor::IBeamCursor);
@@ -1477,17 +1502,17 @@ void SongEditorView::TimeRangeOverlayComponent::mouseMove(const juce::MouseEvent
     }
 
     bool left = false, right = false;
-    if (auto track = m_owner.getTrackAt(e.y); track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
+    if (auto track = m_owner.getTrackAt(position.y); track != nullptr && m_owner.m_selectedRange.selectedTracks.contains(track))
     {
-        m_owner.hitTestTimeRange(e.x, track, left, right);
+        m_owner.hitTestTimeRange(position.x, track, left, right);
     }
     else
     {
         for (auto automation : m_owner.m_selectedRange.selectedAutomations)
         {
-            if (m_owner.getAutomationRect(automation).contains(static_cast<float>(e.x), static_cast<float>(e.y)))
+            if (m_owner.getAutomationRect(automation).contains(position.toFloat()))
             {
-                m_owner.hitTestTimeRange(e.x, automation, left, right);
+                m_owner.hitTestTimeRange(position.x, automation, left, right);
                 break;
             }
         }

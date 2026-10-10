@@ -379,6 +379,29 @@ void MidiViewport::drawClipRange(juce::Graphics &g, tracktion_engine::MidiClip *
     g.fillRect(clipStartX + 1, 0, clipEndX - clipStartX - 2, getHeight());
 }
 
+void MidiViewport::updateToolCursor()
+{
+    if (!m_currentTool)
+        return;
+    switch (m_currentTool->getToolId())
+    {
+        case Tool::draw:
+        case Tool::knife:
+        case Tool::eraser:
+        {
+            getCachedMidiClips();
+            const auto point = getLocalPoint(nullptr, juce::Desktop::getInstance().getMainMouseSource().getScreenPosition());
+            setMouseCursor(getClipAt(point.x) ? m_currentTool->getCursor(*this) : juce::MouseCursor::NormalCursor);
+            break;
+        }
+        case Tool::lasso:
+        case Tool::range: setMouseCursor(m_currentTool->getCursor(*this)); break;
+        default: break; // Pointer keeps its existing note-body/edge feedback.
+    }
+}
+
+void MidiViewport::mouseEnter(const juce::MouseEvent& e) { mouseMove(e); }
+
 void MidiViewport::mouseMove(const juce::MouseEvent &e)
 {
     m_lastMousePosition = e.getPosition();
@@ -390,6 +413,7 @@ void MidiViewport::mouseMove(const juce::MouseEvent &e)
         m_currentTool->mouseMove(e, *this);
     else
         setMouseCursor(juce::MouseCursor::NormalCursor);
+    updateToolCursor();
 }
 
 bool MidiViewport::cancelActiveDraw()
@@ -397,6 +421,7 @@ bool MidiViewport::cancelActiveDraw()
     if (auto* draw = dynamic_cast<DrawTool*>(m_currentTool.get()); draw != nullptr && draw->isDrawing())
     {
         draw->cancel(*this);
+        updateToolCursor();
         return true;
     }
     return false;
@@ -478,6 +503,7 @@ void MidiViewport::mouseUp(const juce::MouseEvent &e)
     if (m_currentTool)
         m_currentTool->mouseUp(e, *this);
     m_mouseInput.reset();
+    updateToolCursor();
     repaint();
 }
 void MidiViewport::valueTreeChildAdded(juce::ValueTree &parent, juce::ValueTree &child)
@@ -1056,6 +1082,8 @@ void MidiViewport::setNoteUnderMouseHandler(NoteUnderMouseHandler handler)
 void MidiViewport::refreshNoteUnderMouse()
 {
     updateNoteUnderMouse();
+    if (!juce::Desktop::getInstance().getMainMouseSource().isDragging())
+        updateToolCursor();
 }
 
 void MidiViewport::updateNoteUnderMouse()
@@ -1342,6 +1370,7 @@ void MidiViewport::setTool(Tool tool)
 
     if (m_currentTool)
         m_currentTool->toolActivated(*this);
+    updateToolCursor();
 
     // Notify listeners about the tool change
     sendChangeMessage();

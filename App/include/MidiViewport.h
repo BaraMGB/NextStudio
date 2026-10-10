@@ -62,6 +62,7 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
     void resized() override;
 
+    void mouseEnter(const juce::MouseEvent &) override;
     void mouseMove(const juce::MouseEvent &) override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseDrag(const juce::MouseEvent &) override;
@@ -148,6 +149,7 @@ public:
 
 private:
     MouseGestureInput m_mouseInput;
+    void updateToolCursor();
     void changeListenerCallback(juce::ChangeBroadcaster *) override;
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;

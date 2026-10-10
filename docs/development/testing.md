@@ -100,6 +100,10 @@ For visual regression checks, capture Song Editor and Piano Roll with snapped st
 
 Include exactly adjoining fractional-length clips, not just whole-beat examples: independent rounding of x and width can otherwise escape visual checks. Compare unselected, left-selected, right-selected, and both-selected pairs in the complete application, including a partly offscreen first clip. Preserve selection/geometry across before/after captures and confirm musical clip/note data remain unchanged after slow pan/zoom and UI-scale changes. A float outline removes the separate frame-coordinate rounding; it does not promise constant raw RGB samples across different underlying content/bands or eliminate antialiasing.
 
+## Timeline cursor validation
+
+Draw/Knife/Eraser share the MIDI clip boundary, not a per-note hit gate. Check actual OS cursor images inside clips (including note-free rows), outside clips/in gaps, on entry, stationary tool changes and release; verify active drags retain their cursor. Lasso/Range remain usable in empty space and Song Knife remains visible in clip-capable track gaps. Include stationary Song Range-to-Pointer/Time-Stretch transitions over clip bodies/both edges and gaps, plus Range/Knife-to-Pointer over selected-range bodies/both edges; check the effective hit target even when JUCE still retains the old cursor owner. This direct GUI assignment has no standalone policy helper to unit-test; use scripted native before/after checks rather than a duplicated boolean test. See [cursor validation](../changes/tool-cursor-working-areas.md) for evidence and limits.
+
 ## Debug-system tests
 
 The focused debug tests compile the same protocol, controller, and PNG writer used by the application. They cover legacy and JSON request parsing, malformed requests, aliases, adversarial JSON response values, standard escaping, response recognition, fake-host controller validation and error paths, state-string filtering/truncation, invalid images, successful encode/decode with dimensions, unopenable output, explicit session settings paths, and quit dispatch.

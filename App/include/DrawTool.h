@@ -42,12 +42,10 @@ public:
     void mouseDown(const juce::MouseEvent &event, MidiViewport &viewport) override;
     void mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport) override;
     void mouseUp(const juce::MouseEvent &event, MidiViewport &viewport) override;
-    void mouseMove(const juce::MouseEvent &event, MidiViewport &viewport) override;
     void mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport) override;
 
     juce::MouseCursor getCursor(MidiViewport &viewport) const override;
 
-    void toolActivated(MidiViewport &viewport) override;
     void toolDeactivated(MidiViewport &viewport) override;
     Tool getToolId() override { return Tool::draw; }
 

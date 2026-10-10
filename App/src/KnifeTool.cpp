@@ -74,8 +74,6 @@ void KnifeTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
 
 void KnifeTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
 {
-    viewport.setMouseCursor(getCursor(viewport));
-
     m_shouldDrawSplitLine = false;
     m_hoveredNote = nullptr;
     viewport.getTimeLine()->clearMouseFeedback(TimelineFeedbackOwner::notes);
@@ -103,8 +101,6 @@ void KnifeTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &vi
 }
 
 juce::MouseCursor KnifeTool::getCursor(MidiViewport &viewport) const { return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Split, viewport.getCursorScale()); }
-
-void KnifeTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
 void KnifeTool::toolDeactivated(MidiViewport &viewport)
 {

@@ -145,6 +145,8 @@ AutomationLaneComponent *TrackLaneComponent::getAutomationLane(tracktion::Automa
 // Mouse Handling
 //==============================================================================
 
+void TrackLaneComponent::mouseEnter(const juce::MouseEvent& e) { mouseMove(e); }
+
 void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
 {
     m_mouseInput.remember(e);
@@ -676,6 +678,22 @@ juce::Rectangle<float> TrackLaneComponent::getClipRect(te::Clip::Ptr clip)
     return clipRect;
 }
 
+void TrackLaneComponent::refreshCursor(juce::ModifierKeys mods)
+{
+    if (m_songEditor.getDragState().isClipDrag())
+        return;
+
+    const auto point = getLocalPoint(nullptr, juce::Desktop::getInstance().getMainMouseSource().getScreenPosition());
+    const auto tool = m_songEditor.getToolMode();
+    const auto hover = getLocalBounds().toFloat().contains(point) && getComponentAt(point.toInt()) == this
+        ? getClipHoverState(point, tool == Tool::pointer || tool == Tool::timestretch) : ClipHoverState{};
+    m_hoveredClip = hover.clip;
+    m_leftBorderHovered = hover.leftBorder;
+    m_rightBorderHovered = hover.rightBorder;
+    m_hoveredFadeZone = hover.fadeZone;
+    updateCursor(mods);
+}
+
 void TrackLaneComponent::updateCursor(juce::ModifierKeys modifierKeys)
 {
     auto toolMode = m_songEditor.getToolMode();
@@ -713,9 +731,13 @@ void TrackLaneComponent::updateCursor(juce::ModifierKeys modifierKeys)
             setMouseCursor(shiftHandCursor);
         }
     }
-    else if (m_hoveredClip != nullptr && toolMode == Tool::knife)
+    else if (toolMode == Tool::knife && dynamic_cast<te::ClipTrack*>(m_track.get()) != nullptr)
     {
         setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Split, m_editViewState.m_applicationState.m_mouseCursorScale));
+    }
+    else if (toolMode == Tool::lasso || toolMode == Tool::range)
+    {
+        setMouseCursor(toolMode == Tool::lasso ? juce::MouseCursor::CrosshairCursor : juce::MouseCursor::IBeamCursor);
     }
     else
     {

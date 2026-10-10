@@ -91,19 +91,6 @@ void DrawTool::mouseUp(const juce::MouseEvent &event, MidiViewport &viewport)
     cancel(viewport);
 }
 
-void DrawTool::mouseMove(const juce::MouseEvent &event, MidiViewport &viewport)
-{
-    // Update cursor based on context
-    if (viewport.getClipAt(event.position.x))
-    {
-        viewport.setMouseCursor(getCursor(viewport));
-    }
-    else
-    {
-        viewport.setMouseCursor(juce::MouseCursor::NoCursor);
-    }
-}
-
 void DrawTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &viewport)
 {
     // MidiViewport already forwards mouseDown for this event. The normal
@@ -112,8 +99,6 @@ void DrawTool::mouseDoubleClick(const juce::MouseEvent &event, MidiViewport &vie
 }
 
 juce::MouseCursor DrawTool::getCursor(MidiViewport &viewport) const { return GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Draw, viewport.getCursorScale()); }
-
-void DrawTool::toolActivated(MidiViewport &viewport) { viewport.setMouseCursor(getCursor(viewport)); }
 
 void DrawTool::cancel(MidiViewport& viewport)
 {

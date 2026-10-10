@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Timeline tool cursor working areas** — Piano Roll Draw, Knife and Eraser show their tool cursor throughout MIDI clip time ranges, including between notes, and the normal pointer outside clips and in clip gaps. The Song Editor Knife remains visible between clips on clip-capable tracks. Selection tools remain available in empty space; entry, tool changes and release refresh cursor feedback without changing editing actions. Stationary Song Range-to-Pointer/Time-Stretch transitions now resolve fresh clip and selected-range body/edge cursors instead of retaining the I-beam or stale hover state.
 - **Gesture lifecycle review fixes** — Pending clip/note text edits complete before canvas gestures even with queued JUCE focus loss; Escape suppresses continued ruler dragging instead of entering pan/zoom; move/copy snap feedback validates every selected clip destination and clears held cues for invalid groups.
 - **Piano Roll snap cue layering** — Ruler guides and diamonds now paint above clip headers, including stationary Shift/cancel refresh; clip-overlay body guides do not double the ruler stroke. Hit testing and snapping are unchanged.
 - **Live loop previews** — Moving or resizing an existing loop now paints the already resolved range during the gesture instead of retaining the old transport range until release.

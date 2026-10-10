@@ -197,9 +197,15 @@ enum class Tool { pointer, draw, range, eraser, knife, lasso, timestretch };
 
 ### Tool lifecycle
 
-- `toolActivated()` — set the tool cursor;
+- `toolActivated()` — tool-specific activation; Draw/Knife/Eraser cursor selection is owned by `MidiViewport`;
 - `toolDeactivated()` — cancel pending state, clear highlights, restore the cursor;
 - `mouseDown/Drag/Up/Move/DoubleClick` — the interaction.
+
+### Tool cursor working areas
+
+`MidiViewport::updateToolCursor()` applies one clip-time-range check to Draw, Knife and Eraser: tool cursor throughout a MIDI clip's note area, normal pointer outside clips/in gaps, never `NoCursor`. It uses the current floating-point mouse position and the existing clip cache, not a note hit. Lasso/Range keep selection cursors in empty space; Pointer keeps its existing note-body/edge feedback. Entry, tool changes, release/Draw cancellation and existing non-drag editor refreshes update the cursor directly. Hover policy is not reapplied during drags; Eraser explicitly retains its sweep cursor. There is no separate policy layer or synthetic hover-event dispatch.
+
+Song Editor uses `TrackLaneComponent::refreshCursor()` to recompute the clip/edge/fade hit before reusing its cursor selection: Knife remains visible throughout clip-capable track lanes without requiring a clip hit; non-clip lanes such as Master remain normal. Lasso/Range remain available in empty space. Tool changes resolve the current hit target directly, including Pointer's selected-range body/edges and an inactive Range overlay that still owns the stationary pointer. Edit actions, snapping, persistence and undo remain unchanged. See [validation](../changes/tool-cursor-working-areas.md).
 
 ## Note operations
 

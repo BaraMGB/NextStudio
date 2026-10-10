@@ -83,6 +83,7 @@ Change documents explain a coherent implementation diff rather than acting as re
 - [Soft snapping validation](changes/soft-timeline-snapping-validation.md) — regression coverage, isolated 100/125% runtime results, delivery checksum, and remaining maintainer checks.
 - [Snap feedback and live header values plan](changes/snap-feedback-and-live-header-plan.md) — approved held-target guides, display-only gesture snapshots, live clip/note fields, lifecycle rules, implementation batches and acceptance criteria.
 - [Snap feedback and live header validation](changes/snap-feedback-and-live-header-validation.md) — implementation, automated/native evidence, delivery artifact and remaining visual/platform acceptance limits.
+- [Timeline tool cursor working areas](changes/tool-cursor-working-areas.md) — agreed mode-versus-target policy, #90 implementation, native cursor/model evidence and validation limits.
 - [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.
 - [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
 - [Embedded project file browser](changes/embedded-project-file-browser.md) — shared Home/Projects directory browser, filtered project activation, inline Save As, interaction blocking, validation, state transitions, and debug-shell coverage.

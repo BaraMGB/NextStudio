@@ -100,10 +100,11 @@ Clip fills and normal/selected frames share the same unrounded time edges. Adjoi
 
 ### Editing (Knife Tool)
 
-- Hovering a clip shows the split cursor and a vertical preview line across that clip.
+- The split cursor indicates Knife mode throughout the clip grid, including gaps between clips. Hovering a clip additionally shows a vertical preview line across that clip.
 - The preview line follows the arrangement **SNAP** setting. Clicking splits the clip at exactly the previewed position.
 - Hold `Shift` while hovering or clicking to bypass enabled snapping for both the preview and the actual split.
-- No preview line is drawn over empty track space.
+- No preview line is drawn over empty track space; the Knife cursor remains visible there.
+- Lasso and Range show selection cursors throughout their respective selection area, including empty space. Pointer/Time Stretch retain contextual move/resize feedback over editable objects and the normal pointer elsewhere. Active drags keep the cursor of the ongoing action.
 
 ### Clip Properties Bar
 

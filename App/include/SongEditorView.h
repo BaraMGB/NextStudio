@@ -53,6 +53,7 @@ public:
         void mouseUp(const juce::MouseEvent &e) override;
         void modifierKeysChanged(const juce::ModifierKeys&) override;
         void refreshMouseSnapContext();
+        void updateCursor(juce::Point<int> position);
 
     private:
         SongEditorView &m_owner;
