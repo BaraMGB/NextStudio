@@ -1,5 +1,9 @@
 # PluginChainView
 
+- Type: reference
+- Audience: contributors
+- Scope: current rack ownership, layout, ordering and bypass presentation
+
 ## Purpose
 
 `PluginChainView` implements the Track Chain shown by the Plugins tab in the Lower Zone. It coordinates the selected track, track presets, modifiers, the plug-in list, horizontally arranged plug-in editors, the channel strip, drag-and-drop, selection, ordering, and scrolling.
@@ -80,13 +84,17 @@ Expanded side panels use named constants rather than local numeric widths. A col
 
 ### Compact Pitch Shifter editor
 
-`PluginChainItemView` selects `PitchShiftPluginComponent` for `pitchShifter` instead of the generic VST parameter list. It requests width factor 1 and displays an interval map above one standard Semitones control. Dragging the map's output point selects whole semitones in one undoable gesture; the standard knob and automation remain continuous. `EffectEditorLayout::pitchShifter()` bounds the map/control dimensions; the shared rack height is unchanged. See [Compact Pitch Shifter editor](../changes/pitch-shifter-compact-map.md) for parameter-listener ownership and regression coverage, and [Pitch Shifter](../plugins/pitch-shifter.md) for user behavior.
+`PluginChainItemView` selects `PitchShiftPluginComponent` rather than the generic VST parameter list. The [built-in effect contract](built-in-effect-editors.md#compact-pitch-shifter-and-pitch-map) owns its compact geometry, parameter listener and graph-specific gesture/undo rules; [Pitch Shifter](../plugins/pitch-shifter.md) describes user controls. Compressor/Delay responsive layout and EQ/Reverb graph policies are documented in that same scoped effect reference, not repeated in the rack orchestrator.
 
 ### Whole-item bypass presentation
 
-Each plug-in `PluginChainItemView` owns a `PluginBypassPresentation` observing its `enabled` state. While bypassed, a component image effect desaturates the entire item and its children, including preset controls. A dedicated **BYPASSED** badge occupies the lower vertical rail without covering or moving editor controls. Active/re-enabled items have no filter; modifier items are unchanged. The view detaches the observer/effect before destruction.
+Each plug-in `PluginChainItemView` owns `PluginBypassPresentation`, which observes the `enabled` ValueTree property directly with the engine's true default, avoiding CachedValue notification-order delays. Initial bypass, toggles and undo/redo attach/detach its effect immediately; unrelated parameter changes do not perform extra bypass work.
 
-Controls remain enabled and interactive; the presentation neither edits engine state nor changes audio processing. See [Complete bypass presentation](../changes/complete-bypass-presentation.md) for rendering ownership, alpha handling, tests, and screenshot verification.
+JUCE renders the complete item/subtree at physical resolution; `PluginBypassEffect` desaturates a private image copy and composites using the original alpha. Shared child/source images and track/theme colors are never modified. Active/re-enabled items have no filter/offscreen-effect cost and recover original rendering. Modifier items and separately opened native plugin windows are outside this rack-item treatment.
+
+A high-contrast **BYPASSED** badge reserves a separate lower rail region, including collapsed items, leaving the editor-open button and name disjoint. It remains meaningful for monochrome themes/tracks without covering/moving controls. The list's crossed-out eye indication remains. Controls stay enabled and interactive, with no extra opacity reduction or engine/parameter/DSP state edits.
+
+The view explicitly destroys the presentation before its child editors/base Component; the presentation unregisters its listener and detaches its owned effect. Do not replace this whole-subtree treatment with per-editor color changes that miss independent accents.
 
 ## Rack sections and ordering
 
@@ -137,11 +145,16 @@ Callbacks that may outlive a synchronous rebuild use `juce::Component::SafePoint
 
 ## Tests
 
-`PluginChainLayoutTests` covers the pure scroll-range and reorder-destination calculations. `PluginMenuOrderingTests` covers recursive category/entry ordering, case-insensitive natural comparison, stable equivalent names, category preservation, and filtered-order equivalence. `DebugSettingsIsolationTests` covers defaults and persistence for the two side-panel settings. Full component rendering, drag-and-drop, and Tracktion plug-in insertion still require integration or visual testing.
+`PluginChainLayoutTests` covers the pure scroll-range and reorder-destination calculations. `PluginMenuOrderingTests` covers recursive category/entry ordering, case-insensitive natural comparison, stable equivalent names, category preservation, and filtered-order equivalence. `DebugSettingsIsolationTests` covers defaults and persistence for the two side-panel settings.
+
+`PluginBypassPresentationTests` exercises the production presentation/filter with RGB/ARGB alpha/source preservation, full parent/child/grandchild rendering, default/initial bypass, undo/redo restoration, teardown, unchanged state/control enablement/hits and badge bounds/contrast. It is role-independent, not complete native testing of every editor. Effect-specific layout/pitch/reset coverage belongs in [built-in effect editors](built-in-effect-editors.md).
+
+Full rack rendering, drag/drop and Tracktion insertion still need integration/visual tests. Original screenshots and observed large-rack responsiveness are [historical evidence](../archive/changes/complete-bypass-presentation.md), not a formal repaint benchmark or expanded platform/audio certification.
 
 ## Related documents
 
 - [Track Chain](../ui/track-chain.md)
+- [Built-in effect editors](built-in-effect-editors.md)
 - [State and Event Model](../architecture/state-and-events.md)
 - [Source Layout](../development/source-layout.md)
 - [Testing](../development/testing.md)

@@ -1,0 +1,33 @@
+name: Documentation
+
+on:
+  push:
+    paths:
+      - '**/*.md'
+      - 'tools/check-docs.py'
+      - 'tools/tests/test_check_docs.py'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'tools/check-docs.py'
+      - 'tools/tests/test_check_docs.py'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test documentation checker
+        run: python3 -m unittest discover -s tools/tests -p 'test_check_docs.py'
+      - name: Check links, anchors and navigation
+        run: python3 tools/check-docs.py

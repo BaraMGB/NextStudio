@@ -4,7 +4,17 @@ on:
   push:
     branches: [main, develop]
     tags: ['v*']
+    paths-ignore:
+      - '**/*.md'
+      - 'tools/check-docs.py'
+      - 'tools/tests/test_check_docs.py'
+      - '.github/workflows/docs.yml'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'tools/check-docs.py'
+      - 'tools/tests/test_check_docs.py'
+      - '.github/workflows/docs.yml'
   workflow_dispatch:
     inputs:
       platform:

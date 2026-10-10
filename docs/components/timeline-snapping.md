@@ -1,5 +1,19 @@
 # Timeline snapping
 
+- Type: reference
+- Audience: contributors
+- Scope: current shared magnetic mapping, replay and feedback
+
+## Source map
+
+- `App/include/TimelineSoftSnap.h`, `App/src/TimelineSoftSnap.cpp`: pure curve/profiles.
+- `App/include/TimelineSnapResolver.h`, `App/src/TimelineSnapResolver.cpp`: engine targets, inverse gesture anchors and detailed feedback.
+- `App/include/MouseGestureInput.h`: floating-point input and modifier/context replay.
+- `App/include/TimelineInteractionPreview.h`: pointer-free display snapshots, synchronous field-edit completion, guide/marker geometry and ruler layer selection.
+- `App/src/TimeLineComponent.cpp`: editor context, feedback lifecycle and ruler gestures.
+- `App/include/PianoRollDrawGesture.h`, `App/src/PianoRollDrawGesture.cpp`: provisional creation timing.
+- `App/tests/TimelineSoftSnapTests.cpp`, `App/tests/TimelineSnappingTests.cpp`: production policy/helper/model regressions.
+
 ## Ownership
 
 Musical snapping is separate from [timeline view normalization](timeline-view-transform.md).
@@ -163,8 +177,11 @@ Provisional Draw does not increment the selected-note count. Overlay clip timing
 routes explicitly through an edit-local UI callback, while snap status remains
 owned by the Piano Roll grid. This channel is not serialized or a model notification.
 
-See [implementation and validation](../changes/snap-feedback-and-live-header-validation.md)
-for evidence and GUI/platform coverage limits.
+Before reading a canvas gesture's origin, `TimelineInteractionPreview::finishTextEdit()` synchronously completes/rejects writable field edits using the normal focus-loss policy, including queued notifications after JUCE already transferred focus. Returning the field to read-only makes the delayed notification idempotent. Preview text must never become a numeric commit. Active snapshots block competing text/wheel/scrub edits while leaving supported snap-context changes available.
+
+Clear snapshots and feedback on cancellation, tool/source/editor/project changes and rejected commits, then restore actual model/selection values. Successful commit clears only after the existing operation has completed; intentional note removal/recreation is distinguished from external source deletion. Knife hover, range/loop, automation and browser drop report snap state but must not masquerade as selected clip/note timing. Synchronous callbacks disconnect at owner teardown; no additional preview queue/generation counter is required.
+
+See [Testing](../development/testing.md) for current procedures and [historical validation](../archive/changes/snap-feedback-and-live-header-validation.md) for the original feature's evidence and GUI/platform limits.
 
 ## Preview geometry
 
@@ -241,8 +258,4 @@ projection at multiple scales/pans across tempo changes/ramps.
 `PianoRollNoteLengthTests` covers mode resolution
 and the tick-only floor.
 
-GUI event dispatch, selection feedback, previews, modifier keys, and native
-scaling require the focused runtime checks recorded in `Todo.md` and the
-[implementation plan](../changes/soft-timeline-snapping-plan.md) and
-[validation record](../changes/soft-timeline-snapping-validation.md). Engine/helper
-coverage is not presented as full GUI coverage.
+GUI event dispatch, selection feedback, previews, modifier keys and native scaling require focused runtime checks using the [testing guide](../development/testing.md), not the work queue. The [historical validation](../archive/changes/soft-timeline-snapping-validation.md) distinguishes intermediate profile builds and original runtime coverage. Engine/helper coverage is not full GUI coverage; acceptance does not certify exhaustive automation/stretch, multi-track/loop/take combinations, platforms or monitor transitions.

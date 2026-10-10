@@ -1,5 +1,9 @@
 # Project Workflow Controller and Interaction Lock
 
+- Type: reference
+- Audience: contributors
+- Scope: current typed project intent, continuation and interaction locks
+
 ## Purpose
 
 Project file selection remains embedded in the Projects sidebar, but the sidebar view is no longer responsible for representing asynchronous project intent with unrelated booleans. `ProjectWorkflow::Controller` owns the state machine and pending operation. `MainComponent` owns execution and the interaction/engine boundary.
@@ -47,7 +51,7 @@ If the edit is dirty, the sidebar presents Save and Continue, Discard and Contin
 
 At startup, a valid crash snapshot is loaded and `confirmRecovery` presents Restore Project and Discard Recovery in the same Projects sidebar. This state locks all other main interaction and cannot be dismissed with Escape or an outside click. Resolution is posted asynchronously because discarding reconstructs the edit-bound sidebar. Restoring marks the edit dirty and retains its snapshot across shutdown until the user saves, explicitly discards, or replaces it. A required Setup Wizard is shown only after this choice.
 
-The browser invokes a typed operation callback rather than sending an untyped load request through `ChangeBroadcaster`. Actual replacement remains asynchronous so the browser callback may return before its edit-bound component hierarchy is destroyed. `ExecutionGuard` captures edit identity and `lastSignificantChange`; either changing before the deferred callback rejects replacement.
+The browser invokes a typed operation callback rather than sending an untyped load request through `ChangeBroadcaster`. Actual replacement remains asynchronous so the browser callback may return before its edit-bound component hierarchy is destroyed. `ExecutionGuard` captures edit identity and `lastSignificantChange`; either changing before the deferred callback rejects replacement. An operation considered clean before entering `committing` is rechecked after the lock is applied; newly dirty state returns to unsaved-change confirmation instead of executing stale clean intent.
 
 ## Interaction and engine boundary
 
@@ -74,7 +78,7 @@ The Projects sidebar and splitter remain above the overlay. Sidebar command hand
 
 The normal Projects view is always a filtered directory browser, so loading needs neither a Load button nor a separate browser state. Directory browsing remains non-modal and does not stop the engine. Double-clicking a project stages a typed load operation. The lock begins only when the operation commits after the clean, Save and Continue, or Discard and Continue decision. This closes the previous race in which a boolean unsaved-change decision could become stale before asynchronous setup.
 
-The Projects and Home views use `DirectoryBrowserComponent` for asynchronous scanning, navigation, sorting and filtering. Domain behavior is callback-based: Projects activates only persistent project files, while Home forwards audio selections to `SamplePreviewComponent`. The directory browser itself has no Engine, Edit or preview dependency.
+Projects and Home share the [directory browser contract](../components/directory-browser.md). Navigation/selection callbacks stay separate from typed project operations and edit-aware sample preview; ordinary browsing must not acquire the replacement lock.
 
 `MainComponent::setupEdit()` no longer opens a modal unsaved-project alert. It assumes every runtime replacement has passed through the workflow controller. The replacement edit is still inspected and constructed before the current edit is destroyed.
 
@@ -101,4 +105,10 @@ New targets continue to receive one canonical `.tracktionedit` extension before 
 - recovery-confirmation interaction locking;
 - error return state and interaction-lock behavior.
 
-`ProjectLifecycleTests` additionally verifies that direct save target normalization preserves an existing upper-case extension path.
+`ProjectLifecycleTests` additionally verifies that direct save target normalization preserves an existing upper-case extension path. Full scanner/sidebar/plugin-window integration and native focus/engine transitions require separately scoped runtime checks.
+
+## Related references
+
+- [Project lifecycle](project-lifecycle.md)
+- [Shared directory browser](../components/directory-browser.md)
+- [Side Browser controls](../ui/side-browser.md)

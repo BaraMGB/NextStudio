@@ -118,6 +118,7 @@ The documentation index includes user guides, architecture, component documentat
 ## Development
 
 - **Issues:** [GitHub Issues](https://github.com/BaraMGB/NextStudio/issues)
+- **Contribution workflow:** [docs/development/contributing.md](docs/development/contributing.md)
 - **Source layout:** [docs/development/source-layout.md](docs/development/source-layout.md)
 - **License:** AGPL3
 

@@ -1,5 +1,9 @@
 # Project Lifecycle
 
+- Type: reference
+- Audience: contributors
+- Scope: current file, save, autosave, recovery and replacement invariants
+
 ## Scope
 
 This document describes creation, loading, saving, save-as, unsaved-change handling, autosave, crash recovery, and project replacement. The main implementation is split between:
@@ -24,7 +28,7 @@ Normal projects use:
 .tracktionedit
 ```
 
-`ProjectLifecycle::isPersistentProjectFile()` performs a case-insensitive extension check. Save targets are normalized with `withProjectExtension()`.
+`ProjectLifecycle::isPersistentProjectFile()` performs a case-insensitive extension check. Newly selected targets receive the canonical extension; `normaliseSaveTarget()` preserves the exact existing path for direct saves, including extension case.
 
 ### Recovery snapshot
 
@@ -106,9 +110,9 @@ If Save requires a target, the typed pending operation survives the embedded Sav
 
 Non-new projects are inspected before any current UI or model is destroyed.
 
-### 3. Handle unsaved current work
+### 3. Respect the workflow decision
 
-If the user cancels or saving fails, replacement stops immediately.
+The [project workflow](project-workflow.md) handles dirty-state decisions/locking before calling replacement, including the post-lock clean check and deferred execution guard. Cancellation or failed saving prevents that call; `setupEdit()` must not open a second modal unsaved-change decision.
 
 ### 4. Construct the replacement first
 
@@ -268,4 +272,6 @@ Contributors changing project handling should preserve these invariants:
 - [Architecture Overview](overview.md)
 - [State and Event Model](state-and-events.md)
 - [Testing](../development/testing.md)
+- [Project workflow controller](project-workflow.md)
+- [Shared directory browser](../components/directory-browser.md)
 - [Getting Started](../user/getting-started.md)

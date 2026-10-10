@@ -234,13 +234,7 @@ These are referenced by root CMake install/CPack configuration and packaging man
 
 Documentation is intentionally outside `App/` because it covers the whole repository.
 
-- `docs/user/` describes observable workflows and avoids unnecessary implementation details.
-- `docs/components/` documents reusable or complex classes and their contracts.
-- `docs/architecture/` documents boundaries, ownership, and cross-component behavior.
-- `docs/development/` documents repository workflows.
-- `docs/changes/` records the rationale and complete scope of coherent implementation changes.
-
-Release notes belong in `CHANGELOG.md`, not in `docs/changes/`.
+The [documentation index](../README.md) provides reader-oriented entry points. The [maintenance schema](documentation-policy.md#1-document-types-and-authoritative-locations) owns directory responsibilities and document lifecycle. Active proposals live under `docs/plans/`; completed records move to `docs/archive/changes/` after extracting current knowledge. `docs/changes/` temporarily retains legacy records and compatibility redirects during the staged migration, not new per-patch reports. Release notes remain in `CHANGELOG.md`.
 
 ## Adding a new UI component
 
@@ -283,7 +277,7 @@ At a minimum:
 4. register the type with `m_engine.getPluginManager().createBuiltInType<T>()` in `MainComponent`;
 5. ensure it appears in the correct instrument/effect browser category;
 6. verify mono/stereo and sample-rate/block-size behavior;
-7. document controls under `docs/user/` when user-facing;
+7. document controls under `docs/plugins/`, adding a separate `docs/user/` workflow only when justified by its task/audience;
 8. add DSP or helper tests where practical.
 
 ## Adding persistent settings

@@ -20,7 +20,7 @@ Browsing remains non-modal; there is no separate Load mode or Load button. Save 
 
 Existing targets require an inline **Overwrite** confirmation. Invalid names, unreadable projects, unavailable paths, and write failures are reported inside the Projects sidebar rather than in a project-specific alert window.
 
-See [Embedded Project File Browser and Save-As Interaction Boundary](../changes/embedded-project-file-browser.md) for the complete behavior and implementation.
+See [Project workflow](../architecture/project-workflow.md) for interaction/engine boundaries and [Directory browser](../components/directory-browser.md) for shared navigation implementation.
 
 ### Instruments
 
@@ -46,7 +46,7 @@ See [Embedded Project File Browser and Save-As Interaction Boundary](../changes/
 
 - General file browser starting in the configured working directory.
 - Uses the same asynchronous directory-navigation component as Projects, without a project-file filter.
-- Selection is forwarded to the edit-aware sample preview; the browser itself has no Engine or Edit dependency.
+- Selecting an audio file updates the sample preview; selecting a file does not itself replace the project.
 - Supports sample preview and drag-and-drop of audio files.
 - Double-clicking a valid `.nxttheme` file applies it immediately without importing or moving the file.
 

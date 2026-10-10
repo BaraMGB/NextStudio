@@ -79,8 +79,6 @@ Both sections belong to one vertically scrollable page. The scrollbar at the rig
 
 Shortcut categories remain expandable. Expanding or collapsing a category updates the page height while preserving the shared scrolling model.
 
-The layout is implemented by `KeyboardSettingsComponent` in `App/include/KeyboardSettingsComponent.h` and `App/src/KeyboardSettingsComponent.cpp`. Its outer `juce::Viewport` owns the visible scrollbar, while the embedded `juce::KeyMappingEditorComponent` is sized to the full height of its tree content.
-
 ## Related documents
 
 - [Getting Started](../user/getting-started.md)

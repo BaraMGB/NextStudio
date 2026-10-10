@@ -1,116 +1,88 @@
-# NextStudio Documentation
+# NextStudio documentation
 
-This directory contains the user and developer documentation for NextStudio.
+## Start with your task
 
-## User documentation
+| Task | Entry |
+|---|---|
+| Use the application | [Getting started](user/getting-started.md), [Piano Roll](user/piano-roll.md) |
+| Look up a screen/control/plugin | UI and plugin references below |
+| Understand implementation | Architecture and component references below |
+| Build, test or debug | [Building](development/building.md), [Testing](development/testing.md), [Agent debug](agent-debug.md) |
+| Make a change | [Contributing](development/contributing.md), [Documentation maintenance schema](development/documentation-policy.md) |
+| Consult history or planned work | [Historical records](archive/README.md), [Active plans](plans/README.md), [Open-work queue](../Todo.md) |
 
-- [Getting started](user/getting-started.md) — first launch, content folders, projects, the main window, and basic workflow.
-- [Piano roll](user/piano-roll.md) — selecting MIDI material, editing notes, tools, navigation, velocity, and shortcuts.
-- [Peak Limiter](user/peak-limiter.md) — controls, metering, suggested settings, and limitations.
+Current references describe the repository revision containing them. Historical records describe past designs/results; they are not prerequisites for understanding current behavior. User-visible release history belongs in [CHANGELOG](../CHANGELOG.md).
 
-## UI documentation
+## User workflows
 
-- [Header Bar](ui/header-bar.md) — transport controls, time display, global switches, automation controls, pre-roll counter.
-- [Side Browser](ui/side-browser.md) — projects, instruments, effects, samples, home, settings, render, sample preview.
-- [Song Editor](ui/song-editor.md) — track list, arrangement area, toolbar, clip properties bar, footer bar, navigation.
-- [Mixer](ui/mixer.md) — channel strips, master channel, level meters, navigation.
-- [Track Chain](ui/track-chain.md) — modifier stack, plugin chain sections, channel strip, MIDI learn, automation lanes.
-- [Keyboard Shortcuts](ui/shortcuts.md) — transport, global editing, song editor, track list, MIDI editor, virtual MIDI keyboard, and the shared scrolling behavior of the Keys settings panel.
+- [Getting started](user/getting-started.md) — first launch, projects, basic track workflow and settings.
+- [Piano Roll](user/piano-roll.md) — note editing, tools, velocity and navigation.
+- [Peak Limiter](user/peak-limiter.md) — controls, metering, suggested settings and limitations.
 
-## Plugin documentation
+## UI reference
 
-- [Arpeggiator](plugins/arpeggiator.md) — MIDI arpeggiator with mode, rate, octave, and gate controls.
-- [SoundFont Player](plugins/soundfont-player.md) — `.sf2` sample player using TinySoundFont engine.
-- [Simple Synth](plugins/simple-synth.md) — two-oscillator subtractive synthesizer with unison, filter, and mono/portamento.
-- [Drum Sampler](plugins/drum-sampler.md) — 16-pad drum sampler with drag & drop and sound editor.
-- [Volume & Pan](plugins/volume-pan.md) — utility volume and pan control.
-- [Spectrum Analyzer](plugins/spectrum-analyzer.md) — real-time FFT frequency analyzer (pass-through).
-- [EQ](plugins/eq.md) — 4-band parametric equalizer with interactive frequency response graph.
-- [Compressor](plugins/compressor.md) — dynamic compressor with sidechain support and transfer curve.
-- [Filter](plugins/filter.md) — state-variable filter with lowpass/highpass and selectable slope.
-- [Delay](plugins/delay.md) — versatile delay with sync, multiple modes, and feedback filters.
-- [Pitch Shifter](plugins/pitch-shifter.md) — compact semitone control with a parameter-driven interval map.
-- [Reverb](plugins/reverb.md) — algorithmic reverb based on JUCE reverb engine.
-- [Chorus](plugins/chorus.md) — stereo chorus with modulated delay line.
-- [Phaser](plugins/phaser.md) — stereo phaser with adjustable feedback and sweep graph.
-- [Saturation](plugins/saturation.md) — saturation/distortion with multiple modes, oversampling, and tone filter.
+- [Header Bar](ui/header-bar.md) — transport, time display, switches and automation controls.
+- [Side Browser](ui/side-browser.md) — projects, instruments, effects, samples, settings and render.
+- [Song Editor](ui/song-editor.md) — tracks, arrangement, tools, clip properties and navigation.
+- [Mixer](ui/mixer.md) — channel strips, master and meters.
+- [Track Chain](ui/track-chain.md) — modifiers, plugin chain, channel strip and MIDI learn.
+- [Keyboard Shortcuts](ui/shortcuts.md) — transport/editing, editor commands and virtual keyboard.
 
-## Component documentation
+## Plugin reference
 
-- [Timeline view transform](components/timeline-view-transform.md) — shared zoom normalization, visual grid intervals, anchors, raster scaling, object alignment, persistence, and regression coverage.
-- [Piano Roll Editor](components/piano-roll-editor.md) — component hierarchy, data model, coordinate conversion, rendering, hit testing, tool architecture, and note-editing operations.
-- [NotePropertiesBar](components/note-properties-bar.md) — behavior, input formats, validation, selection handling, undo, and Piano Roll integration.
-- [ClipPropertiesBar](components/clip-properties-bar.md) — arrangement clip fields, preview/commit flow, snapping, insertion length, and selection integration.
-- [Metronome settings](components/metronome-settings.md) — global click level, managed custom WAV samples, persistence, Tracktion integration, and tests.
-- [Theme settings](components/theme-settings.md) — responsive inline color editing, non-modal preset management, wheel forwarding, persistence, and tests.
-- [PluginChainView](components/plugin-chain-view.md) — component structure, panel persistence, rack layout, ordering, scrolling, drag-and-drop, and refresh model.
+- [Arpeggiator](plugins/arpeggiator.md)
+- [SoundFont Player](plugins/soundfont-player.md)
+- [Simple Synth](plugins/simple-synth.md)
+- [Drum Sampler](plugins/drum-sampler.md)
+- [Volume & Pan](plugins/volume-pan.md)
+- [Spectrum Analyzer](plugins/spectrum-analyzer.md)
+- [EQ](plugins/eq.md)
+- [Compressor](plugins/compressor.md)
+- [Filter](plugins/filter.md)
+- [Delay](plugins/delay.md)
+- [Pitch Shifter](plugins/pitch-shifter.md)
+- [Reverb](plugins/reverb.md)
+- [Chorus](plugins/chorus.md)
+- [Phaser](plugins/phaser.md)
+- [Saturation](plugins/saturation.md)
+
+## Component contracts
+
+- [Timeline view transform](components/timeline-view-transform.md) — normalized zoom, fits, float geometry and band rendering.
+- [Timeline snapping](components/timeline-snapping.md) — discrete/mouse APIs, profiles, inverse anchors, constraints, replay and feedback.
+- [Song Editor implementation](components/song-editor.md) — arrangement integration and stationary cursor ownership.
+- [Piano Roll Editor](components/piano-roll-editor.md) — ownership, model, tools, MIDI cursors, operations and refresh.
+- [Property-field input](components/property-field-input.md) — shared numeric formats, focus/Tab/wheel/scrub conventions and parser differences.
+- [NotePropertiesBar](components/note-properties-bar.md) — exact note fields, validation, selection and undo.
+- [ClipPropertiesBar](components/clip-properties-bar.md) — clip fields, preview/commit and insertion controls.
+- [Metronome settings](components/metronome-settings.md) — managed WAV samples, persistence and tests.
+- [Theme settings](components/theme-settings.md) — colors, presets, persistence and tests.
+- [PluginChainView](components/plugin-chain-view.md) — composition, rack layout, ordering, bypass and refresh.
+- [Built-in effect editors](components/built-in-effect-editors.md) — responsive layouts, Pitch Map gesture/undo, EQ reset and Reverb header.
+- [Lower-range layout](components/lower-range.md) — Piano Roll resize/collapse, pitch anchoring and arrangement activation.
+- [Computer MIDI keyboard](components/computer-midi-keyboard.md) — held keys, aliases, virtual state, focus and lifetime.
+- [Directory browser](components/directory-browser.md) — shared asynchronous Home/Projects navigation and domain integration.
 
 ## Architecture
 
-- [Architecture overview](architecture/overview.md) — process lifetime, ownership, major UI areas, model boundaries, and external libraries.
-- [State and event model](architecture/state-and-events.md) — application state, edit-local view state, Tracktion model state, selection, listeners, and asynchronous refreshes.
-- [Playback graph reallocation inhibition](architecture/playback-graph-reallocation.md) — Tracktion's `ReallocationInhibitor`, delayed graph rebuilds, lifetime rules, limitations, and NextStudio's bulk clip-edit usage.
-- [MIDI input routing and exclusive focus](architecture/midi-input-routing.md) — automatic default routing, persistent manual assignments, ownership markers, reconciliation, migration, errors, and regression tests.
-- [Central clip overwrite command](architecture/clip-overwrite-command.md) — incoming-wins planning, selective victim trimming, atomic commit, undo, and entry points.
-- [Project lifecycle](architecture/project-lifecycle.md) — new/load/save/save-as, unsaved changes, autosave, recovery, validation, and teardown order.
-- [Project workflow controller](architecture/project-workflow.md) — typed continuations, state transitions, editor/plugin interaction locking, and engine suspension.
-- [Embedded startup wizard](architecture/startup-wizard.md) — in-editor placement, shared overlay locking, asynchronous completion, and recovery ordering.
+- [Overview](architecture/overview.md) — process lifetime, ownership, model boundaries and libraries.
+- [State and events](architecture/state-and-events.md) — application/edit/model state and asynchronous refresh.
+- [Playback graph reallocation inhibition](architecture/playback-graph-reallocation.md) — bulk clip edits, guard lifetime and limitations.
+- [MIDI input routing and exclusive focus](architecture/midi-input-routing.md) — automatic/manual routes, ownership and migration.
+- [Central clip overwrite command](architecture/clip-overwrite-command.md) — incoming-wins planning, atomic commit and undo.
+- [Project lifecycle](architecture/project-lifecycle.md) — load/save, unsaved changes, autosave and recovery.
+- [Project workflow controller](architecture/project-workflow.md) — continuations, interaction locks and engine suspension.
+- [Embedded startup wizard](architecture/startup-wizard.md) — placement, locking, completion and recovery order.
 
-## Development
+## Development procedures
 
-- [Building](development/building.md) — prerequisites, submodules, build types, scripts, output locations, and packaging.
-- [Testing](development/testing.md) — test targets, commands, current coverage, and adding tests.
-- [Source layout](development/source-layout.md) — repository map, naming conventions, source registration, resources, and common extension points.
-- [Wine/Bottles compatibility](development/wine-bottles.md) — JUCE 8 renderer issues under Wine, runtime fallbacks, Bottles test workflow, and current limitations.
-- [Agent debug system](agent-debug.md) — debug-shell protocol, pi tools, isolated sessions, deterministic editing commands, artifacts, and tests.
-- [Logging](logging.md) — central logger API, categories, levels, output policy, and migration rules.
+- [Contributing](development/contributing.md) — mandatory approval, implementation, validation and delivery workflow.
+- [Documentation maintenance schema](development/documentation-policy.md) — placement, outlines, update matrix, lifecycle and review checklist.
+- [Building](development/building.md) — prerequisites, scripts, outputs and packaging.
+- [Testing](development/testing.md) — console/native regressions, documentation checks and coverage boundaries.
+- [Source layout](development/source-layout.md) — repository map, registration and extension points.
+- [Wine/Bottles compatibility](development/wine-bottles.md) — Windows runtime fallbacks, testing and limitations.
+- [Agent debug](agent-debug.md) — isolated shell sessions, commands and artifacts.
+- [Logging](logging.md) — API, categories, output policy and ground rules.
 
-## Change documentation
-
-Change documents explain a coherent implementation diff rather than acting as release notes. User-facing release history remains in [`CHANGELOG.md`](../CHANGELOG.md).
-
-- [Note properties bar and position display](changes/note-properties-bar-and-position-display.md)
-- [EQ band reset interactions](changes/eq-band-reset.md)
-- [Reverb header simplification](changes/reverb-header-simplification.md) — title-only chamber header behavior and validation.
-- [Compressor and Delay control layouts](changes/compressor-delay-control-layouts.md) — responsive side-by-side graph and control geometry.
-- [Compact Pitch Shifter editor](changes/pitch-shifter-compact-map.md) — dedicated compact editor, Pitch Map, parameter listeners, and layout regression coverage.
-- [Complete bypass presentation](changes/complete-bypass-presentation.md) — whole-item grayscale, explicit bypass status, preserved interaction, and screenshot/regression verification.
-- [Piano Roll MIDI key lighting](changes/piano-roll-midi-key-lighting.md) — routed live-MIDI event flow, active-key state, PrimeColour rendering, batching behavior, and lifecycle.
-- [Computer MIDI keyboard controller](changes/computer-midi-keyboard-controller.md) — command removal, dedicated JUCE keyboard-state handling, plugin-window integration, tests, and the Linux/JUCE latency bug analysis.
-- [Uneven timeline grid implementation plan](changes/uneven-timeline-grid-plan.md) — approved scope, source analysis, implementation sequence, and acceptance criteria for #75.
-- [Soft timeline snapping implementation plan](changes/soft-timeline-snapping-plan.md) — approved magnetic mouse policy, #77 draw semantics, consumer migration, tests, and validation gates; implementation accepted and committed.
-- [Shared timeline snapping](components/timeline-snapping.md) — hard versus mouse APIs, magnetic curve, grid targets, inverse gesture anchors, constraints, and note defaults.
-- [Soft snapping validation](changes/soft-timeline-snapping-validation.md) — regression coverage, isolated 100/125% runtime results, delivery checksum, and remaining maintainer checks.
-- [Snap feedback and live header values plan](changes/snap-feedback-and-live-header-plan.md) — approved held-target guides, display-only gesture snapshots, live clip/note fields, lifecycle rules, implementation batches and acceptance criteria.
-- [Snap feedback and live header validation](changes/snap-feedback-and-live-header-validation.md) — implementation, automated/native evidence, delivery artifact and remaining visual/platform acceptance limits.
-- [Timeline tool cursor working areas](changes/tool-cursor-working-areas.md) — agreed mode-versus-target policy, #90 implementation, native cursor/model evidence and validation limits.
-- [Opaque theme timeline shading](changes/opaque-theme-timeline-shading.md) — separation of persisted opaque theme colors from renderer-owned timeline-band opacity.
-- [Piano Roll double-click expansion](changes/piano-roll-double-click-expand.md) — MIDI-clip activation policy, collapsed lower-range reopening, tests, and arrangement behavior.
-- [Embedded project file browser](changes/embedded-project-file-browser.md) — shared Home/Projects directory browser, filtered project activation, inline Save As, interaction blocking, validation, state transitions, and debug-shell coverage.
-
-## Documentation conventions
-
-- Documentation is written in English.
-- Paths and commands are relative to the repository root unless stated otherwise.
-- Public build instructions use the portable defaults of the scripts. `BUILD_JOBS=<count>` may be used to tune parallelism for a specific machine.
-- User documentation describes observable behavior. Component and architecture documents may refer directly to C++ classes and source files.
-- Implementation-specific claims should include the relevant source paths so they can be verified when the code changes.
-
-## Primary source areas
-
-| Area | Main files |
-|---|---|
-| Application lifetime | `App/src/Main.cpp`, `App/include/MainComponent.h`, `App/src/MainComponent.cpp` |
-| Persistent application settings | `App/include/ApplicationViewState.h` |
-| Edit-local UI state | `App/include/EditViewState.h`, `App/src/EditViewState.cpp` |
-| Arrangement editor | `App/include/EditComponent.h`, `App/src/EditComponent.cpp` |
-| Arrangement clip properties | `App/include/ClipPropertiesBar.h`, `App/src/ClipPropertiesBar.cpp` |
-| Lower editor area | `App/include/LowerRangeComponent.h`, `App/src/LowerRangeComponent.cpp`, `App/include/LowerRangeLayout.h` |
-| Piano Roll | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp`, `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
-| MIDI note properties | `App/include/NotePropertiesBar.h`, `App/src/NotePropertiesBar.cpp` |
-| Position formatting | `App/include/PositionDisplayHelpers.h`, `App/src/PositionDisplayHelpers.cpp` |
-| Project lifecycle helpers | `App/include/ProjectLifecycle.h`, `App/src/ProjectLifecycle.cpp` |
-| Project workflow controller | `App/include/ProjectWorkflow.h`, `App/src/ProjectWorkflow.cpp` |
-| Startup wizard | `App/include/SetupWizard.h`, `App/src/SetupWizard.cpp`, `App/include/MainInteractionState.h` |
-| Agent debug system | `App/include/Debug*.h`, `App/src/Debug*.cpp`, `.pi/extensions/nextstudio-debug.ts`, `tools/debug-shell-client.js` |
-| Tests | `App/tests/` |
+Repository documentation is written in English. Commands are relative to the repository root unless stated otherwise. Public build examples retain portable script defaults; project-local agent settings are documented in the contribution workflow. Source-area details belong in the source-layout and subsystem references, not duplicated in this index.

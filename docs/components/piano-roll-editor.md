@@ -1,5 +1,9 @@
 # Piano Roll Editor
 
+- Type: reference
+- Audience: contributors
+- Scope: current MIDI editor implementation
+
 ## Purpose
 
 The Piano Roll Editor is the MIDI note editor of NextStudio. It displays and edits MIDI notes on the active MIDI track, combining a note grid, piano keyboard, timeline, playhead, velocity lane, exact note-property editor, tool bar, scrollbar, and status footer.
@@ -29,7 +33,7 @@ This document describes the implementation: component ownership, the Tracktion d
 
 ## Component hierarchy and ownership
 
-`LowerRangeComponent` owns one `PianoRollEditor`. The editor is created once and reused; `setTrack()` swaps the track-specific children when the active track changes.
+`LowerRangeComponent` owns one `PianoRollEditor`. The editor is created once and reused; `setTrack()` swaps the track-specific children when the active track changes. [Lower-range layout](lower-range.md) owns splitter resize/collapse, maximum-height and arrangement activation policy.
 
 ```text
 PianoRollEditor
@@ -111,7 +115,7 @@ The timeline owns the horizontal mapping:
 - `m_timeLine.xToTimePos(x)` — pixel to edit time;
 - `m_evs.beatsToX(beats, timeLineID, width)` — beat to pixel for a given view width.
 
-Horizontal scale is normalized by the shared [timeline view transform](timeline-view-transform.md), so equal-rank visual grid intervals occupy integer physical-pixel distances. Ruler, grid, clips, notes, velocity, automation, and playhead keep one unrounded linear mapping; note bounds and clip-overlay previews retain float x-coordinates. The existing extra right-edge draw pixel is padding, not an alteration of a note's end beat. Zoom gestures preserve their anchor and retain unnormalized intent across small movements. Pure panning does not change the scale. Clip fits are finalized with the editor's post-layout viewport, including when reopening a previously visited track after a resize. Fits may exceed the interactive zoom limit to keep the content visible; at extreme extents beyond the interval table's pixel resolution, the exact linear fit takes precedence over integer raster spacing.
+The [timeline view transform](timeline-view-transform.md) owns normalized horizontal scale, anchors, pan and fit lifecycle. This editor retains floating-point note/clip-overlay edges and inverse input coordinates through that shared mapping. Its existing extra right-edge draw pixel is padding, not an alteration of a note's end beat. Fit requests use the editor's post-layout viewport, not a cached width from the last visited track.
 
 ### Vertical
 
@@ -137,7 +141,7 @@ int getYForKey(double key); // MIDI note number -> pixel
 4. for each cached clip: the clip range (`drawClipRange`) and every note (`drawNote`);
 5. tool-specific overlays: dragged-note previews (`PointerTool`), the in-progress draw rectangle (`DrawTool`), and the knife split line (`KnifeTool`).
 
-The alternating timeline bands use the opaque `timeLineShadowShade` theme value as an RGB tint. `TimelineGridColours::makeBandOverlay()` assigns the renderer-owned 30% opacity before `GUIHelpers::drawBarBeatsShadow()` fills the alternating ranges. Theme files therefore remain fully opaque while piano-key striping, clip-range tinting, previews, and other content already painted below the grid remain visible.
+Alternating bands use the shared [timeline band renderer](timeline-view-transform.md#timeline-band-rendering), which separates persisted opaque RGB tint from draw-time opacity. Piano-key striping, clip-range tinting and content beneath the bands remain visible; this editor must not introduce an independent opacity policy.
 
 `drawNote()` clips the note rectangle to the viewport and, when `m_evs.m_editNotesOutsideClipRange` is false, to the owning clip. Note color is derived from the track color, darkened by velocity; hovered notes are brightened, and notes outside the clip range are grey. Selected notes get a white outline. The note name is drawn inside the note when the vertical scale is large enough.
 
@@ -147,7 +151,7 @@ The alternating timeline bands use the opaque `timeLineShadowShade` theme value 
 
 The piano keyboard also renders routed live-MIDI state. `PianoRollEditor` listens to Tracktion's shared `MidiInputDevice::MidiKeyChangeDispatcher` and filters every callback by the `AudioTrack` currently owned by `MidiViewport`. Events routed to other tracks are ignored.
 
-`KeyboardView` forwards the reported note-on and note-off arrays to `PianoKeyboardDisplay`. Active pitches are stored as bits in a `juce::BigInteger`. State changes repaint only the affected key rectangle rather than the complete keyboard.
+`KeyboardView` forwards the reported note-on and note-off arrays to `PianoKeyboardDisplay`. Active pitches are stored as bits in a `juce::BigInteger`. State changes repaint only the affected key rectangle rather than the complete keyboard. `setNoteDown()` rejects pitches outside `0..127` and repaints only for an actual bit change. This is transient UI state, not persisted edit/application state or an undo operation.
 
 Tracktion batches rapid key changes. During a fast mouse drag, a pitch can occur in both the note-on and note-off arrays because it was pressed and released within one batch. Note-ons are therefore applied first and note-offs last, preventing released keys from remaining lit.
 
@@ -155,7 +159,17 @@ Active white keys use `ApplicationViewState::getPrimeColour()`. Active black key
 
 The dispatcher listener is registered once for the lifetime of `PianoRollEditor` and removed in its destructor. `KeyboardView` remains track-specific and is created or destroyed by `setTrack()`/`clearTrack()`. Callbacks are ignored while no track-specific keyboard exists.
 
-For the complete event flow, batching rationale, lifetime rules, and manual verification procedure, see [Piano Roll MIDI Key Lighting](../changes/piano-roll-midi-key-lighting.md).
+The editor owns one `juce::SharedResourcePointer` to the dispatcher and receives destination, note-on, velocity and note-off arrays. It ignores callbacks unless both keyboard/viewport exist and the destination is the displayed viewport track; velocity is deliberately unused. The track-specific keyboard is created after the viewport and destroyed on track clear, while the global listener is registered once and removed before editor teardown.
+
+```text
+physical/virtual input → Tracktion input processing → batched dispatcher
+→ displayed-track filter → KeyboardView note-ons then note-offs
+→ active bits → affected-key repaint using the current theme
+```
+
+Mouse audition sends note-on through `EngineHelpers::getVirtualMidiInputDevice()`, releases the previous pitch when crossing keys, and sends the final note-off on mouse-up/destruction. Those messages return through normal routing/dispatcher, not a separate lighting shortcut. Note-offs-last prevents the common rapid-drag stuck-lighting case; batched arrays are not a complete chronological event history.
+
+Use [MIDI input validation](../development/testing.md#live-midi-input-and-key-lighting) for a repeatable manual checklist. The [historical record](../archive/changes/piano-roll-midi-key-lighting.md) preserves the original change context, not additional native coverage.
 
 ## Hit testing
 
@@ -205,7 +219,7 @@ enum class Tool { pointer, draw, range, eraser, knife, lasso, timestretch };
 
 `MidiViewport::updateToolCursor()` applies one clip-time-range check to Draw, Knife and Eraser: tool cursor throughout a MIDI clip's note area, normal pointer outside clips/in gaps, never `NoCursor`. It uses the current floating-point mouse position and the existing clip cache, not a note hit. Lasso/Range keep selection cursors in empty space; Pointer keeps its existing note-body/edge feedback. Entry, tool changes, release/Draw cancellation and existing non-drag editor refreshes update the cursor directly. Hover policy is not reapplied during drags; Eraser explicitly retains its sweep cursor. There is no separate policy layer or synthetic hover-event dispatch.
 
-Song Editor uses `TrackLaneComponent::refreshCursor()` to recompute the clip/edge/fade hit before reusing its cursor selection: Knife remains visible throughout clip-capable track lanes without requiring a clip hit; non-clip lanes such as Master remain normal. Lasso/Range remain available in empty space. Tool changes resolve the current hit target directly, including Pointer's selected-range body/edges and an inactive Range overlay that still owns the stationary pointer. Edit actions, snapping, persistence and undo remain unchanged. See [validation](../changes/tool-cursor-working-areas.md).
+The arrangement has a distinct [Song Editor cursor contract](song-editor.md#cursor-working-areas-and-stationary-changes); do not infer its clip-capable-lane working area from the MIDI clip-time-range check. Native cursor procedures belong in [Testing](../development/testing.md#timeline-cursor-validation), and original #90 results/limits in the [historical record](../archive/changes/tool-cursor-working-areas.md).
 
 ## Note operations
 
@@ -431,5 +445,7 @@ This coalesces the many notifications produced by a single multi-note operation 
 
 - [Piano Roll](../user/piano-roll.md)
 - [NotePropertiesBar](note-properties-bar.md)
+- [Lower-range layout](lower-range.md)
+- [Computer MIDI keyboard](computer-midi-keyboard.md)
 - [Architecture Overview](../architecture/overview.md)
 - [State and Event Model](../architecture/state-and-events.md)

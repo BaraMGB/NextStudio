@@ -1,5 +1,9 @@
 # MIDI Input Routing and Exclusive Focus
 
+- Type: reference
+- Audience: contributors
+- Scope: current automatic/manual routing and destination ownership
+
 ## Purpose
 
 NextStudio has two independent MIDI-input routing modes:
@@ -326,5 +330,5 @@ Explicit manual assignments remain authoritative and are never removed automatic
 - [Architecture Overview](overview.md)
 - [Side Browser](../ui/side-browser.md)
 - [Song Editor](../ui/song-editor.md)
-- [Computer MIDI Keyboard Controller](../changes/computer-midi-keyboard-controller.md)
-- [Piano Roll MIDI Key Lighting](../changes/piano-roll-midi-key-lighting.md)
+- [Computer MIDI keyboard controller](../components/computer-midi-keyboard.md)
+- [Piano Roll live key lighting](../components/piano-roll-editor.md#live-midi-key-lighting)

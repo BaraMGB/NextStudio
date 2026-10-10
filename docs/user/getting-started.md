@@ -177,9 +177,9 @@ While Save As is active, the rest of the main window is dimmed and blocked. The 
 
 ### Unsaved changes
 
-When New, Load, or Quit encounters unsaved changes, the Projects sidebar offers **Save & Continue**, **Discard & Continue**, and **Back**. Home-browser and drag-and-drop project loading use the same flow. A pending operation continues only after a successful save.
+When New, Load, or Quit encounters unsaved changes, the Projects sidebar offers **Save & Continue**, **Discard & Continue**, and **Back**. Home-browser and drag-and-drop project loading use the same flow.
 
-Other replacement or shutdown paths may show the corresponding save, discard, and cancel decision. Cancelling Save As also stops a pending project switch.
+With **Save & Continue**, the requested operation proceeds only after a successful write. Cancelling Save As or a failed write abandons that request. Retrying Save As after an error saves the project but does not resume an old New, Load, or Quit request.
 
 ## Autosave and crash recovery
 

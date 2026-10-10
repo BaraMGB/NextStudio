@@ -1,5 +1,9 @@
 # Shared timeline view transform
 
+- Type: reference
+- Audience: contributors
+- Scope: current horizontal view and rendering contracts
+
 Musical mouse positioning is documented separately in [Timeline snapping](timeline-snapping.md). Its physical-pixel attraction uses this view's published raster context without changing normalization, rendering grid selection, fit behavior, or persisted view fields.
 
 ## Ownership
@@ -103,6 +107,12 @@ Fractional origins/scales retain antialiasing, not guaranteed sharp pixel edges.
 See [Piano Roll Editor](piano-roll-editor.md),
 [Song Editor](../ui/song-editor.md), and
 [Testing](../development/testing.md).
+
+## Timeline band rendering
+
+Persisted `timeLineShadowShade` is an opaque theme RGB tint, not the timeline band's alpha. `TimelineGridColours::makeBandOverlay()` in `App/include/TimelineGridColours.h` assigns renderer-owned 30% opacity. `GUIHelpers::drawBarsAndBeatLines()` in `App/src/Utilities.cpp` performs this conversion once before shared band drawing, so arrangement, Piano Roll, velocity and automation consumers retain visible underlying content without separate opacity rules. Other transient preview/selection alphas remain draw-time effects; no theme-file schema change is required.
+
+`ThemePresetModelTests` verifies RGB preservation and draw-time alpha separately from persisted opaque color normalization. Dark/light theme visibility across the actual editors still requires visual review; a helper test alone does not certify every lane.
 
 ## Diagnostics and validation
 

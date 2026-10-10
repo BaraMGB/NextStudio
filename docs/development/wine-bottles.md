@@ -1,367 +1,98 @@
-# Wine/Bottles compatibility on Windows builds
+# Windows builds under Wine/Bottles
 
-This document explains the current compatibility layer used when a Windows build of NextStudio is executed under Wine, typically through Bottles on Linux.
+- Type: procedure/reference
+- Audience: contributors testing compatibility
+- Scope: current application-side renderer/font fallback and repeatable manual validation
 
-It covers:
+## Purpose and prerequisites
 
-- the original failure mode;
-- why JUCE 8 behaves differently under Wine;
-- the runtime workaround currently implemented in NextStudio;
-- the practical Bottles/Wine test setup used during validation;
-- current limitations and open follow-up areas.
+The Windows build detects Wine at runtime and adapts JUCE desktop rendering/font selection. This does not make Wine a fully certified audio/MIDI/plugin platform. Original Ubuntu/Bottles/Wine observations are in the [historical validation record](../archive/changes/wine-bottles-validation.md), not mixed into current setup instructions.
 
-## Summary
+To validate: obtain a Windows x64 package for the revision being tested, install Bottles (or a documented Wine runner), use a separate test bottle/project and note runner, graphics options and available fonts. Check the installed CLI help before using examples; runner names and registered program names depend on that installation.
 
-NextStudio uses JUCE 8. On Windows, JUCE 8 prefers the **Direct2D** renderer for top-level windows. Under stock Wine this causes severe problems because the required Direct2D/DirectComposition path is only partially implemented.
+## Current compatibility contract
 
-The observed failures were:
+Sources: `App/include/WineRendererFallback.h`, `App/src/WineRendererFallback.cpp`, ownership/startup in `App/src/Main.cpp`, and font setup in `App/src/MainComponent.cpp`. The implementation is local to NextStudio; no JUCE patch or custom Wine build is required.
 
-- black or blank windows;
-- unreadable or missing text;
-- repeated `DxgiFactory::CreateSwapChainForComposition: Not implemented` messages;
-- misleading hangs reported by the Bottles GUI even when the application process was still drawing.
+### Detection and renderer overrides
 
-The current NextStudio workaround is:
+Windows detection checks `ntdll.dll` for `wine_get_version`; non-Windows detection returns false. The renderer fallback activates under Wine or an explicit software override unless the default-renderer override is enabled.
 
-1. detect Wine at runtime;
-2. switch JUCE desktop windows to the **Software Renderer** instead of Direct2D;
-3. choose a real installed sans-serif font under Wine instead of JUCE's default Wine fallback family.
+| Environment variable | Effect |
+|---|---|
+| `NEXTSTUDIO_FORCE_SOFTWARE_RENDERER=1` | Request software desktop rendering for diagnosis |
+| `NEXTSTUDIO_FORCE_DEFAULT_RENDERER=1` | Bypass that renderer fallback for comparison; takes precedence if both are enabled |
 
-Native Windows Remote Desktop sessions keep JUCE's default Direct2D renderer. This path was validated successfully and does not require the Wine workaround.
+The implementation also accepts `true`/`yes` case-insensitively. These switches control renderer fallback, **not** the independent Wine font selection. Native Windows keeps JUCE's normal backend unless explicitly overridden; Wine and native/RDP validation are separate claims.
 
-This logic is implemented entirely in NextStudio and does **not** require patching JUCE or requiring a custom Wine build.
+`NextStudioApplication` owns the fallback. Main-window `applyTo()` runs before showing the peer. Active fallback selects the available engine named `Software Renderer` rather than assuming a universal numeric index. The embedded setup wizard uses that same peer. Desktop focus changes schedule asynchronous reapplication to other JUCE desktop components; teardown stops listeners/timer and cancels pending updates. Arbitrary third-party native plugin windows are not automatically covered by JUCE-component iteration.
 
-## Why this is necessary
+### Wine DXGI guard and repaint handling
 
-### JUCE 8 renderer change
+On Windows under Wine, startup attempts to guard the application's imported `CreateDXGIFactory2`: the import entry is redirected to an application-local function returning `E_NOTIMPL` with a null factory. This is runtime adaptation of the executable's import table, not a patched JUCE source tree or guarantee about imports inside external plugin DLLs.
 
-JUCE 8 changed the default Windows rendering backend to Direct2D. In the JUCE Windows peer implementation, top-level peers are created with renderer index `1`, which maps to Direct2D.
+If that guard is installed, applying fallback starts a 60 Hz timer that flushes pending software repaints on available desktop peers using safe component references. This source behavior was absent from the older prose; it matters when diagnosing rendering progress. Focus-driven application remains asynchronous; the timer is conditional, not a global timing promise for all platforms.
 
-Relevant JUCE source:
+### Font selection
 
-- `modules/tracktion_engine/modules/juce/modules/juce_gui_basics/native/juce_Windowing_windows.cpp`
+After installing the default LookAndFeel, `configureFontFallback()` checks installed typefaces under Wine and selects the first available family from Tahoma, Arial, Liberation Sans, then DejaVu Sans. Without an installed candidate it warns rather than pretending text rendering succeeded. Theme/UI font state is resolved in the active LookAndFeel; software rendering alone cannot supply missing glyphs.
 
-Important details from JUCE:
+JUCE 8's Wine DirectWrite defaults can name Bitstream Vera families absent from a prefix. A usable installed sans-serif family is therefore a separate requirement from changing the renderer.
 
-- renderer index `0` = `Software Renderer`
-- renderer index `1` = `Direct2D`
+### Logging
 
-### Wine limitation
+The [central logger](../logging.md) records significant activation/software-renderer/font events at info, missing engines/fonts at warn and guard diagnostics at debug. Focus rechecks must not flood the log. Startup DXGI noise alone neither proves nor disproves that the final software peer is functioning; inspect logs and actual interaction.
 
-Under stock Wine, the Direct2D/DirectComposition pipeline is incomplete for JUCE 8's windowing path. During investigation the typical runtime error was:
+## Example Bottles procedure
 
-```text
-DxgiFactory::CreateSwapChainForComposition: Not implemented
-```
-
-This error was reproducible with:
-
-- the original upstream Windows package;
-- Bottles + Wine 11 runtime;
-- DXVK enabled;
-- normal Windows launch and debug-shell launch.
-
-Even when the main window eventually became visible, the application still depended on a renderer path that Wine did not fully support.
-
-## Missing text under Wine
-
-After forcing the software renderer, the black-window problem was solved, but text was still missing.
-
-The reason was JUCE's own Wine-specific font fallback in DirectWrite handling. Under Wine, JUCE prefers these font family names:
-
-- `Bitstream Vera Sans`
-- `Bitstream Vera Serif`
-- `Bitstream Vera Sans Mono`
-
-Relevant JUCE source:
-
-- `modules/tracktion_engine/modules/juce/modules/juce_graphics/native/juce_DirectWriteTypeface_windows.cpp`
-
-In the tested Wine/Bottles prefix, those families were not present. As a result:
-
-- layout was still created;
-- controls, backgrounds, and buttons rendered;
-- text glyphs were effectively unavailable or blank.
-
-The fix in NextStudio is to select a font that actually exists in the Wine prefix.
-
-## Current implementation in NextStudio
-
-### Files
-
-The implementation currently lives in:
-
-- `App/include/WineRendererFallback.h`
-- `App/src/WineRendererFallback.cpp`
-- `App/src/Main.cpp`
-- `App/src/MainComponent.cpp`
-
-### 1. Runtime Wine detection
-
-Wine is detected at runtime by checking whether `ntdll.dll` exports `wine_get_version`.
-
-Implementation:
-
-- `App/src/WineRendererFallback.cpp`
-
-Conceptually:
-
-```cpp
-juce::DynamicLibrary ntdll("ntdll.dll");
-return ntdll.getFunction("wine_get_version") != nullptr;
-```
-
-This keeps the behavior:
-
-- Windows-native on real Windows;
-- Wine-specific only when the app is actually executed under Wine.
-
-No compile-time fork is required.
-
-### 2. Force JUCE software rendering under Wine
-
-`WineRendererFallback` switches JUCE peers to the `Software Renderer`.
-
-The class is started from application startup in `App/src/Main.cpp`.
-
-Current behavior:
-
-- `NextStudioApplication` creates and owns a `NextStudio::WineRendererFallback` instance;
-- `start()` enables the workaround when Wine is detected;
-- setting `NEXTSTUDIO_FORCE_SOFTWARE_RENDERER=1` enables it manually for diagnosis;
-- setting `NEXTSTUDIO_FORCE_DEFAULT_RENDERER=1` bypasses the fallback for comparison testing under Wine;
-- the main `DocumentWindow` is switched before it is shown;
-- the setup wizard is embedded in the software-rendered main-window peer and creates no separate modal peer;
-- focus changes trigger asynchronous re-application so additional JUCE desktop windows are also corrected.
-
-This was intentionally done as a **runtime adaptation layer** instead of patching JUCE internals.
-
-### 3. Configure a usable UI font under Wine
-
-`WineRendererFallback::configureFontFallback()` is called in `MainComponent` immediately after the default `LookAndFeel` is installed.
-
-Current candidate order:
-
-1. `Tahoma`
-2. `Arial`
-3. `Liberation Sans`
-4. `DejaVu Sans`
-
-The first available family found in `juce::Font::findAllTypefaceNames()` is installed as the default sans-serif family for the active `LookAndFeel`.
-
-This is important because the software renderer only solves the rendering backend problem. Text still requires a usable font family.
-
-### 4. Logging
-
-The workaround emits log lines through the central logging system.
-
-The fallback records only significant, one-time events at `info` level:
-
-- software rendering was requested, including the activation reason;
-- the software renderer was enabled successfully;
-- the Wine font fallback was configured.
-
-A missing software renderer or suitable fallback font is logged at `warn` level. Technical details such as the Wine DXGI guard are limited to `debug` logging. Renderer checks triggered by focus changes do not emit repeated messages.
-
-Relevant source:
-
-- `App/src/WineRendererFallback.cpp`
-- `App/src/Logging.cpp`
-
-## Validation environment
-
-The implementation was validated with the following practical setup:
-
-- Ubuntu 24.04
-- Flatpak Bottles from Flathub
-- Bottles CLI (`bottles-cli`)
-- Bottles Wine 11 runtime (`sys-wine-11.0`)
-- Windows x64 NSIS installer builds produced by GitHub Actions
-
-Bottles app identifier:
-
-- `com.usebottles.bottles`
-
-Bottle name used in testing:
-
-- `NextStudio`
-
-## Bottles/Wine test workflow used during development
-
-### Install Bottles
-
-Example:
+These are configurable examples, not the historical runner/package path. Use a new test bottle name, an installed runner and the package under test. Do not overwrite a user's existing bottle.
 
 ```bash
 flatpak install --user flathub com.usebottles.bottles
-```
+flatpak run --command=bottles-cli com.usebottles.bottles --help
 
-### Create a bottle
+# Set these to the isolated bottle, installed runner and actual installer.
+BOTTLE=NextStudioValidation
+RUNNER='<installed-runner-name>'
+INSTALLER='/path/to/NextStudio-windows-installer.exe'
 
-Example:
-
-```bash
-mkdir -p "$HOME/.var/app/com.usebottles.bottles/data/bottles/bottles"
 flatpak run --command=bottles-cli com.usebottles.bottles new \
-  --bottle-name NextStudio \
-  --environment application \
-  --arch win64 \
-  --runner sys-wine-11.0
-```
+  --bottle-name "$BOTTLE" --environment application --arch win64 --runner "$RUNNER"
 
-### Install a Windows package into the bottle
-
-Because the Flatpak sandbox cannot always read arbitrary host paths, the installer was copied into the Flatpak app data directory first and then executed from there.
-
-Example:
-
-```bash
-install -m 644 NextStudio-0.04-win64.exe \
-  "$HOME/.var/app/com.usebottles.bottles/data/NextStudio.exe"
-
+# Put the installer inside Bottles' accessible app-data area if required.
+install -m 644 "$INSTALLER" \
+  "$HOME/.var/app/com.usebottles.bottles/data/NextStudioValidation.exe"
 flatpak run --command=bottles-cli com.usebottles.bottles run \
-  -b NextStudio \
-  -e "$HOME/.var/app/com.usebottles.bottles/data/NextStudio.exe" \
-  /S
-```
+  -b "$BOTTLE" -e "$HOME/.var/app/com.usebottles.bottles/data/NextStudioValidation.exe" /S
 
-### Launch the installed application
-
-CLI launch proved more reliable than launching through the Bottles GUI:
-
-```bash
+# Use the program name registered by the installed package.
 flatpak run --command=bottles-cli com.usebottles.bottles run \
-  -b NextStudio \
-  -p NextStudio
+  -b "$BOTTLE" -p NextStudio
 ```
 
-## What was observed during testing
+Set diagnostic environment overrides for the **Wine application process** via the bottle's environment configuration or its supported launch mechanism; do not assume host Flatpak environment forwarding. Record which override actually reached the process and remove it after comparison. CLI launch helps distinguish a Bottles-management UI hang from a hosted-app hang.
 
-### Before the workaround
+## Verification and failure handling
 
-Observed symptoms included:
+Record the tested revision/package, OS, runner/prefix, renderer overrides, graphics settings and fonts. Verify separately:
 
-- a completely black top-level window;
-- repeated DXGI / DirectComposition errors;
-- missing or broken first-run dialogs;
-- unusable setup wizard.
+1. first launch/setup and normal main window show usable controls/text;
+2. requested renderer/font appears in logs and the UI actually repaints/responds;
+3. embedded projects/Save As and relevant additional JUCE/plugin windows are readable;
+4. resizing, focus changes and re-opening windows do not leave black/stale surfaces;
+5. controlled default-versus-software comparisons distinguish renderer failure from a missing font;
+6. shutdown/lock transitions do not leave unsupported peer/timer state.
 
-### After forcing software rendering
+Use [Testing](testing.md) for build/test commands and evidence/coverage rules. Keep useful screenshots/logs with an issue or retained artifact, not only one agent's temporary directory. A recommended checklist is not evidence of a completed run.
 
-Observed improvements:
+If text is missing, inspect available candidate fonts independently of renderer state. If Bottles claims a hang, inspect the actual application window/process before classifying it. Missing software engine/font and failed guard installation must be recorded as limitations, not hidden by a successful host build.
 
-- main window visible;
-- dialogs visible;
-- setup wizard visible;
-- alert text and button labels visible once the font fallback was added.
+## Limitations and rationale
 
-### Bottles GUI false hang
+- There is no dedicated Wine/native Windows runtime suite in this migration. Earlier RDP success is a historical environment result, not exhaustive current Windows certification.
+- Third-party native editors and all focus/opening paths need separate platform validation; desktop JUCE-peer adaptation does not cover every foreign window.
+- Wine audio negotiation, MIDI threads/device behavior and real-time DSP are distinct from visible text/rendering and remain separately unvalidated.
+- Stock Wine can emit DXGI/DirectComposition initialization warnings even after a usable software fallback. Symptoms and actual peer interaction matter more than one log line.
+- Local runtime adaptation is easier to carry/remove than vendored JUCE modifications or requiring a specially patched Wine runner. Revisit it against future Wine/JUCE changes with explicit native/Wine comparison, not assumptions based on the original snapshot.
 
-A very important observation is that the Bottles GUI itself may report:
-
-- "Bottles is not responding"
-
-while the Windows application continues to render and accept interaction.
-
-In testing this was verified by:
-
-- capturing the X11 window contents;
-- simulating clicks directly on the NextStudio window;
-- seeing the UI continue to update after Bottles itself claimed a hang.
-
-Therefore, a Bottles desktop-window freeze report is **not** sufficient evidence that NextStudio itself is frozen.
-
-## Current limitations
-
-### 1. Stock Wine still logs Direct2D/DXGI errors
-
-Even with the software renderer fallback in place, Wine may still emit startup noise such as:
-
-```text
-DxgiFactory::CreateSwapChainForComposition: Not implemented
-```
-
-This appears during initialization of JUCE/Wine/driver paths, but the software fallback still allows the app to become usable.
-
-So the presence of this log line alone does **not** mean the workaround failed.
-
-### 2. Bottles desktop integration is noisy
-
-Bottles may:
-
-- surface its own responsiveness warning;
-- conflate its management UI with the hosted Wine process;
-- make debugging harder than direct CLI launching.
-
-For debugging, `bottles-cli` is preferred.
-
-### 3. Wine audio/MIDI integration still needs separate investigation
-
-During testing there were also Wine-side warnings around:
-
-- PulseAudio format negotiation;
-- MIDI notification threads;
-- Windows audio helper windows.
-
-These are **separate** from the black-window / missing-font issue.
-
-The current document only covers the renderer/font compatibility layer.
-
-## Design rationale
-
-### Why not patch JUCE directly?
-
-A JUCE patch would be more invasive and harder to carry across JUCE updates.
-
-The chosen approach keeps the workaround:
-
-- local to NextStudio;
-- runtime-only;
-- easy to remove later if Wine support improves;
-- easy to inspect in a small number of application files.
-
-### Why not require patched Wine?
-
-Patched Wine builds with better Direct2D/DirectComposition support do exist, but relying on them would:
-
-- increase setup complexity for testers;
-- make reproduction harder;
-- move the burden from NextStudio to the user environment.
-
-The current goal was to make the stock Bottles/Wine path as usable as possible.
-
-## Future work
-
-Possible next steps:
-
-1. verify behavior on real Windows independently from Wine;
-2. add an explicit regression test note for Wine/Bottles manual validation;
-3. investigate whether the workaround should also be applied to plugin-related top-level windows under all paths;
-4. investigate Wine-side audio/MIDI notification issues separately from rendering;
-5. consider a dedicated user-facing troubleshooting document for Linux users running the Windows build through Bottles.
-
-## Source index
-
-Main implementation files:
-
-- `App/include/WineRendererFallback.h`
-- `App/src/WineRendererFallback.cpp`
-- `App/src/Main.cpp`
-- `App/src/MainComponent.cpp`
-
-Relevant JUCE internals:
-
-- `modules/tracktion_engine/modules/juce/modules/juce_gui_basics/native/juce_Windowing_windows.cpp`
-- `modules/tracktion_engine/modules/juce/modules/juce_graphics/native/juce_DirectWriteTypeface_windows.cpp`
-- `modules/tracktion_engine/modules/juce/modules/juce_core/native/juce_Threads_windows.cpp`
-
-## Practical conclusion
-
-For Wine/Bottles compatibility, the currently supported approach is:
-
-- keep the Windows build unchanged for real Windows users;
-- detect Wine dynamically at runtime;
-- switch JUCE windows to the software renderer;
-- override the default sans-serif font with an actually installed Wine font.
-
-This is the minimum application-side workaround that made the Windows build visible and readable under the tested Bottles/Wine environment.
+Relevant upstream implementation areas are JUCE's `juce_Windowing_windows.cpp`, `juce_DirectWriteTypeface_windows.cpp` and `juce_Threads_windows.cpp` under `modules/tracktion_engine/modules/juce/modules/`. Use current source for backend details; historical numeric renderer indices are not a cross-platform contract.

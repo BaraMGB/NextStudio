@@ -1,135 +1,54 @@
 # ClipPropertiesBar
 
-## Purpose
+- Type: reference
+- Audience: contributors
+- Scope: current arrangement numeric clip editing and inspector integration
 
-`ClipPropertiesBar` is the compact clip inspector above the arrangement timeline. It edits the position and length of the clips selected in the Song Editor and also owns the arrangement snapping and MIDI-clip insertion-length controls.
+## Purpose and source
 
-The implementation is located in:
+`EditComponent` owns this compact inspector between arrangement toolbar and timeline. It edits Start, End and Duration for selected clips and presents arrangement snap/MIDI-clip insertion controls. User-facing controls are in [Song Editor](../ui/song-editor.md#clip-properties-bar).
 
-- `App/include/ClipPropertiesBar.h`
-- `App/src/ClipPropertiesBar.cpp`
-- `App/include/ClipPropertyEdit.h`
+Source: `App/include/ClipPropertiesBar.h`, `App/src/ClipPropertiesBar.cpp`, `App/include/ClipPropertyEdit.h`, and wiring in `App/src/EditComponent.cpp`.
 
-`EditComponent` owns the bar and places it in a 30-pixel row between the arrangement toolbar/header and timeline.
+The [property-field input reference](property-field-input.md) owns shared text/focus/Tab/wheel/scrub conventions and numeric formats; this page owns clip-specific reference, planning and model constraints. Do not assume the note and clip bars apply absolute multi-selection values identically.
 
-## Fields and controls
+## Fields, reference and settings
 
-The left side displays `SELECTED CLIPS:` and the current clip count. Three fields edit the selection:
+The count reflects the selected clips. Idle fields display common values or `—` for mixed values; an empty selection disables them. Numeric edits use the first clip in ordered selection as their reference, deriving one move/right-resize **time delta** and applying it to the whole selection. Absolute input does not independently assign every clip the same start/endpoint. Shared deltas retain relative time relationships, while displayed beat durations can change under variable tempo.
 
-| Field | Meaning | Absolute input | Relative input |
-|---|---|---|---|
-| `START` | Start of the reference clip | bars, beats, ticks, e.g. `6.2.240` | fraction or ticks, e.g. `+1/16`, `-120 ticks` |
-| `END` | End of the reference clip | bars, beats, ticks | fraction or ticks |
-| `DURATION` | Duration of the reference clip | fraction or ticks | fraction or ticks |
+`SNAP` is Off, Adaptive or fixed `1/1`–`1/128`. `INSERT LENGTH` is Adaptive or fixed for new MIDI clips. They persist in `EditViewState` as `clipSnapMode`, `clipSnapDenominator`, `clipInsertLengthMode`, and `clipInsertLengthDenominator`; defaults are Adaptive snap and fixed `1/1` insertion. Arrangement settings are independent of Piano Roll settings. `TimeLineComponent` selects ownership using `m_usePianoRollSnapSettings` and resolves clip insert length; creation uses the resolver's corrected downward anchor.
 
-The reference clip is the first clip in the ordered selection. A committed edit calculates one shared move or resize delta from that clip and applies the same delta to every selected clip. Consequently, relative spacing and length differences in a multi-clip selection are retained.
+Canvas movement uses [magnetic mouse snapping](timeline-snapping.md). Numeric field steps remain discrete; never soft-snap a typed value or apply a second magnetic pass to a resolved ghost.
 
-Two controls follow the fields:
+## Planning, constraints and commit
 
-- `SNAP` — Off, Adaptive, or a fixed value from `1/1` through `1/128`;
-- `INSERT LENGTH` — Adaptive or a fixed value from `1/1` through `1/128` for newly created MIDI clips.
+`createEditPlan()` parses once, validates selection/base associations and computes the reference's new global start/end using the actual TempoSequence. Duration in beats is derived from both actual endpoints, not an absolute-time conversion of a duration.
 
-Arrangement settings are independent from the equivalent Piano Roll settings. They persist in `EditViewState` as `clipSnapMode`, `clipSnapDenominator`, `clipInsertLengthMode`, and `clipInsertLengthDenominator`. Defaults are Adaptive snapping and a fixed `1/1` insertion length.
+- Start yields one seconds-domain move delta.
+- End/Duration yield one right-edge resize delta.
+- `EngineHelpers::calculateSelectedClipMove()` / `calculateSelectedClipResize()` supply the same feasible positions used by preview and owner commit.
+- Plans must contain the complete selected group, valid member clips, positive lengths, nonnegative starts and endpoints within Tracktion's maximum edit end. Existing source/collision limits can constrain the effective delta; do not advertise an infeasible unconstrained result.
 
-## Interaction
+A provisional `ClipPropertyEdit` contains a clip pointer and destination `ClipPosition`. During numeric scrubbing, `EditComponent` forwards plans to `SongEditorView::setClipPropertyPreview()` for translucent bodies/outlines. No Tracktion mutation or undo transaction occurs until release; an unchanged final plan is a no-op. Selection changes can discard the edit, while unrelated refreshes preserve writable text.
 
-Arrangement clip move/copy/resize/stretch uses [shared magnetic mouse snapping](timeline-snapping.md): nearby targets lock exactly, but continued movement reaches between-grid positions. `ClipGestureLimits` supplies the same effective delta for preview and commit. Shift/Snap Off bypass attraction. The property fields below keep their existing exact/discrete parsing and wheel/scrub steps; MIDI-clip click insertion defaults are unchanged.
-
-A property field normally remains read-only and uses an up/down cursor.
-
-- Double-click, or press `Enter`/`F2` while focused, to enter text mode.
-- Press `Enter` to commit or `Escape` to restore the displayed value.
-- `Tab` and `Shift+Tab` commit valid input and move between fields.
-- Use the mouse wheel for snapped one-step changes.
-- Drag vertically to scrub; four pixels correspond to one step.
-
-Invalid active input is displayed in red. Empty selections disable the fields and show an em dash (`—`). If selected clips do not share a displayed value, that field also shows `—`.
-
-## Parsing and musical time
-
-Absolute positions use `PositionDisplayHelpers::parseBarsBeatsTicks()` and therefore follow the edit tempo and time-signature sequence. Bars and beats are one-based; ticks are zero-based.
-
-Durations accept:
-
-- fractions such as `1/4`, `3/16`, or `1/1`;
-- non-negative tick values such as `120 ticks`.
-
-Fractions are converted with:
-
-```text
-beats = 4 × numerator / denominator
-```
-
-Absolute start/end input is rejected when parsing fails. A resulting clip may not begin before project time zero, exceed Tracktion's maximum edit end, or have a non-positive duration.
-
-## Preview and commit flow
-
-The component separates planning from mutation with `ClipPropertyEdit`:
-
-```cpp
-struct ClipPropertyEdit
-{
-    te::Clip* clip;
-    te::ClipPosition position;
-};
-```
-
-Vertical drag scrubbing builds a provisional array of these edits. `EditComponent` forwards it to `SongEditorView::setClipPropertyPreview()`, which draws translucent clip bodies with white outlines. The Tracktion model and undo history are unchanged while scrubbing. Mouse-up commits the final plan; returning to the original values produces no mutation.
-
-Text and wheel edits commit immediately. Start changes delegate to `EngineHelpers::moveSelectedClips()`. End and Duration changes delegate to `EngineHelpers::resizeSelectedClips()`. The corresponding pure planning helpers, `calculateSelectedClipMove()` and `calculateSelectedClipResize()`, are shared with the preview path so preview and commit use the same constraints.
-
-Existing arrangement overwrite and playback-graph safeguards remain in the underlying move/resize commands.
+Text/wheel apply immediately. Owner callbacks delegate Start to `EngineHelpers::moveSelectedClips()` and End/Duration to `resizeSelectedClips()`; preserve that integration rather than bypassing it through direct component fallback. The [overwrite command](../architecture/clip-overwrite-command.md) retains destination priority, atomic undo and playback-graph safeguards.
 
 ## Live canvas values
 
-`setInteractionPreview(std::optional<ClipTimingPreview>)` is display-only. The
-snapshot has the grabbed reference's actual time range and real selection count,
-with no model pointers. `SongEditorView` and the Piano Roll clip overlay route it
-through `EditViewState::clipInteractionPreviewChanged`; `EditComponent` installs
-and disconnects the callback. `ClipGestureLimits::previewRange()` is also used by
-the ghost so Start/End/Duration agree, including seconds-length moves under tempo
-changes. Multi-selection canvas dragging shows `CLIPS (REF):`; ordinary selection
-and numeric group edits retain existing common-value/em-dash behavior.
+`setInteractionPreview(std::optional<ClipTimingPreview>)` is a display-only path. `SongEditorView` and the Piano Roll clip overlay publish the grabbed clip's feasible range and actual selection count through `EditViewState::clipInteractionPreviewChanged`. `EditComponent` installs/disconnects that transient callback. The ghost shares `ClipGestureLimits::previewRange()` so inspector endpoints/duration match seconds-length movement through tempo changes.
 
-While dragging, values receive only a subtle font tint. No Preview label, badge or
-underline is added. The display path does not invoke edit/commit callbacks. Existing
-text edits finish synchronously through their normal focus-loss commit/reject
-policy before reading the canvas gesture origin, even if JUCE has already moved
-focus and queued the notification. The later notification sees a read-only field
-and cannot commit again or apply preview text;
-fields cannot start a competing text/wheel/scrub edit while its snapshot is active.
-Snap controls remain available. Model refreshes cannot overwrite the live snapshot.
-Commit/cancel clears it and refreshes model values/color; theme updates apply the
-color to existing TextEditor glyphs as well as future text. Duration layout reserves
-room for six-digit tick counts instead of silently clipping ordinary four-digit values.
+A multi-selection canvas gesture uses `CLIPS (REF):` for the grabbed clip, distinct from the numeric edit's ordered-selection reference. Snapshots have no model pointers and do not invoke edit/commit callbacks. Idle common-value display returns afterward.
 
-`setSnapFeedback()` changes only the compact status under SNAP, not its combo choice.
-It uses the originating arrangement timeline; Piano Roll overlay feedback stays in
-the Piano Roll header even though clip values appear here.
+[Shared feedback](timeline-snapping.md#snap-feedback-and-live-values) owns subtle tint, model-refresh precedence, synchronous queued-text-edit completion and snapshot cleanup. These fields cannot start competing text/wheel/scrub input while a canvas snapshot is active; snap controls remain available. Existing glyphs receive theme/tint updates, not only future TextEditor text. Duration layout reserves space for long tick counts.
 
-## Selection and refresh
+`setSnapFeedback()` updates compact status beneath SNAP without changing its combo. Arrangement gestures use the arrangement timeline. A Piano Roll overlay can display clip values here, but its snap status remains in the Piano Roll header.
 
-`ClipPropertiesBar` reads clips directly from the shared `SelectionManager`. `EditComponent` refreshes it when:
+## Validation and limitations
 
-- the global selection changes;
-- a selected clip state changes;
-- the theme changes.
+[Property-field input](property-field-input.md#validation-and-limitations) and [Testing](../development/testing.md) distinguish helper coverage from complete field/owner commit integration. The parser accepts zero tick magnitudes where the note parser does not; final clip lengths must still be positive. Raw clip-pointer plans require selection/lifetime checks. Full focus races, narrow layouts, automation/source combinations and model replacement still require scoped integration/runtime validation.
 
-A selection change can discard an active edit. Unrelated model refreshes preserve focused editor text.
+## Related references
 
-## Snapping and MIDI-clip insertion
-
-`TimeLineComponent` selects either arrangement or Piano Roll settings depending on `m_usePianoRollSnapSettings`. In arrangement mode:
-
-- Off disables snapping;
-- Fixed resolves to `4 / denominator` quarter-note beats;
-- Adaptive uses the zoom-dependent best snap interval.
-
-`TimeLineComponent::getClipInsertLength()` resolves the independent insertion-length mode. `SongEditorView` and `TrackLaneComponent` use this value when creating MIDI clips, and clip starts are quantized through the arrangement timeline.
-
-## Related documents
-
-- [Getting Started](../user/getting-started.md)
-- [Architecture Overview](../architecture/overview.md)
-- [Central Clip Overwrite Command](../architecture/clip-overwrite-command.md)
-- [State and Event Model](../architecture/state-and-events.md)
+- [Song Editor implementation](song-editor.md)
+- [State and events](../architecture/state-and-events.md)
+- [Shared numeric input](property-field-input.md)

@@ -1,5 +1,9 @@
 # Piano Roll
 
+- Type: reference
+- Audience: users
+- Scope: current MIDI editing workflow
+
 ## Overview
 
 The Piano Roll edits MIDI notes on the active MIDI track. It combines a note grid, piano keyboard, timeline, playhead, velocity editor, exact note-property editor, tool bar, scrollbar, and status footer.
@@ -185,7 +189,7 @@ Drag to select notes in a rectangular area. Releasing switches back to the point
 
 Use the **SNAP** selector in the note-properties bar to choose **Off**, a fixed note value from **1/1** through **1/128**, or **Adaptive**. Adaptive snapping derives its resolution from the timeline zoom and is the default.
 
-Mouse move/resize, drawing, and knife preview use **soft snapping**: the edited position stays exactly on a nearby snap point until you pull it out of the magnetic region, then moves continuously toward the next point. The mouse pointer itself is not warped. Attraction spans up to six physical pixels on either side, capped on narrow grids.
+Mouse move/resize, drawing, and knife preview use **soft snapping**: the edited position stays exactly on a nearby snap point until you pull it out of the magnetic region, then moves continuously toward the next point. The mouse pointer itself is not warped. The attraction region accounts for display scaling and is capped on narrow grids; its exact profiles are defined in the [shared snapping contract](../components/timeline-snapping.md#magnetic-curve).
 
 Hold `Shift` to bypass enabled snapping temporarily. Changing the modifier can produce a small bounded position change, without accumulating offsets. Keyboard nudging, explicit quantization, exact property edits, and playhead clicks retain discrete behavior.
 
@@ -232,10 +236,10 @@ Invalid active input is shown in red.
 |---|---|
 | Start/end | `6.2.240`, `6.2`, `6`, `+1/16`, `-120 ticks` |
 | Duration | `1/4`, `1/16`, `960 ticks`, `+1/16` |
-| Pitch | `60`, `C4`, `G#5`, `Bb3`, `+1 st`, `-12 st` |
+| Pitch | MIDI number such as `60`, or relative `+1 st`, `-12 st` |
 | Velocity | `100`, `+5`, `-10` |
 
-Detailed parsing and validation behavior is documented in [NotePropertiesBar](../components/note-properties-bar.md).
+Use MIDI numbers for unambiguous absolute pitch entry. The current name parser differs by an octave from displayed names: displayed C4 is MIDI 60, but typing `C4` currently enters MIDI 72. Detailed formats and this known limitation are documented in [Property-field input](../components/property-field-input.md#note-pitch-and-velocity); component planning/validation is in [NotePropertiesBar](../components/note-properties-bar.md).
 
 ## Velocity editor
 

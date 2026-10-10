@@ -1,5 +1,9 @@
 # Song Editor
 
+- Type: reference
+- Audience: users
+- Scope: current arrangement controls
+
 ## Overview
 
 The Song Editor is the central workspace in the main window. It consists of the Track List (left) and the Arrangement Area (right), sharing a common timeline and playhead.
@@ -52,7 +56,7 @@ Shows clips and automation data on tracks along the timeline.
 
 ### Magnetic mouse snapping
 
-With Off/Fixed/Adaptive settings in the arrangement SNAP control, clip movement/resizing/stretching, Knife previews, range/loop endpoints, automation time movement, and audio-file drag/drop share magnetic positioning. An edited edge locks exactly near a target; keep moving to pull it free and reach any position between targets. Both editors use at most 18 physical pixels of attraction per side. Song Editor retains its 40% adjacent-interval cap (at least 20% free travel); MIDI Editor retains its separate 30% cap. The OS pointer is not warped. Shift/Snap Off bypass attraction.
+With Off/Fixed/Adaptive settings in the arrangement SNAP control, clip movement/resizing/stretching, Knife previews, range/loop endpoints, automation time movement, and audio-file drag/drop share magnetic positioning. An edited edge locks exactly near a target; keep moving to pull it free and reach any position between targets. The attraction region accounts for display scaling and is capped on dense grids, so intermediate positions remain reachable. The OS pointer is not warped. Shift/Snap Off bypass attraction.
 
 An actively held edge shows a thin target guide and outlined diamond; the SNAP label reports held/free/Shift/off/limit without changing the grid choice. Pulling free or bypassing removes the held guide immediately. Limits and invalid placements are not shown as snap detents. Knife highlights its existing cut line.
 
@@ -121,7 +125,7 @@ When one or more clips are selected, a properties bar appears above the toolbar.
 | Snap | Grid mode: Off, Adaptive, or fixed (1/1–1/128). |
 | Insert Length | Default length for new MIDI clips: Adaptive or fixed (1/1–1/128). |
 
-**Multi-clip editing:** When multiple clips are selected, the properties bar shows values of the primary clip. Editing Start, End, or Duration adjusts all selected clips, preserving relative offsets.
+**Multi-clip editing:** At rest, shared values are shown normally and differing values as `—`. A field edit derives one shared move/resize delta from the reference clip and applies it to the selection, retaining its relative differences. During a canvas gesture, live values instead follow the clip actually grabbed, identified by `CLIPS (REF):`.
 
 **Drag scrubbing:** Click and drag on any value field to scrub in real time. Non-destructive preview while dragging; committed on mouse release.
 
@@ -141,5 +145,6 @@ Shows information about the current grid/snap type.
 - [Mixer](mixer.md)
 - [Track Chain](track-chain.md)
 - [Clip Properties Bar](../components/clip-properties-bar.md)
+- [Song Editor implementation](../components/song-editor.md)
 - [MIDI Input Routing and Exclusive Focus](../architecture/midi-input-routing.md)
 - [Getting Started](../user/getting-started.md)

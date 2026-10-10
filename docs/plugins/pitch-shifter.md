@@ -37,4 +37,4 @@ This is a schematic interval display, not an audio analyser or a detected-note d
 
 ## Layout
 
-The editor uses the same compact rack width factor as Volume/Pan and Arpeggiator: one third of the former generic editor allocation. The map and knob have bounded dimensions and are stacked vertically. There is no duplicate parameter row or internal scroll area. The shared Track Chain row height is unchanged.
+The editor uses a compact rack width like Volume/Pan and Arpeggiator. The map and knob are stacked vertically, with no duplicate parameter row or internal scroll area.

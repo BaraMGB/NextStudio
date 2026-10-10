@@ -1,263 +1,43 @@
-# NextStudio issue implementation plan
+# NextStudio open-work queue
 
-This document tracks the complete implementation process for the open GitHub issues reviewed with `gh`.
+GitHub issues own status, discussion and acceptance. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
-Status markers:
+## Next — editing correctness
 
-- `[x]` completed and validated
-- `[~]` in progress
-- `[ ]` pending
-- `[!]` blocked by a product or platform decision
+- [ ] [#84 — Velocity lollipops cannot be selected with a lasso](https://github.com/BaraMGB/NextStudio/issues/84) — reproduce, analyze and obtain proposal approval before implementation; velocity-lane-local lasso, replace/add modifiers and selected-marker feedback.
 
-## Mandatory workflow for every implementation batch
+## Focused workflow improvements
 
-The following sequence is binding and repeats for every batch. It is not a global completion checklist. Track actual progress with checkboxes under the affected issue; completed issues remain completed when a new batch starts.
+- [ ] [#87 — Visible feedback after saving](https://github.com/BaraMGB/NextStudio/issues/87) — Save and Save As without modal interruption.
+- [ ] [#73 — Right-click erases notes in MIDI Draw Mode](https://github.com/BaraMGB/NextStudio/issues/73) — preserve undo/context-menu behavior outside note hits.
+- [ ] [#54 — Hotkeys for Song Editor and MIDI Editor tools](https://github.com/BaraMGB/NextStudio/issues/54).
+- [ ] [#81 — Shortcuts for track arm, mute and solo](https://github.com/BaraMGB/NextStudio/issues/81) — reuse command/key-mapping infrastructure from #54.
+- [ ] [#85 — Add tracks below another track or into a folder](https://github.com/BaraMGB/NextStudio/issues/85).
+- [ ] [#74 — Auto-scroll MIDI editor while dragging notes](https://github.com/BaraMGB/NextStudio/issues/74).
+- [ ] [#86 — Auto-scroll track list while reordering tracks](https://github.com/BaraMGB/NextStudio/issues/86) — share a tested edge-scroll policy with #74 where boundaries allow.
 
-1. Refresh the current open issues and milestones from GitHub with `gh`; review the repository state, release state, changelog, source layout, and existing tests. Confirm release priority and dependencies.
-2. Reproduce or verify each issue against current `main` before changing code.
-3. Document the root-cause analysis and present a concrete solution proposal before implementation.
-4. Obtain the maintainer's approval for the proposed solution; discuss and revise it where necessary. Do not implement before approval.
-5. Add or update automated regression coverage where the behavior can be isolated; otherwise document why focused runtime or visual validation is appropriate.
-6. Implement only the approved, smallest coherent change with undo, persistence, and platform behavior considered where applicable.
-7. Update technical documentation under `docs/components/`, `docs/architecture/`, or `docs/development/` and user documentation under `docs/user/` or `docs/ui/` as appropriate. Update `CHANGELOG.md` for user-visible changes.
-8. Build with `BUILD_JOBS=12 ./build.sh rd`.
-9. Run `./test.sh rd`.
-10. Perform focused UI/runtime validation, using the debug shell where practical.
-11. Produce the shared test artifact with `./build_and_copy_shared.sh` and let the maintainer test the software. Repeat the relevant validation and artifact steps after any resulting changes.
-12. Receive maintainer validation and re-check the affected GitHub issue acceptance criteria before marking the item complete. Commit or push only when explicitly requested.
+## Larger editor features
 
-## Completed initial planning
+- [ ] [#72 — Audition notes while drawing/inserting](https://github.com/BaraMGB/NextStudio/issues/72) — persistent MIDI-toolbar toggle; guarantee note-off on release, cancellation, tool changes and destruction.
+- [ ] [#76 — Configurable playhead positioning on editor clicks](https://github.com/BaraMGB/NextStudio/issues/76) — keep ruler clicks active; insertion double-clicks must not move the playhead.
+- [ ] [#83 — Separate follow-playhead state per timeline](https://github.com/BaraMGB/NextStudio/issues/83) — store per view; migrate global state; default MIDI follow off.
+- [ ] [#82 — Join/glue selected MIDI clips](https://github.com/BaraMGB/NextStudio/issues/82) — decide gap/overlap/loop/take/order/selection semantics first; one atomic undoable command.
+- [ ] [#56 — Two-dimensional middle-mouse panning](https://github.com/BaraMGB/NextStudio/issues/56).
+- [ ] [#57 — Alt modifiers and wheel-based tool switching](https://github.com/BaraMGB/NextStudio/issues/57) — after tool commands from #54 are centralized.
 
-- [x] Load the open issues and milestones from GitHub with `gh`.
-- [x] Review the repository state, release state, changelog, source layout, and existing tests.
-- [x] Group issues by release priority, subsystem, and implementation dependency.
+## Platform, reliability and plugin organization
 
-## Phase 1 — Triage and v0.06 release blockers
+- [ ] [#60 — Space toggles playback with a plugin window focused](https://github.com/BaraMGB/NextStudio/issues/60) — preserve text/plugin-specific key input; test supported native windows.
+- [!] [#59 — Plugin editor windows always on top](https://github.com/BaraMGB/NextStudio/issues/59) — product/platform decision needed against normal Linux stacking behavior.
+- [ ] [#79 — Crash capture and next-start reporting](https://github.com/BaraMGB/NextStudio/issues/79) — POSIX capture, Windows minidumps, context, symbols and startup UI; async-signal-safe handlers and user-controlled uploads.
+- [ ] [#58 — Favorite plugins and custom categories](https://github.com/BaraMGB/NextStudio/issues/58) — persistent metadata following completed deterministic ordering (#71).
 
-- [x] **#88 — NoteEditor rendered incorrectly after transparent theme colors were removed**
-  - [x] Confirm the opaque-theme normalization and affected timeline drawing path in the current source.
-  - [x] Analyze the rendering failure and prepare a solution proposal without changing production code.
-  - [x] Obtain approval for the renderer-owned timeline-band opacity; initially 20%, then adjusted to 30% after visual review.
-  - [x] Implement the approved rendering fix in the shared grid path used by Song Editor, Piano Roll, velocity, and automation contexts.
-  - [x] Add regression coverage for preservation of the RGB tint and application of renderer-owned opacity.
-  - [x] Validate the rendering visually: Dark Song Editor validated through the debug shell; the final 30% intensity was accepted in user testing.
-  - [x] Update technical documentation, user documentation, the change record, and the changelog.
-  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`; run all 19 tests successfully; create the shared artifact.
-  - [x] Receive user validation and approval to commit the completed implementation.
-- [x] **#64 — Theme hex fields block General Settings scrolling**
-  - [x] Identify the existing wheel forwarding and the changelog entry on current `main`.
-  - [x] Verify all acceptance criteria with the focused runtime regression test.
-  - [x] Treat as already implemented and close after validation.
-- [x] **#66 — EQ bands do not reset on double-click**
-  - [x] Reproduce from the graph event path: `EqResponseGraphComponent` handles down/drag/up/move/wheel but has no double-click handler.
-  - [x] Confirm the factory defaults from Tracktion's attached parameter values: Low `80 Hz / 0 dB / 0.5`, Mid 1 `3000 Hz / 0 dB / 0.5`, Mid 2 `5000 Hz / 0 dB / 0.5`, High `17000 Hz / 0 dB / 0.5`.
-  - [x] Prepare the solution proposal: reset all three parameters of the hit band from `getDefaultValue()`, send synchronous notifications, and group the changes into one named undo transaction.
-  - [x] Obtain maintainer approval for the whole-band reset semantics, extended with a right-click **reset values** menu action.
-  - [x] Add focused regression coverage for all four bands, factory-default sourcing, immediate values, and single-step undo/redo.
-  - [x] Implement the approved graph double-click and right-click reset actions; update EQ documentation and changelog.
-  - [x] Build successfully, run all 20 tests, and create the shared artifact.
-  - [x] Receive maintainer UI validation for double-click, the **reset values** menu, and undo/redo; close #66.
-- [x] **#67 — Reverb header text overlaps at narrow widths**
-  - [x] Confirm the rendering failure: the title and status are independently drawn into the same full-width header rectangle, so JUCE fits each string without reserving space for the other.
-  - [x] Prepare the solution proposal and revise it after review: remove the redundant Wet/Dry/Freeze status from the header entirely and reserve the header for the title.
-  - [x] Obtain maintainer approval for the title-only header behavior.
-  - [x] Confirm that no focused unit test is warranted: the fix removes one paint-only text operation and introduces no layout logic; retain focused visual validation at the minimum supported width.
-  - [x] Implement the approved title-only header and update the Reverb documentation, technical change record, documentation index, and changelog.
-  - [x] Build successfully, run all 20 tests, and create the shared artifact.
-  - [x] Receive maintainer approval, commit and push `e654677`, and close #67.
-- [x] **#68 — Compressor and Delay controls are too small**
-  - [x] Confirm the root cause: both editors request only width factor 2 and stack a large graph above dense control rows; fixed 20 px title and 15 px value labels leave as little as 14–16 px for rotary sliders, whose renderer then has almost no drawable radius.
-  - [x] Prepare the solution proposal: request width factor 3, place each graph beside rather than above its controls, arrange Compressor knobs as two rows of three above a full-width sidechain footer, and arrange Delay controls as one choice row plus two knob rows.
-  - [x] Obtain maintainer approval for the wider side-by-side editor layouts.
-  - [x] Extract and test the responsive rectangle calculations at narrow, default, and wide supported sizes, including non-overlap and minimum control-cell dimensions.
-  - [x] Implement both layouts without changing parameter, automation, MIDI-learn, or sidechain behavior; update plug-in documentation, technical documentation, test documentation, and changelog.
-  - [x] Address the first visual review: provide the Sidechain Trigger button name required by the custom toggle renderer, reserve additional Delay control width, and weight the choice row toward Mode.
-  - [x] Address the second visual review: suppress the generic toggle checkmark through a component ID and widen the Delay Sync choice while preserving the weighted Mode/Sync/Division row.
-  - [x] Review the Delay screenshot and refine its visual balance: use a compact 64–68 px choice row, split the remaining height equally between knob rows, keep a 150 px graph where possible, use full-width choice boxes, and spell out Feedback.
-  - [x] Rebuild successfully, run all 21 tests, and refresh the shared artifact after the screenshot-driven refinement.
-  - [x] Receive maintainer visual revalidation for the refined Delay editor and close #68.
-- [x] **#70 — Pitch Shifter layout uses excessive space** — completed; maintainer validated the compact editor and snapped graph input and approved commit, push, and issue closure.
-  - [x] Refresh issue details and repository state; confirm priority and dependencies. #70 is open in v0.06 alpha; current branch is `main`, with no production-code changes in the working tree. No implementation dependency blocks this layout-only change.
-  - [x] Verify and analyze the layout problem in the current source. `PitchShiftPlugin` exposes one automatable parameter, Semitones. `PluginChainItemView` has no dedicated Pitch Shifter branch, so it falls back to `VstPluginComponent`: width factor 3, a 30 px last-changed-parameter row, and a viewport containing another 30 px row for the same parameter. The remaining height is unused. This is source verification, not visual runtime validation.
-  - [x] Document the root cause and present a concrete layout proposal, revised after the maintainer requested a more distinctive GUI. Review `DelayPluginComponent`, `ChorusPluginComponent`, `PhaserPluginComponent`, `FilterPluginComponent`, and `EffectEditorLayout`: dedicated `PluginViewComponent` editors combine reusable automatable controls with a separate parameter-driven graph, track-coloured panel headers, and explicit responsive bounds. Proposed Pitch Shifter editor: retain width factor 1, but place a compact, read-only **PITCH MAP** above a single standard Semitones knob with its existing value label. The map uses a vertical interval scale from -24 to +24 semitones, labelled at octave intervals; a subdued reference at 0 and a track-coloured output marker/connecting arrow show the shift's direction and magnitude, with fractional shifts positioned continuously. At zero the markers coincide. This represents the configured transposition, not measured input/output notes or an audio analyser. React to effective parameter changes, including automation; no independent animation timer or audio analysis is needed. Reuse `GUIHelpers::drawHeaderBox`, theme backgrounds, and `AutomatableParameterComponent`; keep the graph non-interactive to preserve the standard knob's input, MIDI-learn, and undo behavior. Bound the graph and knob sizes so neither grows disproportionately, with tested bounds and readable labels at narrow/default/wide sizes. Rack-item width becomes one third of its previous allocation at the same rack height; the shared rack height, existing parameter range/formatting, fractional precision, DSP, and automation remain unchanged. The maintainer approved this revised proposal.
-  - [x] Obtain maintainer approval before implementation.
-  - [x] Add regression coverage: extend `EffectEditorLayoutTests` with compact width policy, narrow/default/wide layout bounds, graph/knob size caps, centering, tiny-size safety, octave positions, zero alignment, clamping, and fractional shift precision. The standalone test run passes.
-  - [x] Implement the initially approved layout change: dedicated `PitchShiftPluginComponent`, initially read-only parameter-listener-driven Pitch Map, and a single standard Semitones control; retain the existing engine and input behavior.
-  - [x] Update technical and user documentation and `CHANGELOG.md`.
-  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`.
-  - [x] Run `BUILD_JOBS=12 ./test.sh rd`; all 21 tests pass.
-  - [x] Perform focused UI/runtime validation in an isolated debug-shell session on a temporary X display. Review the header, all five scale labels, the knob/value, and marker positions at 0, +12, -12, +0.5, and +24 semitones; verify fractional knob dragging through state dumps. Compare against the previous shared build to confirm removal of the duplicated control and width reduction. Layout tests cover narrow/default/wide and tiny sizes; runtime screenshots validate the normal rack allocation.
-  - [x] Check the observed undo behavior against the previous shared build: in both headless sessions, the toolbar undo attempt after a pitch-knob drag left the native parameter at the changed value. This is not a newly introduced display behavior; successful pitch undo/redo is not claimed as validated by this batch.
-  - [x] Create the shared artifact with `./build_and_copy_shared.sh`: `/home/ai/Gemeinsam/NextStudio`.
-  - [x] Address maintainer feedback and revalidate: add whole-semitone input through the Pitch Map while keeping the knob and native automation parameter continuous.
-    - [x] Analyze the request: the continuous native range must not be quantized globally; add a separate marker-only input path using the existing scale geometry and parameter notifications.
-    - [x] Obtain approval: the maintainer explicitly requested vertically dragging the coloured point with whole-semitone snapping.
-    - [x] Add regression coverage: test relative drag mapping and all 49 integer values; add `PitchShiftDragTests` for live/persisted values, notifications, balanced gestures, exact fractional undo/redo, no-op/cancel/destruction, and preservation of the continuous native range.
-    - [x] Implement marker hit testing, hover/cursor/tooltip feedback, relative snapped dragging, clamping, Escape cancellation, and one graph-specific undo action per gesture. Suppress intermediate CachedValue undo recording only during graph updates; keep the parameter binding and standard knob unchanged.
-    - [x] Update technical and user documentation, test documentation, and `CHANGELOG.md`.
-    - [x] Build with `BUILD_JOBS=12 ./build.sh rd`; run `BUILD_JOBS=12 ./test.sh rd` successfully (22 tests).
-    - [x] Validate in the debug shell: upward drag to +10, one-step undo to 0 and redo to +10, downward drag to -12, limits at +/-24, Escape restoring the fractional start, and continuous knob dragging to -11.232 confirmed by state dumps.
-    - [x] Refresh the shared artifact with `./build_and_copy_shared.sh` for maintainer revalidation: `/home/ai/Gemeinsam/NextStudio`.
-    - [x] Receive maintainer revalidation and explicit approval of the final implementation and issue closure. No further feedback remains; continuous knob/automation behavior is retained.
-  - [x] Receive maintainer validation and re-check acceptance criteria: remove duplicate controls and excess width, preserve readable controls/values, match compact rack sizing, and retain the native parameter range and automation behavior. Maintainer approved commit, push, and marking #70 fixed.
-- [x] **#65 — Bypassed plugins are not fully decolorized** — completed; maintainer accepted the bypass appearance and approved commit, push, and issue closure.
-  - [x] Refresh issue details, open issues/milestones, and repository state. #65 is open in v0.06 alpha; current `main` is clean after #70. The remaining Phase 1 issues are #65 and #71; no implementation dependency blocks #65.
-  - [x] Reproduce against current `main` in an isolated debug-shell session: add Next Delay and bypass it through the plug-in list. The state dump confirms `enabled: false`; the vertical header darkens, but DELAY SPACE, graph markers, and knob arcs stay blue. Preserve the baseline screenshot at `/tmp/NextStudio-pitch-validation/bypass-delay-before.png`.
-  - [x] Analyze the root cause: `PluginChainItemView::paint()` only chooses a darker track colour for its own header when `m_plugin->isEnabled()` is false. Embedded editors, graphs, presets, and the rotary renderer obtain track/theme colours independently; `NextLookAndFeel` even reads the parameter's owning track directly. No shared visual bypass treatment is applied to the complete rack item. Updating only `PluginViewComponent::getTrackColour()` would therefore leave coloured controls and other accents behind.
-  - [x] Present the solution proposal: attach a renderer-only grayscale `juce::ImageEffectFilter` to the complete `PluginChainItemView` while its plug-in is bypassed. JUCE renders the component and its children together before applying the effect, covering the vertical header, embedded editor, knobs, graphs, instrument preset panel, and editor-open button through one shared path. Remove the existing header-only darkening in favour of this uniform grayscale treatment, preserving alpha, contrast, and readable values without additional opacity reduction. Observe the plug-in's `enabled` state directly, update on bypass/undo/redo and initial construction, and remove the effect immediately on re-enable. Keep controls enabled and interactive; do not alter parameters, automation, MIDI Learn, DSP, or preset state. Modifiers and separately opened native plug-in windows are outside this rack-item treatment. Apply the offscreen effect only while bypassed; review repaint cost on large instrument editors. Ensure effect lifetime/listener cleanup and avoid destructively modifying shared source images.
-  - [x] Obtain maintainer approval before implementation: after discussing whether bypassed controls should remain usable, the maintainer requested an unambiguous visual bypass indication and screenshot verification. Keep controls interactive; combine full grayscale with a high-contrast **BYPASSED** badge in the vertical rail, without covering or moving editor controls. Check active, bypassed, and re-enabled screenshots for representative plug-in roles.
-  - [x] Add `PluginBypassPresentationTests` for full parent/child/grandchild grayscale rendering, RGB/ARGB alpha/source-image preservation, active/bypassed/re-enabled and undo/redo transitions, initial bypass, listener/filter teardown, unchanged control enablement/hit testing and state values, and badge bounds/contrast.
-  - [x] Implement the shared rendering-only `PluginBypassPresentation` and `PluginBypassEffect`, direct enabled-state observation, full subtree grayscale only while bypassed, and a separate high-contrast BYPASSED badge in the vertical rail without moving/covering editor controls. Modifiers and separate native windows remain unchanged.
-  - [x] Update technical and user documentation, documentation index, test documentation, and `CHANGELOG.md`.
-  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`.
-  - [x] Run `BUILD_JOBS=12 ./test.sh rd`; all 23 tests pass.
-  - [x] Validate screenshots for active/bypassed/re-enabled Delay, Arpeggiator, SoundFont Player (including presets), and the visible Simple Synth editor, plus its trailing controls after horizontal scrolling. Inspected opaque interiors are fully gray while bypassed and pixel-identical to their original colours after re-enabling; transparent antialiased corners preserve the rack background. Review the badge in expanded and collapsed rails. Confirm an actual Delay Feedback drag while bypassed changes 0.35 to approximately 0.388 without enabling the plug-in. Large-instrument rendering, scrolling, and state transitions remain responsive; no formal frame-time benchmark is claimed. Screenshot artifacts are preserved under `/tmp/NextStudio-bypass-validation/`, including `NextStudio-bypass-review.png`.
-  - [x] Create the shared artifact with `./build_and_copy_shared.sh`: `/home/ai/Gemeinsam/NextStudio`; provide the active/bypassed/re-enabled screenshot contact sheet at `/home/ai/Gemeinsam/NextStudio-bypass-review.png`.
-  - [x] Receive maintainer validation and re-check acceptance criteria: consistent full-component bypass appearance for effects, MIDI plug-ins, and instruments; original colours restored on re-enable; required controls remain available; rendering does not alter plug-in state. Maintainer explicitly approved commit, push, and marking #65 fixed.
-- [x] **#71 — Plugin selection menus are not sorted alphabetically**
-  - [x] Refresh the issue and milestone state after closing #88. #71 is the only open v0.06-alpha issue; `main` is synchronized with `origin/main`, and no implementation dependency blocks the change.
-  - [x] Verify the failure against current `main` from the menu construction paths. `EngineHelpers::createPluginTree()` requests Tracktion's manufacturer ordering; `PluginTreeGroup::createBuiltInItems()` appends built-ins in registration order; and both the unfiltered `PluginMenu` and role-filtered `appendFilteredMenuItems()` emit groups and entries in stored order without an alphabetical step. The built-in sequence (Volume and Pan, Equaliser, Reverb, Peak Limiter, Delay, ...) directly demonstrates the failure.
-  - [x] Document the root cause and solution proposal. Sort each `PluginTreeGroup` recursively once after the complete built-in/external tree is assembled, using each group's name and each entry's displayed `desc.name`. Use JUCE's case-insensitive natural comparison and explicitly retain insertion order for equivalent names. This keeps category hierarchy intact and makes the existing filtered and unfiltered menu builders consume the same deterministic order without changing IDs, plug-in creation, role classification, or registration data. Add a focused `PluginMenuOrderingTests` suite covering mixed-case and natural ordering, stable equal names, nested category/entry ordering, category preservation, and filtered-order equivalence. Validate the MIDI Plugins, Instrument, and Audio Effects plus-button menus at runtime.
-  - [x] Obtain maintainer approval for the shared recursive sorting policy before implementation.
-  - [x] Add the focused `PluginMenuOrderingTests` regression suite for stable mixed-case/natural ordering, nested categories and entries, category preservation, and filtered-order equivalence.
-  - [x] Implement the approved smallest change by sorting the completed shared plug-in tree recursively; update plug-in-chain technical/user documentation, test documentation, and `CHANGELOG.md`.
-  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`, run all 24 tests successfully with `BUILD_JOBS=12 ./test.sh rd`, verify clean debug-shell startup/readiness, and create the shared artifact at `/home/ai/Gemeinsam/NextStudio`.
-  - [x] Receive maintainer validation of the plug-in selection menu ordering. The separately rendered Instruments/Effects sidebar tables retain their own sortable-table behavior and are tracked as a separate fix; close #71.
-- [x] **#89 — Instruments and Effects sidebar browsers use the wrong default sorting**
-  - [x] Reproduce and analyze the mismatch: both table headers originally displayed Name ascending, but `InstrumentEffectListModel::m_order` value-initialized to column 0, so the constructor's first `updatePluginLists()` preserved external registration order followed by internal registration order.
-  - [x] Obtain maintainer approval to track and commit this independently from #71; incorporate the clarified requirement that Format is the primary default key and Name is the secondary key.
-  - [x] Implement the corrected default as ascending Format with case-insensitive natural Name ordering inside each format. Align the visible Format-column indicator, retain stable equal entries, and preserve explicit Name/Format header choices across searches and plug-in-list changes.
-  - [x] Extend `PluginMenuOrderingTests` with ascending/descending format groups, natural format numbering, case-insensitive names, secondary name ordering, and stable equivalent entries.
-  - [x] Update Side Browser user documentation, test documentation, and `CHANGELOG.md`.
-  - [x] Rebuild successfully, run all 24 tests, and refresh `/home/ai/Gemeinsam/NextStudio`.
-  - [x] Receive maintainer visual validation for the initial Instruments and Effects ordering; close #89.
+## Deferred and metadata
 
-## Phase 2 — Editing correctness and regression hardening
+- [ ] [#21 — Detachable/fullscreen Piano Roll](https://github.com/BaraMGB/NextStudio/issues/21) — Post v1.0.
+- [ ] Review feature/enhancement labels for #81, #82 and #83.
+- [ ] Record the #82 merge semantics and #59 platform decision in their issues before implementing.
 
-- [x] **#75 — Uneven grid quantization at certain zoom levels**
-  - [x] Refresh the issue/release state and repository. `main` is clean and synchronized; v0.06 has no open issues, #75 has no milestone, and no implementation dependency blocks this shared-grid rendering fix.
-  - [x] Reproduce the visual failure from the four attached screenshots and current shared renderer. The screenshots show 4/4 adaptive grids at approximately 206.5 px/beat and 218.5 px/beat with 1/16-beat lines, and 186 px/beat and 176.5 px/beat with 1/8-beat lines. Tempo is not material after the adaptive interval is selected because `drawBarsAndBeatLines()` maps beat positions linearly. At these fractional pixels-per-interval values, successive one-pixel strokes alternate between one and two raster columns with visibly different intensity in both Song Editor and Piano Roll.
-  - [x] Analyze the root cause. The shared renderer calculates mathematically uniform floating-point beat positions, then calls `juce::Graphics::drawLine()` at each fractional x coordinate with a 1 px stroke. Anti-aliasing distributes each line over different pixel fractions as the phase changes, making some subdivisions wide/bright and others faint even though snapping and beat coordinates remain uniform. The issue is visual grid rasterization, not Tracktion's note/clip quantization. Incrementing `beat += intervalBeats` also makes absolute-index generation preferable for long ranges, although its accumulated floating error is not large enough to explain the screenshots.
-  - [x] Reject the initial renderer-only pixel-rounding proposal after maintainer review. Rounding only grid lines could shift them by up to half a pixel relative to clip edges, note edges, automation, selections, and the playhead; applying equivalent rounding independently to every consumer would broaden the change and introduce visible movement inconsistencies.
-  - [x] Prepare the detailed revised implementation proposal in `docs/changes/uneven-timeline-grid-plan.md`: normalize the shared view scale to integer physical-pixel distances for the rendered interval; preserve anchors and accumulated gesture intent; centralize visual beat-based interval selection without changing musical snap APIs; cover all scale-writing setters, fitting, restore, resize, and display/UI scale changes. Preserve floating-point geometry and audit existing premature integer conversions and intentional right-edge padding before claiming actual object/grid alignment. Common grid phase means uniform antialiasing, not guaranteed one-pixel sharpness during panning; discrete zoom remains an explicit validation tradeoff.
-  - [x] Capture current-main runtime baseline with aligned and unaligned clips/notes plus slow zoom/pan sequences in an isolated X display. Artifacts: `/tmp/nextstudio-grid-validation/before-content.png` and `before-pan-zoom.mp4`. The initially provided annotated image was an original issue screenshot, not a fresh current-main capture.
-  - [x] Obtain explicit maintainer approval: “Setze das genau so um!”
-  - [x] Add `TimelineViewGeometryTests` and `TimelineViewStateTests`: screenshot-derived scales, complete zoom/interval sweeps, panned/long ranges, fractional raster scales, anchors, accumulated intent, real production view setters and coordinate APIs with Tracktion clips/notes, deferred fit, restore/resize, independent views, variable tempo, unchanged musical state and undo isolation, and JUCE raster coverage.
-  - [x] Implement shared physical-spacing normalization and visual interval selection, all scale-writing entry points, wheel/ruler anchors and residuals, asynchronous layout/state/meter/native-scale refresh, conservative viewport-owned clip fitting, indexed grid generation, and the float-coordinate audit for ruler, notes, overlay previews, playhead, lasso painting and inverse conversions. Update technical/user/test documentation, debug view-state diagnostics, and `CHANGELOG.md`.
-  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`, run `BUILD_JOBS=12 ./test.sh rd` (26/26 passing), and pass the debug-shell editing smoke test. Validate the final build on an isolated X display: complete clip fit at the Piano Roll's actual 1360 px width, snapped clip/note boundaries plus unsnapped notes, pure pan retaining the stored scale, accumulated small ruler-zoom steps, anchor error below 1e-10 beats, and unchanged musical data. Same-rank raster samples have exactly one coverage pattern at 100% (46 Song Editor / 40 Piano Roll lines) and 125% native desktop capture (28 / 52 lines). Geometry tests additionally cover 150% and 200%; native platform/monitor transitions are not claimed as runtime-validated.
-  - [x] Create `/home/ai/Gemeinsam/NextStudio` with `./build_and_copy_shared.sh`; verify its SHA-256 equals the built binary. Deliver the final screenshot at `/home/ai/Gemeinsam/NextStudio-issue75-after.png` and the slow pan/zoom clip at `/home/ai/Gemeinsam/NextStudio-issue75-pan-zoom.mp4`. Detailed local runtime artifacts are under `/tmp/nextstudio-grid-validation/`. No commit/push or issue closure before maintainer validation/explicit approval.
-  - [x] Review maintainer feedback: beat/bar lines are improved, but adjoining clips still look inconsistent at some positions. Reproduce with snapped and fractional-length adjoining clips, normal/selected frames, and different zoom origins. Current-build artifacts are under `/tmp/nextstudio-adjacent-validation/`; annotated screenshot: `/home/ai/Gemeinsam/NextStudio-issue75-adjacent-before.png`.
-  - [x] Identify the missed clip-frame path: `GUIHelpers::drawClipBody()` draws float fills/glow, while `GUIHelpers::drawClip()` still draws normal and selected frames from `clipRect.toNearestInt()`. JUCE rounds x and width separately. Reproduced fractional join: true edge 481.20 px, left rounded frame ends at 482 px while the next frame starts at 481 px. This produces a spurious one-pixel frame overlap; musical clip positions remain exactly adjoining.
-  - [x] Propose the smallest follow-up: remove individual integer conversion from normal/selected clip-frame drawing, use the same float edges as body/content, preserve the common view transform and musical data, and add adjoining-clip raster coverage at several origin/width phases, selected states, and fractional UI scales. Check complete rendering/paint order rather than promising that independently antialiased strokes automatically produce a perfect shared seam.
-  - [x] Approve the follow-up clip-frame rendering change before implementation: maintainer explicitly requested “dann mach”.
-  - [x] Extract the two existing frame operations into the small `ClipFrameDrawing` helper and retain float rectangles for normal/selected outlines; preserve colours, inside stroke widths, viewport clipping, content-first paint order, view geometry, and musical data. No single-seam outline redesign.
-  - [x] Add `ClipFrameDrawingTests` before production integration and demonstrate failure with the old rounding. The corrected helper passes 960 adjoining-clip cases covering fractional origins/widths, offscreen clips, both paint orders, all selection pairs, and 100/125/150/200% scaling. Interior scanlines exactly match an independently derived float edge-band union reference; integer-coordinate appearance remains pixel-identical.
-  - [x] Update technical/user/test documentation and `CHANGELOG.md`; build successfully with `BUILD_JOBS=12 ./build.sh rd` and pass all 27 tests with `BUILD_JOBS=12 ./test.sh rd`.
-  - [x] Validate the complete application against the prior shared build at 100% and 125%, with matching view geometry, clip/note values, and normal/left-selected/right-selected/both-selected states. Native before/after captures and diagnostic dumps are under `/tmp/nextstudio-adjacent-validation/`. Slow pan retains scale; small zoom steps accumulate and reverse back to the starting view; musical data remain unchanged. Runtime checks use MIDI clips; automated raster tests additionally cover 150% and 200%. Native monitor/platform transitions remain unclaimed.
-  - [x] Refresh `/home/ai/Gemeinsam/NextStudio` with `./build_and_copy_shared.sh` and verify its SHA-256 matches the built binary. Provide `/home/ai/Gemeinsam/NextStudio-issue75-adjacent-after.png` and `/home/ai/Gemeinsam/NextStudio-issue75-adjacent-pan-zoom.mp4` for maintainer testing. No commit/push or issue closure.
-  - [x] Address the #75 code-review findings: clip fits now retain the latest pending target for every opening, including previously visited tracks with stale viewport widths. Track-ID changes defer context refresh until after layout; explicit pan/zoom still cancels a pending fit. Conservative fits prioritize visibility over the interactive upper zoom limit, and passive refresh/restore retains large fitted views. At extents beyond the interval table's physical-pixel resolution, use an explicit exact-linear-fit fallback rather than silently ignoring the request.
-  - [x] Add failing-before/passing-after regressions for reopened/latest/cancelled fits, settled-fit resize behavior, large range/clip fits and restore. Sweep both nearest and fit policies across the full interactive zoom range, representative widths/meters, and 100/125/150/200% raster scales; include beyond-limit and subpixel fits. Keep clip/note state and undo history unchanged.
-  - [x] Reconcile technical/user/test documentation, the implementation proposal, and `CHANGELOG.md` with the fit lifecycle and upper-limit policy. Build with `BUILD_JOBS=12 ./build.sh rd`, pass `BUILD_JOBS=12 ./test.sh rd` (27/27), and pass the isolated-X debug-shell editing smoke test. Runtime checks reopen a visited track after resizing its Piano Roll from 1360 to 760 px and retain complete clip visibility and unchanged musical data. A 100000-beat clip reproduces the no-op fit in the prior shared build (visible end 76 beats after reopening), while the corrected build keeps it fully visible. Artifacts/logs: `/tmp/nextstudio-review-fit-validation/`, `/tmp/nextstudio-review-large-fit-validation/`, and `/tmp/nextstudio-review-large-fit-before.log`.
-  - [x] Refresh `/home/ai/Gemeinsam/NextStudio` through `./build_and_copy_shared.sh` after the review fixes; built/shared SHA-256 matches (`c870f1ee0728b0826c94bca04c3dc9e4d2ace8681fedbf4ab0a65bd57c14ddff`). Prepare the complete #75 change set as one commit, including the original grid/frame changes, review fixes, regression tests, documentation, and this checklist. At that preparation step, no commit/push or issue closure had been performed.
-  - [x] Receive maintainer validation: “Das kann committet und gepushed werden. Issue fixed”. Commit/push explicitly approved; #75 closed as completed on GitHub.
-- [x] **#77 — Pencil tool cannot create or shorten notes below insert length**
-  - [x] Refresh the issue and repository state. #77 remains an open, unmilestoned bug; `main` is clean and synchronized after #75, and no implementation dependency blocks the draw-tool correction.
-  - [x] Verify the failure in current source and focused coverage. `DrawTool::mouseDown()` initializes the preview to the selected insert length, but `mouseDrag()` clamps every endpoint to at least that same pixel width. Preview and commit then call `PianoRollNoteLength::applyMinimum()` with the insert length again. The existing passing regression test explicitly requires this incorrect lower bound, so the behavior is enforced independently in the gesture, preview, commit, and test paths.
-  - [x] Reject the initial local minimum-length proposal after maintainer review. A hard snap still makes the complete interval between grid points inaccessible and would reproduce the same class of drag problem in note, clip, range, loop, knife, and automation interactions.
-  - [x] Audit the shared snapping paths. `TimeLineComponent::snapTime()` / `getQuantisedBeat()` hard-round every supplied position, while mouse-driven callers independently choose nearest or downward rounding. This mixes discrete quantization with gesture behavior across Draw/Pointer/Knife tools, clip move/resize, time-range and loop edges, automation points, drag/drop, and playhead placement. Keyboard nudging, explicit quantization, and click insertion have different discrete semantics and must not be converted blindly.
-  - [x] Prepare the revised solution proposal. Introduce one shared, stateless soft-snap mapping for mouse-driven timeline positions. Around every previous/next snap target, use a magnetic plateau of +/-6 physical pixels, capped to 20% of the adjacent grid interval; between those plateaus, map movement continuously and monotonically so an edge locks exactly to each target but can be pulled away and moved seamlessly toward the next one. Support fixed and tempo-aware adaptive targets, and keep `Shift`/Snap Off as an immediate raw-position bypass. Do not warp the OS pointer. Retain hard snap APIs for discrete insertion, nudging, quantization, and commands that explicitly require exact rounding.
-  - [x] Define the #77 draw semantics on top of that policy. Mouse-down hard-aligns the note start and initializes its default end from the selected insert length; if the next snap interval is larger than that length, the initial end advances immediately to the next snap point. Dragging adjusts this initial end relatively rather than treating the pointer's start position as an absolute end. The end begins in the snap detent, can be pulled left below both snap and insert length after overcoming the magnetic region, and can continue smoothly through later snap points. Only Tracktion's one-tick positive-duration floor remains. Preview and commit use the same result; the actual committed duration becomes **Last Inserted**, with overlap cleanup, selection, and one `Add MIDI Note` undo transaction preserved.
-  - [x] Receive maintainer endorsement of the revised direction and the request for a detailed implementation plan. Create `docs/changes/soft-timeline-snapping-plan.md` covering the exact continuous curve and inverse anchors, physical scaling, fixed/adaptive target resolution, the coarse-snap default-end ceiling rule, relative Draw state, modifier/context transitions, complete consumer classification, production preview/commit constraints, tests, batch gates, documentation, and runtime/artifact acceptance criteria. Production code was unchanged during planning.
-  - [x] Obtain approval of the detailed plan before implementation: the maintainer explicitly instructed “Implementiere das.”
-  - [x] Add `TimelineSoftSnapTests`, engine/model `TimelineSnappingTests`, and revised `PianoRollNoteLengthTests`: dense continuous/monotonic detents and inverses, scales 100/125/150/200%, tempo/meter/triplet boundaries, raw Shift/Off and grid/context transitions, modifier-only replay, relative Draw/defaults/tick floor, real offset-clip insertion/overlap, Last Inserted, single-step undo/redo, fractional persistence, note/clip/automation constraints, and valid split positions. Full GUI certification of every caller is not claimed.
-  - [x] Implement the approved shared policy and migrate Draw/Pointer/Knife, clip move/copy/resize/stretch, MIDI clip overlay, range/loop gestures, automation timing, and browser drop. Share effective timing/constraints between preview and commit; retain discrete commands. Update technical/user/test documentation, source layout, and `CHANGELOG.md`. Draw remains creation with overlap handling, not a new existing-note Pencil resize mode.
-  - [x] Build with `BUILD_JOBS=12 ./build.sh rd`; run all 29 CTest targets successfully with `BUILD_JOBS=12 ./test.sh rd`. Validate real Draw/Pointer/Knife/clip/range/loop gestures at 100%, modifier-only updates, Last Inserted, tick floor, Escape, undo/redo, offset clips, and actual project Save/reload. Validate physical detents, shortening and drift-free Shift transitions at 125% application scale; native 150/200% and other platforms remain untested. See `docs/changes/soft-timeline-snapping-validation.md` for exact results and coverage limitations.
-  - [x] Create `/home/ai/Gemeinsam/NextStudio` with `BUILD_JOBS=12 ./build_and_copy_shared.sh`; verify executable mode 0755 and SHA-256 equality with the built binary. Evidence is preserved in `/tmp/nextstudio-soft-snap-validation/`.
-  - [x] Address maintainer feedback “Es ist zu schwach”: double the magnetic radius from 6 to 12 physical pixels and increase the narrow-interval cap from 20% to 30%. Retain 40% free travel, raw Shift/Off bypass, and unchanged gesture/model semantics. Add explicit stronger-detent/intermediate-position regressions, pass all 29 tests, verify wide/dense detents and drift-free Shift bypass at native 100%, and rebuild/copy the checksum-matched shared artifact. The original 125% runtime measurements remain historical; the stronger profile passes automated tests at all four scales.
-  - [x] Address editor-specific feedback: the maintainer accepts MIDI feel but still finds Song Editor attraction weak. Introduce editor-owned profiles in the shared resolver: Song Editor 24 physical pixels / 40%, MIDI unchanged at 12 / 30%. Select by the existing snap-settings ownership flag, not timeline ID; use the same profile for mapping and inverse anchors, validate profiles, and re-anchor on profile changes. Pass all 29 tests, including both profiles at all four scales and tempo/meter boundaries. Native 100% checks verify arrangement hold at 15 pixels, escape at 18 pixels to an off-grid 0.5-second start, undo, and unchanged MIDI drag durations. Rebuild/copy the checksum-matched shared artifact.
-  - [x] Apply the explicit request “stell beides auf 18 Pixel”: both editor profiles now use an 18-physical-pixel maximum radius; keep Song Editor/MIDI interval caps at 40%/30%. Update profile/default regressions, pass all 29 tests, verify a 17-pixel held MIDI preview and escape at 20 pixels (1.02-beat commit), and rebuild/copy the checksum-matched shared artifact.
-  - [x] Fix reported Knife preview pixel offsets: retain float X in MIDI Knife, match the arrangement grid stroke, and bypass arrangement hover throttling for Knife so the final 1–2 px move is not lost. Add a failing-before/passing-after coordinate/raster regression at 100/125/150/200%; pass all 29 tests. Reproduce and correct the native 125% MIDI offset, verify physical coverage, stationary Shift restoration and beat-4 cut, and check arrangement detents at 100/125%. Rebuild/copy the shared artifact; evidence in `/tmp/nextstudio-knife-validation/`.
-  - [x] Fix the three review findings: paint resolved loop move/resize ranges live; use corrected downward targets for mouse creation anchors; project range/audio-drop ghosts from actual time endpoints, including clip slices and automation coordinates. Add creation/tempo-projection regressions and pass all 29 tests. Native 100% checks cover loop move/both resize edges, Draw/double-click at the faulty meter boundary, a range whose width halves across a tempo change, and audio-drop widths at 120/60 BPM. Rebuild/copy the test artifact; evidence in `/tmp/nextstudio-review-fixes/`.
-  - [x] Receive maintainer acceptance: “Ich würde es erstmal so committen. pushen. Es fixed die Issue.” Commit/push and marking #77 fixed are explicitly approved. Retain the documented broader automation/stretch, multi-track/loop/take and platform coverage limitations; acceptance does not imply exhaustive GUI certification.
-- [x] **#90 — Draw mode hides the mouse cursor outside MIDI clips** — corrected, validated and accepted by the maintainer as fixed. Commit/push and issue closure explicitly approved; #84 is next.
-  - [x] Refresh issue/milestone and repository state; reproduce the original `NoCursor` Draw branch natively. At the initial refresh, #90 was open/unmilestoned and v0.06 had no open issues. Original evidence: `/tmp/nextstudio-cursor-validation/before-*`.
-  - [x] Correct the working-area definition after maintainer feedback; obtain approval of the reduction/correction plan (“go”). **MIDI Draw/Knife/Eraser all show their tool cursor throughout MIDI clip time ranges, including between notes, and the normal pointer outside clips/in gaps.** Song Knife remains visible across clip-capable track lanes, including gaps, but not on Master. Lasso/Range remain usable in empty space; Pointer keeps contextual object/edge feedback. Active drags retain their action cursor. Do not gate on individual note/clip hits or alter edit actions, snapping, persistence or undo.
-  - [x] Remove the first implementation's unnecessary `ToolCursorPolicy`, synthetic hover events/fake moves and misleading helper tests; restore unrelated source-layout/cache changes. Replace cursor-only Draw/Knife/Eraser hover/activation assignments with one direct `MidiViewport::updateToolCursor()` clip check. Reuse Song lane cursor handling with a fresh clip/edge/fade hit and resolve the effective Range/Pointer target, including the inactive Range overlay/external Master cursor, directly on stationary tool changes.
-  - [x] Establish native regression coverage before corrected production integration: the prior shared binary fails 12 MIDI Knife/Eraser clip-boundary/re-entry checks. The same scripted checks pass with zero failures in the corrected binary; console tests are not expanded with another artificial policy helper. Evidence: `/tmp/nextstudio-cursor-correction/before-results.json` and `after-results.json`.
-  - [x] Validate the final binary at native 100/125% application/cursor scale: all MIDI tools inside/outside clips and in a two-clip gap, note-free clip positions and re-entry, Song Knife gaps/Master, native focus/Return stationary MIDI tool changes and Song Range-to-Time-Stretch/Knife/Master transitions, stationary pan for all three clip-bound modes, active drag cursors, Draw cancellation, real note actions/undo/redo and unchanged model dumps for ineffective clicks/selection/previews. Native 150/200%, other platforms and exhaustive automation/overlay combinations remain unclaimed. Details: `docs/changes/tool-cursor-working-areas.md`; scripts, cursor images/model dumps and `final-runtime.log` under `/tmp/nextstudio-cursor-correction/`.
-  - [x] Reconcile technical/user/test documentation and `CHANGELOG.md` with the corrected small implementation. Build with `BUILD_JOBS=12 ./build.sh rd`; run `BUILD_JOBS=12 ./test.sh rd` (29/29 pass, 6.23 s); pass the isolated-X debug-shell editing smoke test.
-  - [x] Refresh `/home/ai/Gemeinsam/NextStudio` with `BUILD_JOBS=12 ./build_and_copy_shared.sh`; verify mode 0755 and matching built/shared SHA-256 (`87399ac5af0c8ea98247f40a84f59a82eee0243f14424a681476eb1ddadc4a5e`, refreshed after the cursor review fixes).
-  - [x] Fix both cursor review findings: stationary Range-to-Pointer refresh and stale Range-to-Time-Stretch clip hover. Native 100% before/after regression: 13 failures in the preceding shared build, all 16 transitions pass in the corrected build, including clip/range bodies and both edges; musical data unchanged. Working-area and action/pan checks pass again; final build and all 29 tests pass (6.21 s). Shared artifact refreshed with matching SHA-256/mode 0755. Evidence: `/tmp/nextstudio-code-review/`; see the change document for scope.
-  - [x] Receive maintainer acceptance: “committen und pushen. die Issue ist gefixed”. Mark #90 complete under the clarified cursor working-area contract; commit/push and issue closure are explicitly approved. Documented platform/scale/automation coverage limits remain unchanged.
-- [ ] **#84 — Velocity lollipops cannot be selected with a lasso** — next; reproduce, analyze and obtain approval of a concrete proposal before implementation.
-  - [ ] Implement velocity-lane-local lasso semantics.
-  - [ ] Support replace/add selection modifiers and selected-marker feedback.
+## History
 
-## Phase 3 — Focused workflow improvements
-
-- [x] **Snap feedback and live gesture values in clip/note headers**
-  - [x] Analyze the current resolver, gesture previews and property-bar refresh/scrub paths. Prepare `docs/changes/snap-feedback-and-live-header-plan.md` without changing production code.
-  - [x] Incorporate maintainer feedback on live header values: only a subtly different, readable font color; no Preview label, badge or underline. Restore normal color after commit/cancel.
-  - [x] Obtain approval of the remaining snap visual language, reference-object policy for multi-selection and implementation plan: “setze das um”.
-  - [x] Add display-only editor-local snapshots and live Start/End/Duration (and note Pitch) using the same feasible timing as ghosts/commit. Cover provisional Draw and preserve numeric edits, model state and undo.
-  - [x] Report actual held/free/bypass/limited snap state from the resolver/gesture, then add a target guide, manipulated-edge marker and compact status without changing snap profiles or mapping.
-  - [x] Integrate remaining snap consumers and clip-overlay routing. Add kernel/resolver/renderer, shared preview-range and tempo-replay regressions; perform focused native checks for cancellation/removal, stationary Shift, multi-selection and font restoration. See the validation report for helper versus native coverage and remaining platform/automation/stretch cases.
-  - [x] Update documentation/changelog, build/test (29/29), perform focused native visual checks and regenerate `~/Gemeinsam/NextStudio` (0755; identical built/shared SHA-256). Record coverage and evidence in `docs/changes/snap-feedback-and-live-header-validation.md`.
-  - [x] Verify maintainer follow-up: Piano Roll clip headers cover the ruler's snap line/diamond. The ruler paints before its later-added sibling `TimelineOverlayComponent`; its opaque header occupies the bottom third containing the diamond. Record the foreground-pass proposal in section 9 of the plan.
-  - [x] Obtain approval for the foreground ruler-feedback pass: “ja, ich dachte, es wird ohnehin in einem overlayer oder im paintOverChildren gezeichnet.”
-  - [x] Add JUCE sibling/header foreground raster coverage at four scales and three fractional phases, with held/cleared states and explicit old-order failure detection. Defer the Piano Roll ruler cue to `paintOverChildren()` after children/borders; clip overlay body feedback below it, and repaint the parent on changes/clear. Native note/Draw/overlay/Knife checks confirm visibility above headers and stationary Shift restoration. Build/test (29/29) and refresh the matching shared artifact; evidence in the validation report.
-  - [x] Resolve code-review findings: synchronously finish pending header text edits, suppress post-Escape ruler drags, and share whole-group move/copy destination validation with commit. Add focus/destination regressions and native checks; see the validation report.
-  - [x] Receive maintainer approval to commit and push the feature: “wir committen das feature und pushen es”. Validation coverage and remaining platform limits are recorded in the report.
-- [ ] **#87 — Visible feedback after saving**
-  - [ ] Cover Save and Save As without a modal interruption.
-- [ ] **#73 — Right-click erases notes in MIDI Draw Mode**
-  - [ ] Preserve undo and context-menu behavior outside note hits.
-- [ ] **#54 — Hotkeys for Song Editor and MIDI Editor tools**
-- [ ] **#81 — Shortcuts for track arm, mute, and solo**
-  - [ ] Build on the shared application-command/key-mapping infrastructure from #54.
-- [ ] **#85 — Add tracks directly below another track or into a folder**
-- [ ] **#74 — Auto-scroll MIDI editor while dragging notes**
-- [ ] **#86 — Auto-scroll track list while reordering tracks**
-  - [ ] Share a tested edge-scroll policy with #74 where component boundaries allow it.
-
-## Phase 4 — Larger editor features
-
-- [ ] **#72 — Audition notes while drawing or inserting**
-  - [ ] Add a persistent MIDI-toolbar toggle.
-  - [ ] Guarantee note-off on mouse-up, cancellation, tool changes, and editor destruction.
-- [ ] **#76 — Configurable playhead positioning on editor clicks**
-  - [ ] Keep ruler clicks active and prevent insertion double-clicks from moving the playhead.
-- [ ] **#83 — Separate follow-playhead state per timeline**
-  - [ ] Store state on each timeline view node.
-  - [ ] Migrate the legacy global state and default MIDI follow to off.
-- [ ] **#82 — Join/glue selected MIDI clips**
-  - [ ] Decide and document gap, overlap, loop/take, ordering, and selection semantics.
-  - [ ] Implement as one atomic undoable command.
-- [ ] **#56 — Two-dimensional middle-mouse panning**
-- [ ] **#57 — Alt modifiers and wheel-based tool switching**
-  - [ ] Implement after tool commands from #54 are centralized.
-
-## Phase 5 — Platform, reliability, and plugin organization
-
-- [ ] **#60 — Space toggles playback while a plugin window is focused**
-  - [ ] Avoid stealing text-entry and plugin-specific key input.
-  - [ ] Test native plugin windows on supported platforms.
-- [!] **#59 — Plugin editor windows always on top**
-  - [ ] Resolve the product/platform policy against the existing normal Linux stacking behavior.
-- [ ] **#79 — Crash backtraces/minidumps and next-start reporting**
-  - [ ] Split into POSIX capture, Windows minidumps, crash context, symbol artifacts, and startup-report UI.
-  - [ ] Keep crash-handler code async-signal-safe and uploads strictly user-controlled.
-- [ ] **#58 — Favorite plugins and custom categories**
-  - [ ] Introduce persistent plugin metadata after the deterministic ordering work in #71.
-
-## Deferred
-
-- [ ] **#21 — Detachable/fullscreen Piano Roll window** — intentionally deferred to Post v1.0.
-
-## Issue metadata cleanup
-
-- [ ] Add appropriate feature/enhancement labels to #81, #82, and #83.
-- [x] Place #88 in the v0.06 milestone as a release blocker; close it after maintainer validation.
-- [x] Clarify #75 reproduction details from its screenshots and shared rendering path.
-- [ ] Clarify #82 merge semantics before implementation.
-- [ ] Record the decision required for #59.
+Completed batch logs are preserved in [Git at the pre-migration revision](https://github.com/BaraMGB/NextStudio/blob/ad5912e/Todo.md) (`git show ad5912e:Todo.md` locally). [Historical documentation](docs/archive/README.md) retains design and validation records. No software issue is reopened or closed by this queue cleanup.

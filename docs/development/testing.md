@@ -1,5 +1,9 @@
 # Testing NextStudio
 
+- Type: procedure
+- Audience: contributors
+- Scope: current console, native and documentation validation
+
 ## Overview
 
 NextStudio currently has focused console test executables for logic that can be isolated from the full GUI and audio engine. CTest registers and runs these executables.
@@ -10,6 +14,8 @@ The current suites are:
 |---|---|---|
 | `PositionDisplayHelpers` | position parsing and formatting | `App/tests/PositionDisplayTests.cpp` |
 | `PluginChainLayout` | rack scroll limits and reorder destination indices | `App/tests/PluginChainLayoutTests.cpp` |
+| `SplitterCollapseController` | lower-range splitter/collapse layout boundaries | `App/tests/SplitterCollapseControllerTests.cpp` |
+| `ComputerMidiKeyboardLayout` | computer-key aliases, mapping and key-state transitions | `App/tests/ComputerMidiKeyboardLayoutTests.cpp` |
 | `ClipFrameDrawing` | production normal/selected clip frames against independent float edge-band raster reference; adjoining fractional widths/origins, offscreen clips, both paint orders, all selection pairs, 100/125/150/200% scaling, legacy-rounding control and unchanged integer-coordinate appearance | `App/tests/ClipFrameDrawingTests.cpp` |
 | `TimelineViewGeometry` | normalized shared zoom, interval transitions, anchor/fit policy, long/panned ranges, fractional raster scales, accumulated intent, and JUCE line-coverage images | `App/tests/TimelineViewGeometryTests.cpp` |
 | `TimelineViewState` | production view setters/conversions with real Tracktion clips/notes, coordinate coincidence, deferred fit, restore/resize, independent views, variable tempo, unchanged musical state and undo isolation | `App/tests/TimelineViewStateTests.cpp` |
@@ -94,7 +100,7 @@ ctest --test-dir autobuild/RelWithDebInfo --repeat until-fail:20 --output-on-fai
 
 ## Timeline grid tests
 
-The two timeline suites exercise the shared [view transform](../components/timeline-view-transform.md). Geometry tests sweep both nearest and conservative-fit policies through every rendered interval transition and the full interactive zoom range at several widths, meters, and raster scales. They also cover fits beyond the interactive upper limit and the extreme subpixel fallback. State regressions cover stale cached contexts on reopening, latest-fit replacement, pan/zoom cancellation, passive resize after a settled fit, and large range/clip fits surviving asynchronous context refresh and restore. State tests compile the production `EditViewState`, not a second copy of its coordinate formulas, and create real Tracktion clips/notes. `ClipFrameDrawingTests` additionally exercises the production outline helper over 960 adjoining-clip cases, comparing interior scanlines against independently derived float edge bands. Bands are rasterized as a union to avoid a separate rectangle fast path's different 8-bit coverage rounding. Complete clip body/content/frame compositing, gesture routing, drag previews and hit-testing still need focused runtime validation.
+The two timeline suites exercise the shared [view transform](../components/timeline-view-transform.md). Geometry tests sweep both nearest and conservative-fit policies through every rendered interval transition and the full interactive zoom range at several widths, meters, and raster scales. They also cover fits beyond the interactive upper limit and the extreme subpixel fallback. State regressions cover stale cached contexts on reopening, latest-fit replacement, pan/zoom cancellation, passive resize after a settled fit, and large range/clip fits surviving asynchronous context refresh and restore. State tests compile the production `EditViewState`, not a second copy of its coordinate formulas, and create real Tracktion clips/notes. `ClipFrameDrawingTests` additionally exercises the production outline helper over 960 adjoining-clip cases, comparing interior scanlines against independently derived float edge bands using an explicit software renderer. Bands are rasterized as a union to avoid a separate rectangle fast path's different 8-bit coverage rounding. Native-renderer checks instead verify physical position, thickness and selection colour with bounded tolerances and negative controls; they do not require exact pixel equality across different drawing primitives/renderers. Graphics contexts finish before native image readback. Grid translated-coverage comparisons likewise allow the implemented small channel tolerance. Complete clip body/content/frame compositing, gesture routing, drag previews and hit-testing still need focused runtime validation.
 
 For visual regression checks, capture Song Editor and Piano Roll with snapped starts/ends and unsnapped examples, and record slow pan/zoom sequences. Compare same-rank grid lines rather than differently emphasized beat/bar lines. At fractional UI/display scaling, use a native desktop capture for physical-pixel comparisons; logical-resolution agent screenshots can have a different raster phase. `state-dump` includes `edit.timelines` for checking actual view scales and anchors.
 
@@ -102,7 +108,51 @@ Include exactly adjoining fractional-length clips, not just whole-beat examples:
 
 ## Timeline cursor validation
 
-Draw/Knife/Eraser share the MIDI clip boundary, not a per-note hit gate. Check actual OS cursor images inside clips (including note-free rows), outside clips/in gaps, on entry, stationary tool changes and release; verify active drags retain their cursor. Lasso/Range remain usable in empty space and Song Knife remains visible in clip-capable track gaps. Include stationary Song Range-to-Pointer/Time-Stretch transitions over clip bodies/both edges and gaps, plus Range/Knife-to-Pointer over selected-range bodies/both edges; check the effective hit target even when JUCE still retains the old cursor owner. This direct GUI assignment has no standalone policy helper to unit-test; use scripted native before/after checks rather than a duplicated boolean test. See [cursor validation](../changes/tool-cursor-working-areas.md) for evidence and limits.
+The working-area contracts belong in [Piano Roll](../components/piano-roll-editor.md#tool-cursor-working-areas) and [Song Editor](../components/song-editor.md#cursor-working-areas-and-stationary-changes). These direct GUI assignments require real OS cursor checks, not a helper reproducing the policy.
+
+`tools/native-cursor-regression.py` contains two maintained Linux/X11 procedures derived from the #90 scripts:
+
+- **Working areas:** 53 cursor comparisons for MIDI tool clip/gap/empty-row/re-entry behavior, Lasso/Range empty space, Song Knife clip/gap and Master. Full musical clip/note records must remain unchanged.
+- **Transitions:** 16 stationary Song Range-to-Pointer/Time-Stretch checks over gaps, clip bodies/both edges, selected-range bodies/both edges, and external Master. Toolbar focus/Return changes mode without moving the pointer; native reference cursors are obtained by real hover first.
+
+Prerequisites: Python 3.10+, Node.js, `xdotool`, `libX11.so.6`, `libXfixes.so.3`, and Xvfb (`xvfb-run` also requires `xauth`). Use a **private 1600×1000 X display without window-manager decorations**, with a fresh 100% application/cursor-scale debug sandbox and no other NextStudio instance. The tool fixes window size/position and creates temporary model fixtures; never run it on a normal working desktop/session. Its fixed UI coordinates are an explicit fixture contract. Layout/theme defaults changing may require fixture updates, not cursor-policy changes.
+
+From the repository root, after building:
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-cursor-regression.py \
+  --output "./artifacts/native-cursor-$(date +%Y%m%d-%H%M%S)"
+```
+
+`--binary` selects another build, `--suite transitions|working-areas|all` selects scope, `--display` selects an already private display, and `--delay` adjusts event settling on slower machines. The output directory must not exist. It retains results, binary hash, actual XFixes cursor PNG/JSON, model dumps, fixture screenshots and bridge diagnostics; keep relevant results with an issue/CI artifact when a durable validation snapshot is needed. No Pillow, Python Xlib module, HTTP server or fixed port is required. The private JSON-lines bridge reuses `debug-shell-client.js`, verifies sandbox settings, runs suites serially and cleans up its own application process.
+
+A nonzero exit indicates failed cursor/model checks or invalid prerequisites/fixture. Reference images must be visible and distinguish tool/body/edge states, preventing an all-normal-cursor fixture from passing. Against the retained pre-correction binary the working-area procedure detects the original 12 failures; the current binary passes. This does not create new cross-platform or fractional-scale certification.
+
+Additional focused manual/runtime checks still cover active drag cursors, release/cancellation, stationary MIDI tool changes and pan, real Draw/Knife/Eraser actions and undo/redo. These are **not** automated by the two maintained suites. Native higher scaling, monitor transitions, other platforms and exhaustive automation/overlay cases require separately scoped runs. The [historical #90 record](../archive/changes/tool-cursor-working-areas.md) preserves the original 100/125% evidence and follow-up limits.
+
+## Live MIDI input and key lighting
+
+Current contracts: [Computer MIDI keyboard](../components/computer-midi-keyboard.md), [MIDI routing](../architecture/midi-input-routing.md), and [Piano Roll lighting](../components/piano-roll-editor.md#live-midi-key-lighting). Use an isolated project/settings environment and record platform, input/device, displayed track and mapping.
+
+1. Route physical/virtual input to the displayed track; hold/release one and several notes and confirm the expected keys light/clear.
+2. Route input to another track and confirm the displayed keyboard does not react.
+3. Rapidly drag across the visible keyboard, then release; no released key should remain lit.
+4. Verify computer primary keys, configured upper-C alias, key repeat and multi-key passages, including focus leaving main/plugin roots and track/edit changes.
+5. Enter/leave the project/setup lock with notes held and verify note release/current-state rebinding, not an old device reference.
+6. Change theme and confirm active white/black keys use the current PrimeColour variants.
+7. Clear/switch track and close the application/plugin window while input/audition is active; check cleanup without stuck notes or stale callbacks.
+
+Lighting is binary routed **live input**, not velocity brightness or arrangement-playback visualization. Dispatcher note-offs-last is a batching policy, not reconstructed original event order. Layout/routing unit tests do not replace this native/device checklist. These are recommended checks, not a newly completed runtime run for the documentation migration.
+
+## Documentation checks
+
+```bash
+python3 -m unittest discover -s tools/tests -p 'test_check_docs.py'
+python3 tools/check-docs.py
+```
+
+These standard-library checks need no application build. They validate local file links, supported heading anchors, reference links and current index coverage; they do not fetch external URLs or treat historical/redirect pages as current entries. Fenced/indented examples and inline code are excluded from link checks. See [Contributing](contributing.md#documentation-only-changes-and-development-tools) for prerequisites/CI and the [maintenance schema](documentation-policy.md#7-responsibility-and-review-checklist) for manual review.
 
 ## Debug-system tests
 
@@ -156,17 +206,25 @@ It links JUCE core and data structures.
 
 Current coverage includes:
 
-- the save/discard/cancel decision matrix;
-- `.tracktionedit` normalization and case-insensitive recognition;
+- `.tracktionedit` normalization, repeated extension handling and case-insensitive recognition;
+- exact existing-path preservation for direct Save and canonical new targets;
+- project name/target validation and directory/persistent-file browser filtering;
 - distinction between persistent and recovery files;
 - save-target selection for Save and Save As;
-- project request state, consumption, cancellation, and stale-request prevention;
-- rejection of missing or unsupported load requests;
+- exact property rollback, including missing properties, duplicate captures and successful dismissal;
 - inspection of missing, unsupported, empty, corrupt, and wrong-root files;
 - acceptance of XML and binary `EDIT` state;
 - context-sensitive acceptance of `.nextTemp` recovery files.
 
-Temporary test files are created in a unique child of JUCE's temporary directory and removed by RAII cleanup.
+Temporary test files are created in a unique child of JUCE's temporary directory and removed by RAII cleanup. Typed pending-operation, Save/Discard/Cancel, failed-write continuation cleanup and deferred-execution guards belong to `ProjectWorkflowTests`, not the removed project-request adapter. Neither suite instantiates the complete sidebar/editor replacement path.
+
+## Numeric property-field validation
+
+[Property-field input](../components/property-field-input.md) owns formats and shared interaction rules; [NotePropertiesBar](../components/note-properties-bar.md) and [ClipPropertiesBar](../components/clip-properties-bar.md) own distinct planners/commit routing.
+
+`PositionDisplayTests` tests shared production conversion/parsing helpers. `TimelineSnappingTests` tests the shared queued JUCE TextEditor completion path. Neither directly exercises every local note/clip duration/pitch parser, full bar focus handler or owner-installed model commit. Source inspection found the documented pitch-name/display octave mismatch; it was not fixed or certified by a new full-component runtime test in this migration.
+
+For numeric changes, cover absolute/relative and mixed selection, zero/invalid/overflow input, clip offsets and tempo changes, focus-loss/Tab order, preview without model mutation, all-group rejection, scrub no-op, overlap/recreation/selection and one-step undo/redo. Recommend tests against production code, not copied parser/formula implementations.
 
 ## MidiNoteOverlap tests
 
@@ -218,16 +276,16 @@ This suite exercises the pure pending-paste state machine. Clipboard capture, pr
 
 ## What is not covered yet
 
-The current tests do not directly exercise:
+The C++ suites and limited native procedures above do not fully certify:
 
-- GUI layout and mouse/keyboard interaction;
+- complete GUI layout and mouse/keyboard interaction;
 - full application-level project replacement;
 - asynchronous autosave worker timing;
 - audio-device configuration;
 - real-time DSP behavior;
 - external plug-in scanning and native editor windows;
 - arrangement tools and Piano Roll tool gestures;
-- `NotePropertiesBar` application against real `MidiClip`/`MidiNote` objects;
+- complete `NotePropertiesBar` / `ClipPropertiesBar` parsing, planning and owner-installed model application;
 - platform packaging.
 
 These areas currently depend on compilation, manual testing, and runtime assertions. This is a coverage gap, not an indication that the behavior is unimportant.
@@ -328,6 +386,8 @@ time-range duplication, and audio/MIDI recording while playback is active.
 Manual validation should supplement rather than replace extractable unit tests.
 
 ## CI
+
+The independent documentation workflow runs link/index checks and their regression tests for documentation/checker changes. Build/release CI skips changes limited to Markdown and checker infrastructure, but release tags/manual builds retain the full pipeline. Mixed application changes still run build validation. The native cursor suites are currently a focused local Linux/X11 procedure, not automatically part of CI.
 
 GitHub Actions builds and runs CTest on Linux, Windows, and macOS. Linux additionally runs the complete debug-shell smoke suite under Xvfb; hosted Linux runners have no audio device/clock and immediately stop playback, so CI disables the sustained-playing and clock-advance assertions with `NEXTSTUDIO_REQUIRE_AUDIO_CLOCK=0` while retaining command-acknowledgement and final stopped-state checks. Windows runs redirected-stdin startup/repeated-command/EOF/quit smoke tests, and macOS runs the transport-client protocol regression. Floating-point assertions must use a tolerance appropriate to the production value type. Packaging follows successful tests. Local validation should still use the repository build command, CTest, and the relevant smoke mode before pushing logic changes.
 
