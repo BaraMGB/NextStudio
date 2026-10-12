@@ -8,6 +8,6 @@
 
 The completed documentation reorganization and migration map are indexed in [history](../archive/README.md#documentation-migration).
 
-Issue status, feedback and acceptance belong in the related GitHub issue where applicable. A proposal's implementation approval is not software acceptance or permission to commit/push. See [Contributing](../development/contributing.md) and the [maintenance schema](../development/documentation-policy.md).
+GitHub issues are tracker entries only. Solution proposals, feedback, scope decisions, validation and acceptance belong in the active Pi Agent conversation. A proposal's implementation approval is not software acceptance or permission to commit/push. See [Contributing](../development/contributing.md) and the [maintenance schema](../development/documentation-policy.md).
 
 Completed proposals move into [history](../archive/README.md) after durable knowledge is transferred into current references.

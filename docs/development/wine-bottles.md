@@ -83,7 +83,7 @@ Record the tested revision/package, OS, runner/prefix, renderer overrides, graph
 5. controlled default-versus-software comparisons distinguish renderer failure from a missing font;
 6. shutdown/lock transitions do not leave unsupported peer/timer state.
 
-Use [Testing](testing.md) for build/test commands and evidence/coverage rules. Keep useful screenshots/logs with an issue or retained artifact, not only one agent's temporary directory. A recommended checklist is not evidence of a completed run.
+Use [Testing](testing.md) for build/test commands and evidence/coverage rules. Keep useful screenshots/logs in a retained CI/release artifact when durable evidence is needed, not only in one agent's temporary directory. A recommended checklist is not evidence of a completed run.
 
 If text is missing, inspect available candidate fonts independently of renderer state. If Bottles claims a hang, inspect the actual application window/process before classifying it. Missing software engine/font and failed guard installation must be recorded as limitations, not hidden by a successful host build.
 

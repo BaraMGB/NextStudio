@@ -24,11 +24,11 @@ This schema is the durable maintenance reference. The [archived reorganization p
 | Active proposal | `docs/plans/` | Unimplemented scope, alternatives, approved approach and acceptance criteria |
 | Historical record | `docs/archive/changes/` | Past plans, important decisions and validation snapshots, not current instructions |
 | Release note | Root `CHANGELOG.md` | Concise user-visible changes grouped by release |
-| Work queue | Root `Todo.md` | Prioritized open work and links to GitHub issues/proposals |
+| Work queue | Root `Todo.md` | Prioritized open work and links to tracker entries or active proposals |
 
 `docs/README.md` is the navigation index, not a second reference manual. Root `README.md` is the project entry and quick start. Existing `docs/agent-debug.md` and `docs/logging.md` remain authoritative until the migration explicitly decides their destinations; do not create parallel copies.
 
-GitHub issues are authoritative for issue state, acceptance discussions and blockers. Git preserves implementation history. Neither belongs as a running transcript in current reference pages.
+GitHub issues are tracker entries for reported work and status only. Do not use issue comments for solution proposals, progress logs, review discussions, validation summaries, acceptance or delivery authorization. Present root-cause analysis and the concrete solution proposal directly in the active Pi Agent conversation so the maintainer can review it immediately; keep subsequent feedback, scope decisions and acceptance there as well. Transfer durable outcomes into the authoritative repository documentation. Git preserves implementation history, and `Todo.md` preserves project priority without becoming a transcript.
 
 **One authoritative home per topic and audience.** User instructions and a technical explanation may coexist. Repeated detailed rules for the same audience should instead become links to the authoritative section. Shared contracts belong in a shared reference, not repeated in every consumer page.
 
@@ -40,7 +40,7 @@ GitHub issues are authoritative for issue state, acceptance discussions and bloc
 | Ownership, lifecycle, persistence, undo or integration contract | Relevant architecture/component reference; user page if observable | Explain significant rationale in that reference |
 | Build/test/debug procedure | Relevant development procedure and reusable commands/scripts | No delivery transcript |
 | Internal refactor with no documented contract change | Check source links and technical descriptions for invalidation | No artificial documentation entry |
-| Substantial design choice or implementation needing advance approval | Issue and, where necessary, one scoped proposal | Archive the proposal after resolution and extract durable knowledge |
+| Substantial design choice or implementation needing advance approval | Present the proposal in the active Pi Agent conversation; add one scoped `docs/plans/` proposal only when it must remain discoverable across sessions or batches | Archive any repository proposal after resolution and extract durable knowledge |
 | Documentation-only correction | Authoritative page and affected links | No application changelog entry unless the correction itself warrants a release note |
 
 Update only affected pages, not every documentation layer. Make documentation changes alongside the implementation that invalidates them. Review existing pages before creating new ones.
@@ -113,7 +113,7 @@ Related issue: link, when applicable
 ## Acceptance criteria and validation
 ```
 
-Approval applies to a defined scope. Substantial revisions require renewed review. Routine progress, feedback and approval discussion belong in the issue, not appended indefinitely to the proposal.
+Approval applies to a defined scope. Substantial revisions require renewed review in the active Pi Agent conversation. Routine progress, feedback and approval discussion stay in that conversation; do not copy them into GitHub issues or append them indefinitely to the proposal.
 
 ### Historical record
 
@@ -135,7 +135,7 @@ Identify the tested commit/environment and evidence location when available. Mar
 ## 5. Lifecycle
 
 1. **Current reference/procedure:** maintained when related behavior or commands change. It describes the repository revision containing it, not a manually synchronized version number.
-2. **Draft proposal:** describes unimplemented work and is linked from its issue/queue entry.
+2. **Draft proposal:** describes unimplemented work that must remain discoverable across sessions or batches and is linked from its queue entry. A tracker link is optional context, not the discussion venue.
 3. **Approved proposal:** records the agreed scope; approval does not imply implementation or validation.
 4. **Resolved proposal:** mark implemented, rejected or superseded only after confirming the outcome. For an implementation, first transfer surviving behavior, rationale and constraints to current references.
 5. **Archive:** move the resolved proposal/record into the historical archive, update links/indexes and identify the current reference. Keep unfinished proposals active.
@@ -147,9 +147,9 @@ Historical records remain clearly separated from current documentation in naviga
 
 Current testing documentation owns repeatable procedures and coverage boundaries. Executable test cases belong in `App/tests/` or suitable reusable tools, not embedded only in an issue report or temporary workspace.
 
-Record a noteworthy validation run in the issue or one historical record using: **tested commit, environment, procedure/script, result, untested scope, evidence availability**. Avoid duplicating that snapshot across the work queue, component reference and release notes.
+Summarize validation in the active Pi Agent conversation for immediate maintainer review. Preserve a noteworthy run only when it has lasting value, in one historical record using: **tested commit, environment, procedure/script, result, untested scope, evidence availability**. Avoid duplicating that snapshot across the work queue, component reference and release notes, and do not post it as an issue progress log.
 
-Keep bulky logs/images outside normal reference pages. Use an appropriate issue attachment, release asset or CI artifact and state retention limits where relevant. Local paths can describe a historical run, but must not be the only prerequisite for a current procedure. If artifacts disappear, distinguish the reported historical outcome from independently reproducible evidence.
+Keep bulky logs/images outside normal reference pages. Use an appropriate release asset or CI artifact and state retention limits where relevant. Local paths can describe a historical run, but must not be the only prerequisite for a current procedure. If artifacts disappear, distinguish the reported historical outcome from independently reproducible evidence.
 
 ## 7. Responsibility and review checklist
 
@@ -163,7 +163,7 @@ Before completion:
 - [ ] Separate current behavior, proposed work, historical results and known limitations.
 - [ ] Update navigation for new/moved pages; check incoming links and necessary redirects.
 - [ ] Add a concise changelog entry only when appropriate for users.
-- [ ] Keep issue state/acceptance in GitHub and the work queue focused on open work.
+- [ ] Keep GitHub limited to tracker state, conduct proposal/review/acceptance in the active Pi Agent conversation, and keep the work queue focused on open work.
 - [ ] Check applicable commands, prerequisites and evidence claims. Documentation-only work does not require an application rebuild; executable changes still require their relevant validation.
 - [ ] Run `python3 tools/check-docs.py` and its regression tests, and manually check the affected reading path.
 

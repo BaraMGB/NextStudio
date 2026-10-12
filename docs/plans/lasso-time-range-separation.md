@@ -66,9 +66,9 @@ Range behavior and unchanged musical state/undo. Preserve cursor and snapping
 contracts with the existing regressions.
 
 Build/test with `BUILD_JOBS=12 ./build.sh rd` and `BUILD_JOBS=12 ./test.sh rd`.
-Document scope and untested platforms/scales in the issue, produce the shared
-artifact with `BUILD_JOBS=12 ./build_and_copy_shared.sh`, and obtain maintainer
-validation before treating this batch as accepted.
+Summarize scope and untested platforms/scales in the active Pi Agent conversation,
+produce the shared artifact with `BUILD_JOBS=12 ./build_and_copy_shared.sh`, and
+obtain maintainer validation there before treating this batch as accepted.
 
 Maintainer feedback reports clip and TimeRange move/copy snapping back. Normal edit completion is now separate from selection cancellation; canceled releases are scoped to their original mouse-down, and new input ends any pending old selection before editing. These lifecycle corrections preserve the original overwrite policy. The unrelated legacy-overlap policy proposal is withdrawn from this feature; it was not an established diagnosis of the maintainer's regression.
 
@@ -85,6 +85,7 @@ criteria and maintainer testing are satisfied.
 ## Evidence and limits
 
 The current [selection contract](../components/selection-gestures.md) owns implemented responsibilities and lifecycle. [Testing](../development/testing.md#selection-gesture-validation) owns reusable test procedures. Noteworthy
-results and baseline #84 reproduction are recorded once in the issue. A passing
-helper suite does not prove GUI dispatch or native-platform coverage. No commits,
-pushes, issue closure or platform certification are implied by this approval.
+results and baseline #84 reproduction are summarized in the active Pi Agent
+conversation. A passing helper suite does not prove GUI dispatch or native-platform
+coverage. No commits, pushes, tracker closure or platform certification are implied
+by this approval.

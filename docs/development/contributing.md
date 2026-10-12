@@ -6,16 +6,16 @@
 
 ## Prerequisites
 
-Read the [source layout](source-layout.md), relevant subsystem references and [documentation maintenance schema](documentation-policy.md). GitHub issues own issue status, discussions and acceptance; [Todo](../../Todo.md) is a prioritized open-work queue, not a second tracker.
+Read the [source layout](source-layout.md), relevant subsystem references and [documentation maintenance schema](documentation-policy.md). GitHub issues are tracker entries for reported work and status only. Solution proposals, review, scope decisions, validation summaries and acceptance take place directly in the active Pi Agent conversation. [Todo](../../Todo.md) is the prioritized open-work queue, not a second tracker.
 
 ## Mandatory workflow for application implementation batches
 
-The following sequence is binding and repeats for every batch. It is not a global completion checklist. Track actual batch progress in the affected issue or active proposal; completed issues do not become incomplete when a new batch starts.
+The following sequence is binding and repeats for every batch. It is not a global completion checklist. Coordinate the active batch in the current Pi Agent conversation. Use an active repository proposal only when scope must remain discoverable across sessions or batches; do not maintain progress logs in GitHub issues.
 
 1. Refresh the current open issues and milestones from GitHub with `gh`; review the repository state, release state, changelog, source layout, and existing tests. Confirm release priority and dependencies.
 2. Reproduce or verify each issue against current `main` before changing code.
-3. Document the root-cause analysis and present a concrete solution proposal before implementation.
-4. Obtain the maintainer's approval for the proposed solution; discuss and revise it where necessary. Do not implement before approval.
+3. Present the root-cause analysis and a concrete solution proposal directly in the active Pi Agent conversation before implementation.
+4. Obtain the maintainer's approval there; discuss and revise the proposal there where necessary. Do not implement before approval.
 5. Add or update automated regression coverage where the behavior can be isolated; otherwise document why focused runtime or visual validation is appropriate.
 6. Implement only the approved, smallest coherent change with undo, persistence, and platform behavior considered where applicable.
 7. Update technical documentation under `docs/components/`, `docs/architecture/`, or `docs/development/` and user documentation under `docs/user/` or `docs/ui/` as appropriate. Update `CHANGELOG.md` for user-visible changes. Apply the maintenance schema rather than creating a report for every small fix.
@@ -23,7 +23,7 @@ The following sequence is binding and repeats for every batch. It is not a globa
 9. Run `BUILD_JOBS=12 ./test.sh rd` there.
 10. Perform focused UI/runtime validation, using the debug shell where practical.
 11. Produce the shared test artifact with `BUILD_JOBS=12 ./build_and_copy_shared.sh` there and let the maintainer test the software. Repeat relevant validation and artifact steps after any resulting changes.
-12. Receive maintainer validation and re-check the affected GitHub issue acceptance criteria before marking the item complete. Commit or push only when explicitly requested.
+12. Receive maintainer validation in the active Pi Agent conversation and re-check the task's acceptance criteria before marking the item complete. Update tracker state separately when applicable. Commit or push only when explicitly requested.
 
 These job-count/shared-directory instructions preserve the project-local implementation workflow previously in `Todo.md`. Public [build instructions](building.md) retain the scripts' portable defaults; other machines choose an appropriate `BUILD_JOBS` count and delivery destination. Do not make current documentation depend on one contributor's home directory.
 
@@ -44,7 +44,7 @@ The dedicated [documentation workflow](../../.github/workflows/docs.yml) runs th
 
 ## Verification and evidence
 
-Use [Testing](testing.md) for reproducible validation procedures and coverage boundaries. Record a noteworthy run once, in its issue or historical record, with tested revision, environment, procedure, result and untested scope. Temporary logs are not a durable substitute for a checked-in regression script.
+Use [Testing](testing.md) for reproducible validation procedures and coverage boundaries. Summarize the run directly in the active Pi Agent conversation. Preserve a noteworthy run only when it has lasting value, in one historical record with tested revision, environment, procedure, result and untested scope. Do not use an issue as a progress or validation log. Temporary logs are not a durable substitute for a checked-in regression script.
 
 ## Failure handling
 
