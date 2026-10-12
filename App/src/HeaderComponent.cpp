@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "HeaderComponent.h"
+#include "HeaderLayout.h"
 #include "Utilities.h"
 
 HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &applicationState, juce::ApplicationCommandManager &commandManager)
@@ -37,7 +38,7 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
       m_edit(evs.m_edit),
       m_applicationState(applicationState),
       m_commandManager(commandManager),
-      m_display(m_edit, applicationState)
+      m_display(evs, applicationState)
 {
     Helpers::addAndMakeVisible(*this, {&m_stopButton, &m_playButton, &m_recordButton, &m_countInButton, &m_display, &m_clickButton, &m_loopButton, &m_followPlayheadButton, &m_undoButton, &m_redoButton});
 
@@ -77,6 +78,7 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
 
 HeaderComponent::~HeaderComponent()
 {
+    clearSaveFeedback();
     m_edit.getUndoManager().removeChangeListener(this);
     m_edit.getTransport().removeChangeListener(this);
     m_edit.getTransport().state.removeListener(this);
@@ -135,59 +137,33 @@ void HeaderComponent::paint(juce::Graphics &g)
     g.fillRect(area);
 
     GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_applicationState.getMainFrameColour(), m_applicationState.getBorderColour());
+
 }
 
 void HeaderComponent::resized()
 {
-    auto area = getLocalBounds();
-
-    auto transportBox = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
-    auto positionBox = createFlexBox(juce::FlexBox::JustifyContent::center);
-    auto timelineSetBox = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
-    auto timelineControlsBox = createFlexBox(juce::FlexBox::JustifyContent::flexStart);
-    auto historyBox = createFlexBox(juce::FlexBox::JustifyContent::flexEnd);
-
-    auto container = createFlexBox(juce::FlexBox::JustifyContent::spaceBetween);
-
-    auto transportButtons = {&m_playButton, &m_stopButton, &m_recordButton};
-    auto timeLineButtons = {&m_clickButton, &m_loopButton, &m_followPlayheadButton};
-    auto historyButtons = {&m_undoButton, &m_redoButton};
-
-    const auto displayWidth = juce::jmax(PositionDisplayComponent::minimumWidth,
-                                         (area.getWidth() / 5) - (getGapSize() * 4));
-    const auto buttonWidth = getButtonSize();
-    const auto gapWidth = getGapSize();
-    const auto timelineControlsWidth = (buttonWidth * 3) + (gapWidth * 6);
-    const auto historyWidth = (buttonWidth * 2) + (gapWidth * 4);
-
-    addButtonsToFlexBox(transportBox, transportButtons);
-    addButtonsToFlexBox(transportBox, {&m_countInButton});
-    addButtonsToFlexBox(positionBox, {&m_display}, displayWidth);
-    addButtonsToFlexBox(timelineControlsBox, timeLineButtons);
-    addButtonsToFlexBox(historyBox, historyButtons);
-    timelineSetBox.items.add(juce::FlexItem((float)timelineControlsWidth, (float)buttonWidth, timelineControlsBox));
-    timelineSetBox.items.add(juce::FlexItem((float)historyWidth, (float)buttonWidth, historyBox));
-
-    const auto positionContainerWidth = displayWidth + (gapWidth * 2);
-    const auto availableSideWidth = juce::jmax(0, area.getWidth() - positionContainerWidth);
-    const auto leftContainerWidth = availableSideWidth / 2;
-    const auto rightContainerWidth = availableSideWidth - leftContainerWidth;
-
-    container.items.add(juce::FlexItem((float)leftContainerWidth, (float)buttonWidth, transportBox));
-    container.items.add(juce::FlexItem((float)positionContainerWidth, (float)buttonWidth, positionBox));
-    container.items.add(juce::FlexItem((float)rightContainerWidth, (float)buttonWidth, timelineSetBox));
-
-    container.performLayout(area);
+    const auto layout = HeaderLayout::calculate(getWidth(), getHeight(), PositionDisplayComponent::minimumWidth);
+    m_display.setBounds(layout.positionDisplay);
+    const std::array<juce::Component *, 9> buttons{&m_playButton, &m_stopButton, &m_recordButton,
+                                                &m_countInButton, &m_clickButton, &m_loopButton,
+                                                &m_followPlayheadButton, &m_undoButton, &m_redoButton};
+    for (size_t i = 0; i < buttons.size(); ++i)
+        buttons[i]->setBounds(layout.buttons[i]);
 }
 
-juce::FlexBox HeaderComponent::createFlexBox(juce::FlexBox::JustifyContent justify)
+void HeaderComponent::projectSaved(const juce::File &)
 {
-    juce::FlexBox box;
-    box.justifyContent = justify;
-    box.alignContent = juce::FlexBox::AlignContent::center;
-    box.flexDirection = juce::FlexBox::Direction::row;
-    box.flexWrap = juce::FlexBox::Wrap::noWrap;
-    return box;
+    m_display.projectSaved();
+}
+
+void HeaderComponent::clearSaveFeedback()
+{
+    m_display.clearSaveFeedback();
+}
+
+void HeaderComponent::setSaveFeedbackBlocked(bool blocked)
+{
+    m_display.setSaveFeedbackBlocked(blocked);
 }
 
 void HeaderComponent::buttonClicked(juce::Button *button)
@@ -404,29 +380,3 @@ void HeaderComponent::valueTreePropertyChanged(juce::ValueTree &tree, const juce
 }
 
 juce::File HeaderComponent::getSelectedFile() const { return m_loadingFile; }
-
-void HeaderComponent::addButtonsToFlexBox(juce::FlexBox &box, const juce::Array<juce::Component *> &buttons, int width)
-{
-    auto w = (width == 0) ? getButtonSize() : width;
-    auto h = getButtonSize();
-    auto margin = getGapSize();
-
-    for (auto b : buttons)
-        box.items.add(juce::FlexItem((float)w, (float)h, *b).withMargin((float)margin));
-}
-
-int HeaderComponent::getButtonSize()
-{
-    auto h = getLocalBounds().getHeight();
-    auto margin = getGapSize() * 2;
-
-    return h - margin;
-}
-
-int HeaderComponent::getGapSize()
-{
-    auto h = getLocalBounds().getHeight();
-    const auto div = 8;
-
-    return h / div;
-}

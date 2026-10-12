@@ -167,7 +167,7 @@ DSP/model classes and their UI components are separate where appropriate. Exampl
 - `ClipOverwriteCommand.*`
 - `LowerRangeLayout.h`
 - `Utilities.*`
-- `PositionDisplayHelpers.*`
+- `PositionDisplayHelpers.*` / `PositionDisplayInfoState.h` / `PositionDisplayLayout.h` / `HeaderLayout.h` — editable transport values, project/save information state, responsive display modes, and widened header geometry
 - `ThemeHelpers.*`
 - `ThemePresetModel.*`
 - `ThemePresetBrowser.*`

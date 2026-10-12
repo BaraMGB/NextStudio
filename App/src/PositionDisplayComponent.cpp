@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "PositionDisplayComponent.h"
 #include "PositionDisplayHelpers.h"
+#include "ProjectLifecycle.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -43,11 +44,7 @@ static constexpr float titleFontHeight = 9.0f;
 static constexpr float sideValueFontHeight = 14.0f;
 static constexpr float timeValueFontHeight = 16.0f;
 static constexpr float positionValueFontHeight = 22.0f;
-static constexpr int panelOuterPaddingX = 8;
-static constexpr int panelOuterPaddingY = 6;
-static constexpr int panelColumnGap = 10;
 static constexpr int panelRowGap = 4;
-static constexpr float minimumCenterWidthRatio = 0.36f;
 static constexpr float titleWidthPadding = 10.0f;
 }
 
@@ -65,6 +62,13 @@ juce::String makeStableWidthReference(juce::String text)
             text = text.replaceSection(i, 1, "8");
 
     return text;
+}
+
+std::pair<juce::Rectangle<int>, juce::Rectangle<int>> splitDisplayColumn(juce::Rectangle<int> column)
+{
+    auto top = column.removeFromTop((column.getHeight() - PositionDisplayMetrics::panelRowGap) / 2);
+    column.removeFromTop(juce::jmin(PositionDisplayMetrics::panelRowGap, column.getHeight()));
+    return {top, column};
 }
 
 class PositionDisplayField : public juce::Component,
@@ -127,7 +131,10 @@ public:
 
     void setTitle(juce::String title)
     {
+        if (m_title == title)
+            return;
         m_title = std::move(title);
+        resized();
         repaint();
     }
 
@@ -697,8 +704,9 @@ tracktion::TimePosition timeFromDuration(const te::TimecodeDuration &duration)
 
 } // namespace
 
-PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit, ApplicationViewState &appState)
-    : m_edit(edit),
+PositionDisplayComponent::PositionDisplayComponent(EditViewState &editViewState, ApplicationViewState &appState)
+    : m_editViewState(editViewState),
+      m_edit(editViewState.m_edit),
       m_appState(appState),
       m_bpmField(std::make_unique<PositionDisplayField>()),
       m_timeSignatureField(std::make_unique<PositionDisplayField>()),
@@ -779,12 +787,12 @@ PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit, ApplicationVi
         },
         [this] { endDrag(FieldId::loopOut); }});
 
-    m_bpmField->setTitle("BPM");
-    m_timeSignatureField->setTitle("SIG");
-    m_positionField->setTitle("POS");
-    m_timeField->setTitle("TIME");
-    m_loopInField->setTitle("IN");
-    m_loopOutField->setTitle("OUT");
+    m_bpmField->setTitle("BPM:");
+    m_timeSignatureField->setTitle("SIG:");
+    m_positionField->setTitle("POS:");
+    m_timeField->setTitle("TIME:");
+    m_loopInField->setTitle("IN:");
+    m_loopOutField->setTitle("OUT:");
 
     for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_positionField.get(), m_timeField.get(), m_loopInField.get(), m_loopOutField.get()})
     {
@@ -812,6 +820,7 @@ PositionDisplayComponent::PositionDisplayComponent(te::Edit &edit, ApplicationVi
 
 PositionDisplayComponent::~PositionDisplayComponent()
 {
+    stopTimer();
     cancelPendingUpdate();
 
     if (m_dragState.active && (m_dragState.field == FieldId::position || m_dragState.field == FieldId::time))
@@ -840,59 +849,115 @@ void PositionDisplayComponent::paint(juce::Graphics &g)
     g.setColour(textColour);
     g.drawRoundedRectangle(area.reduced(1).toFloat(), 5.0f, 0.5f);
 
+    if (!m_infoBounds.isEmpty())
+    {
+        const auto [nameRow, statusRow] = splitDisplayColumn(m_infoBounds);
+        const auto titleFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::titleFontHeight));
+        const auto valueFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::sideValueFontHeight));
+        const auto labelWidth = juce::roundToInt(
+            juce::jmax(measureTextWidth(titleFont, "NAME:"), measureTextWidth(titleFont, "STATUS:"))
+            + PositionDisplayMetrics::titleWidthPadding);
+        const auto showLabels = m_layoutMode == PositionDisplayLayout::Mode::full;
+        const auto drawInfoRow = [&] (juce::Rectangle<int> row, const juce::String &label,
+                                      const juce::String &value, juce::Colour valueColour)
+        {
+            auto content = row.reduced(showLabels ? 8 : 4, 3);
+            if (showLabels)
+            {
+                auto labelBounds = content.removeFromLeft(juce::jmin(labelWidth, content.getWidth()));
+                content.removeFromLeft(juce::jmin(juce::roundToInt(PositionDisplayMetrics::leadingLabelGap), content.getWidth()));
+                g.setColour(textColour.withAlpha(0.85f));
+                g.setFont(titleFont);
+                g.drawFittedText(label, labelBounds, juce::Justification::centredLeft, 1);
+            }
+            g.setColour(valueColour);
+            g.setFont(valueFont);
+            g.drawFittedText(value, content, juce::Justification::centredLeft, 1);
+        };
+
+        drawInfoRow(nameRow, "NAME:", getDisplayedEditName(), textColour);
+        drawInfoRow(statusRow, "STATUS:", getSaveStatusText(),
+                    m_infoState.isSavedVisible() ? m_appState.getPrimeColour() : textColour);
+    }
+
     g.setColour(textColour.withAlpha(0.18f));
-    const auto separatorTop = static_cast<float>(PositionDisplayMetrics::panelOuterPaddingY + 3);
-    const auto separatorBottom = static_cast<float>(getHeight() - PositionDisplayMetrics::panelOuterPaddingY - 3);
-    g.drawLine(static_cast<float>(m_leftGroupSeparatorX), separatorTop,
-               static_cast<float>(m_leftGroupSeparatorX), separatorBottom, 1.0f);
-    g.drawLine(static_cast<float>(m_rightGroupSeparatorX), separatorTop,
-               static_cast<float>(m_rightGroupSeparatorX), separatorBottom, 1.0f);
+    const auto separatorTop = static_cast<float>(PositionDisplayLayout::outerPaddingY + 3);
+    const auto separatorBottom = static_cast<float>(getHeight() - PositionDisplayLayout::outerPaddingY - 3);
+    if (m_infoSeparatorVisible)
+        g.drawLine(static_cast<float>(m_infoSeparatorX), separatorTop,
+                   static_cast<float>(m_infoSeparatorX), separatorBottom, 1.0f);
+    if (m_sideSeparatorsVisible)
+    {
+        g.drawLine(static_cast<float>(m_leftGroupSeparatorX), separatorTop,
+                   static_cast<float>(m_leftGroupSeparatorX), separatorBottom, 1.0f);
+        g.drawLine(static_cast<float>(m_rightGroupSeparatorX), separatorTop,
+                   static_cast<float>(m_rightGroupSeparatorX), separatorBottom, 1.0f);
+    }
 }
 
 void PositionDisplayComponent::resized()
 {
+    m_layoutMode = PositionDisplayLayout::modeForWidth(getWidth());
+    updateFieldTitles();
     updateFieldStyles();
 
-    auto area = getLocalBounds().reduced(PositionDisplayMetrics::panelOuterPaddingX,
-                                         PositionDisplayMetrics::panelOuterPaddingY);
+    const auto layout = calculateResponsiveLayout();
+    m_infoBounds = layout.info;
+    updateLayoutSeparators(layout);
+    applyFieldLayout(layout);
+    updateInfoTooltip();
+}
 
+PositionDisplayLayout::Layout PositionDisplayComponent::calculateResponsiveLayout() const
+{
     const auto titleFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::titleFontHeight));
     const auto sideValueFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::sideValueFontHeight));
 
-    auto sideLabelWidth = measureTextWidth(titleFont, "BPM") + PositionDisplayMetrics::titleWidthPadding;
-    sideLabelWidth = juce::jmax(sideLabelWidth, measureTextWidth(titleFont, "SIG") + PositionDisplayMetrics::titleWidthPadding);
-    sideLabelWidth = juce::jmax(sideLabelWidth, measureTextWidth(titleFont, "IN") + PositionDisplayMetrics::titleWidthPadding);
-    sideLabelWidth = juce::jmax(sideLabelWidth, measureTextWidth(titleFont, "OUT") + PositionDisplayMetrics::titleWidthPadding);
+    auto sideLabelWidth = measureTextWidth(titleFont, "BPM:") + PositionDisplayMetrics::titleWidthPadding;
+    for (const auto *label : {"SIG:", "IN:", "OUT:"})
+        sideLabelWidth = juce::jmax(sideLabelWidth,
+                                    measureTextWidth(titleFont, label) + PositionDisplayMetrics::titleWidthPadding);
 
     const auto leftValueWidth = juce::jmax(measureTextWidth(sideValueFont, m_snapshot.bpmText),
                                            measureTextWidth(sideValueFont, m_snapshot.timeSignatureText));
     const auto rightValueWidth = juce::jmax(measureTextWidth(sideValueFont, m_snapshot.loopInText),
                                             measureTextWidth(sideValueFont, m_snapshot.loopOutText));
+    const auto labelAndGapWidth = m_layoutMode == PositionDisplayLayout::Mode::full
+                                    ? sideLabelWidth + PositionDisplayMetrics::leadingLabelGap
+                                    : 0.0f;
+    const auto fieldPadding = PositionDisplayMetrics::fieldHorizontalPadding * 2.0f;
+    const auto leftColumnWidth = juce::roundToInt(labelAndGapWidth + leftValueWidth + fieldPadding);
+    const auto rightColumnWidth = juce::roundToInt(labelAndGapWidth + rightValueWidth + fieldPadding);
+    return PositionDisplayLayout::calculate(getLocalBounds(), leftColumnWidth, rightColumnWidth);
+}
 
-    const auto leftColumnWidth = juce::roundToInt(sideLabelWidth + PositionDisplayMetrics::leadingLabelGap + leftValueWidth + (PositionDisplayMetrics::fieldHorizontalPadding * 2.0f));
-    const auto rightColumnWidth = juce::roundToInt(sideLabelWidth + PositionDisplayMetrics::leadingLabelGap + rightValueWidth + (PositionDisplayMetrics::fieldHorizontalPadding * 2.0f));
-    const auto minimumCenterWidth = juce::roundToInt(area.getWidth() * PositionDisplayMetrics::minimumCenterWidthRatio);
-    const auto maximumSideWidth = juce::jmax(0, (area.getWidth() - minimumCenterWidth - (PositionDisplayMetrics::panelColumnGap * 2)) / 2);
+void PositionDisplayComponent::updateLayoutSeparators(const PositionDisplayLayout::Layout &layout)
+{
+    const auto fieldsRight = !layout.right.isEmpty() ? layout.right.getRight() : layout.center.getRight();
+    m_infoSeparatorVisible = !layout.info.isEmpty() && fieldsRight > 0;
+    if (m_infoSeparatorVisible)
+        m_infoSeparatorX = fieldsRight + ((layout.info.getX() - fieldsRight) / 2);
 
-    auto leftColumn = area.removeFromLeft(juce::jmin(leftColumnWidth, maximumSideWidth));
-    m_leftGroupSeparatorX = area.getX() + (PositionDisplayMetrics::panelColumnGap / 2);
-    area.removeFromLeft(PositionDisplayMetrics::panelColumnGap);
+    m_sideSeparatorsVisible = layout.showsSideFields() && !layout.left.isEmpty()
+                              && !layout.center.isEmpty() && !layout.right.isEmpty();
+    if (!m_sideSeparatorsVisible)
+        return;
 
-    auto rightColumn = area.removeFromRight(juce::jmin(rightColumnWidth, maximumSideWidth));
-    m_rightGroupSeparatorX = rightColumn.getX() - ((PositionDisplayMetrics::panelColumnGap + 1) / 2);
-    area.removeFromRight(PositionDisplayMetrics::panelColumnGap);
-    auto centerColumn = area;
+    m_leftGroupSeparatorX = layout.left.getRight() + ((layout.center.getX() - layout.left.getRight()) / 2);
+    m_rightGroupSeparatorX = layout.center.getRight() + ((layout.right.getX() - layout.center.getRight()) / 2);
+}
 
-    const auto splitColumn = [] (juce::Rectangle<int> column)
-    {
-        auto top = column.removeFromTop((column.getHeight() - PositionDisplayMetrics::panelRowGap) / 2);
-        column.removeFromTop(PositionDisplayMetrics::panelRowGap);
-        return std::pair{top, column};
-    };
+void PositionDisplayComponent::applyFieldLayout(const PositionDisplayLayout::Layout &layout)
+{
+    const auto [bpmBounds, timeSignatureBounds] = splitDisplayColumn(layout.left);
+    const auto [positionBounds, timeBounds] = splitDisplayColumn(layout.center);
+    const auto [loopInBounds, loopOutBounds] = splitDisplayColumn(layout.right);
+    const auto showSideFields = layout.showsSideFields();
 
-    const auto [bpmBounds, timeSignatureBounds] = splitColumn(leftColumn);
-    const auto [loopInBounds, loopOutBounds] = splitColumn(rightColumn);
-    const auto [positionBounds, timeBounds] = splitColumn(centerColumn);
+    for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_loopInField.get(), m_loopOutField.get()})
+        field->setVisible(showSideFields);
+    m_positionField->setVisible(!layout.center.isEmpty());
+    m_timeField->setVisible(!layout.center.isEmpty());
 
     m_bpmField->setBounds(bpmBounds);
     m_timeSignatureField->setBounds(timeSignatureBounds);
@@ -900,6 +965,79 @@ void PositionDisplayComponent::resized()
     m_timeField->setBounds(timeBounds);
     m_loopInField->setBounds(loopInBounds);
     m_loopOutField->setBounds(loopOutBounds);
+}
+
+void PositionDisplayComponent::projectSaved()
+{
+    m_infoState.saved(juce::Time::getMillisecondCounterHiRes());
+    refreshSaveFeedbackTimer();
+}
+
+void PositionDisplayComponent::clearSaveFeedback()
+{
+    m_infoState.clear();
+    refreshSaveFeedbackTimer();
+}
+
+void PositionDisplayComponent::setSaveFeedbackBlocked(bool blocked)
+{
+    m_infoState.setBlocked(blocked, juce::Time::getMillisecondCounterHiRes());
+    refreshSaveFeedbackTimer();
+}
+
+void PositionDisplayComponent::refreshSaveFeedbackTimer()
+{
+    if (m_infoState.isSavedVisible())
+        startTimer(50);
+    else
+        stopTimer();
+    updateInfoTooltip();
+    repaint(m_infoBounds);
+}
+
+void PositionDisplayComponent::timerCallback()
+{
+    if (m_infoState.expire(juce::Time::getMillisecondCounterHiRes()))
+        refreshSaveFeedbackTimer();
+}
+
+void PositionDisplayComponent::updateInfoTooltip()
+{
+    setTooltip(getDisplayedEditName() + "\n" + getSaveStatusText());
+}
+
+void PositionDisplayComponent::updateFieldTitles()
+{
+    const auto showTitles = m_layoutMode == PositionDisplayLayout::Mode::full;
+    m_bpmField->setTitle(showTitles ? "BPM:" : "");
+    m_timeSignatureField->setTitle(showTitles ? "SIG:" : "");
+    m_positionField->setTitle(showTitles ? "POS:" : "");
+    m_timeField->setTitle(showTitles ? "TIME:" : "");
+    m_loopInField->setTitle(showTitles ? "IN:" : "");
+    m_loopOutField->setTitle(showTitles ? "OUT:" : "");
+}
+
+juce::String PositionDisplayComponent::getDisplayedEditName() const
+{
+    const auto currentFile = m_edit.editFileRetriever ? m_edit.editFileRetriever() : juce::File{};
+    if (ProjectLifecycle::isPersistentProjectFile(currentFile))
+        return currentFile.getFileNameWithoutExtension();
+
+    const auto editName = m_editViewState.m_editName.get().trim();
+    if (editName.isEmpty() || editName.equalsIgnoreCase("unknown"))
+        return GUIHelpers::translate("Untitled", m_appState);
+    return editName;
+}
+
+juce::String PositionDisplayComponent::getSaveStatusText() const
+{
+    if (m_infoState.isSavedVisible())
+        return GUIHelpers::translate("Saved", m_appState);
+
+    const auto currentFile = m_edit.editFileRetriever ? m_edit.editFileRetriever() : juce::File{};
+    if (!ProjectLifecycle::isPersistentProjectFile(currentFile) || m_edit.hasChangedSinceSaved())
+        return GUIHelpers::translate("Unsaved changes", m_appState);
+    return GUIHelpers::translate("Up to date", m_appState);
 }
 
 void PositionDisplayComponent::handleAsyncUpdate()
@@ -913,6 +1051,7 @@ void PositionDisplayComponent::handleAsyncUpdate()
 void PositionDisplayComponent::valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &)
 {
     scheduleRefresh();
+    repaint(m_infoBounds);
 }
 
 void PositionDisplayComponent::valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &)
@@ -994,6 +1133,7 @@ void PositionDisplayComponent::refreshFromModel()
     m_snapshot.loopOutText = formatBarsBeatsTicks(tempoSequence, loopRange.getEnd(), te::Edit::ticksPerQuarterNote);
 
     updateFieldStyles();
+    updateInfoTooltip();
     repaint();
 
     m_bpmField->setDisplayText(m_snapshot.bpmText);
@@ -1023,13 +1163,17 @@ void PositionDisplayComponent::updateFieldStyles()
 
     const auto titleFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::titleFontHeight));
     const auto sideValueFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::sideValueFontHeight));
-    const auto timeFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::timeValueFontHeight));
-    const auto positionFont = juce::Font(juce::FontOptions(PositionDisplayMetrics::positionValueFontHeight));
+    const auto timeFontHeight = m_layoutMode == PositionDisplayLayout::Mode::minimal
+                                  ? 14.0f : PositionDisplayMetrics::timeValueFontHeight;
+    const auto positionFontHeight = m_layoutMode == PositionDisplayLayout::Mode::minimal
+                                      ? 16.0f : PositionDisplayMetrics::positionValueFontHeight;
+    const auto timeFont = juce::Font(juce::FontOptions(timeFontHeight));
+    const auto positionFont = juce::Font(juce::FontOptions(positionFontHeight));
 
-    auto titleWidth = measureTextWidth(titleFont, "BPM") + PositionDisplayMetrics::titleWidthPadding;
-    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "SIG") + PositionDisplayMetrics::titleWidthPadding);
-    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "IN") + PositionDisplayMetrics::titleWidthPadding);
-    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "OUT") + PositionDisplayMetrics::titleWidthPadding);
+    auto titleWidth = measureTextWidth(titleFont, "BPM:") + PositionDisplayMetrics::titleWidthPadding;
+    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "SIG:") + PositionDisplayMetrics::titleWidthPadding);
+    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "IN:") + PositionDisplayMetrics::titleWidthPadding);
+    titleWidth = juce::jmax(titleWidth, measureTextWidth(titleFont, "OUT:") + PositionDisplayMetrics::titleWidthPadding);
 
     for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_positionField.get(), m_timeField.get(), m_loopInField.get(), m_loopOutField.get()})
     {
@@ -1040,8 +1184,8 @@ void PositionDisplayComponent::updateFieldStyles()
     for (auto *field : {m_bpmField.get(), m_timeSignatureField.get(), m_loopInField.get(), m_loopOutField.get()})
         field->setFixedTitleWidth(titleWidth);
 
-    const auto centerTitleWidth = juce::jmax(measureTextWidth(titleFont, "POS"),
-                                                measureTextWidth(titleFont, "TIME"))
+    const auto centerTitleWidth = juce::jmax(measureTextWidth(titleFont, "POS:"),
+                                                measureTextWidth(titleFont, "TIME:"))
                                   + PositionDisplayMetrics::titleWidthPadding;
     m_positionField->setFixedTitleWidth(centerTitleWidth);
     m_timeField->setFixedTitleWidth(centerTitleWidth);

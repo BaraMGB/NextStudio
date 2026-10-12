@@ -167,7 +167,7 @@ Use **Save** in the Projects sidebar or:
 - Windows/Linux: `Ctrl+S`;
 - macOS: `Command+S`.
 
-A project that has never been persistently saved enters Save As in the Projects sidebar. Saved projects use the existing path directly.
+A project that has never been persistently saved enters Save As in the Projects sidebar. Saved projects use the existing path directly. The [header's project information](../ui/header-bar.md#project-and-save-information) shows the edit name and save state. Successful Save and Save As temporarily change its status to **Saved** for three seconds, without an additional dialog or focus change. Autosave does not show this confirmation.
 
 ### Save As
 

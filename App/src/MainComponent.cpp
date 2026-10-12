@@ -140,6 +140,8 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
 
 MainComponent::~MainComponent()
 {
+    if (m_header)
+        m_header->clearSaveFeedback();
     setSetupWizardActive(false);
     setProjectWorkflowActive(false, false);
     m_setupWizardViewport.setViewedComponent(nullptr, false);
@@ -656,6 +658,9 @@ bool MainComponent::setupEdit(juce::File editFile, juce::String *errorMessage)
 
     replacementEdit->setClickTrackVolume(juce::jlimit(0.2f, 1.0f, m_applicationState.m_metronomeVolume.get()));
 
+    if (m_header)
+        m_header->clearSaveFeedback();
+
     // Restore workflow-owned UI and engine state before replacing the old hierarchy.
     if (m_projectBrowserExpandedSidebar)
         setProjectBrowserWorkingMode(false);
@@ -762,6 +767,8 @@ void MainComponent::saveSettings()
 
 GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs, bool preservePendingOperation)
 {
+    if (m_header)
+        m_header->clearSaveFeedback();
     if (!m_editViewState)
         return GUIHelpers::ProjectSaveResult::failed;
 
@@ -781,6 +788,8 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs, boo
 
 GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::File &targetFile)
 {
+    if (m_header)
+        m_header->clearSaveFeedback();
     if (!m_editViewState)
         return GUIHelpers::ProjectSaveResult::failed;
 
@@ -806,6 +815,8 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::Fi
 
     if (m_sideBarBrowser)
         m_sideBarBrowser->projectWasSaved(projectFile);
+    if (m_header)
+        m_header->projectSaved(projectFile);
 
     if (acquiredWorkflowLock)
         setProjectWorkflowActive(false);
@@ -987,6 +998,10 @@ void MainComponent::updateMainInteractionLock(bool resumePlayback)
     m_commandManager.commandStatusChanged();
     if (m_sideBarBrowser)
         m_sideBarBrowser->repaint();
+    // Start the display lifetime only after the existing unlock/engine work and
+    // UI enablement have completed, not while Save As still owns the surface.
+    if (m_header)
+        m_header->setSaveFeedbackBlocked(shouldLock);
 }
 
 void MainComponent::updateInteractionLayerOrder()

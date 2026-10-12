@@ -21,4 +21,8 @@ countries: ch at de
 "set loop range end" = "Ende des Loopbereichs festlegen"
 "Toggle metronome on/off" = "Metronom Ein/Aus"
 "View follows playhead on/off" = "Ansicht folgt der Songposition"
+"Untitled" = "Unbenannt"
+"Saved" = "Gespeichert"
+"Unsaved changes" = "Ungespeicherte Änderungen"
+"Up to date" = "Aktuell"
 "Find" = "Suche"

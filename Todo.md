@@ -2,16 +2,14 @@
 
 GitHub issues own status, discussion and acceptance. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
-The 18 issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
+The 17 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
 
-## Next — editing correctness
+## Next — save feedback
 
-- [ ] [Separate Lasso and TimeRange](docs/plans/lasso-time-range-separation.md) — approved prerequisite for #84; foundation and velocity source implemented, awaiting maintainer testing. Overwrite policy is unchanged.
-- [ ] [#84 — Velocity lollipops cannot be selected with a lasso](https://github.com/BaraMGB/NextStudio/issues/84) — velocity source and persistent selected-marker feedback implemented; awaiting maintainer testing.
+- [ ] [#87 — Visible feedback after saving](https://github.com/BaraMGB/NextStudio/issues/87) — revised widened Position Display with edit name, persistent save state and transient saved confirmation implemented and validated; shared test artifact delivered, awaiting maintainer testing. See the issue for scope and evidence.
 
 ## Focused workflow improvements
 
-- [ ] [#87 — Visible feedback after saving](https://github.com/BaraMGB/NextStudio/issues/87) — Save and Save As without modal interruption.
 - [ ] [#73 — Right-click erases notes in MIDI Draw Mode](https://github.com/BaraMGB/NextStudio/issues/73) — preserve undo/context-menu behavior outside note hits.
 - [ ] [#54 — Hotkeys for Song Editor and MIDI Editor tools](https://github.com/BaraMGB/NextStudio/issues/54).
 - [ ] [#81 — Shortcuts for track arm, mute and solo](https://github.com/BaraMGB/NextStudio/issues/81) — reuse command/key-mapping infrastructure from #54.
@@ -34,6 +32,10 @@ The 18 issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/m
 - [!] [#59 — Plugin editor windows always on top](https://github.com/BaraMGB/NextStudio/issues/59) — product/platform decision needed against normal Linux stacking behavior.
 - [ ] [#79 — Crash capture and next-start reporting](https://github.com/BaraMGB/NextStudio/issues/79) — POSIX capture, Windows minidumps, context, symbols and startup UI; async-signal-safe handlers and user-controlled uploads.
 - [ ] [#58 — Favorite plugins and custom categories](https://github.com/BaraMGB/NextStudio/issues/58) — persistent metadata following completed deterministic ordering (#71).
+
+## Pending architecture acceptance
+
+- [ ] [Separate Lasso and TimeRange](docs/plans/lasso-time-range-separation.md) — implemented; the plan still records separate foundation acceptance as pending. Related #84 is closed. Overwrite policy is unchanged.
 
 ## Deferred and metadata
 

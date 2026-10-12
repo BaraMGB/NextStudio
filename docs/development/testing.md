@@ -24,6 +24,7 @@ The current suites are:
 | `PitchShiftDrag` | whole-semitone graph edits, persistence, single-step undo/redo with exact fractional restoration, balanced gestures, no-op/cancel/destruction, and unchanged continuous native range | `App/tests/PitchShiftDragTests.cpp` |
 | `EffectEditorLayout` | responsive Compressor, Delay, and Pitch Shifter graph/control rectangles, minimum sizes, non-overlap, compact pitch width/size caps, and interval-map positions including fractional shifts and whole-semitone drag mapping | `App/tests/EffectEditorLayoutTests.cpp` |
 | `MainInteractionState` | setup/project lock composition and foreground priority | `App/tests/MainInteractionStateTests.cpp` |
+| `HeaderPresentation` | production position-display save feedback, deferred unlock activation, monotonic expiry/repeat/late callbacks, cancellation/replacement clearing, bounded centred/non-overlapping widened-header layout, and full/compact/minimal display geometry at effective sidebar widths | `App/tests/HeaderPresentationTests.cpp` |
 | `DebugProtocol` | command/JSON Lines parsing and serialization | `App/tests/DebugProtocolTests.cpp` |
 | `DebugSnapshotWriter` | PNG success, decode validation, and failure paths | `App/tests/DebugSnapshotWriterTests.cpp` |
 | `DebugStateFilter` | binary-like state filtering and bounded strings | `App/tests/DebugStateFilterTests.cpp` |
@@ -273,6 +274,22 @@ Current coverage includes:
 - context-sensitive acceptance of `.nextTemp` recovery files.
 
 Temporary test files are created in a unique child of JUCE's temporary directory and removed by RAII cleanup. Typed pending-operation, Save/Discard/Cancel, failed-write continuation cleanup and deferred-execution guards belong to `ProjectWorkflowTests`, not the removed project-request adapter. Neither suite instantiates the complete sidebar/editor replacement path.
+
+## Save feedback validation
+
+The [project lifecycle](../architecture/project-lifecycle.md#saving-and-save-as) owns the save-success routing and transient state; the [header reference](../ui/header-bar.md#project-and-save-information) describes user-visible behavior. `HeaderPresentationTests` calls the production state/layout helpers with explicit time values, including repeated blocking/unblocking, clearing pending feedback before replacement, late expiry and narrow/zero bounds. It also checks full, compact and minimal position-display modes at the effective header widths left by expanded sidebars, including persistent status space and position/time priority. It does not instantiate the complete header or prove GUI dispatch.
+
+After building, use the same private 1600×1000 X11/debug-shell fixture and prerequisites as the cursor procedure, **plus Python Pillow**:
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-save-feedback-regression.py \
+  --output "./artifacts/save-feedback-$(date +%Y%m%d-%H%M%S)"
+```
+
+The maintained procedure checks actual first Save, keyboard/sidebar Save and explicit Save As, three-second disappearance, repeated-save lifetime restart, cancellation, a deterministic failed direct-save target and retry, another browser/collapsed sidebar, 1200-pixel compact and 900-pixel minimal windows, long names, New-project clearing and completed silent recovery autosave. A real shortcut remains active during feedback, and complete musical track/clip/note records remain unchanged across saves. PNG comparisons use fixed information-section crops comparing transient and stable save states in the same isolated session; screenshots retain full layout/error evidence. The failure fixture temporarily replaces only a sandbox target with a directory and restores the file in `finally`. Never use this tool against a normal project/session. `--binary`, `--display`, `--delay` and a non-existing output directory follow the cursor procedure. Results include the binary hash and copied screenshots/model dumps; retain relevant evidence with the issue/CI artifact.
+
+Default-theme/Linux/X11 routing and this fixture do not certify Windows/macOS, physical/fractional display scaling, all themes, recording-related internal writes, or complete Save & Continue/load/quit orchestration. Unit state tests cover deferred activation/clearing; broader workflow tests cover continuation guards. Keep these limits distinct from UI acceptance.
 
 ## Numeric property-field validation
 

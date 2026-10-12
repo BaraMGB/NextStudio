@@ -181,7 +181,10 @@ On success:
 
 1. `EditComponent::projectSaved()` stops/invalidates autosave work and removes recovery snapshots;
 2. the window title is updated from the persistent project filename;
-3. the filtered Projects directory browser is refreshed when the saved file belongs to its displayed directory.
+3. the filtered Projects directory browser is refreshed when the saved file belongs to its displayed directory;
+4. `HeaderComponent::projectSaved()` forwards the confirmed success to `PositionDisplayComponent`. The three-second monotonic deadline begins only when the existing main interaction lock releases, not while Save As is still active.
+
+`PositionDisplayInfoState` owns pending/visible/blocked confirmation state without edit, undo or file dependencies. `PositionDisplayComponent` owns its timer and paints a non-interactive right information section inside the widened display: a persistent edit name plus `Unsaved changes` for temporary/dirty edits, `Up to date` for clean persistent edits, or transient `Saved`. `HeaderLayout::calculate()` keeps the widened display centred and compacts controls at narrow sizes without overlaps. `PositionDisplayLayout` switches between full, compact and minimal presentation: compact mode removes labels before values become unreadable, while minimal mode retains position/time and project/save information ahead of tempo and loop fields. The complete name and status remain available as a tooltip. Theme colours are read at paint time, and long names use an ellipsis. Repeated successful saves replace the text and restart the deadline; late timer callbacks consult the current deadline. A new save attempt or interaction workflow clears previous success. Valid project replacement clears pending feedback before unlocking/destroying the old header; destruction stops its timer. Failed/cancelled writes never queue feedback, and recovery autosave plus internal initial/recording engine writes stay silent. Existing save locking, persistence, errors and continuation semantics are unchanged.
 
 Save results are `saved`, `cancelled`, or `failed` and are compatible with the lifecycle decision helper. Before Save As mutates clip-source and SoundFont-path properties, `ProjectLifecycle::PropertyRollback` snapshots their exact values and whether each property existed. The scope guard restores snapshots unless a successful write explicitly dismisses it. A failed write also restores the previous edit-file retriever and edit name instead of attempting a potentially lossy reverse path conversion. Save failures are displayed inline with the affected path and clear pending continuation intent.
 
@@ -246,6 +249,8 @@ A restored crash snapshot survives shutdown until it is saved, explicitly discar
 - exact ValueTree property rollback, including properties that did not previously exist;
 - project-browser filtering, including case-insensitive extensions;
 - load inspection for missing, unsupported, empty, corrupt, wrong-root, XML, binary, and recovery files.
+
+`HeaderPresentationTests` exercises production feedback state, monotonic expiry/restart, deferred activation, clear/cancellation/replacement rules, bounded widened-header layout, and full/compact/minimal position-display geometry at effective widths produced by expanded sidebars. The [native save-feedback procedure](../development/testing.md#save-feedback-validation) exercises real Save/Save As dispatch, the position-display information section and recovery autosave.
 
 `ProjectWorkflowTests` cover failed-save continuation cleanup, recovery-confirmation locking, and deferred-execution guards. Full GUI orchestration, Tracktion edit construction, and the asynchronous autosave worker are not currently integration-tested.
 

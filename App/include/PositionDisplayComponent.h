@@ -23,6 +23,9 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "ApplicationViewState.h"
+#include "EditViewState.h"
+#include "PositionDisplayInfoState.h"
+#include "PositionDisplayLayout.h"
 #include "Utilities.h"
 
 namespace te = tracktion_engine;
@@ -30,17 +33,23 @@ namespace te = tracktion_engine;
 class PositionDisplayField;
 
 class PositionDisplayComponent : public juce::Component,
+                                 public juce::SettableTooltipClient,
                                  private juce::AsyncUpdater,
-                                 private juce::ValueTree::Listener
+                                 private juce::ValueTree::Listener,
+                                 private juce::Timer
 {
 public:
-    PositionDisplayComponent(te::Edit &edit, ApplicationViewState &appState);
+    PositionDisplayComponent(EditViewState &editViewState, ApplicationViewState &appState);
     ~PositionDisplayComponent() override;
 
     void paint(juce::Graphics &) override;
     void resized() override;
 
-    static constexpr int minimumWidth = 400;
+    void projectSaved();
+    void clearSaveFeedback();
+    void setSaveFeedbackBlocked(bool blocked);
+
+    static constexpr int minimumWidth = 600;
 
 private:
     enum class FieldId
@@ -79,6 +88,7 @@ private:
     };
 
     void handleAsyncUpdate() override;
+    void timerCallback() override;
 
     void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
@@ -91,6 +101,14 @@ private:
     void rebuildTempoSequenceListeners();
     void refreshFromModel();
     void updateFieldStyles();
+    PositionDisplayLayout::Layout calculateResponsiveLayout() const;
+    void updateLayoutSeparators(const PositionDisplayLayout::Layout &layout);
+    void applyFieldLayout(const PositionDisplayLayout::Layout &layout);
+    void refreshSaveFeedbackTimer();
+    void updateInfoTooltip();
+    void updateFieldTitles();
+    juce::String getDisplayedEditName() const;
+    juce::String getSaveStatusText() const;
 
     PositionDisplayField &fieldForId(FieldId);
     const PositionDisplayField &fieldForId(FieldId) const;
@@ -112,8 +130,12 @@ private:
     void applyLoopIn(tracktion::TimePosition position);
     void applyLoopOut(tracktion::TimePosition position);
 
+    EditViewState &m_editViewState;
     te::Edit &m_edit;
     ApplicationViewState &m_appState;
+    PositionDisplayInfoState m_infoState;
+    PositionDisplayLayout::Mode m_layoutMode{PositionDisplayLayout::Mode::full};
+    juce::Rectangle<int> m_infoBounds;
 
     std::unique_ptr<PositionDisplayField> m_bpmField;
     std::unique_ptr<PositionDisplayField> m_timeSignatureField;
@@ -127,8 +149,11 @@ private:
     bool m_needsTempoListenerRebuild{true};
     DisplaySnapshot m_snapshot{};
     DragState m_dragState{};
+    int m_infoSeparatorX{};
     int m_leftGroupSeparatorX{};
     int m_rightGroupSeparatorX{};
+    bool m_infoSeparatorVisible{false};
+    bool m_sideSeparatorsVisible{true};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PositionDisplayComponent)
 };

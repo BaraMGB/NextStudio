@@ -122,6 +122,9 @@ public:
     juce::File getSelectedFile() const;
 
     void loopButtonClicked();
+    void projectSaved(const juce::File &projectFile);
+    void clearSaveFeedback();
+    void setSaveFeedbackBlocked(bool blocked);
 
 private:
     juce::String getCountInModeText() const;
@@ -132,11 +135,6 @@ private:
     void updateUndoRedoButtons(bool force = false);
     void updateCountInDisplay();
     EditViewState &m_editViewState;
-    static juce::FlexBox createFlexBox(juce::FlexBox::JustifyContent justify);
-    int getButtonSize();
-    int getGapSize();
-
-    void addButtonsToFlexBox(juce::FlexBox &box, const juce::Array<juce::Component *> &buttons, int width = 0);
     juce::DrawableButton m_stopButton, m_recordButton, m_playButton, m_loopButton, m_clickButton, m_followPlayheadButton, m_undoButton, m_redoButton;
     PreRollCounterButton m_countInButton;
     juce::BubbleMessageComponent m_loopRangeWarning;

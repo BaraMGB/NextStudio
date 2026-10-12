@@ -538,6 +538,13 @@ if(BUILD_TESTING)
     add_test(NAME PluginMenuOrdering
             COMMAND PluginMenuOrderingTests)
 
+    juce_add_console_app(HeaderPresentationTests PRODUCT_NAME "HeaderPresentationTests")
+    target_sources(HeaderPresentationTests PRIVATE tests/HeaderPresentationTests.cpp)
+    target_include_directories(HeaderPresentationTests PRIVATE include)
+    target_link_libraries(HeaderPresentationTests PRIVATE juce::juce_graphics)
+    target_compile_definitions(HeaderPresentationTests PRIVATE JUCE_USE_CURL=0)
+    add_test(NAME HeaderPresentation COMMAND HeaderPresentationTests)
+
     juce_add_console_app(ClipFrameDrawingTests PRODUCT_NAME "ClipFrameDrawingTests")
     target_sources(ClipFrameDrawingTests PRIVATE tests/ClipFrameDrawingTests.cpp)
     target_include_directories(ClipFrameDrawingTests PRIVATE include)
