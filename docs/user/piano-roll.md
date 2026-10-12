@@ -56,6 +56,7 @@ With the pointer tool:
 
 - click a note to select it;
 - `Shift`-click adds a note to the current selection;
+- right-click a note to delete only that note; right-clicking empty space leaves the selection unchanged;
 - click empty space to clear the MIDI-note selection;
 - drag from empty space to begin lasso selection.
 
@@ -155,7 +156,7 @@ The draw tool creates a note over an existing MIDI clip. Its pencil cursor is sh
 - Escape or changing tools cancels the provisional draw;
 - the actual inserted duration becomes **Last Inserted**, and the new note becomes selected.
 
-Double-click uses the same default-range rule. Draw remains a creation tool with overlap cleanup; use Pointer edges to resize an existing note in place.
+Double-click uses the same default-range rule. Right-clicking an existing note deletes only that note as an undoable edit; right-clicking empty space does not begin drawing or change selection. Draw otherwise remains a creation tool with overlap cleanup; use Pointer edges to resize an existing note in place.
 
 ### Range
 
@@ -317,7 +318,7 @@ Clearing all destinations first prevents one newly created duplicate from erasin
 
 ## Undo and model updates
 
-Piano Roll operations use the edit's undo manager. Named transactions are used for multi-note changes, copying, movement, splitting, deletion, and property editing. Copying and the provisional `Command+V` preview do not change the model; committing the preview creates one `Paste MIDI Notes` transaction.
+Piano Roll operations use the edit's undo manager. Named transactions are used for multi-note changes, copying, movement, splitting, deletion, and property editing. Each Pointer/Draw right-click deletion is one `Delete MIDI Note` undo step. Copying and the provisional `Command+V` preview do not change the model; committing the preview creates one `Paste MIDI Notes` transaction.
 
 Model changes trigger deferred refreshes for:
 

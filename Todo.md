@@ -2,15 +2,10 @@
 
 GitHub issues own status, discussion and acceptance. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
-The 17 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
-
-## Next — save feedback
-
-- [ ] [#87 — Visible feedback after saving](https://github.com/BaraMGB/NextStudio/issues/87) — revised widened Position Display with edit name, persistent save state and transient saved confirmation implemented and validated; shared test artifact delivered, awaiting maintainer testing. See the issue for scope and evidence.
+The 15 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
 
 ## Focused workflow improvements
 
-- [ ] [#73 — Right-click erases notes in MIDI Draw Mode](https://github.com/BaraMGB/NextStudio/issues/73) — preserve undo/context-menu behavior outside note hits.
 - [ ] [#54 — Hotkeys for Song Editor and MIDI Editor tools](https://github.com/BaraMGB/NextStudio/issues/54).
 - [ ] [#81 — Shortcuts for track arm, mute and solo](https://github.com/BaraMGB/NextStudio/issues/81) — reuse command/key-mapping infrastructure from #54.
 - [ ] [#85 — Add tracks below another track or into a folder](https://github.com/BaraMGB/NextStudio/issues/85).

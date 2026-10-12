@@ -36,6 +36,7 @@ The current suites are:
 | `MidiPendingPaste` | provisional MIDI paste state machine | `App/tests/MidiPendingPasteTests.cpp` |
 | `SelectionGestures` | independent Lasso/TimeRange state, floating musical anchor projection, velocity head mapping/resize/stem exclusion, retained keyboard clip scope/identity/teardown, reverse/empty rectangles, inclusive marker boundaries, snapshot-based replace/add/toggle/shrink policy, real Tracktion note identity resolution and selection-only model/undo isolation | `App/tests/SelectionGestureTests.cpp` |
 | `PianoRollNoteLength` | inserted-note length modes, note values, finite fallbacks, and tick-only draw floor | `App/tests/PianoRollNoteLengthTests.cpp` |
+| `PianoRollMouseActions` | Pointer/Draw primary, secondary-hit deletion, empty-space suppression and other-tool routing policy | `App/tests/PianoRollMouseActionsTests.cpp` |
 | `TimelineSoftSnap` | continuous/monotonic physical-pixel curve, MIDI/Song attraction profiles and default MIDI profile selection, exact detents and detailed plateau classification, dense sweeps, narrow/unequal/long intervals, inverse anchors, bounded slope/displacement, invalid profiles, and non-idempotence | `App/tests/TimelineSoftSnapTests.cpp` |
 | `TimelineSnapping` | production fixed/adaptive resolver, tempo ramps/meter/triplet boundaries (including engine bar-rounding failures), 100/125/150/200% physical scaling, MIDI Knife preview coordinate-type and grid raster-coverage regression, corrected downward creation anchors, production time-range/drop endpoint projection through tempo changes/ramps at four scales and panned/off-screen views, raw bypass/context transitions, relative Draw state, real offset-clip creation/overlap, fractional persistence and one-step undo/redo, note/clip/automation group constraints, held/free/bypass/limit/invalid feedback and reset, stationary Draw Shift reporting, queued JUCE TextEditor focus-loss completion/rejection and idempotence, whole-group move destinations including invalid secondary lanes and extreme offsets, shared clip preview ranges, theme-derived font tint and fractional lane-clipped guide/diamond raster rendering and JUCE sibling/header versus foreground ruler-cue ordering at four scales | `App/tests/TimelineSnappingTests.cpp` |
 | `ClipOverwriteCommand` | incoming-wins clip placement, trimming, identity, selection, and undo | `App/tests/ClipOverwriteCommandTests.cpp` |
@@ -132,6 +133,18 @@ xvfb-run -a --server-args='-screen 0 1600x1000x24' \
 A nonzero exit indicates failed cursor/model checks or invalid prerequisites/fixture. Reference images must be visible and distinguish tool/body/edge states, preventing an all-normal-cursor fixture from passing. Against the retained pre-correction binary the working-area procedure detects the original 12 failures; the current binary passes. This does not create new cross-platform or fractional-scale certification.
 
 Additional focused manual/runtime checks still cover active drag cursors, release/cancellation, stationary MIDI tool changes and pan, real Draw/Knife/Eraser actions and undo/redo. These are **not** automated by the two maintained suites. Native higher scaling, monitor transitions, other platforms and exhaustive automation/overlay cases require separately scoped runs. The [historical #90 record](../archive/changes/tool-cursor-working-areas.md) preserves the original 100/125% evidence and follow-up limits.
+
+## MIDI secondary-click deletion validation
+
+`PianoRollMouseActions` covers the production dispatch decision without duplicating GUI or model mutation. After building, validate native routing and undo integration with the same isolated 1600×1000 X11/debug-shell prerequisites as the cursor procedure:
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-midi-secondary-delete-regression.py \
+  --output "./artifacts/midi-secondary-delete-$(date +%Y%m%d-%H%M%S)"
+```
+
+The maintained procedure selects two notes, deletes only the hit note in Pointer mode, verifies retained selection, and exercises one-step undo/redo. It then checks that Pointer empty-space right-click preserves model and selection without suppressing the next primary click, that Draw right-click deletes with undo, and that Draw empty-space right-click neither creates nor deletes notes. The procedure uses real native button events and state dumps. `--binary`, `--display`, `--delay`, sandbox safety and the non-existing output-directory requirement follow the cursor procedure. Fixed coordinates assume the default 100% layout/theme. Platform popup gestures on macOS, physical/fractional displays, drag-time secondary-button chords and future context-menu presentation are not certified by this Linux/X11 procedure.
 
 ## Selection gesture validation
 

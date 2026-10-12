@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Piano Roll right-click deletion (#73)** — Right-clicking a note now deletes only that note in both Pointer and Draw modes as one undoable edit. Empty-space right-clicks no longer trigger Pointer deselection or Draw creation, preserving context-menu behavior outside note hits.
 - **Velocity-marker click selection** — Clicking a lollipop outside explicit Lasso now selects its note; Shift adds and Ctrl/Command toggles. Selection occurs only on a non-drag release, preserving selected-group and unselected-single-note velocity dragging without model/undo changes from clicks.
 - **Note-property completion before velocity gestures** — Valid typed properties now commit on leaving the field for velocity selection or marker dragging, matching the note grid. Invalid text is rejected, Escape discards text, and delayed focus notifications cannot reapply the edit to a new selection.
 - **Piano-key selection after a lasso** — Clicking a piano key again selects all matching notes after grid/velocity lassos, Range selection or clearing notes. The explicit target clip scope survives note-only selection; selecting different clips updates it without including unrelated clips or restoring arrangement clip selection.

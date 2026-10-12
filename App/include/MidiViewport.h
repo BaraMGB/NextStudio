@@ -189,7 +189,7 @@ private:
 
     juce::Colour getNoteColour(tracktion_engine::MidiClip *const &midiClip, tracktion_engine::MidiNote *n);
 
-    void removeNote(te::MidiClip *clip, te::MidiNote *note);
+    bool deleteNoteFromSecondaryClick(te::MidiNote *note);
     static float getVelocity(const tracktion_engine::MidiNote *note);
 
     te::MidiClip *getMidiClipAt(float x);
@@ -243,6 +243,7 @@ private:
     juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
 
     bool m_noteInteractionActive = false, m_committingInteraction = false, m_refreshingSnapContext = false;
+    bool m_suppressToolGesture = false;
     juce::ValueTree m_noteInteractionSource;
     bool m_expandLeft{false}, m_expandRight{false}, m_noteAdding{false};
 

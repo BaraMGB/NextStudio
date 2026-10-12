@@ -325,6 +325,15 @@ if(BUILD_TESTING)
     add_test(NAME PianoRollNoteLength
             COMMAND PianoRollNoteLengthTests)
 
+    add_executable(PianoRollMouseActionsTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PianoRollMouseActionsTests.cpp)
+
+    target_include_directories(PianoRollMouseActionsTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    add_test(NAME PianoRollMouseActions
+            COMMAND PianoRollMouseActionsTests)
+
     juce_add_console_app(ComputerMidiKeyboardLayoutTests
             PRODUCT_NAME "ComputerMidiKeyboardLayoutTests")
     juce_generate_juce_header(ComputerMidiKeyboardLayoutTests)

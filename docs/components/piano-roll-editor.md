@@ -16,6 +16,7 @@ This document describes the implementation: component ownership, the Tracktion d
 |---|---|
 | Editor frame, layout, commands | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp` |
 | Note grid, hit testing, note operations | `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
+| Pointer/Draw mouse-button routing policy | `App/include/PianoRollMouseActions.h` |
 | Pending paste state machine | `App/include/MidiPendingPaste.h`, `App/src/MidiPendingPaste.cpp` |
 | Inserted-note length rules | `App/include/PianoRollNoteLength.h`, `App/src/PianoRollNoteLength.cpp` |
 | Tool base and factory | `App/include/ToolStrategy.h`, `App/src/ToolFactory.cpp` |
@@ -210,6 +211,8 @@ enum class Tool { pointer, draw, range, eraser, knife, lasso, timestretch };
 
 `MidiViewport::setTool()` deactivates the old tool, creates the new one, activates it, and broadcasts a change message so `PianoRollEditor` can update the tool-bar button states.
 
+Before strategy dispatch, `resolvePianoRollMouseDownAction()` classifies platform popup/secondary clicks for Pointer and Draw. A note hit is removed by the viewport as one `Delete MIDI Note` transaction; the complete matching down/drag/up/double-click sequence is withheld from the active strategy. The note is re-resolved after pending property/paste completion and removed from MIDI selection before model destruction, while other selected notes remain selected. Empty-space secondary clicks are not forwarded to Pointer or Draw, preserving selection and leaving parent/context-menu listeners free to handle them. Primary clicks and all other tools retain normal strategy dispatch.
+
 ### Tool lifecycle
 
 - `toolActivated()` — tool-specific activation; Draw/Knife/Eraser cursor selection is owned by `MidiViewport`;
@@ -285,10 +288,11 @@ During a copy, the source notes are still present when the destination is cleare
 
 ### Delete
 
+- **Pointer/Draw secondary click** (`MidiViewport`): a platform popup/right-click deletes exactly the hit note as one `Delete MIDI Note` transaction. It removes that note from selection first, retains other selected notes, and suppresses the matching tool gesture. Empty-space secondary clicks do nothing.
 - **Eraser tool** (`EraserTool`): a single click deletes immediately. A drag collects notes and commits them as one `Delete MIDI Notes` transaction. A double-click deletes all notes in the same clip whose start beat matches within a small tolerance.
 - **Keyboard** (`PianoRollEditor::perform` → `MidiViewport::deleteSelectedNotes()`): collects selected note/clip pairs, clears the selection first, then removes each note.
 
-Clearing selection before removal prevents the properties bar from retaining deleted pointers.
+Clearing affected selection before removal prevents the properties bar from retaining deleted pointers.
 
 ### Split
 
@@ -413,7 +417,8 @@ The cache is invalidated when a `MIDICLIP` child is added to or removed from the
 | Paste notes in place | `Paste MIDI Notes` |
 | Add note | `Add MIDI Note` |
 | Duplicate notes | `Duplicate MIDI Notes` |
-| Delete notes (drag) | `Delete MIDI Notes` |
+| Delete one note by Pointer/Draw right-click | `Delete MIDI Note` |
+| Delete notes (Eraser drag) | `Delete MIDI Notes` |
 | Split note | `Split MIDI Note` |
 | Property start | `Move MIDI Notes` |
 | Property end/duration | `Change MIDI Note Duration` |

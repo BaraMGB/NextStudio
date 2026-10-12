@@ -27,6 +27,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "KnifeTool.h"
 #include "PointerTool.h"
 #include "EditViewState.h"
+#include "PianoRollMouseActions.h"
 #include "PianoRollNoteLength.h"
 #include "Utilities.h"
 
@@ -510,6 +511,39 @@ void MidiViewport::modifierKeysChanged(const juce::ModifierKeys& mods)
 
 void MidiViewport::mouseDown(const juce::MouseEvent &e)
 {
+    // A secondary button pressed during an existing primary gesture must not
+    // replace that gesture's ownership or leave its strategy half-finished.
+    if (e.mods.isPopupMenu() && m_pressInput.identity())
+        return;
+
+    m_suppressToolGesture = false;
+    const auto tool = m_currentTool ? m_currentTool->getToolId() : Tool::pointer;
+    const bool secondaryDeleteTool = tool == Tool::pointer || tool == Tool::draw;
+    auto *secondaryHit = e.mods.isPopupMenu() && secondaryDeleteTool
+                           ? getNoteByPos(e.position.toFloat()) : nullptr;
+    const auto action = resolvePianoRollMouseDownAction(e.mods.isPopupMenu(), secondaryHit != nullptr,
+                                                        secondaryDeleteTool);
+
+    if (action != PianoRollMouseDownAction::forwardToTool)
+    {
+        m_suppressToolGesture = true;
+        m_pressInput.reset();
+        m_mouseInput.reset();
+
+        if (action == PianoRollMouseDownAction::deleteHitNote)
+        {
+            cancelSelectionGesture();
+            if (m_timeLine.onNoteInteractionBeginning)
+                m_timeLine.onNoteInteractionBeginning();
+            finishPendingPasteOnDeselect();
+
+            // Completing a pending property edit or paste may recreate notes,
+            // so resolve the hit again before mutating the model.
+            deleteNoteFromSecondaryClick(getNoteByPos(e.position.toFloat()));
+        }
+        return;
+    }
+
     cancelSelectionGesture();
     m_pressInput.remember(e);
     m_mouseInput.remember(e);
@@ -529,6 +563,7 @@ void MidiViewport::mouseDown(const juce::MouseEvent &e)
 }
 void MidiViewport::mouseDrag(const juce::MouseEvent &e)
 {
+    if (m_suppressToolGesture) return;
     if (m_lassoComponent.active() && !ownsLasso(*this)) return;
     if (!m_pressInput.belongsToGesture(e)) return;
     m_mouseInput.remember(e);
@@ -539,6 +574,15 @@ void MidiViewport::mouseDrag(const juce::MouseEvent &e)
 }
 void MidiViewport::mouseUp(const juce::MouseEvent &e)
 {
+    if (m_suppressToolGesture)
+    {
+        m_suppressToolGesture = false;
+        m_pressInput.reset();
+        m_mouseInput.reset();
+        updateToolCursor();
+        repaint();
+        return;
+    }
     if (m_lassoComponent.active() && !ownsLasso(*this)) return;
     if (!m_pressInput.belongsToGesture(e)) return;
     if (m_currentTool)
@@ -641,7 +685,28 @@ void MidiViewport::playGuideNote(const te::MidiClip *clip, const int noteNumb, i
     startTimer(100);
 }
 
-void MidiViewport::removeNote(te::MidiClip *clip, te::MidiNote *note) { clip->getSequence().removeNote(*note, &m_evs.m_edit.getUndoManager()); }
+bool MidiViewport::deleteNoteFromSecondaryClick(te::MidiNote *note)
+{
+    if (note == nullptr || m_selectedEvents == nullptr)
+        return false;
+
+    auto *clip = m_selectedEvents->clipForEvent(note);
+    if (clip == nullptr || !clip->getSequence().getNotes().contains(note))
+        return false;
+
+    if (m_selectedEvents->isSelected(note))
+    {
+        m_selectedEvents->removeSelectedEvent(note);
+        if (m_selectedEvents->getSelectedNotes().isEmpty())
+            deselectActualNotes();
+    }
+
+    auto &undo = m_evs.m_edit.getUndoManager();
+    undo.beginNewTransaction("Delete MIDI Note");
+    clip->getSequence().removeNote(*note, &undo);
+    repaint();
+    return true;
+}
 
 float MidiViewport::getKeyWidth() const { return (float)m_evs.getViewYScale(m_timeLine.getTimeLineID()); }
 
@@ -1501,6 +1566,7 @@ void MidiViewport::setTool(Tool tool)
         m_currentTool->toolDeactivated(*this);
     m_pressInput.reset();
     m_mouseInput.reset();
+    m_suppressToolGesture = false;
 
     m_currentTool = ToolFactory::createTool(tool, m_evs);
 
