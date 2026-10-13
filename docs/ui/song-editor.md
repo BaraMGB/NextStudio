@@ -86,11 +86,11 @@ Clip fills and normal/selected frames share the same unrounded time edges. Adjoi
 
 | Tool | Description |
 |---|---|
-| Pointer (Arrow) | Select, move, resize. |
-| Lasso | Selects individual clips by dragging a frame. Selected clips can be moved vertically between tracks. |
-| Range | Selects a time range across multiple tracks. Range can be moved, copied, deleted, or rendered. |
-| Time Stretch (Clock) | Stretch or shrink audio clips in time. Drag the right edge — right = longer (slower), left = shorter (faster). |
-| Knife | Split clips. |
+| Pointer (Arrow) | Select, move, resize. Shortcut: `Cmd/Ctrl+1`. |
+| Lasso | Selects individual clips by dragging a frame. Selected clips can be moved vertically between tracks. Shortcut: `Cmd/Ctrl+2`. |
+| Range | Selects a time range across multiple tracks. Range can be moved, copied, deleted, or rendered. Shortcut: `Cmd/Ctrl+3`. |
+| Knife | Split clips. Shortcut: `Cmd/Ctrl+4`. |
+| Time Stretch (Clock) | Stretch or shrink audio clips in time. Drag the right edge — right = longer (slower), left = shorter (faster). Shortcut: `Cmd/Ctrl+5`. |
 | Delete (Trash) | Delete selected. Shortcut: `Backspace`, `Delete`, `Cmd/Ctrl+X`. |
 | Reverse (Back Arrow) | Reverse audio. Shortcut: `Cmd/Ctrl+B`. |
 

@@ -29,6 +29,7 @@ Reference of default keyboard shortcuts. `Cmd` means `Ctrl` on Windows/Linux and
 
 | Action | Shortcut |
 |---|---|
+| Pointer / Lasso / Range / Knife / Time Stretch tool | `Cmd+1` / `Cmd+2` / `Cmd+3` / `Cmd+4` / `Cmd+5` |
 | Delete Selected Clips/Time Range | `Backspace`, `Delete`, `Cmd+X` |
 | Duplicate Selected Clips/Time Range | `Cmd+D` |
 | Select All Clips | `Cmd+A` |
@@ -47,6 +48,7 @@ Reference of default keyboard shortcuts. `Cmd` means `Ctrl` on Windows/Linux and
 
 | Action | Shortcut |
 |---|---|
+| Pointer / Draw / Range / Eraser / Split / Lasso tool | `Cmd+1` / `Cmd+2` / `Cmd+3` / `Cmd+4` / `Cmd+5` / `Cmd+6` |
 | Delete Selected Notes | `Backspace`, `Delete`, `Cmd+X` |
 | Copy Selected Notes | `Cmd+C` |
 | Paste Notes (provisional) | `Cmd+V` |

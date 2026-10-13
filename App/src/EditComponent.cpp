@@ -201,24 +201,24 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     // SongEditorTools
 
     m_selectButton.setName("select");
+    m_selectButton.setTooltip(GUIHelpers::translate("Select, move, or resize clips and automation points", m_editViewState.m_applicationState));
     m_selectButton.addListener(this);
-    m_selectButton.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
 
     m_lassoSelectButton.setName("lasso");
+    m_lassoSelectButton.setTooltip(GUIHelpers::translate("Select clips or automation points with a lasso", m_editViewState.m_applicationState));
     m_lassoSelectButton.addListener(this);
-    m_lassoSelectButton.setTooltip(GUIHelpers::translate("lasso select clips or automation points", m_editViewState.m_applicationState));
 
     m_timeRangeSelectButton.setName("range");
+    m_timeRangeSelectButton.setTooltip(GUIHelpers::translate("Select a time range across tracks", m_editViewState.m_applicationState));
     m_timeRangeSelectButton.addListener(this);
-    m_timeRangeSelectButton.setTooltip(GUIHelpers::translate("select clips or automation points within a time range", m_editViewState.m_applicationState));
 
     m_splitClipButton.setName("knife");
+    m_splitClipButton.setTooltip(GUIHelpers::translate("Split a clip at the pointer position", m_editViewState.m_applicationState));
     m_splitClipButton.addListener(this);
-    m_splitClipButton.setTooltip(GUIHelpers::translate("split selected clip at the cursor position", m_editViewState.m_applicationState));
 
     m_timeStretchButton.setName("timestretch");
+    m_timeStretchButton.setTooltip(GUIHelpers::translate("Stretch an audio clip in time", m_editViewState.m_applicationState));
     m_timeStretchButton.addListener(this);
-    m_timeStretchButton.setTooltip(GUIHelpers::translate("apply time stretching to the selected clip", m_editViewState.m_applicationState));
 
     m_reverseClipButton.setCommandToTrigger(&m_commandManager, KeyPressCommandIDs::reverseClip, true);
 
@@ -227,8 +227,8 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_toolBar.addButton(&m_selectButton, 1);
     m_toolBar.addButton(&m_lassoSelectButton, 1);
     m_toolBar.addButton(&m_timeRangeSelectButton, 1);
-    m_toolBar.addButton(&m_timeStretchButton, 1);
     m_toolBar.addButton(&m_splitClipButton, 1);
+    m_toolBar.addButton(&m_timeStretchButton, 1);
     m_toolBar.addButton(&m_deleteClipButton);
     m_toolBar.addButton(&m_reverseClipButton);
 
@@ -898,6 +898,9 @@ void EditComponent::getAllCommands(juce::Array<juce::CommandID> &commands)
     juce::Array<juce::CommandID> ids{
 
         KeyPressCommandIDs::deleteSelectedClips, KeyPressCommandIDs::duplicateSelectedClips, KeyPressCommandIDs::selectAllClips, KeyPressCommandIDs::renderSelectedTimeRangeToNewTrack, KeyPressCommandIDs::transposeClipUp, KeyPressCommandIDs::transposeClipDown, KeyPressCommandIDs::reverseClip,
+        KeyPressCommandIDs::selectSongEditorTool, KeyPressCommandIDs::lassoSelectSongEditorTool,
+        KeyPressCommandIDs::timeRangeSelectSongEditorTool, KeyPressCommandIDs::splitSongEditorTool,
+        KeyPressCommandIDs::timeStretchSongEditorTool,
     };
 
     commands.addArray(ids);
@@ -937,6 +940,31 @@ void EditComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
     case KeyPressCommandIDs::reverseClip:
         result.setInfo("Reverse wave of clip", "Reverse wave of clip", "Song Editor", 0);
         result.addDefaultKeypress(juce::KeyPress::createFromDescription("b").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::selectSongEditorTool:
+        result.setInfo("Pointer tool", "Select, move, or resize clips and automation points", "Song Editor", 0);
+        result.addDefaultKeypress('1', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_songEditor.getToolMode() == Tool::pointer);
+        break;
+    case KeyPressCommandIDs::lassoSelectSongEditorTool:
+        result.setInfo("Lasso tool", "Select clips or automation points with a lasso", "Song Editor", 0);
+        result.addDefaultKeypress('2', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_songEditor.getToolMode() == Tool::lasso);
+        break;
+    case KeyPressCommandIDs::timeRangeSelectSongEditorTool:
+        result.setInfo("Range tool", "Select a time range across tracks", "Song Editor", 0);
+        result.addDefaultKeypress('3', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_songEditor.getToolMode() == Tool::range);
+        break;
+    case KeyPressCommandIDs::splitSongEditorTool:
+        result.setInfo("Knife tool", "Split a clip at the pointer position", "Song Editor", 0);
+        result.addDefaultKeypress('4', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_songEditor.getToolMode() == Tool::knife);
+        break;
+    case KeyPressCommandIDs::timeStretchSongEditorTool:
+        result.setInfo("Time stretch tool", "Stretch an audio clip in time", "Song Editor", 0);
+        result.addDefaultKeypress('5', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_songEditor.getToolMode() == Tool::timestretch);
         break;
     default:
         break;
@@ -1032,6 +1060,21 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
     case KeyPressCommandIDs::reverseClip:
         NS_LOG_INFO(edit, "reversing selected clips");
         m_songEditor.reverseSelectedClips();
+        break;
+    case KeyPressCommandIDs::selectSongEditorTool:
+        m_songEditor.setTool(Tool::pointer);
+        break;
+    case KeyPressCommandIDs::lassoSelectSongEditorTool:
+        m_songEditor.setTool(Tool::lasso);
+        break;
+    case KeyPressCommandIDs::timeRangeSelectSongEditorTool:
+        m_songEditor.setTool(Tool::range);
+        break;
+    case KeyPressCommandIDs::splitSongEditorTool:
+        m_songEditor.setTool(Tool::knife);
+        break;
+    case KeyPressCommandIDs::timeStretchSongEditorTool:
+        m_songEditor.setTool(Tool::timestretch);
         break;
     default:
         return false;

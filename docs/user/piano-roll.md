@@ -293,6 +293,7 @@ The footer displays the pitch row currently under the pointer while the pointer 
 
 | Action | Shortcut |
 |---|---|
+| Pointer / Draw / Range / Eraser / Split / Lasso tool | `Command+1` / `Command+2` / `Command+3` / `Command+4` / `Command+5` / `Command+6` |
 | Delete selected notes | `Backspace`, `Delete`, or `Command+X` |
 | Copy selected notes | `Command+C` |
 | Paste notes in place (pending) | `Command+V` |

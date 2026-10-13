@@ -33,7 +33,7 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
       m_selectionBtn("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_drawBtn("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_rangeSelectBtn("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
-      m_erasorBtn("erasor mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
+      m_erasorBtn("eraser mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_splitBtn("split mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_lassoBtn("lasso mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize)
 {
@@ -106,27 +106,27 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
     m_horizontalScrollBar.setVisible(false);
 
     m_selectionBtn.setName("select");
-    m_selectionBtn.setTooltip(GUIHelpers::translate("select clips or automation points", m_editViewState.m_applicationState));
+    m_selectionBtn.setTooltip(GUIHelpers::translate("Select, move, or resize MIDI notes", m_editViewState.m_applicationState));
     m_selectionBtn.addListener(this);
 
     m_drawBtn.setName("draw");
-    m_drawBtn.setTooltip(GUIHelpers::translate("draw mode", m_editViewState.m_applicationState));
+    m_drawBtn.setTooltip(GUIHelpers::translate("Draw MIDI notes", m_editViewState.m_applicationState));
     m_drawBtn.addListener(this);
 
     m_rangeSelectBtn.setName("range select");
-    m_rangeSelectBtn.setTooltip(GUIHelpers::translate("range select mode", m_editViewState.m_applicationState));
+    m_rangeSelectBtn.setTooltip(GUIHelpers::translate("Select MIDI notes in a time and pitch range", m_editViewState.m_applicationState));
     m_rangeSelectBtn.addListener(this);
 
-    m_erasorBtn.setName("erasor");
-    m_erasorBtn.setTooltip(GUIHelpers::translate("erasor mode", m_editViewState.m_applicationState));
+    m_erasorBtn.setName("eraser");
+    m_erasorBtn.setTooltip(GUIHelpers::translate("Erase MIDI notes", m_editViewState.m_applicationState));
     m_erasorBtn.addListener(this);
 
     m_splitBtn.setName("split");
-    m_splitBtn.setTooltip(GUIHelpers::translate("split clips", m_editViewState.m_applicationState));
+    m_splitBtn.setTooltip(GUIHelpers::translate("Split MIDI notes at the pointer position", m_editViewState.m_applicationState));
     m_splitBtn.addListener(this);
 
     m_lassoBtn.setName("lasso");
-    m_lassoBtn.setTooltip(GUIHelpers::translate("lasso select", m_editViewState.m_applicationState));
+    m_lassoBtn.setTooltip(GUIHelpers::translate("Select MIDI notes with a lasso", m_editViewState.m_applicationState));
     m_lassoBtn.addListener(this);
 
     addAndMakeVisible(m_toolBar);
@@ -351,6 +351,9 @@ void PianoRollEditor::getAllCommands(juce::Array<juce::CommandID> &commands)
         KeyPressCommandIDs::nudgeNotesUp, KeyPressCommandIDs::nudgeNotesDown,
         KeyPressCommandIDs::nudgeNotesLeft, KeyPressCommandIDs::nudgeNotesRight,
         KeyPressCommandIDs::nudgeNotesOctaveUp, KeyPressCommandIDs::nudgeNotesOctaveDown,
+        KeyPressCommandIDs::selectMidiEditorTool, KeyPressCommandIDs::drawMidiEditorTool,
+        KeyPressCommandIDs::rangeSelectMidiEditorTool, KeyPressCommandIDs::eraserMidiEditorTool,
+        KeyPressCommandIDs::splitMidiEditorTool, KeyPressCommandIDs::lassoMidiEditorTool,
     };
 
     commands.addArray(ids);
@@ -411,6 +414,36 @@ void PianoRollEditor::getCommandInfo(juce::CommandID commandID, juce::Applicatio
     case KeyPressCommandIDs::nudgeNotesOctaveDown:
         result.setInfo("move selected Notes octave down", "move selected notes octave down", "Notes", 0);
         result.addDefaultKeypress(juce::KeyPress::downKey, juce::ModifierKeys::commandModifier);
+        break;
+    case KeyPressCommandIDs::selectMidiEditorTool:
+        result.setInfo("Pointer tool", "Select, move, or resize MIDI notes", "MIDI Editor", 0);
+        result.addDefaultKeypress('1', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_pianoRollViewPort != nullptr && m_pianoRollViewPort->getCurrentToolType() == Tool::pointer);
+        break;
+    case KeyPressCommandIDs::drawMidiEditorTool:
+        result.setInfo("Draw tool", "Draw MIDI notes", "MIDI Editor", 0);
+        result.addDefaultKeypress('2', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_pianoRollViewPort != nullptr && m_pianoRollViewPort->getCurrentToolType() == Tool::draw);
+        break;
+    case KeyPressCommandIDs::rangeSelectMidiEditorTool:
+        result.setInfo("Range tool", "Select MIDI notes in a time and pitch range", "MIDI Editor", 0);
+        result.addDefaultKeypress('3', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_pianoRollViewPort != nullptr && m_pianoRollViewPort->getCurrentToolType() == Tool::range);
+        break;
+    case KeyPressCommandIDs::eraserMidiEditorTool:
+        result.setInfo("Eraser tool", "Erase MIDI notes", "MIDI Editor", 0);
+        result.addDefaultKeypress('4', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_pianoRollViewPort != nullptr && m_pianoRollViewPort->getCurrentToolType() == Tool::eraser);
+        break;
+    case KeyPressCommandIDs::splitMidiEditorTool:
+        result.setInfo("Split tool", "Split MIDI notes at the pointer position", "MIDI Editor", 0);
+        result.addDefaultKeypress('5', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_pianoRollViewPort != nullptr && m_pianoRollViewPort->getCurrentToolType() == Tool::knife);
+        break;
+    case KeyPressCommandIDs::lassoMidiEditorTool:
+        result.setInfo("Lasso tool", "Select MIDI notes with a lasso", "MIDI Editor", 0);
+        result.addDefaultKeypress('6', juce::ModifierKeys::commandModifier);
+        result.setTicked(m_pianoRollViewPort != nullptr && m_pianoRollViewPort->getCurrentToolType() == Tool::lasso);
         break;
 
     default:
@@ -514,6 +547,30 @@ bool PianoRollEditor::perform(const juce::ApplicationCommandTarget::InvocationIn
 
         break;
     }
+    case KeyPressCommandIDs::selectMidiEditorTool:
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->setTool(Tool::pointer);
+        break;
+    case KeyPressCommandIDs::drawMidiEditorTool:
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->setTool(Tool::draw);
+        break;
+    case KeyPressCommandIDs::rangeSelectMidiEditorTool:
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->setTool(Tool::range);
+        break;
+    case KeyPressCommandIDs::eraserMidiEditorTool:
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->setTool(Tool::eraser);
+        break;
+    case KeyPressCommandIDs::splitMidiEditorTool:
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->setTool(Tool::knife);
+        break;
+    case KeyPressCommandIDs::lassoMidiEditorTool:
+        if (m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->setTool(Tool::lasso);
+        break;
     default:
         return false;
     }

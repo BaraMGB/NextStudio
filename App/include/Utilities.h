@@ -97,7 +97,20 @@ enum KeyPressCommandIDs
     redo,
 
     debugOutputEdit,
-    saveProject
+    saveProject,
+
+    selectSongEditorTool,
+    lassoSelectSongEditorTool,
+    timeRangeSelectSongEditorTool,
+    splitSongEditorTool,
+    timeStretchSongEditorTool,
+
+    selectMidiEditorTool,
+    drawMidiEditorTool,
+    rangeSelectMidiEditorTool,
+    eraserMidiEditorTool,
+    splitMidiEditorTool,
+    lassoMidiEditorTool
 };
 
 namespace Helpers
