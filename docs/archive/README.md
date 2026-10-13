@@ -23,6 +23,12 @@ All 18 original change records are archived after extracting current knowledge. 
 
 Exact historical raster results describe the renderer/revision tested then. Later #91 fixes (`04f47ef`, `4106810`) allow native-renderer differences and finish drawing before readback; earlier Linux comparisons are not a cross-platform pixel-identity promise.
 
+## Selection architecture
+
+| Record | Known outcome / revision | Current knowledge |
+|---|---|---|
+| [Separate Lasso and TimeRange](changes/lasso-time-range-separation.md) | Foundation and #84 implemented and accepted | [Selection gestures](../components/selection-gestures.md) |
+
 ## MIDI input and project workflows
 
 | Record | Historical context | Current knowledge |

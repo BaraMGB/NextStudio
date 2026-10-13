@@ -1,10 +1,16 @@
 # Separate Lasso and TimeRange selection
 
-- Type: proposal
-- Audience: contributors and maintainer
-- Status: approved architecture; foundation and velocity source implemented, maintainer testing pending
-- Related issue: [#84](https://github.com/BaraMGB/NextStudio/issues/84)
-- Scope: replace the combined Lasso/Range mechanism before adding velocity-lane selection
+- Type: historical record
+- Audience: contributors
+- Status: implemented and accepted
+- Related issue: [#84](https://github.com/BaraMGB/NextStudio/issues/84) (closed)
+- Current reference: [Lasso and TimeRange selection](../../components/selection-gestures.md)
+- Scope: accepted separation of the combined Lasso/Range mechanism and velocity-lane selection
+
+## Outcome
+
+Both implementation batches and the separate architecture foundation were accepted.
+Issue #84 is closed. The existing overwrite policy remains unchanged.
 
 ## Decision
 
@@ -79,13 +85,14 @@ attached through the viewport's `LassoSource` adapter using the same gesture and
 selection policies. Its hit test uses marker centres,
 not stems, pitch or duration. Add persistent selected-marker feedback; keep direct
 velocity dragging intact. Add source-specific regressions and repeat the
-build/test/runtime/shared-artifact gates. #84 remains open until its own acceptance
-criteria and maintainer testing are satisfied.
+build/test/runtime/shared-artifact gates. Acceptance required the issue criteria and
+maintainer testing; both are now complete and #84 is closed.
 
 ## Evidence and limits
 
-The current [selection contract](../components/selection-gestures.md) owns implemented responsibilities and lifecycle. [Testing](../development/testing.md#selection-gesture-validation) owns reusable test procedures. Noteworthy
+The current [selection contract](../../components/selection-gestures.md) owns implemented responsibilities and lifecycle. [Testing](../../development/testing.md#selection-gesture-validation) owns reusable test procedures. Noteworthy
 results and baseline #84 reproduction are summarized in the active Pi Agent
 conversation. A passing helper suite does not prove GUI dispatch or native-platform
-coverage. No commits, pushes, tracker closure or platform certification are implied
-by this approval.
+coverage. The original architecture approval did not itself imply commits, pushes,
+tracker closure or platform certification; the later acceptance and issue closure
+are recorded in the outcome above.

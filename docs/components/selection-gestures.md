@@ -163,12 +163,13 @@ lasso snapshots are independent, as are their begin/update/end APIs.
 
 [Testing](../development/testing.md#selection-gesture-validation) owns repeatable
 console/native procedures and coverage boundaries. The velocity lane is a lasso
-source for [#84](https://github.com/BaraMGB/NextStudio/issues/84), awaiting maintainer
-testing. Explicit Lasso selects even when pressed on a head; Pointer on empty
+source implemented for closed [#84](https://github.com/BaraMGB/NextStudio/issues/84).
+Explicit Lasso selects even when pressed on a head; Pointer on empty
 space selects, while a direct head drag still edits the existing selected group
 or just the unselected note. Outside explicit Lasso, a head click selects its note
 on non-drag release: normal click replaces membership, Shift adds, and Ctrl/Command
 toggles. Selection is deferred so a drag never changes its original group; live
 ValueTree resolution rejects removed/recreated press targets. Clicks do not edit
-velocity or create undo transactions. Selected heads retain a white outline after hover exits. The [approved plan](../plans/lasso-time-range-separation.md)
-remains active until both implementation stages are accepted.
+velocity or create undo transactions. Selected heads retain a white outline after
+hover exits. The accepted rationale is preserved in the
+[historical design record](../archive/changes/lasso-time-range-separation.md).

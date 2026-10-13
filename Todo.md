@@ -27,10 +27,6 @@ The 14 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStu
 - [ ] [#79 — Crash capture and next-start reporting](https://github.com/BaraMGB/NextStudio/issues/79) — POSIX capture, Windows minidumps, context, symbols and startup UI; async-signal-safe handlers and user-controlled uploads.
 - [ ] [#58 — Favorite plugins and custom categories](https://github.com/BaraMGB/NextStudio/issues/58) — persistent metadata following completed deterministic ordering (#71).
 
-## Pending architecture acceptance
-
-- [ ] [Separate Lasso and TimeRange](docs/plans/lasso-time-range-separation.md) — implemented; the plan still records separate foundation acceptance as pending. Related #84 is closed. Overwrite policy is unchanged.
-
 ## Deferred and metadata
 
 - [ ] [#21 — Detachable/fullscreen Piano Roll](https://github.com/BaraMGB/NextStudio/issues/21) — Post v1.0.
