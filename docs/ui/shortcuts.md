@@ -41,8 +41,15 @@ Reference of default keyboard shortcuts. `Cmd` means `Ctrl` on Windows/Linux and
 
 | Action | Shortcut |
 |---|---|
+| Toggle Record Arm for Selected Tracks | `Cmd+Shift+A` |
+| Toggle Mute for Selected Tracks | `Cmd+Shift+M` |
+| Toggle Solo for Selected Tracks | `Cmd+Shift+S` |
 | Delete Selected Tracks | `Backspace`, `Delete`, `Cmd+X` |
 | Duplicate Selected Tracks | `Cmd+D` |
+
+Arm applies only to selected audio/MIDI tracks. Mute also applies to selected folder
+or Master tracks; Solo applies to selected audio/MIDI or folder tracks. With a
+multi-track selection, each eligible track inverts its own current state.
 
 ## MIDI Editor
 

@@ -110,7 +110,11 @@ enum KeyPressCommandIDs
     rangeSelectMidiEditorTool,
     eraserMidiEditorTool,
     splitMidiEditorTool,
-    lassoMidiEditorTool
+    lassoMidiEditorTool,
+
+    toggleArmSelectedTracks,
+    toggleMuteSelectedTracks,
+    toggleSoloSelectedTracks
 };
 
 namespace Helpers

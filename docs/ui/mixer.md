@@ -16,7 +16,11 @@ Each channel strip shows:
 | Level Meters | Two vertical meters showing left and right channels in real-time |
 | Mute (M) | Mutes the track (button highlighted when active) |
 | Solo (S) | Solos the track (other tracks are muted) |
-| Record (R) | Arms the track for recording (audio tracks only) |
+| Arm (A) | Arms the track for recording (audio/MIDI tracks only) |
+
+The configurable `Cmd/Ctrl+Shift+M`, `Cmd/Ctrl+Shift+S` and
+`Cmd/Ctrl+Shift+A` shortcuts operate on the current Track List selection, not the
+hovered Mixer channel. Each eligible selected track toggles its own state.
 
 ## Master Channel
 

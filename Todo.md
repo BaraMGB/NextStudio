@@ -2,11 +2,10 @@
 
 GitHub issues are tracker entries for reported work and status only. Solution proposals, review, validation and acceptance take place directly in the active Pi Agent conversation. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
-The 14 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
+The 13 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
 
 ## Focused workflow improvements
 
-- [ ] [#81 — Shortcuts for track arm, mute and solo](https://github.com/BaraMGB/NextStudio/issues/81) — reuse the command/key-mapping infrastructure established by #54.
 - [ ] [#85 — Add tracks below another track or into a folder](https://github.com/BaraMGB/NextStudio/issues/85).
 - [ ] [#74 — Auto-scroll MIDI editor while dragging notes](https://github.com/BaraMGB/NextStudio/issues/74).
 - [ ] [#86 — Auto-scroll track list while reordering tracks](https://github.com/BaraMGB/NextStudio/issues/86) — share a tested edge-scroll policy with #74 where boundaries allow.

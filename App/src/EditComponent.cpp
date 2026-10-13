@@ -901,6 +901,8 @@ void EditComponent::getAllCommands(juce::Array<juce::CommandID> &commands)
         KeyPressCommandIDs::selectSongEditorTool, KeyPressCommandIDs::lassoSelectSongEditorTool,
         KeyPressCommandIDs::timeRangeSelectSongEditorTool, KeyPressCommandIDs::splitSongEditorTool,
         KeyPressCommandIDs::timeStretchSongEditorTool,
+        KeyPressCommandIDs::toggleArmSelectedTracks, KeyPressCommandIDs::toggleMuteSelectedTracks,
+        KeyPressCommandIDs::toggleSoloSelectedTracks,
     };
 
     commands.addArray(ids);
@@ -965,6 +967,18 @@ void EditComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
         result.setInfo("Time stretch tool", "Stretch an audio clip in time", "Song Editor", 0);
         result.addDefaultKeypress('5', juce::ModifierKeys::commandModifier);
         result.setTicked(m_songEditor.getToolMode() == Tool::timestretch);
+        break;
+    case KeyPressCommandIDs::toggleArmSelectedTracks:
+        result.setInfo("Arm selected tracks", "Toggle record arm for selected audio and MIDI tracks", "Tracks", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("a").getKeyCode(), juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
+        break;
+    case KeyPressCommandIDs::toggleMuteSelectedTracks:
+        result.setInfo("Mute selected tracks", "Toggle mute for selected tracks", "Tracks", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("m").getKeyCode(), juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
+        break;
+    case KeyPressCommandIDs::toggleSoloSelectedTracks:
+        result.setInfo("Solo selected tracks", "Toggle solo for selected tracks", "Tracks", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("s").getKeyCode(), juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
         break;
     default:
         break;
@@ -1075,6 +1089,34 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
         break;
     case KeyPressCommandIDs::timeStretchSongEditorTool:
         m_songEditor.setTool(Tool::timestretch);
+        break;
+    case KeyPressCommandIDs::toggleArmSelectedTracks:
+        for (auto *track : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
+            if (track != nullptr && !track->isMasterTrack())
+                if (auto *audioTrack = dynamic_cast<te::AudioTrack *>(track))
+                    EngineHelpers::armTrack(*audioTrack, !EngineHelpers::isTrackArmed(*audioTrack));
+        break;
+    case KeyPressCommandIDs::toggleMuteSelectedTracks:
+        for (auto *track : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
+        {
+            if (track == nullptr)
+                continue;
+
+            if (track->isMasterTrack())
+            {
+                if (auto masterVolume = m_edit.getMasterVolumePlugin())
+                    masterVolume->muteOrUnmute();
+            }
+            else
+            {
+                track->setMute(!track->isMuted(false));
+            }
+        }
+        break;
+    case KeyPressCommandIDs::toggleSoloSelectedTracks:
+        for (auto *track : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
+            if (track != nullptr && !track->isMasterTrack())
+                track->setSolo(!track->isSolo(false));
         break;
     default:
         return false;

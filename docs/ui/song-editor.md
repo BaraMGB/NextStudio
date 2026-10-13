@@ -19,9 +19,9 @@ Shows the headers of all tracks arranged vertically.
 | Color stripe (left) | Shows track color. Click the arrow to minimize/maximize the track. For folder tracks, this shows/hides contained tracks. |
 | Track name | Editable by double-clicking. |
 | Type icon | Audio (wave), MIDI (piano), or Folder (folder). |
-| Arm (A) | Arms the track for recording (audio/MIDI only). |
-| Mute (M) | Mutes the track. |
-| Solo (S) | Mutes all other tracks. |
+| Arm (A) | Arms the track for recording (audio/MIDI only). Selected-track shortcut: `Cmd/Ctrl+Shift+A`. |
+| Mute (M) | Mutes the track. Selected-track shortcut: `Cmd/Ctrl+Shift+M`. |
+| Solo (S) | Mutes all other tracks. Selected-track shortcut: `Cmd/Ctrl+Shift+S`. |
 | Volume/Pan Knob | Rotary control for volume (click & drag). Right-click opens automation options. Not for folder tracks. |
 | Level Meter | Shows current audio level. Not for folder tracks. |
 
@@ -32,6 +32,10 @@ Shows the headers of all tracks arranged vertically.
 - Select/deselect audio/MIDI inputs. MIDI checkmarks represent persistent manual assignments only; the automatic default input used by Exclusive MIDI Focus is not checked. Multiple permanent MIDI inputs can be assigned to a track.
 
 ### Track Operations
+
+Arm, Mute and Solo shortcuts act on the current Track List selection, not the
+hovered header. With multiple selected tracks, every eligible track toggles its
+own state. Folder tracks support Mute and Solo; the Master supports only Mute.
 
 - **Change track height:** Click and drag the bottom edge of the Track Header (not for minimized or folder tracks).
 - **Move tracks:** Click and drag a Track Header up or down. Tracks can be dragged into folder tracks.
