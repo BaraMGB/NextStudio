@@ -16,6 +16,7 @@ This document describes the implementation: component ownership, the Tracktion d
 |---|---|
 | Editor frame, layout, commands | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp` |
 | Note grid, hit testing, note operations | `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
+| Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
 | Pointer/Draw mouse-button routing policy | `App/include/PianoRollMouseActions.h` |
 | Pending paste state machine | `App/include/MidiPendingPaste.h`, `App/src/MidiPendingPaste.cpp` |
 | Inserted-note length rules | `App/include/PianoRollNoteLength.h`, `App/src/PianoRollNoteLength.cpp` |
@@ -275,6 +276,10 @@ During the drag, `PointerTool` only computes deltas:
 - `m_leftTimeDelta` / `m_rightTimeDelta` — edge resize deltas shared by every selected note.
 
 `MidiViewport::drawDraggedNotes()` and Pointer commit both use `MidiNoteGesture::resolve()` from the same original notes and constrained delta. `TimelineMouseGesture` provides an inverse anchor so grabbing an off-grid edge does not jump. Absolute start/end times are converted through the actual TempoSequence, including clip offsets; durations are never passed to an absolute time-to-beat conversion. The preview does not mutate the model. Resizing either edge applies the same time delta to all selected notes in both the preview and the committed result. A left-edge resize changes each selected note's start and inversely changes its duration; a right-edge resize changes each duration while preserving its start. Guide notes audition pitch changes.
+
+During an active Pointer note drag, `DragEdgeScroll` maps the raw pointer position to independent, time-based horizontal and vertical pixel velocities. `MidiViewport` samples it at 60 Hz, converts horizontal motion through the current beats-per-pixel scale and vertical motion through the current key height, then replays the drag at an in-bounds interaction point. A stationary pointer outside the component therefore continues scrolling while the grabbed reference remains visible. `TimelineMouseGesture::offsetForViewScroll()` advances the musical edge by the actual clamped horizontal pan instead of applying the normal geometry-change re-anchor. Move gestures use both axes; left/right resize uses only horizontal scrolling. Before panning, `PointerTool` constrains both the requested beat delta and the requested key delta against every selected note. Horizontal scrolling stops at the left movement or minimum-duration limit; vertical scrolling stops as soon as any selected note would leave MIDI pitches `0..127`. The view is additionally bounded at beat zero, the existing end-scroll range and the available piano-key range.
+
+Guide-note release and drag scrolling use separate `juce::MultiTimer` IDs. Auto-scroll stops on release, cancellation, tool/track teardown, an invalid source, return to the central quiet area, or when neither axis can apply further movement. This avoids continued 60 Hz drag replay and repaint work at timeline, pitch or gesture-feasibility boundaries while allowing an unblocked diagonal axis to continue. Auto-scroll changes only edit-local view state; preview and commit retain the existing one-transaction move/copy contract. The pure edge velocity ramp, elapsed-time cap, axis gating and outside-pointer behavior are covered by `DragEdgeScrollTests`; gesture offset and note-movement feasibility constraints are covered by `TimelineSnappingTests`. The policy is intentionally independent of MIDI model state so track-list reordering can share it without sharing Piano Roll gesture ownership.
 
 `mouseUp` commits the operation in three phases:
 

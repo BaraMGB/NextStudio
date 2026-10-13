@@ -52,6 +52,43 @@ double constrain(const juce::Array<Item>& items, Kind kind, double requested)
     }
     return delta;
 }
+double constrainViewBeatDelta(const juce::Array<Item>& items, Kind kind, const Item& reference,
+                              double currentEdgeBeat, double requestedBeatDelta)
+{
+    if (reference.clip == nullptr || reference.note == nullptr || !std::isfinite(currentEdgeBeat)
+        || !std::isfinite(requestedBeatDelta) || requestedBeatDelta == 0.0)
+        return 0.0;
+
+    const double sourceEdgeTime = edgeTime(reference, kind);
+    const double requestedSeconds = time(reference, currentEdgeBeat + requestedBeatDelta) - sourceEdgeTime;
+    const double constrainedSeconds = constrain(items, kind, requestedSeconds);
+    const double allowed = beat(reference, sourceEdgeTime + constrainedSeconds) - currentEdgeBeat;
+
+    return requestedBeatDelta < 0.0 ? std::clamp(allowed, requestedBeatDelta, 0.0)
+                                    : std::clamp(allowed, 0.0, requestedBeatDelta);
+}
+double constrainViewKeyDelta(const juce::Array<Item>& items, int currentNoteDelta, double requestedKeyDelta)
+{
+    if (!std::isfinite(requestedKeyDelta) || requestedKeyDelta == 0.0)
+        return 0.0;
+
+    double allowed = requestedKeyDelta;
+    bool foundNote = false;
+    for (const auto& item : items)
+    {
+        if (item.note == nullptr)
+            continue;
+        foundNote = true;
+        const int currentPitch = item.note->getNoteNumber() + currentNoteDelta;
+        allowed = std::clamp(allowed, -static_cast<double>(currentPitch),
+                             static_cast<double>(127 - currentPitch));
+    }
+
+    if (!foundNote)
+        return 0.0;
+    return requestedKeyDelta < 0.0 ? std::clamp(allowed, requestedKeyDelta, 0.0)
+                                   : std::clamp(allowed, 0.0, requestedKeyDelta);
+}
 Timing resolve(const Item& item, Kind kind, double seconds)
 {
     const double start = base(item) + item.note->getStartBeat().inBeats();

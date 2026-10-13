@@ -12,6 +12,9 @@ struct Timing { double startBeat, lengthBeats; }; // internal clip-sequence beat
 // True primary edge time in the current tempo/clip-offset context.
 double edgeTime(const Item&, Kind);
 double constrain(const juce::Array<Item>&, Kind, double requestedSeconds);
+double constrainViewBeatDelta(const juce::Array<Item>&, Kind, const Item& reference,
+                              double currentEdgeBeat, double requestedBeatDelta);
+double constrainViewKeyDelta(const juce::Array<Item>&, int currentNoteDelta, double requestedKeyDelta);
 Timing resolve(const Item&, Kind, double effectiveSeconds);
 std::optional<double> validSplitBeat(double globalStart, double globalEnd, double proposed);
 }

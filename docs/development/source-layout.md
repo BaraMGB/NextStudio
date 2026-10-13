@@ -77,6 +77,7 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 - `TimeLineComponent.*`
 - `TimelineOverlayComponent.*`
 - `TimelineSoftSnap.*` / `TimelineSnapResolver.*` — pure magnetic curve, engine grid adapter, inverse-anchored mouse state and actual plateau feedback
+- `DragEdgeScroll.*` — reusable time-based edge velocity policy, currently used by Piano Roll note drags
 - `TimelineInteractionPreview.h` — pointer-free primary header snapshots, transient feedback geometry, compact status, subtle font tint and fractional guide/diamond renderer
 - `MouseGestureInput.h` — modifier-only replay of the unchanged raw pointer/down coordinates
 - `ClipGestureLimits.*` / `AutomationGestureLimits.*` — shared preview/commit feasibility

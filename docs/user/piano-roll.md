@@ -135,6 +135,10 @@ This keeps the pitch monophonic in the affected range.
 
 Drag the left or right edge of a note. The cursor changes near resizable edges. If the dragged note is part of a multi-note selection, the same edge delta is applied to every selected note, matching the drag preview. Dragging a left edge changes each selected note's start and duration; dragging a right edge changes each duration while preserving its start. Resizing does not change the remembered last-inserted length.
 
+#### Auto-scroll while dragging
+
+Moving notes into a grid edge automatically scrolls the Piano Roll horizontally and vertically. The speed increases as the pointer approaches or passes the edge, and scrolling continues while the pointer is held outside the grid. The grabbed reference note remains at the visible boundary. Horizontal auto-scroll also applies while resizing a note edge; resize gestures do not scroll vertically. Scrolling stops in a direction when the selection cannot move any farther, including at its left movement or minimum-duration limit. For multi-note moves, vertical scrolling stops as soon as any selected note reaches MIDI pitch 0 or 127. Beat zero and the visible timeline and piano-key ranges also limit scrolling without changing the existing move, copy, snap, or undo behavior.
+
 #### Insert by double-click
 
 Double-click empty grid space over a MIDI clip to insert a note using the length selected by **INSERT LENGHT**. The previous MIDI-note selection is cleared and the inserted note becomes selected.

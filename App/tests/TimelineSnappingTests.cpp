@@ -170,6 +170,15 @@ void testGesture(const te::TempoSequence& tempo)
     require(gesture.update(80, zoomed, false) > forward, "lost motion after zoom");
     gesture.reset(); require(!gesture.active(), "cancel retained anchor");
 
+    TimelineMouseGesture autoScrolled;
+    autoScrolled.begin(2.37, 50, resolver);
+    autoScrolled.offsetForViewScroll(0.75);
+    auto scrolledContext = resolver.context();
+    ++scrolledContext.revision;
+    TimelineSnapResolver scrolled(tempo, scrolledContext);
+    near(autoScrolled.update(50, scrolled, false), 3.12);
+    require(autoScrolled.update(60, scrolled, false) > 3.12, "motion lost after auto-scroll offset");
+
     PianoRollDrawGesture draw;
     require(draw.begin(2, .25, 100, resolver, false), "draw not initialized");
     near(draw.startBeat(), 2); near(draw.endBeat(), 3); // coarse snap/fine insert
@@ -374,6 +383,22 @@ void testNoteModel(te::Edit& edit, te::MidiClip& clip)
     near(MidiNoteGesture::resolve(notes[1], MidiNoteGesture::Kind::resizeRight, floorDelta).lengthBeats, 1.0 / 960);
     require(MidiNoteGesture::resolve(notes[0], MidiNoteGesture::Kind::resizeRight, floorDelta).lengthBeats > .9,
             "multi-resize did not use common feasible delta");
+
+    auto* boundaryNote = sequence.addNote(69, beat(0), tracktion::BeatDuration::fromBeats(1), 78, 9, nullptr);
+    juce::Array<MidiNoteGesture::Item> boundaryItems;
+    boundaryItems.add({&clip, boundaryNote});
+    const MidiNoteGesture::Item boundaryItem{&clip, boundaryNote};
+    near(MidiNoteGesture::constrainViewBeatDelta(boundaryItems, MidiNoteGesture::Kind::move,
+                                                 boundaryItem, base, -0.5), 0.0);
+    near(MidiNoteGesture::constrainViewBeatDelta(boundaryItems, MidiNoteGesture::Kind::move,
+                                                 boundaryItem, base, 0.5), 0.5);
+    near(MidiNoteGesture::constrainViewBeatDelta(boundaryItems, MidiNoteGesture::Kind::move,
+                                                 boundaryItem, base, NAN), 0.0);
+    near(MidiNoteGesture::constrainViewKeyDelta(boundaryItems, -69, -0.5), 0.0);
+    near(MidiNoteGesture::constrainViewKeyDelta(boundaryItems, -68, -2.0), -1.0);
+    near(MidiNoteGesture::constrainViewKeyDelta(boundaryItems, 58, 0.5), 0.0);
+    near(MidiNoteGesture::constrainViewKeyDelta(boundaryItems, 0, 0.5), 0.5);
+    near(MidiNoteGesture::constrainViewKeyDelta(boundaryItems, 0, NAN), 0.0);
 }
 void testClipLimits(te::Edit& edit)
 {

@@ -51,6 +51,10 @@ public:
     MidiNoteGesture::Timing previewTiming(te::MidiClip*, te::MidiNote*) const;
     // Public getters for MidiViewport's paint method
     bool isDragging() const { return m_isDragging; }
+    bool isMovingNotes() const { return m_currentDragMode == DragMode::moveNotes; }
+    double constrainViewScrollBeatDelta(double requestedBeatDelta, MidiViewport&) const;
+    double constrainViewScrollKeyDelta(double requestedKeyDelta, MidiViewport&) const;
+    void offsetForViewScroll(double beatDelta) { m_timeGesture.offsetForViewScroll(beatDelta); }
     double getDraggedTimeDelta() const { return m_draggedTimeDelta; }
     int getDraggedNoteDelta() const { return m_draggedNoteDelta; }
     double getLeftTimeDelta() const { return m_leftTimeDelta; }

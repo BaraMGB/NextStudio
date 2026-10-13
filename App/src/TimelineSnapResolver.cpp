@@ -235,3 +235,8 @@ void TimelineMouseGesture::setDisplayedBeat(double beat)
         m_displayedBeat = beat;
     }
 }
+void TimelineMouseGesture::offsetForViewScroll(double beatDelta)
+{
+    if (m_active && std::isfinite(beatDelta))
+        setDisplayedBeat(m_displayedBeat + beatDelta);
+}

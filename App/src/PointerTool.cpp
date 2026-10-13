@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "PointerTool.h"
 
+#include <cmath>
 #include <map>
 
 void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
@@ -259,6 +260,41 @@ MidiNoteGesture::Kind PointerTool::gestureKind() const
 MidiNoteGesture::Timing PointerTool::previewTiming(te::MidiClip* clip, te::MidiNote* note) const
 {
     return MidiNoteGesture::resolve({clip, note}, gestureKind(), m_draggedTimeDelta + m_leftTimeDelta + m_rightTimeDelta);
+}
+
+double PointerTool::constrainViewScrollBeatDelta(double requestedBeatDelta, MidiViewport& viewport) const
+{
+    auto* clickedNote = viewport.getClickedNote();
+    if (!m_isDragging || m_dragClip == nullptr || clickedNote == nullptr
+        || !viewport.getCachedMidiClips().contains(m_dragClip.get())
+        || !m_dragClip->state.isAChildOf(m_evs.m_edit.state)
+        || !m_dragClip->getSequence().getNotes().contains(clickedNote)
+        || !std::isfinite(requestedBeatDelta) || requestedBeatDelta == 0.0)
+        return 0.0;
+
+    juce::Array<MidiNoteGesture::Item> items;
+    for (auto* note : viewport.getSelectedNotes())
+        if (auto* clip = viewport.getSelectedEvents().clipForEvent(note))
+            items.add({clip, note});
+
+    if (items.isEmpty())
+        return 0.0;
+
+    return MidiNoteGesture::constrainViewBeatDelta(items, gestureKind(), {m_dragClip.get(), clickedNote},
+                                                   m_timeGesture.displayedBeat(), requestedBeatDelta);
+}
+
+double PointerTool::constrainViewScrollKeyDelta(double requestedKeyDelta, MidiViewport& viewport) const
+{
+    if (!isMovingNotes() || !std::isfinite(requestedKeyDelta) || requestedKeyDelta == 0.0)
+        return 0.0;
+
+    juce::Array<MidiNoteGesture::Item> items;
+    for (auto* note : viewport.getSelectedNotes())
+        if (auto* clip = viewport.getSelectedEvents().clipForEvent(note))
+            items.add({clip, note});
+
+    return MidiNoteGesture::constrainViewKeyDelta(items, m_draggedNoteDelta, requestedKeyDelta);
 }
 
 void PointerTool::resetDrag(MidiViewport& viewport)

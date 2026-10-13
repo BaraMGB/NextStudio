@@ -60,6 +60,7 @@ public:
     void begin(double displayedGlobalBeat, double pointerX, const TimelineSnapResolver&);
     double update(double pointerX, const TimelineSnapResolver&, bool bypass);
     void setDisplayedBeat(double beat); // after real feasibility constraints
+    void offsetForViewScroll(double beatDelta);
     double displayedBeat() const { return m_displayedBeat; }
     const TimelineSnapResult& feedback() const { return m_feedback; }
     void reset() { m_active = false; m_knownGrid = false; m_feedback = {}; }

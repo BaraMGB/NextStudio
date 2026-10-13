@@ -561,6 +561,18 @@ if(BUILD_TESTING)
     target_compile_definitions(ClipFrameDrawingTests PRIVATE JUCE_USE_CURL=0)
     add_test(NAME ClipFrameDrawing COMMAND ClipFrameDrawingTests)
 
+    add_executable(DragEdgeScrollTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/DragEdgeScroll.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/DragEdgeScrollTests.cpp)
+
+    target_include_directories(DragEdgeScrollTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_compile_features(DragEdgeScrollTests PRIVATE cxx_std_20)
+
+    add_test(NAME DragEdgeScroll
+            COMMAND DragEdgeScrollTests)
+
     juce_add_console_app(TimelineViewGeometryTests PRODUCT_NAME "TimelineViewGeometryTests")
     target_sources(TimelineViewGeometryTests PRIVATE
             src/TimelineViewGeometry.cpp tests/TimelineViewGeometryTests.cpp)

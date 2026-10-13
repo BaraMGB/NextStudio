@@ -31,6 +31,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MidiSelectionSnapshot.h"
 #include "SharedSelectionSnapshot.h"
 #include "EditViewState.h"
+#include "DragEdgeScroll.h"
 #include "Utilities.h"
 
 #include <functional>
@@ -43,7 +44,7 @@ class ToolStrategy;
 class MidiViewport
     : public juce::Component
     , public juce::ChangeBroadcaster
-    , public juce::Timer
+    , public juce::MultiTimer
     , private juce::ValueTree::Listener
     , private juce::ChangeListener
 {
@@ -72,7 +73,7 @@ public:
     void mouseExit(const juce::MouseEvent &) override;
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
 
-    void timerCallback() override;
+    void timerCallback(int timerID) override;
 
     void setNoteUnderMouseHandler(NoteUnderMouseHandler);
     void refreshNoteUnderMouse();
@@ -200,6 +201,10 @@ private:
     void snapToGrid(te::MidiNote *note, const te::MidiClip *clip) const;
     void scrollPianoRoll(float delta);
     void updateNoteUnderMouse();
+    juce::MouseEvent constrainNoteDragEvent(const juce::MouseEvent&) const;
+    void updateAutoScrollTimer(const juce::MouseEvent&);
+    void stopAutoScroll();
+    void performAutoScroll();
 
     void replaceSelection(const MidiSelectionSnapshot::Items&);
     void updateLassoSelection(juce::ModifierKeys);
@@ -243,6 +248,9 @@ private:
     juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
 
     bool m_noteInteractionActive = false, m_committingInteraction = false, m_refreshingSnapContext = false;
+    static constexpr int guideNoteTimerID = 1, autoScrollTimerID = 2;
+    DragEdgeScroll::Config m_autoScrollConfig;
+    double m_lastAutoScrollTime = 0.0;
     bool m_suppressToolGesture = false;
     juce::ValueTree m_noteInteractionSource;
     bool m_expandLeft{false}, m_expandRight{false}, m_noteAdding{false};

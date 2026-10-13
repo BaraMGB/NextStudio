@@ -49,6 +49,8 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
 
 MidiViewport::~MidiViewport()
 {
+    stopTimer(guideNoteTimerID);
+    stopAutoScroll();
     cancelSelectionGesture(false);
     clearNoteInteractionPreview();
     if (m_selectedEvents != nullptr)
@@ -443,6 +445,7 @@ bool MidiViewport::cancelActiveDraw()
 
 bool MidiViewport::cancelActiveInteraction()
 {
+    stopAutoScroll();
     if (cancelSelectionGesture())
         return true;
     if (cancelActiveDraw())
@@ -485,7 +488,9 @@ void MidiViewport::refreshMouseSnapContext()
             updateLasso(*event);
         else if (m_timeRangeGesture.active())
             updateTimeRangeSelection(*event);
-        else if ((pointer && pointer->isDragging()) || (draw && draw->isDrawing()))
+        else if (pointer && pointer->isDragging())
+            m_currentTool->mouseDrag(constrainNoteDragEvent(*event), *this);
+        else if (draw && draw->isDrawing())
             m_currentTool->mouseDrag(*event, *this);
         else if (m_currentTool->getToolId() == Tool::knife)
             m_currentTool->mouseMove(*event, *this);
@@ -502,7 +507,9 @@ void MidiViewport::modifierKeysChanged(const juce::ModifierKeys& mods)
             updateLasso(*event);
         else if (m_timeRangeGesture.active())
             updateTimeRangeSelection(*event);
-        else if ((draw && draw->isDrawing()) || (pointer && pointer->isDragging()))
+        else if (pointer && pointer->isDragging())
+            m_currentTool->mouseDrag(constrainNoteDragEvent(*event), *this);
+        else if (draw && draw->isDrawing())
             m_currentTool->mouseDrag(*event, *this);
         else if (m_currentTool->getToolId() == Tool::knife)
             m_currentTool->mouseMove(*event, *this);
@@ -511,6 +518,7 @@ void MidiViewport::modifierKeysChanged(const juce::ModifierKeys& mods)
 
 void MidiViewport::mouseDown(const juce::MouseEvent &e)
 {
+    stopAutoScroll();
     // A secondary button pressed during an existing primary gesture must not
     // replace that gesture's ownership or leave its strategy half-finished.
     if (e.mods.isPopupMenu() && m_pressInput.identity())
@@ -568,14 +576,25 @@ void MidiViewport::mouseDrag(const juce::MouseEvent &e)
     if (!m_pressInput.belongsToGesture(e)) return;
     m_mouseInput.remember(e);
     if (m_currentTool)
-        m_currentTool->mouseDrag(e, *this);
+    {
+        auto* pointer = dynamic_cast<PointerTool*>(m_currentTool.get());
+        const bool wasDraggingNote = pointer != nullptr && pointer->isDragging();
+        m_currentTool->mouseDrag(wasDraggingNote ? constrainNoteDragEvent(e) : e, *this);
 
+        // The event which crosses the drag threshold was evaluated with its raw
+        // position. Re-evaluate it once with an in-bounds interaction point so
+        // an outside pointer cannot leave the reference note off-screen.
+        if (!wasDraggingNote && pointer != nullptr && pointer->isDragging())
+            m_currentTool->mouseDrag(constrainNoteDragEvent(e), *this);
+    }
+    updateAutoScrollTimer(e);
     repaint();
 }
 void MidiViewport::mouseUp(const juce::MouseEvent &e)
 {
     if (m_suppressToolGesture)
     {
+        stopAutoScroll();
         m_suppressToolGesture = false;
         m_pressInput.reset();
         m_mouseInput.reset();
@@ -585,8 +604,12 @@ void MidiViewport::mouseUp(const juce::MouseEvent &e)
     }
     if (m_lassoComponent.active() && !ownsLasso(*this)) return;
     if (!m_pressInput.belongsToGesture(e)) return;
+    stopAutoScroll();
     if (m_currentTool)
-        m_currentTool->mouseUp(e, *this);
+    {
+        auto* pointer = dynamic_cast<PointerTool*>(m_currentTool.get());
+        m_currentTool->mouseUp(pointer != nullptr && pointer->isDragging() ? constrainNoteDragEvent(e) : e, *this);
+    }
     m_pressInput.reset();
     m_mouseInput.reset();
     updateToolCursor();
@@ -682,7 +705,7 @@ te::MidiNote *MidiViewport::addNewNote(int noteNumb, const te::MidiClip *clip, d
 void MidiViewport::playGuideNote(const te::MidiClip *clip, const int noteNumb, int vel)
 {
     clip->getAudioTrack()->playGuideNote(noteNumb, clip->getMidiChannel(), vel, false, true);
-    startTimer(100);
+    startTimer(guideNoteTimerID, 100);
 }
 
 bool MidiViewport::deleteNoteFromSecondaryClick(te::MidiNote *note)
@@ -1269,8 +1292,113 @@ void MidiViewport::scrollPianoRoll(float delta)
 {
     auto startKey = m_evs.getViewYScroll(m_timeLine.getTimeLineID());
     auto keyWidth = m_evs.getViewYScale(m_timeLine.getTimeLineID());
-    m_evs.setYScroll(m_timeLine.getTimeLineID(), juce::jlimit(0.f, 127.f - (float)(getHeight() / keyWidth), (float)startKey + delta));
+    const auto maximumStart = juce::jmax(0.0f, 128.0f - (float)(getHeight() / keyWidth));
+    m_evs.setYScroll(m_timeLine.getTimeLineID(), juce::jlimit(0.0f, maximumStart, (float)startKey + delta));
     refreshNoteUnderMouse();
+}
+
+juce::MouseEvent MidiViewport::constrainNoteDragEvent(const juce::MouseEvent& event) const
+{
+    auto position = event.position;
+    position.x = static_cast<float>(DragEdgeScroll::clampInteractionPosition(position.x, getWidth()));
+
+    if (auto* pointer = dynamic_cast<PointerTool*>(m_currentTool.get()); pointer != nullptr && pointer->isMovingNotes())
+        position.y = static_cast<float>(DragEdgeScroll::clampInteractionPosition(position.y, getHeight()));
+
+    return {event.source, position, event.mods, event.pressure, event.orientation, event.rotation,
+            event.tiltX, event.tiltY, event.eventComponent, event.originalComponent, event.eventTime,
+            event.mouseDownPosition, event.mouseDownTime, event.getNumberOfClicks(),
+            event.mouseWasDraggedSinceMouseDown()};
+}
+
+void MidiViewport::updateAutoScrollTimer(const juce::MouseEvent& event)
+{
+    auto* pointer = dynamic_cast<PointerTool*>(m_currentTool.get());
+    if (pointer == nullptr || !pointer->isDragging())
+    {
+        stopAutoScroll();
+        return;
+    }
+
+    const auto speed = DragEdgeScroll::velocity(event.position.x, event.position.y, getWidth(), getHeight(),
+                                                {true, pointer->isMovingNotes()}, m_autoScrollConfig);
+    if (speed.isZero())
+    {
+        stopAutoScroll();
+        return;
+    }
+
+    if (!isTimerRunning(autoScrollTimerID))
+    {
+        m_lastAutoScrollTime = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        startTimer(autoScrollTimerID, 1000 / 60);
+    }
+}
+
+void MidiViewport::stopAutoScroll()
+{
+    stopTimer(autoScrollTimerID);
+    m_lastAutoScrollTime = 0.0;
+}
+
+void MidiViewport::performAutoScroll()
+{
+    auto* pointer = dynamic_cast<PointerTool*>(m_currentTool.get());
+    auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers());
+    if (pointer == nullptr || !pointer->isDragging() || !event)
+    {
+        stopAutoScroll();
+        return;
+    }
+
+    m_mouseInput.remember(*event);
+    const auto speed = DragEdgeScroll::velocity(event->position.x, event->position.y, getWidth(), getHeight(),
+                                                {true, pointer->isMovingNotes()}, m_autoScrollConfig);
+    if (speed.isZero())
+    {
+        stopAutoScroll();
+        return;
+    }
+
+    const double now = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+    const auto delta = DragEdgeScroll::advance(speed, now - m_lastAutoScrollTime, m_autoScrollConfig);
+    m_lastAutoScrollTime = now;
+
+    const auto timelineID = m_timeLine.getTimeLineID();
+    const auto oldRange = m_evs.getVisibleBeatRange(timelineID, getWidth());
+    const double oldStart = oldRange.getStart().inBeats();
+    const double beatsPerPixel = getWidth() > 0 ? oldRange.getLength().inBeats() / getWidth() : 0.0;
+    const double allowedBeatDelta = pointer->constrainViewScrollBeatDelta(delta.x * beatsPerPixel, *this);
+    const double maximumStart = juce::jmax(0.0, m_evs.getEndScrollBeat() - oldRange.getLength().inBeats());
+    const double requestedStart = juce::jlimit(0.0, maximumStart, oldStart + allowedBeatDelta);
+    m_evs.setNewStartAndZoom(timelineID, requestedStart);
+    const double actualStart = m_evs.getVisibleBeatRange(timelineID, getWidth()).getStart().inBeats();
+    const double actualBeatDelta = actualStart - oldStart;
+    pointer->offsetForViewScroll(actualBeatDelta);
+
+    double actualKeyDelta = 0.0;
+    if (pointer->isMovingNotes())
+    {
+        const double keyWidth = m_evs.getViewYScale(timelineID);
+        if (keyWidth > 0.0)
+        {
+            const double visibleKeys = getHeight() / keyWidth;
+            const double maximumKey = juce::jmax(0.0, 128.0 - visibleKeys);
+            const double oldKey = m_evs.getViewYScroll(timelineID);
+            const double allowedKeyDelta = pointer->constrainViewScrollKeyDelta(-delta.y / keyWidth, *this);
+            m_evs.setYScroll(timelineID, juce::jlimit(0.0, maximumKey, oldKey + allowedKeyDelta));
+            actualKeyDelta = m_evs.getViewYScroll(timelineID) - oldKey;
+        }
+    }
+
+    if (actualBeatDelta == 0.0 && actualKeyDelta == 0.0)
+    {
+        stopAutoScroll();
+        return;
+    }
+
+    m_currentTool->mouseDrag(constrainNoteDragEvent(*event), *this);
+    repaint();
 }
 
 void MidiViewport::setNoteUnderMouseHandler(NoteUnderMouseHandler handler)
@@ -1424,11 +1552,18 @@ void MidiViewport::deleteSelectedNotes()
 
 bool MidiViewport::isSelected(tracktion_engine::MidiNote *note) { return m_selectedEvents->isSelected(note); }
 
-void MidiViewport::timerCallback()
+void MidiViewport::timerCallback(int timerID)
 {
-    stopTimer();
-    auto at = EngineHelpers::getAudioTrack(getTrack(), m_evs);
-    at->turnOffGuideNotes();
+    if (timerID == guideNoteTimerID)
+    {
+        stopTimer(guideNoteTimerID);
+        if (auto at = EngineHelpers::getAudioTrack(getTrack(), m_evs))
+            at->turnOffGuideNotes();
+        return;
+    }
+
+    if (timerID == autoScrollTimerID)
+        performAutoScroll();
 }
 
 void MidiViewport::cleanUnderNote(int noteNumb, tracktion::BeatRange beatRange, const te::MidiClip *clip)
@@ -1559,6 +1694,7 @@ te::SelectedMidiEvents &MidiViewport::getSelectedEvents()
 
 void MidiViewport::setTool(Tool tool)
 {
+    stopAutoScroll();
     cancelSelectionGesture();
     finishPendingPasteOnDeselect();
 
