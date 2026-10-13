@@ -2,12 +2,11 @@
 
 GitHub issues are tracker entries for reported work and status only. Solution proposals, review, validation and acceptance take place directly in the active Pi Agent conversation. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
-The 15 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
+The 14 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
 
 ## Focused workflow improvements
 
-- [ ] [#54 — Hotkeys for Song Editor and MIDI Editor tools](https://github.com/BaraMGB/NextStudio/issues/54).
-- [ ] [#81 — Shortcuts for track arm, mute and solo](https://github.com/BaraMGB/NextStudio/issues/81) — reuse command/key-mapping infrastructure from #54.
+- [ ] [#81 — Shortcuts for track arm, mute and solo](https://github.com/BaraMGB/NextStudio/issues/81) — reuse the command/key-mapping infrastructure established by #54.
 - [ ] [#85 — Add tracks below another track or into a folder](https://github.com/BaraMGB/NextStudio/issues/85).
 - [ ] [#74 — Auto-scroll MIDI editor while dragging notes](https://github.com/BaraMGB/NextStudio/issues/74).
 - [ ] [#86 — Auto-scroll track list while reordering tracks](https://github.com/BaraMGB/NextStudio/issues/86) — share a tested edge-scroll policy with #74 where boundaries allow.
@@ -19,7 +18,7 @@ The 15 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStu
 - [ ] [#83 — Separate follow-playhead state per timeline](https://github.com/BaraMGB/NextStudio/issues/83) — store per view; migrate global state; default MIDI follow off.
 - [ ] [#82 — Join/glue selected MIDI clips](https://github.com/BaraMGB/NextStudio/issues/82) — decide gap/overlap/loop/take/order/selection semantics first; one atomic undoable command.
 - [ ] [#56 — Two-dimensional middle-mouse panning](https://github.com/BaraMGB/NextStudio/issues/56).
-- [ ] [#57 — Alt modifiers and wheel-based tool switching](https://github.com/BaraMGB/NextStudio/issues/57) — after tool commands from #54 are centralized.
+- [ ] [#57 — Alt modifiers and wheel-based tool switching](https://github.com/BaraMGB/NextStudio/issues/57) — build on the centralized tool commands from #54.
 
 ## Platform, reliability and plugin organization
 
