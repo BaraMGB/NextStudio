@@ -327,8 +327,12 @@ void removeAllClips(te::AudioTrack &track);
 te::AudioTrack *getOrInsertAudioTrackAt(te::Edit &edit, int index);
 
 tracktion_engine::FolderTrack::Ptr addFolderTrack(juce::Colour trackColour, EditViewState &evs);
+tracktion_engine::FolderTrack::Ptr addFolderTrack(juce::Colour trackColour, EditViewState &evs,
+                                                  tracktion_engine::TrackInsertPoint insertPoint);
 
 tracktion_engine::AudioTrack::Ptr addAudioTrack(bool isMidiTrack, juce::Colour trackColour, EditViewState &evs);
+tracktion_engine::AudioTrack::Ptr addAudioTrack(bool isMidiTrack, juce::Colour trackColour, EditViewState &evs,
+                                                tracktion_engine::TrackInsertPoint insertPoint);
 
 tracktion_engine::AudioTrack::Ptr addSoundFontTrack(EditViewState &evs, const juce::File &file, juce::Colour trackColour);
 

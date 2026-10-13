@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "Utilities.h"
+#include "TrackInsertion.h"
 #include "ClipGestureLimits.h"
 
 #include "ArpeggiatorPlugin.h"
@@ -1904,39 +1905,28 @@ tracktion_engine::AudioTrack *EngineHelpers::getOrInsertAudioTrackAt(tracktion_e
 tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(juce::Colour trackColour, EditViewState &evs)
 {
     evs.m_edit.ensureMasterTrack();
+    return addFolderTrack(trackColour, evs, TrackInsertion::atEndOfEdit(evs.m_edit));
+}
 
-    auto allTracks = te::getAllTracks(evs.m_edit);
-    te::TrackInsertPoint tip{nullptr, nullptr};
+tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(juce::Colour trackColour, EditViewState &evs,
+                                                                 te::TrackInsertPoint insertPoint)
+{
+    auto &undoManager = evs.m_edit.getUndoManager();
+    undoManager.beginNewTransaction("Add Folder Track");
 
-    te::Track *lastNonMasterTrack = nullptr;
-    for (int i = allTracks.size(); --i >= 0;)
-    {
-        auto *track = allTracks.getUnchecked(i);
-        if (track != nullptr && !track->isMasterTrack())
-        {
-            lastNonMasterTrack = track;
-            break;
-        }
-    }
-
-    if (lastNonMasterTrack != nullptr)
-        tip = te::TrackInsertPoint(*lastNonMasterTrack, true);
-    else if (auto *masterTrack = evs.m_edit.getMasterTrack())
-        tip = te::TrackInsertPoint{nullptr, masterTrack};
-
-    auto ft = evs.m_edit.insertNewFolderTrack(tip, &evs.m_selectionManager, true);
+    auto ft = evs.m_edit.insertNewFolderTrack(insertPoint, &evs.m_selectionManager, true);
+    if (ft == nullptr)
+        return nullptr;
 
     ft->state.setProperty(te::IDs::height, (int)evs.m_trackDefaultHeight, nullptr);
     ft->state.setProperty(IDs::isTrackMinimized, false, nullptr);
-
-    ft->state.setProperty(IDs::isMidiTrack, false, &evs.m_edit.getUndoManager());
+    ft->state.setProperty(IDs::isMidiTrack, false, &undoManager);
 
     juce::String num = juce::String(te::getAudioTracks(evs.m_edit).size());
     ft->setName("Folder " + num);
     ft->setColour(trackColour);
     evs.m_selectionManager.selectOnly(ft);
     setLowerRangeTrack(evs, ft.get(), static_cast<int>(LowerRangeView::pluginRack));
-
     evs.m_trackHeightManager->regenerateTrackHeightsFromEdit(evs.m_edit);
 
     return ft;
@@ -1944,12 +1934,23 @@ tracktion_engine::FolderTrack::Ptr EngineHelpers::addFolderTrack(juce::Colour tr
 
 tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(bool isMidiTrack, juce::Colour trackColour, EditViewState &evs)
 {
-    if (auto track = EngineHelpers::getOrInsertAudioTrackAt(evs.m_edit, te::getAudioTracks(evs.m_edit).size()))
+    evs.m_edit.ensureMasterTrack();
+    return addAudioTrack(isMidiTrack, trackColour, evs, TrackInsertion::atEndOfEdit(evs.m_edit));
+}
+
+tracktion_engine::AudioTrack::Ptr EngineHelpers::addAudioTrack(bool isMidiTrack, juce::Colour trackColour, EditViewState &evs,
+                                                               te::TrackInsertPoint insertPoint)
+{
+    evs.m_edit.getTransport().stopIfRecording();
+
+    auto &undoManager = evs.m_edit.getUndoManager();
+    undoManager.beginNewTransaction(isMidiTrack ? "Add Instrument Track" : "Add Audio Track");
+
+    if (auto track = evs.m_edit.insertNewAudioTrack(insertPoint, &evs.m_selectionManager))
     {
         track->state.setProperty(te::IDs::height, (int)evs.m_trackDefaultHeight, nullptr);
         track->state.setProperty(IDs::isTrackMinimized, false, nullptr);
-
-        track->state.setProperty(IDs::isMidiTrack, isMidiTrack, &evs.m_edit.getUndoManager());
+        track->state.setProperty(IDs::isMidiTrack, isMidiTrack, &undoManager);
 
         juce::String num = juce::String(te::getAudioTracks(evs.m_edit).size());
         track->setName(isMidiTrack ? "Instrument " + num : "Wave " + num);

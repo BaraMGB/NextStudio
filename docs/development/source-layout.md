@@ -71,6 +71,7 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 - `SongEditorView.*`
 - `TrackListView.*`
 - `TrackHeadComponent.*`
+- `TrackInsertion.*` — hierarchy-aware destinations for global, sibling and folder-child insertion
 - `TrackLaneComponent.*`
 - `TrackHeightManager.*`
 - `TimeLineComponent.*`

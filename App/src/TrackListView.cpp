@@ -28,6 +28,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "InstrumentEffectChooser.h"
 #include "PluginInsertFeedback.h"
 #include "ApplicationViewState.h"
+#include "TrackInsertion.h"
 #include "Utilities.h"
 
 namespace
@@ -141,33 +142,12 @@ void TrackListView::mouseDown(const juce::MouseEvent &e)
 }
 void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    te::TrackInsertPoint ip{nullptr, nullptr};
-
-    auto &trackList = m_editViewState.m_edit.getTrackList();
-    if (trackList.size() > 0)
-        ip = te::TrackInsertPoint{nullptr, trackList.at(trackList.size() - 1)};
-
-    te::Track *lastNonMasterTrack = nullptr;
-    auto allTracks = tracktion::getAllTracks(m_editViewState.m_edit);
-    for (auto i = allTracks.size(); --i >= 0;)
-    {
-        auto *track = allTracks.getUnchecked(i);
-        if (track && !track->isMasterTrack())
-        {
-            lastNonMasterTrack = track;
-            break;
-        }
-    }
-
-    if (lastNonMasterTrack != nullptr)
-        ip = te::TrackInsertPoint(*lastNonMasterTrack, true);
-    else if (auto *masterTrack = m_editViewState.m_edit.getMasterTrack())
-        ip = te::TrackInsertPoint{nullptr, masterTrack};
-
     if (dragSourceDetails.description == "Track")
         if (auto thc = dynamic_cast<TrackHeaderComponent *>(dragSourceDetails.sourceComponent.get()))
         {
-            moveTracksAsBlock(m_editViewState, getTracksToMoveInVisualOrder(m_editViewState, thc->getTrack().get()), ip);
+            auto tracksToMove = getTracksToMoveInVisualOrder(m_editViewState, thc->getTrack().get());
+            auto insertPoint = TrackInsertion::atEndOfEditExcluding(m_editViewState.m_edit, tracksToMove);
+            moveTracksAsBlock(m_editViewState, tracksToMove, insertPoint);
             repaintAllTrackHeaders(m_trackHeaders);
         }
 

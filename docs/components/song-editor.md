@@ -13,6 +13,7 @@ The arrangement uses Tracktion clips/tracks and the shared edit selection. `Song
 | Area | Source |
 |---|---|
 | Composition and inspector wiring | `App/include/EditComponent.h`, `App/src/EditComponent.cpp` |
+| Track headers, list and insertion policy | `App/include/TrackHeadComponent.h`, `App/src/TrackHeadComponent.cpp`, `App/include/TrackListView.h`, `App/src/TrackListView.cpp`, `App/include/TrackInsertion.h`, `App/src/TrackInsertion.cpp` |
 | Arrangement, time-range overlay and previews | `App/include/SongEditorView.h`, `App/src/SongEditorView.cpp` |
 | Clip body/edge/fade hits and lane input | `App/include/TrackLaneComponent.h`, `App/src/TrackLaneComponent.cpp` |
 | Automation input | `App/include/AutomationLaneComponent.h`, `App/src/AutomationLaneComponent.cpp` |
@@ -28,6 +29,12 @@ The authoritative [snapping contract](timeline-snapping.md) classifies hard/disc
 `SongEditorView::setSelectedTimeRangeRaw()` validates an already resolved mouse range without another rounding pass. The discrete setter remains available for explicitly quantized commands. Ordinary lasso remains geometric rather than magnetic.
 
 Arrangement placement/overwrites retain the [central clip overwrite command](../architecture/clip-overwrite-command.md) and its atomic undo/model safeguards. Automation retains its existing live-mutation lifecycle; clip ghost and live-header previews must not be interpreted as approval for a new automation transaction model.
+
+## Track insertion hierarchy
+
+Global add controls and empty-list actions append at the top-level end. Non-Master header actions resolve an explicit `TrackInsertPoint`: **Add Track Below** inserts after the target among its siblings, while **Add Track to Folder** appends to the folder's direct children. The Master header exposes neither insertion action. Folder targets are expanded after successful child creation. Instrument, audio and folder creation share the same placement policy, selection/lower-range update and one undo transaction; nested folders remain supported. Audio and instrument creation stops an active recording before modifying the track model.
+
+Dropping a track on empty Track List space uses the same top-level-end policy. Dropping on a normal header retains the existing before-target behavior, while dropping on a folder appends to its direct children. Placement must use sibling/parent relationships rather than the last item in the recursively flattened track list.
 
 ## Object lasso and TimeRange
 

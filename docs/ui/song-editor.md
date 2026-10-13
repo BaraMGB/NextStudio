@@ -27,6 +27,8 @@ Shows the headers of all tracks arranged vertically.
 
 ### Context Menu (Right-click on header)
 
+- **Add Track Below:** On non-Master headers, add an instrument, audio, or folder track immediately after the clicked track at the same hierarchy level.
+- **Add Track to Folder:** On folder headers, add an instrument, audio, or nested folder track as the last direct child. A collapsed destination folder opens so the new selected track remains visible.
 - Delete track.
 - Enable/disable input monitoring (if an input is assigned).
 - Select/deselect audio/MIDI inputs. MIDI checkmarks represent persistent manual assignments only; the automatic default input used by Exclusive MIDI Focus is not checked. Multiple permanent MIDI inputs can be assigned to a track.
@@ -39,7 +41,7 @@ own state. Folder tracks support Mute and Solo; the Master supports only Mute.
 
 - **Change track height:** Click and drag the bottom edge of the Track Header (not for minimized or folder tracks).
 - **Move tracks:** Click and drag a Track Header up or down. Tracks can be dragged into folder tracks.
-- **Add tracks:** Buttons in the toolbar above the Track List for audio, MIDI, and folder tracks. Alternatively, right-click on empty area in the Track List.
+- **Add tracks:** Buttons in the toolbar above the Track List, or a right-click on its empty area, append audio, MIDI, or folder tracks at the top-level end. A non-Master track header's context menu can instead insert at that hierarchy level or directly into a folder. Adding an audio or instrument track stops an active recording before creating the track.
 - **Minimize/maximize all tracks:** Buttons in the toolbar.
 
 ### Folder Track

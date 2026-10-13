@@ -27,11 +27,22 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PluginInsertFeedback.h"
 #include "EditViewState.h"
 #include "MidiInputRouting.h"
+#include "TrackInsertion.h"
 #include "Utilities.h"
 #include "juce_graphics/juce_graphics.h"
 
 namespace
 {
+enum TrackMenuItemID
+{
+    addInstrumentBelow = 4001,
+    addAudioBelow,
+    addFolderBelow,
+    addInstrumentToFolder = 4011,
+    addAudioToFolder,
+    addFolderToFolder
+};
+
 template <typename PluginType> PluginType *findLastPluginOfType(te::Track &track)
 {
     for (int i = track.pluginList.size(); --i >= 0;)
@@ -559,6 +570,26 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     at->edit.playInStopEnabled = true;
     juce::PopupMenu m;
 
+    if (!m_track->isMasterTrack())
+    {
+        juce::PopupMenu addBelowMenu;
+        addBelowMenu.addItem(addInstrumentBelow, "Instrument Track");
+        addBelowMenu.addItem(addAudioBelow, "Audio Track");
+        addBelowMenu.addItem(addFolderBelow, "Folder Track");
+        m.addSubMenu("Add Track Below", addBelowMenu);
+
+        if (m_track->isFolderTrack())
+        {
+            juce::PopupMenu addToFolderMenu;
+            addToFolderMenu.addItem(addInstrumentToFolder, "Instrument Track");
+            addToFolderMenu.addItem(addAudioToFolder, "Audio Track");
+            addToFolderMenu.addItem(addFolderToFolder, "Folder Track");
+            m.addSubMenu("Add Track to Folder", addToFolderMenu);
+        }
+
+        m.addSeparator();
+    }
+
     auto pencilIcon = std::unique_ptr<juce::Drawable>(juce::Drawable::createFromImageData(BinaryData::pencil_svg, BinaryData::pencil_svgSize));
     auto deleteIcon = std::unique_ptr<juce::Drawable>(juce::Drawable::createFromImageData(BinaryData::delete_icon_svg, BinaryData::delete_icon_svgSize));
 
@@ -666,7 +697,36 @@ void TrackHeaderComponent::showPopupMenu(tracktion_engine::Track *at)
     m.addCustomItem(3000, std::move(colourGridComponent), nullptr, "Track Colours");
 
     const int result = m.show();
-    if (result == 2000)
+    const bool addBelow = result == addInstrumentBelow || result == addAudioBelow || result == addFolderBelow;
+    const bool addToFolder = result == addInstrumentToFolder || result == addAudioToFolder || result == addFolderToFolder;
+
+    if (addBelow || addToFolder)
+    {
+        auto colour = m_editViewState.m_applicationState.getRandomTrackColour();
+        auto insertPoint = TrackInsertion::afterTrack(*m_track);
+
+        if (addToFolder)
+            if (auto *folder = dynamic_cast<te::FolderTrack *>(m_track.get()))
+                insertPoint = TrackInsertion::atEndOfFolder(*folder);
+
+        te::Track::Ptr newTrack;
+        if (result == addInstrumentBelow || result == addInstrumentToFolder)
+            newTrack = EngineHelpers::addAudioTrack(true, colour, m_editViewState, insertPoint);
+        else if (result == addAudioBelow || result == addAudioToFolder)
+            newTrack = EngineHelpers::addAudioTrack(false, colour, m_editViewState, insertPoint);
+        else
+            newTrack = EngineHelpers::addFolderTrack(colour, m_editViewState, insertPoint);
+
+        if (newTrack != nullptr && addToFolder)
+        {
+            // Persist the expansion immediately. Track creation schedules a header rebuild,
+            // which can reconstruct the height cache before its delayed flush runs.
+            m_track->state.setProperty(IDs::isTrackMinimized, false, nullptr);
+            m_editViewState.m_trackHeightManager->setMinimized(m_track, false);
+            m_editViewState.m_selectionManager.keepSelectedObjectsOnScreen();
+        }
+    }
+    else if (result == 2000)
     {
         deleteTrackFromEdit();
     }
@@ -1285,7 +1345,7 @@ void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDeta
 
     auto tc = dynamic_cast<TrackHeaderComponent *>(details.sourceComponent.get());
     auto isTrack = details.description == "Track";
-    auto tip = te::TrackInsertPoint(*getTrack(), true);
+    auto tip = TrackInsertion::beforeTrack(*getTrack());
 
     if (tc && isTrack)
     {
@@ -1300,8 +1360,8 @@ void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDeta
             return;
         }
 
-        if (isFolderTrack())
-            tip = te::TrackInsertPoint(m_track, m_track->getAllSubTracks(false).getLast());
+        if (auto *folder = dynamic_cast<te::FolderTrack *>(m_track.get()))
+            tip = TrackInsertion::atEndOfFolder(*folder);
 
         moveTracksAsBlock(m_editViewState, tracksToMove, tip);
         repaintAllTrackHeaders(getParentComponent());
