@@ -24,11 +24,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ProjectLifecycle.h"
 #include "TrackHeadComponent.h"
 #include "EditViewState.h"
+#include "DragEdgeScroll.h"
+#include "MouseGestureInput.h"
+
+#include <functional>
+#include <utility>
 
 class TrackListView
     : public juce::Component
     , public juce::DragAndDropTarget
     , private juce::ChangeListener
+    , private juce::Timer
     , public juce::ApplicationCommandTarget
 {
 public:
@@ -39,7 +45,11 @@ public:
         m_editViewState.m_trackHeightManager->addChangeListener(this);
         setWantsKeyboardFocus(true);
     }
-    ~TrackListView() { m_editViewState.m_trackHeightManager->removeChangeListener(this); }
+    ~TrackListView()
+    {
+        stopTrackDragAutoScroll();
+        m_editViewState.m_trackHeightManager->removeChangeListener(this);
+    }
 
     void resized() override;
 
@@ -72,8 +82,17 @@ public:
 
     void collapseTracks(bool minimize);
 
+    using TrackDragScrollHandler = std::function<double(double)>;
+    void setTrackDragScrollHandler(TrackDragScrollHandler handler) { m_trackDragScrollHandler = std::move(handler); }
+    void updateTrackDragAutoScroll(const juce::MouseEvent&, TrackHeaderComponent* source);
+    void stopTrackDragAutoScroll();
+
 private:
     void changeListenerCallback(juce::ChangeBroadcaster *) override;
+    void timerCallback() override;
+    void performTrackDragAutoScroll();
+    void refreshTrackDragTargetFeedback(const juce::MouseEvent&);
+    void clearTrackDragTargetFeedback();
 
     te::AudioTrack::Ptr addTrack(bool isMidiTrack, bool isFolderTrack, juce::Colour trackColour);
 
@@ -82,4 +101,9 @@ private:
     const int getPopupResult();
     TrackHeaderComponent *getTrackHeaderView(tracktion_engine::Track::Ptr track);
     juce::String m_timeLineID;
+    TrackDragScrollHandler m_trackDragScrollHandler;
+    MouseGestureInput m_trackDragInput;
+    juce::Component::SafePointer<TrackHeaderComponent> m_trackDragSource;
+    DragEdgeScroll::Config m_trackDragScrollConfig;
+    double m_lastTrackDragScrollTime = 0.0;
 };

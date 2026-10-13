@@ -14,6 +14,7 @@ The arrangement uses Tracktion clips/tracks and the shared edit selection. `Song
 |---|---|
 | Composition and inspector wiring | `App/include/EditComponent.h`, `App/src/EditComponent.cpp` |
 | Track headers, list and insertion policy | `App/include/TrackHeadComponent.h`, `App/src/TrackHeadComponent.cpp`, `App/include/TrackListView.h`, `App/src/TrackListView.cpp`, `App/include/TrackInsertion.h`, `App/src/TrackInsertion.cpp` |
+| Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
 | Arrangement, time-range overlay and previews | `App/include/SongEditorView.h`, `App/src/SongEditorView.cpp` |
 | Clip body/edge/fade hits and lane input | `App/include/TrackLaneComponent.h`, `App/src/TrackLaneComponent.cpp` |
 | Automation input | `App/include/AutomationLaneComponent.h`, `App/src/AutomationLaneComponent.cpp` |
@@ -35,6 +36,14 @@ Arrangement placement/overwrites retain the [central clip overwrite command](../
 Global add controls and empty-list actions append at the top-level end. Non-Master header actions resolve an explicit `TrackInsertPoint`: **Add Track Below** inserts after the target among its siblings, while **Add Track to Folder** appends to the folder's direct children. The Master header exposes neither insertion action. Folder targets are expanded after successful child creation. Instrument, audio and folder creation share the same placement policy, selection/lower-range update and one undo transaction; nested folders remain supported. Audio and instrument creation stops an active recording before modifying the track model.
 
 Dropping a track on empty Track List space uses the same top-level-end policy. Dropping on a normal header retains the existing before-target behavior, while dropping on a folder appends to its direct children. Placement must use sibling/parent relationships rather than the last item in the recursively flattened track list.
+
+## Track reorder auto-scroll
+
+Once `TrackHeaderComponent` starts a Track drag, it forwards the owning mouse source to `TrackListView`. The list samples the current screen pointer at 60 Hz and feeds its vertical position to the shared `DragEdgeScroll` policy, so moving header bounds never make cached local coordinates stale. The edge velocity ramps inside the top or bottom 40 pixels and remains capped when the pointer is outside the visible list.
+
+`TrackListView` delegates each requested pixel delta to `EditComponent`, which clamps it through the existing vertical scrollbar and synchronously applies the resulting position to `EditViewState`, the Track List and the arrangement lanes. Scrolling is view-only and never mutates track order or creates undo state; the existing drop target alone performs the reorder. Because JUCE updates `DragAndDropTarget` hover state only on pointer movement, each applied timer scroll also hit-tests the newly positioned headers and synchronizes their visual destination feedback. This keeps the highlighted drop target under a stationary pointer accurate without synthesizing mouse events or changing final drop resolution.
+
+The timer stops in the quiet area, at a scroll limit, on release/drop/cancellation, when the source or drag container becomes invalid, and during list teardown. At a scroll limit, the last valid target feedback remains visible until the next pointer event or drag teardown. Leaving the component does not itself stop the timer because outside-pointer scrolling is part of the contract. Track-height resizing and non-Track drags do not participate.
 
 ## Object lasso and TimeRange
 

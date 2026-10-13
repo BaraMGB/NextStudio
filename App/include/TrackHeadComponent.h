@@ -230,6 +230,7 @@ public:
     void itemDragMove(const SourceDetails &dragSourceDetails) override;
     void itemDragExit(const SourceDetails &dragSourceDetails) override;
     void itemDropped(const SourceDetails &details) override;
+    void setTrackDragTargetFeedback(bool isTarget);
 
     void labelTextChanged(juce::Label *labelThatHasChanged) override;
     void childrenSetVisible(bool v);

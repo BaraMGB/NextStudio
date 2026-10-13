@@ -1095,6 +1095,9 @@ void TrackHeaderComponent::resized()
 
 void TrackHeaderComponent::mouseDown(const juce::MouseEvent &event)
 {
+    if (auto* trackList = dynamic_cast<TrackListView*>(getParentComponent()))
+        trackList->stopTrackDragAutoScroll();
+
     m_mouseDownPos = event.getPosition();
     m_trackHeightATMouseDown = m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false);
     m_pendingSingleClickSelection = false;
@@ -1212,6 +1215,10 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
             if (!dragC->isDragAndDropActive())
                 dragC->startDragging("Track", this, juce::ScaledImage(m_dragImage), false, &imageOffset, &event.source);
 
+            if (dragC->isDragAndDropActive())
+                if (auto* trackList = dynamic_cast<TrackListView*>(getParentComponent()))
+                    trackList->updateTrackDragAutoScroll(event, this);
+
             m_isDragging = true;
             m_pendingSingleClickSelection = false;
         }
@@ -1220,6 +1227,9 @@ void TrackHeaderComponent::mouseDrag(const juce::MouseEvent &event)
 
 void TrackHeaderComponent::mouseUp(const juce::MouseEvent &e)
 {
+    if (auto* trackList = dynamic_cast<TrackListView*>(getParentComponent()))
+        trackList->stopTrackDragAutoScroll();
+
     if (m_pendingSingleClickSelection && !e.mouseWasDraggedSinceMouseDown() && e.mods.isLeftButtonDown())
     {
         m_editViewState.m_selectionManager.selectOnly(m_track);
@@ -1287,12 +1297,25 @@ bool TrackHeaderComponent::isInterestedInDragSource(const juce::DragAndDropTarge
 void TrackHeaderComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
     if (dragSourceDetails.description == "PluginListEntry")
+    {
         m_contentIsOver = true;
+        repaint();
+    }
     else if (dragSourceDetails.description == "Track")
-        m_trackIsOver = true;
+    {
+        setTrackDragTargetFeedback(true);
+    }
+}
 
+void TrackHeaderComponent::setTrackDragTargetFeedback(bool isTarget)
+{
+    if (m_trackIsOver == isTarget)
+        return;
+
+    m_trackIsOver = isTarget;
     repaint();
 }
+
 void TrackHeaderComponent::itemDragExit(const juce::DragAndDropTarget::SourceDetails & /*dragSourceDetails*/)
 {
     m_contentIsOver = false;
@@ -1301,6 +1324,9 @@ void TrackHeaderComponent::itemDragExit(const juce::DragAndDropTarget::SourceDet
 }
 void TrackHeaderComponent::itemDropped(const juce::DragAndDropTarget::SourceDetails &details)
 {
+    if (details.description == "Track")
+        if (auto* trackList = dynamic_cast<TrackListView*>(getParentComponent()))
+            trackList->stopTrackDragAutoScroll();
 
     if (details.description == "Track" && m_track->isMasterTrack())
     {

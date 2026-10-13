@@ -2,11 +2,7 @@
 
 GitHub issues are tracker entries for reported work and status only. Solution proposals, review, validation and acceptance take place directly in the active Pi Agent conversation. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
-The 11 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
-
-## Focused workflow improvements
-
-- [ ] [#86 — Auto-scroll track list while reordering tracks](https://github.com/BaraMGB/NextStudio/issues/86) — reuse the tested edge-scroll policy introduced by completed #74 where boundaries allow.
+The 10 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
 
 ## Larger editor features
 

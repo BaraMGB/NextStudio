@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Track-list reorder auto-scroll (#86)** — Dragging track headers near or beyond the visible Track List edges now scrolls the headers and arrangement lanes together with progressive speed. Scrolling continues under a stationary outside pointer, keeps visual drop-target feedback synchronized as headers move, stops at the existing vertical limits, and preserves single/multi-track and folder drop behavior.
 - **Piano Roll note-drag auto-scroll (#74)** — Moving notes near or beyond a grid edge now scrolls the view with progressive speed while keeping the grabbed reference visible. Movement scrolls in both axes, horizontal note-edge resizing scrolls in time, and scrolling stops at timeline, resize and all-selected-note pitch limits. Existing snap, copy, preview and single-undo behavior is preserved.
 - **Contextual track insertion (#85)** — Non-Master track-header menus can add instrument, audio, or folder tracks directly below the target at the same hierarchy level or append them inside a folder. Global add controls continue to append at the top level, each creation is one undoable edit, and creating an audio or instrument track stops an active recording first.
 - **Selected-track Arm, Mute and Solo shortcuts (#81)** — Configurable application commands toggle Record Arm, Mute and Solo for the current Track List selection, including mixed multi-track selections, with `Cmd/Ctrl+Shift+A`, `Cmd/Ctrl+Shift+M` and `Cmd/Ctrl+Shift+S` defaults.

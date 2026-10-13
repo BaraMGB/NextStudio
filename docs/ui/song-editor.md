@@ -40,7 +40,7 @@ hovered header. With multiple selected tracks, every eligible track toggles its
 own state. Folder tracks support Mute and Solo; the Master supports only Mute.
 
 - **Change track height:** Click and drag the bottom edge of the Track Header (not for minimized or folder tracks).
-- **Move tracks:** Click and drag a Track Header up or down. Tracks can be dragged into folder tracks.
+- **Move tracks:** Click and drag a Track Header up or down. Tracks can be dragged into folder tracks. Holding the dragged header near or beyond the top or bottom of the visible Track List scrolls the list with increasing speed; scrolling continues while the pointer remains stationary outside and stops at the existing vertical limits.
 - **Add tracks:** Buttons in the toolbar above the Track List, or a right-click on its empty area, append audio, MIDI, or folder tracks at the top-level end. A non-Master track header's context menu can instead insert at that hierarchy level or directly into a folder. Adding an audio or instrument track stops an active recording before creating the track.
 - **Minimize/maximize all tracks:** Buttons in the toolbar.
 

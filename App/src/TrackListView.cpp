@@ -142,6 +142,8 @@ void TrackListView::mouseDown(const juce::MouseEvent &e)
 }
 void TrackListView::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
+    stopTrackDragAutoScroll();
+
     if (dragSourceDetails.description == "Track")
         if (auto thc = dynamic_cast<TrackHeaderComponent *>(dragSourceDetails.sourceComponent.get()))
         {
@@ -267,6 +269,7 @@ void TrackListView::repaintTrackHeaders()
 
 void TrackListView::clear()
 {
+    stopTrackDragAutoScroll();
     m_trackHeaders.clear(true);
     resized();
 }
@@ -298,6 +301,122 @@ void TrackListView::collapseTracks(bool minimize)
 {
     for (auto th : m_trackHeaders)
         th->collapseTrack(minimize);
+}
+
+void TrackListView::updateTrackDragAutoScroll(const juce::MouseEvent& event, TrackHeaderComponent* source)
+{
+    if (source == nullptr || source->getParentComponent() != this)
+    {
+        stopTrackDragAutoScroll();
+        return;
+    }
+
+    m_trackDragSource = source;
+    m_trackDragInput.remember(event);
+    const auto localEvent = m_trackDragInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers());
+    if (!localEvent)
+    {
+        stopTrackDragAutoScroll();
+        return;
+    }
+
+    const auto speed = DragEdgeScroll::velocity(localEvent->position.x, localEvent->position.y,
+                                                getWidth(), getHeight(), {false, true},
+                                                m_trackDragScrollConfig);
+    if (speed.isZero())
+    {
+        stopTrackDragAutoScroll();
+        return;
+    }
+
+    if (!isTimerRunning())
+    {
+        m_lastTrackDragScrollTime = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        startTimer(1000 / 60);
+    }
+}
+
+void TrackListView::stopTrackDragAutoScroll()
+{
+    stopTimer();
+    m_lastTrackDragScrollTime = 0.0;
+    m_trackDragInput.reset();
+    m_trackDragSource = nullptr;
+    clearTrackDragTargetFeedback();
+}
+
+void TrackListView::timerCallback()
+{
+    performTrackDragAutoScroll();
+}
+
+void TrackListView::performTrackDragAutoScroll()
+{
+    auto* source = m_trackDragSource.getComponent();
+    auto* dragContainer = source != nullptr ? juce::DragAndDropContainer::findParentDragContainerFor(source) : nullptr;
+    const auto event = m_trackDragInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers());
+    if (source == nullptr || source->getParentComponent() != this || dragContainer == nullptr
+        || !dragContainer->isDragAndDropActive() || !event || !m_trackDragScrollHandler)
+    {
+        stopTrackDragAutoScroll();
+        return;
+    }
+
+    const auto speed = DragEdgeScroll::velocity(event->position.x, event->position.y,
+                                                getWidth(), getHeight(), {false, true},
+                                                m_trackDragScrollConfig);
+    if (speed.isZero())
+    {
+        stopTrackDragAutoScroll();
+        return;
+    }
+
+    const double now = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+    const auto delta = DragEdgeScroll::advance(speed, now - m_lastTrackDragScrollTime, m_trackDragScrollConfig);
+    m_lastTrackDragScrollTime = now;
+
+    if (m_trackDragScrollHandler(delta.y) == 0.0)
+    {
+        // Keep the last valid target feedback while the pointer is stationary at
+        // a scroll limit. The next real pointer event or drag teardown clears it.
+        stopTimer();
+        m_lastTrackDragScrollTime = 0.0;
+        return;
+    }
+
+    refreshTrackDragTargetFeedback(*event);
+}
+
+void TrackListView::refreshTrackDragTargetFeedback(const juce::MouseEvent& event)
+{
+    TrackHeaderComponent* target = nullptr;
+
+    if (getLocalBounds().contains(event.getPosition()))
+    {
+        for (auto* component = getComponentAt(event.getPosition()); component != nullptr && component != this;
+             component = component->getParentComponent())
+        {
+            if (auto* header = dynamic_cast<TrackHeaderComponent*>(component))
+            {
+                target = header;
+                break;
+            }
+        }
+    }
+
+    // JUCE refreshes DragAndDropTarget hover state only on pointer movement.
+    // Scrolling moves headers beneath a stationary pointer, so keep the visual
+    // destination synchronized independently of JUCE's cached target.
+    for (auto* header : m_trackHeaders)
+        if (header != nullptr)
+            header->setTrackDragTargetFeedback(header == target);
+}
+
+void TrackListView::clearTrackDragTargetFeedback()
+{
+    for (auto* header : m_trackHeaders)
+        if (header != nullptr)
+            header->setTrackDragTargetFeedback(false);
 }
 
 void TrackListView::changeListenerCallback(juce::ChangeBroadcaster *source)

@@ -136,6 +136,10 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_scrollbar_v.setAlwaysOnTop(true);
     m_scrollbar_v.setAutoHide(false);
     m_scrollbar_v.addListener(this);
+    m_trackListView.setTrackDragScrollHandler([this](double delta)
+    {
+        return setVerticalScrollPosition(m_scrollbar_v.getCurrentRangeStart() + delta);
+    });
 
     m_scrollbar_h.setAlwaysOnTop(true);
     m_scrollbar_h.setAutoHide(false);
@@ -265,6 +269,8 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
 
 EditComponent::~EditComponent()
 {
+    m_trackListView.stopTrackDragAutoScroll();
+    m_trackListView.setTrackDragScrollHandler({});
     stopTimer();
     m_autoSaveThreadPool.removeAllJobs(true, 5000);
 
@@ -407,6 +413,17 @@ void EditComponent::updateHorizontalScrollBar()
     m_scrollbar_h.setCurrentRange({x1, x2}, juce::dontSendNotification);
 }
 
+double EditComponent::setVerticalScrollPosition(double requestedPosition)
+{
+    const double oldPosition = m_scrollbar_v.getCurrentRangeStart();
+    m_scrollbar_v.setCurrentRangeStart(requestedPosition, juce::dontSendNotification);
+    const double actualPosition = m_scrollbar_v.getCurrentRangeStart();
+    m_editViewState.setYScroll(m_timeLine.getTimeLineID(), -actualPosition);
+    m_songEditor.resized();
+    m_trackListView.resized();
+    return actualPosition - oldPosition;
+}
+
 void EditComponent::mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel)
 {
     if (event.mods.isShiftDown())
@@ -474,9 +491,7 @@ void EditComponent::scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, doubl
 {
     if (scrollBarThatHasMoved == &m_scrollbar_v)
     {
-        m_editViewState.setYScroll(m_timeLine.getTimeLineID(), -newRangeStart);
-        m_songEditor.resized();
-        m_trackListView.resized();
+        setVerticalScrollPosition(newRangeStart);
     }
     else if (scrollBarThatHasMoved == &m_scrollbar_h)
     {

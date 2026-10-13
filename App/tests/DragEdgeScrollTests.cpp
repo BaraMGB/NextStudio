@@ -46,6 +46,8 @@ void testAxesAndElapsedTime()
     DragEdgeScroll::Config config;
     const auto horizontal = DragEdgeScroll::velocity(0.0, 0.0, 100.0, 100.0, {true, false}, config);
     require(horizontal.x < 0.0 && horizontal.y == 0.0, "disabled vertical axis moved");
+    const auto vertical = DragEdgeScroll::velocity(0.0, 100.0, 100.0, 100.0, {false, true}, config);
+    require(vertical.x == 0.0 && vertical.y > 0.0, "vertical-only edge scroll used the wrong axis");
 
     const auto first = DragEdgeScroll::advance({100.0, -50.0}, 0.01, config);
     near(first.x, 1.0);

@@ -132,6 +132,7 @@ private:
     tracktion::core::TimeRange getSelectedClipRange();
 
     void updateHorizontalScrollBar();
+    double setVerticalScrollPosition(double requestedPosition);
     void updateVerticalScrollbar()
     {
         m_scrollbar_v.setRangeLimits(0, getSongHeight());
