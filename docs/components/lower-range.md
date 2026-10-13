@@ -10,6 +10,8 @@
 
 Sources: `App/include/LowerRangeLayout.h`, `App/include/LowerRangeComponent.h`, `App/src/LowerRangeComponent.cpp`, `App/src/MainComponent.cpp`, and shared activation helpers in `App/include/Utilities.h` / `App/src/Utilities.cpp`.
 
+When the expanded MIDI Editor is active, `LowerRangeComponent::paintOverChildren()` draws a one-pixel vertical divider at the content boundary between the 100-pixel lower-range tab sidebar and `PianoRollEditor`. Painting it above the children keeps the divider visible, and resolving `ApplicationViewState::getBorderColour()` at paint time keeps it synchronized with theme changes. The divider is omitted for the collapsed bar and other lower-range views.
+
 ## Resize before collapse
 
 `LowerRangeLayout` is the single pure sizing policy, including collapsed/default heights, available editor-container minimum, maximum expansion, resize clamp, applied distance and collapse/open transition. The current collapsed/default values are 38/350 logical pixels; callers and tests use the helper instead of duplicating constants.

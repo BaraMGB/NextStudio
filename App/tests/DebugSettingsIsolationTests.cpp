@@ -31,10 +31,12 @@ void testExplicitSettingsFileIsUsedExclusively()
         REQUIRE(state.getSettingsFile() == settings);
         REQUIRE((bool)state.m_trackPresetPanelCollapsed);
         REQUIRE((bool)state.m_modifierPanelCollapsed);
+        REQUIRE((bool)state.m_midiNoteAuditionEnabled);
         state.m_setupComplete = true;
         state.m_lowerRangeCollapsed = true;
         state.m_trackPresetPanelCollapsed = false;
         state.m_modifierPanelCollapsed = false;
+        state.m_midiNoteAuditionEnabled = false;
         state.m_metronomeVolume = 0.73f;
         state.setRootFolder(temp.file.getChildFile("workspace"));
         state.saveState();
@@ -52,6 +54,7 @@ void testExplicitSettingsFileIsUsedExclusively()
     REQUIRE((bool)restoredState.m_lowerRangeCollapsed);
     REQUIRE(!(bool)restoredState.m_trackPresetPanelCollapsed);
     REQUIRE(!(bool)restoredState.m_modifierPanelCollapsed);
+    REQUIRE(!(bool)restoredState.m_midiNoteAuditionEnabled);
     REQUIRE(std::abs((float)restoredState.m_metronomeVolume - 0.73f) < 0.001f);
 }
 } // namespace

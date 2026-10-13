@@ -48,6 +48,8 @@ void DrawTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
     m_gesture.begin(start, timeline.getNoteInsertLength(), event.position.x, timeline.getMouseSnapResolver(), bypass);
     m_drawNoteNumber = viewport.getNoteNumber(event.y);
     mouseDrag(event, viewport);
+    if (isDrawing())
+        viewport.beginSustainedGuideNote(m_clickedClip, m_drawNoteNumber, m_evs.m_lastVelocity);
 }
 
 void DrawTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewport)
@@ -102,6 +104,7 @@ juce::MouseCursor DrawTool::getCursor(MidiViewport &viewport) const { return GUI
 
 void DrawTool::cancel(MidiViewport& viewport)
 {
+    viewport.stopGuideNotes();
     m_gesture.reset();
     m_clickedClip = nullptr;
     m_drawNoteNumber = 0;

@@ -29,9 +29,11 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
       m_timeLine(evs, "PianoRoll", true),
       m_notePropertiesBar(evs),
       m_playhead(evs.m_edit, evs, m_timeLine),
+      m_noteAuditionToolBar(Alignment::Left),
       m_toolBar(Alignment::Center),
       m_selectionBtn("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_drawBtn("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
+      m_noteAuditionBtn("note audition", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_rangeSelectBtn("range select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_erasorBtn("eraser mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_splitBtn("split mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
@@ -113,6 +115,14 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
     m_drawBtn.setTooltip(GUIHelpers::translate("Draw MIDI notes", m_editViewState.m_applicationState));
     m_drawBtn.addListener(this);
 
+    m_noteAuditionBtn.setName("note audition");
+    m_noteAuditionBtn.setButtonText("Audition notes");
+    m_noteAuditionBtn.setTooltip(GUIHelpers::translate("Audition notes while drawing, inserting, or moving", m_editViewState.m_applicationState));
+    m_noteAuditionBtn.setClickingTogglesState(true);
+    m_noteAuditionBtn.setToggleState(m_editViewState.m_applicationState.m_midiNoteAuditionEnabled,
+                                     juce::dontSendNotification);
+    m_noteAuditionBtn.addListener(this);
+
     m_rangeSelectBtn.setName("range select");
     m_rangeSelectBtn.setTooltip(GUIHelpers::translate("Select MIDI notes in a time and pitch range", m_editViewState.m_applicationState));
     m_rangeSelectBtn.addListener(this);
@@ -129,7 +139,9 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
     m_lassoBtn.setTooltip(GUIHelpers::translate("Select MIDI notes with a lasso", m_editViewState.m_applicationState));
     m_lassoBtn.addListener(this);
 
+    addAndMakeVisible(m_noteAuditionToolBar);
     addAndMakeVisible(m_toolBar);
+    m_noteAuditionToolBar.addButton(&m_noteAuditionBtn);
     m_toolBar.addButton(&m_selectionBtn, 1);
     m_toolBar.addButton(&m_drawBtn, 1);
     m_toolBar.addButton(&m_rangeSelectBtn, 1);
@@ -151,6 +163,7 @@ PianoRollEditor::~PianoRollEditor()
     m_splitBtn.removeListener(this);
     m_erasorBtn.removeListener(this);
     m_rangeSelectBtn.removeListener(this);
+    m_noteAuditionBtn.removeListener(this);
     m_drawBtn.removeListener(this);
     m_selectionBtn.removeListener(this);
     m_lassoBtn.removeListener(this);
@@ -261,6 +274,7 @@ void PianoRollEditor::resized()
     auto playhead = getPlayHeadRect();
     auto toolbar = getToolBarRect();
 
+    m_noteAuditionToolBar.setBounds(getNoteAuditionToolBarRect());
     m_toolBar.setBounds(toolbar);
     m_notePropertiesBar.setBounds(getNotePropertiesRect());
 
@@ -583,6 +597,7 @@ void PianoRollEditor::updateButtonColour()
     auto buttonColour = m_editViewState.m_applicationState.getButtonTextColour();
     GUIHelpers::setDrawableOnButton(m_selectionBtn, BinaryData::select_icon_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_drawBtn, BinaryData::pencil_svg, buttonColour);
+    GUIHelpers::setDrawableOnButton(m_noteAuditionBtn, BinaryData::note_audition_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_rangeSelectBtn, BinaryData::select_timerange_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_erasorBtn, BinaryData::rubber_svg, buttonColour);
     GUIHelpers::setDrawableOnButton(m_splitBtn, BinaryData::split_svg, buttonColour);
@@ -590,6 +605,15 @@ void PianoRollEditor::updateButtonColour()
 }
 void PianoRollEditor::buttonClicked(juce::Button *button)
 {
+    if (button == &m_noteAuditionBtn)
+    {
+        const bool enabled = m_noteAuditionBtn.getToggleState();
+        m_editViewState.m_applicationState.m_midiNoteAuditionEnabled = enabled;
+        if (!enabled && m_pianoRollViewPort != nullptr)
+            m_pianoRollViewPort->stopGuideNotes();
+        return;
+    }
+
     if (m_pianoRollViewPort == nullptr)
         return;
 
@@ -704,6 +728,10 @@ void PianoRollEditor::valueTreePropertyChanged(juce::ValueTree &treeWhosePropert
 
     if (property == IDs::pianoRollSnapMode || property == IDs::pianoRollSnapDenominator)
         repaint(getFooterRect());
+
+    if (property == IDs::MidiNoteAuditionEnabled)
+        m_noteAuditionBtn.setToggleState(m_editViewState.m_applicationState.m_midiNoteAuditionEnabled,
+                                         juce::dontSendNotification);
 
     if (treeWhosePropertyHasChanged.hasType(IDs::ThemeState))
     {
@@ -907,6 +935,12 @@ juce::Rectangle<int> PianoRollEditor::getHeaderRect()
     auto area = getLocalBounds();
     return area.removeFromTop(m_editViewState.m_timeLineHeight);
 }
+juce::Rectangle<int> PianoRollEditor::getNoteAuditionToolBarRect()
+{
+    auto area = getHeaderRect();
+    return area.removeFromLeft(getWidth() / 3);
+}
+
 juce::Rectangle<int> PianoRollEditor::getToolBarRect()
 {
     auto area = getLocalBounds();

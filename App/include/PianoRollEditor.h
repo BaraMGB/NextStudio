@@ -130,10 +130,11 @@ private:
     std::unique_ptr<KeyboardView> m_keyboard;
     juce::SharedResourcePointer<te::MidiInputDevice::MidiKeyChangeDispatcher> m_midiKeyChangeDispatcher;
     PlayheadComponent m_playhead;
+    MenuBar m_noteAuditionToolBar;
     MenuBar m_toolBar;
     juce::ScrollBar m_horizontalScrollBar{false};
 
-    juce::DrawableButton m_selectionBtn, m_drawBtn, m_rangeSelectBtn, m_erasorBtn, m_splitBtn, m_lassoBtn;
+    juce::DrawableButton m_selectionBtn, m_drawBtn, m_noteAuditionBtn, m_rangeSelectBtn, m_erasorBtn, m_splitBtn, m_lassoBtn;
 
     juce::String m_NoteDescUnderCursor;
     MidiViewport::MidiClipboard m_midiClipboard;
@@ -147,6 +148,7 @@ private:
     int getScrollbarThickness() const;
 
     juce::Rectangle<int> getHeaderRect();
+    juce::Rectangle<int> getNoteAuditionToolBarRect();
     juce::Rectangle<int> getToolBarRect();
     juce::Rectangle<int> getNotePropertiesRect();
     juce::Rectangle<int> getTimeLineRect();

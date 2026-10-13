@@ -46,6 +46,7 @@ juce_add_binary_data(Pictures SOURCES
     delete_icon.svg
     trashcan.svg
     pencil.svg
+    note_audition.svg
     projectsButton.svg
     pluginsButton.svg
     presetsButton.svg

@@ -85,6 +85,7 @@ DECLARE_ID(LowerRangeCollapsed)
 DECLARE_ID(TrackPresetPanelCollapsed)
 DECLARE_ID(ModifierPanelCollapsed)
 DECLARE_ID(ExclusiveMidiFocusEnabled)
+DECLARE_ID(MidiNoteAuditionEnabled)
 DECLARE_ID(TimeStretchMode)
 DECLARE_ID(SetupComplete)
 DECLARE_ID(ScrollbarThickness)
@@ -202,6 +203,7 @@ public:
         m_trackPresetPanelCollapsed.referTo(behavior, IDs::TrackPresetPanelCollapsed, nullptr, true);
         m_modifierPanelCollapsed.referTo(behavior, IDs::ModifierPanelCollapsed, nullptr, true);
         m_exclusiveMidiFocusEnabled.referTo(behavior, IDs::ExclusiveMidiFocusEnabled, nullptr, true);
+        m_midiNoteAuditionEnabled.referTo(behavior, IDs::MidiNoteAuditionEnabled, nullptr, true);
         m_timeStretchMode.referTo(behavior, IDs::TimeStretchMode, nullptr, juce::String());
         m_setupComplete.referTo(behavior, IDs::SetupComplete, nullptr, false);
         m_scrollbarThickness.referTo(behavior, IDs::ScrollbarThickness, nullptr, 20);
@@ -484,6 +486,6 @@ public:
     juce::CachedValue<int> m_windowXpos, m_windowYpos, m_windowWidth, m_windowHeight, m_folderTrackIndent, m_autoSaveInterval, m_sidebarWidth, m_scrollbarThickness;
     juce::CachedValue<juce::String> m_windowGeometry;
     juce::CachedValue<float> m_appScale, m_mouseCursorScale, m_previewSliderPos, m_metronomeVolume;
-    juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_lowerRangeCollapsed, m_trackPresetPanelCollapsed, m_modifierPanelCollapsed, m_exclusiveMidiFocusEnabled, m_setupComplete;
+    juce::CachedValue<bool> m_previewLoop, m_sidebarCollapsed, m_lowerRangeCollapsed, m_trackPresetPanelCollapsed, m_modifierPanelCollapsed, m_exclusiveMidiFocusEnabled, m_midiNoteAuditionEnabled, m_setupComplete;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ApplicationViewState)
 };

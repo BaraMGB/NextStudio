@@ -142,7 +142,10 @@ public:
     void cleanUnderNoteRanges(int noteNumb, const juce::Array<tracktion::BeatRange> &ranges, const te::MidiClip *clip);
     te::MidiNote *addNewNoteAt(int x, int y, te::MidiClip *clip);
     te::MidiNote *addNewNote(int noteNumb, const te::MidiClip *clip, double beat, double length = -1);
-    void playGuideNote(const te::MidiClip *clip, const int noteNumb, int vel = 100);
+    void playGuideNote(const te::MidiClip *clip, int noteNumber, int velocity = 100);
+    void beginSustainedGuideNote(const te::MidiClip *clip, int noteNumber, int velocity = 100);
+    void stopGuideNotes();
+    bool isNoteAuditionEnabled() const { return m_evs.m_applicationState.m_midiNoteAuditionEnabled; }
     double getKeyForY(int y);
     int getYForKey(double key);
     juce::Range<float> getNoteLane(int pitch) const { return getNoteRect(pitch, 0, 1).getVerticalRange(); }
@@ -246,6 +249,7 @@ private:
     MidiPendingPaste::State m_pendingPasteState;
     MidiClipboard m_pendingPasteNotes;
     juce::Array<MidiNotePropertyEdit> m_notePropertyPreview;
+    juce::Array<int> m_activeGuideNoteKeys;
 
     bool m_noteInteractionActive = false, m_committingInteraction = false, m_refreshingSnapContext = false;
     static constexpr int guideNoteTimerID = 1, autoScrollTimerID = 2;

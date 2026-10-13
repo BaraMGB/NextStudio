@@ -29,7 +29,7 @@ The current suites are:
 | `DebugProtocol` | command/JSON Lines parsing and serialization | `App/tests/DebugProtocolTests.cpp` |
 | `DebugSnapshotWriter` | PNG success, decode validation, and failure paths | `App/tests/DebugSnapshotWriterTests.cpp` |
 | `DebugStateFilter` | binary-like state filtering and bounded strings | `App/tests/DebugStateFilterTests.cpp` |
-| `DebugSettingsIsolation` | explicit sandbox settings persistence | `App/tests/DebugSettingsIsolationTests.cpp` |
+| `DebugSettingsIsolation` | explicit sandbox settings persistence, including the default-enabled MIDI note-audition toggle and disabled-state round trip | `App/tests/DebugSettingsIsolationTests.cpp` |
 | `DebugAppController` | fake-host validation, readiness, artifacts, errors, and quit | `App/tests/DebugAppControllerTests.cpp` |
 | `ProjectLifecycle` | extensions, validation, direct-save targets, load inspection, and exact save rollback snapshots | `App/tests/ProjectLifecycleTests.cpp` |
 | `ProjectWorkflow` | pending operations, save-error cleanup, recovery confirmation, deferred-execution guards, cancellation, errors, and interaction-lock states | `App/tests/ProjectWorkflowTests.cpp` |
@@ -215,6 +215,18 @@ Current contracts: [Computer MIDI keyboard](../components/computer-midi-keyboard
 7. Clear/switch track and close the application/plugin window while input/audition is active; check cleanup without stuck notes or stale callbacks.
 
 Lighting is binary routed **live input**, not velocity brightness or arrangement-playback visualization. Dispatcher note-offs-last is a batching policy, not reconstructed original event order. Layout/routing unit tests do not replace this native/device checklist. These are recommended checks, not a newly completed runtime run for the documentation migration.
+
+## MIDI note-audition validation
+
+Use a MIDI track with an audible instrument and a clip open in the Piano Roll:
+
+1. Confirm the music-note-and-pencil toggle defaults to enabled, survives an application restart, and can be changed while no track is displayed.
+2. In Draw, press and hold on the grid: the fixed pitch must sound until release while horizontal dragging changes only the provisional duration. Repeat with clips assigned to MIDI channels 1, 2 and 16.
+3. Cancel an active Draw with Escape and by changing tools; switch/clear the track and close the editor while auditioning. No guide note may remain active on any tested MIDI channel.
+4. With Pointer, double-click empty clip space and confirm one brief audition; move notes vertically and confirm changed pitches are auditioned. Include a multi-selection spanning clips with different MIDI channels and verify every preview pitch receives its matching note-off.
+5. Disable the toggle and repeat Draw, double-click insertion and Pointer movement. Editing and undo behavior must remain unchanged and silent; piano-key clicking/dragging must remain audible.
+
+`DebugSettingsIsolationTests` covers default and persisted toggle state. Guide-note audio routing, duration and native mouse/tool teardown require this focused runtime check.
 
 ## Documentation checks
 

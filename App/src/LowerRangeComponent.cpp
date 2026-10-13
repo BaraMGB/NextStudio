@@ -239,6 +239,14 @@ void LowerRangeComponent::paintOverChildren(juce::Graphics &g)
     auto area = getLocalBounds();
     area.removeFromTop(splitterHeight);
     GUIHelpers::drawFakeRoundCorners(g, area.toFloat(), m_evs.m_applicationState.getMainFrameColour(), m_evs.m_applicationState.getBorderColour());
+
+    if (!m_evs.m_applicationState.m_lowerRangeCollapsed
+        && m_evs.getLowerRangeView() == LowerRangeView::midiEditor
+        && area.getWidth() > menuBarWidth)
+    {
+        g.setColour(m_evs.m_applicationState.getBorderColour());
+        g.drawVerticalLine(area.getX() + menuBarWidth, area.getY(), area.getBottom());
+    }
 }
 
 void LowerRangeComponent::resized()

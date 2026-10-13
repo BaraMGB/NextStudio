@@ -26,6 +26,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 void PointerTool::mouseDown(const juce::MouseEvent &event, MidiViewport &viewport)
 {
+    viewport.stopGuideNotes();
     resetDrag(viewport);
     m_pendingLassoStart = false;
     m_dragStartPos = event.getPosition();
@@ -139,8 +140,7 @@ void PointerTool::mouseDrag(const juce::MouseEvent &event, MidiViewport &viewpor
                 m_draggedNoteDelta = juce::jlimit(-item.note->getNoteNumber(), 127 - item.note->getNoteNumber(), m_draggedNoteDelta);
             if (!m_hasPlayedDragGuideNote || m_draggedNoteDelta != m_lastGuideNoteDelta)
             {
-                if (auto* track = m_dragClip->getAudioTrack())
-                    track->turnOffGuideNotes();
+                viewport.stopGuideNotes();
                 for (const auto& item : items)
                     viewport.playGuideNote(item.clip, item.note->getNoteNumber() + m_draggedNoteDelta, item.note->getVelocity());
                 m_hasPlayedDragGuideNote = true;
@@ -299,6 +299,9 @@ double PointerTool::constrainViewScrollKeyDelta(double requestedKeyDelta, MidiVi
 
 void PointerTool::resetDrag(MidiViewport& viewport)
 {
+    if (m_isDragging || m_hasPlayedDragGuideNote)
+        viewport.stopGuideNotes();
+
     m_currentDragMode = DragMode::none;
     m_isDragging = false;
     m_draggedTimeDelta = m_leftTimeDelta = m_rightTimeDelta = 0;
@@ -315,6 +318,7 @@ void PointerTool::resetDrag(MidiViewport& viewport)
 void PointerTool::toolDeactivated(MidiViewport& viewport)
 {
     viewport.cancelSelectionGesture();
+    viewport.stopGuideNotes();
     resetDrag(viewport);
     m_pendingLassoStart = false;
 }

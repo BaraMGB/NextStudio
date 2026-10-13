@@ -49,7 +49,7 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
 
 MidiViewport::~MidiViewport()
 {
-    stopTimer(guideNoteTimerID);
+    stopGuideNotes();
     stopAutoScroll();
     cancelSelectionGesture(false);
     clearNoteInteractionPreview();
@@ -702,10 +702,44 @@ te::MidiNote *MidiViewport::addNewNote(int noteNumb, const te::MidiClip *clip, d
         [this](double actualLength) { m_timeLine.setLastNoteLength(actualLength); });
 }
 
-void MidiViewport::playGuideNote(const te::MidiClip *clip, const int noteNumb, int vel)
+void MidiViewport::playGuideNote(const te::MidiClip *clip, int noteNumber, int velocity)
 {
-    clip->getAudioTrack()->playGuideNote(noteNumb, clip->getMidiChannel(), vel, false, true);
+    if (!isNoteAuditionEnabled() || clip == nullptr || clip->getAudioTrack() == nullptr)
+        return;
+
+    const int pitch = juce::jlimit(0, 127, noteNumber);
+    const int channel = clip->getMidiChannel().getChannelNumber();
+    clip->getAudioTrack()->playGuideNote(pitch, clip->getMidiChannel(), velocity, false, true);
+    m_activeGuideNoteKeys.addIfNotAlreadyThere((channel - 1) * 128 + pitch);
     startTimer(guideNoteTimerID, 100);
+}
+
+void MidiViewport::beginSustainedGuideNote(const te::MidiClip *clip, int noteNumber, int velocity)
+{
+    stopGuideNotes();
+    if (!isNoteAuditionEnabled() || clip == nullptr || clip->getAudioTrack() == nullptr)
+        return;
+
+    const int pitch = juce::jlimit(0, 127, noteNumber);
+    const int channel = clip->getMidiChannel().getChannelNumber();
+    clip->getAudioTrack()->playGuideNote(pitch, clip->getMidiChannel(), velocity, false, true);
+    m_activeGuideNoteKeys.addIfNotAlreadyThere((channel - 1) * 128 + pitch);
+}
+
+void MidiViewport::stopGuideNotes()
+{
+    stopTimer(guideNoteTimerID);
+    if (auto track = EngineHelpers::getAudioTrack(getTrack(), m_evs))
+    {
+        // Tracktion stores guide pitches without their channels and its no-argument
+        // shutdown clears that list while processing channel 1. Send the exact
+        // channel/pitch releases first so clips on channels 2..16 cannot hang.
+        for (const int key : m_activeGuideNoteKeys)
+            track->injectLiveMidiMessage(juce::MidiMessage::noteOff(key / 128 + 1, key % 128), {});
+
+        track->turnOffGuideNotes();
+    }
+    m_activeGuideNoteKeys.clear();
 }
 
 bool MidiViewport::deleteNoteFromSecondaryClick(te::MidiNote *note)
@@ -1556,9 +1590,7 @@ void MidiViewport::timerCallback(int timerID)
 {
     if (timerID == guideNoteTimerID)
     {
-        stopTimer(guideNoteTimerID);
-        if (auto at = EngineHelpers::getAudioTrack(getTrack(), m_evs))
-            at->turnOffGuideNotes();
+        stopGuideNotes();
         return;
     }
 

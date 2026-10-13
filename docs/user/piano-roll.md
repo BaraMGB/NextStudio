@@ -24,7 +24,7 @@ If no active track is available, the grid displays a prompt to select a MIDI cli
 
 From top to bottom:
 
-1. **Tool bar** — pointer, draw, range, eraser, knife, and lasso.
+1. **Tool bar** — the note-audition toggle is left-aligned; pointer, draw, range, eraser, knife, and lasso remain grouped in the center.
 2. **Note properties bar** — selection count, exact note properties, position snapping, and inserted-note length.
 3. **Timeline** — musical time and overlay above the note grid.
 4. **Piano keyboard and note grid** — pitch vertically, time horizontally.
@@ -87,6 +87,16 @@ The feedback is track-aware: MIDI routed to a different track does not light the
 
 Fast dragging across the clickable keyboard sends successive note-off/note-on pairs. These events are batched internally, but released keys are cleared at the end of each batch so they do not remain lit after the mouse is released.
 
+### Note audition
+
+The left-aligned music-note-and-pencil button in the tool bar enables or disables note audition. It is enabled by default and its state persists across application sessions. When enabled:
+
+- Draw sounds the fixed pitch for as long as the mouse button is held;
+- Pointer double-click insertion gives the new note a short preview;
+- moving notes auditions pitch changes.
+
+Release, Escape, tool or track changes, disabling the button, and editor/application teardown stop active guide notes on the MIDI channel assigned to each clip. The toggle affects editing previews only; clicking or dragging the piano keyboard continues to audition pitches directly.
+
 ## Tools
 
 ### Pointer
@@ -141,7 +151,7 @@ Moving notes into a grid edge automatically scrolls the Piano Roll horizontally 
 
 #### Insert by double-click
 
-Double-click empty grid space over a MIDI clip to insert a note using the length selected by **INSERT LENGHT**. The previous MIDI-note selection is cleared and the inserted note becomes selected.
+Double-click empty grid space over a MIDI clip to insert a note using the length selected by **INSERT LENGHT**. The previous MIDI-note selection is cleared and the inserted note becomes selected. With note audition enabled, the inserted pitch plays briefly.
 
 #### Overlap handling
 
@@ -151,7 +161,7 @@ Move/copy/create operations clear conflicting note material of the same pitch in
 
 The draw tool creates a note over an existing MIDI clip. Its pencil cursor is shown over clip time ranges; outside clips and in clip gaps, the normal pointer remains visible. Clicking there does not create a note or clip. An ongoing draw retains the pencil while crossing a clip boundary.
 
-- clicking shows the selected **INSERT LENGHT** default immediately;
+- clicking shows the selected **INSERT LENGHT** default immediately and, when note audition is enabled, sustains that pitch until release;
 - with snapping enabled, the start aligns downward and the default end aligns to the first snap point at or after that duration. A coarser snap therefore immediately gives the note an end at the next snap point;
 - dragging changes this initial end relatively: right extends, left shortens, including below both the insert length and snap interval;
 - nearby snap points are magnetic detents. Continue moving to pull the end free and reach any intermediate position;

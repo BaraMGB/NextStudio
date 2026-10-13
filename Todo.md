@@ -2,11 +2,10 @@
 
 GitHub issues are tracker entries for reported work and status only. Solution proposals, review, validation and acceptance take place directly in the active Pi Agent conversation. This queue preserves the agreed priorities and dependencies; refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
-The 10 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
+The 9 open issues below target [v0.06 alpha](https://github.com/BaraMGB/NextStudio/milestone/6); #21 remains deferred to Post v1.0.
 
 ## Larger editor features
 
-- [ ] [#72 — Audition notes while drawing/inserting](https://github.com/BaraMGB/NextStudio/issues/72) — persistent MIDI-toolbar toggle; guarantee note-off on release, cancellation, tool changes and destruction.
 - [ ] [#76 — Configurable playhead positioning on editor clicks](https://github.com/BaraMGB/NextStudio/issues/76) — keep ruler clicks active; insertion double-clicks must not move the playhead.
 - [ ] [#83 — Separate follow-playhead state per timeline](https://github.com/BaraMGB/NextStudio/issues/83) — store per view; migrate global state; default MIDI follow off.
 - [ ] [#82 — Join/glue selected MIDI clips](https://github.com/BaraMGB/NextStudio/issues/82) — decide gap/overlap/loop/take/order/selection semantics first; one atomic undoable command.
