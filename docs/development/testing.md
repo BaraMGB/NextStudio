@@ -482,6 +482,8 @@ For the arrangement overwrite feature, additionally verify mouse-driven move,
 Ctrl-copy, resize, time stretch, MIDI double-click creation, audio drag/drop,
 time-range duplication, and audio/MIDI recording while playback is active.
 
+For Piano Roll playhead input, click and double-click empty note-grid space with Pointer and Draw, then perform note selection and lasso gestures; none may reposition the playhead. Clicking and dragging the timeline ruler must continue to position it.
+
 Manual validation should supplement rather than replace extractable unit tests.
 
 ## CI

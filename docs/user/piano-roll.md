@@ -31,7 +31,7 @@ From top to bottom:
 5. **Velocity editor** — velocity stems/handles for notes.
 6. **Horizontal scrollbar and footer** — horizontal position and note name under the pointer.
 
-The playhead overlays the timeline/grid region. Alternating timeline bands provide orientation without hiding piano-key rows, clip-range shading, notes, or editing previews. The band tint follows the selected theme while its subtle intensity is controlled by the editor.
+The playhead overlays the timeline/grid region. Click the timeline ruler to position it; clicks in the note grid edit or select notes and do not reposition the playhead. Alternating timeline bands provide orientation without hiding piano-key rows, clip-range shading, notes, or editing previews. The band tint follows the selected theme while its subtle intensity is controlled by the editor.
 
 ## Live timing and snap feedback
 
@@ -206,7 +206,7 @@ Use the **SNAP** selector in the note-properties bar to choose **Off**, a fixed 
 
 Mouse move/resize, drawing, and knife preview use **soft snapping**: the edited position stays exactly on a nearby snap point until you pull it out of the magnetic region, then moves continuously toward the next point. The mouse pointer itself is not warped. The attraction region accounts for display scaling and is capped on narrow grids; its exact profiles are defined in the [shared snapping contract](../components/timeline-snapping.md#magnetic-curve).
 
-Hold `Shift` to bypass enabled snapping temporarily. Changing the modifier can produce a small bounded position change, without accumulating offsets. Keyboard nudging, explicit quantization, exact property edits, and playhead clicks retain discrete behavior.
+Hold `Shift` to bypass enabled snapping temporarily. Changing the modifier can produce a small bounded position change, without accumulating offsets. Keyboard nudging, explicit quantization, exact property edits, and playhead positioning on the timeline ruler retain discrete behavior.
 
 ## Inserted-note length
 

@@ -54,8 +54,6 @@ public:
     void paint(juce::Graphics &g) override;
     void paintOverChildren(juce::Graphics &g) override;
     void resized() override;
-    void mouseDown(const juce::MouseEvent &event) override;
-    void mouseUp(const juce::MouseEvent &event) override;
     bool keyPressed(const juce::KeyPress &key) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
 
@@ -142,7 +140,6 @@ private:
     void handleAsyncUpdate() override;
 
     bool m_updateKeyboard{false}, m_updateVelocity{false}, m_updateNoteEditor{false}, m_updateNoteProperties{false}, m_updateClips{false}, m_updateTracks{false}, m_updateButtonColour{false}, m_updateHorizontalScrollbar{false};
-    bool m_pianoRollPlayheadClickPending{false};
 
     void updateHorizontalScrollBar();
     int getScrollbarThickness() const;

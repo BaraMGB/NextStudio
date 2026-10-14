@@ -119,6 +119,8 @@ The timeline owns the horizontal mapping:
 - `m_timeLine.xToTimePos(x)` — pixel to edit time;
 - `m_evs.beatsToX(beats, timeLineID, width)` — beat to pixel for a given view width.
 
+The note grid does not forward empty-space clicks to the transport. Playhead positioning is owned by `TimeLineComponent` through ruler interaction, keeping note selection, lasso and insertion gestures independent from transport seeking.
+
 The [timeline view transform](timeline-view-transform.md) owns normalized horizontal scale, anchors, pan and fit lifecycle. This editor retains floating-point note/clip-overlay edges and inverse input coordinates through that shared mapping. Its existing extra right-edge draw pixel is padding, not an alteration of a note's end beat. Fit requests use the editor's post-layout viewport, not a cached width from the last visited track.
 
 ### Vertical
