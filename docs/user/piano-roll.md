@@ -24,14 +24,14 @@ If no active track is available, the grid displays a prompt to select a MIDI cli
 
 From top to bottom:
 
-1. **Tool bar** — the note-audition toggle is left-aligned; pointer, draw, range, eraser, knife, and lasso remain grouped in the center.
+1. **Tool bar** — the note-audition toggle is left-aligned; pointer, draw, range, eraser, knife, and lasso remain grouped in the center; Follow Playhead is right-aligned.
 2. **Note properties bar** — selection count, exact note properties, position snapping, and inserted-note length.
 3. **Timeline** — musical time and overlay above the note grid.
 4. **Piano keyboard and note grid** — pitch vertically, time horizontally.
 5. **Velocity editor** — velocity stems/handles for notes.
 6. **Horizontal scrollbar and footer** — horizontal position and note name under the pointer.
 
-The playhead overlays the timeline/grid region. Click the timeline ruler to position it; clicks in the note grid edit or select notes and do not reposition the playhead. Alternating timeline bands provide orientation without hiding piano-key rows, clip-range shading, notes, or editing previews. The band tint follows the selected theme while its subtle intensity is controlled by the editor.
+The playhead overlays the timeline/grid region. Click the timeline ruler to position it; clicks in the note grid edit or select notes and do not reposition the playhead. The right-aligned Follow Playhead button enables automatic scrolling for the current MIDI timeline and defaults to off. Right-click it to select smooth Page or centered Continuous scrolling. Its state is independent from the Song Editor and other MIDI timelines. Alternating timeline bands provide orientation without hiding piano-key rows, clip-range shading, notes, or editing previews. The band tint follows the selected theme while its subtle intensity is controlled by the editor.
 
 ## Live timing and snap feedback
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Header Bar spans the top of the main window and contains global transport controls, time display, and project-wide switches.
+The Header Bar spans the top of the main window and contains global transport controls, the time display, and project-wide transport switches. Timeline-specific follow controls belong to the Song Editor and Piano Roll ToolHeaders.
 
 ## Project and Save Information
 
@@ -54,7 +54,6 @@ These edits participate in undo/redo.
 |---|---|---|
 | Loop | Enables loop playback for the selected loop range | `Cmd/Ctrl+L` |
 | Metronome | Enables metronome click during playback and recording | `Cmd/Ctrl+M` |
-| Follow Playhead | Song Editor and MIDI Editor scroll automatically with the playhead | — |
 
 ## Automation Controls
 

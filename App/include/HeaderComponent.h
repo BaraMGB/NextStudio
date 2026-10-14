@@ -115,7 +115,6 @@ public:
     void paint(juce::Graphics &g) override;
     void resized() override;
     void buttonClicked(juce::Button *button) override;
-    void mouseDown(const juce::MouseEvent &e) override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
     void valueTreePropertyChanged(juce::ValueTree &, const juce::Identifier &) override;
 
@@ -129,13 +128,12 @@ public:
 private:
     juce::String getCountInModeText() const;
     void showCountInMenu();
-    void showFollowMenu();
     void showEmptyLoopRangeWarning();
     void updateCountInButton();
     void updateUndoRedoButtons(bool force = false);
     void updateCountInDisplay();
     EditViewState &m_editViewState;
-    juce::DrawableButton m_stopButton, m_recordButton, m_playButton, m_loopButton, m_clickButton, m_followPlayheadButton, m_undoButton, m_redoButton;
+    juce::DrawableButton m_stopButton, m_recordButton, m_playButton, m_loopButton, m_clickButton, m_undoButton, m_redoButton;
     PreRollCounterButton m_countInButton;
     juce::BubbleMessageComponent m_loopRangeWarning;
     te::Edit &m_edit;

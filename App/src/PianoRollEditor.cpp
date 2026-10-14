@@ -27,10 +27,12 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 PianoRollEditor::PianoRollEditor(EditViewState &evs)
     : m_editViewState(evs),
       m_timeLine(evs, "PianoRoll", true),
+      m_followPlayheadButton(evs, m_timeLine),
       m_notePropertiesBar(evs),
       m_playhead(evs.m_edit, evs, m_timeLine),
       m_noteAuditionToolBar(Alignment::Left),
       m_toolBar(Alignment::Center),
+      m_followPlayheadToolBar(Alignment::Right),
       m_selectionBtn("select mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_drawBtn("draw mode", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_noteAuditionBtn("note audition", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
@@ -141,6 +143,7 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
 
     addAndMakeVisible(m_noteAuditionToolBar);
     addAndMakeVisible(m_toolBar);
+    addAndMakeVisible(m_followPlayheadToolBar);
     m_noteAuditionToolBar.addButton(&m_noteAuditionBtn);
     m_toolBar.addButton(&m_selectionBtn, 1);
     m_toolBar.addButton(&m_drawBtn, 1);
@@ -148,6 +151,8 @@ PianoRollEditor::PianoRollEditor(EditViewState &evs)
     m_toolBar.addButton(&m_erasorBtn, 1);
     m_toolBar.addButton(&m_splitBtn, 1);
     m_toolBar.addButton(&m_lassoBtn, 1);
+    m_followPlayheadToolBar.addButton(&m_followPlayheadButton);
+    m_followPlayheadButton.setEnabled(false);
 
     updateButtonColour();
 }
@@ -244,6 +249,7 @@ void PianoRollEditor::resized()
 
     m_noteAuditionToolBar.setBounds(getNoteAuditionToolBarRect());
     m_toolBar.setBounds(toolbar);
+    m_followPlayheadToolBar.setBounds(getFollowToolBarRect());
     m_notePropertiesBar.setBounds(getNotePropertiesRect());
 
     if (m_keyboard != nullptr)
@@ -632,6 +638,8 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
 
     auto sanitizedID = "ID" + track->itemID.toString().removeCharacters("{}-");
     m_timeLine.setTimeLineID(sanitizedID);
+    m_followPlayheadButton.setEnabled(true);
+    m_followPlayheadButton.refresh();
     m_pianoRollViewPort = std::make_unique<MidiViewport>(m_editViewState, track, m_timeLine);
     refreshKeyboardClipScope();
     m_pianoRollViewPort->setNoteUnderMouseHandler([this](std::optional<int> note)
@@ -658,6 +666,8 @@ void PianoRollEditor::setTrack(tracktion_engine::Track::Ptr track, bool forceRef
 }
 void PianoRollEditor::clearTrack()
 {
+    m_followPlayheadButton.setEnabled(false);
+    m_editViewState.resetPositionFollower(m_timeLine.getTimeLineID());
     m_keyboardClipScope.clear();
     m_pianoRollViewPort->cancelSelectionGesture(false);
     m_velocityEditor.reset();
@@ -913,6 +923,14 @@ juce::Rectangle<int> PianoRollEditor::getToolBarRect()
     area = area.removeFromTop(m_editViewState.m_timeLineHeight);
     area.reduce(area.getWidth() / 3, 0);
 
+    return area;
+}
+
+juce::Rectangle<int> PianoRollEditor::getFollowToolBarRect()
+{
+    auto area = getHeaderRect();
+    area.removeFromLeft((area.getWidth() * 2) / 3);
+    area.removeFromRight(8);
     return area;
 }
 juce::Rectangle<int> PianoRollEditor::getNotePropertiesRect()

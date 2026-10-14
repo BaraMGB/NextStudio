@@ -161,6 +161,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     addAndMakeVisible(m_trackListToolsMenu);
     addAndMakeVisible(m_automationToolBar);
     addAndMakeVisible(m_toolBar);
+    addAndMakeVisible(m_followPlayheadToolBar);
     addAndMakeVisible(m_trackListControlMenu);
 
     updateButtonIcons();
@@ -235,6 +236,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
     m_toolBar.addButton(&m_timeStretchButton, 1);
     m_toolBar.addButton(&m_deleteClipButton);
     m_toolBar.addButton(&m_reverseClipButton);
+    m_followPlayheadToolBar.addButton(&m_followPlayheadButton);
 
     m_songEditor.setTool(m_songEditor.getToolMode());
     m_toolBar.setButtonGap(4, 30);
@@ -371,6 +373,7 @@ void EditComponent::resized()
     NS_LOG_DEBUG(ui, "EditComponent resized");
     m_automationToolBar.setBounds(getAutomationToolBarRect());
     m_toolBar.setBounds(getToolBarRect());
+    m_followPlayheadToolBar.setBounds(getFollowToolBarRect());
     m_clipPropertiesBar.setBounds(getClipPropertiesRect());
     m_timeLine.setBounds(getTimeLineRect());
     m_trackListView.setBounds(getScrollableTrackListRect());
@@ -1200,6 +1203,14 @@ juce::Rectangle<int> EditComponent::getToolBarRect()
 {
     auto rect = getEditorHeaderRect();
     rect.reduce(rect.getWidth() / 3, 0);
+    return rect;
+}
+
+juce::Rectangle<int> EditComponent::getFollowToolBarRect()
+{
+    auto rect = getEditorHeaderRect();
+    rect.removeFromLeft((rect.getWidth() * 2) / 3);
+    rect.removeFromRight(8);
     return rect;
 }
 juce::Rectangle<int> EditComponent::getEditorHeaderRect() { return {0, 0, getWidth(), m_editViewState.m_timeLineHeight}; }

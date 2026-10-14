@@ -79,10 +79,7 @@ bool PlayheadComponent::isPlaying() const { return m_editViewState.m_edit.getTra
 
 void PlayheadComponent::timerCallback()
 {
-    if (isPlaying())
-    {
-        m_editViewState.updatePositionFollower(m_timeLine.getTimeLineID(), getWidth());
-    }
+    m_editViewState.updatePositionFollower(m_timeLine.getTimeLineID(), getWidth());
 
     if (m_firstTimer)
     {

@@ -30,6 +30,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "PlayHeadComponent.h"
 #include "SongEditorView.h"
 #include "TimeLineComponent.h"
+#include "TimelineFollowButton.h"
 #include "TrackHeadComponent.h"
 #include "TrackLaneComponent.h"
 #include "TrackListView.h"
@@ -176,6 +177,7 @@ private:
 
     juce::Rectangle<int> getAutomationToolBarRect();
     juce::Rectangle<int> getToolBarRect();
+    juce::Rectangle<int> getFollowToolBarRect();
     juce::Rectangle<int> getEditorHeaderRect();
     juce::Rectangle<int> getClipPropertiesRect();
     juce::Rectangle<int> getTimeLineRect();
@@ -201,6 +203,7 @@ private:
     te::Edit &m_edit;
     EditViewState &m_editViewState;
     TimeLineComponent m_timeLine{m_editViewState, "SongEditor"};
+    TimelineFollowButton m_followPlayheadButton{m_editViewState, m_timeLine};
     ClipPropertiesBar m_clipPropertiesBar{m_editViewState};
     SongEditorView m_songEditor;
     std::unique_ptr<TrackHeaderComponent> m_masterHeader;
@@ -213,6 +216,7 @@ private:
     juce::DrawableButton m_automationReadButton, m_automationWriteButton;
 
     MenuBar m_toolBar;
+    MenuBar m_followPlayheadToolBar{Alignment::Right};
     juce::DrawableButton m_selectButton, m_lassoSelectButton, m_timeRangeSelectButton, m_splitClipButton, m_timeStretchButton, m_reverseClipButton, m_deleteClipButton;
 
     MenuBar m_trackListToolsMenu;

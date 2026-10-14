@@ -241,8 +241,8 @@ void TimeLineComponent::mouseDown(const juce::MouseEvent &e)
     mouseMove(e);
     m_loopGesture.reset();
     setMouseFeedback({});
-    m_cachedFollowPlayhead = m_evs.m_followPlayhead;
-    m_evs.followsPlayhead(false);
+    m_cachedFollowPlayhead = m_evs.viewFollowsPos(m_timeLineID);
+    m_evs.followsPlayhead(m_timeLineID, false);
     m_changeLoopRange = false;
     m_loopRangeClicked = false;
     m_isSnapping = isSnappingEnabled() && !e.mods.isShiftDown();
@@ -356,7 +356,7 @@ void TimeLineComponent::mouseUp(const juce::MouseEvent &event)
         mouseDrag(event);
     m_loopGesture.reset();
     m_mouseInput.reset();
-    m_evs.followsPlayhead(m_cachedFollowPlayhead);
+    m_evs.followsPlayhead(m_timeLineID, m_cachedFollowPlayhead);
     auto &t = m_evs.m_edit.getTransport();
     if (m_loopRangeClicked || m_changeLoopRange)
     {
@@ -398,7 +398,7 @@ bool TimeLineComponent::keyPressed(const juce::KeyPress& key)
         m_loopGesture.reset();
         m_mouseInput.reset();
         m_newLoopRange = {};
-        m_evs.followsPlayhead(m_cachedFollowPlayhead);
+        m_evs.followsPlayhead(m_timeLineID, m_cachedFollowPlayhead);
         clearMouseFeedback(TimelineFeedbackOwner::loop);
         repaint();
         return true;
@@ -527,6 +527,8 @@ double TimeLineComponent::getBeatsPerPixel()
 void TimeLineComponent::setTimeLineID(juce::String timeLineID)
 {
     setMouseFeedback({});
+    if (m_timeLineID.isNotEmpty() && m_timeLineID != timeLineID)
+        m_evs.resetPositionFollower(m_timeLineID);
     m_timeLineID = timeLineID;
     m_tree = m_evs.m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
     m_zoomIntent.reset();

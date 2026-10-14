@@ -60,8 +60,17 @@ EditViewState::EditViewState(te::Edit &e, te::SelectionManager &s, ApplicationVi
     m_lastNoteLength.referTo(m_state, IDs::lastNoteLenght, um, 0);
     m_snapType.referTo(m_state, IDs::snapType, um, 9);
     m_playHeadStartTime.referTo(m_state, IDs::playHeadStartTime, nullptr, 0.0);
-    m_followPlayhead.referTo(m_state, IDs::followsPlayhead, um, true);
-    m_followModeVal.referTo(m_state, IDs::followMode, um, 1); // Default to Page (1)
+
+    // Follow was originally stored globally in EDITVIEWSTATE. Preserve that
+    // behavior for the Song Editor once, then let every timeline own its state.
+    auto songEditorState = m_viewDataTree.getOrCreateChildWithName("SongEditor", nullptr);
+    if (!songEditorState.hasProperty(IDs::followsPlayhead))
+        songEditorState.setProperty(IDs::followsPlayhead, m_state.getProperty(IDs::followsPlayhead, true), nullptr);
+    if (!songEditorState.hasProperty(IDs::followMode))
+        songEditorState.setProperty(IDs::followMode, m_state.getProperty(IDs::followMode, static_cast<int>(FollowMode::Page)), nullptr);
+    m_state.removeProperty(IDs::followsPlayhead, nullptr);
+    m_state.removeProperty(IDs::followMode, nullptr);
+
     m_timeLineHeight.referTo(m_state, IDs::timeLineHeight, um, 50);
     m_editName.referTo(m_state, IDs::name, um, "unknown");
     m_timeLineZoomUnit.referTo(m_state, IDs::timeLineZoomUnit, um, 50);
@@ -344,41 +353,65 @@ tracktion::TimeRange EditViewState::getVisibleTimeRange(juce::String id, int wid
 
 [[nodiscard]] double EditViewState::getEndScrollBeat() const { return timeToBeat(m_edit.getLength().inSeconds()) + (480); }
 
-void EditViewState::followsPlayhead(bool shouldFollow) { m_followPlayhead = shouldFollow; }
+void EditViewState::followsPlayhead(const juce::String &timeLineID, bool shouldFollow)
+{
+    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
+    node.setProperty(IDs::followsPlayhead, shouldFollow, nullptr);
+    if (!shouldFollow)
+        m_followScrollStates.erase(timeLineID);
+}
 
-void EditViewState::toggleFollowPlayhead() { m_followPlayhead = !m_followPlayhead; }
-[[nodiscard]] bool EditViewState::viewFollowsPos() const { return m_followPlayhead; }
+void EditViewState::toggleFollowPlayhead(const juce::String &timeLineID)
+{
+    followsPlayhead(timeLineID, !viewFollowsPos(timeLineID));
+}
 
-void EditViewState::setFollowMode(FollowMode mode)
+[[nodiscard]] bool EditViewState::viewFollowsPos(const juce::String &timeLineID) const
+{
+    auto node = m_viewDataTree.getChildWithName(timeLineID);
+    return node.isValid() ? static_cast<bool>(node.getProperty(IDs::followsPlayhead, timeLineID == "SongEditor"))
+                          : timeLineID == "SongEditor";
+}
+
+void EditViewState::setFollowMode(const juce::String &timeLineID, FollowMode mode)
 {
     if (mode == FollowMode::Off)
     {
-        m_followPlayhead = false;
-    }
-    else
-    {
-        m_followPlayhead = true;
-        m_followModeVal = static_cast<int>(mode);
-    }
-}
-
-EditViewState::FollowMode EditViewState::getFollowMode() const
-{
-    if (!m_followPlayhead)
-        return FollowMode::Off;
-
-    return static_cast<FollowMode>(m_followModeVal.get());
-}
-
-void EditViewState::updatePositionFollower(juce::String timeLineID, int width)
-{
-    auto mode = getFollowMode();
-    if (mode == FollowMode::Off || !m_edit.getTransport().isPlaying())
-    {
-        m_isScrolling = false;
+        followsPlayhead(timeLineID, false);
         return;
     }
 
+    auto node = m_viewDataTree.getOrCreateChildWithName(timeLineID, nullptr);
+    node.setProperty(IDs::followMode, static_cast<int>(mode), nullptr);
+    followsPlayhead(timeLineID, true);
+}
+
+EditViewState::FollowMode EditViewState::getFollowMode(const juce::String &timeLineID) const
+{
+    if (!viewFollowsPos(timeLineID))
+        return FollowMode::Off;
+
+    auto node = m_viewDataTree.getChildWithName(timeLineID);
+    const auto storedMode = static_cast<int>(node.getProperty(IDs::followMode, static_cast<int>(FollowMode::Page)));
+    return storedMode == static_cast<int>(FollowMode::Continuous) ? FollowMode::Continuous : FollowMode::Page;
+}
+
+void EditViewState::updatePositionFollower(const juce::String &timeLineID, int width)
+{
+    if (!m_edit.getTransport().isPlaying())
+    {
+        m_followScrollStates.clear();
+        return;
+    }
+
+    auto mode = getFollowMode(timeLineID);
+    if (mode == FollowMode::Off)
+    {
+        m_followScrollStates.erase(timeLineID);
+        return;
+    }
+
+    auto &scroll = m_followScrollStates[timeLineID];
     auto currentPos = m_edit.getTransport().getPosition().inSeconds();
     auto currentBeats = timeToBeat(currentPos);
     auto visibleRange = getVisibleBeatRange(timeLineID, width);
@@ -401,51 +434,56 @@ void EditViewState::updatePositionFollower(juce::String timeLineID, int width)
         // Page Mode with Smooth Transition
 
         // Check if we need to scroll (Playhead moved out of view)
-        if (!m_isScrolling)
+        if (!scroll.isScrolling)
         {
             // Margin of 10% of view width
             double margin = viewLength * 0.10;
 
             if (currentBeats >= endBeat - margin)
             {
-                m_targetViewX = endBeat - margin;
-                m_scrollStartViewX = startBeat;
-                m_scrollProgress = 0.0;
-                m_isScrolling = true;
+                scroll.targetViewX = endBeat - margin;
+                scroll.scrollStartViewX = startBeat;
+                scroll.scrollProgress = 0.0;
+                scroll.isScrolling = true;
             }
             else if (currentBeats < startBeat)
             {
                 // Jumped back (loop or user click)
-                m_targetViewX = juce::jmax(0.0, currentBeats - margin);
-                m_scrollStartViewX = startBeat;
-                m_scrollProgress = 0.0;
-                m_isScrolling = true;
+                scroll.targetViewX = juce::jmax(0.0, currentBeats - margin);
+                scroll.scrollStartViewX = startBeat;
+                scroll.scrollProgress = 0.0;
+                scroll.isScrolling = true;
             }
         }
 
-        if (m_isScrolling)
+        if (scroll.isScrolling)
         {
             // Fixed duration scroll with Ease-In / Ease-Out
             // Increment progress (0.025 gives approx 40 frames = 0.66 seconds at 60Hz)
-            m_scrollProgress += 0.025;
+            scroll.scrollProgress += 0.025;
 
-            if (m_scrollProgress >= 1.0)
+            if (scroll.scrollProgress >= 1.0)
             {
-                setNewStartAndZoom(timeLineID, m_targetViewX);
-                m_isScrolling = false;
+                setNewStartAndZoom(timeLineID, scroll.targetViewX);
+                scroll.isScrolling = false;
             }
             else
             {
                 // SmootherStep (Perlin): t^3 * (t * (t * 6 - 15) + 10)
                 // Provides zero 1st and 2nd derivative at t=0 and t=1 for softer start/stop.
-                double t = m_scrollProgress;
+                double t = scroll.scrollProgress;
                 double ease = t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 
-                double newStart = m_scrollStartViewX + (m_targetViewX - m_scrollStartViewX) * ease;
+                double newStart = scroll.scrollStartViewX + (scroll.targetViewX - scroll.scrollStartViewX) * ease;
                 setNewStartAndZoom(timeLineID, newStart);
             }
         }
     }
+}
+
+void EditViewState::resetPositionFollower(const juce::String &timeLineID)
+{
+    m_followScrollStates.erase(timeLineID);
 }
 
 void EditViewState::beginRecordCountIn()

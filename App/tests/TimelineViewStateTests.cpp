@@ -18,8 +18,31 @@ void run()
     ApplicationViewState avs(settings.getFile());
     te::Engine engine("NextStudioTimelineViewStateTests");
     auto edit = te::Edit::createSingleTrackEdit(engine);
+    auto legacyState = edit->state.getOrCreateChildWithName(IDs::EDITVIEWSTATE, nullptr);
+    legacyState.setProperty(IDs::followsPlayhead, true, nullptr);
+    legacyState.setProperty(IDs::followMode, static_cast<int>(EditViewState::FollowMode::Continuous), nullptr);
     te::SelectionManager selection(engine);
     EditViewState evs(*edit, selection, avs);
+
+    auto songFollowState = evs.m_viewDataTree.getChildWithName("SongEditor");
+    require(songFollowState.isValid(), "song follow state missing");
+    require(evs.viewFollowsPos("SongEditor"), "legacy song follow state not migrated");
+    require(evs.getFollowMode("SongEditor") == EditViewState::FollowMode::Continuous, "legacy song follow mode not migrated");
+    require(!evs.m_state.hasProperty(IDs::followsPlayhead) && !evs.m_state.hasProperty(IDs::followMode), "legacy global follow state retained");
+    require(!evs.viewFollowsPos("PianoRollFollowTest"), "MIDI follow must default off");
+    evs.setFollowMode("PianoRollFollowTest", EditViewState::FollowMode::Page);
+    require(evs.viewFollowsPos("PianoRollFollowTest"), "MIDI follow did not enable");
+    require(evs.getFollowMode("PianoRollFollowTest") == EditViewState::FollowMode::Page, "MIDI follow mode not stored");
+    require(evs.getFollowMode("SongEditor") == EditViewState::FollowMode::Continuous, "MIDI mode changed Song Editor mode");
+    evs.followsPlayhead("SongEditor", false);
+    require(evs.viewFollowsPos("PianoRollFollowTest"), "Song Editor follow changed MIDI follow");
+    evs.toggleFollowPlayhead("PianoRollFollowTest");
+    require(!evs.viewFollowsPos("PianoRollFollowTest"), "MIDI follow toggle failed");
+    require(!evs.viewFollowsPos("SongEditor"), "MIDI follow toggle changed Song Editor follow");
+    require(static_cast<bool>(evs.m_viewDataTree.getChildWithName("PianoRollFollowTest").getProperty(IDs::followsPlayhead)) == false,
+            "MIDI follow state not stored in timeline node");
+    evs.setFollowMode("SongEditor", EditViewState::FollowMode::Page);
+
     auto *track = te::getAudioTracks(*edit)[0];
     auto clip = track->insertMIDIClip("Alignment", {tracktion::TimePosition::fromSeconds(0), tracktion::TimePosition::fromSeconds(4)}, nullptr);
     require(clip != nullptr, "clip missing");

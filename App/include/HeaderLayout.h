@@ -8,8 +8,8 @@ namespace HeaderLayout
 struct Layout
 {
     juce::Rectangle<int> positionDisplay;
-    // Play, Stop, Record, Count In, Metronome, Loop, Follow, Undo, Redo.
-    std::array<juce::Rectangle<int>, 9> buttons;
+    // Play, Stop, Record, Count In, Metronome, Loop, Undo, Redo.
+    std::array<juce::Rectangle<int>, 8> buttons;
 };
 
 // Keep the widened Position Display centred. At narrow widths it contracts only
@@ -25,7 +25,7 @@ inline Layout calculate(int width, int height, int preferredDisplayWidth)
     const auto leftWidth = (width - displayWidth) / 2;
     const auto rightWidth = width - displayWidth - leftWidth;
     const auto leftSlot = juce::jmin(height, leftWidth / 4);
-    const auto rightSlot = juce::jmin(height, rightWidth / 5);
+    const auto rightSlot = juce::jmin(height, rightWidth / 4);
     const auto leftStart = leftWidth - leftSlot * 4;
     const auto rightStart = leftWidth + displayWidth;
 
@@ -40,10 +40,10 @@ inline Layout calculate(int width, int height, int preferredDisplayWidth)
 
     for (int i = 0; i < 4; ++i)
         result.buttons[(size_t) i] = button(leftStart + leftSlot * i, leftSlot);
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 2; ++i)
         result.buttons[(size_t) (4 + i)] = button(rightStart + rightSlot * i, rightSlot);
-    result.buttons[7] = button(width - rightSlot * 2, rightSlot);
-    result.buttons[8] = button(width - rightSlot, rightSlot);
+    result.buttons[6] = button(width - rightSlot * 2, rightSlot);
+    result.buttons[7] = button(width - rightSlot, rightSlot);
     return result;
 }
 } // namespace HeaderLayout

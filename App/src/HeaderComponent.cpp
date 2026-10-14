@@ -32,7 +32,6 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
       m_playButton("Play", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_loopButton("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_clickButton("Metronome", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
-      m_followPlayheadButton("Follow", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_undoButton("Undo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_redoButton("Redo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackgroundOriginalSize),
       m_edit(evs.m_edit),
@@ -40,7 +39,7 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
       m_commandManager(commandManager),
       m_display(evs, applicationState)
 {
-    Helpers::addAndMakeVisible(*this, {&m_stopButton, &m_playButton, &m_recordButton, &m_countInButton, &m_display, &m_clickButton, &m_loopButton, &m_followPlayheadButton, &m_undoButton, &m_redoButton});
+    Helpers::addAndMakeVisible(*this, {&m_stopButton, &m_playButton, &m_recordButton, &m_countInButton, &m_display, &m_clickButton, &m_loopButton, &m_undoButton, &m_redoButton});
 
     updateIcons();
 
@@ -50,17 +49,14 @@ HeaderComponent::HeaderComponent(EditViewState &evs, ApplicationViewState &appli
     m_countInButton.addListener(this);
     m_loopButton.addListener(this);
     m_clickButton.addListener(this);
-    m_followPlayheadButton.addListener(this);
     m_undoButton.addListener(this);
     m_redoButton.addListener(this);
-    m_followPlayheadButton.addMouseListener(this, false);
 
     m_playButton.setTooltip(GUIHelpers::translate("Play", m_editViewState.m_applicationState));
     m_stopButton.setTooltip(GUIHelpers::translate("Stop", m_editViewState.m_applicationState));
     m_recordButton.setTooltip(GUIHelpers::translate("Recording", m_editViewState.m_applicationState));
     m_loopButton.setTooltip(GUIHelpers::translate("Toggle loop on/off", m_editViewState.m_applicationState));
     m_clickButton.setTooltip(GUIHelpers::translate("Toggle metronome on/off", m_editViewState.m_applicationState));
-    m_followPlayheadButton.setTooltip(GUIHelpers::translate("View follows playhead on/off", m_editViewState.m_applicationState));
     m_undoButton.setTooltip(GUIHelpers::translate("Undo", m_editViewState.m_applicationState));
     m_redoButton.setTooltip(GUIHelpers::translate("Redo", m_editViewState.m_applicationState));
 
@@ -90,7 +86,6 @@ HeaderComponent::~HeaderComponent()
     m_countInButton.removeListener(this);
     m_loopButton.removeListener(this);
     m_clickButton.removeListener(this);
-    m_followPlayheadButton.removeListener(this);
     m_undoButton.removeListener(this);
     m_redoButton.removeListener(this);
 }
@@ -104,7 +99,6 @@ void HeaderComponent::updateIcons()
     GUIHelpers::setDrawableOnButton(m_recordButton, BinaryData::record_svg, m_btn_col);
     GUIHelpers::setDrawableOnButton(m_loopButton, BinaryData::cached_svg, m_edit.getTransport().looping ? m_btn_col : juce::Colour(0xff666666));
     GUIHelpers::setDrawableOnButton(m_clickButton, BinaryData::metronome_svg, m_edit.clickTrackEnabled ? m_btn_col : juce::Colour(0xff666666));
-    GUIHelpers::setDrawableOnButton(m_followPlayheadButton, BinaryData::follow_svg, m_editViewState.viewFollowsPos() ? m_btn_col : juce::Colour(0xff666666));
     updateCountInButton();
     updateUndoRedoButtons(true);
 }
@@ -144,9 +138,9 @@ void HeaderComponent::resized()
 {
     const auto layout = HeaderLayout::calculate(getWidth(), getHeight(), PositionDisplayComponent::minimumWidth);
     m_display.setBounds(layout.positionDisplay);
-    const std::array<juce::Component *, 9> buttons{&m_playButton, &m_stopButton, &m_recordButton,
+    const std::array<juce::Component *, 8> buttons{&m_playButton, &m_stopButton, &m_recordButton,
                                                 &m_countInButton, &m_clickButton, &m_loopButton,
-                                                &m_followPlayheadButton, &m_undoButton, &m_redoButton};
+                                                &m_undoButton, &m_redoButton};
     for (size_t i = 0; i < buttons.size(); ++i)
         buttons[i]->setBounds(layout.buttons[i]);
 }
@@ -216,12 +210,6 @@ void HeaderComponent::buttonClicked(juce::Button *button)
         GUIHelpers::setDrawableOnButton(m_clickButton, BinaryData::metronome_svg, m_edit.clickTrackEnabled ? m_btn_col : juce::Colour(0xff666666));
     }
 
-    if (button == &m_followPlayheadButton)
-    {
-        m_editViewState.toggleFollowPlayhead();
-        updateIcons();
-    }
-
     if (button == &m_undoButton)
     {
         m_commandManager.invokeDirectly(KeyPressCommandIDs::undo, true);
@@ -276,44 +264,6 @@ void HeaderComponent::showCountInMenu()
                         }
 
                         updateCountInButton();
-                    });
-}
-
-void HeaderComponent::mouseDown(const juce::MouseEvent &e)
-{
-    if (e.eventComponent == &m_followPlayheadButton && e.mods.isRightButtonDown())
-    {
-        showFollowMenu();
-    }
-}
-
-void HeaderComponent::showFollowMenu()
-{
-    juce::PopupMenu m;
-    auto currentMode = m_editViewState.getFollowMode();
-    auto isFollowOn = m_editViewState.viewFollowsPos();
-
-    m.addItem(1, "Follow Playhead", true, isFollowOn);
-    m.addSeparator();
-    m.addItem(2, "Page Scroll (Smooth)", true, currentMode == EditViewState::FollowMode::Page);
-    m.addItem(3, "Continuous Scroll (Center)", true, currentMode == EditViewState::FollowMode::Continuous);
-
-    m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&m_followPlayheadButton),
-                    [this](int result)
-                    {
-                        if (result == 1)
-                        {
-                            m_editViewState.toggleFollowPlayhead();
-                        }
-                        else if (result == 2)
-                        {
-                            m_editViewState.setFollowMode(EditViewState::FollowMode::Page);
-                        }
-                        else if (result == 3)
-                        {
-                            m_editViewState.setFollowMode(EditViewState::FollowMode::Continuous);
-                        }
-                        updateIcons();
                     });
 }
 

@@ -31,6 +31,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "NotePropertiesBar.h"
 #include "PlayHeadComponent.h"
 #include "TimeLineComponent.h"
+#include "TimelineFollowButton.h"
 #include "TimelineOverlayComponent.h"
 #include "VelocityEditor.h"
 #include <utility>
@@ -121,6 +122,7 @@ private:
 
     EditViewState &m_editViewState;
     TimeLineComponent m_timeLine;
+    TimelineFollowButton m_followPlayheadButton;
     NotePropertiesBar m_notePropertiesBar;
     std::unique_ptr<TimelineOverlayComponent> m_timelineOverlay{nullptr};
     std::unique_ptr<MidiViewport> m_pianoRollViewPort{nullptr};
@@ -130,6 +132,7 @@ private:
     PlayheadComponent m_playhead;
     MenuBar m_noteAuditionToolBar;
     MenuBar m_toolBar;
+    MenuBar m_followPlayheadToolBar;
     juce::ScrollBar m_horizontalScrollBar{false};
 
     juce::DrawableButton m_selectionBtn, m_drawBtn, m_noteAuditionBtn, m_rangeSelectBtn, m_erasorBtn, m_splitBtn, m_lassoBtn;
@@ -147,6 +150,7 @@ private:
     juce::Rectangle<int> getHeaderRect();
     juce::Rectangle<int> getNoteAuditionToolBarRect();
     juce::Rectangle<int> getToolBarRect();
+    juce::Rectangle<int> getFollowToolBarRect();
     juce::Rectangle<int> getNotePropertiesRect();
     juce::Rectangle<int> getTimeLineRect();
     juce::Rectangle<int> getTimelineHelperRect();

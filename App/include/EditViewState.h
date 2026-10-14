@@ -253,14 +253,14 @@ public:
 
     [[nodiscard]] double getEndScrollBeat() const;
 
-    void followsPlayhead(bool shouldFollow);
+    void followsPlayhead(const juce::String &timeLineID, bool shouldFollow);
+    void toggleFollowPlayhead(const juce::String &timeLineID);
+    [[nodiscard]] bool viewFollowsPos(const juce::String &timeLineID) const;
 
-    void toggleFollowPlayhead();
-    [[nodiscard]] bool viewFollowsPos() const;
-
-    void setFollowMode(FollowMode mode);
-    FollowMode getFollowMode() const;
-    void updatePositionFollower(juce::String timeLineID, int width);
+    void setFollowMode(const juce::String &timeLineID, FollowMode mode);
+    FollowMode getFollowMode(const juce::String &timeLineID) const;
+    void updatePositionFollower(const juce::String &timeLineID, int width);
+    void resetPositionFollower(const juce::String &timeLineID);
 
     void beginRecordCountIn();
     void clearRecordCountIn();
@@ -277,8 +277,8 @@ public:
     te::Edit &m_edit;
     te::SelectionManager &m_selectionManager;
 
-    juce::CachedValue<bool> m_showGlobalTrack, m_showMarkerTrack, m_showChordTrack, m_showArrangerTrack, m_showMasterTrack, m_drawWaveforms, m_showHeaders, m_showFooters, m_showMidiDevices, m_showWaveDevices, m_isAutoArmed, m_automationFollowsClip, m_followPlayhead, m_syncAutomation;
-    juce::CachedValue<int> m_lowerRangeView, m_followModeVal, m_pianoRollSnapMode, m_pianoRollSnapDenominator, m_pianoRollNoteLengthMode, m_pianoRollNoteLengthDenominator, m_clipSnapMode, m_clipSnapDenominator, m_clipInsertLengthMode, m_clipInsertLengthDenominator;
+    juce::CachedValue<bool> m_showGlobalTrack, m_showMarkerTrack, m_showChordTrack, m_showArrangerTrack, m_showMasterTrack, m_drawWaveforms, m_showHeaders, m_showFooters, m_showMidiDevices, m_showWaveDevices, m_isAutoArmed, m_automationFollowsClip, m_syncAutomation;
+    juce::CachedValue<int> m_lowerRangeView, m_pianoRollSnapMode, m_pianoRollSnapDenominator, m_pianoRollNoteLengthMode, m_pianoRollNoteLengthDenominator, m_clipSnapMode, m_clipSnapDenominator, m_clipInsertLengthMode, m_clipInsertLengthDenominator;
     juce::CachedValue<double> m_lastNoteLength, m_playHeadStartTime, m_timeLineZoomUnit;
     juce::CachedValue<int> m_midiEditorHeight, m_velocityEditorHeight, m_clipHeaderHeight;
     juce::CachedValue<int> m_snapType;
@@ -313,10 +313,14 @@ private:
 
     void updateRecordCountIn();
 
-    double m_targetViewX = -1.0;
-    double m_scrollStartViewX = 0.0;
-    double m_scrollProgress = 0.0;
-    bool m_isScrolling = false;
+    struct FollowScrollState
+    {
+        double targetViewX = -1.0;
+        double scrollStartViewX = 0.0;
+        double scrollProgress = 0.0;
+        bool isScrolling = false;
+    };
+    std::map<juce::String, FollowScrollState> m_followScrollStates;
     RecordCountInState m_recordCountIn;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EditViewState)

@@ -14,7 +14,7 @@ This document describes the implementation: component ownership, the Tracktion d
 
 | Area | Files |
 |---|---|
-| Editor frame, layout, commands and audition toggle | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp`, `App/include/ApplicationViewState.h` |
+| Editor frame, layout, commands, audition and follow controls | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp`, `App/include/TimelineFollowButton.h`, `App/src/TimelineFollowButton.cpp`, `App/include/ApplicationViewState.h` |
 | Note grid, hit testing, note operations | `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
 | Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
 | Pointer/Draw mouse-button routing policy | `App/include/PianoRollMouseActions.h` |
@@ -42,6 +42,7 @@ This document describes the implementation: component ownership, the Tracktion d
 PianoRollEditor
 ├── MenuBar (left-aligned note audition)
 ├── MenuBar (centered note tools)
+├── MenuBar (right-aligned timeline follow)
 ├── NotePropertiesBar
 ├── TimeLineComponent
 ├── TimelineOverlayComponent
@@ -54,7 +55,7 @@ PianoRollEditor
 └── juce::ScrollBar (horizontal)
 ```
 
-`PianoRollEditor` is the composition root for the subsystem. It owns the layout rectangles, the left-aligned audition toolbar, the centered note-tool toolbar, the application commands, the MIDI-note clipboard, and the refresh scheduling. `MidiViewport` owns the note grid, the current tool, the lasso rectangle, the `SelectedMidiEvents` object, the active pending-paste preview, and the clip cache.
+`PianoRollEditor` is the composition root for the subsystem. It owns the layout rectangles, the left-aligned audition toolbar, the centered note-tool toolbar, the right-aligned follow toolbar, the application commands, the MIDI-note clipboard, and the refresh scheduling. `MidiViewport` owns the note grid, the current tool, the lasso rectangle, the `SelectedMidiEvents` object, the active pending-paste preview, and the clip cache.
 
 The track-specific children (`MidiViewport`, `TimelineOverlayComponent`, `VelocityEditor`, `KeyboardView`) are created in `PianoRollEditor::setTrack()` and destroyed in `clearTrack()`. `clearTrack()` deselects the old `SelectedMidiEvents` object, removes listeners, and resets the unique pointers before the track reference is dropped.
 
@@ -119,7 +120,7 @@ The timeline owns the horizontal mapping:
 - `m_timeLine.xToTimePos(x)` — pixel to edit time;
 - `m_evs.beatsToX(beats, timeLineID, width)` — beat to pixel for a given view width.
 
-The note grid does not forward empty-space clicks to the transport. Playhead positioning is owned by `TimeLineComponent` through ruler interaction, keeping note selection, lasso and insertion gestures independent from transport seeking.
+The note grid does not forward empty-space clicks to the transport. Playhead positioning is owned by `TimeLineComponent` through ruler interaction, keeping note selection, lasso and insertion gestures independent from transport seeking. `TimelineFollowButton` reads and writes follow state for the current track-derived timeline ID; MIDI timelines default to follow off and retain independent Page/Continuous modes.
 
 The [timeline view transform](timeline-view-transform.md) owns normalized horizontal scale, anchors, pan and fit lifecycle. This editor retains floating-point note/clip-overlay edges and inverse input coordinates through that shared mapping. Its existing extra right-edge draw pixel is padding, not an alteration of a note's end beat. Fit requests use the editor's post-layout viewport, not a cached width from the last visited track.
 

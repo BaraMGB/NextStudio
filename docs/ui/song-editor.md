@@ -99,6 +99,7 @@ Clip fills and normal/selected frames share the same unrounded time edges. Adjoi
 | Time Stretch (Clock) | Stretch or shrink audio clips in time. Drag the right edge — right = longer (slower), left = shorter (faster). Shortcut: `Cmd/Ctrl+5`. |
 | Delete (Trash) | Delete selected. Shortcut: `Backspace`, `Delete`, `Cmd/Ctrl+X`. |
 | Reverse (Back Arrow) | Reverse audio. Shortcut: `Cmd/Ctrl+B`. |
+| Follow Playhead (right side) | Enables automatic Song Editor scrolling. Right-click selects smooth Page or centered Continuous scrolling. This setting is independent from every Piano Roll timeline. |
 
 ### Lasso and Range selection
 

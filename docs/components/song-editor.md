@@ -12,7 +12,7 @@ The arrangement uses Tracktion clips/tracks and the shared edit selection. `Song
 
 | Area | Source |
 |---|---|
-| Composition and inspector wiring | `App/include/EditComponent.h`, `App/src/EditComponent.cpp` |
+| Composition, inspector and follow-control wiring | `App/include/EditComponent.h`, `App/src/EditComponent.cpp`, `App/include/TimelineFollowButton.h`, `App/src/TimelineFollowButton.cpp` |
 | Track headers, list and insertion policy | `App/include/TrackHeadComponent.h`, `App/src/TrackHeadComponent.cpp`, `App/include/TrackListView.h`, `App/src/TrackListView.cpp`, `App/include/TrackInsertion.h`, `App/src/TrackInsertion.cpp` |
 | Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
 | Arrangement, time-range overlay and previews | `App/include/SongEditorView.h`, `App/src/SongEditorView.cpp` |
@@ -22,6 +22,8 @@ The arrangement uses Tracktion clips/tracks and the shared edit selection. `Song
 | Timeline and shared snap resolver | `App/include/TimeLineComponent.h`, `App/src/TimeLineComponent.cpp`, `App/include/TimelineSnapResolver.h` |
 
 ## Geometry, gesture and model boundaries
+
+The Song Editor ToolHeader owns a right-aligned `TimelineFollowButton`; the global Header Bar no longer owns timeline following. Its enabled state and Page/Continuous mode live in the `SongEditor` view-data node and are independent from track-derived Piano Roll timeline nodes. Legacy global follow properties migrate once to this Song Editor node.
 
 All lanes use the common [timeline view transform](timeline-view-transform.md). Clip bodies and frames retain floating-point edges; previews project actual time endpoints through the TempoSequence rather than translating a fixed pixel width across tempo changes. View-only navigation does not quantize musical data or create edit undo steps.
 
