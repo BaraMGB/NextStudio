@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "EditComponent.h"
+#include "MidiClipJoinCommand.h"
 #include "MainComponent.h"
 #include "AutomationWriteGuard.h"
 #include "ProjectLifecycle.h"
@@ -920,7 +921,7 @@ void EditComponent::getAllCommands(juce::Array<juce::CommandID> &commands)
         KeyPressCommandIDs::timeRangeSelectSongEditorTool, KeyPressCommandIDs::splitSongEditorTool,
         KeyPressCommandIDs::timeStretchSongEditorTool,
         KeyPressCommandIDs::toggleArmSelectedTracks, KeyPressCommandIDs::toggleMuteSelectedTracks,
-        KeyPressCommandIDs::toggleSoloSelectedTracks,
+        KeyPressCommandIDs::toggleSoloSelectedTracks, KeyPressCommandIDs::joinSelectedMidiClips,
     };
 
     commands.addArray(ids);
@@ -998,6 +999,10 @@ void EditComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
         result.setInfo("Solo selected tracks", "Toggle solo for selected tracks", "Tracks", 0);
         result.addDefaultKeypress(juce::KeyPress::createFromDescription("s").getKeyCode(), juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier);
         break;
+    case KeyPressCommandIDs::joinSelectedMidiClips:
+        result.setInfo("Join MIDI clips", "Join adjacent selected MIDI clips", "Song Editor", 0);
+        result.addDefaultKeypress(juce::KeyPress::createFromDescription("j").getKeyCode(), juce::ModifierKeys::commandModifier);
+        break;
     default:
         break;
     }
@@ -1037,6 +1042,23 @@ void EditComponent::duplicateSelectedTracks()
     te::Clipboard::Tracks::EditPastingOptions options(m_editViewState.m_edit, insertPoint, &m_editViewState.m_selectionManager);
     options.startTrack = selectedTracks.getLast();
     trackContent->pasteIntoEdit(options);
+}
+
+void EditComponent::showMidiClipJoinMessage(const juce::String &messageText)
+{
+    auto *topLevel = getTopLevelComponent();
+    if (topLevel == nullptr || topLevel == this)
+        return;
+
+    if (m_midiClipJoinMessage.getParentComponent() != topLevel)
+        topLevel->addChildComponent(&m_midiClipJoinMessage);
+
+    juce::AttributedString message(messageText);
+    message.setJustification(juce::Justification::centred);
+    message.setColour(m_editViewState.m_applicationState.getTextColour());
+
+    m_midiClipJoinMessage.showAt(&m_songEditor, message, 5000, false, false);
+    m_midiClipJoinMessage.toFront(false);
 }
 
 bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo &info)
@@ -1108,6 +1130,16 @@ bool EditComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
     case KeyPressCommandIDs::timeStretchSongEditorTool:
         m_songEditor.setTool(Tool::timestretch);
         break;
+    case KeyPressCommandIDs::joinSelectedMidiClips:
+    {
+        auto result = MidiClipJoining::joinSelectedClips(m_edit, m_editViewState.m_selectionManager);
+        if (!result.succeeded)
+        {
+            NS_LOG_WARN(edit, "joining MIDI clips failed: " + result.error);
+            showMidiClipJoinMessage(result.error);
+        }
+        break;
+    }
     case KeyPressCommandIDs::toggleArmSelectedTracks:
         for (auto *track : m_editViewState.m_selectionManager.getItemsOfType<te::Track>())
             if (track != nullptr && !track->isMasterTrack())

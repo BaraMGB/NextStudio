@@ -115,6 +115,7 @@ private:
     bool hasSelectedTracks() const;
     void deleteSelectedTracks();
     void duplicateSelectedTracks();
+    void showMidiClipJoinMessage(const juce::String &message);
 
     void timerCallback() override;
     void valueTreeChanged() override {}
@@ -211,6 +212,7 @@ private:
     juce::ApplicationCommandManager &m_commandManager;
     TrackListView m_trackListView;
     FooterBarComponent m_footerbar;
+    juce::BubbleMessageComponent m_midiClipJoinMessage;
 
     MenuBar m_automationToolBar;
     juce::DrawableButton m_automationReadButton, m_automationWriteButton;

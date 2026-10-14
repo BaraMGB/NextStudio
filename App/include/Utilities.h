@@ -114,7 +114,8 @@ enum KeyPressCommandIDs
 
     toggleArmSelectedTracks,
     toggleMuteSelectedTracks,
-    toggleSoloSelectedTracks
+    toggleSoloSelectedTracks,
+    joinSelectedMidiClips
 };
 
 namespace Helpers

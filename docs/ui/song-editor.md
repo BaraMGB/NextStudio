@@ -113,6 +113,7 @@ Range independently selects a musical interval over tracks/automation lanes, inc
 - **Move:** Click & drag. `Ctrl/Cmd`+drag copies. `Shift` disables snap.
 - **Resize (Clips):** Drag edges.
 - **Time Stretch (Audio):** Drag right edge with Time Stretch Tool. Alternatively `Cmd/Ctrl`+drag on right edge.
+- **Join MIDI clips:** Select at least two MIDI clips that form one direct-neighbour block on the same track, then press `Cmd/Ctrl+J`. No unselected clip may occur between them in the track's chronological clip order. MIDI channel, MPE, quantisation, groove, volume, mute and bank-change settings must match; otherwise a five-second message explains the conflict. The joined clip spans the complete selection, retains gaps as silence, expands visible loop repetitions, and trims notes and events at each source clip boundary, including source offsets that cross tempo changes. The operation replaces the sources, selects the result, and can be undone in one step.
 - **Automation:** Click on line = new point. Drag point = move. Right-click on point = delete. `Ctrl/Cmd`+drag on segment = change curve shape.
 
 ### Editing (Knife Tool)

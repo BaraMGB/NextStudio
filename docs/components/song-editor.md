@@ -13,6 +13,7 @@ The arrangement uses Tracktion clips/tracks and the shared edit selection. `Song
 | Area | Source |
 |---|---|
 | Composition, inspector and follow-control wiring | `App/include/EditComponent.h`, `App/src/EditComponent.cpp`, `App/include/TimelineFollowButton.h`, `App/src/TimelineFollowButton.cpp` |
+| MIDI clip join validation and command | `App/include/MidiClipJoinCommand.h`, `App/src/MidiClipJoinCommand.cpp`, `App/tests/MidiClipJoinCommandTests.cpp` |
 | Track headers, list and insertion policy | `App/include/TrackHeadComponent.h`, `App/src/TrackHeadComponent.cpp`, `App/include/TrackListView.h`, `App/src/TrackListView.cpp`, `App/include/TrackInsertion.h`, `App/src/TrackInsertion.cpp` |
 | Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
 | Arrangement, time-range overlay and previews | `App/include/SongEditorView.h`, `App/src/SongEditorView.cpp` |
@@ -32,6 +33,12 @@ The authoritative [snapping contract](timeline-snapping.md) classifies hard/disc
 `SongEditorView::setSelectedTimeRangeRaw()` validates an already resolved mouse range without another rounding pass. The discrete setter remains available for explicitly quantized commands. Ordinary lasso remains geometric rather than magnetic.
 
 Arrangement placement/overwrites retain the [central clip overwrite command](../architecture/clip-overwrite-command.md) and its atomic undo/model safeguards. Automation retains its existing live-mutation lifecycle; clip ghost and live-header previews must not be interpreted as approval for a new automation transaction model.
+
+## Joining MIDI clips
+
+`MidiClipJoining` accepts at least two explicitly selected MIDI clips only when they belong to one track and occupy consecutive positions in that track's time-sorted clip list. A temporal gap does not break adjacency, but any unselected intervening clip does. Frozen tracks and mixed or cross-track selections are rejected before mutation. MIDI channel, MPE mode, quantisation, groove, clip volume, mute and bank-change settings must also match because one result clip cannot preserve different per-source playback settings. Rejections are shown as a five-second message bubble in the Song Editor.
+
+The command consolidates events with Tracktion MIDI-list operations: the result spans the earliest start through the latest end, gaps remain silent, visible loop repetitions are expanded, and notes/controllers/SysEx outside each source clip boundary are trimmed. Source offsets are converted from both timeline endpoints so clips trimmed across tempo changes retain the correct visible events and positions. Missing common playback properties are copied explicitly to the new non-looped clip, which replaces the sources and becomes the sole clip selection. Validation, insertion, event copying and source removal are enclosed in one `Join MIDI clips` undo transaction; a failed merge rolls back the current transaction and restores the source selection.
 
 ## Track insertion hierarchy
 
