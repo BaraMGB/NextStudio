@@ -275,6 +275,10 @@ The exact properties bar uses a `1..127` clamp for committed property values, so
 
 ## Navigation and zoom
 
+### Two-dimensional pan
+
+Hold the middle mouse button over the note grid and drag in any direction. The grid follows the pointer horizontally through musical time and vertically through pitches. Both axes move together and stop at beat zero, the timeline end-scroll range, and the available MIDI-key range. The gesture works independently of the selected note tool and does not change notes, clips, selection, pending paste, or undo history.
+
 ### Horizontal scroll
 
 Use the bottom horizontal scrollbar to move through musical time.

@@ -29,6 +29,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace
 {
+bool isMiddleButtonOnly(const juce::ModifierKeys mods)
+{
+    return mods.isMiddleButtonDown() && !mods.isLeftButtonDown() && !mods.isRightButtonDown();
+}
+
+PanDragGesture::Point screenPoint(const juce::MouseEvent& event)
+{
+    const auto point = event.source.getScreenPosition();
+    return {double(point.x), double(point.y)};
+}
+
 void rewriteAutoSaveSourcePaths(juce::ValueTree node, te::Edit &edit, const juce::File &targetDirectory)
 {
     if (node.hasProperty(te::IDs::source))
@@ -272,6 +283,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
 
 EditComponent::~EditComponent()
 {
+    finishPanGesture();
     m_trackListView.stopTrackDragAutoScroll();
     m_trackListView.setTrackDragScrollHandler({});
     stopTimer();
@@ -305,13 +317,67 @@ EditComponent::~EditComponent()
 void EditComponent::mouseDown(const juce::MouseEvent &event)
 {
     auto *eventComponent = event.eventComponent;
+    m_songEditorPlayheadClickPending = false;
+
+    if (isMiddleButtonOnly(event.mods) && eventComponent != nullptr
+        && (eventComponent == &m_songEditor || m_songEditor.isParentOf(eventComponent)))
+    {
+        const auto beatRange = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth());
+        const double beatsPerPixel = m_timeLine.getWidth() > 0
+            ? beatRange.getLength().inBeats() / m_timeLine.getWidth() : 0.0;
+        const double maximumBeat = juce::jmax(0.0, m_editViewState.getEndScrollBeat() - beatRange.getLength().inBeats());
+        const double maximumY = juce::jmax(m_scrollbar_v.getMinimumRangeLimit(),
+            m_scrollbar_v.getMaximumRangeLimit() - m_scrollbar_v.getCurrentRangeSize());
+
+        if (m_panGesture.begin(screenPoint(event),
+                {beatRange.getStart().inBeats(), m_scrollbar_v.getCurrentRangeStart()},
+                {beatsPerPixel, 1.0},
+                {0.0, maximumBeat},
+                {m_scrollbar_v.getMinimumRangeLimit(), maximumY}))
+        {
+            m_panInput.remember(event);
+            m_panCursorComponent = eventComponent;
+            m_cursorBeforePan = eventComponent->getMouseCursor();
+            eventComponent->setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+        }
+        return;
+    }
+
+    if (event.mods.isMiddleButtonDown())
+        return;
+
     m_songEditorPlayheadClickPending = event.mods.isLeftButtonDown()
                                            && eventComponent != nullptr
                                            && (eventComponent == &m_songEditor || m_songEditor.isParentOf(eventComponent));
 }
 
+void EditComponent::mouseDrag(const juce::MouseEvent &event)
+{
+    if (!m_panGesture.active() || !m_panInput.belongsToGesture(event))
+        return;
+
+    m_panInput.remember(event);
+    if (m_panCursorComponent != nullptr)
+        m_panCursorComponent->setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+    if (const auto position = m_panGesture.update(screenPoint(event)))
+    {
+        m_editViewState.setNewStartAndZoom(m_timeLine.getTimeLineID(), position->x);
+        setVerticalScrollPosition(position->y);
+        updateHorizontalScrollBar();
+        m_timeLine.repaint();
+        m_songEditor.repaint();
+    }
+}
+
 void EditComponent::mouseUp(const juce::MouseEvent &event)
 {
+    if (m_panGesture.active() && m_panInput.belongsToGesture(event))
+    {
+        mouseDrag(event);
+        finishPanGesture();
+        return;
+    }
+
     if (!m_songEditorPlayheadClickPending)
         return;
 
@@ -339,6 +405,15 @@ void EditComponent::mouseUp(const juce::MouseEvent &event)
 
     m_editViewState.m_playHeadStartTime = position.inSeconds();
     m_edit.getTransport().setPosition(position);
+}
+
+void EditComponent::finishPanGesture()
+{
+    if (m_panCursorComponent != nullptr)
+        m_panCursorComponent->setMouseCursor(m_cursorBeforePan);
+    m_panCursorComponent = nullptr;
+    m_panGesture.cancel();
+    m_panInput.reset();
 }
 
 void EditComponent::paint(juce::Graphics &g)

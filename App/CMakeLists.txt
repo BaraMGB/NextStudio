@@ -573,6 +573,17 @@ if(BUILD_TESTING)
     add_test(NAME DragEdgeScroll
             COMMAND DragEdgeScrollTests)
 
+    add_executable(PanDragGestureTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PanDragGestureTests.cpp)
+
+    target_include_directories(PanDragGestureTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_compile_features(PanDragGestureTests PRIVATE cxx_std_20)
+
+    add_test(NAME PanDragGesture
+            COMMAND PanDragGestureTests)
+
     juce_add_console_app(TimelineViewGeometryTests PRODUCT_NAME "TimelineViewGeometryTests")
     target_sources(TimelineViewGeometryTests PRIVATE
             src/TimelineViewGeometry.cpp tests/TimelineViewGeometryTests.cpp)

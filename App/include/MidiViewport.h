@@ -32,6 +32,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SharedSelectionSnapshot.h"
 #include "EditViewState.h"
 #include "DragEdgeScroll.h"
+#include "PanDragGesture.h"
 #include "Utilities.h"
 
 #include <functional>
@@ -173,6 +174,8 @@ private:
     MouseGestureInput m_mouseInput;
     MouseGestureInput m_pressInput;
     void updateToolCursor();
+    bool beginPanGesture(const juce::MouseEvent&);
+    void finishPanGesture();
     void changeListenerCallback(juce::ChangeBroadcaster *) override;
     void valueTreeChildAdded(juce::ValueTree &, juce::ValueTree &) override;
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
@@ -252,6 +255,9 @@ private:
     juce::Array<int> m_activeGuideNoteKeys;
 
     bool m_noteInteractionActive = false, m_committingInteraction = false, m_refreshingSnapContext = false;
+    PanDragGesture m_panGesture;
+    MouseGestureInput m_panInput;
+    juce::MouseCursor m_cursorBeforePan{juce::MouseCursor::NormalCursor};
     static constexpr int guideNoteTimerID = 1, autoScrollTimerID = 2;
     DragEdgeScroll::Config m_autoScrollConfig;
     double m_lastAutoScrollTime = 0.0;

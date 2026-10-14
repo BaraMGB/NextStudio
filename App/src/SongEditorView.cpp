@@ -1625,6 +1625,9 @@ void SongEditorView::TimeRangeOverlayComponent::mouseExit(const juce::MouseEvent
 
 void SongEditorView::TimeRangeOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
+    if (e.mods.isMiddleButtonDown())
+        return;
+
     m_owner.beginSelectionInput();
     m_mouseInput.remember(e);
     m_owner.grabKeyboardFocus();

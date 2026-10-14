@@ -208,6 +208,9 @@ void TrackLaneComponent::mouseExit(const juce::MouseEvent &e)
 
 void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
 {
+    if (e.mods.isMiddleButtonDown())
+        return;
+
     m_songEditor.beginSelectionInput();
     m_mouseInput.remember(e);
     ScopedSaveLock saveLock(m_editViewState);

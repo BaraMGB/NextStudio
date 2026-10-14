@@ -134,6 +134,9 @@ void TimelineOverlayComponent::mouseExit(const juce::MouseEvent & /*e*/) { setMo
 
 void TimelineOverlayComponent::mouseDown(const juce::MouseEvent &e)
 {
+    if (e.mods.isMiddleButtonDown())
+        return;
+
     cancelInteraction();
     if (m_evs.clipInteractionBeginning)
         m_evs.clipInteractionBeginning();

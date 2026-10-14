@@ -17,6 +17,7 @@ This document describes the implementation: component ownership, the Tracktion d
 | Editor frame, layout, commands, audition and follow controls | `App/include/PianoRollEditor.h`, `App/src/PianoRollEditor.cpp`, `App/include/TimelineFollowButton.h`, `App/src/TimelineFollowButton.cpp`, `App/include/ApplicationViewState.h` |
 | Note grid, hit testing, note operations | `App/include/MidiViewport.h`, `App/src/MidiViewport.cpp` |
 | Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
+| Middle-button pan geometry | `App/include/PanDragGesture.h`, `App/tests/PanDragGestureTests.cpp` |
 | Pointer/Draw mouse-button routing policy | `App/include/PianoRollMouseActions.h` |
 | Pending paste state machine | `App/include/MidiPendingPaste.h`, `App/src/MidiPendingPaste.cpp` |
 | Inserted-note length rules | `App/include/PianoRollNoteLength.h`, `App/src/PianoRollNoteLength.cpp` |
@@ -223,6 +224,12 @@ Before strategy dispatch, `resolvePianoRollMouseDownAction()` classifies platfor
 - `toolActivated()` — tool-specific activation; Draw/Knife/Eraser cursor selection is owned by `MidiViewport`;
 - `toolDeactivated()` — cancel pending state, clear highlights, restore the cursor;
 - `mouseDown/Drag/Up/Move/DoubleClick` — the interaction.
+
+### Middle-button panning
+
+`MidiViewport` resolves a sole middle-button press before mouse-button routing or the active `ToolStrategy`. It captures screen-space pointer coordinates, the timeline start, the piano-key start, beats per pixel and key height. Dragging applies both absolute deltas through `EditViewState`; horizontal movement is clamped to beat zero and the existing end-scroll range, while vertical movement is clamped to the visible subset of MIDI pitches `0..127`. View-state listeners synchronize the timeline, grid, keyboard, velocity lane, overlay and scrollbar.
+
+The pan gesture does not begin, cancel, or commit tool, selection, pending-paste, audition or note-property interactions. A middle press cannot steal an existing primary edit gesture. While active it owns the hand cursor and can be cancelled through the editor's normal active-interaction teardown. `PanDragGestureTests` cover movement direction, independent axes, clamping, reverse movement and invalid geometry.
 
 ### Tool cursor working areas
 

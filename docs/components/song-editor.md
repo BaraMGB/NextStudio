@@ -16,6 +16,7 @@ The arrangement uses Tracktion clips/tracks and the shared edit selection. `Song
 | MIDI clip join validation and command | `App/include/MidiClipJoinCommand.h`, `App/src/MidiClipJoinCommand.cpp`, `App/tests/MidiClipJoinCommandTests.cpp` |
 | Track headers, list and insertion policy | `App/include/TrackHeadComponent.h`, `App/src/TrackHeadComponent.cpp`, `App/include/TrackListView.h`, `App/src/TrackListView.cpp`, `App/include/TrackInsertion.h`, `App/src/TrackInsertion.cpp` |
 | Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
+| Middle-button pan geometry | `App/include/PanDragGesture.h`, `App/tests/PanDragGestureTests.cpp` |
 | Arrangement, time-range overlay and previews | `App/include/SongEditorView.h`, `App/src/SongEditorView.cpp` |
 | Clip body/edge/fade hits and lane input | `App/include/TrackLaneComponent.h`, `App/src/TrackLaneComponent.cpp` |
 | Automation input | `App/include/AutomationLaneComponent.h`, `App/src/AutomationLaneComponent.cpp` |
@@ -45,6 +46,12 @@ The command consolidates events with Tracktion MIDI-list operations: the result 
 Global add controls and empty-list actions append at the top-level end. Non-Master header actions resolve an explicit `TrackInsertPoint`: **Add Track Below** inserts after the target among its siblings, while **Add Track to Folder** appends to the folder's direct children. The Master header exposes neither insertion action. Folder targets are expanded after successful child creation. Instrument, audio and folder creation share the same placement policy, selection/lower-range update and one undo transaction; nested folders remain supported. Audio and instrument creation stops an active recording before modifying the track model.
 
 Dropping a track on empty Track List space uses the same top-level-end policy. Dropping on a normal header retains the existing before-target behavior, while dropping on a folder appends to its direct children. Placement must use sibling/parent relationships rather than the last item in the recursively flattened track list.
+
+## Middle-button panning
+
+`EditComponent` receives recursive mouse-listener events from the Arrangement Area and owns the complete middle-button pan lifetime. It captures the pointer and both view origins at mouse-down, then evaluates every drag from screen coordinates so vertically moving lane components cannot distort the delta. Horizontal pixels are converted with the captured beats-per-pixel scale and vertical pixels use the arrangement scrollbar's native units. Both requested starts are clamped to the existing beat and scrollbar ranges before being applied through `EditViewState::setNewStartAndZoom()` and `setVerticalScrollPosition()`, keeping Track List headers, lanes and scrollbars synchronized.
+
+A middle-button press is rejected when another mouse button owns an edit gesture. Lane, automation and selected-range handlers do not start selection or model interactions for middle-button events. The gesture displays the hand cursor, restores the prior contextual cursor on release, changes only edit-local view state and creates no undo transaction. `PanDragGesture` uses absolute anchors so clamping cannot accumulate view-state drift; its direction, independent axes, limits, reverse movement and invalid-input handling are covered by `PanDragGestureTests`.
 
 ## Track reorder auto-scroll
 

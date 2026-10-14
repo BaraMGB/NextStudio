@@ -36,6 +36,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "TrackListView.h"
 #include "MenuBar.h"
 #include "EditViewState.h"
+#include "MouseGestureInput.h"
+#include "PanDragGesture.h"
 #include "Utilities.h"
 
 //------------------------------------------------------------------------------
@@ -80,6 +82,7 @@ public:
     void paintOverChildren(juce::Graphics &g) override;
     void resized() override;
     void mouseDown(const juce::MouseEvent &event) override;
+    void mouseDrag(const juce::MouseEvent &event) override;
     void mouseUp(const juce::MouseEvent &event) override;
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
@@ -135,6 +138,7 @@ private:
 
     void updateHorizontalScrollBar();
     double setVerticalScrollPosition(double requestedPosition);
+    void finishPanGesture();
     void updateVerticalScrollbar()
     {
         m_scrollbar_v.setRangeLimits(0, getSongHeight());
@@ -233,6 +237,10 @@ private:
 
     bool m_updateTracks = false, m_updateZoom = false, m_verticalUpdateSongEditor = false, m_dragOver = false, m_noteOffAll = false;
     bool m_songEditorPlayheadClickPending = false;
+    PanDragGesture m_panGesture;
+    MouseGestureInput m_panInput;
+    juce::Component::SafePointer<juce::Component> m_panCursorComponent;
+    juce::MouseCursor m_cursorBeforePan{juce::MouseCursor::NormalCursor};
     int m_sendsAreaHeight = 0;
     std::atomic<bool> m_autoSaveInProgress{false}, m_autoSaveQueued{false};
     std::atomic<juce::uint64> m_autoSaveGeneration{0};

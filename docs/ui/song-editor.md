@@ -149,6 +149,7 @@ Shows information about the current grid/snap type.
 
 ### Navigation
 
+- **Pan:** Hold the middle mouse button over the Arrangement Area and drag in any direction. Horizontal and vertical movement happen together; the view stops at its existing scroll limits. Panning does not change clips, automation, ranges, selection, or undo history.
 - **Scroll:** Mouse wheel (vertical), `Shift`+mouse wheel (horizontal). Scrollbars.
 - **Zoom:** `Cmd/Ctrl`+mouse wheel (horizontal). Mouse wheel over timeline/keyboard (vertical). Vertical dragging in timeline (horizontal).
 

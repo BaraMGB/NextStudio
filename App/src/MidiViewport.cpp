@@ -33,6 +33,20 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include <map>
 
+namespace
+{
+bool isMiddleButtonOnly(const juce::ModifierKeys mods)
+{
+    return mods.isMiddleButtonDown() && !mods.isLeftButtonDown() && !mods.isRightButtonDown();
+}
+
+PanDragGesture::Point screenPoint(const juce::MouseEvent& event)
+{
+    const auto point = event.source.getScreenPosition();
+    return {double(point.x), double(point.y)};
+}
+} // namespace
+
 MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr track, TimeLineComponent &timeLine)
     : m_evs(evs),
       m_track(std::move(track)),
@@ -49,6 +63,7 @@ MidiViewport::MidiViewport(EditViewState &evs, tracktion_engine::Track::Ptr trac
 
 MidiViewport::~MidiViewport()
 {
+    finishPanGesture();
     stopGuideNotes();
     stopAutoScroll();
     cancelSelectionGesture(false);
@@ -395,6 +410,11 @@ void MidiViewport::drawClipRange(juce::Graphics &g, tracktion_engine::MidiClip *
 
 void MidiViewport::updateToolCursor()
 {
+    if (m_panGesture.active())
+    {
+        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+        return;
+    }
     if (!m_currentTool)
         return;
     switch (m_currentTool->getToolId())
@@ -411,6 +431,45 @@ void MidiViewport::updateToolCursor()
         case Tool::lasso:
         case Tool::range: setMouseCursor(m_currentTool->getCursor(*this)); break;
         default: break; // Pointer keeps its existing note-body/edge feedback.
+    }
+}
+
+bool MidiViewport::beginPanGesture(const juce::MouseEvent& event)
+{
+    if (getWidth() <= 0 || getHeight() <= 0)
+        return false;
+
+    const auto timelineID = m_timeLine.getTimeLineID();
+    const auto beatRange = m_evs.getVisibleBeatRange(timelineID, getWidth());
+    const double beatsPerPixel = beatRange.getLength().inBeats() / getWidth();
+    const double keyWidth = m_evs.getViewYScale(timelineID);
+    if (!std::isfinite(keyWidth) || keyWidth <= 0.0)
+        return false;
+
+    const double maximumBeat = juce::jmax(0.0, m_evs.getEndScrollBeat() - beatRange.getLength().inBeats());
+    const double maximumKey = juce::jmax(0.0, 128.0 - getHeight() / keyWidth);
+    if (!m_panGesture.begin(screenPoint(event),
+            {beatRange.getStart().inBeats(), m_evs.getViewYScroll(timelineID)},
+            {beatsPerPixel, -1.0 / keyWidth},
+            {0.0, maximumBeat},
+            {0.0, maximumKey}))
+        return false;
+
+    m_panInput.remember(event);
+    m_cursorBeforePan = getMouseCursor();
+    setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+    return true;
+}
+
+void MidiViewport::finishPanGesture()
+{
+    const bool wasActive = m_panGesture.active();
+    m_panGesture.cancel();
+    m_panInput.reset();
+    if (wasActive)
+    {
+        setMouseCursor(m_cursorBeforePan);
+        updateToolCursor();
     }
 }
 
@@ -446,6 +505,11 @@ bool MidiViewport::cancelActiveDraw()
 bool MidiViewport::cancelActiveInteraction()
 {
     stopAutoScroll();
+    if (m_panGesture.active())
+    {
+        finishPanGesture();
+        return true;
+    }
     if (cancelSelectionGesture())
         return true;
     if (cancelActiveDraw())
@@ -519,6 +583,15 @@ void MidiViewport::modifierKeysChanged(const juce::ModifierKeys& mods)
 void MidiViewport::mouseDown(const juce::MouseEvent &e)
 {
     stopAutoScroll();
+
+    if (e.mods.isMiddleButtonDown())
+    {
+        // Never steal a gesture which already belongs to an editing tool.
+        if (!m_pressInput.identity() && isMiddleButtonOnly(e.mods))
+            beginPanGesture(e);
+        return;
+    }
+
     // A secondary button pressed during an existing primary gesture must not
     // replace that gesture's ownership or leave its strategy half-finished.
     if (e.mods.isPopupMenu() && m_pressInput.identity())
@@ -571,6 +644,19 @@ void MidiViewport::mouseDown(const juce::MouseEvent &e)
 }
 void MidiViewport::mouseDrag(const juce::MouseEvent &e)
 {
+    if (m_panGesture.active())
+    {
+        if (!m_panInput.belongsToGesture(e)) return;
+        m_panInput.remember(e);
+        if (const auto position = m_panGesture.update(screenPoint(e)))
+        {
+            m_evs.setNewStartAndZoom(m_timeLine.getTimeLineID(), position->x);
+            m_evs.setYScroll(m_timeLine.getTimeLineID(), position->y);
+            refreshNoteUnderMouse();
+            repaint();
+        }
+        return;
+    }
     if (m_suppressToolGesture) return;
     if (m_lassoComponent.active() && !ownsLasso(*this)) return;
     if (!m_pressInput.belongsToGesture(e)) return;
@@ -592,6 +678,12 @@ void MidiViewport::mouseDrag(const juce::MouseEvent &e)
 }
 void MidiViewport::mouseUp(const juce::MouseEvent &e)
 {
+    if (m_panGesture.active() && m_panInput.belongsToGesture(e))
+    {
+        mouseDrag(e);
+        finishPanGesture();
+        return;
+    }
     if (m_suppressToolGesture)
     {
         stopAutoScroll();
@@ -672,7 +764,8 @@ void MidiViewport::mouseExit(const juce::MouseEvent &)
         setHovered(m_hoveredNote, false);
         m_hoveredNote = nullptr;
     }
-    setMouseCursor(juce::MouseCursor::NormalCursor);
+    if (!m_panGesture.active())
+        setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
 te::MidiNote *MidiViewport::addNewNoteAt(int x, int y, te::MidiClip *clip)
