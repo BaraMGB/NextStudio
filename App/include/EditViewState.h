@@ -260,6 +260,8 @@ public:
     void setFollowMode(const juce::String &timeLineID, FollowMode mode);
     FollowMode getFollowMode(const juce::String &timeLineID) const;
     void updatePositionFollower(const juce::String &timeLineID, int width);
+    void setPositionFollowerSuspended(const juce::String &timeLineID, bool suspended);
+    [[nodiscard]] bool isPositionFollowerSuspended(const juce::String &timeLineID) const;
     void resetPositionFollower(const juce::String &timeLineID);
 
     void beginRecordCountIn();
@@ -321,6 +323,7 @@ private:
         bool isScrolling = false;
     };
     std::map<juce::String, FollowScrollState> m_followScrollStates;
+    std::map<juce::String, bool> m_suspendedPositionFollowers;
     RecordCountInState m_recordCountIn;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EditViewState)

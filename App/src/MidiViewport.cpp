@@ -455,6 +455,7 @@ bool MidiViewport::beginPanGesture(const juce::MouseEvent& event)
             {0.0, maximumKey}))
         return false;
 
+    m_evs.setPositionFollowerSuspended(timelineID, true);
     m_panInput.remember(event);
     m_cursorBeforePan = getMouseCursor();
     setMouseCursor(juce::MouseCursor::DraggingHandCursor);
@@ -468,6 +469,7 @@ void MidiViewport::finishPanGesture()
     m_panInput.reset();
     if (wasActive)
     {
+        m_evs.setPositionFollowerSuspended(m_timeLine.getTimeLineID(), false);
         setMouseCursor(m_cursorBeforePan);
         updateToolCursor();
     }
@@ -563,6 +565,13 @@ void MidiViewport::refreshMouseSnapContext()
 
 void MidiViewport::modifierKeysChanged(const juce::ModifierKeys& mods)
 {
+    if (m_panGesture.active())
+    {
+        if (!mods.isMiddleButtonDown())
+            finishPanGesture();
+        return;
+    }
+
     if (auto event = m_mouseInput.withModifiers(mods); event && m_currentTool)
     {
         auto* draw = dynamic_cast<DrawTool*>(m_currentTool.get());
@@ -647,6 +656,11 @@ void MidiViewport::mouseDrag(const juce::MouseEvent &e)
     if (m_panGesture.active())
     {
         if (!m_panInput.belongsToGesture(e)) return;
+        if (!e.mods.isMiddleButtonDown())
+        {
+            finishPanGesture();
+            return;
+        }
         m_panInput.remember(e);
         if (const auto position = m_panGesture.update(screenPoint(e)))
         {

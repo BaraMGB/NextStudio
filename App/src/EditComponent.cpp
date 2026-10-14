@@ -307,6 +307,8 @@ EditComponent::~EditComponent()
     m_editViewState.clipInteractionPreviewChanged = {};
     m_timeLine.onMouseFeedback = {};
     m_clipPropertiesBar.setEditHandlers({}, {});
+    if (m_masterLane)
+        m_masterLane->removeMouseListener(this);
     m_songEditor.removeMouseListener(this);
     m_edit.getTransport().removeChangeListener(this);
     m_edit.getAutomationRecordManager().removeChangeListener(this);
@@ -319,8 +321,7 @@ void EditComponent::mouseDown(const juce::MouseEvent &event)
     auto *eventComponent = event.eventComponent;
     m_songEditorPlayheadClickPending = false;
 
-    if (isMiddleButtonOnly(event.mods) && eventComponent != nullptr
-        && (eventComponent == &m_songEditor || m_songEditor.isParentOf(eventComponent)))
+    if (isMiddleButtonOnly(event.mods) && isArrangementPanTarget(eventComponent))
     {
         const auto beatRange = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth());
         const double beatsPerPixel = m_timeLine.getWidth() > 0
@@ -335,6 +336,7 @@ void EditComponent::mouseDown(const juce::MouseEvent &event)
                 {0.0, maximumBeat},
                 {m_scrollbar_v.getMinimumRangeLimit(), maximumY}))
         {
+            m_editViewState.setPositionFollowerSuspended(m_timeLine.getTimeLineID(), true);
             m_panInput.remember(event);
             m_panCursorComponent = eventComponent;
             m_cursorBeforePan = eventComponent->getMouseCursor();
@@ -355,6 +357,11 @@ void EditComponent::mouseDrag(const juce::MouseEvent &event)
 {
     if (!m_panGesture.active() || !m_panInput.belongsToGesture(event))
         return;
+    if (!event.mods.isMiddleButtonDown())
+    {
+        finishPanGesture();
+        return;
+    }
 
     m_panInput.remember(event);
     if (m_panCursorComponent != nullptr)
@@ -407,13 +414,31 @@ void EditComponent::mouseUp(const juce::MouseEvent &event)
     m_edit.getTransport().setPosition(position);
 }
 
+void EditComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
+{
+    if (m_panGesture.active() && !mods.isMiddleButtonDown())
+        finishPanGesture();
+    juce::Component::modifierKeysChanged(mods);
+}
+
+bool EditComponent::isArrangementPanTarget(const juce::Component* component) const
+{
+    return component != nullptr
+        && (component == &m_songEditor || m_songEditor.isParentOf(component)
+            || (m_masterLane != nullptr
+                && (component == m_masterLane.get() || m_masterLane->isParentOf(component))));
+}
+
 void EditComponent::finishPanGesture()
 {
+    const bool wasActive = m_panGesture.active();
     if (m_panCursorComponent != nullptr)
         m_panCursorComponent->setMouseCursor(m_cursorBeforePan);
     m_panCursorComponent = nullptr;
     m_panGesture.cancel();
     m_panInput.reset();
+    if (wasActive)
+        m_editViewState.setPositionFollowerSuspended(m_timeLine.getTimeLineID(), false);
 }
 
 void EditComponent::paint(juce::Graphics &g)
@@ -951,6 +976,7 @@ void EditComponent::refreshSnapTypeDesc()
 
 void EditComponent::buildTracks()
 {
+    finishPanGesture();
     m_trackListView.clear();
     m_songEditor.clear();
 
@@ -977,6 +1003,7 @@ void EditComponent::buildTracks()
     {
         m_masterHeader = std::make_unique<TrackHeaderComponent>(m_editViewState, masterTrack);
         m_masterLane = std::make_unique<TrackLaneComponent>(m_editViewState, masterTrack, m_timeLine.getTimeLineID(), m_songEditor);
+        m_masterLane->addMouseListener(this, true);
         addAndMakeVisible(*m_masterHeader);
         addAndMakeVisible(*m_masterLane);
     }

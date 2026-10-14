@@ -84,6 +84,7 @@ public:
     void mouseDown(const juce::MouseEvent &event) override;
     void mouseDrag(const juce::MouseEvent &event) override;
     void mouseUp(const juce::MouseEvent &event) override;
+    void modifierKeysChanged(const juce::ModifierKeys&) override;
     void mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) override;
     void scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart) override;
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
@@ -138,6 +139,7 @@ private:
 
     void updateHorizontalScrollBar();
     double setVerticalScrollPosition(double requestedPosition);
+    bool isArrangementPanTarget(const juce::Component*) const;
     void finishPanGesture();
     void updateVerticalScrollbar()
     {

@@ -42,6 +42,12 @@ void run()
     require(static_cast<bool>(evs.m_viewDataTree.getChildWithName("PianoRollFollowTest").getProperty(IDs::followsPlayhead)) == false,
             "MIDI follow state not stored in timeline node");
     evs.setFollowMode("SongEditor", EditViewState::FollowMode::Page);
+    evs.setPositionFollowerSuspended("SongEditor", true);
+    require(evs.isPositionFollowerSuspended("SongEditor"), "follow suspension was not recorded");
+    require(evs.viewFollowsPos("SongEditor") && evs.getFollowMode("SongEditor") == EditViewState::FollowMode::Page,
+            "follow suspension changed the persisted follow setting");
+    evs.setPositionFollowerSuspended("SongEditor", false);
+    require(!evs.isPositionFollowerSuspended("SongEditor"), "follow suspension was not released");
 
     auto *track = te::getAudioTracks(*edit)[0];
     auto clip = track->insertMIDIClip("Alignment", {tracktion::TimePosition::fromSeconds(0), tracktion::TimePosition::fromSeconds(4)}, nullptr);

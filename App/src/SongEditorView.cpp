@@ -284,6 +284,7 @@ void SongEditorView::modifierKeysChanged(const juce::ModifierKeys& modifiers)
         const auto details = *m_lastFileDrag;
         itemDragMove(details);
     }
+    juce::Component::modifierKeysChanged(modifiers);
 }
 
 void SongEditorView::itemDragEnter(const SourceDetails &dragSourceDetails) { m_lastFileDrag.emplace(dragSourceDetails); }
@@ -1682,6 +1683,7 @@ void SongEditorView::TimeRangeOverlayComponent::modifierKeysChanged(const juce::
     if (m_owner.isSelectingTimeRange() || m_owner.getDragState().isTimeRangeDrag())
         if (auto event = m_mouseInput.withModifiers(mods); event && event->mouseWasDraggedSinceMouseDown())
             mouseDrag(*event);
+    juce::Component::modifierKeysChanged(mods);
 }
 
 void SongEditorView::TimeRangeOverlayComponent::mouseDrag(const juce::MouseEvent &e)

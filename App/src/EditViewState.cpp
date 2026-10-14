@@ -404,6 +404,12 @@ void EditViewState::updatePositionFollower(const juce::String &timeLineID, int w
         return;
     }
 
+    if (isPositionFollowerSuspended(timeLineID))
+    {
+        m_followScrollStates.erase(timeLineID);
+        return;
+    }
+
     auto mode = getFollowMode(timeLineID);
     if (mode == FollowMode::Off)
     {
@@ -479,6 +485,23 @@ void EditViewState::updatePositionFollower(const juce::String &timeLineID, int w
             }
         }
     }
+}
+
+void EditViewState::setPositionFollowerSuspended(const juce::String &timeLineID, bool suspended)
+{
+    if (suspended)
+        m_suspendedPositionFollowers[timeLineID] = true;
+    else
+        m_suspendedPositionFollowers.erase(timeLineID);
+
+    // A page-follow interpolation is anchored to the pre-gesture view and must
+    // never resume after a manual pan.
+    resetPositionFollower(timeLineID);
+}
+
+bool EditViewState::isPositionFollowerSuspended(const juce::String &timeLineID) const
+{
+    return m_suspendedPositionFollowers.contains(timeLineID);
 }
 
 void EditViewState::resetPositionFollower(const juce::String &timeLineID)
