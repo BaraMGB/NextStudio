@@ -20,78 +20,27 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "PluginChainView.h"
-#include "PluginInsertFeedback.h"
 #include "PluginChainLayout.h"
 #include "PluginChainRackContent.h"
 #include "PluginChainSections.h"
+#include "PluginInsertFeedback.h"
 #include "PluginMenu.h"
 #include "RackPanelToggleButton.h"
 #include "RackPluginListItem.h"
 #include "Utilities.h"
-#include <map>
 
 namespace
 {
 bool pluginTreeItemMatchesRole(const PluginTreeItem &item, EngineHelpers::PluginChainRole role) { return EngineHelpers::getPluginChainRole(item.desc, item.xmlType) == role; }
 
-bool appendFilteredMenuItems(PluginTreeGroup &group, juce::PopupMenu &menu, EngineHelpers::PluginChainRole role, int &nextItemId, std::map<int, PluginTreeItem *> &itemLookup)
-{
-    bool hasAny = false;
-
-    for (int i = 0; i < group.getNumSubItems(); ++i)
-    {
-        if (auto *subGroup = dynamic_cast<PluginTreeGroup *>(group.getSubItem(i)))
-        {
-            juce::PopupMenu subMenu;
-            const bool subHasAny = appendFilteredMenuItems(*subGroup, subMenu, role, nextItemId, itemLookup);
-            if (subHasAny)
-            {
-                menu.addSubMenu(subGroup->name, subMenu, true);
-                hasAny = true;
-            }
-        }
-    }
-
-    for (int i = 0; i < group.getNumSubItems(); ++i)
-    {
-        auto *item = dynamic_cast<PluginTreeItem *>(group.getSubItem(i));
-        if (item == nullptr)
-            continue;
-
-        if (!pluginTreeItemMatchesRole(*item, role))
-            continue;
-
-        menu.addItem(nextItemId, item->desc.name, true, false);
-        itemLookup[nextItemId] = item;
-        ++nextItemId;
-        hasAny = true;
-    }
-
-    return hasAny;
-}
-
-te::Plugin::Ptr showMenuAndCreatePluginForRole(te::Edit &edit, EngineHelpers::PluginChainRole role, juce::Component *target)
+te::Plugin::Ptr showMenuAndCreatePluginForRole(te::Edit &edit, ApplicationViewState &appState, EngineHelpers::PluginChainRole role, juce::Component *target)
 {
     if (auto tree = EngineHelpers::createPluginTree(edit.engine))
     {
         PluginTreeGroup root(edit, *tree, te::Plugin::Type::allPlugins);
-        juce::PopupMenu menu;
-        std::map<int, PluginTreeItem *> itemLookup;
-        int nextItemId = 1;
-        appendFilteredMenuItems(root, menu, role, nextItemId, itemLookup);
-
-        if (itemLookup.empty())
-            return {};
-
-        const int result = target != nullptr ? menu.showAt(target) : menu.show();
-        if (result <= 0)
-            return {};
-
-        auto it = itemLookup.find(result);
-        if (it == itemLookup.end() || it->second == nullptr)
-            return {};
-
-        return it->second->create(edit);
+        PluginMenu menu(root, &appState.getPluginCollections(), [role](const PluginTreeItem &item) { return pluginTreeItemMatchesRole(item, role); });
+        if (auto *type = menu.runMenu(root, target))
+            return type->create(edit);
     }
 
     return {};
@@ -677,7 +626,7 @@ void PluginChainView::buttonClicked(juce::Button *button)
     {
         if (b == button)
         {
-            if (auto plugin = showMenuAndCreatePluginForRole(m_track->edit, b->getSectionRole(), button))
+            if (auto plugin = showMenuAndCreatePluginForRole(m_track->edit, m_evs.m_applicationState, b->getSectionRole(), button))
             {
                 const auto order = getRackOrder();
                 const int visualIndex = ::getVisualIndexForPluginOrdinal(order, *m_track, b->getTargetPluginOrdinal());
@@ -1163,10 +1112,7 @@ void PluginChainView::layoutSelectedRackItem()
 
 void PluginChainView::updateRackContentPosition() { m_contentComp->setTopLeftPosition(-m_contentScrollX, 0); }
 
-int PluginChainView::getMaxContentScrollX() const
-{
-    return PluginChainLayout::getMaxScrollX(m_contentComp->getWidth(), m_pluginCanvas.getWidth());
-}
+int PluginChainView::getMaxContentScrollX() const { return PluginChainLayout::getMaxScrollX(m_contentComp->getWidth(), m_pluginCanvas.getWidth()); }
 
 void PluginChainView::updateHorizontalScrollBar()
 {
@@ -1232,7 +1178,7 @@ void PluginChainView::addPluginAtCurrentPosition(EngineHelpers::PluginChainRole 
     if (role == EngineHelpers::PluginChainRole::instrument && EngineHelpers::trackHasInstrumentPlugin(*m_track))
         return;
 
-    if (auto plugin = showMenuAndCreatePluginForRole(m_track->edit, role, targetComponent))
+    if (auto plugin = showMenuAndCreatePluginForRole(m_track->edit, m_evs.m_applicationState, role, targetComponent))
     {
         int selectedRoleInsertOrdinal = -1;
         if (const int selectedIndex = getSelectedRackItemIndex(); selectedIndex >= 0)

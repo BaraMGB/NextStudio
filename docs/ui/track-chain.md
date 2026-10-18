@@ -83,7 +83,7 @@ The left panel shows all plugins organized by section. Clicking a plugin in the 
 
 ### Managing Effects
 
-- **Add:** Click the [+] button within a section. The menu shows only plugins that belong in that section, with categories and entries sorted alphabetically without regard to letter case. Or drag an effect from the Side Browser.
+- **Add:** Click the [+] button within a section. Populated **Favorites** and **My Collections** groups appear first, followed by the unchanged built-in/manufacturer tree. Every path shows only plug-ins valid for that section; groups and entries are sorted alphabetically without regard to letter case. Favorites and custom collections are managed in the Instruments and Effects Side Browsers. Alternatively, drag a plug-in from the Side Browser.
 - **Bypass:** Click the eye symbol to deactivate a plugin.
 - **Delete:** Click the trash can to remove a plugin.
 - **Move:** Drag plugin title bar to a [+] in the desired section.

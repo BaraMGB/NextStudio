@@ -45,7 +45,8 @@ The Track Presets and Modifiers panels are collapsed by default. Each keeps a na
 | `App/include/PluginChainSections.h` | MIDI/audio section definitions |
 | `App/include/PluginBypassPresentation.h`, `App/src/PluginBypassPresentation.cpp` | renderer-only whole-item grayscale, enabled-state listener, and contrasting vertical bypass badge |
 | `App/include/PluginChainLayout.h` | pure scroll-range and reorder-index calculations |
-| `App/include/PluginMenu.h`, `App/src/PluginMenu.cpp` | shared plug-in tree construction and deterministic menu ordering |
+| `App/include/PluginMenu.h`, `App/src/PluginMenu.cpp` | shared plug-in tree construction, favorites/custom-collection projection and deterministic menu ordering |
+| `App/include/PluginCollections.h`, `App/src/PluginCollections.cpp` | persistent plug-in identity, favorites and custom-collection metadata |
 
 ## State ownership
 
@@ -108,9 +109,13 @@ Audio tracks expose Audio Effects only. `PluginChainSections.h` is the shared so
 
 The persisted rack order contains stable item IDs. Hidden channel-strip tail plug-ins are excluded from the visible order. Conversion between visible plug-in ordinals, visual rack indices, and Tracktion plug-in-list indices is kept explicit because modifiers and hidden plug-ins occupy different domains.
 
-## Plug-in selection menu ordering
+## Plug-in selection menus
 
-After built-in and external plug-ins have been assembled, `PluginTreeBase::sortSubItemsRecursively()` sorts every group by its displayed name. The comparison is case-insensitive and natural, and equivalent names retain registration order. Sorting the shared tree once preserves the category hierarchy and gives both the unfiltered `PluginMenu` and the role-filtered Track Chain add menus the same deterministic category and entry order. Plug-in identifiers, role classification, and creation remain unchanged.
+After built-in and external plug-ins have been assembled, `PluginTreeBase::sortSubItemsRecursively()` sorts every group by its displayed name. The comparison is case-insensitive and natural, and equivalent names retain registration order. Sorting the shared tree once preserves the category hierarchy and gives both the unfiltered `PluginMenu` and the role-filtered Track Chain add menus the same deterministic category and entry order.
+
+`PluginMenu` overlays populated Favorites and My Collections groups before that original tree. Curated entries are sorted with the same comparison, may intentionally repeat a plug-in available through its manufacturer, and receive monotonically allocated command IDs rather than name hashes. Every command ID maps back to the same owned `PluginTreeItem`, so the creation path is independent of the selected group and cannot collide on duplicate names. Role filtering happens before curated groups are emitted; assigning an audio effect to a custom collection cannot make it available in an instrument or MIDI slot.
+
+`PluginCollections` is application-wide metadata. It does not mutate `PluginDescription::category`, `KnownPluginList`, Tracktion project state or undo history. Internal identities use XML types; external identities use format, file/identifier and JUCE unique IDs.
 
 ## Scrolling
 
@@ -145,7 +150,7 @@ Callbacks that may outlive a synchronous rebuild use `juce::Component::SafePoint
 
 ## Tests
 
-`PluginChainLayoutTests` covers the pure scroll-range and reorder-destination calculations. `PluginMenuOrderingTests` covers recursive category/entry ordering, case-insensitive natural comparison, stable equivalent names, category preservation, and filtered-order equivalence. `DebugSettingsIsolationTests` covers defaults and persistence for the two side-panel settings.
+`PluginChainLayoutTests` covers the pure scroll-range and reorder-destination calculations. `PluginMenuOrderingTests` covers recursive category/entry ordering, case-insensitive natural comparison, stable equivalent names, category preservation, and filtered-order equivalence. `PluginCollectionsTests` covers default/custom collection lifecycle, identity separation, bidirectional favorite ordering with alphabetical ties, multi-collection membership, legacy category migration, cleanup and XML round trips. `DebugSettingsIsolationTests` covers defaults and persistence for the two side-panel settings.
 
 `PluginBypassPresentationTests` exercises the production presentation/filter with RGB/ARGB alpha/source preservation, full parent/child/grandchild rendering, default/initial bypass, undo/redo restoration, teardown, unchanged state/control enablement/hits and badge bounds/contrast. It is role-independent, not complete native testing of every editor. Effect-specific layout/pitch/reset coverage belongs in [built-in effect editors](built-in-effect-editors.md).
 

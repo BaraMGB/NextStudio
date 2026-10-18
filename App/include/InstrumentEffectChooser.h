@@ -21,11 +21,13 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "PluginBrowser.h"
-#include "SearchFieldComponent.h"
 #include "ApplicationViewState.h"
 #include "EditViewState.h"
+#include "PluginBrowser.h"
+#include "SearchFieldComponent.h"
 #include "Utilities.h"
+
+#include <map>
 
 class InstrumentEffectListModel
     : public juce::TableListBoxModel
@@ -37,6 +39,7 @@ public:
     {
         typeCol = 1,
         nameCol = 2,
+        favoriteCol = 3,
     };
 
     InstrumentEffectListModel(te::Engine &engine, bool isInstrumentList, ApplicationViewState &appState);
@@ -46,6 +49,8 @@ public:
     void paintCell(juce::Graphics &g, int row, int col, int width, int height, bool rowIsSelected) override;
     int getNumRows() override;
     void sortOrderChanged(int newSortColumnId, bool isForwards) override;
+    void cellClicked(int rowNumber, int columnId, const juce::MouseEvent &) override;
+    void selectedRowsChanged(int lastRowSelected) override;
 
     juce::var getDragSourceDescription(const juce::SparseSet<int> & /*rowsToDescribe*/) override;
     void updatePluginLists();
@@ -63,6 +68,20 @@ public:
         updatePluginLists();
     }
 
+    void changeCollectionFilter(juce::String collectionId)
+    {
+        m_collectionFilter = std::move(collectionId);
+        updatePluginLists();
+    }
+
+    [[nodiscard]] const juce::String &getCollectionFilter() const { return m_collectionFilter; }
+    [[nodiscard]] const juce::PluginDescription *getPluginAtRow(int row) const;
+    [[nodiscard]] const juce::PluginDescription *getSelectedPlugin() const { return m_hasSelectedPlugin ? &m_selectedPlugin : nullptr; }
+    int refreshSelectedPluginRow();
+    std::function<void(const juce::PluginDescription &, juce::Component *)> onPluginContextRequested;
+
+    static juce::String favoritesFilterId() { return "__favorites"; }
+
 private:
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
@@ -70,10 +89,16 @@ private:
     {
         juce::Array<juce::PluginDescription> &list = m_isInstrumentList ? m_instruments : m_effects;
         juce::Array<juce::PluginDescription> filteredList;
+        auto &collections = m_appState.getPluginCollections();
 
         for (const auto &plugin : list)
-            if (plugin.name.containsIgnoreCase(m_searchTerm))
+        {
+            const auto identity = PluginIdentity::fromDescription(plugin, plugin.category);
+            const bool matchesCollection = m_collectionFilter.isEmpty() || (m_collectionFilter == favoritesFilterId() && collections.isFavorite(identity)) || (m_collectionFilter != favoritesFilterId() && collections.isInCollection(identity, m_collectionFilter));
+
+            if (matchesCollection && plugin.name.containsIgnoreCase(m_searchTerm))
                 filteredList.add(plugin);
+        }
 
         list = filteredList;
     }
@@ -87,6 +112,9 @@ private:
     std::tuple<column, bool> m_order{typeCol, true};
 
     juce::String m_searchTerm;
+    juce::String m_collectionFilter;
+    juce::PluginDescription m_selectedPlugin;
+    bool m_hasSelectedPlugin{false};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InstrumentEffectListModel)
 };
@@ -127,6 +155,7 @@ public:
     {
         g.fillAll(m_appState.getBackgroundColour2());
         g.setColour(m_appState.getBorderColour());
+        g.drawHorizontalLine(m_allPluginsButton.getY() - 2, 0, getWidth());
         g.drawHorizontalLine(m_searchField.getY(), 0, getWidth());
     }
 
@@ -134,9 +163,20 @@ public:
     void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
 private:
+    void refreshCollectionControls();
+    void showPluginContextMenu(const juce::PluginDescription &, juce::Component *target);
+    void showCollectionManagementMenu();
+    void showCollectionNameDialog(const juce::String &title, const juce::String &initialName, std::function<void(const juce::String &)> completion, const juce::String &exceptCollectionId = {});
+    void confirmCollectionDeletion(const juce::String &collectionId);
+
     InstrumentEffectListModel m_model;
     InstrumentEffectTable m_listbox;
     SearchFieldComponent m_searchField;
+    juce::TextButton m_allPluginsButton{"All"};
+    juce::TextButton m_favoritesButton{juce::String::fromUTF8("\xe2\x98\x85")};
+    juce::ComboBox m_collectionSelector;
+    juce::TextButton m_manageCollectionsButton{"..."};
+    std::map<int, juce::String> m_collectionIds;
     te::Engine &m_engine;
     bool m_isInstrumentList;
     ApplicationViewState &m_appState;

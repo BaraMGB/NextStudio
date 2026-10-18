@@ -118,6 +118,7 @@ Some header-only utilities and interfaces have no `.cpp`, and `Main.cpp` has no 
 
 - `PluginBrowser.*`
 - `PluginScanner.*`
+- `PluginCollections.*` — application-wide favorites, collection identities, membership and persistence
 - `PluginWindow.*`
 - `PluginChainView.*` — Track Chain orchestration, state listeners, ordering, selection, layout stages, and scrolling
 - `PluginChainRackContent.*` — rack section sizing and component placement

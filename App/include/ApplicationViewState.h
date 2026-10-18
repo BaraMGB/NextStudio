@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Logging.h"
+#include "PluginCollections.h"
 #include "SidebarLayout.h"
 #include "juce_graphics/juce_graphics.h"
 
@@ -139,6 +140,7 @@ public:
         {
             m_applicationStateValueTree = juce::ValueTree(IDs::AppSettings);
         }
+
         auto fileBrowser = m_applicationStateValueTree.getOrCreateChildWithName(IDs::FileBrowser, nullptr);
 
         m_workDir.referTo(fileBrowser, IDs::WorkDIR, nullptr, juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("NextStudio/").getFullPathName());
@@ -235,6 +237,13 @@ public:
     ~ApplicationViewState() { saveState(); }
 
     const juce::File &getSettingsFile() const noexcept { return m_settingsFile; }
+    PluginCollections &getPluginCollections()
+    {
+        if (m_pluginCollections == nullptr)
+            m_pluginCollections = std::make_unique<PluginCollections>(m_applicationStateValueTree, [this] { saveState(); });
+        return *m_pluginCollections;
+    }
+    const PluginCollections &getPluginCollections() const { return const_cast<ApplicationViewState *>(this)->getPluginCollections(); }
 
     juce::Colour getBorderColour() { return juce::Colour::fromString(juce::String(m_borderColour)); }
     juce::Colour getPrimeColour() { return juce::Colour::fromString(juce::String(m_primeColour)); }
@@ -286,21 +295,7 @@ public:
         // older settings and presets instead of keeping an unused theme slot.
         themeState.removeProperty(juce::Identifier("BackgroundColour3"), nullptr);
 
-        const juce::Identifier colourProperties[]{IDs::PrimeColour,
-                                                   IDs::BorderColour,
-                                                   IDs::MainFrameColour,
-                                                   IDs::BackgroundColour1,
-                                                   IDs::BackgroundColour2,
-                                                   IDs::MenuTextColour,
-                                                   IDs::timeLineStrokeColour,
-                                                   IDs::timeLineShadowShade,
-                                                   IDs::timeLineTextColour,
-                                                   IDs::timeLineBackgroundColour,
-                                                   IDs::ButtonBackgroundColour,
-                                                   IDs::ButtonTextColour,
-                                                   IDs::trackBackgroundColour,
-                                                   IDs::trackHeaderBackgroundColour,
-                                                   IDs::trackHeaderTextColour};
+        const juce::Identifier colourProperties[]{IDs::PrimeColour, IDs::BorderColour, IDs::MainFrameColour, IDs::BackgroundColour1, IDs::BackgroundColour2, IDs::MenuTextColour, IDs::timeLineStrokeColour, IDs::timeLineShadowShade, IDs::timeLineTextColour, IDs::timeLineBackgroundColour, IDs::ButtonBackgroundColour, IDs::ButtonTextColour, IDs::trackBackgroundColour, IDs::trackHeaderBackgroundColour, IDs::trackHeaderTextColour};
 
         for (const auto &property : colourProperties)
             if (themeState.hasProperty(property))
@@ -480,6 +475,7 @@ public:
     juce::File m_settingsFile;
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;
+    mutable std::unique_ptr<PluginCollections> m_pluginCollections;
     juce::Array<juce::Colour> m_trackColours{juce::Colour(0xff1dd13d), juce::Colour(0xff008CDC), juce::Colour(0xffFFAD00), juce::Colour(0xffFF3E5A), juce::Colour(0xffC766FF), juce::Colour(0xff356800), juce::Colour(0xff054D77), juce::Colour(0xff9A6C0B), juce::Colour(0xff862835), juce::Colour(0xff5A1582), juce::Colour(0xffFFF800), juce::Colour(0xff84E185), juce::Colour(0xffEC610F), juce::Colour(0xffD6438A), juce::Colour(0xff0053FF), juce::Colour(0xffD3CF4F), juce::Colour(0xff5D937F), juce::Colour(0xffA27956), juce::Colour(0xffAA7A99), juce::Colour(0xff3A5BA1)};
 
     juce::CachedValue<juce::String> m_workDir, m_presetDir, m_clipsDir, m_samplesDir, m_renderDir, m_projectsDir, m_projectLoadDir, m_guiBackground1, m_mainFrameColour, m_primeColour, m_borderColour, m_buttonBackgroundColour, m_buttonTextColour, m_textColour, m_timeLine_strokeColour, m_timeLine_background, m_timeLine_shadowShade, m_timeLine_textColour, m_trackBackgroundColour, m_trackHeaderBackgroundColour, m_trackHeaderTextColour, m_guiBackground2, m_timeStretchMode;

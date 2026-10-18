@@ -23,6 +23,11 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "PluginCollections.h"
+
+#include <functional>
+#include <map>
+#include <vector>
 
 namespace te = tracktion_engine;
 
@@ -108,43 +113,24 @@ template <class FilterClass> void addInternalPlugin(PluginTreeBase &item, int &n
 class PluginMenu : public juce::PopupMenu
 {
 public:
+    using Filter = std::function<bool(const PluginTreeItem &)>;
+
     PluginMenu() = default;
+    explicit PluginMenu(PluginTreeGroup &, PluginCollections *collections = nullptr, Filter filter = {});
 
-    explicit PluginMenu(PluginTreeGroup &node)
-    {
-        for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto subNode = dynamic_cast<PluginTreeGroup *>(node.getSubItem(i)))
-                addSubMenu(subNode->name, PluginMenu(*subNode), true);
+    PluginTreeItem *runMenu(PluginTreeGroup &, juce::Component *target = nullptr);
 
-        for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto subType = dynamic_cast<PluginTreeItem *>(node.getSubItem(i)))
-                addItem(subType->getUniqueName().hashCode(), subType->desc.name, true, false);
-    }
+private:
+    bool appendStandardItems(PluginTreeGroup &, juce::PopupMenu &);
+    bool appendCuratedItems(PluginTreeGroup &, PluginCollections &, juce::PopupMenu &);
+    void collectMatchingItems(PluginTreeGroup &, std::vector<PluginTreeItem *> &) const;
+    void addPluginItem(juce::PopupMenu &, PluginTreeItem &);
+    [[nodiscard]] bool matches(const PluginTreeItem &) const;
 
-    static PluginTreeItem *findType(PluginTreeGroup &node, int hash)
-    {
-        for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto subNode = dynamic_cast<PluginTreeGroup *>(node.getSubItem(i)))
-                if (auto *t = findType(*subNode, hash))
-                    return t;
+    Filter m_filter;
+    int m_nextItemId{1};
+    std::map<int, PluginTreeItem *> m_itemLookup;
 
-        for (int i = 0; i < node.getNumSubItems(); ++i)
-            if (auto t = dynamic_cast<PluginTreeItem *>(node.getSubItem(i)))
-                if (t->getUniqueName().hashCode() == hash)
-                    return t;
-
-        return nullptr;
-    }
-
-    PluginTreeItem *runMenu(PluginTreeGroup &node)
-    {
-        int res = show();
-
-        if (res == 0)
-            return nullptr;
-
-        return findType(node, res);
-    }
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginMenu)
 };
 

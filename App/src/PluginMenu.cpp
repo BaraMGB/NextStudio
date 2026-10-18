@@ -25,13 +25,14 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "NextChorusPlugin.h"
 #include "NextDelayPlugin.h"
 #include "NextFilterPlugin.h"
-#include "PeakLimiterPlugin.h"
 #include "NextPhaserPlugin.h"
 #include "NextSaturationPlugin.h"
+#include "PeakLimiterPlugin.h"
 #include "SimpleSynthPlugin.h"
 #include "SoundFontPlugin.h"
 #include "SpectrumAnalyzerPlugin.h"
 #include "Utilities.h"
+#include <algorithm>
 #include <utility>
 
 //==============================================================================
@@ -153,6 +154,108 @@ void PluginTreeGroup::createBuiltInItems(int &num, te::Plugin::Type types)
         if (isPluginAuthorised(d))
             addSubItem(new PluginTreeItem(d));
 #endif
+}
+
+PluginMenu::PluginMenu(PluginTreeGroup &root, PluginCollections *collections, Filter filter)
+    : m_filter(std::move(filter))
+{
+    const bool hasCuratedItems = collections != nullptr && appendCuratedItems(root, *collections, *this);
+    if (hasCuratedItems)
+        addSeparator();
+    appendStandardItems(root, *this);
+}
+
+bool PluginMenu::matches(const PluginTreeItem &item) const { return !m_filter || m_filter(item); }
+
+void PluginMenu::addPluginItem(juce::PopupMenu &menu, PluginTreeItem &item)
+{
+    menu.addItem(m_nextItemId, item.desc.name, true, false);
+    m_itemLookup[m_nextItemId] = &item;
+    ++m_nextItemId;
+}
+
+bool PluginMenu::appendStandardItems(PluginTreeGroup &group, juce::PopupMenu &menu)
+{
+    bool hasAny = false;
+    for (int i = 0; i < group.getNumSubItems(); ++i)
+    {
+        if (auto *subGroup = dynamic_cast<PluginTreeGroup *>(group.getSubItem(i)))
+        {
+            juce::PopupMenu subMenu;
+            if (appendStandardItems(*subGroup, subMenu))
+            {
+                menu.addSubMenu(subGroup->name, subMenu, true);
+                hasAny = true;
+            }
+        }
+    }
+
+    for (int i = 0; i < group.getNumSubItems(); ++i)
+    {
+        if (auto *item = dynamic_cast<PluginTreeItem *>(group.getSubItem(i)); item != nullptr && matches(*item))
+        {
+            addPluginItem(menu, *item);
+            hasAny = true;
+        }
+    }
+    return hasAny;
+}
+
+void PluginMenu::collectMatchingItems(PluginTreeGroup &group, std::vector<PluginTreeItem *> &items) const
+{
+    for (int i = 0; i < group.getNumSubItems(); ++i)
+        if (auto *subGroup = dynamic_cast<PluginTreeGroup *>(group.getSubItem(i)))
+            collectMatchingItems(*subGroup, items);
+
+    for (int i = 0; i < group.getNumSubItems(); ++i)
+        if (auto *item = dynamic_cast<PluginTreeItem *>(group.getSubItem(i)); item != nullptr && matches(*item))
+            items.push_back(item);
+}
+
+bool PluginMenu::appendCuratedItems(PluginTreeGroup &root, PluginCollections &collections, juce::PopupMenu &menu)
+{
+    std::vector<PluginTreeItem *> items;
+    collectMatchingItems(root, items);
+    std::stable_sort(items.begin(), items.end(), [](const auto *first, const auto *second) { return first->desc.name.compareNatural(second->desc.name, false) < 0; });
+
+    bool hasAny = false;
+    juce::PopupMenu favorites;
+    for (auto *item : items)
+        if (collections.isFavorite(PluginIdentity::fromDescription(item->desc, item->xmlType)))
+            addPluginItem(favorites, *item);
+
+    if (favorites.getNumItems() > 0)
+    {
+        menu.addSubMenu(TRANS("Favorites"), favorites, true);
+        hasAny = true;
+    }
+
+    juce::PopupMenu collectionRoot;
+    for (const auto &collection : collections.getCollections())
+    {
+        juce::PopupMenu collectionMenu;
+        for (auto *item : items)
+            if (collections.isInCollection(PluginIdentity::fromDescription(item->desc, item->xmlType), collection.id))
+                addPluginItem(collectionMenu, *item);
+
+        if (collectionMenu.getNumItems() > 0)
+            collectionRoot.addSubMenu(collection.name, collectionMenu, true);
+    }
+
+    if (collectionRoot.getNumItems() > 0)
+    {
+        menu.addSubMenu(TRANS("My Collections"), collectionRoot, true);
+        hasAny = true;
+    }
+
+    return hasAny;
+}
+
+PluginTreeItem *PluginMenu::runMenu(PluginTreeGroup &, juce::Component *target)
+{
+    const int result = target != nullptr ? showAt(target) : show();
+    const auto found = m_itemLookup.find(result);
+    return found != m_itemLookup.end() ? found->second : nullptr;
 }
 
 te::Plugin::Ptr showMenuAndCreatePlugin(te::Edit &edit)

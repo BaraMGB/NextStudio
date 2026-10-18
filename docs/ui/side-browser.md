@@ -25,14 +25,18 @@ See [Project workflow](../architecture/project-workflow.md) for interaction/engi
 ### Instruments
 
 - Lists all detected instrument plugins (VST, AU, etc.) and internal instruments.
-- Opens with the Format column sorted ascending and plug-in names alphabetized inside each format group; click Name or Format to change the active order.
-- Search results and plug-in-list refreshes retain the active sort.
+- Opens with the Format column sorted ascending and plug-in names alphabetized inside each format group; click Name, Format, or the star header to change the active order. Favorite sorting groups starred/unstarred entries and alphabetizes each group; the arrow direction chooses which group comes first.
+- Click a row's star to add or remove a persistent favorite. The context menu provides the same action and assigns the plug-in to any number of custom collections.
+- The compact filter strip provides **All**, a star button for favorites, a custom-collection selector, and an overflow button for collection management. Collection and text-search filters apply together without changing the active name/format sort.
+- The five initial collections are **Mixing**, **Mastering**, **Sound Design**, **Creative**, and **Utilities**. The overflow menu creates collections and renames or deletes the currently selected custom collection. Collection names are unique without regard to letter case.
+- Favorites and collections are application-wide and survive project changes, rescans, and application restarts. Temporarily unavailable plug-ins are hidden without discarding their assignments.
 - Plugins can be dragged from here to a track header or to the Track Chain instrument slot.
 
 ### Effects
 
 - Lists all detected effect plugins and internal effects.
-- Uses the same ascending-format/name default, sortable columns, and search behavior as the Instruments Browser.
+- Uses the same favorites, collections, ascending-format/name default, sortable columns, and combined search/filter behavior as the Instruments Browser.
+- Collections are shared with the Instruments Browser while each browser continues to show only its own plug-in role.
 - Drag to a `[+]` slot in the Track Chain or directly into the chain.
 
 ### Samples

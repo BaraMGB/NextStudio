@@ -13,7 +13,7 @@ NextStudio combines several state systems: Tracktion's editable model, JUCE `Val
 It stores settings that are not part of one musical project:
 
 - content-root and derived folders for projects, samples, clips, renders, and presets;
-- favorites;
+- file favorites and plug-in favorites/custom collections;
 - window position and size;
 - theme colors;
 - GUI and mouse-cursor scale;
@@ -45,12 +45,17 @@ AppSettings
 ├── FileBrowser
 ├── Favorites
 ├── FavoriteTypes
+├── PluginCollections
+│   ├── Collections
+│   └── Plugins
 ├── WindowState
 ├── ThemeState
 ├── Behavior
 ├── Metronome
 └── ComputerMidiKeyboard
 ```
+
+`PluginCollections` is a separate metadata overlay and never changes `KnownPluginList` descriptions or project data. Internal plug-ins use their stable XML type as identity; external plug-ins use format, file/identifier and JUCE unique IDs. Collection IDs survive renaming. Missing plug-ins retain their metadata and become visible again when the same identity is scanned. New profiles start with Mixing, Mastering, Sound Design, Creative and Utilities; deleting all collections does not recreate them on restart. Legacy category nodes are migrated to collections when loaded. Collection mutations save immediately, broadcast to both Side Browser models, create no project undo entry and do not mark the edit dirty.
 
 Components that need live theme or behavior changes listen to `m_applicationStateValueTree` or a relevant child. The Track Chain's preset and modifier side panels use `Behavior/TrackPresetPanelCollapsed` and `Behavior/ModifierPanelCollapsed`; both default to collapsed and apply across tracks and projects. The computer MIDI keyboard layout is persisted under `ComputerMidiKeyboard` and hot-reloaded by `MainComponent` into the global `ComputerMidiKeyboardController`.
 

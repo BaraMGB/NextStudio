@@ -547,6 +547,28 @@ if(BUILD_TESTING)
     add_test(NAME PluginMenuOrdering
             COMMAND PluginMenuOrderingTests)
 
+    juce_add_console_app(PluginCollectionsTests
+            PRODUCT_NAME "PluginCollectionsTests")
+    juce_generate_juce_header(PluginCollectionsTests)
+
+    target_sources(PluginCollectionsTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/PluginCollections.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/PluginCollectionsTests.cpp)
+
+    target_include_directories(PluginCollectionsTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(PluginCollectionsTests PRIVATE
+            juce::juce_audio_processors
+            juce::juce_gui_basics)
+
+    target_compile_definitions(PluginCollectionsTests PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0)
+
+    add_test(NAME PluginCollections
+            COMMAND PluginCollectionsTests)
+
     juce_add_console_app(HeaderPresentationTests PRODUCT_NAME "HeaderPresentationTests")
     target_sources(HeaderPresentationTests PRIVATE tests/HeaderPresentationTests.cpp)
     target_include_directories(HeaderPresentationTests PRIVATE include)
