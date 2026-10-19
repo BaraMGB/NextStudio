@@ -9,7 +9,7 @@ show_usage() {
     echo "  rd  - RelWithDebInfo"
     echo ""
     echo "Options:"
-    echo "  -clean    Clean CMake cache before build"
+    echo "  -clean    Remove the build directory for a fresh build"
     echo "  -build    Only build, don't run"
     echo "  -debug    Run with debugger (gdb/lldb)"
     echo ""
@@ -21,7 +21,7 @@ show_usage() {
 
 # Default values
 BUILD_TYPE=""
-CLEAN_CACHE=false
+CLEAN_BUILD=false
 BUILD_ONLY=false
 RUN_WITH_DEBUGGER=false
 
@@ -29,7 +29,7 @@ RUN_WITH_DEBUGGER=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         d|r|rd) BUILD_TYPE="$1" ;;
-        -clean) CLEAN_CACHE=true ;;
+        -clean) CLEAN_BUILD=true ;;
         -build) BUILD_ONLY=true ;;
         -debug) RUN_WITH_DEBUGGER=true ;;
         -h|--help) show_usage; exit 0 ;;
@@ -48,7 +48,7 @@ fi
 # Build the project
 echo "=== Building project ==="
 BUILD_ARGS=("$BUILD_TYPE")
-[[ "$CLEAN_CACHE" == true ]] && BUILD_ARGS+=("-clean")
+[[ "$CLEAN_BUILD" == true ]] && BUILD_ARGS+=("-clean")
 
 if ! ./build.sh "${BUILD_ARGS[@]}"; then
     echo "Build failed!"

@@ -94,7 +94,7 @@ Build and launch with `start.sh`:
 ./start.sh d        # Debug build and run
 ./start.sh r        # Release build and run
 ./start.sh rd       # RelWithDebInfo build and run
-./start.sh d -clean # Clean CMake cache, build, and run
+./start.sh d -clean # Fresh build (removes the build directory), then run
 ./start.sh d -debug # Build and run under a debugger
 ```
 

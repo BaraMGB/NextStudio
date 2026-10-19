@@ -83,15 +83,15 @@ BUILD_JOBS=8 ./build.sh rd
 
 `BUILD_JOBS` is a tuning parameter, not a project requirement. Choose a value appropriate for available CPU and memory.
 
-### Clean CMake cache
+### Clean build
 
-To remove the configuration cache and `CMakeFiles` before rebuilding:
+To delete the build directory of the selected configuration and rebuild from scratch:
 
 ```bash
 ./build.sh rd -clean
 ```
 
-This does not delete the entire build directory or every generated artifact; it forces CMake to reconfigure the important cached state.
+This removes `autobuild/<Configuration>` (here `autobuild/RelWithDebInfo`) with all cached state and generated artifacts and forces a full reconfigure and rebuild. Other configurations are not affected.
 
 ## Build and run helper
 
@@ -107,7 +107,7 @@ Options:
 
 | Option | Meaning |
 |---|---|
-| `-clean` | clean the CMake cache before building |
+| `-clean` | remove the build directory for a fresh build |
 | `-build` | build only; do not launch |
 | `-debug` | launch under `gdb` on non-macOS or `lldb` on macOS |
 | `-h`, `--help` | print usage |
@@ -286,12 +286,7 @@ Use:
 ./build.sh rd -clean
 ```
 
-If necessary, remove only the affected configuration directory and rebuild:
-
-```bash
-rm -rf autobuild/RelWithDebInfo
-./build.sh rd
-```
+`-clean` removes exactly the affected configuration directory (`autobuild/<Configuration>`) before reconfiguring.
 
 ### Build killed by the operating system
 

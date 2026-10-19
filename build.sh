@@ -7,14 +7,14 @@ if [[ $# -lt 1 ]]; then
     echo "  d   Debug"
     echo "  r   Release"
     echo "  rd  RelWithDebInfo"
-    echo "  -clean  (optional) Clear CMake cache before building"
+    echo "  -clean  (optional) Remove the build directory for a fresh build"
     exit 1
 fi
 
 BUILD_TYPE_ARG="$1"
-CLEAN_CACHE=false
+CLEAN_BUILD=false
 
-[[ "${2:-}" == "-clean" ]] && CLEAN_CACHE=true
+[[ "${2:-}" == "-clean" ]] && CLEAN_BUILD=true
 
 # Map build types
 case $BUILD_TYPE_ARG in
@@ -28,13 +28,17 @@ JOBS="${BUILD_JOBS:-2}"
 
 echo "Building $BUILD_TYPE with $JOBS job(s)..."
 
-# Create build directory
+# Build directory
 BUILD_DIR="./autobuild/$BUILD_TYPE"
+
+# Remove the build directory for a fresh build if requested
+if [[ "$CLEAN_BUILD" == true ]]; then
+    echo "Removing $BUILD_DIR for a clean build..."
+    rm -rf "$BUILD_DIR"
+fi
+
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
-
-# Clean cache if requested
-[[ "$CLEAN_CACHE" == true ]] && rm -rf CMakeCache.txt CMakeFiles/
 
 # Build. --config is required by multi-configuration generators such as
 # Visual Studio; single-configuration generators accept it as well.
