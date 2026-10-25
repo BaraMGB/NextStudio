@@ -67,26 +67,33 @@ if [[ "$BUILD_ONLY" == false ]]; then
         rd) CONFIGURATION="RelWithDebInfo" ;;
     esac
 
-    EXEC_PATH="./autobuild/${CONFIGURATION}/App/NextStudio_artefacts/${CONFIGURATION}/NextStudio"
-    if [[ "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* || "${OSTYPE:-}" == win32* ]]; then
-        EXEC_PATH="${EXEC_PATH}.exe"
+    ARTEFACT_PATH="./autobuild/${CONFIGURATION}/App/NextStudio_artefacts/${CONFIGURATION}/NextStudio"
+    APP_PATH=""
+
+    if [[ "${OSTYPE:-}" == "darwin"* ]]; then
+        APP_PATH="${ARTEFACT_PATH}.app"
+        EXEC_PATH="${APP_PATH}/Contents/MacOS/NextStudio"
+    elif [[ "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* || "${OSTYPE:-}" == win32* ]]; then
+        EXEC_PATH="${ARTEFACT_PATH}.exe"
+    else
+        EXEC_PATH="$ARTEFACT_PATH"
     fi
 
-    if [[ ! -e "$EXEC_PATH" ]]; then
+    if [[ ! -x "$EXEC_PATH" ]]; then
         echo "Executable not found: $EXEC_PATH" >&2
         exit 1
     fi
 
     # Run with or without debugger
     if [[ "$RUN_WITH_DEBUGGER" == true ]]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            lldb -o run "$EXEC_PATH.app"
+        if [[ "${OSTYPE:-}" == "darwin"* ]]; then
+            lldb -o run -- "$EXEC_PATH"
         else
             gdb -ex=r --args "$EXEC_PATH"
         fi
     else
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            open "$EXEC_PATH.app"
+        if [[ "${OSTYPE:-}" == "darwin"* ]]; then
+            open "$APP_PATH"
         else
             "$EXEC_PATH"
         fi
