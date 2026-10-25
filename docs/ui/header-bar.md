@@ -67,7 +67,9 @@ Global automation read/write toggles affect all automatable parameters across th
 A pre-roll counter can be enabled before recording starts. When activated, pressing Record triggers a count-in (metronome clicks) before the actual recording begins.
 
 - **Enable:** Toggles the pre-roll count-in on/off.
-- **Count-in:** The number of beats counted before recording starts.
+- **Mode:** Click the pre-roll symbol to open a menu with the count-in modes: Off, 1 Beat, 2 Beats, 1 Bar, 2 Bars.
+- **Countdown:** During the count-in, the pre-roll button displays the remaining beats on a red background.
+- **Cancel:** Pressing Stop during the count-in cancels the pending recording.
 
 ## Related documents
 

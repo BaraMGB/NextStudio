@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Track Chain is displayed in the Lower Zone when the Plugins tab is active. It shows all effects, modifiers, and track controls for the currently selected track.
+The Track Chain is displayed in the [Lower Zone](lower-zone.md) when the Plugins tab is active. It shows all effects, modifiers, and track controls for the currently selected track.
 
 ## Layout
 
@@ -115,5 +115,6 @@ The Channel Strip on the right side provides quick access to the most important 
 
 - [Song Editor](song-editor.md)
 - [Mixer](mixer.md)
+- [Lower Zone](lower-zone.md)
 - [Header Bar](header-bar.md)
 - [Getting Started](../user/getting-started.md)

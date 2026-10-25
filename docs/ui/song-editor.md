@@ -116,6 +116,14 @@ Range independently selects a musical interval over tracks/automation lanes, inc
 - **Join MIDI clips:** Select at least two MIDI clips that form one direct-neighbour block on the same track, then press `Cmd/Ctrl+J`. No unselected clip may occur between them in the track's chronological clip order. MIDI channel, MPE, quantisation, groove, volume, mute and bank-change settings must match; otherwise a five-second message explains the conflict. The joined clip spans the complete selection, retains gaps as silence, expands visible loop repetitions, and trims notes and events at each source clip boundary, including source offsets that cross tempo changes. The operation replaces the sources, selects the result, and can be undone in one step.
 - **Automation:** Click on line = new point. Drag point = move. Right-click on point = delete. `Ctrl/Cmd`+drag on segment = change curve shape.
 
+### Audio clip fades
+
+Audio clips support fade-in and fade-out directly in the Arrangement Area with the Pointer or Time Stretch tool.
+
+- **Fade handles:** Small handles near the top edge mark the current end of the fade-in and the current start of the fade-out. Drag a handle horizontally to adjust the fade length.
+- **Fade curves:** Right-click a fade handle to open a context menu with the curve shapes Linear, Convex, Concave and S-Curve.
+- **Availability:** Handles appear only while the Pointer or Time Stretch tool is active and the clip lane is taller than its minimized height.
+
 ### Editing (Knife Tool)
 
 - The split cursor indicates Knife mode throughout the clip grid, including gaps between clips. Hovering a clip additionally shows a vertical preview line across that clip.
@@ -158,6 +166,7 @@ Shows information about the current grid/snap type.
 - [Header Bar](header-bar.md)
 - [Side Browser](side-browser.md)
 - [Mixer](mixer.md)
+- [Lower Zone](lower-zone.md)
 - [Track Chain](track-chain.md)
 - [Clip Properties Bar](../components/clip-properties-bar.md)
 - [Song Editor implementation](../components/song-editor.md)

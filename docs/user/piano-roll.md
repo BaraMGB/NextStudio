@@ -374,6 +374,7 @@ When setting a global start, it converts back to clip coordinates before updatin
 
 ## Related documents
 
+- [Lower Zone](../ui/lower-zone.md)
 - [NotePropertiesBar](../components/note-properties-bar.md)
 - [Getting Started](getting-started.md)
 - [Architecture Overview](../architecture/overview.md)

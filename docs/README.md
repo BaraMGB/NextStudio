@@ -26,6 +26,7 @@ Current references describe the repository revision containing them. Historical 
 - [Side Browser](ui/side-browser.md) — projects, instruments, effects, samples, settings and render.
 - [Song Editor](ui/song-editor.md) — tracks, arrangement, tools, clip properties and navigation.
 - [Mixer](ui/mixer.md) — channel strips, master and meters.
+- [Lower Zone](ui/lower-zone.md) — container, tab navigation and collapse for Mixer, Piano Roll and Track Chain.
 - [Track Chain](ui/track-chain.md) — modifiers, plugin chain, channel strip and MIDI learn.
 - [Keyboard Shortcuts](ui/shortcuts.md) — transport/editing, editor commands and virtual keyboard.
 

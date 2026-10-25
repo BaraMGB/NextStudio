@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Mixer provides a traditional mixing console view in the Lower Zone. It shows one channel strip per audio track, plus a Master channel at the end. Accessible via the Mixer tab in the Lower Zone sidebar.
+The Mixer provides a traditional mixing console view in the Lower Zone. It shows one channel strip per audio track, plus a Master channel at the end. Accessible via the Mixer tab in the [Lower Zone](lower-zone.md) sidebar.
 
 ## Channel Strip Layout
 
@@ -38,5 +38,6 @@ The last channel strip is always the **Master Track**:
 ## Related documents
 
 - [Song Editor](song-editor.md)
+- [Lower Zone](lower-zone.md)
 - [Track Chain](track-chain.md)
 - [Getting Started](../user/getting-started.md)
