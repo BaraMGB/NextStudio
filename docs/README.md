@@ -5,6 +5,7 @@
 | Task | Entry |
 |---|---|
 | Use the application | [Getting started](user/getting-started.md), [Piano Roll](user/piano-roll.md) |
+| Understand the project's principles | [Philosophy](philosophy.md) |
 | Look up a screen/control/plugin | UI and plugin references below |
 | Understand implementation | Architecture and component references below |
 | Build, test or debug | [Building](development/building.md), [Testing](development/testing.md), [Agent debug](agent-debug.md) |
