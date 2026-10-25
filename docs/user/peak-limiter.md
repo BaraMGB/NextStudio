@@ -7,6 +7,7 @@
 | Property | Value |
 |---|---|
 | Name in NextStudio | `Peak Limiter` |
+| Persistent type ID | `peak_limiter` |
 | Channel modes | mono and stereo |
 | Look-ahead | fixed at 3.0 ms |
 
@@ -166,3 +167,10 @@ Enable Stereo Link. Independent channel gain reduction can alter the apparent po
 - leave a lower ceiling;
 - inspect processors placed after the limiter;
 - verify the final encoded/rendered file, not only live playback.
+
+## Related source files
+
+- `App/include/PeakLimiterPlugin.h`
+- `App/src/PeakLimiterPlugin.cpp`
+- `App/include/PeakLimiterPluginComponent.h`
+- `App/src/PeakLimiterPluginComponent.cpp`

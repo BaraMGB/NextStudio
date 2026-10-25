@@ -4,6 +4,7 @@
 
 | Property | Value |
 |----------|-------|
+| Type ID | Tracktion Engine Standard EQ |
 | Category | Effect |
 | Channels | Mono and stereo |
 | Bands | 4 (Low, Mid 1, Mid 2, High) |

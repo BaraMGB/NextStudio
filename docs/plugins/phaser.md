@@ -4,8 +4,10 @@
 
 | Property | Value |
 |---|---|
+| Type ID | `next_phaser` |
 | Category | Effect |
 | Channels | Stereo (max 2 outputs) |
+| Engine | JUCE DSP engine |
 
 ## Controls
 

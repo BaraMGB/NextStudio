@@ -41,7 +41,7 @@ Choosing another root creates or uses this folder structure:
 
 NextStudio validates that the root can be prepared before accepting it. Bundled content such as the included drum samples is populated into the selected content area.
 
-Closing NextStudio before pressing **Start NextStudio** leaves setup incomplete, so the embedded wizard appears again on the next launch. Folder validation errors are shown directly inside the wizard.
+Closing NextStudio before pressing **Start NextStudio** leaves setup incomplete, so the embedded wizard appears again on the next launch. Folder validation errors are shown inside the wizard, and the folder chooser runs asynchronously without a nested application modal loop.
 
 ### GUI scale
 
@@ -49,7 +49,7 @@ The wizard allows a scale from `0.2x` to `3.0x`. The change is applied immediate
 
 ### Theme
 
-Choose one of the included `.nxttheme` presets. Theme colors affect the main frame, editor areas, track colors, buttons, text, timeline, and supported icons.
+Choose one of the embedded `.nxttheme` presets. Theme colors affect the main frame, editor areas, track colors, buttons, text, timeline, and supported component icons.
 
 The General settings tab contains an inline theme editor tailored to the sidebar. Built-in themes have quick buttons, while the fixed-height browser lists and filters all installed themes without lengthening the form. Colors are grouped by purpose and edited with the embedded saturation/value area, hue strip, or `#RRGGBB` field. Theme colors are always opaque. Changes are previewed immediately. Custom themes can be saved without dialogs. A theme file elsewhere on disk can be applied directly by double-clicking it in the Home browser and then added to the preset list with **Save As**.
 
@@ -59,7 +59,7 @@ Configure the locations and formats relevant to the operating system. NextStudio
 
 ### Audio and MIDI devices
 
-Use the audio-device controls in the wizard to configure at least:
+The wizard embeds JUCE's audio-device selector. Configure at least:
 
 - an audio output device;
 - sample rate and buffer size appropriate for the system;
@@ -123,7 +123,7 @@ The vertical sidebar switches between:
 - **Settings** — audio/MIDI, plug-in, appearance, and behavior settings;
 - **Render** — export/render controls.
 
-The sidebar starts expanded on the **Projects** view. Drag the adjacent splitter to resize or collapse it. Clicking a sidebar menu button opens the selected view; clicking the active button again collapses the sidebar.
+The sidebar starts expanded on the **Projects** view. Drag the adjacent splitter to resize it. Its initial expanded width is 400 pixels and it can be reduced continuously to 250 pixels on every display. Dragging another 100 pixels toward the menu rail crosses the collapse resistance and snaps it closed. Clicking a sidebar menu button opens the selected view; clicking the active button again also collapses the sidebar.
 
 ### Lower range
 
@@ -135,7 +135,7 @@ The lower range has tabs for:
 
 The active track follows the current track or clip selection. The MIDI Editor tab is enabled when a MIDI clip is selected. Double-clicking a MIDI clip in the arrangement opens the MIDI Editor for that track; if the lower range is collapsed, the double-click also expands it.
 
-Drag the splitter down to collapse the lower range or back up to expand it. Mixer and Plugins use a fixed expanded height. The MIDI Editor can be resized continuously while expanded. The collapsed bar provides buttons for all three views; MIDI Editor is disabled unless a MIDI clip is selected. The collapsed state is restored in the next application session. See [Lower Zone](../ui/lower-zone.md) for details.
+Drag the splitter down to close the lower range, or back up to expand it. When the Piano Roll is visible, upward drags enlarge it freely and downward drags shrink it continuously back to the standard 350-pixel height before the collapse snap zone begins. The maximum Piano Roll height stops at the bottom edge of the Song Editor timeline. The panel snaps only after crossing the active transition target, and the direction can be reversed without releasing the mouse button. The collapsed bar provides buttons for Mixer, MidiEditor, and PluginChain; MidiEditor is disabled unless a MIDI clip is selected. The collapsed state is restored in the next application session. Mixer and plug-in views currently use a fixed lower-range height.
 
 ## Project workflow
 
@@ -156,7 +156,7 @@ Before loading, NextStudio validates that the file:
 - exists;
 - has the expected extension;
 - is not empty;
-- contains valid NextStudio project data.
+- contains a valid Tracktion `EDIT` state.
 
 An invalid file does not replace the current project.
 
@@ -183,7 +183,7 @@ With **Save & Continue**, the requested operation proceeds only after a successf
 
 ## Autosave and crash recovery
 
-NextStudio writes recovery snapshots to a temporary recovery area. Autosave is skipped while recording or while an operation cannot be saved safely.
+NextStudio writes recovery snapshots to Tracktion Engine's temporary directory. Autosave is skipped while recording and while specific model operations hold a save lock.
 
 A normal successful save removes obsolete recovery snapshots. A clean application shutdown removes the temporary directory unless it contains a restored project that has not yet been saved or explicitly discarded.
 
@@ -216,7 +216,7 @@ NextStudio disables wave inputs by default during edit initialization and enable
 4. Record MIDI or create a MIDI clip.
 5. Select the MIDI clip and open **MIDI Editor**.
 
-See [Piano Roll](piano-roll.md) for note editing and [Song Editor](../ui/song-editor.md#clip-properties-bar) for exact arrangement clip editing.
+See [Piano Roll](piano-roll.md) for note editing and [ClipPropertiesBar](../components/clip-properties-bar.md) for exact arrangement clip editing.
 
 ### Plug-in chain
 
@@ -224,11 +224,11 @@ Select a track and open **Plugins** in the lower range. The chain view is organi
 
 Track Presets and Modifiers start collapsed to leave more width for plug-in editors. Use the arrow at the left of either panel header or its narrow collapsed rail to expand/collapse it. The two choices are independent and persist across application sessions. Collapsing Modifiers also temporarily hides an open modifier detail panel.
 
-Use the horizontal scrollbar to reach the complete chain on narrow windows. Closing a separate native plug-in editor hides that window; reopen it from the plug-in when needed.
+The horizontal scrollbar remains visible and can reach the full rack content on narrow windows. Plug-in windows are designed to remain open across chain-view rebuilds. Closing a native editor hides it rather than necessarily destroying its internal UI state.
 
 ### Mixer
 
-Open **Mixer** in the lower range to view channel strips for the current project. Supported mixer controls can be automated.
+Open **Mixer** in the lower range to view channel strips for the current edit. Mixer controls use the shared automatable parameter system where applicable.
 
 ## Position display editing
 
@@ -272,11 +272,11 @@ Lower row: Y S X D C V G B H N J M
 Upper row: Q 2 W 3 E R 5 T 6 Z 7 U I
 ```
 
-`Q` and `,` are aliases for the same upper C in the default layout. Customize the mapping in **Settings → Keys**. The default range is labelled `C3` to `C5` (`48 = C3`, `60 = C4`, `72 = C5`). Exact physical key positions depend on the keyboard layout. Select the intended MIDI/instrument track so the notes reach the correct instrument.
+`Q` and `,` are aliases for the same upper C in the default layout. The mapping is handled by the dedicated computer MIDI keyboard controller and can be customized in Settings → Keys. Note names follow Tracktion's middle-C convention, so the default range is `C3` to `C5` (`48 = C3`, `60 = C4`, `72 = C5`). The exact physical key positions depend on the keyboard layout. Select an appropriate MIDI/instrument track so exclusive MIDI focus routes notes as expected.
 
 ## Settings and persistence
 
-Application settings are saved in the operating system's application-data location under:
+Application settings are saved to JUCE's user application-data directory under:
 
 ```text
 NextStudio/AppSettings.xml
@@ -284,9 +284,9 @@ NextStudio/AppSettings.xml
 
 They include window bounds, content paths, theme, GUI scale, sidebar state, autosave interval, behavior options, metronome volume, and the custom computer MIDI keyboard mapping.
 
-Under **Settings → Audio → Metronome**, choose the common click volume and separate accent/regular WAV samples. NextStudio copies custom samples into its application-data folder, so the original files can then be moved or removed safely. The **Default** buttons restore the bundled click sounds.
+Under **Settings → Audio → Metronome**, the common click volume and separate accent/regular WAV samples can be selected. NextStudio copies custom samples to the `Metronome` directory beside `AppSettings.xml`; the original files can then be moved or removed safely. The **Default** buttons restore Tracktion's embedded click sounds.
 
-Project-specific view settings such as timeline zoom, scroll position, lower-range selection, and Piano Roll dimensions are restored with the project.
+Edit-specific view state—such as timeline zoom, scroll position, lower-range selection, and Piano Roll dimensions—is stored with the edit state and is not intended to create undo steps.
 
 ## Troubleshooting
 
@@ -314,7 +314,7 @@ Select a MIDI clip. Selecting only a track is not sufficient for the tab-enable 
 - Open Settings and verify scan paths.
 - Rescan plug-ins.
 - Confirm the format is supported on the platform.
-- Check whether the plug-in format and CPU architecture are supported on the current platform.
+- Check whether the plug-in architecture matches NextStudio.
 
 ### Project will not load
 
@@ -327,4 +327,5 @@ Adjust GUI scale in Settings or rerun setup as appropriate. The accepted range i
 ## Related documents
 
 - [Piano Roll](piano-roll.md)
-- [Peak Limiter](../plugins/peak-limiter.md)
+- [Peak Limiter](peak-limiter.md)
+- [Project Lifecycle](../architecture/project-lifecycle.md)

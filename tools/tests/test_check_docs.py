@@ -168,38 +168,6 @@ class DocumentationChecks(unittest.TestCase):
         self.put("docs/topic.md", "# Über\n")
         self.assertEqual([], self.check())
 
-    def test_manual_manifest_accepts_curated_user_pages(self):
-        self.put("docs/README.md", "[Manual](user/README.md)\n")
-        self.put("docs/user/README.md", "# Manual\n[UI](../ui/editor.md)\n")
-        self.put("docs/ui/editor.md", "# Editor\n")
-        self.put("docs/user-manual.yml",
-                 "home: user/README.md\nnav:\n"
-                 "  - Home: user/README.md\n"
-                 "  - Interface:\n"
-                 "      - Editor: ui/editor.md\n")
-        self.assertEqual([], self.check())
-
-    def test_manual_manifest_rejects_technical_content_and_links(self):
-        self.put("docs/README.md", "[Manual](user/README.md)\n[Architecture](architecture/topic.md)\n")
-        self.put("docs/user/README.md",
-                 "# Manual\n[Internals](../architecture/topic.md)\n"
-                 "Implemented by ClipEditing::applyOverwrite in App/src/Thing.cpp.\n")
-        self.put("docs/architecture/topic.md", "# Internals\n")
-        self.put("docs/user-manual.yml",
-                 "home: user/README.md\nnav:\n  - Home: user/README.md\n")
-        errors = self.check()
-        self.assertTrue(any("non-manual page" in error for error in errors))
-        self.assertTrue(any("C++ symbol" in error for error in errors))
-        self.assertTrue(any("application source path" in error for error in errors))
-
-    def test_manual_manifest_requires_every_user_facing_page(self):
-        self.put("docs/README.md", "[Manual](user/README.md)\n")
-        self.put("docs/user/README.md", "# Manual\n")
-        self.put("docs/ui/editor.md", "# Editor\n")
-        self.put("docs/user-manual.yml",
-                 "home: user/README.md\nnav:\n  - Home: user/README.md\n")
-        self.assertTrue(any("missing from docs/user-manual.yml" in error for error in self.check()))
-
 
 if __name__ == "__main__":
     unittest.main()

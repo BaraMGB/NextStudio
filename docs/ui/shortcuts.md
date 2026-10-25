@@ -86,7 +86,7 @@ The Keys panel contains two sections:
 
 Both sections belong to one vertically scrollable page. The scrollbar at the right moves the complete page, so the virtual-keyboard settings can be scrolled out of the way to expose the application shortcuts. The shortcut list does not display a separate scrollbar.
 
-Shortcut categories remain expandable. Expanding or collapsing a category updates the page height while keeping the whole page in one scrollable view.
+Shortcut categories remain expandable. Expanding or collapsing a category updates the page height while preserving the shared scrolling model.
 
 ## Related documents
 

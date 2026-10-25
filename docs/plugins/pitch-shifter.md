@@ -4,6 +4,7 @@
 
 | Property | Value |
 |---|---|
+| Type ID | `pitchShifter` |
 | Category | Effect |
 | Pitch range | -24 to +24 semitones (two octaves down/up) |
 
@@ -36,4 +37,4 @@ This is a schematic interval display, not an audio analyser or a detected-note d
 
 ## Layout
 
-The map and knob are stacked vertically in a compact editor.
+The editor uses a compact rack width like Volume/Pan and Arpeggiator. The map and knob are stacked vertically, with no duplicate parameter row or internal scroll area.

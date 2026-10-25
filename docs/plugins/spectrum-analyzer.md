@@ -4,6 +4,7 @@
 
 | Property | Value |
 |----------|-------|
+| Type ID | `spectrum_analyzer` |
 | Category | Effect |
 | Channels | Mono and stereo |
 | Signal | Pass-through (unchanged) |

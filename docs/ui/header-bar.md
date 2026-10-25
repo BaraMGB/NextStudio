@@ -2,13 +2,13 @@
 
 ## Overview
 
-The Header Bar spans the top of the main window and contains global transport controls, the time display, and project-wide transport switches. Timeline-specific follow controls are available in the Song Editor and Piano Roll toolbars.
+The Header Bar spans the top of the main window and contains global transport controls, the time display, and project-wide transport switches. Timeline-specific follow controls belong to the Song Editor and Piano Roll ToolHeaders.
 
 ## Project and Save Information
 
-The widened position display has a right information section using the same label/value rows as the tempo and position fields: **NAME:** on the first line and **STATUS:** on the second. The name value shows the current project name; long names are shortened with an ellipsis. The status value reports **Unsaved changes** for a new project or after a musical change, and **Up to date** for an unchanged saved project. At compact widths labels are removed while all values remain visible. At smaller widths position, time and project/save information take priority over tempo, signature and loop fields; the complete project name and status remain available as a tooltip.
+The widened position display has a right information section using the same label/value rows as the tempo and position fields: **NAME:** on the first line and **STATUS:** on the second. The name value shows the current edit name; long names are shortened with an ellipsis. The status value reports **Unsaved changes** for a new temporary edit or after a musical change, and **Up to date** for an unchanged persistent project. At compact widths labels are removed while all values remain visible. At smaller widths position, time and project/save information take priority over tempo, signature and loop fields; the complete project name and status remain available as a tooltip.
 
-After a successful **Save**, **Save As**, or `Ctrl/Cmd+S`, the second line temporarily changes to **Saved** for three seconds. It does not take keyboard focus, add a dialog, or block controls. Saving again restarts the display time. Starting another save, cancelling, failing, or replacing the project clears previous feedback. Recovery autosave stays silent; save errors remain in the Projects sidebar.
+After a successful **Save**, **Save As**, or `Ctrl/Cmd+S`, the second line temporarily changes to **Saved** for three seconds. The confirmation starts after Save As releases its existing interaction lock. It does not take keyboard focus, add a dialog or block controls. Saving again restarts the display time. Starting another save/workflow, cancelling, failing, or replacing the project clears previous feedback. Recovery autosave stays silent; existing inline save errors remain in the Projects sidebar.
 
 ## Transport Controls
 

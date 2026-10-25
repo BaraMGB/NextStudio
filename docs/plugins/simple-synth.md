@@ -4,10 +4,11 @@
 
 | Property | Value |
 |----------|-------|
+| Type ID | `simple_synth` |
 | Category | Instrument |
 | Voices | 16 (with stealing) |
 | Output | Stereo |
-| Synthesis | Two-oscillator subtractive |
+| Architecture | Two-oscillator subtractive |
 
 A lightweight subtractive synthesizer with two oscillators, a filter, and dual ADSR envelopes.
 

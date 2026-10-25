@@ -4,6 +4,7 @@
 
 | Property | Value |
 |---|---|
+| Type ID | `next_chorus` |
 | Category | Effect |
 | Channels | Stereo (max 2 outputs) |
 | Base Delay | 20 ms (fixed) |

@@ -4,8 +4,10 @@
 
 | Property | Value |
 |---|---|
+| Type ID | Tracktion Engine Standard Reverb |
 | Category | Effect |
 | Channels | Stereo only |
+| Engine | JUCE reverb engine |
 
 ## Controls
 
