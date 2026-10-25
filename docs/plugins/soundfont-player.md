@@ -4,15 +4,13 @@
 
 | Property | Value |
 |----------|-------|
-| Type ID | `soundfont_player` |
 | Category | Instrument |
 | Output | Stereo |
 | MIDI Channels | 16 |
 | Max Voices | 256 |
-| Engine | TinySoundFont |
 | Format | `.sf2` only (no `.sf3`) |
 
-Loads and plays SoundFont files using the TinySoundFont engine. All 16 MIDI channels share a single preset.
+Loads and plays SoundFont files. All 16 MIDI channels share a single preset.
 
 ## Controls
 

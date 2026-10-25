@@ -4,7 +4,6 @@
 
 | Property | Value |
 |----------|-------|
-| Type ID | Tracktion Engine `sampler` |
 | Category | Instrument |
 | Pads | 16 |
 | MIDI Note Range | 48 (C3) to 63 |

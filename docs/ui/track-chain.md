@@ -108,7 +108,7 @@ The Channel Strip on the right side provides quick access to the most important 
 - **Pan Knob:** Controls the stereo position (left/right).
 - **Mute (M):** Mutes the track.
 - **Solo (S):** Mutes all other tracks.
-- **Record (R):** Arms the track for recording.
+- **Arm (A):** Arms the track for recording.
 - **Level Meters:** Show the current level.
 
 ## Related documents

@@ -1,9 +1,5 @@
 # Lower Zone
 
-- Type: reference
-- Audience: users
-- Scope: lower-range container, tab navigation and collapse
-
 ## Overview
 
 The Lower Zone is the area at the bottom of the main window. It hosts three views: the Mixer, the MIDI Editor (Piano Roll) and the Track Chain.

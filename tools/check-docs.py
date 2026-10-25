@@ -19,6 +19,14 @@ from urllib.parse import unquote, urlsplit
 
 ROOT_PAGES = ("README.md", "Todo.md", "CHANGELOG.md", "AGENTS.md")
 HISTORICAL = ("docs/archive/", "docs/changes/")
+MANUAL_DIRECTORIES = ("docs/user/", "docs/ui/", "docs/plugins/")
+MANUAL_FORBIDDEN = (
+    (re.compile(r"App/(?:src|include|tests)/"), "application source path"),
+    (re.compile(r"\bType ID\b", re.I), "internal type ID"),
+    (re.compile(r"\b(?:Tracktion Engine|JUCE)\b"), "framework implementation detail"),
+    (re.compile(r"\.(?:cpp|h)\b"), "C++ source filename"),
+    (re.compile(r"\b\w+::\w+\b"), "C++ symbol"),
+)
 
 
 def prose(text):
@@ -167,6 +175,50 @@ def links(text):
                 yield line_number, definitions[key]
 
 
+def manual_manifest_pages(root):
+    manifest = root / "docs/user-manual.yml"
+    manual_directories_exist = any((root / directory).is_dir() for directory in MANUAL_DIRECTORIES)
+    if not manifest.exists():
+        return set(), ["docs/user-manual.yml: user manual manifest is missing"] if manual_directories_exist else []
+
+    pages = set()
+    errors = []
+    home = None
+    for line_number, line in enumerate(manifest.read_text(encoding="utf-8").splitlines(), 1):
+        match = re.match(r"^\s*(?:home:|-\s+[^:]+:)\s+([^\s#]+\.md)\s*$", line)
+        if not match:
+            continue
+        relative = match[1]
+        page = (root / "docs" / relative).resolve()
+        is_home = line.lstrip().startswith("home:")
+        if is_home:
+            home = page
+        if not page.is_relative_to((root / "docs").resolve()):
+            errors.append(f"docs/user-manual.yml:{line_number}: manual page leaves docs/: {relative}")
+        elif not page.exists():
+            errors.append(f"docs/user-manual.yml:{line_number}: missing manual page: {relative}")
+        elif is_home:
+            continue
+        elif page in pages:
+            errors.append(f"docs/user-manual.yml:{line_number}: duplicate manual page: {relative}")
+        else:
+            pages.add(page)
+
+    if home is None:
+        errors.append("docs/user-manual.yml: home page is missing")
+    elif home not in pages:
+        errors.append("docs/user-manual.yml: home page is not present in nav")
+
+    expected = {
+        page.resolve()
+        for directory in MANUAL_DIRECTORIES
+        for page in (root / directory).glob("*.md")
+    }
+    for page in sorted(expected - pages):
+        errors.append(f"{page.relative_to(root)}: user-facing page is missing from docs/user-manual.yml")
+    return pages, errors
+
+
 def check(root):
     root = Path(root).resolve()
     pages = set((root / "docs").rglob("*.md"))
@@ -175,6 +227,8 @@ def check(root):
     heading_ids = {p: anchors(text) for p, text in texts.items()}
     graph = {p: set() for p in pages}
     errors = []
+    manual_pages, manual_errors = manual_manifest_pages(root)
+    errors.extend(manual_errors)
     for page, text in texts.items():
         for line, raw in links(text):
             prefix = f"{page.relative_to(root)}:{line}"
@@ -198,9 +252,18 @@ def check(root):
                 continue
             if target in pages:
                 graph[page].add(target)
+                if page in manual_pages and target not in manual_pages:
+                    errors.append(f"{prefix}: user manual links to non-manual page: {raw}")
                 fragment = unquote(parsed.fragment)
                 if fragment and fragment not in heading_ids[target]:
                     errors.append(f"{prefix}: missing anchor: {raw}")
+        if page in manual_pages:
+            for pattern, description in MANUAL_FORBIDDEN:
+                for match in pattern.finditer(text):
+                    line = text[:match.start()].count("\n") + 1
+                    errors.append(
+                        f"{page.relative_to(root)}:{line}: user manual contains {description}: {match.group(0)}"
+                    )
     index = root / "docs/README.md"
     reached = {index: 0}
     queue = deque([index])

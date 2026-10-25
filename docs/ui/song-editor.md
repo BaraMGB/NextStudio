@@ -1,9 +1,5 @@
 # Song Editor
 
-- Type: reference
-- Audience: users
-- Scope: current arrangement controls
-
 ## Overview
 
 The Song Editor is the central workspace in the main window. It consists of the Track List (left) and the Arrangement Area (right), sharing a common timeline and playhead.
@@ -62,13 +58,13 @@ Shows clips and automation data on tracks along the timeline.
 
 ### Magnetic mouse snapping
 
-With Off/Fixed/Adaptive settings in the arrangement SNAP control, clip movement/resizing/stretching, Knife previews, range/loop endpoints, automation time movement, and audio-file drag/drop share magnetic positioning. An edited edge locks exactly near a target; keep moving to pull it free and reach any position between targets. The attraction region accounts for display scaling and is capped on dense grids, so intermediate positions remain reachable. The OS pointer is not warped. Shift/Snap Off bypass attraction.
+With Off/Fixed/Adaptive settings in the arrangement SNAP control, clip movement, resizing, stretching, Knife previews, range/loop endpoints, automation movement, and audio-file drag/drop share magnetic positioning. An edited edge locks near a target; keep moving to pull it free and reach any position between targets. The pointer itself is not moved. Hold `Shift` or select Snap Off to bypass attraction.
 
 An actively held edge shows a thin target guide and outlined diamond; the SNAP label reports held/free/Shift/off/limit without changing the grid choice. Pulling free or bypassing removes the held guide immediately. Limits and invalid placements are not shown as snap detents. Knife highlights its existing cut line.
 
-Grabbed off-grid edges do not jump at mouse-down. Preview and release use the same resolved position, including positive-duration, source-offset, selected-clip collision, and automation-neighbour limits. Ranges are not hard-quantized again on release. Ctrl still locks automation time, and automation retains its existing live-edit undo behavior.
+Grabbed off-grid edges do not jump when the drag begins. Preview and release use the same position. `Ctrl` continues to lock automation time.
 
-Keyboard nudging, explicit quantization, numeric property steps, ordinary geometric lasso, MIDI-clip click insertion, and playhead clicks retain their discrete behavior. See [Timeline snapping](../components/timeline-snapping.md) for implementation details.
+Keyboard nudging, explicit quantization, numeric property steps, lasso selection, MIDI-clip insertion, and playhead clicks retain their discrete behavior.
 
 ### Timeline
 
@@ -76,17 +72,15 @@ Keyboard nudging, explicit quantization, numeric property steps, ordinary geomet
 - **Loop lane:** The lower fifth of the timeline is the loop-editing lane. A black overlay at 30% opacity distinguishes it from the rest of the timeline even when the loop range has zero length.
 - **Draw loop range:** Hover an unused part of the loop lane to show the pencil cursor and the `draw loop range` hint. Click and drag to create a range. Enabled snapping applies while drawing; hold `Shift` to draw without snapping.
 - **Move loop range:** Hover the body of an existing range to show the hand cursor and the `move loop range` hint, then drag it horizontally.
-- **Resize loop range:** Hover the first or last 10 pixels to show the corresponding resize cursor and the `set loop range start` or `set loop range end` hint. Drag to resize; hold `Shift` to bypass snapping.
+- **Resize loop range:** Hover either edge to show the corresponding resize cursor and hint. Drag to resize; hold `Shift` to bypass snapping.
 - **Loop state:** The range uses the theme's prime colour at 50% opacity while loop playback is enabled and 20% opacity while it is disabled.
 - **Playhead Position:** Double-click on the timeline sets the playhead to the mouse position. Click or drag the playhead to set the playback position.
-- **Zoom:** Click and drag vertically in the timeline, or use `Ctrl`/`Command` + mouse wheel, to zoom the horizontal view. Zoom uses nearby discrete scales with evenly rasterized grid subdivisions. The pointer's beat remains anchored unless the view reaches beat zero; small drag movements accumulate rather than being discarded.
-- **Grid alignment:** Grid, clips, notes, automation, and playhead use the same horizontal mapping. Panning moves the complete scene together without rounding individual musical positions. The visible grid remains adaptive even with fixed or disabled tool snapping; its display interval no longer depends on the current transport tempo.
+- **Zoom:** Click and drag vertically in the timeline, or use `Ctrl`/`Command` + mouse wheel, to zoom the horizontal view. The musical position under the pointer remains anchored unless the view reaches beat zero.
+- **Grid alignment:** Grid, clips, notes, automation, and playhead stay aligned while panning and zooming. The visible grid remains adaptive even with fixed or disabled tool snapping.
 
 ### Clips
 
 Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes. Double-clicking a MIDI clip opens the Piano Roll for its track and expands the lower range first if that area is currently collapsed.
-
-Clip fills and normal/selected frames share the same unrounded time edges. Adjoining clips are not independently rounded to pixels; antialiasing remains possible at fractional screen positions, and the existing frame widths and selection colours are retained.
 
 ### Toolbar
 
@@ -168,7 +162,4 @@ Shows information about the current grid/snap type.
 - [Mixer](mixer.md)
 - [Lower Zone](lower-zone.md)
 - [Track Chain](track-chain.md)
-- [Clip Properties Bar](../components/clip-properties-bar.md)
-- [Song Editor implementation](../components/song-editor.md)
-- [MIDI Input Routing and Exclusive Focus](../architecture/midi-input-routing.md)
 - [Getting Started](../user/getting-started.md)

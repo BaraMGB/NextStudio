@@ -4,7 +4,6 @@
 
 | Property | Value |
 |---|---|
-| Type ID | `next_delay` |
 | Category | Effect |
 | Channels | Mono, Stereo |
 | Delay Range | 20–2000 ms |

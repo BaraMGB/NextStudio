@@ -4,7 +4,6 @@
 
 | Property | Value |
 |----------|-------|
-| Type ID | `arpeggiator` |
 | Category | MIDI Effect |
 | Audio | No (MIDI only) |
 | Placement | MIDI plugin section of Track Chain |

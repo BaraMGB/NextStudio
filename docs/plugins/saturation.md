@@ -4,7 +4,6 @@
 
 | Property | Value |
 |---|---|
-| Type ID | `next_saturation` |
 | Category | Effect |
 | Channels | Mono, Stereo |
 | Oversampling | 1×, 2×, 4× |

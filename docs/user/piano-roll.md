@@ -1,9 +1,5 @@
 # Piano Roll
 
-- Type: reference
-- Audience: users
-- Scope: current MIDI editing workflow
-
 ## Overview
 
 The Piano Roll edits MIDI notes on the active MIDI track. It combines a note grid, piano keyboard, timeline, playhead, velocity editor, exact note-property editor, tool bar, scrollbar, and status footer.
@@ -60,8 +56,6 @@ With the pointer tool:
 - click empty space to clear the MIDI-note selection;
 - drag from empty space to begin lasso selection.
 
-The note selection is represented by a Tracktion `SelectedMidiEvents` object and is shared with command handling and the properties bar.
-
 ### Lasso selection
 
 Choose the lasso tool or drag empty space with the pointer tool. Drag a rectangle over notes and release. Normal dragging replaces the selection; hold `Shift` to add or `Ctrl/Command` to toggle enclosed notes. Changing modifiers or shrinking the rectangle recomputes from the original selection. Escape or changing tools cancels and restores that selection. The musical start stays anchored while navigating the view. The dedicated lasso tool returns to Pointer; an empty-space Pointer gesture stays on Pointer.
@@ -85,7 +79,7 @@ The keyboard lights keys for live MIDI routed to the track currently displayed i
 
 The feedback is track-aware: MIDI routed to a different track does not light the displayed keyboard. Several simultaneously held notes can be shown at once. Lighting indicates only held/released state and does not vary with velocity. It visualizes live input, not notes played back from MIDI clips in the arrangement.
 
-Fast dragging across the clickable keyboard sends successive note-off/note-on pairs. These events are batched internally, but released keys are cleared at the end of each batch so they do not remain lit after the mouse is released.
+Fast dragging across the clickable keyboard auditions successive pitches. Releasing the mouse stops all notes triggered by that gesture.
 
 ### Note audition
 
@@ -116,7 +110,7 @@ Snapping is enabled during drag. Hold `Shift` to temporarily disable it.
 
 #### Copy and paste in place
 
-`Command+C` copies the selected notes. `Command+V` starts a provisional in-place paste: preview blocks appear exactly over the source notes, but the project model and undo history are not changed yet.
+`Command+C` copies the selected notes. `Command+V` starts a provisional in-place paste: preview blocks appear over the source notes, but the project is not changed until the paste is confirmed.
 
 While the paste is pending:
 
@@ -127,13 +121,13 @@ While the paste is pending:
 - clicking/deselecting without moving cancels it, leaving only the originals;
 - clicking/deselecting after moving commits the copies at their preview positions.
 
-The pasted destination always has priority during commit. Source notes remain unchanged when the moved preview no longer overlaps them; if a preview still overlaps a source or another same-pitch note, the existing note is trimmed or removed so the pasted note remains complete. Confirming an unshifted preview with `Enter` replaces the notes at the same ranges rather than stacking duplicate note events. The complete commit is one `Paste MIDI Notes` undo transaction.
+The pasted destination has priority. If a preview overlaps another note of the same pitch, the existing note is trimmed or removed so the pasted note remains complete. Confirming an unshifted preview with `Enter` replaces notes at the same ranges instead of stacking duplicates. The complete paste can be undone in one step.
 
 #### Copy while dragging
 
-Hold `Ctrl` during mouse release after dragging to create copies instead of removing the original notes. This path currently checks the physical Control modifier directly.
+Hold the physical `Ctrl` key while releasing the mouse after a drag to create copies instead of moving the original notes.
 
-Dragging only previews the copy; the model is changed on drop. The destination range is cleared of same-pitch material before the copy is inserted. If the destination overlaps the original note, the overlapping part of the original is removed:
+Dragging previews the copy; the project changes when the mouse is released. The destination range is cleared of same-pitch material before the copy is inserted. If the destination overlaps the original note, the overlapping part of the original is removed:
 
 - dragging right trims the original's end;
 - dragging left trims the original's start;
@@ -179,7 +173,7 @@ Drag to select a time/pitch interval using the independent Range gesture. Its bo
 ### Eraser
 
 - click a note to delete it immediately;
-- drag across notes to collect and delete them as one named undo transaction;
+- drag across notes to collect and delete them in one undoable action;
 - double-click a note to delete all notes in the same clip whose start beat matches within a small tolerance.
 
 The eraser cursor remains visible throughout MIDI clip time ranges, including between notes. Outside clips and in clip gaps it becomes the normal pointer, like Draw and Knife. Hover deletion highlighting is currently limited.
@@ -192,7 +186,7 @@ Click inside a note to split it at the cursor.
 - hold `Shift` to bypass snapping;
 - the split must lie strictly inside the note;
 - the original note becomes the first segment and a second segment is added with the same pitch, velocity, and color;
-- the operation is grouped as `Split MIDI Note` in undo history.
+- the split can be undone in one step.
 
 The Knife cursor stays visible throughout MIDI clip time ranges, including between notes; outside clips and in clip gaps it becomes the normal pointer. A vertical split preview is drawn only over a note at a valid split position; a missing note within a clip does not change the tool cursor.
 
@@ -204,7 +198,7 @@ Drag to select notes in a rectangular area. Releasing switches back to the point
 
 Use the **SNAP** selector in the note-properties bar to choose **Off**, a fixed note value from **1/1** through **1/128**, or **Adaptive**. Adaptive snapping derives its resolution from the timeline zoom and is the default.
 
-Mouse move/resize, drawing, and knife preview use **soft snapping**: the edited position stays exactly on a nearby snap point until you pull it out of the magnetic region, then moves continuously toward the next point. The mouse pointer itself is not warped. The attraction region accounts for display scaling and is capped on narrow grids; its exact profiles are defined in the [shared snapping contract](../components/timeline-snapping.md#magnetic-curve).
+Mouse move/resize, drawing, and knife preview use **soft snapping**: the edited position stays on a nearby snap point until you pull it free, then moves continuously toward the next point. The mouse pointer itself is not moved.
 
 Hold `Shift` to bypass enabled snapping temporarily. Changing the modifier can produce a small bounded position change, without accumulating offsets. Keyboard nudging, explicit quantization, exact property edits, and playhead positioning on the timeline ruler retain discrete behavior.
 
@@ -218,7 +212,7 @@ Use the independent **INSERT LENGHT** selector next to **SNAP** to choose:
 
 The selected length is a click default, **not a drag minimum**. With snapping enabled, the default end rounds upward to the next valid snap point, including fractional Last Inserted durations; Off/Shift keeps the raw duration. Drawing can shorten below this default. Creating a note updates **Last Inserted** with the actual committed duration; resizing an existing note does not. The default mode is **Last Inserted**.
 
-View, snap, and inserted-note-length state are stored in edit-local UI state and do not create musical undo steps.
+View, snap, and inserted-note-length settings are restored with the project and do not create musical undo steps.
 
 ## Exact note properties
 
@@ -254,7 +248,7 @@ Invalid active input is shown in red. Invalid Enter/Tab keeps the field open for
 | Pitch | MIDI number such as `60`, or relative `+1 st`, `-12 st` |
 | Velocity | `100`, `+5`, `-10` |
 
-Use MIDI numbers for unambiguous absolute pitch entry. The current name parser differs by an octave from displayed names: displayed C4 is MIDI 60, but typing `C4` currently enters MIDI 72. Detailed formats and this known limitation are documented in [Property-field input](../components/property-field-input.md#note-pitch-and-velocity); component planning/validation is in [NotePropertiesBar](../components/note-properties-bar.md).
+Use MIDI numbers for unambiguous absolute pitch entry. Note-name input currently differs by an octave from the displayed names: displayed C4 is MIDI 60, but typing `C4` enters MIDI 72.
 
 ## Velocity editor
 
@@ -264,14 +258,14 @@ Use Lasso in this lane, or drag empty space with Pointer, to select notes by the
 
 - move over a handle to mark its note as hovered;
 - drag a handle vertically to change velocity;
-- if the hovered note belongs to the current selected MIDI events, all selected notes are changed by the same delta from their individual starting velocities;
+- if the hovered note is selected, all selected notes are changed by the same delta from their individual starting velocities;
 - otherwise only the hovered note changes;
 - values are clamped to `0..127` in the velocity-lane drag path;
 - the reference value updates the remembered last velocity.
 
 Dragging the Velocity field in the exact properties bar previews the changed stems and handles immediately in the velocity lane, before the values are committed on release.
 
-The exact properties bar uses a `1..127` clamp for committed property values, so velocity zero behavior differs between these two editing paths in the current implementation.
+The exact properties bar accepts values from `1..127`, while direct velocity-lane dragging can reach zero.
 
 ## Navigation and zoom
 
@@ -286,20 +280,20 @@ Use the bottom horizontal scrollbar to move through musical time.
 In the note grid:
 
 - `Shift` + mouse wheel scrolls horizontally;
-- `Command` modifier + mouse wheel zooms horizontally around the pointer position (`Ctrl` on Windows/Linux, `Command` on macOS through JUCE's command modifier);
+- `Ctrl` + mouse wheel on Windows/Linux or `Command` + mouse wheel on macOS zooms horizontally around the pointer position;
 - plain mouse wheel scrolls vertically through pitches.
 
-Interactive horizontal zoom is limited to a broad safe range to prevent invalid or unusably extreme view lengths. Nearby discrete zoom scales give equal-rank grid subdivisions uniform pixel coverage, including fractional UI scaling. Small ruler-drag movements accumulate; the pointer's beat remains anchored except when the view is clamped at beat zero.
+Interactive horizontal zoom is limited to a practical range. Zooming keeps the musical position under the pointer anchored unless the view reaches beat zero.
 
-Opening a clip fits it using the Piano Roll's current layout, also when reopening a previously visited track after resizing the window. Very long clips can require a fitted view wider than the interactive zoom limit; fitting prioritizes complete content visibility. At extreme extents where grid intervals become subpixel, uniform pixel coverage is not guaranteed.
+Opening a clip fits it to the current Piano Roll layout. Very long clips may open at a wider view than interactive zoom normally allows so the complete clip remains visible.
 
-Panning moves grid, notes, clips, velocity, automation, and playhead through the same mapping. No note/clip position or length is rounded to screen pixels. The visible grid stays adaptive regardless of the selected SNAP mode, and its display spacing is independent of transport tempo. Fixed snapping can still place notes between visible grid lines.
+Panning keeps the grid, notes, clips, velocity, automation, and playhead aligned. The visible grid remains adaptive regardless of the selected SNAP mode. Fixed snapping can still place notes between visible grid lines.
 
 ### Vertical keyboard zoom
 
-Dragging from the keyboard area into its surrounding component can change vertical scale and scroll. The calculation keeps the initially clicked pitch anchored while clamping visible pitch count and MIDI range.
+Dragging from the keyboard area into the surrounding space changes vertical scale and scroll while keeping the initially clicked pitch anchored.
 
-The Piano Roll's vertical scroll and scale are stored per active-track timeline ID.
+Vertical scroll and scale are remembered for each track.
 
 ## Note name under the pointer
 
@@ -326,56 +320,23 @@ Time nudging uses the current best snap type. Pitch nudges use one semitone or t
 
 ## Duplication behavior
 
-`Command+D` duplicates the current MIDI-note selection by the selected time range length:
+`Command+D` duplicates the selected MIDI notes by the current selection length. The new notes become selected. Conflicting same-pitch material at the destination is trimmed or removed so the duplicate remains complete.
 
-1. source note properties and owning clips are captured;
-2. the old selection is cleared;
-3. all destination ranges are cleared before any new notes are created;
-4. copied notes are added and selected.
+## Undo behavior
 
-Clearing all destinations first prevents one newly created duplicate from erasing another duplicate when several selected notes share a pitch.
-
-## Undo and model updates
-
-Piano Roll operations use the edit's undo manager. Named transactions are used for multi-note changes, copying, movement, splitting, deletion, and property editing. Each Pointer/Draw right-click deletion is one `Delete MIDI Note` undo step. Copying and the provisional `Command+V` preview do not change the model; committing the preview creates one `Paste MIDI Notes` transaction.
-
-Model changes trigger deferred refreshes for:
-
-- note rendering;
-- velocity rendering;
-- exact property values;
-- clip cache/selection coverage;
-- keyboard layout;
-- scrollbar state.
-
-Deleting selected notes clears selection before removing model objects so property UI cannot retain deleted pointers.
-
-## Clip offsets and displayed time
-
-MIDI notes store positions in clip-content coordinates. The Piano Roll displays notes in project coordinates by accounting for clip start and content offset.
-
-The properties bar uses:
-
-```text
-global beat = clip start + note start - clip offset
-```
-
-When setting a global start, it converts back to clip coordinates before updating the note.
+Moves, copies, resizing, splitting, deletion, and property edits are undoable. A provisional paste does not change the project until it is committed.
 
 ## Limitations and current behavior
 
 - The MIDI Editor tab requires a selected MIDI clip.
 - The active view is track-oriented and may show multiple MIDI clips on that track.
-- Some operations use selected clips, while the viewport's note selection can cover all cached MIDI clips on the active track; be mindful of selection context.
+- Some operations use explicitly selected clips, while note selection can cover several MIDI clips on the active track; be mindful of selection context.
 - Velocity lane dragging permits zero, while the exact velocity property clamps to one or higher.
 - Eraser hover preview is minimal.
-- Time-stretch is an arrangement tool and is not implemented as a Piano Roll `ToolStrategy`.
+- Time Stretch is available in the Song Editor, not in the Piano Roll.
 - Piano-key lighting represents routed live MIDI input only and does not encode velocity or arrangement playback.
 
 ## Related documents
 
 - [Lower Zone](../ui/lower-zone.md)
-- [NotePropertiesBar](../components/note-properties-bar.md)
 - [Getting Started](getting-started.md)
-- [Architecture Overview](../architecture/overview.md)
-- [State and Event Model](../architecture/state-and-events.md)

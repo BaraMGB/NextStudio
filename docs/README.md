@@ -16,9 +16,10 @@ Current references describe the repository revision containing them. Historical 
 
 ## User workflows
 
+- [User Manual](user/README.md) — curated entry point for application users.
 - [Getting started](user/getting-started.md) — first launch, projects, basic track workflow and settings.
 - [Piano Roll](user/piano-roll.md) — note editing, tools, velocity and navigation.
-- [Peak Limiter](user/peak-limiter.md) — controls, metering, suggested settings and limitations.
+- [Peak Limiter](plugins/peak-limiter.md) — controls, metering, suggested settings and limitations.
 
 ## UI reference
 

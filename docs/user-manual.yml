@@ -1,0 +1,36 @@
+site_name: NextStudio User Manual
+home: user/README.md
+nav:
+  - Home: user/README.md
+  - User Guides:
+      - Getting Started: user/getting-started.md
+      - Piano Roll: user/piano-roll.md
+  - Interface:
+      - Header Bar: ui/header-bar.md
+      - Side Browser: ui/side-browser.md
+      - Song Editor: ui/song-editor.md
+      - Lower Zone: ui/lower-zone.md
+      - Mixer: ui/mixer.md
+      - Track Chain: ui/track-chain.md
+      - Keyboard Shortcuts: ui/shortcuts.md
+  - Built-in Plugins:
+      - Instruments:
+          - Simple Synth: plugins/simple-synth.md
+          - SoundFont Player: plugins/soundfont-player.md
+          - Drum Sampler: plugins/drum-sampler.md
+      - MIDI Effects:
+          - Arpeggiator: plugins/arpeggiator.md
+      - Audio Effects:
+          - Volume & Pan: plugins/volume-pan.md
+          - Filter: plugins/filter.md
+          - EQ: plugins/eq.md
+          - Compressor: plugins/compressor.md
+          - Peak Limiter: plugins/peak-limiter.md
+          - Reverb: plugins/reverb.md
+          - Delay: plugins/delay.md
+          - Chorus: plugins/chorus.md
+          - Phaser: plugins/phaser.md
+          - Pitch Shifter: plugins/pitch-shifter.md
+          - Saturation: plugins/saturation.md
+      - Analysis:
+          - Spectrum Analyzer: plugins/spectrum-analyzer.md

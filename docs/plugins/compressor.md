@@ -4,7 +4,6 @@
 
 | Property | Value |
 |---|---|
-| Type ID | Tracktion Engine Standard Compressor |
 | Category | Effect |
 | Channels | Mono, Stereo |
 | Sidechain | Yes (any track selectable as source) |

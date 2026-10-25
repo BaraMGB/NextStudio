@@ -4,7 +4,6 @@
 
 | Property | Value |
 |---|---|
-| Type ID | `next_filter` |
 | Category | Effect |
 | Channels | Mono, Stereo |
 | Default | Lowpass, 1400 Hz, 24 dB/oct |

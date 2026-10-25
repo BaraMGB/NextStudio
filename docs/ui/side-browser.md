@@ -20,11 +20,9 @@ Browsing remains non-modal; there is no separate Load mode or Load button. Save 
 
 Existing targets require an inline **Overwrite** confirmation. Invalid names, unreadable projects, unavailable paths, and write failures are reported inside the Projects sidebar rather than in a project-specific alert window.
 
-See [Project workflow](../architecture/project-workflow.md) for interaction/engine boundaries and [Directory browser](../components/directory-browser.md) for shared navigation implementation.
-
 ### Instruments
 
-- Lists all detected instrument plugins (VST, AU, etc.) and internal instruments.
+- Lists all detected instrument plug-ins (VST, AU, etc.) and built-in instruments.
 - Opens with the Format column sorted ascending and plug-in names alphabetized inside each format group; click Name, Format, or the star header to change the active order. Favorite sorting groups starred/unstarred entries and alphabetizes each group; the arrow direction chooses which group comes first.
 - Click a row's star to add or remove a persistent favorite. The context menu provides the same action and assigns the plug-in to any number of custom collections.
 - The compact filter strip provides **All**, a star button for favorites, a custom-collection selector, and an overflow button for collection management. Collection and text-search filters apply together without changing the active name/format sort.
@@ -34,7 +32,7 @@ See [Project workflow](../architecture/project-workflow.md) for interaction/engi
 
 ### Effects
 
-- Lists all detected effect plugins and internal effects.
+- Lists all detected effect plug-ins and built-in effects.
 - Uses the same favorites, collections, ascending-format/name default, sortable columns, and combined search/filter behavior as the Instruments Browser.
 - Collections are shared with the Instruments Browser while each browser continues to show only its own plug-in role.
 - Drag to a `[+]` slot in the Track Chain or directly into the chain.
@@ -49,7 +47,7 @@ See [Project workflow](../architecture/project-workflow.md) for interaction/engi
 ### Home
 
 - General file browser starting in the configured working directory.
-- Uses the same asynchronous directory-navigation component as Projects, without a project-file filter.
+- Shows folders and files without the project-only filter used by Projects.
 - Selecting an audio file updates the sample preview; selecting a file does not itself replace the project.
 - Supports sample preview and drag-and-drop of audio files.
 - Double-clicking a valid `.nxttheme` file applies it immediately without importing or moving the file.
@@ -60,7 +58,7 @@ See [Project workflow](../architecture/project-workflow.md) for interaction/engi
 
 - Configuration of audio hardware: drivers, inputs/outputs, latency (sample rate, buffer size).
 - The **Metronome** section sets the common click volume and selects separate WAV samples for accented bar starts and regular beats.
-- Selected samples are copied to NextStudio's application-data `Metronome` directory before use, so moving or deleting the original file does not break the click. **Default** restores the corresponding embedded Tracktion sample.
+- Selected samples are copied into NextStudio's application-data folder before use, so moving or deleting the original file does not break the click. **Default** restores the corresponding bundled sample.
 
 #### MIDI
 - Default MIDI input device selection.
@@ -83,7 +81,7 @@ Plugin list management. Scan for new plugins, clear the list, or manage individu
 | Theme Presets | Built-in quick buttons and a fixed-height searchable browser for all themes, with non-modal Save and Save As |
 | Theme Colors | Grouped color rows with an embedded saturation/value picker, hue strip, hex editor, live preview, and per-color reset |
 
-The theme editor is designed for the narrow sidebar. Its virtualized preset browser keeps the form compact even when the theme folder contains many files. Selecting a color expands its editor directly below the row, and the General viewport keeps it visible. Theme colors are always opaque. No `ColourSelector`, popup, or file chooser is used for theme operations. Mouse-wheel input anywhere over the picker or hex editor continues scrolling the General settings viewport and never changes a color.
+The theme editor is designed for the narrow sidebar. Its searchable preset browser remains compact even when many themes are installed. Selecting a color expands its editor directly below the row. Theme colors are always opaque. Mouse-wheel input over the picker or hex editor scrolls the settings page and does not change a color.
 
 #### Keys
 - Virtual MIDI keyboard mapping for the computer keyboard, including the optional upper-C alias.
@@ -106,5 +104,4 @@ Visible when the Samples or Home browser is active.
 
 - [Header Bar](header-bar.md)
 - [Song Editor](song-editor.md)
-- [MIDI Input Routing and Exclusive Focus](../architecture/midi-input-routing.md)
 - [Getting Started](../user/getting-started.md)
