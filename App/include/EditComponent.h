@@ -38,6 +38,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 #include "MouseGestureInput.h"
 #include "PanDragGesture.h"
+#include "ToolWheelCycling.h"
 #include "Utilities.h"
 
 //------------------------------------------------------------------------------
@@ -241,6 +242,7 @@ private:
     bool m_songEditorPlayheadClickPending = false;
     PanDragGesture m_panGesture;
     MouseGestureInput m_panInput;
+    ToolWheelCycling::Accumulator m_toolWheelAccumulator;
     juce::Component::SafePointer<juce::Component> m_panCursorComponent;
     juce::MouseCursor m_cursorBeforePan{juce::MouseCursor::NormalCursor};
     int m_sendsAreaHeight = 0;

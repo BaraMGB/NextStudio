@@ -35,6 +35,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace
 {
+constexpr std::array midiToolOrder{Tool::pointer, Tool::draw, Tool::range, Tool::eraser, Tool::knife, Tool::lasso};
+
+float getToolWheelDelta(const juce::MouseWheelDetails& wheel)
+{
+#if JUCE_MAC
+    return wheel.deltaX != 0.0f ? wheel.deltaX : wheel.deltaY;
+#else
+    return wheel.deltaY != 0.0f ? wheel.deltaY : wheel.deltaX;
+#endif
+}
+
 bool isMiddleButtonOnly(const juce::ModifierKeys mods)
 {
     return mods.isMiddleButtonDown() && !mods.isLeftButtonDown() && !mods.isRightButtonDown();
@@ -1399,6 +1410,17 @@ void MidiViewport::snapToGrid(te::MidiNote *note, const te::MidiClip *clip) cons
 
 void MidiViewport::mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel)
 {
+    if (event.mods.isShiftDown() && event.mods.isCommandDown())
+    {
+        const auto direction = m_toolWheelAccumulator.update(getToolWheelDelta(wheel), wheel.isSmooth,
+                                                             wheel.isInertial, event.eventTime.toMilliseconds());
+        if (direction != 0)
+            setTool(ToolWheelCycling::cycle(getCurrentToolType(), midiToolOrder, direction));
+        return;
+    }
+
+    m_toolWheelAccumulator.reset();
+
     if (event.mods.isShiftDown())
     {
         int viewStartX = 0 -

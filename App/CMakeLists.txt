@@ -606,6 +606,17 @@ if(BUILD_TESTING)
     add_test(NAME PanDragGesture
             COMMAND PanDragGestureTests)
 
+    add_executable(ToolWheelCyclingTests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/ToolWheelCyclingTests.cpp)
+
+    target_include_directories(ToolWheelCyclingTests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_compile_features(ToolWheelCyclingTests PRIVATE cxx_std_20)
+
+    add_test(NAME ToolWheelCycling
+            COMMAND ToolWheelCyclingTests)
+
     juce_add_console_app(TimelineViewGeometryTests PRODUCT_NAME "TimelineViewGeometryTests")
     target_sources(TimelineViewGeometryTests PRIVATE
             src/TimelineViewGeometry.cpp tests/TimelineViewGeometryTests.cpp)

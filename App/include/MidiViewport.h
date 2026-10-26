@@ -33,6 +33,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 #include "DragEdgeScroll.h"
 #include "PanDragGesture.h"
+#include "ToolWheelCycling.h"
 #include "Utilities.h"
 
 #include <functional>
@@ -257,6 +258,7 @@ private:
     bool m_noteInteractionActive = false, m_committingInteraction = false, m_refreshingSnapContext = false;
     PanDragGesture m_panGesture;
     MouseGestureInput m_panInput;
+    ToolWheelCycling::Accumulator m_toolWheelAccumulator;
     juce::MouseCursor m_cursorBeforePan{juce::MouseCursor::NormalCursor};
     static constexpr int guideNoteTimerID = 1, autoScrollTimerID = 2;
     DragEdgeScroll::Config m_autoScrollConfig;

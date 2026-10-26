@@ -287,6 +287,7 @@ In the note grid:
 
 - `Shift` + mouse wheel scrolls horizontally;
 - `Command` modifier + mouse wheel zooms horizontally around the pointer position (`Ctrl` on Windows/Linux, `Command` on macOS through JUCE's command modifier);
+- `Shift+Command` + mouse wheel cycles through the MIDI tools in toolbar order and wraps at either end;
 - plain mouse wheel scrolls vertically through pitches.
 
 Interactive horizontal zoom is limited to a broad safe range to prevent invalid or unusably extreme view lengths. Nearby discrete zoom scales give equal-rank grid subdivisions uniform pixel coverage, including fractional UI scaling. Small ruler-drag movements accumulate; the pointer's beat remains anchored except when the view is clamped at beat zero.

@@ -29,6 +29,17 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 namespace
 {
+constexpr std::array songEditorToolOrder{Tool::pointer, Tool::lasso, Tool::range, Tool::knife, Tool::timestretch};
+
+float getToolWheelDelta(const juce::MouseWheelDetails& wheel)
+{
+#if JUCE_MAC
+    return wheel.deltaX != 0.0f ? wheel.deltaX : wheel.deltaY;
+#else
+    return wheel.deltaY != 0.0f ? wheel.deltaY : wheel.deltaX;
+#endif
+}
+
 bool isMiddleButtonOnly(const juce::ModifierKeys mods)
 {
     return mods.isMiddleButtonDown() && !mods.isLeftButtonDown() && !mods.isRightButtonDown();
@@ -530,6 +541,22 @@ double EditComponent::setVerticalScrollPosition(double requestedPosition)
 
 void EditComponent::mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel)
 {
+    // Arrangement children bubble wheel events here normally and also notify the
+    // recursive listener installed for panning. Ignore that second delivery.
+    if (event.eventComponent != this)
+        return;
+
+    if (event.mods.isShiftDown() && event.mods.isCommandDown())
+    {
+        const auto direction = m_toolWheelAccumulator.update(getToolWheelDelta(wheel), wheel.isSmooth,
+                                                             wheel.isInertial, event.eventTime.toMilliseconds());
+        if (direction != 0)
+            m_songEditor.setTool(ToolWheelCycling::cycle(m_songEditor.getToolMode(), songEditorToolOrder, direction));
+        return;
+    }
+
+    m_toolWheelAccumulator.reset();
+
     if (event.mods.isShiftDown())
     {
         auto startBeat = m_editViewState.getVisibleBeatRange(m_timeLine.getTimeLineID(), m_timeLine.getWidth()).getStart().inBeats();

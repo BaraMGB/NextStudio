@@ -160,6 +160,7 @@ Shows information about the current grid/snap type.
 - **Pan:** Hold the middle mouse button over the Arrangement Area, including the Master lane, and drag in any direction. Horizontal and vertical movement happen together; the view stops at its existing scroll limits. Follow Playhead pauses until the gesture ends. Panning does not change clips, automation, ranges, selection, or undo history.
 - **Scroll:** Mouse wheel (vertical), `Shift`+mouse wheel (horizontal). Scrollbars.
 - **Zoom:** `Cmd/Ctrl`+mouse wheel (horizontal). Mouse wheel over timeline/keyboard (vertical). Vertical dragging in timeline (horizontal).
+- **Cycle tools:** `Shift+Cmd/Ctrl`+mouse wheel selects the next or previous arrangement tool in toolbar order and wraps at either end.
 
 ## Related documents
 
