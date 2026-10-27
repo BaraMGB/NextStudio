@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.06-alpha] - 2026-10-27
+
 ### Added
 
+- **Embedded project, setup and recovery workflows** — Project browsing, Save As, unsaved-change confirmation, first-run setup and crash recovery now stay inside the main window instead of opening separate project workflow windows. Invalid projects and write errors are reported in place, background editing is safely locked when required, and restored recovery projects remain protected until they are saved or explicitly discarded.
+- **Editor tool shortcuts (#54)** — The Song Editor tools now use `Cmd/Ctrl+1..5`, and the MIDI Editor tools use `Cmd/Ctrl+1..6`. Each editor keeps its own active tool and toolbar state.
+- **Mouse-wheel tool cycling (#93)** — Holding `Shift+Cmd/Ctrl` while scrolling cycles forward or backward through the active Song Editor or MIDI Editor tools, wrapping at either end without moving or zooming the view.
 - **Wave-clip export and Drum Sampler drops** — Wave clips can now be rendered to WAV from their context menu or dragged directly onto Drum Sampler pads. Track-header hover selects and reveals the destination Track Chain from Mixer or MIDI Editor, successful drops retain the arrangement clip while selecting the sampler track and pad, and pad labels/editors refresh immediately.
 - **Plug-in favorites and custom collections (#58)** — The Instruments and Effects browsers now provide persistent favorites, sortable star columns, collection filters, and collection assignment through each plug-in's context menu. Five starter collections can be renamed or removed, and Track Chain add menus expose role-compatible favorites and populated custom collections ahead of the unchanged manufacturer tree.
 - **Two-dimensional middle-mouse panning (#56)** — Holding the middle mouse button over the Song Editor arrangement (including the Master lane) or Piano Roll note grid now pans time and tracks/pitches together. The gesture follows the pointer, respects existing horizontal and vertical limits, temporarily pauses playhead following, shows a hand cursor, and leaves tools, selection, musical data and undo history unchanged.
@@ -38,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **MIDI input focus routing** — Exclusive MIDI Focus now follows exactly one selected MIDI track without replacing manual input assignments or delivering duplicate events through aggregate inputs. The computer keyboard continues to follow the selected MIDI track independently.
+- **Song Editor time-range automation edits** — Time-range operations now preserve and update automation consistently with the edited arrangement range.
+- **Level-meter graph rebuilds (#69)** — Rebuilding the audio graph no longer leaves a phantom peak displayed in level meters.
+- **Sample preview playhead tracking** — The sample-preview playhead now follows playback correctly after view and transport updates.
+- **Time-signature refresh and stepping (#63)** — Time-signature changes now update editor grids immediately, and segmented time-signature adjustments advance in single steps.
+- **macOS application startup paths** — Packaged macOS builds now resolve the application bundle and executable paths correctly when launched outside the build tree.
 - **Piano Roll playhead positioning (#76)** — Removed the accidentally implemented behavior that repositioned the playhead when clicking empty note-grid space. Note editing and insertion no longer seek the transport; the timeline ruler remains the explicit playhead-positioning control.
 - **Piano Roll right-click deletion (#73)** — Right-clicking a note now deletes only that note in both Pointer and Draw modes as one undoable edit. Empty-space right-clicks no longer trigger Pointer deselection or Draw creation, preserving context-menu behavior outside note hits.
 - **Velocity-marker click selection** — Clicking a lollipop outside explicit Lasso now selects its note; Shift adds and Ctrl/Command toggles. Selection occurs only on a non-drag release, preserving selected-group and unselected-single-note velocity dragging without model/undo changes from clicks.

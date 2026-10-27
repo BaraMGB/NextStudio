@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-set(NEXTSTUDIO_VERSION "0.05")
+set(NEXTSTUDIO_VERSION "0.06")
 
 project(NextStudio VERSION ${NEXTSTUDIO_VERSION})
 include(CTest)
