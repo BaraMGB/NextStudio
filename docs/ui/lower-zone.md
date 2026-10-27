@@ -20,6 +20,8 @@ A vertical tab bar on the left side switches between the three views:
 
 Clicking a tab selects its view; the active tab is highlighted.
 
+While a Wave clip is being dragged, hovering a track header selects that track and switches the Lower Zone to its Track Chain. This automatic switch also occurs from the Mixer or MIDI Editor so a track-bound sample target can be revealed without ending the drag.
+
 ## Height and collapsed state
 
 The splitter handle at the top edge can collapse the Lower Zone completely and expand it again. For the Mixer and Track Chain, the handle switches between the collapsed state and a fixed expanded height. The MIDI Editor is the only view whose expanded height can also be adjusted continuously by dragging the handle.

@@ -52,6 +52,10 @@ public:
     void modifierKeysChanged(const juce::ModifierKeys &) override;
 
     te::Track::Ptr getTrack() const { return m_track; }
+    te::WaveAudioClip::Ptr getDraggedWaveClip() const { return m_draggedWaveClip; }
+    void setDropTargetTrack(te::Track::Ptr track, bool acceptsDrop = false);
+    void setDropTargetAcceptsDrop(bool acceptsDrop);
+    void waveClipDragOperationEnded();
     bool isClipAt(juce::Point<float> point) { return getClipHoverState(point, false).clip != nullptr; }
 
     void refreshCursor(juce::ModifierKeys mods);
@@ -88,6 +92,13 @@ private:
     bool isFadeHandle(FadeHitZone zone) const;
     bool isFadeZone(FadeHitZone zone) const;
     void showFadeCurveMenu(te::AudioClipBase::Ptr clip, bool isFadeIn, juce::Point<int> screenPosition);
+    void showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Point<int> screenPosition);
+    bool isOverTrackLane(juce::Point<int> screenPosition) const;
+    void startWaveClipDrag(te::WaveAudioClip::Ptr clip, const juce::MouseEvent &event);
+    void updateWaveClipDragImage(juce::Point<int> screenPosition);
+    void prepareClipSelectionForDrag(te::Clip::Ptr clip);
+    void applyPendingClipClickSelection();
+    void clearPendingClipSelection();
     void updateCursor(juce::ModifierKeys mods);
 
     EditViewState &m_editViewState;
@@ -103,7 +114,14 @@ private:
     FadeHitZone m_hoveredFadeZone{FadeHitZone::none};
     tracktion::TimePosition m_knifeSplitPosition;
     bool m_hasKnifeSplitPosition{false};
+    te::Clip::Ptr m_pendingClipSelection{nullptr};
     te::Clip::Ptr m_pendingCtrlToggleClip{nullptr};
+    te::WaveAudioClip::Ptr m_draggedWaveClip{nullptr};
+    juce::ScaledImage m_waveClipDragImage;
+    bool m_waveClipDragImageVisible{false};
+    bool m_clipSelectionPreparedForDrag{false};
+    bool m_pendingClipSelectionIsAdditive{false};
+    bool m_isWaveClipDragActive{false};
     MouseGestureInput m_mouseInput;
 
     // Note: Dragging state is now managed centrally by SongEditorView via DragState

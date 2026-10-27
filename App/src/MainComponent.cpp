@@ -46,6 +46,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "SoundFontPlugin.h"
 #include "SpectrumAnalyzerPlugin.h"
 #include "ThemeHelpers.h"
+#include "TrackLaneComponent.h"
 #include "Utilities.h"
 #include "WineRendererFallback.h"
 
@@ -136,6 +137,13 @@ MainComponent::MainComponent(ApplicationViewState &state, NextStudio::WineRender
         NS_LOG_INFO(setup, "embedded setup wizard shown");
         showSetupWizard();
     }
+}
+
+void MainComponent::dragOperationEnded(const juce::DragAndDropTarget::SourceDetails &details)
+{
+    if (details.description == "WaveClip")
+        if (auto *lane = dynamic_cast<TrackLaneComponent *>(details.sourceComponent.get()))
+            lane->waveClipDragOperationEnded();
 }
 
 MainComponent::~MainComponent()

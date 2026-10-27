@@ -1,11 +1,35 @@
 #include "DrumPadComponent.h"
 #include "Browser_Base.h"
 #include "ApplicationViewState.h"
+#include "TrackLaneComponent.h"
 #include "Utilities.h"
 
 namespace
 {
 static constexpr int VISUAL_FEEDBACK_DURATION_MS = 100;
+
+void loadSampleIntoSampler(te::SamplerPlugin &sampler, int soundIndex, const juce::File &file)
+{
+    if (soundIndex < 0 || !file.existsAsFile())
+        return;
+
+    while (sampler.getNumSounds() <= soundIndex)
+        sampler.addSound({}, "Empty", 0, 0, 0);
+
+    sampler.setSoundMedia(soundIndex, file.getFullPathName());
+    sampler.setSoundName(soundIndex, file.getFileNameWithoutExtension());
+
+    const auto audioFile = sampler.getSoundFile(soundIndex);
+    if (audioFile.isValid())
+    {
+        const auto fileLength = audioFile.getLengthInSamples() / audioFile.getSampleRate();
+        sampler.setSoundExcerpt(soundIndex, 0.0, fileLength);
+    }
+
+    const auto midiNote = DrumPadGridComponent::BASE_MIDI_NOTE + soundIndex;
+    sampler.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+    sampler.setSoundOpenEnded(soundIndex, true);
+}
 }
 
 void PadComponent::paint(juce::Graphics &g)
@@ -218,14 +242,23 @@ void DrumPadGridComponent::setSelectedPad(int padIndex)
     m_pads[m_selectedPadIndex]->changeColour(m_appViewState.getPrimeColour());
 }
 
-void DrumPadGridComponent::buttonDown(int padIndex)
+void DrumPadGridComponent::selectPadForEditing(int padIndex)
 {
+    if (padIndex < 0 || padIndex >= m_pads.size())
+        return;
+
+    setSelectedPad(padIndex);
+    if (onPadSelectionChanged)
+        onPadSelectionChanged(padIndex);
     if (onPadClicked)
         onPadClicked(padIndex);
+}
 
+void DrumPadGridComponent::buttonDown(int padIndex)
+{
     if (padIndex != -1)
     {
-        setSelectedPad(padIndex);
+        selectPadForEditing(padIndex);
         int soundIndex = getSoundIndexForPad(padIndex);
 
         // Always play sound when clicked, regardless of whether it has media
@@ -414,7 +447,17 @@ int DrumPadGridComponent::getSoundIndexForPad(int padIndex)
 // Drag and Drop
 //==============================================================================
 
-bool DrumPadGridComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails) { return dragSourceDetails.description == "SampleBrowser" || dragSourceDetails.description == "FileBrowser"; }
+bool DrumPadGridComponent::isInterestedInDragSource(const SourceDetails &dragSourceDetails)
+{
+    if (dragSourceDetails.description == "SampleBrowser" || dragSourceDetails.description == "FileBrowser")
+        return true;
+
+    if (dragSourceDetails.description == "WaveClip")
+        if (auto *lane = dynamic_cast<TrackLaneComponent *>(dragSourceDetails.sourceComponent.get()))
+            return lane->getDraggedWaveClip() != nullptr;
+
+    return false;
+}
 
 void DrumPadGridComponent::itemDragEnter(const SourceDetails &dragSourceDetails)
 {
@@ -422,6 +465,10 @@ void DrumPadGridComponent::itemDragEnter(const SourceDetails &dragSourceDetails)
     {
         m_draggedOverPad = m_pads.indexOf(pad);
         pad->changeColour(m_appViewState.getPrimeColour());
+
+        if (dragSourceDetails.description == "WaveClip")
+            if (auto *lane = dynamic_cast<TrackLaneComponent *>(dragSourceDetails.sourceComponent.get()))
+                lane->setDropTargetTrack(m_samplerPlugin.getOwnerTrack(), true);
     }
 }
 
@@ -429,6 +476,15 @@ void DrumPadGridComponent::itemDragMove(const SourceDetails &dragSourceDetails)
 {
     auto *padUnderCursor = dynamic_cast<PadComponent *>(getComponentAt(dragSourceDetails.localPosition));
     int padIndex = padUnderCursor ? m_pads.indexOf(padUnderCursor) : -1;
+
+    if (dragSourceDetails.description == "WaveClip")
+        if (auto *lane = dynamic_cast<TrackLaneComponent *>(dragSourceDetails.sourceComponent.get()))
+        {
+            if (padIndex >= 0)
+                lane->setDropTargetTrack(m_samplerPlugin.getOwnerTrack(), true);
+            else
+                lane->setDropTargetAcceptsDrop(false);
+        }
 
     if (padIndex != m_draggedOverPad)
     {
@@ -447,8 +503,12 @@ void DrumPadGridComponent::itemDragMove(const SourceDetails &dragSourceDetails)
     }
 }
 
-void DrumPadGridComponent::itemDragExit(const SourceDetails &)
+void DrumPadGridComponent::itemDragExit(const SourceDetails &dragSourceDetails)
 {
+    if (dragSourceDetails.description == "WaveClip")
+        if (auto *lane = dynamic_cast<TrackLaneComponent *>(dragSourceDetails.sourceComponent.get()))
+            lane->setDropTargetAcceptsDrop(false);
+
     if (m_draggedOverPad != -1)
     {
         if (m_draggedOverPad == m_selectedPadIndex)
@@ -461,33 +521,79 @@ void DrumPadGridComponent::itemDragExit(const SourceDetails &)
 
 void DrumPadGridComponent::itemDropped(const SourceDetails &dragSourceDetails)
 {
-    juce::File f;
-    if (auto *browser = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
-        f = browser->getSelectedFile();
+    auto *pad = dynamic_cast<PadComponent *>(getComponentAt(dragSourceDetails.localPosition));
+    const int padIndex = pad != nullptr ? m_pads.indexOf(pad) : -1;
+    const int soundIndex = padIndex >= 0 ? getSoundIndexForPad(padIndex) : -1;
 
-    if (f.existsAsFile())
+    // Rendering opens a nested message loop and changing sampler state may rebuild
+    // the plugin view. Clear all component-owned feedback before either operation.
+    if (m_draggedOverPad >= 0 && m_draggedOverPad < m_pads.size())
     {
-        if (auto *pad = dynamic_cast<PadComponent *>(getComponentAt(dragSourceDetails.localPosition)))
+        const auto returnColour = m_draggedOverPad == m_selectedPadIndex
+                                ? m_appViewState.getPrimeColour()
+                                : m_appViewState.getButtonBackgroundColour();
+        m_pads[m_draggedOverPad]->changeColour(returnColour);
+    }
+    m_draggedOverPad = -1;
+
+    if (soundIndex < 0)
+        return;
+
+    juce::Component::SafePointer<DrumPadGridComponent> safeThis(this);
+    auto persistPadSelection = onPadSelectionChanged;
+
+    auto *sampler = &m_samplerPlugin;
+    auto *edit = &m_edit;
+    const auto sampleDirectoryPath = m_appViewState.m_samplesDir.get();
+    juce::File sampleFile;
+
+    if (auto *browser = dynamic_cast<BrowserListBox *>(dragSourceDetails.sourceComponent.get()))
+    {
+        sampleFile = browser->getSelectedFile();
+    }
+    else if (dragSourceDetails.description == "WaveClip")
+    {
+        if (auto *lane = dynamic_cast<TrackLaneComponent *>(dragSourceDetails.sourceComponent.get()))
         {
-            int padIndex = m_pads.indexOf(pad);
-            if (padIndex != -1)
+            if (auto clip = lane->getDraggedWaveClip())
             {
-                int soundIndex = getSoundIndexForPad(padIndex);
-                NS_LOG_INFO(filesystem, "sample dropped on drum pad: file=" + f.getFileName() + ", pad=" + juce::String(padIndex) + ", soundIndex=" + juce::String(soundIndex));
-                setupNewSample(soundIndex, f);
+                auto sampleDirectory = juce::File(sampleDirectoryPath);
+                sampleDirectory.createDirectory();
+
+                auto name = juce::File::createLegalFileName(clip->getName().trim());
+                if (name.isEmpty())
+                    name = "Wave Clip";
+
+                auto renderedFile = sampleDirectory.getNonexistentChildFile(name, ".wav");
+                if (EngineHelpers::renderWaveClipToFile(*edit, clip, renderedFile))
+                    sampleFile = renderedFile;
+                else
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                                           "Load Wave Clip",
+                                                           "The wave clip could not be rendered for the drum sampler.");
             }
         }
     }
 
-    if (m_draggedOverPad != -1)
-    {
-        if (m_draggedOverPad == m_selectedPadIndex)
-            m_pads[m_draggedOverPad]->changeColour(m_appViewState.getPrimeColour());
-        else
-            m_pads[m_draggedOverPad]->changeColour(m_appViewState.getButtonBackgroundColour());
+    if (!sampleFile.existsAsFile())
+        return;
 
-        m_draggedOverPad = -1;
-    }
+    // Select only after the source was validated/rendered. Persisting through a
+    // lifetime-independent callback lets a rebuilt view restore the same pad.
+    if (safeThis != nullptr)
+        safeThis->selectPadForEditing(padIndex);
+    else if (persistPadSelection)
+        persistPadSelection(padIndex);
+
+    NS_LOG_INFO(filesystem, "sample dropped on drum pad: file=" + sampleFile.getFileName()
+                                   + ", pad=" + juce::String(padIndex)
+                                   + ", soundIndex=" + juce::String(soundIndex));
+    loadSampleIntoSampler(*sampler, soundIndex, sampleFile);
+
+    // If the view survived, refresh the sound editor now that the new media is
+    // available. A rebuilt view restores the same selected index itself.
+    if (safeThis != nullptr)
+        safeThis->selectPadForEditing(padIndex);
 }
 
 //==============================================================================
@@ -888,36 +994,10 @@ int DrumPadGridComponent::getPadIndexForMidiNote(int midiNote)
 
 void DrumPadGridComponent::setupNewSample(int soundIndex, const juce::File &file)
 {
-    if (soundIndex < 0)
-        return;
-
-    // Ensure we have enough sound slots in the sampler
-    while (m_samplerPlugin.getNumSounds() <= soundIndex)
-    {
-        NS_LOG_DEBUG(plugins, "adding empty drum sampler sound slot at index " + juce::String(m_samplerPlugin.getNumSounds()));
-        m_samplerPlugin.addSound({}, "Empty", 0, 0, 0);
-    }
-
-    if (!file.existsAsFile())
-        return;
-
-    auto filePath = file.getFullPathName();
-    auto fileName = file.getFileNameWithoutExtension();
-
-    m_samplerPlugin.setSoundMedia(soundIndex, filePath);
-    m_samplerPlugin.setSoundName(soundIndex, fileName);
-
-    // Length logic
-    auto audioFile = m_samplerPlugin.getSoundFile(soundIndex);
-    if (audioFile.isValid())
-    {
-        double fileLength = audioFile.getLengthInSamples() / audioFile.getSampleRate();
-        m_samplerPlugin.setSoundExcerpt(soundIndex, 0.0, fileLength);
-    }
-
-    int padMidiNote = getMidiNoteForPad(soundIndex); // soundIndex == padIndex
-    m_samplerPlugin.setSoundParams(soundIndex, padMidiNote, padMidiNote, padMidiNote);
-    m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
+    auto *sampler = &m_samplerPlugin;
+    loadSampleIntoSampler(*sampler, soundIndex, file);
+    // Do not access component members here: sampler changes can synchronously
+    // destroy and rebuild this DrumPadGridComponent.
 }
 
 int DrumPadGridComponent::getMidiNoteForPad(int padIndex) const

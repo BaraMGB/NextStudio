@@ -28,6 +28,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "EditViewState.h"
 #include "MidiInputRouting.h"
 #include "TrackInsertion.h"
+#include "TrackLaneComponent.h"
 #include "Utilities.h"
 #include "juce_graphics/juce_graphics.h"
 
@@ -1287,16 +1288,33 @@ bool TrackHeaderComponent::isInterestedInDragSource(const juce::DragAndDropTarge
     if (dragSourceDetails.description == "FileBrowser" && EngineHelpers::isSoundFontFile(getDraggedBrowserFile(dragSourceDetails)))
         return true;
 
+    if (dragSourceDetails.description == "WaveClip")
+        if (auto *lane = dynamic_cast<TrackLaneComponent *>(dragSourceDetails.sourceComponent.get()))
+            return lane->getDraggedWaveClip() != nullptr;
+
     if (dragSourceDetails.description == "PluginListEntry" || dragSourceDetails.description == "Track" || dragSourceDetails.description == "Instrument or Effect")
-    {
         return true;
-    }
+
     return false;
+}
+
+void TrackHeaderComponent::itemDragEnter(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
+{
+    if (dragSourceDetails.description == "WaveClip")
+    {
+        m_contentIsOver = true;
+        selectTrackForWaveClipDrag(dragSourceDetails);
+        repaint();
+    }
 }
 
 void TrackHeaderComponent::itemDragMove(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    if (dragSourceDetails.description == "PluginListEntry")
+    if (dragSourceDetails.description == "WaveClip")
+    {
+        selectTrackForWaveClipDrag(dragSourceDetails);
+    }
+    else if (dragSourceDetails.description == "PluginListEntry")
     {
         m_contentIsOver = true;
         repaint();
@@ -1305,6 +1323,28 @@ void TrackHeaderComponent::itemDragMove(const juce::DragAndDropTarget::SourceDet
     {
         setTrackDragTargetFeedback(true);
     }
+}
+
+void TrackHeaderComponent::selectTrackForWaveClipDrag(const juce::DragAndDropTarget::SourceDetails &details)
+{
+    auto *lane = dynamic_cast<TrackLaneComponent *>(details.sourceComponent.get());
+    if (lane == nullptr || lane->getDraggedWaveClip() == nullptr || m_track == nullptr)
+        return;
+
+    lane->setDropTargetTrack(m_track);
+
+    auto &selectionManager = m_editViewState.m_selectionManager;
+    if (!selectionManager.isSelected(m_track))
+        selectionManager.addToSelection(m_track);
+
+    const auto selectedTracks = selectionManager.getItemsOfType<te::Track>();
+    for (auto *track : selectedTracks)
+        if (track != nullptr && track != m_track.get())
+            selectionManager.deselect(track);
+
+    const bool trackMarkedForLowerRange = static_cast<bool>(m_track->state.getProperty(IDs::showLowerRange, false));
+    if (m_editViewState.getLowerRangeView() != LowerRangeView::pluginRack || !trackMarkedForLowerRange)
+        EngineHelpers::setLowerRangeTrack(m_editViewState, m_track.get(), static_cast<int>(LowerRangeView::pluginRack));
 }
 
 void TrackHeaderComponent::setTrackDragTargetFeedback(bool isTarget)

@@ -117,6 +117,7 @@ class MainComponent
 {
 public:
     explicit MainComponent(ApplicationViewState &state, NextStudio::WineRendererFallback &wineRendererFallback, bool debugMode = false, const juce::File &debugSessionDirectory = {});
+    void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails &details) override;
     ~MainComponent() override;
 
     void paint(juce::Graphics &g) override;

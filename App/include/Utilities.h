@@ -283,6 +283,7 @@ enum class PluginInsertResult
 };
 
 void renderEditToFile(EditViewState &evs, juce::File renderFile, tracktion::TimeRange range = {});
+bool renderWaveClipToFile(te::Edit &edit, te::WaveAudioClip::Ptr clip, const juce::File &outputFile);
 bool renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip);
 bool renderSelectedClipsToNewTrack(EditViewState &evs);
 bool renderToNewTrack(EditViewState &evs, juce::Array<tracktion_engine::Track *> tracksToRender, tracktion::TimeRange range);

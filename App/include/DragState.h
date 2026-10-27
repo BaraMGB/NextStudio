@@ -50,6 +50,7 @@ struct DragState
     juce::Point<int> startPos{0, 0};
     tracktion::EditItemID draggedItemId;
     te::Clip::Ptr draggedClip{nullptr};
+    te::Track::Ptr targetTrack{nullptr};
     te::AutomatableParameter::Ptr draggedParameter{nullptr};
     tracktion::TimeDuration timeDelta{tracktion::TimeDuration::fromSeconds(0.0)};
     int verticalOffset{0};
@@ -58,6 +59,7 @@ struct DragState
     bool isTimeStretching{false};
     bool isFadeIn{false};
     bool isFadeOut{false};
+    bool dropTargetAcceptsDrop{false};
     bool playheadWasMoved{false};
     TimelineMouseGesture mouseGesture;
     double originalEdgeBeat = 0;
@@ -78,6 +80,7 @@ struct DragState
         startPos = juce::Point<int>(0, 0);
         draggedItemId = tracktion::EditItemID();
         draggedClip = nullptr;
+        targetTrack = nullptr;
         draggedParameter = nullptr;
         timeDelta = tracktion::TimeDuration::fromSeconds(0.0);
         verticalOffset = 0;
@@ -86,6 +89,7 @@ struct DragState
         isTimeStretching = false;
         isFadeIn = false;
         isFadeOut = false;
+        dropTargetAcceptsDrop = false;
         playheadWasMoved = false;
         mouseGesture.reset();
         refreshPreview = {};

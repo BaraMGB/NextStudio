@@ -227,6 +227,7 @@ public:
 
     [[nodiscard]] te::Track::Ptr getTrack() const;
     bool isInterestedInDragSource(const SourceDetails &dragSourceDetails) override;
+    void itemDragEnter(const SourceDetails &dragSourceDetails) override;
     void itemDragMove(const SourceDetails &dragSourceDetails) override;
     void itemDragExit(const SourceDetails &dragSourceDetails) override;
     void itemDropped(const SourceDetails &details) override;
@@ -248,6 +249,7 @@ private:
 
     void showPopupMenu(te::Track *at);
     void deleteTrackFromEdit();
+    void selectTrackForWaveClipDrag(const SourceDetails &details);
 
     EditViewState &m_editViewState;
     te::Track::Ptr m_track;

@@ -26,13 +26,16 @@ DrumSamplerView::DrumSamplerView(EditViewState &evs, te::SamplerPlugin &sampler)
         m_viewState = trackViewState.getOrCreateChildWithName(pluginStateID, nullptr);
     }
 
+    auto persistentViewState = m_viewState;
+    m_drumPadComponent.onPadSelectionChanged = [persistentViewState](int padIndex) mutable
+    {
+        if (persistentViewState.isValid())
+            persistentViewState.setProperty("selectedDrumPad", padIndex, nullptr);
+    };
     m_drumPadComponent.onPadClicked = [this](int padIndex)
     {
         const int soundIndex = m_drumPadComponent.getSoundIndexForPad(padIndex);
         m_soundEditorPanel.setSound(soundIndex);
-
-        if (m_viewState.isValid())
-            m_viewState.setProperty("selectedDrumPad", padIndex, nullptr);
     };
     m_drumPadComponent.onPadTriggered = [this](int soundIndex) { m_soundEditorPanel.soundTriggered(soundIndex); };
     m_drumPadComponent.onPadReleased = [this](int soundIndex) { m_soundEditorPanel.soundReleased(soundIndex); };

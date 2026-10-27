@@ -86,6 +86,10 @@ Keyboard nudging, explicit quantization, numeric property steps, ordinary geomet
 
 Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes. Double-clicking a MIDI clip opens the Piano Roll for its track and expands the lower range first if that area is currently collapsed.
 
+Right-click the body of a Wave clip and choose **Save As...** to render its visible range as a WAV file. Right-clicking a fade handle retains the fade-curve menu instead. The file chooser proposes the clip name and the configured Samples directory and adds the `.wav` extension when needed.
+
+A Wave clip can also be dragged from the arrangement onto a Drum Sampler pad. The current Track Chain remains visible when the press becomes a drag. Hovering another track header selects that track and opens its Plugins view, including when the Mixer or MIDI Editor was previously visible, so the drag can continue onto a sampler in that chain. The extra drag image is hidden over arrangement track lanes and appears outside them. A successful pad drop keeps the source clip in place, selects the sampler track and destination pad, and refreshes the pad label and Sound Editor.
+
 Clip fills and normal/selected frames share the same unrounded time edges. Adjoining clips are not independently rounded to pixels; antialiasing remains possible at fractional screen positions, and the existing frame widths and selection colours are retained.
 
 ### Toolbar
@@ -109,8 +113,8 @@ Range independently selects a musical interval over tracks/automation lanes, inc
 
 ### Editing (Pointer Tool)
 
-- **Select:** Click on clip/automation point. `Shift`+click for multiple selection. `Ctrl/Cmd`+click to add/remove.
-- **Move:** Click & drag. `Ctrl/Cmd`+drag copies. `Shift` disables snap.
+- **Select:** Click on clip/automation point. `Shift`+click for multiple selection. `Ctrl/Cmd`+click to add/remove. A plain clip click commits selection on release so an existing Track Chain can remain visible while the same press turns into a drag.
+- **Move:** Click & drag. `Ctrl/Cmd`+drag copies. `Shift` disables snap. Dropping a Wave clip on an accepting plug-in target does not also move it in the arrangement.
 - **Resize (Clips):** Drag edges.
 - **Time Stretch (Audio):** Drag right edge with Time Stretch Tool. Alternatively `Cmd/Ctrl`+drag on right edge.
 - **Join MIDI clips:** Select at least two MIDI clips that form one direct-neighbour block on the same track, then press `Cmd/Ctrl+J`. No unselected clip may occur between them in the track's chronological clip order. MIDI channel, MPE, quantisation, groove, volume, mute and bank-change settings must match; otherwise a five-second message explains the conflict. The joined clip spans the complete selection, retains gaps as silence, expands visible loop repetitions, and trims notes and events at each source clip boundary, including source offsets that cross tempo changes. The operation replaces the sources, selects the result, and can be undone in one step.

@@ -1066,6 +1066,45 @@ bool EngineHelpers::renderToNewTrack(EditViewState &evs, juce::Array<tracktion_e
     return true;
 }
 
+bool EngineHelpers::renderWaveClipToFile(te::Edit &edit, te::WaveAudioClip::Ptr clip, const juce::File &outputFile)
+{
+    if (clip == nullptr || outputFile == juce::File{} || !clip->state.isAChildOf(edit.state))
+        return false;
+
+    const auto range = clip->getEditTimeRange();
+    if (range.getLength().inSeconds() <= 0.0)
+        return false;
+
+    const auto trackIndex = te::getAllTracks(edit).indexOf(clip->getTrack());
+    if (trackIndex < 0)
+        return false;
+
+    if (!outputFile.getParentDirectory().createDirectory())
+        return false;
+
+    const auto temporaryFile = outputFile.getParentDirectory().getNonexistentChildFile(
+        outputFile.getFileNameWithoutExtension() + "-rendering", ".wav");
+
+    juce::BigInteger tracksToRender;
+    tracksToRender.setBit(trackIndex);
+    juce::Array<te::Clip *> clipsToRender{clip.get()};
+
+    if (!te::Renderer::renderToFile("Save Wave Clip", temporaryFile, edit, range,
+                                    tracksToRender, true, false, clipsToRender))
+    {
+        temporaryFile.deleteFile();
+        return false;
+    }
+
+    if (!temporaryFile.replaceFileIn(outputFile))
+    {
+        temporaryFile.deleteFile();
+        return false;
+    }
+
+    return outputFile.existsAsFile();
+}
+
 bool EngineHelpers::renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip)
 {
     auto range = clip->getEditTimeRange();

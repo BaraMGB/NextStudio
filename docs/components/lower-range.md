@@ -33,6 +33,8 @@ A drag begun collapsed follows its opening controller semantics rather than the 
 
 Collapsed view buttons use `EngineHelpers::openLowerRangeView()` to select/expand through the same path. No one-off activation layer is needed. [Timeline fit ownership](timeline-view-transform.md#requests-and-anchors) handles clip centering with the actual post-layout viewport, not a width remembered before reopening.
 
+During a host-managed `WaveClip` drag, `TrackHeaderComponent` is the authoritative track-hover target. It updates the central drag target and selected track, then calls `setLowerRangeTrack(..., pluginRack)` when Mixer or MIDI Editor is active or when the persisted `showLowerRange` marker still names another track. This reveals the hovered track's plug-in chain without requiring the destination plug-in to manipulate global selection and prevents later deselection from reverting to a stale chain. Repeated drag-move callbacks do not rewrite an already correct view/marker.
+
 Track teardown and child ownership belong in [Piano Roll](piano-roll-editor.md) and [PluginChainView](plugin-chain-view.md). Preserve defensive selection clearing; opening a view must not reselect a removed/previous track during teardown.
 
 ## Validation

@@ -24,7 +24,14 @@ public:
     void mouseEnter(const juce::MouseEvent &e) override;
     void mouseExit(const juce::MouseEvent &e) override;
 
-    void setText(juce::String text) { m_text = text; }
+    void setText(juce::String text)
+    {
+        if (m_text != text)
+        {
+            m_text = text;
+            repaint();
+        }
+    }
     void changeColour(juce::Colour colour);
     void triggerVisualFeedback(juce::Colour triggerColour, juce::Colour returnColour);
     void setIsDragTarget(bool isTarget);
@@ -104,6 +111,7 @@ public:
     int getSoundIndexForPad(int padIndex);
     juce::String getMidiNoteNameForPad(int padIndex);
     std::function<void(int)> onPadClicked;
+    std::function<void(int)> onPadSelectionChanged;
     std::function<void(int)> onPadTriggered;
     std::function<void(int)> onPadReleased;
 
@@ -111,6 +119,7 @@ public:
     static constexpr int BASE_MIDI_NOTE = 48; // C3 (MIDI standard)
 
 private:
+    void selectPadForEditing(int padIndex);
     void setupNewSample(int soundIndex, const juce::File &file);
 
     // Helper struct only for swapping tasks, don't persists.

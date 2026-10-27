@@ -211,6 +211,11 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     if (e.mods.isMiddleButtonDown())
         return;
 
+    m_draggedWaveClip = nullptr;
+    m_waveClipDragImage = {};
+    m_waveClipDragImageVisible = false;
+    m_isWaveClipDragActive = false;
+    clearPendingClipSelection();
     m_songEditor.beginSelectionInput();
     m_mouseInput.remember(e);
     ScopedSaveLock saveLock(m_editViewState);
@@ -231,13 +236,19 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     bool isClipClicked = m_hoveredClip != nullptr;
 
     // 1. Clip Interaction
-    if (isClipClicked && rightButton && isFadeZone(m_hoveredFadeZone))
+    if (isClipClicked && rightButton)
     {
-        if (auto audioClip = te::AudioClipBase::Ptr(dynamic_cast<te::AudioClipBase *>(m_hoveredClip.get())))
+        if (isFadeZone(m_hoveredFadeZone))
         {
-            showFadeCurveMenu(audioClip, m_hoveredFadeZone == FadeHitZone::fadeInHandle, e.getScreenPosition());
-            return;
+            if (auto audioClip = te::AudioClipBase::Ptr(dynamic_cast<te::AudioClipBase *>(m_hoveredClip.get())))
+                showFadeCurveMenu(audioClip, m_hoveredFadeZone == FadeHitZone::fadeInHandle, e.getScreenPosition());
         }
+        else if (auto waveClip = te::WaveAudioClip::Ptr(dynamic_cast<te::WaveAudioClip *>(m_hoveredClip.get())))
+        {
+            showWaveClipMenu(waveClip, e.getScreenPosition());
+        }
+
+        return;
     }
 
     if (isClipClicked && leftButton)
@@ -271,23 +282,18 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
                 }
             }
 
-            // Selection Logic
-            if (!sm.isSelected(m_hoveredClip))
-            {
-                if (e.mods.isCtrlDown())
-                    sm.addToSelection(m_hoveredClip);
-                else
-                    sm.selectOnly(m_hoveredClip);
-            }
-            else if (e.mods.isCtrlDown())
-            {
+            // Defer selection until mouse-up so the currently selected track keeps
+            // owning the lower range while a potential clip drag is beginning.
+            m_pendingClipSelection = m_hoveredClip;
+            m_pendingClipSelectionIsAdditive = e.mods.isCtrlDown();
+            if (m_pendingClipSelectionIsAdditive && sm.isSelected(m_hoveredClip))
                 m_pendingCtrlToggleClip = m_hoveredClip;
-            }
 
             // Start clip drag
             m_songEditor.startDrag(DragType::Clip, xtoTime(e.position.x), e.getPosition(), m_hoveredClip->itemID);
             auto &dragState = m_songEditor.getDragState();
             dragState.draggedClip = m_hoveredClip;
+            dragState.targetTrack = sm.getFirstItemOfType<te::Track>();
             dragState.isLeftEdge = m_leftBorderHovered;
             dragState.isRightEdge = m_rightBorderHovered;
             dragState.isTimeStretching = dragState.isRightEdge && !m_hoveredClip->isMidi() && (toolMode == Tool::timestretch || e.mods.isCommandDown());
@@ -392,10 +398,22 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
 
         if (!dragState.draggedClip->state.isAChildOf(m_editViewState.m_edit.state))
         {
+            clearPendingClipSelection();
             m_songEditor.endDrag();
             m_songEditor.updateDragGhost(nullptr, {}, 0);
             return;
         }
+
+        prepareClipSelectionForDrag(dragState.draggedClip);
+
+        if (!dragState.isLeftEdge && !dragState.isRightEdge)
+            if (auto waveClip = te::WaveAudioClip::Ptr(dynamic_cast<te::WaveAudioClip *>(dragState.draggedClip.get()));
+                waveClip != nullptr && !m_isWaveClipDragActive)
+                startWaveClipDrag(waveClip, e);
+
+        if (m_isWaveClipDragActive)
+            updateWaveClipDragImage(e.getScreenPosition());
+
         m_songEditor.updateClipMouseGesture(e.position.x, e.mods.isShiftDown());
 
         auto globalEvent = e.getEventRelativeTo(&m_songEditor);
@@ -419,12 +437,42 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
     if (!m_mouseInput.belongsToGesture(e)) return;
     if (m_songEditor.takeCancelledSelection(e))
     {
+        clearPendingClipSelection();
+        m_isWaveClipDragActive = false;
+        m_waveClipDragImage = {};
+        m_waveClipDragImageVisible = false;
         m_mouseInput.reset();
         return;
     }
     if (e.mouseWasDraggedSinceMouseDown())
         mouseDrag(e);
     auto &dragState = m_songEditor.getDragState();
+
+    auto *dragContainer = juce::DragAndDropContainer::findParentDragContainerFor(this);
+    const bool waveDragStillActive = dragContainer != nullptr
+                                  && dragContainer->isDragAndDropActive()
+                                  && dragContainer->getCurrentDragDescription() == "WaveClip";
+    const bool droppedOnTrackTarget = m_isWaveClipDragActive && waveDragStillActive
+                                   && dragState.dropTargetAcceptsDrop;
+    auto dropTargetTrack = dragState.targetTrack;
+    m_isWaveClipDragActive = false;
+    m_waveClipDragImageVisible = false;
+
+    if (droppedOnTrackTarget)
+    {
+        clearPendingClipSelection();
+        m_mouseInput.reset();
+        m_songEditor.endDrag();
+        m_songEditor.updateDragGhost(nullptr, {}, 0);
+
+        // Track selection is committed by the drag host, not by the plugin.
+        if (dropTargetTrack != nullptr)
+            m_editViewState.m_selectionManager.selectOnly(dropTargetTrack);
+
+        m_songEditor.repaint();
+        repaint();
+        return;
+    }
 
     if (dragState.isClipDrag() && dragState.draggedClip)
     {
@@ -467,16 +515,16 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
                 }
             }
         }
-        else if (m_pendingCtrlToggleClip != nullptr && m_pendingCtrlToggleClip == dragState.draggedClip)
+        else
         {
-            m_editViewState.m_selectionManager.deselect(m_pendingCtrlToggleClip);
+            applyPendingClipClickSelection();
         }
 
-        m_pendingCtrlToggleClip = nullptr;
+        clearPendingClipSelection();
     }
     else
     {
-        m_pendingCtrlToggleClip = nullptr;
+        clearPendingClipSelection();
 
         // Finish Lasso
         if (m_songEditor.isSelectingTimeRange()) m_songEditor.stopTimeRangeSelection();
@@ -641,6 +689,182 @@ bool TrackLaneComponent::isFadeHandle(FadeHitZone zone) const
 bool TrackLaneComponent::isFadeZone(FadeHitZone zone) const
 {
     return zone != FadeHitZone::none;
+}
+
+void TrackLaneComponent::showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Point<int> screenPosition)
+{
+    if (clip == nullptr)
+        return;
+
+    juce::PopupMenu menu;
+    menu.addItem(1, "Save As...");
+
+    const auto targetArea = juce::Rectangle<int>(screenPosition.x, screenPosition.y, 1, 1);
+    juce::Component::SafePointer<TrackLaneComponent> safeThis(this);
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(targetArea), [safeThis, clip](int result)
+    {
+        if (safeThis == nullptr || result != 1 || clip == nullptr)
+            return;
+
+        auto name = juce::File::createLegalFileName(clip->getName().trim());
+        if (name.isEmpty())
+            name = "Wave Clip";
+
+        const auto initialFile = juce::File(safeThis->m_editViewState.m_applicationState.m_samplesDir.get())
+                                     .getChildFile(name + ".wav");
+        auto chooser = std::make_shared<juce::FileChooser>("Save Wave Clip As", initialFile, "*.wav");
+
+        chooser->launchAsync(juce::FileBrowserComponent::saveMode
+                                 | juce::FileBrowserComponent::canSelectFiles
+                                 | juce::FileBrowserComponent::warnAboutOverwriting,
+                             [safeThis, clip, chooser](const juce::FileChooser &fileChooser)
+        {
+            if (safeThis == nullptr || fileChooser.getResults().isEmpty())
+                return;
+
+            auto outputFile = fileChooser.getResult();
+            if (!outputFile.hasFileExtension(".wav"))
+                outputFile = outputFile.withFileExtension(".wav");
+
+            if (!EngineHelpers::renderWaveClipToFile(safeThis->m_editViewState.m_edit, clip, outputFile))
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                                       "Save Wave Clip",
+                                                       "The wave clip could not be saved.");
+        });
+    });
+}
+
+void TrackLaneComponent::prepareClipSelectionForDrag(te::Clip::Ptr clip)
+{
+    if (m_clipSelectionPreparedForDrag || clip == nullptr)
+        return;
+
+    auto &selectionManager = m_editViewState.m_selectionManager;
+    if (!selectionManager.isSelected(clip))
+    {
+        if (!m_pendingClipSelectionIsAdditive)
+        {
+            const auto previousSelection = selectionManager.getSelectedObjects();
+            for (auto *selected : previousSelection)
+                if (dynamic_cast<te::Track *>(selected) == nullptr)
+                    selectionManager.deselect(selected);
+        }
+
+        selectionManager.addToSelection(clip);
+    }
+
+    // Ctrl toggles only apply to clicks. A Ctrl-drag keeps the clip selected
+    // because Ctrl is used by the arrangement as the copy modifier.
+    m_pendingCtrlToggleClip = nullptr;
+    m_clipSelectionPreparedForDrag = true;
+}
+
+void TrackLaneComponent::applyPendingClipClickSelection()
+{
+    if (m_pendingClipSelection == nullptr)
+        return;
+
+    auto &selectionManager = m_editViewState.m_selectionManager;
+    if (m_pendingClipSelectionIsAdditive)
+    {
+        if (m_pendingCtrlToggleClip == m_pendingClipSelection)
+            selectionManager.deselect(m_pendingClipSelection);
+        else
+            selectionManager.addToSelection(m_pendingClipSelection);
+    }
+    else
+    {
+        selectionManager.selectOnly(m_pendingClipSelection);
+    }
+}
+
+void TrackLaneComponent::clearPendingClipSelection()
+{
+    m_pendingClipSelection = nullptr;
+    m_pendingCtrlToggleClip = nullptr;
+    m_clipSelectionPreparedForDrag = false;
+    m_pendingClipSelectionIsAdditive = false;
+}
+
+void TrackLaneComponent::setDropTargetTrack(te::Track::Ptr track, bool acceptsDrop)
+{
+    if (m_songEditor.getDragState().isClipDrag())
+    {
+        m_songEditor.getDragState().targetTrack = track;
+        m_songEditor.getDragState().dropTargetAcceptsDrop = acceptsDrop;
+    }
+}
+
+void TrackLaneComponent::setDropTargetAcceptsDrop(bool acceptsDrop)
+{
+    if (m_songEditor.getDragState().isClipDrag())
+        m_songEditor.getDragState().dropTargetAcceptsDrop = acceptsDrop;
+}
+
+void TrackLaneComponent::waveClipDragOperationEnded()
+{
+    // Normal mouse-up finalises the arrangement gesture before JUCE tears down
+    // its drag image. If the image ends first, Escape or an external cancellation
+    // owns the result and the later mouse-up must not commit a clip move.
+    if (!m_isWaveClipDragActive)
+        return;
+
+    m_isWaveClipDragActive = false;
+    m_waveClipDragImage = {};
+    m_waveClipDragImageVisible = false;
+    clearPendingClipSelection();
+    m_mouseInput.reset();
+    m_songEditor.endDrag();
+    m_songEditor.updateDragGhost(nullptr, {}, 0);
+    m_songEditor.repaint();
+    repaint();
+}
+
+bool TrackLaneComponent::isOverTrackLane(juce::Point<int> screenPosition) const
+{
+    const auto localPosition = m_songEditor.getLocalPoint(nullptr, screenPosition);
+    if (!m_songEditor.getLocalBounds().contains(localPosition))
+        return false;
+
+    for (int i = 0; i < m_songEditor.getNumChildComponents(); ++i)
+        if (auto *lane = dynamic_cast<TrackLaneComponent *>(m_songEditor.getChildComponent(i)))
+            if (lane->getBounds().contains(localPosition))
+                return true;
+
+    return false;
+}
+
+void TrackLaneComponent::startWaveClipDrag(te::WaveAudioClip::Ptr clip, const juce::MouseEvent &event)
+{
+    auto *dragContainer = juce::DragAndDropContainer::findParentDragContainerFor(this);
+    if (clip == nullptr || dragContainer == nullptr || dragContainer->isDragAndDropActive())
+        return;
+
+    m_draggedWaveClip = clip;
+    m_isWaveClipDragActive = true;
+
+    auto snapshotBounds = getClipRect(clip).getIntersection(getLocalBounds().toFloat()).toNearestInt();
+    auto dragImage = snapshotBounds.isEmpty() ? juce::Image{} : createComponentSnapshot(snapshotBounds);
+    m_waveClipDragImage = juce::ScaledImage(dragImage);
+    m_waveClipDragImageVisible = true;
+    dragContainer->startDragging("WaveClip", this, m_waveClipDragImage, true, nullptr, &event.source);
+}
+
+void TrackLaneComponent::updateWaveClipDragImage(juce::Point<int> screenPosition)
+{
+    auto *dragContainer = juce::DragAndDropContainer::findParentDragContainerFor(this);
+    if (dragContainer == nullptr || !dragContainer->isDragAndDropActive())
+        return;
+
+    const bool shouldBeVisible = !isOverTrackLane(screenPosition);
+    if (m_waveClipDragImageVisible == shouldBeVisible)
+        return;
+
+    m_waveClipDragImageVisible = shouldBeVisible;
+    if (shouldBeVisible)
+        dragContainer->setCurrentDragImage(m_waveClipDragImage);
+    else
+        dragContainer->setCurrentDragImage(juce::ScaledImage(juce::Image(juce::Image::ARGB, 1, 1, true)));
 }
 
 void TrackLaneComponent::showFadeCurveMenu(te::AudioClipBase::Ptr clip, bool isFadeIn, juce::Point<int> screenPosition)
