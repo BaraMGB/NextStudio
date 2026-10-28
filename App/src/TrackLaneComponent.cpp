@@ -710,7 +710,7 @@ void TrackLaneComponent::showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Poi
         if (name.isEmpty())
             name = "Wave Clip";
 
-        const auto initialFile = juce::File(safeThis->m_editViewState.m_applicationState.m_samplesDir.get())
+        const auto initialFile = safeThis->m_editViewState.m_applicationState.getWaveClipSaveDirectory()
                                      .getChildFile(name + ".wav");
         auto chooser = std::make_shared<juce::FileChooser>("Save Wave Clip As", initialFile, "*.wav");
 
@@ -725,6 +725,8 @@ void TrackLaneComponent::showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Poi
             auto outputFile = fileChooser.getResult();
             if (!outputFile.hasFileExtension(".wav"))
                 outputFile = outputFile.withFileExtension(".wav");
+
+            safeThis->m_editViewState.m_applicationState.setWaveClipSaveDirectory(outputFile.getParentDirectory());
 
             if (!EngineHelpers::renderWaveClipToFile(safeThis->m_editViewState.m_edit, clip, outputFile))
                 juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,

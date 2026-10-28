@@ -262,6 +262,19 @@ public:
     juce::Colour getTrackBackgroundColour() { return juce::Colour::fromString(juce::String(m_trackBackgroundColour)); }
     int getScrollbarThickness() const { return m_scrollbarThickness; }
 
+    juce::File getWaveClipSaveDirectory()
+    {
+        return m_waveClipSaveDirectory.isDirectory()
+                   ? m_waveClipSaveDirectory
+                   : juce::File(m_samplesDir.get());
+    }
+
+    void setWaveClipSaveDirectory(const juce::File &directory)
+    {
+        if (directory.isDirectory())
+            m_waveClipSaveDirectory = directory;
+    }
+
     void refreshThemeCache()
     {
         auto themeState = m_applicationStateValueTree.getChildWithName(IDs::ThemeState);
@@ -473,6 +486,7 @@ public:
     }
 
     juce::File m_settingsFile;
+    juce::File m_waveClipSaveDirectory;
     juce::ValueTree m_applicationStateValueTree;
     juce::OwnedArray<Favorite> m_favorites;
     mutable std::unique_ptr<PluginCollections> m_pluginCollections;
