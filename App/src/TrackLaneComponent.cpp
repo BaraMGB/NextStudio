@@ -699,14 +699,14 @@ void TrackLaneComponent::showClipMenu(te::Clip::Ptr clip, juce::Point<int> scree
     constexpr int saveAs = 1;
     constexpr int rename = 2;
     constexpr int deleteClip = 3;
+    constexpr int renderToNewTrack = 4;
 
     auto waveClip = te::WaveAudioClip::Ptr(dynamic_cast<te::WaveAudioClip *>(clip.get()));
     juce::PopupMenu menu;
     if (waveClip != nullptr)
-    {
         menu.addItem(saveAs, "Save As...");
-        menu.addSeparator();
-    }
+    menu.addItem(renderToNewTrack, "Render to New Track");
+    menu.addSeparator();
     menu.addItem(rename, "Rename Clip...");
     menu.addItem(deleteClip, "Delete Clip");
 
@@ -716,6 +716,15 @@ void TrackLaneComponent::showClipMenu(te::Clip::Ptr clip, juce::Point<int> scree
     {
         if (safeThis == nullptr || clip == nullptr)
             return;
+
+        if (result == renderToNewTrack)
+        {
+            if (!EngineHelpers::renderCliptoNewTrack(safeThis->m_editViewState, clip))
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                                       "Render Clip",
+                                                       "The clip could not be rendered to a new track.");
+            return;
+        }
 
         if (result == rename)
         {

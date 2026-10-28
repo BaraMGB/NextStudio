@@ -1107,18 +1107,29 @@ bool EngineHelpers::renderWaveClipToFile(te::Edit &edit, te::WaveAudioClip::Ptr 
 
 bool EngineHelpers::renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip)
 {
-    auto range = clip->getEditTimeRange();
-    auto index = te::getAllTracks(evs.m_edit).indexOf(clip->getTrack());
-    auto trackToRender = juce::BigInteger{index};
+    if (clip == nullptr || !clip->state.isAChildOf(evs.m_edit.state))
+        return false;
+
+    const auto range = clip->getEditTimeRange();
+    if (range.getLength().inSeconds() <= 0.0)
+        return false;
+
+    const auto trackIndex = te::getAllTracks(evs.m_edit).indexOf(clip->getTrack());
+    if (trackIndex < 0)
+        return false;
 
     auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
     auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
 
-    te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range, trackToRender);
+    juce::BigInteger tracksToRender;
+    tracksToRender.setBit(trackIndex);
+    juce::Array<te::Clip *> clipsToRender{clip.get()};
+    if (!te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range,
+                                    tracksToRender, true, true, clipsToRender))
+        return false;
 
-    EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum, range.getStart().inSeconds());
-
-    return true;
+    return EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum,
+                                                   range.getStart().inSeconds()) != nullptr;
 }
 
 bool EngineHelpers::renderSelectedClipsToNewTrack(EditViewState &evs)
