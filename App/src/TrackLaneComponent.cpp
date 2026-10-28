@@ -243,9 +243,9 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
             if (auto audioClip = te::AudioClipBase::Ptr(dynamic_cast<te::AudioClipBase *>(m_hoveredClip.get())))
                 showFadeCurveMenu(audioClip, m_hoveredFadeZone == FadeHitZone::fadeInHandle, e.getScreenPosition());
         }
-        else if (auto waveClip = te::WaveAudioClip::Ptr(dynamic_cast<te::WaveAudioClip *>(m_hoveredClip.get())))
+        else
         {
-            showWaveClipMenu(waveClip, e.getScreenPosition());
+            showClipMenu(m_hoveredClip, e.getScreenPosition());
         }
 
         return;
@@ -691,22 +691,94 @@ bool TrackLaneComponent::isFadeZone(FadeHitZone zone) const
     return zone != FadeHitZone::none;
 }
 
-void TrackLaneComponent::showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Point<int> screenPosition)
+void TrackLaneComponent::showClipMenu(te::Clip::Ptr clip, juce::Point<int> screenPosition)
 {
     if (clip == nullptr)
         return;
 
+    constexpr int saveAs = 1;
+    constexpr int rename = 2;
+    constexpr int deleteClip = 3;
+
+    auto waveClip = te::WaveAudioClip::Ptr(dynamic_cast<te::WaveAudioClip *>(clip.get()));
     juce::PopupMenu menu;
-    menu.addItem(1, "Save As...");
+    if (waveClip != nullptr)
+    {
+        menu.addItem(saveAs, "Save As...");
+        menu.addSeparator();
+    }
+    menu.addItem(rename, "Rename Clip...");
+    menu.addItem(deleteClip, "Delete Clip");
 
     const auto targetArea = juce::Rectangle<int>(screenPosition.x, screenPosition.y, 1, 1);
     juce::Component::SafePointer<TrackLaneComponent> safeThis(this);
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(targetArea), [safeThis, clip](int result)
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(targetArea), [safeThis, clip, waveClip](int result)
     {
-        if (safeThis == nullptr || result != 1 || clip == nullptr)
+        if (safeThis == nullptr || clip == nullptr)
             return;
 
-        auto name = juce::File::createLegalFileName(clip->getName().trim());
+        if (result == rename)
+        {
+            auto *dialog = new juce::AlertWindow("Rename Clip", "Enter a new clip name:", juce::AlertWindow::NoIcon);
+            dialog->addTextEditor("name", clip->getName());
+            dialog->addButton("Rename", 1, juce::KeyPress(juce::KeyPress::returnKey));
+            dialog->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+            juce::Component::SafePointer<juce::AlertWindow> safeDialog(dialog);
+            dialog->enterModalState(false,
+                                    juce::ModalCallbackFunction::create([safeThis, safeDialog, clip](int dialogResult)
+            {
+                if (dialogResult != 1 || safeThis == nullptr || safeDialog == nullptr || clip->getTrack() == nullptr)
+                    return;
+
+                const auto newName = safeDialog->getTextEditorContents("name").trim();
+                if (newName.isEmpty())
+                    return;
+
+                safeThis->m_editViewState.m_edit.getUndoManager().beginNewTransaction("Rename Clip");
+                clip->setName(newName);
+            }),
+                                    true);
+            dialog->toFront(true);
+
+            if (auto *editor = dialog->getTextEditor("name"))
+            {
+                editor->setWantsKeyboardFocus(true);
+                editor->grabKeyboardFocus();
+                editor->selectAll();
+
+                juce::Component::SafePointer<juce::TextEditor> safeEditor(editor);
+                const auto focusEditor = [safeEditor]
+                {
+                    if (safeEditor != nullptr && !safeEditor->hasKeyboardFocus(false))
+                    {
+                        safeEditor->grabKeyboardFocus();
+                        safeEditor->selectAll();
+                    }
+                };
+                juce::Timer::callAfterDelay(50, focusEditor);
+                juce::Timer::callAfterDelay(200, focusEditor);
+            }
+            return;
+        }
+
+        if (result == deleteClip)
+        {
+            auto *track = clip->getTrack();
+            if (track == nullptr)
+                return;
+
+            safeThis->m_editViewState.m_edit.getUndoManager().beginNewTransaction("Delete Clip");
+            for (auto parameter : track->getAllAutomatableParams())
+                parameter->getCurve().removePointsInRegion(clip->getEditTimeRange());
+            clip->removeFromParent();
+            return;
+        }
+
+        if (result != saveAs || waveClip == nullptr)
+            return;
+
+        auto name = juce::File::createLegalFileName(waveClip->getName().trim());
         if (name.isEmpty())
             name = "Wave Clip";
 
@@ -717,7 +789,7 @@ void TrackLaneComponent::showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Poi
         chooser->launchAsync(juce::FileBrowserComponent::saveMode
                                  | juce::FileBrowserComponent::canSelectFiles
                                  | juce::FileBrowserComponent::warnAboutOverwriting,
-                             [safeThis, clip, chooser](const juce::FileChooser &fileChooser)
+                             [safeThis, waveClip, chooser](const juce::FileChooser &fileChooser)
         {
             if (safeThis == nullptr || fileChooser.getResults().isEmpty())
                 return;
@@ -728,7 +800,7 @@ void TrackLaneComponent::showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Poi
 
             safeThis->m_editViewState.m_applicationState.setWaveClipSaveDirectory(outputFile.getParentDirectory());
 
-            if (!EngineHelpers::renderWaveClipToFile(safeThis->m_editViewState.m_edit, clip, outputFile))
+            if (!EngineHelpers::renderWaveClipToFile(safeThis->m_editViewState.m_edit, waveClip, outputFile))
                 juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                                                        "Save Wave Clip",
                                                        "The wave clip could not be saved.");

@@ -92,7 +92,7 @@ private:
     bool isFadeHandle(FadeHitZone zone) const;
     bool isFadeZone(FadeHitZone zone) const;
     void showFadeCurveMenu(te::AudioClipBase::Ptr clip, bool isFadeIn, juce::Point<int> screenPosition);
-    void showWaveClipMenu(te::WaveAudioClip::Ptr clip, juce::Point<int> screenPosition);
+    void showClipMenu(te::Clip::Ptr clip, juce::Point<int> screenPosition);
     bool isOverTrackLane(juce::Point<int> screenPosition) const;
     void startWaveClipDrag(te::WaveAudioClip::Ptr clip, const juce::MouseEvent &event);
     void updateWaveClipDragImage(juce::Point<int> screenPosition);
