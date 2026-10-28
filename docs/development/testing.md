@@ -207,7 +207,13 @@ Both variants expect committed clip/range moves and copies, stable MIDI contents
 
 ## Clip context menu, Wave export and Drum Sampler drop validation
 
-Use the private 1600x1000 X11/debug-shell fixture and real pointer input; model commands alone do not exercise JUCE popup/focus handling, target enter/exit ordering, nested render callbacks or drag-image visibility.
+`ClipContextActionsTests` covers trimmed/non-empty rename validation and undo/redo, clicked-only deletion with automation removal and one-step undo, exact clip/range/track render-plan isolation, detached-clip rejection, and session-only Wave save-directory state. Run it from the repository root after the RelWithDebInfo build:
+
+```bash
+ctest --test-dir autobuild/RelWithDebInfo -R '^ClipContextActions$' --output-on-failure
+```
+
+The model test does not exercise JUCE popup/focus handling, actual audio rendering or new-track insertion. Use the private 1600x1000 X11/debug-shell fixture and real pointer input for those behaviors, target enter/exit ordering, nested render callbacks and drag-image visibility.
 
 1. Create one MIDI track and one audio track with `ensure-track`. Insert the built-in Sampler on the MIDI track through the Instruments browser.
 2. Add a bundled sample from the Samples browser to the audio track so it becomes a Wave clip. Select the audio track and show Mixer; repeat the focused run with a selected MIDI clip and MIDI Editor visible.

@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "Utilities.h"
+#include "ClipContextActions.h"
 #include "TrackInsertion.h"
 #include "ClipGestureLimits.h"
 
@@ -1107,29 +1108,19 @@ bool EngineHelpers::renderWaveClipToFile(te::Edit &edit, te::WaveAudioClip::Ptr 
 
 bool EngineHelpers::renderCliptoNewTrack(EditViewState &evs, te::Clip::Ptr clip)
 {
-    if (clip == nullptr || !clip->state.isAChildOf(evs.m_edit.state))
-        return false;
-
-    const auto range = clip->getEditTimeRange();
-    if (range.getLength().inSeconds() <= 0.0)
-        return false;
-
-    const auto trackIndex = te::getAllTracks(evs.m_edit).indexOf(clip->getTrack());
-    if (trackIndex < 0)
+    const auto plan = ClipContextActions::createRenderPlan(evs.m_edit, clip);
+    if (!plan.isValid())
         return false;
 
     auto sampleDir = juce::File(evs.m_applicationState.m_samplesDir);
     auto renderFile = sampleDir.getNonexistentChildFile("render", ".wav");
 
-    juce::BigInteger tracksToRender;
-    tracksToRender.setBit(trackIndex);
-    juce::Array<te::Clip *> clipsToRender{clip.get()};
-    if (!te::Renderer::renderToFile("Render", renderFile, evs.m_edit, range,
-                                    tracksToRender, true, true, clipsToRender))
+    if (!te::Renderer::renderToFile("Render", renderFile, evs.m_edit, plan.range,
+                                    plan.tracksToRender, true, true, plan.clipsToRender))
         return false;
 
     return EngineHelpers::loadAudioFileOnNewTrack(evs, renderFile, juce::Colours::plum,
-                                                   range.getStart().inSeconds()) != nullptr;
+                                                   plan.range.getStart().inSeconds()) != nullptr;
 }
 
 bool EngineHelpers::renderSelectedClipsToNewTrack(EditViewState &evs)

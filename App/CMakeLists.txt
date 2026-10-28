@@ -659,6 +659,17 @@ if(BUILD_TESTING)
             JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
     add_test(NAME MidiClipJoinCommand COMMAND MidiClipJoinCommandTests)
 
+    juce_add_console_app(ClipContextActionsTests PRODUCT_NAME "ClipContextActionsTests")
+    juce_generate_juce_header(ClipContextActionsTests)
+    target_sources(ClipContextActionsTests PRIVATE
+            src/ClipContextActions.cpp src/Logging.cpp tests/ClipContextActionsTests.cpp)
+    target_include_directories(ClipContextActionsTests PRIVATE include)
+    target_compile_features(ClipContextActionsTests PRIVATE cxx_std_20)
+    target_link_libraries(ClipContextActionsTests PRIVATE tracktion::tracktion_engine juce::juce_gui_basics)
+    target_compile_definitions(ClipContextActionsTests PRIVATE TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    add_test(NAME ClipContextActions COMMAND ClipContextActionsTests)
+
     juce_add_console_app(SelectionGestureTests PRODUCT_NAME "SelectionGestureTests")
     juce_generate_juce_header(SelectionGestureTests)
     target_sources(SelectionGestureTests PRIVATE src/LassoSelectionComponent.cpp tests/SelectionGestureTests.cpp)

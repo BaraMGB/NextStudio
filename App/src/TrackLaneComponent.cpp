@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "TrackLaneComponent.h"
+#include "ClipContextActions.h"
 #include "ClipOverwriteCommand.h"
 #include "SongEditorView.h"
 #include "ScopedSaveLock.h"
@@ -740,12 +741,8 @@ void TrackLaneComponent::showClipMenu(te::Clip::Ptr clip, juce::Point<int> scree
                 if (dialogResult != 1 || safeThis == nullptr || safeDialog == nullptr || clip->getTrack() == nullptr)
                     return;
 
-                const auto newName = safeDialog->getTextEditorContents("name").trim();
-                if (newName.isEmpty())
-                    return;
-
-                safeThis->m_editViewState.m_edit.getUndoManager().beginNewTransaction("Rename Clip");
-                clip->setName(newName);
+                (void) ClipContextActions::renameClip(safeThis->m_editViewState.m_edit, clip,
+                                                      safeDialog->getTextEditorContents("name"));
             }),
                                     true);
             dialog->toFront(true);
@@ -773,14 +770,7 @@ void TrackLaneComponent::showClipMenu(te::Clip::Ptr clip, juce::Point<int> scree
 
         if (result == deleteClip)
         {
-            auto *track = clip->getTrack();
-            if (track == nullptr)
-                return;
-
-            safeThis->m_editViewState.m_edit.getUndoManager().beginNewTransaction("Delete Clip");
-            for (auto parameter : track->getAllAutomatableParams())
-                parameter->getCurve().removePointsInRegion(clip->getEditTimeRange());
-            clip->removeFromParent();
+            (void) ClipContextActions::deleteClip(safeThis->m_editViewState.m_edit, clip);
             return;
         }
 
