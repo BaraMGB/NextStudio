@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Arrangement clip context actions** — Wave and MIDI clip context menus can now render the clicked clip to a new audio track, rename it through an immediately focused editor, or delete it. Rename and delete are undoable, rendering keeps the source clip in place and includes only the clicked clip, and Wave **Save As...** remembers the most recently chosen folder for the current application session.
+
 ## [v0.06-alpha] - 2026-10-27
 
 ### Added

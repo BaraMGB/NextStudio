@@ -205,9 +205,9 @@ Both variants expect committed clip/range moves and copies, stable MIDI contents
 
 `--binary`, `--display`, `--delay` and the non-existing output directory follow the cursor procedure. Fixed coordinates assume default 100% layout/theme. Audio, vertical/group dragging, physical displays, native fractional scaling and Windows/macOS require separate scoped coverage.
 
-## Wave-clip export and Drum Sampler drop validation
+## Clip context menu, Wave export and Drum Sampler drop validation
 
-Use the private 1600x1000 X11/debug-shell fixture and real pointer input; model commands alone do not exercise JUCE target enter/exit ordering, nested render callbacks or drag-image visibility.
+Use the private 1600x1000 X11/debug-shell fixture and real pointer input; model commands alone do not exercise JUCE popup/focus handling, target enter/exit ordering, nested render callbacks or drag-image visibility.
 
 1. Create one MIDI track and one audio track with `ensure-track`. Insert the built-in Sampler on the MIDI track through the Instruments browser.
 2. Add a bundled sample from the Samples browser to the audio track so it becomes a Wave clip. Select the audio track and show Mixer; repeat the focused run with a selected MIDI clip and MIDI Editor visible.
@@ -215,9 +215,12 @@ Use the private 1600x1000 X11/debug-shell fixture and real pointer input; model 
 4. Hover the sampler track header. `state-dump` must report that track selected and `lowerRangeView: pluginRack`; the sampler must be visible for both Mixer and MIDI Editor starting cases.
 5. Drop on a pad other than the initially selected pad. After event settling, capture a screenshot and state dump. The source clip ID/start/length must be unchanged, the sampler track must be the sole selected track, no clip may remain selected, and the destination pad must show the rendered sample name with selected styling while the former pad is unselected. The process must remain alive.
 6. Repeat the pad hover, press Escape before release, then release the mouse. No WAV may be created, no pad may load and the source clip position must remain unchanged.
-7. Right-click a Wave clip body, use **Save As...**, and verify a readable non-empty `.wav`; when overwriting, a failed/cancelled render must leave the previous destination intact. Right-click a fade handle separately and confirm it still opens the fade-curve menu.
+7. Right-click a Wave clip body, use **Save As...**, and verify a readable non-empty `.wav`; when overwriting, a failed/cancelled render must leave the previous destination intact. Choose a directory other than Samples, open **Save As...** on another Wave clip and confirm that the chooser starts in the previously chosen directory. Restart the application and confirm that the chooser returns to Samples. Right-click a fade handle separately and confirm it still opens the fade-curve menu.
+8. Open **Rename Clip...** on both Wave and MIDI clips. Without clicking the field, type a replacement name and press Enter; the selected original name must be replaced. Verify one-step undo/redo and confirm that an empty trimmed name does not change the clip.
+9. Use **Render to New Track** on isolated Wave and MIDI clips. Each result must be one Wave clip on a new audio track at the source start and cover the clicked clip's visible range; the source clip and unrelated overlapping clips must remain unchanged. Include a processed MIDI track and confirm that its audible instrument/effect output is rendered. Undo behavior for the inserted track follows the existing render workflow and is not newly certified by this context-menu check.
+10. With several clips selected, right-click a different clip and choose **Delete Clip**. Only the clicked clip and automation in its range may be removed; one-step undo must restore them. The prior multi-selection must not cause additional clips to be deleted.
 
-A focused Linux run completed during implementation covered Mixer-to-Plugins, MIDI-Editor-to-Plugins, header hover, non-default pad selection, immediate pad-label refresh, unchanged source clip, Escape before release and post-drop/post-cancel process survival. It also confirmed that the active/persisted lower-range track is the sampler track after a successful hover/drop. Its temporary artifacts are not durable repository evidence. Other platforms, long renders, forced render/replacement failure, external plug-ins and multi-clip/group drags remain outside that run.
+A focused Linux run completed during the Wave-drag implementation covered Mixer-to-Plugins, MIDI-Editor-to-Plugins, header hover, non-default pad selection, immediate pad-label refresh, unchanged source clip, Escape before release and post-drop/post-cancel process survival. It also confirmed that the active/persisted lower-range track is the sampler track after a successful hover/drop. Its temporary artifacts are not durable repository evidence. Other platforms, long renders, forced render/replacement failure, external plug-ins and multi-clip/group drags remain outside that run.
 
 ## Live MIDI input and key lighting
 

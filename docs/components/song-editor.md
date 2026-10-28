@@ -18,7 +18,7 @@ The arrangement uses Tracktion clips/tracks and the shared edit selection. `Song
 | Shared drag-edge scroll policy | `App/include/DragEdgeScroll.h`, `App/src/DragEdgeScroll.cpp` |
 | Middle-button pan geometry | `App/include/PanDragGesture.h`, `App/tests/PanDragGestureTests.cpp` |
 | Arrangement, time-range overlay and previews | `App/include/SongEditorView.h`, `App/src/SongEditorView.cpp` |
-| Clip body/edge/fade hits, Wave export and lane input | `App/include/TrackLaneComponent.h`, `App/src/TrackLaneComponent.cpp` |
+| Clip body/edge/fade hits, context actions and lane input | `App/include/TrackLaneComponent.h`, `App/src/TrackLaneComponent.cpp` |
 | Track-aware Wave drops, cancellation and sampler-pad acceptance | `App/include/DragState.h`, `App/include/MainComponent.h`, `App/src/MainComponent.cpp`, `App/include/DrumPadComponent.h`, `App/src/DrumPadComponent.cpp`, `App/src/DrumSamplerView.cpp` |
 | Automation input | `App/include/AutomationLaneComponent.h`, `App/src/AutomationLaneComponent.cpp` |
 | Shared feasibility and ghost timing | `App/include/ClipGestureLimits.h`, `App/src/ClipGestureLimits.cpp` |
@@ -36,7 +36,7 @@ The authoritative [snapping contract](timeline-snapping.md) classifies hard/disc
 
 Arrangement placement/overwrites retain the [central clip overwrite command](../architecture/clip-overwrite-command.md) and its atomic undo/model safeguards. Automation retains its existing live-mutation lifecycle; clip ghost and live-header previews must not be interpreted as approval for a new automation transaction model.
 
-## Wave-clip export and track-aware plug-in drops
+## Clip context actions, Wave export and track-aware plug-in drops
 
 A plain clip press records pending selection instead of immediately replacing the current Track List selection. A release without dragging applies the normal click/Ctrl-toggle result. Once a drag begins, `TrackLaneComponent` selects the grabbed clip as required by arrangement move/copy helpers while retaining selected tracks; this keeps the currently displayed Track Chain available. Fade gestures remain on their direct path. Drop completion clears pending click state so a pad drop cannot also move the source clip.
 
@@ -46,9 +46,13 @@ A sampler pad reports valid-pad enter/move/exit through the shared drag source b
 
 The JUCE clip snapshot is an external-target affordance, not the arrangement preview. `TrackLaneComponent` replaces it with a transparent image while the pointer is inside any arrangement `TrackLaneComponent` and restores it over headers, the Lower Zone and other non-lane components. The normal arrangement ghost remains authoritative inside lanes.
 
-`EngineHelpers::renderWaveClipToFile()` validates clip membership/range/track and renders only that clip over its edit range. It renders to a non-conflicting temporary WAV beside the requested destination and replaces the destination only after success, preserving an existing file when rendering fails. Drum-pad drop rendering chooses a non-conflicting final file in the configured Samples directory. Rendering and sampler state changes may run nested callbacks and synchronously rebuild the plug-in view, so `DrumPadGridComponent` clears component-owned hover feedback before those operations, performs sampler mutation through retained engine objects and only revisits the UI through `SafePointer`. Pad selection is applied only after the source file is valid or rendering succeeded; a lifetime-independent view-state callback persists the index before sampler mutation, a surviving view refreshes the Sound Editor afterwards, and a rebuilt view restores the same index. Pad text changes must repaint immediately.
+`TrackLaneComponent` provides one body context menu for Wave and MIDI clips while fade-handle right-click remains reserved for fade curves. Rename uses an asynchronous `AlertWindow`, rejects an empty trimmed name, creates one `Rename Clip` undo transaction and explicitly focuses/selects the text editor. Delayed focus retries account for window managers that activate the newly shown window after the first request. Delete acts on the clicked clip rather than the current multi-selection, starts one `Delete Clip` transaction and removes track automation in that clip's range before detaching it.
 
-The Wave context menu uses an asynchronous `FileChooser` retained by the callback and a `SafePointer` to the lane. Fade-handle right-click remains reserved for fade curves.
+**Render to New Track** calls `EngineHelpers::renderCliptoNewTrack()` with the clicked clip. The helper validates edit membership, positive range and track membership; constructs the render mask with `BigInteger::setBit(trackIndex)`; and supplies the exact clip list to `Renderer`. The resulting WAV is inserted on a new audio track at the source start while the source remains unchanged. Invalid or failed rendering does not insert a track and is reported by the menu callback.
+
+`EngineHelpers::renderWaveClipToFile()` validates clip membership/range/track and renders only that clip over its edit range. It renders to a non-conflicting temporary WAV beside the requested destination and replaces the destination only after success, preserving an existing file when rendering fails. The Wave-only **Save As...** action uses an asynchronous `FileChooser` retained by the callback and a `SafePointer` to the lane. `ApplicationViewState` keeps the chosen parent directory as transient session state; the first chooser and any missing remembered directory fall back to the configured Samples directory. This value is intentionally not serialized.
+
+Drum-pad drop rendering chooses a non-conflicting final file in the configured Samples directory. Rendering and sampler state changes may run nested callbacks and synchronously rebuild the plug-in view, so `DrumPadGridComponent` clears component-owned hover feedback before those operations, performs sampler mutation through retained engine objects and only revisits the UI through `SafePointer`. Pad selection is applied only after the source file is valid or rendering succeeded; a lifetime-independent view-state callback persists the index before sampler mutation, a surviving view refreshes the Sound Editor afterwards, and a rebuilt view restores the same index. Pad text changes must repaint immediately.
 
 ## Joining MIDI clips
 

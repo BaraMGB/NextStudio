@@ -86,7 +86,12 @@ Keyboard nudging, explicit quantization, numeric property steps, ordinary geomet
 
 Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes. Double-clicking a MIDI clip opens the Piano Roll for its track and expands the lower range first if that area is currently collapsed.
 
-Right-click the body of a Wave clip and choose **Save As...** to render its visible range as a WAV file. Right-clicking a fade handle retains the fade-curve menu instead. The file chooser proposes the clip name and the configured Samples directory and adds the `.wav` extension when needed.
+Right-click a Wave or MIDI clip body to open its clip menu. Right-clicking an audio fade handle retains the fade-curve menu instead.
+
+- **Render to New Track** renders only the clicked clip over its visible range, including its track processing, and inserts the result as a Wave clip on a new audio track at the same start position. The source clip remains in place.
+- **Rename Clip...** opens an editor with the current name selected and keyboard focus ready for immediate typing. Confirmed non-empty names and deletion are undoable.
+- **Delete Clip** removes the clicked clip and its track automation within that clip's range.
+- Wave clips additionally provide **Save As...**, which renders only the visible clip range to a WAV file. The chooser proposes the clip name, adds `.wav` when needed, starts in the configured Samples directory on first use, and then remembers the most recently chosen folder for the rest of the application session.
 
 A Wave clip can also be dragged from the arrangement onto a Drum Sampler pad. The current Track Chain remains visible when the press becomes a drag. Hovering another track header selects that track and opens its Plugins view, including when the Mixer or MIDI Editor was previously visible, so the drag can continue onto a sampler in that chain. The extra drag image is hidden over arrangement track lanes and appears outside them. A successful pad drop keeps the source clip in place, selects the sampler track and destination pad, and refreshes the pad label and Sound Editor.
 
