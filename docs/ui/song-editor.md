@@ -78,13 +78,13 @@ Keyboard nudging, explicit quantization, numeric property steps, ordinary geomet
 - **Move loop range:** Hover the body of an existing range to show the hand cursor and the `move loop range` hint, then drag it horizontally.
 - **Resize loop range:** Hover the first or last 10 pixels to show the corresponding resize cursor and the `set loop range start` or `set loop range end` hint. Drag to resize; hold `Shift` to bypass snapping.
 - **Loop state:** The range uses the theme's prime colour at 50% opacity while loop playback is enabled and 20% opacity while it is disabled.
-- **Playhead Position:** Double-click on the timeline sets the playhead to the mouse position. Click or drag the playhead to set the playback position.
+- **Playhead Position:** Click the timeline ruler above the loop lane to set the playback position. Clicks on the arrangement canvas do not move the playhead, including the first click of a double-click that creates a MIDI clip.
 - **Zoom:** Click and drag vertically in the timeline, or use `Ctrl`/`Command` + mouse wheel, to zoom the horizontal view. Zoom uses nearby discrete scales with evenly rasterized grid subdivisions. The pointer's beat remains anchored unless the view reaches beat zero; small drag movements accumulate rather than being discarded.
 - **Grid alignment:** Grid, clips, notes, automation, and playhead use the same horizontal mapping. Panning moves the complete scene together without rounding individual musical positions. The visible grid remains adaptive even with fixed or disabled tool snapping; its display interval no longer depends on the current transport tempo.
 
 ### Clips
 
-Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes. Double-clicking a MIDI clip opens the Piano Roll for its track and expands the lower range first if that area is currently collapsed.
+Rectangular blocks containing audio or MIDI data. Audio clips show a waveform, MIDI clips show a mini preview of notes. Double-click empty MIDI-track space to create a clip immediately without moving the playhead (outside the Range tool). Double-clicking a MIDI clip opens the Piano Roll for its track and expands the lower range first if that area is currently collapsed.
 
 Right-click a Wave or MIDI clip body to open its clip menu. Right-clicking an audio fade handle retains the fade-curve menu instead.
 

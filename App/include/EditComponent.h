@@ -239,7 +239,6 @@ private:
     juce::ThreadPool m_autoSaveThreadPool;
 
     bool m_updateTracks = false, m_updateZoom = false, m_verticalUpdateSongEditor = false, m_dragOver = false, m_noteOffAll = false;
-    bool m_songEditorPlayheadClickPending = false;
     PanDragGesture m_panGesture;
     MouseGestureInput m_panInput;
     ToolWheelCycling::Accumulator m_toolWheelAccumulator;

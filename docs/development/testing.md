@@ -188,6 +188,33 @@ xvfb-run -a --server-args='-screen 0 1600x1000x24' \
 
 The same isolated session checks exact note identities after grid/velocity lassos, Range, empty membership and an unmatched pitch; repeated piano-key clicks and Shift pitch addition/removal must work without reselecting arrangement clips. An unrelated sibling is excluded until explicitly selected. Single- and multi-clip targets update on real arrangement clicks and survive subsequent note selection. Complete musical records remain unchanged. The delivered pre-fix binary fails at `keyboard-after-grid-lasso`. `SelectionGestureTests` additionally validates retained clip scope, explicit replacement, duplicate filtering, deleted/recreated identity rejection, track-scope filtering, teardown and model/undo isolation. Native clip deletion/track teardown, audio audition, physical/fractional displays and other platforms are not certified by this procedure.
 
+## Song Editor canvas/playhead validation
+
+Use the same private X11/debug-shell prerequisites and undecorated 1600×1000,
+100%-scale fixture as the cursor procedure:
+
+```bash
+xvfb-run -a --server-args='-screen 0 1600x1000x24' \
+  python3 tools/native-song-playhead-regression.py \
+  --output "./artifacts/song-playhead-$(date +%Y%m%d-%H%M%S)"
+```
+
+The procedure sets a nonzero position through the real ruler, splits a native
+double-click into first release/second press/second release, and asserts that
+none seeks the transport. A clip must already exist on the second press, with
+one-step insertion undo/redo and unchanged original clip data. It also checks
+clip selection, empty MIDI/audio/background/Master clicks, Pointer/Lasso/Range/
+Knife/Stretch clicks, lasso/range drags and middle-button view panning without
+transport or musical-model changes; ruler positioning must still work afterward.
+The pre-fix build fails at `double-first-release-no-seek` (4 s jumps to 12 s).
+Results retain the binary hash, assertions, screenshots and state dumps.
+
+`--binary`, `--display` and the non-existing output directory follow the cursor
+procedure. Keep the default short `--delay` (0.08 s) so the split presses remain
+inside JUCE's double-click timeout. Run the existing selection and arrangement
+drag procedures separately to validate their model/commit behavior. Active
+playback, physical/fractional displays and Windows/macOS need separate coverage.
+
 ## Arrangement drag commit validation
 
 Selection tests do not certify the subsequent move/copy commit. `tools/native-arrangement-drag-regression.py` uses the same private X11/debug-shell fixture and prerequisites as the cursor procedure. Run native sessions sequentially, with no competing NextStudio instance.

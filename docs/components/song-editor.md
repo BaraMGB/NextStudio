@@ -66,6 +66,16 @@ Global add controls and empty-list actions append at the top-level end. Non-Mast
 
 Dropping a track on empty Track List space uses the same top-level-end policy. Dropping on a normal header retains the existing before-target behavior, while dropping on a folder appends to its direct children. Placement must use sibling/parent relationships rather than the last item in the recursively flattened track list.
 
+## Canvas clicks and transport positioning
+
+Arrangement canvas clicks never reposition the transport or its stored playback
+start, including either click of a double-click that creates a MIDI clip (#98).
+`TrackLaneComponent` retains immediate double-click insertion and its normal
+clip/selection/tool dispatch. `TimeLineComponent` alone owns click-to-position
+through the ruler above its loop lane. `EditComponent`'s recursive canvas mouse
+listener handles middle-button panning only; it must not reintroduce a pending
+left-click seek or a double-click-delay timer.
+
 ## Middle-button panning
 
 `EditComponent` receives recursive mouse-listener events from the scrollable Arrangement Area and the fixed Master lane, and owns the complete middle-button pan lifetime. It captures the pointer and both view origins at mouse-down, then evaluates every drag from screen coordinates so vertically moving lane components cannot distort the delta. Horizontal pixels are converted with the captured beats-per-pixel scale and vertical pixels use the arrangement scrollbar's native units. Both requested starts are clamped to the existing beat and scrollbar ranges before being applied through `EditViewState::setNewStartAndZoom()` and `setVerticalScrollPosition()`, keeping Track List headers, lanes and scrollbars synchronized.

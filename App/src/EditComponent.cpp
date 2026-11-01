@@ -330,7 +330,6 @@ EditComponent::~EditComponent()
 void EditComponent::mouseDown(const juce::MouseEvent &event)
 {
     auto *eventComponent = event.eventComponent;
-    m_songEditorPlayheadClickPending = false;
 
     if (isMiddleButtonOnly(event.mods) && isArrangementPanTarget(eventComponent))
     {
@@ -355,13 +354,6 @@ void EditComponent::mouseDown(const juce::MouseEvent &event)
         }
         return;
     }
-
-    if (event.mods.isMiddleButtonDown())
-        return;
-
-    m_songEditorPlayheadClickPending = event.mods.isLeftButtonDown()
-                                           && eventComponent != nullptr
-                                           && (eventComponent == &m_songEditor || m_songEditor.isParentOf(eventComponent));
 }
 
 void EditComponent::mouseDrag(const juce::MouseEvent &event)
@@ -393,36 +385,7 @@ void EditComponent::mouseUp(const juce::MouseEvent &event)
     {
         mouseDrag(event);
         finishPanGesture();
-        return;
     }
-
-    if (!m_songEditorPlayheadClickPending)
-        return;
-
-    m_songEditorPlayheadClickPending = false;
-    if (event.mouseWasDraggedSinceMouseDown())
-        return;
-
-    if (auto *eventComponent = event.eventComponent)
-    {
-        auto *trackLane = dynamic_cast<TrackLaneComponent *>(eventComponent);
-        if (trackLane == nullptr)
-            trackLane = eventComponent->findParentComponentOfClass<TrackLaneComponent>();
-
-        if (trackLane != nullptr)
-        {
-            const auto laneEvent = event.getEventRelativeTo(trackLane);
-            if (trackLane->isClipAt(laneEvent.position))
-                return;
-        }
-    }
-
-    const auto songEditorEvent = event.getEventRelativeTo(&m_songEditor);
-    auto position = m_timeLine.snapTime(m_timeLine.xToTimePos(songEditorEvent.x));
-    position = juce::jmax(tracktion::TimePosition(), position);
-
-    m_editViewState.m_playHeadStartTime = position.inSeconds();
-    m_edit.getTransport().setPosition(position);
 }
 
 void EditComponent::modifierKeysChanged(const juce::ModifierKeys& mods)
