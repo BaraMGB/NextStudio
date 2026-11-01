@@ -108,6 +108,20 @@ See [Piano Roll Editor](piano-roll-editor.md),
 [Song Editor](../ui/song-editor.md), and
 [Testing](../development/testing.md).
 
+## Grid line emphasis
+
+`TimelineGridColours::makeLineColours()` owns the shared draw-time line opacity
+hierarchy: bar (0.40), beat (0.25), quarter-beat (0.20 at adaptive levels 0–6,
+otherwise 0.10), finer subdivision (0.08). Level 6 is the 1/8-beat grid and must
+retain stronger quarter-beat landmarks than its intervening lines (#99).
+The same palette is used by the ruler and editor grids. Grid geometry, snap
+resolution and persisted theme colors are unchanged.
+
+[Before/after screenshots for #99](../images/issue-99-grid-before-after.png)
+show the corrected emphasis at level 6 in the same Linux/Xvfb view at 100% UI
+scale. Both captures retain identical 17-pixel line spacing; the crops are
+magnified 2x without smoothing.
+
 ## Timeline band rendering
 
 Persisted `timeLineShadowShade` is an opaque theme RGB tint, not the timeline band's alpha. `TimelineGridColours::makeBandOverlay()` in `App/include/TimelineGridColours.h` assigns renderer-owned 30% opacity. `GUIHelpers::drawBarsAndBeatLines()` in `App/src/Utilities.cpp` performs this conversion once before shared band drawing, so arrangement, Piano Roll, velocity and automation consumers retain visible underlying content without separate opacity rules. Other transient preview/selection alphas remain draw-time effects; no theme-file schema change is required.
@@ -121,7 +135,9 @@ beats-per-pixel, width, raster scale, and visual level. Inactive timelines may
 retain their last layout context until reactivated.
 
 `TimelineViewGeometryTests` covers geometry, threshold sweeps, accumulated
-intent, fractional scales, and JUCE raster coverage. Both nearest and fit
+intent, fractional scales, and JUCE raster coverage. Line-priority checks cover
+all palette levels and render the adaptive 5/6/7 transition neighborhoods on
+light/dark backgrounds at 100/125/150/200% scales and fractional pixel phases. Both nearest and fit
 policies are swept through the interactive zoom range; fit tests also cover
 larger ranges and the extreme subpixel fallback. `TimelineViewStateTests`
 exercises production `EditViewState` setters/conversions with real Tracktion

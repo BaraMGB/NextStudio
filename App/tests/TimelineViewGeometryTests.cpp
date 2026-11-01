@@ -1,3 +1,4 @@
+#include "TimelineGridColours.h"
 #include "TimelineViewGeometry.h"
 #include <cmath>
 #include <iostream>
@@ -146,6 +147,67 @@ void geometryTests()
     intent.applied(0.0162);
     near(intent.multiply(0.0162, 0.9, {800, 1, 4}, 20.0), 0.01458);
 }
+void linePriorityTests()
+{
+    for (auto stroke : {juce::Colours::white, juce::Colours::black})
+        for (int level = 0; level <= 18; ++level)
+        {
+            const auto colours = TimelineGridColours::makeLineColours(stroke, level);
+            require(colours.bar.getAlpha() > colours.beat.getAlpha(), "bar must dominate beat");
+            require(colours.beat.getAlpha() > colours.quarterBeat.getAlpha(), "beat must dominate quarter beat");
+            require(colours.quarterBeat.getAlpha() > colours.subdivision.getAlpha(), "quarter beat must dominate subdivision (#99)");
+            near(colours.quarterBeat.getFloatAlpha(), level <= 6 ? 0.2 : 0.1, 1.0 / 255);
+            near(colours.subdivision.getFloatAlpha(), 0.08, 1.0 / 255);
+            for (auto colour : {colours.bar, colours.beat, colours.quarterBeat, colours.subdivision})
+                require(colour.withAlpha(1.0f) == stroke, "line tint changed");
+        }
+
+    // Render real normalized grids around adaptive transitions, on light/dark
+    // backgrounds and at fractional raster phases. Compare integrated coverage,
+    // not the peak pixel: a stroke may straddle multiple physical columns.
+    for (double scale : {1.0, 1.25, 1.5, 2.0})
+        for (double phase : {0.0, 0.137, 0.5, 0.83})
+            for (int targetLevel : {5, 6, 7})
+                for (double thresholdFactor : {0.999, 1.0, 1.001})
+                    for (bool dark : {false, true})
+                    {
+                        const double requested = tg::intervalBeats(targetLevel - 1, 4) / 12.0 * thresholdFactor;
+                        auto r = tg::normalize({600, scale, 4}, {requested, 0, 0});
+                        require(r.has_value(), "priority grid normalization failed");
+                        const auto colours = TimelineGridColours::makeLineColours(dark ? juce::Colours::white : juce::Colours::black, r->gridLevel);
+                        const auto background = dark ? juce::Colours::black : juce::Colours::white;
+                        const double origin = 10.0 + phase / scale;
+                        const double width = 8.0 / r->beatsPerPixel;
+                        juce::Image image(juce::Image::RGB, int(std::ceil((width + origin + 10) * scale)), 40, true);
+                        juce::Graphics g(image);
+                        g.fillAll(background);
+                        g.addTransform(juce::AffineTransform::scale(static_cast<float>(scale)));
+                        for (const auto &line : tg::lines(0, 8, width, origin, r->gridLevel, 4))
+                        {
+                            auto colour = colours.subdivision;
+                            if (std::fmod(line.beat, 4.0) == 0)
+                                colour = colours.bar;
+                            else if (std::fmod(line.beat, 1.0) == 0)
+                                colour = colours.beat;
+                            else if (std::fmod(line.beat * 4.0, 1.0) == 0)
+                                colour = colours.quarterBeat;
+                            g.setColour(colour);
+                            g.drawLine(float(line.x), 0, float(line.x), 20, 1.0f);
+                        }
+                        auto coverage = [&](double beat)
+                        {
+                            const int centre = int(std::floor((origin + beat / r->beatsPerPixel) * scale));
+                            int sum = 0;
+                            for (int x = centre - 3; x <= centre + 3; ++x)
+                                sum += std::abs(int(image.getPixelAt(x, 10).getRed()) - int(background.getRed()));
+                            return sum;
+                        };
+                        require(coverage(4) > coverage(5), "rendered bar weaker than beat");
+                        require(coverage(5) > coverage(5.5), "rendered beat weaker than quarter beat");
+                        if (r->gridLevel <= 6)
+                            require(coverage(5.5) > coverage(5.625), "rendered quarter beat weaker than subdivision (#99)");
+                    }
+}
 void rasterTests()
 {
     for (double scale : {1.0, 1.25, 1.5, 2.0})
@@ -179,6 +241,7 @@ int main()
     try
     {
         geometryTests();
+        linePriorityTests();
         rasterTests();
         std::cout << "Timeline geometry and raster tests passed\n";
     }

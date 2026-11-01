@@ -701,10 +701,6 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
     if (boundingRect.getWidth() <= 0 || x2beats <= x1beats)
         return;
     auto &avs = evs.m_applicationState;
-    const auto barColour = avs.getTimeLineStrokeColour().withAlpha(0.4f);
-    const auto beatColour = avs.getTimeLineStrokeColour().withAlpha(0.25f);
-    const auto fracColour = avs.getTimeLineStrokeColour().withAlpha(0.1f);
-    const auto snapLineColour = avs.getTimeLineStrokeColour().withAlpha(0.05f);
     const auto shadowShade = TimelineGridColours::makeBandOverlay(avs.getTimeLineShadowShade());
     const auto textColour = avs.getTimeLineTextColour();
     const auto numBeatsPerBar = static_cast<int>(evs.m_edit.tempoSequence.getTimeSigAt(tracktion::TimePosition::fromSeconds(0)).numerator);
@@ -713,10 +709,7 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
         drawBarBeatsShadow(g, evs, x1beats, x2beats, boundingRect, shadowShade);
 
     const int snapLevel = TimelineViewGeometry::gridLevel((x2beats - x1beats) / boundingRect.getWidth(), numBeatsPerBar);
-    // At 1/16 and finer grids, emphasize quarter-beat landmarks for orientation.
-    const bool emphasizeQuarterBeatLines = snapLevel <= 5;
-    const auto quarterBeatColour = emphasizeQuarterBeatLines ? avs.getTimeLineStrokeColour().withAlpha(0.2f) : fracColour;
-    const auto subDivisionColour = emphasizeQuarterBeatLines ? avs.getTimeLineStrokeColour().withAlpha(0.08f) : fracColour.withAlpha(0.2f);
+    const auto lineColours = TimelineGridColours::makeLineColours(avs.getTimeLineStrokeColour(), snapLevel);
 
     double epsilon = 1e-3;
 
@@ -740,22 +733,22 @@ void GUIHelpers::drawBarsAndBeatLines(juce::Graphics &g, EditViewState &evs, dou
 
         if (std::abs(std::fmod(beat, numBeatsPerBar)) < epsilon)
         {
-            lineColour = barColour;
+            lineColour = lineColours.bar;
             isBarLine = true;
         }
         else if (std::abs(std::fmod(beat, 1.0)) < epsilon)
         {
-            lineColour = beatColour;
+            lineColour = lineColours.beat;
             isBeatLine = true;
         }
         else if (std::abs(std::fmod(beat * 4.0, 1.0)) < epsilon)
         {
-            lineColour = quarterBeatColour;
+            lineColour = lineColours.quarterBeat;
             isQuarterBeatLine = true;
         }
         else
         {
-            lineColour = subDivisionColour;
+            lineColour = lineColours.subdivision;
         }
 
         g.setColour(lineColour);
