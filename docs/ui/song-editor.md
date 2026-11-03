@@ -125,6 +125,17 @@ Range independently selects a musical interval over tracks/automation lanes, inc
 - **Join MIDI clips:** Select at least two MIDI clips that form one direct-neighbour block on the same track, then press `Cmd/Ctrl+J`. No unselected clip may occur between them in the track's chronological clip order. MIDI channel, MPE, quantisation, groove, volume, mute and bank-change settings must match; otherwise a five-second message explains the conflict. The joined clip spans the complete selection, retains gaps as silence, expands visible loop repetitions, and trims notes and events at each source clip boundary, including source offsets that cross tempo changes. The operation replaces the sources, selects the result, and can be undone in one step.
 - **Automation:** Click on line = new point. Drag point = move. Right-click on point = delete. `Ctrl/Cmd`+drag on segment = change curve shape.
 
+### Audio clip gain
+
+Select an audio clip to show its gain line and the small **6-pixel circle** at the centre of the line. With Pointer or Time Stretch, drag **only the circle** vertically to change gain in 0.5 dB steps. Playback and the waveform update live. Hovering the circle highlights it and shows the dB value.
+
+- The line itself is not a handle. The clip header remains free of gain interaction for safe selection/movement; fade and resize handles keep their existing functions.
+- Escape cancels the drag; double-clicking the circle resets gain to **0 dB**. Each completed drag or reset is one undoable operation.
+- Multiple selected audio clips change by the same dB amount, preserving their level differences. The whole group stops when any member reaches −100 or +24 dB. MIDI clips in a mixed canvas selection are unchanged.
+- The circle is available at the default track height. It needs at least 24 pixels below the clip header (44 pixels total with the default header); minimized or narrow clips hide it. Increase the track height/zoom or use the properties field instead.
+- The **GAIN** field in the Clip Properties Bar supports exact signed decimal input, optionally followed by `dB`, within −100 to +24 dB. Double-click or focused Enter/F2 starts text editing. Enter, Tab or leaving the field applies valid text; Escape discards it. Typed values are absolute, so `-6` sets every selected audio clip to −6 dB. Wheel/vertical drag changes values relatively.
+- The field shows `—` for differing gains and is disabled for an empty or mixed MIDI/audio selection. Gain is stored in the project; original audio files and track volume are unchanged.
+
 ### Audio clip fades
 
 Audio clips support fade-in and fade-out directly in the Arrangement Area with the Pointer or Time Stretch tool.

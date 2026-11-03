@@ -16,11 +16,11 @@
 - Focus loss applies valid input; invalid input restores the model-derived display rather than leaving a red editor active.
 - Tab/Shift+Tab commits valid text and wraps between fields. Invalid text stays in place; an untouched mixed-value em dash is a no-op.
 - A read-only enabled field's wheel applies a discrete step. Vertical scrubbing starts after four pixels, with four pixels per step and upward movement increasing the value. Unbounded movement is enabled during scrubbing.
-- Scrubbing retains a provisional plan without model/undo mutation; release applies one final operation. Returning to the original values produces no change. Text/wheel edits apply immediately.
+- Timing/note scrubbing retains a provisional plan without model/undo mutation; release applies one final operation. Audio-clip Gain is the deliberate exception: its [live preview](clip-properties-bar.md#audio-clip-gain) updates playback without undo and commits one transaction on release. Returning to the original values creates no undo entry. Text/wheel edits apply immediately.
 - Empty selections disable fields. At rest, equal values display normally and mixed values display `—`; ordering/reference semantics are component-specific.
 - Programmatic text/focus/mode changes use `m_handlingEditorCallback` guards to prevent recursive commit/cancel callbacks. Preserve invalid-state coloring when refreshing theme values.
 
-Timing wheel/scrub steps use the relevant editor's Fixed or Adaptive interval, or one tick with Snap Off. Note pitch/velocity step by semitone/integer. These numeric steps are discrete, not the magnetic canvas mapping.
+Timing wheel/scrub steps use the relevant editor's Fixed or Adaptive interval, or one tick with Snap Off. Note pitch/velocity step by semitone/integer; audio-clip gain steps by 0.5 dB. These numeric steps are discrete, not the magnetic canvas mapping.
 
 [Timeline feedback](timeline-snapping.md#snap-feedback-and-live-values) owns the common canvas-preview precedence/cleanup and queued-focus-loss completion contract. Property-bar pages describe their wiring rather than redefining that lifecycle.
 
@@ -77,6 +77,10 @@ Unsigned MIDI numbers `0..127` give an unambiguous absolute pitch. Signed semito
 **Known source mismatch:** `GUIHelpers::getMidiNoteName()` displays MIDI 60 as C4, but `NotePropertiesBar::parsePitch()` currently calculates `(octave + 2) × 12 + pitchClass`. Consequently typed `C4` means MIDI 72, not 60; typed `C3` means 60. The previous documentation incorrectly asserted those conventions matched. Use MIDI numbers for exact entry until a separately approved implementation correction aligns parsing/display. This documentation migration does not change the parser.
 
 Velocity uses unsigned absolute or signed relative integers. Component-specific clamp rules and multi-note semantics are in NotePropertiesBar; do not infer the velocity-lane clamp from the property parser.
+
+## Audio clip gain
+
+Gain uses signed absolute decimal input, optionally followed by `dB`, not the timing/velocity relative-sign convention. Selection, limits and live-preview ownership are defined in [ClipPropertiesBar](clip-properties-bar.md#audio-clip-gain).
 
 ## Other shared position-display helpers
 

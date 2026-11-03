@@ -217,6 +217,7 @@ void SongEditorView::changeListenerCallback(juce::ChangeBroadcaster *source)
     }
     else if (source == &m_editViewState.m_selectionManager)
     {
+        for (auto *lane : m_trackLanes) lane->validateGainGesture();
         if (m_draggedClip && (!m_draggedClip->state.isAChildOf(m_editViewState.m_edit.state)
             || !m_editViewState.m_selectionManager.isSelected(m_draggedClip)))
             cancelDrag();
@@ -1363,7 +1364,9 @@ void SongEditorView::endDrag()
 
 bool SongEditorView::keyPressed(const juce::KeyPress& key)
 {
-    if (key.getKeyCode() == juce::KeyPress::escapeKey && (m_dragState.isActive() || m_timeRangeGesture.active() || m_lassoComponent.active()))
+    bool gainActive = false;
+    for (auto *lane : m_trackLanes) gainActive |= lane->hasGainGesture();
+    if (key.getKeyCode() == juce::KeyPress::escapeKey && (gainActive || m_dragState.isActive() || m_timeRangeGesture.active() || m_lassoComponent.active()))
     {
         cancelDrag();
         return true;
@@ -1371,8 +1374,14 @@ bool SongEditorView::keyPressed(const juce::KeyPress& key)
     return false;
 }
 
+void SongEditorView::cancelGainEdits()
+{
+    for (auto *lane : m_trackLanes) lane->cancelGainGesture();
+}
+
 void SongEditorView::cancelDrag(bool restoreSelection)
 {
+    cancelGainEdits();
     cancelSelectionGestures(restoreSelection);
     endDrag();
 }

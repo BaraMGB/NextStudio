@@ -52,6 +52,11 @@ std::optional<int> parseStrictInt(const juce::String &input)
 
 bool ClipPropertiesBar::PropertyEditor::keyPressed(const juce::KeyPress &key)
 {
+    if (isReadOnly() && key.getKeyCode() == juce::KeyPress::escapeKey)
+    {
+        if (onEscapeKey) onEscapeKey();
+        return true;
+    }
     if (key.getKeyCode() == juce::KeyPress::tabKey)
     {
         if (tabPressed)
@@ -214,8 +219,105 @@ ClipPropertiesBar::ClipPropertiesBar(EditViewState &evs) : m_evs(evs)
         }
     };
 
+    m_gainField.label.setText("GAIN", juce::dontSendNotification);
+    m_gainField.label.setFont(juce::Font(juce::FontOptions(titleFontHeight)));
+    m_gainField.label.setBorderSize({});
+    m_gainField.label.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(m_gainField.label);
+    addAndMakeVisible(m_gainField.editor);
+    configureField(m_gainField, 4);
+    m_gainField.editor.setTooltip("Audio clip gain in dB; drag or wheel to adjust by 0.5 dB");
+    m_gainField.editor.dragStarted = [this] { beginGainDrag(); };
+    m_gainField.editor.dragUpdated = [this](int steps)
+    {
+        if (!m_gainEdit) return;
+        m_gainSteps += steps;
+        if (!m_gainEdit->previewRelative(m_gainSteps * 0.5f)) endGainDrag(false);
+        refreshGainField();
+    };
+    m_gainField.editor.dragEnded = [this] { endGainDrag(true); };
+    m_gainField.editor.wheelMoved = [this](int steps)
+    {
+        beginGainDrag();
+        if (m_gainEdit) m_gainEdit->previewRelative(steps * 0.5f);
+        endGainDrag(true);
+    };
     updateColours();
     clearSelection();
+}
+
+ClipPropertiesBar::~ClipPropertiesBar()
+{
+    endGainDrag(false);
+}
+
+void ClipPropertiesBar::refreshGainField()
+{
+    const auto selection = m_evs.m_selectionManager.getItemsOfType<te::Clip>();
+    const bool enabled = !m_interactionPreview && ClipGainEdit::audioOnly(selection);
+    if (m_gainEdit && (!enabled || !m_gainEdit->matches(selection)))
+        endGainDrag(false);
+    auto text = juce::String::fromUTF8("\xe2\x80\x94");
+    if (enabled)
+    {
+        const float gain = static_cast<te::AudioClipBase *>(selection.getFirst())->getGainDB();
+        bool common = true;
+        for (auto *clip : selection)
+            common &= std::abs(static_cast<te::AudioClipBase *>(clip)->getGainDB() - gain) < 0.0001f;
+        if (common) text = ClipGainEdit::format(gain);
+    }
+    const juce::ScopedValueSetter<bool> guard(m_handlingEditorCallback, true);
+    m_gainField.displayedText = text;
+    m_gainField.editor.setEnabled(enabled);
+    m_gainField.label.setEnabled(enabled);
+    if (!enabled) m_gainField.editor.setReadOnly(true);
+    if (m_gainField.editor.isReadOnly()) m_gainField.editor.setText(text, false);
+}
+
+bool ClipPropertiesBar::keyPressed(const juce::KeyPress &key, juce::Component *)
+{
+    if (m_gainEdit && key.getKeyCode() == juce::KeyPress::escapeKey)
+    {
+        endGainDrag(false);
+        return true;
+    }
+    return false;
+}
+
+void ClipPropertiesBar::beginGainDrag()
+{
+    endGainDrag(false);
+    const auto selection = m_evs.m_selectionManager.getItemsOfType<te::Clip>();
+    if (m_interactionPreview || !ClipGainEdit::audioOnly(selection)) return;
+    m_gainSaveLock = std::make_unique<ScopedSaveLock>(m_evs);
+    m_gainEdit = std::make_unique<ClipGainEdit>(m_evs.m_edit, selection);
+    m_gainSteps = 0;
+    m_gainKeyTarget = getTopLevelComponent();
+    m_gainKeyTarget->addKeyListener(this);
+}
+
+void ClipPropertiesBar::endGainDrag(bool commit)
+{
+    if (m_gainKeyTarget) m_gainKeyTarget->removeKeyListener(this);
+    m_gainKeyTarget = nullptr;
+    auto gesture = std::move(m_gainEdit);
+    if (gesture)
+    {
+        if (commit && gesture->matches(m_evs.m_selectionManager.getItemsOfType<te::Clip>())) gesture->commit();
+        else gesture->cancel();
+    }
+    m_gainSaveLock.reset();
+    if (gesture) refreshGainField();
+}
+
+bool ClipPropertiesBar::applyGain(const juce::String &text)
+{
+    const auto gain = ClipGainEdit::parse(text);
+    const auto selection = m_evs.m_selectionManager.getItemsOfType<te::Clip>();
+    if (!gain || m_interactionPreview || !ClipGainEdit::audioOnly(selection)) return false;
+    ScopedSaveLock lock(m_evs);
+    ClipGainEdit edit(m_evs.m_edit, selection);
+    return edit.previewAbsolute(*gain) && edit.commit();
 }
 
 void ClipPropertiesBar::configureField(Field &field, int focusOrder)
@@ -283,8 +385,8 @@ void ClipPropertiesBar::setTimingStepProvider(TimingStepProvider provider)
 
 void ClipPropertiesBar::finishActiveEdit()
 {
-    for (auto& field : m_fields)
-        TimelineInteractionPreview::finishTextEdit(field.editor);
+    for (auto* field : allFields())
+        TimelineInteractionPreview::finishTextEdit(field->editor);
 }
 
 void ClipPropertiesBar::setSnapFeedback(std::optional<TimelineInteractionFeedback> feedback)
@@ -298,8 +400,12 @@ void ClipPropertiesBar::setInteractionPreview(std::optional<ClipTimingPreview> p
         || !std::isfinite(preview->range.getEnd().inSeconds()) || preview->range.isEmpty()))
         preview.reset();
     if (preview && !m_interactionPreview)
+    {
         cancelScrub();
+        endGainDrag(false);
+    }
     m_interactionPreview = preview;
+    refreshGainField();
     m_handlingEditorCallback = true;
     for (auto& field : m_fields)
     {
@@ -327,8 +433,9 @@ void ClipPropertiesBar::updateColours()
 {
     const auto labelColour = m_evs.m_applicationState.getTextColour();
     const auto valueColour = m_evs.m_applicationState.getButtonTextColour();
-    for (auto &field : m_fields)
+    for (auto *fieldPtr : allFields())
     {
+        auto &field = *fieldPtr;
         field.label.setColour(juce::Label::textColourId, labelColour.withAlpha(0.85f));
         field.editor.applyColourToAllText(field.invalid ? juce::Colours::red : (m_interactionPreview
             ? TimelineInteractionPreview::textColour(valueColour, m_evs.m_applicationState.getPrimeColour()) : valueColour));
@@ -350,10 +457,12 @@ void ClipPropertiesBar::clearSelection()
     if (m_interactionPreview)
         return;
     cancelScrub();
+    endGainDrag(false);
     m_selection.clearQuick();
     m_handlingEditorCallback = true;
-    for (auto &field : m_fields)
+    for (auto *fieldPtr : allFields())
     {
+        auto &field = *fieldPtr;
         field.displayedText = juce::String::fromUTF8("\xe2\x80\x94");
         field.editor.setText(field.displayedText, false);
         field.editor.setReadOnly(true);
@@ -369,6 +478,7 @@ void ClipPropertiesBar::refreshFromSelection(bool discardActiveEdit)
 {
     if (m_interactionPreview)
         return;
+    refreshGainField();
     auto selection = m_evs.m_selectionManager.getItemsOfType<te::Clip>();
     if (selection.isEmpty())
         return clearSelection();
@@ -386,6 +496,15 @@ void ClipPropertiesBar::refreshFromSelection(bool discardActiveEdit)
     }
 
     m_selection = selection;
+    if (changed)
+    {
+        m_gainField.editor.setReadOnly(true);
+        m_gainField.editor.setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+        setInvalid(m_gainField, false);
+        if (discardActiveEdit && m_gainField.editor.hasKeyboardFocus(true))
+            m_gainField.editor.giveAwayKeyboardFocus();
+        refreshGainField();
+    }
 
     if (discardActiveEdit && changed)
         for (auto &field : m_fields)
@@ -457,6 +576,7 @@ void ClipPropertiesBar::commit(Field &field)
 
 void ClipPropertiesBar::cancel(Field &field)
 {
+    if (field.property == Property::gain) endGainDrag(false);
     m_handlingEditorCallback = true;
     field.editor.setText(field.displayedText, false);
     field.editor.setReadOnly(true);
@@ -468,10 +588,18 @@ void ClipPropertiesBar::cancel(Field &field)
 
 void ClipPropertiesBar::focusAdjacent(Field &field, bool backwards)
 {
-    auto index = static_cast<int>(&field - m_fields.data());
-    index = (index + (backwards ? -1 : 1) + static_cast<int>(m_fields.size())) % static_cast<int>(m_fields.size());
-    m_fields[static_cast<size_t>(index)].editor.grabKeyboardFocus();
-    m_fields[static_cast<size_t>(index)].editor.selectAll();
+    const auto fields = allFields();
+    auto index = static_cast<int>(std::find(fields.begin(), fields.end(), &field) - fields.begin());
+    for (size_t i = 0; i < fields.size(); ++i)
+    {
+        index = (index + (backwards ? -1 : 1) + static_cast<int>(fields.size())) % static_cast<int>(fields.size());
+        if (fields[static_cast<size_t>(index)]->editor.isEnabled())
+        {
+            fields[static_cast<size_t>(index)]->editor.grabKeyboardFocus();
+            fields[static_cast<size_t>(index)]->editor.selectAll();
+            break;
+        }
+    }
 }
 
 void ClipPropertiesBar::beginScrub(Field &field)
@@ -563,6 +691,7 @@ void ClipPropertiesBar::cancelScrub()
 
 bool ClipPropertiesBar::apply(Property property, const juce::String &input)
 {
+    if (property == Property::gain) return applyGain(input);
     m_selection = m_evs.m_selectionManager.getItemsOfType<te::Clip>();
     auto plan = createEditPlan(property, input, m_selection);
     if (!plan)
@@ -766,16 +895,16 @@ void ClipPropertiesBar::paint(juce::Graphics &g)
     g.drawFittedText(juce::String(m_interactionPreview ? m_interactionPreview->selectionCount : m_selection.size()), selectionArea, juce::Justification::centredLeft, 1);
 
     g.setColour(m_evs.m_applicationState.getBorderColour());
-    for (const auto &field : m_fields)
-        g.drawVerticalLine(field.bounds.getX() - ((fieldGap + 1) / 2), 3.0f, static_cast<float>(getHeight() - 3));
+    for (const auto *field : allFields())
+        g.drawVerticalLine(field->bounds.getX() - ((fieldGap + 1) / 2), 3.0f, static_cast<float>(getHeight() - 3));
     for (const auto x : {m_snapControlBounds.getX(), m_insertLengthControlBounds.getX()})
         if (x > 0)
             g.drawVerticalLine(x - ((fieldGap + 1) / 2), 3.0f, static_cast<float>(getHeight() - 3));
-    for (const auto &field : m_fields)
-        if (!field.editor.isReadOnly() && field.editor.hasKeyboardFocus(true))
+    for (const auto *field : allFields())
+        if (!field->editor.isReadOnly() && field->editor.hasKeyboardFocus(true))
         {
-            g.setColour(field.invalid ? juce::Colours::red : valueColour.withAlpha(0.7f));
-            g.drawRoundedRectangle(field.editor.getBounds().toFloat().reduced(0.5f), 4.0f, 1.0f);
+            g.setColour(field->invalid ? juce::Colours::red : valueColour.withAlpha(0.7f));
+            g.drawRoundedRectangle(field->editor.getBounds().toFloat().reduced(0.5f), 4.0f, 1.0f);
         }
 }
 
@@ -805,6 +934,8 @@ void ClipPropertiesBar::resized()
     lengthArea.removeFromLeft(juce::jmin(labelGap, lengthArea.getWidth()));
     m_insertLengthBox.setBounds(lengthArea);
 
+    const auto gainWidth = juce::jmin(130, fullArea.getWidth());
+    fullArea.removeFromRight(gainWidth);
     auto area = fullArea.reduced(panelPadding, 1);
     const auto selectionWidth = juce::roundToInt(measureTextWidth(titleFont, "SELECTED CLIPS:"))
                                 + juce::roundToInt(measureTextWidth(valueFont, "8888"))
@@ -846,7 +977,11 @@ void ClipPropertiesBar::resized()
     // Keep the timeline controls directly beside the property fields, as in
     // NotePropertiesBar, instead of pinning them to the far-right window edge.
     auto controlsArea = getLocalBounds().reduced(4, 1);
-    const auto controlsX = m_fields.back().bounds.getRight() + fieldGap;
+    m_gainField.bounds = {m_fields.back().bounds.getRight() + fieldGap, 2, gainWidth, getHeight() - 4};
+    auto gainArea = m_gainField.bounds.reduced(fieldPadding, 0);
+    m_gainField.label.setBounds(gainArea.removeFromLeft(30));
+    m_gainField.editor.setBounds(gainArea);
+    const auto controlsX = m_gainField.bounds.getRight() + fieldGap;
     controlsArea.removeFromLeft(juce::jmin(controlsX - controlsArea.getX(), controlsArea.getWidth()));
     controlsArea = controlsArea.removeFromLeft(juce::jmin(390, controlsArea.getWidth()));
     auto finalSnapArea = controlsArea.removeFromLeft(juce::roundToInt(controlsArea.getWidth() * 0.38f));

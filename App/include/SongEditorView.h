@@ -108,6 +108,7 @@ public:
     void setMouseFeedback(const TimelineSnapResult&, juce::Range<float> vertical, float markerY, std::function<void()> refresh = {});
     void clearMouseFeedback();
     void cancelDrag(bool restoreSelection = true);
+    void cancelGainEdits();
     TimelineSnapResolver getMouseSnapResolver() const { return m_timeLine.getMouseSnapResolver(); }
     tracktion::TimePosition snapTimeForMouse(tracktion::TimePosition time) const { return m_timeLine.snapTimeForMouse(time); }
     void beginClipMouseGesture(double pointerX);

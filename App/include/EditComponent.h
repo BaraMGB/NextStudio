@@ -78,6 +78,11 @@ class EditComponent
 public:
     EditComponent(te::Edit &, EditViewState &m_editViewState, ApplicationViewState &avs, te::SelectionManager &, juce::ApplicationCommandManager &cm);
     ~EditComponent() override;
+    void cancelGainEdits()
+    {
+        m_clipPropertiesBar.cancelGainGesture();
+        m_songEditor.cancelGainEdits();
+    }
 
     void paint(juce::Graphics &g) override;
     void paintOverChildren(juce::Graphics &g) override;

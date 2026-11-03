@@ -294,6 +294,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
 
 EditComponent::~EditComponent()
 {
+    cancelGainEdits();
     finishPanGesture();
     m_trackListView.stopTrackDragAutoScroll();
     m_trackListView.setTrackDragScrollHandler({});
@@ -772,7 +773,11 @@ void EditComponent::handleTempFileWriteFinished(bool wasSuccessful, juce::uint64
 void EditComponent::valueTreePropertyChanged(juce::ValueTree &v, const juce::Identifier &i)
 {
     if (te::Clip::isClipState(v))
+    {
         m_clipPropertiesBar.refreshFromSelection();
+        if (i == te::IDs::gain)
+            m_songEditor.repaint();
+    }
 
     if (i == te::IDs::loopPoint1 || i == te::IDs::loopPoint2 || i == te::IDs::looping
         || v.hasType(te::IDs::TIMESIG))

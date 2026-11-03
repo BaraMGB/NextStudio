@@ -28,17 +28,20 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "MouseGestureInput.h"
 #include "EditViewState.h"
 #include "Utilities.h"
+#include "ClipGainEdit.h"
+#include "ClipGainHandle.h"
+#include "ScopedSaveLock.h"
 
 namespace te = tracktion_engine;
 
 class SongEditorView;
 
-class TrackLaneComponent : public juce::Component
+class TrackLaneComponent : public juce::Component, private juce::KeyListener
 {
 public:
     TrackLaneComponent(EditViewState &evs, te::Track::Ptr track, juce::String timelineID, SongEditorView &owner);
 
-    ~TrackLaneComponent() override = default;
+    ~TrackLaneComponent() override;
 
     void paint(juce::Graphics &g) override;
     void resized() override;
@@ -58,6 +61,9 @@ public:
     void waveClipDragOperationEnded();
     bool isClipAt(juce::Point<float> point) { return getClipHoverState(point, false).clip != nullptr; }
 
+    bool hasGainGesture() const { return m_gainEdit != nullptr; }
+    void cancelGainGesture();
+    void validateGainGesture();
     void refreshCursor(juce::ModifierKeys mods);
     void buildAutomationLanes();
     AutomationLaneComponent *getAutomationLane(tracktion::AutomatableParameter::Ptr ap);
@@ -76,7 +82,11 @@ private:
         FadeHitZone fadeZone{FadeHitZone::none};
         bool leftBorder{false};
         bool rightBorder{false};
+        bool gainHandle{false};
     };
+
+    bool keyPressed(const juce::KeyPress &, juce::Component *) override;
+    void releaseGainKeyCapture();
 
     // Helpers
     float timeToX(tracktion::TimePosition time);
@@ -111,6 +121,12 @@ private:
     te::Clip::Ptr m_hoveredClip{nullptr};
     bool m_leftBorderHovered{false};
     bool m_rightBorderHovered{false};
+    bool m_gainHovered{false};
+    bool m_gainMouseDown{false};
+    te::AudioClipBase::Ptr m_gainClip;
+    std::unique_ptr<ScopedSaveLock> m_gainSaveLock;
+    std::unique_ptr<ClipGainEdit> m_gainEdit;
+    juce::Component::SafePointer<juce::Component> m_gainKeyTarget;
     FadeHitZone m_hoveredFadeZone{FadeHitZone::none};
     tracktion::TimePosition m_knifeSplitPosition;
     bool m_hasKnifeSplitPosition{false};

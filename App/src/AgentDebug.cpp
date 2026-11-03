@@ -94,6 +94,8 @@ juce::var buildClipSummary(const te::Clip &clip)
     object->setProperty("type", clipTypeToString(clip));
     object->setProperty("startSeconds", clip.getPosition().getStart().inSeconds());
     object->setProperty("lengthSeconds", clip.getPosition().getLength().inSeconds());
+    if (auto *audioClip = dynamic_cast<const te::AudioClipBase *>(&clip))
+        object->setProperty("gainDb", audioClip->getGainDB());
 
     if (auto *midiClip = dynamic_cast<const te::MidiClip *>(&clip))
     {

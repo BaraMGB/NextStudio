@@ -15,6 +15,8 @@ by the Free Software Foundation, either version 3 of the License, or
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "EditViewState.h"
 #include "ClipPropertyEdit.h"
+#include "ClipGainEdit.h"
+#include "ScopedSaveLock.h"
 #include <array>
 #include <functional>
 #include <optional>
@@ -22,16 +24,17 @@ by the Free Software Foundation, either version 3 of the License, or
 namespace te = tracktion_engine;
 
 /** Compact editor for clips selected in the song editor. */
-class ClipPropertiesBar : public juce::Component
+class ClipPropertiesBar : public juce::Component, private juce::KeyListener
 {
 public:
-    enum class Property { start, end, duration };
+    enum class Property { start, end, duration, gain };
 
     using PreviewHandler = std::function<void(const juce::Array<ClipPropertyEdit> &)>;
     using CommitHandler = std::function<void(Property, const juce::Array<ClipPropertyEdit> &)>;
     using TimingStepProvider = std::function<double()>;
 
     explicit ClipPropertiesBar(EditViewState &);
+    ~ClipPropertiesBar() override;
 
     void setEditHandlers(PreviewHandler, CommitHandler);
     void setTimingStepProvider(TimingStepProvider);
@@ -39,6 +42,7 @@ public:
     void clearSelection();
     void updateColours();
     void finishActiveEdit();
+    void cancelGainGesture() { endGainDrag(false); }
     void setInteractionPreview(std::optional<ClipTimingPreview>);
     void setSnapFeedback(std::optional<TimelineInteractionFeedback>);
 
@@ -78,6 +82,12 @@ private:
         bool invalid{false};
     };
 
+    std::array<Field *, 4> allFields() { return {{&m_fields[0], &m_fields[1], &m_fields[2], &m_gainField}}; }
+    bool keyPressed(const juce::KeyPress &, juce::Component *) override;
+    void refreshGainField();
+    void beginGainDrag();
+    void endGainDrag(bool commit);
+    bool applyGain(const juce::String &);
     void configureField(Field &, int focusOrder);
     void beginEditing(Field &);
     void commit(Field &);
@@ -111,6 +121,11 @@ private:
         {Property::start, {}, {}, {}},
         {Property::end, {}, {}, {}},
         {Property::duration, {}, {}, {}}}};
+    Field m_gainField{Property::gain, {}, {}, {}};
+    std::unique_ptr<ScopedSaveLock> m_gainSaveLock;
+    std::unique_ptr<ClipGainEdit> m_gainEdit;
+    juce::Component::SafePointer<juce::Component> m_gainKeyTarget;
+    int m_gainSteps{0};
     juce::Array<te::Clip *> m_selection;
     juce::Array<te::Clip *> m_scrubSelection;
     juce::Array<ClipPropertyEdit> m_scrubBase;

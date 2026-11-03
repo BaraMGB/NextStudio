@@ -37,6 +37,11 @@ TrackLaneComponent::TrackLaneComponent(EditViewState &evs, te::Track::Ptr track,
     buildAutomationLanes();
 }
 
+TrackLaneComponent::~TrackLaneComponent()
+{
+    cancelGainGesture();
+}
+
 void TrackLaneComponent::paint(juce::Graphics &g)
 {
     if (m_track == nullptr)
@@ -68,6 +73,26 @@ void TrackLaneComponent::paint(juce::Graphics &g)
         g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour().darker(0.1f));
         g.fillRect(area);
         GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, area);
+    }
+
+    if (auto *audio = m_gainEdit ? m_gainClip.get()
+                                : (m_gainHovered ? dynamic_cast<te::AudioClipBase *>(m_hoveredClip.get()) : nullptr))
+    {
+        const auto rect = getClipRect(audio);
+        if (auto handle = ClipGainHandle::geometry(rect, float(m_editViewState.m_clipHeaderHeight), audio->getGainDB()))
+        {
+            juce::Graphics::ScopedSaveState saved(g);
+            g.reduceClipRegion(rect.toNearestInt());
+            g.setColour(m_editViewState.m_applicationState.getPrimeColour());
+            g.fillEllipse(handle->circle());
+            auto label = juce::Rectangle<float>(handle->centre.x - 40.0f, handle->centre.y + 5.0f, 80.0f, 16.0f);
+            if (label.getBottom() > rect.getBottom()) label.setY(handle->centre.y - 21.0f);
+            g.setColour(m_editViewState.m_applicationState.getBackgroundColour1());
+            g.fillRoundedRectangle(label, 3.0f);
+            g.setColour(m_editViewState.m_applicationState.getTextColour());
+            g.setFont(juce::Font(juce::FontOptions(12.0f)));
+            g.drawText(ClipGainEdit::format(audio->getGainDB()), label, juce::Justification::centred);
+        }
     }
 
     if (m_songEditor.getToolMode() == Tool::knife && m_hoveredClip != nullptr && m_hasKnifeSplitPosition)
@@ -154,6 +179,8 @@ void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
     const auto toolMode = m_songEditor.getToolMode();
     // A Knife preview must resolve the latest pointer position, including the
     // final 1-2px move into a detent. Dropping that event leaves a stale cut line.
+    // Other tools retain the normal event throttle; its movement threshold is
+    // smaller than the gain handle and avoids scanning every clip per native event.
     if (toolMode != Tool::knife && !m_mouseThrottler.shouldProcess(e))
         return;
 
@@ -162,13 +189,14 @@ void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
     bool needsRepaint = false;
     auto hoverState = getClipHoverState(e.position, allowFadeHandles);
 
-    if (m_hoveredClip != hoverState.clip || m_leftBorderHovered != hoverState.leftBorder || m_rightBorderHovered != hoverState.rightBorder || m_hoveredFadeZone != hoverState.fadeZone)
+    if (m_hoveredClip != hoverState.clip || m_leftBorderHovered != hoverState.leftBorder || m_rightBorderHovered != hoverState.rightBorder || m_hoveredFadeZone != hoverState.fadeZone || m_gainHovered != hoverState.gainHandle)
         needsRepaint = true;
 
     m_hoveredClip = hoverState.clip;
     m_leftBorderHovered = hoverState.leftBorder;
     m_rightBorderHovered = hoverState.rightBorder;
     m_hoveredFadeZone = hoverState.fadeZone;
+    m_gainHovered = hoverState.gainHandle;
 
     if (toolMode == Tool::knife && m_hoveredClip != nullptr)
     {
@@ -196,6 +224,7 @@ void TrackLaneComponent::mouseExit(const juce::MouseEvent &e)
         m_leftBorderHovered = false;
         m_rightBorderHovered = false;
         m_hoveredFadeZone = FadeHitZone::none;
+        m_gainHovered = false;
         m_hasKnifeSplitPosition = false;
         repaint();
     }
@@ -219,7 +248,8 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     clearPendingClipSelection();
     m_songEditor.beginSelectionInput();
     m_mouseInput.remember(e);
-    ScopedSaveLock saveLock(m_editViewState);
+    cancelGainGesture();
+    m_gainMouseDown = false;
     if (m_editViewState.clipInteractionBeginning)
         m_editViewState.clipInteractionBeginning();
     m_songEditor.grabKeyboardFocus();
@@ -234,8 +264,33 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     m_leftBorderHovered = hoverState.leftBorder;
     m_rightBorderHovered = hoverState.rightBorder;
     m_hoveredFadeZone = hoverState.fadeZone;
+    m_gainHovered = hoverState.gainHandle;
     bool isClipClicked = m_hoveredClip != nullptr;
 
+    if (leftButton && m_gainHovered)
+    {
+        m_gainMouseDown = true;
+        m_gainClip = dynamic_cast<te::AudioClipBase *>(m_hoveredClip.get());
+        m_gainSaveLock = std::make_unique<ScopedSaveLock>(m_editViewState);
+        m_gainEdit = std::make_unique<ClipGainEdit>(m_editViewState.m_edit, sm.getItemsOfType<te::Clip>());
+        if (e.getNumberOfClicks() > 1)
+        {
+            auto gesture = std::move(m_gainEdit);
+            gesture->previewAbsolute(0.0f);
+            gesture->commit();
+            m_gainSaveLock.reset();
+        }
+        else
+        {
+            m_gainKeyTarget = getTopLevelComponent();
+            m_gainKeyTarget->addKeyListener(this);
+        }
+        setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+        repaint();
+        return;
+    }
+
+    ScopedSaveLock saveLock(m_editViewState);
     // 1. Clip Interaction
     if (isClipClicked && rightButton)
     {
@@ -364,6 +419,18 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
 {
     if (!m_mouseInput.belongsToGesture(e)) return;
     m_mouseInput.remember(e);
+    if (m_gainMouseDown)
+    {
+        validateGainGesture();
+        if (m_gainEdit)
+        {
+            const float delta = -float(e.getDistanceFromDragStartY() / 4) * 0.5f;
+            if (!m_gainEdit->previewRelative(delta)) cancelGainGesture();
+        }
+        m_songEditor.repaint();
+        repaint();
+        return;
+    }
     auto toolMode = m_songEditor.getToolMode();
     auto &dragState = m_songEditor.getDragState();
 
@@ -436,6 +503,21 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
 void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
 {
     if (!m_mouseInput.belongsToGesture(e)) return;
+    if (m_gainMouseDown)
+    {
+        mouseDrag(e);
+        releaseGainKeyCapture();
+        auto gesture = std::move(m_gainEdit);
+        if (gesture) gesture->commit();
+        m_gainSaveLock.reset();
+        m_gainMouseDown = false;
+        m_gainClip = nullptr;
+        m_mouseInput.reset();
+        refreshCursor(e.mods);
+        m_songEditor.repaint();
+        repaint();
+        return;
+    }
     if (m_songEditor.takeCancelledSelection(e))
     {
         clearPendingClipSelection();
@@ -548,6 +630,38 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
     repaint();
 }
 
+bool TrackLaneComponent::keyPressed(const juce::KeyPress &key, juce::Component *)
+{
+    if (m_gainEdit && key.getKeyCode() == juce::KeyPress::escapeKey)
+    {
+        cancelGainGesture();
+        return true;
+    }
+    return false;
+}
+
+void TrackLaneComponent::releaseGainKeyCapture()
+{
+    if (m_gainKeyTarget) m_gainKeyTarget->removeKeyListener(this);
+    m_gainKeyTarget = nullptr;
+}
+
+void TrackLaneComponent::cancelGainGesture()
+{
+    releaseGainKeyCapture();
+    auto gesture = std::move(m_gainEdit);
+    if (gesture) gesture->cancel();
+    m_gainSaveLock.reset();
+    m_gainClip = nullptr;
+    if (gesture) repaint();
+}
+
+void TrackLaneComponent::validateGainGesture()
+{
+    if (m_gainEdit && !m_gainEdit->matches(m_editViewState.m_selectionManager.getItemsOfType<te::Clip>()))
+        cancelGainGesture();
+}
+
 void TrackLaneComponent::refreshMouseSnapContext()
 {
     if (auto event = m_mouseInput.forContext(*this, juce::ModifierKeys::getCurrentModifiers()))
@@ -636,6 +750,11 @@ TrackLaneComponent::ClipHoverState TrackLaneComponent::getClipHoverState(juce::P
                     result.rightBorder = true;
             }
 
+            if (allowFadeHandles && !isFadeZone(result.fadeZone) && !result.leftBorder && !result.rightBorder
+                && m_editViewState.m_selectionManager.isSelected(clip))
+                if (auto *audio = dynamic_cast<te::AudioClipBase *>(clip))
+                    if (auto handle = ClipGainHandle::geometry(getClipRect(clip), float(m_editViewState.m_clipHeaderHeight), audio->getGainDB()))
+                        result.gainHandle = handle->hit(point);
             break;
         }
     }
@@ -992,7 +1111,7 @@ juce::Rectangle<float> TrackLaneComponent::getClipRect(te::Clip::Ptr clip)
 
 void TrackLaneComponent::refreshCursor(juce::ModifierKeys mods)
 {
-    if (m_songEditor.getDragState().isClipDrag())
+    if (m_songEditor.getDragState().isClipDrag() || m_gainMouseDown)
         return;
 
     const auto point = getLocalPoint(nullptr, juce::Desktop::getInstance().getMainMouseSource().getScreenPosition());
@@ -1003,7 +1122,9 @@ void TrackLaneComponent::refreshCursor(juce::ModifierKeys mods)
     m_leftBorderHovered = hover.leftBorder;
     m_rightBorderHovered = hover.rightBorder;
     m_hoveredFadeZone = hover.fadeZone;
+    m_gainHovered = hover.gainHandle;
     updateCursor(mods);
+    repaint();
 }
 
 void TrackLaneComponent::updateCursor(juce::ModifierKeys modifierKeys)
@@ -1019,7 +1140,11 @@ void TrackLaneComponent::updateCursor(juce::ModifierKeys modifierKeys)
     // Clip cursor handling
     if (m_hoveredClip != nullptr && (toolMode == Tool::pointer || toolMode == Tool::timestretch))
     {
-        if (isFadeZone(m_hoveredFadeZone))
+        if (m_gainHovered || m_gainEdit)
+        {
+            setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+        }
+        else if (isFadeZone(m_hoveredFadeZone))
         {
             setMouseCursor(curveCursor);
         }

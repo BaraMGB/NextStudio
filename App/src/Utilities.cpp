@@ -20,6 +20,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 */
 
 #include "Utilities.h"
+#include "ClipGainHandle.h"
 #include "ClipContextActions.h"
 #include "TrackInsertion.h"
 #include "ClipGestureLimits.h"
@@ -201,6 +202,17 @@ void GUIHelpers::drawClip(juce::Graphics &g, juce::Component &parent, EditViewSt
     {
         if (canDrawAudioClipFades(parent, evs, clipRect))
             drawAudioClipFades(g, evs, *audioClip, clipRect, displayedRect, x1Beat, x2beat, color, previewPosition);
+        if (isSelected && previewPosition == nullptr)
+            if (auto handle = ClipGainHandle::geometry(clipRect, float(evs.m_clipHeaderHeight), audioClip->getGainDB()))
+            {
+                juce::Graphics::ScopedSaveState saved(g);
+                g.reduceClipRegion(displayedRect.getIntersection(clipRect).toNearestInt());
+                const auto ink = color.contrasting(0.85f);
+                g.setColour(ink.withAlpha(0.5f));
+                g.drawLine(handle->left, handle->centre.y, handle->right, handle->centre.y, 1.0f);
+                g.setColour(ink);
+                g.fillEllipse(handle->circle());
+            }
     }
 
     g.saveState();

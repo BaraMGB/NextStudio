@@ -434,9 +434,11 @@ bool MainComponent::perform(const juce::ApplicationCommandTarget::InvocationInfo
     }
 
     case KeyPressCommandIDs::undo:
+        if (m_editComponent) m_editComponent->cancelGainEdits();
         m_edit->undo();
         break;
     case KeyPressCommandIDs::redo:
+        if (m_editComponent) m_editComponent->cancelGainEdits();
         m_edit->redo();
         break;
     case KeyPressCommandIDs::saveProject:
@@ -775,6 +777,7 @@ void MainComponent::saveSettings()
 
 GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs, bool preservePendingOperation)
 {
+    if (m_editComponent) m_editComponent->cancelGainEdits();
     if (m_header)
         m_header->clearSaveFeedback();
     if (!m_editViewState)
@@ -796,6 +799,7 @@ GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProject(bool saveAs, boo
 
 GUIHelpers::ProjectSaveResult MainComponent::saveCurrentProjectTo(const juce::File &targetFile)
 {
+    if (m_editComponent) m_editComponent->cancelGainEdits();
     if (m_header)
         m_header->clearSaveFeedback();
     if (!m_editViewState)
@@ -957,6 +961,7 @@ void MainComponent::updateMainInteractionLock(bool resumePlayback)
 
     if (lockChanged && shouldLock)
     {
+        if (m_editComponent) m_editComponent->cancelGainEdits();
         if (m_edit != nullptr)
         {
             auto &transport = m_edit->getTransport();
