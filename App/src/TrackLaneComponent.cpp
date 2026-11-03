@@ -22,6 +22,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "TrackLaneComponent.h"
 #include "ClipContextActions.h"
 #include "ClipOverwriteCommand.h"
+#include "FolderCollectionDrawing.h"
 #include "SongEditorView.h"
 #include "ScopedSaveLock.h"
 #include "TimeUtils.h"
@@ -35,11 +36,90 @@ TrackLaneComponent::TrackLaneComponent(EditViewState &evs, te::Track::Ptr track,
     // Enable mouse events for this component and its children
     setInterceptsMouseClicks(true, true);
     buildAutomationLanes();
+    if (m_track->isFolderTrack())
+    {
+        m_track->state.addListener(this);
+        refreshCollections();
+    }
 }
 
 TrackLaneComponent::~TrackLaneComponent()
 {
+    cancelPendingUpdate();
+    m_track->state.removeListener(this);
     cancelGainGesture();
+}
+
+void TrackLaneComponent::refreshCollections()
+{
+    if (auto* folder = dynamic_cast<te::FolderTrack*>(m_track.get()))
+    {
+        folder->generateCollectionClips(m_editViewState.m_selectionManager);
+        if (m_hoveredCollection && !folder->contains(m_hoveredCollection.get())) m_hoveredCollection = nullptr;
+        repaint();
+    }
+}
+
+void TrackLaneComponent::cancelCollectionSelection(bool restore)
+{
+    if (m_collectionSelectionCaptured && restore)
+        m_collectionOriginalSelection.restore(m_editViewState.m_edit, m_editViewState.m_selectionManager);
+    m_collectionOriginalSelection.clear();
+    m_collectionSelectionCaptured = false;
+}
+
+void TrackLaneComponent::handleAsyncUpdate()
+{
+    const auto& drag = m_songEditor.getDragState();
+    if (drag.draggedCollection && !drag.collectionGuard.matches()) m_songEditor.cancelDrag();
+    refreshCollections();
+}
+void TrackLaneComponent::valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier& id)
+{
+    if (id == te::IDs::groupID)
+        if (auto* folder = dynamic_cast<te::FolderTrack*>(m_track.get())) folder->setDirtyClips();
+    triggerAsyncUpdate();
+}
+void TrackLaneComponent::valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) { triggerAsyncUpdate(); }
+void TrackLaneComponent::valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) { triggerAsyncUpdate(); }
+void TrackLaneComponent::valueTreeChildOrderChanged(juce::ValueTree&, int, int) { triggerAsyncUpdate(); }
+
+te::CollectionClip* TrackLaneComponent::getCollectionAt(juce::Point<float> point)
+{
+    if (auto* folder = dynamic_cast<te::FolderTrack*>(m_track.get()))
+    {
+        // Resolve pending model changes before input, never from paint().
+        if (isUpdatePending()) { cancelPendingUpdate(); refreshCollections(); }
+        if (point.y < 0 || point.y >= m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false)) return nullptr;
+        for (int i = 0; i < folder->getNumCollectionClips(); ++i)
+            if (auto* cc = folder->getCollectionClip(i); cc->range.contains(xtoTime(point.x))) return cc;
+    }
+    return nullptr;
+}
+
+void TrackLaneComponent::paintCollections(juce::Graphics& g, juce::Rectangle<float> area)
+{
+    auto* folder = dynamic_cast<te::FolderTrack*>(m_track.get());
+    if (!folder) return;
+    juce::Graphics::ScopedSaveState saved(g);
+    g.reduceClipRegion(area.toNearestInt());
+    const auto tracks = folder->getAllAudioSubTracks(true);
+    const auto selectedClips = FolderCollection::clips(m_editViewState.m_selectionManager);
+    for (int i = 0; i < folder->getNumCollectionClips(); ++i)
+    {
+        auto* cc = folder->getCollectionClip(i);
+        const float x = timeToX(cc->range.getStart()), right = timeToX(cc->range.getEnd());
+        auto bounds = juce::Rectangle<float>(x, area.getY() + 2, right - x, area.getHeight() - 4);
+        if (!bounds.intersects(area)) continue;
+        const bool selected = FolderCollection::selected(*cc, m_editViewState.m_selectionManager, selectedClips);
+        const auto& drag = m_songEditor.getDragState();
+        const bool moving = selected && drag.draggedCollection && std::abs(drag.timeDelta.inSeconds()) > 1.0e-9;
+        FolderCollectionDrawing::draw(g, *cc, tracks, bounds,
+            [this](auto time) { return timeToX(time); },
+            m_editViewState.m_applicationState.getTrackBackgroundColour(),
+            m_editViewState.m_applicationState.getPrimeColour(), selected,
+            m_hoveredCollection.get() == cc, moving ? 0.4f : 1.0f);
+    }
 }
 
 void TrackLaneComponent::paint(juce::Graphics &g)
@@ -63,6 +143,7 @@ void TrackLaneComponent::paint(juce::Graphics &g)
         g.setColour(m_editViewState.m_applicationState.getTrackBackgroundColour());
         g.fillRect(area);
         GUIHelpers::drawBarsAndBeatLines(g, m_editViewState, x1beats, x2beats, area);
+        paintCollections(g, area);
     }
     else
     {
@@ -95,16 +176,21 @@ void TrackLaneComponent::paint(juce::Graphics &g)
         }
     }
 
-    if (m_songEditor.getToolMode() == Tool::knife && m_hoveredClip != nullptr && m_hasKnifeSplitPosition)
+    if (m_songEditor.getToolMode() == Tool::knife && m_hasKnifeSplitPosition
+        && (m_hoveredClip != nullptr || m_hoveredCollection != nullptr))
     {
-        const auto clipRect = getClipRect(m_hoveredClip);
+        auto targetRect = m_hoveredClip != nullptr
+            ? getClipRect(m_hoveredClip)
+            : juce::Rectangle<float>(timeToX(m_hoveredCollection->range.getStart()), 0.0f,
+                timeToX(m_hoveredCollection->range.getEnd()) - timeToX(m_hoveredCollection->range.getStart()),
+                float(m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false)));
         const auto splitX = timeToX(m_knifeSplitPosition);
 
         g.saveState();
-        g.reduceClipRegion(clipRect.toNearestInt());
+        g.reduceClipRegion(targetRect.toNearestInt());
         g.setColour(m_editViewState.m_applicationState.getTextColour());
         // Match the grid's stroke so a snapped preview has identical X coverage.
-        g.drawLine(splitX, clipRect.getY(), splitX, clipRect.getBottom(), 1.0f);
+        g.drawLine(splitX, targetRect.getY(), splitX, targetRect.getBottom(), 1.0f);
         g.restoreState();
     }
 }
@@ -188,17 +274,21 @@ void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
 
     bool needsRepaint = false;
     auto hoverState = getClipHoverState(e.position, allowFadeHandles);
+    auto* collection = (allowFadeHandles || toolMode == Tool::knife) ? getCollectionAt(e.position) : nullptr;
 
-    if (m_hoveredClip != hoverState.clip || m_leftBorderHovered != hoverState.leftBorder || m_rightBorderHovered != hoverState.rightBorder || m_hoveredFadeZone != hoverState.fadeZone || m_gainHovered != hoverState.gainHandle)
+    if (m_hoveredClip != hoverState.clip || m_hoveredCollection.get() != collection
+        || m_leftBorderHovered != hoverState.leftBorder || m_rightBorderHovered != hoverState.rightBorder
+        || m_hoveredFadeZone != hoverState.fadeZone || m_gainHovered != hoverState.gainHandle)
         needsRepaint = true;
 
     m_hoveredClip = hoverState.clip;
+    m_hoveredCollection = collection;
     m_leftBorderHovered = hoverState.leftBorder;
     m_rightBorderHovered = hoverState.rightBorder;
     m_hoveredFadeZone = hoverState.fadeZone;
     m_gainHovered = hoverState.gainHandle;
 
-    if (toolMode == Tool::knife && m_hoveredClip != nullptr)
+    if (toolMode == Tool::knife && (m_hoveredClip != nullptr || m_hoveredCollection != nullptr))
     {
         updateKnifeSplitPosition(e.position.x, e.mods);
         needsRepaint = true;
@@ -218,9 +308,10 @@ void TrackLaneComponent::mouseMove(const juce::MouseEvent &e)
 
 void TrackLaneComponent::mouseExit(const juce::MouseEvent &e)
 {
-    if (m_hoveredClip != nullptr || m_hasKnifeSplitPosition)
+    if (m_hoveredClip != nullptr || m_hoveredCollection != nullptr || m_hasKnifeSplitPosition)
     {
         m_hoveredClip = nullptr;
+        m_hoveredCollection = nullptr;
         m_leftBorderHovered = false;
         m_rightBorderHovered = false;
         m_hoveredFadeZone = FadeHitZone::none;
@@ -266,6 +357,28 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     m_hoveredFadeZone = hoverState.fadeZone;
     m_gainHovered = hoverState.gainHandle;
     bool isClipClicked = m_hoveredClip != nullptr;
+    auto* collectionAtPointer = getCollectionAt(e.position);
+    m_hoveredCollection = (allowFadeHandles || toolMode == Tool::knife) ? collectionAtPointer : nullptr;
+    m_collectionMouseDown = false;
+    if (leftButton && (toolMode == Tool::pointer || toolMode == Tool::timestretch))
+        if (auto* collection = collectionAtPointer)
+        {
+            m_collectionOriginalSelection.capture(sm);
+            m_collectionSelectionCaptured = true;
+            m_collectionMouseDown = true;
+            m_collectionAdditive = e.mods.isCtrlDown() || e.mods.isCommandDown() || e.mods.isShiftDown();
+            m_collectionToggle = (e.mods.isCtrlDown() || e.mods.isCommandDown())
+                && FolderCollection::selected(*collection, sm, FolderCollection::clips(sm));
+            m_songEditor.startDrag(DragType::Clip, xtoTime(e.position.x), e.getPosition());
+            auto& drag = m_songEditor.getDragState();
+            drag.draggedCollection = collection;
+            drag.collectionGuard.add(collection);
+            drag.draggedClip = collection->getClip(0);
+            m_songEditor.beginClipMouseGesture(e.position.x);
+            drag.refreshPreview = [safe = juce::Component::SafePointer<TrackLaneComponent>(this)]
+            { if (safe) safe->refreshMouseSnapContext(); };
+            return;
+        }
 
     if (leftButton && m_gainHovered)
     {
@@ -291,6 +404,21 @@ void TrackLaneComponent::mouseDown(const juce::MouseEvent &e)
     }
 
     ScopedSaveLock saveLock(m_editViewState);
+    if (leftButton && toolMode == Tool::knife && collectionAtPointer != nullptr)
+    {
+        const auto splitTime = getKnifeSplitTime(e.position.x, e.mods);
+        m_knifeSplitPosition = splitTime;
+        m_hasKnifeSplitPosition = true;
+        if (FolderCollection::canSplitAt(*collectionAtPointer, splitTime))
+        {
+            m_editViewState.m_edit.getUndoManager().beginNewTransaction("Split folder contents");
+            FolderCollection::splitAt(*collectionAtPointer, splitTime);
+        }
+        m_hoveredCollection = nullptr;
+        refreshCollections();
+        return;
+    }
+
     // 1. Clip Interaction
     if (isClipClicked && rightButton)
     {
@@ -434,6 +562,25 @@ void TrackLaneComponent::mouseDrag(const juce::MouseEvent &e)
     auto toolMode = m_songEditor.getToolMode();
     auto &dragState = m_songEditor.getDragState();
 
+    if (m_collectionMouseDown)
+    {
+        auto collection = dragState.draggedCollection;
+        if (!collection) return; // Escape/tool change suppresses the remaining press.
+        if (!dragState.collectionGuard.matches()) { m_songEditor.cancelDrag(); return; }
+        auto& sm = m_editViewState.m_selectionManager;
+        if (!FolderCollection::selected(*collection, sm, FolderCollection::clips(sm)))
+        {
+            if (!m_collectionAdditive) sm.deselectAll();
+            sm.addToSelection(collection);
+        }
+        for (auto* cc : sm.getItemsOfType<te::CollectionClip>()) dragState.collectionGuard.add(cc);
+        m_songEditor.clearSelectedTimeRange();
+        m_songEditor.updateClipMouseGesture(e.position.x, e.mods.isShiftDown());
+        // Folder content stays on its original child tracks; only time changes.
+        m_songEditor.updateDragGhost(dragState.draggedClip, dragState.timeDelta, 0);
+        return;
+    }
+
     if (dragState.draggedClip && (toolMode == Tool::pointer || toolMode == Tool::timestretch))
     {
         if (dragState.isFadeIn || dragState.isFadeOut)
@@ -516,6 +663,34 @@ void TrackLaneComponent::mouseUp(const juce::MouseEvent &e)
         refreshCursor(e.mods);
         m_songEditor.repaint();
         repaint();
+        return;
+    }
+    if (m_collectionMouseDown)
+    {
+        if (e.mouseWasDraggedSinceMouseDown()) mouseDrag(e);
+        auto& drag = m_songEditor.getDragState();
+        if (auto collection = drag.draggedCollection; collection && drag.collectionGuard.matches())
+        {
+            auto& sm = m_editViewState.m_selectionManager;
+            if (e.mouseWasDraggedSinceMouseDown())
+            {
+                if (std::abs(drag.timeDelta.inSeconds()) > 1.0e-9)
+                    EngineHelpers::moveSelectedClips(e.mods.isCtrlDown() || e.mods.isCommandDown(), drag.timeDelta.inSeconds(), 0, m_editViewState);
+            }
+            else
+            {
+                m_songEditor.clearSelectedTimeRange();
+                if (m_collectionToggle) FolderCollection::deselectContents(*collection, sm);
+                else if (m_collectionAdditive) sm.addToSelection(collection);
+                else sm.selectOnly(collection);
+            }
+        }
+        m_collectionMouseDown = false;
+        m_collectionOriginalSelection.clear();
+        m_collectionSelectionCaptured = false;
+        m_mouseInput.reset();
+        m_songEditor.endDrag();
+        refreshCursor(e.mods);
         return;
     }
     if (m_songEditor.takeCancelledSelection(e))
@@ -677,7 +852,7 @@ void TrackLaneComponent::modifierKeysChanged(const juce::ModifierKeys &mods)
     if (m_songEditor.getDragState().isClipDrag())
         if (auto event = m_mouseInput.withModifiers(mods); event && event->mouseWasDraggedSinceMouseDown())
             mouseDrag(*event);
-    if (m_songEditor.getToolMode() == Tool::knife && m_hoveredClip != nullptr)
+    if (m_songEditor.getToolMode() == Tool::knife && (m_hoveredClip != nullptr || m_hoveredCollection != nullptr))
     {
         const auto event = m_mouseInput.withModifiers(mods);
         updateKnifeSplitPosition(event ? event->position.x : static_cast<float>(getMouseXYRelative().x), mods);
@@ -713,8 +888,10 @@ void TrackLaneComponent::updateKnifeSplitPosition(float x, juce::ModifierKeys mo
     m_hasKnifeSplitPosition = true;
     const auto resolver = m_songEditor.getMouseSnapResolver();
     const auto raw = resolver.timeToBeat(xtoTime(x).inSeconds());
-    const bool valid = m_hoveredClip && m_knifeSplitPosition > m_hoveredClip->getPosition().getStart()
-                                   && m_knifeSplitPosition < m_hoveredClip->getPosition().getEnd();
+    const bool valid = m_hoveredClip
+        ? m_knifeSplitPosition > m_hoveredClip->getPosition().getStart()
+            && m_knifeSplitPosition < m_hoveredClip->getPosition().getEnd()
+        : m_hoveredCollection && FolderCollection::canSplitAt(*m_hoveredCollection, m_knifeSplitPosition);
     const float y = float(m_songEditor.getYForTrack(m_track));
     const float h = float(m_editViewState.m_trackHeightManager->getTrackHeight(m_track, false));
     m_songEditor.setMouseFeedback(resolver.resolveForMouse(raw, mods.isShiftDown())
@@ -1116,8 +1293,11 @@ void TrackLaneComponent::refreshCursor(juce::ModifierKeys mods)
 
     const auto point = getLocalPoint(nullptr, juce::Desktop::getInstance().getMainMouseSource().getScreenPosition());
     const auto tool = m_songEditor.getToolMode();
-    const auto hover = getLocalBounds().toFloat().contains(point) && getComponentAt(point.toInt()) == this
+    const bool underMouse = getLocalBounds().toFloat().contains(point) && getComponentAt(point.toInt()) == this;
+    const auto hover = underMouse
         ? getClipHoverState(point, tool == Tool::pointer || tool == Tool::timestretch) : ClipHoverState{};
+    m_hoveredCollection = underMouse && (tool == Tool::pointer || tool == Tool::timestretch || tool == Tool::knife)
+        ? getCollectionAt(point) : nullptr;
     m_hoveredClip = hover.clip;
     m_leftBorderHovered = hover.leftBorder;
     m_rightBorderHovered = hover.rightBorder;
@@ -1136,6 +1316,13 @@ void TrackLaneComponent::updateCursor(juce::ModifierKeys modifierKeys)
     auto shiftLeftcursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftLeft, m_editViewState.m_applicationState.m_mouseCursorScale);
     auto shiftHandCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::ShiftHand, m_editViewState.m_applicationState.m_mouseCursorScale);
     auto curveCursor = GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::CurveSteepnes, m_editViewState.m_applicationState.m_mouseCursorScale);
+
+    if ((toolMode == Tool::pointer || toolMode == Tool::timestretch)
+        && (m_songEditor.getDragState().draggedCollection || getCollectionAt(getMouseXYRelative().toFloat())))
+    {
+        setMouseCursor(shiftHandCursor);
+        return;
+    }
 
     // Clip cursor handling
     if (m_hoveredClip != nullptr && (toolMode == Tool::pointer || toolMode == Tool::timestretch))
@@ -1168,7 +1355,8 @@ void TrackLaneComponent::updateCursor(juce::ModifierKeys modifierKeys)
             setMouseCursor(shiftHandCursor);
         }
     }
-    else if (toolMode == Tool::knife && dynamic_cast<te::ClipTrack*>(m_track.get()) != nullptr)
+    else if (toolMode == Tool::knife && (dynamic_cast<te::ClipTrack*>(m_track.get()) != nullptr
+             || dynamic_cast<te::FolderTrack*>(m_track.get()) != nullptr))
     {
         setMouseCursor(GUIHelpers::createCustomMouseCursor(GUIHelpers::CustomMouseCursor::Split, m_editViewState.m_applicationState.m_mouseCursorScale));
     }

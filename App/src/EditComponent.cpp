@@ -1107,7 +1107,7 @@ void EditComponent::getCommandInfo(juce::CommandID commandID, juce::ApplicationC
 
 bool EditComponent::hasSelectedClips() const
 {
-    return !m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().isEmpty();
+    return !te::getClipSelectionWithCollectionClipContents(m_editViewState.m_selectionManager.getSelectedObjects()).isEmpty();
 }
 
 bool EditComponent::hasSelectedTracks() const

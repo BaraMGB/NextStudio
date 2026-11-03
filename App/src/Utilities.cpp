@@ -21,6 +21,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "Utilities.h"
 #include "ClipGainHandle.h"
+#include "ScopedSaveLock.h"
 #include "ClipContextActions.h"
 #include "TrackInsertion.h"
 #include "ClipGestureLimits.h"
@@ -1310,7 +1311,11 @@ te::MidiInputDevice *EngineHelpers::getVirtualMidiInputDevice(te::Edit &edit)
 tracktion::core::TimePosition EngineHelpers::getTimePos(double t) { return tracktion::core::TimePosition::fromSeconds(t); }
 void EngineHelpers::deleteSelectedClips(EditViewState &evs)
 {
-    for (auto selectedClip : evs.m_selectionManager.getSelectedObjects().getItemsOfType<te::Clip>())
+    const auto clips = te::getClipSelectionWithCollectionClipContents(evs.m_selectionManager.getSelectedObjects()).getItemsOfType<te::Clip>();
+    if (clips.isEmpty()) return;
+    ScopedSaveLock saveLock(evs);
+    evs.m_edit.getUndoManager().beginNewTransaction("Delete clips");
+    for (auto selectedClip : clips)
     {
         if (selectedClip->getTrack() != nullptr)
         {
@@ -1438,7 +1443,7 @@ void EngineHelpers::moveSelectedClips(bool copy, double timeDelta, int verticalO
     if (!copy && std::abs(timeDelta) < 1.0e-9 && verticalOffset == 0)
         return;
 
-    const auto selectedClips = evs.m_selectionManager.getItemsOfType<te::Clip>();
+    const auto selectedClips = te::getClipSelectionWithCollectionClipContents(evs.m_selectionManager.getSelectedObjects()).getItemsOfType<te::Clip>();
     if (selectedClips.isEmpty())
         return;
 
@@ -2198,12 +2203,13 @@ void EngineHelpers::loopAroundSelection(EditViewState &evs)
 
 tracktion::TimeRange EngineHelpers::getTimeRangeOfSelectedClips(EditViewState &evs)
 {
-    if (evs.m_selectionManager.getItemsOfType<te::Clip>().size() > 0)
+    const auto selectedClips = te::getClipSelectionWithCollectionClipContents(evs.m_selectionManager.getSelectedObjects()).getItemsOfType<te::Clip>();
+    if (!selectedClips.isEmpty())
     {
         auto end = tracktion::TimePosition::fromSeconds(0);
         auto start = end + evs.m_edit.getLength();
 
-        for (auto c : evs.m_selectionManager.getItemsOfType<te::Clip>())
+        for (auto c : selectedClips)
         {
             if (c->getPosition().getStart() < start)
                 start = c->getPosition().getStart();

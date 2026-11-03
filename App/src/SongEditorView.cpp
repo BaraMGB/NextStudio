@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ClipGestureLimits.h"
 #include "Browser_Base.h"
 #include "ClipOverwriteCommand.h"
+#include "FolderCollectionDrawing.h"
 #include "TimeUtils.h"
 #include "Utilities.h"
 
@@ -91,10 +92,34 @@ void SongEditorView::paintOverChildren(juce::Graphics &g)
 
     if (m_draggedClip)
     {
-        for (auto selectedClip : sm.getItemsOfType<te::Clip>())
+        const auto expandedSelection = FolderCollection::clips(sm);
+        // Hidden child lanes cannot show ghosts: project selected collections
+        // onto their visible folder rows as well as any expanded child lanes.
+        if (clipGestureKind() == ClipGestureLimits::Kind::move && m_draggedVerticalOffset == 0)
+        {
+            for (auto* track : te::getAllTracks(m_editViewState.m_edit))
+                if (auto* folder = dynamic_cast<te::FolderTrack*>(track); folder && getYForTrack(folder) >= 0)
+                    for (int i = 0; i < folder->getNumCollectionClips(); ++i)
+                    {
+                        auto* cc = folder->getCollectionClip(i);
+                        if (!FolderCollection::selected(*cc, sm, expandedSelection)) continue;
+                        const auto range = cc->range + m_draggedTimeDelta;
+                        const juce::Rectangle<float> rect(timeToX(range.getStart()), float(getYForTrack(folder)) + 2,
+                            timeToX(range.getEnd()) - timeToX(range.getStart()),
+                            float(m_editViewState.m_trackHeightManager->getTrackHeight(folder, false)) - 4);
+                        FolderCollectionDrawing::draw(g, *cc, folder->getAllAudioSubTracks(true), rect,
+                            [this](auto time) { return timeToX(time + m_draggedTimeDelta); },
+                            m_editViewState.m_applicationState.getTrackBackgroundColour(),
+                            m_editViewState.m_applicationState.getPrimeColour(), true, false, 0.94f);
+                    }
+        }
+        const auto previewClips = clipGestureKind() == ClipGestureLimits::Kind::move
+            ? expandedSelection : sm.getItemsOfType<te::Clip>();
+        for (auto selectedClip : previewClips)
         {
             if (auto targetTrack = EngineHelpers::getTargetTrack(selectedClip->getTrack(), m_draggedVerticalOffset))
             {
+                if (getYForTrack(targetTrack) < 0) continue;
                 if (m_dragState.isTimeStretching && dynamic_cast<te::WaveAudioClip*>(selectedClip) == nullptr)
                     continue;
                 const auto position = selectedClip->getPosition();
@@ -219,7 +244,7 @@ void SongEditorView::changeListenerCallback(juce::ChangeBroadcaster *source)
     {
         for (auto *lane : m_trackLanes) lane->validateGainGesture();
         if (m_draggedClip && (!m_draggedClip->state.isAChildOf(m_editViewState.m_edit.state)
-            || !m_editViewState.m_selectionManager.isSelected(m_draggedClip)))
+            || !FolderCollection::clips(m_editViewState.m_selectionManager).contains(m_draggedClip.get())))
             cancelDrag();
     }
     else if (source == m_editViewState.m_trackHeightManager.get())
@@ -468,7 +493,8 @@ void SongEditorView::beginClipMouseGesture(double pointerX)
 {
     if (auto clip = m_dragState.draggedClip)
     {
-        const auto edge = m_dragState.isRightEdge ? clip->getPosition().getEnd() : clip->getPosition().getStart();
+        const auto position = m_dragState.draggedCollection ? m_dragState.draggedCollection->getPosition() : clip->getPosition();
+        const auto edge = m_dragState.isRightEdge ? position.getEnd() : position.getStart();
         m_dragState.originalEdgeBeat = getMouseSnapResolver().timeToBeat(edge.inSeconds());
         m_dragState.mouseGesture.begin(m_dragState.originalEdgeBeat, pointerX, getMouseSnapResolver());
     }
@@ -486,8 +512,11 @@ void SongEditorView::updateClipMouseGesture(double pointerX, bool bypass)
     const auto resolver = getMouseSnapResolver();
     const auto candidate = m_dragState.mouseGesture.update(pointerX, resolver, bypass);
     const auto kind = clipGestureKind();
-    const auto sourceEdgeTime = ClipGestureLimits::edgeTime(m_dragState.draggedClip->getPosition(), kind);
-    const auto delta = ClipGestureLimits::constrain(m_editViewState.m_selectionManager.getItemsOfType<te::Clip>(), kind,
+    const auto position = m_dragState.draggedCollection ? m_dragState.draggedCollection->getPosition() : m_dragState.draggedClip->getPosition();
+    const auto sourceEdgeTime = ClipGestureLimits::edgeTime(position, kind);
+    const auto selection = kind == ClipGestureLimits::Kind::move ? FolderCollection::clips(m_editViewState.m_selectionManager)
+        : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+    const auto delta = ClipGestureLimits::constrain(selection, kind,
         resolver.beatToTime(candidate) - sourceEdgeTime);
     m_dragState.timeDelta = tracktion::TimeDuration::fromSeconds(delta);
     m_dragState.mouseGesture.setDisplayedBeat(resolver.timeToBeat(sourceEdgeTime + delta));
@@ -500,15 +529,17 @@ void SongEditorView::updateDragGhost(te::Clip::Ptr clip, tracktion::TimeDuration
     m_draggedVerticalOffset = verticalOffset;
     if (clip && m_dragState.mouseGesture.active())
     {
-        const auto preview = ClipGestureLimits::previewRange(clip->getPosition(), clipGestureKind(), delta.inSeconds());
+        const auto position = m_dragState.draggedCollection ? m_dragState.draggedCollection->getPosition() : clip->getPosition();
+        const auto preview = ClipGestureLimits::previewRange(position, clipGestureKind(), delta.inSeconds());
         m_clipInteractionActive = true;
         if (m_editViewState.clipInteractionPreviewChanged)
             m_editViewState.clipInteractionPreviewChanged(ClipTimingPreview{preview,
-                m_editViewState.m_selectionManager.getItemsOfType<te::Clip>().size()});
+                FolderCollection::clips(m_editViewState.m_selectionManager).size()});
         const bool moving = clipGestureKind() == ClipGestureLimits::Kind::move;
-        const auto target = moving ? EngineHelpers::getTargetTrack(clip->getTrack(), verticalOffset) : clip->getTrack();
+        const auto target = m_dragState.draggedCollection ? m_dragState.draggedCollection->getTrack()
+            : moving ? EngineHelpers::getTargetTrack(clip->getTrack(), verticalOffset) : clip->getTrack();
         const bool valid = !moving || ClipGestureLimits::validMoveDestinations(
-            m_editViewState.m_selectionManager.getItemsOfType<te::Clip>(),
+            FolderCollection::clips(m_editViewState.m_selectionManager),
             EngineHelpers::getSortedTrackList(m_editViewState.m_edit), verticalOffset,
             [](const te::Clip* item, const te::Track* destination) { return EngineHelpers::trackWantsClip(item, destination); });
         const float y = target ? float(getYForTrack(target)) : 0;
@@ -813,7 +844,7 @@ void SongEditorView::duplicateSelectedClipsOrTimeRange()
     }
     else
     {
-        auto selectedClips = m_editViewState.m_selectionManager.getItemsOfType<te::Clip>();
+        auto selectedClips = FolderCollection::clips(m_editViewState.m_selectionManager);
         auto range = te::getTimeRangeForSelectedItems(selectedClips);
         auto delta = range.getLength().inSeconds();
 
@@ -1031,7 +1062,7 @@ juce::Array<juce::ValueTree> SongEditorView::captureObjectSelection()
 {
     juce::Array<juce::ValueTree> result;
     for (auto* track : m_editViewState.m_selectionManager.getItemsOfType<te::Track>()) result.add(track->state);
-    for (auto* clip : m_editViewState.m_selectionManager.getItemsOfType<te::Clip>()) result.add(clip->state);
+    for (auto* clip : FolderCollection::clips(m_editViewState.m_selectionManager)) result.add(clip->state);
     for (auto* point : m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>())
     {
         const auto state = point->pointState;
@@ -1076,6 +1107,16 @@ void SongEditorView::updateClipSelection(juce::ModifierKeys modifiers)
     for (auto trackID : m_editViewState.m_trackHeightManager->getShowedTracks(m_editViewState.m_edit))
     {
         auto track = m_editViewState.m_trackHeightManager->getTrackFromID(m_editViewState.m_edit, trackID);
+        if (auto* folder = dynamic_cast<te::FolderTrack*>(track.get()))
+            for (int i = 0; i < folder->getNumCollectionClips(); ++i)
+            {
+                auto* cc = folder->getCollectionClip(i);
+                const juce::Rectangle<float> bounds(timeToX(cc->range.getStart()), float(getYForTrack(folder)),
+                    timeToX(cc->range.getEnd()) - timeToX(cc->range.getStart()),
+                    float(m_editViewState.m_trackHeightManager->getTrackHeight(folder, false)));
+                if (rect.intersects(bounds))
+                    for (auto* clip : cc->getClips()) hits.addIfNotAlreadyThere(clip->state);
+            }
         if (auto* clipTrack = dynamic_cast<te::ClipTrack*>(track.get()))
             if (!track->isFolderTrack())
                 for (auto* clip : clipTrack->getClips())
@@ -1358,6 +1399,7 @@ void SongEditorView::endDrag()
     // cancellation: do not restore selection or run a second range commit.
     cancelTimeRangeDrag();
     m_dragState.reset();
+    for (auto* lane : m_trackLanes) lane->refreshCollections();
     m_isDragging = false;
     updateDragGhost(nullptr, {}, 0);
 }
@@ -1382,6 +1424,7 @@ void SongEditorView::cancelGainEdits()
 void SongEditorView::cancelDrag(bool restoreSelection)
 {
     cancelGainEdits();
+    for (auto* lane : m_trackLanes) lane->cancelCollectionSelection(restoreSelection);
     cancelSelectionGestures(restoreSelection);
     endDrag();
 }

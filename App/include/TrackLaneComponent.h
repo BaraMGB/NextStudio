@@ -31,12 +31,14 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "ClipGainEdit.h"
 #include "ClipGainHandle.h"
 #include "ScopedSaveLock.h"
+#include "SharedSelectionSnapshot.h"
 
 namespace te = tracktion_engine;
 
 class SongEditorView;
 
-class TrackLaneComponent : public juce::Component, private juce::KeyListener
+class TrackLaneComponent : public juce::Component, private juce::KeyListener,
+                           private juce::ValueTree::Listener, private juce::AsyncUpdater
 {
 public:
     TrackLaneComponent(EditViewState &evs, te::Track::Ptr track, juce::String timelineID, SongEditorView &owner);
@@ -59,7 +61,9 @@ public:
     void setDropTargetTrack(te::Track::Ptr track, bool acceptsDrop = false);
     void setDropTargetAcceptsDrop(bool acceptsDrop);
     void waveClipDragOperationEnded();
-    bool isClipAt(juce::Point<float> point) { return getClipHoverState(point, false).clip != nullptr; }
+    bool isClipAt(juce::Point<float> point) { return getCollectionAt(point) != nullptr || getClipHoverState(point, false).clip != nullptr; }
+    void refreshCollections();
+    void cancelCollectionSelection(bool restore);
 
     bool hasGainGesture() const { return m_gainEdit != nullptr; }
     void cancelGainGesture();
@@ -87,6 +91,20 @@ private:
 
     bool keyPressed(const juce::KeyPress &, juce::Component *) override;
     void releaseGainKeyCapture();
+
+    void handleAsyncUpdate() override;
+    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override;
+    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override;
+    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override;
+    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override;
+    te::CollectionClip* getCollectionAt(juce::Point<float>);
+    void paintCollections(juce::Graphics&, juce::Rectangle<float>);
+    te::CollectionClip::Ptr m_hoveredCollection;
+    bool m_collectionMouseDown = false;
+    bool m_collectionAdditive = false;
+    bool m_collectionToggle = false;
+    SharedSelectionSnapshot m_collectionOriginalSelection;
+    bool m_collectionSelectionCaptured = false;
 
     // Helpers
     float timeToX(tracktion::TimePosition time);

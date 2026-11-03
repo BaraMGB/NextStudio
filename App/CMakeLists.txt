@@ -659,6 +659,16 @@ if(BUILD_TESTING)
             JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
     add_test(NAME MidiClipJoinCommand COMMAND MidiClipJoinCommandTests)
 
+    juce_add_console_app(FolderCollectionTests PRODUCT_NAME "FolderCollectionTests")
+    juce_generate_juce_header(FolderCollectionTests)
+    target_sources(FolderCollectionTests PRIVATE src/TrackInsertion.cpp src/ClipOverwriteCommand.cpp tests/FolderCollectionTests.cpp)
+    target_include_directories(FolderCollectionTests PRIVATE include)
+    target_compile_features(FolderCollectionTests PRIVATE cxx_std_20)
+    target_link_libraries(FolderCollectionTests PRIVATE tracktion::tracktion_engine juce::juce_gui_basics)
+    target_compile_definitions(FolderCollectionTests PRIVATE TRACKTION_JUCE7=1
+            JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    add_test(NAME FolderCollection COMMAND FolderCollectionTests)
+
     juce_add_console_app(ClipGainEditTests PRODUCT_NAME "ClipGainEditTests")
     juce_generate_juce_header(ClipGainEditTests)
     target_sources(ClipGainEditTests PRIVATE src/ClipGainEdit.cpp tests/ClipGainEditTests.cpp)

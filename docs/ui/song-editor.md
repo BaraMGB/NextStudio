@@ -48,6 +48,15 @@ own state. Folder tracks support Mute and Solo; the Master supports only Mute.
 
 Allows grouping of tracks. Tracks below are displayed indented. Clicking the arrow in the folder track header shows or hides all contained tracks.
 
+The folder lane displays compact content blocks even when collapsed. Each block collects overlapping clips from all child tracks, including nested folders; coloured strips show their individual positions. Clips that only touch at their edges normally form separate blocks.
+
+- Click a block to select its contents; Shift adds and Ctrl/Cmd toggles. Lasso also selects folder blocks.
+- Drag a block horizontally to move its contents, or Ctrl/Cmd-drag to copy. Child-track assignments and relative timing stay unchanged; vertical pointer movement does not move contents to another folder.
+- Magnetic snapping applies; Shift bypasses it. Escape or changing tools cancels the drag without changing clips.
+- `Cmd/Ctrl+D` duplicates the selection after its combined end. Delete removes its clips, not its child tracks. Each move/copy, duplicate or delete is undoable in one step.
+- With the Knife tool, clicking a block splits every represented child clip crossing that time in one undoable operation.
+- These blocks are summaries, not new audio/MIDI containers. Expand the folder and select individual clips for resizing, fades, gain and property-field editing. Folder bus automation and plug-in settings are not copied with the clips.
+
 ### Automation Lanes
 
 When automation exists for a parameter, a separate header for this automation lane appears below the main header. The height of the automation lane can be changed by dragging the bottom edge.

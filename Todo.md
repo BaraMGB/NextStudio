@@ -1,16 +1,15 @@
 # NextStudio open-work queue
 
-Synced from [GitHub issues](https://github.com/BaraMGB/NextStudio/issues) on 2026-11-03: **10 open issues**. Entries are grouped by milestone, not implementation priority.
+Synced from [GitHub issues](https://github.com/BaraMGB/NextStudio/issues) on 2026-11-04: **8 open issues**. Entries are grouped by milestone, not implementation priority.
 
 GitHub issues are tracker entries for reported work and status only. Solution proposals, review, validation and acceptance take place directly in the active Pi Agent conversation. Refresh issue/milestone state before starting a batch. Follow the [mandatory contribution workflow](docs/development/contributing.md) and [documentation maintenance schema](docs/development/documentation-policy.md).
 
 ## v0.07 alpha
 
-[Milestone](https://github.com/BaraMGB/NextStudio/milestone/7) — 9 open issues.
+[Milestone](https://github.com/BaraMGB/NextStudio/milestone/7) — 7 open issues.
 
 ### Editing and arrangement
 
-- [ ] [#95 — Clip/content representation on folder tracks](https://github.com/BaraMGB/NextStudio/issues/95) — show folder contents when collapsed to clarify project structure and simplify copying.
 - [ ] [#97 — Autoscroll when group selecting events/notes](https://github.com/BaraMGB/NextStudio/issues/97) — allow selection of events and notes initially outside the viewport.
 - [ ] [#100 — Auto-scroll Song Editor horizontally and vertically while moving clips](https://github.com/BaraMGB/NextStudio/issues/100) — edge scrolling for move/copy drags, including multiple clips; update preview and destination continuously, and stop cleanly on completion or cancellation. Resizing, lasso selection and other drag operations are outside this issue's scope.
 - [ ] [#101 — Track duplication](https://github.com/BaraMGB/NextStudio/issues/101) — duplicate tracks for plugin variations and double tracking.
@@ -18,7 +17,6 @@ GitHub issues are tracker entries for reported work and status only. Solution pr
 ### Audio and routing
 
 - [ ] [#96 — Effect sends / aux send tracks](https://github.com/BaraMGB/NextStudio/issues/96) — send audio from selected tracks to a shared effect instance without requiring a folder.
-- [ ] [#102 — Per-clip volume adjustment for audio clips](https://github.com/BaraMGB/NextStudio/issues/102) — make consistent audio levels easier to achieve.
 
 ### Platform, reliability and plugin windows
 
@@ -34,6 +32,8 @@ GitHub issues are tracker entries for reported work and status only. Solution pr
 
 ## History
 
+- #95 (Clip/content representation on folder tracks) was completed on 2026-11-04 and is no longer part of the open-work queue.
+- #102 (Per-clip volume adjustment for audio clips) was closed on GitHub on 2026-11-03 by commit [`566d762`](https://github.com/BaraMGB/NextStudio/commit/566d762).
 - #57 (Alt modifiers and wheel-based tool switching) was closed on GitHub on 2026-10-24 and is no longer part of the open-work queue.
 - Completed batch logs are preserved in [Git at the pre-migration revision](https://github.com/BaraMGB/NextStudio/blob/ad5912e/Todo.md) (`git show ad5912e:Todo.md` locally). [Historical documentation](docs/archive/README.md) retains design and validation records.
 - This synchronization does not reopen, close or otherwise modify GitHub issues.

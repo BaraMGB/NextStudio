@@ -16,6 +16,13 @@ public:
         for (auto* object : manager.getSelectedObjects())
         {
             m_objects.emplace_back(object);
+            if (auto* collection = dynamic_cast<tracktion::engine::CollectionClip*>(object))
+            {
+                CollectionEntry entry;
+                entry.owner = collection;
+                for (auto* clip : collection->getClips()) entry.clips.emplace_back(clip);
+                m_collections.push_back(std::move(entry));
+            }
             if (auto* point = dynamic_cast<SelectableAutomationPoint*>(object)) m_points.emplace_back(point);
             if (auto* events = dynamic_cast<tracktion::engine::SelectedMidiEvents*>(object))
             {
@@ -86,11 +93,24 @@ public:
                 if (auto* events = dynamic_cast<te::SelectedMidiEvents*>(object); events && events->getNumSelected() == 0) continue;
                 restored.add(object);
             }
+        // Folder collections may have been regenerated during the gesture.
+        // Restore their live contents rather than retaining stale virtual items.
+        for (const auto& entry : m_collections)
+            if (entry.owner.get() == nullptr)
+                for (const auto& ref : entry.clips)
+                    if (auto* clip = ref.get(); clip && clip->state.isAChildOf(edit.state))
+                        restored.addIfNotAlreadyThere(clip);
         manager.select(restored);
     }
 
-    void clear() { m_objects.clear(); m_midi.clear(); m_points.clear(); }
+    void clear() { m_objects.clear(); m_midi.clear(); m_points.clear(); m_collections.clear(); }
 private:
+    struct CollectionEntry
+    {
+        tracktion::engine::SafeSelectable<tracktion::engine::CollectionClip> owner;
+        std::vector<tracktion::engine::SafeSelectable<tracktion::engine::Clip>> clips;
+    };
+    std::vector<CollectionEntry> m_collections;
     struct MidiEntry
     {
         tracktion::engine::SafeSelectable<tracktion::engine::SelectedMidiEvents> owner;

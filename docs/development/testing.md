@@ -44,11 +44,22 @@ The current suites are:
 | `TimelineSoftSnap` | continuous/monotonic physical-pixel curve, MIDI/Song attraction profiles and default MIDI profile selection, exact detents and detailed plateau classification, dense sweeps, narrow/unequal/long intervals, inverse anchors, bounded slope/displacement, invalid profiles, and non-idempotence | `App/tests/TimelineSoftSnapTests.cpp` |
 | `TimelineSnapping` | production fixed/adaptive resolver, tempo ramps/meter/triplet boundaries (including engine bar-rounding failures), 100/125/150/200% physical scaling, MIDI Knife preview coordinate-type and grid raster-coverage regression, corrected downward creation anchors, production time-range/drop endpoint projection through tempo changes/ramps at four scales and panned/off-screen views, raw bypass/context transitions, relative Draw state, real offset-clip creation/overlap, fractional persistence and one-step undo/redo, note/clip/automation group constraints, held/free/bypass/limit/invalid feedback and reset, stationary Draw Shift reporting, queued JUCE TextEditor focus-loss completion/rejection and idempotence, whole-group move destinations including invalid secondary lanes and extreme offsets, shared clip preview ranges, theme-derived font tint and fractional lane-clipped guide/diamond raster rendering and JUCE sibling/header versus foreground ruler-cue ordering at four scales | `App/tests/TimelineSnappingTests.cpp` |
 | `ClipOverwriteCommand` | incoming-wins clip placement, trimming, identity, selection, and undo | `App/tests/ClipOverwriteCommandTests.cpp` |
+| `FolderCollection` | nested overlap aggregation, touching boundaries, deduplicated selection, pinned drag identity, cancellation/regeneration, competing edits, atomic Knife/copy/move undo/redo, reconstruction from saved state, theme contrast, hover/selection raster states, shared content/ghost drawing and narrow/dense/off-screen lane clipping at 100–200% | `App/tests/FolderCollectionTests.cpp` |
 | `ClipGainEdit` | strict dB parsing, live/group gain, shared bounds, cancellation/no-op/deletion/competing changes, MIDI exclusion, atomic undo/redo, edit-state reload and circular handle/header exclusion | `App/tests/ClipGainEditTests.cpp` |
 | `MidiInputRouting` | automatic default focus, default-route deduplication, always-focused virtual PC keyboard, persistent manual targets, pinning, migration, and atomic routing undo/redo | `App/tests/MidiInputRoutingTests.cpp` |
 | `MetronomeSampleManager` | WAV validation, settings-relative managed copies, source independence, and role-specific cleanup | `App/tests/MetronomeSampleManagerTests.cpp` |
 | `ThemePresetModel` | preset validation/lifecycle, color conversion, scalable preset-browser filtering, and mouse-wheel forwarding from the inline hex editor | `App/tests/ThemePresetModelTests.cpp` |
 | `EqBandReset` | all four EQ bands, parameter-owned factory defaults, synchronous updates, and atomic undo/redo | `App/tests/EqBandResetTests.cpp` |
+
+## Folder collection validation
+
+`FolderCollectionTests` exercises the real engine model and overwrite command. For actual folder controls, collapsed-lane hit testing, preview-only movement, move/copy, Knife, keyboard duplicate/delete, lasso, Escape and single-step undo/redo, run the native fixture on a private display:
+
+```bash
+xvfb-run -a -s '-screen 0 1600x1000x24' python3 tools/native-folder-collection-regression.py --appearance --output /path/to/new-evidence-directory
+```
+
+The fixture requires Linux/X11, Xvfb, Node.js, Python 3.10+, `xdotool`, libX11 and libXfixes. It starts an isolated debug-shell workspace and creates the folder hierarchy through real header drags. Screenshots, model snapshots, checks and the binary hash go into the new output directory. `--appearance` additionally switches the isolated application's built-in Dark/Light presets through Settings and captures expanded, collapsed, hovered, selected and drag-preview states without committing the preview. Visually inspect these images; they are not pixel-baseline assertions. This covers a two-MIDI-track folder at 100% scale, not physical audio output, other platforms or native fractional scaling. Nested folders and persistence have model coverage; visually review dense, mixed audio/MIDI and deeply nested projects separately.
 
 ## Run all tests
 

@@ -24,6 +24,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #include "../JuceLibraryCode/JuceHeader.h"
 #include <tracktion_engine/tracktion_engine.h>
 #include "TimelineSnapResolver.h"
+#include "FolderCollection.h"
 #include <functional>
 
 namespace te = tracktion_engine;
@@ -50,6 +51,8 @@ struct DragState
     juce::Point<int> startPos{0, 0};
     tracktion::EditItemID draggedItemId;
     te::Clip::Ptr draggedClip{nullptr};
+    te::CollectionClip::Ptr draggedCollection;
+    FolderCollection::DragGuard collectionGuard;
     te::Track::Ptr targetTrack{nullptr};
     te::AutomatableParameter::Ptr draggedParameter{nullptr};
     tracktion::TimeDuration timeDelta{tracktion::TimeDuration::fromSeconds(0.0)};
@@ -80,6 +83,8 @@ struct DragState
         startPos = juce::Point<int>(0, 0);
         draggedItemId = tracktion::EditItemID();
         draggedClip = nullptr;
+        collectionGuard.clear();
+        draggedCollection = nullptr;
         targetTrack = nullptr;
         draggedParameter = nullptr;
         timeDelta = tracktion::TimeDuration::fromSeconds(0.0);

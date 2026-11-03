@@ -892,7 +892,8 @@ void ClipPropertiesBar::paint(juce::Graphics &g)
     selectionArea.removeFromLeft(labelGap);
     g.setFont(juce::Font(juce::FontOptions(valueFontHeight)));
     g.setColour(valueColour.withAlpha(m_selection.isEmpty() ? 0.5f : 1.0f));
-    g.drawFittedText(juce::String(m_interactionPreview ? m_interactionPreview->selectionCount : m_selection.size()), selectionArea, juce::Justification::centredLeft, 1);
+    g.drawFittedText(juce::String(m_interactionPreview ? m_interactionPreview->selectionCount
+        : te::getClipSelectionWithCollectionClipContents(m_evs.m_selectionManager.getSelectedObjects()).size()), selectionArea, juce::Justification::centredLeft, 1);
 
     g.setColour(m_evs.m_applicationState.getBorderColour());
     for (const auto *field : allFields())

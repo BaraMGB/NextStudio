@@ -163,7 +163,7 @@ te::Clip::Ptr insertPlacement(te::Edit &edit, Placement &placement,
 juce::Array<te::EditItemID> getSelectedClipIDs(te::SelectionManager &selectionManager)
 {
     juce::Array<te::EditItemID> result;
-    for (auto *clip : selectionManager.getItemsOfType<te::Clip>())
+    for (auto *clip : te::getClipSelectionWithCollectionClipContents(selectionManager.getSelectedObjects()).getItemsOfType<te::Clip>())
         result.add(clip->itemID);
     return result;
 }
