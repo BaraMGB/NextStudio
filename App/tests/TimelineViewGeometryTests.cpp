@@ -1,5 +1,6 @@
 #include "TimelineGridColours.h"
 #include "TimelineViewGeometry.h"
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -163,8 +164,9 @@ void linePriorityTests()
         }
 
     // Render real normalized grids around adaptive transitions, on light/dark
-    // backgrounds and at fractional raster phases. Compare integrated coverage,
-    // not the peak pixel: a stroke may straddle multiple physical columns.
+    // backgrounds and at fractional raster phases. Exact hierarchy checks use
+    // JUCE's deterministic software renderer; native renderers may distribute
+    // antialiasing coverage slightly differently between adjacent columns.
     for (double scale : {1.0, 1.25, 1.5, 2.0})
         for (double phase : {0.0, 0.137, 0.5, 0.83})
             for (int targetLevel : {5, 6, 7})
@@ -178,34 +180,66 @@ void linePriorityTests()
                         const auto background = dark ? juce::Colours::black : juce::Colours::white;
                         const double origin = 10.0 + phase / scale;
                         const double width = 8.0 / r->beatsPerPixel;
-                        juce::Image image(juce::Image::RGB, int(std::ceil((width + origin + 10) * scale)), 40, true);
-                        juce::Graphics g(image);
-                        g.fillAll(background);
-                        g.addTransform(juce::AffineTransform::scale(static_cast<float>(scale)));
-                        for (const auto &line : tg::lines(0, 8, width, origin, r->gridLevel, 4))
+                        const auto renderCoverage = [&](const juce::ImageType &imageType)
                         {
-                            auto colour = colours.subdivision;
-                            if (std::fmod(line.beat, 4.0) == 0)
-                                colour = colours.bar;
-                            else if (std::fmod(line.beat, 1.0) == 0)
-                                colour = colours.beat;
-                            else if (std::fmod(line.beat * 4.0, 1.0) == 0)
-                                colour = colours.quarterBeat;
-                            g.setColour(colour);
-                            g.drawLine(float(line.x), 0, float(line.x), 20, 1.0f);
-                        }
-                        auto coverage = [&](double beat)
-                        {
-                            const int centre = int(std::floor((origin + beat / r->beatsPerPixel) * scale));
-                            int sum = 0;
-                            for (int x = centre - 3; x <= centre + 3; ++x)
-                                sum += std::abs(int(image.getPixelAt(x, 10).getRed()) - int(background.getRed()));
-                            return sum;
+                            juce::Image image(juce::Image::RGB, int(std::ceil((width + origin + 10) * scale)), 40, true, imageType);
+                            {
+                                juce::Graphics g(image);
+                                g.fillAll(background);
+                                g.addTransform(juce::AffineTransform::scale(static_cast<float>(scale)));
+                                for (const auto &line : tg::lines(0, 8, width, origin, r->gridLevel, 4))
+                                {
+                                    auto colour = colours.subdivision;
+                                    if (std::fmod(line.beat, 4.0) == 0)
+                                        colour = colours.bar;
+                                    else if (std::fmod(line.beat, 1.0) == 0)
+                                        colour = colours.beat;
+                                    else if (std::fmod(line.beat * 4.0, 1.0) == 0)
+                                        colour = colours.quarterBeat;
+                                    g.setColour(colour);
+                                    g.drawLine(float(line.x), 0, float(line.x), 20, 1.0f);
+                                }
+                            } // Direct2D finishes the drawing frame on context destruction.
+                            const auto coverage = [&](double beat)
+                            {
+                                const int centre = int(std::floor((origin + beat / r->beatsPerPixel) * scale));
+                                int sum = 0;
+                                for (int x = centre - 3; x <= centre + 3; ++x)
+                                    sum += std::abs(int(image.getPixelAt(x, 10).getRed()) - int(background.getRed()));
+                                return sum;
+                            };
+                            return std::array{coverage(4), coverage(5), coverage(5.5), coverage(5.625)};
                         };
-                        require(coverage(4) > coverage(5), "rendered bar weaker than beat");
-                        require(coverage(5) > coverage(5.5), "rendered beat weaker than quarter beat");
+
+                        const auto software = renderCoverage(juce::SoftwareImageType{});
+                        require(software[0] > software[1], "software-rendered bar weaker than beat");
+                        require(software[1] > software[2], "software-rendered beat weaker than quarter beat");
                         if (r->gridLevel <= 6)
-                            require(coverage(5.5) > coverage(5.625), "rendered quarter beat weaker than subdivision (#99)");
+                            require(software[2] > software[3], "software-rendered quarter beat weaker than subdivision (#99)");
+
+                        const auto native = renderCoverage(juce::NativeImageType{});
+                        // Seven sampled columns can each differ by one 8-bit step
+                        // after native AA/compositing. Larger reversals indicate a
+                        // real loss of the emphasis hierarchy rather than rounding.
+                        constexpr int nativeCoverageTolerance = 7;
+                        require(native[0] > 0 && native[1] > 0 && native[2] > 0
+                                    && (r->gridLevel > 6 || native[3] > 0),
+                                "native renderer omitted a grid line");
+                        const auto requireNativePriority = [&](size_t stronger, size_t weaker, const char *message)
+                        {
+                            if (native[stronger] + nativeCoverageTolerance < native[weaker])
+                            {
+                                std::cerr << "native coverage bar=" << native[0] << " beat=" << native[1]
+                                          << " quarter=" << native[2] << " subdivision=" << native[3]
+                                          << " scale=" << scale << " phase=" << phase
+                                          << " level=" << r->gridLevel << " dark=" << dark << '\n';
+                                throw std::runtime_error(message);
+                            }
+                        };
+                        requireNativePriority(0, 1, "native-rendered bar materially weaker than beat");
+                        requireNativePriority(1, 2, "native-rendered beat materially weaker than quarter beat");
+                        if (r->gridLevel <= 6)
+                            requireNativePriority(2, 3, "native-rendered quarter beat materially weaker than subdivision (#99)");
                     }
 }
 void rasterTests()
