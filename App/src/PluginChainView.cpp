@@ -616,7 +616,9 @@ void PluginChainView::moveItem(PluginChainItemView *item, int targetIndex)
 
         saveRackOrder(order);
 
-        rebuildView();
+        // The ValueTree listeners schedule the rebuild asynchronously. Rebuilding
+        // here would destroy the drag source and drop target while JUCE is still
+        // dispatching itemDropped().
     }
 }
 

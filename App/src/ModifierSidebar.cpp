@@ -267,12 +267,12 @@ ModifierSidebar::ModifierSidebar(EditViewState &evs)
         m.addItem(3, "Random");
 
         m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&m_addButton),
-                        [this](int result)
+                        [safeThis = juce::Component::SafePointer<ModifierSidebar>(this)](int result)
                         {
-                            if (result == 0)
+                            if (safeThis == nullptr || result == 0 || safeThis->m_track == nullptr)
                                 return;
 
-                            if (auto *ml = m_track->getModifierList())
+                            if (auto *ml = safeThis->m_track->getModifierList())
                             {
                                 juce::Identifier id = te::IDs::LFO;
                                 if (result == 2)

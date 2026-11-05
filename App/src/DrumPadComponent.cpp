@@ -30,6 +30,17 @@ void loadSampleIntoSampler(te::SamplerPlugin &sampler, int soundIndex, const juc
     sampler.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
     sampler.setSoundOpenEnded(soundIndex, true);
 }
+
+void clearSampleInSampler(te::SamplerPlugin &sampler, int soundIndex, int midiNote)
+{
+    if (soundIndex < 0 || soundIndex >= sampler.getNumSounds())
+        return;
+
+    sampler.setSoundMedia(soundIndex, {});
+    sampler.setSoundName(soundIndex, "Empty");
+    sampler.setSoundParams(soundIndex, midiNote, midiNote, midiNote);
+    sampler.setSoundOpenEnded(soundIndex, true);
+}
 }
 
 void PadComponent::paint(juce::Graphics &g)
@@ -306,17 +317,18 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
 {
     NS_LOG_DEBUG(ui, "drum pad context menu opened for pad " + juce::String(padIndex));
 
+    juce::Component::SafePointer<DrumPadGridComponent> safeThis(this);
     juce::PopupMenu menu;
     menu.addItem("Load Sample",
-                 [this, padIndex]()
+                 [safeThis, padIndex]()
                  {
-                     int soundIndex = getSoundIndexForPad(padIndex);
+                     if (safeThis == nullptr)
+                         return;
+
+                     const int soundIndex = safeThis->getSoundIndexForPad(padIndex);
                      NS_LOG_INFO(filesystem, "opening sample chooser for pad " + juce::String(padIndex) + ", soundIndex=" + juce::String(soundIndex));
 
                      auto fc = std::make_shared<juce::FileChooser>("Select a sample to load", juce::File(), "*.wav;*.aif;*.aiff");
-
-                     juce::Component::SafePointer<DrumPadGridComponent> safeThis(this);
-
                      fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                      [safeThis, soundIndex, chooser = fc](const juce::FileChooser &fc)
                                      {
@@ -329,38 +341,26 @@ void DrumPadGridComponent::showPadContextMenu(int padIndex)
                                              return;
                                          }
 
-                                         auto file = fc.getResult();
-
-                                         safeThis->setupNewSample(soundIndex, file);
+                                         safeThis->setupNewSample(soundIndex, fc.getResult());
                                      });
                  });
     menu.addSeparator();
 
     menu.addItem("Clear",
-                 [this, padIndex]()
+                 [safeThis, padIndex]()
                  {
-                     int soundIndex = getSoundIndexForPad(padIndex);
+                     if (safeThis == nullptr)
+                         return;
+
+                     const int soundIndex = safeThis->getSoundIndexForPad(padIndex);
+                     const int midiNote = safeThis->getMidiNoteForPad(padIndex);
+                     auto *sampler = &safeThis->m_samplerPlugin;
                      NS_LOG_INFO(plugins, "clearing drum pad " + juce::String(padIndex) + ", soundIndex=" + juce::String(soundIndex));
 
-                     if (soundIndex < m_samplerPlugin.getNumSounds())
-                     {
-                         // Clear the sound by setting empty media and name
-                         m_samplerPlugin.setSoundMedia(soundIndex, "");
-                         m_samplerPlugin.setSoundName(soundIndex, "Empty");
-
-                         // Reset MIDI parameters to pad's fixed midiNote
-                         int padMidiNote = getMidiNoteForPad(soundIndex);
-                         m_samplerPlugin.setSoundParams(soundIndex, padMidiNote, padMidiNote, padMidiNote);
-                         m_samplerPlugin.setSoundOpenEnded(soundIndex, true);
-
-                         NS_LOG_INFO(plugins, "cleared drum pad sound at index " + juce::String(soundIndex) + ", midiNote=" + juce::String(padMidiNote));
-
-                         updatePadNames();
-
-                         // Repaint the pad to show the updated text immediately
-                         if (padIndex >= 0 && padIndex < m_pads.size())
-                             m_pads[padIndex]->repaint();
-                     }
+                     // Sampler changes may synchronously rebuild the plug-in view,
+                     // so do not access safeThis after the first state mutation.
+                     clearSampleInSampler(*sampler, soundIndex, midiNote);
+                     NS_LOG_INFO(plugins, "cleared drum pad sound at index " + juce::String(soundIndex) + ", midiNote=" + juce::String(midiNote));
                  });
 
     menu.show();
@@ -741,7 +741,10 @@ void DrumPadGridComponent::endPadDrag(const juce::MouseEvent &event)
     if (targetPadIndex >= 0 && targetPadIndex != m_dragSourcePad)
     {
         NS_LOG_INFO(ui, "dropping drum pad onto target pad " + juce::String(targetPadIndex));
+        juce::Component::SafePointer<DrumPadGridComponent> safeThis(this);
         swapPadSounds(m_dragSourcePad, targetPadIndex);
+        if (safeThis == nullptr)
+            return;
 
         // Visual feedback on successful drop
         m_pads[targetPadIndex]->triggerVisualFeedback(m_appViewState.getButtonTextColour(), targetPadIndex == m_selectedPadIndex ? m_appViewState.getPrimeColour() : m_appViewState.getButtonBackgroundColour());
@@ -795,23 +798,34 @@ void DrumPadGridComponent::swapPadSounds(int sourcePad, int targetPad)
     auto stateA = getSoundStateFromPlugin(sourceSoundIdx);
     auto stateB = getSoundStateFromPlugin(targetSoundIdx);
 
-    // 2. Apply crosswise
-    applySoundStateToPlugin(sourceSoundIdx, stateB);
-    applySoundStateToPlugin(targetSoundIdx, stateA);
+    auto *sampler = &m_samplerPlugin;
+    const auto applyState = [sampler](int soundIndex, const TempSoundState &state)
+    {
+        if (soundIndex < 0 || soundIndex >= sampler->getNumSounds())
+            return;
 
-    // 3. Repair MIDI Notes (Fixed Note Logic)
-    // No matter what we swapped, Pad X must always remain Note Y
+        sampler->setSoundMedia(soundIndex, state.filePath);
+        sampler->setSoundName(soundIndex, state.name);
+        sampler->setSoundGains(soundIndex, state.gainDb, state.pan);
+        sampler->setSoundExcerpt(soundIndex, state.start, state.length);
+        sampler->setSoundOpenEnded(soundIndex, state.openEnded);
+    };
 
-    int noteA = getMidiNoteForPad(sourcePad);
-    m_samplerPlugin.setSoundParams(sourceSoundIdx, noteA, noteA, noteA);
+    const int noteA = getMidiNoteForPad(sourcePad);
+    const int noteB = getMidiNoteForPad(targetPad);
+    juce::Component::SafePointer<DrumPadGridComponent> safeThis(this);
 
-    int noteB = getMidiNoteForPad(targetPad);
-    m_samplerPlugin.setSoundParams(targetSoundIdx, noteB, noteB, noteB);
+    // Sampler changes may synchronously rebuild this component. Keep all state
+    // mutation independent of its lifetime after the first setter.
+    applyState(sourceSoundIdx, stateB);
+    applyState(targetSoundIdx, stateA);
+    sampler->setSoundParams(sourceSoundIdx, noteA, noteA, noteA);
+    sampler->setSoundParams(targetSoundIdx, noteB, noteB, noteB);
 
-    // 4. UI Update
+    if (safeThis == nullptr)
+        return;
+
     updatePadNames();
-
-    // Repaint specific pads for immediate feedback
     if (sourcePad < m_pads.size())
         m_pads[sourcePad]->repaint();
     if (targetPad < m_pads.size())
@@ -897,16 +911,17 @@ void DrumPadGridComponent::cleanupMidiInputDevices()
 
 void DrumPadGridComponent::handleIncomingMidiMessage(const juce::MidiMessage &message)
 {
-    // on message thread we can log and light up the pad
+    // The MIDI callback may outlive this view while its message is queued.
     juce::MessageManager::callAsync(
-        [this, message]()
+        [safeThis = juce::Component::SafePointer<DrumPadGridComponent>(this), message]
         {
-            if (message.isNoteOn())
-            {
-                NS_LOG_DEBUG(engine, "incoming drum pad MIDI note-on: " + juce::String(message.getNoteNumber()));
-            }
+            if (safeThis == nullptr)
+                return;
 
-            processMidiForPadLighting(message);
+            if (message.isNoteOn())
+                NS_LOG_DEBUG(engine, "incoming drum pad MIDI note-on: " + juce::String(message.getNoteNumber()));
+
+            safeThis->processMidiForPadLighting(message);
         });
 }
 
@@ -1023,16 +1038,4 @@ DrumPadGridComponent::TempSoundState DrumPadGridComponent::getSoundStateFromPlug
         s.openEnded = m_samplerPlugin.isSoundOpenEnded(soundIndex);
     }
     return s;
-}
-
-void DrumPadGridComponent::applySoundStateToPlugin(int soundIndex, const TempSoundState &state)
-{
-    if (soundIndex >= 0 && soundIndex < m_samplerPlugin.getNumSounds())
-    {
-        m_samplerPlugin.setSoundMedia(soundIndex, state.filePath);
-        m_samplerPlugin.setSoundName(soundIndex, state.name);
-        m_samplerPlugin.setSoundGains(soundIndex, state.gainDb, state.pan);
-        m_samplerPlugin.setSoundExcerpt(soundIndex, state.start, state.length);
-        m_samplerPlugin.setSoundOpenEnded(soundIndex, state.openEnded);
-    }
 }

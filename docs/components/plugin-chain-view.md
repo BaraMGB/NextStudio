@@ -146,7 +146,7 @@ Plug-in creation from browser sources and insertion feedback are centralized so 
 - structural plug-in reconstruction;
 - layout-only refreshes.
 
-Callbacks that may outlive a synchronous rebuild use `juce::Component::SafePointer` before touching the component.
+Callbacks that may outlive a component use `juce::Component::SafePointer` before touching it. Reordering updates the engine and persisted rack order during the drop, but structural reconstruction remains on the existing `FlaggedAsyncUpdater`. It must not call `rebuildView()` synchronously from `itemDropped()`: doing so destroys the JUCE drag source and drop target while `DragImageComponent::mouseUp()` is still dispatching the drop.
 
 ## Tests
 

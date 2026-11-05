@@ -29,6 +29,10 @@ A track header hovered during the drag becomes the target track and opens its Tr
 
 After a successful drop, the sampler's track and destination pad are selected. The pad label and Sound Editor refresh immediately. Track selection and Lower Zone switching are owned by the Song Editor/track-header drag flow; the sampler only accepts the sample and reports whether the pointer is over a valid pad.
 
+## Refresh and component lifetime
+
+Sampler state setters can synchronously reconstruct the plug-in editor. Sample loading, clearing, and pad swapping therefore finish model mutations through lifetime-independent sampler references and check a `juce::Component::SafePointer` before performing later UI work. Queued live-MIDI lighting and asynchronous context-menu/file-chooser callbacks use the same guard, so closing or rebuilding the sampler view cannot leave a callback using the old pad component.
+
 ## Sound Editor
 
 | Parameter | Range / Type | Description |

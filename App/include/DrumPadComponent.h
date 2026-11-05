@@ -135,7 +135,6 @@ private:
     };
 
     TempSoundState getSoundStateFromPlugin(int soundIndex) const;
-    void applySoundStateToPlugin(int soundIndex, const TempSoundState &state);
 
     te::Edit &m_edit;
     te::SamplerPlugin &m_samplerPlugin;

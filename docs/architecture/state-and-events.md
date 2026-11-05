@@ -212,6 +212,12 @@ Choose the narrowest mechanism that matches ownership:
 - `ValueTree` listener when the model itself is the source of truth;
 - command manager when the action needs keyboard mapping or routing.
 
+### Component lifetime across callbacks
+
+Message-queue callbacks, timers, asynchronous menus and file choosers must not capture a component as an unguarded raw `this`. Capture a `juce::Component::SafePointer`, check it on entry, and check it again after any operation that can synchronously rebuild the owning view.
+
+The same rule applies inside synchronous callbacks when model setters can notify listeners immediately. Gather stable model references and values before the first mutation, finish the model operation without touching component members, then resume UI work only if the safe pointer remains valid. Drag-and-drop handlers must schedule structural rebuilds after `itemDropped()` returns rather than deleting their source or target during JUCE's mouse-up dispatch.
+
 ## Undo and state changes
 
 ### Model edits

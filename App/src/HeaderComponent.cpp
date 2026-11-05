@@ -251,19 +251,22 @@ void HeaderComponent::showCountInMenu()
     m.addItem(5, "2 Bars", true, currentMode == te::Edit::CountIn::twoBar);
 
     m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&m_countInButton),
-                    [this](int result)
+                    [safeThis = juce::Component::SafePointer<HeaderComponent>(this)](int result)
                     {
+                        if (safeThis == nullptr)
+                            return;
+
                         switch (result)
                         {
-                            case 1: m_edit.setCountInMode(te::Edit::CountIn::none); break;
-                            case 2: m_edit.setCountInMode(te::Edit::CountIn::oneBeat); break;
-                            case 3: m_edit.setCountInMode(te::Edit::CountIn::twoBeat); break;
-                            case 4: m_edit.setCountInMode(te::Edit::CountIn::oneBar); break;
-                            case 5: m_edit.setCountInMode(te::Edit::CountIn::twoBar); break;
+                            case 1: safeThis->m_edit.setCountInMode(te::Edit::CountIn::none); break;
+                            case 2: safeThis->m_edit.setCountInMode(te::Edit::CountIn::oneBeat); break;
+                            case 3: safeThis->m_edit.setCountInMode(te::Edit::CountIn::twoBeat); break;
+                            case 4: safeThis->m_edit.setCountInMode(te::Edit::CountIn::oneBar); break;
+                            case 5: safeThis->m_edit.setCountInMode(te::Edit::CountIn::twoBar); break;
                             default: return;
                         }
 
-                        updateCountInButton();
+                        safeThis->updateCountInButton();
                     });
 }
 
