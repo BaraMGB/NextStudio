@@ -16,9 +16,9 @@ if (MSVC)
     set (CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-# If we are compiling for macOS we want to target OS versions down to 10.11
+# Apple Silicon requires macOS 11.0 or newer.
 if (APPLE)
-    set (CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE INTERNAL "")
+    set (CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE INTERNAL "")
     set (CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
 
