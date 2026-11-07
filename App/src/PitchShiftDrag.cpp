@@ -50,10 +50,8 @@ private:
     {
         if (std::abs(m_parameter->getCurrentBaseValue() - value) > 0.0001f)
         {
-            m_parameter->beginParameterChangeGesture();
             m_parameter->parameterChangeGestureBegin();
             applyPitch(*m_parameter, value);
-            m_parameter->endParameterChangeGesture();
             m_parameter->parameterChangeGestureEnd();
         }
         return true;
@@ -82,7 +80,6 @@ bool PitchShiftDrag::begin()
 
     m_previousValue = m_parameter->getCurrentBaseValue();
     m_active = true;
-    m_parameter->beginParameterChangeGesture();
     m_parameter->parameterChangeGestureBegin();
     return true;
 }
@@ -105,7 +102,6 @@ void PitchShiftDrag::finish()
 
     m_active = false;
     const auto nextValue = m_parameter->getCurrentBaseValue();
-    m_parameter->endParameterChangeGesture();
     m_parameter->parameterChangeGestureEnd();
     if (std::abs(nextValue - m_previousValue) <= 0.0001f)
         return;
@@ -123,7 +119,6 @@ void PitchShiftDrag::cancel()
 
     if (std::abs(m_parameter->getCurrentBaseValue() - m_previousValue) > 0.0001f)
         applyPitch(*m_parameter, m_previousValue);
-    m_parameter->endParameterChangeGesture();
     m_parameter->parameterChangeGestureEnd();
     m_active = false;
 }

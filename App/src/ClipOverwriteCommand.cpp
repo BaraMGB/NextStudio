@@ -225,9 +225,10 @@ AutomationCurveSnapshot snapshotCurve(te::AutomatableParameter::Ptr parameter)
 void restoreCurve(const AutomationCurveSnapshot &snapshot)
 {
     auto &curve = snapshot.parameter->getCurve();
-    curve.clear();
+    auto* undoManager = &snapshot.parameter->getEdit().getUndoManager();
+    curve.clear(undoManager);
     for (const auto &point : snapshot.points)
-        curve.addPoint(point.time, point.value, point.curve);
+        curve.addPoint(point.time, point.value, point.curve, undoManager);
 }
 
 void moveAutomationPreservingUnmapped(const juce::Array<te::TrackAutomationSection> &sourceSections,

@@ -159,6 +159,8 @@ juce::MouseCursor getMouseCursorFromPng(const char *png, const int size, juce::P
 juce::MouseCursor getMouseCursorFromSvg(const char *svgbinary, juce::Point<int> hitPoint, float scale = 1.f);
 
 std::unique_ptr<juce::Drawable> getDrawableFromSvg(const char *svgbinary, juce::Colour colour);
+void drawDrawableWithin(juce::Graphics &g, const juce::Drawable &drawable, juce::Rectangle<float> drawRect,
+                        juce::RectanglePlacement placement = juce::RectanglePlacement::centred, float opacity = 1.0f);
 void drawFromSvg(juce::Graphics &g, const char *svgbinary, juce::Colour newColour, juce::Rectangle<float> drawRect);
 void setDrawableOnButton(juce::DrawableButton &button, const char *svgbinary, juce::Colour colour);
 juce::Image drawableToImage(const juce::Drawable &drawable, float targetWidth, float targetHeight);

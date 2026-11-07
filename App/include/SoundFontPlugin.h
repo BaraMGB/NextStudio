@@ -29,6 +29,12 @@ public:
     bool takesMidiInput() override { return true; }
     bool takesAudioInput() override { return false; }
     bool producesAudioWhenNoAudioInput() override { return true; }
+    BusLayout getBusses() const override
+    {
+        BusLayout layout;
+        layout.outputs.push_back(te::ChannelConfiguration::stereo());
+        return layout;
+    }
 
     void getChannelNames(juce::StringArray *ins, juce::StringArray *outs) override;
     int getNumOutputChannelsGivenInputs(int numInputChannels) override;

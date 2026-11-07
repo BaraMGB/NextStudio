@@ -284,9 +284,10 @@ void sharedSelection()
     auto* volume = dynamic_cast<te::VolumeAndPanPlugin*>(plugin.get());
     require(volume != nullptr, "missing volume fixture");
     auto& curve = volume->volParam->getCurve();
-    const auto index = curve.addPoint(tracktion::TimePosition::fromSeconds(1), .5f, 0);
+    const auto index = curve.addPoint(tracktion::TimePosition::fromSeconds(1), .5f, 0,
+                                      &edit->getUndoManager());
     juce::ReferenceCountedArray<SelectableAutomationPoint> lane;
-    lane.add(new SelectableAutomationPoint(index, curve));
+    lane.add(new SelectableAutomationPoint(index, curve, volume->volParam));
     auto* proxy = lane[0].get();
     manager.selectOnly(proxy);
     snapshot.capture(manager);
@@ -298,7 +299,7 @@ void sharedSelection()
     require(manager.isSelected(proxy) && proxy->getReferenceCount() == 1, "restored proxy lifetime depends on snapshot");
     snapshot.capture(manager);
     manager.deselectAll();
-    curve.removePoint(index);
+    curve.removePoint(index, &edit->getUndoManager());
     snapshot.restore(*edit, manager);
     require(manager.getSelectedObjects().isEmpty(), "removed automation point was restored");
     snapshot.clear();

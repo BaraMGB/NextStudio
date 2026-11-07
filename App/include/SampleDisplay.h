@@ -69,9 +69,10 @@ private:
     MarkerType m_type;
     juce::Colour m_colour;
     double m_time = 0.0;
-    juce::DrawableRectangle m_line;
-    juce::DrawableRectangle m_handle;
+    juce::Rectangle<float> m_lineBounds;
+    juce::Rectangle<float> m_handleBounds;
 
+    void paint(juce::Graphics &) override;
     void resized() override;
     void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &e) override;
@@ -95,6 +96,7 @@ public:
     SampleDisplayBase(te::Edit &edit, ApplicationViewState &appViewState);
 
     void resized() override;
+    void paintOverChildren(juce::Graphics &) override;
 
     void mouseDown(const juce::MouseEvent &e) override;
     void mouseDrag(const juce::MouseEvent &e) override;
@@ -120,7 +122,8 @@ protected:
 
 private:
     ApplicationViewState &m_appViewState;
-    juce::DrawableRectangle cursor;
+    juce::Rectangle<float> m_cursorBounds;
+    bool m_cursorVisible = false;
     MarkerComponent m_startMarker;
     MarkerComponent m_endMarker;
     te::LambdaTimer cursorUpdater;

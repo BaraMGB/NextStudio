@@ -68,5 +68,5 @@ void RackPanelToggleButton::paintButton(juce::Graphics &g, bool isMouseOverButto
 
     const auto iconBounds = m_collapsed ? juce::Rectangle<float>(3.0f, 3.0f, 18.0f, 18.0f) : bounds;
     if (auto *icon = m_collapsed ? m_collapsedIcon.get() : m_expandedIcon.get())
-        icon->drawWithin(g, iconBounds, juce::RectanglePlacement::centred, 1.0f);
+        GUIHelpers::drawDrawableWithin(g, *icon, iconBounds);
 }

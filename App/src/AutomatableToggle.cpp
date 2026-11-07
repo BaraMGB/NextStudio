@@ -123,14 +123,15 @@ void AutomatableToggleButton::mouseDown(const juce::MouseEvent &e)
         else if (result == addAutomationLaneMenuId)
         {
             auto start = tracktion::core::TimePosition::fromSeconds(0.0);
-            m_automatableParameter->getCurve().addPoint(start, (float)getToggleState(), 0.0);
+            m_automatableParameter->getCurve().addPoint(start, (float)getToggleState(), 0.0,
+                                                         &m_automatableParameter->getEdit().getUndoManager());
 
             if (auto *track = m_automatableParameter->getTrack())
                 track->state.setProperty(IDs::isTrackMinimized, false, nullptr);
         }
         else if (result == clearAutomationMenuId)
         {
-            m_automatableParameter->getCurve().clear();
+            m_automatableParameter->getCurve().clear(&m_automatableParameter->getEdit().getUndoManager());
         }
         else if (result >= removeModifierMenuBaseId && result < midiLearnMenuId)
         {

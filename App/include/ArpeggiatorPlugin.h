@@ -32,6 +32,7 @@ public:
     bool takesMidiInput() override { return true; }
     bool takesAudioInput() override { return false; }
     bool producesAudioWhenNoAudioInput() override { return false; }
+    BusLayout getBusses() const override { return {}; }
 
     void initialise(const te::PluginInitialisationInfo &) override;
     void deinitialise() override;

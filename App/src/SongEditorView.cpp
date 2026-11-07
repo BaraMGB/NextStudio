@@ -975,7 +975,7 @@ void SongEditorView::deleteSelectedTimeRange()
             ct->deleteRegion(m_selectedRange.timeRange, &m_editViewState.m_selectionManager);
 
     for (auto a : m_selectedRange.selectedAutomations)
-        a->getCurve().removePointsInRegion(m_selectedRange.timeRange);
+        a->getCurve().removePointsInRegion(m_selectedRange.timeRange, &a->getEdit().getUndoManager());
 }
 void SongEditorView::setSelectedTimeRange(tracktion::TimeRange tr, bool snapDownAtStart, bool snapDownAtEnd)
 {

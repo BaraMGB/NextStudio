@@ -240,7 +240,8 @@ void SidebarComponent::buttonClicked(juce::Button *button)
     const bool shouldCollapse = !m_appState.m_sidebarCollapsed && buttonName == m_activeButtonName;
 
     if (auto *drawableButton = dynamic_cast<juce::DrawableButton *>(button))
-        drawableButton->getNormalImage()->replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
+        if (auto* image = drawableButton->getNormalImage())
+            image->getDrawable().replaceColour(juce::Colour(0xffffff), juce::Colours::greenyellow);
 
     if (shouldCollapse)
     {

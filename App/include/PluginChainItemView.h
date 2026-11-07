@@ -25,7 +25,7 @@ class BorderlessButton : public juce::DrawableButton
 {
 public:
     BorderlessButton(const juce::String &buttonName, juce::DrawableButton::ButtonStyle buttonStyle)
-        : juce::DrawableButton(buttonName, buttonStyle)
+        : juce::DrawableButton(buttonName, buttonStyle, juce::BoundsToEnclose::contentBounds)
     {
     }
 

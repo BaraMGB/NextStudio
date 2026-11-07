@@ -124,7 +124,7 @@ void AutomationLaneComponent::mouseMove(const juce::MouseEvent &e)
     int hoveredCurve = -1;
 
     auto mousePosTime = xtoTime(e.position.x);
-    auto valueAtMouseTime = curve.getValueAt(mousePosTime);
+    auto valueAtMouseTime = curve.getValueAt(mousePosTime, m_parameter->getCurrentBaseValue());
     auto curvePointAtMouseTime = juce::Point<float>((float)e.x, (float)getYPos(valueAtMouseTime));
 
     if (hoveredRectOnLane.contains(curvePointAtMouseTime) && hoveredPoint == -1)
@@ -188,7 +188,7 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
         auto mouseTime = xtoTime(e.position.x);
         auto value = getValue(e.y);
 
-        auto p = m_parameter->getCurve().addPoint(mouseTime, value, 0.f);
+        auto p = m_parameter->getCurve().addPoint(mouseTime, value, 0.f, &m_parameter->getEdit().getUndoManager());
         m_hoveredCurve = -1;
         m_hoveredPoint = p;
         selectAutomationPoint(p, false);
@@ -265,7 +265,7 @@ void AutomationLaneComponent::mouseDown(const juce::MouseEvent &e)
 
     if (clickedOnCurve && rightButton)
     {
-        m_parameter->getCurve().setCurveValue(m_hoveredCurve - 1, 0.0f);
+        m_parameter->getCurve().setCurveValue(m_hoveredCurve - 1, 0.0f, &m_parameter->getEdit().getUndoManager());
         repaint();
         return;
     }
@@ -323,7 +323,7 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
         auto delta = valueP1 < valueP2 ? e.getDistanceFromDragStartY() * 0.01 : e.getDistanceFromDragStartY() * -0.01;
         auto newSteep = juce::jlimit(-0.5f, 0.5f, (float)(m_curveSteepAtMousedown + delta));
 
-        m_parameter->getCurve().setCurveValue(m_hoveredCurve - 1, newSteep);
+        m_parameter->getCurve().setCurveValue(m_hoveredCurve - 1, newSteep, &m_parameter->getEdit().getUndoManager());
         repaint();
         return; // Important: return here so we don't fall through to other logic
     }
@@ -375,7 +375,8 @@ void AutomationLaneComponent::mouseDrag(const juce::MouseEvent &e)
 
             auto newTime = p->time + draggedTime;
 
-            auto newIndex = param.getCurve().movePoint(p->index, newTime, newValue, false);
+            auto newIndex = param.getCurve().movePoint(param, p->index, newTime, newValue, false,
+                                                       &param.getEdit().getUndoManager());
             p->index = newIndex;
         }
         const auto rect = m_songEditor.getLocalArea(this, getLocalBounds()).toFloat();
@@ -443,7 +444,8 @@ juce::Array<juce::ValueTree> AutomationLaneComponent::findPointsInLasso(juce::Re
     for (int i = 0; i < curve.getNumPoints(); ++i)
     {
         const auto point = curve.getPoint(i);
-        const auto local = getPointOnAutomationRect(point.time, point.value, getWidth(), beats.getStart().inBeats(), beats.getEnd().inBeats());
+        const auto pointTime = te::toTime(point.time, m_parameter->getEdit().tempoSequence);
+        const auto local = getPointOnAutomationRect(pointTime, point.value, getWidth(), beats.getStart().inBeats(), beats.getEnd().inBeats());
         const auto position = m_songEditor.getLocalPoint(this, local);
         if (LassoGesture::containsCentre(rect, position)) hits.add(curve.state.getChild(i));
     }
@@ -464,7 +466,7 @@ void AutomationLaneComponent::appendLassoSelection(const SelectionTreeSet& wante
         auto* proxy = found == proxies.end() ? nullptr : found->second;
         if (proxy == nullptr)
         {
-            proxy = new SelectableAutomationPoint(i, m_parameter->getCurve());
+            proxy = new SelectableAutomationPoint(i, m_parameter->getCurve(), m_parameter);
             m_selectedAutomationPoints.add(proxy);
         }
         proxy->index = i;
@@ -483,8 +485,8 @@ tracktion::TimePosition AutomationLaneComponent::xtoTime(float x) { return TimeU
 
 void AutomationLaneComponent::addAutomationPointAt(tracktion::TimePosition pos)
 {
-    auto valueAtTime = m_parameter->getCurve().getValueAt(pos);
-    auto p = m_parameter->getCurve().addPoint(pos, valueAtTime, 0.f);
+    auto valueAtTime = m_parameter->getCurve().getValueAt(pos, m_parameter->getCurrentBaseValue());
+    auto p = m_parameter->getCurve().addPoint(pos, valueAtTime, 0.f, &m_parameter->getEdit().getUndoManager());
     m_hoveredCurve = -1;
     m_hoveredPoint = p;
     selectAutomationPoint(p, false);
@@ -494,7 +496,7 @@ void AutomationLaneComponent::addAutomationPointAt(tracktion::TimePosition pos)
 
 void AutomationLaneComponent::removeAutomationPoint(int index)
 {
-    m_parameter->getCurve().removePoint(index);
+    m_parameter->getCurve().removePoint(index, &m_parameter->getEdit().getUndoManager());
     m_editViewState.m_selectionManager.deselectAll();
     invalidateCurveCache();
 }
@@ -512,7 +514,7 @@ void AutomationLaneComponent::selectAutomationPoint(int index, bool add)
 void AutomationLaneComponent::deselectAutomationPoint(int index)
 {
     for (auto p : m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>())
-        if (p->m_curve.getOwnerParameter() == m_parameter->getCurve().getOwnerParameter()
+        if (p->parameter == m_parameter
             && p->pointState == m_parameter->getCurve().state.getChild(index))
             p->deselect();
 }
@@ -528,7 +530,7 @@ juce::OwnedArray<AutomationLaneComponent::CurvePoint> AutomationLaneComponent::g
         const auto found = curve->second.find(p->pointState);
         p->index = found == curve->second.end() ? -1 : found->second;
         if (p->index < 0) continue;
-        auto cp = std::make_unique<CurvePoint>(p->m_curve.getPointTime(p->index), p->m_curve.getPointValue(p->index), p->index, p->m_curve.getOwnerParameter());
+        auto cp = std::make_unique<CurvePoint>(p->m_curve.getPointTime(p->index), p->m_curve.getPointValue(p->index), p->index, p->parameter);
 
         points.add(std::move(cp));
     }
@@ -557,9 +559,10 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
 
     double startBeat = m_editViewState.timeToBeat((drawRange.getStart() + previewDelta).inSeconds());
     double endBeat = m_editViewState.timeToBeat((drawRange.getEnd() + previewDelta).inSeconds());
-    const auto pointX = [&](tracktion::TimePosition t)
+    const auto pointX = [&](tracktion::EditPosition position)
     {
-        return drawRect.getX() + m_editViewState.timeToX((t + previewDelta).inSeconds(), drawRect.getWidth(), startBeat, endBeat);
+        const auto time = tracktion::toTime(position, m_parameter->getEdit().tempoSequence);
+        return drawRect.getX() + m_editViewState.timeToX((time + previewDelta).inSeconds(), drawRect.getWidth(), startBeat, endBeat);
     };
     const auto pointY = [&](double value) { return drawRect.getY() + static_cast<float>(getYPos(value)); };
 
@@ -635,10 +638,10 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
         float lastX = pointX(firstPoint.time);
         float lastY = pointY(firstPoint.value);
 
-        if (startIdx == 0 || firstPoint.time >= drawRange.getStart())
+        if (startIdx == 0 || tracktion::toTime(firstPoint.time, m_parameter->getEdit().tempoSequence) >= drawRange.getStart())
             curvePath.startNewSubPath(lastX, lastY);
         else
-            curvePath.startNewSubPath(startX, pointY(curve.getValueAt(drawRange.getStart())));
+            curvePath.startNewSubPath(startX, pointY(curve.getValueAt(drawRange.getStart(), m_parameter->getCurrentBaseValue())));
 
         // Collect points
         for (int i = startIdx + 1; i <= endIdx; ++i)
@@ -685,8 +688,8 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
         }
 
         // Extend to the end
-        if (endIdx >= 0 && curve.getPoint(endIdx).time < drawRange.getEnd())
-            curvePath.lineTo(endX, pointY(curve.getValueAt(drawRange.getEnd())));
+        if (endIdx >= 0 && tracktion::toTime(curve.getPoint(endIdx).time, m_parameter->getEdit().tempoSequence) < drawRange.getEnd())
+            curvePath.lineTo(endX, pointY(curve.getValueAt(drawRange.getEnd(), m_parameter->getCurrentBaseValue())));
     }
 
     // Fill only for larger lanes
@@ -726,7 +729,7 @@ void AutomationLaneComponent::drawAutomationLane(juce::Graphics &g, tracktion::T
         double mouseTime = m_editViewState.beatToTime(mouseBeat);
 
         // Get curve value at this time
-        float curveValue = curve.getValueAt(tracktion::TimePosition::fromSeconds(mouseTime));
+        float curveValue = curve.getValueAt(tracktion::TimePosition::fromSeconds(mouseTime), m_parameter->getCurrentBaseValue());
         float curveY = pointY(curveValue);
 
         // Draw the hover dot
@@ -775,7 +778,8 @@ int AutomationLaneComponent::nextIndexAfter(tracktion::TimePosition t, te::Autom
 
 juce::Point<float> AutomationLaneComponent::getPointOnAutomation(int index, juce::Rectangle<float> drawRect, double startBeat, double endBeat)
 {
-    auto time = m_parameter->getCurve().getPoint(index).time;
+    auto time = tracktion::toTime(m_parameter->getCurve().getPoint(index).time,
+                                  m_parameter->getEdit().tempoSequence);
     auto value = m_parameter->getCurve().getPoint(index).value;
     auto point = getPointOnAutomationRect(time, value, drawRect.getWidth(), startBeat, endBeat).translated(drawRect.getX(), drawRect.getY());
 
@@ -826,7 +830,7 @@ int AutomationLaneComponent::getAutomationPointWidth()
 bool AutomationLaneComponent::isAutomationPointSelected(int index)
 {
     for (auto p : m_editViewState.m_selectionManager.getItemsOfType<SelectableAutomationPoint>())
-        if (p->m_curve.getOwnerParameter() == m_parameter->getCurve().getOwnerParameter()
+        if (p->parameter == m_parameter
             && p->pointState == m_parameter->getCurve().state.getChild(index))
             return true;
 
@@ -859,7 +863,7 @@ void AutomationLaneComponent::updateCurveCache(const tracktion::AutomationCurve 
 
         CachedCurvePoint cachedPoint;
         cachedPoint.index = i;
-        cachedPoint.time = point.time.inSeconds();
+        cachedPoint.time = tracktion::toTime(point.time, m_parameter->getEdit().tempoSequence).inSeconds();
         cachedPoint.value = point.value;
 
         m_curvePointCache.add(cachedPoint);

@@ -241,14 +241,15 @@ void AutomatableSliderComponent::mouseDown(const juce::MouseEvent &e)
         else if (result == addAutomationLaneMenuId)
         {
             auto start = tracktion::core::TimePosition::fromSeconds(0.0);
-            m_automatableParameter->getCurve().addPoint(start, (float)getValue(), 0.0);
+            m_automatableParameter->getCurve().addPoint(start, (float)getValue(), 0.0,
+                                                         &m_automatableParameter->getEdit().getUndoManager());
 
             if (auto *track = m_automatableParameter->getTrack())
                 track->state.setProperty(IDs::isTrackMinimized, false, nullptr);
         }
         else if (result == clearAutomationMenuId)
         {
-            m_automatableParameter->getCurve().clear();
+            m_automatableParameter->getCurve().clear(&m_automatableParameter->getEdit().getUndoManager());
         }
         else if (result >= removeModifierMenuBaseId && result < midiLearnMenuId)
         {
@@ -324,9 +325,9 @@ void AutomatableSliderComponent::showValueEntryDialog()
     const auto &range = m_automatableParameter->valueRange;
     value = range.snapToLegalValue(juce::jlimit(range.start, range.end, value));
 
-    m_automatableParameter->beginParameterChangeGesture();
+    m_automatableParameter->parameterChangeGestureBegin();
     m_automatableParameter->setParameter(value, juce::sendNotification);
-    m_automatableParameter->endParameterChangeGesture();
+    m_automatableParameter->parameterChangeGestureEnd();
 }
 
 void AutomatableSliderComponent::mouseDrag(const juce::MouseEvent &e)
@@ -440,13 +441,13 @@ void AutomatableSliderComponent::parameterChanged(te::AutomatableParameter &p, f
 void AutomatableSliderComponent::startedDragging()
 {
     if (m_automatableParameter)
-        m_automatableParameter->beginParameterChangeGesture();
+        m_automatableParameter->parameterChangeGestureBegin();
 }
 
 void AutomatableSliderComponent::stoppedDragging()
 {
     if (m_automatableParameter)
-        m_automatableParameter->endParameterChangeGesture();
+        m_automatableParameter->parameterChangeGestureEnd();
 }
 
 void AutomatableSliderComponent::valueChanged()

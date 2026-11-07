@@ -211,7 +211,7 @@ public:
             const auto labelText = "F  " + freqText + "  " + resText + "  " + slopeText;
 
             g.setFont(juce::FontOptions(11.0f));
-            const int textWidth = juce::jmax(120, g.getCurrentFont().getStringWidth(labelText) + 12);
+            const int textWidth = juce::jmax(120, juce::GlyphArrangement::getStringWidthInt(g.getCurrentFont(), labelText) + 12);
             const int textHeight = 18;
 
             float labelX = cutoffX - (float)textWidth * 0.5f;

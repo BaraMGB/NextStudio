@@ -105,8 +105,10 @@ void PluginListBoxModel::paintCell(juce::Graphics &g, int row, int col, int widt
 
             if (icon != nullptr)
             {
-                icon->setTransformToFit({static_cast<float>(width) / 4, 0.f, static_cast<float>(width) / 2.f, static_cast<float>(height)}, juce::RectanglePlacement::centred);
-                icon->draw(g, 1.0f);
+                icon->drawWithin(g,
+                                 {static_cast<float>(width) / 4, 0.f,
+                                  static_cast<float>(width) / 2.f, static_cast<float>(height)},
+                                 juce::RectanglePlacement::centred, 1.0f);
                 delete icon;
             }
         }

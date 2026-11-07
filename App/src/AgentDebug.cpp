@@ -74,7 +74,7 @@ juce::var buildPluginSummary(const te::Plugin &plugin)
         {
             const auto point = curve.getPoint(i);
             auto* entry = new juce::DynamicObject();
-            entry->setProperty("timeSeconds", point.time.inSeconds());
+            entry->setProperty("timeSeconds", te::toTime(point.time, parameter->getEdit().tempoSequence).inSeconds());
             entry->setProperty("value", point.value);
             entry->setProperty("curve", point.curve);
             points.add(entry);

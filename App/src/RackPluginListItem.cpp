@@ -165,7 +165,7 @@ void RackPluginListItem::paint(juce::Graphics &g)
     const auto iconColour = juce::Colours::lightgrey;
     drawEyeIcon(g, m_eyeBounds.toFloat(), iconColour, m_plugin != nullptr ? m_plugin->isEnabled() : true);
     if (m_trashIcon != nullptr)
-        m_trashIcon->drawWithin(g, m_trashBounds.toFloat(), juce::RectanglePlacement::centred, 1.0f);
+        GUIHelpers::drawDrawableWithin(g, *m_trashIcon, m_trashBounds.toFloat());
 
     g.drawText(m_label, textArea, juce::Justification::centredLeft, true);
 

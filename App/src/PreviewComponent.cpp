@@ -28,10 +28,10 @@ SamplePreviewComponent::SamplePreviewComponent(te::Engine &engine, te::Edit &edi
     : m_engine(engine),
       m_edit(edit),
       m_avs(avs),
-      m_playBtn("Play/Pause", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground),
-      m_stopBtn("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground),
-      m_syncTempoBtn("Sync Tempo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground),
-      m_loopBtn("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground)
+      m_playBtn("Play/Pause", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground, juce::BoundsToEnclose::contentBounds),
+      m_stopBtn("Stop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground, juce::BoundsToEnclose::contentBounds),
+      m_syncTempoBtn("Sync Tempo", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground, juce::BoundsToEnclose::contentBounds),
+      m_loopBtn("Loop", juce::DrawableButton::ButtonStyle::ImageOnButtonBackground, juce::BoundsToEnclose::contentBounds)
 {
     m_avs.m_applicationStateValueTree.addListener(this);
 

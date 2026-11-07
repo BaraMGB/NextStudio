@@ -31,11 +31,6 @@ MarkerComponent::MarkerComponent(MarkerType type, juce::Colour colour)
     : m_type(type),
       m_colour(colour)
 {
-    m_line.setFill(colour);
-    m_handle.setFill(colour);
-    addAndMakeVisible(m_line);
-    addAndMakeVisible(m_handle);
-
     setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
 }
 
@@ -82,7 +77,7 @@ void MarkerComponent::updateFromTime(double time, double totalLength, float comp
 
     // Update line (positioned at center of component)
     float lineX = (m_type == Start) ? 0.0f : (float)(compWidth - LINE_WIDTH);
-    m_line.setRectangle(r.withWidth(LINE_WIDTH).withX(lineX));
+    m_lineBounds = r.withWidth(LINE_WIDTH).withX(lineX);
 
     // Update handle position based on type
     float handleSize = HANDLE_SIZE;
@@ -99,7 +94,8 @@ void MarkerComponent::updateFromTime(double time, double totalLength, float comp
         handleRect = juce::Rectangle<float>(compWidth - handleSize - LINE_WIDTH, r.getBottom() - handleSize, handleSize, handleSize);
     }
 
-    m_handle.setRectangle(handleRect);
+    m_handleBounds = handleRect;
+    repaint();
 }
 
 bool MarkerComponent::isOverPosition(const juce::Point<float> &position) const
@@ -109,6 +105,13 @@ bool MarkerComponent::isOverPosition(const juce::Point<float> &position) const
 
     // Check if position is within this component's bounds
     return getLocalBounds().toFloat().contains(position);
+}
+
+void MarkerComponent::paint(juce::Graphics &g)
+{
+    g.setColour(m_colour);
+    g.fillRect(m_lineBounds);
+    g.fillRect(m_handleBounds);
 }
 
 void MarkerComponent::resized() { updateFromTime(m_time, m_totalLength, m_componentWidth); }
@@ -172,10 +175,6 @@ SampleDisplayBase::SampleDisplayBase(te::Edit &edit, ApplicationViewState &appVi
             if (m_sampleView.getSmartThumbnail().isGeneratingProxy() || m_sampleView.getSmartThumbnail().isOutOfDate())
                 repaint();
         });
-    cursor.setFill(findColour(juce::Label::textColourId));
-    addAndMakeVisible(cursor);
-    cursor.setVisible(false);
-
     addAndMakeVisible(m_startMarker);
     addAndMakeVisible(m_endMarker);
 
@@ -211,6 +210,15 @@ void SampleDisplayBase::resized()
     updateCursorPosition();
 }
 
+void SampleDisplayBase::paintOverChildren(juce::Graphics &g)
+{
+    if (!m_cursorVisible)
+        return;
+
+    g.setColour(findColour(juce::Label::textColourId));
+    g.fillRect(m_cursorBounds);
+}
+
 void SampleDisplayBase::setFile(const tracktion_engine::AudioFile &file)
 {
     m_sampleView.setFile(file);
@@ -224,7 +232,7 @@ void SampleDisplayBase::setFile(const tracktion_engine::AudioFile &file)
     {
         m_totalLength = 0.0;
         cursorUpdater.stopTimer();
-        cursor.setVisible(false);
+        m_cursorVisible = false;
         clearStartEndMarkers();
     }
 
@@ -240,7 +248,8 @@ void SampleDisplayBase::updateCursorPosition()
     const auto playbackPosition = getPlaybackPosition();
     if (!playbackPosition.has_value() || m_totalLength <= 0.0 || getWidth() <= 0)
     {
-        cursor.setVisible(false);
+        m_cursorVisible = false;
+        repaint();
         return;
     }
 
@@ -248,8 +257,9 @@ void SampleDisplayBase::updateCursorPosition()
     auto r = getLocalBounds().toFloat();
     const float cursorWidth = 2.0f;
     const float x = juce::jlimit(0.0f, juce::jmax(0.0f, r.getWidth() - cursorWidth), r.getWidth() * float(proportion));
-    cursor.setRectangle(r.withWidth(cursorWidth).withX(x));
-    cursor.setVisible(true);
+    m_cursorBounds = r.withWidth(cursorWidth).withX(x);
+    m_cursorVisible = true;
+    repaint();
 }
 
 void SampleDisplayBase::mouseDown(const juce::MouseEvent &e)

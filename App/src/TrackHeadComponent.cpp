@@ -305,7 +305,7 @@ void AutomationLaneHeaderComponent::mouseDown(const juce::MouseEvent &event)
         const int result = m.show();
         if (result == 2000)
         {
-            m_automatableParameter->getCurve().clear();
+            m_automatableParameter->getCurve().clear(&m_automatableParameter->getEdit().getUndoManager());
             te::AutomationCurve::removeAllAutomationCurvesRecursively(m_automatableParameter->getCurve().parentState);
         }
     }

@@ -46,6 +46,7 @@ public:
     bool takesMidiInput() override { return false; }
     bool takesAudioInput() override { return true; }
     bool producesAudioWhenNoAudioInput() override { return false; }
+    BusLayout getBusses() const override { return BusLayout::singleStereoInOut(); }
 
     int getNumOutputChannelsGivenInputs(int numInputChannels) override { return juce::jmin(numInputChannels, 2); }
 

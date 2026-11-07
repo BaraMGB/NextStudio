@@ -71,6 +71,7 @@ class EditComponent
     , private FlaggedAsyncUpdater
     , private juce::ScrollBar::Listener
     , public juce::ChangeListener
+    , private te::AutomationRecordManager::Listener
     , private juce::Timer
     , public juce::Button::Listener
     , public juce::DragAndDropTarget
@@ -134,6 +135,7 @@ private:
     void valueTreeChildRemoved(juce::ValueTree &, juce::ValueTree &, int) override;
     void valueTreeChildOrderChanged(juce::ValueTree &, int, int) override;
     void handleAsyncUpdate() override;
+    void automationModeChanged() override;
 
     void buildTracks();
 

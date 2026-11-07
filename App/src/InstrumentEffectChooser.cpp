@@ -164,8 +164,11 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
             if (icon != nullptr)
             {
                 auto padding = 5.f;
-                icon->setTransformToFit({static_cast<float>(width) / 4 - padding, padding, (static_cast<float>(width) / 2.f) + padding, static_cast<float>(height - (padding * 2))}, juce::RectanglePlacement::centred);
-                icon->draw(g, 1.0f);
+                icon->drawWithin(g,
+                                 {static_cast<float>(width) / 4 - padding, padding,
+                                  (static_cast<float>(width) / 2.f) + padding,
+                                  static_cast<float>(height - (padding * 2))},
+                                 juce::RectanglePlacement::centred, 1.0f);
                 delete icon;
             }
         }
@@ -185,12 +188,12 @@ void InstrumentEffectListModel::paintCell(juce::Graphics &g, int row, int col, i
                 g.setFont(juce::Font((float)height * 0.7f, juce::Font::bold));
                 g.drawFittedText(preTerm, 4, 0, width - 6, height, juce::Justification::centredLeft, 1, 0.9f);
 
-                int preTermWidth = g.getCurrentFont().getStringWidth(preTerm);
+                int preTermWidth = juce::GlyphArrangement::getStringWidthInt(g.getCurrentFont(), preTerm);
 
                 g.setColour(juce::Colours::coral);
                 g.drawFittedText(searchTerm, 4 + preTermWidth, 0, width - 6 - preTermWidth, height, juce::Justification::centredLeft, 1, 0.9f);
 
-                int termWidth = g.getCurrentFont().getStringWidth(searchTerm);
+                int termWidth = juce::GlyphArrangement::getStringWidthInt(g.getCurrentFont(), searchTerm);
 
                 g.setColour(colour);
                 g.drawFittedText(postTerm, 4 + preTermWidth + termWidth, 0, width - 6 - preTermWidth - termWidth, height, juce::Justification::centredLeft, 1, 0.9f);

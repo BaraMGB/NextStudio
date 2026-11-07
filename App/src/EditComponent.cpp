@@ -108,7 +108,7 @@ EditComponent::EditComponent(te::Edit &e, EditViewState &evs, ApplicationViewSta
 
     m_edit.state.addListener(this);
     m_editViewState.m_selectionManager.addChangeListener(this);
-    m_edit.getAutomationRecordManager().addChangeListener(this);
+    m_edit.getAutomationRecordManager().addListener(this);
     m_edit.getTransport().addChangeListener(this);
     m_songEditor.addMouseListener(this, true);
 
@@ -323,7 +323,7 @@ EditComponent::~EditComponent()
         m_masterLane->removeMouseListener(this);
     m_songEditor.removeMouseListener(this);
     m_edit.getTransport().removeChangeListener(this);
-    m_edit.getAutomationRecordManager().removeChangeListener(this);
+    m_edit.getAutomationRecordManager().removeListener(this);
     m_editViewState.m_selectionManager.removeChangeListener(this);
     m_edit.state.removeListener(this);
 }
@@ -568,18 +568,19 @@ void EditComponent::changeListenerCallback(juce::ChangeBroadcaster *source)
         if (m_masterLane)
             m_masterLane->repaint();
     }
-    else if (source == &m_edit.getAutomationRecordManager())
-    {
-        if (!m_edit.getAutomationRecordManager().isWritingAutomation())
-            AutomationWriteGuard::clear();
-
-        updateButtonIcons();
-    }
     else if (source == &m_edit.getTransport())
     {
         if (!m_edit.getTransport().isPlaying() && !m_edit.getTransport().isRecording())
             AutomationWriteGuard::clear();
     }
+}
+
+void EditComponent::automationModeChanged()
+{
+    if (!m_edit.getAutomationRecordManager().isWritingAutomation())
+        AutomationWriteGuard::clear();
+
+    updateButtonIcons();
 }
 
 void EditComponent::scrollBarMoved(juce::ScrollBar *scrollBarThatHasMoved, double newRangeStart)

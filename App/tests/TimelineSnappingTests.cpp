@@ -437,15 +437,19 @@ void testAutomationLimits(te::Edit& edit)
     auto* volume = dynamic_cast<te::VolumeAndPanPlugin*>(plugin.get()); require(volume != nullptr, "volume missing");
     auto* parameter = volume->volParam.get();
     auto& curve = parameter->getCurve();
-    curve.addPoint(time(1), .3f, 0); curve.addPoint(time(2), .4f, 0); curve.addPoint(time(3), .5f, 0); curve.addPoint(time(5), .6f, 0);
+    auto* undoManager = &edit.getUndoManager();
+    curve.addPoint(time(1), .3f, 0, undoManager); curve.addPoint(time(2), .4f, 0, undoManager);
+    curve.addPoint(time(3), .5f, 0, undoManager); curve.addPoint(time(5), .6f, 0, undoManager);
     juce::Array<AutomationGestureLimits::Point> selected; selected.add({parameter, 1, time(2)}); selected.add({parameter, 2, time(3)});
     near(AutomationGestureLimits::constrain(selected, 100), 2);
     near(AutomationGestureLimits::constrain(selected, -100), -1);
     near(AutomationGestureLimits::constrain(selected, .07123), .07123);
     // The production lane uses this order so engine neighbour clamps do not collapse spacing.
-    curve.movePoint(2, time(4), .5f, false); curve.movePoint(1, time(3), .4f, false);
+    curve.movePoint(*parameter, 2, time(4), .5f, false, undoManager);
+    curve.movePoint(*parameter, 1, time(3), .4f, false, undoManager);
     near((curve.getPointTime(2) - curve.getPointTime(1)).inSeconds(), 1);
-    curve.movePoint(1, time(1), .4f, false); curve.movePoint(2, time(2), .5f, false);
+    curve.movePoint(*parameter, 1, time(1), .4f, false, undoManager);
+    curve.movePoint(*parameter, 2, time(2), .5f, false, undoManager);
     near((curve.getPointTime(2) - curve.getPointTime(1)).inSeconds(), 1);
 }
 void testSplitLimits()

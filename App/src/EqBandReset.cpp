@@ -31,9 +31,9 @@ private:
             if (parameter == nullptr)
                 return false;
 
-            parameter->beginParameterChangeGesture();
+            parameter->parameterChangeGestureBegin();
             parameter->setParameter(values[index], juce::sendNotification);
-            parameter->endParameterChangeGesture();
+            parameter->parameterChangeGestureEnd();
         }
 
         return true;

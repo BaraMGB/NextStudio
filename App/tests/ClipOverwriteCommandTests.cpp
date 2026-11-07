@@ -330,7 +330,7 @@ void testAutomationMovesHorizontallyAndVertically()
     REQUIRE(sourceParameter != nullptr);
     if (sourceParameter == nullptr)
         return;
-    sourceParameter->getCurve().addPoint(TimePosition::fromSeconds(0.5), 0.75f, 0.0f);
+    sourceParameter->getCurve().addPoint(TimePosition::fromSeconds(0.5), 0.75f, 0.0f, &f.edit->getUndoManager());
 
     auto sourceOnlyPlugin = f.edit->getPluginCache().createNewPlugin(te::ReverbPlugin::xmlTypeName, {});
     REQUIRE(sourceOnlyPlugin != nullptr);
@@ -341,7 +341,7 @@ void testAutomationMovesHorizontallyAndVertically()
     REQUIRE(sourceOnlyParameter != nullptr);
     if (sourceOnlyParameter == nullptr)
         return;
-    sourceOnlyParameter->getCurve().addPoint(TimePosition::fromSeconds(0.75), 0.5f, 0.0f);
+    sourceOnlyParameter->getCurve().addPoint(TimePosition::fromSeconds(0.75), 0.5f, 0.0f, &f.edit->getUndoManager());
 
     ClipEditing::Options horizontalOptions;
     horizontalOptions.moveAutomation = true;
@@ -351,7 +351,7 @@ void testAutomationMovesHorizontallyAndVertically()
                                                    horizontalOptions);
     REQUIRE(horizontal.succeeded);
     REQUIRE(!sourceParameter->getCurve().getPointsInRegion(
-                 {TimePosition::fromSeconds(3.0), TimePosition::fromSeconds(5.0)}).isEmpty());
+                 TimeRange{TimePosition::fromSeconds(3.0), TimePosition::fromSeconds(5.0)}).isEmpty());
 
     auto *destination = f.addMidiTrack();
     auto destinationParameter = matchingParameter(*destination, *sourceParameter);
@@ -368,9 +368,9 @@ void testAutomationMovesHorizontallyAndVertically()
                                                  {verticalPlacement}, verticalOptions);
     REQUIRE(vertical.succeeded);
     REQUIRE(!destinationParameter->getCurve().getPointsInRegion(
-                 {TimePosition::fromSeconds(6.0), TimePosition::fromSeconds(8.0)}).isEmpty());
+                 TimeRange{TimePosition::fromSeconds(6.0), TimePosition::fromSeconds(8.0)}).isEmpty());
     REQUIRE(!sourceOnlyParameter->getCurve().getPointsInRegion(
-                 {TimePosition::fromSeconds(3.0), TimePosition::fromSeconds(5.0)}).isEmpty());
+                 TimeRange{TimePosition::fromSeconds(3.0), TimePosition::fromSeconds(5.0)}).isEmpty());
 }
 
 void testResizeAndTimeStretchPlacementsOverwriteDestination()
@@ -613,7 +613,8 @@ void testUndoRedoIsAtomic()
     ClipEditing::Options options;
     options.additionalEdit = [parameter]
     {
-        parameter->getCurve().addPoint(TimePosition::fromSeconds(10.0), 0.25f, 0.0f);
+        parameter->getCurve().addPoint(TimePosition::fromSeconds(10.0), 0.25f, 0.0f,
+                                       &parameter->getEdit().getUndoManager());
         return true;
     };
     auto result = ClipEditing::applyOverwrite(*f.edit, f.selection,
@@ -621,18 +622,18 @@ void testUndoRedoIsAtomic()
     REQUIRE(result.succeeded);
     REQUIRE(closeTo(moving->getPosition().getStart().inSeconds(), 5.0));
     REQUIRE(!parameter->getCurve().getPointsInRegion(
-                 {TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
+                 TimeRange{TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
 
     REQUIRE(f.edit->getUndoManager().undo());
     auto *restored = te::findClipForID(*f.edit, moving->itemID);
     REQUIRE(restored != nullptr);
     REQUIRE(closeTo(restored->getPosition().getStart().inSeconds(), 0.0));
     REQUIRE(parameter->getCurve().getPointsInRegion(
-                 {TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
+                 TimeRange{TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
     REQUIRE(f.edit->getUndoManager().redo());
     REQUIRE(closeTo(te::findClipForID(*f.edit, moving->itemID)->getPosition().getStart().inSeconds(), 5.0));
     REQUIRE(!parameter->getCurve().getPointsInRegion(
-                 {TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
+                 TimeRange{TimePosition::fromSeconds(9.0), TimePosition::fromSeconds(11.0)}).isEmpty());
 }
 
 } // namespace

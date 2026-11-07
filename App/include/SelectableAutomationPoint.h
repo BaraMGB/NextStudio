@@ -7,8 +7,9 @@
 struct SelectableAutomationPoint : public tracktion::engine::Selectable, public juce::ReferenceCountedObject
 {
     using Ptr = juce::ReferenceCountedObjectPtr<SelectableAutomationPoint>;
-    SelectableAutomationPoint(int i, tracktion::engine::AutomationCurve& c)
-        : index(i), m_curve(c), pointState(c.state.getChild(i)), parameter(c.getOwnerParameter()) {}
+    SelectableAutomationPoint(int i, tracktion::engine::AutomationCurve& c,
+                              tracktion::engine::AutomatableParameter::Ptr p)
+        : index(i), m_curve(c), pointState(c.state.getChild(i)), parameter(std::move(p)) {}
     ~SelectableAutomationPoint() override { notifyListenersOfDeletion(); }
     juce::String getSelectableDescription() override { return "AutomationPoint"; }
 

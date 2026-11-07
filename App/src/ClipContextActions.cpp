@@ -50,7 +50,7 @@ bool deleteClip(te::Edit &edit, te::Clip::Ptr clip)
 
     edit.getUndoManager().beginNewTransaction("Delete Clip");
     for (auto parameter : track->getAllAutomatableParams())
-        parameter->getCurve().removePointsInRegion(clip->getEditTimeRange());
+        parameter->getCurve().removePointsInRegion(clip->getEditTimeRange(), &edit.getUndoManager());
     clip->removeFromParent();
     return true;
 }

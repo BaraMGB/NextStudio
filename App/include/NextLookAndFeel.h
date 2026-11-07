@@ -65,7 +65,7 @@ public:
         cs = juce::jmin(cs, w * 0.5f, h * 0.5f);
         auto cs2 = 2.0f * cs;
 
-        auto textW = text.isEmpty() ? 0 : juce::jlimit(0.0f, juce::jmax(0.0f, w - cs2 - textEdgeGap * 2), (float)f.getStringWidth(text) + textEdgeGap * 2.0f);
+        auto textW = text.isEmpty() ? 0 : juce::jlimit(0.0f, juce::jmax(0.0f, w - cs2 - textEdgeGap * 2), juce::GlyphArrangement::getStringWidth(f, text) + textEdgeGap * 2.0f);
         auto textX = cs + textEdgeGap;
 
         if (position.testFlags(juce::Justification::horizontallyCentred))

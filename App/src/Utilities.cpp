@@ -278,7 +278,10 @@ void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioCl
             // A provisional slice still uses the original clip's proxy.
             const auto proxyRange = getTimeRangeForDrawing(evs, clipPos, clipRect, displayedRect, x1Beat, x2beat)
                                       + (clipPos.getOffset() - c.getPosition().getOffset());
-            drawChannels(g, thumb, area, false, proxyRange, c.isLeftChannelActive() && showBothChannels, c.isRightChannelActive(), gainL, gainR);
+            const auto activeChannels = c.getActiveChannelConfiguration();
+            drawChannels(g, thumb, area, false, proxyRange,
+                         activeChannels.containsDeviceChannel(0) && showBothChannels,
+                         activeChannels.containsDeviceChannel(1), gainL, gainR);
         }
     }
     else if (c.getLoopLength().inSeconds() == 0)
@@ -288,7 +291,10 @@ void GUIHelpers::drawWaveform(juce::Graphics &g, EditViewState &evs, te::AudioCl
         auto t1 = EngineHelpers::getTimePos((region.getStart().inSeconds() + offset.inSeconds()) * speedRatio);
         auto t2 = EngineHelpers::getTimePos((region.getEnd().inSeconds() + offset.inSeconds()) * speedRatio);
         bool useHighres = true;
-        drawChannels(g, thumb, area, useHighres, {t1, t2}, c.isLeftChannelActive(), c.isRightChannelActive() && showBothChannels, gainL, gainR);
+        const auto activeChannels = c.getActiveChannelConfiguration();
+        drawChannels(g, thumb, area, useHighres, {t1, t2},
+                     activeChannels.containsDeviceChannel(0),
+                     activeChannels.containsDeviceChannel(1) && showBothChannels, gainL, gainR);
     }
 }
 
@@ -547,21 +553,25 @@ void GUIHelpers::drawHeaderBox(juce::Graphics &g, juce::Rectangle<float> area, j
     }
 }
 
+void GUIHelpers::drawDrawableWithin(juce::Graphics &g, const juce::Drawable &drawable, juce::Rectangle<float> drawRect,
+                                    juce::RectanglePlacement placement, float opacity)
+{
+    const auto sourceBounds = drawable.getContentBounds();
+    if (!sourceBounds.isEmpty())
+        drawable.draw(g, opacity, placement.getTransformToFit(sourceBounds, drawRect));
+}
+
 void GUIHelpers::drawFromSvg(juce::Graphics &g, const char *svgbinary, juce::Colour newColour, juce::Rectangle<float> drawRect)
 {
-    if (auto svg = juce::XmlDocument::parse(svgbinary))
+    std::unique_ptr<juce::Drawable> drawable;
     {
-        std::unique_ptr<juce::Drawable> drawable;
-        {
-            const juce::MessageManagerLock mmLock;
-            drawable = juce::Drawable::createFromSVG(*svg);
-        }
-        if (drawable != nullptr)
-        {
-            drawable->setTransformToFit(drawRect, juce::RectanglePlacement::centred);
-            drawable->replaceColour(juce::Colour(0xff626262), newColour);
-            drawable->draw(g, 2.f);
-        }
+        const juce::MessageManagerLock mmLock;
+        drawable = juce::Drawable::createFromSVGString(juce::String::fromUTF8(svgbinary));
+    }
+    if (drawable != nullptr)
+    {
+        drawable->replaceColour(juce::Colour(0xff626262), newColour);
+        drawDrawableWithin(g, *drawable, drawRect);
     }
 }
 
@@ -573,23 +583,16 @@ void GUIHelpers::setDrawableOnButton(juce::DrawableButton &button, const char *s
 
 std::unique_ptr<juce::Drawable> GUIHelpers::getDrawableFromSvg(const char *svgbinary, juce::Colour colour)
 {
-    if (auto svg = juce::XmlDocument::parse(svgbinary))
+    std::unique_ptr<juce::Drawable> drawable;
     {
-        std::unique_ptr<juce::Drawable> drawable;
-        {
-            const juce::MessageManagerLock mmLock;
-            drawable = juce::Drawable::createFromSVG(*svg);
-        }
-
-        if (drawable != nullptr)
-        {
-            drawable->replaceColour(juce::Colour(0xff626262), colour);
-        }
-
-        return drawable;
+        const juce::MessageManagerLock mmLock;
+        drawable = juce::Drawable::createFromSVGString(juce::String::fromUTF8(svgbinary));
     }
 
-    return nullptr;
+    if (drawable != nullptr)
+        drawable->replaceColour(juce::Colour(0xff626262), colour);
+
+    return drawable;
 }
 
 float GUIHelpers::getScale(const juce::Component &c)
@@ -1321,7 +1324,7 @@ void EngineHelpers::deleteSelectedClips(EditViewState &evs)
         {
             for (auto ap : selectedClip->getTrack()->getAllAutomatableParams())
             {
-                ap->getCurve().removePointsInRegion(selectedClip->getEditTimeRange());
+                ap->getCurve().removePointsInRegion(selectedClip->getEditTimeRange(), &evs.m_edit.getUndoManager());
             }
 
             selectedClip->removeFromParent();
@@ -1575,33 +1578,35 @@ void EngineHelpers::moveAutomationOrCopy(const juce::Array<tracktion::TrackAutom
                 auto &curve = param->getCurve();
                 constexpr auto tolerance = tracktion::TimeDuration::fromSeconds(0.0001);
 
-                auto startValue = curve.getValueAt(sectionTime.getStart() - tolerance);
-                auto endValue = curve.getValueAt(sectionTime.getEnd() + tolerance);
+                const auto defaultValue = param->getCurrentBaseValue();
+                auto* undoManager = &param->getEdit().getUndoManager();
+                auto startValue = curve.getValueAt(sectionTime.getStart() - tolerance, defaultValue);
+                auto endValue = curve.getValueAt(sectionTime.getEnd() + tolerance, defaultValue);
 
                 auto idx = curve.indexBefore(sectionTime.getEnd() + tolerance);
                 auto endCurve = (idx == -1) ? 0.0f : curve.getPointCurve(idx);
 
-                curve.removePointsInRegion(sectionTime.expanded(tolerance));
+                curve.removePointsInRegion(sectionTime.expanded(tolerance), undoManager);
 
                 if (std::abs(startValue - endValue) < 0.0001f)
                 {
-                    curve.addPoint(sectionTime.getStart(), startValue, 0.0f);
-                    curve.addPoint(sectionTime.getEnd(), endValue, endCurve);
+                    curve.addPoint(sectionTime.getStart(), startValue, 0.0f, undoManager);
+                    curve.addPoint(sectionTime.getEnd(), endValue, endCurve, undoManager);
                 }
                 else if (startValue > endValue)
                 {
-                    curve.addPoint(sectionTime.getStart(), startValue, 0.0f);
-                    curve.addPoint(sectionTime.getStart(), endValue, 0.0f);
-                    curve.addPoint(sectionTime.getEnd(), endValue, endCurve);
+                    curve.addPoint(sectionTime.getStart(), startValue, 0.0f, undoManager);
+                    curve.addPoint(sectionTime.getStart(), endValue, 0.0f, undoManager);
+                    curve.addPoint(sectionTime.getEnd(), endValue, endCurve, undoManager);
                 }
                 else
                 {
-                    curve.addPoint(sectionTime.getStart(), startValue, 0.0f);
-                    curve.addPoint(sectionTime.getEnd(), startValue, 0.0f);
-                    curve.addPoint(sectionTime.getEnd(), endValue, endCurve);
+                    curve.addPoint(sectionTime.getStart(), startValue, 0.0f, undoManager);
+                    curve.addPoint(sectionTime.getEnd(), startValue, 0.0f, undoManager);
+                    curve.addPoint(sectionTime.getEnd(), endValue, endCurve, undoManager);
                 }
 
-                curve.removeRedundantPoints(sectionTime.expanded(tolerance));
+                curve.removeRedundantPoints(sectionTime.expanded(tolerance), undoManager);
             }
         }
     }
@@ -1630,11 +1635,13 @@ void EngineHelpers::moveAutomationOrCopy(const juce::Array<tracktion::TrackAutom
                 auto idx2 = srcCurve.indexBefore(start - errorMargin);
                 auto startCurve = idx2 < 0 ? 0 : srcCurve.getPointCurve(idx2);
 
-                auto srcStartVal = srcCurve.getValueAt(start - errorMargin);
-                auto srcEndVal = srcCurve.getValueAt(end + errorMargin);
+                const auto defaultValue = activeParam.param->getCurrentBaseValue();
+                auto* undoManager = &dstCurve->edit.getUndoManager();
+                auto srcStartVal = srcCurve.getValueAt(start - errorMargin, defaultValue);
+                auto srcEndVal = srcCurve.getValueAt(end + errorMargin, defaultValue);
 
-                auto dstStartVal = dstCurve->getValueAt(newStart - errorMargin);
-                auto dstEndVal = dstCurve->getValueAt(newEnd + errorMargin);
+                auto dstStartVal = dstCurve->getValueAt(newStart - errorMargin, defaultValue);
+                auto dstEndVal = dstCurve->getValueAt(newEnd + errorMargin, defaultValue);
 
                 tracktion::TimeRange totalRegionWithMargin(newStart - errorMargin, newEnd + errorMargin);
                 tracktion::TimeRange startWithMargin(newStart - errorMargin, newStart + errorMargin);
@@ -1646,34 +1653,36 @@ void EngineHelpers::moveAutomationOrCopy(const juce::Array<tracktion::TrackAutom
                 {
                     auto pt = srcCurve.getPoint(i);
 
-                    if (pt.time >= start - errorMargin && pt.time <= sectionTime.getEnd() + errorMargin)
+                    const auto pointTime = tracktion::toTime(pt.time, activeParam.param->getEdit().tempoSequence);
+                    if (pointTime >= start - errorMargin && pointTime <= sectionTime.getEnd() + errorMargin)
                         origPoints.add(pt);
                 }
 
-                dstCurve->removePointsInRegion(totalRegionWithMargin);
+                dstCurve->removePointsInRegion(totalRegionWithMargin, undoManager);
 
                 for (const auto &pt : origPoints)
-                    dstCurve->addPoint(pt.time + offset, pt.value, pt.curve);
+                    dstCurve->addPoint(tracktion::toTime(pt.time, activeParam.param->getEdit().tempoSequence) + offset,
+                                       pt.value, pt.curve, undoManager);
 
                 auto startPoints = dstCurve->getPointsInRegion(startWithMargin);
                 auto endPoints = dstCurve->getPointsInRegion(endWithMargin);
 
-                dstCurve->removePointsInRegion(startWithMargin);
-                dstCurve->removePointsInRegion(endWithMargin);
+                dstCurve->removePointsInRegion(startWithMargin, undoManager);
+                dstCurve->removePointsInRegion(endWithMargin, undoManager);
 
-                dstCurve->addPoint(newStart, dstStartVal, startCurve);
-                dstCurve->addPoint(newStart, srcStartVal, startCurve);
+                dstCurve->addPoint(newStart, dstStartVal, startCurve, undoManager);
+                dstCurve->addPoint(newStart, srcStartVal, startCurve, undoManager);
 
                 for (auto &point : startPoints)
-                    dstCurve->addPoint(newStart, point.value, point.curve);
+                    dstCurve->addPoint(newStart, point.value, point.curve, undoManager);
 
                 for (auto &point : endPoints)
-                    dstCurve->addPoint(newEnd, point.value, point.curve);
+                    dstCurve->addPoint(newEnd, point.value, point.curve, undoManager);
 
-                dstCurve->addPoint(newEnd, srcEndVal, endCurve);
-                dstCurve->addPoint(newEnd, dstEndVal, endCurve);
+                dstCurve->addPoint(newEnd, srcEndVal, endCurve, undoManager);
+                dstCurve->addPoint(newEnd, dstEndVal, endCurve, undoManager);
 
-                dstCurve->removeRedundantPoints(totalRegionWithMargin);
+                dstCurve->removeRedundantPoints(totalRegionWithMargin, undoManager);
             }
         }
     }
@@ -1730,9 +1739,10 @@ te::TrackAutomationSection EngineHelpers::getTrackAutomationSection(te::Automata
     as.src = ap->getTrack();
     as.dst = ap->getTrack();
     as.position = tr;
-    te::TrackAutomationSection::ActiveParameters par;
-    par.param = ap;
-    par.curve = ap->getCurve();
+    te::TrackAutomationSection::ActiveParameters par(*ap);
+    par.curve.setParentState(ap->getCurve().parentState);
+    par.curve.setState(ap->getCurve().state);
+    par.curve.setParameterID(ap->getCurve().getParameterID());
     as.activeParameters.add(par);
 
     return as;

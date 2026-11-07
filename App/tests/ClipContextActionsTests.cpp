@@ -98,9 +98,10 @@ void testDeleteAffectsOnlyClickedClipAndItsAutomation()
     const auto parameters = fixture.firstTrack->getAllAutomatableParams();
     require(!parameters.isEmpty(), "track has no automatable parameter");
     auto parameter = te::AutomatableParameter::Ptr(parameters.getFirst());
-    parameter->getCurve().addPoint(tracktion::TimePosition::fromSeconds(0.5), 0.2f, 0.0f);
-    parameter->getCurve().addPoint(tracktion::TimePosition::fromSeconds(2.0), 0.5f, 0.0f);
-    parameter->getCurve().addPoint(tracktion::TimePosition::fromSeconds(3.5), 0.8f, 0.0f);
+    auto* undoManager = &fixture.edit->getUndoManager();
+    parameter->getCurve().addPoint(tracktion::TimePosition::fromSeconds(0.5), 0.2f, 0.0f, undoManager);
+    parameter->getCurve().addPoint(tracktion::TimePosition::fromSeconds(2.0), 0.5f, 0.0f, undoManager);
+    parameter->getCurve().addPoint(tracktion::TimePosition::fromSeconds(3.5), 0.8f, 0.0f, undoManager);
     fixture.edit->getUndoManager().clearUndoHistory();
 
     require(ClipContextActions::deleteClip(*fixture.edit, clicked), "clip deletion failed");
@@ -109,8 +110,8 @@ void testDeleteAffectsOnlyClickedClipAndItsAutomation()
     require(fixture.firstTrack->getClips().getFirst() == selected.get(),
             "clip deletion removed the selected clip instead of the clicked clip");
     require(parameter->getCurve().getPointsInRegion(
-                {tracktion::TimePosition::fromSeconds(1.0),
-                 tracktion::TimePosition::fromSeconds(3.0)}).isEmpty(),
+                tracktion::TimeRange{tracktion::TimePosition::fromSeconds(1.0),
+                                     tracktion::TimePosition::fromSeconds(3.0)}).isEmpty(),
             "clip deletion retained automation in the clip range");
     require(parameter->getCurve().getNumPoints() == 2,
             "clip deletion removed automation outside the clip range");

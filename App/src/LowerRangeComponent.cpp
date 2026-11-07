@@ -59,7 +59,7 @@ public:
         auto content = getLocalBounds().reduced(8, 3);
         auto iconArea = content.removeFromLeft(content.getHeight());
         if (m_icon != nullptr)
-            m_icon->drawWithin(g, iconArea.toFloat(), juce::RectanglePlacement::centred, opacity);
+            GUIHelpers::drawDrawableWithin(g, *m_icon, iconArea.toFloat(), juce::RectanglePlacement::centred, opacity);
 
         content.removeFromLeft(6);
         g.setColour(m_appState.getButtonTextColour().withMultipliedAlpha(opacity));

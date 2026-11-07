@@ -30,6 +30,10 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 add_subdirectory(../modules/tracktion_engine/modules/juce ./cmake_build_juce EXCLUDE_FROM_ALL)
 add_subdirectory(../modules/tracktion_engine/modules ./cmake_build_tracktion EXCLUDE_FROM_ALL)
 
+if(UNIX AND NOT APPLE)
+    link_libraries(atomic)
+endif()
+
 set(HAS_RUBBERBAND 0)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../modules/rubberband/")
     message(STATUS "Found rubberband, enabling")
