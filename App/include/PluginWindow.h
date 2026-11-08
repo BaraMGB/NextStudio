@@ -114,17 +114,24 @@ public:
     void recreateEditorAsync();
 
 private:
+    void paint(juce::Graphics &) override;
+    void resized() override;
     void moved() override;
     void userTriedToCloseWindow() override;
     void closeButtonPressed() override { userTriedToCloseWindow(); }
     float getDesktopScaleFactor() const override { return 1.0f; }
 
+    void setPinned(bool pinned);
+    void updatePinButtonState();
+
     std::unique_ptr<te::Plugin::EditorComponent> editor;
+    std::unique_ptr<juce::Button> m_pinButton;
 
     te::Plugin &plugin;
     te::PluginWindowState &windowState;
     ComputerMidiKeyboardController *m_computerMidiKeyboard{};
     bool m_midiKeyboardAttached{false};
+    bool m_isPinned{false};
     bool updateStoredBounds = false;
 
     static juce::Array<PluginWindow *> s_openWindows;

@@ -580,6 +580,13 @@ if(BUILD_TESTING)
     target_compile_definitions(HeaderPresentationTests PRIVATE JUCE_USE_CURL=0)
     add_test(NAME HeaderPresentation COMMAND HeaderPresentationTests)
 
+    juce_add_console_app(PluginWindowTitleBarLayoutTests PRODUCT_NAME "PluginWindowTitleBarLayoutTests")
+    target_sources(PluginWindowTitleBarLayoutTests PRIVATE tests/PluginWindowTitleBarLayoutTests.cpp)
+    target_include_directories(PluginWindowTitleBarLayoutTests PRIVATE include)
+    target_link_libraries(PluginWindowTitleBarLayoutTests PRIVATE juce::juce_graphics)
+    target_compile_definitions(PluginWindowTitleBarLayoutTests PRIVATE JUCE_USE_CURL=0)
+    add_test(NAME PluginWindowTitleBarLayout COMMAND PluginWindowTitleBarLayoutTests)
+
     juce_add_console_app(ClipFrameDrawingTests PRODUCT_NAME "ClipFrameDrawingTests")
     target_sources(ClipFrameDrawingTests PRIVATE tests/ClipFrameDrawingTests.cpp)
     target_include_directories(ClipFrameDrawingTests PRIVATE include)

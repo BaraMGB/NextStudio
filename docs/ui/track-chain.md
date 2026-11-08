@@ -96,6 +96,12 @@ Bypass stops the plug-in's processing, not editing. Controls, parameter values, 
 
 This treatment applies to embedded effect, MIDI-plug-in, and instrument editors. Separately opened native plug-in windows and modifiers are not recoloured.
 
+### Plugin windows
+
+Separately opened plugin editors have a pin button beside the close button in their title bar. Enable it to keep that individual window above normal windows; disable it to restore normal window-manager stacking. Pinning does not affect other plugin windows, the project, or undo history. The choice lasts only for the lifetime of that host window: a hidden editor retains it when reopened during the same session, while recreated windows and application restarts begin unpinned.
+
+Window managers retain final control of stacking behavior. Windows and macOS use JUCE's native always-on-top request. Linux X11/XWayland sends the EWMH `_NET_WM_STATE_ABOVE` request to the existing host window so native plugin editors are not detached by recreating their parent peer. Native Wayland behavior is not independently provided by the current JUCE backend. Some wlroots-based environments may ignore the XWayland stacking request; pinning is currently ineffective in the tested Hyprland/Omarchy environment, including floating mode.
+
 ### Signal Flow
 
 The section structure ensures correct signal flow — MIDI plugins always process before the instrument, and audio effects always process after. You cannot accidentally place a reverb before your instrument.
