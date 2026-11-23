@@ -6,6 +6,7 @@ Copyright (c) Steffen Baranowsky 2019-2026.
 */
 
 #include "ClipOverwriteCommand.h"
+#include "AudioClipPlayback.h"
 
 #include <chrono>
 #include <cmath>
@@ -256,6 +257,93 @@ void testMultipleRemovalMasks()
     REQUIRE(!ClipEditing::hasOverlaps(*f.track));
 }
 
+class TemporaryMp3File
+{
+public:
+    TemporaryMp3File()
+        : file(juce::File::getSpecialLocation(juce::File::tempDirectory)
+                   .getNonexistentChildFile("NextStudioMp3Playback", ".mp3", false))
+    {
+        const auto fixture = juce::File(__FILE__).getSiblingFile("fixtures").getChildFile("tone-440hz.mp3");
+        REQUIRE(fixture.existsAsFile());
+        REQUIRE(fixture.copyFileTo(file));
+    }
+    ~TemporaryMp3File() { file.deleteFile(); }
+    juce::File file;
+};
+
+void testMp3InsertionUsesDirectPlaybackAndSurvivesUndoRedo()
+{
+    Fixture f;
+    f.track->state.setProperty(::IDs::isMidiTrack, false, nullptr);
+    TemporaryMp3File mp3;
+    REQUIRE(te::AudioFile(f.engine, mp3.file).isValid());
+
+    ClipEditing::Placement insert;
+    insert.mode = ClipEditing::PlacementMode::insertWaveFile;
+    insert.destination = f.track;
+    insert.finalPosition = {{TimePosition::fromSeconds(1.0), TimePosition::fromSeconds(1.25)}, {}};
+    insert.sourceFile = mp3.file;
+    auto result = ClipEditing::applyOverwrite(*f.edit, f.selection, {insert});
+    REQUIRE(result.succeeded && result.clips.size() == 1);
+    if (!result.succeeded || result.clips.isEmpty())
+        return;
+
+    auto *clip = dynamic_cast<te::WaveAudioClip *>(result.clips.getFirst().get());
+    REQUIRE(clip != nullptr);
+    if (clip == nullptr)
+        return;
+    REQUIRE(!clip->canUseProxy());
+    REQUIRE(clip->getPlaybackFile().getFile() == mp3.file);
+    const auto id = clip->itemID;
+    REQUIRE(f.edit->getUndoManager().undo());
+    REQUIRE(te::findClipForID(*f.edit, id) == nullptr);
+    REQUIRE(f.edit->getUndoManager().redo());
+    auto *redone = dynamic_cast<te::WaveAudioClip *>(te::findClipForID(*f.edit, id));
+    REQUIRE(redone != nullptr);
+    if (redone != nullptr)
+    {
+        REQUIRE(!redone->canUseProxy());
+        REQUIRE(redone->getPlaybackFile().getFile() == mp3.file);
+    }
+
+    auto restored = te::Edit::createEditForExamining(f.engine, f.edit->state.createCopy());
+    auto *loaded = dynamic_cast<te::WaveAudioClip *>(te::findClipForID(*restored, id));
+    REQUIRE(loaded != nullptr);
+    if (loaded != nullptr)
+    {
+        REQUIRE(!static_cast<bool>(loaded->state.getProperty(te::IDs::proxyAllowed, true)));
+        REQUIRE(loaded->getPlaybackFile().getFile() == mp3.file);
+    }
+}
+
+void testLegacyMp3BypassesUnreadableProxy()
+{
+    Fixture f;
+    f.track->state.setProperty(::IDs::isMidiTrack, false, nullptr);
+    TemporaryMp3File mp3;
+    auto clip = f.track->insertWaveClip("legacy MP3", mp3.file,
+        {{TimePosition::fromSeconds(1.0), TimePosition::fromSeconds(1.25)}, {}}, false);
+    REQUIRE(clip != nullptr);
+    if (clip == nullptr)
+        return;
+
+    clip->setUsesProxy(true);
+    const auto proxy = clip->getPlaybackFile();
+    REQUIRE(proxy.getFile() != mp3.file);
+    REQUIRE(proxy.getFile().create().wasOk());
+    REQUIRE(!proxy.isValid());
+
+    AudioClipPlayback::useDirectMp3Playback(*f.edit);
+    REQUIRE(!clip->canUseProxy());
+    REQUIRE(clip->getPlaybackFile().getFile() == mp3.file);
+    REQUIRE(clip->getPlaybackFile().isValid());
+    REQUIRE(closeTo(clip->getPosition().getStart().inSeconds(), 1.0));
+    REQUIRE(closeTo(clip->getPosition().getLength().inSeconds(), 0.25));
+    REQUIRE(!AudioClipPlayback::useDirectMp3Playback(*clip));
+    proxy.deleteFile();
+}
+
 void testAudioCopyPreservesFadesTakesAndPlugins()
 {
     Fixture f;
@@ -273,6 +361,7 @@ void testAudioCopyPreservesFadesTakesAndPlugins()
     REQUIRE(source != nullptr);
     if (source == nullptr)
         return;
+    REQUIRE(source->canUseProxy()); // The MP3 policy must not change WAV clips.
     source->setFadeIn(TimeDuration::fromSeconds(0.2));
     source->setFadeOut(TimeDuration::fromSeconds(0.3));
     source->setFadeInType(te::AudioFadeCurve::concave);
@@ -649,6 +738,8 @@ int main()
     testWinnerConflictDoesNothing();
     testStateInsertionAndSourceRemoval();
     testMultipleRemovalMasks();
+    testMp3InsertionUsesDirectPlaybackAndSurvivesUndoRedo();
+    testLegacyMp3BypassesUnreadableProxy();
     testAudioCopyPreservesFadesTakesAndPlugins();
     testAutomationMovesHorizontallyAndVertically();
     testResizeAndTimeStretchPlacementsOverwriteDestination();

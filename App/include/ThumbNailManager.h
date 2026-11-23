@@ -23,12 +23,14 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
 namespace te = tracktion_engine;
-class SimpleThumbnail
+class SimpleThumbnail : private juce::ChangeListener
 {
 public:
-    SimpleThumbnail(te::Engine &engine, te::AudioFile &audioFile);
+    SimpleThumbnail(te::Engine &engine, te::AudioFile &audioFile, std::function<void()> onChange);
+    ~SimpleThumbnail() override;
 
     bool isValid() const { return m_wasSourceLoaded; }
+    const juce::File &getSourceFile() const { return m_sourceFile; }
 
     void drawChannels(juce::Graphics &g, const juce::Rectangle<float> &area, double startTimeSeconds, double endTimeSeconds, int channelNumber, float verticalZoomFactor = 1.0f)
     {
@@ -51,15 +53,18 @@ public:
     void setUseCustomDrawing(bool useCustom) { m_useCustomDrawing = useCustom; }
 
 private:
+    void changeListenerCallback(juce::ChangeBroadcaster *) override;
     void drawChannelsCustom(juce::Graphics &g, const juce::Rectangle<float> &area, double startTimeSeconds, double endTimeSeconds, int channelNumber, float verticalZoomFactor);
 
     juce::AudioThumbnail m_audioThumbnail;
+    juce::File m_sourceFile;
+    std::function<void()> m_onChange;
     bool m_wasSourceLoaded = false;
     bool m_useCustomDrawing = false;
     double m_lengthInSeconds = 0.0;
 };
 
-class ThumbNailManager
+class ThumbNailManager : public juce::ChangeBroadcaster
 {
 public:
     ThumbNailManager(te::Engine &engine)
@@ -71,18 +76,22 @@ public:
 
     SimpleThumbnail *getOrCreateThumbnail(te::WaveAudioClip::Ptr wac)
     {
-        auto it = m_thumbnailMap.find(wac->itemID);
-        if (it != m_thumbnailMap.end())
-            return it->second.get();
-
         te::AudioFile af = wac->getPlaybackFile();
-        if (!af.isValid() && wac->hasAnyTakes())
+        // Compressed audio needs an asynchronous WAV proxy. Its original audio
+        // is already readable, so don't leave the clip blank while waiting.
+        if (!af.isValid() && (wac->hasAnyTakes()
+            || (!wac->usesTimeStretchedProxy() && wac->getAudioFile().getInfo().needsCachedProxy)))
             af = wac->getAudioFile();
 
         if (!af.isValid() || (!af.getFile().existsAsFile() && wac->usesSourceFile()))
             return nullptr;
 
-        auto thumbnail = std::make_unique<SimpleThumbnail>(m_audioEngine, af);
+        auto it = m_thumbnailMap.find(wac->itemID);
+        if (it != m_thumbnailMap.end() && it->second->getSourceFile() == af.getFile())
+            return it->second.get();
+
+        m_thumbnailMap.erase(wac->itemID);
+        auto thumbnail = std::make_unique<SimpleThumbnail>(m_audioEngine, af, [this] { sendChangeMessage(); });
         if (!thumbnail->isValid())
             return nullptr;
 

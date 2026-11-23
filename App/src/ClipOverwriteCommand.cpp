@@ -11,6 +11,7 @@ by the Free Software Foundation, either version 3 of the License, or
 */
 
 #include "ClipOverwriteCommand.h"
+#include "AudioClipPlayback.h"
 
 #include "ScopedSaveLock.h"
 
@@ -506,6 +507,9 @@ Result applyOverwrite(te::Edit &edit, te::SelectionManager &selectionManager,
                 return result;
             }
         }
+
+        if (auto *waveClip = dynamic_cast<te::WaveAudioClip *>(placedClip.get()))
+            AudioClipPlayback::useDirectMp3Playback(*waveClip);
 
         if (placement.finalize && !placement.finalize(*placedClip))
         {

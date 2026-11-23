@@ -95,7 +95,12 @@ juce::var buildClipSummary(const te::Clip &clip)
     object->setProperty("startSeconds", clip.getPosition().getStart().inSeconds());
     object->setProperty("lengthSeconds", clip.getPosition().getLength().inSeconds());
     if (auto *audioClip = dynamic_cast<const te::AudioClipBase *>(&clip))
+    {
         object->setProperty("gainDb", audioClip->getGainDB());
+        object->setProperty("proxyAllowed", static_cast<bool>(audioClip->state.getProperty(te::IDs::proxyAllowed, true)));
+        object->setProperty("sourceFile", sanitiseStateString(audioClip->getOriginalFile().getFullPathName()));
+        object->setProperty("playbackFile", sanitiseStateString(const_cast<te::AudioClipBase *>(audioClip)->getPlaybackFile().getFile().getFullPathName()));
+    }
 
     if (auto *midiClip = dynamic_cast<const te::MidiClip *>(&clip))
     {

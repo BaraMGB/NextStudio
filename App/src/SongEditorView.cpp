@@ -47,10 +47,12 @@ SongEditorView::SongEditorView(EditViewState &evs, MenuBar &toolBar, TimeLineCom
     m_editViewState.m_edit.getTransport().addChangeListener(this);
     m_editViewState.m_selectionManager.addChangeListener(this);
     m_editViewState.m_trackHeightManager->addChangeListener(this);
+    m_editViewState.m_thumbNailManager->addChangeListener(this);
 }
 
 SongEditorView::~SongEditorView()
 {
+    m_editViewState.m_thumbNailManager->removeChangeListener(this);
     m_editViewState.m_trackHeightManager->removeChangeListener(this);
     m_editViewState.m_edit.getTransport().removeChangeListener(this);
     m_editViewState.m_selectionManager.removeChangeListener(this);
@@ -250,6 +252,10 @@ void SongEditorView::changeListenerCallback(juce::ChangeBroadcaster *source)
     else if (source == m_editViewState.m_trackHeightManager.get())
     {
         resized();
+    }
+    else if (source == m_editViewState.m_thumbNailManager.get())
+    {
+        repaint();
     }
 }
 

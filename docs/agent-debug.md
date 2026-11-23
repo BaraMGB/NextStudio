@@ -594,7 +594,7 @@ The dump currently includes:
 - autosave flag
 - transport state
 - selection summary, including selected MIDI-note details and automation-point count
-- track IDs, types, selection, and clip summaries
+- track IDs, types, selection, and clip summaries; audio clips include `gainDb`, `proxyAllowed`, `sourceFile` and `playbackFile` for distinguishing source decoding from cached-proxy playback
 - clip IDs, ranges, and MIDI-note summaries
 - plugin IDs, compact state counts, and parameter IDs/current values/automation-point summaries per track
 

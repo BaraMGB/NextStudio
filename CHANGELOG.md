@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Per-clip audio gain (#102)** — Selected audio clips have a six-pixel circular gain handle centred on a non-interactive guide line below the clip header, plus an exact GAIN field. Dragging adjusts playback and waveform levels live in 0.5 dB steps; selected audio clips keep their relative levels, Escape restores the originals, double-click resets to 0 dB, and each drag is one undoable edit. Gain persists in the project without changing source audio or track volume. The handle is available at the default track height; narrow/minimized clips retain field-based editing.
 - **Arrangement clip context actions** — Wave and MIDI clip context menus can now render the clicked clip to a new audio track, rename it through an immediately focused editor, or delete it. Rename and delete are undoable, rendering keeps the source clip in place and includes only the clicked clip, and Wave **Save As...** remembers the most recently chosen folder for the current application session.
 
+### Fixed
+
+- **MP3 arrangement playback (#112)** — MP3 Wave clips now use buffered direct-source playback, matching the sample preview, instead of depending on a separate cached WAV proxy. This avoids silent clips caused by unreadable proxy files; existing MP3 clips adopt the same setting when their project is opened. WAV playback is unchanged.
+- **MP3 clip waveform refresh (#112)** — Waveforms refresh automatically when background loading completes and follow changes of the playback file. Compressed audio can use the readable source for its waveform while a playback proxy is unavailable.
+
 ## [v0.06-alpha] - 2026-10-27
 
 ### Added

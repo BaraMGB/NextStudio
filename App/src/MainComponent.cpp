@@ -30,6 +30,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "MainComponent.h"
 #include "ArpeggiatorPlugin.h"
+#include "AudioClipPlayback.h"
 #include "ClipOverwriteCommand.h"
 #include "DebugSessionEnvironment.h"
 #include "InitialContentSetup.h"
@@ -724,6 +725,7 @@ bool MainComponent::setupEdit(juce::File editFile, juce::String *errorMessage)
         clearAudioTracks();
 
     m_edit->setTempDirectory(m_tempDir);
+    AudioClipPlayback::useDirectMp3Playback(*m_edit);
 
     if (auto *w = dynamic_cast<juce::DocumentWindow *>(getParentComponent()))
         w->setName(isNewEdit ? "Untitled" : editFile.getFileNameWithoutExtension());

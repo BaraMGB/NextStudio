@@ -61,6 +61,20 @@ xvfb-run -a -s '-screen 0 1600x1000x24' python3 tools/native-folder-collection-r
 
 The fixture requires Linux/X11, Xvfb, Node.js, Python 3.10+, `xdotool`, libX11 and libXfixes. It starts an isolated debug-shell workspace and creates the folder hierarchy through real header drags. Screenshots, model snapshots, checks and the binary hash go into the new output directory. `--appearance` additionally switches the isolated application's built-in Dark/Light presets through Settings and captures expanded, collapsed, hovered, selected and drag-preview states without committing the preview. Visually inspect these images; they are not pixel-baseline assertions. This covers a two-MIDI-track folder at 100% scale, not physical audio output, other platforms or native fractional scaling. Nested folders and persistence have model coverage; visually review dense, mixed audio/MIDI and deeply nested projects separately.
 
+## Audio import and waveform refresh
+
+On a private Linux/X11 display at 1600×1000 and 100% scale:
+
+```bash
+xvfb-run -a -s '-screen 0 1600x1000x24' sh -c 'python3 tools/native-audio-import-regression.py --display "$DISPLAY" --output /path/to/new-evidence-directory'
+```
+
+Requires the native cursor fixture dependencies above, FFmpeg, Pillow and a running PipeWire server (`pw-cli`, `pw-dump`, `pw-record`). The isolated debug-shell fixture generates mono CBR MP3, stereo VBR MP3, 48 kHz stereo CBR MP3 and a WAV control, drags each onto a Wave track, and checks clip type, duration, placement and actual source/playback paths. Actual desktop captures verify that asynchronous waveform loading repaints without further input; debug screenshots would themselves repaint and mask this bug. The fixture routes NextStudio to its own temporary virtual sink, starts real transport playback, records the device output and requires both non-silent samples and the generated 440 Hz tone. Decoding a proxy alone is not evidence of successful playback. No system default is explicitly changed and the application is not routed to speakers.
+
+The broken-cache case pre-seeds an unreadable WAV proxy before importing a valid MP3. It checks audible preview, direct arrangement playback despite that cache entry, and actual playback after saving/reopening a legacy project with `proxyAllowed=1`. `--broken-proxy-only` runs just this scenario. `ClipOverwriteCommandTests` also uses the generated MP3 fixture in `App/tests/fixtures/` to verify direct playback configuration, WAV exclusion, legacy migration, persistence and atomic undo/redo.
+
+Evidence includes output recordings, PipeWire graphs, live captures, model snapshots, results and the binary hash. Coverage does not include physical speakers/hardware drivers, Windows/macOS, damaged source MP3s or all encoders; the seeded bad-cache scenario reproduces one concrete failure mechanism, not proof of the cause of every reported silent clip.
+
 ## Run all tests
 
 The simplest workflow is:

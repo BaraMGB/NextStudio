@@ -50,6 +50,14 @@ Collection blocks have no resize, fade or gain handles. The Knife splits every r
 
 Model coverage lives in `App/tests/FolderCollectionTests.cpp`; real collapsed-folder input coverage lives in `tools/native-folder-collection-regression.py`. See [Testing](../development/testing.md#folder-collection-validation).
 
+## MP3 Wave-clip playback
+
+`AudioClipPlayback::useDirectMp3Playback()` in `App/include/AudioClipPlayback.h` sets `proxyAllowed=false` for MP3-backed Wave clips, matching Tracktion's `Edit::createEditForPreviewingFile()`. The arrangement then uses the buffered source decoder rather than relying on a separate cached WAV. An unreadable cached proxy must not make an otherwise playable MP3 silent. Other formats keep their existing playback policy.
+
+`ClipEditing::applyOverwrite()` applies this policy within the placement transaction, so insertion/copy and undo/redo retain it. `MainComponent::setupEdit()` also applies it to MP3 clips in loaded projects, including nested container contents, before the playback/UI hierarchy is created. The flag is persisted in clip state; startup housekeeping remains outside the user's undo history.
+
+Waveform loading is separate from audio playback: `SimpleThumbnail` forwards JUCE thumbnail changes through `ThumbNailManager` to repaint `SongEditorView`. The cache tracks the source file as well as the clip ID. See [audio import validation](../development/testing.md#audio-import-and-waveform-refresh) for actual device-output checks.
+
 ## Clip context actions, Wave export and track-aware plug-in drops
 
 A plain clip press records pending selection instead of immediately replacing the current Track List selection. A release without dragging applies the normal click/Ctrl-toggle result. Once a drag begins, `TrackLaneComponent` selects the grabbed clip as required by arrangement move/copy helpers while retaining selected tracks; this keeps the currently displayed Track Chain available. Fade gestures remain on their direct path. Drop completion clears pending click state so a pad drop cannot also move the source clip.

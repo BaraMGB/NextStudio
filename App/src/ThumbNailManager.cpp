@@ -21,12 +21,26 @@ along with this program.  If not, see https://www.gnu.org/licenses/.
 
 #include "ThumbNailManager.h"
 
-SimpleThumbnail::SimpleThumbnail(te::Engine &engine, te::AudioFile &audioFile)
-    : m_audioThumbnail(128, engine.getAudioFileFormatManager().readFormatManager, engine.getAudioFileManager().getAudioThumbnailCache())
+SimpleThumbnail::SimpleThumbnail(te::Engine &engine, te::AudioFile &audioFile, std::function<void()> onChange)
+    : m_audioThumbnail(128, engine.getAudioFileFormatManager().readFormatManager, engine.getAudioFileManager().getAudioThumbnailCache()),
+      m_sourceFile(audioFile.getFile()),
+      m_onChange(std::move(onChange))
 {
+    m_audioThumbnail.addChangeListener(this);
     auto *inputSource = new juce::FileInputSource(audioFile.getFile());
     m_wasSourceLoaded = m_audioThumbnail.setSource(inputSource);
     m_lengthInSeconds = audioFile.getLength();
+}
+
+SimpleThumbnail::~SimpleThumbnail()
+{
+    m_audioThumbnail.removeChangeListener(this);
+}
+
+void SimpleThumbnail::changeListenerCallback(juce::ChangeBroadcaster *)
+{
+    if (m_onChange)
+        m_onChange();
 }
 
 void SimpleThumbnail::drawChannelsCustom(juce::Graphics &g, const juce::Rectangle<float> &area, double startTimeSeconds, double endTimeSeconds, int channelNumber, float verticalZoomFactor)
