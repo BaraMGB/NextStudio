@@ -68,7 +68,18 @@ juce_add_binary_data(Pictures SOURCES
     saw.svg
     rnd.svg
     tri.svg
-    square.svg)
+    square.svg
+    cursors/cursorArrow.svg
+    cursors/cursorText.svg
+    cursors/cursorCrosshair.svg
+    cursors/cursorHorizontal.svg
+    cursors/cursorEdgeLeft.svg
+    cursors/cursorVertical.svg
+    cursors/cursorDiagonalDown.svg
+    cursors/cursorDiagonalUp.svg
+    cursors/cursorEdgeRight.svg
+    cursors/cursorEdgeTop.svg
+    cursors/cursorEdgeBottom.svg)
 
 file(GLOB THEMES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} Themes/*.nxttheme)
 file(GLOB_RECURSE SAMPLES_707 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} Samples/707/*)

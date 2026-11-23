@@ -36,6 +36,8 @@ public:
     {
     }
 
+    juce::MouseCursor getMouseCursorFor(juce::Component &) override;
+
     juce::Colour getPrimeColour() const { return m_appState.getPrimeColour(); }
     juce::Colour getBackgroundColour1() const { return m_appState.getBackgroundColour1(); }
     juce::Colour getBackgroundColour2() const { return m_appState.getBackgroundColour2(); }
@@ -687,6 +689,8 @@ public:
 
 private:
     ApplicationViewState &m_appState;
+    std::array<std::optional<juce::MouseCursor>, juce::MouseCursor::NumStandardCursorTypes> m_cursorCache;
+    float m_cursorCacheScale = 0.f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NextLookAndFeel)
 };

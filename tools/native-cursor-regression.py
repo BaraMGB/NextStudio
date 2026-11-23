@@ -138,7 +138,7 @@ class Session:
     def click(self, x, y):
         self.x("mousemove", x, y, "click", 1)
 
-    def cursor(self, name):
+    def cursor(self, name, expected_hotspot=None):
         ptr = self.fixes.XFixesGetCursorImage(self.display)
         if not ptr:
             raise RuntimeError("XFixes cursor capture failed")
@@ -151,6 +151,8 @@ class Session:
                 raise RuntimeError(f"Invisible cursor: {name}")
             (self.output / (name + ".json")).write_text(json.dumps(result, indent=2) + "\n")
             write_png(self.output / (name + ".png"), c.width, c.height, rgba)
+            if expected_hotspot is not None and (result["size"] != [24, 24] or result["hotspot"] != expected_hotspot):
+                raise RuntimeError(f"{name}: expected NextStudio 24px artwork with hotspot {expected_hotspot}, got {result}")
             return result["hash"]
         finally:
             self.x11.XFree(ptr)
@@ -196,14 +198,14 @@ def transitions(s):
     before = s.model("before-model")
     references = {}
     areas = [("gap", 827), ("body", 770), ("left", 751), ("right", 788)]
-    for tool, button in [("pointer", 837), ("stretch", 960)]:
+    for tool, button in [("pointer", 837), ("stretch", 1000)]:
         for area, x in areas:
             s.click(button, 104)
             s.x("mousemove", x, 236)
             references[tool, area] = s.cursor(f"reference-{tool}-{area}")
     if len({references["pointer", area] for area, _ in areas}) != 4:
         raise RuntimeError("Fixture invalid: gap/body/both-edge reference cursors must differ")
-    for tool, keys in [("pointer", ["shift+Tab", "shift+Tab", "Return"]), ("stretch", ["Tab", "Return"])]:
+    for tool, keys in [("pointer", ["shift+Tab", "shift+Tab", "Return"]), ("stretch", ["Tab", "Tab", "Return"])]:
         for area, x in areas:
             s.click(919, 104)
             s.x("mousemove", x, 236)
@@ -221,13 +223,13 @@ def transitions(s):
         s.x("mousemove", x, 236)
         s.x("key", "shift+Tab", "shift+Tab", "Return")
         s.check("range-to-pointer-selected-" + area, expected)
-        s.x("key", "Tab", "Tab", "Tab", "Tab", "Return")
-        s.x("key", "shift+Tab", "shift+Tab", "shift+Tab", "shift+Tab", "Return")
+        s.x("key", "Tab", "Tab", "Tab", "Return")
+        s.x("key", "shift+Tab", "shift+Tab", "shift+Tab", "Return")
         s.check("knife-to-pointer-selected-" + area, expected)
     s.click(837, 104)
     s.x("mousemove", 827, 566)
     normal = s.cursor("reference-master")
-    for tool, keys in [("pointer", ["shift+Tab", "shift+Tab", "Return"]), ("knife", ["Tab", "Tab", "Return"])]:
+    for tool, keys in [("pointer", ["shift+Tab", "shift+Tab", "Return"]), ("knife", ["Tab", "Return"])]:
         s.click(919, 104)
         s.x("mousemove", 827, 566)
         s.x("key", *keys)
@@ -248,12 +250,12 @@ def working_areas(s):
     time.sleep(0.5)
     s.shell("screenshot 1600", "wide-fixture.png")
     s.x("mousemove", 700, 600)
-    normal = s.cursor("reference-normal")
+    normal = s.cursor("reference-normal", expected_hotspot=[3, 2])
     modes = {}
     for tool, button in [("draw", 788), ("eraser", 870), ("knife", 911), ("range", 829), ("lasso", 951)]:
         s.click(button, 625)
         s.x("mousemove", 650, 800)
-        mode = s.cursor("reference-" + tool)
+        mode = s.cursor("reference-" + tool, expected_hotspot=[12, 12] if tool in ("range", "lasso") else None)
         modes[tool] = mode
         if mode == normal:
             raise RuntimeError(f"Fixture invalid: {tool} reference must differ from pointer")
@@ -268,7 +270,7 @@ def working_areas(s):
             return False
     if len(set(modes.values())) != 5:
         raise RuntimeError("Fixture invalid: tool reference cursor images must differ")
-    s.click(1000, 104)
+    s.click(960, 104)  # Song Knife; Time Stretch follows it in the toolbar.
     for area, x in [("clip", 769), ("gap", 827)]:
         s.x("mousemove", x, 236)
         s.check("song-knife-" + area, modes["knife"])

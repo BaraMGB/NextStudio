@@ -129,6 +129,8 @@ Include exactly adjoining fractional-length clips, not just whole-beat examples:
 
 The working-area contracts belong in [Piano Roll](../components/piano-roll-editor.md#tool-cursor-working-areas) and [Song Editor](../components/song-editor.md#cursor-working-areas-and-stationary-changes). These direct GUI assignments require real OS cursor checks, not a helper reproducing the policy.
 
+NextStudio components request semantic JUCE cursor roles. `NextLookAndFeel::getMouseCursorFor` resolves inheritance, maps every visible standard role to bundled `App/resources/cursors/` artwork at the configured mouse scale, and passes existing custom tool cursors and intentionally hidden cursors through. Native window decorations, system dialogs and third-party plug-in UIs are outside this policy. The 100% working-area fixture checks the native size and hotspots of the normal arrow, range and lasso cursors so an X11 fallback is not accepted as the reference.
+
 `tools/native-cursor-regression.py` contains two maintained Linux/X11 procedures derived from the #90 scripts:
 
 - **Working areas:** 53 cursor comparisons for MIDI tool clip/gap/empty-row/re-entry behavior, Lasso/Range empty space, Song Knife clip/gap and Master. Full musical clip/note records must remain unchanged.
