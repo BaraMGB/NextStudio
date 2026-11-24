@@ -12,16 +12,40 @@
 #include "TimelineInteractionPreview.h"
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <limits>
+#include <source_location>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
 namespace te = tracktion_engine;
 namespace
 {
-void require(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
-void near(double a, double b, double tolerance = 1.0e-8) { require(std::abs(a - b) < tolerance, "position mismatch"); }
+void require(bool ok, const char* message,
+             const std::source_location location = std::source_location::current())
+{
+    if (!ok)
+    {
+        std::ostringstream diagnostic;
+        diagnostic << location.file_name() << ':' << location.line() << ':' << location.column()
+                   << " in " << location.function_name() << ": " << message;
+        throw std::runtime_error(diagnostic.str());
+    }
+}
+void near(double actual, double expected, double tolerance = 1.0e-8,
+          const std::source_location location = std::source_location::current())
+{
+    if (!(std::abs(actual - expected) < tolerance))
+    {
+        std::ostringstream diagnostic;
+        diagnostic << std::setprecision(std::numeric_limits<double>::max_digits10)
+                   << "position mismatch: actual=" << actual << ", expected=" << expected
+                   << ", difference=" << std::abs(actual - expected) << ", tolerance=" << tolerance;
+        require(false, diagnostic.str().c_str(), location);
+    }
+}
 tracktion::BeatPosition beat(double b) { return tracktion::BeatPosition::fromBeats(b); }
 tracktion::TimePosition time(double t) { return tracktion::TimePosition::fromSeconds(t); }
 TimelineSnapResolver fixed(const te::TempoSequence& tempo, double interval = 1, double scale = 1, double bpp = .01)

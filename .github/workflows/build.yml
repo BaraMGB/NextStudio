@@ -52,10 +52,11 @@ jobs:
               echo 'matrix=[{"os":"macos-latest","platform":"macos-arm64"}]' >> $GITHUB_OUTPUT
               ;;
             linux)
-              echo 'matrix=[{"os":"ubuntu-latest","platform":"linux-x64"}]' >> $GITHUB_OUTPUT
+              # Keep the Linux toolchain stable; investigate newer images separately.
+              echo 'matrix=[{"os":"ubuntu-24.04","platform":"linux-x64"}]' >> $GITHUB_OUTPUT
               ;;
             *)
-              echo 'matrix=[{"os":"ubuntu-latest","platform":"linux-x64"},{"os":"windows-latest","platform":"windows-x64"},{"os":"macos-latest","platform":"macos-arm64"}]' >> $GITHUB_OUTPUT
+              echo 'matrix=[{"os":"ubuntu-24.04","platform":"linux-x64"},{"os":"windows-latest","platform":"windows-x64"},{"os":"macos-latest","platform":"macos-arm64"}]' >> $GITHUB_OUTPUT
               ;;
           esac
 
